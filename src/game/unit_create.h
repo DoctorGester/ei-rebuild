@@ -112,6 +112,4 @@ template <typename T>
 T* RecordAt(std::vector<T>& records, std::uint32_t index) {
     return index < records.size() ? &records[index] : nullptr;
 }
-UnitPrototypeTable& PrototypeTable();   // the unit database's first table
-NpcPrototypeTable& NpcTable();          // its second
 } // namespace unitdb

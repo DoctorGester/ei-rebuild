@@ -44,7 +44,7 @@ void SendSay(const std::string& text) {
     auto* say = net::NewCounted<net::SayMessage>();
     // A failed allocation is not checked from here on.
     say->text_ = text;
-    net::GameClient()->AddTimed(say, kSayLifetime);
+    net::g_gameClient->AddTimed(say, kSayLifetime);
 }
 } // namespace
 

@@ -23,7 +23,6 @@ namespace {
 using ColourArray = std::vector<std::uint32_t>;
 
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E60*/ {};
-std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
@@ -40,7 +39,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
 }
 
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
-    std::vector<VertexPacket>& moved = MovedPositions();
+    std::vector<VertexPacket>& moved = g_movedPositions;
     int blocks = mesh->buffers_.vertexCount;
     moved.resize(blocks);
     if (blocks) std::memcpy(moved.data(), mesh->buffers_.vertices, static_cast<std::size_t>(blocks) * 64);
@@ -63,7 +62,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     if (mesh_->flags_ & 0x80) return 1;
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
-        MovedPositions() = std::vector<VertexPacket>{};
+        g_movedPositions = std::vector<VertexPacket>{};
         std::atexit(FreeMovedPositions);
     }
     int drawFlags = 0;

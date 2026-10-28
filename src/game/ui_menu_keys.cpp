@@ -34,9 +34,8 @@ constexpr std::uint32_t kCloseOptions = 0x110001;
 constexpr int kListRows = 16;            // visible rows of the save list
 constexpr int kOptionRows = 14;
 
-// The key name table (88 entries of 0x48 bytes).
-const UiKeyName* KeyNamesBegin() { return g_keyNames; }
-const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
+// The end of the key name table (88 entries of 0x48 bytes).
+const UiKeyName* KeyNamesEnd() { return g_keyNames + kUiKeyNameCount; }
 
 } // namespace
 
@@ -202,7 +201,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         const UiKeyName* pressed = nullptr;
         pressedKey_ = nullptr;
-        for (const UiKeyName* k = KeyNamesBegin(); k < KeyNamesEnd(); ++k) {
+        for (const UiKeyName* k = g_keyNames; k < KeyNamesEnd(); ++k) {
             if (k->scan_ == scan) {
                 pressed = k;
                 pressedKey_ = k;

@@ -26,7 +26,6 @@ float SectorRadius() { return 80.0f /*00741F1C*/; }
 float TexelBottom() { return 254.0f /*0073D03C*/; }
 float TexelLeft() { return 2.0f /*0073CDB8*/; }
 float LayoutBottom() { return 600.0f /*00742B0C*/; }
-int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;
@@ -105,7 +104,7 @@ void CHudClock::SetupVanilla(int fast) {
 
     fast_ = fast;
     blink_ = 0.0f;
-    UpdatePeriod() = fast ? kFastPeriod : kNormalPeriod;
+    worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
     interface_->fastGame_ = fast_;
     highlight_ = false;
     dial_ = 0.0f;

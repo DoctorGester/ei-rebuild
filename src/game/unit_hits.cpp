@@ -77,7 +77,7 @@ void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int worn
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= kZero) return;
     float before = item->condition_;
-    float threshold = item->conditionMax_ * GameLogicSettings().itemDurabilityCritical;
+    float threshold = item->conditionMax_ * g_logicSettings.itemDurabilityCritical;
     int pieces = static_cast<int>(item->count_);   // the wear is shared between the stack's pieces
     if (pieces > 0) {
         item->condition_ = static_cast<float>(item->condition_ - amount / static_cast<double>(pieces));   // exact
@@ -177,7 +177,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     DamageInfo copy = *hit;
     if (copy.amount == kZero) return 0;
     float difficulty = unit->player ? kOne
-                                    : GameLogicSettings().absorption[options::TheOptions()->difficulty_];
+                                    : g_logicSettings.absorption[options::TheOptions()->difficulty_];
     float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -

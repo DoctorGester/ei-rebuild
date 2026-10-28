@@ -280,7 +280,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
     const HighestObject& highest = Highest(world);
     if (!render::ShadowCasterArea(static_cast<float>(highest.top), static_cast<float>(highest.widest), &area)) return;
     // Only a multiplayer spectator's view leaves out the units it cannot see.
-    const bool allUnits = !(options::TheOptions()->drawVisibleOnly_ != 0 && world->Session()->sessionKind100_ == 1);
+    const bool allUnits = !(options::TheOptions()->drawVisibleOnly_ != 0 && world->session_->sessionKind100_ == 1);
 
     auto cell = [](float v, std::uint32_t cells) {
         if (!(v > 0.0f)) return 0u;

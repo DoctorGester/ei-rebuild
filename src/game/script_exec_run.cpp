@@ -60,11 +60,11 @@ void RespawnFxSources(CScript* script) {
         if (fx.idle) continue;
         if (--fx.countdown > 0) continue;
         int minDelay = fx.minDelay;
-        fx.countdown = static_cast<int>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
+        fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
         auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
-        float yOffset = FxOffset(fx.spread, IsaacRandom::Global().Next());
-        float x = FxOffsetPlus(fx.spread, IsaacRandom::Global().Next(), fx.position.x);
+        float yOffset = FxOffset(fx.spread, g_random.Next());
+        float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
         float y = yOffset + fx.position.y;
         float z = fx.position.z;
         sound->localPosition_.x = x;

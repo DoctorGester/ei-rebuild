@@ -128,7 +128,7 @@ void FinishTextureHolder(CDXSurface* holder, int width, int height, int bitsPerP
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ++device::HolderCount();
+    ++device::g_holderCount;
 }
 
 } // namespace
@@ -177,7 +177,7 @@ CDXSurface::CDXSurface(CTextureDevice* deviceIn, int widthIn, int heightIn) : de
     width = widthIn;
     height = heightIn;
     bitsPerPixel = static_cast<int>(format.words[kBits]);
-    ++device::HolderCount();
+    ++device::g_holderCount;
 }
 
 namespace {
@@ -281,12 +281,12 @@ int CDXSurface::LoadPictureData(const MmpHeader* picture, int /*flag*/) {
 CDXSurface::CDXSurface(CTextureDevice* deviceIn, const MmpHeader* picture, int flag) : device(deviceIn) {
     if (!LoadPictureData(picture, flag)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
-    ++device::HolderCount();
+    ++device::g_holderCount;
 }
 
 // Releases the new renderer's memory (the surface, in the game).
 CDXSurface::~CDXSurface() {
     render::HolderGone(this);   // its memory, and a picture kept for it
     device = nullptr;
-    --device::HolderCount();
+    --device::g_holderCount;
 }

@@ -75,7 +75,7 @@ bool NetworkGame() { return IsMultiplayerClient(); }
 
 void EndLine(Stream& os) { (os << '\n').Flush(); }
 
-void PrintLine(const char* text) { EndLine(Out() << text); }
+void PrintLine(const char* text) { EndLine(g_consoleOut << text); }
 
 // ---- Console streambuf --------------------------------------------------------------------------
 
@@ -105,7 +105,7 @@ void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
     TheInterface()->ConsoleAddText(line_.c_str());
-    line_ = game::EmptyText();
+    line_ = game::kEmptyText;
 }
 
 // ---- Executor -----------------------------------------------------------------------------------
@@ -247,7 +247,7 @@ void RunScriptLine(const std::string& text, const Arguments& args, const char* p
     }
     line += suffix;
     if (!RunScriptText(line, 1, &error))
-        EndLine(Out() << "Script error: " << error.text.c_str());
+        EndLine(g_consoleOut << "Script error: " << error.text.c_str());
 }
 
 } // namespace console

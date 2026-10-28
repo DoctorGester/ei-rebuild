@@ -49,13 +49,13 @@ int CPlayerClient::OnLoginAccepted() {
     int id;
     in_.Read(&id, 4);
     state_ = kStateLoggedIn;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     static_cast<CPlayerManager*>(player->owner_)->ChangeId(player, id);
     return 1;
 }
 
 int CPlayerClient::OnDisconnect() {
-    Owner()->Disconnect();
+    player_->Disconnect();
     return 1;
 }
 
@@ -68,7 +68,7 @@ int CPlayerClient::OnCameraPlacement() {
     const int result = static_cast<int>(in_.Read(&mode, 4));
     TheClientWorld()->CentreOn(&point);
     CCamera* camera = TheCamera();
-    const char* zone = Owner()->Party()->zone_.c_str();
+    const char* zone = player_->Party()->zone_.c_str();
     if (std::strcmp(zone,
                         FixedViewZone()) == 0) {
         CameraView view;
@@ -84,7 +84,7 @@ int CPlayerClient::OnCameraPlacement() {
 }
 
 int CPlayerClient::OnGameState() {
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind100_);
     int state;
     in_.Read(&state, 4);
@@ -147,7 +147,7 @@ int CPlayerClient::OnWorldValue() {
     in_.Read(bytes, 5);
     int value;
     std::memcpy(&value, bytes + 1, 4);
-    Owner()->ClientWorld()->SetWorldValue(value);
+    player_->ClientWorld()->SetWorldValue(value);
     return 1;
 }
 
@@ -156,7 +156,7 @@ int CPlayerClient::OnItemValue() {
     in_.Read(&id, 4);
     float value;
     in_.Read(&value, 4);
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CItem* item = FindItem(player->Party()->ItemManager(), static_cast<unsigned>(id));
     if (item) {
         item->charge_ = value;
@@ -171,7 +171,7 @@ int CPlayerClient::OnWeaponRemoved() {
     int index;
     in_.Read(&index, 4);
     // The party (an embedded CParty) seen as its record array.
-    PartyUnitRecord* record = Owner()->Party()->Find(unitId);
+    PartyUnitRecord* record = player_->Party()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
         record->RemoveWeapon(record->weapons[index]);
     if (CUnit* unit = FindClientUnit(unitId)) unit->Controller()->ShowWeapon(0xFFFFFFFFu);
@@ -208,7 +208,7 @@ int CPlayerClient::OnUnitControl() {
 int CPlayerClient::OnObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::MapObjectMap& known = Owner()->knownObjects_;
+    CPlayer::MapObjectMap& known = player_->knownObjects_;
     auto node = known.find(id);
     if (node == known.end()) return 0;
     CMapObject* object = node->second;
@@ -222,7 +222,7 @@ int CPlayerClient::OnObjectChanged() {
 int CPlayerClient::OnObjectRemoved() {
     int id;
     in_.Read(&id, 4);
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     if (auto unit = player->units_.find(id); unit != player->units_.end()) unit->second->SetPlayer(nullptr);
     auto node = player->knownObjects_.find(id);
     if (node == player->knownObjects_.end()) return 0;
@@ -246,7 +246,7 @@ int CPlayerClient::OnTimedObjectAdded() {
     int message[2];   // id, type
     in_.Read(message, 8);
     const int id = message[0];
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CBaseManager* manager = player->WorldContext()->TimedObjectManager();
     auto* object = manager->CreateObjectAs<CEffect>(message[1], id);
     if (!object) return 0;
@@ -260,7 +260,7 @@ int CPlayerClient::OnTimedObjectAdded() {
 int CPlayerClient::OnTimedObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::TimedObjectMap& known = Owner()->knownTimed_;
+    CPlayer::TimedObjectMap& known = player_->knownTimed_;
     auto node = known.find(id);
     if (node == known.end()) return 0;
     return node->second->Receive(1, &in_) != 0 ? 1 : 0;
@@ -269,7 +269,7 @@ int CPlayerClient::OnTimedObjectChanged() {
 int CPlayerClient::OnTimedObjectRemoved() {
     int id;
     in_.Read(&id, 4);
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     auto node = player->knownTimed_.find(id);
     if (node == player->knownTimed_.end()) return 0;
     CEffect* object = node->second;
@@ -315,9 +315,9 @@ void CPlayerClient::NotifyUnitChanged(CUnit* unit) {
     if (unit->player) TheInterface()->OnUnitJoined(unit);
     else TheInterface()->OnUnitLeft(unit);
     if (!IsMultiplayerClient()) return;
-    CParty* party = Owner()->Party();
+    CParty* party = player_->Party();
     if (std::ssize(party->members_) != 1 || static_cast<int>(party->members_[0].unitId) != unit->id_) return;
-    auto* login = net::GameClient()->player_.Get();
+    auto* login = net::g_gameClient->player_.Get();
     login->id_ = unit->player ? unit->id_ : -1;
     ++login->version_;
 }

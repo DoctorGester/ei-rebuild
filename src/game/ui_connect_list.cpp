@@ -23,8 +23,6 @@
 
 namespace {
 
-std::uint32_t& TextColour() { return g_connectTextColour; }
-
 constexpr std::uint32_t kColourAsked = 0x31B3FF;    // an entry in state 1 (asked directly)
 constexpr std::uint32_t kColourState2 = 0x31E3EE;   // in state 2
 constexpr std::uint32_t kColourPlain = 0xA7D7E4;
@@ -69,7 +67,7 @@ float SortArrowX(int column) {
 }
 
 void DrawLabel(CUiSurface* surface, std::string_view text, RECT* rect, int format) {
-    surface->DrawTextIn(text, rect, kFont, TextColour(), format, 1);
+    surface->DrawTextIn(text, rect, kFont, g_connectTextColour, format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut at a character's end) and
@@ -137,7 +135,7 @@ void CMpConnectScreen::DrawListVanilla() {
         arrow->Place(SortArrowX((sortKey_ - 1) / 2), 116.0f, 4.0f);
     }
     // The line under the titles.
-    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, TextColour()));
+    gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, g_connectTextColour));
     HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
     POINT from{8, row.bottom - 2};
     POINT to{layout.lineRight, row.bottom - 2};
@@ -156,7 +154,7 @@ void CMpConnectScreen::DrawListVanilla() {
             sprite(kSpriteSelection)->Place(layout.selectionX, static_cast<float>(y), 3.0f);
         }
         const MpAddressEntry& entry = entries_[index];
-        TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
+        g_connectTextColour = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
             text = str::Format("%s %s", label(7), nameEdit_->text_.c_str());
@@ -192,7 +190,7 @@ void CMpConnectScreen::DrawListVanilla() {
     for (int i = kSpriteTabFirst; i < kSpriteTabEnd; ++i) sprite(i)->visible_ = 0;
     if (selected_ >= 0 && static_cast<unsigned>(selected_) < static_cast<unsigned>(entries_.size())) {
         // The selected entry's details.
-        TextColour() = kColourPlain;
+        g_connectTextColour = kColourPlain;
         const MpAddressEntry& entry = entries_[selected_];
         row = RECT{340, 20, 590, 44};
         if (selected_ == 0) {
@@ -220,7 +218,7 @@ void CMpConnectScreen::DrawListVanilla() {
             text = str::Format("%s %s", label(0), entry.name.c_str());
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
-                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
+                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, g_connectTextColour, 0, 1);
                 row.top += lines * kRowHeight - kRowHeight;
                 row.bottom += lines * kRowHeight - kRowHeight;
             } else {
@@ -237,7 +235,7 @@ void CMpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             text = str::Format("%s %s", label(4), entry.description.c_str());
-            int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
+            int lines = surface->DrawWrappedText(text, &row, 3, kFont, g_connectTextColour, 0, 1);
             for (; lines != 0; --lines) Down(&row);
             std::string address = entry.address.ToString();
             text = str::Format("%s %s", label(5), address.data());

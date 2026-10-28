@@ -13,8 +13,6 @@
 // The game's generator: unseeded (the static initialiser zeroes seeded_; Init seeds it on first use).
 IsaacRandom g_random = /*007A9D40*/ {};
 
-IsaacRandom& IsaacRandom::Global() { return g_random; }
-
 namespace {
 IsaacRandom::SeedHook g_seedHook;
 IsaacRandom::DrawObserver g_drawObserver;

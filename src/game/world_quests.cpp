@@ -160,7 +160,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
-    PartyOf(player)->Money() += static_cast<int>(libcrt::Ftol(record->money));
+    PartyOf(player)->money_ += static_cast<int>(libcrt::Ftol(record->money));
 
     std::list<CItem*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {
@@ -280,7 +280,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
-            party->AddMember(v.merc.c_str(), prototype, game::EmptyText());
+            party->AddMember(v.merc.c_str(), prototype, game::kEmptyText);
         }
     }
     UpdateMercBriefings();

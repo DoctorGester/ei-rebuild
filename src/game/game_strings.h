@@ -10,7 +10,6 @@ namespace game {
 // The exe's empty string (""): the game's text readers, CString assignments and string compares fall back to
 // it (they copy or compare its text).
 inline constexpr char kEmptyText[1] = /*0079B298*/ "";
-inline const char* EmptyText() { return kEmptyText; }
 
 // The texture manager's FatalError.
 inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }

@@ -59,7 +59,7 @@ int CWorldServer::Create() {
     sendsStartPosition_ = 0;
     loadedFresh_ = 1;
     keepsState_ = 1;
-    zoneName_ = game::EmptyText();
+    zoneName_ = game::kEmptyText;
     gameResult_ = 0;
     mobFiles_.clear();
     return 1;

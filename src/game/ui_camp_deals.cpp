@@ -293,7 +293,7 @@ void CCampPages::DoAction() {
     default:
         break;
     }
-    PlayerParty()->Money() -= cost_;
+    PlayerParty()->money_ -= cost_;
 }
 
 // --- the second action button --------------------------------------------------------------------

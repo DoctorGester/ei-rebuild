@@ -86,7 +86,7 @@ public:
     // lookup that could fail, a missing prototype, cannot happen after the record was read.)
     BOOL FillFromPrototype(PartyUnitRecord* record);
     // The multiplayer hero's starting equipment: `record`'s spells and weapons released and removed (from the
-    // front), then, from the NPC record of its prototype (text 5; NpcTable's operator[], which adds an empty
+    // front), then, from the NPC record of its prototype (text 5; g_unitDatabase->npcs' operator[], which adds an empty
     // entry for an unknown name), copies of the start spells (appended), quick items and weapons (each at its
     // list's count, SetAtGrow), the start money added to the party's, the start experience to the record's
     // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.
@@ -119,7 +119,6 @@ public:
     void ArchiveParty(ChunkArchive* ar);
     // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
     CParty* Assign(CParty* source);
-    int& Money() { return money_; }
 
     CItemManager* itemManager_;
     CItemConstructor* itemConstructor_;
@@ -127,7 +126,7 @@ public:
     CSpellConstructor* spellConstructor_;
     std::vector<PartyUnitRecord> members_;
     PartyItemArray items_;
-    int money_;                 // the party's money (Money(); cleared by Clear, saved masked)
+    int money_;                 // the party's money (money_; cleared by Clear, saved masked)
     NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)
     std::string zone_;           // the zone name ("gz1g" after a new game)
     std::uint32_t entrance_;      // the zone exit the party arrives by (cleared by Clear)

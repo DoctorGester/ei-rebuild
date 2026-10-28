@@ -74,7 +74,7 @@ int CWorldClient::CollectVisible(SectorList* list, const Matrix4* view, float an
     int touched = 0;
     // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
-    if (g_multiplayerView != 0 && Session()->sessionKind100_ == 1) drawAllUnits = false;
+    if (g_multiplayerView != 0 && session_->sessionKind100_ == 1) drawAllUnits = false;
 
     for (CMapObject* object : *list) {
         if (object && Object3D(object)->attached) {

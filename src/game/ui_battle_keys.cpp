@@ -1,6 +1,6 @@
 // The battle screen's key-down handler (input side): the chat line's keys on a
 // network client, the panels' own keys, Esc (the pending action dropped, else the escape menu) and
-// the key actions of the key table (KeyActions): pause and game speed, the objectives window, the
+// the key actions of the key table (g_keyActions): pause and game speed, the objectives window, the
 // camera, the order keys, movement modes, the action, spell, weapon and quick item buttons, the
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
 // members and the message window. Rebirth's MPSpeedControl (the two JNEs
@@ -39,7 +39,6 @@ const char* FollowName() { return "follow"; }
 const char* ScienceName() { return "science"; }
 
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
@@ -148,7 +147,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
 
-    const int action = KeyActions()[flags & kScanCodeMask];
+    const int action = g_keyActions[flags & kScanCodeMask];
     CCamera* camera = TheCamera();
     switch (action) {
     case kActionPause: {
@@ -167,7 +166,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;
         clock->fast_ = fast ? 1 : 0;
-        UpdatePeriod() = fast ? kFastPeriod : kNormalPeriod;
+        worlddata::g_updatePeriod = fast ? kFastPeriod : kNormalPeriod;
         clock->interface_->fastGame_ = clock->fast_;
         return;
     }

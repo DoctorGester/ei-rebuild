@@ -95,7 +95,7 @@ void CUnit::SendEquipment() {
 }
 
 std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
-    UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(prototypeName);
+    UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(prototypeName);
     if (!record) {
         prototype23C = -1;
         return 0xFFFFFFFFu;

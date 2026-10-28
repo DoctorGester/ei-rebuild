@@ -73,9 +73,8 @@ NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
 CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
 
-net::ServerSession* ServerPointer() { return net::GameServer(); }
 bool ServerActive() {
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
@@ -112,7 +111,7 @@ ScriptParticleSource* FindParticle(CScript* script, int id) {
 }
 
 // For the quest objective commands that take no text.
-void QuestObjectiveNoText(int id, float value) { ScriptQuestAddObjective(id, game::EmptyText(), value); }
+void QuestObjectiveNoText(int id, float value) { ScriptQuestAddObjective(id, game::kEmptyText, value); }
 
 // Runs a For body in the same ScriptRun (the variables are shared).
 void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
@@ -228,19 +227,19 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
     }
     for (int i = 0; i < std::ssize(from->items_); ++i)
         to->AddItem(from->items_[i], 1, 1);
-    if (replace) to->Money() = from->Money();
-    else to->Money() += from->Money();
+    if (replace) to->money_ = from->money_;
+    else to->money_ += from->money_;
 }
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
     std::string text(Text(cmd, 0));
-    ServerPointer()->SetVariable(&text, cmd->floatArgs[1]);
+    net::g_gameServer->SetVariable(&text, cmd->floatArgs[1]);
 }
 
 void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
     std::string text(Text(cmd, 0));
-    if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs[1]);
-    else ServerPointer()->RemoveVariable(&text);
+    if (setMax) net::g_gameServer->RaiseVariable(&text, cmd->floatArgs[1]);
+    else net::g_gameServer->RemoveVariable(&text);
 }
 
 void PlayMovie(const SSCCmd* cmd) {
@@ -346,7 +345,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
-            ScriptDefinition* instance = &script->instances_.emplace_front(script->Scripts()[static_cast<std::size_t>(which)]);
+            ScriptDefinition* instance = &script->instances_.emplace_front(script->definitions_[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
             break;
@@ -531,7 +530,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            console::EndLine(console::Out() << f[0]);
+            console::EndLine(console::g_consoleOut << f[0]);
             break;
         case 0x7E:   // ConsoleString(text)
             console::PrintLine(Text(cmd, 0));
@@ -963,7 +962,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddMember(name.c_str(), Text(cmd, 1), game::EmptyText());
+                    records->AddMember(name.c_str(), Text(cmd, 1), game::kEmptyText);
                 else
                     records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }
@@ -1012,7 +1011,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::list<CItem*> items;
-            player->Party()->Money() += Ftol(f[1]);
+            player->Party()->money_ += Ftol(f[1]);
             player->GiveItems(&items, 0);
             break;
         }

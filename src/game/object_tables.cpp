@@ -80,7 +80,7 @@ void NamedFloatTable::Load(CStream* stream) {
             std::string* read = stream->ReadString(&raw);
             key = *read;
         }
-        if (str::Compare(key, game::EmptyText()) == 0) break;
+        if (str::Compare(key, game::kEmptyText) == 0) break;
         float value;
         stream->Read(&value, 4);
         (*this)[key] = value;

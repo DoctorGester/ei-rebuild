@@ -29,7 +29,7 @@ void CWorldClient::SetPlayer(CWorldHandle* player) {
 }
 
 bool CWorldClient::JoinGameClient(const char*) {
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     if (!client || (client->flags7_ & CRefCounted::kDetached)) return false;
     if (client->clients_.empty()) return false;
     OpenSession();
@@ -46,7 +46,7 @@ namespace {
 void PumpSources(CWorldClient* world) {
     if (CWorldHandle* source = world->shared5C_.Get()) source->Pump();
     if (CClientHandle* source = world->handle_.Get()) source->Pump();
-    if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::GameClient());
+    if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::g_gameClient);
 }
 
 } // namespace
@@ -64,6 +64,6 @@ int CWorldClient::PumpIncomingCount() {
 }
 
 void CWorldClient::DisconnectLocalPlayer() {
-    CPlayerConnection* view = session_ ? Session()->connection_ : nullptr;
+    CPlayerConnection* view = session_ ? session_->connection_ : nullptr;
     view->player_->Disconnect();
 }

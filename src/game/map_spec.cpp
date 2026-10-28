@@ -88,7 +88,7 @@ ObjectSpec::ObjectSpec() {
     std::string none("none");
     kind = 1;
     parentId = 0;
-    model = game::EmptyText();
+    model = game::kEmptyText;
     texture = none;
     primaryTexture = none;
     player = -1;

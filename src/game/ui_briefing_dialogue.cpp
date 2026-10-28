@@ -84,7 +84,7 @@ void CBriefingScreen::StartPhrases() {
     lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
     dialogueText_.clear();
-    text_->SetText(game::EmptyText());
+    text_->SetText(game::kEmptyText);
     state_ = kStatePhrases;
     firstPhrase_ = true;
     NextPhrase(0);
@@ -98,9 +98,9 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
         if (third)
             number = kTalkThird;
         else
-            number = human ? kHumanTalk[IsaacRandom::Global().Next() & 3] : kTalk;
+            number = human ? kHumanTalk[g_random.Next() & 3] : kTalk;
     } else {
-        number = human ? kHumanListen[IsaacRandom::Global().Next() & 3] : kListen;
+        number = human ? kHumanListen[g_random.Next() & 3] : kListen;
     }
     auto* serverUnit = TheServerWorld()->FindUnit(unit->id_);
     if (!serverUnit) return;

@@ -4,6 +4,7 @@
 // the sex of a face is decided by one character of the figure's model name, and a player whose unit
 // prototype is unknown gets the first prototype that is not a creature of the game's own races.
 #include "unit_create.h"
+#include "unit_db.h"
 
 #include "ei/rebirth.h"
 
@@ -38,7 +39,7 @@ inline bool Contains(const char* name, const char* needle) {
 // walked) whose name has none of "NPC", "Human", "Orc", "Undead", "Male", "Female" in it. Null when
 // there is none (the plugin would run on past the buckets).
 inline UnitPrototypeRecord* FallbackPrototype() {
-    auto& index = unitdb::PrototypeTable().byName;
+    auto& index = g_unitDatabase->prototypes.byName;
     for (std::size_t b = 0; b < index.bucket_count(); ++b) {
         auto node = index.begin(b);
         if (node == index.end(b)) continue;

@@ -66,7 +66,7 @@ std::string FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t
     const Record* prototype = table.At(PrototypeIndex(id));
     const std::vector<std::string>* list = &prototype->list20;
     if (prototype && !list->empty()) return std::string((*list)[0]);
-    return std::string(game::EmptyText());   // ""
+    return std::string(game::kEmptyText);   // ""
 }
 
 // "unhuma" + the item's model name (a virtual call).

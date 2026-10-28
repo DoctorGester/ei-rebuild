@@ -88,7 +88,7 @@ constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
 float DifficultyAttackFactor() {
     int difficulty = options::TheOptions()->difficulty_;
-    return GameLogicSettings().attack[difficulty];
+    return g_logicSettings.attack[difficulty];
 }
 
 float ServerMana(const CUnit* unit) { return unit->ServerCompanion()->vitals.mana; }
@@ -353,8 +353,8 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
 
 int CUnitServer::Level() {
     float experience = stats.experience;
-    float base = GameLogicSettings().considerModifier;
-    float step = GameLogicSettings().considerLogBase;
+    float base = g_logicSettings.considerModifier;
+    float step = g_logicSettings.considerLogBase;
     // ln(experience / base) / ln(step) as the x87 computes it, rounded to float, then to the nearest integer.
     const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
@@ -432,7 +432,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     float spread = theirs.attackSpread;
     if (spread > kZero) {
         int sides = x87::fistp(spread);
-        std::uint32_t random = IsaacRandom::Global().Next();
+        std::uint32_t random = g_random.Next();
         double drawn = Unsigned(random % static_cast<std::uint32_t>(sides + 1));
         roll = (drawn + drawn) - (static_cast<double>(spread) + kOne);
     }
@@ -491,7 +491,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         if (spread != kZero) {
             float scaled = spread * kHundred;
             int sides = x87::fistp(scaled);
-            std::uint32_t random = IsaacRandom::Global().Next();
+            std::uint32_t random = g_random.Next();
             extra = Unsigned(random % static_cast<std::uint32_t>(sides + 1)) * kPercent;
         }
         out->amount = static_cast<float>(extra + stats.damage);

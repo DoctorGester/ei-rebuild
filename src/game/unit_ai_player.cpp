@@ -97,7 +97,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     AITargetChoice best{-1, nullptr};
     float radius;
     if (state == kStateMoveTo) {
-        radius = GameLogicSettings().swarmRadius;
+        radius = g_logicSettings.swarmRadius;
     } else {
         point = Vector3{0.0f, 0.0f, 0.0f};
         radius = kNoRadius;
@@ -162,7 +162,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
-                               GameLogicSettings().playerCallForHelp);
+                               g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;
         ++node;
@@ -219,7 +219,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
         double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;
         double dz = static_cast<double>(member->localPosition_.z) - unit->localPosition_.z;
-        double limit = static_cast<double>(GameLogicSettings().followMaxDist) * slack + kOne;
+        double limit = static_cast<double>(g_logicSettings.followMaxDist) * slack + kOne;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;
     }

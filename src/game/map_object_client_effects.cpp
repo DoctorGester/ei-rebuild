@@ -152,7 +152,7 @@ const float* DefaultLightColour() { return &options::TheOptions()->questLight_.r
 float DefaultLightRadius() { return options::TheOptions()->questLight_.radius; }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
-    return owner->Specific();
+    return owner->attached;
 }
 
 // The light goes out for good: no longer held, hidden, its id off the list, released.

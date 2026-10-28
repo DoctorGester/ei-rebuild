@@ -22,7 +22,6 @@ namespace {
 
 // Ticks left before the weather may change again.
 int g_weatherDelay = /*007C2DFC*/ {};
-int& WeatherDelay() { return g_weatherDelay; }
 
 // Constants read from the exe (rule 9).
 double MapScale() { return 1.1920928957853683e-7 /*0073FA40*/; }        // 2^-23: a random word to map coordinates
@@ -48,7 +47,7 @@ constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
 constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
 
 
-float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * scale); }
+float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * scale); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
@@ -62,8 +61,8 @@ void TryLightningStrike(CWorldServer* world) {
     if (kind != 3 && kind != 1) return;
     if (aiMap->CellFlag80At(&ground)) return;
 
-    float dx = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * OffsetScale() - OffsetCentre());
-    double dyRaw = x87::FromUnsigned(IsaacRandom::Global().Next()) * OffsetScale() - OffsetCentre();
+    float dx = static_cast<float>(x87::FromUnsigned(g_random.Next()) * OffsetScale() - OffsetCentre());
+    double dyRaw = x87::FromUnsigned(g_random.Next()) * OffsetScale() - OffsetCentre();
     float dy = static_cast<float>(dyRaw);
     if (dyRaw * dy + static_cast<double>(dx) * dx <= MinDistance2()) return;   // random: never NaN
 
@@ -87,10 +86,10 @@ void TryLightningStrike(CWorldServer* world) {
 
 // Rain starts (1 in 101 per check) or stops (1 in 31); light rain in kind-1 weather, heavy otherwise.
 void UpdateRain(CWorldServer* world) {
-    if (--WeatherDelay() > 0) return;
+    if (--g_weatherDelay > 0) return;
     if (world->weather_ == 0) {
-        if (IsaacRandom::Global().Next() % 101 != 0) return;
-        WeatherDelay() = 10;
+        if (g_random.Next() % 101 != 0) return;
+        g_weatherDelay = 10;
         if (world->climate_ == 1) {
             world->weather_ = 1;
             std::memcpy(&world->weatherStrength_, &kRainLight, 4);
@@ -99,8 +98,8 @@ void UpdateRain(CWorldServer* world) {
             std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
         }
     } else {
-        if (IsaacRandom::Global().Next() % 31 != 0) return;
-        WeatherDelay() = 10;
+        if (g_random.Next() % 31 != 0) return;
+        g_weatherDelay = 10;
         int previous = world->climate_;
         world->weather_ = 0;
         if (previous == 1) std::memcpy(&world->weatherStrength_, &kRainLight, 4);
@@ -112,11 +111,11 @@ void UpdateRain(CWorldServer* world) {
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(CWorldServer* world) {
     world->lastRainBoltTick_ = static_cast<std::uint32_t>(world->tick_);
-    float x = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * BoltScale() + Two());
-    float y = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * BoltScale() + Two());
+    float x = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltScale() + Two());
+    float y = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltScale() + Two());
     float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five());
-    float fromX = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * BoltSpread() + x - Two());
-    float fromY = static_cast<float>(x87::FromUnsigned(IsaacRandom::Global().Next()) * BoltSpread() + y - Two());
+    float fromX = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltSpread() + x - Two());
+    float fromY = static_cast<float>(x87::FromUnsigned(g_random.Next()) * BoltSpread() + y - Two());
     float fromZ = static_cast<float>(static_cast<double>(z) + BoltHeight());
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
@@ -167,15 +166,15 @@ void ShowBolt(Vector3 from, Vector3 to) {
     float midX = static_cast<float>(sumX * Half());
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
-    if ((IsaacRandom::Global().Next() & 3) == 0) {
+    if ((g_random.Next() & 3) == 0) {
         // Thunder only: one of four sounds at `from`.
-        unsigned sound = (IsaacRandom::Global().Next() & 3) + 1;
+        unsigned sound = (g_random.Next() & 3) + 1;
         text = str::Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
         std::string line = prefix + text;
         ScriptQueue().Load(&line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
-        unsigned sound = IsaacRandom::Global().Next() % 3 + 1;
+        unsigned sound = g_random.Next() % 3 + 1;
         text = str::Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
                     static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);

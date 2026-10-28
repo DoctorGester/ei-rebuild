@@ -139,7 +139,7 @@ void CParty::Clear(int clearVariables, int keepSpells) {
     }
     members_.clear();
     if (clearVariables != 0) variables_.clear();
-    zone_ = game::EmptyText();
+    zone_ = game::kEmptyText;
     entrance_ = 0;
     money_ = 0;
 }

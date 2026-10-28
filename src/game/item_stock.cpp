@@ -30,9 +30,9 @@
 namespace {
 
 using stock::CandidateVector;
-using stock::Candidates;
-using stock::TakenMaterials;
-using stock::TakenPrototypes;
+using stock::g_candidates;
+using stock::g_takenMaterials;
+using stock::g_takenPrototypes;
 
 
 // The template's party object (ItemStock::context): its item constructor, item manager and spell manager.
@@ -76,7 +76,7 @@ int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->
 StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     float seventh = static_cast<float>(prototype->price * stock::SeventhFactor());
     float fifth = static_cast<float>(prototype->price * stock::FifthFactor());
-    CandidateVector& c = Candidates();
+    CandidateVector& c = g_candidates;
     if (c.begin() == c.end()) return nullptr;
     float low = static_cast<float>((seventh + seventh) - fifth);
     for (StockMaterial** q = c.data(); q != c.data() + c.size(); ++q) {
@@ -100,7 +100,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the spells
 // generated for the item's level, if within the power limit.
 void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) {
-    if (IsaacRandom::Global().Next() % 101 >= 50) return;
+    if (g_random.Next() % 101 >= 50) return;
     float level = 0.0f;
     float power = 0.0f;
     if (!ctor->MagicCapacity(&level, &power)) return;
@@ -109,7 +109,7 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) 
     stock->GenerateSpells(&spells, levels, 0);
     unsigned count = static_cast<unsigned>(spells.size());
     if (count == 0) return;
-    unsigned index = count > 1 ? IsaacRandom::Global().Next() % count : 0;
+    unsigned index = count > 1 ? g_random.Next() % count : 0;
     CSpell* spell = *std::next(spells.begin(), index);
     float spellPower = spell->manaCost_;
     EI_NAN_AUDIT(spellPower, power);
@@ -129,7 +129,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         FillSpellMaps(stock::ArmorSpellRecipes());
 
     int count = RandomCount(minCount, maxCount);
-    StockPrototypeVector& taken = TakenPrototypes();
+    StockPrototypeVector& taken = g_takenPrototypes;
     taken.clear();   // erase(begin, end)
     if (prototypes->size() > static_cast<std::size_t>(count)) {
         Shuffle(prototypes->data(), prototypes->data() + prototypes->size());
@@ -138,7 +138,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         taken = *prototypes;
     }
 
-    CandidateVector& candidates = Candidates();
+    CandidateVector& candidates = g_candidates;
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         itemdb::ItemRecordHead* prototype = *p;
         if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
@@ -197,7 +197,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(this);
     CItemManager* manager = PartyOf(this)->ItemManager();
     int count = RandomCount(minCount, maxCount);
-    StockMaterialVector& taken = TakenMaterials();
+    StockMaterialVector& taken = g_takenMaterials;
     taken.clear();   // erase(begin, end)
     if (materials.size() > static_cast<std::size_t>(count)) {
         Shuffle(materials.data(), materials.data() + materials.size());
@@ -232,7 +232,7 @@ void GenerateInstructions(ItemStock* stock, const StockPrototypeVector& source, 
                           StockList* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemManager();
-    StockPrototypeVector& taken = TakenPrototypes();
+    StockPrototypeVector& taken = g_takenPrototypes;
     taken.clear();   // erase(begin, end)
     if (&source != &taken) taken = source;
     itemdb::LootItemRecord* prototype = itemdb::TheItemDatabase().loot.Named(prototypeName);
@@ -342,7 +342,7 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
     SpellModifierList chosen;
     for (auto& [spellName, recipes] : spellMap) {
         for (void* entry : recipes) {
-            if (IsaacRandom::Global().Next() % 101 < threshold) continue;
+            if (g_random.Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
             auto* recipe = static_cast<const SpellRecipe*>(entry);
@@ -362,7 +362,7 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
             if (budget < level || count > 8) continue;
             const StockStringVector& optional = recipe->optional;
             for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
-                if (IsaacRandom::Global().Next() % 101 < 50) continue;
+                if (g_random.Next() % 101 < 50) continue;
                 Modifier* m = ModifierSlot(this, optional[i]);
                 if (!m || budget < ModifierLevel(m) + level) continue;
                 AppendModifier(chosen, m);
@@ -563,11 +563,11 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
 } // namespace
 
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, StockList* out) {
-    GenerateMagicInstructions(this, spells, stock::TakenSpells(), game::PrototypeText(), SpellIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, spells, stock::g_takenSpells, game::PrototypeText(), SpellIndex, minCount, maxCount, out);
 }
 
 void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, StockList* out) {
-    GenerateMagicInstructions(this, modifiers, stock::TakenModifiers(), game::RuneText(), ModifierIndex, minCount, maxCount, out);
+    GenerateMagicInstructions(this, modifiers, stock::g_takenModifiers, game::RuneText(), ModifierIndex, minCount, maxCount, out);
 }
 
 namespace {

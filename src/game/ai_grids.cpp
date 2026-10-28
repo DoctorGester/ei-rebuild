@@ -145,7 +145,6 @@ void AIDirtyRect::Reset() {
 AIEvent* g_freeEvents = /*007C53F0*/ {nullptr};
 
 namespace {
-AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void AllocateEventCells(AIEventTable* table) {
     table->cells = new AIEventCell[static_cast<std::size_t>(table->width * table->height)];
@@ -179,8 +178,8 @@ void AIEventTable::Destroy() {
     for (auto& slot : slots) {
         for (AIEvent* head : slot) {
             for (AIEvent* event = head; event; event = event->nextInSlot) {
-                event->next = FreeEvents();
-                FreeEvents() = event;
+                event->next = g_freeEvents;
+                g_freeEvents = event;
             }
         }
     }

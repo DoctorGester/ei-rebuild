@@ -46,7 +46,7 @@ CUiSurface* Finish(CUiSurface* self, bool scale) {
     // (The interface's renderer is the device object.)
     CDXSurface* made = new CDXSurface(self->interface_->renderer_, self->width_, self->height_);
     ReplaceHolder(self, made);
-    UiSurfaceBytes() += SurfaceBytes(self->holder_);
+    g_uiSurfaceBytes += SurfaceBytes(self->holder_);
     self->kept_ = nullptr;
     self->flags_ |= CUiSurface::kShown;
     self->keptSize_ = 0;
@@ -72,9 +72,9 @@ CUiSurface::~CUiSurface() {
     if (std::uint8_t* kept = kept_) {
         delete[] kept;
         kept_ = nullptr;
-        UiSurfaceKeptBytes() -= keptSize_;
+        g_uiSurfaceKeptBytes -= keptSize_;
     }
-    if (CDXSurface* holder = holder_) UiSurfaceBytes() -= SurfaceBytes(holder);
+    if (CDXSurface* holder = holder_) g_uiSurfaceBytes -= SurfaceBytes(holder);
     CDXSurface* holder = holder_;
     holder_ = nullptr;
     if (holder) holder->Release();

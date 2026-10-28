@@ -67,7 +67,7 @@ public:
     int GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return NeedsKey(); }
-    int IsDirectUseBlocked() override { return Flag260Slot(); }
+    int IsDirectUseBlocked() override { return flag260; }
     // ApplyKey.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
@@ -75,7 +75,7 @@ public:
     void UseSpots(UseSpotArray* out, float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
     void WriteNetState() override { WriteLeverNetState(); }
-    float Radius() override { return static_cast<float>(RadiusSlot()); }
+    float Radius() override { return static_cast<float>(bounds.radius); }
 
     // Sets state `state` (negative: the next one, wrapping when cycling) and
     // moves the lever there over `duration` ticks (negative: the default stored with the lever table,
@@ -113,7 +113,6 @@ public:
     void SetLock(const LockKey* lock);
 
     bool Slot29True();
-    int Flag260Slot();
     bool KeepsMapFlagSlot();
     // 0 when disabled, else whether the lock has a mask.
     int NeedsKey();
@@ -123,7 +122,6 @@ public:
     // speed, then disabled; true. Else false.
     bool ApplyKey(const LockKey* key, int unused);
     BOOL KeyOpens(const LockKey* key);
-    double RadiusSlot();
 
     int state;
     int stateCount;

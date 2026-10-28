@@ -63,7 +63,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         }
         if (failed) return 0;
         mapName_ = map;
-        mobName_ = game::EmptyText();
+        mobName_ = game::kEmptyText;
     }
     graph->Seek(0);
     if (graph->Size() != 0 && !AIMap()->Regions()->LoadBlocks(graph)) return 0;
@@ -161,8 +161,8 @@ void CWorldServer::ResetZone() {
     }
     ClearMissilePointers(this);
     EndTimedObjects(this);
-    mobName_ = game::EmptyText();
-    zoneName_ = game::EmptyText();
+    mobName_ = game::kEmptyText;
+    zoneName_ = game::kEmptyText;
     if (manager3C_) manager3C_->FreeSpares();
     if (manager40_) manager40_->FreeSpares();
     if (manager44_) manager44_->FreeSpares();
@@ -250,7 +250,7 @@ void CWorldServer::SendFreshObjects() {
 
 void CWorldServer::ResetState() {
     ResetZone();
-    mapName_ = game::EmptyText();
+    mapName_ = game::kEmptyText;
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());

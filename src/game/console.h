@@ -85,7 +85,6 @@ extern Stream g_rpgLogOut;
 extern Stream g_graphicsLogOut;
 extern Stream g_eventLogOut;
 extern Stream g_aiLogOut;
-inline Stream& Out() { return g_consoleOut; }
 // `<< '\n'` and a flush, how every console message ends.
 void EndLine(Stream& os);
 void PrintLine(const char* text);

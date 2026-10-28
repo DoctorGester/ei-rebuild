@@ -165,7 +165,7 @@ int CUnitServer::RunTick() {
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
-            if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
+            if (bored > kBoredTicks && g_random.Next() % kBoredChance == 0) {
                 CPlayer* player = unit->player;
                 if (!player || player->Server()->refreshPending_ != 0) {
                     bored = 0;

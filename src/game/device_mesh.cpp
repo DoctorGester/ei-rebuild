@@ -47,13 +47,13 @@ struct Textures {
 // --- The buffers ---------------------------------------------------------------------------------
 
 using devicebuffers::ProjectedVertex;
-using devicebuffers::Vertices;
-using devicebuffers::ClipIndices;
-using devicebuffers::Projected;
-using devicebuffers::CornerOutcodes;
-using devicebuffers::Outcodes;
+using devicebuffers::g_vertices;
+using devicebuffers::g_clipIndices;
+using devicebuffers::g_projected;
+using devicebuffers::g_cornerOutcodes;
+using devicebuffers::g_outcodes;
 
-TLVertex* VertexData() { return Vertices().data(); }
+TLVertex* VertexData() { return g_vertices.data(); }
 
 // The pipeline's screen stack (1) and clip-space stack (2), whose top matrices project the mesh.
 constexpr int kScreenStack = 1;
@@ -76,7 +76,7 @@ void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
 // and the texture coordinate, moved by the offsets unless both compare equal to 0.
 void FillCorners(const MeshArgs& a) {
     TLVertex* v = VertexData();
-    const ProjectedVertex* projected = Projected().data();
+    const ProjectedVertex* projected = g_projected.data();
     EI_NAN_AUDIT(*a.uOffset, *a.vOffset);
     bool moved = *a.uOffset != 0.0f || *a.vOffset != 0.0f;
     for (int i = 0; i < a.cornerCount; ++i, ++v) {
@@ -95,49 +95,49 @@ void FillCorners(const MeshArgs& a) {
 
 // Draws the vertices (the device's vertex-buffer batch never gave a buffer: nothing is batched).
 void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
-    int count = std::ssize(Vertices());
+    int count = std::ssize(g_vertices);
     if (textures) {
-        device->DrawTwoTextures(textures->first, textures->second, 4, 0x1C4, Vertices().data(), count, indices, indexCount, 0);
+        device->DrawTwoTextures(textures->first, textures->second, 4, 0x1C4, g_vertices.data(), count, indices, indexCount, 0);
     } else {
-        device->DrawIndexed(4, 0x1C4, Vertices().data(), count, indices, indexCount, 0);
+        device->DrawIndexed(4, 0x1C4, g_vertices.data(), count, indices, indexCount, 0);
     }
 }
 
 // The TL vertices are read by nothing when the new renderer draws the mesh: the passes still go to the device.
 void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
-    if (a.flags & 1) device->BoundsOfProjected(&Projected(), 0);
-    Vertices().resize(a.cornerCount);
+    if (a.flags & 1) device->BoundsOfProjected(&g_projected, 0);
+    g_vertices.resize(a.cornerCount);
     if (!render::MeshCornersSkipped()) {
         FillCorners(a);
-        if (device->distanceFog_) transform->FogVertices(Vertices().data(), a.cornerCount);
+        if (device->distanceFog_) transform->FogVertices(g_vertices.data(), a.cornerCount);
     }
     Submit(device, textures, a.indices, a.indexCount);
 }
 
 // Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the transform
-// object's clipper writes the clipped triangles to ClipIndices, then the vertices are projected. When the new
+// object's clipper writes the clipped triangles to g_clipIndices, then the vertices are projected. When the new
 // renderer draws the mesh the clip still runs (its counts go to the device's counters, an empty result draws no
 // pass), the projection only for draw flag 1's screen rectangle, the fog not at all.
 void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
-    Vertices().resize(capacity);
-    ClipIndices().resize(a.indexCount * 10);
+    g_vertices.resize(capacity);
+    g_clipIndices.resize(a.indexCount * 10);
     FillCorners(a);
-    CornerOutcodes().resize(capacity);
-    for (int i = 0; i < a.cornerCount; ++i) CornerOutcodes()[i] = Outcodes()[a.corners[i].position];
+    g_cornerOutcodes.resize(capacity);
+    for (int i = 0; i < a.cornerCount; ++i) g_cornerOutcodes[i] = g_outcodes[a.corners[i].position];
 
     int vertexCount = a.cornerCount;
     int indexCount = a.indexCount;
-    transform->ClipTriangles(Vertices().data(), CornerOutcodes().data(), a.indices, ClipIndices().data(), &vertexCount,
+    transform->ClipTriangles(g_vertices.data(), g_cornerOutcodes.data(), a.indices, g_clipIndices.data(), &vertexCount,
                              &indexCount);
     if (indexCount == 0 || vertexCount == 0) return;
-    Vertices().resize(vertexCount);
-    ClipIndices().resize(indexCount);
+    g_vertices.resize(vertexCount);
+    g_clipIndices.resize(indexCount);
     bool skipped = render::MeshCornersSkipped();
-    if (!skipped || (a.flags & 1)) transform->ToScreenClipped(Vertices().data(), std::ssize(Vertices()));
-    if (!skipped && device->distanceFog_) transform->FogVertices(Vertices().data(), std::ssize(Vertices()));
-    if (a.flags & 1) device->BoundsOfVertices(&Vertices(), CornerOutcodes().data());
-    Submit(device, textures, ClipIndices().data(), std::ssize(ClipIndices()));
+    if (!skipped || (a.flags & 1)) transform->ToScreenClipped(g_vertices.data(), std::ssize(g_vertices));
+    if (!skipped && device->distanceFog_) transform->FogVertices(g_vertices.data(), std::ssize(g_vertices));
+    if (a.flags & 1) device->BoundsOfVertices(&g_vertices, g_cornerOutcodes.data());
+    Submit(device, textures, g_clipIndices.data(), std::ssize(g_clipIndices));
 }
 
 void HandOver(CTextureDevice* device, const MeshArgs& a) {
@@ -175,14 +175,14 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
 // Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
 int ProjectAndDraw(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
     ITransformPipeline* transform = device->pipeline_->transform_;
-    Projected().resize(a.blocks * 4);
+    g_projected.resize(a.blocks * 4);
     int visibility;
     if (a.flags & 2) {
-        Outcodes().resize(a.blocks * 4);
-        visibility = transform->ProjectClipped(device->pipeline_->Top(kClipStack), a.positions, Projected().data(),
-                                               Outcodes().data(), a.blocks);
+        g_outcodes.resize(a.blocks * 4);
+        visibility = transform->ProjectClipped(device->pipeline_->Top(kClipStack), a.positions, g_projected.data(),
+                                               g_outcodes.data(), a.blocks);
     } else {
-        visibility = transform->Project(device->pipeline_->Top(kScreenStack), a.positions, Projected().data(), a.blocks);
+        visibility = transform->Project(device->pipeline_->Top(kScreenStack), a.positions, g_projected.data(), a.blocks);
     }
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);

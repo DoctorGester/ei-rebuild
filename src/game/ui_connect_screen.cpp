@@ -108,7 +108,6 @@ const char* AllodNameFormat() { return "lmp_allod_name_%d"; }
 const char* ConnectionTextFormat() { return "lmp_connection_%d"; }
 const char* NameEnd() { return "|"; }
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
-std::uint32_t TextColour() { return g_connectTextColour; }
 constexpr std::uint32_t kCaretColour = 0x31B3FF;
 // ExtendedServerName's values in Create (addon.dll: operands).
 constexpr float kExtendedSelectionRight = 381.5f;
@@ -143,7 +142,7 @@ __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned si
 } // namespace
 
 void CMpConnectScreen::Update() {
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     bool asking = client->joinState_ == net::ClientBase::kAsking;
     if (asking) {
         surfaces_[kSurfaceConnecting]->Freeze(1, 0);
@@ -173,8 +172,8 @@ void CMpConnectScreen::Update() {
         net::NetAddress none{};
         const net::NetAddress* ask = &none;
         if (selected_ >= 1 && static_cast<unsigned>(selected_) < entries_.size()) ask = &entries_[selected_].address;
-        net::GameClient()->SetAlwaysAsk(ask);
-        net::GameClient()->Refresh();
+        net::g_gameClient->SetAlwaysAsk(ask);
+        net::g_gameClient->Refresh();
         RebuildList();
         DrawListVanilla();
     }
@@ -198,7 +197,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         DrawListVanilla();
     } else if (result == (kBoxAddress | kAnswerOk)) {
         net::NetAddress address{};
-        if (address.Parse(boxText_, net::g_gamePort)) net::GameClient()->Ask(&address);
+        if (address.Parse(boxText_, net::g_gamePort)) net::g_gameClient->Ask(&address);
         SaveAddressBook();
         DrawListVanilla();
     } else if (result == (kBoxPassword | kAnswerOk) || result == (kBoxPassword | kAnswerCancel)) {
@@ -207,7 +206,7 @@ void CMpConnectScreen::OnBoxResult(std::uint32_t result) {
         sprite->textureOffsetU_ = hostPassword_.size() == 0 ? FrameOff() : FrameOn();
     } else if (result == (kBoxJoinPassword | kAnswerOk)) {
         TheGameFlow()->JoinServer(&entries_[selected_].address, boxText_);
-        net::GameClient()->gameType_ = entries_[selected_].gameType;
+        net::g_gameClient->gameType_ = entries_[selected_].gameType;
     }
 }
 
@@ -341,7 +340,7 @@ void CMpConnectScreen::Connect() {
         if (name.size() == 0) name = DefaultGameName();
         SaveAddressBook();
         TheGameFlow()->StartServer(name.c_str(), players, gameType_, hostPassword_.c_str(), static_cast<char>(unlisted_),
-                                   static_cast<int>(net::GameClient()->queries_.extra));
+                                   static_cast<int>(net::g_gameClient->queries_.extra));
         return;
     }
     if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
@@ -355,7 +354,7 @@ void CMpConnectScreen::Connect() {
         OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
     TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
-    net::GameClient()->gameType_ = entries_[selected_].gameType;
+    net::g_gameClient->gameType_ = entries_[selected_].gameType;
 }
 
 void CMpConnectScreen::EditAddress() {
@@ -363,7 +362,7 @@ void CMpConnectScreen::EditAddress() {
     if (row < 0 || static_cast<unsigned>(row) >= entries_.size()) return;
     MpAddressEntry& entry = entries_[row];
     if (entry.state == kStateAsked) {
-        net::GameClient()->Forget(&entry.address);
+        net::g_gameClient->Forget(&entry.address);
         SaveAddressBook();
         return;
     }
@@ -383,7 +382,7 @@ void CMpConnectScreen::MasterRequest() {
         net::second_master::ParseMaster(&master, MasterHost(), kMasterPort);
     else
         master.Parse(MasterHost(), kMasterPort);
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries_.extra : 0;
     interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster].c_str(), boxText_, kBoxMaster, &master, extra), 1,
                            1);
@@ -394,7 +393,7 @@ void CMpConnectScreen::SaveAddressBook() {
     netlink::FileStream file;
     if (!file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
     archive.Open(&file, 0, 1);
-    net::ClientQueries* queries = &net::GameClient()->queries_;
+    net::ClientQueries* queries = &net::g_gameClient->queries_;
     if (archive.EnterChunk(1)) {
         queries->Serialize(&archive);
         archive.LeaveChunk();
@@ -406,8 +405,8 @@ void CMpConnectScreen::SaveAddressBook() {
 void CMpConnectScreen::RebuildList() {
     entries_.clear();
     unsigned index = 0;
-    for (net::ServerEntry* server = net::GameClient()->ServerAt(0); server;
-         server = net::GameClient()->ServerAt(static_cast<int>(++index))) {
+    for (net::ServerEntry* server = net::g_gameClient->ServerAt(0); server;
+         server = net::g_gameClient->ServerAt(static_cast<int>(++index))) {
         MpAddressEntry& entry = entries_.emplace_back();
         entry.address = server->address_;
         entry.gameType = static_cast<int>(server->kind_);
@@ -576,9 +575,9 @@ void CMpConnectScreen::CreateScreen() {
         // ExtendedServerName: the classes 15, font 0, at most 50 characters (the name taken from the hero
         // below still stops at 10).
         if (extended)
-            nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, TextColour(), kCaretColour);
+            nameEdit_->SetLook(15, 0, 0, kExtendedNameLength, g_connectTextColour, kCaretColour);
         else
-            nameEdit_->SetLook(3, 0, 1, kNameLength, TextColour(), kCaretColour);
+            nameEdit_->SetLook(3, 0, 1, kNameLength, g_connectTextColour, kCaretColour);
     }
     // The new game's name: the first hero's, to its '|', at most 10 characters.
     std::string name = LocalPlayerData()->members_[0].texts[0];
@@ -612,10 +611,10 @@ void CMpConnectScreen::CreateScreen() {
         archive.Close(&file);
         file.Close();
         if (queries.extra == 0) {
-            const std::uint32_t random = IsaacRandom::Global().Next();
+            const std::uint32_t random = g_random.Next();
             queries.extra = gameapi::GetTickCount() ^ random;
         }
-        net::GameClient()->SetQueries(&queries);
+        net::g_gameClient->SetQueries(&queries);
     }
 
     sortKey_ = 0;
@@ -631,7 +630,7 @@ void CMpConnectScreen::CreateScreen() {
     UiSurfaceGetDC(note);
     note->Clear();
     RECT rect{0, 0, 300, 20};
-    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
+    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, g_connectTextColour, 0, 1);
     UiSurfaceReleaseDC(note);
 }
 
@@ -648,10 +647,10 @@ CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, con
 }
 
 void CMasterRequestBox::Update() {
-    double share = net::GameClient()->BufferRatio(&link_.in);
+    double share = net::g_gameClient->BufferRatio(&link_.in);
     float right = static_cast<float>(share * BarWidth() + BarLeft());
     bar_->SetRectangle(2.5f, 100.0f, 220.0f, 280.0f, right, 300.0f, 0, 0, 0x100, 0x100);
-    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::GameClient()->ReadServerList(&link_.in);
+    if (net::MasterLinkTick(&link_) == net::MasterLink::kDone) net::g_gameClient->ReadServerList(&link_.in);
     if (net::MasterLinkTick(&link_) == net::MasterLink::kDone || net::MasterLinkTick(&link_) == net::MasterLink::kClosed)
         interface_->SetPendingValue(CMpConnectScreen::kBoxMaster | kAnswerCancel);
 }

@@ -104,7 +104,7 @@ bool GSGetPlayerVar(Call* call) {
     const char* name = Text(call, 0);
     CPlayer* player = GetPlayer(number);
     if (!player) return Report("GSGetPlayerVar", "There is no player with number %d", number);
-    *call->FloatResult() = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
+    *call->result.number = static_cast<float>(static_cast<double>(player->Party()->variables_.Get(name)));
     return true;
 }
 
@@ -202,7 +202,7 @@ bool IsFileExists(Call* call) {
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
     DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
-    Store(call->FloatResult(), attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
+    Store(call->result.number, attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
     return true;
 }
 
@@ -214,7 +214,7 @@ bool GSListPlayerVars(Call* call) {
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::string line;
         line = str::Format("%s = %f", node->first.c_str(), static_cast<double>(node->second));
-        (console::Out() << line.c_str() << "\n").Flush();
+        (console::g_consoleOut << line.c_str() << "\n").Flush();
     }
     return true;
 }

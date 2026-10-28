@@ -99,20 +99,20 @@ bool IsQuestVariable(const std::string& name) {
 } // namespace
 
 int CPlayerClient::Pump() {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     switch (state_) {
     case kStateConnecting: {
         if (link == nullptr || !link->Connected()) return 1;
         if (sendParty_) {
             WriteByte(&out_, kRequestParty);
-            Owner()->Party()->SaveParty(&out_, 1);
+            player_->Party()->SaveParty(&out_, 1);
         }
         LoginRequest login;
         std::memset(&login, 0, sizeof(login));
         login.version = kLoginVersion;
         std::memcpy(login.name, TextLoginName(), std::strlen(TextLoginName()) + 1);
         std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
-        login.partyId = Owner()->partyId_;
+        login.partyId = player_->partyId_;
         WriteByte(&out_, kRequestLogin);
         out_.Write(&login, sizeof(login));
         state_ = kStateLoggedIn;
@@ -133,13 +133,13 @@ int CPlayerClient::Pump() {
 }
 
 int CPlayerClient::SendToServer() {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 1;
     int sent = 0;
     if (link->Connected()) {
         CMemoryStream packed;
         out_.CompressTo(&compressor_, &packed);
-        if (Owner()->logTraffic_ != 0) {
+        if (player_->logTraffic_ != 0) {
             std::uint32_t packedSize = packed.size_;
             std::uint32_t size = out_.Size();
             console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
@@ -167,7 +167,7 @@ int CPlayerClient::DispatchMessages() {
 }
 
 int CPlayerClient::ReceiveMessages() {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 0;
     if (!link->HasIncoming()) return 1;
     CMemoryStream packet;
@@ -186,7 +186,7 @@ int CPlayerClient::OnSetVariable() {
     in_.ReadString(&name);
     std::uint32_t value;
     in_.Read(&value, 4);
-    NamedFloatTable& variables = Owner()->Party()->variables_;
+    NamedFloatTable& variables = player_->Party()->variables_;
     variables.Get(name);
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
@@ -199,7 +199,7 @@ int CPlayerClient::OnSetVariable() {
 int CPlayerClient::OnDeleteVariable() {
     std::string name;
     in_.ReadString(&name);
-    Owner()->Party()->variables_.Remove(name);
+    player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         TheInterface()->OnQuestVariable(name, 0.0f);
         TheClientWorld()->OnQuestVariable(name, 0.0f);
@@ -226,7 +226,7 @@ int CPlayerClient::OnJingle() {
 int CPlayerClient::OnZone() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    Owner()->Clear();
+    player_->Clear();
     TheClientWorld()->LoadZone(&block);
     return 1;
 }
@@ -248,13 +248,13 @@ int CPlayerClient::OnWorldBlock5() {
 int CPlayerClient::OnItemRemoved() {
     int id;
     in_.Read(&id, 4);
-    Owner()->TakeItem(id);
+    player_->TakeItem(id);
     RefreshQuestLog();
     return 1;
 }
 
 int CPlayerClient::OnQuestItemsChanged() {
-    Owner()->TakeAllItems();
+    player_->TakeAllItems();
     RefreshQuestLog();
     return 1;
 }
@@ -262,7 +262,7 @@ int CPlayerClient::OnQuestItemsChanged() {
 int CPlayerClient::OnExperienceAll() {
     float amount;
     in_.Read(&amount, 4);
-    CPlayer::UnitMap& units = Owner()->units_;
+    CPlayer::UnitMap& units = player_->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
         TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
@@ -300,7 +300,7 @@ const char* TextPartyReceived() { return "party received on client"; }
 
 int CPlayerClient::OnItemsReceived() {
     std::list<CItem*> items;
-    int& money = Owner()->Party()->Money();
+    int& money = player_->Party()->money_;
     int before = money;
     in_.Read(&money, 4);
     std::uint8_t flag = 0;   // the original passes this byte with three bytes of the stack slot above it
@@ -318,7 +318,7 @@ int CPlayerClient::OnItemsReceived() {
         if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.push_front(item);
     }
     if (result != 0) {
-        Owner()->GiveItems(&items, flag);
+        player_->GiveItems(&items, flag);
         TheInterface()->OnItemsPicked(&items, money - before, flag);
     }
     items.clear();   // the list's inlined destructor
@@ -326,7 +326,7 @@ int CPlayerClient::OnItemsReceived() {
 }
 
 int CPlayerClient::OnParty() {
-    CParty* party = Owner()->Party();
+    CParty* party = player_->Party();
     NamedFloatTable saved(party->variables_);
     {
         CMemoryStream block;
@@ -334,7 +334,7 @@ int CPlayerClient::OnParty() {
         block.CMemoryStream::Seek(0);
         if (in_.ok_) {
             party->LoadParty(&block, 1);
-            std::list<std::uint32_t>& recharging = Owner()->recharging_;
+            std::list<std::uint32_t>& recharging = player_->recharging_;
             recharging.clear();
             ObjectListIteratorOf<CItem> walk{};
             for (CItem* item = walk.First(party->ItemManager()); item != nullptr; item = walk.Next()) {
@@ -358,7 +358,7 @@ int CPlayerClient::OnPartyUpdate() {
     CMemoryStream block;
     in_.ReadSized(&block);
     block.CMemoryStream::Seek(0);
-    if (in_.ok_) Owner()->Party()->LoadParty(&block, 0);
+    if (in_.ok_) player_->Party()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -418,14 +418,14 @@ int CPlayerClient::OnStringEvent() {
 }
 
 void CPlayerClient::StartRecording(const char* path) {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link == nullptr) return;
     WriteByte(&out_, kRequestRecording);
     link->OpenRecording(path);
 }
 
 void CPlayerClient::StopRecording() {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link != nullptr) link->CloseRecording();
 }
 
@@ -512,7 +512,7 @@ int CPlayerClient::OnNewObject() {
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 
-    auto* world = Owner()->WorldContext();
+    auto* world = player_->WorldContext();
     CMapObject* created = world->manager40_->CreateObjectAs<CMapObject>(header.type, header.id);
     if (created == nullptr) return 0;
     CMapObject* object = created;
@@ -580,7 +580,7 @@ int CPlayerClient::OnNewObject() {
     if (isUnit) created->SetScriptName(scriptName.c_str());
 
     // The player keeps it, counted.
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
     player->knownObjects_[header.id] = object;
     ++created->refCount_;
@@ -712,7 +712,7 @@ void ConstructPartyIdSet() {
 }
 
 int CPlayerClient::OnPartyState() {
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
         PartyIdSet().insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);

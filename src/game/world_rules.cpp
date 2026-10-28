@@ -53,7 +53,7 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
 // ---- Game interface glue -------------------------------------------------------------------------
 
 BOOL IsMultiplayerClient() {
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     if (client && !(client->flags7_ & CRefCounted::kDetached)) return 1;
     return 0;
 }

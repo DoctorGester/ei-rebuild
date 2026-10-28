@@ -79,8 +79,8 @@ void Pump() {
     std::uint32_t elapsed = now - g_lastPumpTime;
     if (elapsed > 5000) elapsed = 1000;   // after a long stall, pretend one second passed
     g_lastPumpTime = now;
-    TickSession(GameServer(), elapsed);
-    TickSession(GameClient(), elapsed);
+    TickSession(g_gameServer, elapsed);
+    TickSession(g_gameClient, elapsed);
     TheGameFlow()->UpdateMultiplayerVariable();   // With the game flow: the per-frame network step
 }
 

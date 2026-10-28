@@ -113,7 +113,7 @@ void SectorData::Animate(Terrain* landscape, int frame) {
         for (int i = 0; i < std::ssize(animated); ++i) {
             AnimatedTile& tile = animated[i];
             if (tile.frame == 0 && tile.speed < 1000 &&
-                IsaacRandom::Global().Next() % 1000 + 1 > static_cast<std::uint32_t>(tile.speed)) {
+                g_random.Next() % 1000 + 1 > static_cast<std::uint32_t>(tile.speed)) {
                 continue;
             }
             tile.frame = (tile.frame + 1) % tile.frames;
@@ -214,7 +214,6 @@ bool SectorBefore(const SectorData* x, const SectorData* y) {
 
 // SetSun's function-local static (guard bit 1, freed at exit).
 constinit std::vector<SectorData*> g_sortedSectors = /*007C8938*/ {};
-std::vector<SectorData*>& SortedSectors() { return g_sortedSectors; }
 void FreeSortedSectors() { lib::FreeStorage(g_sortedSectors); }
 std::uint8_t g_sortedSectorsGuard = /*007C8948*/ {};
 
@@ -249,7 +248,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
-    auto& sorted = terrain::SortedSectors();
+    auto& sorted = terrain::g_sortedSectors;
     if ((terrain::g_sortedSectorsGuard & 1) == 0) {
         terrain::g_sortedSectorsGuard |= 1;
         std::atexit(terrain::FreeSortedSectors);

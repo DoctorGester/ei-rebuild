@@ -39,9 +39,9 @@ const SkillLevelRecord* LevelRecord(std::uint32_t index) {
 
 } // namespace
 
-double UnitStats::StrengthRatio() { return stat10 / GameLogicSettings().hpVal[0]; }
+double UnitStats::StrengthRatio() { return stat10 / g_logicSettings.hpVal[0]; }
 
-double UnitStats::DexterityRatio() { return stat18 / GameLogicSettings().mpVal[0]; }
+double UnitStats::DexterityRatio() { return stat18 / g_logicSettings.mpVal[0]; }
 
 double UnitStats::Period20() { return kStatBase / stat20; }
 
@@ -106,7 +106,7 @@ double UnitStats::Value6E8() {
 }
 
 double UnitStats::Value6E9() {
-    double base = GameLogicSettings().backstabAdd;
+    double base = g_logicSettings.backstabAdd;
     std::uint8_t level = skillLevels[0x6E9 - 0x6D3];
     if (level != 0) {
         const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E9);

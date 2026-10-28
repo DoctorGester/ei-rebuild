@@ -28,8 +28,6 @@ void ReadLinkString(std::string* out, const char** cursor) {
     *cursor += length;
 }
 
-std::string CLinkMesh::CopyName() const { return name_; }
-
 namespace {
 
 using Cache = std::multimap<std::string, CLinkMesh*>;
@@ -107,7 +105,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vec
     if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
     {
-        std::string meshName = mesh->CopyName();
+        std::string meshName = mesh->name_;
         set = FindFigureSet(&meshName);
     }
     for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
@@ -138,7 +136,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
     if (mesh->HasPart(name)) return true;
     FigureModel* set;
     {
-        std::string meshName = mesh->CopyName();
+        std::string meshName = mesh->name_;
         set = FindFigureSet(&meshName);
     }
     const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
@@ -151,7 +149,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
 
 CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u) {
     if (mesh && mesh->refCount_ > 2) {
-        std::string meshName = mesh->CopyName();
+        std::string meshName = mesh->name_;
         return LoadLink(&meshName, s, t, u, false);
     }
     if (!mesh) return nullptr;
@@ -160,7 +158,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
     mesh->SetMorph(s, t, u);
     FigureModel* set;
     {
-        std::string meshName = mesh->CopyName();
+        std::string meshName = mesh->name_;
         set = FindFigureSet(&meshName);
     }
     for (std::string* part = names.data(); part != names.data() + names.size(); ++part)
@@ -219,7 +217,7 @@ CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const std::vec
 int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const std::string* name, float s, float t, float u) {
     const char* data;
     {
-        std::string file = mesh->CopyName();
+        std::string file = mesh->name_;
         file.append(name->data(), name->data() + name->size());
         file.append(".fig", ".fig" + 4);
         data = FindInArchives(archives_, file.data());
@@ -271,7 +269,7 @@ bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const std
     if (set) {
         data = FileData(set->mesh, name->data());
     } else {
-        std::string file = mesh->CopyName();
+        std::string file = mesh->name_;
         file.append(name->data(), name->data() + name->size());
         file.append(".fig", ".fig" + 4);
         data = FindInArchives(archives_, file.data());

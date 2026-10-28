@@ -129,7 +129,7 @@ void CChatWindow::ShowPlayers() {
     players_.clear();
 
     // Our own player first, the others after it; none while the binding is gone.
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     const auto& players = client->players_;
     for (auto node = players.begin(); node != players.end(); ++node) {
         if (!Live(client->binding_)) continue;
@@ -174,7 +174,7 @@ void CChatWindow::ShowPlayers() {
 // --- Update --------------------------------------------------------------------------------------
 
 void CChatWindow::Update() {
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     if (Live(client->trade_)) {
         GameSendLeave04(9);
         return;
@@ -228,14 +228,14 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
         char text[0x80];
         std::snprintf(text, sizeof(text), "%d", PlayerOf(players_[index])->serial_);
         if (pick == 1)
-            net::GameClient()->SendCommand(kPickCommandA, text);
+            net::g_gameClient->SendCommand(kPickCommandA, text);
         else if (pick == 2)
-            net::GameClient()->SendCommand(kPickCommandB, text);
+            net::g_gameClient->SendCommand(kPickCommandB, text);
         ActiveBriefing(interface_)->chatActive_ = 0;
         return;
     }
     uiorig::PlayUiSound(interface_, OnOffSound(), 0);
-    net::ClientSession* client = net::GameClient();
+    net::ClientSession* client = net::g_gameClient;
     CRefObject* player = players_[index];
     // The binding is not checked for null here.
     if (client->binding_->PlayerRef().ptr == player) return;

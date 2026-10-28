@@ -73,7 +73,7 @@ int CPlayerServer::OnLeave() {
 
 int CPlayerServer::OnGameStateRequest() {
     if (state_ != kStateJoined) return 0;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     int state;
     ReceivedMessages().Read(&state, 4);
     player->sessionKind100_ = state;
@@ -93,7 +93,7 @@ int CPlayerServer::OnGameStateRequest() {
 int CPlayerServer::OnPause() {
     std::uint8_t pause = 0;
     ReceivedMessages().Read(&pause, 1);
-    net::ServerSession* server = net::GameServer();
+    net::ServerSession* server = net::g_gameServer;
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
     // test by the pausing player's own leader; 3 skips the announcement.
@@ -102,7 +102,7 @@ int CPlayerServer::OnPause() {
     if (IsMultiplayerClient() && server && !(server->flags7_ & CRefCounted::kDetached) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
-        const int own = static_cast<int>(Owner()->Party()->members_[0].unitId);
+        const int own = static_cast<int>(player_->Party()->members_[0].unitId);
         if (mode == 2)
             leader = own;
         else if (own != leader)
@@ -111,14 +111,14 @@ int CPlayerServer::OnPause() {
         if (IsLive(record) && mode != 3)
             server->AnnounceText(kTextPause, record->name_.data(), nullptr);
     }
-    Owner()->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
+    player_->ServerWorld()->SetServerPaused(pause != 0 ? 1 : 0);
     return 1;
 }
 
 int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
     ReceivedMessages().Read(&message, sizeof(message));
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
@@ -132,7 +132,7 @@ int CPlayerServer::OnCastAtObject() {
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
     ReceivedMessages().Read(&message, sizeof(message));
-    CUnit* unit = FindUnit(Owner(), message.unitId);
+    CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) {
         AIBrain* brain = unit->ServerController()->Brain();
         if (PlayerMode* mode = brain->FindPlayerMode()) {
@@ -146,7 +146,7 @@ int CPlayerServer::OnCastAtPoint() {
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
     ReceivedMessages().Read(&message, sizeof(message));
-    CUnit* unit = FindUnit(Owner(), message.unitId);
+    CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
 }
@@ -154,7 +154,7 @@ int CPlayerServer::OnWantedWeapon() {
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
     ReceivedMessages().Read(&message, sizeof(message));
-    CUnit* unit = FindUnit(Owner(), message.unitId);
+    CUnit* unit = FindUnit(player_, message.unitId);
     if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
 }
@@ -163,14 +163,14 @@ int CPlayerServer::OnUnitLookup() {
     int values[2];
     ReceivedMessages().Read(&values[0], 4);
     ReceivedMessages().Read(&values[1], 4);
-    FindUnit(Owner(), values[0]);
+    FindUnit(player_, values[0]);
     return 1;
 }
 
 int CPlayerServer::OnFollow() {
     int ids[2];   // unit, leader
     ReceivedMessages().Read(ids, 8);
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CUnit* unit = FindUnit(player, ids[0]);
     if (!unit) return 1;
     CUnit* leader = FindUnit(player, ids[1]);
@@ -182,7 +182,7 @@ int CPlayerServer::OnFollow() {
 int CPlayerServer::OnUnitFlag438() {
     int id;
     ReceivedMessages().Read(&id, 4);
-    CUnit* unit = FindUnit(Owner(), id);
+    CUnit* unit = FindUnit(player_, id);
     std::int8_t value = 0;
     ReceivedMessages().Read(&value, 1);
     if (unit) unit->SetUnknown438(value);

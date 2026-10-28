@@ -588,7 +588,7 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
         handled_ = true;
         break;
     case VK_ESCAPE:
-        net::ClientDropParty(net::GameClient());
+        net::ClientDropParty(net::g_gameClient);
         handled_ = true;
         break;
     }

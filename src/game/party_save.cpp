@@ -168,7 +168,7 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     WriteValue(stream, records);
     for (int i = 0; i < records; ++i) members_[i].Save(stream);
     if (saveVariables != 0) variables_.Save(stream);
-    std::uint32_t key = IsaacRandom::Global().Next();
+    std::uint32_t key = g_random.Next();
     WriteValue(stream, money_ ^ key);
     WriteValue(stream, key);
 }

@@ -218,7 +218,7 @@ void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
 // The current map; without a server of our own the flow loads it.
 void ClientOnMap(ClientSession* self, MapMessage* message) {
     AssignRef(&self->map_, message);
-    auto* server = GameServer();
+    auto* server = g_gameServer;
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(TheGameFlow(), nullptr, message->text_.data());
     TheGameFlow()->RegisterQuests(message->text_.data());
@@ -254,7 +254,7 @@ void ClientOnFileGone(ClientSession* self, Message* message) {
 void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     Append(self->chunks_, message);
     auto* file = message->file_.Get();
-    const char* none = game::EmptyText();
+    const char* none = game::kEmptyText;
     const std::size_t noneLength = std::strlen(none);
     if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
     if (file->name_.size() == noneLength && std::memcmp(file->name_.data(), none, noneLength) == 0)

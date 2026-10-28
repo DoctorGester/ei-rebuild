@@ -56,7 +56,7 @@ void ClientPublishParty(ClientSession* self) {
     // A copy of the old messages, then the list emptied.
     RefVector previous = state()->members_;
     state()->members_.clear();
-    state()->money_ = static_cast<std::uint32_t>(party->Money());
+    state()->money_ = static_cast<std::uint32_t>(party->money_);
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < std::ssize(party->items_); ++i) {
@@ -131,7 +131,7 @@ void ClientApplyParty(ClientSession* self) {
 
     CParty* party = self->parties_[1].Get();
     party->Clear(1, 0);
-    party->Money() = static_cast<int>(remote->money_);
+    party->money_ = static_cast<int>(remote->money_);
     std::vector<CEngineObject*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
         CStream* stream = StreamOf(remote->members_[i].ptr);

@@ -65,17 +65,12 @@ constinit std::vector<CEngineObject*> g_collected = /*007AFF48*/ {};
 constinit std::vector<CEngineObject*> g_added = /*007AFF38*/ {};
 constinit std::vector<CEngineObject*> g_kept = /*007AFF28*/ {};
 constinit std::vector<CEngineObject*> g_removed = /*007AFF18*/ {};
-StaticPtrArray& Collected() { return g_collected; }
-StaticPtrArray& Added() { return g_added; }
-StaticPtrArray& Kept() { return g_kept; }
-StaticPtrArray& Removed() { return g_removed; }
 // The exit functions: each frees its array's block (the fields stay).
 void FreeCollected() { lib::FreeStorage(g_collected); }
 void FreeAdded() { lib::FreeStorage(g_added); }
 void FreeKept() { lib::FreeStorage(g_kept); }
 void FreeRemoved() { lib::FreeStorage(g_removed); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
-std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
@@ -86,8 +81,8 @@ void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray*
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
-    if (StaticsGuard() & bit) return;
-    StaticsGuard() |= bit;
+    if (g_staticsGuard & bit) return;
+    g_staticsGuard |= bit;
     array.clear();
     std::atexit(destructor);
 }
@@ -110,7 +105,7 @@ namespace {
 
 // The map objects a player should know: around its camera (or all of them), its own units, the
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
-// write cursor into Collected().
+// write cursor into g_collected.
 CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
     if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
@@ -183,10 +178,10 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
 } // namespace
 
 int CWorldServer::SyncPlayer(CPlayer* player) {
-    InitStatic(1, Collected(), FreeCollected);
-    InitStatic(2, Added(), FreeAdded);
-    InitStatic(4, Kept(), FreeKept);
-    InitStatic(8, Removed(), FreeRemoved);
+    InitStatic(1, g_collected, FreeCollected);
+    InitStatic(2, g_added, FreeAdded);
+    InitStatic(4, g_kept, FreeKept);
+    InitStatic(8, g_removed, FreeRemoved);
 
     CPlayerServer* state = player->Server();
     if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
@@ -218,22 +213,22 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         if (player->dirty_ & kDirtyCountdowns) state->SendState73(&countdowns_);
 
         // Map objects: room for seven entries per world object.
-        StaticPtrArray& collected = Collected();
+        StaticPtrArray& collected = g_collected;
         collected.resize(static_cast<int>(objects_.map.size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
-        collected.resize(static_cast<int>(end - Collected().data()));
-        DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
-        state->SendObjectsRemoved(&Kept());
-        state->SendObjectsAdded(&Added());
-        state->SendObjectsChanged(&Removed());
+        collected.resize(static_cast<int>(end - g_collected.data()));
+        DiffSets(&state->sentObjects_, &collected, &g_added, &g_kept, &g_removed);
+        state->SendObjectsRemoved(&g_kept);
+        state->SendObjectsAdded(&g_added);
+        state->SendObjectsChanged(&g_removed);
 
         collected.resize(static_cast<int>(timedObjects_.map.size()));
         end = CollectTimedObjects(this, state, collected.data());
-        collected.resize(static_cast<int>(end - Collected().data()));
-        DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
-        state->SendTimedRemoved(&Kept());
-        state->SendTimedAdded(&Added());
-        state->SendTimedChanged(&Removed());
+        collected.resize(static_cast<int>(end - g_collected.data()));
+        DiffSets(&state->sentTimed_, &collected, &g_added, &g_kept, &g_removed);
+        state->SendTimedRemoved(&g_kept);
+        state->SendTimedAdded(&g_added);
+        state->SendTimedChanged(&g_removed);
 
         if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;

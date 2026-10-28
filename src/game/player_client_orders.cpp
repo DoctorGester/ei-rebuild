@@ -190,7 +190,7 @@ int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* 
 
 int CPlayerClient::SendPartyUpdate() {
     CMemoryStream block;
-    Owner()->Party()->SaveParty(&block, 0);
+    player_->Party()->SaveParty(&block, 0);
     WriteType(out_, kPartyUpdate);
     out_.WriteSized(&block);
     return 1;

@@ -279,7 +279,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     auto* player = LocalPlayerData();
     if (std::ssize(player->members_) == 0) {
         player->Clear(1, 0);
-        player->AddMember(kHeroName, kHumanHero, game::EmptyText());
+        player->AddMember(kHeroName, kHumanHero, game::kEmptyText);
     }
     PartyUnitRecord* first = player->members_.data();
     int size = std::ssize(records);
@@ -292,7 +292,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     if (unit) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);
         if (animation) {
-            std::uint32_t random = IsaacRandom::Global().Next();
+            std::uint32_t random = g_random.Next();
             double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);

@@ -184,7 +184,7 @@ void Terrain::PlayAmbience() {
     }
     libcrt::Qsort(votes, kClasses, sizeof(ClassVotes), ByWeight);
 
-    IsaacRandom& random = IsaacRandom::Global();
+    IsaacRandom& random = g_random;
     int heard = 0;
     for (; heard < 3 && votes[heard].weightSum > kMinWeight; ++heard) {   // a NaN weight ends it
         ClassVotes& vote = votes[heard];

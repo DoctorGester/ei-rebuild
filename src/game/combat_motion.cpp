@@ -57,8 +57,8 @@ constexpr int kMessagePartial = 0x01;
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
-float HeroWalkLimit() { return GameLogicSettings().damageLevel2Value; }
-float HeroRunLimit() { return GameLogicSettings().damageLevel1Value; }
+float HeroWalkLimit() { return g_logicSettings.damageLevel2Value; }
+float HeroRunLimit() { return g_logicSettings.damageLevel1Value; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -628,7 +628,7 @@ void CUnitServer::ResyncWithUnit() {
     if (!Queue(this).SameAs(&IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).empty() && QueueTime(this) == -1)
-            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
+            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(g_random.Next() % 0x33);
         Queue(this) = IdleSteps(this);
         StartQueueIfUnset(this);
         PopFinishedSteps();

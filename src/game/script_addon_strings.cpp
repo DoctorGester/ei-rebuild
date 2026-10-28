@@ -39,7 +39,7 @@ std::string Joined(Call* call) {
 }
 
 // std::string's c_str() assigned to the result (the text up to its first NUL).
-void Assign(Call* call, const std::string& text) { *call->StringResult() = text.c_str(); }
+void Assign(Call* call, const std::string& text) { *call->result.text = text.c_str(); }
 
 // A NUL-terminated copy changed in place by CharLowerA / CharUpperA (the user's code page).
 std::string CaseConverted(const char* text, bool upper) {
@@ -76,12 +76,12 @@ bool FloatToStr(Call* call) {
         if (i <= 0 || text[i] != '0') break;
     }
     text.resize(static_cast<std::size_t>(text[i] == '.' ? i : i + 1));
-    *call->StringResult() = text;
+    *call->result.text = text;
     return true;
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(str::ToDouble(Arg(call, 0))));
+    Store(call->result.number, static_cast<float>(str::ToDouble(Arg(call, 0))));
     return true;
 }
 
@@ -92,19 +92,19 @@ bool StrCat(Call* call) {
 
 // The length in characters (a UTF-8 sequence counts once).
 bool StrLen(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(text::CharacterCount(Arg(call, 0))));
+    Store(call->result.number, static_cast<float>(text::CharacterCount(Arg(call, 0))));
     return true;
 }
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
-    *call->StringResult() = Arg(call, static_cast<int>(index));
+    std::uint32_t index = g_random.Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
+    *call->result.text = Arg(call, static_cast<int>(index));
     return true;
 }
 
 bool StrHas(Call* call) {
-    Store(call->FloatResult(), std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f);
+    Store(call->result.number, std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f);
     return true;
 }
 
@@ -146,7 +146,7 @@ bool StrUpper(Call* call) {
 // Say(text, ...): in a network game, the joined texts go out as a chat line from the server.
 bool Say(Call* call) {
     if (IsMultiplayerClient()) {
-        net::ServerSession* server = net::GameServer();
+        net::ServerSession* server = net::g_gameServer;
         if (server && !(server->flags7_ & CRefCounted::kDetached)) {
             std::string text = Joined(call);
             server->Announce(text.c_str(), 0);
@@ -159,7 +159,7 @@ bool Say(Call* call) {
 // flush.
 bool ConsoleString(Call* call) {
     std::string text = Joined(call);
-    (console::Out() << text.c_str() << "\n").Flush();
+    (console::g_consoleOut << text.c_str() << "\n").Flush();
     return true;
 }
 

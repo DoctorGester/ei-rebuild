@@ -53,7 +53,7 @@ CFigureMesh* CObject3D::FindPart(const char* partName) {
 }
 
 int CObject3D::RemovePart(CFigureMesh* part) {
-    if (attached) Specific()->OnPartRemoved(part);
+    if (attached) attached->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index >= 0) {
         RemoveAt(parts, index);
@@ -77,7 +77,7 @@ CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
 
 float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float scaleX, scaleY, scaleZ;
-    Specific()->GetScale(&scaleX, &scaleY, &scaleZ);
+    attached->GetScale(&scaleX, &scaleY, &scaleZ);
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
     const float w = localRotation_.w;
     const float ux = localRotation_.x, uy = localRotation_.y, uz = localRotation_.z;

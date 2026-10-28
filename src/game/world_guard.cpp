@@ -34,7 +34,7 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
-        player->Party()->Money() ^= static_cast<int>(key);   // gold
+        player->Party()->money_ ^= static_cast<int>(key);   // gold
         for (int i = 0; i < std::ssize(player->Party()->members_); ++i) XorRange(&player->Party()->members_[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
@@ -49,7 +49,7 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
 
 void GuardPlayerData(char plain) {
     if (plain == g_guardPlain) return;
-    if (!plain) g_guardKey = IsaacRandom::Global().Next();   // a new key each time the data is hidden
+    if (!plain) g_guardKey = g_random.Next();   // a new key each time the data is hidden
     GuardPlayers(TheClientWorld()->players_, 0, g_guardKey);
     GuardPlayers(TheServerWorld()->players_, 1, g_guardKey);
     std::uint32_t key = g_guardKey;

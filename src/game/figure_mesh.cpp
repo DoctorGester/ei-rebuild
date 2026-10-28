@@ -602,7 +602,6 @@ void ReverseWinding(std::vector<std::uint16_t>& indices) {
 // The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
 // registers: it frees the block.
 constinit std::vector<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
-std::vector<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
 } // namespace
 
 void FreeOffsetVertices() { lib::FreeStorage(g_offsetVertices); }
@@ -659,7 +658,7 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
     const VertexPacket* vertices = buffers_.vertices;
     if (!offsets_.empty()) {
         const VertexPacket* source = buffers_.vertices;
-        std::vector<VertexPacket>& moved = OffsetVertices();
+        std::vector<VertexPacket>& moved = g_offsetVertices;
         // Every element is rewritten below.
         moved.resize(static_cast<std::size_t>(buffers_.vertexCount));
         // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.

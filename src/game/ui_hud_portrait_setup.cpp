@@ -43,9 +43,6 @@ void SexOf(const char* figure, std::string& sex) {
         sex = "f";
 }
 
-// The client's player records (a list of counted PlayerMessages).
-std::list<CountedRefTo<net::PlayerMessage>>& Players() { return net::GameClient()->players_; }
-
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 } // namespace
@@ -97,7 +94,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     int width;
     if (IsMultiplayerClient()) {
         width = static_cast<char>(wide) != 0 ? 0x38 : 0x28;
-        int players = static_cast<int>(Players().size());
+        int players = static_cast<int>(net::g_gameClient->players_.size());
         x = 400 - static_cast<int>(static_cast<unsigned>(width + players * 40 - 40) >> 1);
         if (column > 0) {
             x += width + column * 40 - 40;
@@ -213,7 +210,7 @@ void CHudPortraits::Rebuild(int wide) {
     }
 
     if (!IsMultiplayerClient()) return;
-    for (auto node = Players().begin(); node != Players().end(); ++node) {
+    for (auto node = net::g_gameClient->players_.begin(); node != net::g_gameClient->players_.end(); ++node) {
         auto* player = node->Get();
         CEngineObject* unit = nullptr;
         if (player->id_ >= 0) unit = TheClientWorld()->FindUnit(player->id_);

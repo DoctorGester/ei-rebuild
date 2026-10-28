@@ -21,7 +21,6 @@ using PointArray = BlockPointArray;
 constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
 PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
-std::uint8_t& BlocksGuard() { return g_blocksGuard; }
 void DestroyBlocks() { g_blocks.Destroy(); }
 
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
@@ -30,7 +29,6 @@ constinit lib::StaticObject<BlockPointArray> g_floodQueue = /*007C2F10*/ {};
 PointArray& FloodQueue() { return *g_floodQueue; }
 PointArray& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
-std::uint8_t& FloodGuard() { return g_floodGuard; }
 void DestroyFloodQueue() { g_floodQueue.Destroy(); }
 void DestroyFloodSecond() { g_floodSecond.Destroy(); }
 
@@ -41,8 +39,8 @@ int BlocksWide(const CRegionMap* map) { return map->edges[0].width; }
 int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 
 // The direction steps of block directions 0..7 (the tables from their index 1).
-const int* StepX() { return DirectionDx() + 1; }
-const int* StepY() { return DirectionDy() + 1; }
+const int* StepX() { return kDirectionDx + 1; }
+const int* StepY() { return kDirectionDy + 1; }
 
 } // namespace
 
@@ -97,8 +95,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (by < 0) by = 0;
 
     PointArray& blocks = Blocks();
-    if (!(BlocksGuard() & 1)) {
-        BlocksGuard() |= 1;
+    if (!(g_blocksGuard & 1)) {
+        g_blocksGuard |= 1;
         g_blocks.Construct();
         std::atexit(DestroyBlocks);
     }
@@ -159,13 +157,13 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 void CRegionMap::LabelRegions() {
     PointArray& queue = FloodQueue();
     PointArray& second = FloodSecond();
-    if (!(FloodGuard() & 1)) {
-        FloodGuard() |= 1;
+    if (!(g_floodGuard & 1)) {
+        g_floodGuard |= 1;
         g_floodQueue.Construct();
         std::atexit(DestroyFloodQueue);
     }
-    if (!(FloodGuard() & 2)) {
-        FloodGuard() |= 2;
+    if (!(g_floodGuard & 2)) {
+        g_floodGuard |= 2;
         g_floodSecond.Construct();
         std::atexit(DestroyFloodSecond);
     }

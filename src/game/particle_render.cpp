@@ -30,7 +30,6 @@ double Unsigned(std::uint32_t value) {
 #define EI_ONE 1.0f /*0073B84C*/
 
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
-std::vector<ParticleVertex>& Vertices() { return g_vertices; }
 void FreeVertices() { lib::FreeStorage(g_vertices); }
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
@@ -90,16 +89,16 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     ConstructArrays();
     float t = Interpolation();
     Sprites().resize(kReserve);
-    Vertices().resize(kReserve);
+    g_vertices.resize(kReserve);
     Sprites().resize(particles.size());
-    Vertices().resize(particles.size());
+    g_vertices.resize(particles.size());
     if (!renderer->BindHeldTexture(0, &texture)) return 0;
 
     ParticleSprite* sprite = Sprites().data();
     auto cursor = particles.begin();
     if (cursor != particles.end()) {
         float u = static_cast<float>(D(EI_ONE) - D(t));
-        ParticleVertex* vertex = Vertices().data();
+        ParticleVertex* vertex = g_vertices.data();
         do {
             const Particle* p = *cursor++;
             vertex->x = static_cast<float>(D(u) * D(p->prevPos.x) + D(t) * D(p->pos.x));
@@ -124,5 +123,5 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     }
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
-    return renderer->DrawSprites(blend != 0, &Vertices(), &Sprites());
+    return renderer->DrawSprites(blend != 0, &g_vertices, &Sprites());
 }

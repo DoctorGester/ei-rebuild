@@ -101,7 +101,6 @@ int FightState();
 inline int LightLevelsSetting() { return options::TheOptions()->enableBloodprintsRelight_; }
 // The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
 inline int g_updatePeriod = /*0078FF34*/ 55;
-inline int WorldUpdatePeriod() { return g_updatePeriod; }
 inline int LightLevelsPeriod() { return options::TheOptions()->shadowLightingFreq_; }
 // The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
 // from (its distance to the sun), the origin; the picking returns it without a view matrix.

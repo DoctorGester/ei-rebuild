@@ -41,7 +41,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
         GameBuffer* in = &node->Get()->reliableIn_;
         net::BufferUpdateHigh(in);
         if (in->PositionOf(in->high) <= 0) continue;
-        net::ServerSession* server = net::GameServer();
+        net::ServerSession* server = net::g_gameServer;
         if (!IsLive(server)) continue;
         if (!server->PlayerStateIs3(node->Get())) continue;
         player = node->Get();

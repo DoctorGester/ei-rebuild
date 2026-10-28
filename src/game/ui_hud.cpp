@@ -67,7 +67,6 @@ constexpr std::uint32_t kTintDim = 0x3F333333;   // 0.7f: the movement panel's o
 
 constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";
 // The world's update period in milliseconds: the game's speed.
-int& UpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
@@ -254,7 +253,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     } else {
         int unitId = owner_->party_[region]->id_;
         // The session's player records: id_ the player's unit, serial_ its id.
-        for (auto node = net::GameClient()->players_.begin(); node != net::GameClient()->players_.end(); ++node) {
+        for (auto node = net::g_gameClient->players_.begin(); node != net::g_gameClient->players_.end(); ++node) {
             auto* player = node->Get();
             if (player->id_ == unitId) {
                 playerId = player->serial_;
@@ -266,9 +265,9 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     std::snprintf(text, sizeof(text), "%d", playerId);
     // ClientSession::SendCommand: the server commands 4 and 5.
     if (mode == 1)
-        net::GameClient()->SendCommand(4, text);
+        net::g_gameClient->SendCommand(4, text);
     else if (mode == 2)
-        net::GameClient()->SendCommand(5, text);
+        net::g_gameClient->SendCommand(5, text);
     interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
 }
 
@@ -432,7 +431,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameClientPaused()) GameSendFlag10(0);
         fast_ = region - 1;
-        UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
+        worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;
         interface_->PlaySound(kSoundClock, 0);
         return;
@@ -617,7 +616,7 @@ float PortraitDelay(std::uint32_t random) {
 // Portrait `index` nods (wobble kind 1) after a short random delay.
 void NodPortrait(CBattleScreen* screen, int index) {
     HudPortraitSlot* slots = screen->portraits_->slots_.data();
-    float delay = PortraitDelay(IsaacRandom::Global().Next());
+    float delay = PortraitDelay(g_random.Next());
     slots[index].wobbleTime_ = delay;
     screen->portraits_->slots_[index].wobbleKind_ = 1;
 }

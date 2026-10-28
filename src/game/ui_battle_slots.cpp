@@ -25,7 +25,6 @@
 namespace {
 
 // The world's update period in milliseconds (the harness's `speed`; the game's default 55).
-int& WorldUpdatePeriod() { return worlddata::g_updatePeriod; }
 constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
 bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }
@@ -52,7 +51,7 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 
 void CBattleScreen::Close() {
     TheCamera()->flags_ |= CCamera::kFree;
-    WorldUpdatePeriod() = kDefaultUpdatePeriod;
+    worlddata::g_updatePeriod = kDefaultUpdatePeriod;
     TheCursor()->SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
@@ -86,7 +85,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].clear();
         if (panel->page_ == 0)
-            panel->owner_->MessageLog()->SetText(game::EmptyText());
+            panel->owner_->MessageLog()->SetText(game::kEmptyText);
         return;
     }
     auto& party = party_;
@@ -133,7 +132,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         panel->pageTexts_[0].clear();
         if (panel->page_ == 0)
-            panel->owner_->MessageLog()->SetText(game::EmptyText());
+            panel->owner_->MessageLog()->SetText(game::kEmptyText);
         return;
     }
     CParty* player = LocalPlayerData();

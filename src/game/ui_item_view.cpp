@@ -195,7 +195,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
-        std::uint32_t word = IsaacRandom::Global().Next();
+        std::uint32_t word = g_random.Next();
         turn->glow = RandomPhase(word);
         AssignCounted(item->link_, turn);
     }
@@ -352,7 +352,7 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
     UnitPrototypeRecord* unit;
     {
         std::string key(prototype);
-        unit = unitdb::PrototypeTable().byName[key];   // an unknown name gets a null entry
+        unit = g_unitDatabase->prototypes.byName[key];   // an unknown name gets a null entry
     }
     UnitModelRecord* figure;
     {

@@ -158,7 +158,7 @@ FootprintPart* CObject3D::PartBox(int index) {
 }
 
 CPlayerClient* CWorldClient::LocalView() {
-    if (session_) return static_cast<CPlayerClient*>(Session()->connection_);
+    if (session_) return static_cast<CPlayerClient*>(session_->connection_);
     return nullptr;
 }
 
@@ -170,7 +170,7 @@ bool CWorldClient::IsLocalViewMode2() {
 
 bool CWorldClient::IsLocalPlayerIdle() {
     if (!session_) return false;
-    CPlayerConnection* view = Session()->connection_;
+    CPlayerConnection* view = session_->connection_;
     if (!view) return false;
     netlink::NetLink* link = view->player_->link_;
     if (link && !(link->flags7_ & CRefObject::kDetached) && link->Alive()) return false;
@@ -355,14 +355,14 @@ int CWorldClient::Segment() {
     }
     if (CWorldHandle* source = shared5C_.Get()) source->Pump();
     if (CClientHandle* source = handle_.Get()) source->Pump();
-    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::GameClient());
-    if (CPlayer* session = Session()) {
+    if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::g_gameClient);
+    if (CPlayer* session = session_) {
         CPlayerConnection* view = session->connection_;
         if (!paused_) session->Tick();
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport
             // keeps the session: only the error is reported.
-            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(Session());
+            if (!ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport)) SessionDisconnect(session_);
             game::FatalError(worlddata::SegmentDisconnectedText());
             EndWalk(objectsIt);
             return 0;
@@ -407,7 +407,7 @@ int CWorldClient::Segment() {
         RunEffects(footprints_);
         RunEffects(scorchMarks_);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
-            lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
+            lightLevelsCountdown_ -= worlddata::g_updatePeriod;
             if (lightLevelsCountdown_ <= 0) {
                 lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
                 // Each blood print gets a grey level: the brightest of the sun at

@@ -38,7 +38,6 @@ namespace {
 
 
 
-CDirectInputMouse* TheMouse() { return Mouse(); }
 
 
 LRESULT OnActivate(WPARAM wParam) {
@@ -55,7 +54,7 @@ LRESULT OnActivate(WPARAM wParam) {
         TheCursor()->ShowImage(0);
         CTextureDevice* device = TheRenderDevice();
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
-        if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(0);
+        if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
         return 1;
@@ -64,7 +63,7 @@ LRESULT OnActivate(WPARAM wParam) {
     g_active = 1;
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
-    if (CDirectInputMouse* mouse = TheMouse()) mouse->SetActive(1);
+    if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(1);
     CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
         SceneRenderer()->RestoreSurfaces();
@@ -75,7 +74,7 @@ LRESULT OnActivate(WPARAM wParam) {
             // The context is the mouse.
             std::uint32_t flags = (reinterpret_cast<std::uintptr_t>(device) & 0xFFFFFF00u) |
                                   (g_deviceNamed == 0 ? 1u : 0u);
-            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, TheMouse(), 0,
+            ResetCursors(options::TheOptions()->fpsIndependentCursor_ != 0, g_mouse, 0,
                          static_cast<int>(flags));
         }
     }
@@ -193,7 +192,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
-        console::EndLine(console::Out() << static_cast<unsigned>(w) << ':' << static_cast<long>(lParam));
+        console::EndLine(console::g_consoleOut << static_cast<unsigned>(w) << ':' << static_cast<long>(lParam));
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
             HWND window = g_mainWindow;
             BOOL iconic = gameapi::IsIconic(window);
@@ -246,7 +245,7 @@ int StartFirstMap() {
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
     if (str::Compare(cmdMode,
-                        game::EmptyText()) == 0) {
+                        game::kEmptyText) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());
         return 1;

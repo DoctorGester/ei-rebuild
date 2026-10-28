@@ -89,7 +89,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
             } while (i < count());
         }
     }
-    if (withFinal) QueueAward(connection, 4, 0.0f, std::string(game::EmptyText()));
+    if (withFinal) QueueAward(connection, 4, 0.0f, std::string(game::kEmptyText));
 }
 
 // The zone completion command ("<zone>_3"). Announces the current map's title (text 7)
@@ -124,7 +124,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
 
         for (auto node = clients_.begin(); node != clients_.end(); ++node) {
             CRefObject* connection = node->ptr;
-            const char* empty = game::EmptyText();
+            const char* empty = game::kEmptyText;
             QueueAward(connection, 0, award0, std::string(empty));
             QueueAward(connection, 1, award1, std::string(empty));
         }

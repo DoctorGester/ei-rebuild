@@ -99,12 +99,12 @@ Error ReadError(Reader& r) {
 }
 
 void SetError(CScript* s, const Error& e) {
-    s->ErrorCode() = e.code;
-    s->ErrorLine() = e.line;
-    s->ErrorText() = e.text.c_str();
+    s->errorCode_ = e.code;
+    s->errorLine_ = e.line;
+    s->errorText_ = e.text.c_str();
 }
 
-Error TakeError(CScript* s) { return {s->ErrorCode(), s->ErrorLine(), s->ErrorText().c_str()}; }
+Error TakeError(CScript* s) { return {s->errorCode_, s->errorLine_, s->errorText_.c_str()}; }
 
 bool SameError(const Error& a, const Error& b) { return a.code == b.code && a.line == b.line && a.text == b.text; }
 
@@ -273,7 +273,7 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     const Error error = TakeError(s);
     const std::uint64_t hashes[5] = {
         HashOf([&](Writer& h) { PutText(h, text); }),
-        HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->Scripts(), pairs); }),
+        HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->definitions_, pairs); }),
         HashOf([&](Writer& h) { PutVars(h, *s->Globals()); }),
         HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }),
         HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, state.worldBlocks); }),
@@ -284,12 +284,12 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     for (int i = 0; i < 5 && !differs; ++i)
         if (hashes[i] != hashes0[i]) differs = kParts[i];
     const bool sameRun = g_ranWorld == ran0 && (!ran0 || g_ranWorldId == ranId0);
-    const bool ok = result == result0 && SameError(error, error0) && s->LoadedFlag() == loaded0 &&
-                    s->FileCount() == files0 && !differs && sameRun;
+    const bool ok = result == result0 && SameError(error, error0) && s->loaded_ == loaded0 &&
+                    s->fileCount_ == files0 && !differs && sameRun;
     if (!ok) {
         char extra[160];
-        std::snprintf(extra, sizeof(extra), "; loaded %d / %d, files %d / %d%s%s%s", s->LoadedFlag(), loaded0,
-                      s->FileCount(), files0, differs ? "; differs: " : "", differs ? differs : "",
+        std::snprintf(extra, sizeof(extra), "; loaded %d / %d, files %d / %d%s%s%s", s->loaded_, loaded0,
+                      s->fileCount_, files0, differs ? "; differs: " : "", differs ? differs : "",
                       sameRun ? "" : "; RunWorldScript differs");
         char what[96];
         std::snprintf(what, sizeof(what), "Load of %u bytes", static_cast<unsigned>(source.size()));

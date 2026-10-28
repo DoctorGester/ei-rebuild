@@ -32,7 +32,7 @@ constexpr const char* kMp3 = /*00744094*/ ".mp3";
 
 // Next delay of the calm music: 120..180 s from now. The random value is drawn first.
 std::uint32_t CalmDelay() {
-    std::uint32_t r = IsaacRandom::Global().Next() % 60001;
+    std::uint32_t r = g_random.Next() % 60001;
     return gameapi::timeGetTime() + r + 120000;
 }
 
@@ -40,7 +40,7 @@ std::uint32_t CalmDelay() {
 const std::string& PickName(const SoundNameArray& names) {
     std::uint32_t n = static_cast<std::uint32_t>(names.size());
     if (n == 1) return names[0];
-    return names[IsaacRandom::Global().Next() % n];
+    return names[g_random.Next() % n];
 }
 
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
@@ -82,8 +82,8 @@ int CMusicSystem::LoadThemes() {
         return result;
     }
     const char* const common = "Common";
-    credits = reg.GetString(common, "Credits", std::string(game::EmptyText()));
-    mainMenu = reg.GetString(common, "MainMenu", std::string(game::EmptyText()));
+    credits = reg.GetString(common, "Credits", std::string(game::kEmptyText));
+    mainMenu = reg.GetString(common, "MainMenu", std::string(game::kEmptyText));
     {
         std::vector<std::string> sections;
         reg.GetSectionNames(&sections);
@@ -93,8 +93,8 @@ int CMusicSystem::LoadThemes() {
             MusicTheme read;
             read.name = name;
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, "Briefing", std::string(game::EmptyText()));
-            read.constructor = reg.GetString(section, "Constructor", std::string(game::EmptyText()));
+            read.briefing = reg.GetString(section, "Briefing", std::string(game::kEmptyText));
+            read.constructor = reg.GetString(section, "Constructor", std::string(game::kEmptyText));
             reg.GetStringArray(section, "CalmOpen", &read.calm);
             reg.GetStringArray(section, "Combat", &read.combat);
             themes.push_back(read);
@@ -120,7 +120,7 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
             calmDue = 1;
             TheSoundManager()->StopStream(4);
             inCombat = 0;
-            combatTrack = game::EmptyText();
+            combatTrack = game::kEmptyText;
             return;
         }
     }
@@ -202,15 +202,15 @@ int CMusicSystem::UpdateMusic() {
             calmDue = CalmDelay();
         }
     } else if (fighting == 1) {
-        if (str::Compare(current, combatTrack) != 0 || str::Compare(combatTrack, game::EmptyText()) == 0) {
+        if (str::Compare(current, combatTrack) != 0 || str::Compare(combatTrack, game::kEmptyText) == 0) {
             combatTrack = PickName(themes[theme].combat);
             combatTrack += kMp3;
         }
         snd->RequestStream(combatTrack, 3);
-    } else if (str::Compare(current, game::EmptyText()) == 0) {
-        combatTrack = game::EmptyText();
+    } else if (str::Compare(current, game::kEmptyText) == 0) {
+        combatTrack = game::kEmptyText;
         if (calmDue == 0) {
-            std::uint32_t r = IsaacRandom::Global().Next();
+            std::uint32_t r = g_random.Next();
             calmDue = gameapi::timeGetTime() + r % 60001 + 120000;
         }
         if (gameapi::timeGetTime() >= calmDue) {

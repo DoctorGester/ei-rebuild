@@ -225,7 +225,7 @@ void ScriptQuestFinish(CScript* script) {
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
     script->Load(&text, 1);
-    QuestName() = game::EmptyText();   // the empty string constant
+    QuestName() = game::kEmptyText;   // the empty string constant
 }
 
 // ---- The quest's objectives and name (script.h) --------------------------------------------------------------------

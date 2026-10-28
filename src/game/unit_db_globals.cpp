@@ -11,8 +11,6 @@ constinit lib::StaticObject<SkillDatabase> g_skillDatabase = /*007AF268*/ {};
 
 namespace unitdb {
 
-UnitPrototypeTable& PrototypeTable() { return g_unitDatabase->prototypes; }
-NpcPrototypeTable& NpcTable() { return g_unitDatabase->npcs; }
 // What UnitPrototypeTable::At and UnitModelTable::At answer (the vector replay links this file alone).
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) { return RecordAt(g_unitDatabase->prototypes.records, index); }
 UnitModelRecord* ModelRecord(std::uint32_t index) { return RecordAt(g_unitDatabase->models.records, index); }

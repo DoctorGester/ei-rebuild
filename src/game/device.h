@@ -24,7 +24,6 @@ inline constexpr GUID kIidHalDevice = /*00745A50*/ {0x84E63DE0, 0x46AA, 0x11CF, 
 
 // The surface holders alive (the holders' constructors count them).
 inline int g_holderCount = /*007AEE94*/ {};
-inline int& HolderCount() { return g_holderCount; }
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return device->d3dDevice_; }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return device->ddraw_; }

@@ -189,8 +189,6 @@ void Lever::SetLock(const LockKey* key) {
 
 bool Lever::Slot29True() { return true; }
 
-int Lever::Flag260Slot() { return flag260; }
-
 bool Lever::KeepsMapFlagSlot() { return keepsMapFlag != 0; }
 
 int Lever::NeedsKey() {
@@ -209,8 +207,6 @@ bool Lever::ApplyKey(const LockKey* key, int) {
 }
 
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
-
-double Lever::RadiusSlot() { return bounds.radius; }
 
 const char* Lever::GetClassName() { return kLeverClassName; }
 int Lever::GetClassId() { return kClassLever; }

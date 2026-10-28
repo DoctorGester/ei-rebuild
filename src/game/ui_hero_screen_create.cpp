@@ -226,7 +226,7 @@ void CMpHeroScreen::CreateScreen() {
     NameList& women = names_;
     VoiceList& maleVoices = voiceLists_[0];
     VoiceList& femaleVoices = voiceLists_[1];
-    const NpcPrototypeTable& creatures = unitdb::NpcTable();
+    const NpcPrototypeTable& creatures = g_unitDatabase->npcs;
     const int count = static_cast<int>(creatures.records.size());
     for (int i = 0; i < count; ++i) {
         // The vector's checked access, repeated like the original.

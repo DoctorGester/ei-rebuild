@@ -74,7 +74,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
         ObjectWorld(this)->MoveObject(unit, &position.x);
         return;
     }
-    if (step > kLongStep) step = static_cast<float>(IsaacRandom::Global().Next() % kLongStepSpread + 500u);
+    if (step > kLongStep) step = static_cast<float>(g_random.Next() % kLongStepSpread + 500u);
     lastTime = time;
     if (unit->InvisibleSlot()) unit->ClientSpecific()->InvisiblePulse(step);
     if (unit->MapObject()->IsStunned()) unit->ClientSpecific()->StunnedPulse(step);

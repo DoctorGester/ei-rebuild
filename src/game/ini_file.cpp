@@ -72,7 +72,7 @@ std::string CIniFile::GetString(const char* section, const char* key, const char
 }
 
 BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
-    std::string value = ReadString(this, section, key, game::EmptyText());
+    std::string value = ReadString(this, section, key, game::kEmptyText);
     std::string item;
     if (value.empty()) return 0;
     value += separator;

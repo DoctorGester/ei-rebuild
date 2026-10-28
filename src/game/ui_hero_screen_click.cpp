@@ -85,7 +85,7 @@ void CMpHeroScreen::CloseRenameEdit() {
 
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
-    statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
+    statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
     surfaces_[0]->GetDC();
     surfaces_[0]->Clear();
     surfaces_[0]->ReleaseDC();
@@ -224,8 +224,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->stat20Base = 25.0f;
             stats->stat20 = 25.0f;
             hero->height = 0.7f;
-            nameEdit_->SetText(game::EmptyText());
-            statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
+            nameEdit_->SetText(game::kEmptyText);
+            statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
             RefreshStats();
             return;
         }
@@ -289,13 +289,13 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         ChooseFigure(defaults_[0].c_str());
-        statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
+        statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
         surfaces_[0]->GetDC();
         surfaces_[0]->Clear();
         surfaces_[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
-        nameEdit_->SetText(game::EmptyText());
+        nameEdit_->SetText(game::kEmptyText);
         return;
     case 6:
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
@@ -341,7 +341,7 @@ void CMpHeroScreen::Rename() {
     std::string name = MpHeroName(heroIndex_);
     int bar = str::Find(name, RenameBar());
     if (bar < 0) {
-        renameEdit_->SetText(game::EmptyText());
+        renameEdit_->SetText(game::kEmptyText);
     } else {
         std::string typed = str::Mid(name, bar + 1);
         str::TrimLeft(typed);
@@ -379,7 +379,7 @@ void CMpHeroScreen::PlayVoice() {
     UnitPrototypeRecord* prototype;
     {
         std::string key(hero->texts[6].c_str());
-        prototype = unitdb::PrototypeTable().byName[key];
+        prototype = g_unitDatabase->prototypes.byName[key];
     }
     if (!prototype) return;
     acks::UnitAcks* set;

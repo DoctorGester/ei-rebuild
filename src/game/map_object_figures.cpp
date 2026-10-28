@@ -174,13 +174,13 @@ void CObject3D::LoadFigures() {
         ++part->refCount_;
         part->SetObject(this);
         if (animation) AnimationAddPart(animation, nullptr, part);
-        if (attached) Specific()->OnPartAdded(part);
+        if (attached) attached->OnPartAdded(part);
     }
     pendingParts.clear();
     if (GetClassId() != kClassUnit) {
         for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }
-    Specific()->ApplyMaterials();
+    attached->ApplyMaterials();
     flags_ |= kFlagFiguresLoaded;
 }

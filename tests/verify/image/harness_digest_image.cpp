@@ -33,7 +33,7 @@ CWorldClient* ClientWorld() { return TheClientWorld(); }
 
 // The generators: ours (named globals, C18l).
 void ReadRandom(Builder& b) {
-    const IsaacRandom& r = IsaacRandom::Global();
+    const IsaacRandom& r = g_random;
     b.Unsigned("isaac.seeded", r.seeded_);
     b.Unsigned("isaac.count", r.count_);
     b.Bits("isaac.a", r.a_);

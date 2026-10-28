@@ -45,7 +45,7 @@ int CMapObject::CreateMapObject() {
     changeStamp = -1;
     effects = {};
     updateCountdown = kInitialCountdown;
-    name2 = game::EmptyText();
+    name2 = game::kEmptyText;
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;
 }

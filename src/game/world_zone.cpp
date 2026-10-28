@@ -38,9 +38,6 @@ namespace {
 // The target of an exit that leads nowhere.
 constexpr const char* kNoExit = "none";
 
-// The default orientation of new units, passed by value.
-Quaternion DefaultRotation() { return kNewUnitRotation; }
-
 // ---- Helpers ----------------------------------------------------------------------------------
 
 // The unit record AddUnitToServer builds on its stack: a CParty (party.h) given one member; CreateUnits takes a
@@ -64,7 +61,7 @@ struct UnitRecordBuilder {
 void CWorldServer::SetZoneExits(const ZoneExits* source) {
     exits_ = {};
     for (const ZoneExit& from : *source) {
-        if (str::Compare(from.target, game::EmptyText()) == 0) continue;   // leads nowhere
+        if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
         if (from.entrance < 0 && str::Compare(from.target, kNoExit) != 0)
             game::FatalError(game::zonetexts::WrongEntrance());
         exits_.push_back(from);
@@ -76,13 +73,13 @@ void CWorldServer::SetZoneExits(const ZoneExits* source) {
 void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position) {
     UnitRecordBuilder builder;
     builder.Construct();
-    builder.Fill(game::EmptyText(), prototype, name);
+    builder.Fill(game::kEmptyText, prototype, name);
     RecordPtrArray records;
     PartyUnitRecord* record = builder.Record();
     records.resize(1);
     records[0] = record;
     record->unitId = id;
-    CreateUnits(nullptr, &records, position, DefaultRotation(), nullptr);
+    CreateUnits(nullptr, &records, position, kNewUnitRotation, nullptr);
     builder.Destruct();
 }
 

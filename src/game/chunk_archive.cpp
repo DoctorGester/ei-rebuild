@@ -83,7 +83,7 @@ void ChunkArchive::PopChunk() {
 }
 
 bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) {
-    const std::uint8_t* base = Data() + parent->offset;
+    const std::uint8_t* base = dataStream_.data_ + parent->offset;
     std::uint32_t length = 0;
     if (*cursor + 2 > parent->size) return false;
     out->id = base[*cursor];
@@ -105,7 +105,7 @@ bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) 
 
 bool ChunkArchive::AppendChild(Ref* chunk, int id, const void* data, std::uint32_t size) {
     dataStream_.Resize(static_cast<std::uint32_t>(chunk->offset) + size + static_cast<std::uint32_t>(chunk->size) + 5);
-    std::uint8_t* base = Data() + chunk->offset;
+    std::uint8_t* base = dataStream_.data_ + chunk->offset;
     base[chunk->size] = static_cast<std::uint8_t>(id);
     ++chunk->size;
     std::uint32_t length = size * 2;
@@ -160,7 +160,7 @@ void ChunkArchive::Field(int id, void* data, unsigned size) {
         return;
     }
     Ref child;
-    if (FindField(this, id, &child)) std::memcpy(data, Data() + child.offset, size);
+    if (FindField(this, id, &child)) std::memcpy(data, dataStream_.data_ + child.offset, size);
     else std::memset(data, 0, size);   // a missing field reads as zero
 }
 
@@ -183,7 +183,7 @@ void ChunkArchive::LeaveChunk() {
     // Writing: the chunk becomes a child of its parent (its content was written right after the
     // parent's, 5 bytes on to leave room for the header), then the stream is cut back to the parent.
     Ref* chunk = Current();
-    const std::uint8_t* content = Data() + chunk->offset;   // taken before the parent's resize
+    const std::uint8_t* content = dataStream_.data_ + chunk->offset;   // taken before the parent's resize
     AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
     PopChunk();
     Ref* parent = Current();
@@ -200,8 +200,8 @@ void ChunkArchive::StringField(int id, std::string* s) {
     Ref child;
     // string::assign(text, text + strlen(text)), inlined: overwrite in place and
     // cut the rest, or overwrite the whole string and append the remainder.
-    if (FindField(this, id, &child)) s->assign(TextAt(Data() + child.offset));
-    else s->assign(game::EmptyText());
+    if (FindField(this, id, &child)) s->assign(TextAt(dataStream_.data_ + child.offset));
+    else s->assign(game::kEmptyText);
 }
 
 // A memory stream as chunk `id` (EnterChunk, inlined) holding its size (field 1) and its bytes
@@ -254,7 +254,7 @@ CRefCounted* ChunkArchive::ObjectRef(int id) {
         AppendChild(Current(), id, &key, 4);
     } else {
         Ref child;
-        if (FindField(this, id, &child)) std::memcpy(&key, Data() + child.offset, 4);
+        if (FindField(this, id, &child)) std::memcpy(&key, dataStream_.data_ + child.offset, 4);
         else key = 0;
     }
     auto node = loaded_.find(key);
@@ -351,7 +351,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         if (loading_) {
             Ref field;
             field.Reset();
-            key = FindChild(record, 0, &field, record->occurrence) ? ValueAt<std::uint32_t>(Data() + field.offset) : 0;
+            key = FindChild(record, 0, &field, record->occurrence) ? ValueAt<std::uint32_t>(dataStream_.data_ + field.offset) : 0;
         } else {
             AppendChild(record, 0, &key, 4);
         }
@@ -399,7 +399,7 @@ void ChunkArchive::Close(CStream* stream) {
             if (loading_) {
                 Ref field;
                 field.Reset();
-                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<CRefCounted*>(Data() + field.offset) : nullptr;
+                object = FindChild(record, 0, &field, record->occurrence) ? ValueAt<CRefCounted*>(dataStream_.data_ + field.offset) : nullptr;
             } else {
                 AppendChild(record, 0, &number, 4);
             }
@@ -412,7 +412,7 @@ void ChunkArchive::Close(CStream* stream) {
             } else {
                 // LeaveChunk inlined, with pop_back and ResizeToCurrent.
                 Ref* chunk = Current();
-                const std::uint8_t* content = Data() + chunk->offset;
+                const std::uint8_t* content = dataStream_.data_ + chunk->offset;
                 AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
                 PopChunk();
                 ResizeToCurrent();

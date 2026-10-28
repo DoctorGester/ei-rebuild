@@ -35,6 +35,8 @@ BinkHeader* OpenBink(const char* name, unsigned flags) {
     return gameapi::BinkOpen(name, flags);
 }
 
+// The surface type the players keep (the game's BinkDDSurfaceType of the holder's surface): the holders have
+// none, so the type of the CPU copy the new renderer gets.
 constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer: R, G, B, X bytes (checked offline)
 
 // The loading screen's movie: where it is drawn on the screen, its Bink handle and the surface type it was
@@ -63,10 +65,6 @@ void CopyFrame(BinkHeader* bink, std::vector<std::uint8_t>* frame) {
 }
 
 render::Rect ToRender(const RECT& r) { return render::Rect{r.left, r.top, r.right, r.bottom}; }
-
-// The surface type the players keep (the game's BinkDDSurfaceType of the holder's surface): the
-// holders have none, so the type of the CPU copy the new renderer gets.
-unsigned SurfaceType() { return kBinkSurface32R; }
 
 } // namespace
 
@@ -232,7 +230,7 @@ void ShowLoadingMovie(int progress) {
         CDXSurface* old = g_loadingHolder;
         g_loadingHolder = holder;
         if (old) old->Release();
-        g_loadingSurfaceType = SurfaceType();
+        g_loadingSurfaceType = kBinkSurface32R;
         g_loadingScreen = screen;
         TheCursor()->SaveBackground(1);
     }
@@ -292,7 +290,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     CDXSurface* previous = holder;
     holder = made;
     if (previous) previous->Release();
-    surfaceType = SurfaceType();
+    surfaceType = kBinkSurface32R;
     if (MoviesMode() == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;

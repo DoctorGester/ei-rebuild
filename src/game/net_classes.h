@@ -125,8 +125,6 @@ inline GameBuffer* ReceiveBuffer() { return &*g_receiveBuffer; }
 // initialisers and released at exit (net_session.cpp).
 inline ClientSession* g_gameClient = /*0079B5D8*/ {nullptr};
 inline ServerSession* g_gameServer = /*0079B5DC*/ {nullptr};
-inline ServerSession*& GameServer() { return g_gameServer; }
-inline ClientSession*& GameClient() { return g_gameClient; }
 // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
 // PartyMessage, or null), take the acceptance back, drop the offer.
 void ClientPublishParty(ClientSession* self);

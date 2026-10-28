@@ -67,7 +67,7 @@ constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                       // -1313
 constexpr int kRemarkIdle = 1;
 
 void MaybeRemark(AIBrain* brain, int what) {
-    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(what);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(what);
 }
 
 void StartMove(AIBrain* brain, AIMoveOrder* order) {
@@ -108,7 +108,7 @@ int AIMode::Evaluate(AIBrain*) { return kPriority; }
 void AIMode::Enter(AIBrain* brain) {
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
-    std::uint32_t roll = IsaacRandom::Global().Next();
+    std::uint32_t roll = g_random.Next();
     volatile std::int64_t wide = roll;             // the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
     brain->owner->SetBusy(0);
@@ -127,11 +127,11 @@ void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
     if (newRadius >= kZero)
         std::memcpy(&radius, &newRadius, 4);
     else
-        std::memcpy(&radius, &GameLogicSettings().guardRadius, 4);
+        std::memcpy(&radius, &g_logicSettings.guardRadius, 4);
     if (newWander >= kZero)
         std::memcpy(&wander, &newWander, 4);
     else
-        std::memcpy(&wander, &GameLogicSettings().guardStayTime, 4);
+        std::memcpy(&wander, &g_logicSettings.guardStayTime, 4);
 }
 
 void GuardMode::Execute(AIBrain* brain) {
@@ -169,7 +169,7 @@ void GuardMode::Execute(AIBrain* brain) {
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);
     }
-    bool farLook = IsaacRandom::Global().Next() % 11 == 0;
+    bool farLook = g_random.Next() % 11 == 0;
     brain->PlanLooks(&order, &direction, wander, farLook);
     StartMove(brain, &order);
 }
@@ -271,10 +271,10 @@ void SentryMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     order.looks.clear();
     std::memcpy(&order.point, &point, sizeof(Vector3));
-    bool farLook = IsaacRandom::Global().Next() % 11 == 0;
+    bool farLook = g_random.Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // the wander radii of a far and a near look-around.
-    float wanderRadius = farLook ? GameLogicSettings().guardStayTime : GameLogicSettings().sentryStayTime;
+    float wanderRadius = farLook ? g_logicSettings.guardStayTime : g_logicSettings.sentryStayTime;
     brain->PlanLooks(&order, &none, wanderRadius, farLook);
     StartMove(brain, &order);
     SetPositions(brain, &order.point, kNearX, kNearY);
@@ -444,7 +444,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
 }
 
 void AggressionMode::Execute(AIBrain* brain) {
-    if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(2);
+    if (g_random.Next() % 1001 == 1) brain->owner->voice.Raise(2);
     if (!chosen.object) return;
     brain->CallAllies(&chosen.object->localPosition_);
     AITargetChoice attack{-1, nullptr};     // what the brain is attacking now

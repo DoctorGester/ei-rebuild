@@ -17,7 +17,7 @@
 
 namespace {
 // The defence factor of units without a player, per difficulty (GameDifficulty()).
-inline const float* DefenceFactors() { return GameLogicSettings().defence; }
+inline const float* DefenceFactors() { return g_logicSettings.defence; }
 
 UnitVitals& VitalsOf(CUnit* unit) { return unit->ServerCompanion()->vitals; }
 

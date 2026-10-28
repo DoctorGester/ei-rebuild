@@ -11,7 +11,7 @@ namespace {
 constexpr int kDamageTypes = 7;
 constexpr int kSlotKindWorn = 1;   // a slot counts when its kind is above this
 // The protection factor by difficulty (GameDifficulty, ui.h): the setting "Absorption".
-inline const float* DifficultyFactors() { return GameLogicSettings().absorption; }
+inline const float* DifficultyFactors() { return g_logicSettings.absorption; }
 } // namespace
 
 void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std::uint8_t keyed) {

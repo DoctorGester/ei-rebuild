@@ -62,8 +62,8 @@ constexpr float kSamePointSq = 0.01f;
 
 // how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
-float FollowNear() { return GameLogicSettings().followMinDist; }
-float FollowFar() { return GameLogicSettings().followMaxDist; }
+float FollowNear() { return g_logicSettings.followMinDist; }
+float FollowFar() { return g_logicSettings.followMaxDist; }
 
 CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
@@ -78,7 +78,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     AILookArray& planned = order->looks;
     planned = {};
 
-    IsaacRandom* random = (&IsaacRandom::Global());
+    IsaacRandom* random = (&g_random);
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
     eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
@@ -125,7 +125,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         --standCooldown;
         return false;
     }
-    IsaacRandom* random = (&IsaacRandom::Global());
+    IsaacRandom* random = (&g_random);
     float low = -radius;
     float dx = static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low);
     double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
