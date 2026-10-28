@@ -34,12 +34,12 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
 // `release` picks how the original releases the element.
 template <bool kViaRelease>
 void ClearReferenceList(std::list<CUnit*>& list) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
+    for (auto& node : list) {
         if (kViaRelease) {
-            ReferenceRelease(&*node);
+            ReferenceRelease(&node);
         } else {
-            if (*node) (*node)->Release();
-            *node = nullptr;
+            if (node) node->Release();
+            node = nullptr;
         }
     }
     list.clear();

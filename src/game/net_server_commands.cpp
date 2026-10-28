@@ -37,8 +37,8 @@ bool Is(const std::string& s, const char* t) {
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
-    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings_) {
+        auto* binding = node.Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = binding->Player();
         if (IsLive(player) && player->host_) return true;

@@ -246,11 +246,11 @@ void ListVar(std::vector<std::string>* args) {
             EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
-        const std::string& name = node->first;
-        EndLine(g_consoleOut << name << " = " << node->second);
+    for (auto& node : variables) {
+        const std::string& name = node.first;
+        EndLine(g_consoleOut << name << " = " << node.second);
         if (writing) {
-            line = str::Format("%s %g\n", name, static_cast<double>(node->second));
+            line = str::Format("%s %g\n", name, static_cast<double>(node.second));
             file.WriteString(line);
         }
     }

@@ -77,8 +77,8 @@ T ReadAs(CStream* stream) {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     std::vector<int> stranded;
-    for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
-        CUnit* unit = UnitOrNull(node->second);
+    for (auto& node : world->objects_.map) {
+        CUnit* unit = UnitOrNull(node.second);
         if (!unit) continue;
         if (world->aiMap_.CanLeaveCell(unit)) continue;
         int id = unit->id_;
@@ -481,8 +481,8 @@ void CWorldServer::SaveWorld(CStream* stream) {
     spellManager_->SaveObjects(stream);
     itemManager_->SaveObjects(stream);
 
-    for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)
-        stream->WriteValue(node->second->id_);
+    for (auto& node : timedObjects_.map)
+        stream->WriteValue(node.second->id_);
     stream->WriteValue(-1);
 
     for (auto node = projectiles_.begin(); node != projectiles_.end();) {

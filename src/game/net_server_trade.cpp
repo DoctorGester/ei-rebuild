@@ -20,10 +20,10 @@ constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 
 // The offer of `offer`'s partner (its player is our partner and its partner our player), or null.
 PartyMessage* FindPartnerOffer(const std::list<CountedRefTo<PartyMessage>>& list, PartyMessage* offer) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        auto* other = node->Get();
+    for (auto& node : list) {
+        auto* other = node.Get();
         if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr)
-            return node->Get();
+            return node.Get();
     }
     return nullptr;
 }
@@ -45,8 +45,8 @@ namespace net {
 
 // The trade between the two offers (in either order), or null.
 TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMessage* other) {
-    for (auto node = trades_.begin(); node != trades_.end(); ++node) {
-        TradeMessage* trade = node->Get();
+    for (auto& node : trades_) {
+        TradeMessage* trade = node.Get();
         const CRefObject* first = trade->offer_.ptr;
         if ((first == offer && trade->partnerOffer_.ptr == other) || (first == other && trade->partnerOffer_.ptr == offer))
             return trade;

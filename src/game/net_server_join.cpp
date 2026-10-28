@@ -53,8 +53,8 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     int number = 1;
     for (;;) {
         bool used = false;
-        for (auto it = self->players_.begin(); it != self->players_.end(); ++it) {
-            if (it->Get()->number_ == number) {
+        for (auto& it : self->players_) {
+            if (it.Get()->number_ == number) {
                 used = true;
                 break;
             }

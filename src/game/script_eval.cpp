@@ -621,8 +621,8 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         }
         **result = player->Server()->possessedGroup_;
         const auto& units = player->units_;
-        for (auto node = units.begin(); node != units.end(); ++node) {
-            CUnit* unit = node->second;
+        for (auto& node : units) {
+            CUnit* unit = node.second;
             if (!unit) break;
             (*result)->Insert(unit);
             InsertSeen(*result, unit->ServerController());

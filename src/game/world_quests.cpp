@@ -160,8 +160,8 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CPlayerServer* state = p->Server();
         if (!state) continue;
-        for (auto node = list.begin(); node != list.end(); ++node)
-            state->SendPair18(node->controller->unit->id_, std::bit_cast<std::uint32_t>(node->share));
+        for (auto& node : list)
+            state->SendPair18(node.controller->unit->id_, std::bit_cast<std::uint32_t>(node.share));
     }
     if (it.manager) {
         --it.manager->refCount_;

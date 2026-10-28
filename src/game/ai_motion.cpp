@@ -180,7 +180,7 @@ void PathOrder::ShiftTime(int delta) {
 }
 
 int PathOrder::SetStepSpeeds(std::uint16_t speed) {
-    for (auto node = steps.begin(); node != steps.end(); ++node) node->flags = speed;
+    for (auto& node : steps) node.flags = speed;
     return 0;
 }
 

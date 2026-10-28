@@ -945,7 +945,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         node = next;
     }
     // The list's destructor: every reference released, then the blocks.
-    for (auto node = joined.begin(); node != joined.end(); ++node) ReleaseSession(*node);
+    for (auto& node : joined) ReleaseSession(node);
     joined.clear();
 }
 
@@ -1403,8 +1403,8 @@ void GameFlow::AfterServerStart() {
 void GameFlow::UpdateFromServer() {
     if (!Active(net::g_gameClient)) return;
     if (CTextManager* texts = g_clientWorld->texts_) {
-        for (const std::string* file = g_questFiles.data(); file != g_questFiles.data() + g_questFiles.size(); ++file)
-            texts->RemoveSource(*file);
+        for (const auto& file : g_questFiles)
+            texts->RemoveSource(file);
         g_questFiles.clear();
     }
     auto* clientWorld = &g_clientWorld.Get();

@@ -92,8 +92,8 @@ std::string Names(std::uint8_t* count) {
     std::string names;
     *count = 0;
     const auto& bindings = g_gameServer->bindings_;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings) {
+        auto* binding = node.Get();
         auto* player = binding->Player();
         const char* name = player->name_.data();
         std::size_t length = std::strlen(name);

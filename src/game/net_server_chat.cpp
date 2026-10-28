@@ -31,8 +31,8 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
 
     CRefObject* connection = nullptr;
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
-        for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
-            auto* binding = node->Get();
+        for (auto& node : bindings_) {
+            auto* binding = node.Get();
             if (binding->PlayerRef().ptr == player) {
                 connection = binding->ConnectionRef().ptr;
                 break;

@@ -81,9 +81,9 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     int remaining = static_cast<int>(cells.size());
     ParticleVertex* point = g_points.data();
     FogSprite* sprite = g_sprites->data();
-    for (auto node = cells.begin(); node != cells.end(); ++node) {
+    for (auto& node : cells) {
         if (--remaining < 0) break;
-        const FogCell& cell = node->second;
+        const FogCell& cell = node.second;
         lib::StoreBytes(point, cell.pos);
         point->size = kFogSpriteSize;
         const int alpha = x87::fistp(static_cast<float>(cell.alpha * kColourScale));

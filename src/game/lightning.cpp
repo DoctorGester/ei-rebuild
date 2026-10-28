@@ -421,8 +421,8 @@ int CLightningManager::DrawAll(CSceneRenderer* device) {
         ++node;
         static_cast<CLightning*>(*current)->Draw(device);
     }
-    for (auto n = newBolts_.begin(); n != newBolts_.end(); ++n) {
-        if (*n) (*n)->Release();
+    for (auto& n : newBolts_) {
+        if (n) n->Release();
     }
     newBolts_.clear();
     return 1;

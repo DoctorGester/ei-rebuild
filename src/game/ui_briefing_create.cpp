@@ -338,23 +338,23 @@ void CBriefingScreen::MarkPeople() {
     std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     std::vector<int> open;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
+    for (auto& node : variables) {
         std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node->second);
+        bits = std::bit_cast<std::uint32_t>(node.second);
         if (bits != kOneBits) continue;
-        text::Split(node->first, &parts, '.');
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1]);
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
     }
-    for (int* id = people_.data(); id != people_.data() + people_.size(); ++id) {
-        if (!g_clientWorld->FindUnit(*id)) continue;
-        bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
+    for (auto& id : people_) {
+        if (!g_clientWorld->FindUnit(id)) continue;
+        bool hasTopics = std::find(open.begin(), open.end(), id) != open.end();
         auto* player = g_serverWorld->GetPlayer(0);
         if (player && player->Server())
-            player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
+            player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, id);
     }
     open.clear();
 }

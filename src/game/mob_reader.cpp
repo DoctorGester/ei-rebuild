@@ -153,8 +153,8 @@ bool MobFile::Load(int keepIds) {
     // Every record becomes a world object, then is deleted (the map keeps the dangling pointer).
     const int step = static_cast<int>(records.byId.size()) / 5 + 1;
     int done = 0;
-    for (auto node = records.byId.begin(); node != records.byId.end(); ++node) {
-        Spec* spec = node->second;
+    for (auto& node : records.byId) {
+        Spec* spec = node.second;
         if (spec->kind == kKindTrap) {
             auto* record = static_cast<TrapSpec*>(spec);
             record->trap.sides = 0;

@@ -257,8 +257,8 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
 
     std::vector<FileChunkMessage*> chunks;
     int count = 0;
-    for (auto node = self->chunks_.begin(); node != self->chunks_.end(); ++node) {
-        auto* chunk = node->Get();
+    for (auto& node : self->chunks_) {
+        auto* chunk = node.Get();
         if (chunk->file_.ptr != file) continue;
         ++count;
         chunks.push_back(chunk);
@@ -269,8 +269,8 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
         // carry the same chunk's data: any sort writes the same bytes.
         std::sort(chunks.begin(), chunks.end(),
                   [](const FileChunkMessage* a, const FileChunkMessage* b) { return a->index_ < b->index_; });
-        for (FileChunkMessage** chunk = chunks.data(); chunk != chunks.data() + chunks.size(); ++chunk) {
-            const std::uint8_t* data = (*chunk)->data_;
+        for (auto& chunk : chunks) {
+            const std::uint8_t* data = chunk->data_;
             if (buffer.cur + FileChunkMessage::kDataSize <= buffer.end) {
                 buffer.flags |= 1;
                 std::memcpy(buffer.cur, data, FileChunkMessage::kDataSize);

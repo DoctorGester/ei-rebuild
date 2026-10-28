@@ -116,11 +116,11 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     prefix = str::Format(ZoneTopicFormat(), zone->name);
     BriefingVariables variables(prefix.c_str());
     std::vector<std::string> parts;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
+    for (auto& node : variables) {
         std::uint32_t bits;
-        bits = std::bit_cast<std::uint32_t>(node->second);
+        bits = std::bit_cast<std::uint32_t>(node.second);
         if (bits != kOneBits) continue;
-        text::Split(node->first, &parts, '.');
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;

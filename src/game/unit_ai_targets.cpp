@@ -175,8 +175,8 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     EI_NAN_AUDIT(PrototypeSize(self));
     if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
     Vector3 at = target->localPosition_;
-    for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : brain->memory.nearby) {
+        auto* other = node;
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
@@ -314,13 +314,13 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* c
         // The unit and its allies in sight that are alive and not reported.
         CountedUnits allies{};
         allies.push_back(self);
-        for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
-            auto* other = *node;
+        for (auto& node : brain->memory.nearby) {
+            auto* other = node;
             if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && g_serverWorld->diplomacy_.IsAllied(self->side, other->side))
                 allies.push_back(other);
         }
-        for (auto node = allies.begin(); node != allies.end(); ++node) {
-            auto* ally = *node;
+        for (auto& node : allies) {
+            auto* ally = node;
             for (int i = 0; i < std::ssize(spells); ++i) {
                 const AIAttackOption* option = &spells[i];
                 if (alliesOnly && option->kind == kOptionEnhance) continue;

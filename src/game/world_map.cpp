@@ -44,14 +44,14 @@ void EndTimedObjects(CWorldServer* world) {
 
 void ClearMissiles(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto node = list.begin(); node != list.end(); ++node)
-        ReleaseCounted(*node);
+    for (auto& node : list)
+        ReleaseCounted(node);
     list.clear();
 }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
-    for (auto node = list.begin(); node != list.end(); ++node) ReleaseCounted(*node);
+    for (auto& node : list) ReleaseCounted(node);
     list.clear();   // the elements were destroyed above; this frees the blocks
 }
 
@@ -191,8 +191,8 @@ void CWorldServer::TeardownZone() {
 
     // The missiles' counted pointers, released inline (16-bit count, deleted at zero).
     auto& missiles = projectiles_;
-    for (auto node = missiles.begin(); node != missiles.end(); ++node) {
-        CSpellEffect* missile = *node;
+    for (auto& node : missiles) {
+        CSpellEffect* missile = node;
         if (missile && --missile->refs_ == 0) delete missile;
     }
     missiles.clear();

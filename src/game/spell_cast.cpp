@@ -130,8 +130,8 @@ BOOL CSpellContainer::Build() {
 
     if (!codes_.empty()) codes_.clear();
 
-    for (std::list<itemdb::SpellModifierRecord*>::iterator node = modifiers_.begin(); node != modifiers_.end(); ++node) {
-        const itemdb::SpellModifierRecord* modifier = (*node);
+    for (auto& node : modifiers_) {
+        const itemdb::SpellModifierRecord* modifier = node;
         float strength = modifier->strength;
         switch (Letter(modifier, 0)) {
         case 'a':   // area

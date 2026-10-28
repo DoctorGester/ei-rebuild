@@ -20,9 +20,9 @@ Connection* ConnectionOf(BindingMessage* binding) { return binding->ConnectionRe
 
 // The connection of the first binding whose player is live and the host, or null.
 Connection* HostConnection(const std::list<SharedRefTo<BindingMessage>>& bindings) {
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        PlayerMessage* player = PlayerOf(node->Get());
-        if (IsLive(player) && player->host_) return ConnectionOf(node->Get());
+    for (auto& node : bindings) {
+        PlayerMessage* player = PlayerOf(node.Get());
+        if (IsLive(player) && player->host_) return ConnectionOf(node.Get());
     }
     return nullptr;
 }
@@ -79,8 +79,8 @@ void ServerSession::SetPassword(const char* text) {
 // and whose connection is not also the host's; null without one.
 Connection* ServerSession::FindGuestConnection(const std::string* name) {
     const std::size_t length = name->size();
-    for (auto node = players_.begin(); node != players_.end(); ++node) {
-        PlayerMessage* player = node->Get();
+    for (auto& node : players_) {
+        PlayerMessage* player = node.Get();
         if (text::CompareIgnoringCase(player->name_.data(), name->data(), length) != 0) continue;
         const auto& bindings = bindings_;
         auto first = bindings.begin();
@@ -121,8 +121,8 @@ PlayerMessage* ServerSession::FindPlayer(int id) {
 
 // A line (text `kind` with `text`) for every player that is not the host.
 void ServerSession::AnnounceToGuests(int kind, const char* text) {
-    for (auto node = players_.begin(); node != players_.end(); ++node) {
-        PlayerMessage* player = node->Get();
+    for (auto& node : players_) {
+        PlayerMessage* player = node.Get();
         if (!player->host_) AnnounceText(kind, text, player);
     }
 }
@@ -134,9 +134,9 @@ void ServerSession::Kick(Connection* connection) {
     const auto& bindings = bindings_;
     Connection* host = HostConnection(bindings);
     if (connection == host) return;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        if (ConnectionOf(node->Get()) != connection) continue;
-        BindingMessage* binding = node->Get();
+    for (auto& node : bindings) {
+        if (ConnectionOf(node.Get()) != connection) continue;
+        BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
             if (IsLive(player)) AnnounceText(2, player->name_.data(), nullptr);
@@ -153,9 +153,9 @@ void ServerSession::Ban(Connection* connection) {
     const auto& bindings = bindings_;
     Connection* host = HostConnection(bindings);
     if (connection == host) return;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        if (ConnectionOf(node->Get()) != connection) continue;
-        BindingMessage* binding = node->Get();
+    for (auto& node : bindings) {
+        if (ConnectionOf(node.Get()) != connection) continue;
+        BindingMessage* binding = node.Get();
         if (binding) {
             PlayerMessage* player = PlayerOf(binding);
             if (IsLive(player)) AnnounceText(3, player->name_.data(), nullptr);
@@ -171,9 +171,9 @@ void ServerSession::Ban(Connection* connection) {
 void ServerSession::ReportDeparture(Connection* connection, int text) {
     if (!IsLive(connection)) return;
     const auto& bindings = bindings_;
-    for (auto node = bindings.begin(); node != bindings.end(); ++node) {
-        if (ConnectionOf(node->Get()) != connection) continue;
-        BindingMessage* binding = node->Get();
+    for (auto& node : bindings) {
+        if (ConnectionOf(node.Get()) != connection) continue;
+        BindingMessage* binding = node.Get();
         if (!IsLive(binding)) return;
         PlayerMessage* player = PlayerOf(binding);
         if (!IsLive(player)) return;

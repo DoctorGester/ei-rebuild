@@ -231,7 +231,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
-        for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) (*node)->built &= ~kSectorLit;
+        for (auto& node : sectorCache) node->built &= ~kSectorLit;
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
@@ -241,8 +241,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         std::atexit(terrain::FreeSortedSectors);
     }
     sorted.clear();
-    for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) {
-        SectorData* sector = *node;
+    for (auto& node : sectorCache) {
+        SectorData* sector = node;
         if (sector->built & kSectorLit) {
             int index = std::ssize(sorted);
             sorted.resize(index + 1);

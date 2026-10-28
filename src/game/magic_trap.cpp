@@ -56,9 +56,9 @@ CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager();
 // element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
     std::list<CUnit*>& inside = trap->inside;
-    for (auto node = inside.begin(); node != inside.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (auto& node : inside) {
+        if (node) node->Release();
+        node = nullptr;
     }
     inside.clear();
 }

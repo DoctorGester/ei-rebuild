@@ -371,8 +371,8 @@ void ChunkArchive::Close(CStream* stream) {
     if (loading_) {
         // After a load: each loaded object gets a reference and loses it again (one without other
         // owners is deleted).
-        for (auto node = loaded_.begin(); node != loaded_.end(); ++node) {
-            CRefCounted* object = node->second;
+        for (auto& node : loaded_) {
+            CRefCounted* object = node.second;
             if (!object) continue;
             ++object->refs_;
             if (--object->refs_ == 0) delete object;

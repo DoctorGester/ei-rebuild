@@ -197,8 +197,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 if (!skip) text_->AddText(line);
             };
             auto addItems = [&](const std::vector<std::string>& list) {
-                for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
-                    CItem* item = g_clientWorld->itemManager_->CreateItem(*it);
+                for (const auto& it : list) {
+                    CItem* item = g_clientWorld->itemManager_->CreateItem(it);
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -208,8 +208,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 }
             };
             auto addQuests = [&](const std::vector<std::string>& list) {
-                for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
-                    text::Split(*it, &parts, '.');
+                for (const auto& it : list) {
+                    text::Split(it, &parts, '.');
                     if (parts.size() != kQuestNameParts) continue;
                     if (!texts->Open((std::string(QuestSection()) + parts[2]))) continue;
                     texts->ReadLine(&name, 1);
@@ -233,8 +233,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), ZonePrefix()) == 0) {
                 if (auto* player = g_serverWorld->GetPlayer(0)) {
-                    for (auto node = player->items_.begin(); node != player->items_.end(); ++node) {
-                        CItem* item = *node;
+                    for (auto& node : player->items_) {
+                        CItem* item = node;
                         if (item->GetClassId() != kClassItemQuest) continue;
                         texts->FormatItemName(item, &name);
                         line = str::Format(NameLine(), label, name);

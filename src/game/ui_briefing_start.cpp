@@ -256,10 +256,10 @@ void CBriefingScreen::FinishDialogue() {
 
     BriefingVariables variables(TopicPrefix());
     std::vector<std::string> parts;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
-        text::Split(node->first, &parts, '.');
+    for (auto& node : variables) {
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
-        g_serverWorld->CompleteBriefing(0, node->first);
+        g_serverWorld->CompleteBriefing(0, node.first);
         break;
     }
 

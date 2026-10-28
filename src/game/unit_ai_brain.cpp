@@ -40,7 +40,7 @@ std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
 // Empties the mode list, each element released first.
 void ReleaseAllModes(std::list<AIMode*>& modes) {
-    for (auto node = modes.begin(); node != modes.end(); ++node) DestroyOwned(*node);
+    for (auto& node : modes) DestroyOwned(node);
     modes.clear();
 }
 
@@ -53,9 +53,9 @@ void RemoveModeNode(std::list<AIMode*>& modes, std::list<AIMode*>::iterator  nod
 
 // Releases a counted object pointer of the memory lists, then empties the list.
 void ReleaseAllObjects(std::list<CUnit*>& list) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (auto& node : list) {
+        if (node) node->Release();
+        node = nullptr;
     }
     list.clear();
 }

@@ -304,10 +304,10 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             g_lastQuest->clear();
         } else {
             SortQuests(found.data(), found.data() + found.size());
-            for (std::string* s = found.data(); s != found.data() + found.size(); ++s) {
-                quests.push_back(*s);
+            for (auto& s : found) {
+                quests.push_back(s);
                 const std::string& current = listZones_ == 0 ? *g_lastQuest : interface_->savedText_;
-                if (text::CompareIgnoringCase(current, *s) == 0)
+                if (text::CompareIgnoringCase(current, s) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
             *g_lastQuest = quests[selectedQuest_];

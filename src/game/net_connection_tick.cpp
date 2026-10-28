@@ -98,9 +98,9 @@ bool Connection::Tick(double dt) {
     if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
         freedTimer_ = 0.0f;
         std::vector<FreedId>& oldest = freedIds_.front();
-        for (FreedId* e = oldest.data(); e != oldest.data() + oldest.size(); ++e) {
-            auto id = static_cast<std::uint16_t>(e->id);
-            std::vector<std::uint16_t>& pool = idPools_[e->type].free;
+        for (auto& e : oldest) {
+            auto id = static_cast<std::uint16_t>(e.id);
+            std::vector<std::uint16_t>& pool = idPools_[e.type].free;
             pool.push_back(id);
         }
         oldest.clear();

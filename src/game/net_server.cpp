@@ -64,19 +64,19 @@ ServerSession::ServerSession(std::uint32_t kind) {
 void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
     PlayerMessage* record = nullptr;
     bool hosting = false;
-    for (auto n = players_.begin(); n != players_.end(); ++n) PushReplicated(*out, n->Get(), 2);
-    for (auto n = variables_.begin(); n != variables_.end(); ++n) PushReplicated(*out, n->Get(), 2);
+    for (auto& n : players_) PushReplicated(*out, n.Get(), 2);
+    for (auto& n : variables_) PushReplicated(*out, n.Get(), 2);
     if (!bindings_.empty()) {
-        for (auto n = bindings_.begin(); n != bindings_.end(); ++n) {
-            auto* binding = n->Get();
+        for (auto& n : bindings_) {
+            auto* binding = n.Get();
             if (binding->ConnectionRef().ptr != g_currentConnection) continue;
             record = binding->Player();
             if (record->host_) hosting = true;
             PushReplicated(*out, binding, 2);
         }
         if (record && !(record->flags7_ & CRefObject::kDetached)) {
-            for (auto n = lines_.begin(); n != lines_.end(); ++n) {
-                auto* line = n->Get();
+            for (auto& n : lines_) {
+                auto* line = n.Get();
                 CRefObject* target = line->connection_.ptr;
                 if ((!target || target == g_currentConnection) &&
                     static_cast<std::int32_t>(line->number_) > static_cast<std::int32_t>(record->firstLine_))
@@ -84,25 +84,25 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
             }
         }
     }
-    for (auto n = files_.begin(); n != files_.end(); ++n) {
-        PushReplicated(*out, n->Get(), 2);
-        for (auto m = fileRequests_.begin(); m != fileRequests_.end(); ++m) {
-            auto* request = m->Get();
-            if (request->FileRef().ptr != n->Get() || request->ConnectionRef().ptr != g_currentConnection) continue;
-            for (const SharedRefPtr& chunk : n->Get()->chunks_) PushReplicated(*out, chunk.ptr, 1);
+    for (auto& n : files_) {
+        PushReplicated(*out, n.Get(), 2);
+        for (auto& m : fileRequests_) {
+            auto* request = m.Get();
+            if (request->FileRef().ptr != n.Get() || request->ConnectionRef().ptr != g_currentConnection) continue;
+            for (const SharedRefPtr& chunk : n.Get()->chunks_) PushReplicated(*out, chunk.ptr, 1);
             break;
         }
     }
     if (hosting)
-        for (auto n = queuedMaps_.begin(); n != queuedMaps_.end(); ++n) PushReplicated(*out, n->Get(), 2);
+        for (auto& n : queuedMaps_) PushReplicated(*out, n.Get(), 2);
     if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
-    for (auto n = awards_.begin(); n != awards_.end(); ++n) {
-        auto* award = TimedValueOf<AwardMessage>(*n);
+    for (auto& n : awards_) {
+        auto* award = TimedValueOf<AwardMessage>(n);
         if (award->connection_.ptr == g_currentConnection) PushReplicated(*out, award, 2);
     }
-    for (auto n = offers_.begin(); n != offers_.end(); ++n) {
-        auto* offer = n->Get();
+    for (auto& n : offers_) {
+        auto* offer = n.Get();
         if (offer->partner_.ptr != record) continue;
         bool complete = true;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
@@ -111,16 +111,16 @@ void ServerSession::CollectReplicated(std::vector<Replicated>** out) {
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
-        const std::vector<CountedRefPtr>& members = n->Get()->members_;
+        const std::vector<CountedRefPtr>& members = n.Get()->members_;
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
-            PushReplicated(*out, n->Get()->members_[i].ptr, 2);
+            PushReplicated(*out, n.Get()->members_[i].ptr, 2);
     }
-    for (auto n = trades_.begin(); n != trades_.end(); ++n) {
-        auto* trade = n->Get();
+    for (auto& n : trades_) {
+        auto* trade = n.Get();
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
     }
-    for (auto n = finishedTrades_.begin(); n != finishedTrades_.end(); ++n) {
-        auto* trade = TimedValueOf<TradeMessage>(*n);
+    for (auto& n : finishedTrades_) {
+        auto* trade = TimedValueOf<TradeMessage>(n);
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicated(*out, trade, 2);
     }
 }

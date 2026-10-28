@@ -545,14 +545,14 @@ bool CheckSmooth(Reader& r, char* d, std::size_t n) {
     if (!Guarded(call, d, n, "Smooth")) return false;
     std::vector<std::int16_t> ours;
     bool plain = true;
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        ours.push_back(node->x);
-        ours.push_back(node->y);
+    for (auto& node : list) {
+        ours.push_back(node.x);
+        ours.push_back(node.y);
     }
     // Rebuilt cells carry the plain words (SV7d2); a path left alone keeps its own.
     if (actual != 0 && std::ssize(list) != before)
-        for (auto node = list.begin(); node != list.end(); ++node)
-            plain = plain && node->flags == kPlainStepSpeed && node->terrainBits == 0;
+        for (auto& node : list)
+            plain = plain && node.flags == kPlainStepSpeed && node.terrainBits == 0;
     if (actual != expected || ours != cells) {
         std::snprintf(d, n, "%d cells, direction %d, fraction %g: ours %d with %d cells, original %d with %u cells", before,
                       startDirection, fraction, actual, std::ssize(list), expected, count);

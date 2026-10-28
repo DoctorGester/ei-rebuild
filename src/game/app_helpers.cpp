@@ -76,8 +76,8 @@ void ScrambleObjects() {
 void DelayedProtectionCheck() {
     if (libcrt::RandBelow(100) >= 1) return;
     std::list<std::uint8_t>& checks = *g_protectionChecks;
-    for (std::list<std::uint8_t>::iterator node = checks.begin(); node != checks.end(); ++node) {
-        if (!(*node)) {
+    for (auto& node : checks) {
+        if (!node) {
             ScrambleObjects();
             return;
         }

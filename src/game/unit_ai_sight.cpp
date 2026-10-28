@@ -85,9 +85,9 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     int count = 0;
     const std::int16_t* offsets =
         memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
-    for (auto node = memory->nearby.begin(); node != memory->nearby.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (auto& node : memory->nearby) {
+        if (node) node->Release();
+        node = nullptr;
     }
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {

@@ -281,11 +281,11 @@ void CGlobalMap::CreateScreen() {
         variable = str::Format("q.%s", zones_[i].name);
         GameLocalPlayerVariables(variable, &vars.table_);
         const NamedFloatTable& table = vars.table_;
-        for (auto node = table.begin(); node != table.end(); ++node) {
+        for (auto& node : table) {
             std::uint32_t value;
-            value = std::bit_cast<std::uint32_t>(node->second);
+            value = std::bit_cast<std::uint32_t>(node.second);
             if (value == 0x3F800000) {
-                text::Split(node->first, &parts, '.');
+                text::Split(node.first, &parts, '.');
                 if (parts.size() == 3) {
                     int n = questCount_;
                     quests_.push_back(questTemplate);

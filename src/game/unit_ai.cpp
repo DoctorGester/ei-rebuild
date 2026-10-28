@@ -162,7 +162,7 @@ void AIBrain::Think() {
     seen.Reset();
 
     // The corpses seen this tick are forgotten (the list emptied, elements destroyed).
-    for (auto node = memory.corpses.begin(); node != memory.corpses.end(); ++node) DestructRef(&*node);
+    for (auto& node : memory.corpses) DestructRef(&node);
     memory.corpses.clear();
 
     switch (action) {

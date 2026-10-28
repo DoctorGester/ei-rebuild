@@ -493,8 +493,8 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 }
 
 void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) {
-    for (std::list<ScreenEntry>::iterator node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
-        CMapObject* object = objectManager_->FindMapObject(node->objectId);
+    for (auto& node : screenEntries_) {
+        CMapObject* object = objectManager_->FindMapObject(node.objectId);
         if (!object) continue;
         if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
         out->push_back(object);
@@ -736,8 +736,8 @@ void CWorldClient::Deselect(CMapObject* object) {
     std::list<int>& selected = selectedIds_;
     auto* objects = objectManager_;
     if (!object) {
-        for (std::list<int>::iterator node = selected.begin(); node != selected.end(); ++node) {
-            CMapObject* found = objects->FindMapObject(static_cast<unsigned>((*node)));
+        for (auto& node : selected) {
+            CMapObject* found = objects->FindMapObject(static_cast<unsigned>(node));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
         selected.clear();

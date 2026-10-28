@@ -111,8 +111,8 @@ void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
 bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & kFlagShared) return !g_serverWorld->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
-    for (auto node = ai->memory.nearby.begin(); node != ai->memory.nearby.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : ai->memory.nearby) {
+        auto* other = node;
         if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;

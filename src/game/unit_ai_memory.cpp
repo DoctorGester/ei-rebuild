@@ -53,8 +53,8 @@ void CountedUnits::AddCountedTail(CUnit* object) {
 
 void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
     out->clear();
-    for (auto node = visible.begin(); node != visible.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : visible) {
+        auto* other = node;
         if (!self->IsHostileTo(other) || IsDead(other) || reports.Contains(other)) continue;
         out->push_back(other);
     }
@@ -63,8 +63,8 @@ void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
 void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius) {
     out->clear();
     float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
-    for (auto node = visible.begin(); node != visible.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : visible) {
+        auto* other = node;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
@@ -81,8 +81,8 @@ void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* po
 CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
     float best = kFar;
-    for (auto node = visible.begin(); node != visible.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : visible) {
+        auto* other = node;
         if (!self->IsHostileTo(other) || IsDead(other)) continue;
         double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
         double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
@@ -138,8 +138,8 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
     CUnit* unit = self->unit;
     Vector3 eye;
     unit->EyePoint(&eye);
-    for (auto node = nearby.begin(); node != nearby.end(); ++node) {
-        auto* other = *node;
+    for (auto& node : nearby) {
+        auto* other = node;
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         CUnitServer* theirs = other->ServerController();
         double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;

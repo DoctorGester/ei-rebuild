@@ -96,8 +96,8 @@ ClientSession::ClientSession() {
 void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
-    for (auto n = self->timers_.begin(); n != self->timers_.end(); ++n) PushReplicated(*out, n->ref.ptr, 1);
-    for (auto n = self->fileRequests_.begin(); n != self->fileRequests_.end(); ++n) PushReplicated(*out, n->ptr, 1);
+    for (auto& n : self->timers_) PushReplicated(*out, n.ref.ptr, 1);
+    for (auto& n : self->fileRequests_) PushReplicated(*out, n.ptr, 1);
     if (void* group = self->party_.ptr) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {

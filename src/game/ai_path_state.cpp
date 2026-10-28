@@ -49,8 +49,8 @@ void PathOrder::WriteState(DeltaField* field) {
     // Each step: a 16-bit header (bits 0-1 x code, 2-3 y code, 4-5 the low bits of terrainBits, 6-15
     // the flags up to 0x3FF), then the coordinates the codes say are written out.
     std::int16_t previousX = 0, previousY = 0;
-    for (auto node = steps.begin(); node != steps.end(); ++node) {
-        PathCell& cell = *node;
+    for (auto& node : steps) {
+        PathCell& cell = node;
         std::uint16_t flags = cell.flags > kMaxStepFlags ? kMaxStepFlags : cell.flags;
         std::uint16_t xCode = StepCodeFor(cell.x, previousX);
         std::uint16_t yCode = StepCodeFor(cell.y, previousY);

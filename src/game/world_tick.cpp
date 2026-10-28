@@ -59,8 +59,8 @@ void CWorldServer::Tick(char force) {
     // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects_.map;
     std::list<unsigned> finished;
-    for (auto node = timed.begin(); node != timed.end(); ++node) {
-        CEngineObject* object = node->second;
+    for (auto& node : timed) {
+        CEngineObject* object = node.second;
         if (object->RunTick() == 0) {
             finished.push_back(static_cast<unsigned>(object->id_));
             object->Release();

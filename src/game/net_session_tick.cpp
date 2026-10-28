@@ -216,8 +216,8 @@ namespace net {
 // Every client is sent a leave packet; the connections are released (the owner's release) after the socket
 // and the type registry.
 SessionBase::~SessionBase() {
-    for (auto node = clients_.begin(); node != clients_.end(); ++node) {
-        Connection* connection = node->Get();
+    for (auto& node : clients_) {
+        Connection* connection = node.Get();
         std::uint32_t id = connection->id_;
         GrowingBuffer storage;
         auto* buffer = &storage;

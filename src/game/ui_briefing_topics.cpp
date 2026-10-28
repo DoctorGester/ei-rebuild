@@ -42,9 +42,9 @@ void CBriefingScreen::FindTopics(int personId) {
     std::string name;
     std::string constructor;
     std::vector<std::string> found;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
-        if (Bits(node->second) != kOneBits) continue;
-        text::Split(node->first, &parts, '.');
+    for (auto& node : variables) {
+        if (Bits(node.second) != kOneBits) continue;
+        text::Split(node.first, &parts, '.');
         if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
@@ -68,7 +68,7 @@ void CBriefingScreen::FindTopics(int personId) {
         });
     }
     topics_.clear();
-    for (std::string* topic = list.data(); topic != list.data() + list.size(); ++topic) topics_.push_back(*topic);
+    for (auto& topic : list) topics_.push_back(topic);
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 

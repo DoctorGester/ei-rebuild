@@ -123,8 +123,8 @@ void ServerSession::CompleteZone(const std::string* zone) {
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
 
-        for (auto node = clients_.begin(); node != clients_.end(); ++node) {
-            CRefObject* connection = node->ptr;
+        for (auto& node : clients_) {
+            CRefObject* connection = node.ptr;
             const char* empty = game::kEmptyText;
             QueueAward(connection, 0, award0, std::string(empty));
             QueueAward(connection, 1, award1, std::string(empty));

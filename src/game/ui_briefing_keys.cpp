@@ -42,9 +42,9 @@ void OpenObjectives(CInterface3D* ui) {
     if (!zone) return;
     std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
-    for (auto node = quests.begin(); node != quests.end(); ++node) {
-        text::Split(node->first, &parts, '.');
-        if (parts.size() != kQuestNameParts || Bits(node->second) != kOneBits) continue;
+    for (auto& node : quests) {
+        text::Split(node.first, &parts, '.');
+        if (parts.size() != kQuestNameParts || Bits(node.second) != kOneBits) continue;
         MapRecord* questZone = g_mapDatabase->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;

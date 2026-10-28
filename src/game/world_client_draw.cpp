@@ -295,8 +295,8 @@ int CWorldClient::Render() {
 }
 
 int CWorldClient::DrawLineLists() {
-    for (auto node = lineLists_.begin(); node != lineLists_.end(); ++node)
-        node->second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
+    for (auto& node : lineLists_)
+        node.second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
     return 1;
 }
 

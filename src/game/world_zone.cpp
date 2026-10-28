@@ -132,8 +132,8 @@ int CWorldServer::LoadMobFile(std::string_view file) {
 void CWorldServer::ClearMapObjects() {
     // The objects are collected first (a list, block size 10), then removed one by one.
     std::list<CEngineObject*> pending;
-    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
-        CEngineObject* object = node->second;
+    for (auto& node : mapObjects_.map) {
+        CEngineObject* object = node.second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.push_back(object);
     }
@@ -157,8 +157,8 @@ void CWorldServer::ClearMapObjects() {
 }
 
 void CWorldServer::SaveMapObjects(CStream* out) {
-    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
-        CMapObject* object = node->second;
+    for (auto& node : mapObjects_.map) {
+        CMapObject* object = node.second;
         if (!object) break;
         int id = object->id_;
         out->WriteValue(id);

@@ -53,7 +53,7 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     std::list<CUnit*> list{};
     Vector3 point = {x, y, 0.0f};
     g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&point, &list, radius);
-    for (auto node = list.begin(); node != list.end(); ++node) visit(*node);
+    for (auto& node : list) visit(node);
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.

@@ -339,8 +339,8 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     int counts[9];
     int distinct = 0;
     std::uint16_t** rows = regions[sizeClass].rows;
-    for (auto n = blocks.begin(); n != blocks.end(); ++n) {
-        std::uint16_t region = rows[n->y][n->x];
+    for (auto& n : blocks) {
+        std::uint16_t region = rows[n.y][n.x];
         int i = 0;
         while (i < distinct && seen[i] != region) ++i;
         if (i < distinct) {

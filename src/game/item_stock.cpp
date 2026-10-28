@@ -78,9 +78,9 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     std::vector<StockMaterial*>& c = g_candidates;
     if (c.begin() == c.end()) return nullptr;
     float low = static_cast<float>((seventh + seventh) - fifth);
-    for (StockMaterial** q = c.data(); q != c.data() + c.size(); ++q) {
+    for (auto& q : c) {
         int chance = 10;
-        float quality = (*q)->record->unitPrice;
+        float quality = q->record->unitPrice;
         EI_NAN_AUDIT(fifth);
         if (quality >= low && quality <= fifth) {
             float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
@@ -88,7 +88,7 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
             chance = static_cast<int>(110.0f - t);
         }
         int roll = libcrt::RandBelow(100) + 1;
-        if (roll < chance) return *q;
+        if (roll < chance) return q;
     }
     return nullptr;
 }
@@ -125,15 +125,15 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
     taken.clear();   // erase(begin, end)
     taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
-    for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
-        if (skip && str::Compare(PrototypeName(*p), skip) == 0) continue;
+    for (auto& p : taken) {
+        if (skip && str::Compare(PrototypeName(p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(kItemLoot, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
-        AsLoot(item)->index_ = static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(*p)));
+        AsLoot(item)->index_ = static_cast<std::uint32_t>(table.IndexOf(static_cast<const Record*>(p)));
         item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
@@ -273,8 +273,8 @@ void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, 
     }
 
     std::vector<StockMaterial*>& candidates = g_candidates;
-    for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
-        itemdb::ItemRecordHead* prototype = *p;
+    for (auto& p : taken) {
+        itemdb::ItemRecordHead* prototype = p;
         if (str::Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(prototype->Kind(), -1);
@@ -340,13 +340,13 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
         taken = materials;
     }
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(game::MaterialText());
-    for (StockMaterial* e = taken.data(); e != taken.data() + taken.size(); ++e) {
+    for (auto& e : taken) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(kItemLoot, -1);
         ctor->SetPrototype(prototype);
-        ctor->SetMaterial(e->record);
-        int range = e->maxCount - e->minCount + 1;
-        ctor->count_ = libcrt::RandBelow(range) + e->minCount;
+        ctor->SetMaterial(e.record);
+        int range = e.maxCount - e.minCount + 1;
+        ctor->count_ = libcrt::RandBelow(range) + e.minCount;
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
@@ -381,8 +381,8 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
         itemdb::SpellRecord* spell = stock::SpellsByName()[recipe->spell];   // keyed by the recipe's spell name
         if (!spell) continue;
         bool offered = false;
-        for (itemdb::SpellRecord** s = spells.data(); s != spells.data() + spells.size(); ++s) {
-            if (*s == spell) {
+        for (auto& s : spells) {
+            if (s == spell) {
                 offered = true;
                 break;
             }
@@ -392,8 +392,8 @@ void ItemStock::FillSpellMaps(const std::vector<itemdb::SpellListRecord>* recipe
         entries->insert(entries->end(), const_cast<itemdb::SpellListRecord*>(recipe));   // the recipe lists hold raw record pointers
     }
 
-    for (itemdb::SpellModifierRecord** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {
-        itemdb::SpellModifierRecord* m = *p;
+    for (auto& p : modifiers) {
+        itemdb::SpellModifierRecord* m = p;
         char letters[2] = {m->code[0], m->code[1]};
         switch (ModifierKind(m)) {
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
@@ -504,31 +504,31 @@ void ItemStock::SaveLists(CStream* out) {
     SaveItemRecords(out, quickItems);
 
     out->WriteValue(static_cast<std::uint32_t>(materials.size()));
-    for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-        out->WriteString(e->record->key);
-        out->WriteValue(static_cast<std::uint32_t>(e->minCount));
-        out->WriteValue(static_cast<std::uint32_t>(e->maxCount));
-        out->WriteValue(static_cast<std::uint32_t>(e->left));
+    for (auto& e : materials) {
+        out->WriteString(e.record->key);
+        out->WriteValue(static_cast<std::uint32_t>(e.minCount));
+        out->WriteValue(static_cast<std::uint32_t>(e.maxCount));
+        out->WriteValue(static_cast<std::uint32_t>(e.left));
     }
 
     out->WriteValue(static_cast<std::uint32_t>(spells.size()));
-    for (itemdb::SpellRecord** p = spells.data(); p != spells.data() + spells.size(); ++p) out->WriteString((*p)->code);
+    for (auto& p : spells) out->WriteString(p->code);
 
     // The modifiers' codes go through a string made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
     out->WriteValue(static_cast<std::uint32_t>(modifiers.size()));
-    for (itemdb::SpellModifierRecord** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {
+    for (auto& p : modifiers) {
         char code[5] = {};
-        std::memcpy(code, (*p)->code, 4);
+        std::memcpy(code, p->code, 4);
         std::string text = code;
         out->WriteString(text);
     }
 }
 
 void ItemStock::ResetMaterialUnits() {
-    for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-        e->left = e->maxCount;
-        if (e->maxCount > e->minCount) e->left = RandomCount(e->minCount, e->maxCount);
+    for (auto& e : materials) {
+        e.left = e.maxCount;
+        if (e.maxCount > e.minCount) e.left = RandomCount(e.minCount, e.maxCount);
     }
 }
 

@@ -60,8 +60,8 @@ void ServerSession::Tick(double dt) {
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
-    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
-        auto* binding = node->Get();
+    for (auto& node : bindings_) {
+        auto* binding = node.Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!IsLive(binding)) return false;
         auto* player = binding->Player();

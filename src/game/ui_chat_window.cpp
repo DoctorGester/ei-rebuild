@@ -144,8 +144,8 @@ void CChatWindow::ShowPlayers() {
 
     // The faces (the strings live across players: the sex letter carries over).
     std::string model, picture, sex, build;
-    for (auto p = players_.begin(); p != players_.end(); ++p) {
-        net::PlayerMessage* player = PlayerOf(*p);
+    for (auto& p : players_) {
+        net::PlayerMessage* player = PlayerOf(p);
         UnitPrototypeRecord* prototype;
         {
             prototype = unitdb::PrototypeNamed(std::string(player->text_));
@@ -199,8 +199,8 @@ void CChatWindow::Update() {
         auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_[kWeOffer];
         const auto& offers = client->offers_;
-        for (auto node = offers.begin(); node != offers.end(); ++node) {
-            if (node->Get()->player_.ptr == *p) {
+        for (auto& node : offers) {
+            if (node.Get()->player_.ptr == *p) {
                 offer = texts_[kTheyOffer];
                 break;
             }

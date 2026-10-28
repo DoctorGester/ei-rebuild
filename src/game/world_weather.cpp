@@ -141,8 +141,8 @@ void CWorldServer::UpdateWeather() {
     }
     weatherFactor_ = std::bit_cast<std::uint32_t>(weather_ == 0 ? kDayFactorDry : kDayFactorRain);
 
-    for (auto node = objects_.map.begin(); node != objects_.map.end(); ++node)
-        node->second->UpdateMoveFactors();   // the weather changed
+    for (auto& node : objects_.map)
+        node.second->UpdateMoveFactors();   // the weather changed
     if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 

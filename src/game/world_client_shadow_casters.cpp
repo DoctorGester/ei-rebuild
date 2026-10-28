@@ -222,8 +222,8 @@ void HandOverSceneLights(CWorldClient* world) {
     static std::vector<render::ScenePointLight> points;
     points.clear();
     if (terrain && terrain->mapLoaded) {
-        for (auto node = terrain->lights.begin(); node != terrain->lights.end(); ++node) {
-            const CLight* light = node->second.light;
+        for (auto& node : terrain->lights) {
+            const CLight* light = node.second.light;
             if (!light) continue;
             render::ScenePointLight p{};
             p.position = light->localPosition_;

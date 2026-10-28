@@ -33,9 +33,9 @@ void InitObjectList(std::list<CUnit*>& list) {
 
 // Its destructor: the vtable, each element released and cleared, then the list is emptied.
 void DestroyObjectList(std::list<CUnit*>& list) {
-    for (auto node = list.begin(); node != list.end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (auto& node : list) {
+        if (node) node->Release();
+        node = nullptr;
     }
     list.clear();
 }

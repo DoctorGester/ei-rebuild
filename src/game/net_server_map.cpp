@@ -63,8 +63,8 @@ void ServerSession::SetMap(const std::string* name) {
     if (!entry) return;
 
     const std::vector<std::string>& quests = entry->lists[2];   // the quests given
-    for (const std::string* it = quests.data(); it != quests.data() + quests.size(); ++it) {
-        std::string resourceName(*it);
+    for (const auto& it : quests) {
+        std::string resourceName(it);
         auto* record = FindOrAddVariable(&resourceName)->Get();
         record->value_ = 1.0f;
         record->serial_ = g_variableSerial;
@@ -97,14 +97,14 @@ void ServerSession::QueueMapList() {
     UnloadQuestTexts();
     std::vector<std::string> zones;    // empty
     PickZones(&zones, kind_, mapName_.data());
-    for (std::string* zone = zones.data(); zone != zones.data() + zones.size(); ++zone) {
+    for (auto& zone : zones) {
         {
-            std::string key = *zone + game::ZoneSuffix1Text();
+            std::string key = zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();
             message->text_ = key;
             queuedMaps_.emplace_back(message);
         }
-        LoadZoneQuests(zone->data());
+        LoadZoneQuests(zone.data());
     }
 }
 

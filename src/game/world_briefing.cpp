@@ -169,7 +169,7 @@ void UnloadQuestTexts() {
     CTextManager* texts = g_clientWorld->texts_;
     if (!texts) return;
     std::vector<std::string>& files = g_questFiles;
-    for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(*file);
+    for (auto& file : files) texts->RemoveSource(file);
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }

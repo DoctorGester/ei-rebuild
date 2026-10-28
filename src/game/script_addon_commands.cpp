@@ -211,9 +211,9 @@ bool IsFileExists(Call* call) {
 bool GSListPlayerVars(Call* call) {
     CPlayer* player = GetPlayer(Ftol(Floats(call)[0]));
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (auto node = variables.begin(); node != variables.end(); ++node) {
+    for (auto& node : variables) {
         std::string line;
-        line = str::Format("%s = %f", node->first, static_cast<double>(node->second));
+        line = str::Format("%s = %f", node.first, static_cast<double>(node.second));
         (console::g_consoleOut << line << "\n").Flush();
     }
     return true;

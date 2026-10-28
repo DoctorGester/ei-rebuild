@@ -321,8 +321,8 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
                                        const std::vector<std::uint32_t>* weaponIds,
                                        std::vector<std::string>* names, std::vector<std::string>* plainNames) {
     char text[0x401];
-    for (const std::uint32_t* id = armourIds->data(); id != armourIds->data() + armourIds->size(); ++id) {
-        const itemdb::ArmorRecord* armour = ArmourRecord(*id >> 16);
+    for (const auto& id : *armourIds) {
+        const itemdb::ArmorRecord* armour = ArmourRecord(id >> 16);
         if (!armour) continue;
         int row = RowOfSlot(armour->type);
         if (row < 0) continue;
@@ -340,7 +340,7 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
             names->push_back(name);
         }
     }
-    for (const std::uint32_t* id = weaponIds->data(); id != weaponIds->data() + weaponIds->size(); ++id) AppendWeaponModelParts(*id, names);
+    for (const auto& id : *weaponIds) AppendWeaponModelParts(id, names);
 
     // Every plain part of the three rows. All seven names of each row are walked (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.

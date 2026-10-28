@@ -172,8 +172,8 @@ int FearMode::Evaluate(AIBrain* brain) {
         // The nearest player unit in sight (2D).
         double best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
-        for (auto node = brain->memory.visible.begin(); node != brain->memory.visible.end(); ++node) {
-            auto* other = *node;
+        for (auto& node : brain->memory.visible) {
+            auto* other = node;
             if (!other->player) continue;
             const Vector3* me = &brain->owner->unit->localPosition_;
             double oy = static_cast<double>(me->y) - other->localPosition_.y;
