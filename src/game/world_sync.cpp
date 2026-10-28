@@ -30,9 +30,9 @@ void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject
 namespace {
 
 // Distance limits, read from the exe's memory (rule 9).
-float ViewRange() { return 100.0f; }        // objects seen around the camera
-float HearingScale() { return 2.0f; }     // unit perception scale
-float HearingMargin() { return 5.0f; }    // added to it
+constexpr float kViewRange = 100.0f;        // objects seen around the camera
+constexpr float kHearingScale = 2.0f;     // unit perception scale
+constexpr float kHearingMargin = 5.0f;    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
@@ -90,7 +90,7 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
     double dx = static_cast<double>(point[0]) - state->lastPosition_.x;
     double dy = static_cast<double>(point[1]) - state->lastPosition_.y;
     double distance = LengthSquared2DUnrounded(dy, dx);
-    double range = static_cast<double>(ViewRange()) * ViewRange();
+    double range = static_cast<double>(kViewRange) * kViewRange;
     return distance >= range;
 }
 
@@ -141,7 +141,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.perception[0].current);
         float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
-        float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
+        float radius = static_cast<float>(static_cast<double>(range) * kHearingScale + kHearingMargin);
         world->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &heard, radius);
         for (auto entry = heard.begin(); entry != heard.end(); ++entry) *out++ = *entry;
         heard.clear();

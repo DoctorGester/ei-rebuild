@@ -21,8 +21,6 @@
 #include "logic_settings.h"
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kOverkill = -5.0f;
 constexpr std::uint32_t kOneBits = 0x3F800000u;
 constexpr int kAllLocations = 6;
@@ -58,7 +56,7 @@ const char* const kDead = " HL is dead";
 // location, (first piece, second piece of a limb) at the inner layer, then at the outer one.
 constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1, 7, 3, 6, 1, 7, 4, 5, 2, 7, 4, 5, 2, 7};
 
-float Max0(float value) { return value <= kZero ? kZero : value; }   // select idiom
+float Max0(float value) { return value <= 0.0f ? 0.0f : value; }   // select idiom
 
 // The hit log: the rpg stream (its static initialiser stores the address).
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
@@ -71,7 +69,7 @@ void Remark(CUnit* unit, int code) {
 
 void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
     EI_NAN_AUDIT(amount);
-    if (!item || !unit || amount <= kZero) return;
+    if (!item || !unit || amount <= 0.0f) return;
     float before = item->condition_;
     float threshold = item->conditionMax_ * g_logicSettings.itemDurabilityCritical;
     int pieces = static_cast<int>(item->count_);   // the wear is shared between the stack's pieces
@@ -119,13 +117,13 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = hit->typeWeights[type] * hit->amount;
         EI_NAN_AUDIT(typeDamage);
-        if (typeDamage <= kZero) continue;
+        if (typeDamage <= 0.0f) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
             WearArmour(unit, hit->location, layer, Max0(typeDamage));
             EI_NAN_AUDIT(typeDamage);
-            if (typeDamage <= kZero) break;
+            if (typeDamage <= 0.0f) break;
         }
         if (weapon) {
             float passed = Max0(typeDamage);
@@ -133,9 +131,9 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
                      kRemarkWeaponWorn);
         }
         EI_NAN_AUDIT(typeDamage);
-        if (typeDamage <= kZero) continue;
+        if (typeDamage <= 0.0f) continue;
         damaged = 1;
-        if (hit->backstabFactor > kOne) typeDamage = typeDamage * hit->backstabFactor;
+        if (hit->backstabFactor > 1.0f) typeDamage = typeDamage * hit->backstabFactor;
         double current = slot.current - typeDamage;   // compared unrounded below
         slot.current = static_cast<float>(current);
         // Severed by a full hit on a vital damage type, or below -5 times its maximum.
@@ -149,7 +147,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
             }
             slot.kind = 1;
             slot.current = slot.maximum * kOverkill;
-        } else if (current <= kZero) {
+        } else if (current <= 0.0f) {
             slot.kind = 2;
         }
         *kHitLog << kTypeNames[type] << kPassedDamage << typeDamage;
@@ -169,12 +167,12 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     if (hit->location >= kLocations) return 0;
     if (hit->location == 0) flags |= 2;
     EI_NAN_AUDIT(hit->typeWeights[5], hit->amount);
-    if (hit->typeWeights[5] != kZero) flags |= 4;
+    if (hit->typeWeights[5] != 0.0f) flags |= 4;
     DamageInfo copy = *hit;
-    if (copy.amount == kZero) return 0;
-    float difficulty = unit->player ? kOne
+    if (copy.amount == 0.0f) return 0;
+    float difficulty = unit->player ? 1.0f
                                     : g_logicSettings.absorption[options::g_options->difficulty_];
-    float total = kZero;
+    float total = 0.0f;
     for (int type = 0; type < kDamageTypes; ++type) {
         float typeDamage = copy.amount * copy.typeWeights[type] -
                                     copy.multiplier * vitals->protection[type].current * difficulty;
@@ -187,14 +185,14 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         }
     }
     EI_NAN_AUDIT(total);
-    if (total <= kZero) return 0;
+    if (total <= 0.0f) return 0;
     if (copy.location != kAllLocations) {
         int result = DamageSlot(unit, vitals, &copy, weapon);
         unit->DropBrokenEquipment();
         return result;
     }
     // A hit on the whole body: every working slot takes its share.
-    double factors = kZero;   // accumulated on the FPU stack
+    double factors = 0.0;   // accumulated on the FPU stack
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind > 1) factors += slot.factor;
     }
@@ -214,7 +212,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
 BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
     for (int type = 0; type < kDamageTypes; ++type) {
         double damage = hit->typeWeights[type] * hit->amount - protection[type].current;
-        if (damage > kZero) hitPoints = static_cast<float>(hitPoints - damage);
+        if (damage > 0.0f) hitPoints = static_cast<float>(hitPoints - damage);
     }
     float floor = maxHitPoints * kOverkill;
     float f = floor;
@@ -229,7 +227,7 @@ BOOL CUnit::IsBehind(const CMapObject* t) {
     float dy = t->localPosition_.y - localPosition_.y;
     float dz = t->localPosition_.z - localPosition_.z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
-    if (length > kZero) {
+    if (length > 0.0f) {
         dx = static_cast<float>(dx / length);
         dy = static_cast<float>(dy / length);
         dz = static_cast<float>(dz / length);

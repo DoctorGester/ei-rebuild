@@ -70,7 +70,7 @@ void BuildCellGrid(CUiWindow* window) {
             AddRect(window, RECT{left, top, right, bottom});
             u = 0x9C - u;
         }
-        depth = static_cast<float>(D(depth) * D(0.5f));   // * 0.5
+        depth = static_cast<float>(D(depth) * 0.5);   // * 0.5
         v = 0x9C - v;
     }
     window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));

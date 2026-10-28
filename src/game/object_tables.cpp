@@ -39,13 +39,12 @@ AllodRecord* CMapDatabase::FindAllod(std::string_view name) {
 }
 
 float NamedFloatTable::Get(std::string_view name) {
-    constexpr float kZero = 0.0f;
     const_iterator node;
     {
         std::string key(name);
         node = find(key);
     }
-    return node != end() ? node->second : kZero;
+    return node != end() ? node->second : 0.0f;
 }
 
 void NamedFloatTable::Set(std::string_view name, float value) {

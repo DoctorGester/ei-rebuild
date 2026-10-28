@@ -16,7 +16,6 @@ namespace {
 
 constexpr float kPercent = 0.01f;
 constexpr float kNoSkill = 0.0f;
-constexpr float kOne = 1.0f;
 
 } // namespace
 
@@ -36,7 +35,7 @@ double WeaponPrototypeSkillBonus(std::uint32_t itemId) {
 
 double UnitParams::VisionRange(float daylight) {
     double day = static_cast<double>(perception[1]) * daylight * kPercent;
-    return (day + (static_cast<double>(kOne) - daylight)) * perception[0];
+    return (day + (1.0 - daylight)) * perception[0];
 }
 
 void CUnit::AdvanceTime(float time) {
@@ -44,7 +43,7 @@ void CUnit::AdvanceTime(float time) {
     if (!(IsTextKey(id_) & 0xFF)) return;
     float daylight = static_cast<float>(g_clientWorld->NightLevel());
     float range = static_cast<float>(params.VisionRange(daylight));
-    if (moveMode == 0) range = range * kOne;
+    if (moveMode == 0) range = range;
     g_clientWorld->MarkFootprintsInSight(&localPosition_.x, range);
 }
 
@@ -52,6 +51,6 @@ int CMapObject::SetVisibilityLevel(float level) {
     CMapObject* slots = this;
     EI_NAN_AUDIT(level);
     if (level == 0.0f) return slots->SetVisibilityMode(0);
-    if (level == kOne) return slots->SetVisibilityMode(1);
+    if (level == 1.0f) return slots->SetVisibilityMode(1);
     return slots->SetVisibilityMode(2);
 }

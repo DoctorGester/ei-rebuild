@@ -31,8 +31,8 @@
 
 namespace {
 
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
-constexpr float kHalf = 0.5f;
+constexpr float kThird = 0.33333334f;
+static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr std::uint32_t kStat25 = 0x41C80000;                    // 25.0
 constexpr std::uint32_t kRate15 = 0x41700000;                    // 15.0
 constexpr std::uint32_t kDefaultStat = 0x42480000;               // 50.0
@@ -78,7 +78,7 @@ const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
 
 // cos(angle / 2) with the angle in degrees, stored to a float.
 float HalfAngleCosine(const UnitModelRecord* model) {
-    double half = static_cast<double>(model->angle) * kHalf;
+    double half = static_cast<double>(model->angle) * 0.5f;
     double perDegree = g_pi * g_perDegree;
     return static_cast<float>(x87::fcos(half * perDegree));
 }
@@ -147,11 +147,12 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
 
-constexpr float kZero = 0.0f;
 constexpr float kOneF = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);     // (0.01)
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kTwelve = 12.0f;
-constexpr float kPointTwo = std::bit_cast<float>(0x3E4CCCCDu);
+constexpr float kPointTwo = 0.2f;
+static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTenF = 10.0f;
 constexpr std::uint32_t kMinusTwo = 0xC0000000u;
 constexpr int kSkillBodyB0 = 15;
@@ -174,7 +175,7 @@ double LevelOf(const SkillLevelRecord* record) {
 }
 double LevelOrZero(UnitStats* stats, int skill) {
     const SkillLevelRecord* record = stats->SkillLevelRecord(skill);
-    return record ? LevelOf(record) : kZero;
+    return record ? LevelOf(record) : 0.0f;
 }
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
@@ -189,15 +190,15 @@ constexpr float kStatBase = 25.0f;
 // The level value of skill `index` stored to a float; 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {
     std::uint8_t level = stats->skillLevels[index];   // unchecked
-    if (level == 0) return kZero;
+    if (level == 0) return 0.0f;
     const SkillLevelRecord* record = unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
-    if (!record) return kZero;
+    if (!record) return 0.0f;
     return static_cast<float>(LevelOf(record));
 }
 
 float WeaponBonus(CUnit* unit, int skill) {
     CItem* weapon = unit->GetWeapon(unit->activeWeapon);
-    if (!weapon) return kZero;
+    if (!weapon) return 0.0f;
     const auto* record = itemdb::RecordAs<itemdb::WeaponRecord>(weapon->GetPrototype());
     return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
 }
@@ -320,7 +321,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
         FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
         FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
-        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * kHalf);
+        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
     } else {
@@ -377,7 +378,7 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
         FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
         FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
         FpuCopy2(&stats->speedBase, &stats->speed, speed);
-        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * kHalf);
+        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         stats->rateBase = rate;
         stats->rate = rate;
     } else {
@@ -437,11 +438,11 @@ void UnitStats::ResetToBase(float newLoad) {
         std::memcpy(&perception[i].current, &perception[i].base, 4);
         std::memcpy(&conspicuity[i].current, &conspicuity[i].base, 4);
     }
-    double bonus = kZero;
+    double bonus = 0.0;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = LevelOf(record);
         EI_NAN_AUDIT(level);
-        if (level != kZero) bonus = level * perception[1].current * kPercent;
+        if (level != 0.0f) bonus = level * perception[1].current * kPercent;
     }
     perception[1].current = static_cast<float>(bonus + perception[1].current);
     strength = static_cast<float>(LevelOrZero(this, kSkillStat10) + strength);
@@ -513,7 +514,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         float weapon = WeaponBonus(unit, 0);
         return SkillWithBonus(0) + weapon;
     }
-    return kZero;
+    return 0.0f;
 }
 
 BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {

@@ -73,8 +73,8 @@ int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->
 // turn is taken with a chance by its unitPrice q against the prototype's price p: 10% outside
 // [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100 percent (truncated). Null when none was taken.
 StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
-    float seventh = static_cast<float>(prototype->price * stock::SeventhFactor());
-    float fifth = static_cast<float>(prototype->price * stock::FifthFactor());
+    float seventh = static_cast<float>(prototype->price * stock::kSeventhFactor);
+    float fifth = static_cast<float>(prototype->price * stock::kFifthFactor);
     std::vector<StockMaterial*>& c = g_candidates;
     if (c.begin() == c.end()) return nullptr;
     float low = static_cast<float>((seventh + seventh) - fifth);

@@ -40,7 +40,6 @@ constexpr float kBloodMinAlpha = 0.1f;
 constexpr float kBloodMaxAlpha = 1.0f;
 constexpr float kBloodRate = 1.0f / 30.0f;
 constexpr std::uint32_t kLastDecalBlood = 4;
-constexpr float kHalf = 0.5f;
 constexpr float kDecalScale = 0.3f;
 constexpr float kSpreadUnits = 100.0f;
 constexpr float kSpreadStep = 0.02f;
@@ -176,7 +175,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = 1.0f >= smaller ? 1.0f : smaller;
-    float sizeStored = (part->box_.bounds.boxMax.y + part->box_.bounds.boxMax.x) * kHalf * kDecalScale;
+    float sizeStored = (part->box_.bounds.boxMax.y + part->box_.bounds.boxMax.x) * 0.5f * kDecalScale;
     float size = sizeStored;
     Vector3 at;
     unit->PartWorldPosition(&at.x, part);
@@ -209,7 +208,7 @@ void CUnitClientSpecific::Died() {
     Vector3 at;
     float size;
     if (auto* body = unit->FindPartByPrefix("bd")) {
-        float stored = (body->box_.bounds.boxMax.y + body->box_.bounds.boxMax.x) * kHalf;
+        float stored = (body->box_.bounds.boxMax.y + body->box_.bounds.boxMax.x) * 0.5f;
         size = stored;
         unit->PartWorldPosition(&at.x, body);
     } else {

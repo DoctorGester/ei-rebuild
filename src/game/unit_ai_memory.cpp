@@ -19,7 +19,6 @@
 #include <cstdint>
 
 namespace {
-constexpr float kZero = 0.0f;
 const float kFar = 1e30f;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
@@ -64,7 +63,7 @@ void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
 
 void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius) {
     out->clear();
-    float radius2 = radius > kZero ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
+    float radius2 = radius > 0.0f ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto node = visible.begin(); node != visible.end(); ++node) {
         auto* other = *node;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;

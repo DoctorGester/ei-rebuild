@@ -60,20 +60,20 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 
 // The disc limited by a line.
 void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
-    double scale = static_cast<double>(worlddata::One()) /
-                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
+    double scale = 1.0 /
+                   (0.5);
     float cx = static_cast<float>(scale * position->x);
     float cy = static_cast<float>(scale * position->y);
     double dx = direction->x, dy = direction->y, dz = direction->z;
     double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
-    double reach = length * scale + static_cast<double>(worlddata::One());
+    double reach = length * scale + 1.0;
     float r = static_cast<float>(reach);
     float r2 = static_cast<float>(reach * r);
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction->y;
     float ny = direction->x;
     double side = std::sqrt(LengthSquared2DUnrounded<double>(ny, nx));
-    double divisor = side * (scale * width + static_cast<double>(worlddata::One()));
+    double divisor = side * (scale * width + 1.0);
     nx = static_cast<float>(nx / divisor);
     ny = static_cast<float>(ny / divisor);
 
@@ -85,18 +85,18 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
             double fx = cx - static_cast<double>(x);
             EI_NAN_AUDIT(fy, fx, r2, ny, nx);
             if (LengthSquared2DUnrounded<double>(fy, fx) >= r2) continue;
-            if (Dot2DUnrounded<double>(fy, fx, ny, nx) >= static_cast<double>(worlddata::One())) continue;
+            if (Dot2DUnrounded<double>(fy, fx, ny, nx) >= 1.0) continue;
             AddCell(this, x, y);
         }
 }
 
 // The disc.
 void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
-    double scale = static_cast<double>(worlddata::One()) /
-                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
+    double scale = 1.0 /
+                   (0.5);
     float cx = static_cast<float>(scale * position->x);
     float cy = static_cast<float>(scale * position->y);
-    double reach = scale * radius + static_cast<double>(worlddata::One());
+    double reach = scale * radius + 1.0;
     float r = static_cast<float>(reach);
     float r2 = static_cast<float>(reach * r);
 

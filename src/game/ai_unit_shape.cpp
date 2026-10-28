@@ -10,7 +10,7 @@ namespace {
 
 // Constants of the shape maths (the cell size, halved, among them).
 constexpr double kMargin = 2.0;
-constexpr double kHalfCell = 1.0 * 0.5;
+constexpr double kHalfCell = 0.5;
 constexpr double kLevelsPerUnit = 16.0;
 constexpr int kMiddle = 8;
 

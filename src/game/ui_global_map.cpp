@@ -100,7 +100,7 @@ public:
 
     Vector3 Centre() const {
         float depth = map_->depth_;
-        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f) - D(1.0f)) *
+        float x = static_cast<float>((D(map_->centreX_) * D(0.0025f) - 1.0) *
                         D(0.48157462f) * D(depth));
         float y = static_cast<float>((D(map_->centreY_) * D(0.0025f) - D(0.75f)) *
                         D(0.48157462f) * D(depth));
@@ -231,7 +231,7 @@ void CGlobalMap::CreateScreen() {
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + D(2.0f))};
+        Vector3 above = {position_.x, position_.y, static_cast<float>(D(position_.z) + 2.0)};
         builder.Marker(allod->otherNames[kAllodArrow], above, 1.0f);
         Vector3 at = {position_.x, position_.y, position_.z};
         builder.Marker(allod->otherNames[kAllodBall], at, Bits(0x3F4CCCCD));   // 0.8
@@ -326,7 +326,7 @@ void CGlobalMap::CreateScreen() {
             variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;
             double state = D(LocalPlayerVariable(variable));
-            double two = D(2.0f);
+            double two = 2.0;
             EI_NAN_AUDIT(state);
             if (state != two) continue;
             if (!NonEmpty(way->figure)) continue;
@@ -507,7 +507,7 @@ void CGlobalMap::Update() {
         Quaternion turn = TurnProduct(spin, tilt);
         std::memcpy(&turn_, &turn, 16);
         EI_NAN_AUDIT(turn_.w);
-        if (D(turn_.w) < D(0.0f)) {
+        if (D(turn_.w) < 0.0) {
             turn_.w = -turn_.w;
             turn_.x = -turn_.x;
             turn_.y = -turn_.y;
@@ -544,7 +544,7 @@ void CGlobalMap::Update() {
 
     double time = FrameTime() + D(bobTime_);
     bobTime_ = static_cast<float>(time);
-    double bob = D(0.5f) - x87::fcos(time * D(5.0f)) * D(0.2f);
+    double bob = 0.5 - x87::fcos(time * D(5.0f)) * D(0.2f);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(SceneMesh(0), builder.ModelPoint(above));
     SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f);

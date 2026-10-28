@@ -32,19 +32,20 @@ constexpr int kKeepLevel = 500;             // with `flag`, levels above it are 
 constexpr int kCommandWalk = 1;             // CUnitServer::command / nextCommand
 constexpr int kLargeSizeClass = 6;
 
-constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;
-constexpr float kOne = 1.0f;
 constexpr float kThree = 3.0f;
-constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
+constexpr float kThird = 0.33333334f;
+static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
 constexpr float kSeenScale = 1.5f;
-constexpr float kMaxLoadFactor = std::bit_cast<float>(0x3F19999Au); // (0.6)
+constexpr float kMaxLoadFactor = 0.6f;
+static_assert(std::bit_cast<std::uint32_t>(kMaxLoadFactor) == 0x3F19999Au);
 constexpr float kFlightStep = 5.0f;
 constexpr float kRangeBase = 10.0f;
 constexpr float kSmoothingScale = 5000.0f;
-constexpr float kFar = std::bit_cast<float>(0x7149F2CAu);           // (1e30)
+constexpr float kFar = 1e30f;
+static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CAu);
 constexpr float kDistanceWeight = 30.0f;
-constexpr float kDistanceDivisor = std::bit_cast<float>(0x3D042108u); // (1 / 31)
+constexpr float kDistanceDivisor = 0.032258064f; // (1 / 31)
+static_assert(std::bit_cast<std::uint32_t>(kDistanceDivisor) == 0x3D042108u);
 constexpr float kSpreadScale = 2.5f;
 constexpr float kMinDistance = 3.0f;
 constexpr float kNoWander = -1.0f;
@@ -95,8 +96,8 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     float wayRounded = static_cast<float>(way);
     float range = static_cast<float>(way * kThree + kRangeBase);
     if (!g_serverWorld->aiMap_.FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
-    double scale = static_cast<double>(kOne) * kHalf;
-    double limit = kOne / scale * wayRounded * kSmoothingScale;
+    double scale = 0.5;
+    double limit = 1.0f / scale * wayRounded * kSmoothingScale;
     EI_NAN_AUDIT(limit);
     if (limit < static_cast<double>(local.path.smoothing)) return false;
     Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
@@ -112,7 +113,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double ey = static_cast<double>(dest.y) - end.y;
     double ez = static_cast<double>(dest.z) - end.z;
     EI_NAN_AUDIT(ex, ey, ez);
-    if (LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) >= kOne) return false;
+    if (LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) >= 1.0f) return false;
     *out = dest;
     return true;
 }
@@ -153,7 +154,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             Vector3 flight;
             if (FindFlightPoint(brain, self, enemy, me, foe, static_cast<float>(dx), static_cast<float>(dy), &flight)) {
                 fleePoint = flight;
-                fleePoint.z = kOne;
+                fleePoint.z = 1.0f;
                 return kFlee;
             }
         }
@@ -162,7 +163,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = PositionOf(self);
     EI_NAN_AUDIT(PrototypeSize(self));
-    if (g_serverWorld->aiMap_.HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < kHalf)) {
+    if (g_serverWorld->aiMap_.HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < 0.5f)) {
         shelter = *here;
         return kShelter;
     }
@@ -198,7 +199,7 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
-    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + FearDefaultDistance());
+    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + kFearDefaultDistance);
     distance = static_cast<float>(static_cast<double>(weighted) * kDistanceDivisor);
     return kNoPriority;
 }

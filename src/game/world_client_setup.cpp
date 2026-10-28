@@ -25,7 +25,8 @@
 #include <vector>
 
 namespace {
-const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
+constexpr float kByteToUnit = 0.003921569f;   // 1 / 255
+static_assert(std::bit_cast<std::uint32_t>(kByteToUnit) == 0x3B808081u);
 
 // The game's data folder (a string global) and the strings passed by address.
 const char* ConfigFolder() { return "config\\"; }

@@ -29,20 +29,17 @@ namespace {
 
 // --- Float helpers -------------------------------------------------------------------------------
 
-// The exe's constants: the cell size, 0.5, 1.0, the stamina drain step (double).
-float CellSize() { return 1.0f; }
-float Half() { return 0.5f; }
-float One() { return 1.0f; }
-double DrainStep() { return 0.006666666666666666; }
+// The stamina drain step, a double in the exe.
+constexpr double kDrainStep = 0.006666666666666666;
 
 void ToHalfCells(float* xy) {
-    const double factor = One() / (static_cast<double>(CellSize()) * Half());
+    const double factor = 2.0;
     xy[0] = static_cast<float>(factor * xy[0]);
     xy[1] = static_cast<float>(factor * xy[1]);
 }
 
 void FromHalfCells(float* xy) {
-    const double factor = static_cast<double>(CellSize()) * Half();
+    const double factor = 0.5;
     xy[0] = static_cast<float>(factor * xy[0]);
     xy[1] = static_cast<float>(factor * xy[1]);
 }
@@ -64,7 +61,7 @@ void SpeedOf(CMapObject* object, float* out) { *out = static_cast<float>(object-
 
 // *value -= *rate * the drain step (double); true when the unrounded result compares below 0.
 bool Drain(float* value, const float* rate) {
-    const double drained = static_cast<double>(*value) - *rate * DrainStep();
+    const double drained = static_cast<double>(*value) - *rate * kDrainStep;
     *value = static_cast<float>(drained);
     EI_NAN_AUDIT(drained);
     return drained < 0.0;

@@ -31,16 +31,15 @@ constexpr float kHealFactor = 3.0f;
 constexpr float kDistanceWeight = 25.0f;
 constexpr float kHitWeight = 2.0f;
 constexpr float kHealGroupBase = 2.0f;
-constexpr float kOne = 1.0f;
-constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;
 constexpr float kAllyNear2 = 49.0f;             // allies within 7 of an area target
 constexpr float kPathNear = 30.0f;
 constexpr int kNoHitsKnown = 20;
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
-const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // -1e30
-const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // and the starting best: -1e20
+constexpr float kNoScore = -1e30f;
+static_assert(std::bit_cast<std::uint32_t>(kNoScore) == 0xF149F2CAu);
+constexpr float kFloorScore = -1e20f; // and the starting best: -1e20
+static_assert(std::bit_cast<std::uint32_t>(kFloorScore) == 0xE0AD78ECu);
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
@@ -117,7 +116,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
     if (part >= 0) {
         CSpell* spell = self->GetSpellObject(part);
         if (spell && (spell->targetFlags_ & kSpellNoTarget) && target->sizeClass == 0 &&
-            PrototypeSize(target) >= kHalf)
+            PrototypeSize(target) >= 0.5f)
             return false;
     }
 
@@ -137,7 +136,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
         if (server->aiMap_.FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
-            float scale = static_cast<float>(kOne * kHalf);
+            float scale = 0.5f;
             point.x = static_cast<float>(scale * local.path.targetX);
             point.y = static_cast<float>(scale * local.path.targetY);
             point.z = 0.0f;
@@ -176,7 +175,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     if (!option) return false;
     if (option->kind < 2 || option->kind > 3) return true;
     EI_NAN_AUDIT(PrototypeSize(self));
-    if (self->sizeClass == 0 && PrototypeSize(self) >= kHalf) return true;
+    if (self->sizeClass == 0 && PrototypeSize(self) >= 0.5f) return true;
     Vector3 at = *PositionOf(target);
     for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
         auto* other = *node;
@@ -185,7 +184,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
         if (LengthSquared2DUnrounded(dx, dy) < kAllyNear2 && Allied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
-            if (PrototypeSize(other) < kHalf) return false;
+            if (PrototypeSize(other) < 0.5f) return false;
         }
     }
     double dy = static_cast<double>(self->localPosition_.y) - at.y;
@@ -197,7 +196,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
 
 double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
-    float score = candidate == current ? kCurrentBonus : kZero;
+    float score = candidate == current ? kCurrentBonus : 0.0f;
     CUnitServer* control = candidate->ServerController();
     int others = std::ssize(*group) - 1;
     int cap = option->maxCount;
@@ -228,7 +227,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     case 5:
     case 6: {
         if (candidate->HasEffect(static_cast<std::uint32_t>(option->effect))) return kNoScore;
-        double partial = static_cast<double>(score) + kOne;
+        double partial = static_cast<double>(score) + 1.0f;
         int count = others < cap ? others : cap;
         score = static_cast<float>(static_cast<double>(count) + partial);
         break;
@@ -254,14 +253,14 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
     }
     EI_NAN_AUDIT(score, threshold);
     if (score < threshold) return score;
-    double reach = kZero;
-    float scale = kOne;
+    double reach = 0.0;
+    float scale = 1.0f;
     if (option->kind < 0 || option->kind > 4) {
         reach = option->range;
         scale = 10.0f;
     }
     float beyond = static_cast<float>(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->localPosition_, *from)) - reach);
-    float penalty = kZero >= beyond ? kZero : beyond;
+    float penalty = 0.0f >= beyond ? 0.0f : beyond;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     EI_NAN_AUDIT(result);
     if (result < threshold) return result;

@@ -20,7 +20,6 @@ constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
-constexpr float kZero = 0.0f;
 
 UnitParams* ParamsOf(CUnit* unit) { return &unit->params; }
 
@@ -65,7 +64,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
             for (int i = 0; i < kDamageTypes; ++i) {
                 float weight = std::bit_cast<float>(model->damageWeights[i]);
                 EI_NAN_AUDIT(weight);
-                if (weight != kZero) {
+                if (weight != 0.0f) {
                     out->damageType = i;
                     break;
                 }

@@ -13,7 +13,8 @@
 
 namespace {
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
-constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
+constexpr float kNoRange = 1e38f;
+static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 
 // An order's constructor (kind 9, no target, pointIsUseSpot clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {

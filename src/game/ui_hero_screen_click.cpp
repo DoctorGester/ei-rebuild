@@ -96,7 +96,7 @@ void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 
 const char* SoundCancel() { return game::CancelSoundText(); }
 // The points the three attributes must add up to (a float in the exe's data).
-float AttributePoints() { return 75.0f; }
+constexpr float kAttributePoints = 75.0f;
 
 void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 
@@ -484,7 +484,7 @@ void CMpHeroScreen::CreateHero() {
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
     double sum = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
-    float points = AttributePoints();
+    float points = kAttributePoints;
     EI_NAN_AUDIT(sum, points);
     if (sum != points || static_cast<int>(name.size()) == 0) {
         interface_->PlaySound(SoundCancel(), 0);

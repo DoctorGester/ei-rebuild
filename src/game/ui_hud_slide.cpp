@@ -25,17 +25,17 @@
 
 namespace {
 
-float MapCentreX() { return 700.0f; }
-float MapButtonsX() { return 790.0f; }
-float MapFrameX() { return 710.0f; }
-float MapNeedleX() { return 694.0f; }
-float UnitBackX() { return 100.0f; }
-float UnitEdgeX() { return 10.0f; }
-float UnitMiddleX() { return 90.0f; }
-float UnitMoreX() { return 172.0f; }
-float UnitPartDown() { return 17.5f; }
-float UnitEffectX() { return 40.0f; }
-float SlideTime() { return 0.3f; }       // 0.3 seconds for the whole way
+constexpr float kMapCentreX = 700.0f;
+constexpr float kMapButtonsX = 790.0f;
+constexpr float kMapFrameX = 710.0f;
+constexpr float kMapNeedleX = 694.0f;
+constexpr float kUnitBackX = 100.0f;
+constexpr float kUnitEdgeX = 10.0f;
+constexpr float kUnitMiddleX = 90.0f;
+constexpr float kUnitMoreX = 172.0f;
+constexpr float kUnitPartDown = 17.5f;
+constexpr float kUnitEffectX = 40.0f;
+constexpr float kSlideTime = 0.3f;       // 0.3 seconds for the whole way
 // The unit panel's six body parts: where each one's pair of sprites goes (two tables of six ints).
 constexpr int kPartX[6] = /*00742434*/ {50, 50, 95, 5, 95, 5};
 constexpr int kPartY[6] = /*0074244C*/ {35, 105, 70, 70, 140, 140};
@@ -82,7 +82,7 @@ void MoveRegions(CUiWindow* window, int offsetX) {
 template <typename Panel>
 void AdvanceSlide(Panel* panel) {
     const double moved =
-        CUiContainer::FrameTime() * panel->slideDirection_ / SlideTime() + panel->slide_;
+        CUiContainer::FrameTime() * panel->slideDirection_ / kSlideTime + panel->slide_;
     panel->slide_ = static_cast<float>(moved);
     if (moved > 1.0) panel->slide_ = 1.0f;
     if (panel->slide_ < 0.0f) panel->slide_ = 0.0f;
@@ -116,18 +116,18 @@ constexpr int kInfoTexts = 18;
 constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in flatColour_
 
 constexpr const char* kDefaultPicture = "battle00";
-float ZoneUnit() { return 32.0f; }            // world units per unit of a zone's size
-float MapSide() { return 2.0f; }             // the map's side in map units
-float ZoomRange() { return 0.05f; }           // the largest zoom per world unit
-float Pi() { return 3.1415927f; }
-float OutlineStep() { return 0.125f; }         // sixteen points round the map
-double OutlineRadius() { return 65.0; }
-double OutlineCentreX() { return 700.0; }
-double OutlineCentreY() { return 80.0; }
-float DepthUnit() { return 0.48157462f; }           // the layout's half height at depth 1
-float BoundsScale() { return 0.045f; }
-float MarkersScale() { return 0.03f; }
-float SlingQuarter() { return (-0.5f); }        // the sling starts a quarter turn back
+constexpr float kZoneUnit = 32.0f;            // world units per unit of a zone's size
+constexpr float kMapSide = 2.0f;             // the map's side in map units
+constexpr float kZoomRange = 0.05f;           // the largest zoom per world unit
+constexpr float kPi = 3.1415927f;
+constexpr float kOutlineStep = 0.125f;         // sixteen points round the map
+constexpr double kOutlineRadius = 65.0;
+constexpr double kOutlineCentreX = 700.0;
+constexpr double kOutlineCentreY = 80.0;
+constexpr float kDepthUnit = 0.48157462f;           // the layout's half height at depth 1
+constexpr float kBoundsScale = 0.045f;
+constexpr float kMarkersScale = 0.03f;
+constexpr float kSlingQuarter = -0.5f;        // the sling starts a quarter turn back
 constexpr int kMapTextureKind = 3;
 constexpr int kMapTravel = 180;
 constexpr int kOutlinePoints = 16;
@@ -149,8 +149,8 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 void CHudMap::Layout() {
     widescreen::EnterRightPanel();   // addon's 10023366
     const float offset = static_cast<float>(offset_);
-    const float centre = offset + MapCentreX();
-    const float buttons = offset + MapButtonsX();
+    const float centre = offset + kMapCentreX;
+    const float buttons = offset + kMapButtonsX;
     Place(this, 0, centre, 80.0f, 18.0f);
     Place(this, 1, centre, 80.0f, 14.0f);
     Place(this, 2, centre, 80.0f, 12.0f);
@@ -159,8 +159,8 @@ void CHudMap::Layout() {
     Place(this, 6, buttons, 115.0f, 10.0f);
     Place(this, 7, buttons, 145.0f, 10.0f);
     Place(this, 8, centre, 80.0f, 10.0f);
-    Place(this, 9, offset + MapFrameX(), 80.0f, 10.0f);
-    Place(this, 10, offset + MapNeedleX(), 84.0f, FromBits(kSlingDepthBits));
+    Place(this, 9, offset + kMapFrameX, 80.0f, 10.0f);
+    Place(this, 10, offset + kMapNeedleX, 84.0f, FromBits(kSlingDepthBits));
     Place(this, 11, buttons, 85.0f, 10.0f);
     surfaces_[0]->MoveTo(offset_ + 700 + widescreen::EdgeShift(), 80);   // WideScreen
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
@@ -202,27 +202,27 @@ void CHudMap::UpdateVanilla() {
 void CHudUnitPanel::Layout() {
     widescreen::EnterLeftPanel();    // addon's 100232AF
     const float offset = static_cast<float>(offset_);
-    const float edge = UnitEdgeX() - offset;
-    const float middle = UnitMiddleX() - offset;
-    Place(this, 0, UnitBackX() - offset, 110.0f, 60.0f);
+    const float edge = kUnitEdgeX - offset;
+    const float middle = kUnitMiddleX - offset;
+    Place(this, 0, kUnitBackX - offset, 110.0f, 60.0f);
     Place(this, 1, edge, 110.0f, 20.0f);
     Place(this, 3, edge, 115.0f, 10.0f);
     Place(this, 4, edge, 145.0f, 10.0f);
     Place(this, 5, edge, 175.0f, 10.0f);
     Place(this, 6, edge, 205.0f, 10.0f);
     Place(this, 7, middle, 110.0f, 10.0f);
-    Place(this, 9, UnitMoreX() - offset, 212.0f, 4.0f);
+    Place(this, 9, kUnitMoreX - offset, 212.0f, 4.0f);
     Place(this, 10, middle, 192.5f, 4.0f);
     Place(this, 11, middle, 192.5f, 5.0f);
     Place(this, 12, middle, 207.5f, 4.0f);
     Place(this, 13, middle, 207.5f, 5.0f);
     for (int i = 0; i < kParts; ++i) {
-        const float y = static_cast<float>(kPartY[i]) + UnitPartDown();
+        const float y = static_cast<float>(kPartY[i]) + kUnitPartDown;
         const float x = static_cast<float>(kPartX[i] + 50) - offset;
         Place(this, 14 + 2 * i, x, y, 4.0f);
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
-    for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, UnitEffectX() - offset, static_cast<float>(50 + 30 * i), 5.0f);
+    for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, kUnitEffectX - offset, static_cast<float>(50 + 30 * i), 5.0f);
     surfaces_[0]->MoveTo(20 - widescreen::EdgeShift() - offset_, 0);   // WideScreen
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
@@ -357,8 +357,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
 
     // The world's extent and the map's picture (referenced object 1), from the zone's record.
     if (const MapRecord* zone = LocalZone()) {
-        worldWidth_ = static_cast<float>(zone->sizeX) * ZoneUnit();
-        worldHeight_ = static_cast<float>(zone->sizeY) * ZoneUnit();
+        worldWidth_ = static_cast<float>(zone->sizeX) * kZoneUnit;
+        worldHeight_ = static_cast<float>(zone->sizeY) * kZoneUnit;
         LoadTexture(zone->picture, kMapTextureKind);
     } else {
         worldWidth_ = 32.0f;
@@ -366,8 +366,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         LoadTexture(kDefaultPicture, kMapTextureKind);
     }
     textureSize_ = worldWidth_ < worldHeight_ ? worldHeight_ : worldWidth_;
-    scale_ = MapSide() / textureSize_;
-    zoomMax_ = textureSize_ * ZoomRange();
+    scale_ = kMapSide / textureSize_;
+    zoomMax_ = textureSize_ * kZoomRange;
     zoom_ = zoomMax_ < zoom ? zoomMax_ : zoom;
     centreX_ = 0.0f;
     centreY_ = 0.0f;
@@ -388,11 +388,11 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // FSIN themselves are not rounded), so the point under the centre is 80 down, not 79 (see OnArc).
     CUiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
-        const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * Pi()) * OutlineStep());
-        const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * OutlineRadius());
-        const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + OutlineCentreY())));
-        const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
-        const int x = static_cast<int>(libcrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
+        const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * kPi) * kOutlineStep);
+        const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * kOutlineRadius);
+        const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + kOutlineCentreY)));
+        const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * kOutlineRadius);
+        const int x = static_cast<int>(libcrt::Ftol(static_cast<float>(kOutlineCentreX - across)));
         round->AddPoint(x, y);
     }
     AddRegion()->SetRect(620, 0, 780, 160);
@@ -413,14 +413,14 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture_ = objects_[1];
     bounds->tint_[0] = bounds->tint_[1] = bounds->tint_[2] = 0.8f;
-    bounds->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * BoundsScale()));
+    bounds->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide_) * kBoundsScale));
     CUiMesh* area = AddBlankSprite();
     area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture_ = objects_[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddBlankSprite();
     markers->PlaceBody(700.0f, 80.0f, 12.0f);
-    markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
+    markers->SetScale(static_cast<float>(static_cast<float>(kDepthUnit * halfSide_) * kMarkersScale));
     markers->ResetColours();
     markers->SetUvCount(4);
     const TexCoord markerTexels[4] = {
@@ -436,7 +436,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* slingButton = AddSprite(kArrowSprite);
     slingButton->textureOffsetU_ = 0.22265625f;
     slingButton->textureOffsetV_ = 0.140625f;
-    PlaceSling(slingButton, static_cast<float>(Pi() * SlingQuarter()), 850.0f);
+    PlaceSling(slingButton, static_cast<float>(kPi * kSlingQuarter), 850.0f);
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
     // 11: "camera north".

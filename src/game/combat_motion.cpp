@@ -46,7 +46,8 @@ constexpr std::uint32_t kKeyIdle = 0x80580000;
 constexpr std::uint32_t kKeyMoveOnce = 0x40000000;
 constexpr std::uint32_t kKeyMoveLoop = 0x80000000;
 constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking hero
-constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
+constexpr float kNoRange = 1e38f;
+static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;
@@ -54,7 +55,7 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-float HalfCell() { return 1.0f * 0.5f; }
+constexpr float kHalfCell = 0.5f;
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -557,7 +558,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
         float dy = self->localPosition_.y - goal[1];
         float dx = self->localPosition_.x - goal[0];
         float reached = LengthSquared2DUnrounded(dx, dy);
-        float half = HalfCell();
+        float half = kHalfCell;
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
         float left = LengthSquared2DUnrounded(ex, ey);

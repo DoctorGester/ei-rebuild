@@ -24,12 +24,9 @@
 #include <list>
 
 namespace {
-constexpr float kOne = 1.0f;
-constexpr float kZero = 0.0f;
 constexpr float kNoCone = -1.0f;                // every direction
 constexpr float kNoLineOfSight = -1000.0f;      // below -100, no line-of-sight test
 constexpr int kNoGridOrigin = 0x7FFFFFFF;
-constexpr float kHalf = 0.5f;
 constexpr float kNonPlayerReach = 1.05f;        // units without a player keep sight a little longer
 constexpr float kEyeHeightFactor = 1.8f;
 constexpr float kSightCellsFactor = 2.0f;
@@ -177,13 +174,13 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
 void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     CUnit* self = owner->unit;
     bool hasPlayer = self->player != nullptr;
-    float reachFactor = hasPlayer ? kOne : kNonPlayerReach;
+    float reachFactor = hasPlayer ? 1.0f : kNonPlayerReach;
     if (!self) return;
     ready = 0;
     eye = *&self->localPosition_;
-    float scale = static_cast<float>(kOne / (static_cast<double>(kOne) * kHalf));
-    cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf));
-    cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf));
+    float scale = 2.0f;
+    cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - 0.5f));
+    cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - 0.5f));
     Refresh(self, memory);
     for (auto node = memory->visible.begin(); node != memory->visible.end();) {
         auto current = node;
@@ -242,12 +239,12 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
                                theirs->stats.conspicuity[0].current * mine->stats.perception[0].current);
     // The larger of 0 and the sight.
     EI_NAN_AUDIT(sight);
-    float radius = kZero < sight ? sight : kZero;
+    float radius = 0.0f < sight ? sight : 0.0f;
     float height = static_cast<float>(observer->ModeSpeed());
     CAIMap* map = &g_serverWorld->aiMap_;
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
-    if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
+    if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, 0.0f, kNoLineOfSight, grid);
 }

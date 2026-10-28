@@ -33,23 +33,20 @@ inline const char* HeroPartText(int index) {
     return kParts[index];
 }
 
-inline float HeroStartX() { return 54.0f; }        // the hero's start on zone1
-inline float HeroStartY() { return 138.0f; }
-inline float HeroStartRadius2() { return 300.0f; }
-inline float AxisEpsilon() { return 1e-8f; }
-inline float One() { return 1.0f; }
-inline float Zero() { return 0.0f; }
-inline float Half() { return 0.5f; }
-inline float LineAngleOffset() { return 3.1415927f; }
-inline float LineSpacing() { return 1.2f; }
+inline constexpr float kHeroStartX = 54.0f;        // the hero's start on zone1
+inline constexpr float kHeroStartY = 138.0f;
+inline constexpr float kHeroStartRadius2 = 300.0f;
+inline constexpr float kAxisEpsilon = 1e-8f;
+inline constexpr float kLineAngleOffset = 3.1415927f;
+inline constexpr float kLineSpacing = 1.2f;
 
 inline const char* QuickEffectPrototype() { return "st.tr.130"; }
 inline const char* QuickEffectModel() { return "unhuma"; }
 
 inline const char* CampfireText() { return "campfire"; }
 inline const char* NoWaveNameText() { return "Adding sound without wave name"; }
-inline float CampfireHeight() { return 0.7f; }
-inline float TorchLightScale() { return 10.0f; }  // the flame's radius factor (10)
+inline constexpr float kCampfireHeight = 0.7f;
+inline constexpr float kTorchLightScale = 10.0f;  // the flame's radius factor (10)
 
 // The textures' folder under the text folder (TheTextFolder) and the lights table.
 inline const char* TexturesFolderText() { return "textures\\"; }
@@ -97,7 +94,7 @@ inline int g_updatePeriod = /*0078FF34*/ 55;
 // view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
 const Matrix4* SceneCamera();
 inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};
-inline float ColourScale() { return 255.0f; }
+inline constexpr float kColourScale = 255.0f;
 
 // ---- The world server's quests (world_quests.cpp) -----------------------------------------------
 
@@ -124,8 +121,8 @@ inline const char* HumanHeroText() { return "Human Hero"; }
 std::unordered_map<std::string, QuestBriefingRecord*>& QuestBriefings();
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
-inline float HearingScale() { return 2.0f; }   // the units' perception scale (SyncPlayer too)
-inline float WakeMargin() { return 20.0f; }     // added to it when units wake others
+inline constexpr float kHearingScale = 2.0f;   // the units' perception scale (SyncPlayer too)
+inline constexpr float kWakeMargin = 20.0f;     // added to it when units wake others
 
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
 // References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr),
@@ -158,15 +155,14 @@ inline const float& PossessWake() { return kFloatConstant<2.0f>; }
 inline const float& PossessWakeBase() { return kFloatConstant<20.0f>; }
 
 // ---- AI, interface mesh and server constants ----------------------------------------------------
-inline float CellSize() { return 1.0f; }   // 1.0: the AI grid cell
-inline float FixedPoint() { return 65536.0f; }
-inline float OutsideDistance() { return 100.0f; }
-inline float Texel() { return 0.00390625f; }   // 1 / 256
-inline float HalfTexel() { return 0.001953125f; }   // 1 / 512
-inline float LayoutX() { return 0.00125f; }   // 2 / 1600
-inline float LayoutY() { return 0.0025f; }   // 1 / 400
-inline float ThreeQuarters() { return 0.75f; }
-inline float InterfaceView() { return 0.48157462f; }   // 0.48157 (the interface camera's half view)
+inline constexpr float kFixedPoint = 65536.0f;
+inline constexpr float kOutsideDistance = 100.0f;
+inline constexpr float kTexel = 0.00390625f;   // 1 / 256
+inline constexpr float kHalfTexel = 0.001953125f;   // 1 / 512
+inline constexpr float kLayoutX = 0.00125f;   // 2 / 1600
+inline constexpr float kLayoutY = 0.0025f;   // 1 / 400
+inline constexpr float kThreeQuarters = 0.75f;
+inline constexpr float kInterfaceView = 0.48157462f;   // 0.48157 (the interface camera's half view)
 // By reference, where the game copies the bits or passes the address on.
 inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f>; }   // seconds between announcements to the master
 inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f>; }   // squared distance a blocking ally may be away

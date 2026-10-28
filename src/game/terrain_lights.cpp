@@ -43,7 +43,6 @@ void PushFront(LightRefBlock* block, LightRefBlock*& head) {
 }
 
 // The cell size (1) the light bounds are divided by.
-float CellSize() { return 1.0f; }
 
 bool SignSet(float v) { return std::bit_cast<std::uint32_t>(v) >> 31 != 0; }
 
@@ -188,10 +187,10 @@ void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, Li
 
 void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area) {
-    int lastY = static_cast<int>(libcrt::Ftol(maxY / CellSize() + 0.5f));
-    int lastX = static_cast<int>(libcrt::Ftol(maxX / CellSize() + 0.5f));
-    int firstY = static_cast<int>(libcrt::Ftol(minY / CellSize()));
-    int firstX = static_cast<int>(libcrt::Ftol(minX / CellSize()));
+    int lastY = static_cast<int>(libcrt::Ftol(maxY + 0.5f));
+    int lastX = static_cast<int>(libcrt::Ftol(maxX + 0.5f));
+    int firstY = static_cast<int>(libcrt::Ftol(minY));
+    int firstX = static_cast<int>(libcrt::Ftol(minX));
     SetLightArea(firstX, firstY, lastX, lastY, sectorsX, sectorsY, area);
 }
 

@@ -9,11 +9,8 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
 constexpr float kByteMax = 255.0f;
-constexpr float kTwo = 2.0f;
 constexpr float kSpeedScale = 25.5f;
-constexpr float kOne = 1.0f;
 constexpr int kNoNaturalWeapon = 8;              // after Reset
 constexpr int kResetSlotType = 4;
 constexpr std::int16_t kResetParams20 = 7;
@@ -31,7 +28,7 @@ std::uint8_t ScaledByte(float value, float scale, float divisor) {
 
 void ResetLayerKeepingSpareAbsorb(UnitStatLayer& layer) {
     layer.layerMask = 0;
-    for (float& a : layer.absorb) a = kZero;
+    for (float& a : layer.absorb) a = 0.0f;
     layer.state = 0;
     layer.reserved[0] = 0;
     layer.reserved[1] = 0;
@@ -41,16 +38,16 @@ void ResetLayerKeepingSpareAbsorb(UnitStatLayer& layer) {
 // --- UnitVitals ------------------------------------------------------------------------------
 
 void UnitVitals::Reset() {
-    hitPoints = kZero;
-    maxHitPoints = kZero;
-    hitPointRegen = kZero;
-    mana = kZero;
-    maxMana = kZero;
-    manaRegen = kZero;
+    hitPoints = 0.0f;
+    maxHitPoints = 0.0f;
+    hitPointRegen = 0.0f;
+    mana = 0.0f;
+    maxMana = 0.0f;
+    manaRegen = 0.0f;
     regenTicks = 0;
     for (UnitStatPair& pair : protection) {
-        pair.current = kZero;
-        pair.base = kZero;
+        pair.current = 0.0f;
+        pair.base = 0.0f;
     }
 }
 
@@ -88,8 +85,8 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->strength = static_cast<std::uint8_t>(RoundStored(strength));
     params->dexterity = static_cast<std::uint8_t>(RoundStored(dexterity));
     params->intelligence = static_cast<std::uint8_t>(RoundStored(intelligence));
-    for (int i = 0; i < 4; ++i) params->modeSpeeds[i] = ScaledByte(modeSpeeds[i], kByteMax, kTwo);
-    params->baseSpeed = ScaledByte(speed, kSpeedScale, kOne);
+    for (int i = 0; i < 4; ++i) params->modeSpeeds[i] = ScaledByte(modeSpeeds[i], kByteMax, 2.0f);
+    params->baseSpeed = ScaledByte(speed, kSpeedScale, 1.0f);
     params->rate = static_cast<std::uint8_t>(RoundStored(rate));
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(movementKind);
@@ -110,7 +107,7 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
         out.current = static_cast<std::int16_t>(RoundStored(slot.current));
         out.maximum = static_cast<std::uint16_t>(RoundStored(slot.maximum));
         for (int type = 0; type < 7; ++type) {
-            double sum = kZero;   // accumulated on the FPU stack
+            double sum = 0.0;   // accumulated on the FPU stack
             for (const UnitStatLayer& layer : slot.layers) sum += layer.absorb[type];
             out.protection[type] = static_cast<std::int16_t>(RoundStored(static_cast<float>(sum)));
         }
@@ -124,19 +121,19 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
 // --- Resets ----------------------------------------------------------------------------------
 
 int UnitStats::Reset() {
-    experience = kZero;
-    pendingExperience = kZero;
-    spentExperience = kZero;
-    strengthBase = strength = kZero;
-    dexterityBase = dexterity = kZero;
-    intelligenceBase = intelligence = kZero;
-    speedBase = speed = kZero;
-    rateBase = rate = kZero;
-    capacity = kZero;
-    for (float& value : combat) value = kZero;
-    damage = kZero;
-    damageSpread = kZero;
-    combat[2] = kOne;   // attack spread
+    experience = 0.0f;
+    pendingExperience = 0.0f;
+    spentExperience = 0.0f;
+    strengthBase = strength = 0.0f;
+    dexterityBase = dexterity = 0.0f;
+    intelligenceBase = intelligence = 0.0f;
+    speedBase = speed = 0.0f;
+    rateBase = rate = 0.0f;
+    capacity = 0.0f;
+    for (float& value : combat) value = 0.0f;
+    damage = 0.0f;
+    damageSpread = 0.0f;
+    combat[2] = 1.0f;   // attack spread
     std::memset(damageWeights, 0, sizeof(damageWeights));
     naturalWeapon = kNoNaturalWeapon;
     std::memset(perception, 0, sizeof(perception));
@@ -144,8 +141,8 @@ int UnitStats::Reset() {
     for (UnitStatSlot& slot : slots) {
         slot.vitalMask = 0;
         slot.kind = 0;
-        slot.maximum = kZero;
-        slot.current = kZero;
+        slot.maximum = 0.0f;
+        slot.current = 0.0f;
         slot.type = kResetSlotType;
         for (UnitStatLayer& layer : slot.layers) ResetLayerKeepingSpareAbsorb(layer);
     }
@@ -161,8 +158,8 @@ int UnitStats::ClearOuterLayers() {
         for (int i = 1; i < 3; ++i) {
             UnitStatLayer& layer = slot.layers[i];
             layer.layerMask = 0;
-            for (float& a : layer.absorb) a = kZero;
-            for (float& u : layer.spareAbsorb) u = kZero;
+            for (float& a : layer.absorb) a = 0.0f;
+            for (float& u : layer.spareAbsorb) u = 0.0f;
         }
     }
     return 0;

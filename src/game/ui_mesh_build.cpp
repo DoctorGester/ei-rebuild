@@ -52,7 +52,7 @@ void AppendByGrow(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value)
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {
-    double half = D(worlddata::HalfTexel());
+    double half = D(worlddata::kHalfTexel);
     for (int i = 0; i < std::ssize(mesh->texCoords_); ++i) {
         mesh->texCoords_[i].u = static_cast<float>(D(mesh->texCoords_[i].u) + half);
         mesh->texCoords_[i].v = static_cast<float>(D(mesh->texCoords_[i].v) - half);
@@ -62,7 +62,7 @@ void NudgeAndCommit(CUiMesh* mesh) {
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
-    float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
+    float s = static_cast<float>(D(worlddata::kInterfaceView) * D(depth) * D(scale) * D(worlddata::kLayoutY));
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
     mesh->ScaleZ() = s;
@@ -71,8 +71,8 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    mesh->localPosition_.x = static_cast<float>((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
-    mesh->localPosition_.y = static_cast<float>((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
+    mesh->localPosition_.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
+    mesh->localPosition_.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
     std::memcpy(&mesh->localPosition_.z, &depth, 4);
 }
 
@@ -118,8 +118,8 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
 
     // Texture coordinates: the outer corners, then the inner ones.
     SetUvCount(8);
-    double texel = D(worlddata::Texel());
-    double one = D(worlddata::One());
+    double texel = D(worlddata::kTexel);
+    double one = 1.0;
     TexCoord* uv = texCoords_.data();
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
     float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
@@ -158,7 +158,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
             vertices_[q].w()[i] = 1.0f;
         }
     }
-    double half = D(worlddata::Half());
+    double half = 0.5;
     double halfWidth = D(width) * half;
     double outerX = halfWidth / D(scale);
     double halfHeight = D(height) * half;
@@ -185,7 +185,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     inner.y()[3] = innerY;
 
     // Placed at the rectangle's centre.
-    double layoutX = D(worlddata::LayoutX());
+    double layoutX = D(worlddata::kLayoutX);
     SetPosition(this, (D(left) + D(right)) * layoutX, (D(top) + D(bottom)) * layoutX, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);
@@ -224,7 +224,7 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     }
     // Placed by the sprite's own Place (Rebirth-patched), scaled through the sprite's scale.
     Place(x, y, depth);
-    float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
+    float s = static_cast<float>(D(worlddata::kInterfaceView) * D(depth) * D(scale) * D(worlddata::kLayoutY));
     SetScale(s);
     NudgeAndCommit(this);
 }
@@ -246,8 +246,8 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
     corners_[count * 4 - 1].position = 1;
 
     SetUvCount(4);
-    double texel = D(worlddata::Texel());
-    double one = D(worlddata::One());
+    double texel = D(worlddata::kTexel);
+    double one = 1.0;
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
     texCoords_[0].u = static_cast<float>(static_cast<double>(u0) * texel);
     texCoords_[0].v = outerV0;
@@ -298,7 +298,7 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
         w[3] = 1.0f;
         ++j;
     }
-    double layoutY = D(worlddata::LayoutY());
+    double layoutY = D(worlddata::kLayoutY);
     SetPosition(this, D(x) * layoutY, D(y) * layoutY, depth);
     SetBuildScale(this, depth, scale);
     NudgeAndCommit(this);

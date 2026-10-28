@@ -27,7 +27,7 @@ float TiltSpeed() { return Option(options::g_options->cameraPitch_.powerKeyboard
 float ClimbSpeed() { return Option(options::g_options->cameraZoom_.powerKeyboard) * Option(options::g_options->cameraZoom_.speed); }
 float ZoomSpeed() { return Option(options::g_options->cameraZoom_.powerMouse) * Option(options::g_options->cameraZoom_.speed); }
 // The wheel's steps per delta unit (read from the exe, rule 9).
-float WheelStep() { return (-0.008333334f); }
+constexpr float kWheelStep = -0.008333334f;
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
@@ -48,8 +48,8 @@ float DragTiltSpeed() {
 }
 int EdgeMargin() { return static_cast<const volatile int&>(options::g_options->cameraBorderScrollArea_); }
 // Layout units to a part of the screen and the rates' scales
-float PerWidth() { return 0.0025f; }
-float PerHeight() { return 0.0033333334f; }
+constexpr float kPerWidth = 0.0025f;
+constexpr float kPerHeight = 0.0033333334f;
 
 bool Differs(float a, float b) {
     EI_NAN_AUDIT(a, b);
@@ -165,8 +165,8 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         interface_->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
-        float across = static_cast<float>(drag.x) * PerWidth();
-        float along = static_cast<float>(static_cast<float>(drag.y) * PerHeight());
+        float across = static_cast<float>(drag.x) * kPerWidth;
+        float along = static_cast<float>(static_cast<float>(drag.y) * kPerHeight);
         if (!ModifierHeld(interface_)) {
             camera->SetTurnRate(DragTurnSpeed() * across * 10.0f);
             float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
@@ -236,7 +236,7 @@ void CCameraInput::OnDeactivate() {
 
 BOOL CCameraInput::OnWheel(int, int delta, int, int) {
     int steps = static_cast<short>(delta);
-    g_camera->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * WheelStep());
+    g_camera->ZoomBy(ZoomSpeed() * static_cast<float>(steps) * kWheelStep);
     return TRUE;
 }
 

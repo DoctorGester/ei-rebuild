@@ -49,8 +49,8 @@ constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
 constexpr int kFallbackSource = 0x2013;
 
 // The sound distances (10 and 50), read from the exe.
-float SoundNear() { return 10.0f; }
-float SoundFar() { return 50.0f; }
+constexpr float kSoundNear = 10.0f;
+constexpr float kSoundFar = 50.0f;
 
 // The effect types whose several entries share one particle source (the strongest power wins).
 bool MergesParticles(int type) {
@@ -180,15 +180,15 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
         if (record->handle == -1) {
             std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
-                                                 SoundNear(), SoundFar(), 0, -1, FeebleMindChooser);
+                                                 kSoundNear, kSoundFar, 0, -1, FeebleMindChooser);
             // The folder is empty here: the original plays the bare suffix.
             std::string name;
             name += suffix;
-            g_clientWorld->sounds_->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+            g_clientWorld->sounds_->Play3D(name, 0, position, kSoundNear, kSoundFar, 0, 0);
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
-            g_clientWorld->sounds_->Play3D("magic\\FeebleMind\\end.wav", 0, position, SoundNear(), SoundFar(), 0, 0);
+            g_clientWorld->sounds_->Play3D("magic\\FeebleMind\\end.wav", 0, position, kSoundNear, kSoundFar, 0, 0);
         }
         return;
     }
@@ -196,7 +196,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
     if (*folder == '\0' || !play) return;
     std::string name = folder;
     name += suffix;
-    sounds->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+    sounds->Play3D(name, 0, position, kSoundNear, kSoundFar, 0, 0);
 }
 
 void CMapObjectClientSpecific::EffectsChanged(bool first) {

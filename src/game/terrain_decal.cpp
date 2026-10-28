@@ -13,7 +13,6 @@ namespace {
 
 constexpr float kMargin = 1.0f;   // one cell around the quad
 
-float CellSize() { return 1.0f; }
 
 // Select idioms: the lower of `a` and `b` (a when unordered), and `a` raised to `bound`
 // (bound when unordered).
@@ -21,7 +20,7 @@ float Lower(float a, float b) { return a >= b ? b : a; }
 float Raised(float a, float bound) { return a >= bound ? a : bound; }
 
 // A cell bound: (v -/+ the margin) / cell size, stored as a float first and rounded to nearest.
-int CellBound(double v) { return x87::fistp(static_cast<float>(v / CellSize())); }
+int CellBound(double v) { return x87::fistp(static_cast<float>(v)); }
 
 Vector3 Corner(const float* m, int column) { return {m[column], m[4 + column], m[8 + column]}; }
 

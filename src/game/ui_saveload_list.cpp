@@ -32,7 +32,7 @@ constexpr const char* kDateFormat = "%d/%m, %H:%M";
 constexpr const char* kPlainFormat = "%s";
 constexpr const char* kDayText = "save_day";
 constexpr const char* kGameTimeFormat = "%s  %d,  %d:%02d";
-float MinutesPerHour() { return 60.0f; }
+constexpr float kMinutesPerHour = 60.0f;
 
 constexpr int kFont = 1;
 constexpr COLORREF kTextColour = 0xA7D7E4;
@@ -127,7 +127,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
-    const int minutes = static_cast<int>(libcrt::Ftol(static_cast<float>(entry.gameTime_ * MinutesPerHour())));
+    const int minutes = static_cast<int>(libcrt::Ftol(static_cast<float>(entry.gameTime_ * kMinutesPerHour)));
     const int day = minutes / kMinutesPerDay;
     const int minuteOfDay = minutes - day * kMinutesPerDay;
     const int hour = minuteOfDay / 60;

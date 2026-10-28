@@ -16,8 +16,6 @@
 namespace {
 
 constexpr int kOrderPath = 2;
-constexpr float kCellScale = 1.0f;
-constexpr float kHalf = 0.5f;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
 bool IsDead(CUnit* unit) { return unit->IsDead() != 0; }
@@ -36,7 +34,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
     }
     MotionOrder* order = &path->motionOrder;
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
-        float toCells = 1.0f / (kCellScale * kHalf);
+        float toCells = 2.0f;
         Vector3 position = {unit->localPosition_.x, unit->localPosition_.y, unit->localPosition_.z};
         position.x = toCells * position.x;
         position.y = toCells * position.y;
@@ -46,7 +44,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         int cellX, cellY;
         unit->motion.Sample(ObjectWorld(unit), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
-        float toWorld = kCellScale * kHalf;
+        float toWorld = 0.5f;
         out->x = toWorld * position.x;
         out->y = toWorld * position.y;
         std::memcpy(&out->z, &position.z, 4);

@@ -58,8 +58,6 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 // The shares a revived hero loses: of the party's money and of its experience above the
 // NPC record's floor. Set at startup.
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
-float CellScaleA() { return 1.0f; }
-float CellScaleB() { return 0.5f; }
 
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
@@ -223,7 +221,7 @@ AIPath* AIPath::Construct() {
 }
 
 Vector3* AIPath::TargetPoint(Vector3* out) const {
-    double scale = static_cast<double>(CellScaleA()) * CellScaleB();
+    double scale = 0.5;
     out->z = 0.0f;
     out->x = static_cast<float>(scale * targetX);
     out->y = static_cast<float>(scale * targetY);

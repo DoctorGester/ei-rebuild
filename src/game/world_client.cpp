@@ -427,7 +427,7 @@ int CWorldClient::Segment() {
                     }
                     float clamped = SelectLess(1.0f, level, 1.0f, level);
                     float floor = SelectLess(0.0f, clamped, clamped, 0.0f);
-                    float scaled = floor * worlddata::ColourScale();
+                    float scaled = floor * worlddata::kColourScale;
                     std::uint32_t grey = static_cast<std::uint32_t>(x87::fistp(scaled));
                     std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
                     effect.colour_ = colour;

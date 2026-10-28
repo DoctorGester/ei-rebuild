@@ -79,12 +79,11 @@ constexpr float kPercent = 100.0f;
 constexpr float kPi = 3.14159274f;
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
-float CellSize() { return 1.0f; }
 // pi / 2 (a static initialiser: the constant * 0.5).
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The sector containing `v` (v / cell rounded to nearest, then / 32 towards zero).
-int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
+int SectorOf(float v) { return x87::fistp(static_cast<float>(v)) / 32; }
 
 // By weight, highest first (an unordered pair sorts "after").
 int ByWeight(const void* a, const void* b) {
@@ -130,7 +129,7 @@ void Terrain::PlayAmbience() {
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
     int centreY = SectorOf(listener.y);
-    float radius = static_cast<float>(CellSize() * kRadiusCells);
+    float radius = static_cast<float>(kRadiusCells);
     float radiusSquared = static_cast<float>(radius * radius);
     const AmbientSoundClass* classes = g_soundClasses;
 
@@ -153,8 +152,8 @@ void Terrain::PlayAmbience() {
                 cell.weight = 0.0f;
                 continue;
             }
-            cell.x = static_cast<float>((sx + 0.5f) * CellSize() * kSectorCells);
-            cell.y = static_cast<float>((sy + 0.5f) * CellSize() * kSectorCells);
+            cell.x = static_cast<float>((sx + 0.5f) * kSectorCells);
+            cell.y = static_cast<float>((sy + 0.5f) * kSectorCells);
             float ground = HeightAt(cell.x, cell.y, 0);
             float water = HeightAt(cell.x, cell.y, 1);
             cell.z = water >= ground ? water : ground;
@@ -228,7 +227,7 @@ void Terrain::PlayAmbience() {
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
-        float half = static_cast<float>(CellSize() * kSpotCells);
+        float half = static_cast<float>(kSpotCells);
         float low2 = static_cast<float>(-half);
         position.x = static_cast<float>((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.x);
         position.y = static_cast<float>((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.y);

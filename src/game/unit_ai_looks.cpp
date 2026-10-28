@@ -10,8 +10,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kOne = 1.0f;
-constexpr float kHalf = 0.5f;
 
 } // namespace
 
@@ -22,11 +20,11 @@ void AIMoveOrder::Clear() {
 
 void PatrolMode::AppendPoint(const Vector3* position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
-    float cell = static_cast<float>(kOne * kHalf);
-    long ix = x87::RoundToInt(static_cast<float>(kOne / cell * position->x));
-    long iy = x87::RoundToInt(static_cast<float>(kOne / cell * position->y));
-    float x = static_cast<float>((static_cast<float>(ix) + kHalf) * cell);
-    float y = static_cast<float>((static_cast<float>(iy) + kHalf) * cell);
+    float cell = 0.5f;
+    long ix = x87::RoundToInt(static_cast<float>(1.0f / cell * position->x));
+    long iy = x87::RoundToInt(static_cast<float>(1.0f / cell * position->y));
+    float x = static_cast<float>((static_cast<float>(ix) + 0.5f) * cell);
+    float y = static_cast<float>((static_cast<float>(iy) + 0.5f) * cell);
     int index = std::ssize(points);
     points.resize(index + 1);
     PatrolPoint& added = points[index];

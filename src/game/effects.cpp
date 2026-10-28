@@ -19,25 +19,30 @@
 
 namespace {
 
-constexpr float kZero = 0.0f;
-constexpr float kHalf = 0.5f;
-constexpr float kOne = 1.0f;
-constexpr double kHalfDouble = 0.5;
 // The 2^-32 scale of the random range helpers; its last bit is set (sic).
 constexpr double kRandomScale = std::bit_cast<double>(0x3DF0000000100000ull);
-constexpr float kPointThree = std::bit_cast<float>(0x3E99999Au);
+constexpr float kPointThree = 0.3f;
+static_assert(std::bit_cast<std::uint32_t>(kPointThree) == 0x3E99999Au);
 constexpr float kCloudAlpha = 4.5f;
-constexpr float kSmokeGrowth = std::bit_cast<float>(0x3F87AE14u);      // 1.06
-constexpr float kSmokeDrift = std::bit_cast<float>(0x3E19999Au);       // 0.15
-constexpr float kDebrisDamping = std::bit_cast<float>(0x3F59999Au);    // 0.85
-constexpr float kDebrisGravity = std::bit_cast<float>(0x3D6147AEu);    // 0.055
+constexpr float kSmokeGrowth = 1.06f;
+static_assert(std::bit_cast<std::uint32_t>(kSmokeGrowth) == 0x3F87AE14u);
+constexpr float kSmokeDrift = 0.15f;
+static_assert(std::bit_cast<std::uint32_t>(kSmokeDrift) == 0x3E19999Au);
+constexpr float kDebrisDamping = 0.85f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisDamping) == 0x3F59999Au);
+constexpr float kDebrisGravity = 0.055f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisGravity) == 0x3D6147AEu);
 constexpr float kDebrisFadeIn = 4.0f;
-constexpr float kDebrisGrowth = std::bit_cast<float>(0x3F90A3D7u);     // 1.13
-constexpr float kTendrilDensity = std::bit_cast<float>(0x41649249u);   // 14.285714
+constexpr float kDebrisGrowth = 1.13f;
+static_assert(std::bit_cast<std::uint32_t>(kDebrisGrowth) == 0x3F90A3D7u);
+constexpr float kTendrilDensity = 14.285714f;
+static_assert(std::bit_cast<std::uint32_t>(kTendrilDensity) == 0x41649249u);
 constexpr double kMushroomWidth = 0.2;
-constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0.12
+constexpr float kMushroomRise = 0.12f;
+static_assert(std::bit_cast<std::uint32_t>(kMushroomRise) == 0x3DF5C28Fu);
 constexpr double kOrbitMinRadius = 0.01;
-constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 1.6
+constexpr float kSphereScale = 1.6f;
+static_assert(std::bit_cast<std::uint32_t>(kSphereScale) == 0x3FCCCCCDu);
 constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 
@@ -104,7 +109,7 @@ void CParticleSource::Stop() {
 // velocity.y (drift.z = max(drift.z + velocity.z, velocity.y)); dropped once below z = 0.
 int CParticleSource::UpdateFalling(Particle* p) {
     EI_NAN_AUDIT(p->pos.z);
-    if (p->pos.z < kZero) return 0;
+    if (p->pos.z < 0.0f) return 0;
     float terminal;
     std::memcpy(&terminal, &p->velocity.y, sizeof(terminal));
     p->pos.x = p->drift.x + p->pos.x;
@@ -146,7 +151,7 @@ int CParticleSource::UpdateSmoke(Particle* p) {
             p->frameTimer = frameDelay << 2;
             if ((g_random.Next() & 3) == 0) return 0;
         }
-        if (p->frame == 8) p->drift.z = static_cast<float>(p->drift.z * kHalfDouble);
+        if (p->frame == 8) p->drift.z = static_cast<float>(p->drift.z * 0.5);
     }
     // The risen z stays on the FPU stack for the second addition (both sums are the same value).
     int frame = p->frame;
@@ -180,7 +185,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->frameTimer = frameDelay;
     std::memcpy(&p->size, &size, sizeof(float));
     if (g_random.Next() % 100 + 1 <= 40) {
-        p->size = size * kHalf;
+        p->size = size * 0.5f;
         extra = static_cast<float>(size * kPointThree);
     }
     float hi = static_cast<float>(extra + spreadMax.x);
@@ -191,9 +196,9 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     std::uint32_t r = g_random.Next();
     p->velocity.z = 0.0f;
     p->velocity.y = static_cast<float>(Unsigned(r) * (hi - lo) * kRandomScale + lo);
-    p->velocity.x = ReadFloat(p->velocity.x) * kHalf;
-    p->velocity.y = ReadFloat(p->velocity.y) * kHalf;
-    p->velocity.z = ReadFloat(p->velocity.z) * kHalf;
+    p->velocity.x = ReadFloat(p->velocity.x) * 0.5f;
+    p->velocity.y = ReadFloat(p->velocity.y) * 0.5f;
+    p->velocity.z = ReadFloat(p->velocity.z) * 0.5f;
     p->pos.x = origin.x + ReadFloat(p->velocity.x);
     p->pos.y = origin.y + ReadFloat(p->velocity.y);
     float h = height;
@@ -230,7 +235,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->drift.z);
-    if (p->drift.z < kZero && size * kHalfDouble + origin.z > p->pos.z) {
+    if (p->drift.z < 0.0f && size * 0.5 + origin.z > p->pos.z) {
         float speed = std::bit_cast<float>(std::bit_cast<std::uint32_t>(p->drift.z) & 0x7FFFFFFFu);
         p->state = 1;
         p->drift.x = speed * p->drift.x;
@@ -261,8 +266,8 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
         float t = static_cast<float>(-(DotZYX(p->velocity, n) / d));
-        t = t >= kOne ? kOne : t;
-        t = t >= kZero ? t : kZero;
+        t = t >= 1.0f ? 1.0f : t;
+        t = t >= 0.0f ? t : 0.0f;
         Vector3 along;
         along.Construct(t * n.x, t * n.y, t * n.z);
         SubtractVectors(&offset, p->velocity, along);
@@ -272,7 +277,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     const Vector3& center = elements[0].pos;
     float by = static_cast<float>(origin.y + center.y);
     float bz = static_cast<float>(origin.z + center.z);
-    p->size = kOne;
+    p->size = 1.0f;
     float px = (origin.x + center.x) + offset.x;
     p->pos.y = offset.y + by;
     p->pos.z = offset.z + bz;

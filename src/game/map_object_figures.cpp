@@ -25,7 +25,6 @@ constexpr std::uint32_t kBoundsValid = 1 | 2;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the empty box
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kNearSquared = 1e9f;                 // parts farther away are skipped
-constexpr float kHalf = 0.5f;
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
@@ -99,9 +98,9 @@ void CObject3D::ComputeBounds() {
     double sumX = static_cast<double>(lowX) + highX;                  // kept on the stack
     float sumY = static_cast<float>(static_cast<double>(lowY) + highY);
     float sumZ = static_cast<float>(static_cast<double>(lowZ) + highZ);
-    float centerX = static_cast<float>(sumX * kHalf);
-    float centerY = static_cast<float>(static_cast<double>(sumY) * kHalf);
-    float centerZ = static_cast<float>(static_cast<double>(sumZ) * kHalf);
+    float centerX = static_cast<float>(sumX * 0.5f);
+    float centerY = static_cast<float>(static_cast<double>(sumY) * 0.5f);
+    float centerZ = static_cast<float>(static_cast<double>(sumZ) * 0.5f);
     float aboveX = static_cast<float>(static_cast<double>(highX) - centerX);
     float aboveY = static_cast<float>(static_cast<double>(highY) - centerY);
     float aboveZ = static_cast<float>(static_cast<double>(highZ) - centerZ);

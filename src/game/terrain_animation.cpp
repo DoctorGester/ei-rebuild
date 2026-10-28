@@ -45,7 +45,6 @@ constexpr float kMinComponent = 0.01f;
 // The world clock: whole ticks and the fraction of the current one.
 // The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
-float CellSize() { return 1.0f; }
 
 inline bool SignClear(float v) {
     std::uint32_t bits;
@@ -150,8 +149,8 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     SectorVertex* water = &records[kVertices];
     const float* phaseOffset = landscape->wavePhases.data();
     Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
-    float stepX = static_cast<float>(1.0f * direction.x);   // the vertex spacing
-    float stepY = static_cast<float>(1.0f * direction.y);
+    float stepX = static_cast<float>(direction.x);   // the vertex spacing
+    float stepY = static_cast<float>(direction.y);
     float height = landscape->waveHeight;
     float phase = landscape->wavePhase;
     float fullTurn = static_cast<float>(kPi + kPi);
@@ -235,8 +234,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunSlopeY = static_cast<float>(up / y);
     sunRunX = static_cast<float>(x / up);
     sunRunY = static_cast<float>(y / up);
-    sunStepX = x87::fistp(static_cast<float>(terrain::kSunStepScale * x / terrain::CellSize()));
-    sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y / terrain::CellSize()));
+    sunStepX = x87::fistp(static_cast<float>(terrain::kSunStepScale * x));
+    sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y));
     sun = light;
     if (lightInterval <= 0) {
         for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) (*node)->built &= ~terrain::kLit;

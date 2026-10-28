@@ -21,10 +21,11 @@ constexpr int kAttackHow = 6;
 constexpr int kAttackFlags = 0x1C;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
 constexpr std::uint32_t kChoosingFlag = 0x4000000;              // CEngineObject::flags_ while choosing
-constexpr float kReachScale = std::bit_cast<float>(0x3F8CCCCDu);    // (1.1)
-constexpr float kOne = 1.0f;
+constexpr float kReachScale = 1.1f;
+static_assert(std::bit_cast<std::uint32_t>(kReachScale) == 0x3F8CCCCDu);
 constexpr float kMovingSlack = 2.0f;
-constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
+constexpr float kStandingSlack = 1.4f;
+static_assert(std::bit_cast<std::uint32_t>(kStandingSlack) == 0x3FB33333u);
 constexpr float kNoRadius = -1.0f;
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
@@ -219,7 +220,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;
         double dy = static_cast<double>(member->localPosition_.y) - unit->localPosition_.y;
         double dz = static_cast<double>(member->localPosition_.z) - unit->localPosition_.z;
-        double limit = static_cast<double>(g_logicSettings.followMaxDist) * slack + kOne;
+        double limit = static_cast<double>(g_logicSettings.followMaxDist) * slack + 1.0f;
         EI_NAN_AUDIT(limit, dx, dy, dz);
         if (limit * limit < LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) return false;
     }

@@ -27,7 +27,7 @@
 namespace {
 
 // The bars' share of the screen height.
-float LetterboxShare() { return 0.217f; }
+constexpr float kLetterboxShare = 0.217f;
 
 constexpr float kOpaque = 255.0f;
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
@@ -77,7 +77,7 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     if (letterbox_) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
-        const int bar = static_cast<int>(static_cast<double>(height) * LetterboxShare());
+        const int bar = static_cast<int>(static_cast<double>(height) * kLetterboxShare);
         SetRenderState(renderer->device_, kZEnable, 0);
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);

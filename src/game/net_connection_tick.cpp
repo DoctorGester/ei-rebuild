@@ -31,8 +31,7 @@ std::int32_t ReliableSize(GameBuffer* b) {
     return b->PositionOf(b->high);
 }
 
-float RttKeep() { return 0.93f; }   // the share of the old average kept per sample
-float One() { return 1.0f; }
+constexpr float kRttKeep = 0.93f;   // the share of the old average kept per sample
 
 } // namespace
 
@@ -123,12 +122,12 @@ namespace net {
 
 void Connection::Delivered(SentPacket* packet) {
     double sample = Get(&clock_) - Get(&packet->time);
-    double kept = D(RttKeep()) * D(roundTrip_);
+    double kept = D(kRttKeep) * D(roundTrip_);
     roundTrip_ = static_cast<float>(kept);
-    roundTrip_ = static_cast<float>((D(One()) - D(RttKeep())) * sample + kept);
-    double keptSquare = D(RttKeep()) * D(roundTripSquare_);
+    roundTrip_ = static_cast<float>((1.0 - D(kRttKeep)) * sample + kept);
+    double keptSquare = D(kRttKeep) * D(roundTripSquare_);
     roundTripSquare_ = static_cast<float>(keptSquare);
-    roundTripSquare_ = static_cast<float>((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
+    roundTripSquare_ = static_cast<float>((1.0 - D(kRttKeep)) * sample * sample + keptSquare);
     for (SentItem& sent : packet->items) {
         SentItem* item = &sent;
         auto action = static_cast<std::int32_t>(item->action);

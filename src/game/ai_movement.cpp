@@ -21,7 +21,7 @@ constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
 
 namespace {
 
-// World coordinate to cell: (x / (cell size 1.0 * 0.5) - 0.5) rounded to float, then to the nearest integer.
+// World coordinate to cell: (x / (half a cell) - 0.5) rounded to float, then to the nearest integer.
 int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
 
 constexpr float kShapeMinHeight = 0.2f;
@@ -204,7 +204,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
     bool anyDirection = cosLimit <= -1.0f;
     bool noLineOfSight = targetHeight < -100.0f;
 
-    const double half = 1.0f * 0.5f;    // cell size * 0.5
+    const double half = 0.5;    // half a cell
     for (int y = eyeY - reach; y < eyeY + reach; ++y) {
         for (int x = eyeX - reach; x < eyeX + reach; ++x) {
             int gx = x - grid->x0;

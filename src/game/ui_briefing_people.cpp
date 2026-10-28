@@ -28,7 +28,7 @@
 
 namespace {
 
-float TurnedOver() { return 3.1415927f; }   // pi
+constexpr float kTurnedOver = 3.1415927f;   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
 // The seven speakers' places (800 x 600 layout).
@@ -150,7 +150,7 @@ void CBriefingScreen::ShowItem(std::string_view name, int index, int unused) {
     item->texture_ = texture;
     item->Place(x, y, kItemDepth);
     Quaternion turn;
-    turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, TurnedOver());
+    turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, kTurnedOver);
     item->localRotation_ = turn;
 
     shown_.push_front(BriefingShownItem{std::string(name), item, back, frame});

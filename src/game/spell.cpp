@@ -11,8 +11,6 @@ using namespace itemdb;
 
 namespace {
 constexpr int kPointLight = 0x31;
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
 constexpr float kLumaRed = 0.3f;
 constexpr float kLumaGreen = 0.6f;
 constexpr float kLumaBlue = 0.1f;
@@ -141,25 +139,25 @@ bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
 BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
     out->location = 6;
-    out->multiplier = kOne;
+    out->multiplier = 1.0f;
     out->attackRoll = kFltMaxBits;
-    out->backstabFactor = kOne;
+    out->backstabFactor = 1.0f;
     out->calledShot = 0;
 
     const CSpell* spell = Spell();
     switch (spell->prototypeId_ >> 16) {
     case 0: case 3: case 0x28:
-        out->typeWeights[3] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
     case 1: case 4: case 0x29:
-        out->typeWeights[5] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
     case 2:
-        out->typeWeights[4] = kOne; out->amount = spell->damage_; out->hitKind = 0; break;
+        out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 0; break;
     case 5: case 8:
-        out->typeWeights[4] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[4] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
     case 6: case 0x27:
-        out->typeWeights[3] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[3] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
     case 7:
-        out->typeWeights[5] = kOne; out->amount = spell->damage_; out->hitKind = 1; break;
+        out->typeWeights[5] = 1.0f; out->amount = spell->damage_; out->hitKind = 1; break;
     default:
         break;
     }
@@ -183,9 +181,9 @@ float CLight::GetIntensityAt(const Vector3* point) {
     EI_NAN_AUDIT(distanceSquared, rangeSquared_);
     if (distanceSquared < rangeSquared_) {
         return (color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed) *
-               (kOne - distanceSquared * inverseRangeSquared_);
+               (1.0f - distanceSquared * inverseRangeSquared_);
     }
-    return kZero;
+    return 0.0f;
 }
 
 char* SpellCodeByName(std::string_view name) {

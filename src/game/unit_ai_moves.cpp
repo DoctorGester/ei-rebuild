@@ -39,10 +39,9 @@ constexpr float kMaxSlope = 0.3f;
 constexpr float kAllySpace = 2.5f;                  // x the standing height
 constexpr float kRangePerDistance = 3.0f;
 constexpr float kRangeBase = 10.0f;
-constexpr float kOne = 1.0f;
-constexpr float kHalf = 0.5f;                       // half-cells to world units
 constexpr float kDetourFactor = 5000.0f;
-constexpr float kCooldownPerDistance = std::bit_cast<float>(0x3EAAAAABu);   // (1 / 3)
+constexpr float kCooldownPerDistance = 0.33333334f;   // (1 / 3)
+static_assert(std::bit_cast<std::uint32_t>(kCooldownPerDistance) == 0x3EAAAAABu);
 constexpr int kMaxCooldown = 10;
 
 constexpr int kFollowWait = 8;
@@ -52,7 +51,8 @@ constexpr int kLeaderFirstStep = 6;
 constexpr int kLeaderLastStep = 100;
 constexpr int kLeaderSide = 40;
 constexpr float kOnTheWaySq = 1.3f;
-constexpr float kSideOffset = std::bit_cast<float>(0x3FAEB851u);    // (1.365)
+constexpr float kSideOffset = 1.3649999f;    // (1.365)
+static_assert(std::bit_cast<std::uint32_t>(kSideOffset) == 0x3FAEB851u);
 constexpr float kReachedSq = 0.1f;
 constexpr float kPassRange = 10.0f;
 constexpr float kPassTime = 20.0f;
@@ -106,7 +106,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
             float sight = g_serverWorld->aiMap_.LineOfSight(&eye, &to);
             EI_NAN_AUDIT(sight);
-            if (sight == kOne) break;
+            if (sight == 1.0f) break;
         }
         AILook look{};
         look.angle = static_cast<float>(x87::fpatan(dy, dx));
@@ -164,7 +164,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
         EI_NAN_AUDIT(distance);
-        if (!found || kOne / (kOne * kHalf) * distance * kDetourFactor < static_cast<double>(local.path.smoothing)) {
+        if (!found || 2.0f * distance * kDetourFactor < static_cast<double>(local.path.smoothing)) {
             result = false;
             long cooldown = x87::RoundToInt(static_cast<float>(distance * kCooldownPerDistance));
             standCooldown = static_cast<int>(std::min<long>(cooldown, kMaxCooldown));
@@ -272,7 +272,7 @@ void AIBrain::UpdateFollow() {
     ScopedPath local;
     Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
     g_serverWorld->aiMap_.FindPath(self, &aside, &local.path, kPassRange, 0.0f);
-    double half = kOne * kHalf;
+    double half = 0.5;
     float targetY = static_cast<float>(half * local.path.targetY);
     float offY = static_cast<float>(aside.y - targetY);
     double offX = aside.x - half * local.path.targetX;
@@ -283,7 +283,7 @@ void AIBrain::UpdateFollow() {
     } else {
         double px = goal.x - passing.x;
         double py = goal.y - passing.y;
-        if (LengthSquared2DUnrounded(px, py) > kHalf) {
+        if (LengthSquared2DUnrounded(px, py) > 0.5f) {
             owner->OrderMove(&passing, 0, 0, kPassTime);
             followTimer = kFollowPause;
         }

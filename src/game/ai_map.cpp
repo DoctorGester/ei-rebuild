@@ -9,14 +9,14 @@
 #include <cstring>
 
 int WorldToCell(float world) {
-    float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;
+    float cell = 2.0f * world - 0.5f;
     return x87::fistp(cell);
 }
 
 namespace {
 constexpr float kSizeClassHeights[8] = /*0079169C*/ {0.4f, 0.4f, 0.4f, 0.4f, 0.4f, 0.7f, 0.7f, 1.5f};
 
-float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f * 0.5f); }
+float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * 0.5f; }
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
 
@@ -247,18 +247,18 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
 float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     float dx = to->x - from->x, dy = to->y - from->y;
     float dz = to->z - from->z;
-    float length = static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) / (1.0f * 0.5f));   // half-cells
+    float length = static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) / 0.5f);   // half-cells
     EI_NAN_AUDIT(length);
     if (length == 0.0f) return 1.0f;
     float inverse = 1.0f / length;
     int steps = x87::fistp(length);
 
     // 16.16 fixed point position and step, in half-cells (x, y) and AI height units (z).
-    int x = x87::fistp(from->x * 65536.0f / (1.0f * 0.5f));
-    int y = x87::fistp(from->y * 65536.0f / (1.0f * 0.5f));
+    int x = x87::fistp(from->x * 65536.0f / 0.5f);
+    int y = x87::fistp(from->y * 65536.0f / 0.5f);
     int z = x87::fistp(from->z * heightScale) << 16;
-    int stepX = x87::fistp(dx * inverse * 65536.0f / (1.0f * 0.5f));
-    int stepY = x87::fistp(dy * inverse * 65536.0f / (1.0f * 0.5f));
+    int stepX = x87::fistp(dx * inverse * 65536.0f / 0.5f);
+    int stepY = x87::fistp(dy * inverse * 65536.0f / 0.5f);
     int toZ = x87::fistp(to->z * heightScale);
     int stepZ = x87::fistp(static_cast<float>(static_cast<double>((toZ - (z >> 16)) << 16) * inverse));
 

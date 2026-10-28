@@ -94,17 +94,17 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     double axis = LengthSquaredUnrounded<Sum3::XYZ, double>(ry, rz, rw);
     double angle;
     EI_NAN_AUDIT(axis);
-    if (axis <= worlddata::AxisEpsilon()) {
-        angle = worlddata::Zero();
+    if (axis <= worlddata::kAxisEpsilon) {
+        angle = 0.0f;
     } else {
         float axisStored = static_cast<float>(axis);
         angle = libcrt::CiAcos(rx);
         angle = angle + angle;
-        double sign = worlddata::One() / std::sqrt(axisStored) * rw;
+        double sign = 1.0f / std::sqrt(axisStored) * rw;
         EI_NAN_AUDIT(sign);
-        if (sign < worlddata::Zero()) angle = -angle;
+        if (sign < 0.0f) angle = -angle;
     }
-    angle = angle + worlddata::LineAngleOffset();
+    angle = angle + worlddata::kLineAngleOffset;
 
     Spec& spec = *message;
     float zStep = 0.0f;
@@ -115,12 +115,12 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     float step = static_cast<float>(index);
     double dy = sine * step;
     float dx = static_cast<float>(step * static_cast<double>(cosine));
-    float dz = static_cast<float>(static_cast<double>(zStep) * worlddata::LineSpacing());
-    dy = dy * worlddata::LineSpacing();
+    float dz = static_cast<float>(static_cast<double>(zStep) * worlddata::kLineSpacing);
+    dy = dy * worlddata::kLineSpacing;
     float& x = spec.position.x;
     float& y = spec.position.y;
     float& z = spec.position.z;
-    x = static_cast<float>(static_cast<double>(dx) * worlddata::LineSpacing() + x);
+    x = static_cast<float>(static_cast<double>(dx) * worlddata::kLineSpacing + x);
     y = static_cast<float>(y + dy);
     z = static_cast<float>(static_cast<double>(z) + dz);
 }
@@ -164,11 +164,11 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
     bool atStart = false;
     if (text::CompareIgnoringCase(mapName_.c_str(), worlddata::StartZoneText(), 5) == 0) {
         double dz = position->z;
-        double dy = static_cast<double>(position->y) - worlddata::HeroStartY();
-        double dx = static_cast<double>(position->x) - worlddata::HeroStartX();
+        double dy = static_cast<double>(position->y) - worlddata::kHeroStartY;
+        double dx = static_cast<double>(position->x) - worlddata::kHeroStartX;
         double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
         EI_NAN_AUDIT(distance);
-        atStart = distance < worlddata::HeroStartRadius2();
+        atStart = distance < worlddata::kHeroStartRadius2;
     }
     script = worlddata::ScriptBeginText();
 
@@ -368,7 +368,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         float level;
         std::memcpy(&level, &bits, 4);
         EI_NAN_AUDIT(level);
-        if (level < worlddata::CampfireHeight()) {
+        if (level < worlddata::kCampfireHeight) {
             Vector3 at;
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
@@ -388,7 +388,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
         const float colour[4] = {std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey), std::bit_cast<float>(kGrey),
                                  std::bit_cast<float>(kOne)};
-        float radius = flame->volume * worlddata::TorchLightScale();
+        float radius = flame->volume * worlddata::kTorchLightScale;
         torch->SetFlameSlot(&flame->offset.x, radius, colour);
         torch->SetNameSlot(flame->sound.c_str());
         place(object);

@@ -29,16 +29,11 @@ namespace {
 constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
 // The constants of this code (all floats in .rdata).
-double One() { return 1.0; }          // 1: vertex spacing
-double SectorCells() { return 32.0; }
-double Half() { return 0.5; }
-double MinusHalf() { return (-0.5); }
-double OffsetScale() { return 0.007936508394777775; }  // 1/126: vertex displacement per unit
-double HeightUnit() { return 0.000015259254723787308; }   // 1/65534 (37800100)
-double NormalScale() { return 0.0010000000474974513; }  // 0.001
-double NormalBias() { return 1000.0; }
-double VOne() { return 1.0; }         // 1: v = 1 - v
-double Zero() { return 0.0; }
+constexpr double kSectorCells = 32.0;
+constexpr double kOffsetScale = 0.007936508394777775;  // 1/126: vertex displacement per unit
+constexpr double kHeightUnit = 0.000015259254723787308;   // 1/65534 (37800100)
+constexpr double kNormalScale = 0.0010000000474974513;  // 0.001
+constexpr double kNormalBias = 1000.0;
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
@@ -105,9 +100,9 @@ const std::uint8_t* BuildRecords(SectorData& s) {
             }
             std::uint32_t n;
             std::memcpy(&n, src + 4, 4);
-            rec->normal.z = static_cast<float>(x87::FromUnsigned(n >> 22) * NormalScale());
-            rec->normal.x = static_cast<float>((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - NormalBias()) * NormalScale());
-            rec->normal.y = static_cast<float>((static_cast<double>(static_cast<int>(n & 0x7FF)) - NormalBias()) * NormalScale());
+            rec->normal.z = static_cast<float>(x87::FromUnsigned(n >> 22) * kNormalScale);
+            rec->normal.x = static_cast<float>((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - kNormalBias) * kNormalScale);
+            rec->normal.y = static_cast<float>((static_cast<double>(static_cast<int>(n & 0x7FF)) - kNormalBias) * kNormalScale);
         }
     }
     return tiles + 0x2208;
@@ -218,7 +213,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                     for (int c3 = 0; c3 < 3; ++c3, ++entry) {
                         std::memcpy(&entry->u, &uv[r3 * 3 + c3], 4);
                         entry->vertex = rec + c3;
-                        entry->v = static_cast<float>(VOne() - uv[r3 * 3 + c3 + 9]);
+                        entry->v = static_cast<float>(1.0 - uv[r3 * 3 + c3 + 9]);
                     }
                 }
                 std::uint8_t& flags = s.tileFlags[quarter][page][count];
@@ -233,14 +228,14 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
 
 // Bounding boxes of the sector and of its four quarters.
 void ComputeBounds(SectorData& s) {
-    double size = One() * SectorCells();
+    double size = kSectorCells;
     float x0 = static_cast<float>(s.sx * size);
     float y0 = static_cast<float>(s.sy * size);
-    double half = size * Half();
-    s.maxZ = static_cast<float>(One() + s.maxZ);
-    double low = static_cast<double>(s.minZ) - One();
+    double half = size * 0.5;
+    s.maxZ = static_cast<float>(1.0 + s.maxZ);
+    double low = static_cast<double>(s.minZ) - 1.0;
     s.minZ = static_cast<float>(low);
-    double cz = (static_cast<double>(s.maxZ) - low) * Half() + low;
+    double cz = (static_cast<double>(s.maxZ) - low) * 0.5 + low;
     float centreZ = static_cast<float>(cz);
     s.box.center.x = static_cast<float>(half + x0);
     s.box.center.y = static_cast<float>(half + y0);
@@ -252,13 +247,13 @@ void ComputeBounds(SectorData& s) {
     s.box.boxMax.y = static_cast<float>(half);
     s.box.boxMax.z = static_cast<float>(s.maxZ - cz);
     s.box.flags |= 2;
-    double q = half * Half();
-    double r = half * MinusHalf();
+    double q = half * 0.5;
+    double r = half * (-0.5);
     SectorBox* box = s.quarters;
     for (int i = 0; i < 2; ++i) {
-        float by = static_cast<float>((i + Half()) * half + y0);
+        float by = static_cast<float>((i + 0.5) * half + y0);
         for (int j = 0; j < 2; ++j, ++box) {
-            box->center.x = static_cast<float>((j + Half()) * half + x0);
+            box->center.x = static_cast<float>((j + 0.5) * half + x0);
             box->center.y = by;
             box->center.z = centreZ;
             box->boxMin.x = static_cast<float>(r);
@@ -359,18 +354,18 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
     const std::uint8_t* src = data;
     SectorPosition* out = vertices.data();
     for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
-        double x0 = static_cast<double>(sx) * One() * SectorCells();
-        double y = static_cast<double>(sy) * One() * SectorCells();
+        double x0 = static_cast<double>(sx) * kSectorCells;
+        double y = static_cast<double>(sy) * kSectorCells;
         int vi = 0;
         for (int row = 0; row < 33; ++row) {
             double x = x0;
             for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
                 std::uint16_t h;
                 std::memcpy(&h, src + 2, 2);
-                out->z = static_cast<float>(static_cast<double>(h) * owner->heightRange * HeightUnit());
+                out->z = static_cast<float>(static_cast<double>(h) * owner->heightRange * kHeightUnit);
                 if (layer == 0) {
-                    out->x = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
-                    out->y = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
+                    out->x = static_cast<float>(0.5 * static_cast<std::int8_t>(src[0]) * kOffsetScale + x);
+                    out->y = static_cast<float>(0.5 * static_cast<std::int8_t>(src[1]) * kOffsetScale + y);
                 } else {
                     // The water material of the vertex: the lowest priority among its tiles'.
                     const VertexTiles& around = owner->vertexTiles[vi];
@@ -392,9 +387,9 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
                         std::memcpy(out, &vertices[vi].x, 8);
                     }
                 }
-                x += One();
+                x += 1.0;
             }
-            y += One();
+            y += 1.0;
         }
     }
     built |= 1;
@@ -458,7 +453,7 @@ void SectorData::ApplyWaterLevels() {
         for (; k < std::ssize(waterMaterials); ++k) {
             float v = levels[waterMaterials[k]];
             EI_NAN_AUDIT(v);
-            if (v != Zero()) break;
+            if (v != 0.0) break;
         }
         if (k == std::ssize(waterMaterials)) return;
         unsigned id = waterMaterials[k];

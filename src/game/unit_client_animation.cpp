@@ -32,7 +32,6 @@ constexpr double kPulsePeriod = 30.0;
 constexpr float kPulseFold = 15.0f;
 constexpr float kPulseFull = 30.0f;
 constexpr float kPulseScale = 0.06666667f;            // 1/15
-constexpr float kHalf = 0.5f;
 constexpr float kPulseBase = 0.2f;
 constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
@@ -42,7 +41,7 @@ float Pulse(float& clock, float frames) {
     clock = now;
     double phase = std::fmod(static_cast<double>(now), kPulsePeriod);
     if (phase > kPulseFold) phase = kPulseFull - phase;
-    float value = static_cast<float>(phase * kPulseScale * kHalf + kPulseBase);
+    float value = static_cast<float>(phase * kPulseScale * 0.5f + kPulseBase);
     return value;
 }
 } // namespace

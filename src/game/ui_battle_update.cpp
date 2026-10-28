@@ -428,7 +428,7 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
             double current = LocalPlayerVariable(variable);
             // The unrounded result compared with 0.
             EI_NAN_AUDIT(current);
-            if (current == static_cast<double>(0.0f)) return;
+            if (current == 0.0) return;
         }
         const char* key;
         if (Equal(value, complete)) {

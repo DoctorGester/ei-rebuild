@@ -30,11 +30,9 @@ namespace {
 constexpr int kTextureKind = 6;                  // the texture manager's kind of the prints' textures
 constexpr int kMaxSpreadTicks = 0x2D;
 constexpr int kNameCapacity = 0x100;             // Load's name buffer
-constexpr float kHalf = 0.5f;
 constexpr float kQuarter = 0.25f;
 constexpr float kEighth = 0.125f;
 constexpr float kSixteenth = 0.0625f;
-constexpr float kOne = 1.0f;
 constexpr float kAlphaRange = 255.0f;
 constexpr float kLift = 0.01f;                   // the drawn quad above the ground
 constexpr float kMilli = 0.001f;
@@ -44,8 +42,8 @@ constexpr float kSpinDegrees = 30.0f;
 constexpr float kHalfPi = /*007C899C*/ 1.5707964f;
 constexpr float kTwoPi = /*007C8998*/ 6.2831855f;
 // pi and 1 / 180 (doubles; their product is rounded at the FPU's precision, as in the game).
-double Pi() { return 3.141592653589793; }
-double PerDegree() { return 0.005555555555555556; }
+constexpr double kPi = 3.141592653589793;
+constexpr double kPerDegree = 0.005555555555555556;
 bool BloodPrintsOn() { return options::g_options->enableBloodprints_ != 0; }
 bool FootprintsOn() { return options::g_options->enableFootprints_ != 0; }
 bool ScorchMarksOn() { return options::g_options->enableFireprints_ != 0; }
@@ -114,9 +112,9 @@ GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, fl
     Vector3 point{x, y, 0.0f};
     lit_ = g_clientWorld->terrain_->EdgeFade(&point);
     int quarter = RandomQuarter();
-    uvScale_ = {kHalf, kHalf};
-    uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
-    uvOffset_.y = static_cast<float>(quarter >> 1) * kHalf;
+    uvScale_ = {0.5f, 0.5f};
+    uvOffset_.x = static_cast<float>(quarter & 1) * 0.5f;
+    uvOffset_.y = static_cast<float>(quarter >> 1) * 0.5f;
     angle_ = angle;
     uvAngle_ = static_cast<float>(quarter) * kHalfPi;
     SetTexture("fireprints");
@@ -130,7 +128,7 @@ int GroundPrint::Tick() {
     float t = static_cast<float>(static_cast<double>(lifetime_ - life_) / lifetime_);
     EI_NAN_AUDIT(t);
     float spent = t > 0.0f ? t : 0.0f;
-    alpha_ = (kOne - spent) * alphaScale_;
+    alpha_ = (1.0f - spent) * alphaScale_;
     return life_;
 }
 
@@ -199,7 +197,7 @@ int GroundPrint::Draw() {
             corners.block[3][i] = 1.0f;
         }
         Vector3 down{0.0f, 0.0f, -1.0f};
-        Vector3 above{position_.x, position_.y, z + kOne};
+        Vector3 above{position_.x, position_.y, z + 1.0f};
         VertexPacket* quadCorners = quad.data();
         world->ProjectDecal(&down, &above, 0.0f, &quadCorners, &positions_, &texCoords_, &indices_, static_cast<unsigned char>(1), static_cast<unsigned char>(1));
 
@@ -211,10 +209,10 @@ int GroundPrint::Draw() {
         int vertices = std::ssize(positions_) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords_[i];
-            double du = uv.u - kHalf;
-            double dv = uv.v - kHalf;
-            double u = (du * uc - dv * us) + kHalf;
-            double v = (dv * uc + du * us) + kHalf;
+            double du = uv.u - 0.5f;
+            double dv = uv.v - 0.5f;
+            double u = (du * uc - dv * us) + 0.5f;
+            double v = (dv * uc + du * us) + 0.5f;
             if ((i & 3) == 3) u = static_cast<float>(u);
             else v = static_cast<float>(v);
             uv.u = static_cast<float>(u * uvScale_.x + uvOffset_.x);
@@ -289,9 +287,9 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     lit_ = g_clientWorld->terrain_->EdgeFade(&point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
-    uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;
+    uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * 0.5f;
     uvScale_ = {kQuarter, kQuarter};
-    uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * kHalf;
+    uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * 0.5f;
     uvAngle_ = static_cast<float>(RandomQuarter()) * kHalfPi;
     int steps = x87::fistp(static_cast<float>(kTwoPi * kAngleMilli));
     angle_ = static_cast<float>(libcrt::Rand() * steps / 0x7FFF % steps) * kMilli;
@@ -302,7 +300,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     kind_ = high;
     fresh_ = fresh;
     float degrees = static_cast<float>(kSpinDegrees / static_cast<double>(life));
-    float radiansPerDegree = static_cast<float>(Pi() * PerDegree());
+    float radiansPerDegree = static_cast<float>(kPi * kPerDegree);
     spin_ = degrees * radiansPerDegree;
     growth_ = static_cast<float>((fullSize - halfWidth_) / static_cast<double>(spreadTicks_));
 }
@@ -349,7 +347,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
     if (!FootprintsOn()) return -1;
     // Stepping into a blood print (not a fresh hit's) makes bloody footprints of its kind.
     bool inBlood = false;
-    float reach = (halfWidth + halfLength) * kHalf;
+    float reach = (halfWidth + halfLength) * 0.5f;
     for (const BloodPrint& blood : bloodPrints_) {
         float d2 = DistanceSquared2D(blood.position_, Vector2{x, y});
         float limit = (blood.halfWidth_ + reach) * (blood.halfWidth_ + reach);

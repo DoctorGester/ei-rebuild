@@ -28,13 +28,14 @@
 #include <list>
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
-constexpr float kHalf = 0.5f;
-constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
-constexpr float kNearPoint = std::bit_cast<float>(0x3DB851ECu);     // 0.09
-constexpr float kShort = std::bit_cast<float>(0x3F7FBE77u);         // 0.999
-constexpr float kLong = std::bit_cast<float>(0x3A83126Fu);          // 0.001
+constexpr float kPointOne = 0.1f;
+static_assert(std::bit_cast<std::uint32_t>(kPointOne) == 0x3DCCCCCDu);
+constexpr float kNearPoint = 0.09f;
+static_assert(std::bit_cast<std::uint32_t>(kNearPoint) == 0x3DB851ECu);
+constexpr float kShort = 0.999f;
+static_assert(std::bit_cast<std::uint32_t>(kShort) == 0x3F7FBE77u);
+constexpr float kLong = 0.001f;
+static_assert(std::bit_cast<std::uint32_t>(kLong) == 0x3A83126Fu);
 constexpr float kFive = 5.0f;
 constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
@@ -189,8 +190,8 @@ bool OutOfReachUp(CUnitServer* self, const AIOrder* order) {
     return height >= kHeightLimit;
 }
 
-// Where the motion is heading: half its two members (as 1.0 * 0.5, the original's constant product).
-double HalfScale() { return static_cast<double>(kOne) * kHalf; }
+// Where the motion is heading: half its two members (as 0.5, the original's constant product).
+constexpr double kHalfScale = 0.5;
 
 } // namespace
 
@@ -632,7 +633,7 @@ void CUnitServer::ApproachTarget() {
             if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
         if (PathTo(&goal, std::bit_cast<float>(kFarBits))) {
-            double h = HalfScale();
+            double h = kHalfScale;
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);
             heading.y = static_cast<float>(h * motion.targetY);
@@ -678,8 +679,8 @@ void CUnitServer::ApproachTarget() {
             offset.x = p[0] - unit->localPosition_.x;
             offset.y = p[1] - unit->localPosition_.y;
             offset.z = p[2] - unit->localPosition_.z;
-            double closing = unit->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
-            if (closing > kZero) {
+            double closing = unit->MoveSpeed() * 0.5f;
+            if (closing > 0.0f) {
                 double distance = LengthXYZ(offset);
                 double ticks = (distance - reach) / closing;
                 if (static_cast<double>(lead) > ticks) {
@@ -727,7 +728,7 @@ void CUnitServer::ApproachTarget() {
         length = length + static_cast<double>(vy) * vy;
         length = length + static_cast<double>(vx) * vx;
         length = std::sqrt(length);
-        if (length > kZero) {
+        if (length > 0.0f) {
             vx = static_cast<float>(vx / length);
             vy = static_cast<float>(vy / length);
             vz = static_cast<float>(vz / length);
@@ -752,7 +753,7 @@ void CUnitServer::ApproachTarget() {
     std::memcpy(&goal, future, sizeof(goal));
 
     if (state == kStateIdle) {
-        double close = (static_cast<double>(distance) + kOne) * kPointOne;
+        double close = (static_cast<double>(distance) + 1.0f) * kPointOne;
         if (close * close > DistanceSquaredXYUnrounded<double>(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
             motion.goal.z = static_cast<float>(unit->ScaledValue(distance) + kFive);
@@ -778,7 +779,7 @@ void CUnitServer::ApproachTarget() {
         stoodBlocked = 1;
     g_serverWorld->aiMap_.sectorMap.Add(chased);
 
-    double h = HalfScale();
+    double h = kHalfScale;
     float headX = static_cast<float>(h * motion.targetX);
     double fy = static_cast<double>(goal.y) - h * motion.targetY;
     double fx = static_cast<double>(goal.x) - headX;

@@ -14,7 +14,6 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
 constexpr float kStatBase = 25.0f;
 
 constexpr int kNoSlot = 7;              // an entry of the coverage table that covers nothing
@@ -70,7 +69,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, Damage
 
 double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     if (!(IsTextKey(unit->id_) & 0xFF)) return attributes[index];   // any index
-    float best = kZero;
+    float best = 0.0f;
     for (std::uint32_t i = 0; i < kQuickItems; ++i) {
         CItem* item = unit->GetQuickItem(i);
         if (!item) continue;
@@ -82,14 +81,14 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
     case 0: return (dexterity - kStatBase) + static_cast<double>(attributes[0]) + best;
     case 1: return (dexterity - kStatBase) + static_cast<double>(attributes[1]) + best;
     case 2: return (intelligence - kStatBase) + static_cast<double>(attributes[2]) + best;
-    default: return kZero + static_cast<double>(best);
+    default: return 0.0f + static_cast<double>(best);
     }
 }
 
 double UnitStats::SpellSchoolSkill(int school) {
     if (school == 4) school = 3;
     else if (school == 6 || school == 7) school = 5;
-    double base = kZero;
+    double base = 0.0;
     if (school >= 0 && school <= 2) base = skills[3];
     else if (school >= 3 && school <= 4) base = skills[4];
     else if (school >= 5 && school <= 7) base = skills[5];

@@ -107,7 +107,8 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     std::memcpy(&zFar, &cam->farDistance_, 4);
     std::memcpy(&fov, &cam->fieldOfView_, 4);
     Matrix4 m;
-    ProjectionMatrix(&m, fov, std::bit_cast<float>(0x3FAAAAABu), zNear, zFar);   // aspect 4/3
+    static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
+    ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
     StackPush(stacks[kProjection], &m);
     ViewportMatrix(&m, &renderer->device_->screen_);
     StackPush(stacks[kViewport], &m);

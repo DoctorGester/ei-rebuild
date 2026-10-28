@@ -304,7 +304,7 @@ void SkipRecords34(char** cursor) {
 }
 
 // The limit on the squared distance of the position from the origin (the float 1e8).
-inline float FarLimit() { return 100000000.0f; }
+inline constexpr float kFarLimit = 100000000.0f;
 
 // Grows [min, max] by one transformed point. The original selects with the comparison's below-or-unordered bit
 // as a mask on the float bits, so a NaN on either side takes the point.
@@ -560,7 +560,7 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
     double distance = LengthSquaredXYZ(localPosition_);
-    if (distance > FarLimit()) return;
+    if (distance > kFarLimit) return;
 
     Matrix4 m = {};
     WorldMatrix(m.m);

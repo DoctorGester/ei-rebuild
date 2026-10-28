@@ -19,17 +19,22 @@
 #include <cstring>
 
 namespace {
-constexpr float kZero = 0.0f;
-constexpr float kOne = 1.0f;
-constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
+constexpr float kPercent = 0.01f;
+static_assert(std::bit_cast<std::uint32_t>(kPercent) == 0x3C23D70Au);
 constexpr float kHundred = 100.0f;
-constexpr float kLowerPart = std::bit_cast<float>(0x3ECCCCCDu);     // 0.4
-constexpr float kUpperPart = std::bit_cast<float>(0x3F4CCCCDu);     // 0.8
-constexpr float kEyeLevel = std::bit_cast<float>(0x3F333333u);      // 0.7
+constexpr float kLowerPart = 0.4f;
+static_assert(std::bit_cast<std::uint32_t>(kLowerPart) == 0x3ECCCCCDu);
+constexpr float kUpperPart = 0.8f;
+static_assert(std::bit_cast<std::uint32_t>(kUpperPart) == 0x3F4CCCCDu);
+constexpr float kEyeLevel = 0.7f;
+static_assert(std::bit_cast<std::uint32_t>(kEyeLevel) == 0x3F333333u);
 constexpr float kNearReach = 5.0f;
-constexpr float kSteepUp = std::bit_cast<float>(0x3FDDB3D0u);       // 1.73205
-constexpr float kSteepDown = std::bit_cast<float>(0xBFDDB3D0u);     // -1.73205
-constexpr float kReachSlack = std::bit_cast<float>(0x3E19999Au);    // 0.15
+constexpr float kSteepUp = 1.73205f;
+static_assert(std::bit_cast<std::uint32_t>(kSteepUp) == 0x3FDDB3D0u);
+constexpr float kSteepDown = -1.73205f;
+static_assert(std::bit_cast<std::uint32_t>(kSteepDown) == 0xBFDDB3D0u);
+constexpr float kReachSlack = 0.15f;
+static_assert(std::bit_cast<std::uint32_t>(kReachSlack) == 0x3E19999Au);
 
 constexpr int kUnitTypeHeroes = 0x32;     // CEngineObject::type_ of the player's own units
 constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
@@ -475,7 +480,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         CMapObject* other = order.target;
         float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + kOne) * myRadius;
+            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + 1.0f) * myRadius;
             span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
