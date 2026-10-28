@@ -12,24 +12,13 @@
 #include "world.h"
 
 #include <cstdint>
-#include "lib/crt_iostream.h"
 #include "game_data.h"
 
 namespace {
 
-// The game's ostream (MSVC 6 iostream).
-struct AiLogStream : libcrt::Ostream {
-    AiLogStream* Write(const char* text) { PutText(text); return this; }
-    AiLogStream* Write(long value) { PutInt(value); return this; }
-    AiLogStream* Put(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
-    AiLogStream* Apply(libcrt::Manipulator manipulator) {
-        libcrt::Ostream::Apply(manipulator);
-        return this;
-    }
-};
 // The alarm's log: the unitacks stream.
-constexpr libcrt::Ostream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut};
-AiLogStream* AlarmLog() { return console::StreamAs<AiLogStream>(*kAlarmLog); }
+constexpr console::Stream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut};
+console::Stream& AlarmLog() { return *kAlarmLog; }
 
 } // namespace
 
@@ -41,7 +30,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            AlarmLog()->Write("Unit ")->Write(static_cast<long>(unit->id_))->Write(" acknowledges with ");
+            AlarmLog() << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
             case 1: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
@@ -55,7 +44,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
-            AlarmLog()->Write(what)->Put(10)->Apply(libcrt::FlushManipulator);
+            console::EndLine(AlarmLog() << what);
         }
         state->pending = 0;
     }

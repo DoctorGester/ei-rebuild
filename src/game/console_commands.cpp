@@ -135,7 +135,7 @@ void History(Arguments* args) {
 void Filter(Arguments* args) {
     if (args->empty()) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
-        GameOStream& os = Out();
+        Stream& os = Out();
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
             os << kLabels[i] << (g_filterMask & (1u << i) ? "on" : "off");
         return EndLine(os);
@@ -207,7 +207,7 @@ void ListVar(Arguments* args) {
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         const char* name = node->first.c_str();
-        EndLine((Out() << name << " = ").PutFloat(node->second));
+        EndLine(Out() << name << " = " << node->second);
         if (writing) {
             line = str::Format("%s %g\n", name, static_cast<double>(node->second));
             file.WriteString(line.c_str());
@@ -245,10 +245,10 @@ void LoadVar(Arguments* args) {
 // "Current FPS: " 1000 / last frame time (printed as float).
 void LastFps(Arguments*) {
     auto* timer = SceneRenderer();
-    GameOStream& os = Out() << "Current FPS: ";
+    Stream& os = Out() << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
-    EndLine(os.PutFloat(fps));
+    EndLine(os << fps);
 }
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name

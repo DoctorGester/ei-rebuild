@@ -18,7 +18,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -33,10 +32,10 @@
 // locals.
 
 namespace {
-constexpr libcrt::Ostream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
+constexpr console::Stream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
 } // namespace
 
-GameOstream* GameLog() { return console::StreamAs<GameOstream>(*kCombatLog); }
+console::Stream& GameLog() { return *kCombatLog; }
 
 namespace {
 constexpr float kZero = 0.0f;
@@ -117,11 +116,6 @@ float SpellCost(const CSpell* spell) { return spell->manaCost_; }
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
-GameOstream* GameOstream::Put(const char* text) { PutText(text); return this; }
-GameOstream* GameOstream::Put(long v) { PutInt(v); return this; }
-GameOstream* GameOstream::Put(double v) { PutDouble(v); return this; }
-GameOstream* GameOstream::PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
-GameOstream* GameOstream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return this; }
 
 namespace {
 
@@ -523,28 +517,19 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!dead) {
         world->AddToUpdateMap(unit);
         if (attacker) {
-            GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was attacked by ")->Put(
-                static_cast<long>(attacker->id_));
+            GameLog() << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
         } else {
-            GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was attacked by xz");
+            GameLog() << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
         }
-        GameOstream* log = GameLog()->Put(" skill=");
-        log->SetField4();
-        log = log->Put(static_cast<double>(std::bit_cast<float>(hit->attackRoll)));
+        GameLog() << " skill=" << std::bit_cast<float>(hit->attackRoll);
         float amount = hit->amount;
-        log = log->Put(" damage=");
-        log->SetField4();
-        log->Put(static_cast<double>(amount));
+        GameLog() << " damage=" << amount;
         if (hit->backstabFactor > kOne) {
             float power = hit->backstabFactor;
-            log = GameLog()->Put(" backstab with power=");
-            log->SetField4();
-            log->Put(static_cast<double>(power));
+            GameLog() << " backstab with power=" << power;
         }
-        if (hit->calledShot) GameLog()->Put(" called shot");
-        GameLog()->Put(" destHL=");
-        GameLog()->Put(HitLocationName(hit->location));
-        GameLog()->PutChar(10)->Apply(kLogEndLine);
+        if (hit->calledShot) GameLog() << " called shot";
+        console::EndLine(GameLog() << " destHL=" << HitLocationName(hit->location));
     }
 
     CPlayer* player = unit->player;

@@ -1,5 +1,6 @@
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
+#include "console.h"
 #include "library_net_lists.h"
 #include "net_classes.h"
 #include "game_strings.h"
@@ -9,7 +10,6 @@
 #include "core_streams.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 
@@ -17,17 +17,11 @@
 
 namespace net {
 
-// The network log's inserters (library), declared in net_classes.h.
-LogStream* LogStream::Put(const char* text) { PutText(text); return this; }
-LogStream* LogStream::PutChar(char c) { libcrt::Ostream::PutChar(c); return this; }
-LogStream* LogStream::PutInt(int a0) { PutUnsigned(static_cast<unsigned>(a0)); return this; }
-LogStream* LogStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return this; }
-
 namespace {
 
 
 // "<text><address>\n" and a flush to the network log.
-void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Put(address)->PutChar('\n')->Flush(); }
+void LogAddress(const char* text, const char* address) { console::EndLine(*g_netLog << text << address); }
 
 } // namespace
 
@@ -104,16 +98,16 @@ namespace {
 
 // "<text>\n" and a flush, when there is a network log.
 void LogText(const char* text) {
-    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
+    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(const char* before, Connection* connection, const char* after) {
     std::string peer = connection->address_.ToString();
     const char* text = peer.data();
-    LogStream* log = g_netLog->Put(before)->Put(text);
-    if (after) log = log->Put(after);
-    log->PutChar('\n')->Flush();
+    console::Stream& log = *g_netLog << before << text;
+    if (after) log << after;
+    console::EndLine(log);
 }
 
 } // namespace

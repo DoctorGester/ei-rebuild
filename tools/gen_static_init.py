@@ -1063,6 +1063,13 @@ def match_exit(img, address, md):
     return None
 
 
+# The exit functions of initialisers ported by hand whose port registers nothing in their place: the object of ours
+# has no destructor to run. exit function -> why.
+UNREGISTERED_EXITS = {
+    **{fn: "a console stream's (ostream's and ios's destructors): console::Stream only names its streambuf "
+           "(console_streams.cpp)" for fn in range(0x005DC440, 0x005DC601, 0x40)},
+}
+
 # The call sites of runtime_atexits' registrations (render_exits says "atexit at" for them).
 RUNTIME_SITES = set()
 
@@ -1108,7 +1115,9 @@ def decode_exits(img, decoded):
     by = collections.OrderedDict()
     for a, _, _, targets, _, _ in decoded:
         for kind, fn in targets:
-            if kind == 'exit' and fn not in registered and a not in by.setdefault(fn, []):
+            if kind != 'exit' or fn in registered or fn in UNREGISTERED_EXITS:
+                continue
+            if a not in by.setdefault(fn, []):
                 by[fn].append(a)
     RUNTIME_SITES.clear()
     dead_ranges = dead_code()
@@ -1120,7 +1129,7 @@ def decode_exits(img, decoded):
 
     for fn, sites in runtime_atexits(img, md).items():
         sites = [s for s in sites if not dead(s)]
-        if sites and fn not in registered and fn not in by:
+        if sites and fn not in registered and fn not in UNREGISTERED_EXITS and fn not in by:
             by[fn] = sites
             RUNTIME_SITES.update(sites)
     out, bad = [], []

@@ -60,9 +60,3 @@ void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit
     Sectors(this)->FindUnitsInRadius(position, result, radius);
 }
 
-// ---- Console output -------------------------------------------------------------------------------
-
-console::GameOStream& console::GameOStream::PutFloatArgument(float f) {
-    floatUsed = 1;
-    return *this << static_cast<double>(f);
-}

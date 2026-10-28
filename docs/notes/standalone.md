@@ -332,7 +332,7 @@ What C25a named or dropped of its list, still the code's form:
 - **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
   mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
   function_sizes.inc); static_init.cpp calls it.
-- **Named**: ostream's virtual base table `kOstreamVirtualBases` {0, 8} (crt_iostream.cpp), OnNewParty's next record id
+- **Named**: OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
 - **MFC's empty string**: no CString of ours is left (C14i: src/lib's MFC is on std::string). game.exe's cells
@@ -575,7 +575,8 @@ kinds given.
     a global**: it is the server world's `sessionKind_` (007AFF60 + 0x12D64), which StartZone writes; naming it apart
     left UpdateWeather and the rest reading the world's own copy (the main menu never came up in the image), so its
     readers take `TheServerWorld()->sessionKind_`, and 007C2CC4 stays with the world. The CRT's locale and multibyte state is the host
-    CRT's since C26 (lib/crt_locale_data.cpp reads it), crt_iostream's shared lock and ios count (crt_file's zero mode constants went with it, C35a). **Left**: 00783E34 / 00783E38
+    CRT's since C26 (lib/crt_locale_data.cpp reads it), the old iostream's shared lock and ios count and ostream's virtual base table (C35d: console::Stream has none;
+    crt_file's zero mode constants went with C35a). **Left**: 00783E34 / 00783E38
     (the send rates: 00783E34 is an addon.dll site, Rebirth's SetDefaultRate, which the image does not reproduce
     yet), the growing buffers 0079B8E0 / 0079B900 (game.exe's vtable: C19), 007B00BC (inside the server world
     007AFF60). The CRT's allocator state is named since C18r (below).
@@ -747,15 +748,13 @@ kinds given.
       here (SetDefaultRate's 00783E34: net::g_remoteRate, a plain int a flag can write); addon_sites.inc still names
       it for the harness in game.exe.
     - **The console's streams and command maps (C18s, 121 -> 90)**: console_streams.cpp names the eight streambufs
-      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::OStreamObject`:
-      the ostream and its ios, the virtual base, 0x58 bytes; trivial, so a plain `constinit` aggregate, TYPES
-      'OStreamObject') and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
+      (`lib::StaticObject<ConsoleStreambuf>`, 0x454 bytes, 0x458 apart), the eight ostreams (`console::Stream` since C35d,
+      a plain `constinit` object naming its streambuf; TYPES 'Stream' keeps the original's 0x58 bytes) and the two command maps (`lib::StaticObject<CommandMap>`), with their 18 initialisers
       (005DC050 / 005DC120, 005DC1E0-005DC3F0, 005DC420-005DC5E0) and 18 exit functions ported on the names and
       registered (rows in extra_function_sizes.csv / function_sizes.inc). The log pointers are `constexpr` pointers whose
       initialiser names the stream (`{&console::g_aiLogOut}`: named_data takes a qualified name of a range): unit_hits'
       kHitLog 007AF284, ai_alarm's kAlarmLog 007C2EB8, combat's kCombatLog 007AF3E8, unit_ai's kAiLog 007C53C4 and
-      kModeLog 007C54E8; a file's own ostream view (AiLogStream, UnitLogStream, GameOstream, net::LogStream) reads the
-      stream through `console::StreamAs<View>`.
+      kModeLog 007C54E8; the files write to them as `console::Stream&`.
     - **The singletons and the small leftovers (C18t, 90 -> 61; 56 with C25a)**: the worlds (g_serverWorld 007AFF60, g_clientWorld
       007AF5B8, world_construct.cpp), the camera 0079B2A8, the scene renderer 007AF060 and the device lock 007AEE78
       (renderer_lifetime.cpp), the map database 0079BF00, the debug panel 0079B930 (string_map.cpp), the class registry
@@ -1332,9 +1331,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (`ei::OriginalGameData`); WindowReady, DescribeTopWindow, waitwindow (a hex table is game.exe's address; the top
     window's table goes through RealWindowVtable, then OriginalAddress), the camp's put-on and checkplayers compare
     game.exe's addresses in both runs. CSaveLoadWindow / COptionsWindow lost kVtableAddress.
-  - **The console** (console.cpp): ConsoleStreambufClass in place of 00740034 (1 / 7 the console's sync and
-    overflow, 8 EOF, the rest old iostream's streambuf defaults). Only ConsoleStreambuf changed (no ConsoleWindow
-    edits). The image's harness reads each line through `console::g_consoleLineObserver` (set under
+  - **The console** (console.cpp): since C35d ConsoleStreambuf has no virtual functions (00740034 retired, file
+    `-`). The image's harness reads each line through `console::g_consoleLineObserver` (set under
     `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
   - **The streams** (core_streams.h; real classes since C28e): CStream (0073BDB0, 1-6 pure), CMemoryStream (0073BD90
     with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
@@ -1350,9 +1348,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **The library kind**: MFC's CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
     ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
     exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
-    CArchiveException (mfc_exception.cpp); the old iostream's streambuf, ios and ostream-for-ios tables
-    (crt_iostream.cpp; ostream's virtual base table is data and stays); std::exception (file `-`: no class of ours). CPtrArray,
-    CPtrList and ostream_withassign are retired with no class of ours (file `-`): only game.exe's constructors and
+    CArchiveException (mfc_exception.cpp); std::exception (file `-`: no class of ours). CPtrArray,
+    CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
     out_of_range tables 0073B994 / 0073BE8C (batch 21), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
@@ -1731,7 +1728,7 @@ the `--no-hooks` suite) keeps the registry.
   The res archives (CMappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
   the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
   `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
-  FindFirstFileA (now closed). The console ostreams' ios::stdio flush is std::fflush(stdout / stderr). Dropped with
+  FindFirstFileA (now closed). Dropped with
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
@@ -1788,11 +1785,8 @@ the `--no-hooks` suite) keeps the registry.
   Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
-- **iostreams** (crt_iostream.{h,cpp}): MSVC 6's old streambuf / ios / ostream layouts, the inserters (numbers
-  through the game's sprintf with VC6's formats: "%%%s.%.0ug", precision capped at 15), endl 004BA9F0, the streams'
-  constructors and destructors. The eight ostreams 007C55A8-007C5810 all write to console streambufs (console.h).
-- Not ported (no callers): acos / asin / fmod's plain forms, streambuf() 006FCA77, ios(streambuf*), ostream(),
-  ostream_withassign. The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
+- Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):
+  the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through the game's sprintf. The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
   run: the image's atexit, streams and crash filter are ours / the host's.
 
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)

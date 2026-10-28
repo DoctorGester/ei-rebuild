@@ -111,7 +111,7 @@ TYPES = {
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
     'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
-    'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection (crt_iostream.cpp)
+    'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection
     'std::size_t': 'I',
     'Ld12': 'H' * 6,                         # crt_format.cpp: a 12-byte long double, six words
     'gamecrt::NewHandler': 'P',              # crt.h: a new handler (a function of ours, or nullptr)
@@ -126,7 +126,8 @@ TYPES = {
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
     # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
     'lib::StaticObject<std::string>': 'I',
-    'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
+    # console.h: game.exe's ostream and its ios; ours names its streambuf, null until the initialiser attaches it
+    'Stream': 'B' * 0x58,
     'BOOL': 'i',
     'CThreadLocalObject': 'i', 'CProcessLocalObject': 'I',   # mfc_state.h: a TLS slot, an object made on first use
 }
@@ -187,7 +188,7 @@ STATIC_OBJECT_BYTES = {
     'mfc::CArray<int>': 0x14, 'mfc::CArray<std::uint8_t>': 0x14, 'mfc::CArray<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'mfc::CArray<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
     'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'mfc::CArray<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
     'mfc::CList<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
-    'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,
+    'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
     'CFixedAlloc': 0x28, 'CSimpleException': 0x98, 'CResourceException': 0x98, 'CUserException': 0x98,

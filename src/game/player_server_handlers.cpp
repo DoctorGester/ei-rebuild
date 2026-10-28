@@ -5,7 +5,6 @@
 #include "player_messages.h"
 #include "console.h"
 #include "lib/static_object.h"
-#include "lib/crt_iostream.h"
 
 #include "ai_map.h"
 #include "core_maths.h"
@@ -622,7 +621,6 @@ namespace {
 constexpr std::uint8_t kMessagePartyUpdate = 0x83;
 constexpr std::uint8_t kMessage19 = 0x19;
 const char* const kResendingParty = "Resending party of player ";
-libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 } // namespace
 
 void CPlayerServer::SendPartyUpdate() {
@@ -636,7 +634,7 @@ void CPlayerServer::SendPartyUpdate() {
 void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
     CPlayer* player = Owner();
-    GameCout()->PutText(kResendingParty)->PutInt(player->playerId_)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::g_netLogOut << kResendingParty << player->playerId_);
     TheServerWorld()->SyncPartyRecords(player);
     SendParty();
     TheServerWorld()->ClearPlayerItems(player);

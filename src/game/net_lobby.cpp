@@ -2,6 +2,7 @@
 // net_classes.h (ClientBase, ServerBase) for the fields. The packets (first byte): 3 ping (the session time),
 // 4 join (magic, id, rate, extra data), 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7
 // refused (id, reason). Plain float maths (rule 7). See docs/notes/network.md.
+#include "console.h"
 #include "chunk_archive.h"
 #include "game_strings.h"
 #include "core_refcount.h"
@@ -42,13 +43,13 @@ using QueryList = stlp::vector<Query>;
 
 // "<text>\n" and a flush.
 void LogLine(const char* text) {
-    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
+    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 // "<text><address>\n" and a flush; the address string is freed again.
 void LogAddressLine(const char* text, const NetAddress* address) {
     if (!g_netLog) return;
     std::string s = address->ToString();
-    g_netLog->Put(text)->Put(s.data())->PutChar('\n')->Flush();
+    console::EndLine(*g_netLog << text << s.data());
 }
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }

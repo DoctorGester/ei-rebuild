@@ -8,7 +8,6 @@
 #include "player_client.h"
 
 #include "app_helpers.h"
-#include "lib/crt_iostream.h"
 #include "camera.h"
 #include "net_link.h"
 #include "lib/static_object.h"
@@ -64,7 +63,6 @@ struct LoginRequest {
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
-libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
 // The texts the original reads from the exe: the traffic log, the login, the dispatch errors.
 const char* TextClientToServer() { return "client to server, size = "; }
 const char* TextSqueezedSize() { return " squeezed size = "; }
@@ -154,8 +152,7 @@ int CPlayerClient::SendToServer() {
         if (Owner()->logTraffic_ != 0) {
             std::uint32_t packedSize = packed.size_;
             std::uint32_t size = out_.Size();
-            GameCout()->PutText(TextClientToServer())->PutUnsigned(size)->PutText(TextSqueezedSize())
-                ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+            console::EndLine(console::g_netLogOut << TextClientToServer() << size << TextSqueezedSize() << packedSize);
         }
         sent = link->Send(&packed) ? 1 : 0;
     }
@@ -362,7 +359,7 @@ int CPlayerClient::OnParty() {
             party->variables_ = saved;
         }
         TheClientWorld()->ApplyObjectVariables();
-        GameCout()->PutText(TextPartyReceived())->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::g_netLogOut << TextPartyReceived());
         TheGameFlow()->ReturnLocalParty();
     }
     return 1;
