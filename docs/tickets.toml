@@ -3572,6 +3572,22 @@ depends = ["C14i"]
 note = "After C14i no src/ code uses mfc::CString or PlainElements<CString> (mfc.h). The users are tests/vectors' Original* views (record_script*.cpp, record_stats.cpp, script_original.h, script_load_vectors.h), and replay_mfc.cpp gives it its members. Give those views a small local layout struct (a pointer to the characters with the CStringData header before it) in a tests header and drop the class from src/lib/mfc.h. record_*.cpp are harness vector files, so the EI_VECTORS recording runs (with H30d)."
 
 [[ticket]]
+id = "C14q"
+title = "The kept stlp::list record and held lists to std::list: the sector lists and grids, the trade records, the connection's packet lists, link archives, stream queues"
+group = "cleanup"
+model = "opus"
+depends = ["C14n"]
+note = "Left by C14n. stlp::list users that are not the net RefPtr lists: CMapObject* with HeldObject (SectorCellObjects / SectorList and the sector grids' vector-new blocks in world_client_maps.cpp, MapObjectList objects_ / heroes_, g_deferredUnits in static_lists.cpp, ui_battle_update's UnitList, world_client_draw's deferred walk: a HeldPtr<CMapObject> element, engine_object.h); ClientSession::tradeRecords_ (TradeRecord: three embedded CParty, whose copy loads the party again and draws ids, so keep the original's T() then copy: give TradeRecord real special members and push_back a default); the connection's lists (SentPacket, ReliableChunk, FreedIds, SentItem / SentRecord in net_connection*.cpp, library_net_lists.h policies); CLinkFigureLoader::archives_ (a raw sentinel, model.cpp, recordlist::LinkArchive); the link queues' StreamQueue (QueueStreamElement: the copy reads the new stream into the source); TextSources (item_db_text). Then delete record_lists.h and library_net_lists.h. Watch copies with side effects (party copies) and keep their count, as C14n's SavedParties::ReserveOne does."
+
+[[ticket]]
+id = "C14r"
+title = "The net RefPtr and timed lists to std::list, the sessions' raw-sentinel lists; delete stlp_list.h / stlp_list_refs.h"
+group = "cleanup"
+model = "opus"
+depends = ["C14q"]
+note = "Left by C14n. stlp::SharedRefListOf / CountedRefListOf / SharedRefList / CountedRefList (net_classes.h, ~250 node walks: First / End / next / At(node) in net_*.cpp, ui_hud, ui_chat_window), the TimedEntry PolicyLists (SharedEntry / CountedEntry), the sessions' drivers_ / holders_ / clients_ raw sentinels (net_session_*.cpp, world_sessions.cpp), the world_stamp_sort / EntryIdLess node-pointer sorts (std::list::sort is stable, the STLport sort on node pointers may not be: check the order of equal keys), the TintList Opaque<16> (library_trees.h). Element types: C14n's CountedRefPtr / SharedRefPtr (core_refcount.h). Then stlp_list.h, stlp_list_refs.h and stlp_list.cpp go once only tests' views use them (C14c's hash tables use stlp_vector.h only)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

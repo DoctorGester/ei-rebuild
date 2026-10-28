@@ -572,8 +572,7 @@ to which template:
   record_lists, the `*Element` structs: records without real special members), counted or held elements
   (`CEngineObject*`, `CMapObject*` with HeldObject, `CSpell*`, RefPtr), lists held as a raw sentinel pointer
   (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables / maps (their bucket vector is
-  stlp::vector). A std container inside a kept record is handled by the record's policy (record_members.h's
-  CopyMember / AssignMember / DefaultMember overloads for std::vector; destroy_at in the record's Destroy).
+  stlp::vector). C14n retyped most of these (next section).
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
   construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
   `Construct()` on `operator_new_as` storage, a record in an stlp container) is built and destroyed by hand with
@@ -596,6 +595,31 @@ to which template:
 - Layout: std::vector is 12 bytes like STLport's; std::list is 8 (STLport's 4), so offsets after a retyped list move
   (the stlp batch's precedent: such layout asserts go). Archive formats are element-wise (ChunkArchive's string
   vectors, InlineStrings), so their bytes do not change.
+
+## Containers: the kept vectors and lists (C14n)
+
+- What C14b kept for "the original's element policy" is std now: the records got real special members or none
+  (the compiler's), and the policies (record_vectors.h, record_members.h, record_lifetime.h,
+  library_containers.h, lib/stlp_vector_refs.h, the record lists' print and title policies) are gone. Since S21
+  the layout only matters for the tests' game.exe views (tests/vectors' `OriginalVector` in record_stats.cpp).
+- Counted elements are RAII types: `CountedPtr<T>` (CRefCounted's refs_, core_refcount.h), `CountedRefPtr` /
+  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the
+  plain release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands
+  the reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a
+  clone, as STLport's fill insert made it (the file message's chunks).
+- The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers
+  share `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
+- A copy with side effects keeps the original's copies: a saved hero's (MpHeroRecord) copy loads its party again,
+  drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is
+  added (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a
+  blank's copy. Without it the multiplayer goldens differ (the hero's #unit and the random state).
+- Value-initialised elements (`emplace_back()`, `resize`) zero what the original left as stack bytes (save
+  entries, connect list rows, trade rows, bindings); the fields are written before they are read.
+- Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
+  built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
+  the item stock's spells. Still stlp::list (C14q, C14r): the CMapObject* sector lists and their grids, the
+  net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
+  stream queues; the hash tables' bucket vectors are C14c's.
 
 ## Open items
 

@@ -1844,7 +1844,8 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release, held engine objects, CString); game records
   in record_lists, the connection's in library_net_lists. Where the original copies uninitialised stack bytes into a
   default element, ours copies zeros (every caller overwrites them).
-- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h).
+- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h;
+  all but stlp_vector gone with C14n, the records' vectors are std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
 - **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `StringFloatTraits`, `StringListTraits`,
@@ -1872,7 +1873,7 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 The global constructors only static initialisers call (the six databases, logic settings 005CDFC0, SavedParties,
 both worlds: database_construct.cpp, world_construct.cpp), the exit callees (database_destruct.cpp, the worlds'
 and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
-assignments (record_lifetime.h: `DestroyVector`, `AsCString`, `LeadingStringDelete`), the database resets
+assignments (record_lifetime.h, gone with C14n), the database resets
 (database_reset.cpp) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
 through the library's address or inlined from lib/, never registered on the game side. Quirks kept: the link queue's
 stream copy 00479410 reads the new block's uninitialised bytes into the source; 004CC0C0 copies a command's float
