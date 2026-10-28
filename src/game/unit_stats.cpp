@@ -169,7 +169,7 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
     for (float& weight : info->typeWeights) weight = 1.0f;
     info->multiplier = 1.0f;
     info->weaponValue = 0;
-    info->attackRoll = kLarge;
+    info->attackRoll = std::bit_cast<float>(kLarge);
     info->amount = std::bit_cast<float>(kLarge);
     info->location = 6;
     info->hitKind = 0;

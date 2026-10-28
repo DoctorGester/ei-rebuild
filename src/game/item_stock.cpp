@@ -204,10 +204,8 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
     }
 }
 
-void WriteInt(CStream* stream, std::uint32_t value) { stream->WriteValue(value); }
-
 void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
-    WriteInt(stream, static_cast<std::uint32_t>(list.size()));
+    stream->WriteValue(static_cast<std::uint32_t>(list.size()));
     for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
 
@@ -511,20 +509,20 @@ void ItemStock::SaveLists(CStream* out) {
     SaveItemRecords(out, weapons);
     SaveItemRecords(out, quickItems);
 
-    WriteInt(out, static_cast<std::uint32_t>(materials.size()));
+    out->WriteValue(static_cast<std::uint32_t>(materials.size()));
     for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
         out->WriteString(e->record->key);
-        WriteInt(out, static_cast<std::uint32_t>(e->minCount));
-        WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
-        WriteInt(out, static_cast<std::uint32_t>(e->left));
+        out->WriteValue(static_cast<std::uint32_t>(e->minCount));
+        out->WriteValue(static_cast<std::uint32_t>(e->maxCount));
+        out->WriteValue(static_cast<std::uint32_t>(e->left));
     }
 
-    WriteInt(out, static_cast<std::uint32_t>(spells.size()));
+    out->WriteValue(static_cast<std::uint32_t>(spells.size()));
     for (itemdb::SpellRecord** p = spells.data(); p != spells.data() + spells.size(); ++p) out->WriteString((*p)->code);
 
     // The modifiers' codes go through a string made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
-    WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
+    out->WriteValue(static_cast<std::uint32_t>(modifiers.size()));
     for (itemdb::SpellModifierRecord** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {
         char code[5] = {};
         std::memcpy(code, (*p)->code, 4);

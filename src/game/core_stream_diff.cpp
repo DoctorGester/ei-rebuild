@@ -9,17 +9,15 @@ namespace {
 
 constexpr int kFullRun = 0x100;
 
-void PutByte(CStream* stream, std::uint8_t value) { stream->WriteValue(value); }
-
 // Writes `length` into the run header at `header`, comes back to the end and writes the next run's
 // header (0 for now); returns where that header is.
 std::uint32_t CloseRun(CStream* out, std::uint32_t header, std::uint8_t length) {
     std::uint32_t end = out->Position();
     out->Seek(header);
-    PutByte(out, length);
+    out->WriteValue(length);
     out->Seek(end);
     std::uint32_t next = out->Position();
-    PutByte(out, 0);
+    out->WriteValue(std::uint8_t{0});
     return next;
 }
 
@@ -33,7 +31,7 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
     bool equalRun = true;
     int count = 0;
     std::uint32_t header = Position();
-    PutByte(this, 0);
+    WriteValue(std::uint8_t{0});
     for (; remaining > 0; --remaining) {
         std::uint8_t was;
         std::uint8_t now;
@@ -51,7 +49,7 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
                 equalRun = false;
                 count = 1;
             }
-            PutByte(this, now);
+            WriteValue(now);
         } else if (equalRun) {
             if (++count == kFullRun) {
                 header = CloseRun(this, header, 0xFF);
@@ -66,10 +64,10 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
     }
     std::uint32_t end = Position();
     Seek(header);
-    PutByte(this, static_cast<std::uint8_t>(count));
+    WriteValue(static_cast<std::uint8_t>(count));
     Seek(end);
     Position();
-    PutByte(this, 0);
+    WriteValue(std::uint8_t{0});
 }
 
 void CStream::ApplyDiff(CStream* base, CStream* diff) {

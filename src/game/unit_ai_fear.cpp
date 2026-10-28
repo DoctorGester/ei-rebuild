@@ -66,7 +66,7 @@ const Vector3* PositionOf(CMapObject* object) { return &object->localPosition_; 
 
 // The prototype's height (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(unit->GetPrototype()->height);
+    return unit->GetPrototype()->height;
 }
 
 // The move order cleared.

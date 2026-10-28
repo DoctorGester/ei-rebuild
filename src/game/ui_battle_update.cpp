@@ -131,7 +131,7 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
 // The unit panel's model view for the unit it now shows, copied from the prototype bit for bit: the
 // size from `first`'s, the height from the shown unit's (+0x24; the same unit).
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
-    panel->viewSize_[0] = std::bit_cast<float>(UnitPrototype(first)->panelViewSize);
+    panel->viewSize_[0] = UnitPrototype(first)->panelViewSize;
     panel->viewHeight_[0] = std::bit_cast<float>(UnitPrototype(panel->shownUnit_)->height);
 }
 

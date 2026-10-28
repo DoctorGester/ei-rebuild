@@ -27,7 +27,7 @@ struct UnitRecordStats {
     float sightCone;                // +0x28 -> sightCone
     float peripheralRange;          // +0x2C -> peripheralRange
     float sideCone;                 // +0x30 -> sideCone
-    std::uint32_t reachHeightScale;      // +0x34 -> reachHeightScale
+    float reachHeightScale;         // +0x34 -> reachHeightScale
     std::uint8_t sizeClass;         // +0x38 -> sizeClass
     std::uint8_t sizeClassSmall;    // +0x39 -> sizeClass20 and sizeClass60
     std::uint8_t unused_3A[2];

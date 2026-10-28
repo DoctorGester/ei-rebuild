@@ -738,7 +738,7 @@ struct UnitStats {
     float armsFactor;
     int movementKind;                   // the model's: 1 legs (load factor), 2 on the water (no size classes)
     // The combat values.
-    std::uint32_t reachHeightScale; // from the model: a non-hero strikes low when the target's
+    float reachHeightScale;         // from the model: a non-hero strikes low when the target's
                                     // standing height plus (this + 1) x its own radius passes the distance
     std::int16_t sizeClass;         // 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
     std::int16_t unused_06A;

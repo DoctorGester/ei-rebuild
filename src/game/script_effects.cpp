@@ -93,8 +93,6 @@ constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x
 
 // The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
 
-void WriteInt(CStream* stream, int value) { stream->WriteValue(value); }
-
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
 ScriptEffect<T> ReadObject(CStream* stream) {
@@ -252,41 +250,41 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
 
 
 void ScriptPointLight::Save(CStream* stream) const {
-    WriteInt(stream, object.SavedId());
-    WriteInt(stream, id);
-    WriteInt(stream, removeWhenDone);
-    WriteInt(stream, moving);
-    WriteInt(stream, steps);
+    stream->WriteValue(object.SavedId());
+    stream->WriteValue(id);
+    stream->WriteValue(removeWhenDone);
+    stream->WriteValue(moving);
+    stream->WriteValue(steps);
     stream->WriteValue(step);
 }
 
 void ScriptParticleSource::Save(CStream* stream) const {
-    WriteInt(stream, object.SavedId());
-    WriteInt(stream, id);
-    WriteInt(stream, deleteAfterMove);
-    WriteInt(stream, moving);
-    WriteInt(stream, steps);
+    stream->WriteValue(object.SavedId());
+    stream->WriteValue(id);
+    stream->WriteValue(deleteAfterMove);
+    stream->WriteValue(moving);
+    stream->WriteValue(steps);
     stream->WriteValue(step);
-    WriteInt(stream, lifetime);
+    stream->WriteValue(lifetime);
 }
 
 void ScriptFxSource::Save(CStream* stream) const {
-    WriteInt(stream, object.SavedId());
-    WriteInt(stream, id);
+    stream->WriteValue(object.SavedId());
+    stream->WriteValue(id);
     stream->WriteString(name);
     stream->WriteValue(position);
     stream->WriteValue(volume);
     stream->WriteValue(radius);
-    WriteInt(stream, idle);
+    stream->WriteValue(idle);
     stream->WriteValue(spread);
-    WriteInt(stream, minDelay);
-    WriteInt(stream, maxDelay);
-    WriteInt(stream, countdown);
+    stream->WriteValue(minDelay);
+    stream->WriteValue(maxDelay);
+    stream->WriteValue(countdown);
 }
 
 void ScriptLightning::Save(CStream* stream) const {
-    WriteInt(stream, object.SavedId());
-    WriteInt(stream, id);
+    stream->WriteValue(object.SavedId());
+    stream->WriteValue(id);
 }
 
 

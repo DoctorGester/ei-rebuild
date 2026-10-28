@@ -340,7 +340,7 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
-    float offset = std::bit_cast<float>(other->GetPrototype()->height);
+    float offset = other->GetPrototype()->height;
     double height = static_cast<double>(offset) + other->localPosition_.z;
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
@@ -411,7 +411,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             const auto* model = self->GetPrototypeModel();
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
-                float weight = std::bit_cast<float>(model->damageWeights[i]);
+                float weight = model->damageWeights[i];
                 EI_NAN_AUDIT(weight);
                 if (weight != 0.0f) {
                     out->damageType = i;
@@ -473,7 +473,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
-    hit->attackRoll = std::bit_cast<std::uint32_t>(result);
+    hit->attackRoll = result;
     return result > 0.0f ? 1 : 0;
 }
 
@@ -492,14 +492,14 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + 1.0f));
-        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
+        out->attackRoll = roll;
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
         double factor = keyed ? 1.0f : DifficultyAttackFactor();
         float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
-        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
+        out->attackRoll = roll;
         double extra = 0.0;
         float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);
@@ -526,7 +526,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
     // |attackRoll| below FLT_MAX: not resolved yet.
-    float roll = std::bit_cast<float>(hit->attackRoll & 0x7FFFFFFFu);
+    float roll = std::bit_cast<float>(std::bit_cast<std::uint32_t>(hit->attackRoll) & 0x7FFFFFFFu);
     EI_NAN_AUDIT(roll);
     if (roll < kHitMark) ResolveHit(hit, attacker);
     if (!dead) {
@@ -536,7 +536,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         } else {
             *kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
         }
-        *kCombatLog << " skill=" << std::bit_cast<float>(hit->attackRoll);
+        *kCombatLog << " skill=" << hit->attackRoll;
         float amount = hit->amount;
         *kCombatLog << " damage=" << amount;
         if (hit->backstabFactor > 1.0f) {
@@ -556,8 +556,8 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     AttackParams mine;
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
-    EI_NAN_AUDIT(std::bit_cast<float>(hit->attackRoll));
-    if (static_cast<double>(mine.defence) <= std::bit_cast<float>(hit->attackRoll)) {
+    EI_NAN_AUDIT(hit->attackRoll);
+    if (static_cast<double>(mine.defence) <= hit->attackRoll) {
         stats.flags |= 0x10;
         unit->MarkChanged(4);
         TriggerItemSpells(1);
@@ -583,11 +583,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = unit->GetPrototype();
                     if (IsMultiplayerClient() & 0xFF) {
-                        world->AwardExperience(nullptr, std::bit_cast<float>(prototype->experienceValue));
+                        world->AwardExperience(nullptr, prototype->experienceValue);
                         return 1;
                     }
                     CPlayer* killer = source->player;
-                    world->AwardExperience(killer, std::bit_cast<float>(prototype->experienceValue));
+                    world->AwardExperience(killer, prototype->experienceValue);
                 }
             }
             return 1;
@@ -610,7 +610,7 @@ void CUnitServer::UpdateSizeClasses() {
     }
     float load = static_cast<float>(unit->BodyExtent());
     const auto* model = unit->GetPrototypeModel();
-    double size = unit->DoubleHeight() * std::bit_cast<float>(model->sizeScale);
+    double size = unit->DoubleHeight() * model->sizeScale;
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
         size = uncapped <= kHeroSizeCap ? uncapped : kHeroSizeCap;

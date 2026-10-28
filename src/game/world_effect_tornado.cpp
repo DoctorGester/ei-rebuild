@@ -39,7 +39,7 @@ constexpr int kMaxCatchUp = 30;                // particle ticks a new source ma
 DamageInfo TornadoHit() {
     DamageInfo hit{};
     hit.typeWeights[6] = 1.0f;
-    hit.attackRoll = 0x42C80000u;   // 100.0
+    hit.attackRoll = 100.0f;
     hit.amount = 5.0f;
     hit.multiplier = 1.0f;
     hit.location = 1;
