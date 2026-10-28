@@ -238,7 +238,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         anchor_ = 0;
         DrawInput();
         AddText((game::consoletexts::Prompt() + commands_[0] + game::NewLineText()));
-        Execute(commands_[0].c_str());
+        Execute(commands_[0]);
         return;
     }
     case 27:   // Escape

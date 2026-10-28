@@ -380,5 +380,5 @@ public:
 };
 
 // Case-insensitive; null if none.
-char* SpellCodeByName(const char* name);
-char* SpellModifierCodeByName(const char* name);
+char* SpellCodeByName(std::string_view name);
+char* SpellModifierCodeByName(std::string_view name);

@@ -5,7 +5,7 @@
 #include "map_object.h"
 #include "unit_create.h"
 
-void CUnit::TakePrototype(const char* prototype) {
+void CUnit::TakePrototype(std::string_view prototype) {
     // The stack copies start uninitialised; the resets and the builder (its defaults too, for an unknown
     // prototype) write every field the packers read.
     UnitVitals vitals{};

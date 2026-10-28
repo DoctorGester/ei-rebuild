@@ -29,15 +29,16 @@ std::string* MapsFolder(std::string* out) {
     *out = folder + MapsFolderName(); return out;
 }
 
-std::string* MapPath(std::string* out, const char* name) {
+std::string* MapPath(std::string* out, std::string_view name) {
     std::string path;
-    if (name[1] == ':') {
+    if (name.size() > 1 && name[1] == ':') {
         path = name;
     } else {
         std::string folder;
         modfolders::SelectMaps(name, modfolders::MapsSite::MapPath);
         MapsFolder(&folder);
-        path = folder + name;
+        path = folder;
+        path += name;
     }
     *out = path; return out;
 }

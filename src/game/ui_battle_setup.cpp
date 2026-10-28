@@ -96,7 +96,7 @@ void CBattleScreen::CreateScreen() {
 
     CreateTexture(0x100, 0x100, 0x20);
     CreateTexture(0x100, 0x100, 0x20);
-    LoadTexture("battle00", 3, 0);
+    LoadTexture("battle00", 3);
 
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
     weaponBar_ = new CHudWeaponBar(interface_, this);

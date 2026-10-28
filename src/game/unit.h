@@ -366,7 +366,7 @@ public:
     void CollectItems(std::list<CItem*>* items, std::list<CSpell*>* itemSpells);
     // Fresh vitals and statistics (reset, then the owner's BuildFromPrototype for `prototype`), packed into the
     // vitals and parameters.
-    void TakePrototype(const char* prototype) override;
+    void TakePrototype(std::string_view prototype) override;
     // Sends the equipment ids to the controller (the 7 armour ids, then the 4 weapon ids).
     void SendEquipment();
     // prototype23C = the index of the unit prototype named `prototypeName`, or -1.

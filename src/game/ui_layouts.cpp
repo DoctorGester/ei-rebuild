@@ -59,11 +59,11 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, int left, int top, int right, int b
 }
 
 void Frame(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
-    window->AddSprite(0)->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    window->AddBlankSprite()->SetFrame(depth, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 }
 
 void Shade(CUiWindow* window, float depth, float left, float top, float right, float bottom) {
-    CUiMesh* sprite = window->AddSprite(0);
+    CUiMesh* sprite = window->AddBlankSprite();
     sprite->SetRectangle(depth, 100.0f, left, top, right, bottom, 0, 0, 0x100, 0x100);
     SetSpriteTexture(sprite, nullptr);
     SetSpritePlain(sprite);
@@ -117,22 +117,22 @@ struct TitlesTokenizer : TextTokenizer {
 
 void CSaveLoadWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture("saveload", 3, 0);
+    LoadTexture("saveload", 3);
     // The selected save's picture (5:6:5).
     CreateTexture(0x100, 0x100, 0x1E);
 
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 526.0f, 437.0f, 574.0f, 2, 2, 0x4C, 0x32);
     AddRect(this, 163, 526, 237, 574)->SetTip(isSave_ ? 0xEAC4 : 0xEAC5, 1, 0);
     AddRect(this, 563, 526, 637, 574)->SetTip(0xEAC7, 1, 0);
     AddRect(this, 363, 526, 437, 574)->SetTip(0xEAC6, 1, 0);
 
     // The picture of the selected save (texture of the window's second texture object).
-    CUiMesh* picture = AddSprite(0);
+    CUiMesh* picture = AddBlankSprite();
     picture->SetRectangle(3.0f, 100.0f, 410.0f, 100.0f, 700.0f, 320.0f, 0, 0x100, 0x100, 0x40);
     SetSpriteTexture(picture, nullptr);
-    CUiMesh* highlight = AddSprite(0);
+    CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100);
     SetSpriteTexture(highlight, nullptr);
     SetSpriteColour(highlight, 0xC8A06800);
@@ -184,14 +184,14 @@ void CSaveLoadWindow::CreateScreen() {
 
 void COptionsWindow::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture("saveload", 3, 0);
+    LoadTexture("saveload", 3);
     CreateTexture(0x100, 0x100, 0x1E);
 
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 213.0f, 526.0f, 287.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 513.0f, 526.0f, 587.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 213, 526, 287, 574)->SetTip(0x111D4, 1, 0);
     AddRect(this, 513, 526, 587, 574)->SetTip(0x111D5, 1, 0);
-    CUiMesh* highlight = AddSprite(0);
+    CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 250.0f, 108.0f, 692.0f, 132.0f, 0, 0, 0x100, 0x100);
     SetSpriteTexture(highlight, nullptr);
     SetSpriteColour(highlight, 0xC8A06800);
@@ -201,7 +201,7 @@ void COptionsWindow::CreateScreen() {
     std::string text;
     for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
         CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = str::Format("tip option_group_%s", OptionGroupName(k));
         if (TheTextManager()->Open(text.c_str()) != 0) TheTextManager()->ReadToHash(&text, 1);
@@ -362,7 +362,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 // --- Message box -----------------------------------------------------------------------
 
 void CMessageBox::CreateScreen() {
-    LoadTexture("saveload", 3, 0);
+    LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
     AddSurface(surface);
     UiSurfaceGetDC(surface);
@@ -399,16 +399,16 @@ void CMessageBox::CreateScreen() {
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
     if ((flags_ & 2) && (flags_ & 1)) {
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
         AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     } else if (!(flags_ & 2) && (flags_ & 1)) {
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
     } else {
         // Cancel only: region 0 stays empty, so the button is region 1 as with two buttons.
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, buttonTop, 437.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
         AddRegion();
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     }
@@ -417,7 +417,7 @@ void CMessageBox::CreateScreen() {
 // --- Difficulty question ---------------------------------------------------------------
 
 void CDifficultyBox::CreateScreen() {
-    LoadTexture("saveload", 3, 0);
+    LoadTexture("saveload", 3);
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
     AddSurface(surface);
     UiSurfaceGetDC(surface);
@@ -459,9 +459,9 @@ void CDifficultyBox::CreateScreen() {
     // the sprite's U offset, as the button handler does).
     int boxLeft = 400 - half;
     int boxRight = 0x1A5 - half;
-    AddSprite(0)->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
+    AddBlankSprite()->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row),
                                static_cast<float>(boxRight), static_cast<float>(row + 0x15), 0xD1, 0x37, 0xE6, 0x4C);
-    CUiMesh* hardBox = AddSprite(0);
+    CUiMesh* hardBox = AddBlankSprite();
     hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
     hardBox->textureOffsetU_ = kCheckedOffset;
@@ -471,8 +471,8 @@ void CDifficultyBox::CreateScreen() {
     Frame(this, 3.0f, 195.0f, static_cast<float>(top - 5), 605.0f, static_cast<float>(bottom + 5));
     float buttonTop = static_cast<float>(bottom + 0x1A);
     float buttonBottom = static_cast<float>(bottom + 0x4A);
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
-    AddSprite(0)->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 263.0f, buttonTop, 337.0f, buttonBottom, 0x51, 2, 0x9B, 0x32);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 463.0f, buttonTop, 537.0f, buttonBottom, 0xA0, 2, 0xEA, 0x32);
     AddRect(this, 263, bottom + 0x1A, 337, bottom + 0x4A)->SetTip(0xC3B4, 1, 0);
     AddRect(this, 463, bottom + 0x1A, 537, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     AddRect(this, boxLeft, row, boxRight, row + 0x15);
@@ -489,7 +489,7 @@ void CCreditsScreen::CreateScreen() {
         TheMusicSystem()->Stop();
     }
     g_cursor->ShowImage(0);
-    app::PlayMovies((name + "fin").c_str(), true, false, 0, 0);
+    app::PlayMovies((name + "fin"), true, false, 0, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)

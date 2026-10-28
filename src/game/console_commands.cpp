@@ -244,7 +244,7 @@ void ListVar(std::vector<std::string>* args) {
     if (args->size() > 1) {
         writing = file.Open((*args)[1], "w");
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(g_consoleOut << "Cannot open file " << (*args)[1].c_str() << " for writing");
+            EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
@@ -270,7 +270,7 @@ void LoadVar(std::vector<std::string>* args) {
     std::vector<std::string> parts;
     lib::TextFile file;
     if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
-        EndLine(g_consoleOut << "Cannot open file " << (*args)[1].c_str() << " for reading");
+        EndLine(g_consoleOut << "Cannot open file " << (*args)[1] << " for reading");
         return;
     }
     while (file.ReadLine(line)) {
@@ -303,10 +303,10 @@ void Exec(std::vector<std::string>* args) {
     str::TrimRight(name, '"');
     lib::TextFile file;
     if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
-        EndLine(g_consoleOut << "Cannot open file " << (*args)[0].c_str() << " for reading");
+        EndLine(g_consoleOut << "Cannot open file " << (*args)[0] << " for reading");
         return;
     }
-    while (file.ReadLine(line)) console::Execute(line.c_str());
+    while (file.ReadLine(line)) console::Execute(line);
     file.Close();
 }
 

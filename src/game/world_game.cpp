@@ -484,7 +484,7 @@ int EnterZone(CParty* records) {
             bool loaded;
             {
                 std::string mob = zoneRecord->mob + kMobExtension;
-                loaded = g_serverWorld->NewZone(map.c_str(), mob.c_str(), zoneRecord->name.c_str()) != 0;
+                loaded = g_serverWorld->NewZone(map, mob, zoneRecord->name.c_str()) != 0;
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
@@ -532,7 +532,7 @@ int StartNetworkZone(const char* zone) {
         {
             std::string mob = zoneRecord->mob + kMobExtension;
             std::string map = zoneRecord->map + kMapExtension;
-            loaded = g_serverWorld->NewZone(map.c_str(), mob.c_str(), zone) != 0;
+            loaded = g_serverWorld->NewZone(map, mob, zone) != 0;
         }
         if (!loaded) return 0;
         g_serverWorld->SetTime(std::bit_cast<float>(kStartTime));
@@ -738,7 +738,7 @@ void GameFlow::RequestLoad(const char* name, char flag) {
     requestArg_ = flag != 0;
 }
 
-void GameFlow::RequestZoneChange(const char* zone, int entrance) {
+void GameFlow::RequestZoneChange(std::string_view zone, int entrance) {
     state_ = 4;
     requestTarget_ = zone;
     requestArg_ = entrance;
@@ -758,20 +758,18 @@ void GameFlow::RequestPartyZone6(const char* zone, CParty* party) {
 
 void GameFlow::DisconnectClient() { g_clientWorld->DisconnectLocalPlayer(); }
 
-int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
+int CWorldServer::ReadAIGraph(std::string_view map, std::string_view mob, CStream* out) {
     FileStream mobFile;
     int found = 0;
-    if (mob) {
-        // The graph chunk of the .mob file.
-        {
-            std::string path;
-            MapPath(&path, mob);
-            mobFile.Open(path, kOpenRead, 1);
-        }
-        if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
-        mobFile.Close();
-        if (found) return found;
+    // The graph chunk of the .mob file.
+    {
+        std::string path;
+        MapPath(&path, mob);
+        mobFile.Open(path, kOpenRead, 1);
     }
+    if (mobFile.FindTagged(kGraphChunk, out)) found = 1;
+    mobFile.Close();
+    if (found) return found;
     // Otherwise <map without extension>.grp.
     std::string base;
     MapPath(&base, map);
@@ -1079,7 +1077,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     g_serverWorld->SetTimeSpeed(static_cast<float>(TimeSpeedSetting()));
     int result;
     if (mode == kModeMainMenu) {
-        g_serverWorld->NewZone(kMenuMap, kMenuMob, nullptr);
+        g_serverWorld->NewZone(kMenuMap, kMenuMob, std::nullopt);
         // The menu shows the local time of day.
         SYSTEMTIME now;
         gameapi::GetLocalTime(&now);

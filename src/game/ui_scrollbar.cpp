@@ -41,8 +41,8 @@ CUiScrollbar::CUiScrollbar(CInterface3D* ui, RECT rect, float depth, int maximum
     moved_ = true;
     state_ = 0;
     position_ = -1;
-    LoadTexture("Scrollbar", kTextureKind, nullptr);
-    for (int i = 0; i < 4; ++i) AddSprite(nullptr);
+    LoadTexture("Scrollbar", kTextureKind);
+    for (int i = 0; i < 4; ++i) AddBlankSprite();
     for (int i = 0; i < 3; ++i) AddRegion();
     CUiScrollbar::SetRect(&rect);
     CUiScrollbar::SetPosition(0);

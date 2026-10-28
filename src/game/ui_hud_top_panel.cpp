@@ -52,12 +52,12 @@ void CHudTopPanel::Build(int page, int shown) {
     region->SetTip(0x27DA, 1, 0x33);
     AddRegion()->SetRect(0xB4, 0, 0x26C, 100);
 
-    CUiMesh* back = AddSprite(nullptr);
+    CUiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 180.0f, 20.0f, 620.0f, 95.0f, 0, 0, 0x100, 0x100);
     back->texture_ = nullptr;
     back->flags_ |= 0x100;
     back->flatColour_ = 0x50000000;
-    CUiMesh* bar = AddSprite(nullptr);
+    CUiMesh* bar = AddBlankSprite();
     bar->SetRectangle(20.0f, 100.0f, 180.0f, 0.0f, 620.0f, 20.0f, 0, 0, 0x100, 0x100);
     bar->texture_ = nullptr;
     bar->flags_ |= 0x100;
@@ -71,9 +71,9 @@ void CHudTopPanel::Build(int page, int shown) {
     arrow->Place(400.0f, -52.0f, FloatFromBits(0x4101B287));
     arrow->SetScale(0.8f);
 
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 215.0f, 0.0f, 245.0f, 20.0f, 2, 0x96, 0x20, 0xAA);
-    AddSprite(nullptr)->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 185.0f, 0.0f, 215.0f, 20.0f, 2, 0x80, 0x20, 0x94);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 215.0f, 0.0f, 245.0f, 20.0f, 2, 0x96, 0x20, 0xAA);
+    AddBlankSprite()->SetFrame(18.0f, 80.0f, 180.0f, -5.0f, 620.0f, 100.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
 
     page_ = page;
     ShowPage();

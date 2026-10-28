@@ -54,7 +54,7 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
-void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
+void PlayThemeFile(CMusicSystem* music, std::string_view allod, std::string MusicTheme::*file) {
     auto theme = std::ranges::find_if(music->themes, [allod](const MusicTheme& t) {
         return text::CompareIgnoringCase(t.name, allod) == 0;
     });
@@ -145,13 +145,13 @@ void CMusicSystem::Stop() {
     TheSoundManager()->StopStream(4);
 }
 
-void CMusicSystem::PlayBriefing(const char* allod) {
+void CMusicSystem::PlayBriefing(std::string_view allod) {
     state = 2;
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
 
-void CMusicSystem::PlayConstructor(const char* allod) {
+void CMusicSystem::PlayConstructor(std::string_view allod) {
     state = 3;
     TheSoundManager()->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
@@ -166,11 +166,11 @@ void CMusicSystem::PlayMainMenu() {
 
 // A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
 // waits until it has finished.
-void CMusicSystem::PlayJingle(const char* name) {
+void CMusicSystem::PlayJingle(std::string_view name) {
     if (state != 1) return;
     {
-        std::string stem = name;
-        std::string path = stem + kMp3;
+        std::string path(name);
+        path += kMp3;
         jingle = path;
     }
     TheSoundManager()->RequestStream(jingle, 4);

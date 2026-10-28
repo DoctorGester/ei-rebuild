@@ -104,7 +104,7 @@ void FrameStep(bool draw, bool cursor) {
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.
-void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
+void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, int a, int b) {
     std::vector<std::string> list;
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();
@@ -113,7 +113,7 @@ void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, in
         std::string path;
         ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
     }
-    ini->GetList(section, "movies", &list, ',');
+    ini->GetList(section.c_str(), "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (const std::string& movie : list) {
         {

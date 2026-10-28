@@ -27,16 +27,18 @@ constexpr const char* kAllodPrefix = "allod ";
 constexpr const char* kZonePrefix = "zone ";
 constexpr const char* kQuestPrefix = "quest ";
 constexpr const char* kMapText = "map.txt";
-constexpr const char* kZoneEntry = "#zone %s";
+constexpr const char* kZoneEntry = "#zone ";
 constexpr const char* kPositionLine = "#position";
-constexpr const char* kQuestEntry = "#quest %s";
+constexpr const char* kQuestEntry = "#quest ";
 constexpr const char* kMissingNumber = "0";
 
 // The text `prefix` + `name` (empty when there is none), into `out`.
-std::string* PlaceTitle(std::string* out, const char* prefix, const char* name) {
+std::string* PlaceTitle(std::string* out, std::string_view prefix, std::string_view name) {
     CTextManager* texts = TheTextManager();
     std::string text;
-    if (texts->Open((std::string(prefix) + name).c_str())) texts->ReadLine(&text, 1);
+    std::string key(prefix);
+    key += name;
+    if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
     *out = text; return out;
 }
 
@@ -62,20 +64,21 @@ void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
 
 // --- titles --------------------------------------------------------------------------------------
 
-std::string* CGlobalMap::AllodTitle(std::string* out, const char* allod) { return PlaceTitle(out, kAllodPrefix, allod); }
+std::string* CGlobalMap::AllodTitle(std::string* out, std::string_view allod) { return PlaceTitle(out, kAllodPrefix, allod); }
 
-std::string* CGlobalMap::ZoneTitle(std::string* out, const char* zone) { return PlaceTitle(out, kZonePrefix, zone); }
+std::string* CGlobalMap::ZoneTitle(std::string* out, std::string_view zone) { return PlaceTitle(out, kZonePrefix, zone); }
 
-std::string* CGlobalMap::QuestTitle(std::string* out, const char* quest) { return PlaceTitle(out, kQuestPrefix, quest); }
+std::string* CGlobalMap::QuestTitle(std::string* out, std::string_view quest) { return PlaceTitle(out, kQuestPrefix, quest); }
 
 // --- positions -----------------------------------------------------------------------------------
 
-bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
+bool CGlobalMap::ReadMapPosition(Vector3* out, std::string_view prefix, std::string_view name, bool positionLine) {
     CTextManager* texts = TheTextManager();
     std::string key;
     std::vector<std::string> words;
     texts->Open(kMapText);
-    key = str::Format(format, name);
+    key = prefix;
+    key += name;
     bool found = false;
     if (texts->FindLine(key.c_str()) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
@@ -91,12 +94,12 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* n
     return found;
 }
 
-Vector3* CGlobalMap::ZonePosition(Vector3* out, const char* zone) {
+Vector3* CGlobalMap::ZonePosition(Vector3* out, std::string_view zone) {
     ReadMapPosition(out, kZoneEntry, zone, true);
     return out;
 }
 
-Vector3* CGlobalMap::QuestPosition(Vector3* out, const char* quest) {
+Vector3* CGlobalMap::QuestPosition(Vector3* out, std::string_view quest) {
     ReadMapPosition(out, kQuestEntry, quest, false);
     return out;
 }

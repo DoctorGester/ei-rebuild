@@ -187,9 +187,8 @@ std::size_t FittingBytes(std::string_view text, std::size_t room) {
     return n;
 }
 
-void CopyFitting(char* to, std::size_t size, const char* from) {
+void CopyFitting(char* to, std::size_t size, std::string_view text) {
     if (size == 0) return;
-    const std::string_view text(from);
     const std::size_t n = FittingBytes(text, size - 1);
     std::memcpy(to, text.data(), n);
     to[n] = '\0';

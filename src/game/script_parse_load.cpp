@@ -546,7 +546,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 decl->name = name;
             }
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
-            const int index = FindScript(decl->name.c_str());
+            const int index = FindScript(decl->name);
             if (index < 0) {
                 // Not declared before: parameters, then the body.
                 if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
@@ -570,7 +570,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 QualifyName(&name, word);
                 decl->name = name;
             }
-            if (FindScript(decl->name.c_str()) != -1) return Error(this, token.line, 15, "Duplicate script %s", word.c_str());
+            if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word.c_str());
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
             definitions_.push_back(*decl);

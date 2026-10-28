@@ -135,7 +135,7 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
 // --- Create --------------------------------------------------------------------------------------
 
 void CExchangeScreen::CreateScreen() {
-    LoadTexture("campinfo", 3, nullptr);
+    LoadTexture("campinfo", 3);
     CUiRegion* region = AddRegion();
     region->SetRect(12, 450, 52, 490);
     region->SetTip(0xA028, 1, 0);
@@ -146,12 +146,12 @@ void CExchangeScreen::CreateScreen() {
     region->SetRect(740, 460, 780, 490);
     region->SetTip(0xA02B, 1, 0);
     // The buttons: accept, take back, a hidden one, leave (shaded).
-    AddSprite(nullptr)->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
-    AddSprite(nullptr)->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
-    CUiMesh* sprite = AddSprite(nullptr);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 12.0f, 450.0f, 52.0f, 490.0f, 0xA5, 0xAC, 0xCD, 0xD4);
+    AddBlankSprite()->SetRectangle(3.0f, 100.0f, 148.0f, 450.0f, 188.0f, 490.0f, 0xA5, 0xD6, 0xCD, 0xFE);
+    CUiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(3.0f, 100.0f, 12.0f, 150.0f, 52.0f, 190.0f, 0xA5, 0xAC, 0xCD, 0xD4);
     sprite->visible_ = 0;
-    sprite = AddSprite(nullptr);
+    sprite = AddBlankSprite();
     sprite->SetRectangle(3.0f, 100.0f, 740.0f, 460.0f, 780.0f, 490.0f, 0x7D, 0xE0, 0xA5, 0xFE);
     sprite->tint_[0] = 0.5f;
     sprite->tint_[1] = 0.5f;

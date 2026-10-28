@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include <string>
+#include <string_view>
 
 
 class GameBuffer;
@@ -13,7 +14,7 @@ class GameBuffer;
 std::string* MapsFolder(std::string* out);
 // The full path of the map file `name`, into `out`: `name` as it is
 // when its second character is ':' (a drive), else under the maps folder. Returns `out`.
-std::string* MapPath(std::string* out, const char* name);
+std::string* MapPath(std::string* out, std::string_view name);
 // Whether the maps folder has a file `name` (lib::FileFind::FindFile).
 bool MapFileExists(const char* name);
 // Called by the client's file chunk handler. Writes what `buffer` holds (from its start to the highest

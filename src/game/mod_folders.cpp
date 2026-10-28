@@ -314,7 +314,7 @@ const std::vector<std::string>& FigureArchives() { return Config().figures; }
 const std::vector<std::string>& TextureArchives() { return Config().textures; }
 
 
-void SelectMaps(const char* name, MapsSite site) {
+void SelectMaps(std::string_view name, MapsSite site) {
     if (!Active(Patch::Maps)) return;
     Lock lock;
     const MapsListing& maps = Maps();
@@ -324,9 +324,8 @@ void SelectMaps(const char* name, MapsSite site) {
     }
     // 1001B2AC: _stricmp against every name.
     g_mapsInMod = false;
-    if (!name) return;
     for (const std::string& listed : maps.names) {
-        if (_stricmp(listed.c_str(), name) == 0) {
+        if (listed.size() == name.size() && _strnicmp(listed.data(), name.data(), name.size()) == 0) {
             g_mapsInMod = true;
             return;
         }

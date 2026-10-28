@@ -130,10 +130,10 @@ private:
 // fopen: `mode` is r, w or a, then optionally + and b or t (text when neither). The file is opened by
 // CreateFileA through its slot, shared for reading and writing, then becomes a host stream; null when
 // either fails.
-std::FILE* OpenFile(const char* path, const char* mode);
+std::FILE* OpenFile(const std::string& path, const char* mode);
 
 // Whether `path` names a file or folder (GetFileAttributesA through its slot; the original's _access
 // with mode 0 or 4).
-bool FileExists(const char* path);
+bool FileExists(const std::string& path);
 
 } // namespace lib

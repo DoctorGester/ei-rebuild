@@ -337,7 +337,6 @@ public:
     // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else <data
     // path>textures\<name>.mmp on disk.
     int LoadTexture(CTexture* texture);
-    int LoadTextureFrom(CTexture* texture, const char* directory);
     // From <data path>textures\ on disk, else from the archives. Returns 0 (and an empty buffer) when neither
     // has the file.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
@@ -358,11 +357,11 @@ public:
     // and a tenth of the local video memory for textures.
     void SetDevice(CTextureDevice* device);
     // Taken out of the cache and registered again; null when there is none.
-    CTexture* TakeFromCache(int type, const char* name);
+    CTexture* TakeFromCache(int type, std::string_view name);
     // The registered texture, else a cached one taken back as TakeFromCache does (but cachedBytes_ is not
     // lowered).
-    CTexture* FindTexture(const char* name);
-    CTexture* FindTypedTexture(int type, const char* name);
+    CTexture* FindTexture(std::string_view name);
+    CTexture* FindTypedTexture(int type, std::string_view name);
     void FreeCache();
     // Each layer a `width` x `width` .mmp from the archives; a missing one is skipped, one of another size is
     // a fatal error (its result returned). Returns the layers drawn.
@@ -375,9 +374,9 @@ public:
     MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);
     // Given `name` either way (no null check). Not loaded.
-    CTexture* FindOrCreate(int type, const char* name);
+    CTexture* FindOrCreate(int type, std::string_view name);
     // FindTexture(name) as it is; else FindOrCreate's texture, loaded.
-    CTexture* FindOrLoad(int type, const char* name);
+    CTexture* FindOrLoad(int type, std::string_view name);
     // Deletes the oldest cached textures while the cache holds more than videoMemoryTenth_ (signed).
     void TrimCache();
 

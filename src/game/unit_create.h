@@ -93,7 +93,7 @@ struct CMapObjectManager : CResourceManager {
     // the same name supplies stats, attributes, experience and skills when there is one).
     // Without a prototype: SetDefaults. Returns 0 when `vitals` or `stats` is null (after the
     // lookups), else 1.
-    int BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name);
+    int BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, std::string_view name);
     // Gives map object `object` the prototype `name`: units get their vitals and statistics
     // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,

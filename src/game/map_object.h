@@ -106,7 +106,7 @@ public:
     virtual void ScaleEffectChanged(int scaleEffect);
     // The prototype by name (units: their statistics). Here the vitals of `prototype` are packed into the
     // rounded vitals, from a local the original does not clear either.
-    virtual void TakePrototype(const char* prototype);
+    virtual void TakePrototype(std::string_view prototype);
     // Empty; units: a CUnitServer controller (class 0x3E) copies the statistics (CUnitServer::SetStats).
     virtual void SetStats(const UnitStats* stats);
     // Hands `data` to a CMapObjectServer companion.

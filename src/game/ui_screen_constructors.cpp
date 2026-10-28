@@ -47,7 +47,7 @@ CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
 CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     rect_ = RECT{250, 440, 550, 600};
     count_ = 0;
-    AddSprite(0)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }
 
 // --- Its destructor -----------------------------------------------------------------------------------

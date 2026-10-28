@@ -40,7 +40,7 @@ void CInterface3D::StopSound(int handle) {
     if (handle != kNoSound) TheSoundManager()->StopSound(handle);
 }
 
-void CInterface3D::ConsoleAddText(const char* text) {
+void CInterface3D::ConsoleAddText(std::string_view text) {
     if (console_) console_->AddText(text);
 }
 

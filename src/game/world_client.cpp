@@ -285,7 +285,7 @@ void CWorldClient::OnQuestVariable(std::string_view variable, float value) {
     if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
 
-std::string CWorldClient::ObjectVariableName(const char* name) {
+std::string CWorldClient::ObjectVariableName(std::string_view name) {
     std::string variable = QuestPrefixText();
     variable += LocalPlayerZone();
     variable += DotText();

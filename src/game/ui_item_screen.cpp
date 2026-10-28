@@ -60,7 +60,7 @@ void TrimItemCache(ItemObjectCache<Object>* cache) {
 // --- The icon window's frame -------------------------------------------------------------
 
 void CItemIconWindow::Build() {
-    auto sprite = [this] { return AddSprite(0); };
+    auto sprite = [this] { return AddBlankSprite(); };
     sprite()->SetGridVanilla(8.0f, 100.0f, 0.0f, 100.0f, 800.0f, 500.0f, 0xE, 0xE, 0x72, 0x72, 8, 4);
     // Four 200-wide columns: two side strips, and corners at the top and bottom of each half.
     for (int x = 0; x < 800; x += 200) {
@@ -105,8 +105,8 @@ void CItemScreen::CreateBase() {
     AddChild(icons);
     iconWindow_->AddObject(objects_[0]);
     iconWindow_->Build();
-    LoadTexture("modifiers2", 3, 0);
-    LoadTexture("campslots", 3, 0);
+    LoadTexture("modifiers2", 3);
+    LoadTexture("campslots", 3);
     SceneRenderer()->fogColour_ = 0;
     SceneRenderer()->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (20 with little texture memory).

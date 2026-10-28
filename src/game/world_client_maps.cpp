@@ -1013,7 +1013,7 @@ int CWorldClient::LoadZone(CStream* block) {
     UnitLooks looks;
     ReadUnitLooks(block, &looks.figured, &looks.dressed);
     cave_ = cave;
-    GameEnsureZone(map.c_str(), mob.c_str());
+    GameEnsureZone(map, mob);
     ShowLoadingMovie(kProgressBlockRead);
 
     bloodPrints_.clear();
@@ -1028,7 +1028,7 @@ int CWorldClient::LoadZone(CStream* block) {
     Terrain* terrain = terrain_;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {
         std::string folder;
-        modfolders::SelectMaps(map.c_str(), modfolders::MapsSite::ClientLoadZone);
+        modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         MapsFolder(&folder);
         map = folder + map;
     }
@@ -1044,7 +1044,7 @@ int CWorldClient::LoadZone(CStream* block) {
     allod = worlddata::DefaultAllodText();
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
-    if (!terrain->LoadMap(map.c_str(), allod.c_str(), cave == kCave))
+    if (!terrain->LoadMap(map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), map.c_str());
 
     FitGrid(objectGrid_, terrain);

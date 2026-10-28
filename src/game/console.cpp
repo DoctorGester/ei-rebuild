@@ -40,6 +40,7 @@ Stream& Stream::operator<<(const char* text) {
     buffer_->Write(text);
     return *this;
 }
+Stream& Stream::operator<<(const std::string& text) { return *this << text.c_str(); }
 Stream& Stream::operator<<(char c) {
     buffer_->Put(c);
     return *this;
@@ -100,7 +101,7 @@ void ConsoleStreambuf::Overflow(int c) {
 void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
-    g_interface->ConsoleAddText(line_.c_str());
+    g_interface->ConsoleAddText(line_);
     line_ = game::kEmptyText;
 }
 
@@ -140,14 +141,14 @@ const CommandRegistration kCommandRegistrations[27] = {
 // "$" lines (cheat word given, not in a network game) become WorldScript lines. Other commands and
 // their arguments are lower-cased; "quit"/"exit" quit; otherwise the public map is tried, then the
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
-void Execute(const char* text) {
+void Execute(const std::string& text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         std::string name = r.name;
         Command(r.cheat ? &g_cheatCommands.Get() : &g_publicCommands.Get(), name) = r.handler;
     }
 
     std::vector<std::string> args;
-    Tokenize(text, &args);
+    Tokenize(text.c_str(), &args);
     if (args.empty()) return;
     std::string command = args[0];
     args.erase(args.begin());
@@ -243,7 +244,7 @@ void RunScriptLine(const std::string& text, const std::vector<std::string>& args
     }
     line += suffix;
     if (!RunScriptText(line, 1, &error))
-        EndLine(g_consoleOut << "Script error: " << error.text.c_str());
+        EndLine(g_consoleOut << "Script error: " << error.text);
 }
 
 } // namespace console

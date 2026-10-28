@@ -364,10 +364,10 @@ struct CMusicSystem : CEngineObject {
     int LoadThemes();
     void SetZoneMode(const char* allod, int dungeon);
     void Stop();
-    void PlayBriefing(const char* allod);
-    void PlayConstructor(const char* allod);
+    void PlayBriefing(std::string_view allod);
+    void PlayConstructor(std::string_view allod);
     void PlayMainMenu();
-    void PlayJingle(const char* name);
+    void PlayJingle(std::string_view name);
     int UpdateMusic();
 
     // Credits / main menu / jingle / combat track "none".

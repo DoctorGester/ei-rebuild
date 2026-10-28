@@ -94,7 +94,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
     }
     CopyImage(objects_[std::ssize(objects_) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 
-    CUiMesh* sprite = AddSprite(model.c_str());
+    CUiMesh* sprite = AddSprite(model);
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
@@ -106,7 +106,7 @@ void CChatWindow::AddPortrait(const std::string& model, std::string_view texture
         sprite->localRotation_ =
             *turn.SetAxisAngle(axis, 3.1415927f /*007410D0*/ * 1.05f /*0073CEE0*/);
     } else {
-        sprite = AddSprite(nullptr);
+        sprite = AddBlankSprite();
         sprite->SetRectangle(7.0f, 100.0f, static_cast<float>(left), 0.0f, static_cast<float>(right), 60.0f, 0, 0, 0x80,
                              0x80);
     }
@@ -159,7 +159,7 @@ void CChatWindow::ShowPlayers() {
             figure = unitdb::ModelNamed(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
-        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName.c_str()) : SameText(figure->figureName, "unhuma"))
+        if (fixes ? !pluginfixes::ModelIsFemale(figure->figureName) : SameText(figure->figureName, "unhuma"))
             sex = "m";
         else if (fixes || SameText(figure->figureName, "unhufe"))
             sex = "f";

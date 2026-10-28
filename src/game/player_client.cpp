@@ -304,14 +304,14 @@ int CPlayerClient::OnZoneChange() {
     ReadText(&zone);
     int entrance;
     in_.Read(&entrance, 4);
-    g_gameFlow->RequestZoneChange(zone.c_str(), entrance);
+    g_gameFlow->RequestZoneChange(zone, entrance);
     return 1;
 }
 
 int CPlayerClient::OnJingle() {
     std::string name;
     in_.ReadString(&name);
-    TheMusicSystem()->PlayJingle(name.c_str());
+    TheMusicSystem()->PlayJingle(name);
     return 1;
 }
 
@@ -593,12 +593,12 @@ int CPlayerClient::OnNewObject() {
     // (The client world's two functions around the texture swap are empty.)
     figure->PlayAnimationSecond(0, nullptr);   // (the original passes the model name as the unused argument)
     figure->RestartPose();
-    const char* to = textureTo;
+    std::optional<std::string_view> to = std::string_view(textureTo);
     if (created->type_ == kTypeHumanoid) {
         std::snprintf(textureFrom, sizeof(textureFrom), TextSkinFrom(), created->id_);
         std::snprintf(textureTo, sizeof(textureTo), TextSkinTo(), created->id_);
     } else if (Same(textureTo, TextNone())) {
-        to = nullptr;
+        to = std::nullopt;
     }
     attached->SetSkins(textureFrom, to);
     if (isUnit) created->SetScriptName(scriptName);
@@ -609,14 +609,14 @@ int CPlayerClient::OnNewObject() {
     player->knownObjects_[header.id] = object;
     ++created->refCount_;
     if (CUnit* unit = UnitOrNull(created))
-        object->TakePrototype(unit->GetPrototype()->name.c_str());
+        object->TakePrototype(unit->GetPrototype()->name);
     else
         object->TakePrototype(model);
     object->WriteFullState();
     if (object->ReadState(0, &in_) == 0) return 0;
     g_clientWorld->AddObject(object);
     if (object->name2[0] != 0) {
-        const std::string variable = g_clientWorld->ObjectVariableName(object->name2.c_str());
+        const std::string variable = g_clientWorld->ObjectVariableName(object->name2);
         object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
     }
     if (player->sessionKind_ == kSessionClient) {

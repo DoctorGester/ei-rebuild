@@ -102,14 +102,14 @@ MmpHeader* CTextureManager::GetFileData(std::string_view name) { return static_c
 
 CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }
 
-CTexture* CTextureManager::FindOrCreate(int type, const char* name) {
+CTexture* CTextureManager::FindOrCreate(int type, std::string_view name) {
     CTexture* texture = FindTypedTexture(type, name);
     if (!texture) texture = NewTextureOfType(type);
     texture->name_ = name;
     return texture;
 }
 
-CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
+CTexture* CTextureManager::FindOrLoad(int type, std::string_view name) {
     if (CTexture* found = FindTexture(name)) return found;
     CTexture* texture = FindTypedTexture(type, name);
     if (!texture) texture = NewTextureOfType(type);

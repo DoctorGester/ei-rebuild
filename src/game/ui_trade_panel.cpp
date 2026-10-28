@@ -66,7 +66,7 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 // The coin sprite after a price: texels (0x7C, 0x8A)-(0xA4, 0x99) between x `left` and `right`,
 // the row's height lower by 100 (the panel's layout offset).
 void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
-    CUiMesh* sprite = panel->AddSprite(0);
+    CUiMesh* sprite = panel->AddBlankSprite();
     sprite->SetRectangle(6.0f, 100.0f, left, static_cast<float>(row.top + 100), right,
                          static_cast<float>(row.bottom + 100), 0x7C, 0x8A, 0xA4, 0x99);
 }
@@ -294,10 +294,10 @@ void CTradePanel::Build() {
     for (int y = 135; y < 480; y += 15) AddRect(this, 415, y, 585, y + 15);
     for (int y = 330; y < 480; y += 15) AddRect(this, 215, y, 385, y + 15);
 
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 320.0f, 380.0f, 330.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 360.0f, 480.0f, 380.0f, 490.0f, 0x82, 0xD, 0x96, 3);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 125.0f, 580.0f, 135.0f, 0x82, 3, 0x96, 0xD);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 560.0f, 480.0f, 580.0f, 490.0f, 0x82, 0xD, 0x96, 3);
 
     CTextManager* table = GameClientTexts();
     {

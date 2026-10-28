@@ -122,18 +122,18 @@ void CBriefingScreen::ShowItem(std::string_view name, int index, int unused) {
     CUiMesh* back = nullptr;
     CUiMesh* frame = nullptr;
     if (index < kSlots) {
-        back = AddSprite(nullptr);
+        back = AddBlankSprite();
         back->SetRectangle(20.0f, 100.0f, x - kSlotBack, y - kSlotBack, x + kSlotBack, y + kSlotBack, 0, 0, 0x100, 0x100);
         back->texture_ = nullptr;
         back->flags_ |= kPlainFlag;
         back->flatColour_ = kSlotBackdrop;
-        frame = AddSprite(nullptr);
+        frame = AddBlankSprite();
         frame->SetFrame(20.0f, 100.0f, x - kSlotFrame, y - kSlotFrame, x + kSlotFrame, y + kSlotFrame, 5.0f, 2, 0xFE, 0xB4,
                         0xF9);
     }
     std::string figure;
     figure = str::Format(ItemFigureFormat(), record->number);
-    CUiMesh* item = AddSprite(figure.c_str());
+    CUiMesh* item = AddSprite(figure);
     if (!item) {
         if (back) RemoveSceneObject(back);
         if (frame) RemoveSceneObject(frame);

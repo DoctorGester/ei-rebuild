@@ -91,7 +91,8 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 
 // ---- .mob object files ------------------------------------------------------------------------
 
-int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
+int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
+    const std::string file(fileName);
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
     auto* fileObject = &root->file_;
@@ -100,11 +101,11 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     MapPath(&path, file);
     int result;
     if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
-        result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
+        result = game::FatalError(game::zonetexts::CantOpenObjects(), file.c_str());
     } else {
         bool read = root->Load(this, keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
+        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file.c_str());
     }
     return result;   // the file closed with the root
 }
@@ -176,10 +177,10 @@ void CWorldServer::SaveMapObjects(CStream* out) {
 
 // ---- Loading movie -------------------------------------------------------------------
 
-void SelectLoadingMovie(const char* zone) {
+void SelectLoadingMovie(std::optional<std::string_view> zone) {
     std::string allod;
     if (zone) {
-        MapRecord* map = g_mapDatabase->FindMap(zone);
+        MapRecord* map = g_mapDatabase->FindMap(*zone);
         if (map) allod = map->allod;
     }
     if (SameName(allod, "gipat")) {
@@ -198,7 +199,7 @@ void SelectLoadingMovie(const char* zone) {
         }
     }
     if (zone) {
-        if (text::CompareIgnoringCase(zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";
-        if (text::CompareIgnoringCase(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
+        if (text::CompareIgnoringCase(*zone, "gz1g") == 0) app::g_loadingMovieName = "progres1.bik";
+        if (text::CompareIgnoringCase(*zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
     }
 }

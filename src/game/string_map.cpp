@@ -32,12 +32,12 @@ void DrawString(HDC dc, const std::string& s, RECT* rect) {
 
 // Table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
-void CDebugPanel::Set(const char* key, const char* value) {
+void CDebugPanel::Set(std::string_view key, std::string_view value) {
     entries_[std::string(key)].assign(value);
 }
 
 // Removes `key`.
-void CDebugPanel::Remove(const char* key) {
+void CDebugPanel::Remove(std::string_view key) {
     entries_.erase(std::string(key));
 }
 

@@ -72,7 +72,7 @@ void DrawLabel(CUiSurface* surface, std::string_view text, RECT* rect, int forma
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
 // would hit the CRT's invalid parameter handler, here it is cut at a character's end) and
 // is drawn with an ellipsis.
-void DrawEllipsis(CUiSurface* surface, const char* text, RECT* rect, int format) {
+void DrawEllipsis(CUiSurface* surface, std::string_view text, RECT* rect, int format) {
     char buffer[kExtendedTextSize];
     text::CopyFitting(buffer, kExtendedTextSize, text);
     DrawLabel(surface, buffer, rect, format | kFormatEllipsis);
@@ -159,14 +159,14 @@ void CMpConnectScreen::DrawListVanilla() {
             // The new game: its name as typed.
             text = str::Format("%s %s", label(7), nameEdit_->text_.c_str());
             if (extended)
-                DrawEllipsis(surface, text.c_str(), &row, kFormatNoPrefix);
+                DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
                 DrawLabel(surface, text, &row, kFormatNoPrefix);
         } else {
             if (extended) {
                 RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
                 nameRect.right = kExtendedNameRight;
-                DrawEllipsis(surface, entry.name.c_str(), &nameRect, kFormatNoPrefix);
+                DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
             } else {
                 DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
             }

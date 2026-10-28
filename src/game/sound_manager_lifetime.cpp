@@ -117,7 +117,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
-        m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
+        m->streamReader.OpenFile(path, &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
         CodecClose(m);

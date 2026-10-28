@@ -64,7 +64,6 @@ inline const char* DecimalFormat() { return "%d"; }
 inline const char* FlyingHitPointsTextureText() { return "CFlyingHitPoints::Draw.\n SetTexture failed.\n"; }
 
 // The figure manager's file names (figure_manager.cpp), its FatalError and a bone's animation extension.
-inline const char* FigFileFormat() { return "%s.fig"; }
 inline const char* FigPathFormat() { return "%s%s.fig"; }
 inline const char* CantOpenFigText() { return "Can't open file \"%s%s.fig\"\n"; }
 inline const char* AstExtensionText() { return ".ast"; }

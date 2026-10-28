@@ -83,7 +83,7 @@ public:
     // Rebirth redirects its ListFiles call; this is the vanilla body. The ambient sound set is "Dungeon" when
     // `dungeon`, else "Ingos" / "Suslanger" by `zone`, else "Gipat". 0 when the archive does not open or a
     // texture does not load; a missing or malformed map file is FatalError's result after ClearMap.
-    int LoadMap(const char* path, const char* zone, char dungeon);
+    int LoadMap(std::string_view path, std::string_view zone, char dungeon);
     // Per vertex of a sector (33 x 33): two tiles across a tile edge, four at a corner, one inside.
     void BuildVertexTiles();
     // No map: sizes -1, mapLoaded 0.

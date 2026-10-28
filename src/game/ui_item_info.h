@@ -32,10 +32,10 @@ void ItemDamageLists(const float* values, std::vector<std::string>* out, char in
 // A new 256 x 256 texture (texture manager, format 0x20, counted) holding image "<name>.mmp" decoded and
 // packed to 1:5:5:5 at the bottom left (rows of 512 bytes), or white when there is no such image; null when
 // it cannot be made or locked.
-CTexture* ItemFigureTexture(const char* name);
+CTexture* ItemFigureTexture(std::string_view name);
 // The model manager's object `name`, or a 100 x 100 interface sprite standing in for it; counted (one
 // reference for the caller).
-CUiMesh* ItemModel(const char* name);
+CUiMesh* ItemModel(std::string_view name);
 
 // An item drawn as a turning model in a cell (DrawItem's argument).
 struct ItemCell {

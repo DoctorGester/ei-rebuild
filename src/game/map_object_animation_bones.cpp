@@ -110,7 +110,7 @@ FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
     return nullptr;
 }
 
-int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, const char* parentName) {
+int CFigureAnimationState::LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName) {
     CBaseManager* manager = FigureManagerOf(this);
     auto* bone = manager->CreateObjectAs<FigureBone>(kBoneClass, -1);
     bone->name = child;

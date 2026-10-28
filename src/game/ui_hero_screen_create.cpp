@@ -88,7 +88,7 @@ bool ModelNameIsFemale(const std::string& model) {
 
 void CMpHeroScreen::CreateScreen() {
     g_gameFlow->UseResources(true);
-    LoadTexture("campinfo", kTextureKind, nullptr);
+    LoadTexture("campinfo", kTextureKind);
     CUiModel* model = AddModel();
     model->Load("unmoco2", "MainMenu00", "MainMenu00labels");
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
@@ -116,10 +116,10 @@ void CMpHeroScreen::CreateScreen() {
     region(180, 184, 310, 208);
 
     CreateBase();
-    LoadTexture("saveload", kTextureKind, nullptr);
+    LoadTexture("saveload", kTextureKind);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* added = AddSprite(nullptr);
+        CUiMesh* added = AddBlankSprite();
         added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
@@ -138,10 +138,10 @@ void CMpHeroScreen::CreateScreen() {
         frame->visible_ = 0;
     }
     // 3-6: the quarters of the frame around the figure.
-    LoadTexture("campm1", kTextureKind, nullptr);
-    LoadTexture("campm2", kTextureKind, nullptr);
-    LoadTexture("campm3", kTextureKind, nullptr);
-    LoadTexture("campm4", kTextureKind, nullptr);
+    LoadTexture("campm1", kTextureKind);
+    LoadTexture("campm2", kTextureKind);
+    LoadTexture("campm3", kTextureKind);
+    LoadTexture("campm4", kTextureKind);
     sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture);
     sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 1);
     sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 2);
@@ -152,7 +152,7 @@ void CMpHeroScreen::CreateScreen() {
     sprite(3.0f, 740.0f, 430.0f, 780.0f, 470.0f, 0x2B, 0x98, 0x53, 0xC0);
     // 10-12: the frames; 13, 14: the backgrounds of the commands and of the list.
     auto frame = [this, &texture](float left, float top, float right, float bottom) {
-        CUiMesh* added = AddSprite(nullptr);
+        CUiMesh* added = AddBlankSprite();
         added->SetFrame(2.0f, 100.0f, left, top, right, bottom, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         added->texture_ = texture(kSaveLoadTexture);
     };

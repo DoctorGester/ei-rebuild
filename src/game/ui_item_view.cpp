@@ -49,7 +49,7 @@ std::uint32_t PackColour(const float* rgb) {
 // The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
 // least recently used entries beyond its limit. Null when it cannot be made. `make` is the object's maker.
 template <typename Object>
-Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (*make)(const char*)) {
+Object* CachedObject(ItemObjectCache<Object>* cache, std::string_view name, Object* (*make)(std::string_view)) {
     auto node = cache->map.find(std::string(name));
     if (node != cache->map.end()) {
         node->second.lastUse = gameapi::timeGetTime();
@@ -67,8 +67,8 @@ Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (
     TrimItemCache(cache);
     return object;
 }
-CUiMesh* CachedModel(ItemModelCache* cache, const char* name) { return CachedObject(cache, name, ItemModel); }
-CTexture* CachedTexture(ItemTextureCache* cache, const char* name) { return CachedObject(cache, name, ItemFigureTexture); }
+CUiMesh* CachedModel(ItemModelCache* cache, std::string_view name) { return CachedObject(cache, name, ItemModel); }
+CTexture* CachedTexture(ItemTextureCache* cache, std::string_view name) { return CachedObject(cache, name, ItemFigureTexture); }
 
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 in that order, stored as
 // float.
@@ -192,12 +192,12 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     CUiMesh* model;
     {
         std::string name = item->PictureName();
-        model = CachedModel(&models_, name.c_str());
+        model = CachedModel(&models_, name);
     }
     CTexture* texture;
     {
         std::string name = item->FigureName();
-        texture = CachedTexture(&textures_, name.c_str());
+        texture = CachedTexture(&textures_, name);
     }
     if (!model || !texture) return;
 
@@ -266,7 +266,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         }
 
         float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
-        CUiMesh* frame = AddSprite(0);
+        CUiMesh* frame = AddBlankSprite();
         double half = D(35.0f /*007403E0*/);
         frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                             static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
@@ -286,7 +286,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
         float scale = model->GetScaleX();
-        CUiMesh* mark = AddSprite(0);
+        CUiMesh* mark = AddBlankSprite();
         mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);
         mark->texture_ = objects_[1];
@@ -323,7 +323,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     if (cell->mode != 9 && !CanEquip(item, cell->mode)) {
         float depth = static_cast<float>(D(cell->depth) * D(1.25f /*0073CF50*/));
         if (LiesFlat(item)) depth = static_cast<float>(D(cell->depth) * D(0.8f /*0073CCA8*/));
-        CUiMesh* shade = AddSprite(0);
+        CUiMesh* shade = AddBlankSprite();
         double half = D(35.0f /*007403E0*/);
         shade->SetRectangle(depth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                             static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0, 0, 0x100, 0x100);
@@ -378,8 +378,8 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     std::string modelName, textureName;
     FaceNames(cell->prototype, &modelName, &textureName);
-    CUiMesh* model = CachedModel(&models_, modelName.c_str());
-    CTexture* texture = CachedTexture(&textures_, textureName.c_str());
+    CUiMesh* model = CachedModel(&models_, modelName);
+    CTexture* texture = CachedTexture(&textures_, textureName);
     if (!model || !texture) return;
 
     model->texture_ = texture;
@@ -395,7 +395,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     SetOrientation(model, *MultiplyQuaternions(&orientation, &tilt, &turn));
 
     float frameDepth = static_cast<float>(D(cell->depth) * D(1.3f /*0073FF20*/));
-    CUiMesh* frame = AddSprite(0);
+    CUiMesh* frame = AddBlankSprite();
     double half = D(35.0f /*007403E0*/);
     frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                         static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
@@ -407,7 +407,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
 
 // --- An item's figure texture -------------------------------------------------------------
 
-CTexture* ItemFigureTexture(const char* name) {
+CTexture* ItemFigureTexture(std::string_view name) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
@@ -415,8 +415,7 @@ CTexture* ItemFigureTexture(const char* name) {
     CDXSurface* holder = texture->surface_;
     const MmpHeader* image;
     {
-        std::string base(name);
-        std::string file = base + ".mmp";
+        std::string file = std::string(name) + ".mmp";
         image = manager->GetFileData(file);
     }
     int width, height;

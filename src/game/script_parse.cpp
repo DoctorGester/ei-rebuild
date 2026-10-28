@@ -447,18 +447,16 @@ std::string* CScript::QualifyName(std::string* out, const std::string& name) {
     return out;
 }
 
-int CScript::FindScript(const char* name) {
+int CScript::FindScript(std::string_view name) {
     for (;;) {
         const std::vector<ScriptDefinition>& scripts = definitions_;
         for (std::size_t i = 0; i < scripts.size(); ++i)
             if (Mbscmp(scripts[i].name, name) == 0) return static_cast<int>(i);
         // Not found: retry without the leading "!<file>!" qualification.
-        if (*name != '!') return -1;
-        do {
-            ++name;
-            if (!*name) return -1;
-        } while (*name != '!');
-        ++name;
+        if (name.empty() || name[0] != '!') return -1;
+        const std::size_t close = name.find('!', 1);
+        if (close == std::string_view::npos) return -1;
+        name.remove_prefix(close + 1);
     }
 }
 

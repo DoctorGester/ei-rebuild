@@ -469,8 +469,8 @@ void CMpConnectScreen::RebuildList() {
 
 void CMpConnectScreen::CreateScreen() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
-    LoadTexture(ScrollbarTexture(), kTextureKind, nullptr);
+    LoadTexture(SaveLoadTexture(), kTextureKind);
+    LoadTexture(ScrollbarTexture(), kTextureKind);
     CUiModel* model = AddModel();
     model->Load(MenuModel(), MenuTexture(), MenuLabels());
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
@@ -500,7 +500,7 @@ void CMpConnectScreen::CreateScreen() {
     region(334, 106, 375, 127, 0);
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* added = AddSprite(nullptr);
+        CUiMesh* added = AddBlankSprite();
         added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return added;
     };
@@ -516,7 +516,7 @@ void CMpConnectScreen::CreateScreen() {
     plain(sprite(3.0f, 108.0f, 108.0f, extended ? kExtendedSelectionRight : 370.0f, 132.0f, 0, 0, 0x100, 0x100),
           kSelectionColour);
     {
-        CUiMesh* arrow = AddSprite(nullptr);
+        CUiMesh* arrow = AddBlankSprite();
         arrow->texture_ = objects_[kScrollbarTexture];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible_ = 0;
@@ -540,9 +540,9 @@ void CMpConnectScreen::CreateScreen() {
     hostPassword_.clear();
     for (int top = 444; top < 492; top += 24)
         sprite(3.0f, 490.0f, static_cast<float>(top), 620.0f, static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
-    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
     plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, 0x100, 0x100), kBackColour);
     plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
@@ -639,7 +639,7 @@ void CMpConnectScreen::CreateScreen() {
 CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
                                      const net::NetAddress* address, std::uint32_t extra)
     : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link_(address) {
-    bar_ = AddSprite(nullptr);
+    bar_ = AddBlankSprite();
     bar_->texture_ = nullptr;
     bar_->flags_ |= kPlainSprite;
     bar_->flatColour_ = kBarColour;

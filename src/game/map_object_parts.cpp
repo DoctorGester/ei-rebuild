@@ -131,7 +131,7 @@ double CObject3D::AnimationFactor(float time) {
     return animations->TimeFactor(time);
 }
 
-int CObject3D::FindPartIndex(const char* partName) {
+int CObject3D::FindPartIndex(std::string_view partName) {
     for (std::size_t i = 0; i < partNames.size(); ++i)
         if (str::Compare(partNames[i], partName) == 0) return static_cast<int>(i);
     return -1;

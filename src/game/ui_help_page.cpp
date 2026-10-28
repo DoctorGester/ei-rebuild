@@ -159,16 +159,16 @@ void CHelpWindow::ShowPage() {
     texts->cursor_ = resume;
 
     // Scene objects 0 the background, 1 the frame, 2-4 the previous, OK and next buttons.
-    CUiMesh* back = AddSprite(nullptr);
+    CUiMesh* back = AddBlankSprite();
     SetPlain(back, message_ ? 0xFF282313 : 0xFF211B11);
-    CUiMesh* frame = AddSprite(nullptr);
+    CUiMesh* frame = AddBlankSprite();
     if (message_) frame->textureOffsetV_ = 0.02734375f;
-    CUiMesh* previous = AddSprite(nullptr);
+    CUiMesh* previous = AddBlankSprite();
     if (page_ <= 0) previous->visible_ = 0;
     SetTint(previous, 0.6f);
-    CUiMesh* ok = AddSprite(nullptr);
+    CUiMesh* ok = AddBlankSprite();
     if (page_ < static_cast<int>(lines_.size()) - 1) SetTint(ok, 0.6f);
-    CUiMesh* next = AddSprite(nullptr);
+    CUiMesh* next = AddBlankSprite();
     if (page_ >= static_cast<int>(lines_.size()) - 1) next->visible_ = 0;
 
     // Surface 0: the page's title and the topic's with the page's number.
@@ -196,7 +196,7 @@ void CHelpWindow::ShowPage() {
             const int shift = TutorialFrameShift(this);
             const int left = str::ToInt(words[1]) + shift;
             const int right = str::ToInt(words[3]) + shift;
-            CUiMesh* mark = AddSprite(nullptr);
+            CUiMesh* mark = AddBlankSprite();
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
@@ -239,7 +239,7 @@ void CHelpWindow::ShowPage() {
                         CopyImage(objects_[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
-                    CUiMesh* picture = AddSprite(nullptr);
+                    CUiMesh* picture = AddBlankSprite();
                     picture->SetRectangle(3.0f, 100.0f, 0.0f, 0.0f, 64.0f, 64.0f, 0, 0, kPictureSize, kPictureSize);
                     picture->textureOffsetU_ = static_cast<float>(cellX) * Texel();
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();

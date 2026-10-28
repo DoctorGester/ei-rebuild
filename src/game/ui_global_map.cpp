@@ -91,7 +91,7 @@ void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->local
 void SetWhite(CUiMesh* sprite) {
     for (float& tint : sprite->tint_) SetBits(tint, 0x3F800000);
 }
-CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name.c_str()); }
+CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name); }
 
 // The window's helpers bound to its fields.
 class MapBuilder {
@@ -126,7 +126,7 @@ public:
         return sprite;
     }
     CUiMesh* Layer(std::uint32_t v0, std::uint32_t u1, std::uint32_t v1, float height) const {
-        CUiMesh* sprite = map_->AddSprite(0);
+        CUiMesh* sprite = map_->AddBlankSprite();
         sprite->SetRectangle(25.0f, 100.0f, 700.0f, 0.0f, 100.0f, 600.0f, 0, static_cast<int>(v0),
                              static_cast<int>(u1), static_cast<int>(v1));
         SetTexture(sprite, Texture(4));
@@ -207,18 +207,18 @@ void CGlobalMap::CreateScreen() {
     AllodRecord* allod = g_mapDatabase->FindAllod(current->allod);
     {
         std::string title;
-        allodTitle_ = *AllodTitle(&title, allod->name.c_str());
+        allodTitle_ = *AllodTitle(&title, allod->name);
     }
     {
         Vector3 position;
-        ZonePosition(&position, current->name.c_str());
+        ZonePosition(&position, current->name);
         std::memcpy(&position_, &position, 12);
     }
     const std::string& allodName = allod->name;
-    LoadTexture((allodName + "Map").c_str(), 3, 0);
-    LoadTexture((allodName + "Sys").c_str(), 3, 0);
-    LoadTexture((allodName + "MapG").c_str(), 3, 0);
-    LoadTexture("saveload", 3, 0);
+    LoadTexture((allodName + "Map"), 3);
+    LoadTexture((allodName + "Sys"), 3);
+    LoadTexture((allodName + "MapG"), 3);
+    LoadTexture("saveload", 3);
     CreateTexture(0x100, 0x100, 0x21);
     angle_ = 0.0f;
     {
@@ -269,7 +269,7 @@ void CGlobalMap::CreateScreen() {
         zones_[zoneCount_].name = zone->name;
         {
             std::string title;
-            zones_[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
+            zones_[zoneCount_].title = *ZoneTitle(&title, zone->name);
         }
         CUiMesh* sprite = AddFigure(this, zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
@@ -295,11 +295,11 @@ void CGlobalMap::CreateScreen() {
                     quests_[n].zone = i;
                     {
                         std::string title;
-                        quests_[n].title = *QuestTitle(&title, parts[2].c_str());
+                        quests_[n].title = *QuestTitle(&title, parts[2]);
                     }
                     {
                         Vector3 position;
-                        QuestPosition(&position, parts[2].c_str());
+                        QuestPosition(&position, parts[2]);
                         std::memcpy(&quests_[n].position, &position, 12);
                     }
                     CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
@@ -337,11 +337,11 @@ void CGlobalMap::CreateScreen() {
             links_[n].name = way->name;
             {
                 std::string title;
-                links_[n].title = *ZoneTitle(&title, way->name.c_str());
+                links_[n].title = *ZoneTitle(&title, way->name);
             }
             {
                 Vector3 position;
-                ZonePosition(&position, way->name.c_str());
+                ZonePosition(&position, way->name);
                 std::memcpy(&links_[n].position, &position, 12);
             }
             CUiMesh* sprite = AddFigure(this, way->figure);
@@ -379,12 +379,12 @@ void CGlobalMap::CreateScreen() {
         backdrop_->SetRect(0, 0, 800, 600);
     }
     {
-        CUiMesh* shade = AddSprite(0);
+        CUiMesh* shade = AddBlankSprite();
         SetTexture(shade, nullptr);
         SetPlain(shade);
         shade->flatColour_ = 0xA0000000;
         shade->visible_ = 0;
-        CUiMesh* picture = AddSprite(0);
+        CUiMesh* picture = AddBlankSprite();
         picture->visible_ = 0;
         SetTexture(picture, builder.Texture(3));
     }
@@ -394,12 +394,12 @@ void CGlobalMap::CreateScreen() {
         info->Freeze(0, 0);
     }
     {
-        CUiMesh* shade = AddSprite(0);
+        CUiMesh* shade = AddBlankSprite();
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
         SetTexture(shade, nullptr);
         shade->flatColour_ = 0xA0000000;
         SetPlain(shade);
-        CUiMesh* frame = AddSprite(0);
+        CUiMesh* frame = AddBlankSprite();
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
         SetTexture(frame, builder.Texture(3));
     }
@@ -427,15 +427,15 @@ void CGlobalMap::CreateScreen() {
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
     {
-        CUiMesh* camp = AddSprite(0);
+        CUiMesh* camp = AddBlankSprite();
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
         noCamp_ = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable("i.nocamp"))));
         if (noCamp_ == 1) camp->visible_ = 0;
-        CUiMesh* left = AddSprite(0);
+        CUiMesh* left = AddBlankSprite();
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
         SetTexture(left, builder.Texture(3));
-        CUiMesh* right = AddSprite(0);
+        CUiMesh* right = AddBlankSprite();
         right->SetRectangle(3.0f, 100.0f, 737.0f, 537.0f, 785.0f, 585.0f, 0x86, 0x37, 0xB6, 0x67);
         SetTexture(right, builder.Texture(3));
     }
