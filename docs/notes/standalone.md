@@ -433,8 +433,8 @@ kinds given.
   dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
   copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
   file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
-  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
-  readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  cells are gen_image_cells' UNREAD groups); so are the CRT's math function names 00797CC0 (C35h: only its error
+  reporting, not ported, read them). Left: the CRT / MFC tables a static initialiser or the
   CRT's start-up fills (C18q's list below).
 - **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
   225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
@@ -1678,7 +1678,7 @@ the `--no-hooks` suite) keeps the registry.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
-  game_hashes, record_*, library_*). Callers call them by name (libcrt::Qsort ...; no forwarders since C29), and
+  game_hashes, record_*, library_*). Callers call them by name (libcrt::Hypot ...; no forwarders since C29), and
   C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
@@ -1696,9 +1696,15 @@ the `--no-hooks` suite) keeps the registry.
   _mbsicmp by the UTF-8 table), `LowerInPlace` (_mbslwr), `ToLower` / `ToUpper` (ASCII) and `IsDigit` / `IsSpace` /
   `IsAlpha` (no class past ASCII; a negative char has none). _mbsinc is p + 1; _ismbblead and isleadbyte answered 0,
   so the double-byte branches went (the console's tokens, the text reader's characters, the word wrap, the chat
-  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). memmove, memcpy, memset, strstr,
-  wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _ismbcspace, atoi, _itoa and _splitpath are the host's, called by
-  their own names. Both suites goldens the same, though the host's compares return a difference rather than VC6's
+  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). str.h's searches and trims
+  (C35i) are std::strchr / strstr / strrchr / strpbrk and text::IsSpace where CString called _mbschr / _mbsstr /
+  _mbsrchr / _mbspbrk / _ismbcspace: with no lead bytes those are the byte functions (strchr takes the char's byte,
+  also of _tcschr's sign-extended char) and ASCII's white space (a negative char has none). Checked old against new
+  (C35i, the scratch mbs_equiv.cpp, not checked in: the host's _mbs* under the standalone's _MB_CP_SBCS and the byte
+  functions side by side) on every char against texts of every byte and 2M random texts, sets and needles of ASCII
+  and high bytes: 4M answers, all the same. memmove, memcpy, memset, wcslen, atoi, _itoa and _splitpath (the last
+  user of the start-up's _MB_CP_SBCS) are the host's, called by their own names. Both suites goldens the same,
+  though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
   ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII
   (the recorder's NegativeClasses flag is 0 in all), so the game's 1251 / 1252 answers were never needed and the replay
@@ -1715,8 +1721,21 @@ the `--no-hooks` suite) keeps the registry.
   keeps its own (std containers, FILE buffers).
 - **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
   `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
-  table before the host's terminators. rand / srand: the seed is a thread_local in the image
-  (`libcrt::RandState()`, which the harness's digest and randtrace read; the image has no _getptd 006F00D1).
+  table before the host's terminators.
+- **rand / srand** (crt.cpp, kept): `gamecrt::rand` is VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a
+  thread_local seed (`libcrt::RandState()`; the image has no _getptd 006F00D1), `libcrt::Srand` sets it. It stays
+  because the game's draws are the game's: the host's rand is another generator, every golden that draws (AI
+  choices, damage, the ambience) would differ, and the harness's digest ("crt.rand") and random trace (the
+  observer: each draw and its caller) compare our draws with game.exe's one by one.
+- **qsort** (crt.cpp `libcrt::Qsort`, kept for two callers): VC6's quicksort (the middle element as the pivot,
+  selection sort up to 8, the smaller part first) leaves elements that compare equal in an order of its own; C26's
+  host qsort changed 105 image goldens. Where no two elements compare equal and differ, every correct sort gives
+  the same order, so those callers are std::sort (C35h): SetSun's lit sectors by (sy, sx) (one per grid cell),
+  the script groups by id (the live objects' ids are unique; copies of one reference are equal), and the fake unit
+  scene's corner records and pairs (dead code: equal records hold the same fields the sort's reader takes). Qsort
+  stays for the sector spiral's cells by distance (BuildSectorSpiralAt: many cells share a distance and the order
+  among them is the walk order) and the ambience's class votes by weight (two classes can weigh the same; the first
+  three heard are taken in that order).
 - **Formatting** (crt_format.cpp, C35c): one printf of ours, `libcrt::Format` (the full text) behind `str::Format` /
   `str::FormatV` (CString::Format's: the text up to the first zero byte); sprintf 006E8715, vsprintf 006ECC47,
   fprintf 006EAEB0 and printf 006E955F have no entry of their own (gamecrt::sprintf and libcrt::Vsprintf went in C35c:
@@ -1756,23 +1775,41 @@ the `--no-hooks` suite) keeps the registry.
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
-- **x87 entries** (crt_x87.cpp, naked, `__asm` exempt in check_cleanup): _ftol 006E853C (decodes the 80-bit value
-  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow and
-  the stack forms 006E7334 / 006E83D4, _hypot 006FD026. The CRT's control word keeps the caller's
-  precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's precision;
-  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp. C26 tried the host CRT for the maths: acos / asin /
-  pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
-  net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units, whose
-  console prints "44.8744" for "44.8745"; #unit of the base's units in terrain_water_waves, ui_base_dialogue,
-  ui_base_topic, ui_gallery_base, zone_base_bz1g), so those stay ported; fmod (_CIfmod 006E95AA, fmod 006E95A0),
-  modf 006EAD0B, floor and ceil alone kept every golden and are the host's (std::fmod and so on). _controlfp stays
-  the port (SV10k below: the UCRT's differs in the control word and costs time, though the goldens were the same);
-  `_hypothlp` runs at 64 bits with every step stored to a double and a denormal result cut off. errno / _matherr are
-  not reproduced. The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord /
-  SetControlWord), put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set
-  and restore the word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Vector3::Length).
-  The FPU keeps bits 0-5 and 8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form
-  round-trips, so the words are the same. Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
+- **x87 maths** (crt_x87.cpp, kept; the one file in src/lib check_cleanup lets hold `__asm`: Hypot's NaN addition):
+  the bodies of _CIacos / _CIasin / _CIpow and their stack forms 006E7334 / 006E83D4 (`libcrt::CiAcos`, `CiAsin`,
+  `CiPow`) and _hypot 006FD026 (`libcrt::Hypot`), called by name (no register entries). The CRT's control word keeps
+  the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's
+  precision; pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; `_hypothlp` runs at 64 bits with every
+  step stored to a double and a denormal result cut off. errno / _matherr are not reproduced (the CRT's math function
+  names 00797CC0, which only its error reporting read, are gen_image_cells' UNREAD cells). Why each stays (C35h, the
+  scratch maths_equiv.cpp, not checked in: crt_x87.cpp against the host's on 5M float-valued arguments each):
+  - acos / asin / pow: the game's main thread runs at 24 bits (control word 007F) and the CRT's steps round there,
+    the host's are 53-bit results. At 007F, rounded to a float, pow differs in 4.1% of the arguments, acos 7.8%, asin
+    18.8%; at 027F (53 bits) in a double's bits 62% / 6.9% / 16%. C26 tried the host's for the maths: acos / asin /
+    pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
+    net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units,
+    whose console prints "44.8744" for "44.8745": unit_vitals' CiPow; #unit of the base's units in
+    terrain_water_waves, ui_base_dialogue, ui_base_topic, ui_gallery_base, zone_base_bz1g).
+  - _hypot: std::hypot (the UCRT's, SSE2 doubles) differs from the port in a double's last bit for 11.7% of the
+    arguments (never once rounded to a float), and costs 3.5 times as much (about 270 ns a call against 80, the
+    scratch hypot_time.cpp: the UCRT's _hypot sets and restores the control word around each call, the cost SV10i
+    took out of the camera's ClampAboveObjects: Hypot was 13.5% of the town's main thread then). With the callers on
+    std::hypot the image suite's goldens were the same (121, C35h), so _hypot was not among C26's 14; kept for the
+    cost and the bits.
+  - fmod (_CIfmod 006E95AA, fmod 006E95A0), modf 006EAD0B, floor and ceil alone kept every golden and are the host's
+    (std::fmod and so on).
+  - `libcrt::Controlfp` stays the port (SV10k below: the UCRT's differs in the control word and costs time, though the
+    goldens were the same).
+  - `gamecrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
+    truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
+    where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
+    damage, the clock's elapsed milliseconds); ours equals _ftol 006E853C there and gives 0 for NaN / infinity /
+    |x| >= 2^63.
+  The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord / SetControlWord),
+  put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set and restore the
+  word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Hypot). The FPU keeps bits 0-5 and
+  8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form round-trips, so the words are
+  the same. (check_x87 is the other x87 rule: unsigned to float only through x87::FromUnsigned.) Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
   file and the new one compiled side by side) on 50M calls of Hypot, CiPow, CiAcos, CiAsin and StackFmod under every
   precision, rounding and infinity control: results, control word after, x87 status flags and errno all the same;
   a one-line mutation (Hypot at 53 bits) differs. No vectors of this file exist (the crt family is formatting).

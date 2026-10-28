@@ -110,7 +110,7 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     float c = static_cast<float>(along / length);
     if (c > 1.0f) c = 1.0f;
     else c = c >= -1.0f ? c : -1.0f;   // -1 also for NaN
-    double angle = Acos(c);
+    double angle = libcrt::CiAcos(c);
     if (angle > kHalfPi) angle = kPi - angle;
     angle = kPercent / kHalfPi * angle;
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;

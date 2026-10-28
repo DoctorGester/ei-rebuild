@@ -328,7 +328,7 @@ void Terrain::SetWaveStrength(float strength) {
     waveGlow = strength;
     waveHeight = kWaveHeightScale * strength;
     waveSpeed = kWaveSpeedScale * strength;
-    double step = Asin(1.0f - strength) + kPi * kWaveStepTurn;
+    double step = libcrt::CiAsin(1.0f - strength) + kPi * kWaveStepTurn;
     float length = LengthXYZ(waveDirection);
     if (length > 0.0f) waveDirection *= 1.0f / length;
     waveDirection.x = static_cast<float>(kWaveDirectionScale * waveDirection.x * step);

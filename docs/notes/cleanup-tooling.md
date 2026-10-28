@@ -117,7 +117,7 @@ for every `static_cast<float>`. The register / stack shims
 `NewKeepingEdx` (renderer_init), `CallWithOne` (sound_manager) and `UpdateMotion` (unit_motion_tick) went in C12b: their callers are
 ours on the standalone, so the helper's flag is passed whole (the constructor reads its low byte), the codec's close is a plain
 `__stdcall` call, and the movement tick's stale local starts at 0 (combat.md, "Movement tick"). `include/ei/x87.h` and `src/hook` (the hook framework) and
-`src/lib/crt_x87.cpp` (the CRT's register entries) keep theirs by design.
+`src/lib/crt_x87.cpp` (Hypot's x87 addition of a NaN) keep theirs by design.
 
 ## SSE2 build (C16 experiment)
 

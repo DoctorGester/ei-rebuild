@@ -109,7 +109,6 @@ TYPES = {
     'ScriptKeyword': 'PiPP',                 # script.h: name, id, function signature, command signature
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
-    'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection
     'std::size_t': 'I',

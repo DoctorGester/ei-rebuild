@@ -2,8 +2,8 @@
 // every distinct face corner (merged vertex, position, texture vertex) becomes a sorted entry of the mesh's
 // corner table (+0x108, three words each), each face corner its index in that table (+0x128, words); and
 // the distinct (merged vertex, position) pairs, sorted and padded to a multiple of four, go to +0x118 (two
-// words each). The sets are MFC CMaps with the game's hash functions; the sorts are the game's qsort with
-// its own comparators. Names provisional; see docs/notes/objects.md ("Rewritten").
+// words each). The sets are MFC CMaps with the game's hash functions; the sorts are std::sort by the game's
+// comparators. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/containers.h"
@@ -15,14 +15,11 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
 namespace scene {
-
-// The qsort comparators (defined at the end).
-int CompareCornerRecords(const void* a, const void* b);
-int CompareWordPairs(const void* a, const void* b);
 
 namespace {
 
@@ -52,9 +49,21 @@ struct CornerRecord {
 };
 using RecordArray = mfc::CArray<CornerRecord>;
 
-// The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
-// their two words, unsigned.
-void GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
+// The game's two qsort comparators as orders: the records by vertex, position, texture (ints), the
+// pairs by their two words (vertex, then position; unsigned). The game's qsort leaves equal elements in an order of
+// its own, but equal elements are the same here: two records that compare equal hold the same three fields, the
+// only ones read after the sort (`index` is not), and the pairs are a map's distinct values.
+bool CornerRecordBefore(const CornerRecord& a, const CornerRecord& b) {
+    if (a.vertex != b.vertex) return a.vertex < b.vertex;
+    if (a.position != b.position) return a.position < b.position;
+    return a.texture < b.texture;
+}
+bool WordPairBefore(std::uint32_t a, std::uint32_t b) {
+    const std::uint16_t aVertex = static_cast<std::uint16_t>(a);
+    const std::uint16_t bVertex = static_cast<std::uint16_t>(b);
+    if (aVertex != bVertex) return aVertex < bVertex;
+    return (a >> 16) < (b >> 16);
+}
 
 template <typename MapT>
 MapT NewMap(void* vtable) { return MapT{vtable, nullptr, 17, 0, nullptr, nullptr, 10}; }
@@ -115,7 +124,7 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
             Lookup(indices, key) = static_cast<std::uint32_t>(r.index);
         }
     }
-    GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), CompareCornerRecords);
+    std::sort(records.data, records.data + records.size, CornerRecordBefore);
 
     mesh->corners.SetSize(records.size);
     for (int i = 0; i < records.size; ++i) {
@@ -161,7 +170,7 @@ void BuildPairs(SceneMesh* mesh) {
             list.data[at] = pair;
         }
     }
-    GameQsort(list.data, static_cast<unsigned>(list.size), 4, CompareWordPairs);
+    std::sort(list.data, list.data + list.size, WordPairBefore);
     if (list.size & 3) {
         int missing = 4 - (list.size & 3);
         const std::uint32_t last = list.data[list.size - 1];   // words: vertex, position
@@ -199,29 +208,6 @@ void IndexMeshCorners(MeshArray* meshes) {
     }
     records.vtable = mfc::impl::MeshCornerArrayClass::Vtable();
     if (records.data) gamecrt::operator_delete(records.data);
-}
-
-// The two qsort comparators above (kCompareRecords, kComparePairs). 1, -1 or 0 by the first field that
-// differs: the records' vertex, position and texture as ints, the pairs' two words unsigned.
-namespace {
-template <typename T>
-int CompareFields(const T* a, const T* b, int count) {
-    for (int i = 0; i < count; ++i) {
-        if (a[i] > b[i]) return 1;
-        if (a[i] < b[i]) return -1;
-    }
-    return 0;
-}
-} // namespace
-int CompareCornerRecords(const void* a, const void* b) {
-    const auto* x = static_cast<const CornerRecord*>(a);
-    const auto* y = static_cast<const CornerRecord*>(b);
-    const std::int32_t first[3] = {x->vertex, x->position, x->texture};
-    const std::int32_t second[3] = {y->vertex, y->position, y->texture};
-    return CompareFields(first, second, 3);
-}
-int CompareWordPairs(const void* a, const void* b) {
-    return CompareFields(static_cast<const std::uint16_t*>(a), static_cast<const std::uint16_t*>(b), 2);
 }
 
 } // namespace scene

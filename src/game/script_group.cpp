@@ -10,6 +10,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
@@ -17,9 +18,6 @@ namespace {
 
 // The server world's object by id.
 CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
-
-// The game's CRT.
-void GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
@@ -41,13 +39,9 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 }
 
 
-// The game's order: by object address, unsigned (ours: ScriptGroup::After).
-int CompareMembers(const void* a, const void* b) {
-    const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
-    const CEngineObject* y = static_cast<const ScriptObjectRef*>(b)->object;
-    if (x == y) return 0;
-    return ScriptGroup::After(x, y) ? 1 : -1;
-}
+// The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live
+// objects' ids are unique, so only copies of one reference are equal and any sort gives the game's qsort's order.
+bool MemberBefore(const ScriptObjectRef& a, const ScriptObjectRef& b) { return ScriptGroup::After(b.object, a.object); }
 
 } // namespace
 
@@ -237,7 +231,7 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
     SetSize(out, -1);
 }
 
-void ScriptGroup::Sort() { GameQsort(data, size, 4, CompareMembers); }
+void ScriptGroup::Sort() { std::sort(data, data + size, MemberBefore); }
 
 int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
     CEngineObject* o = ref.object;
@@ -345,5 +339,5 @@ void ScriptGroup::Load(ScriptStream* stream) {
         if (id == -1) Clear(slot);
         else Store(slot, FindObject(id));
     }
-    GameQsort(data, size, 4, CompareMembers);
+    std::sort(data, data + size, MemberBefore);
 }

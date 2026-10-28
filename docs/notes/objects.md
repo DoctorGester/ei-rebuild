@@ -274,8 +274,8 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   LoadFigureRegistry: a mapping with X, Y, Width or Height missing (-1) logs "CorrectMappings ..." (message box with debug flag
   0x10000 of 007AF5C0) and gives (0, 0, 0, 0); the material type of the last group name carries over to a mesh without groups;
   the coordinate map's operator[] is inlined twice. BuildBone: a pivot not (0, 0, 0) is fatal ("node %s have NONULL pivot"); the
-  morph frame array is sized twice. IndexMeshCorners: maps walked with GetNextAssoc inlined; qsort is the game's (006E88FC) with
-  the original comparators. 00449030 without a root node (-1) copies the rest pose of the element before the node array.
+  morph frame array is sized twice. IndexMeshCorners: maps walked with GetNextAssoc inlined; the sorts are std::sort by the original
+  comparators' orders (no two elements compare equal and differ). 00449030 without a root node (-1) copies the rest pose of the element before the node array.
   CFakeUnit's destructor walks the figure array after SetSize(0, -1) (never).
 - Options: "Joystick" always defaults to and is written as 0; "LightingFreq" is read under two subkeys into two fields; light
   colours convert 0..1 <-> 0..255 with a truncating `_ftol`; camera flips are stored as -1 / 1 floats; "Difficulty Level" goes to

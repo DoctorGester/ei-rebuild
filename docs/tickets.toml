@@ -3622,6 +3622,15 @@ group = "cleanup"
 note = "C35c left the ~200 str::Format calls with a literal format and no %e/%f/%g on str::Format, whose integer, character and string conversions are already the host's snprintf. Moving them to std::format deletes no CRT code; each needs its argument types read (a char or unsigned argument under %d, a negative int under %x, %3.3i's zero padding of a negative print differently in std::format), so it is not a mechanical batch. The ~150 calls with a named or run-time format (the game's texts) stay on str::Format, which reads a malformed format as VC6 did."
 
 [[ticket]]
+id = "C35l"
+title = "C35 the fake unit (class 0x39) and its scene loader deleted: dead in game.exe and ours"
+group = "cleanup"
+model = "opus"
+depends = ["C14m"]
+files = ["src/game/fake_unit.cpp src/game/scene_*.cpp src/game/scene_loader.h"]
+note = "Found in C35h: tests/coverage/unreachable.txt lists CFakeUnit 004466D0.. and its loader (LoadFakeUnitScene 00446C10, BuildSkeleton, WeldMeshVertices, IndexMeshCorners, ComputeMeshNormals, ...) as dead (SV5c: no shipped data makes a class 0x39 object, nothing calls slot 62). About 2,500 lines: src/game/fake_unit.cpp, scene_loader.cpp/.h, scene_meshes, scene_normals, scene_registry, scene_skeleton, scene_weld, scene_bones, scene_bone_frames, scene_material, scene_skin_lifetime; the factory's case 0x39 then makes nothing (as for an unknown class). Check what else only they use (mfc_slots' CornerMap*/MeshCornerArray vtables, skin_rewind), the vtables.csv rows and gen_static_init. After C14m (it touches their containers)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
