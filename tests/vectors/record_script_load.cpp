@@ -127,7 +127,6 @@ BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWor
     PutState(w, self, true);
     PutError(w, self);
     PutText(w, *text);
-    crt::PutNegativeClasses(w, static_cast<const char*>(*text), static_cast<std::size_t>(text->GetLength()));
     w.Put<std::int32_t>(runWorldScript);
     const std::uint32_t length = static_cast<std::uint32_t>(text->GetLength());
     std::vector<int> skip;

@@ -14,7 +14,7 @@
 //
 // Tokens (PutRun): the tokens the call consumed (count, then text and line each), whether a token
 // followed them (u8, then its text and line: the position the call ended at), the tail's line (i32;
-// "Unexpected end of file" reports it), and the game CRT's answers for the texts' negative chars.
+// "Unexpected end of file" reports it).
 // The loaders read no token past the ones they consume, so the replay's list is just these.
 //
 // ExpectLexeme: the error before, the id (i32), the run; then the result and the error.
@@ -24,12 +24,11 @@
 //   the error and the hash of the command (PutCmd).
 // LoadCommands: the state, the locals (u8 flag, PutVars), the array's grow-by (empty on entry), the
 //   run; then the result, the error, the hash of the array (PutCmds) and of the new blocks.
-// Load: the state, the text (string) and its negative chars, runWorldScript (i32); then the result,
+// Load: the state, the text (string), runWorldScript (i32); then the result,
 //   the error, the loaded flag and file count, the hash of the text afterwards (the #define pass
 //   rewrites it), of the definitions (pairs from before skipped), of the globals, of the new command
 //   blocks and the new WorldScript blocks, and which block RunWorldScript was given (u8 flag, id).
 
-#include "crt_vectors.h"
 #include "script_original.h"
 #include "vectors.h"
 
@@ -187,14 +186,11 @@ std::uint64_t HashOf(Fn&& put) {
 // The tokens from `from` up to `to` (see the header comment; record mode: game.exe's tokens).
 inline void PutRun(Writer& w, const OriginalScriptTokenList* tokens, OriginalScriptPos from, OriginalScriptPos to) {
     std::uint32_t n = 0;
-    std::vector<char> texts;
     for (OriginalScriptPos p = from; p && p != to; p = p->next) ++n;
     w.Put(n);
     for (OriginalScriptPos p = from; p && p != to; p = p->next) {
         PutText(w, p->data.text);
         w.Put<std::int32_t>(p->data.line);
-        const char* t = p->data.text;
-        texts.insert(texts.end(), t, t + std::strlen(t));
     }
     w.Put<std::uint8_t>(to ? 1 : 0);
     if (to) {
@@ -202,7 +198,6 @@ inline void PutRun(Writer& w, const OriginalScriptTokenList* tokens, OriginalScr
         w.Put<std::int32_t>(to->data.line);
     }
     w.Put<std::int32_t>(tokens->tail ? tokens->tail->data.line : 0);
-    crt::PutNegativeClasses(w, texts.data(), texts.size());
 }
 
 } // namespace ei::vectors::script

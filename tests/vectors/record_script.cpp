@@ -78,7 +78,6 @@ void __fastcall ClassifyRecord(const char* text, int* id, int* rest) {
     if (std::strlen(text) > kMaxText) return;
     Writer w;
     w.PutString(text);
-    crt::PutNegativeClasses(w, text, std::strlen(text));
     w.Put<std::uint8_t>(static_cast<std::uint8_t>((id ? 1 : 0) | (rest ? 2 : 0)));
     w.Put<std::int32_t>(id ? *id : kUnasked);
     w.Put<std::int32_t>(rest ? *rest : kUnasked);
@@ -127,7 +126,6 @@ BOOL __fastcall TokenizeRecord(CScript* self, void*, const mfc::CString* source,
     Writer w;
     w.Put(length);
     w.PutBytes(static_cast<const char*>(*source), length);
-    crt::PutNegativeClasses(w, static_cast<const char*>(*source), length);
     w.Put<std::int32_t>(tokens->blockSize);
     w.Put<std::int32_t>(result);
     if (!result) {

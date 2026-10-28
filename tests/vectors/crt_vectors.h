@@ -4,34 +4,18 @@
 // fixture: isdigit, isspace and tolower for c = 0..255; the replay checks text_case.h's answers for ASCII
 // against them (tests/vectors/replay_crt.cpp). Recorded by record_crt.cpp.
 //
-// The game sets a locale (LC_CTYPE); its character table is then on the heap, and isdigit / isspace
-// of a negative char (a signed char >= 0x80, as the script lexer passes them) read memory before it:
-// the answers differ from run to run. A record whose input has such bytes carries what the two
-// answered at the call (NegativeClasses). Ours answer such a byte as UTF-8 (no class), so the replay skips them.
+// ASCII only: past it the game's answers are its locale's code page's (1251 / 1252) and, for a negative char, memory
+// before its heap-allocated character table (they differ from run to run); ours are UTF-8's (no class, no case), and no
+// record the code under test replays has a byte past ASCII.
 
 #include "vectors.h"
 
 #include "../../src/lib/crt.h"
 
-#include <cstddef>
-#include <cstdint>
-
 namespace ei::vectors::crt {
-
-// isdigit and isspace (nonzero or not) of c = -128..-1, one bit per char (bit (c + 128) & 7 of byte
-// (c + 128) >> 3).
-struct NegativeClasses {
-    std::uint8_t digit[16];
-    std::uint8_t space[16];
-};
 
 // Record side. Offers the fixture once (the families whose code calls the character functions call it
 // from their recorders, after the game has set its locale).
 void OfferCtype();
-// A u8 flag, then NegativeClasses when `text` (`size` bytes) has a byte >= 0x80.
-void PutNegativeClasses(Writer& w, const void* text, std::size_t size);
-
-// Replay side: reads past what PutNegativeClasses wrote.
-void SkipNegativeClasses(Reader& r);
 
 } // namespace ei::vectors::crt

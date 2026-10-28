@@ -1,7 +1,6 @@
 // Replay of the "script" family (script_vectors.h) against src/game/script_parse.cpp. The keyword table
 // and the lexer's strings are ours, compared with the "@ScriptKeywords" fixture; the character classes are
 // text_case.h's; Rebirth's AddNewScriptCommands is off (the vectors are vanilla).
-#include "crt_vectors.h"
 #include "script_vectors.h"
 #include "vectors.h"
 
@@ -87,7 +86,6 @@ EI_VECTOR_CHECK_BYTES("@ScriptKeywords", CheckKeywords);
 
 bool CheckClassify(Reader& r, char* d, std::size_t n) {
     const std::string text = r.String();
-    crt::SkipNegativeClasses(r);
     const std::uint8_t asked = r.Get<std::uint8_t>();
     const std::int32_t id0 = r.Get<std::int32_t>();
     const std::int32_t rest0 = r.Get<std::int32_t>();
@@ -137,7 +135,6 @@ CScript* NoScript() {
 bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     const std::uint32_t length = r.Get<std::uint32_t>();
     const unsigned char* bytes = r.Bytes(length);
-    crt::SkipNegativeClasses(r);
     const std::int32_t blockSize = r.Get<std::int32_t>();
     const std::int32_t expected = r.Get<std::int32_t>();
     ReportedError error0;

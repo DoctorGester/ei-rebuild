@@ -1706,9 +1706,9 @@ the `--no-hooks` suite) keeps the registry.
   user of the start-up's _MB_CP_SBCS) are the host's, called by their own names. Both suites goldens the same,
   though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
-  ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII
-  (the recorder's NegativeClasses flag is 0 in all), so the game's 1251 / 1252 answers were never needed and the replay
-  skips them; "@GameCrtCtype" checks that the game's isdigit, isspace and tolower answer ASCII as text_case.h does.
+  ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII,
+  so the game's 1251 / 1252 answers were never needed: the records carry no per-call class answers (C35j) and
+  "@GameCrtCtype" holds the game's isdigit, isspace and tolower for the ASCII bytes only, which text_case.h answers the same.
 - **Heap** (crt.cpp): malloc 006EABD1 and free 006EA8AD are the host CRT's (C26: both suites goldens the same, the
   image suite twice; until then a VC6-style Win32 heap of their own, `_crtheap` 007CAF08, sizes rounded up to 16,
   through the image's import slots, SV7c2). realloc, calloc, _msize and _strdup had no callers. The harness's
