@@ -207,7 +207,6 @@ bool Overlap() {
     char value[8] = "";
     return !(GetEnvironmentVariableA("EI_PAIR_OVERLAP", value, sizeof(value)) && value[0] == '0');
 }
-int Side() { return g_side; }
 
 bool Install() {
     char value[128] = "";

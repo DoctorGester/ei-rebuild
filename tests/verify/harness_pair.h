@@ -44,7 +44,6 @@ namespace ei::verify::pair {
 
 // EI_PAIR names a pair: this game is one side of it.
 bool Active();
-int Side();
 
 // Opens the pair's shared state (once, at harness start). False without EI_PAIR.
 bool Install();

@@ -327,8 +327,6 @@ State Poll(const char** detail) {
     return g_state;
 }
 
-unsigned FramesPresented() { return g_frames; }
-
 bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written) {
     char path[MAX_PATH];
     ei::OutputPath("frames", path);

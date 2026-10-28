@@ -49,7 +49,6 @@ DWORD Now();
 // second.
 void InstallTrace();
 void DumpTrace(const char* why);
-bool Tracing();
 
 // Random trace ("randtrace", for finding where two runs part): every draw from the game's ISAAC
 // generators (004667F0, the original's or ours) to randtrace.txt in the output folder, one line

@@ -76,6 +76,4 @@ unsigned TracePlace(const void* p);   // as the trace writes an address
 void Note(const char* text);
 void StopTrace();
 
-unsigned long MainThread();   // the thread that made the CRT's heap (the game's main thread)
-
 } // namespace ei::verify::heap

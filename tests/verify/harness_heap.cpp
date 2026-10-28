@@ -552,8 +552,6 @@ void SettleCrt() {
     reinterpret_cast<void(__cdecl*)()>(0x006F8AA1)();
 }
 
-unsigned long MainThread() { return g_mainThread; }
-
 void Install() {
     SpreadCountdownsById();
     if (CrtHeap()) {
