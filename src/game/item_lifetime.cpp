@@ -115,6 +115,6 @@ CEngineObject* CItemManager::NewObject(int kind) {
     case kItemQuest: object = new CItemQuest(); break;
     default: return nullptr;
     }
-    if (object != nullptr) object->type_ = kind;
+    object->type_ = kind;
     return object;
 }

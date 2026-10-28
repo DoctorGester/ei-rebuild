@@ -51,7 +51,6 @@ int PatrolMode::OnShutdown() {
 // A copy with its own points.
 PatrolMode* PatrolMode::Clone() {
     auto* clone = new PatrolMode();
-    if (!clone) return nullptr;
     clone->points = points;
     clone->current = current;
     return clone;
@@ -59,7 +58,6 @@ PatrolMode* PatrolMode::Clone() {
 
 FearMode* FearMode::Clone() {
     auto* clone = new FearMode(flag);
-    if (!clone) return nullptr;
     clone->distance = distance;
     clone->spread = spread;
     clone->shelter = shelter;

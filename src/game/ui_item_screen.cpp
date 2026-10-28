@@ -136,7 +136,6 @@ CExchangeScreen::~CExchangeScreen() {}
 
 ItemTurn* ItemTurn::Clone() {
     auto* copy = new ItemTurn();
-    if (!copy) return nullptr;
     copy->angle = angle;
     copy->speed = speed;
     copy->flag = flag;

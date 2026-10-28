@@ -23,10 +23,9 @@ const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
 constexpr float kSix = 6.0f;
 
-// A new record with no references (the count dword is cleared only after the allocation is tested).
+// A new record with no references.
 PartyRecord* NewRecord() {
     auto* record = new PartyRecord();
-    if (!record) return nullptr;
     record->refs_ = 0;
     record->flags6_ = 0;
     record->flags7_ = 0;

@@ -43,7 +43,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY) {
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw frees the holder's memory and passes the exception on; that ends the game.)
     holder = new Surface(g_sceneRenderer->device_, picture);
-    if (holder) ++holder->refs_;
+    ++holder->refs_;
     // (A holder kept before here would be released; there is none: it was cleared above.)
     manager->CloseFile(picture);
 

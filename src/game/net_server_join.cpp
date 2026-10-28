@@ -44,9 +44,9 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     BindingMessage* bound = self->bindings_.back().Get();
 
     std::string* name = &record->name_;
-    if (&msg->name_ != name) *name = msg->name_;
+    *name = msg->name_;
     record->state_ = msg->state_;
-    if (&msg->text_ != &record->text_) record->text_ = msg->text_;
+    record->text_ = msg->text_;
     record->id_ = msg->id_;
 
     // The lowest player number no player has yet.

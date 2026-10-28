@@ -25,7 +25,6 @@ CPlayerSource::~CPlayerSource() {}
 // A new helper with the same pending link (counted).
 CWorldHandle* CWorldHandle::Clone() {
     auto* copy = new CWorldHandle();
-    if (!copy) return nullptr;
     copy->pendingLink_ = pendingLink_;
     if (copy->pendingLink_) ++copy->pendingLink_->refs_;
     return copy;
@@ -56,7 +55,6 @@ DriverSession::DriverSession() {}
 // A copy: every driver shared (a copy-on-share driver is cloned), every holder counted.
 DriverSession* DriverSession::Clone() {
     auto* copy = new DriverSession();
-    if (!copy) return nullptr;
     copy->drivers_.insert(copy->drivers_.begin(), drivers_.begin(), drivers_.end());
     copy->holders_.insert(copy->holders_.begin(), holders_.begin(), holders_.end());
     return copy;

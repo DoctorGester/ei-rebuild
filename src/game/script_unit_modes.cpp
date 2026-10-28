@@ -39,7 +39,6 @@ int GuardMode::OnShutdown() {
 // Floats are copied bit for bit (memcpy).
 GuardMode* GuardMode::Clone() {
     auto* copy = new GuardMode();
-    if (!copy) return nullptr;
     copy->point = point;
     x87::CopyBits(copy->radius, radius);
     x87::CopyBits(copy->wander, wander);
@@ -55,7 +54,6 @@ int SentryMode::OnShutdown() { return 0; }
 
 SentryMode* SentryMode::Clone() {
     auto* copy = new SentryMode();
-    if (!copy) return nullptr;
     copy->point = point;
     return copy;
 }
@@ -82,7 +80,6 @@ int SuspectionMode::OnShutdown() { return 0; }
 
 SuspectionMode* SuspectionMode::Clone() {
     auto* copy = new SuspectionMode();
-    if (!copy) return nullptr;
     copy->point = point;
     copy->level = level;
     return copy;
@@ -112,7 +109,6 @@ int AggressionMode::OnShutdown() {
 
 AggressionMode* AggressionMode::Clone() {
     auto* copy = new AggressionMode();
-    if (!copy) return nullptr;
     copy->enemy = Reference(enemy.object);
     copy->fixed = fixed;
     copy->chosen = chosen;

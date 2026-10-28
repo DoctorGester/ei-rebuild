@@ -118,7 +118,6 @@ void CInterface3D::SaveWindowState() {
 
 void CInterface3D::ShowStatusText(std::string_view text) {
     statusSurface_ = new CUiSurface(this, 0, kStatusTop, kLayoutWidth, kStatusBottom, kStatusFormat, 1);
-    if (!statusSurface_) return;
     ui_native::Adopt(statusSurface_, "status");
     UiSurfaceGetDC(statusSurface_);
     statusSurface_->Clear();

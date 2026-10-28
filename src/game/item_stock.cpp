@@ -60,8 +60,6 @@ void Shuffle(T* first, T* last) {
     }
 }
 
-// The callers skip a self-assignment.
-
 // Counted by the caller.
 void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item); }
 
@@ -125,7 +123,7 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
     CItemManager* manager = PartyOf(stock)->ItemFactory();
     std::vector<itemdb::ItemRecordHead*>& taken = g_takenPrototypes;
     taken.clear();   // erase(begin, end)
-    if (&source != &taken) taken = source;
+    taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
     for (itemdb::ItemRecordHead** p = taken.data(); p != taken.data() + taken.size(); ++p) {
         if (skip && str::Compare(PrototypeName(*p), skip) == 0) continue;
@@ -226,9 +224,8 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
                                std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
     CItemManager* manager = PartyOf(stock)->ItemFactory();
-    PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.clear();
-    if (&source != &taken) taken = source;
+    taken = source;
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(prototypeName);
     for (Record* record : taken) {
         ctor->SetManager(manager);
@@ -339,7 +336,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>*
     if (materials.size() > static_cast<std::size_t>(count)) {
         Shuffle(materials.data(), materials.data() + materials.size());
         taken.insert(taken.begin(), materials.begin(), materials.begin() + count);
-    } else if (&materials != &taken) {
+    } else {
         taken = materials;
     }
     itemdb::LootItemRecord* prototype = g_itemDatabase->loot.Named(game::MaterialText());
@@ -476,7 +473,6 @@ void ItemStock::GenerateSpells(std::list<HeldPtr<CSpell>>* out, const float* lev
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
 // record), and the two map lookups insert null entries for unknown names.
 void ItemStock::LoadLists(CStream* stream) {
-    PartyOf(this)->SpellManager();   // (the spell manager, fetched and not used)
     std::string name;
     unsigned count = 0;
     itemdb::ItemDatabase& items = *g_itemDatabase;
@@ -537,8 +533,8 @@ void ItemStock::ResetMaterialUnits() {
 }
 
 void ItemStock::CopyMagic(const ItemStock* other) {
-    if (&other->spells != &spells) spells = other->spells;
-    if (&other->modifiers != &modifiers) modifiers = other->modifiers;
+    spells = other->spells;
+    modifiers = other->modifiers;
 }
 
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, std::list<CItem*>* out) {
@@ -553,7 +549,6 @@ void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::li
 void ItemStock::GenerateScrolls(std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(this);
     CItemManager* manager = PartyOf(this)->ItemFactory();
-    PartyOf(this)->SpellManager();   // (fetched and not used)
     FillSpellMaps(stock::ScrollSpellRecipes());
     std::list<HeldPtr<CSpell>> list;
     for (int tries = 0;;) {

@@ -18,7 +18,7 @@ namespace net {
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
 void ServerSession::Describe(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
-    if (&name_ != &entry->name_) entry->name_ = name_;
+    entry->name_ = name_;
     entry->kind_ = kind_;
     std::string* description = &entry->description_;
     description->assign(game::kEmptyText);

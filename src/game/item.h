@@ -107,7 +107,7 @@ public:
 // holds the id of the record's item.
 class CItemLink final : public CRefObject {
 public:
-    // No references, no flags (the count's dword is cleared before the allocation is tested).
+    // No references, no flags.
     CItemLink();
     // Built again in place (the count and the value stay): nothing changes. Returns 0.
     int OnShutdown() override;

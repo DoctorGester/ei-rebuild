@@ -44,7 +44,6 @@ CEngineObject* CPlayerManager::NewObject(int type) { return NewPlayer(type); }
 
 CEngineObject* CPlayerManager::NewPlayer(int type) {
     CPlayer* player = new CPlayer();
-    if (!player) return nullptr;
     player->type_ = type;
     return player;
 }
