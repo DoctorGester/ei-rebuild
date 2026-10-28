@@ -19,10 +19,10 @@ test harness, as the reference our code is compared with.
 | Multiplayer | Works | Hosting and joining over UDP; tested with two of our games in lockstep |
 | Rebirth edition fixes | Done | Rebirth's bug fixes and options built in, each behind a flag (`docs/notes/rebirth.md`) |
 | Widescreen | Done | Rebirth's widescreen layout in our own code |
-| Renderer | Done, improving | Direct3D 11 (sokol_gfx); per-pixel lighting on the GPU, soft sun and moon shadow maps, smooth camera, vsync option, performance overlay. Next: point-light shadows, water, ambient occlusion |
+| Renderer | Done, improving | Direct3D 11 (sokol_gfx); per-pixel lighting on the GPU, soft sun and moon shadow maps, smooth camera, vsync option, performance overlay. The old Direct3D 7 / DirectDraw layer is gone (R27), a renderer that fails to start stops the game, and skins, wounds and item pictures are composed on the GPU (R28; 2DintMMX.dll no longer loaded). Next: the remaining CPU-built textures (R28a-c), point-light shadows, water, ambient occlusion |
 | UTF-8 | Done | Every string inside the game in UTF-8; saves and the network stay cp1251, as the original's |
-| Native interface | In progress | Interface drawn by the new renderer directly (text atlas, menus, HUD): tickets P2-P8 |
-| Code cleanup | In progress | Real C++ classes done (C28). Next: standard containers and strings instead of MFC / STLport (C14), drop the remaining address registrations (C20) |
+| Native interface | In progress | Interface drawn by the new renderer directly (text atlas, menus, HUD): surfaces and GPU-built textures done (P1, P7), the rest in tickets P2-P8 |
+| Code cleanup | Style phase | Porting artifacts done: real C++ classes (C28), no MFC or STLport left (C14), no game addresses or registrations (C20), the custom CRT cut down to what behaviour needs (C35). Now readability: comments, literals, raw byte copies, shared enums and constants (C41-C45 done); next shared constants and small mechanical cleanups (C46, C47), `enum class` everywhere and names for the remaining magic numbers (C45c, C45d) |
 | Lua mission scripts | Planned | `docs/notes/lua-scripting.md` |
 
 The work queue is `docs/tickets.md` (generated from `docs/tickets.toml` by `tools/tickets.py`).
@@ -87,10 +87,10 @@ The test tools still expect the installs at the default `F:\games` paths (`tools
 ## Layout
 
 - `src/game/` the game code. Each function names the original function it replaces.
-- `src/lib/` our ports of the libraries game.exe linked: MFC, STLport and parts of the CRT.
+- `src/lib/` small shared pieces: the CRT parts behaviour depends on (formatting, x87 maths), file and text helpers, byte copies.
 - `src/render/` the renderer (sokol_gfx on Direct3D 11, `third_party/sokol`; `docs/notes/renderer.md`).
 - `src/standalone/` the host exe and the generated parts of the image.
-- `src/hook/` the address registrations still reached from game.exe's data, and the image's start-up.
+- `src/hook/` the DLL's start-up inside the standalone exe, logging, and the Rebirth options.
 - `tests/verify/` the harness; `tests/vectors/` function-level comparisons with the original; `tests/scenarios/`.
 - `tools/` the launcher, build checks, test runner, ticket and progress tools.
 - `docs/` how to work on the code (`worker-brief.md`, `rewrite-guide.md`, `cleanup-plan.md`), the tickets, and one
