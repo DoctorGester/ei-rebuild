@@ -156,7 +156,6 @@ public:
     bool ctrl_;                      // Ctrl held (set by key down 0x11)
     bool shift_;                     // Shift held (0x10): the selection grows
     bool shown_;
-    std::uint8_t unused_7B;
 };
 // A console command's arguments (lower case).
 using Arguments = std::vector<std::string>;

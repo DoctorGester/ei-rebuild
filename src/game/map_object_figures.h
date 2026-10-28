@@ -463,7 +463,6 @@ public:
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
-    std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight;
     std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h

@@ -36,10 +36,7 @@ CLight::CLight() {
     ClearFields();
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    std::memset(&kind_, 0, offsetof(CLight, unused_FC) - offsetof(CLight, kind_));
-    unused_FC = 0;
-    unused_E8 = 1.0f;
-    unused_E4 = 1.0f;
+    std::memset(&kind_, 0, offsetof(CLight, rangeSquared_) - offsetof(CLight, kind_));
     // FSQRT of the double FLT_MAX; the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
     const float root = static_cast<float>(std::sqrt(static_cast<double>(FLT_MAX)));
@@ -124,13 +121,9 @@ int CLight::GetClassId() { return 10; }
 
 CLightFactory::CLightFactory() {
     held_ = nullptr;
-    unused_CC = 0;
-    std::memset(unused_B0, 0, sizeof(unused_B0));
-    unused_D0 = 1;
 }
 
 CLightFactory::~CLightFactory() {
-    unused_CC = 0;
     if (held_) held_->Release();
 }
 

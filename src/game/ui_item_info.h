@@ -98,7 +98,6 @@ public:
     float angle;             // radians, wrapped at 2 pi
     float speed;
     bool flag;               // set by a move into a list shown turning
-    std::uint8_t unused_11[3];
     float glow;              // phase of the spell glow
 };
 inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }

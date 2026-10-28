@@ -215,7 +215,6 @@ public:
     // Paused: the server's Update skips the players and the tick while it is set; the client's Segment
     // skips its own ticks, and the client copies the server's flag from message 0x60, telling the HUD.
     std::uint8_t paused_;
-    std::uint8_t unused_06D[0x70 - 0x6D];
     WaterTweens countdowns_;
 };
 
@@ -513,7 +512,6 @@ public:
     float weatherStrength_;               // sent with the weather
     ZoneExits exits_;
     std::uint8_t loaded_;                 // 0 while LoadSave runs
-    std::uint8_t unused_101[0x104 - 0x101];
     MapObjectIdMap updateMap_;
     // SendZone also sends the player its start (at its first unit) when set; nothing in the game sets it.
     std::uint8_t sendsStartPosition_;
@@ -521,7 +519,6 @@ public:
     // loadedFresh_ set, the other map objects only with keepsState_ set; a refused object is released.
     std::uint8_t loadedFresh_;            // the zone is not loaded from a save
     std::uint8_t keepsState_;
-    std::uint8_t unused_11F;
     std::string zoneName_;               // the zone's map database name
     std::vector<std::string> mobFiles_;    // .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // 0 while the game runs
@@ -992,13 +989,11 @@ public:
     std::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
     ScreenHits hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
-    std::uint8_t unused_104[0x108 - 0x104];
     lib::HashMap<unsigned, LineBatch*> lineLists_;   // line lists by key (DrawLineLists: drawn in STLport's order)
     int lastLineListKey_;                 // the last line list key handed out; 0 from the constructor
     SectorGrid objectGrid_;               // the objects by sector (MoveObject moves them)
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
     SectorGrid secondGrid_;               // (MoveObject2 moves objects in it)
-    std::uint8_t unused_168[0x180 - 0x168];
     Terrain* terrain_;                    // counted
     // The zone's allod in lower case ("gipath" after Setup; the zone load takes it from the map
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
@@ -1029,7 +1024,6 @@ public:
     // sessionKind100_ 1 / 3 for kinds of multiplayer session.
     CPlayer* session_;
     CCamera* camera_;                     // the view camera (DrawPass, Render)
-    std::uint8_t unused_214[0x224 - 0x214];
     std::string texturePath_;            // <data path>textures\ (Setup)
     int constant228_;                     // 10 from the constructor; nothing in the exe reads it
     // The light colours by hour (0..23; r, g, b, 1) from the lights table's [sunlight], [ambient] and

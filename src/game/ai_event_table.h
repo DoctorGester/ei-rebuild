@@ -51,7 +51,6 @@ struct AIViewer {
     int cellX;                      // AI map cell of the eye
     int cellY;
     std::uint8_t ready;             // Prepare has run
-    std::uint8_t unused_29[3];
 };
 
 // The cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within

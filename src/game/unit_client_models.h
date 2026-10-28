@@ -41,7 +41,6 @@ struct ClientSpeech {
     int delay;                      // ticks until it plays; negative: playing
     int sound;                      // its sound handle (-1 none)
     std::uint8_t talking;           // the server unit has flag 0x800000 while it plays
-    std::uint8_t unused_11[3];
 };
 
 // What the speech queue's filters compare.
@@ -263,7 +262,6 @@ public:
     std::uint8_t weaponHidden;      // ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // the next path placement turns the unit to the path at once
-    std::uint8_t unused_077;
     float fadeIn;                   // 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // the drawn parts get their colours back at 0
     int footprint;                  // the last footprint, -1 none
@@ -278,7 +276,6 @@ public:
     std::uint32_t weaponIds[4];
     CTexture* faceTexture;          // the face texture the blink changes (counted)
     std::uint8_t blinks;
-    std::uint8_t unused_0D1[3];
     int blinkTimer;                 // ticks to the next blink change
     int eyesClosed;
 };

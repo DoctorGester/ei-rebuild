@@ -69,7 +69,6 @@ struct FootprintCellSet {
     std::vector<FootprintCell> cells;
     int buckets[16];        // first index per (x + y) & 15, -1 when empty
     bool hashed;            // set by Construct and by every insertion, never cleared
-    std::uint8_t unused_51[3];
 };
 
 // The passability cost tables of one size class, filled by CAIMap::CostContext.
@@ -308,7 +307,6 @@ struct LocalSearch {
 
     bool active;
     bool levelsSaved;                   // the window's cell levels are in `levels`
-    std::uint8_t unused_02[2];
     SearchGrid<SearchNode> nodes;       // 34 x 34
     SearchGrid<std::uint8_t> levels;    // saved cell levels
     CAIMap* map;
@@ -322,7 +320,6 @@ struct LocalSearch {
     int sizeClass;
     bool backward;                      // searching from the target (prices steps reversed)
     std::uint8_t level;                 // standing level
-    std::uint8_t unused_7E[2];
 };
 
 // The standing height of each of the 8 levels (size classes): the occluders' refresh and the
@@ -345,7 +342,6 @@ struct BlockRecord {
     std::int16_t x, y;          // block coordinates
     int backDirection;          // 1..8: the way back to the block it was reached from; 0 none
     bool settled;
-    std::uint8_t unused_15[3];
 };
 
 // Dijkstra over the blocks of one size class (the region map's forward and backward search):
@@ -370,10 +366,8 @@ struct BlockSearch {
     BlockRecord* open[8];
     BlockRecord* best;
     int bestCost;                       // cost of the record being expanded
-    std::uint8_t unused_44[4];
     bool fromTarget;
     bool active;
-    std::uint8_t unused_4A[2];
 };
 
 struct CRegionMap {
@@ -769,7 +763,6 @@ public:
     bool loaded;                        // set by Load
     bool batching;                      // refreshes collect into the dirty rectangle
     std::uint8_t refreshUnits;          // non-zero: a refresh also re-registers the units around it
-    std::uint8_t unused_003;
     AIDirtyRect dirty;                  // the area to refresh when batching ends
     int passCosts[16];                  // cost per passability nibble (1/1024)
     int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set

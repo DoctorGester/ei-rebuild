@@ -57,7 +57,6 @@ struct AIOrder {
     AIRefTo<CMapObject> target;     // counted
     Vector3 point;                  // target point; left uninitialised by the AI's orders
     std::uint8_t flag18;
-    std::uint8_t unused_19[3];
 };
 
 // One remembered look direction of the current move.
@@ -66,7 +65,6 @@ struct AILook {
     float time;                     // turning time
     float wait;                     // wait afterwards (game ticks)
     std::uint8_t stopFirst;
-    std::uint8_t unused_0D[3];
 
     // The arguments come in a different order from the fields: wait before turning time. Returns this.
     AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
@@ -283,7 +281,6 @@ public:
 
     AIRefTo<CMapObject> enemy;
     std::uint8_t fixed;             // enemy set by the script (no searching)
-    std::uint8_t unused_0D[3];
     AITargetChoice chosen;          // the enemy chosen this tick; part -1: the whole unit
 };
 
@@ -332,7 +329,6 @@ public:
     Vector3 shelter;                // the last place with a kind 3 occluder (x = -1313: unset)
     Vector3 fleePoint;              // a checked flight point (z 1.0 while pending, else 0)
     std::uint8_t flag;
-    std::uint8_t unused_29[3];
 
 private:
     // The constructor's stores (and OnShutdown's).
@@ -405,7 +401,6 @@ public:
     Vector3 point;                  // (z: 1.0 while walking there in state 2)
     int state;
     std::uint8_t run;
-    std::uint8_t unused_21[3];
 
 protected:
     // Both OnShutdowns: the references released, then the constructor's stores.
@@ -604,7 +599,6 @@ struct AIMemory {
     AIReports reports;          // objects reported to the alarm code
     AIHeardCalls calls;              // calls heard
     std::uint8_t seesEnemy;
-    std::uint8_t unused_BD[3];
 };
 
 // The brain, embedded in the unit controller.

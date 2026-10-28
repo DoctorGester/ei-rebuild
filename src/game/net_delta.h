@@ -111,7 +111,6 @@ struct DeltaState {
     std::uint16_t sentMask_ = 0;
     std::uint16_t lastMask_ = 0;
     std::uint16_t mask_ = 0;     // fields to write / read
-    std::uint16_t unused_1A = 0;
     BitStream* reader_ = nullptr;
     int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
     BitStream header_[2];

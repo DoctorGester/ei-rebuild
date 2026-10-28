@@ -31,11 +31,9 @@ public:
     int type;                       // class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t flag0C;
     std::uint8_t flag0D;
-    std::uint8_t unused_0E[2];
     float weights[9];
     std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // set by the constructor and by a quest completion
-    std::uint8_t unused_39[3];
     // the party objects (ItemsParty / SpellsParty).
     PartyStorage items;
     PartyStorage spells;

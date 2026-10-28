@@ -27,7 +27,6 @@ struct BriefingMover {
     int state;                       // kDone, kWalking or kTurning
     CUnit* person;                   // the client unit
     bool waited;                     // the dialogue waits for this one
-    std::uint8_t unused_29[3];
     float time;                      // seconds on the way (Update gives up after 30)
 
     static constexpr int kDone = 0;
@@ -40,7 +39,6 @@ struct BriefingSpeaker {
     CUnit* unit;                     // the client unit
     std::string name;               // as the dialogue's commands give it
     bool spareFlag;                  // false when added; only copied with the entry (erase), never tested
-    std::uint8_t unused_09[3];
 };
 
 // An item shown in the dialogue ("#show <name>" for what is not a unit). The meshes are the window's scene
@@ -214,14 +212,12 @@ public:
 
     int exit_;                      // the exit a "leave_zone" answer leaves through
     bool exitPending_;
-    std::uint8_t unused_169[3];
     int state_;                      // dialogue state (above)
     std::vector<std::string> topics_;   // "goodbye" last
     int TopicCount() const { return static_cast<int>(topics_.size()); }
     std::string topic_;              // the dialogue running
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself
-    std::uint8_t unused_18D[3];
     std::vector<CUnit*> party_;
     CUnit* leader_;                  // the unit the camera follows (the hero speaker)
     CUnit* person_;                  // the person the dialogue is with
@@ -237,12 +233,10 @@ public:
     Vector3 personHomeDirection_;
     std::list<BriefingMover> movers_;
     bool firstPhrase_;               // the first phrase lasts a second longer
-    std::uint8_t unused_245[3];
     std::string dialogueText_;       // shown whole when skipped
     float phraseTime_;               // time left of a phrase without a voice
     int voice_;                      // sound id, -1 none
     CUnit* speaking_;                // or null
-    std::uint8_t unused_258[4];
     CUiScrollText* text_;
     CUiScrollbar* topicBar_;
     int topicTop_;                   // first topic row shown
@@ -252,7 +246,6 @@ public:
     bool immediate_;                 // the dialogue's people are placed at once
     bool noWalk_;                    // the zone's map record's cage: the leader does not walk
     bool autosave_;                  // unless loading or back from the camp
-    std::uint8_t unused_27F;
     CChatWindow* chat_;              // a network client's only
     std::vector<int> people_;       // ids of the local player's objects that are text keys
     float markPhase_;                // kept below 1

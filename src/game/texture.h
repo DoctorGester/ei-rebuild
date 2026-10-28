@@ -72,7 +72,6 @@ public:
     std::uint32_t videoFourCC_;     // the YUV format an off-screen video-memory surface can have (0: none)
     std::uint32_t overlayFourCC_;   // the YUV format an overlay can have (0: none)
     bool overlayStretch_;       // DDCAPS_OVERLAYSTRETCH
-    std::uint8_t unused_45[3];
     HMODULE converterLibrary_;  // 2DintMMX.dll
     CPixelConverter* converter_;   // 2DintMMX's graphics processor (pixel conversions)
 };
@@ -130,7 +129,6 @@ public:
     CDXSurface* depth_;         // restored with the primary
     CDXSurface* depth2_;        // a second depth surface like it (not attached)
     std::uint32_t zEnable_;     // the z-buffer setting render state 7 goes back to
-    std::uint8_t unused_64[0x7C - 0x64];
     GUID deviceGuid_;
     // The frame clear clears the stencil too when its flags (words[1]) have DDPF_STENCILBUFFER and its
     // stencil bits (words[4]) are nonzero.
@@ -142,11 +140,9 @@ public:
     // The values point at textureFormats_'s elements.
     std::unordered_map<int, PixelFormat*> formats_;
     std::uint32_t largestFormatId_;
-    std::uint8_t unused_D4[0x58];    // two vertex-buffer batches and a spare set: never used
     CDXSurface* stageSurfaces_[8];   // the holder bound to each texture stage
     CDeviceMaterial* material_;
     std::uint32_t colour_;           // the renderer's draw colour (mesh draw flag 4)
-    std::uint8_t unused_154[4];
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
     int distanceFog_;
     RECT drawnRect_;            // the screen rectangle of the last mesh draw
@@ -406,7 +402,6 @@ public:
     CTexture* shadowRenderSurface_;   // counted
     CTextureDevice* device_;
     std::uint16_t mipLevel_;    // first mip level to load
-    std::uint16_t unused_EA;
     int limitTo512_;            // nonzero: textures are loaded at most 511 pixels wide and high
 };
 inline CTextureManager* CTexture::Manager() const { return static_cast<CTextureManager*>(owner_); }

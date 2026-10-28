@@ -80,11 +80,9 @@ public:
 
     std::uint8_t prototypeIndex_;
     std::uint8_t effectPower_;      // the effect record's power, set to 0x10
-    std::uint16_t unused_1E;
     std::uint32_t duration_;
     float damage_;
     float radius_;                  // the prototype's area; Build makes it a radius
-    std::uint32_t unused_2C;
     float speed_;                   // missile speed
     float range_;
     std::uint32_t targetCount_;
@@ -195,10 +193,8 @@ public:
     CEffect* sound;             // a sound or a sound sequence (counted)
     CEffectPointLight* light;   // counted
     std::uint8_t footprintStamped;
-    std::uint8_t unused_9D[3];
     int timer;                  // ticks left in the next state
     std::uint8_t silentEnd;     // copied into the buff record; healing: skip when at full health
-    std::uint8_t unused_A5[3];
 
     // The visual as the effect class its spell type creates.
     template <class T> T* Visual() const { return static_cast<T*>(visual); }
@@ -356,17 +352,11 @@ public:
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                   float distance) const;
 
-    std::uint8_t unused_54[0x94 - 0x54];
     int kind_;                      // 1 point, 3 directional
     float color_[3];                // r, g, b
-    std::uint8_t unused_A4[0xC8 - 0xA4];
     Vector3 pointPosition_;         // SetPoint's position
     Vector3 direction_;             // a directional light's (the sun's) direction
     float range_;
-    float unused_E4;               // 1.0
-    float unused_E8;               // 1.0
-    std::uint8_t unused_EC[0xFC - 0xEC];
-    std::uint32_t unused_FC;
     float rangeSquared_;
     float inverseRangeSquared_;
     Vector3 localDirection_;        // direction_ in the space of the mesh being lit
@@ -389,11 +379,7 @@ public:
     CLight* LightWithId(unsigned id) const { return FindObjectAs<CLight>(id); }
     CLight* CreateLight(int type, int id = -1) { return CreateObjectAs<CLight>(type, id); }
 
-    std::uint32_t unused_B0[4];
     CEngineObject* held_;           // released by the destructor
-    std::uint32_t unused_C4[2];
-    std::uint32_t unused_CC;
-    std::uint32_t unused_D0;       // 1
     std::list<int> litIds_;
 };
 

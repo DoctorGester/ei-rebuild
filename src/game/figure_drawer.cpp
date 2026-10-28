@@ -61,7 +61,6 @@ FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
 
 int FigureMeshDrawer::CreateDrawer() {
     flags_ = 0;
-    spare30_ = Vector3{1.0f, 1.0f, 1.0f};
     return 1;
 }
 

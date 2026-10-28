@@ -155,7 +155,6 @@ public:
     void SetTarget(const CEngineObject* target);
     void SetTargetId(int id);
 
-    std::uint8_t unused_54[0x94 - 0x54];
     options::GameOptions* settings_;   // the game options: heights, start placement, limits, saved views
     Vector3 offset98_;          // pan velocity
     Vector3 offsetA4_;          // pan velocity target
@@ -169,7 +168,6 @@ public:
     float zoomRate_;
     std::uint32_t zoomTarget_;  // the zoom rate target (float bits; SetZoomTarget)
     float zoomResponse_;
-    std::uint8_t unused_D8[0xE0 - 0xD8];
     Vector3 focus_;             // the point looked at
     float focusHeight_;         // above the ground
     float distance_;
@@ -180,7 +178,6 @@ public:
     float boundsRadius_;
     int targetId_;
     CameraView views_[8];
-    std::uint8_t unused_1E0[0x2E0 - 0x1E0];   // (the original's saved view stack, a deque nothing ever pushed to)
     float nearDistance_;        // (renderer_init reads the three as zNear / zFar / fov)
     float farDistance_;
     float fieldOfView_;

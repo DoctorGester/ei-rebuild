@@ -166,7 +166,6 @@ public:
     CTexture* texture;              // the shadow texture (counted)
     float bounds[4];                // minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // the shadow's bounds, the centre relative to the object
-    std::uint8_t unused_BC[0xC8 - 0xBC];    // zeroed with the bounds
     RECT drawnRect;                 // the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // the wounds texture (counted; ShowWounds loads it)
     CountedRef<WoundsMaterial> woundsMaterial;  // the material drawing it (counted)

@@ -26,11 +26,9 @@ struct DressedUnitRecord {
     void Write(CStream* stream);
 
     std::uint16_t prototype;
-    std::uint16_t unused_02;
     UnitIdList items;
     UnitIdList extraWeapons;        // weapon index << 16 | material index
     std::int8_t extraWeapon;
-    std::uint8_t unused_1D[3];
     int modelNumber;                // -1: the textures are named after the prototype
 };
 

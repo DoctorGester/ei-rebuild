@@ -231,7 +231,6 @@ public:
     // The login sends the party first: the flow sets it once the local player took the requested party,
     // clears it for a new zone.
     std::uint8_t sendParty_;
-    std::uint8_t unused_86[2];
     CoderState compressor_;         // for the requests sent
     CoderState decompressor_;       // for the messages received
     // The ids of the party's units (message 0x60; the HUD's map and the client world's NearestVisibleUnit

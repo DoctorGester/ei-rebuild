@@ -83,7 +83,6 @@ public:
 
     std::uint8_t recording_;
     std::uint8_t skipNext_;      // the next recorded message is dropped (set by OpenRecording)
-    std::uint8_t unused_0A[2];
     FileStream record_;
 
 protected:

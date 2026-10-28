@@ -199,7 +199,6 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamLoopAt;
     std::int32_t streamFrameBytes;
     std::uint8_t streamSilence;
-    std::uint8_t unused_141[3];
     SoundFader musicFader;              // music volume (options) and fades
     std::string streamName;            // playing
     std::string nextName;              // requested
@@ -221,9 +220,7 @@ struct CSoundManager : CEngineObject {
     std::string midiNextName;
     std::vector<std::int32_t> midiArray1E4;
     std::vector<std::int32_t> midiArray1F4;
-    std::uint8_t unused_204[8];
     SoundFader midiFader;
-    std::uint8_t unused_228[4];
     CRITICAL_SECTION midiLock;
     HANDLE midiThread;                  // never started
     volatile std::int32_t threadsQuit;  // set by Close; both threads end on it

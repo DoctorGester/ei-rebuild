@@ -122,7 +122,6 @@ public:
     float scale_;
     int count_;                 // visible list size after the last rebuild
     bool tabsEnabled_;
-    std::uint8_t unused_18D[3];
     int hovered_;               // -1
     union {
         int filter_;                // 0 items, 1 spells, 2 armour
@@ -425,7 +424,6 @@ public:
     int gameType_;                 // the new game's type tab 0..3
     char boxText_[0x80];           // the edit boxes' text (an address, a password)
     bool unlisted_;                // the new game is not announced (1 from Create)
-    std::uint8_t unused_221[3];
     std::string hostPassword_;    // the new game's password
     std::vector<std::string> allodNames_; // "lmp_allod_name %d" texts (the game type tabs)
     bool joining_;                 // the client was asking a host last frame
@@ -433,7 +431,6 @@ public:
     int spare_;                    // 0 from Create; nothing else touches it
     int sortKey_;                  // 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips_;             // the unlisted and password regions have their tips (DrawList; 0 from Create)
-    std::uint8_t unused_25D[3];
 };
 
 // A message box waiting on a master server request: one cancel button, the link to the master server and a progress bar
@@ -486,7 +483,6 @@ public:
 // The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
     bool scroll;                // the first word is "#scroll"
-    std::uint8_t unused_1[3];
     float speed;                // the second word (atof): the scroll speed, or the seconds shown
     std::string text;          // the fourth word (the header)
     std::string style;         // the third word (the text file in the archive)
@@ -566,7 +562,6 @@ public:
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // the last line has gone (cleared by Build)
-    std::uint8_t unused_1F6[2];
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
 
@@ -610,12 +605,9 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
 
     int hovered_;                    // the region under the mouse (-1 none)
-    std::uint8_t unused_168[4];
     bool rain_;
     bool daylight_;                  // the hour was between 7 and 21 when the menu opened
-    std::uint8_t unused_16E[2];
     float hour_;                     // the time of day at the last update
-    std::uint8_t unused_174[4];
     float savedEdgeFade_;            // the map edge fade before the menu
 };
 

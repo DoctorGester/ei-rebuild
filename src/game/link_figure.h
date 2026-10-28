@@ -49,7 +49,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
     int GetClassId() override;
 
-    // No flags; spare30_ becomes (1, 1, 1). Returns 1.
+    // No flags. Returns 1.
     int CreateDrawer();
     // No mesh, no flags.
     void DestroyDrawer();
@@ -61,7 +61,6 @@ struct FigureMeshDrawer : FigureDrawerBase {
     void Animate(float time);
 
     RECT screen_;               // where the mesh was last drawn
-    Vector3 spare30_;           // (1, 1, 1) after Create; nothing reads it
 };
 
 class CTextureDevice;

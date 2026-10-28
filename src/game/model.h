@@ -185,7 +185,6 @@ public:
 
     // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
-    std::uint8_t unused_08[4] = {};
     ITransformPipeline* transform_;   // 3DfpFPU.dll's transform object (projects and clips vertices)
     void* library_;                   // 3DfpFPU.dll's module (FreeLibrary in the destructor)
     MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)

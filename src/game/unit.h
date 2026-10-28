@@ -470,7 +470,6 @@ public:
     std::int8_t animationEntry;
     std::int8_t secondEntry;
     std::int8_t actionSound;        // a hero's action sound (CUnitClientSpecific's sounds)
-    std::uint8_t unused_257;
     int animationStart;             // the world tick the animation started at (+1 per paused tick)
     int motionMode;                 // 0 plays, 1 paused (the start moves on), 2 scaled
     int pathTimeShift;              // 1: the client shifts its motion path's time each update
@@ -843,7 +842,6 @@ struct PartyUnitRecord {
     int moveMode2 = 2;                  // the unit's moveMode2
     std::uint32_t weaponIndex = 0;  // the weapon shown in the camp
     std::uint8_t selected = 0;          // the unit is selected (flags_ bit 4)
-    std::uint8_t unused_779[3];
     int leaderId = -1;                  // the unit it follows (-1 none)
     int fightAtWill = 1;                // the unit's fightAtWill
 };

@@ -130,7 +130,6 @@ public:
     POINT motion_;                   // the mouse motion summed
     std::uint8_t held_;              // the cursor stays at heldPosition_
     std::uint8_t enabled_;           // the cursor exists (created)
-    std::uint8_t unused_92[2];
     DWORD frameTime_;                // when the image's frame last stepped
     HANDLE thread_;                  // the drawing thread (lib::StartThread), or null
     int stop_;                       // asks the cursor thread to end
