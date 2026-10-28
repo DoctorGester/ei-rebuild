@@ -6,7 +6,6 @@
 #include "script.h"
 #include "ui.h"
 
-#include "lib/stlp.h"
 #include "lib/stlp_algo.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

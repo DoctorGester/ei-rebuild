@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "item_stock.h"
 #include "party_storage.h"
-#include "lib/stlp.h"
 
 struct PartyManager;
 

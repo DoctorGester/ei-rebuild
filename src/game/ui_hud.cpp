@@ -25,7 +25,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "unit.h"
 #include "world.h"
 
@@ -256,9 +255,8 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     } else {
         int unitId = owner_->party_[region]->id_;
         // The session's player records: id_ the player's unit, serial_ its id.
-        net::RefNode* end = net::GameClient()->players_.End();
-        for (net::RefNode* node = end->next; node != end; node = node->next) {
-            auto* player = net::GameClient()->players_.At(node);
+        for (auto node = net::GameClient()->players_.begin(); node != net::GameClient()->players_.end(); ++node) {
+            auto* player = node->Get();
             if (player->id_ == unitId) {
                 playerId = player->serial_;
                 break;

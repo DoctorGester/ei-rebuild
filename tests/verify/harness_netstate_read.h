@@ -17,7 +17,7 @@ std::vector<std::string> NetLines(const Server* server, const Client* client) {
     char line[600];
     if (server) {
         unsigned connections = 0;
-        for (auto* node = server->clients_->next; node != server->clients_; node = node->next) ++connections;
+        for (auto it = server->clients_.begin(); it != server->clients_.end(); ++it) ++connections;
         std::snprintf(line, sizeof(line), "netstate: the server has %u connections", connections);
     } else {
         std::snprintf(line, sizeof(line), "netstate: no server");
@@ -29,12 +29,12 @@ std::vector<std::string> NetLines(const Server* server, const Client* client) {
     }
     const auto& servers = client->servers_;
     unsigned listed = 0;
-    for (auto* node = servers.First(); node != servers.End(); node = node->next) ++listed;
+    for (auto it = servers.begin(); it != servers.end(); ++it) ++listed;
     std::snprintf(line, sizeof(line), "netstate: the client's join state %u, %u servers listed",
                   static_cast<unsigned>(client->joinState_), listed);
     lines.push_back(line);
-    for (auto* node = servers.First(); node != servers.End(); node = node->next) {
-        const auto* entry = static_cast<const Entry*>(node->data.ptr);
+    for (const auto& held : servers) {
+        const auto* entry = static_cast<const Entry*>(held.ptr);
         if (!entry) continue;
         const auto* ip = reinterpret_cast<const std::uint8_t*>(&entry->address_.ip);
         const unsigned port = (entry->address_.port >> 8 | entry->address_.port << 8) & 0xFFFF;

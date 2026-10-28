@@ -21,7 +21,6 @@
 #include "world_map_files.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include "game_flow_data.h"
 #include "game_data.h"
@@ -214,8 +213,7 @@ bool LoadZoneQuests(const char* zone) {
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
-void GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
-    const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
+void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
     std::string name = record->name_.data();
     const float value = record->value_;
     bool quest;

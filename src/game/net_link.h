@@ -168,28 +168,19 @@ public:
     RefPtrTo<net::Connection> player_;
 };
 
-// A node of the session's driver lists (STLport list<RefPtr>).
-struct DriverNode {
-    DriverNode* next;
-    DriverNode* prev;
-    RefPtrTo<DriverLink> value;
-
-    DriverLink* Driver() const { return value.Get(); }
-};
-
 // The network session (made by CWorld::OpenSession): a player source with two lists of drivers.
 class DriverSession final : public CPlayerSource {
 public:
     DriverSession();
     ~DriverSession() override;
 
-    int OnShutdown() override;          // both lists emptied, new sentinels
+    int OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
     bool Query() override { return true; }
     void TakeNew(JoinedLinks* joined) override;   // the live holders' links appended
 
-    DriverNode* drivers_;        // list<RefPtr> (owning)
-    DriverNode* holders_;        // list of plain holders (released, not detached)
+    std::list<SharedRefTo<DriverLink>> drivers_;    // owning
+    std::list<CountedRefTo<DriverLink>> holders_;   // plain holders (released, not detached)
 
     // A driver for every new connection of `session` (the game client or server) with something queued;
     // then each driver pumped, and those whose player is gone erased.

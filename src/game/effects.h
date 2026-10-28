@@ -18,7 +18,6 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/mfc_coll.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "game_data.h"
 

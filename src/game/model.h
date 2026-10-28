@@ -10,7 +10,6 @@
 #include "water_tweens.h"
 
 #include "lib/containers.h"
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 

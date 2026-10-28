@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
-#include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 

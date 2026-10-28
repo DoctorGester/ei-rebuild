@@ -14,7 +14,6 @@
 #include "core_refcount.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 
 #include <memory>
@@ -56,28 +55,8 @@ CChatOverlay::~CChatOverlay() {}
 CBattleScreen::~CBattleScreen() {
 }
 
-static_assert(sizeof(BriefingMover) == 0x30);
-
-CBriefingScreen::~CBriefingScreen() {
-    // The shown items' list (node 0x18 bytes: next, prev, then the item record).
-    for (BriefingShownItem* node = shown_->next; node != shown_;) {
-        BriefingShownItem* next = node->next;
-        std::destroy_at(&node->name);
-        stlp::deallocate(node, sizeof(BriefingShownItem));
-        node = next;
-    }
-    shown_->next = shown_;
-    shown_->prev = shown_;
-    stlp::deallocate(shown_, sizeof(BriefingShownItem));
-    for (BriefingMover* node = movers_->next; node != movers_;) {
-        BriefingMover* next = node->next;
-        stlp::deallocate(node, sizeof(BriefingMover));
-        node = next;
-    }
-    movers_->next = movers_;
-    movers_->prev = movers_;
-    stlp::deallocate(movers_, sizeof(BriefingMover));
-}
+// The shown items, then the movers (members).
+CBriefingScreen::~CBriefingScreen() {}
 
 CMpConnectScreen::~CMpConnectScreen() {}
 

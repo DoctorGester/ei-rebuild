@@ -22,7 +22,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include "ei/x87.h"
 #include "lib/vecmath.h"

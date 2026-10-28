@@ -13,7 +13,6 @@
 
 #include "lib/crt.h"
 #include "text_split.h"
-#include "lib/stlp.h"
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"

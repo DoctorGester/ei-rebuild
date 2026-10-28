@@ -19,19 +19,19 @@ namespace {
 
 const char* MasterHost() { return options::TheOptions()->masterServerName_.c_str(); }   // the master server's host name
 
-// Timed entries {next, prev, seconds left (float), ...}: each loses `dt`; those below zero are
+// Timed entries {seconds left (float), object}: each loses `dt`; those below zero are
 // erased. The end is read again after every entry.
 template <typename List>
 void CountDown(List& list, float dt) {
-    TimedNode* node = list.First();
-    while (node != list.End()) {
-        TimedNode* current = node;
-        node = node->next;
-        float& seconds = current->data.seconds;
+    auto node = list.begin();
+    while (node != list.end()) {
+        auto current = node;
+        ++node;
+        float& seconds = current->seconds;
         float left = seconds - dt;
         seconds = left;
         EI_NAN_AUDIT(left);
-        if (left < worlddata::Zero()) list.Erase(current);
+        if (left < worlddata::Zero()) list.erase(current);
     }
 }
 
@@ -60,8 +60,8 @@ void ServerSession::Tick(double dt) {
 // False for a dead connection, binding or player.
 bool ServerSession::PlayerStateIs3(const Connection* connection) {
     if (!IsLive(connection)) return false;
-    for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-        auto* binding = bindings_.At(node);
+    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
+        auto* binding = node->Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         if (!IsLive(binding)) return false;
         auto* player = binding->Player();

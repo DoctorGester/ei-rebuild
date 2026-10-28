@@ -9,7 +9,6 @@
 #include "resource_local.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstdint>
 #include <string>

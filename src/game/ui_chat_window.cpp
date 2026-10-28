@@ -14,7 +14,6 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -132,10 +131,10 @@ void CChatWindow::ShowPlayers() {
 
     // Our own player first, the others after it; none while the binding is gone.
     net::ClientSession* client = net::GameClient();
-    const stlp::CountedRefList& players = client->players_;
-    for (auto* node = players.First(); node != players.End(); node = node->next) {
+    const auto& players = client->players_;
+    for (auto node = players.begin(); node != players.end(); ++node) {
         if (!Live(client->binding_)) continue;
-        CRefObject* player = node->data.ptr;
+        CRefObject* player = node->ptr;
         bool own = client->binding_->PlayerRef().ptr == player;
         if (own)
             players_.emplace(players_.begin(), player);
@@ -201,8 +200,8 @@ void CChatWindow::Update() {
         auto* own = client->party_.Get();
         if (own && own->partner_.ptr == *p) offer = texts_[kWeOffer];
         const auto& offers = client->offers_;
-        for (auto* node = offers.First(); node != offers.End(); node = node->next) {
-            if (offers.At(node)->player_.ptr == *p) {
+        for (auto node = offers.begin(); node != offers.end(); ++node) {
+            if (node->Get()->player_.ptr == *p) {
                 offer = texts_[kTheyOffer];
                 break;
             }

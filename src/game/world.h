@@ -32,7 +32,6 @@
 #include "unit_looks.h"
 #include "water_tweens.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture
@@ -54,6 +53,7 @@ class DriverSession;
 }
 namespace net {
 struct NetAddress;
+class VariableMessage;
 }
 class CWorldHandle;
 class CClientHandle;
@@ -1098,15 +1098,6 @@ struct DepthLess {
 struct UnitOrderLess {
     bool Less(CMapObject* a, CMapObject* b);
 };
-// Orders the client's variable nodes (ClientSession::variables_) by their stamp
-// (VariableMessage::serial_).
-struct EntryIdLess {
-    BOOL Less(const stlp::list<RefPtr>::Node* a, const stlp::list<RefPtr>::Node* b);
-};
-// STLport's sort of the changed variables' nodes with EntryIdLess (the flow's update).
-void StampIntroSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, int valueType, int depthLimit,
-                               const void* comp);
-void StampInsertionSort(stlp::list<RefPtr>::Node** first, stlp::list<RefPtr>::Node** last, const void* comp);
 
 BOOL IsMultiplayerClient();
 // Game clock: whole ticks + fraction.
@@ -1160,9 +1151,9 @@ struct GameFlow {
     // Used by the hero screens. DropSessions, then the resources go back to the local database
     // (UseResources(false)).
     void EndSession();
-    // The client's variable at `node` (an element of ClientSession::variables_) changed: "q." variables
+    // The client's variable `record` (an element of ClientSession::variables_) changed: "q." variables
     // go to the quest log and the client world. Only the argument is read.
-    static void OnVariableChanged(const stlp::list<RefPtr>::Node* node);
+    static void OnVariableChanged(const net::VariableMessage* record);
     // Registers a quest folder once: the flow loads its quests, then with "<folder>\quest.reg" in the
     // texts the quest table reads it, the map database loads "<folder>\map.txt" and the folder joins the
     // list.

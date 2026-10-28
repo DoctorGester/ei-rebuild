@@ -45,54 +45,6 @@ std::list<CUnit*>* SectorUnits(CSectorMap* map, int x, int y) {
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
 int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
 
-// STLport list<unsigned> on the game's node pool, as Tick builds it on the stack: 12-byte nodes
-// {next, prev, value}; the constructor allocates the head node.
-class IdList {
-public:
-    struct Node {
-        Node* next;
-        Node* prev;
-        unsigned value;
-    };
-
-    IdList() {
-        head_ = stlp::allocate_as<Node>();
-        head_->next = head_->prev = head_;
-    }
-    // Frees any nodes left, then the head.
-    ~IdList() {
-        Clear();
-        stlp::deallocate(head_, sizeof(Node));
-    }
-    IdList(const IdList&) = delete;
-    IdList& operator=(const IdList&) = delete;
-
-    // insert(end(), value): create the node, then link it.
-    void PushBack(unsigned value) {
-        auto* node = stlp::allocate_as<Node>();
-        node->value = value;
-        node->next = head_;
-        node->prev = head_->prev;
-        head_->prev->next = node;
-        head_->prev = node;
-    }
-    // clear(): frees the nodes in order and empties the ring.
-    void Clear() {
-        for (Node* node = head_->next; node != head_;) {
-            Node* next = node->next;
-            stlp::deallocate(node, sizeof(Node));
-            node = next;
-        }
-        head_->next = head_->prev = head_;
-    }
-
-    Node* Begin() const { return head_->next; }
-    Node* End() const { return head_; }
-
-private:
-    Node* head_;
-};
-
 } // namespace
 
 void CWorldServer::Tick(char force) {
@@ -102,18 +54,18 @@ void CWorldServer::Tick(char force) {
     // Timed objects: each one's Update runs it; those that return 0 are released now and taken out of the map after
     // the walk (the walk reads the node again after the release).
     auto& timed = timedObjects_.map;
-    IdList finished;
+    std::list<unsigned> finished;
     for (auto node = timed.begin(); node != timed.end(); ++node) {
         CEngineObject* object = node->second;
         if (object->RunTick() == 0) {
-            finished.PushBack(static_cast<unsigned>(object->id_));
+            finished.push_back(static_cast<unsigned>(object->id_));
             object->Release();
         }
     }
-    for (IdList::Node* id = finished.Begin(); id != finished.End(); id = id->next) {
-        if (auto found = timed.find(id->value); found != timed.end()) timed.erase(found);
+    for (unsigned id : finished) {
+        if (auto found = timed.find(id); found != timed.end()) timed.erase(found);
     }
-    finished.Clear();
+    finished.clear();
 
     AIEvents()->Advance(tick_);
     // Every countdown counted down; true while one still runs.

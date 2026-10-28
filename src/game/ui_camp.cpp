@@ -17,7 +17,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/stlp.h"
 #include "lib/text_case.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"

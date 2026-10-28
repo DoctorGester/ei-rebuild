@@ -5,7 +5,6 @@
 #include "terrain.h"
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>

@@ -2,7 +2,6 @@
 
 // The numbers that fly up from units hit (the world client's).
 
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -11,7 +11,6 @@
 #include "world.h"
 #include "net_classes.h"
 
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "resource.h"
 #include "lib/static_object.h"

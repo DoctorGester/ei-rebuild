@@ -7,7 +7,6 @@
 
 #include "unit_db.h"   // InlineStrings
 
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 
 #include <cstddef>

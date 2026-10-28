@@ -213,8 +213,8 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
     POINT point = {x, y};
     CUnit* object = TheClientWorld()->UnitAt2(&point);
     if (IsPerson(object)) {
-        for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
-            if (mover->person->id_ == object->id_) return;
+        for (const BriefingMover& mover : movers_)
+            if (mover.person->id_ == object->id_) return;
         Input()->LeftDown(buttons, x, y);
         return;
     }

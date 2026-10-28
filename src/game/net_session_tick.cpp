@@ -9,7 +9,6 @@
 #include "core_streams.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/stlp_list_refs.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -68,9 +67,9 @@ void SessionBase::Tick(double dt) {
         default: break;   // 2 and anything else: ignored
         }
     }
-    for (ClientNode* node = clients_->next; node != clients_;) {
-        ClientNode* next = node->next;
-        Connection* connection = node->connection;
+    for (auto node = clients_.begin(); node != clients_.end();) {
+        auto next = std::next(node);
+        Connection* connection = node->Get();
         if (!connection->Tick(dt)) {
             if (g_netLog) {
                 std::string address = connection->address_.ToString();
@@ -111,33 +110,31 @@ void LogConnection(const char* before, Connection* connection, const char* after
 
 } // namespace
 
-ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address) {
-    ClientNode* node = clients_->next;
-    while (node != clients_ && std::memcmp(&node->connection->address_, address, sizeof(NetAddress)) != 0)
-        node = node->next;
-    *out = node;
-    return out;
+ClientList::iterator SessionBase::FindClient(const NetAddress* address) {
+    auto node = clients_.begin();
+    while (node != clients_.end() && std::memcmp(&node->Get()->address_, address, sizeof(NetAddress)) != 0) ++node;
+    return node;
 }
 
 // Logs it, closes the connection and erases the node.
-void SessionBase::RemoveClient(ClientNode* node) {
-    if (node == clients_) return;
-    if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->connection, nullptr);
-    node->connection->Close();
-    stlp::list<RefPtr>::Erase<stlp::SharedRef>(stlp::AsRefNode(node));
+void SessionBase::RemoveClient(ClientList::iterator node) {
+    if (node == clients_.end()) return;
+    if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->Get(), nullptr);
+    node->Get()->Close();
+    clients_.erase(node);
 }
 
 // Packet kind 0: an update from a client. Unknown senders are logged (returns
 // false); a client whose update does not read is logged, reported and removed.
 bool SessionBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
-    ClientNode* node = ClientAt(from);
-    if (node == clients_) {
+    auto node = FindClient(from);
+    if (node == clients_.end()) {
         LogText(game::nettexts::UnknownHost());
         return false;
     }
-    if (!node->connection->ReadUpdate(cursor)) {
-        if (g_netLog) LogConnection(game::nettexts::BadClient(), node->connection, game::nettexts::BadUpdate());
-        OnClientLost(node->connection);
+    if (!node->Get()->ReadUpdate(cursor)) {
+        if (g_netLog) LogConnection(game::nettexts::BadClient(), node->Get(), game::nettexts::BadUpdate());
+        OnClientLost(node->Get());
         RemoveClient(node);
     }
     return true;
@@ -149,9 +146,9 @@ void SessionBase::OnLeave(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
-    ClientNode* node = ClientAt(from);
-    if (node != clients_ && node->connection->id_ == id) {
-        OnClientLeft(node->connection);
+    auto node = FindClient(from);
+    if (node != clients_.end() && node->Get()->id_ == id) {
+        OnClientLeft(node->Get());
         RemoveClient(node);
     }
 }
@@ -220,13 +217,11 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
 
 namespace net {
 
-namespace {
-// The clients list: its nodes and sentinel go back to the pool.
-} // namespace
-
+// Every client is sent a leave packet; the connections are released (the owner's release) after the socket
+// and the type registry.
 SessionBase::~SessionBase() {
-    for (ClientNode* node = clients_->next; node != clients_; node = node->next) {
-        Connection* connection = node->connection;
+    for (auto node = clients_.begin(); node != clients_.end(); ++node) {
+        Connection* connection = node->Get();
         std::uint32_t id = connection->id_;
         GrowingBuffer storage;
         auto* buffer = &storage;
@@ -243,17 +238,7 @@ SessionBase::~SessionBase() {
     socket_.Destruct();
     types_.byType.clear();
     types_.byVtable.clear();
-    ClientNode* sentinel = clients_;
-    for (ClientNode* node = sentinel->next; node != clients_;) {
-        ClientNode* next = node->next;
-        DestroyOwned(node->connection);
-        stlp::deallocate(node, sizeof(ClientNode));
-        node = next;
-        if (node == clients_) break;
-    }
-    clients_->next = clients_;
-    clients_->prev = clients_;
-    stlp::deallocate(clients_, sizeof(ClientNode));
+    clients_.clear();
 }
 
 } // namespace net
@@ -262,10 +247,6 @@ SessionBase::~SessionBase() {
 
 namespace net {
 
-namespace {
-// The clients list's insert(pos, value) (list<RefPtr>'s with SharedRef): another STLport string destructor.
-} // namespace
-
 // The send interval is the constant over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
     if (g_netLog) {
@@ -273,11 +254,9 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         const char* text = peer.data();
         LogAddress(game::nettexts::AddClient(), text);
     }
-    RemoveClient(ClientAt(address));
-    Connection* connection = NewCounted<Connection>(id);
-    const RefPtr ref{connection};   // stored without a reference
-    stlp::list<RefPtr>::Insert<stlp::SharedRef>(stlp::AsRefNode(clients_), ref);
-    Connection* added = clients_->prev->connection;
+    RemoveClient(FindClient(address));
+    clients_.emplace_back(NewCounted<Connection>(id));
+    Connection* added = clients_.back().Get();
     added->address_ = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;

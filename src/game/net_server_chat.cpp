@@ -23,19 +23,17 @@ constexpr std::uint32_t kMaxLines = 50;
 // null for the server's own lines) and drops the oldest past 50.
 void ServerSession::Announce(const char* text, CRefObject* player) {
     auto* line = NewCounted<LineMessage>();
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, line);
-    lines_.Insert(lines_.End(), *value);
+    lines_.emplace_back(line);
 
-    auto* added = lines_.Back();
+    auto* added = lines_.back().Get();
     added->text_.assign(text);
     added->number_ = nextLine_;
     ++nextLine_;
 
     CRefObject* connection = nullptr;
     if (player && !(player->flags7_ & CRefObject::kDetached)) {
-        for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-            auto* binding = bindings_.At(node);
+        for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
+            auto* binding = node->Get();
             if (binding->PlayerRef().ptr == player) {
                 connection = binding->ConnectionRef().ptr;
                 break;
@@ -47,9 +45,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     if (connection) ++connection->refs_;
     if (previous) previous->Release();
 
-    int count = 0;
-    stlp::SharedRefList::Distance(lines_.First(), lines_.End(), count);
-    if (static_cast<std::uint32_t>(count) > kMaxLines) lines_.Erase(lines_.First());
+    if (lines_.size() > kMaxLines) lines_.erase(lines_.begin());
 }
 
 // Announce with text `kind` of the text table formatted with `text`.

@@ -14,7 +14,6 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/text_case.h"
 
 #include <bit>

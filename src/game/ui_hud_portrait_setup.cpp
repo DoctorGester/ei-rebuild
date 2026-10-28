@@ -15,7 +15,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -47,8 +46,7 @@ void SexOf(const char* figure, std::string& sex) {
 }
 
 // The client's player records (a list of counted PlayerMessages).
-using PlayerNode = net::RefNode;
-PlayerNode* PlayersHead() { return net::GameClient()->players_.End(); }
+std::list<CountedRefTo<net::PlayerMessage>>& Players() { return net::GameClient()->players_; }
 
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
@@ -101,8 +99,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     int width;
     if (IsMultiplayerClient()) {
         width = static_cast<char>(wide) != 0 ? 0x38 : 0x28;
-        int players = 0;
-        for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) ++players;
+        int players = static_cast<int>(Players().size());
         x = 400 - static_cast<int>(static_cast<unsigned>(width + players * 40 - 40) >> 1);
         if (column > 0) {
             x += width + column * 40 - 40;
@@ -218,8 +215,8 @@ void CHudPortraits::Rebuild(int wide) {
     }
 
     if (!IsMultiplayerClient()) return;
-    for (PlayerNode* node = PlayersHead()->next; node != PlayersHead(); node = node->next) {
-        auto* player = net::GameClient()->players_.At(node);
+    for (auto node = Players().begin(); node != Players().end(); ++node) {
+        auto* player = node->Get();
         CEngineObject* unit = nullptr;
         if (player->id_ >= 0) unit = TheClientWorld()->FindUnit(player->id_);
         if (player->state_ == 0 && player->id_ >= 0 && unit) continue;

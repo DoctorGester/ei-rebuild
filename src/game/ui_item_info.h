@@ -13,7 +13,6 @@
 #include "ui.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>

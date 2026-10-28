@@ -10,7 +10,6 @@
 #include "unit.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 

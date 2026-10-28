@@ -6,7 +6,6 @@
 #include "engine_object.h"
 #include "texture.h"
 
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -39,8 +39,8 @@ bool Is(const std::string& s, const char* t) {
 
 // Whether `connection` is the host's (a binding of it with a live host player).
 bool ServerSession::IsHostConnection(const Connection* connection) {
-    for (RefNode* node = bindings_.First(); node != bindings_.End(); node = node->next) {
-        auto* binding = bindings_.At(node);
+    for (auto node = bindings_.begin(); node != bindings_.end(); ++node) {
+        auto* binding = node->Get();
         if (binding->ConnectionRef().ptr != connection) continue;
         auto* player = binding->Player();
         if (IsLive(player) && player->host_) return true;
@@ -59,9 +59,7 @@ void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
         --previous->refs_;
         if (previous->refs_ == 0) delete previous;
     }
-    RefPtr raw;
-    const RefPtr* value = RefPtrFromRaw(&raw, message);
-    self->fileRequests_.Insert(self->fileRequests_.End(), *value);
+    self->fileRequests_.emplace_back(message);
 }
 
 // Commands, from the connection being read. Kinds 0-2 need the host's
@@ -79,12 +77,12 @@ void ServerOnCommand(ServerSession* self, CommandMessage* message) {
         return;
     case kZoneCommand: {
         if (!self->IsHostConnection(CurrentConnectionObject())) return;
-        RefNode* node = self->queuedMaps_.First();
-        for (; node != self->queuedMaps_.End(); node = node->next) {
-            auto* entry = self->queuedMaps_.At(node);
+        auto node = self->queuedMaps_.begin();
+        for (; node != self->queuedMaps_.end(); ++node) {
+            auto* entry = node->Get();
             if (entry->text_ == *text) break;
         }
-        if (node == self->queuedMaps_.End()) return;
+        if (node == self->queuedMaps_.end()) return;
         const std::size_t cut = text->size() - 2;
         std::string suffix = text->substr(cut, StringNpos());
         std::string name = text->substr(0, text->size() - 2);

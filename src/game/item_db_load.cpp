@@ -5,7 +5,6 @@
 #include "chunk_archive.h"
 #include "core_streams.h"
 
-#include "lib/stlp.h"
 
 #include <functional>
 #include <type_traits>

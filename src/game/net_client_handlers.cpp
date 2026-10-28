@@ -33,23 +33,20 @@ inline void FlowLoadZoneQuests(void*, void*, const char* a2) { LoadZoneQuests(a2
 // Every node holding `value` erased (the sentinel read once, the next node taken first).
 template <typename List>
 void RemoveValue(List& list, const void* value) {
-    RefNode* sentinel = list.End();
-    for (RefNode* node = sentinel->next; node != sentinel;) {
-        RefNode* next = node->next;
-        if (node->data.ptr == value) list.Erase(node);
+    for (auto node = list.begin(); node != list.end();) {
+        auto next = std::next(node);
+        if (node->ptr == value) list.erase(node);
         node = next;
     }
 }
-// A list given the message through a holder without a reference.
+// The message appended (the list's element takes its own reference or share).
 template <typename List>
-void AppendRaw(List& list, Message* message) {
-    RefPtr raw;
-    list.Insert(list.End(), *RefPtrFromRaw(&raw, message));
+void Append(List& list, Message* message) {
+    list.emplace_back(message);
 }
 template <typename List>
 void RemoveRaw(List& list, Message* message) {
-    RefPtr raw;
-    RemoveValue(list, RefPtrFromRaw(&raw, message)->ptr);
+    RemoveValue(list, message);
 }
 
 // Counted pointers as the handlers inline them.
@@ -88,16 +85,6 @@ void ClearRef(T** slot) {
         if (previous->refs_ == 0) delete previous;
     }
 }
-// A list appended with a counted holder of the message that is released afterwards.
-template <typename List>
-void AppendCounted(List& list, Message* message) {
-    CRefObject* object = message;
-    RefPtr local;
-    local.ptr = object;
-    AddRef(object);
-    list.Insert(list.End(), local);
-    ReleaseRef(local.ptr);
-}
 template <typename List>
 void RemoveCounted(List& list, Message* message) {
     CRefObject* object = message;
@@ -108,10 +95,9 @@ void RemoveCounted(List& list, Message* message) {
 
 // Every request for `file` erased (the sentinel read once, the next node taken first).
 void DropRequestsFor(ClientSession* self, const Message* file) {
-    RefNode* sentinel = self->fileRequests_.End();
-    for (RefNode* node = sentinel->next; node != sentinel;) {
-        RefNode* next = node->next;
-        if (self->fileRequests_.At(node)->FileRef().ptr == file) self->fileRequests_.Erase(node);
+    for (auto node = self->fileRequests_.begin(); node != self->fileRequests_.end();) {
+        auto next = std::next(node);
+        if (node->Get()->FileRef().ptr == file) self->fileRequests_.erase(node);
         node = next;
     }
 }
@@ -199,12 +185,12 @@ void ClientDropParty(ClientSession* self) { DropParty(self); }
 // (address_order.h) refreshes the list when players came before the binding, as if it came first.
 void ClientOnBinding(ClientSession* self, BindingMessage* message) {
     AssignRef(&self->binding_, message);
-    if (!self->players_.Empty()) TheInterface()->OnPlayersChanged(1);
+    if (!self->players_.empty()) TheInterface()->OnPlayersChanged(1);
 }
 void ClientOnBindingGone(ClientSession* self, Message*) { ClearRef(&self->binding_); }
 // The players, with the interface's player list refreshed.
 void ClientOnPlayer(ClientSession* self, Message* message) {
-    AppendRaw(self->players_, message);
+    Append(self->players_, message);
     TheInterface()->OnPlayersChanged(1);
 }
 void ClientOnPlayerChanged(ClientSession*, Message*) { TheInterface()->OnPlayersChanged(0); }
@@ -214,7 +200,7 @@ void ClientOnPlayerGone(ClientSession* self, Message* message) {
 }
 // The chat lines, each shown with its number.
 void ClientOnLine(ClientSession* self, LineMessage* message) {
-    AppendCounted(self->lines_, message);
+    Append(self->lines_, message);
     TheInterface()->OnChatLine(message->text_.data(), message->number_);
 }
 void ClientOnLineGone(ClientSession* self, Message* message) { RemoveCounted(self->lines_, message); }
@@ -223,7 +209,7 @@ void ClientOnInfo(ClientSession* self, HostMessage* message) { AssignRef(&self->
 void ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self->info_); }
 // The zones offered, passed to the game flow.
 void ClientOnZone(ClientSession* self, ZoneMessage* message) {
-    AppendCounted(self->zones_, message);
+    Append(self->zones_, message);
     TheGameFlow()->MarkBriefing(message->text_.data());
 }
 void ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {
@@ -241,7 +227,7 @@ void ClientOnMap(ClientSession* self, MapMessage* message) {
 void ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }
 // The script variables; the flow is told of every change.
 void ClientOnVariable(ClientSession* self, Message* message) {
-    AppendRaw(self->variables_, message);
+    Append(self->variables_, message);
     FlowVariablesChanged(TheGameFlow());
 }
 void ClientOnVariableChanged(ClientSession*, Message*) { FlowVariablesChanged(TheGameFlow()); }
@@ -251,11 +237,11 @@ void ClientOnVariableGone(ClientSession* self, Message* message) {
 }
 // The shared files; for a file the flow lacks, a request holding the file goes on fileRequests_.
 void ClientOnFile(ClientSession* self, FileMessage* message) {
-    AppendRaw(self->files_, message);
+    Append(self->files_, message);
     if (MapFileExists(message->name_.data())) return;
     auto* request = NewCounted<FileRequestMessage>();
     AssignRef(&request->FileRef(), message);
-    AppendRaw(self->fileRequests_, request);
+    Append(self->fileRequests_, request);
 }
 void ClientOnFileGone(ClientSession* self, Message* message) {
     RemoveRaw(self->files_, message);
@@ -267,7 +253,7 @@ void ClientOnFileGone(ClientSession* self, Message* message) {
 // file without a name is only collected. Rebirth's MQClient returns after collecting every chunk: no file from
 // the server is written.
 void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
-    AppendRaw(self->chunks_, message);
+    Append(self->chunks_, message);
     auto* file = message->file_.Get();
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
@@ -277,8 +263,8 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
 
     std::vector<FileChunkMessage*> chunks;
     int count = 0;
-    for (RefNode* node = self->chunks_.First(); node != self->chunks_.End(); node = node->next) {
-        auto* chunk = self->chunks_.At(node);
+    for (auto node = self->chunks_.begin(); node != self->chunks_.end(); ++node) {
+        auto* chunk = node->Get();
         if (chunk->file_.ptr != file) continue;
         ++count;
         chunks.push_back(chunk);
@@ -313,10 +299,10 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
 }
 void ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
 // The awards (applied by the tick).
-void ClientOnAward(ClientSession* self, Message* message) { AppendRaw(self->awards_, message); }
+void ClientOnAward(ClientSession* self, Message* message) { Append(self->awards_, message); }
 // The other players' trade offers; the one paired with ours rebuilds the party.
 void ClientOnParty(ClientSession* self, Message* message) {
-    AppendRaw(self->offers_, message);
+    Append(self->offers_, message);
     if (ClientFindParty(self) != message) return;
     ClientCommitParty(self);
     ClientApplyParty(self);

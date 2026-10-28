@@ -21,7 +21,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/gameapi.h"
-#include "lib/stlp.h"
 #include "party.h"
 #include "game_data.h"
 #include "game_singletons.h"

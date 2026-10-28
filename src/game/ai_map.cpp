@@ -5,7 +5,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/stlp.h"
 
 #include <cstring>
 #include "game_data.h"

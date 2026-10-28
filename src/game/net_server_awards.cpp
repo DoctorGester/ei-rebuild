@@ -39,12 +39,6 @@ void DestroyInline(RefPtr* p) {
 
 } // namespace net
 
-// The counted pointer copy constructor (the same as Share with the other's object).
-RefPtr* RefPtr::CopyShared(const RefPtr* other) {
-    Share(other->ptr);
-    return this;
-}
-
 namespace net {
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
@@ -61,30 +55,27 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
     award->text_ = text;
 
-    RefPtr shared;
-    shared.Share(award);
-    TimedEntry entry;
-    entry.key = kAwardDelay;
-    entry.ref.CopyShared(&shared);
-    awards_.PushBack(entry);
-    entry.ref.Destroy();
-    DestroyInline(&shared);
+    // Shared three times over: the list keeps a clone of the entry's clone (each share marks the object
+    // copy-on-share); the entry's and then the first share are destroyed.
+    SharedRefPtr shared(award);
+    TimedEntry<SharedRefPtr> entry(kAwardDelay, shared);
+    awards_.push_back(entry);
 }
 
 // Finds the host (the first binding whose player is live and has the host flag) and,
 // when its connection is live, queues a kind 2 award for each item name of `entry` (its given items)
 // and, with `withFinal`, a kind 4 award with an empty text.
 void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) {
-    RefNode* sentinel = bindings_.End();
-    RefNode* node = sentinel->next;
+    auto sentinel = bindings_.end();
+    auto node = bindings_.begin();
     for (;;) {
         if (node == sentinel) return;
-        auto* binding = bindings_.At(node);
+        auto* binding = node->Get();
         auto* player = binding->Player();
         if (IsLive(player) && player->host_) break;
-        node = node->next;
+        ++node;
     }
-    CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
+    CRefObject* connection = node->Get()->ConnectionRef().ptr;
     if (!IsLive(connection)) return;
 
     const std::vector<std::string>& items = entry->lists[0];   // the items given
@@ -122,8 +113,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         entry = worlddata::QuestBriefings()[key];
     }
     if (entry) {
-        int count = 0;
-        for (ClientNode* node = clients_->next; node != clients_; node = node->next) ++count;
+        int count = static_cast<int>(clients_.size());
         int share = count < 1 ? 1 : count;
         float value0, value1;
         std::memcpy(&value0, &entry->exp, 4);
@@ -132,14 +122,11 @@ void ServerSession::CompleteZone(const std::string* zone) {
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);
 
-        ClientNode* sentinel = clients_;
-        for (ClientNode* node = sentinel->next; node != sentinel;) {
-            CRefObject* connection = node->connection;
+        for (auto node = clients_.begin(); node != clients_.end(); ++node) {
+            CRefObject* connection = node->ptr;
             const char* empty = game::EmptyText();
             QueueAward(connection, 0, award0, std::string(empty));
             QueueAward(connection, 1, award1, std::string(empty));
-            node = node->next;
-            sentinel = clients_;
         }
         AwardHost(entry, true);
     }
@@ -148,9 +135,9 @@ void ServerSession::CompleteZone(const std::string* zone) {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    queuedMaps_.Clear();
-    variables_.Clear();
-    files_.Clear();
+    queuedMaps_.clear();
+    variables_.clear();
+    files_.clear();
     QueueMapList();
 }
 
@@ -180,9 +167,9 @@ void ServerSession::LeaveZone() {
         DestroyInline(holder);
         holder->Share(nullptr);
     }
-    queuedMaps_.Clear();
-    variables_.Clear();
-    files_.Clear();
+    queuedMaps_.clear();
+    variables_.clear();
+    files_.clear();
     QueueMapList();
     TheGameFlow()->SetNetworkZone(nullptr);
 }

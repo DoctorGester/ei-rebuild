@@ -4,7 +4,6 @@
 
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 #include "lib/mfc_slots.h"
 
 #include <cstdint>

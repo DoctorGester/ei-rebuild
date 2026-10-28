@@ -4,7 +4,6 @@
 #include "chunk_archive.h"
 #include "core_refcount.h"
 
-#include "lib/stlp.h"
 
 #include <unknwn.h>
 

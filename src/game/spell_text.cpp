@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/str.h"
 #include "game_data.h"
 

@@ -4,7 +4,6 @@
 // over the game's element types.
 
 #include "lib/mfc_list.h"
-#include "lib/stlp.h"
 #include "game/core_refcount.h"
 #include "game/game_arrays.h"
 #include "game/sound.h"

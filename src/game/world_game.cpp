@@ -45,7 +45,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/mfc_array.h"
 #include "lib/text_case.h"
 
@@ -59,6 +58,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -802,9 +802,8 @@ void GameFlow::SwitchMultiplayerZone() {
     // (flags 6, high and the cursor back to the start).
     net::ServerSession* server = net::GameServer();
     if (Active(server)) {
-        net::ClientNode* head = server->clients_;
-        for (net::ClientNode* node = head->next; node != head; node = node->next) {
-            GameBuffer& in = node->connection->reliableIn_;
+        for (auto& connection : server->clients_) {
+            GameBuffer& in = connection.Get()->reliableIn_;
             std::uint8_t* begin = in.begin;
             in.flags = 6;
             in.high = begin;
@@ -1473,15 +1472,8 @@ unsigned& AppliedStamp() { return g_appliedStamp; }  // the stamp applied up to
 
 // The variable setter with the value as the raw dword that is pushed (no FPU load on the way).
 void VariableSetBits(NamedFloatTable* table, const char* name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
-// The client's STLport lists of counted messages (ClientSession::zones_, variables_).
-using VariableNode = net::RefNode;
-using ZoneNode = net::RefNode;
-// The vector of changed variables (STLport vector<node*>) and the stamp sort (introsort,
-// world_stamp_sort.cpp).
-
-VariableNode* VariableList() { return net::GameClient()->variables_.End(); }
-net::VariableMessage* NodeRecord(VariableNode* node) { return net::GameClient()->variables_.At(node); }
-unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
+// The client's variables (ClientSession::variables_), each with its stamp (VariableMessage::serial_).
+std::list<CountedRefTo<net::VariableMessage>>& Variables() { return net::GameClient()->variables_; }
 // The value's bits, moved as the dword that is pushed (no FPU load).
 std::uint32_t ValueBits(const net::VariableMessage* record) {
     std::uint32_t bits;
@@ -1536,11 +1528,10 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The briefings the server says were seen.
-    for (ZoneNode* node = net::GameClient()->zones_.First(); node != net::GameClient()->zones_.End(); node = node->next)
-        MarkBriefing(net::GameClient()->zones_.At(node)->text_.data());
+    for (const auto& zone : net::GameClient()->zones_) MarkBriefing(zone.Get()->text_.data());
     // The quest variables ("q.<folder>.<name>") register their quest folders.
-    for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-        std::string name = NodeRecord(node)->name_.data();
+    for (const auto& variable : Variables()) {
+        std::string name = variable.Get()->name_.data();
         bool quest;
         {
             std::string prefix = str::Left(name, 2);
@@ -1560,38 +1551,36 @@ void GameFlow::UpdateFromServer() {
     if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
-        std::vector<VariableNode*> changed;
-        for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-            if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
-            unsigned stamp = NodeStamp(node);
+        std::vector<const net::VariableMessage*> changed;
+        for (const auto& variable : Variables()) {
+            const unsigned stamp = variable.Get()->serial_;
+            if (ServerStamp() <= stamp) ServerStamp() = stamp;
             if (stamp >= AppliedStamp() || stamp < previous) continue;
-            changed.push_back(node);
+            changed.push_back(variable.Get());
         }
-        if (changed.begin() != changed.end()) {
-            int depth = 0;
-            for (int n = static_cast<int>(changed.size()); n != 1; n >>= 1) ++depth;
-            StampIntroSort(changed.data(), changed.data() + changed.size(), 0, depth * 2, variables);
-            StampInsertionSort(changed.data(), changed.data() + changed.size(), variables);
-        }
-        for (VariableNode** it = changed.data(); it != changed.data() + changed.size(); ++it) GameFlow::OnVariableChanged(*it);
+        // By stamp (the original's STLport sort). The server gives every set its own serial, so no two
+        // variables share a stamp and any sort gives this order.
+        std::stable_sort(changed.begin(), changed.end(),
+                         [](const net::VariableMessage* a, const net::VariableMessage* b) { return a->serial_ < b->serial_; });
+        for (const net::VariableMessage* record : changed) GameFlow::OnVariableChanged(record);
         bool settled;
         do {
             settled = true;
-            for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-                if (NodeStamp(node) > AppliedStamp()) continue;
-                if (NodeStamp(node) == AppliedStamp()) {
-                    GameFlow::OnVariableChanged(node);
+            for (const auto& variable : Variables()) {
+                const net::VariableMessage* record = variable.Get();
+                if (record->serial_ > AppliedStamp()) continue;
+                if (record->serial_ == AppliedStamp()) {
+                    GameFlow::OnVariableChanged(record);
                     ++AppliedStamp();
                     settled = false;
                 }
-                net::VariableMessage* record = NodeRecord(node);
                 VariableSetBits(variables, record->name_.data(), ValueBits(record));
             }
         } while (!settled);
     } else {
-        for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
-            if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
-            net::VariableMessage* record = NodeRecord(node);
+        for (const auto& variable : Variables()) {
+            const net::VariableMessage* record = variable.Get();
+            if (ServerStamp() <= record->serial_) ServerStamp() = record->serial_;
             std::string name = record->name_.data();
             VariableSetBits(variables, record->name_.data(), ValueBits(record));
         }

@@ -15,7 +15,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lib/stlp.h"
 
 // BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
 using BOOL = int;

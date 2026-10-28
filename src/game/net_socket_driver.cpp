@@ -5,7 +5,6 @@
 #include "net_classes.h"
 #include "net_coder.h"
 #include "lib/gameapi.h"
-#include "lib/stlp.h"
 
 #include "ei/rebirth.h"
 #include "../hook/log.h"

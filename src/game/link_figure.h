@@ -9,7 +9,6 @@
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
 #include "texture.h"       // RasterTarget
 
-#include "lib/stlp.h"
 
 #include <map>
 #include <vector>

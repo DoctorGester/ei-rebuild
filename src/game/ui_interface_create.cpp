@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"

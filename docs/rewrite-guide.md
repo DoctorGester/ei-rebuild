@@ -40,8 +40,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   compiled_vtable.h) are C28's to convert: add no new ones.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),
-  `containers.h` (the engine's aligned arrays), `stlp.h` (STLport
-  string/vector/hash_map on the game's node allocator), `gameapi.h` (the Win32 imports; generated: the
+  `containers.h` (the engine's aligned arrays), `stlp_algo.h` (STLport's
+  sort, whose order of equal keys is behaviour), `gameapi.h` (the Win32 imports; generated: the
   ones the harness or the image routes go through the image's import slots). C14a-d move the code to
   standard containers and strings with scripted rewrites. Add to these only when needed, in small
   separate additions.
@@ -75,8 +75,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    `gamecrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
    recorders call game.exe's code by address (`tests/verify/harness_original.h`).
 6. **Memory and CRT:** allocate and free game objects with `gamecrt::operator_new` / `operator_delete`
-   (src/lib/crt.h; other code frees them there), containers through `stlp::` / `mfc::` until C14 moves
-   them to standard types. Call the CRT functions whose game behaviour differs from the host's through
+   (src/lib/crt.h; other code frees them there), containers are `std::` (the last `mfc::` ones until C14
+   finishes). Call the CRT functions whose game behaviour differs from the host's through
    `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
@@ -147,19 +147,16 @@ does not need a second pass:
   `mfc::CString`;
 - containers use the shared templates: `mfc::CArray<T>`, `mfc::CList<T>`, `mfc::CTypedPtrList<T>`
   (`src/lib/mfc.h`), `lib::AlignedArray<T>` (the engine's 32-byte aligned arrays,
-  `src/lib/containers.h`) and `stlp::` (`src/lib/stlp.h`). Do not declare a container layout per
+  `src/lib/containers.h`) and `std::`. Do not declare a container layout per
   file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
   and do not hand-inline SetSize / RemoveAt / Add: call the template's member. Which original addresses belong
-  to which template: `docs/notes/core.md`, "Shared containers". stlp::list's
-  members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`): call them on the
-  typed list rather than casting it to its `ListAbi`;
+  to which template: `docs/notes/core.md`, "Shared containers";
   no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
   names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
   raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
   `operator_new_array<T>(count)`, `operator_new_bytes_as<T>(bytes)` (a block shorter or longer
-  than T: a figure strip, a CString's data) and `stlp::allocate_as<T>(count)` (`src/lib/crt.h`,
-  `src/lib/stlp_alloc.h`), not a `static_cast` at each allocation (tools/progress.py counts the
+  than T: a figure strip, a CString's data) (`src/lib/crt.h`), not a `static_cast` at each allocation (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
@@ -173,14 +170,14 @@ does not need a second pass:
   are an STLport vector are a `std::vector<T>` member. The interface's active screen is
   `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `RefPtrTo<T>` field
   read with `Get()`; the new connections a player source hands over are a `JoinedLinks`
-  (`mfc::CTypedPtrList<netlink::NetLink>`); an inlined free of a 12-byte node is
-  `stlp::PushSmallNode(node)`; a window's handled flag is
+  (`mfc::CTypedPtrList<netlink::NetLink>`); a window's handled flag is
   its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file
   written by a transform slot is an `mfc::CFileVirtuals*`, and so is a chunk's `Chunk::File()`. A use order's spots
   are a `UseSpotArray` (map_object.h, `mfc::CArray<Vector3>`: slot 44, the levers, FindUseSpot); a pair message's
-  connection is a `RefPtrTo<Connection>`; the changed variables are an `stlp::vector<VariableNode*>`; a map object's
+  connection is a `RefPtrTo<Connection>`; a session's message lists are
+  `std::list<SharedRefTo<T>>` / `std::list<CountedRefTo<T>>`; a map object's
   slots are called on the typed object or through `ObjectSlots(object)`, not a hand-written vtable call or a cast per file.
 - one typed view instead of a cast per accessor (C15): an object embedded in another and built by
   the owner's code is a `lib::InPlace<T>` member, or a `lib::AbstractInPlace<T>` when T has pure

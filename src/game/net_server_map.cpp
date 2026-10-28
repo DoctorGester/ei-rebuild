@@ -27,16 +27,14 @@ namespace net {
 // through FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
 void ServerSession::SetMap(const std::string* name) {
-    queuedMaps_.Clear();
-    variables_.Clear();
+    queuedMaps_.clear();
+    variables_.clear();
 
     {
         std::string messageName = *name + game::ZoneSuffix2Text();
         auto* message = NewCounted<ZoneMessage>();
         message->text_ = messageName;
-        RefPtr ref;
-        queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
-        RefPtrClear(&ref);
+        queuedMaps_.emplace_back(message);
     }
 
     auto* mapMessage = NewCounted<MapMessage>();
@@ -68,9 +66,7 @@ void ServerSession::SetMap(const std::string* name) {
     const std::vector<std::string>& quests = entry->lists[2];   // the quests given
     for (const std::string* it = quests.data(); it != quests.data() + quests.size(); ++it) {
         std::string resourceName(*it);
-        RefNode* added;
-        FindOrAddVariable(&added, &resourceName);
-        auto* record = variables_.At(added);
+        auto* record = FindOrAddVariable(&resourceName)->Get();
         const std::uint32_t one = 0x3F800000;   // 1.0f
         std::memcpy(&record->value_, &one, 4);
         record->serial_ = g_variableSerial;
@@ -108,9 +104,7 @@ void ServerSession::QueueMapList() {
             std::string key = *zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();
             message->text_ = key;
-            RefPtr ref;
-            queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
-            RefPtrClear(&ref);
+            queuedMaps_.emplace_back(message);
         }
         LoadZoneQuests(zone->data());
     }
@@ -133,14 +127,12 @@ bool ServerSession::FinishMap(const std::string* name) {
         holder->ptr->Release();
         holder->Share(nullptr);
     }
-    queuedMaps_.Clear();
+    queuedMaps_.clear();
 
     std::string messageName = *name + game::ZoneSuffix3Text();
     auto* message = NewCounted<ZoneMessage>();
     message->text_ = messageName;
-    RefPtr ref;
-    queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
-    RefPtrClear(&ref);
+    queuedMaps_.emplace_back(message);
     return true;
 }
 

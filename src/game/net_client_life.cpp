@@ -1,6 +1,7 @@
 // The game client's destructor, scalar deleting destructor and its
-// base layer's destructor body. The members are torn down in reverse order through their STLport destructors
-// and the counted pointers' releases, then the session base. See net_classes.h and docs/notes/network.md.
+// base layer's destructor. The members are torn down in reverse order: the lists are cleared where the original
+// destroys them, between the counted pointers' releases; then the session base. See net_classes.h and
+// docs/notes/network.md.
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_messages.h"
@@ -29,10 +30,10 @@ ClientSession::~ClientSession() {
     parties_[0].Get()->CParty::~CParty();
     if (trade_) trade_->Release();
     tradeRecords_.clear();   // here, where the original destroys it
-    offers_.Release();
+    offers_.clear();
     party_.Destroy();
-    awards_.Release();
-    timers_.Release();
+    awards_.clear();
+    timers_.clear();
     if (auto* local = player_.ptr) {
         if (local->refs_ != 1) {
             local->flags7_ |= CRefObject::kDetached;
@@ -40,20 +41,18 @@ ClientSession::~ClientSession() {
         }
         player_.ptr->Release();
     }
-    variables_.Release();
-    zones_.Release();
+    variables_.clear();
+    zones_.clear();
     ReleaseInline(map_);
     ReleaseInline(binding_);
     ReleaseInline(info_);
-    fileRequests_.Release();
-    chunks_.Release();
-    files_.Release();
-    lines_.Release();
-    players_.Release();
+    fileRequests_.clear();
+    chunks_.clear();
+    files_.clear();
+    lines_.clear();
+    players_.clear();
 }
 
-ClientBase::~ClientBase() {
-    servers_.Release();
-}
+ClientBase::~ClientBase() {}
 
 } // namespace net

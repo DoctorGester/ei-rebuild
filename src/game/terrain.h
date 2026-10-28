@@ -6,7 +6,6 @@
 #include "lib/containers.h"
 #include "lib/vecmath.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/hash_map.h"
 
 #include <cstddef>

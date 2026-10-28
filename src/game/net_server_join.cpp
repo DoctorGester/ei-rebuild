@@ -28,19 +28,12 @@ std::uint32_t g_playerSerial = /*0079B60C*/ {};
 // the login asks (with a local client) or when it is the only binding. Announces the player's name.
 void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* player = NewCounted<PlayerMessage>();
-    RefPtr ref;
-    const RefPtr* value = RefPtrFromRaw(&ref, player);
-    self->players_.Insert(self->players_.End(), *value);
-    ref.ptr = nullptr;
-    ref.Destroy();
-    PlayerMessage* record = self->players_.Back();
+    self->players_.emplace_back(player);
+    PlayerMessage* record = self->players_.back().Get();
 
     auto* binding = NewCounted<BindingMessage>();
-    value = RefPtrFromRaw(&ref, binding);
-    self->bindings_.Insert(self->bindings_.End(), *value);
-    ref.ptr = nullptr;
-    ref.Destroy();
-    BindingMessage* bound = self->bindings_.Back();
+    self->bindings_.emplace_back(binding);
+    BindingMessage* bound = self->bindings_.back().Get();
 
     std::string* name = &record->name_;
     if (&msg->name_ != name) *name = msg->name_;
@@ -52,8 +45,8 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     int number = 1;
     for (;;) {
         bool used = false;
-        for (RefNode* it = self->players_.First(); it != self->players_.End(); it = it->next) {
-            if (self->players_.At(it)->number_ == number) {
+        for (auto it = self->players_.begin(); it != self->players_.end(); ++it) {
+            if (it->Get()->number_ == number) {
                 used = true;
                 break;
             }
@@ -74,9 +67,7 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     if (client && !(client->flags7_ & CRefObject::kDetached)) {
         host = msg->host_ != 0;
     } else {
-        int count = 0;
-        stlp::SharedRefList::Distance(self->bindings_.First(), self->bindings_.End(), count);
-        host = count == 1;
+        host = self->bindings_.size() == 1;
     }
     if (host) record->host_ = 1;
 
@@ -87,11 +78,11 @@ void ServerOnJoin(ServerSession* self, LoginMessage* msg) {
 
 namespace {
 // Every node of `list` holding `value` erased (the next node taken first).
-void EraseValue(stlp::SharedRefList& list, const void* value) {
-    RefNode* sentinel = list.End();
-    for (RefNode* node = sentinel->next; node != sentinel;) {
-        RefNode* next = node->next;
-        if (node->data.ptr == value) list.Erase(node);
+template <typename List>
+void EraseValue(List& list, const void* value) {
+    for (auto node = list.begin(); node != list.end();) {
+        auto next = std::next(node);
+        if (node->ptr == value) list.erase(node);
         node = next;
     }
 }
@@ -121,10 +112,8 @@ void ServerOnPlayerGone(ServerSession* self, LoginMessage* message) {
         std::uint8_t wasHost = player->host_;
         EraseValue(self->players_, player);
         if (wasHost) {
-            int count = 0;
-            stlp::SharedRefList::Distance(self->players_.First(), self->players_.End(), count);
-            if (count != 0) {
-                auto* first = self->players_.Front();
+            if (!self->players_.empty()) {
+                auto* first = self->players_.front().Get();
                 first->host_ = 1;
                 ++first->version_;
             }

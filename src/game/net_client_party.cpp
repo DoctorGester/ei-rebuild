@@ -9,7 +9,6 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <cstring>
 #include <iterator>
@@ -100,8 +99,8 @@ void ClientPublishParty(ClientSession* self) {
 PartyMessage* ClientFindParty(ClientSession* self) {
     auto* ours = self->party_.Get();
     if (!ours) return nullptr;
-    for (stlp::list<RefPtr>::Node* node = self->offers_.First(); node != self->offers_.End(); node = node->next) {
-        auto* other = self->offers_.At(node);
+    for (auto node = self->offers_.begin(); node != self->offers_.end(); ++node) {
+        auto* other = node->Get();
         if (other->partner_.ptr != ours->player_.ptr || other->player_.ptr != ours->partner_.ptr) continue;
         if (other && !(other->flags7_ & CRefObject::kDetached)) return other;
     }

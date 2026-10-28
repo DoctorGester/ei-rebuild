@@ -207,7 +207,6 @@ add_executable(ei_vectors
     src/lib/mfc_coll.cpp
     src/lib/mfc_list.cpp
     src/lib/rebirth.cpp
-    src/lib/stlp.cpp
     src/lib/str.cpp
     src/lib/text_case.cpp)
 target_include_directories(ei_vectors PRIVATE include src)

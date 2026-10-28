@@ -13,17 +13,15 @@
 #include "world.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
 // A person walking to the place a dialogue gives them.
 struct BriefingMover {
-    BriefingMover* next;
-    BriefingMover* prev;
     Vector3 target;
     Vector3 direction;               // the facing at the target
     int state;                       // kDone, kWalking or kTurning
@@ -36,8 +34,6 @@ struct BriefingMover {
     static constexpr int kWalking = 1;
     static constexpr int kTurning = 2;
 };
-static_assert(offsetof(BriefingMover, person) == 0x24);
-static_assert(offsetof(BriefingMover, time) == 0x2C);
 
 // A person taking part in the dialogue.
 struct BriefingSpeaker {
@@ -50,8 +46,6 @@ struct BriefingSpeaker {
 // An item shown in the dialogue ("#show <name>" for what is not a unit). The meshes are the window's scene
 // objects; the item's texture is one of its referenced objects.
 struct BriefingShownItem {
-    BriefingShownItem* next;
-    BriefingShownItem* prev;
     std::string name;
     CUiMesh* item;
     CEngineObject* back;
@@ -241,7 +235,7 @@ public:
     Vector3 thirdDirection_;
     Vector3 personHome_;             // where the person stood when the dialogue started (noWalk_)
     Vector3 personHomeDirection_;
-    BriefingMover* movers_;
+    std::list<BriefingMover> movers_;
     bool firstPhrase_;               // the first phrase lasts a second longer
     std::uint8_t unused_245[3];
     std::string dialogueText_;       // shown whole when skipped
@@ -254,7 +248,7 @@ public:
     int topicTop_;                   // first topic row shown
     float savedEdgeFade_;            // the map edge fade Create replaced
     PersonTextMap personTexts_;      // "pers" texts by text key
-    BriefingShownItem* shown_;
+    std::list<BriefingShownItem> shown_;
     bool immediate_;                 // the dialogue's people are placed at once
     bool noWalk_;                    // the zone's map record's cage: the leader does not walk
     bool autosave_;                  // unless loading or back from the camp

@@ -6,7 +6,6 @@
 
 #include "world.h"
 
-#include "lib/stlp.h"
 #include "lib/str.h"
 
 #include <cstring>

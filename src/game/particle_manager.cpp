@@ -3,7 +3,6 @@
 #include "effects.h"
 
 #include "lib/crt.h"
-#include "lib/stlp.h"
 
 #include <list>
 
@@ -57,8 +56,7 @@ CParticleSource* CParticleManager::CreateSource(int type) {
 }
 
 // The two callers share the walk: the ids of the held sources `drop` picks are listed while the sources are
-// released, then they leave the table. The id list is a local stlp::list (its sentinel and nodes come from
-// the node pool in the original's order).
+// released, then they leave the table.
 namespace {
 
 template <typename Pick>

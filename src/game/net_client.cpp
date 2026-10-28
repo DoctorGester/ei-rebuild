@@ -30,7 +30,6 @@ void RegisterInline(ClientSession* client, int channel, Function handler) {
 // socket.
 ClientBase::ClientBase() {
     host_ = NetAddress{};
-    servers_.Construct();
     alwaysAsk_ = NetAddress{};
     joinState_ = kNotJoined;
     joinId_ = 0;
@@ -38,21 +37,11 @@ ClientBase::ClientBase() {
 }
 
 ClientSession::ClientSession() {
-    players_.Construct();
-    lines_.Construct();
-    files_.Construct();
-    chunks_.Construct();
-    fileRequests_.Construct();
     info_ = nullptr;
     binding_ = nullptr;
     map_ = nullptr;
-    zones_.Construct();
-    variables_.Construct();
     player_.ptr = nullptr;
-    timers_.Construct();
-    awards_.Construct();
     party_.ptr = nullptr;
-    offers_.Construct();
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);
@@ -108,8 +97,8 @@ ClientSession::ClientSession() {
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
-    for (TimedNode* n = self->timers_.First(); n != self->timers_.End(); n = n->next) PushReplicated(*out, n->data.ref.ptr, 1);
-    for (RefNode* n = self->fileRequests_.First(); n != self->fileRequests_.End(); n = n->next) PushReplicated(*out, n->data.ptr, 1);
+    for (auto n = self->timers_.begin(); n != self->timers_.end(); ++n) PushReplicated(*out, n->ref.ptr, 1);
+    for (auto n = self->fileRequests_.begin(); n != self->fileRequests_.end(); ++n) PushReplicated(*out, n->ptr, 1);
     if (void* group = self->party_.ptr) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {

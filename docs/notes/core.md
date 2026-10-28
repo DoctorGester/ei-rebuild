@@ -653,8 +653,8 @@ to which template:
   entries, connect list rows, trade rows, bindings); the fields are written before they are read.
 - Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
   built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
-  the item stock's spells; C14s did the rest but the net lists (section after next). Still stlp::list (C14t): the
-  net RefPtr / timed lists and the sessions' raw-sentinel lists.
+  the item stock's spells; C14s did the rest but the net lists (section after next), C14t the net lists (the
+  section after that).
 
 ## Containers: the last STLport hash tables and trees (C14q)
 
@@ -798,3 +798,30 @@ to which template:
   strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
   are not written. Ours-only wrappers in verify_static_constructors.cpp. 00444740 (the debug
   info panel at 0079B930) and 00458870 were ported by A-E2 (app.md).
+
+## Containers: the net lists and the last node-pool users (C14t)
+
+- No STLport container is left and neither is its node allocator: stlp.h, stlp.cpp, stlp_alloc.h, stlp_list.h and
+  stlp_list_refs.h are gone, with libcrt::NodeAllocate / NodeDeallocate / NodeRefill / NodeChunkAlloc and their data
+  cells. Only lib/stlp_algo.h (STLport's introsort, whose order of equal keys is behaviour) keeps the name.
+- The sessions' message lists are `std::list<SharedRefTo<T>>` (copied with Share, released as the owner) and
+  `std::list<CountedRefTo<T>>` (a plain reference), core_refcount.h's SharedRefPtr / CountedRefPtr read typed with
+  `Get()`. An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.
+  Walks that erase step first (`next = std::next(node)`); remove(value) is an explicit walk that erases as it goes
+  (the original destroyed each element on the way, std::list::remove defers that).
+- The timed lists are `std::list<TimedEntry<SharedRefPtr / CountedRefPtr>>` (net_classes.h; the key's bits, then the
+  reference). The queueing code keeps the original's temporaries: a share of a share of a copy-on-share object is a
+  clone, so the client's timers and the server's awards hold a clone of the entry's share (the awards a clone of a
+  clone), as before. `TimedEntry(bits, Ref)` takes the reference by value (one share, moved in).
+- The connections are `ClientList` (`std::list<SharedRefTo<Connection>>`): FindClient returns an iterator (end() for
+  none; RemoveClient ignores end()), ClientAt went. The driver session's drivers_ / holders_ are std::list members;
+  OnShutdown clears the holders, then the drivers, as the destructor (reverse member order).
+- The sessions' destructors clear the lists in their bodies where the original released them, between the counted
+  pointers' releases (the compiler's destructor then frees empty lists); ClientBase's list is the compiler's.
+- The flow's changed variables (UpdateFromServer) are sorted with std::stable_sort by stamp: the server gives every
+  set its own serial (g_variableSerial), so no two variables share one and the STLport introsort's order is the same;
+  world_stamp_sort.cpp and EntryIdLess went. OnVariableChanged takes the record.
+- Also std: the briefing screen's movers_ and shown_ (std::list members, built with push_front), the container's
+  extra input sides (`std::vector<UiInputSide*> inputs_`), the world's local id lists (std::list<unsigned>).
+- The harness's netstate reader walks both sides with begin / end (game.exe's view of the server's connections is a
+  StlpList<RefPtr>, exe_objects.h).

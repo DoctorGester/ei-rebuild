@@ -7,7 +7,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
-#include "../lib/stlp.h"
 #include "../lib/vecmath.h"
 #include "random.h"
 

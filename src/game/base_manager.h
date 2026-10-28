@@ -4,7 +4,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/hash_map.h"
-#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
