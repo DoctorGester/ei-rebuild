@@ -94,7 +94,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         if (onWay) continue;
         bool passable = false;
         if (zone->kind == 0 || zone->kind == 1 || zone->kind == 2) {
-            variable = str::Format(kZoneVariable, zone->name.c_str());
+            variable = str::Format(kZoneVariable, zone->name);
             int state = static_cast<int>(LocalPlayerVariable(variable));   // truncated
             passable = zone->kind == 0 ? state == 2 : zone->kind == 1 ? state != 1 : state != 0;
         }

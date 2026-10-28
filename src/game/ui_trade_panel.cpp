@@ -36,12 +36,12 @@ int SkillCount() { return static_cast<int>(g_skillDatabase->levels.size()); }
 int HasPerkText(CTextManager* table, const std::string& name) {
     std::string prefix("perk ");
     std::string key = prefix + name;
-    return table->CTextManager::Open(key.c_str());
+    return table->CTextManager::Open(key);
 }
 int HasPerkText(CTextManager* table, const char* name) {
     std::string prefix("perk ");
     std::string key = prefix + name;
-    return table->CTextManager::Open(key.c_str());
+    return table->CTextManager::Open(key);
 }
 // The open perk text's line (the row's shown name); the cursor moves to the next line.
 std::string ReadPerkLine(CTextManager* texts) {
@@ -160,8 +160,8 @@ void CTradePanel::BuildLists() {
         else
             text = record->displayName;
         if (level > 1)
-            row->name = str::Format("%s (%s%d)", text.c_str(),
-                                   perkLevel.c_str(), level);
+            row->name = str::Format("%s (%s%d)", text,
+                                   perkLevel, level);
         else
             row->name = text;
         if (level < 3) {

@@ -845,11 +845,11 @@ int CWorldClient::Create() {
     texts_->Create();
     {
         std::string path = *g_textFolder + worlddata::TextsFileText();
-        texts_->AddSource(path.c_str());
+        texts_->AddSource(path);
     }
     {
         std::string path = *g_textFolder + worlddata::TextsLmpFileText();
-        texts_->AddSource(path.c_str());
+        texts_->AddSource(path);
     }
 
     auto* lists = new CLightningManager();
@@ -1045,7 +1045,7 @@ int CWorldClient::LoadZone(CStream* block) {
     if (zone) allod = zone->allod;
     str::MakeLower(allod);
     if (!terrain->LoadMap(map, allod, cave == kCave))
-        return game::FatalError(worlddata::CantLoadTerrainFormat(), map.c_str());
+        return game::FatalError(worlddata::CantLoadTerrainFormat(), map);
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);

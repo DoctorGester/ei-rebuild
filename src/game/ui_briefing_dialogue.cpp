@@ -75,7 +75,7 @@ void CBriefingScreen::StartPhrases() {
     g_clientWorld->music_->FadeOut();
     std::string key = BriefingSection();
     key += topic_;
-    if (!g_clientWorld->texts_->CTextManager::Open(key.c_str())) {
+    if (!g_clientWorld->texts_->CTextManager::Open(key)) {
         state_ = 0;
         return;
     }

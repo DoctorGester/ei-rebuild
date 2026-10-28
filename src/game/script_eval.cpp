@@ -543,7 +543,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CEngineObject* o = g_serverWorld->FindObject(TextKeyFromName(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
-                           stringArgs[0].c_str(), "GetObjectByName");
+                           stringArgs[0], "GetObjectByName");
         (*result)->object = o;
         return;
     }
@@ -551,7 +551,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         CEngineObject* o = g_serverWorld->FindObject(str::ToInt(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
-                           stringArgs[0].c_str(), "GetObjectByID");
+                           stringArgs[0], "GetObjectByID");
         (*result)->object = o;
         return;
     }

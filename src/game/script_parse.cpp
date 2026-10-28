@@ -442,7 +442,7 @@ std::string* CScript::QualifyName(std::string* out, const std::string& name) {
         return out;
     }
     std::string qualified;
-    qualified = str::Format("!%i!%s", fileCount_, name.c_str());
+    qualified = str::Format("!%i!%s", fileCount_, name);
     *out = qualified;
     return out;
 }

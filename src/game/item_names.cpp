@@ -57,7 +57,7 @@ std::string ModelNameOf(const NamedRecordTable<Record>& table, const char* const
     std::string name;
     if (prototype && material)
         name = str::Format(kModelFormat, TypeCode(codes, prototype->type), prototype->number,
-                    material->name.c_str(), prototype->variant);
+                    material->name, prototype->variant);
     return name;
 }
 
@@ -188,7 +188,7 @@ std::string CItemLoot::FigureName() {
             std::string code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name = str::Format(kRecordModelFormat, code.c_str(), record->number, record->variant);
+            name = str::Format(kRecordModelFormat, code, record->number, record->variant);
             break;
         }
         case kRecordQuick:
@@ -223,7 +223,7 @@ std::string CItemLoot::PictureName() {
             std::string code;
             int type = record->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name = str::Format(weapon ? kWeaponPicture : kArmorPicture, code.c_str(), record->number);
+            name = str::Format(weapon ? kWeaponPicture : kArmorPicture, code, record->number);
             break;
         }
         case kRecordQuick:

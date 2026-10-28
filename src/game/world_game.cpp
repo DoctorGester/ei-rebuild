@@ -160,7 +160,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
     }
     CMemoryStream data;
     if (!SaveFileRead(&data, kMagicMission, kSaveVersion, kSaveOldestVersion, &file)) {
-        game::FatalError(kCorruptSave, fileName.c_str());
+        game::FatalError(kCorruptSave, fileName);
         failed = true;
         return 0;
     }
@@ -572,7 +572,7 @@ int LeaveZone(CParty* records) {
         path += fileName;
     }
     if (!file.Open(path, kOpenWrite, 0)) {
-        game::FatalError(kCantWrite, path.c_str());
+        game::FatalError(kCantWrite, path);
         return 0;
     }
     g_serverWorld->PrepareSave();
@@ -1051,7 +1051,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     }
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
-        game::FatalError(kZoneNotFound, std::string(zone).c_str());
+        game::FatalError(kZoneNotFound, std::string(zone));
         if (Active(net::g_gameClient)) {
             net::ServerSession*& server = net::g_gameServer;
             net::ServerSession* oldServer = server;
@@ -1409,7 +1409,7 @@ void GameFlow::UpdateFromServer() {
     if (!Active(net::g_gameClient)) return;
     if (CTextManager* texts = g_clientWorld->texts_) {
         for (const std::string* file = g_questFiles.data(); file != g_questFiles.data() + g_questFiles.size(); ++file)
-            texts->RemoveSource(file->data());
+            texts->RemoveSource(*file);
         g_questFiles.clear();
     }
     auto* clientWorld = &g_clientWorld.Get();

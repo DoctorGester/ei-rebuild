@@ -77,7 +77,7 @@ std::string* CInterface3D::MessageText(std::string* out, int id, const char* val
     std::string key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
     CTextManager* table = g_clientWorld->texts_;
-    table->CTextManager::GetString(key.c_str(), &key);
+    table->CTextManager::GetString(key, &key);
     if (value)
         text = str::Format(key.c_str(), value);
     else

@@ -120,10 +120,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const SaveEntry& entry = entries_[selected_];
     RECT detailRect{340, 260, 590, 284};
     std::string line;
-    line = str::Format(kPlainFormat, entry.AllodTitle().c_str());
+    line = str::Format(kPlainFormat, entry.AllodTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line = str::Format(kPlainFormat, entry.ZoneTitle().c_str());
+    line = str::Format(kPlainFormat, entry.ZoneTitle());
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
@@ -134,7 +134,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int minute = minuteOfDay - hour * 60;
     std::string dayText;
     g_clientWorld->texts_->GetString(kDayText, &dayText);
-    line = str::Format(kGameTimeFormat, dayText.c_str(), day + 1, hour, minute);
+    line = str::Format(kGameTimeFormat, dayText, day + 1, hour, minute);
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};

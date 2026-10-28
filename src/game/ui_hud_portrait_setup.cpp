@@ -184,9 +184,9 @@ void CHudPortraits::Rebuild(int wide) {
         else if (figureBuild > kFat)
             build = "fa";
         const char* figure = unit->name.c_str();
-        model = str::Format("infa%s%s%dface", figure, build.c_str(),
+        model = str::Format("infa%s%s%dface", figure, build,
                      unit->GetPrototype()->hair + 1);
-        picture = str::Format("face%s%02d", sex.c_str(), skin);
+        picture = str::Format("face%s%02d", sex, skin);
         AddPortrait(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
@@ -198,7 +198,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].faceName_ = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name.c_str());
+        slots_[i].modelPrefix_ = str::Format("infa%s", unit->name);
         const int hair = unit->GetPrototype()->hair;
         slots_[i].modelSuffix_ = str::Format("%dface", hair + 1);
         slots_[i].build_ = figureBuild;
@@ -225,8 +225,8 @@ void CHudPortraits::Rebuild(int wide) {
         const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName));
         SexOf(figure->figureName, sex);
         build = "me";
-        model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
-        picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
+        model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
+        picture = str::Format("face%s%02d", sex, prototype->skin);
         AddPortrait(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;

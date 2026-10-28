@@ -112,7 +112,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     g_camera->SetTarget(unit);
     MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
     std::string prefix;
-    prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
+    prefix = str::Format(ZoneTopicFormat(), zone->name);
     BriefingVariables variables(prefix.c_str());
     std::vector<std::string> parts;
     for (auto node = variables.begin(); node != variables.end(); ++node) {

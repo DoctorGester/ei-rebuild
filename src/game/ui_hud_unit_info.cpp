@@ -92,48 +92,48 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
     std::int16_t health = unitIn->packedVitals.hitPoints;
-    panel.text = str::Format(kValuePair, panel.labels[0].c_str(), health > 0 ? static_cast<int>(health) : 0,
+    panel.text = str::Format(kValuePair, panel.labels[0], health > 0 ? static_cast<int>(health) : 0,
                       static_cast<int>(unitIn->packedVitals.maxHitPoints));
     panel.DrawLine();
     bool outside = OutsideGroup(this, unitIn);
-    panel.text = str::Format(kValuePair, panel.labels[1].c_str(), static_cast<int>(unitIn->packedVitals.mana),
+    panel.text = str::Format(kValuePair, panel.labels[1], static_cast<int>(unitIn->packedVitals.mana),
                       static_cast<int>(unitIn->packedVitals.maxMana));
     panel.DrawLine();
 
     std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text = str::Format(kMoveKey, moveBonus - 1);
-        texts->CTextManager::GetString(panel.text.c_str(), &suffix);
+        texts->CTextManager::GetString(panel.text, &suffix);
     } else {
         suffix.clear();
     }
     double speed = ShownSpeed(unitIn, outside);
-    panel.text = str::Format(kSpeedLine, panel.labels[2].c_str(), speed, suffix.c_str());
+    panel.text = str::Format(kSpeedLine, panel.labels[2], speed, suffix);
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(&g_clientWorld.Get()));
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
-    panel.text = str::Format(kValueUnit, panel.labels[6].c_str(), vision, panel.labels[13].c_str());
+    panel.text = str::Format(kValueUnit, panel.labels[6], vision, panel.labels[13]);
     panel.DrawLine();
 
     // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
     // it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);
-    panel.text = str::Format(kValue, panel.labels[3].c_str(), combat.attack);
+    panel.text = str::Format(kValue, panel.labels[3], combat.attack);
     panel.DrawLine();
-    panel.text = str::Format(kValue, panel.labels[4].c_str(), combat.defence);
+    panel.text = str::Format(kValue, panel.labels[4], combat.defence);
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text = str::Format(kDamageKey, combat.damageType);
-        texts->CTextManager::GetString(panel.text.c_str(), &suffix);   // else the move text stays
+        texts->CTextManager::GetString(panel.text, &suffix);   // else the move text stays
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
-    panel.text = str::Format(kDamageLine, panel.labels[9].c_str(), damageMin, damageMax,
-                      suffix.c_str());
+    panel.text = str::Format(kDamageLine, panel.labels[9], damageMin, damageMax,
+                      suffix);
     panel.DrawLine();
-    panel.text = str::Format(kValue, panel.labels[15].c_str(), static_cast<int>(params->rate));
+    panel.text = str::Format(kValue, panel.labels[15], static_cast<int>(params->rate));
     panel.DrawLine();
 
     float description[7];
@@ -158,8 +158,8 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
             } else {
                 suffix = str::Format(kWeaker, -difference);
             }
-            texts->CTextManager::GetString(suffix.c_str(), &suffix);
-            panel.text = str::Format(kTwoTexts, panel.labels[16].c_str(), suffix.c_str());
+            texts->CTextManager::GetString(suffix, &suffix);
+            panel.text = str::Format(kTwoTexts, panel.labels[16], suffix);
             panel.DrawLine();
         }
     } else if (lines[2].size() != 0) {
@@ -168,7 +168,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
 
     if (IsMultiplayerClient() && !outside) {
         texts->CTextManager::GetString(kCampExp, &suffix);
-        panel.text = str::Format(kValue, suffix.c_str(), params->unspentExperience);
+        panel.text = str::Format(kValue, suffix, params->unspentExperience);
         panel.DrawLine();
     }
 }

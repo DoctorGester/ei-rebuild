@@ -80,7 +80,7 @@ FigureAnimation* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
 
 FigureAnimation* CUnit::AnimationEntry(std::uint32_t key) {
     FigureAnimation* entry = AnimationAt(key);
-    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name.c_str());
+    if (!entry) game::DebugLog(kNoAnimationEntry, static_cast<int>(key & kEntryIndex), name);
     return entry;
 }
 

@@ -171,7 +171,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     CTextManager* texts = g_clientWorld->texts_;
     texts->Open(MapText());
     header = str::Format(QuestHeader(), name);
-    if (texts->FindLine(header.c_str())) {
+    if (texts->FindLine(header)) {
         TextNextLine(texts);
         TextNextLine(texts);
         if (texts->Split(&words, 1) && words.size() > 1) {

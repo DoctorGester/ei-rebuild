@@ -212,7 +212,7 @@ bool GSListPlayerVars(Call* call) {
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::string line;
-        line = str::Format("%s = %f", node->first.c_str(), static_cast<double>(node->second));
+        line = str::Format("%s = %f", node->first, static_cast<double>(node->second));
         (console::g_consoleOut << line << "\n").Flush();
     }
     return true;

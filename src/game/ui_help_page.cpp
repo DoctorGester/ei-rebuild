@@ -120,7 +120,7 @@ void CHelpWindow::ShowPage() {
     BOOL found;
     {
         std::string section = std::string(kTutorialSection) + text_;
-        found = texts->Open(section.c_str());
+        found = texts->Open(section);
     }
     if (!found) {
         interface_->SetPendingValue(0);
@@ -182,13 +182,13 @@ void CHelpWindow::ShowPage() {
     RECT line{0, 8, width, 30};
     header->DrawTextIn(lines_[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text = str::Format(kTitleFormat, title_.c_str(), page_ + 1, static_cast<int>(lines_.size()));
+    text = str::Format(kTitleFormat, title_, page_ + 1, static_cast<int>(lines_.size()));
     header->DrawTextIn(text, &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
     std::list<PageEntry> entries;
-    while (texts->FindLine(nullptr)) {
+    while (texts->FindHeader()) {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.size() > 4) {
@@ -261,7 +261,7 @@ void CHelpWindow::ShowPage() {
             BOOL open;
             {
                 std::string section = std::string(kTutorSection) + entry.key.data();
-                open = texts->Open(section.c_str());
+                open = texts->Open(section);
             }
             if (open) texts->ReadToHash(&text, 1);
             str::TrimRight(text, kLineEnds);

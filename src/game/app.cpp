@@ -258,7 +258,7 @@ int StartFirstMap() {
     }
     CWorldServer* world = &g_serverWorld.Get();
     if (!world->NewZone(map, cmdMode, std::nullopt))
-        return game::FatalError("Can't load map \"%s\".\n", map.c_str());
+        return game::FatalError("Can't load map \"%s\".\n", map);
     world->SetGameResult(1);
     CWorldClient* client = &g_clientWorld.Get();
     client->SetPlayer(g_serverWorld->worldHandle_.Get());
@@ -276,7 +276,7 @@ int StartFirstMap() {
     if (loaded) return 1;
     ScriptErrorInfo error;
     script->GetError(&error);
-    return game::FatalError("%s, line %i", error.text.c_str(), error.line);
+    return game::FatalError("%s, line %i", error.text, error.line);
 }
 
 // ---- FatalError ---------------------------------------------------------------------

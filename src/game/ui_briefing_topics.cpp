@@ -85,6 +85,6 @@ std::string* CBriefingScreen::TopicTitle(std::string* out, std::string_view topi
     CTextManager* texts = g_clientWorld->texts_;
     std::string section = BriefingSection();
     section += key;
-    if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);
+    if (texts->CTextManager::Open(section)) texts->ReadLine(&title, 1);
     *out = title; return out;
 }

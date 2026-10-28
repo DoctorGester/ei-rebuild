@@ -108,7 +108,7 @@ void CMpHeroScreen::DrawExperience() {
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
     g_clientWorld->texts_->CTextManager::GetString(kCurrentExpKey, &text);
-    line = str::Format(kLabelFormat, text.c_str(), tradePanel_->Experience());
+    line = str::Format(kLabelFormat, text, tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);

@@ -41,7 +41,7 @@ void ReadTutorText(CTextManager* texts, const std::string& key, Text* text) {
     BOOL found;
     {
         std::string section = std::string(TutorSection()) + key;
-        found = texts->Open(section.c_str());
+        found = texts->Open(section);
     }
     if (!found) return;
     std::string read;
@@ -61,7 +61,7 @@ void CHelpWindow::CreateScreen() {
     BOOL found;
     {
         std::string section = std::string(TutorialSection()) + text_;
-        found = texts->Open(section.c_str());
+        found = texts->Open(section);
     }
     if (!found) {
         interface_->SetPendingValue(0);

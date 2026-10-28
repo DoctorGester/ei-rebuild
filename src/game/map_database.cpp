@@ -29,7 +29,7 @@ struct TextReader : CTextManager {
     bool Close();
 };
 bool TextReader::Open(const char* key) { return CTextManager::Open(key); }
-bool TextReader::NextHeader() { return FindLine(nullptr); }
+bool TextReader::NextHeader() { return FindHeader(); }
 int TextReader::Split(std::vector<std::string>* words, int flag) {
     return CTextManager::Split(words, flag);
 }

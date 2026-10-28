@@ -245,21 +245,21 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
-            line = str::Format("     %s", texts_[0].c_str());
+            line = str::Format("     %s", texts_[0]);
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.attack);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line = str::Format("     %s", texts_[1].c_str());
+            line = str::Format("     %s", texts_[1]);
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.defence);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = str::Format("damage_%d", info.damageType);
-                texts->GetString(line.c_str(), &text);
+                texts->GetString(line, &text);
             }
-            line = str::Format("     %s %s", texts_[2].c_str(), text.c_str());
+            line = str::Format("     %s %s", texts_[2], text);
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(libcrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(libcrt::Ftol(D(info.damageMin)));
@@ -477,7 +477,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = str::Format("infoitem_%d", key);
-        texts->GetString(text.c_str(), &text);
+        texts->GetString(text, &text);
         texts_.push_back(text);
     }
 }

@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include <list>
 #include <vector>
@@ -28,16 +29,16 @@ struct TextSources {
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
     // every archive, then frees the nodes.
-    BOOL Add(const char* path, BOOL writable);
-    void Remove(const char* path);
+    BOOL Add(const std::string& path, BOOL writable);
+    void Remove(const std::string& path);
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
     // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: its
     // UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
     // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
     // (ResOverride redirects the call).
-    void* Find(const char* key, std::uint32_t* size);
-    void* FindKeyText(const char* key, std::uint32_t* size);
+    void* Find(std::string_view key, std::uint32_t* size);
+    void* FindKeyText(std::string_view key, std::uint32_t* size);
     void ListKeys(std::vector<std::string>* out, const char* pattern);
 
     std::list<TextSource> archives;
@@ -65,7 +66,7 @@ public:
     // Looks up "string " + name and reads it (up to a '#', trailing CR/LF trimmed) into
     // `out`. When there is no such text `out` becomes `name` itself (unless it already holds that
     // very buffer) and the result is 0. Either way the cursor is cleared afterwards.
-    BOOL GetString(const char* name, std::string* out);
+    BOOL GetString(std::string_view name, std::string* out);
 
     // The name, description and kind ("item_weapon", ...) of an item, each looked up
     // in the texts; parts that are not found stay empty. Always returns 1.
@@ -78,10 +79,10 @@ public:
     // The line reader.
     // Makes the text `key` current (the first archive whose GetFile knows it), cursor at its
     // start. True when found and not empty.
-    BOOL Open(const char* key);
+    BOOL Open(std::string_view key);
     // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
     // are, never converted to UTF-8.
-    BOOL OpenData(const char* key);
+    BOOL OpenData(std::string_view key);
     // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.
     BOOL ReadLine(std::string* out, BOOL advance);
@@ -91,13 +92,15 @@ public:
     // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
     // a comment. 0 when the cursor is at the end.
     BOOL Split(std::vector<std::string>* words, BOOL advance);
-    // Moves the cursor to the line that starts with `key`: null finds the next "#..." header
-    // (not a "##" comment); one word compares the line's first word; several words (split at spaces)
-    // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).
-    BOOL FindLine(const char* key);
+    // Moves the cursor to the line that starts with `key`: one word compares the line's first word; several
+    // words (split at spaces) compare the line's words, lower-cased, with them. 1 when found, else 0
+    // (cursor at the end).
+    BOOL FindLine(std::string_view key);
+    // Moves the cursor to the next "#..." header line (not a "##" comment). 1 when found, else 0.
+    BOOL FindHeader();
 
-    BOOL AddSource(const char* path);
-    void RemoveSource(const char* path);
+    BOOL AddSource(const std::string& path);
+    void RemoveSource(const std::string& path);
     void ClearSources();
     // The names matching `pattern` ("pers *") of every archive into `out`.
     void ListKeys(std::vector<std::string>* out, const char* pattern);

@@ -44,7 +44,7 @@ void AddLabels(std::vector<std::string>* labels, const int (&ids)[N]) {
     std::string text;
     for (int id : ids) {
         text = str::Format("infoitem_%d", id);
-        texts->GetString(text.c_str(), &text);
+        texts->GetString(text, &text);
         labels->push_back(text);
     }
 }

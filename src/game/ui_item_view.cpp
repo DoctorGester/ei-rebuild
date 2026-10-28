@@ -373,7 +373,7 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
     else if (fixes || SameText(figureModel, "unhufe"))
         sex = "f";
     *model = str::Format("infa%sme%dface", figureModel, unit->hair + 1);
-    *texture = str::Format("face%s%02d", sex.c_str(), unit->skin);
+    *texture = str::Format("face%s%02d", sex, unit->skin);
 }
 
 void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {

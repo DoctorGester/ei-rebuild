@@ -68,7 +68,7 @@ void SkipToNextLine(CTextManager* t, const AdvanceKind& first, const AdvanceKind
 
 } // namespace
 
-BOOL CTextManager::Open(const char* key) {
+BOOL CTextManager::Open(std::string_view key) {
     if (text_) {
         text_ = nullptr;
         cursor_ = nullptr;
@@ -80,7 +80,7 @@ BOOL CTextManager::Open(const char* key) {
     return text && length_ != 0;
 }
 
-BOOL CTextManager::OpenData(const char* key) {
+BOOL CTextManager::OpenData(std::string_view key) {
     if (text_) {
         text_ = nullptr;
         cursor_ = nullptr;
@@ -199,23 +199,24 @@ BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
     return 1;
 }
 
-BOOL CTextManager::FindLine(const char* key) {
+BOOL CTextManager::FindHeader() {
+    std::string word;
+    while (PeekWord(&word)) {
+        bool header;
+        {
+            std::string first = str::Left(word, 1);
+            header = str::Compare(first, kHeader) == 0 && !IsComment(word);
+        }
+        if (header) return 1;
+        Advance(this, kFindFirst);
+    }
+    return 0;
+}
+
+BOOL CTextManager::FindLine(std::string_view key) {
     std::vector<std::string> keyWords;
     std::vector<std::string> lineWords;
     std::string word;
-    if (!key) {
-        // The next "#" header line (not a "##" comment).
-        while (PeekWord(&word)) {
-            bool header;
-            {
-                std::string first = str::Left(word, 1);
-                header = str::Compare(first, kHeader) == 0 && !IsComment(word);
-            }
-            if (header) return 1;
-            Advance(this, kFindFirst);
-        }
-        return 0;
-    }
     text::Split(key, &keyWords, ' ');
     if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.

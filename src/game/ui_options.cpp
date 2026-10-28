@@ -99,7 +99,7 @@ void ReadTip(std::string* text) {
 
 void ShownName(std::string* out, const char* prefix, const char* name) {
     std::string text;
-    if (g_clientWorld->texts_->GetString((std::string(prefix) + name).c_str(), &text))
+    if (g_clientWorld->texts_->GetString((std::string(prefix) + name), &text))
         *out = text;
     else
         *out = name;

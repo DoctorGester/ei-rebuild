@@ -91,7 +91,7 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
     {
         std::string prefix = game::briefingwords::BriefingSection();
         std::string section = prefix + briefing;
-        missing = texts->CTextManager::Open(section.c_str()) == 0;
+        missing = texts->CTextManager::Open(section) == 0;
     }
     if (missing) {
         *out = game::kEmptyText;
@@ -169,7 +169,7 @@ void UnloadQuestTexts() {
     CTextManager* texts = g_clientWorld->texts_;
     if (!texts) return;
     std::vector<std::string>& files = g_questFiles;
-    for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(file->data());
+    for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(*file);
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
@@ -196,7 +196,7 @@ bool LoadZoneQuests(const char* zone) {
     std::vector<std::string>& files = g_questFiles;
     if (std::find(files.begin(), files.end(), path) == files.end()) {
         files.push_back(path);
-        texts->AddSource(path.data());
+        texts->AddSource(path);
     }
     return true;
 }
@@ -247,7 +247,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         std::string base = folder;
         std::string path = base + game::briefingwords::QuestRegistry();
         // (The registry is binary, read as it is: CTextManager::OpenData.)
-        registered = texts->OpenData(path.c_str()) != 0;
+        registered = texts->OpenData(path) != 0;
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
@@ -281,7 +281,7 @@ std::string* SessionMapNameInto(std::string* out) {
     {
         std::string prefix = game::briefingwords::QuestSection();
         std::string section = prefix + name;
-        found = texts->CTextManager::Open(section.c_str());
+        found = texts->CTextManager::Open(section);
     }
     if (found) texts->ReadLine(&name, 1);
     *out = name; return out;

@@ -238,7 +238,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             }
         } else {
             std::string name;
-            name = str::Format("z.%s", source.target.c_str());
+            name = str::Format("z.%s", source.target);
             float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -301,7 +301,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         std::vector<std::string> parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix = str::Format("q.%s", shownZone_.c_str());
+        prefix = str::Format("q.%s", shownZone_);
         table->Fill(prefix.c_str());
         std::vector<std::string> found;
         for (auto node = table->begin(); node != table->end(); ++node) {
@@ -405,22 +405,22 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = str::Format("%s %d\n ", costExp.c_str(), static_cast<int>(libcrt::Ftol(D(experience))));
+            part = str::Format("%s %d\n ", costExp, static_cast<int>(libcrt::Ftol(D(experience))));
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part = str::Format("%s %d\n ", costMoney.c_str(), static_cast<int>(libcrt::Ftol(D(money))));
+            part = str::Format("%s %d\n ", costMoney, static_cast<int>(libcrt::Ftol(D(money))));
             text += part;
         }
     }
-    while (texts->FindLine(nullptr)) {
+    while (texts->FindHeader()) {
         texts->Split(&fields, 1);
         if (fields.size() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
-                        fields[1].c_str());
+        variable = str::Format("q.%s.%s.%s", shownZone_, quests[selectedQuest_],
+                        fields[1]);
         int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
@@ -484,7 +484,7 @@ void CObjectivesWindow::CreateScreen() {
     std::string key;
     for (int k = 0; k < 3; ++k) {
         key = str::Format("obj_%d", k);
-        g_clientWorld->texts_->GetString(key.c_str(), &text);
+        g_clientWorld->texts_->GetString(key, &text);
         objectiveTexts_.push_back(text);
     }
 
@@ -651,7 +651,7 @@ void CObjectivesWindow::DrawQuestList() {
         }
         if (found) texts->ReadLine(&title, 1);
         else title = quests[row];
-        variable = str::Format("q.%s.%s", shownZone_.c_str(), quests[row].c_str());
+        variable = str::Format("q.%s.%s", shownZone_, quests[row]);
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

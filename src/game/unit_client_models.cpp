@@ -124,9 +124,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
-        texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
+        texture = str::Format("%sskin_%.2d.mmp", unit->name, prototype->skin);
     else
-        texture = str::Format("%sskin_00.mmp", unit->name.c_str());
+        texture = str::Format("%sskin_00.mmp", unit->name);
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
@@ -185,7 +185,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
             part = str::Format("hr.%.2d", hair);
         }
         CFigureMesh* current = unit->FindPartByPrefix(part.c_str());
-        armourPart = str::Format("%s.armor%.2d", part.c_str(), armour->number);
+        armourPart = str::Format("%s.armor%.2d", part, armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);

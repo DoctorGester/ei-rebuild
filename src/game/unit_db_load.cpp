@@ -72,7 +72,7 @@ int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
+        return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
@@ -113,7 +113,7 @@ int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
     std::string path = folder + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
+        return game::FatalError("Can't open database file \"%s\"\n", path);
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);
     if (!data) return game::FatalError("Can't open perks database\n");

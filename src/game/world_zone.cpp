@@ -101,11 +101,11 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     MapPath(&path, file);
     int result;
     if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
-        result = game::FatalError(game::zonetexts::CantOpenObjects(), file.c_str());
+        result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = root->Load(this, keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file.c_str());
+        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
     return result;   // the file closed with the root
 }

@@ -127,11 +127,11 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
     for (const std::string& name : *names) {
         auto* data = GetFileData(name);
         if (!data) {
-            game::DebugLog(kCantFindLayer, name.c_str());
+            game::DebugLog(kCantFindLayer, name);
             continue;
         }
         if (data->width != static_cast<std::uint32_t>(width) || data->height != static_cast<std::uint32_t>(width))
-            return game::FatalError(kWrongLayerSize, name.c_str());
+            return game::FatalError(kWrongLayerSize, name);
         const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
         converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
         ++drawn;
@@ -182,7 +182,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(std::ssize(request->layers));
     int kind = ConversionKind(format);
-    if (!file.Open(path, kWriteCreate)) return game::FatalError(kCantWrite, path.c_str());
+    if (!file.Open(path, kWriteCreate)) return game::FatalError(kCantWrite, path);
     file.Write(&header, sizeof(MmpHeader));
     if (header.extraSize != 0) file.Write(request->layers.data(), header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);

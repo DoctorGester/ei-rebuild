@@ -416,7 +416,7 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
         {
             std::string quest("quest ");
             std::string textKey = quest + parts[2];
-            found = texts->Open(textKey.c_str());
+            found = texts->Open(textKey);
         }
         if (found) texts->ReadLine(&text, 1);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
@@ -445,10 +445,10 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
         {
             std::string quest("quest ");
             std::string textKey = quest + parts[2];
-            if (texts->Open(textKey.c_str())) {
+            if (texts->Open(textKey)) {
                 std::string sub("#subobj ");
                 std::string lineKey = sub + parts[3];
-                found = texts->FindLine(lineKey.c_str()) != 0;
+                found = texts->FindLine(lineKey) != 0;
             }
         }
         if (found) {

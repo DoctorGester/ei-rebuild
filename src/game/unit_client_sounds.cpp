@@ -175,7 +175,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     case kKindHit: format = "%s\\hit\\%d.wav"; break;
     default: return 0;
     }
-    *out = str::Format(format, folder.c_str(), sound);
+    *out = str::Format(format, folder, sound);
     return 1;
 }
 

@@ -143,7 +143,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request.layers[i];
                 if (!level) continue;
-                name = str::Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name = str::Format(kWoundTexture, unit->name, unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
                 request.textures.push_back(name.c_str());
             }
