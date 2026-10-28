@@ -27,7 +27,7 @@ Rewritten (grep the address): `AddVectors` 0040CDC0 (`__fastcall`: out ECX, a ED
 00410770, `ClampUnit` 004022D0 (`__stdcall`, [-1, 1], NaN gives -1), `Vector3::AddInPlace` 00410750 (returns its argument),
 `Quaternion::SetIdentity` 0040CB00 (returns this), `PreMultiply` 004018A0 (`*this = r * *this`), `AxisX/Y/Z` 0040D940 / 0040F560 /
 0040D6B0, `SetAngleAxis` 0049E790, `SetAxisAngle` 0049E800, `PreMultiplyConjugate` 0049E870, `MultiplyByConjugate` 0049E950, `Slerp`
-0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440, `CubicCurve3::Evaluate` 0040E460, `CTransformObject` slots 13-17
+0049ED20, `CubicSegment::SetBSpline` 0040E3D0 / `Evaluate` 0040E440 (`CubicCurve3::Evaluate` 0040E460 and its struct: no port, nothing calls them), `CTransformObject` slots 13-17
 (CopyTransform 00401490, CombineRotation 0040CB80, UpdateWorld 0040CC30, SaveTransform 00401510, LoadTransform 00401540), WorldMatrix
 00401570 (4x4), TiltTowards 00401680 (down axis a tenth of the way to a target), TurnTowards 00401940 (forward axis onto a target),
 RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetHeading 00402220 (atan2 about +Z), `IsaacRandom::Next`

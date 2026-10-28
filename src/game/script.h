@@ -91,8 +91,6 @@ struct ScriptNamedValues {
     void Save(ScriptStream* stream) const;
     // The other set's values appended, and for each of its names the name and the value with its index.
     void Append(const ScriptNamedValues<T>& other);
-    // -1 if absent.
-    int FindName(const char* name) const;
 
     std::vector<T> values;
     std::vector<std::string> names;

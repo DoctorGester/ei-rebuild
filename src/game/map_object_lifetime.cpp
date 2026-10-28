@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include "ei/vcall.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
@@ -29,7 +28,6 @@
 #include <new>
 
 namespace {
-using ei::SetVtable;
 
 constexpr std::uint32_t kOne = 0x3F800000;
 constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1

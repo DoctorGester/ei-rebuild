@@ -223,8 +223,11 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
 
 void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
-    unsigned control = libcrt::Controlfp(0, 0);
-    libcrt::Controlfp(0x300, 0x300);
+    // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's FISTP truncates), the word restored at
+    // the end; loaded only when it changes.
+    const std::uint32_t control = x87::ControlWord();
+    const std::uint32_t chop = (control & ~x87::kRoundingBits) | x87::kRoundChop;
+    if (chop != control) x87::SetControlWord(chop);
     terrain->lightingSector = this;
     // With the new renderer the GPU lights both layers (render::GpuTerrainLighting). The water layer keeps
     // its specular word (LightSpecular: the harness digest reads it); the ground layer gets only the edge
@@ -265,7 +268,7 @@ void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y
         }
     }
     built |= 4;
-    libcrt::Controlfp(control, 0xFFFFFFFF);
+    if (chop != control) x87::SetControlWord(control);
     if (!skipSun) relightCountdown = -1;
 }
 

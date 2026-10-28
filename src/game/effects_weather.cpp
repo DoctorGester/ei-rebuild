@@ -1,6 +1,5 @@
 #include "effects.h"
 #include "texture.h"
-#include "at_exit_functions.h"
 
 #include "core_maths.h"
 #include "random.h"

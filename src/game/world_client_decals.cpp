@@ -2,7 +2,6 @@
 // function-local static of the original game, as is the work array of transformed part points; both are made
 // on first use and freed at exit. See docs/notes/models.md ("Ground prints").
 #include "world.h"
-#include "at_exit_functions.h"
 
 #include "figure_mesh.h"          // VertexPacket, MeshCorner
 #include "ground_decal.h"

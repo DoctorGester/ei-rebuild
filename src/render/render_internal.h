@@ -206,8 +206,6 @@ void LightUniforms(LightParams* params);
 // exactly (the same CLight's), -1 none.
 const float (*SceneLightPoints(int* count))[2][4];
 int SceneLightIndex(const Vector3& position);
-// The terrain casters keep the faces turned away from it.
-Vector3 SceneSunDirection();
 // The shadow map's light for the sun `sun`: at least 20 degrees above the horizon, unit. False without a
 // direction. Receivers lit on the GPU weigh the map's darkening by their facing to it.
 bool MapLightDirection(const Vector3& sun, Vector3* travel);

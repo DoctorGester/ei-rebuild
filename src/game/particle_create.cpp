@@ -11,7 +11,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "ei/vcall.h"
 #include "core_transform.h"
 
 #include <cstring>

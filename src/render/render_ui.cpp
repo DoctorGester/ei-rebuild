@@ -912,7 +912,6 @@ bool Listed(const char* name) {
 }
 
 void SetPath(Path path) { g_path = path; }
-Path CurrentPath() { return g_path; }
 
 bool DrawsCanvas(const void* holder) {
     return HasCanvas(holder) && (g_mode == Mode::Native || (g_mode == Mode::Both && g_path == Path::Native));

@@ -95,7 +95,6 @@ Mode CurrentMode();
 bool Listed(const char* name);
 // Under Both, which of the two the blits show (default Cpu: the frame as without the canvases).
 void SetPath(Path path);
-Path CurrentPath();
 // Whether the blit of `holder` draws its canvas (DrawCanvas) instead of its memory (SurfaceBlit): it has a
 // canvas, and the mode is Native, or Both with the path Native.
 bool DrawsCanvas(const void* holder);

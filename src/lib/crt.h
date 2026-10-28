@@ -39,9 +39,8 @@ void Srand(unsigned seed);
 // The calling thread's seed itself (the harness's digest and random trace read it).
 unsigned& RandState();
 
-// floor, ceil, modf, fmod / _CIfmod are the host CRT's; acos asin are CiAcos and CiAsin below.
-// _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
-unsigned Controlfp(unsigned value, unsigned mask);
+// floor, ceil, modf, fmod / _CIfmod are the host CRT's; acos asin are CiAcos and CiAsin below. _controlfp's one
+// use (terrain lighting's chop rounding) sets the x87 word itself (ei/x87.h).
 
 // The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
 // 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.

@@ -66,8 +66,6 @@ const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
-void* Renderer() { return SceneRenderer(); }
-
 CWorldServer* TheWorld() { return TheServerWorld(); }
 
 CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }

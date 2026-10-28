@@ -3,7 +3,6 @@
 #include "combat.h"
 #include "game_data.h"
 #include "unit_ai.h"
-#include "at_exit_functions.h"
 
 #include "player_messages.h"
 #include "random.h"

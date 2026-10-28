@@ -1,7 +1,6 @@
 // The visibility fog's draw (its cells as sprites through the scene renderer) and the rain / snow layer's work
 // arrays. See docs/notes/renderer.md (section 12).
 #include "effects.h"
-#include "at_exit_functions.h"
 #include "figure_mesh.h"   // VertexPacket
 
 #include "clip.h"         // TLVertex

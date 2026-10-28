@@ -8,7 +8,6 @@
 // row once per call: CircleSines).
 #include "terrain.h"
 #include "address_order.h"
-#include "at_exit_functions.h"
 #include "terrain_sector.h"
 #include "random.h"
 #include "spell.h"

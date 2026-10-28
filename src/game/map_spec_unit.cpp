@@ -17,7 +17,6 @@
 #include <new>
 #include <string>
 #include "world_data.h"
-#include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "world.h"

@@ -4,7 +4,6 @@
 #include "combat.h"
 #include "spell.h"
 #include "world.h"
-#include "at_exit_functions.h"
 
 #include "core_maths.h"
 #include "map_object.h"

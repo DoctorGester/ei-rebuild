@@ -56,11 +56,6 @@ struct CameraKey {
 };
 static_assert(sizeof(CameraKey) == 0x24);
 
-// A cubic curve in 3D: polynomial coefficients c0..c3 for x, then y, then z (as CubicSegment).
-struct CubicCurve3 {
-    float c[12];
-};
-
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
 // counts once more). The two unused pointers are always the zero vector.

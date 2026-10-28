@@ -585,8 +585,6 @@ WindowPresentInfo WindowPresents() {
     return info;
 }
 
-void GammaRamp(std::uint8_t* rgba256) { std::memcpy(rgba256, g_ramp, sizeof(g_ramp)); }
-
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed) {
     int cw = 0, ch = 0;
     return Placement(&cw, &ch, frameWidth, frameHeight, placed);
