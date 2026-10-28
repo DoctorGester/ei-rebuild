@@ -14,15 +14,10 @@ namespace {
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
 
-// The string with its terminator.
-void WriteString(ScriptStream* stream, const std::string& s) {
-    stream->Write(s.c_str(), static_cast<std::uint32_t>(s.size()) + 1);
-}
-
 // Variable i's name, or a single zero byte when the name array is shorter.
 void WriteName(ScriptStream* stream, const mfc::CArray<std::string>& names, int i) {
     if (i < names.size) {
-        WriteString(stream, names.data[i]);
+        stream->WriteString(names.data[i]);
     } else {
         int zero = 0;
         stream->Write(&zero, 1);
@@ -74,7 +69,7 @@ template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
 template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const {
     WriteInt(stream, values.size);
     for (int i = 0; i < values.size; ++i) {
-        WriteString(stream, values.data[i]);
+        stream->WriteString(values.data[i]);
         WriteName(stream, names, i);
     }
 }
@@ -111,8 +106,8 @@ void ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream)
 // A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
 void ScriptDefinition::Save(ScriptStream* stream) const {
     stream->Write(&index, 4);
-    WriteString(stream, name);
-    WriteString(stream, params);
+    stream->WriteString(name);
+    stream->WriteString(params);
     WriteInt(stream, ifThen.size);
     for (int i = 0; i < ifThen.size; ++i) {
         const ScriptIfThen& pair = ifThen.data[i];

@@ -523,7 +523,7 @@ void CCreditsScreen::CreateScreen() {
         std::string script;
         std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
         str::CutAtNull(script);
-        text::FromAssetText(&script);   // the headers' text in UTF-8 with EI_UTF8 (the pages are RTF)
+        text::FromAssetText(&script);   // the headers' text in UTF-8 (the pages are RTF)
         RemoveCarriageReturns(&script);
         TitlesTokenizer lines{{0, &script, "\n"}};
         lines.Start();

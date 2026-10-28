@@ -3379,7 +3379,7 @@ title = "UTF-8 always: drop EI_UTF8; saves, network and harness digests convert 
 group = "cleanup"
 model = "opus"
 depends = ["C14a"]
-note = "User 2026-10-27: treat saves as resources: keep them in the asset code page (1251) on disk and convert on load / save, so the game is UTF-8 everywhere with no EI_UTF8 branches (107 uses in 35 files) and saves stay byte-identical to vanilla. Boundaries to convert: save write/read (characters typed outside 1251 need a rule, e.g. '?'), multiplayer messages (vanilla peers), the harness's string digests (compare in one encoding), whatever else the EI_UTF8 runs show differing. Win32 / registry / file names already go through the UTF-8 routes (docs/notes/standalone.md section 4). Helpers that are about the old byte semantics (CharacterCount for timing, the mbs compares) become plain UTF-8 functions. Remove build.cmd's utf8 option and build/<cfg>-utf8. Goldens: 121 / 114 the same is the check."
+note = "Done 2026-10-28: no EI_UTF8 / kUtf8 left (build.cmd's utf8 option and build/<cfg>-utf8 gone; text::sys folded into text::utf8). Saves and network convert at the boundary: CStream::WriteString (asset code page, '?' for characters outside it; replaced ~30 raw text writes and the files' WriteText helpers) and CStream::ReadString / ReadText; Chunk's WriteString / WriteStringArray; net_messages PutString / TakeString; GameBuffer strings. Colour escapes kept raw both ways. Harness: the image digest's Text converts to 1251; MessageBoxW hook answers the disc prompt; utf8_typing's steps run unprefixed, the Cyrillic file-name check is its utf8files step. Goldens 121 / 114 the same. docs/notes/standalone.md section 4."
 
 [[ticket]]
 id = "C20h"

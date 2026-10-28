@@ -1145,7 +1145,7 @@ int CWorldClient::Create() {
         flags_ &= ~0x200u;
     {
         std::string path = TheDataFolder() + worlddata::CursorFileText();
-        cursor_ = text::sys::LoadCursorFromFileA(path.c_str());
+        cursor_ = text::utf8::LoadCursorFromFileA(path.c_str());
     }
 
     if (SpellManager()) ReferenceEveryObject(SpellManager());

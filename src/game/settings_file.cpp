@@ -93,12 +93,12 @@ void Write(Store& s) {
     s.dirty = false;
 }
 
-// HKEY_CURRENT_USER as the game's ANSI calls read it (text::sys: UTF-8 with EI_UTF8); read only.
+// HKEY_CURRENT_USER as the game's ANSI calls read it (text::utf8: UTF-8); read only.
 class Registry : public RegistrySource {
 public:
     bool ReadKey(const std::string& path, std::vector<Value>* values, std::vector<std::string>* subkeys) override {
         HKEY key;
-        if (text::sys::RegOpenKeyExA(HKEY_CURRENT_USER, path.c_str(), 0, KEY_READ, &key) != ERROR_SUCCESS) return false;
+        if (text::utf8::RegOpenKeyExA(HKEY_CURRENT_USER, path.c_str(), 0, KEY_READ, &key) != ERROR_SUCCESS) return false;
         DWORD longestName = 0, longestKey = 0;
         RegQueryInfoKeyA(key, nullptr, nullptr, nullptr, nullptr, &longestKey, nullptr, nullptr, &longestName, nullptr,
                          nullptr, nullptr);
@@ -109,9 +109,9 @@ public:
             if (status == ERROR_NO_MORE_ITEMS) break;
             if (status != ERROR_SUCCESS) continue;
             DWORD type = 0, size = 0;
-            if (text::sys::RegQueryValueExA(key, name.data(), nullptr, &type, nullptr, &size) != ERROR_SUCCESS) continue;
+            if (text::utf8::RegQueryValueExA(key, name.data(), nullptr, &type, nullptr, &size) != ERROR_SUCCESS) continue;
             std::string data(size, '\0');
-            if (text::sys::RegQueryValueExA(key, name.data(), nullptr, &type, reinterpret_cast<BYTE*>(data.data()),
+            if (text::utf8::RegQueryValueExA(key, name.data(), nullptr, &type, reinterpret_cast<BYTE*>(data.data()),
                                             &size) != ERROR_SUCCESS)
                 continue;
             data.resize(size);

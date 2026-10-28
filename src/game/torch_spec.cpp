@@ -47,8 +47,7 @@ void CTorchObjectSpec::LoadSpec(CStream* stream) {
 
 void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(&lightKind_, 4);
-    const char* name = name_.c_str();
-    stream->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
+    stream->WriteString(name_);
     std::uint32_t value;
     std::memcpy(&value, &values_[0], 4);   // through a stack copy, as in the game
     stream->Write(&value, 4);

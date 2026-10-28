@@ -20,6 +20,7 @@
 #include "game/unit_ai.h"
 #include "game/world.h"
 #include "game/world_effect.h"
+#include "game/asset_text.h"
 #include "lib/crt.h"
 
 #include <typeinfo>
@@ -61,9 +62,10 @@ std::uint32_t MissileVtable(const CSpellEffect* e) {
 
 bool IsSpellEffect(const CSpellEffect* e) { return typeid(*e) == typeid(CSpellEffect); }
 
-// Our text members that are std::strings (game.exe's are CStrings, read as const char*).
-using digest::Text;
-const char* Text(const std::string& s) { return s.c_str(); }
+// Our text, UTF-8, in the asset code page game.exe's text is in, so both sides digest the same bytes. Our std::string
+// members as game.exe's CStrings (read as const char*).
+std::string Text(const char* s) { return ::text::ToAssetText(digest::Text(s)); }
+std::string Text(const std::string& s) { return ::text::ToAssetText(s.c_str()); }
 
 } // namespace
 

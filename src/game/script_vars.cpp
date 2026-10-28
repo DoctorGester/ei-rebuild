@@ -174,8 +174,7 @@ void SSCCmd::Save(ScriptStream* stream) const {
     count = stringArgs.size;
     stream->Write(&count, 4);
     for (int i = 0; i < stringArgs.size; ++i) {
-        const std::string& text = stringArgs.data[i];
-        stream->Write(text.c_str(), static_cast<std::uint32_t>(text.size()) + 1);
+        stream->WriteString(stringArgs.data[i]);
     }
 
     // Object and group arguments are only counted: they are re-bound on load.

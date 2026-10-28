@@ -1,4 +1,4 @@
-// The Windows calls that take or give text, in UTF-8 (EI_UTF8). See system_text.h.
+// The Windows calls that take or give text, in UTF-8. See system_text.h.
 #include "system_text.h"
 
 #include "lib/text_case.h"
@@ -95,28 +95,28 @@ struct Route {
     const char* function;
     const void* utf8;
 };
-#define EI_UTF8_ROUTE(name) {#name, reinterpret_cast<const void*>(&utf8::name)}
+#define TEXT_ROUTE(name) {#name, reinterpret_cast<const void*>(&utf8::name)}
 // The game's imports that take or give text, and their UTF-8 versions.
 const Route kRoutes[] = {
-    EI_UTF8_ROUTE(CreateFileA),       EI_UTF8_ROUTE(FindFirstFileA),        EI_UTF8_ROUTE(FindNextFileA),
-    EI_UTF8_ROUTE(DeleteFileA),       EI_UTF8_ROUTE(MoveFileA),             EI_UTF8_ROUTE(CopyFileA),
-    EI_UTF8_ROUTE(CreateDirectoryA),  EI_UTF8_ROUTE(RemoveDirectoryA),      EI_UTF8_ROUTE(GetFileAttributesA),
-    EI_UTF8_ROUTE(SetFileAttributesA), EI_UTF8_ROUTE(GetCurrentDirectoryA), EI_UTF8_ROUTE(GetFullPathNameA),
-    EI_UTF8_ROUTE(GetModuleFileNameA), EI_UTF8_ROUTE(GetDiskFreeSpaceA),    EI_UTF8_ROUTE(GetVolumeInformationA),
-    EI_UTF8_ROUTE(LoadLibraryA),      EI_UTF8_ROUTE(LoadCursorFromFileA),   EI_UTF8_ROUTE(mmioOpenA),
-    EI_UTF8_ROUTE(RegOpenKeyExA),     EI_UTF8_ROUTE(RegCreateKeyExA),       EI_UTF8_ROUTE(RegQueryValueExA),
-    EI_UTF8_ROUTE(RegSetValueExA),    EI_UTF8_ROUTE(CreateWindowExA),       EI_UTF8_ROUTE(FindWindowA),
-    EI_UTF8_ROUTE(MessageBoxA),       EI_UTF8_ROUTE(GetKeyNameTextA),       EI_UTF8_ROUTE(LoadStringA),
+    TEXT_ROUTE(CreateFileA),       TEXT_ROUTE(FindFirstFileA),        TEXT_ROUTE(FindNextFileA),
+    TEXT_ROUTE(DeleteFileA),       TEXT_ROUTE(MoveFileA),             TEXT_ROUTE(CopyFileA),
+    TEXT_ROUTE(CreateDirectoryA),  TEXT_ROUTE(RemoveDirectoryA),      TEXT_ROUTE(GetFileAttributesA),
+    TEXT_ROUTE(SetFileAttributesA), TEXT_ROUTE(GetCurrentDirectoryA), TEXT_ROUTE(GetFullPathNameA),
+    TEXT_ROUTE(GetModuleFileNameA), TEXT_ROUTE(GetDiskFreeSpaceA),    TEXT_ROUTE(GetVolumeInformationA),
+    TEXT_ROUTE(LoadLibraryA),      TEXT_ROUTE(LoadCursorFromFileA),   TEXT_ROUTE(mmioOpenA),
+    TEXT_ROUTE(RegOpenKeyExA),     TEXT_ROUTE(RegCreateKeyExA),       TEXT_ROUTE(RegQueryValueExA),
+    TEXT_ROUTE(RegSetValueExA),    TEXT_ROUTE(CreateWindowExA),       TEXT_ROUTE(FindWindowA),
+    TEXT_ROUTE(MessageBoxA),       TEXT_ROUTE(GetKeyNameTextA),       TEXT_ROUTE(LoadStringA),
     // The windows are Unicode ones: their class registered wide, their messages taken, passed on and
     // handled wide, so WM_CHAR carries UTF-16.
-    EI_UTF8_ROUTE(RegisterClassExA),  EI_UTF8_ROUTE(DefWindowProcA),        EI_UTF8_ROUTE(GetMessageA),
-    EI_UTF8_ROUTE(PeekMessageA),      EI_UTF8_ROUTE(DispatchMessageA),
+    TEXT_ROUTE(RegisterClassExA),  TEXT_ROUTE(DefWindowProcA),        TEXT_ROUTE(GetMessageA),
+    TEXT_ROUTE(PeekMessageA),      TEXT_ROUTE(DispatchMessageA),
     // The interface's text draw and extent and its fonts: Unicode text drawn and measured as itself.
-    EI_UTF8_ROUTE(DrawTextA),         EI_UTF8_ROUTE(GetTextExtentPoint32A), EI_UTF8_ROUTE(CreateFontIndirectA),
+    TEXT_ROUTE(DrawTextA),         TEXT_ROUTE(GetTextExtentPoint32A), TEXT_ROUTE(CreateFontIndirectA),
     // Case: UTF-8 by lib/text_case.h's table, not by the ANSI code page's bytes.
-    EI_UTF8_ROUTE(CharUpperA),        EI_UTF8_ROUTE(CharLowerA),
+    TEXT_ROUTE(CharUpperA),        TEXT_ROUTE(CharLowerA),
 };
-#undef EI_UTF8_ROUTE
+#undef TEXT_ROUTE
 
 } // namespace
 
@@ -147,14 +147,9 @@ std::string Narrow(std::wstring_view wide) {
 
 const void* SystemRoute(const char* dll, const char* function) {
     (void)dll;   // the names are unique among the game's imports
-    if constexpr (!kUtf8) {
-        (void)function;
-        return nullptr;
-    } else {
-        for (const Route& r : kRoutes)
-            if (std::strcmp(r.function, function) == 0) return r.utf8;
-        return nullptr;
-    }
+    for (const Route& r : kRoutes)
+        if (std::strcmp(r.function, function) == 0) return r.utf8;
+    return nullptr;
 }
 
 namespace utf8 {

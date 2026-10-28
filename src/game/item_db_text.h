@@ -35,8 +35,8 @@ struct TextSources : stlp::list<TextSource> {
     void Remove(const char* path);
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
-    // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: with
-    // EI_UTF8 its UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
+    // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: its
+    // UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
     // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
     // (ResOverride redirects the call).
     void* Find(const char* key, std::uint32_t* size);
@@ -83,7 +83,7 @@ public:
     // start. True when found and not empty.
     BOOL Open(const char* key);
     // Ours: Open for a file that is not text (a quest registry read from the cursor): its bytes as they
-    // are, never converted (EI_UTF8). Without EI_UTF8 the same as Open.
+    // are, never converted to UTF-8.
     BOOL OpenData(const char* key);
     // The rest of the current line (up to CR or LF) into `out`; with `advance` the cursor
     // then moves to the next line that is not a comment. 0 when the cursor is at the end.

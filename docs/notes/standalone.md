@@ -217,7 +217,7 @@ each step green on the goldens and removing a measured tie:
   only addon_sites.inc's MoviesPatch site (BinkOpen's slot, a Rebirth patch site) is an address. `iat` is sealed in config/data_seam.csv (76 raw uses -> 0;
   data_seam.py's helpers are now transitive: TraceSlot -> PatchSlot -> GamePointer).
   **Which calls read the slot** (C18, gen_iat.py's `routed()`): in the image a slot holds the export unless the image
-  routes it (ImageRoute: GetCommandLineA; with EI_UTF8 the `EI_UTF8_ROUTE` list of game/system_text.cpp), the
+  routes it (ImageRoute: GetCommandLineA; the `TEXT_ROUTE` list of game/system_text.cpp), the
   harness takes it (any `ImportTable::X` tests/ names: window focus, cursor, files and saves, profile, registry,
   clocks, heap, Winsock, Miles) or our code takes it by address (`&gameapi::X`: hook/paths.cpp's RegQueryValueExA in
   game.exe). Those gameapi.h functions are `inline auto& X = ei::Imports().X;` (68, with gen_iat's KEEP:
@@ -1566,9 +1566,9 @@ the `--no-hooks` suite) keeps the registry.
   (`\\` and `\"` escaped), `"Brightness"=float:0.5` (a 4-byte REG_BINARY float, written only when the text reads back
   to the same bits), `hex:..` (REG_BINARY), `hex(<type>):..` (anything else, or a string the quoted form cannot
   hold); `@` is a key's default value, `;` starts a comment. Every value round-trips bit for bit: the bytes are what
-  the game's ANSI registry call gives (UTF-8 with EI_UTF8). Names and paths compare without case.
+  the game's ANSI registry call gives (UTF-8). Names and paths compare without case.
 - **Import**: when the file is missing, the first use copies `Software\Nival Interactive\EvilIslands` and Rebirth's
-  `Software\Gipat.Ru\EI_Starter` (every subkey; read only, through text::sys as the game's reads) and writes the
+  `Software\Gipat.Ru\EI_Starter` (every subkey; read only, through text::utf8 as the game's reads) and writes the
   file. Nothing is merged later: the file is the settings from then on.
 - **Who uses it**: CWinRegistry (win_registry.cpp: the options loader and writer; `Open` makes the file's key,
   `Close` writes the file when a value changed, atomically through `ei_settings.ini.tmp`) and the direct readers
@@ -1688,17 +1688,17 @@ the `--no-hooks` suite) keeps the registry.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
 
-- **Locale** (C26): the host CRT's. The text manager's Create 004DED20 calls the host's setlocale(LC_CTYPE, the
-  "Font CharSet" option, "english" by default -> "English_United States.1252") and `_setmbcp(_MB_CP_LOCALE)`; the
-  host's start-up did __initmbctable's `_setmbcp(_MB_CP_ANSI)` (with EI_UTF8 the standalone's start-up sets
-  `_MB_CP_SBCS`: no lead bytes). What still reads the state directly (crt_format.cpp's _output, CaseFoldTable,
-  mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID, `__lc_codepage`,
-  `_mbctype`, `_mbcasemap`). Both suites kept every golden the same with the switch (VC6 and the host build
-  LC_CTYPE's tables from the same GetStringTypeW / LCMapStringW calls; the C tables match for 0..255).
-- **Strings and characters** (crt.cpp, C26): the host CRT's: strncmp, strncpy, _stricmp, _strnicmp, _memicmp,
-  _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha / isdigit / isspace / isprint,
-  _mbsncmp, _mbclen and _mbslwr behind their libcrt names (the EI_UTF8 branches and ei_vectors' recorded answers need
-  the names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
+- **Locale** (C26, C34): the host CRT's, LC_CTYPE "C". The original's text manager Create 004DED20 called
+  setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
+  `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
+  the host's `_MB_CP_SBCS` (no lead bytes). What still reads the state directly (crt_format.cpp's _output,
+  CaseFoldTable, mfc_resource.cpp) goes through crt_locale_data.h (`_pctype`, the LC_CTYPE locale name as an LCID,
+  `__lc_codepage`, `_mbctype`, `_mbcasemap`).
+- **Strings and characters** (crt.cpp, C26, C34): strncmp and strncpy the host CRT's; _stricmp, _strnicmp,
+  _memicmp, _mbsicmp and _mbslwr by text_case.h's UTF-8 table; _mbscmp and _mbsncmp byte compares; _mbsinc,
+  _ismbblead, isleadbyte and _mbclen without lead bytes; tolower / toupper ASCII only; isalpha / isdigit / isspace /
+  isprint no class past ASCII (section 4, U5), all behind their libcrt names (ei_vectors' recorded answers need the
+  names); memmove, memcpy, memset, strstr, wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, atoi, _itoa and
   _splitpath called by their own names. Both suites goldens the same, though the host's compares return a difference
   rather than VC6's -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words
   before `_pctype`.
@@ -1913,216 +1913,216 @@ What must survive:
 
 ## 4. UTF-8 instead of cp1251
 
-Goal: every string inside the game is UTF-8; original assets stay as they are and are converted when read. Saves and
-multiplayer need not match the vanilla game (user, 2026-10-13). Behind one compile-time switch; the check is that
-frame captures of a scenario are the same with the switch off and on.
+Every string inside the game is UTF-8 (C34 dropped the old `EI_UTF8` switch: there is no 8-bit build). Text in the
+asset code page (`EI_ASSET_CODEPAGE`, a CMake cache string, 1251) is converted where it crosses into the game and
+back where it leaves: the assets when they are read, the saves and the network both ways. So the files the game
+writes and the network's messages carry the original's bytes (saves stay byte-identical to vanilla, vanilla peers
+read and send cp1251), and the system calls are the wide ones.
 
-How text moves today: assets hold cp1251 bytes; the interface draws through GDI's ANSI calls with a font whose
-charset comes from the "Font CharSet" option; typed characters arrive as WM_CHAR in the ANSI code page; file names
-(save names typed by the player) go to the ANSI file calls.
+How text moved in the original: assets hold cp1251 bytes; the interface draws through GDI's ANSI calls with a font
+whose charset is DEFAULT_CHARSET; typed characters arrive as WM_CHAR in the ANSI code page; file names (save names
+typed by the player) go to the ANSI file calls.
 
-| Ticket | Work | Size |
-|---|---|---|
-| U1 Asset boundary | One `FromAssetText(bytes, codepage)` and calls to it where display text is read: the text database (`TextSource`, texts.res), .reg string values (menus.reg, quest.reg, smessbase.reg), strings in .mob files (unit names, dialogue, script literals), credits.scr. The source code page is a setting (1251). Identifiers and file names inside assets are ASCII. RTF (titles) carries its own code page. | 1 |
-| U2 System boundary | Wide versions of the file, registry, window title, message box, clipboard and key name calls, converting at the call. 19 direct ANSI call sites outside src/lib, plus `gameapi.h`, `CFile` and `CFileFind`. | 1 |
-| U3 Drawing and measuring | The interface's text draw and extent (005F8340 and the draw routines), the console and the debug panel call the wide GDI functions; the charset option is dropped. Falls away if the native UI's font rasteriser comes first. | 1 |
-| U4 Typing | Unicode WM_CHAR; the edit field, console line, chat line and name entry move the caret, delete and limit length by character, not byte. | 1 |
-| U5 Audit | Identifier (leave) or display text (fix) per site: 99 case-insensitive compares and case changes (Cyrillic needs a small case table once the CRT's code page is gone), 95 fixed `char` buffers, per-byte indexing of text (about 37 sites), `%-20s` padding in console tables, word wrap inside a long word. | 1-2 |
+| Ticket | Work |
+|---|---|
+| U1 Asset boundary | `FromAssetText(bytes, codepage)` where display text is read: the text database, .reg string values, .mob strings, credits.scr, the titles' headers. |
+| U2 System boundary | The ANSI calls that take or give text routed to UTF-8 versions of the wide calls. |
+| U3 Drawing and measuring | The interface's text draw and extent and its fonts: the wide GDI calls. |
+| U4 Typing | Unicode WM_CHAR; the editors move the caret, delete and limit length by character. |
+| U5 Audit | Identifier (left) or display text (fixed) per site: case, buffers, byte indexing, word wrap. |
+| C34 Saves, network, harness | No switch; saves and network messages in the asset code page; the harness digests in one encoding. |
 
 Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
 
-### U1: the switch and the asset boundary (2026-10-21)
+### The helpers (src/game/asset_text.h)
 
-- **Switch**: CMake option `EI_UTF8` (off by default) and cache string `EI_ASSET_CODEPAGE` (1251), both compile
-  definitions; `build.cmd <config> utf8` builds it into `build\<config>-utf8`. Code tests `text::kUtf8` with
-  `if constexpr`; with the switch off nothing changes a byte (the gallery's frames and goldens are the same as
-  main's).
-- **Helpers** (src/game/asset_text.h): `text::FromAssetText` (asset bytes to UTF-8; a `std::string` overload and an
-  in-place `CString*` one), `text::ToAssetText` (back to the asset code page, false for ASCII or text that is not
-  valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
-  bytes by its bytes). U1's ANSI boundary helper `ForAnsiCall` (UTF-8 back into the asset code page at GDI's
-  ANSI calls) went with U3.
-- **Sites converted**: the text database (`TextSources::FindKeyText`, which `CTextManager::Open` reads through; the
-  copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
-  and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
-  `GetStringBuffer`, `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob); credits.scr
-  (`CCreditsScreen::Build`). The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's
-  quest.reg from the text cursor, so it opens it with `CTextManager::OpenData` (bytes as they are), and
-  `TextSources::Find` (004DEBC0) stays the raw lookup.
-- (U1's 8-bit save name editor, a `ToAssetText` / `FromAssetText` pair around it, went with U4; the text draw
-  and extent are wide since U3.)
-- **Behaviour by length**: a briefing phrase lasts 0.05 s per character (`CBriefingScreen::NextPhrase`): counted
-  with `CharacterCount`.
-- **Check** (repeat for U2-U5): build `build.cmd verify` and `build.cmd verify utf8`; run the gallery on each,
-  `python tools/work.py test <ID> ui_gallery_menus ui_gallery_game ui_gallery_camp ui_gallery_mp ui_gallery_base
-  ui_gallery_deals render_titles_present --golden --jobs 4`, the second time with
-  `EI_BUILD_DIR=<worktree>\build\verify-utf8`; copy the first run's `build\verify\runs\<scenario>-standalone\frames`
-  away and compare each scenario with `python tools/compare_frames.py <off frames> <on frames> --tolerance 0
-  --max-fraction 0`. U1's result: 51 of the 54 frames identical (menus, in-game HUD and dialogue, camp, base,
-  trade, titles and credits). The 3 others were ui_gallery_mp's briefing, chat_typed and chat_sent: the base
-  screen's player list (the face and "На базе", top right) was missing. That was not the text but the heap's
-  layout (the UTF-8 copies only moved it; so did leaked allocations or a log line): the server's update lists the
-  player record and the client's binding in the order of its entries' addresses, and a player read before the
-  binding was listed as nobody (UB1, fixed: network.md "Original bugs kept (rest)", address_order.h). Goldens with the switch on differ only in ui_gallery_game's
-  saves (the save title and the top panel text are UTF-8 now), which is allowed.
-- **Found for U2-U5**: `GetStringBuffer` cuts UTF-8 by bytes at the
-  buffer size (U5); `CharUpperA` in script_addon_strings upper-cases bytes (U5); network player names pass an `isprint` filter byte by byte (multiplayer, U5); the script string
-  length (script_addon_strings) counts bytes (U5); the CRT's LC_CTYPE is "english" (1252) from the Font CharSet
-  option, so `tolower`/`MakeLower` and the `_ismbc*` classes treat UTF-8 bytes as 1252 letters (U5: a UTF-8-aware
-  case table); the system ANSI code page here is 1252, so ANSI file and window calls of Cyrillic needed U2's wide
-  calls.
+- `text::FromAssetText` (asset-code-page bytes to UTF-8; a `std::string_view` overload and an in-place `std::string*`
+  one; ASCII is left alone), `text::ToAssetText(text, &out)` (back to the asset code page for a lookup: false for
+  ASCII or text that is not valid UTF-8), `text::ToAssetText(text)` (the same as a string for writing: a character
+  the code page has no byte for becomes '?', `WC_NO_BEST_FIT_CHARS`, never a look-alike; text that is not valid UTF-8
+  stays as it is). Every byte of 1250-1252 maps to one character and back (all 255 non-zero bytes checked), so a
+  round trip restores an asset's bytes.
+- Lengths that mean time or a limit: `text::CharacterCount` counts characters (what the original's cp1251 bytes
+  counted; a colour escape `\007C`+3 bytes by its bytes). A briefing phrase lasts 0.05 s per character
+  (`CBriefingScreen::NextPhrase`).
+- Cuts by character: `CharacterLength`, `CharacterBytes`, `FittingBytes`, `CopyFitting`; typing: `Typed`,
+  `TypedLength`, `NextCharacter`, `PreviousCharacter`, `CharacterStart` (U4).
 
-### U2: the system boundary (2026-10-21)
+### U1: the asset boundary
 
-- **Where**: src/game/system_text.h. With EI_UTF8 the image's import slot of each ANSI call that takes or gives
-  text holds its UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by
-  `ImageRoute` in hook/standalone_main.cpp when image_imports.cpp resolves the slots). So every call through
-  `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`, `CStdioFile` and the CRT's `fopen` /
-  `_findfirst` / `_access` (they call through the slots). The harness takes the same slots afterwards and wraps
-  the UTF-8 versions, so its saves redirect, overlay and registry snapshot work unchanged (they work on the
-  bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h, harness_install.h). Without
-  EI_UTF8 no slot is routed.
+- **Sites**: the text database (`TextSources::FindKeyText`, which `CTextManager::Open` reads through; the copies
+  are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names) and the
+  key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`, `GetStringBuffer`,
+  `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob; Chunk's `WriteString` / `WriteStringArray`
+  convert back); credits.scr (`CCreditsScreen::Build`); the titles' headers (`ui_layouts.cpp`; the pages are RTF).
+  The archives also hold binary files: `GameFlow::RegisterQuests` reads a zone's quest.reg from the text cursor, so
+  it opens it with `CTextManager::OpenData` (bytes as they are), and `TextSources::Find` (004DEBC0) stays the raw
+  lookup.
+- **Rule from a real bug** (UB1): the UTF-8 copies moved the heap's layout, and ui_gallery_mp's base screen lost
+  its player list: the server's update lists the player record and the client's binding in the order of their
+  entries' addresses, and a player read before the binding was listed as nobody (fixed: network.md "Original bugs
+  kept (rest)", address_order.h).
+
+### U2: the system boundary
+
+- **Where**: src/game/system_text.h. The image's import slot of each ANSI call that takes or gives text holds its
+  UTF-8 version (`text::utf8::<Name>A`, same signature; `text::SystemRoute`, asked by `ImageRoute` in
+  hook/standalone_main.cpp when image_imports.cpp resolves the slots; the `TEXT_ROUTE` list, which gen_iat.py's
+  `routed()` reads). So every call through `gameapi::` passes and receives UTF-8, and with it `CFile`, `CFileFind`,
+  `CStdioFile` and the CRT's `fopen` / `_findfirst` / `_access` (they call through the slots). The harness takes the
+  same slots afterwards and wraps the UTF-8 versions, so its saves redirect, overlay and registry snapshot work
+  unchanged (they work on the bytes; advapi32's and kernel32's wide exports are taken too: harness_settings.h,
+  harness_install.h).
 - **Routed**: files (CreateFile, FindFirstFile / FindNextFile, DeleteFile, MoveFile, CopyFile, Create- /
   RemoveDirectory, Get- / SetFileAttributes, GetCurrentDirectory, GetFullPathName, GetModuleFileName,
   GetDiskFreeSpace, GetVolumeInformation, LoadLibrary, LoadCursorFromFile, mmioOpen), the registry (RegOpenKeyEx,
   RegCreateKeyEx, RegQueryValueEx and RegSetValueEx: string values as UTF-8, their sizes in UTF-8 bytes),
-  CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`, past what
-  CreateWindowExA would convert in the ANSI code page), FindWindow, MessageBox, GetKeyNameText, LoadString (the
-  window title and MFC's strings, UTF-16 in the resources).
-- **Direct calls** (not through the slots): `text::sys::<Name>A` is the UTF-8 version with EI_UTF8, the ANSI call
-  without (mod_folders, script_addon_commands, console_addon, world_client_draw, world_client_maps). The
-  console's clipboard and addon's AutoExec lines convert with UTF-8 instead of the ANSI code page;
-  `Fullpath` (mfc_file.cpp) takes the current folder through the slot.
+  CreateWindowEx (a non-ASCII title is set as UTF-16 with `DefWindowProcW(WM_SETTEXT)`), FindWindow, MessageBox,
+  GetKeyNameText, LoadString, the window's class and messages (U4), the text draw and fonts (U3), CharUpperA /
+  CharLowerA (U5). The image's log names the routes: "504 resolved (33 routed)" (32 here and the command line).
+- **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
+  script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
+  clipboard and addon's AutoExec lines convert with UTF-8; `Fullpath` (mfc_file.cpp) takes the current folder
+  through the slot.
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
-- `ShowMessageBox` passes its text as it is.
 - **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values
-  round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide,
-  with the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/:
-  ei_hook.dll's folder, EI_GAME_ROOT through `RedirectGamePaths`). (CharUpperA / CharLowerA are routed since U5: the case table.)
-- **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never
-  reaches a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked at every
-  UTF-8 harness start instead (tests/verify/harness_utf8.cpp): a folder and a file with Cyrillic names made,
-  listed, read back and removed through the game's slots under the saves redirect, the names checked on disk
-  as UTF-16; a failure fails the run.
-- **Check**: the frame comparison above. U2's result: as U1's, 51 of the 54 frames identical and ui_gallery_mp's
-  briefing, chat_typed and chat_sent differing by the same 27249 pixels (the heap-layout bug, UB1); goldens with
-  the switch on differ only in ui_gallery_game's saves, as U1's. The image's log names the routes: "504 resolved
-  (33 routed)" with EI_UTF8 since U4 (32 here and the command line), "(1 routed)" without.
+  round-trip as bytes and the config\*.ini names are ASCII; a Cyrillic install folder would need them wide, with
+  the ini files' code page decided), OutputDebugString, the loader's own calls (hook/, standalone/: ei_hook.dll's
+  folder, EI_GAME_ROOT through `RedirectGamePaths`).
+- **Save names**: saves are folders `saves\save<n>` with the title inside info.sav, so a save's title never reaches
+  a file name; the multiplayer heroes are `mp\<n>.mp`. Cyrillic file names are checked by utf8_typing's
+  `utf8files` step (tests/verify/harness_utf8.h): a folder and a file with Cyrillic names made, listed, read back
+  and removed through the game's slots under the saves redirect, the names checked on disk as UTF-16.
 
-### U4: typing (2026-10-21)
+### U4: typing
 
-- **The window is a Unicode one** with EI_UTF8 (system_text.h): the image's slot of `RegisterClassExA` registers
-  the class wide (`text::utf8::RegisterClassExA`), and the slots of `DefWindowProcA`, `GetMessageA`,
-  `PeekMessageA` and `DispatchMessageA` take the wide calls themselves (the same arguments). Retrieval and
-  dispatch must both be wide: a message taken with an A call is converted to the ANSI code page whatever the
-  window. So WM_CHAR carries a UTF-16 unit; `DispatchInput` (00457970, app.cpp) passes the interface a code
-  point (`TypedCharacter` joins a surrogate pair; a lone half is dropped). The harness's own window subclass
-  (SetWindowLongPtrA, AlwaysActiveWindowProc) is unaffected: input never goes through the procedure, and
-  CallWindowProcA converts what is sent.
-- **The editors** (asset_text.h, "Typing"): `text::Typed(head, character)` appends the character's UTF-8 bytes,
-  `TypedLength` is how many, `NextCharacter` / `PreviousCharacter` step the caret, `CharacterStart` snaps a byte
-  offset to its character, `CharacterCount` limits the length. The caret stays a byte offset (every draw and
-  `Left` / `Mid` take it as one) at a character's start. Without EI_UTF8 each helper is the original's byte step
-  and `Typed` is `mfc::operator+(head, char)`, the same allocations in the same order. Sites: the message box's
-  edit field (0065C610, 0065C930: its letter class for a code point past ASCII is `IsCharAlphaW`), the console
-  line (005E4180, 005E44A0; Rebirth's paste puts the caret at `CharacterStart` of its own sum), the chat line
-  (005E3230, 005E3550), the save window's name (006548A0, 00655050). U1's `ToAssetText` / `FromAssetText` pair
-  around the save name is gone, and with it the in-place `ToAssetText(CString*)`.
-- **Check**: tests/scenarios/utf8_typing.txt (no original run: the original has no Unicode typing) types
+- **The window is a Unicode one** (system_text.h): the image's slot of `RegisterClassExA` registers the class wide
+  (`text::utf8::RegisterClassExA`), and the slots of `DefWindowProcA`, `GetMessageA`, `PeekMessageA` and
+  `DispatchMessageA` take the wide calls themselves (the same arguments). Retrieval and dispatch must both be wide:
+  a message taken with an A call is converted to the ANSI code page whatever the window. So WM_CHAR carries a
+  UTF-16 unit; `DispatchInput` (00457970, app.cpp) passes the interface a code point (`TypedCharacter` joins a
+  surrogate pair; a lone half is dropped). The harness's own window subclass (SetWindowLongPtrA,
+  AlwaysActiveWindowProc) is unaffected: input never goes through the procedure, and CallWindowProcA converts what
+  is sent.
+- **The editors** (asset_text.h, "Typing"): the caret stays a byte offset (every draw and `Left` / `Mid` take it as
+  one) at a character's start. Sites: the message box's edit field (0065C610, 0065C930: its letter class for a code
+  point past ASCII is `IsCharAlphaW`), the console line (005E4180, 005E44A0; Rebirth's paste puts the caret at
+  `CharacterStart` of its own sum), the chat line (005E3230, 005E3550), the save window's name (006548A0, 00655050).
+- **Check**: tests/scenarios/utf8_typing.txt (no original run: game.exe's text is in the ANSI code page) types
   Cyrillic and a character past U+FFFF into the console line with the harness's `typeunicode` (each UTF-16 unit
   posted with PostMessageW) and checks the line's bytes and the caret with `consoleline` (harness_utf8.h) after
-  typing, Left, Backspace, Delete, Home / Right, End and Esc. Without EI_UTF8 both steps are skipped. And the
-  frame comparison above: U4's result as U1's and U2's (51 of 54 frames identical, ui_gallery_mp's three by
-  the same 27249 pixels, UB1; goldens with the switch on differ only in ui_gallery_game's saves).
+  typing, Left, Backspace, Delete, Home / Right, End and Esc.
 - **Rule from a real bug**: a route must be a function of ours (`text::utf8::DefWindowProcA` calling
   `DefWindowProcW`), never `&::DefWindowProcW`: the routes table is read during ei_hook.dll's static
-  initialisation, when an entry holding an import's address is not set yet (the first try routed none of
-  them and typed Cyrillic came out as "???").
+  initialisation, when an entry holding an import's address is not set yet (the first try routed none of them and
+  typed Cyrillic came out as "???").
 
-### U3: drawing and measuring (2026-10-21)
+### U3: drawing and measuring
 
-- **Wide text calls** (system_text.h): with EI_UTF8 the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
-  `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else ANSI-code-page
-  bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face name to
-  `CreateFontIndirectW`). Every interface text draw (MFC's virtual `CDC::DrawText`, slot 26: the
-  surfaces' `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
-  (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through
-  `InterfaceTextExtentOriginal`) and the console's `PromptWidth` go through them; no call site changed. The
-  harness's font slot wrapper (`HarnessCreateFontIndirect`, no anti-aliasing) wraps the UTF-8 version, as its
-  file redirects do. `text::ForAnsiCall` is gone.
+- **Wide text calls** (system_text.h): the image's slots of `DrawTextA`, `GetTextExtentPoint32A` and
+  `CreateFontIndirectA` take `text::utf8::DrawTextA` / `GetTextExtentPoint32A` (the text, UTF-8 or else
+  ANSI-code-page bytes, to UTF-16; the lengths stay byte counts) and `CreateFontIndirectA` (the LOGFONT and its face
+  name to `CreateFontIndirectW`). Every interface text draw (MFC's virtual `CDC::DrawText`, slot 26: the surfaces'
+  `DrawTextIn` 005FDE20, the console's lines and input, the debug panel's map), the interface's extent
+  (`CInterface3D::TextExtent` 005F8340, what the editors' width limits use through `InterfaceTextExtentOriginal`)
+  and the console's `PromptWidth` go through them. The harness's font slot wrapper (`HarnessCreateFontIndirect`, no
+  anti-aliasing) wraps the UTF-8 version, as its file redirects do.
 - **The "charset option"**: the fonts never took a charset from an option. MFC's `CreatePointFont` asks for
   `DEFAULT_CHARSET`, which the font mapper realises in the system's ANSI code page; the ANSI text calls read bytes
-  in the code page of the selected font's charset. So the original (and the build without EI_UTF8) draws the
-  assets' cp1251 bytes as Cyrillic only on a system whose ANSI code page is 1251; on this machine (1252) every
-  frame shows them as Latin-1 letters ("Ãðàôèêà" for "Графика"). With the wide calls the charset no longer
-  decides the glyph and `DEFAULT_CHARSET` stays. The "Font CharSet" option (+0x224, "english") only sets the CRT's
-  LC_CTYPE (`CTextManager::Create` 004DED20) (with EI_UTF8 not since U5): its 1252 tables upper / lower-case UTF-8 lead
-  bytes (`tolower` of 0xD0 is 0xF0) but also let `isprint` pass them (the network name filter).
-- **Check**: the frame comparison above with `EI_FONT_CHARSET=204` in the environment of the run without EI_UTF8
-  (harness.cpp: the harness's font slot sets that charset, as a system with the assets' code page realises
-  `DEFAULT_CHARSET`, so the ANSI calls draw the assets' Cyrillic); the UTF-8 run without it. U3's result: 54 of 54
-  frames identical (the same glyphs from the wide calls and the 1251 ANSI calls). Without the variable the
-  build without EI_UTF8 draws Latin-1 letters where the UTF-8 build draws Cyrillic, so most frames differ there.
-  Goldens with the switch on differ only in ui_gallery_game's saves, as before. utf8_typing types "λ" (outside
-  cp1251) into the frozen menu's console and requires its frame to differ from the line "?" (`utf8 diffcapture`;
-  the "utf8 <step>" prefix runs a step in the UTF-8 build only): 58 pixels at 4K, the glyph. How "😀" draws (Times
-  New Roman has no emoji; whether DrawTextW falls back to another font) is not checked.
+  in the code page of the selected font's charset. So game.exe draws the assets' cp1251 bytes as Cyrillic only on a
+  system whose ANSI code page is 1251; on this machine (1252) its frames show them as Latin-1 letters ("Ãðàôèêà"
+  for "Графика"). With the wide calls the charset no longer decides the glyph and `DEFAULT_CHARSET` stays. The
+  "Font CharSet" option (+0x224, "english") only set the CRT's LC_CTYPE in the original (`CTextManager::Create`
+  004DED20); ours leaves LC_CTYPE "C" (U5).
+- `EI_FONT_CHARSET=204` in a run's environment (harness.cpp: the harness's font slot sets that charset, as a system
+  with the assets' code page realises `DEFAULT_CHARSET`) makes game.exe's ANSI calls draw the assets' Cyrillic, the
+  glyphs the image draws with the wide calls (U3 compared 54 of 54 gallery frames identical so).
+- **Check**: utf8_typing types "λ" (outside cp1251) into the frozen menu's console and requires its frame to differ
+  from the line "?" (`diffcapture`): 58 pixels at 4K, the glyph. How "😀" draws (Times New Roman has no emoji;
+  whether DrawTextW falls back to another font) is not checked.
 - **Still ANSI**: the titles' RichEdit (`SendMessageA`, RTF carries its own code page).
 
-### U5: the audit (2026-10-21)
+### U5: the audit
 
 Every site that treats text as bytes, decided as an identifier (left: ASCII names, keys, file names, numbers, or
-bytes compared and copied whole) or display text (fixed for UTF-8 with EI_UTF8; without it nothing changes).
+bytes compared and copied whole) or display text (fixed for UTF-8).
 
 - **Case** (src/lib/text_case.h): a small table, ASCII, Latin-1 and the rest of code page 1252's letters, Cyrillic
   U+0400-U+045F and Ґ ґ (every letter of 1251); each pair is two UTF-8 bytes both ways, so a case change never
-  changes a length. With EI_UTF8 the CRT no longer takes case or classes from the locale: `_stricmp`,
-  `_strnicmp`, `_memicmp` and `_mbsicmp` compare the table's lower-cased bytes (`text::CompareIgnoringCase`;
-  "Р" D0 A0 and "Ѡ" D1 A0 share a trail, so every byte is folded, never only differing ones), `_mbslwr` (and so
-  `CString::MakeLower`) lowers by it, `tolower` / `toupper` change ASCII only, and `isalpha`, `isdigit`,
-  `isspace`, `isprint`, `_ismbcdigit` and `_ismbcspace` give a byte past ASCII no class (code page 1252's
-  `isspace(0xA0)`, the trail of "Р", would split words). There are no double-byte lead bytes (`_ismbblead`,
-  `isleadbyte`, `_mbsinc`, `_mbclen`, `_splitpath`), whatever the system's ANSI code page. The "Font CharSet"
-  option is not used: `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are
-  routed (their slots, `text::sys`) to the table. Sites: about 100 case-insensitive compares (map, zone,
-  allod, material, model, spell, skill, item, keyword and file names, "none", the briefing's person and topic
-  keys, the save folders) left as identifiers: they reach the CRT's compares, which use the table. 19
-  `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`: mod_folders' 2 path keys and MFC's
-  `CFileFind` path left (now UTF-8-safe through the routes), script `StrLower` / `StrUpper` fixed. 6 per-byte
-  folds (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword tables through
-  `CaseFoldTable`) left: their names are ASCII (the .reg tables' slots were laid out by the original's tools).
-  8 class tests left (drive letters, digits in scripts and party files, the edit field's ASCII classes); the
-  network's player name filter (`IsPrintableText` 0047ADA0) fixed: by character, each a valid UTF-8
-  sequence of a printable code point (the original passed UTF-8 bytes only through the 1252 table's
-  `isprint` and the bytes before it for a negative char).
-- **Buffers**: about 95 fixed `char` buffers. Left: paths and file names (MAX_PATH, the figure, link and
-  terrain names, archive patterns), numbers and ids, model / texture / sound names read from the network
+  changes a length. The CRT does not take case or classes from the locale: `_stricmp`, `_strnicmp`, `_memicmp` and
+  `_mbsicmp` compare the table's lower-cased bytes (`text::CompareIgnoringCase`; "Р" D0 A0 and "Ѡ" D1 A0 share a
+  trail, so every byte is folded, never only differing ones), `_mbslwr` (and so `CString::MakeLower`) lowers by it,
+  `tolower` / `toupper` change ASCII only, and `isalpha`, `isdigit`, `isspace`, `isprint`, `_ismbcdigit` and
+  `_ismbcspace` give a byte past ASCII no class (code page 1252's `isspace(0xA0)`, the trail of "Р", would split
+  words). There are no double-byte lead bytes (`_ismbblead`, `isleadbyte`, `_mbsinc`, `_mbclen`; `_mbscmp` and
+  `_mbsncmp` are byte compares; the standalone's start-up sets the host's `_MB_CP_SBCS` for `_splitpath` and the
+  other host functions), whatever the system's ANSI code page. The "Font CharSet" option is not used:
+  `CTextManager::Create` (004DED20) leaves LC_CTYPE "C". `CharUpperA` / `CharLowerA` are routed to the table. Sites:
+  about 100 case-insensitive compares (map, zone, allod, material, model, spell, skill, item, keyword and file
+  names, "none", the briefing's person and topic keys, the save folders) left as identifiers: they reach the CRT's
+  compares, which use the table. 19 `MakeLower` (keys and file names) left. 5 `CharUpperA` / `CharLowerA`:
+  mod_folders' 2 path keys and MFC's `CFileFind` path left, script `StrLower` / `StrUpper` fixed. 6 per-byte folds
+  (the .reg and archive name hashes, the map name hash, the archive wildcard, the keyword tables through
+  `CaseFoldTable`) left: their names are ASCII (the .reg tables' slots were laid out by the original's tools). 8
+  class tests left (drive letters, digits in scripts and party files, the edit field's ASCII classes); the network's
+  player name filter (`IsPrintableText` 0047ADA0) by character, each a valid UTF-8 sequence of a printable code
+  point (the original passed bytes through the 1252 table's `isprint`; the login's name and password are the
+  game's own ASCII texts).
+- **Buffers**: about 95 fixed `char` buffers. Left: paths and file names (MAX_PATH, the figure, link and terrain
+  names, archive patterns), numbers and ids, model / texture / sound names read from the network
   (`DeltaField::ReadText` empties one too long), error texts (`wvsprintfA` stops at 1 KB), the profile calls'
   buffers (ANSI, U2), the host password (`strncpy` to 20 bytes on both sides, compared as bytes). Fixed:
   `CFileRegistry::GetStringBuffer` cuts at a character's end (`text::FittingBytes`; the asset's 16-bit length no
-  longer wraps); the server list's 90-byte name buffer (`text::CopyFitting`); the message box's edit text
-  (50 characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`CMessageBox::CopyEditText`,
-  cut at a character's end); `DrawTextA`'s UTF-8 route with `DT_MODIFYSTRING` (the server list's ellipsis)
-  gives `DrawTextW` the four characters of room it writes past the text (it wrote past the `std::wstring`). The
-  chat line also stays within 200 bytes (`CChatOverlay::OnChar`): a client's update carries 220 bytes
-  (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never
-  arrive. Save names are CStrings (no buffer).
+  longer wraps); the server list's 90-byte name buffer (`text::CopyFitting`); the message box's edit text (50
+  characters, up to 200 bytes) into the connection screen's 0x80-byte box buffer (`CMessageBox::CopyEditText`, cut
+  at a character's end); `CStream::ReadText` cuts its UTF-8 at a character's end; `DrawTextA`'s UTF-8 route with
+  `DT_MODIFYSTRING` (the server list's ellipsis) gives `DrawTextW` the four characters of room it writes past the
+  text. The chat line also stays within 200 bytes (`CChatOverlay::OnChar`): a client's update carries 220 bytes
+  (`Connection::updateBudget_`) and an entry past that is never counted, so a longer SayMessage would never arrive.
+  Save names are std::strings (no buffer).
 - **Byte indexing**: about 37 sites. Left: ASCII prefixes, markers and separators (`Left(1)`, `Left(2)`, `Mid` past
-  "pers_", "constr", '|', "^<digit>", the text splitters and tokenizers that stop at ASCII bytes; a UTF-8
-  byte never equals one), the editors' carets (U4). Fixed: script `StrLen` and `StrMid` count characters
+  "pers_", "constr", '|', "^<digit>", the text splitters and tokenizers that stop at ASCII bytes; a UTF-8 byte
+  never equals one), the editors' carets (U4). Fixed: script `StrLen` and `StrMid` count characters
   (`text::CharacterCount`, `text::CharacterBytes`); the new game's name cut to 10 characters, not bytes
   (`CMpConnectScreen`).
 - **Console padding**: none. Nothing pads text to a width (no `%-20s`, no stream width); the console tables are
   literal ASCII.
 - **Word wrap**: the chat overlay's `AddLine` (005E2A30) takes a character as its whole UTF-8 sequence
-  (`text::CharacterLength`), so a word wider than a line breaks between characters and every piece is measured
-  as text. `CUiSurface::DrawWrappedText`, the console tokenizer and the text reader walk bytes but break only at
-  ASCII spaces and newlines: left.
-- **Check**: tests/scenarios/utf8_typing.txt's "utf8 utf8text" (Cyrillic compares in either case, the "Р" / "Ѡ"
-  pair, `MakeLower`, `CharUpperA`, `tolower` and `isspace` of UTF-8 bytes, the name filter on a Cyrillic name, a
-  cut sequence and a control character) and "utf8 chatwrap" (a long Cyrillic line with a 150-letter word added to
-  the chat overlay: more than one line, each valid UTF-8, joined back to the text), and the frame comparison
-  above.
+  (`text::CharacterLength`), so a word wider than a line breaks between characters and every piece is measured as
+  text. `CUiSurface::DrawWrappedText`, the console tokenizer and the text reader walk bytes but break only at ASCII
+  spaces and newlines: left.
+- **Check**: tests/scenarios/utf8_typing.txt's `utf8text` (Cyrillic compares in either case, the "Р" / "Ѡ" pair,
+  `MakeLower`, `CharUpperA`, `tolower` and `isspace` of UTF-8 bytes, the name filter on a Cyrillic name, a cut
+  sequence and a control character) and `chatwrap` (a long Cyrillic line with a 150-letter word added to the chat
+  overlay: more than one line, each valid UTF-8, joined back to the text).
+
+### C34: saves, network and the harness
+
+- **Saves** (and the multiplayer heroes' mp\<n>.mp, info.sav, the zone's .mob chunks): resources, in the asset
+  code page on disk as the original's. Every text a stream writes goes through `CStream::WriteString` (the asset
+  code page, '?' for a character it lacks, and the terminator; it replaced about 30 `Write(text, strlen + 1)`
+  sites and the files' own `WriteText` helpers), every text it reads through `CStream::ReadString` / `ReadInto`
+  (to UTF-8) or `ReadText` (to UTF-8, cut to its buffer at a character's end). Chunk's `WriteString` /
+  `WriteStringArray` convert as its `ReadString` does. So a save written by the image is byte-identical to
+  vanilla's (the top panel's text, `ui_battle_slots.cpp`, and the save's title were the two that differed under the
+  old switch), and a Cyrillic title typed outside 1251 comes back with '?' for those characters. What a stream
+  writes as fixed-size bytes (`CEffectSound`'s 256-byte name) stays bytes: those are ASCII file names.
+- **Network**: the same streams carry the world's messages (the deltas' `WriteStringBoth` / `ReadString`, the
+  server's and client's text messages, zone names, variable names), and the session layer converts in
+  net_messages.cpp's `PutString` / `TakeString` (login, player, chat, zone, host, command, line and variable
+  messages) and `GameBuffer::WriteString` / `ReadString` (the game info's name and description). So vanilla peers
+  send and read cp1251, and the update budget counts the original's bytes. The login's `PlayerLoginMessage` is
+  fixed bytes with ASCII texts.
+- **Harness digests**: game.exe's text is cp1251, ours UTF-8. The digest's reader of our objects
+  (tests/verify/image/harness_digest_image.cpp) gives the reading code (harness_digest_read.inc) each text through
+  `Text`, which converts it to the asset code page, so both sides hash and describe the same bytes (object names,
+  script names, script string variables, party variable names, the zone).
+- **Rule from a real bug**: the top panel's text holds colour escapes ("\007C" and three raw colour bytes), so the
+  whole string was not valid UTF-8 and went into the save unconverted (ui_gallery_game's save differed). The
+  conversions keep each escape's five bytes as they are and convert only the text between escapes, both ways.
+- **Message boxes**: the image's MessageBoxA is the wide call, so the harness's user32 MessageBoxW hot patch
+  sees its boxes: it answers the disc prompt there too (app_disc_prompt) and logs the text as UTF-8.
+- **Check**: both suites' goldens the same (121 / 114), the original suite rerun for the digest's change.
 
 ## 5. game.exe's role
 

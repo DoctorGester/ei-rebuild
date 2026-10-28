@@ -3,6 +3,8 @@
 // constructor. See core_streams.h.
 #include "core_streams.h"
 
+#include "asset_text.h"
+
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -35,7 +37,14 @@ std::string* CStream::ReadString(std::string* out) {
     std::string text;
     unsigned char byte;
     while (Read(&byte, 1) && byte) text = text + static_cast<char>(byte);
-    *out = text; return out;
+    text::FromAssetText(&text);
+    *out = text;
+    return out;
+}
+
+void CStream::WriteString(std::string_view text) {
+    const std::string bytes = text::ToAssetText(text.substr(0, text.find('\0')));
+    Write(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
 }
 
 // --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------

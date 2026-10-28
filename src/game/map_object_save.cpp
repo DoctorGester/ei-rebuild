@@ -20,10 +20,6 @@ std::string ReadText(CStream* stream) {
     return text;
 }
 
-void WriteText(CStream* stream, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
-}
 } // namespace
 
 void CMapObject::LoadMapObject(CStream* stream) {
@@ -50,14 +46,14 @@ void CMapObject::SaveMapObject(CStream* stream) {
     stream->Write(&speed, sizeof(speed));
     stream->Write(&localPosition_.x, 3 * sizeof(float));
     stream->Write(&localRotation_, sizeof(localRotation_));
-    WriteText(stream, name);
+    stream->WriteString(name);
     stream->Write(&scale, sizeof(scale));
     int count = effects.size;
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < effects.size; ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
-    WriteText(stream, name2);
+    stream->WriteString(name2);
     stream->Write(&baseScale, sizeof(baseScale));
 }
 
@@ -72,9 +68,9 @@ void CMapObjectServer::Load(CStream* stream) {
 
 void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
-    WriteText(stream, name78);
-    WriteText(stream, name7C);
+    stream->WriteString(name78);
+    stream->WriteString(name7C);
     int count = static_cast<int>(strings.size());
     stream->Write(&count, sizeof(count));
-    for (const std::string& text : strings) WriteText(stream, text);
+    for (const std::string& text : strings) stream->WriteString(text);
 }

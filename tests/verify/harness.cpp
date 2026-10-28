@@ -111,14 +111,16 @@
 //                             class template
 //   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
 //                             does, so that its typed line and caret are drawn; or close it
-//   typeunicode <text>        the UTF-8 build's (EI_UTF8; skipped otherwise): <text> typed as a Unicode window
-//                             gets it, each UTF-16 unit a WM_CHAR posted with PostMessageW (harness_utf8.h)
-//   consoleline <n> <text>    the UTF-8 build's (skipped otherwise): require the console's input line to hold
+//   typeunicode <text>        the image's (fails in game.exe): <text> typed as a Unicode window gets it, each
+//                             UTF-16 unit a WM_CHAR posted with PostMessageW (harness_utf8.h)
+//   consoleline <n> <text>    the image's (fails in game.exe): require the console's input line to hold
 //                             <text> in UTF-8 with the caret at the start of its character <n> (from 0)
-//   utf8text                  the UTF-8 build's (skipped otherwise): Cyrillic case-insensitive compares, case
+//   utf8text                  the image's (fails in game.exe): Cyrillic case-insensitive compares, case
 //                             changes and the player name filter by lib/text_case.h's table (harness_utf8.h)
-//   chatwrap <text>           the UTF-8 build's (skipped otherwise): <text> added to the chat overlay breaks into
+//   chatwrap <text>           the image's (fails in game.exe): <text> added to the chat overlay breaks into
 //                             lines of valid UTF-8 that join back to it (harness_utf8.h)
+//   utf8files                 the image's (fails in game.exe): a folder and a file with Cyrillic names made,
+//                             listed, read back and removed through the game's file calls (harness_utf8.h)
 //   netcut                   in a pair's game: its network cable pulled from now on (harness_pair.h): nothing
 //                             it sends arrives, what the other game sends it is lost; both sessions time out
 //   hidefile <path>           an install file (relative to the game folder: maps\z6q1.mq) reads as missing in
@@ -190,7 +192,6 @@
 //   clocktrace, randtrace     log every clock read and wait (ei_hook.log), every random draw
 //                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
-//   utf8 <step>               run the step only in the UTF-8 build (EI_UTF8)
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
@@ -1136,7 +1137,7 @@ BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam
 
 // EI_FONT_CHARSET=<n> (e.g. 204, RUSSIAN_CHARSET): the game's fonts get that charset, as a system whose ANSI code
 // page is the assets' realises their DEFAULT_CHARSET. The ANSI text calls then read the assets' bytes in that
-// code page, so a build without EI_UTF8 draws the Cyrillic the UTF-8 build draws with the wide calls, and their
+// code page, so game.exe draws the Cyrillic the image draws with the wide calls, and their
 // frames can be compared pixel for pixel (docs/notes/standalone.md section 4, U3). -1 (unset): as the game asks.
 int FontCharSet() {
     static const int charSet = [] {
@@ -2338,13 +2339,19 @@ int WINAPI HarnessMessageBoxA(HWND, LPCSTR text, LPCSTR caption, UINT) {
     return IDABORT;
 }
 
+// UTF-16 as UTF-8.
 std::string Narrow(LPCWSTR s) {
-    std::string out;
-    for (; s && *s; ++s) out += *s < 0x80 ? static_cast<char>(*s) : '?';
+    if (!s || !*s) return {};
+    const int count = WideCharToMultiByte(CP_UTF8, 0, s, -1, nullptr, 0, nullptr, nullptr);
+    std::string out(static_cast<std::size_t>(count > 0 ? count : 1), '\0');
+    if (count > 0) WideCharToMultiByte(CP_UTF8, 0, s, -1, out.data(), count, nullptr, nullptr);
+    out.resize(std::strlen(out.c_str()));
     return out;
 }
 
+// The image's MessageBoxA is the wide call (its text is UTF-8: game/system_text.h), so its boxes come here.
 int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
+    if (int answer = ei::verify::startup::AnswerMessageBox(Narrow(caption).c_str())) return answer;   // "discprompt"
     EndRunOnMessageBox(Narrow(caption), Narrow(text));
     return IDABORT;
 }
@@ -2935,9 +2942,8 @@ void RunSteps() {
         Step s = g_steps[g_next++];
         // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
         // itself, e.g. script error messages). Rebirth is recognised by its addon.dll, or the standalone image's flags.
-        // "utf8 <step>": only in the UTF-8 build (EI_UTF8).
-        if (s.verb == "vanilla" || s.verb == "rebirth" || s.verb == "utf8") {
-            const bool runs = s.verb == "utf8" ? EI_UTF8 != 0 : (s.verb == "rebirth") == starter::RebirthInstall();
+        if (s.verb == "vanilla" || s.verb == "rebirth") {
+            const bool runs = (s.verb == "rebirth") == starter::RebirthInstall();
             if (!runs) {
                 Log("harness: skipped (%s only): %s", s.verb.c_str(), s.argument.c_str());
                 continue;
@@ -3135,6 +3141,8 @@ void RunSteps() {
         } else if (s.verb == "chatwrap") {
             if (std::string failure = utf8text::CheckChatWrap(s.argument); !failure.empty())
                 g_failures.push_back(failure);
+        } else if (s.verb == "utf8files") {
+            if (std::string failure = utf8files::Check(g_savesDir); !failure.empty()) g_failures.push_back(failure);
         } else if (s.verb == "peersignal") {
             if (!pair::Active()) g_failures.push_back("peersignal: not a pair's game (a \"peer\" line starts the other)");
             pair::Signal(s.argument);
@@ -4093,8 +4101,6 @@ struct Harness {
         // Every other module's writes into the install go to the overlay too, and what still reaches an install
         // is refused and fails the run (harness_install.h).
         install::Install({&WritePath, &ReadPath, &InInstall});
-        // EI_UTF8: a Cyrillic folder and file through the game's file calls (harness_utf8.h).
-        if (std::string names = utf8files::Check(g_savesDir); !names.empty()) g_failures.push_back(names);
         addon::Install();   // EI_ADDON_FLAGS: addon.dll's patches outside the run's Rebirth flags undone (harness_addon.h)
         if (g_deterministic) {
             clock::InstallVirtual(&TickLength());

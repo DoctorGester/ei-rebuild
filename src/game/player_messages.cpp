@@ -34,10 +34,6 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { Write(out, &value, 4); }
-void WriteText(BitStream* out, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    Write(out, terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
-}
 
 std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }
 
@@ -56,7 +52,7 @@ NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables
 void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
     VariableSet(Variables(Owner()), name, value);
     WriteByte(&out_, 0x81);
-    WriteText(&out_, name);
+    out_.WriteString(name);
     WriteDword(&out_, value);
 }
 
@@ -76,14 +72,14 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
     if (result == current) return;
     VariableSet(Variables(Owner()), name, resultBits);
     WriteByte(&out_, 0x81);
-    WriteText(&out_, name);
+    out_.WriteString(name);
     WriteDword(&out_, resultBits);
 }
 
 void CPlayerServer::DeleteVariable(const char* name) {
     Variables(Owner())->Remove(name);
     WriteByte(&out_, 0x82);
-    WriteText(&out_, name);
+    out_.WriteString(name);
 }
 
 void CPlayerServer::SendGameTime() {
@@ -176,7 +172,7 @@ void CPlayerServer::SendObject14(const CEngineObject* object) {
 
 void CPlayerServer::SendText0D(const char* text) {
     WriteByte(&out_, 0x0D);
-    WriteText(&out_, text);
+    out_.WriteString(text);
 }
 
 void CPlayerServer::SendValue15(std::uint32_t value) {
@@ -211,7 +207,7 @@ void CPlayerServer::SendValue12(std::uint32_t, std::uint32_t value) {
 
 void CPlayerServer::SendText13(std::uint32_t, const char* text) {
     WriteByte(&out_, 0x13);
-    WriteText(&out_, text);
+    out_.WriteString(text);
 }
 
 void CPlayerServer::WriteTo(CStream* target) { target->CopyFrom(&out_); }

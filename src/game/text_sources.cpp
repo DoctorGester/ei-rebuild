@@ -5,21 +5,18 @@
 
 #include "asset_text.h"
 #include "engine_object.h"
-#include "options.h"
 
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
-#include <clocale>
 #include <cstring>
-#include <mbctype.h>
 #include <iterator>
 #include <string>
 #include <unordered_map>
 
 namespace {
 
-// EI_UTF8: the UTF-8 copy of each text found, by the address of its data. An archive keeps a file's
+// The UTF-8 copy of each text found, by the address of its data. An archive keeps a file's
 // data in place until the archive is closed (GetFile shares it; the text manager never closes a
 // file), so the address names the text until its archive is closed, and only then is the copy
 // forgotten: a text manager may still be reading a text of another archive, or of another list.
@@ -33,39 +30,29 @@ std::unordered_map<const void*, ConvertedText>& ConvertedTexts() {
     return texts;
 }
 
-// A text of the database at `data` (`*size` bytes) in `source` as the game reads it: with EI_UTF8
-// its UTF-8 copy (`*size` becomes the copy's length), else the data itself.
+// A text of the database at `data` (`*size` bytes) in `source` as the game reads it: its UTF-8 copy (`*size`
+// becomes the copy's length).
 void* AsGameText(const CMappedResource* source, void* data, std::uint32_t* size) {
-    if constexpr (text::kUtf8) {
-        ConvertedText& entry = ConvertedTexts()[data];
-        if (entry.text.empty() || entry.source != source || entry.size != *size) {
-            entry.source = source;
-            entry.size = *size;
-            entry.text = text::FromAssetText(std::string_view(static_cast<const char*>(data), *size));
-        }
-        *size = static_cast<std::uint32_t>(entry.text.size());
-        return entry.text.data();
-    } else {
-        (void)source;
-        (void)size;
-        return data;
+    ConvertedText& entry = ConvertedTexts()[data];
+    if (entry.text.empty() || entry.source != source || entry.size != *size) {
+        entry.source = source;
+        entry.size = *size;
+        entry.text = text::FromAssetText(std::string_view(static_cast<const char*>(data), *size));
     }
+    *size = static_cast<std::uint32_t>(entry.text.size());
+    return entry.text.data();
 }
 
-// EI_UTF8: the copies of the texts of `source`, which is being closed, forgotten.
+// The copies of the texts of `source`, which is being closed, forgotten.
 void ForgetConvertedTexts(const CMappedResource* source) {
-    if constexpr (text::kUtf8) {
-        auto& texts = ConvertedTexts();
-        for (auto it = texts.begin(); it != texts.end();) it = it->second.source == source ? texts.erase(it) : std::next(it);
-    } else {
-        (void)source;
-    }
+    auto& texts = ConvertedTexts();
+    for (auto it = texts.begin(); it != texts.end();) it = it->second.source == source ? texts.erase(it) : std::next(it);
 }
 
 // The lookup: the data of file `key` in the first archive of `list` that has it, its archive
 // into `*source` (when not null).
 void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedResource** source) {
-    // EI_UTF8: a key that is text (the people's names, "pers <name>") back in the archive's code page.
+    // A key that is text (the people's names, "pers <name>") back in the archive's code page.
     std::string assetKey;
     if (text::ToAssetText(key, &assetKey)) key = assetKey.c_str();
     for (TextSourceNode* node = list->head->next; node != list->head; node = node->next) {
@@ -174,20 +161,13 @@ void TextSources::ListKeys(std::vector<std::string>* out, const char* pattern) {
 
 void CTextManager::ListKeys(std::vector<std::string>* out, const char* pattern) {
     sources_.ListKeys(out, pattern);
-    // EI_UTF8: the names in UTF-8, as Find takes them (one person's key holds Cyrillic).
-    if constexpr (text::kUtf8) {
-        for (std::string& name : *out) text::FromAssetText(&name);
-    }
+    // The names in UTF-8, as Find takes them (one person's key holds Cyrillic).
+    for (std::string& name : *out) text::FromAssetText(&name);
 }
 
 int CTextManager::Create() {
-    // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
-    // multibyte code page from it: the game's only locale set-up, on the host CRT (docs/notes/standalone.md). With
-    // EI_UTF8 the text is UTF-8 and the CRT's case and classes do not depend on a locale (lib/text_case.h):
-    // the option is not used and LC_CTYPE stays "C".
-    if constexpr (!text::kUtf8) {
-        std::setlocale(LC_CTYPE, options::TheOptions()->fontCharSet_.c_str());
-        _setmbcp(_MB_CP_LOCALE);
-    }
+    // The original set LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise),
+    // then the multibyte code page from it. The text is UTF-8 and the CRT's case and classes do not depend on a
+    // locale (lib/text_case.h): the option is not used and LC_CTYPE stays "C".
     return 1;
 }

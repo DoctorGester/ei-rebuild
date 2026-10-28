@@ -20,7 +20,7 @@ test harness, as the reference our code is compared with.
 | Rebirth edition fixes | Done | Rebirth's bug fixes and options built in, each behind a flag (`docs/notes/rebirth.md`) |
 | Widescreen | Done | Rebirth's widescreen layout in our own code |
 | Renderer | Done, improving | Direct3D 11 (sokol_gfx); per-pixel lighting on the GPU, soft sun and moon shadow maps, smooth camera, vsync option, performance overlay. Next: point-light shadows, water, ambient occlusion |
-| UTF-8 build | Done | Every string inside the game in UTF-8 (`build.cmd release utf8`) |
+| UTF-8 | Done | Every string inside the game in UTF-8; saves and the network stay cp1251, as the original's |
 | Native interface | In progress | Interface drawn by the new renderer directly (text atlas, menus, HUD): tickets P2-P8 |
 | Code cleanup | In progress | Real C++ classes done (C28). Next: standard containers and strings instead of MFC / STLport (C14), drop the remaining address registrations (C20) |
 | Lua mission scripts | Planned | `docs/notes/lua-scripting.md` |
@@ -43,7 +43,6 @@ The work queue is `docs/tickets.md` (generated from `docs/tickets.toml` by `tool
 
 ```
 build.cmd release        the game: build\release\ei_standalone.exe, ei_hook.dll, ei_launch.exe
-build.cmd release utf8   the same with UTF-8 strings, into build\release-utf8
 build.cmd verify         the game plus the test harness, into build\verify (what the tests run)
 ```
 

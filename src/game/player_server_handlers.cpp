@@ -415,7 +415,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     }
     std::uint8_t type = kMessageZone;
     out_.Write(&type, 1);
-    out_.Write(zone, static_cast<std::uint32_t>(std::strlen(zone) + 1));
+    out_.WriteString(zone);
     out_.Write(&entrance, 4);
     Flush();
 }
@@ -552,23 +552,15 @@ constexpr std::uint8_t kMessageError = 0x11;
 } // namespace
 
 BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
-    if constexpr (text::kUtf8) {
-        // EI_UTF8: by character, each a valid UTF-8 sequence of a printable code point, within
-        // `maxLength` bytes; `minLength` counts characters. (The original's isprint of each signed byte
-        // passed UTF-8's bytes only through the "english" locale's table and the bytes before it.)
-        int characters = 0;
-        for (int i = 0; i < maxLength; ++characters) {
-            if (text[i] == 0) return characters >= minLength;
-            unsigned c;
-            i += text::DecodeUtf8(text + i, static_cast<std::size_t>(maxLength - i), &c);
-            if (!text::IsPrintableCodePoint(c)) return 0;
-        }
-    } else {
-        for (int i = 0; i < maxLength; ++i) {
-            char c = text[i];
-            if (c == 0) return i >= minLength;
-            if (libcrt::Isprint(c) == 0) return 0;
-        }
+    // By character, each a valid UTF-8 sequence of a printable code point, within `maxLength` bytes; `minLength`
+    // counts characters. (The original's isprint of each signed byte passed UTF-8's bytes only through the
+    // "english" locale's table and the bytes before it.)
+    int characters = 0;
+    for (int i = 0; i < maxLength; ++characters) {
+        if (text[i] == 0) return characters >= minLength;
+        unsigned c;
+        i += text::DecodeUtf8(text + i, static_cast<std::size_t>(maxLength - i), &c);
+        if (!text::IsPrintableCodePoint(c)) return 0;
     }
     return 1;
 }
@@ -588,7 +580,7 @@ int CPlayerServer::OnLogin() {
         gamecrt::sprintf(text, format, 1, 0);
         std::uint8_t type = kMessageError;
         out_.Write(&type, 1);
-        out_.Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+        out_.WriteString(text);
         state_ = 3;
         return 0;
     }

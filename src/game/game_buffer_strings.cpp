@@ -2,6 +2,7 @@
 // the buffer's other members are game_buffer.cpp.
 #include "net_classes.h"
 #include "net_coder.h"
+#include "asset_text.h"
 
 #include <cstring>
 
@@ -49,12 +50,15 @@ bool GameBuffer::ReadString(std::string* s, int maxLength) {
     const char* last = first + length;
     // string::assign(first, last), inlined: overwrite and cut, or overwrite and append the rest.
     s->assign(first, last);
+    text::FromAssetText(s);   // the wire's text is in the asset code page, as vanilla peers send it
     cur = reinterpret_cast<std::uint8_t*>(const_cast<char*>(first)) + length;
     Commit();
     return true;
 }
 
-void GameBuffer::WriteString(const std::string* s) {
+void GameBuffer::WriteString(const std::string* text) {
+    const std::string bytes = text::ToAssetText(*text);   // in the asset code page, as vanilla peers read it
+    const std::string* s = &bytes;
     const auto length = static_cast<std::uint32_t>(s->size());
     if (static_cast<int>(length) >= 0x80) {
         std::uint32_t header = length * 2 + 1;

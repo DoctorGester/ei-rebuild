@@ -346,8 +346,7 @@ void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const 
 void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, ObjectId(object));
     WriteInt(stream, id);
-    const char* text = name.c_str();
-    stream->Write(text, static_cast<std::uint32_t>(Length(text) + 1));
+    stream->WriteString(name);
     stream->Write(&position, 12);
     stream->Write(&volume, 4);
     stream->Write(&radius, 4);

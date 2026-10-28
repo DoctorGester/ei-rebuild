@@ -144,8 +144,8 @@ void SetReplayCtype(const ReplayCtype& ctype);
 } // namespace gamecrt
 
 // The game CRT's own functions (docs/notes/standalone.md section 2).
-// The string and character functions are the host CRT's under the host's locale (crt_locale_data.h); with
-// EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
+// The plain string functions are the host CRT's; the case and class functions answer for UTF-8 (text_case.h): a byte
+// past ASCII has no class or case of its own and is never a lead byte, the _mbs* functions are byte ones.
 namespace libcrt {
 
 int Strncmp(const char* a, const char* b, std::size_t n);

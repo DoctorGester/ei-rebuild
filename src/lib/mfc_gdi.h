@@ -114,8 +114,8 @@ public:
         ei::UnportedSlot(0x006E69BF);
     }
     virtual SIZE TabbedTextOut(int, int, const char*, int, int, int*, int) { ei::UnportedSlot(0x006E69E4); }
-    // The interface's, the console's and the debug panel's text (EI_UTF8: UTF-8, drawn by the wide call
-    // behind DrawTextA's import slot: system_text.h).
+    // The interface's, the console's and the debug panel's text (UTF-8, drawn by the wide call behind
+    // DrawTextA's import slot: system_text.h).
     virtual int DrawText(const char* text, int length, RECT* rect, UINT format);
     virtual BOOL GrayString(CBrush*, GRAYSTRINGPROC, LPARAM, int, int, int, int, int) { ei::UnportedSlot(0x006E6A38); }
     virtual int Escape(int, int, const char*, void*) { ei::UnportedSlot(0x006E6A68); }

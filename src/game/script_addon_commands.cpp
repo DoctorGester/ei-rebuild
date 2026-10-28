@@ -203,7 +203,7 @@ bool IsFileExists(Call* call) {
                      EndsWith(name, "/..");
     if (forbidden) return Report("IsFileExists", "'..' string literal is forbidden");
     path += name;
-    DWORD attributes = text::sys::GetFileAttributesA(path.c_str());
+    DWORD attributes = text::utf8::GetFileAttributesA(path.c_str());
     Store(call->FloatResult(), attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY) ? 1.0f : 0.0f);
     return true;
 }

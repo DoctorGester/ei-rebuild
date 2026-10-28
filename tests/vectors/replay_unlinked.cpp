@@ -80,6 +80,7 @@ console::GameOStream& console::GameOStream::operator<<(double) EI_UNLINKED("cons
 // the script effects (script_effects.cpp needs the world).
 CEngineObject* CBaseManager::FindObject(unsigned) const EI_UNLINKED("CBaseManager::FindObject")
 std::string* CStream::ReadString(std::string*) EI_UNLINKED("CStream::ReadString")
+void CStream::WriteString(std::string_view) EI_UNLINKED("CStream::WriteString")
 void CWorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
 void ScriptPointLight::ScriptPointLightLoad(ScriptStream*) EI_UNLINKED("ScriptPointLight::ScriptPointLightLoad")
 void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSource::ScriptFxSourceLoad")

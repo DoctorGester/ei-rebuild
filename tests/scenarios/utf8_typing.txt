@@ -1,19 +1,19 @@
-# Typing in the UTF-8 build (EI_UTF8, ticket U4; docs/notes/standalone.md section 4): the game window is a
-# Unicode one, so characters typed into the console's line arrive as UTF-16 WM_CHAR ("typeunicode" posts them
-# as Windows gives a Unicode window a typed character; a character past U+FFFF as a surrogate pair), are
-# stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
-# and the caret's place). Without EI_UTF8 both steps are skipped and the console is only opened and closed.
-# The line is drawn and measured with the wide GDI calls (U3): a Greek letter (outside the assets' code page
-# 1251) draws as itself, not as the '?' an ANSI call would make of it ("utf8 diffcapture": the frames of the
-# line "λ" and the line "?", the caret after either and the menu's scene frozen, differ only by the glyph; the
-# steps marked "utf8" run in the UTF-8 build only). The text audit (U5): "utf8text" checks Cyrillic case-insensitive
-# compares and case changes by the UTF-8 case table and the player name filter; "chatwrap" adds a long Cyrillic
-# chat line (a word wider than a line among them) to the chat overlay and requires valid UTF-8 lines that join
-# back to it.
-# no original: vanilla rebirth (Unicode typing is the UTF-8 build's)
+# The image's UTF-8 text (docs/notes/standalone.md section 4). File names (U2): "utf8files" makes, lists, reads
+# back and removes a folder and a file with Cyrillic names through the game's file calls. Typing (U4): the game
+# window is a Unicode one, so characters typed into the console's line arrive as UTF-16 WM_CHAR ("typeunicode"
+# posts them as Windows gives a Unicode window a typed character; a character past U+FFFF as a surrogate pair),
+# are stored as UTF-8, and the caret, Backspace and Delete go by character ("consoleline" checks the line's bytes
+# and the caret's place). The line is drawn and measured with the wide GDI calls (U3): a Greek letter (outside
+# the assets' code page 1251) draws as itself, not as the '?' an ANSI call would make of it ("diffcapture": the
+# frames of the line "λ" and the line "?", the caret after either and the menu's scene frozen, differ only by
+# the glyph). The text audit (U5): "utf8text" checks Cyrillic case-insensitive compares and case changes by the
+# UTF-8 case table and the player name filter; "chatwrap" adds a long Cyrillic chat line (a word wider than a
+# line among them) to the chat overlay and requires valid UTF-8 lines that join back to it.
+# no original: vanilla rebirth (game.exe's text is in the ANSI code page)
 waitmenu
-utf8 utf8text
-utf8 chatwrap Длинная строка чата для проверки переноса по словам и внутри длинного слова: ШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШ конец
+utf8files
+utf8text
+chatwrap Длинная строка чата для проверки переноса по словам и внутри длинного слова: ШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШШ конец
 key grave
 frames 2
 typeunicode Жук
@@ -42,19 +42,19 @@ consoleline 3 Жёк
 key esc
 frames 2
 consoleline 0
-utf8 freeze
+freeze
 typeunicode λ
 frames 2
 consoleline 1 λ
-utf8 capture console_greek
+capture console_greek
 key backspace
 frames 2
 typeunicode ?
 frames 2
 consoleline 1 ?
-utf8 capture console_question
-utf8 diffcapture console_greek console_question 0.000002 0.0005 0
-utf8 unfreeze
+capture console_question
+diffcapture console_greek console_question 0.000002 0.0005 0
+unfreeze
 key esc
 frames 2
 key grave

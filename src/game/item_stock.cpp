@@ -524,14 +524,10 @@ void ItemStock::LoadLists(CStream* stream) {
 namespace {
 
 void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
-void WriteText(CStream* stream, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
-}
 
 void SaveItemRecords(CStream* stream, const StockPrototypeVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (const itemdb::ItemRecordHead* record : list) WriteText(stream, record->text04);
+    for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->text04);
 }
 
 } // namespace
@@ -543,14 +539,14 @@ void ItemStock::SaveLists(CStream* out) {
 
     WriteInt(out, static_cast<std::uint32_t>(materials.size()));
     for (StockMaterial* e = materials.data(); e != materials.data() + materials.size(); ++e) {
-        WriteText(out, e->record->key);
+        out->WriteString(e->record->key);
         WriteInt(out, static_cast<std::uint32_t>(e->minCount));
         WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
         WriteInt(out, static_cast<std::uint32_t>(e->left));
     }
 
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
-    for (itemdb::SpellRecord** p = spells.data(); p != spells.data() + spells.size(); ++p) WriteText(out, (*p)->code);
+    for (itemdb::SpellRecord** p = spells.data(); p != spells.data() + spells.size(); ++p) out->WriteString((*p)->code);
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
@@ -559,7 +555,7 @@ void ItemStock::SaveLists(CStream* out) {
         char code[5] = {};
         std::memcpy(code, (*p)->code, 4);
         std::string text = code;
-        WriteText(out, text);
+        out->WriteString(text);
     }
 }
 

@@ -1,14 +1,12 @@
 @echo off
 rem Builds the standalone image (ei_standalone.exe, ei_hook.dll), ei_launch.exe and the tools (32-bit) with
 rem the VS 2022 Build Tools.
-rem usage: build.cmd [release|verify|debug] [utf8]
+rem usage: build.cmd [release|verify|debug]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
 rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
 rem            with --no-hooks for goldens and EI_VECTORS recording)
 rem   debug    the release build unoptimised
-rem   utf8     with EI_UTF8 (every string inside the game in UTF-8, src/game/asset_text.h), into
-rem            build\<cfg>-utf8 (run_all / work.py test with EI_BUILD_DIR=build\verify-utf8)
 rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.
@@ -26,12 +24,9 @@ set HARNESS=OFF
 set BUILDTYPE=RelWithDebInfo
 if /i "%CFG%"=="verify" set HARNESS=ON
 if /i "%CFG%"=="debug" set BUILDTYPE=Debug
-set UTF8=OFF
 set OUT=%~dp0build\%CFG%
-if /i "%~2"=="utf8" set UTF8=ON
-if /i "%~2"=="utf8" set OUT=%~dp0build\%CFG%-utf8
 
-cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% -DEI_UTF8=%UTF8% || exit /b 1
+cmake -S "%~dp0." -B "%OUT%" -G Ninja -DCMAKE_BUILD_TYPE=%BUILDTYPE% -DEI_HARNESS=%HARNESS% || exit /b 1
 cmake --build "%OUT%" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1

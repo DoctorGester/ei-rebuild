@@ -204,17 +204,10 @@ std::string CFileRegistry::GetString(const char* section, const char* key, const
 void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* buffer, int* length,
                                     const char* defaultValue) {
     if (const std::uint8_t* value = FindData(section, key, kRegString, nullptr)) {
-        // EI_UTF8: the UTF-8 text is cut to the buffer at a character's end (without it the bytes, the
-        // asset's 16-bit length).
+        // The UTF-8 text is cut to the buffer at a character's end (the original cut the asset's bytes, by their
+        // 16-bit length).
         const std::string string = text::FromAssetText(std::string_view(Chars(value + 2), U16(value)));
-        int count;
-        if constexpr (text::kUtf8) {
-            count = static_cast<int>(text::FittingBytes(string, static_cast<std::size_t>(*length - 1)));
-        } else {
-            std::uint16_t bytes = static_cast<std::uint16_t>(string.size());
-            if (static_cast<int>(bytes) >= *length) bytes = static_cast<std::uint16_t>(*length - 1);
-            count = bytes;
-        }
+        const int count = static_cast<int>(text::FittingBytes(string, static_cast<std::size_t>(*length - 1)));
         gamecrt::strncpy(buffer, string.data(), static_cast<std::size_t>(count));
         buffer[count] = '\0';
         *length = count;

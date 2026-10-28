@@ -288,9 +288,9 @@ struct PlayerLoginMessage {
 };
 static_assert(sizeof(PlayerLoginMessage) == 0x88);
 
-// 1 when the first `maxLength` characters of `text` are printable (the game's isprint, of the signed char);
-// a terminator before that gives whether at least `minLength` characters came first; 0 at the first
-// unprintable one. With EI_UTF8 by character: a valid UTF-8 sequence of a printable code point each.
+// 1 when the first `maxLength` bytes of `text` are printable characters, each a valid UTF-8 sequence of a printable
+// code point; a terminator before that gives whether at least `minLength` characters came first; 0 at the first
+// unprintable one. (The original took the game's isprint of each signed char.)
 BOOL IsPrintableText(const char* text, int maxLength, int minLength);
 
 // |a - b| squared, unrounded (the use order's nearest-unit test).

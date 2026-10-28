@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // The engine's abstract byte stream. The save game, the network messages and the chunk archives are memory
 // streams behind it; the message recordings are file streams.
@@ -36,10 +37,14 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    // Bytes up to a zero or a failed read, into `out`.
+    // Text in the streams (the saves, the network's messages and recordings) is in the asset code page, as the
+    // original's: converted to UTF-8 where it is read and back where it is written (asset_text.h).
+    // Bytes up to a zero or a failed read, into `out` (in UTF-8).
     std::string* ReadString(std::string* out);
     // A text read as ReadString reads it, assigned to `out`.
     void ReadInto(std::string* out);
+    // `text` up to its first zero, in the asset code page (a character it has no byte for as '?'), and a zero.
+    void WriteString(std::string_view text);
 
     // Reads a block WriteSized wrote (a two-byte size word, two more bytes when its bit 0 is set; the size is
     // the word / 2) into `to`: `to` cleared, sought to 0, then given the block.
@@ -64,8 +69,8 @@ public:
     // From the start (reading_ set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
     bool FindTagged(std::uint32_t id, CStream* out);
-    // Reads bytes into `buffer` until a zero or `capacity` bytes;
-    // buffer[capacity - 1] is always set to zero.
+    // Reads bytes into `buffer` until a zero or `capacity` bytes; buffer[capacity - 1] is always set to zero. The
+    // text then in UTF-8, cut at a character's end when it no longer fits.
     void ReadText(char* buffer, int capacity);
     // Reads the magic number and the version (four bytes each, into one variable); true and version_ set when
     // the magic matches and oldest <= version <= newest (signed).

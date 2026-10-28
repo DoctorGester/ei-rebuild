@@ -1,4 +1,4 @@
-// Upper and lower case of UTF-8 text by a small table (EI_UTF8). See text_case.h.
+// Upper and lower case of UTF-8 text by a small table. See text_case.h.
 #include "text_case.h"
 
 namespace text {

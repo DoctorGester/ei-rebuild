@@ -227,10 +227,10 @@ void CEffectSoundSeq::Load(CStream* stream) {
 void CEffectSoundSeq::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &velocity_, 12);
-    Write(stream, name_.c_str(), static_cast<std::uint32_t>(std::strlen(name_.c_str()) + 1));
+    stream->WriteString(name_);
     int count = static_cast<int>(names_.size());
     Write(stream, &count, 4);
-    for (const std::string& name : names_) Write(stream, name.c_str(), static_cast<std::uint32_t>(name.size() + 1));
+    for (const std::string& name : names_) stream->WriteString(name);
     WriteCopy(stream, &volume_);
     WriteCopy(stream, &radius_);
     Write(stream, &noFade_, 1);
@@ -307,7 +307,7 @@ void CEffectAmbientSound::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     int count = static_cast<int>(names_.size());
     Write(stream, &count, 4);
-    for (const std::string& name : names_) Write(stream, name.c_str(), static_cast<std::uint32_t>(name.size() + 1));
+    for (const std::string& name : names_) stream->WriteString(name);
     WriteCopy(stream, &volume_);
     WriteCopy(stream, &radius_);
     WriteCopy(stream, &minInterval_);

@@ -102,7 +102,7 @@ void AIMemory::Save(CStream* stream) {
         AICallRecord& call = calls.data[i];
         stream->Write(&call.point, 12);
         WriteCopy(stream, call.kind);
-        stream->Write(call.text.c_str(), static_cast<unsigned>(std::strlen(call.text.c_str()) + 1));
+        stream->WriteString(call.text);
         WriteCopy(stream, call.hostileMask);
     }
     WriteCopy(stream, noticedKind);

@@ -190,7 +190,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         out->Write(&id, 4u);
         CUnit* unit = UnitOrNull(object);
         const char* prototype = unit ? unit->GetPrototype()->name.c_str() : object->name.c_str();
-        out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
+        out->WriteString(prototype);
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).
         std::uint32_t flags = static_cast<std::uint32_t>(object->ChangedParts()) |

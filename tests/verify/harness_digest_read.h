@@ -112,6 +112,7 @@ struct Hash {
         }
         Add(0);
     }
+    void AddText(const std::string& s) { AddText(s.c_str()); }
 };
 
 inline std::uint32_t HashWords(const std::uint32_t* words, int count) {
@@ -133,6 +134,7 @@ inline std::uint32_t TextHash(const char* text) {
     h.AddText(text);
     return h.h;
 }
+inline std::uint32_t TextHash(const std::string& text) { return TextHash(text.c_str()); }
 
 // The readers (harness_digest_read.inc), each over the server world `server`: the whole state into `s` (Read), a unit
 // now (Unit), the local leader (LocalLeader), every world object's id, class and address into the heap trace

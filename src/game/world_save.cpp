@@ -78,11 +78,6 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 // the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
 
-void WriteString(WorldStream* stream, std::string_view text) {
-    const gamecrt::TerminatedText terminated(text);
-    stream->Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
-}
-
 // A dword written through a stack copy, as most scalars are.
 template <typename T>
 void WriteCopy(WorldStream* stream, const T& value) {
@@ -533,9 +528,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     manager4C_->ReleaseUnused();
     itemManager_->ReleaseUnused();
 
-    WriteString(stream, mobName_);
-    WriteString(stream, mapName_);
-    WriteString(stream, zoneName_);
+    stream->WriteString(mobName_);
+    stream->WriteString(mapName_);
+    stream->WriteString(zoneName_);
     stream->Write(windDirection_, 12);
     WriteCopy(stream, windStrength_);
     WriteCopy(stream, nightLevel_);
@@ -618,7 +613,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
 
     WriteCopy(stream, static_cast<int>(mobFiles_.size()));
-    for (const std::string& file : mobFiles_) WriteString(stream, file);
+    for (const std::string& file : mobFiles_) stream->WriteString(file);
 
     SharedObjectList& shared = sharedObjects_;
     WriteCopy(stream, shared.count);

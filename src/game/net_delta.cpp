@@ -252,8 +252,8 @@ void DeltaField::WriteBoth(const void* data, std::uint32_t size) {
 }
 
 void DeltaField::WriteStringBoth(const char* text) {
-    out[0].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
-    out[1].Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+    out[0].WriteString(text);
+    out[1].WriteString(text);
 }
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }

@@ -166,7 +166,7 @@ def routed(table):
         for name in re.findall(r'\bImportTable::(\w+)', read(path)):
             if names.get(name):
                 out.add(names[name])
-    out.update(re.findall(r'EI_UTF8_ROUTE\((\w+)\)', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
+    out.update(re.findall(r'TEXT_ROUTE\((\w+)\)', read(os.path.join(ROOT, 'src', 'game', 'system_text.cpp'))))
     out.update(re.findall(r'\{"\w+\.dll", "(\w+)", reinterpret_cast',
                           read(os.path.join(ROOT, 'src', 'hook', 'standalone_main.cpp'))))
     for path in sources('src', ('.cpp', '.h')):

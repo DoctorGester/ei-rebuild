@@ -96,7 +96,7 @@ void ZoneExit::Write(CStream* stream) const {
     put(&y1, 4);
     put(&x2, 4);
     put(&y2, 4);
-    stream->Write(target.c_str(), static_cast<std::uint32_t>(std::strlen(target.c_str()) + 1));
+    stream->WriteString(target);
     put(&entrance, 4);
     put(&view, 4);
     put(&hasDeployAngle, 1);

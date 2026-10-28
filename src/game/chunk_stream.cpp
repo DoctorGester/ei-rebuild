@@ -213,7 +213,7 @@ std::string* Chunk::ReadString(std::string* out) {
         *p++ = static_cast<char>(c);
     }
     str::CutAtNull(text);
-    text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8 with EI_UTF8
+    text::FromAssetText(&text);   // .mob text (unit names, dialogue) in UTF-8
     *out = text;
     return out;
 }
@@ -229,14 +229,16 @@ std::string* Chunk::ReadEncodedString(std::string* out) {
     {
         std::string text;
         decoder.Decode(&text);
-        text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
+        text::FromAssetText(&text);   // the scripts' literals in UTF-8
         *out = text;
     }
     return out;
 }
 
-// A chunk holding the characters (no terminator). The buffer is taken after the file (GetBuffer(0)).
+// A chunk holding the characters (no terminator), in the asset code page as ReadString reads them. The buffer is
+// taken after the file (GetBuffer(0)).
 void Chunk::WriteString(std::uint32_t id, std::string text) {
+    text = text::ToAssetText(text);
     int size = static_cast<int>(text.size()) + kHeader;
     FileWrite(File(), &id, 4);
     FileWrite(File(), &size, 4);
@@ -261,8 +263,11 @@ void Chunk::ReadStringArray(std::vector<std::string>* array) {
     }
 }
 
-// The size covers the count and every element's chunk.
-void Chunk::WriteStringArray(std::uint32_t id, const std::vector<std::string>* array) {
+// The size covers the count and every element's chunk. The texts in the asset code page, as WriteString writes them.
+void Chunk::WriteStringArray(std::uint32_t id, const std::vector<std::string>* texts) {
+    std::vector<std::string> converted;
+    for (const std::string& text : *texts) converted.push_back(text::ToAssetText(text));
+    const std::vector<std::string>* array = &converted;
     int count = static_cast<int>(array->size());
     int characters = 0;
     for (const std::string& text : *array) characters += static_cast<int>(text.size());
