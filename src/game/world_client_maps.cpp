@@ -66,7 +66,7 @@
 
 namespace {
 
-// The cell index of a coordinate: FISTP (round to nearest), then an unsigned shift by 4, so a
+// The cell index of a coordinate: rounded to nearest, then an unsigned shift by 4, so a
 // negative coordinate gives a huge index that fails the bounds tests.
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 

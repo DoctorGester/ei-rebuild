@@ -93,7 +93,7 @@ void CHeroStatsPanel::Update() {
     if (page_ != kNewHeroPage || heldRegion_ < 0) return;
     double held = CUiContainer::FrameTime() + holdTime_;
     holdTime_ = static_cast<float>(held);
-    if (held < kRepeatDelay) return;   // TEST AH,1: less (a NaN goes on)
+    if (held < kRepeatDelay) return;   // less (a NaN goes on)
     bool stepped = StepPoint(heldRegion_);
     owner_->RefreshStats();
     if (!stepped) {

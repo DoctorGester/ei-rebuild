@@ -21,13 +21,13 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
 
-// IsaacRandom::Range leaves its result unrounded in ST0.
+// IsaacRandom::Range leaves its result unrounded.
 double Range(float min, float max) { return g_random.Range(min, max); }
 
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
@@ -312,7 +312,7 @@ constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0
                                             1.0f, 1.0f};
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
-// x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
+// Branch-free select: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }

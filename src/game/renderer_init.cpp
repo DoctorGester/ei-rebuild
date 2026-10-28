@@ -86,7 +86,7 @@ constexpr int kProductStacks[2] = {kStackA, kStackB};
 constexpr int kSwapStacks[2] = {kStackC, kStackD};
 
 // Transposes a 4x4 float matrix: the upper-triangle elements move
-// through the FPU (FLD / FSTP), the lower ones as dwords.
+// through the FPU, the lower ones as plain bit copies.
 void Transpose(float* m) {
     static constexpr int kPairs[6][2] = {{1, 4}, {2, 8}, {3, 12}, {6, 9}, {7, 13}, {11, 14}};
     for (const auto& p : kPairs) {

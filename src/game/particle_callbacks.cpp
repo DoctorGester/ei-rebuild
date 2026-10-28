@@ -3294,7 +3294,7 @@ int CParticleSource::EmitVisionStar(Particle* p, int) {
         p->velocity.y = static_cast<float>(x87::fsin(0.0));
         SetBits(&p->velocity.z, 0);
     } else {
-        double angle = D(static_cast<float>(kSpinAngle * SpinRate(count)));   // the FMUL at the main thread's 24 bits
+        double angle = D(static_cast<float>(kSpinAngle * SpinRate(count)));   // the product at the main thread's 24 bits
         p->velocity.x = static_cast<float>(x87::fcos(angle));
         p->velocity.y = static_cast<float>(x87::fsin(angle));
         SetBits(&p->velocity.z, 0);

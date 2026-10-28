@@ -67,7 +67,7 @@ Vector3 Middle(const Vector3& a, const Vector3& b) {
 
 Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.x, a.y - b.y, a.z - b.z}; }
 
-// Normalised unless its length is zero (FCOM, TEST AH,0x40).
+// Normalised unless its length is zero.
 void Normalise(Vector3* v) {
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
     EI_NAN_AUDIT(length);

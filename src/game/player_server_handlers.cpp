@@ -361,7 +361,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
         float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
         float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
         double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
-        if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
+        if (length > 0.0) {   // the original skips zero and NaN
             double inverse = 1.0 / length;
             dx = static_cast<float>(dx * inverse);
             dy = static_cast<float>(dy * inverse);

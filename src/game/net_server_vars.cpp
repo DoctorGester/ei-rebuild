@@ -60,7 +60,7 @@ void ServerSession::RaiseVariable(const std::string* name, float value) {
     std::uint32_t bits = current >= value ? currentBits : valueBits;
     float selected;
     std::memcpy(&selected, &bits, 4);
-    volatile double loaded = selected;   // FLD / FSTP
+    volatile double loaded = selected;   // reloaded through memory, as the original does
     found->Get()->value_ = static_cast<float>(loaded);
     found->Get()->serial_ = g_variableSerial;
     ++g_variableSerial;
@@ -78,7 +78,7 @@ void ServerSession::RemoveVariable(const std::string* name) {
     if (node != variables_.end()) variables_.erase(node);
 }
 
-// The variable's value, 0 when missing (returned unrounded in ST0).
+// The variable's value, 0 when missing (returned unrounded).
 double ServerSession::GetVariable(const std::string* name) {
     auto node = FindVariable(name);
     if (node != variables_.end()) return node->Get()->value_;

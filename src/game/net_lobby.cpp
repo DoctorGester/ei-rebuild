@@ -244,7 +244,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     } else if (query != end) {
         e->state_ = ServerEntry::kAsked;
         auto count = static_cast<std::uint32_t>(v.list.size());
-        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f + 20.0f);   // FILD qword
+        e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * 0.5f + 20.0f);
     } else {
         if (node == servers_.end()) {
             entry.Destroy();

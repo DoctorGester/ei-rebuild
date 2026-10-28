@@ -49,7 +49,7 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// FUCOMPP of 1 (or 0) against the argument (TEST AH,0x45: an ordered equal).
+// 1 (or 0) against the argument: an ordered equal.
 bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.

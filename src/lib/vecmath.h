@@ -13,10 +13,10 @@
 // Evaluation. The build is /fp:precise (/fp:fast regrouped an inlined sum with the caller's
 // expression: `DotZYX(a, b) * 2.0f` became `2x + (z + y)` + ..., verify_vecmath.cpp caught it), so the
 // grouping written here is kept. Each helper's float results are rounded to float when
-// returned (as an FSTP to a float would round them). On the game's main thread (x87 at 24-bit precision)
+// returned (as a store to a float would round them). On the game's main thread (x87 at 24-bit precision)
 // every operation already rounds to a float significand, so this gives the game's bits; on 53-bit threads it
 // is plain float maths, not the game's (code there stays written out, docs/notes/vector-math.md). Square
-// roots use std::sqrt (FSQRT at the precision control on this x87 target; cast a float argument to double
+// roots use std::sqrt (the square root at the precision control on this x87 target; cast a float argument to double
 // first: std::sqrt(float) is sqrtf). Transcendentals (Atan2, libcrt::CiAcos / CiAsin) return the x87 result
 // unrounded as `double`, like FPATAN and the game's CRT; where the game stores the result to a float, round it
 // with static_cast<float> (ticket X3: an unrounded angle flipped a quaternion's sign).
@@ -162,7 +162,7 @@ __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return
 // A product of float operands left to right, ((a * b) * c) * ..., as a chain of FMULs:
 // /fp:fast regroups a product with a repeated factor (`a * b * d * d` became
 // `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
-// unrounded (ST0 after the last FMUL, as `double`): round it with static_cast<float> where the game
+// unrounded (as `double`): round it with static_cast<float> where the game
 // stores it; an intermediate store would also lose an underflowing product (a denormal factor).
 template <typename... Rest>
 __forceinline double Product(float first, Rest... rest) {
@@ -276,10 +276,10 @@ __forceinline float DistanceZYX(const Vector3& a, const Vector3& b) { return Dis
 __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
 
 // The rotated Y axis of q as Quaternion::AxisY and the game's inlined copies of it compute it: (2(yx - wz), (w^2
-// - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition (FADD ST0, ST0), each component
+// - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition, each component
 // rounded to float (they store it before negating), nothing stored before that. Precise: /fp:fast had turned
 // these ports' written-out 2(yz + wx) into (2wx + yz) + yz (a second rounding) and one copy's
-// -2(yx - wz) into (wz - yx) + (wz - yx) (+0 where FCHS gives -0; V3c). No float locals: a precise body rounds them through memory, which
+// -2(yx - wz) into (wz - yx) + (wz - yx) (+0 where the original's negation gives -0; V3c). No float locals: a precise body rounds them through memory, which
 // the game does not (V3e).
 __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
     return {(q.y * q.x - q.w * q.z) * 2.0f, (q.w * q.w - ((q.x * q.x + q.z * q.z) + q.y * q.y)) + q.y * q.y * 2.0f,
@@ -300,10 +300,10 @@ __forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
 }
 
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
-// The game keeps many 2D differences and sums on the FPU stack and compares or uses the unrounded ST0 value
+// The game keeps many 2D differences and sums on the FPU stack and compares or uses the unrounded value
 // (AIDistance2 returns it). The precise helpers above round their result through memory; these do not:
 // compiled without precise semantics, an inlined body is the same code as the expression written out in the
-// caller (no FSTP / FLD of the differences or the sum). T is the type the site computes in: `double` where
+// caller (no store and reload of the differences or the sum). T is the type the site computes in: `double` where
 // the source keeps the x87 value (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only
 // 2-term sums (one result in every order) are used, so the caller's expression may regroup around them as
 // /fp:fast does with written-out code: use them for a sum that is compared, stored or passed on as a whole. Kept:

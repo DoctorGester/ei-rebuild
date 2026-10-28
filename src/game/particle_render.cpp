@@ -22,7 +22,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);

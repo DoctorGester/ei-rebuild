@@ -19,7 +19,7 @@ constexpr std::uint32_t kFlagDirty = 2;
 constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 constexpr int kClassMapObjectServer = 0x39;
 
-// The original's branch-free max(0, v): FCOMP of 0 against v, C0 as a mask selecting v's bits
+// The original's branch-free max(0, v): 0 against v, as a mask selecting v's bits
 // (also a NaN's), else 0.
 std::uint32_t ClampToZero(float v) {
     return 0.0f >= v ? 0u : std::bit_cast<std::uint32_t>(v);
@@ -27,7 +27,7 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
 
-// The world's GridHeightAt: the height at (x, y), in ST0.
+// The world's GridHeightAt: the height at (x, y), unrounded.
 double GroundHeight(CWorld* world, float x, float y) { return world->GridHeightAt(x, y); }
 
 // The change stamp: the world's update count.
@@ -49,11 +49,11 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
         MapEffect* e = &object->effects[i];
         if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
         EI_NAN_AUDIT(FloatBits(effect->value), FloatBits(e->value));
-        if (FloatBits(effect->value) < FloatBits(e->value)) continue;   // FCOMPP; TEST AH,1
+        if (FloatBits(effect->value) < FloatBits(e->value)) continue;
         if (e->ending != effect->ending) continue;
         float difference = FloatBits(e->strength) - FloatBits(effect->strength);
         float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
-        if (static_cast<double>(distance) < kRebirthSameStrength) {          // TEST AH,5; JP: IEEE
+        if (static_cast<double>(distance) < kRebirthSameStrength) {          // plain IEEE compare
             object->effects.erase(object->effects.begin() + i);
         }
     }
@@ -145,13 +145,13 @@ float CMapObject::EffectValue(std::uint32_t type) {
 void CMapObject::RecomputeScale() {
     ApplyBaseScale();
     int strength = (HasEffect(mapeffect::kStrengthen) ? 1 : 0) - (HasEffect(mapeffect::kWeaken) ? 1 : 0);
-    float strengthLevel = static_cast<float>(strength);   // FILD, FSTP float
+    float strengthLevel = static_cast<float>(strength);   // stored as a float
     int size = (HasEffect(mapeffect::kEnlarge) ? 1 : 0) - (HasEffect(mapeffect::kShrink) ? 1 : 0);
-    double sizeLevel = size;                               // FILD, kept on the stack
+    double sizeLevel = size;                               // kept unrounded
     float total = static_cast<float>(sizeLevel + strengthLevel);
     if (size == 0) {
         if (strengthLevel != 0.0f) {
-            double step = strengthLevel * static_cast<double>(kScaleStep);   // FMUL, FST to a float
+            double step = strengthLevel * static_cast<double>(kScaleStep);   // rounded to a float
             float stepRounded = static_cast<float>(step);
             StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
             if (type_ != kTypeHero)

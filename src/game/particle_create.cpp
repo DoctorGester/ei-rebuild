@@ -19,7 +19,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
@@ -39,7 +39,7 @@ double Unsigned(std::uint32_t value) {
 #define EI_SCALE_0_4 9.313226580990458e-11   // ~0.4 * 2^-32
 #define EI_RING_STEP 0.62832   // 2 pi / 10
 
-// IsaacRandom::Range leaves its result unrounded in ST0.
+// IsaacRandom::Range leaves its result unrounded.
 double Range(float min, float max) { return g_random.Range(min, max); }
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).

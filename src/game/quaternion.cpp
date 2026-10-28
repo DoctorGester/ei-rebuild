@@ -14,7 +14,7 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// Rounds to double, as FST qword does.
+// Rounds to double.
 double StoreDouble(double v) {
     volatile double r = v;
     return r;

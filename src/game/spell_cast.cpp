@@ -28,11 +28,10 @@ constexpr int kClassSpellContainer = 0x3003;
 
 
 
-// _ftol of value * factor, the value loaded as an unsigned 64-bit integer (FILD qword,
-// FMUL dword, CALL _ftol).
+// _ftol of value * factor, the value loaded as an unsigned 64-bit integer.
 int ScaleTruncate(std::uint32_t value, float factor) { return static_cast<int>(libcrt::Ftol(x87::FromUnsigned(value) * factor)); }
 
-// sqrt(area / pi) on the FPU stack, as FLD, FDIV [0x00743A7C], FSQRT (returned unrounded in ST0).
+// sqrt(area / pi) (returned unrounded).
 double AreaToRadius(float area) { return std::sqrt(area / 3.1415927f); }
 
 // field += strength * base, stored as a float, then kept only when above zero (a branch-free select: 0 <

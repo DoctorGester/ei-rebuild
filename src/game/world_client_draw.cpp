@@ -130,7 +130,7 @@ const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
 float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
-// a < b, or unordered (FCOMP's C0 is set then too).
+// a < b, or unordered.
 bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
@@ -138,10 +138,10 @@ bool Less(float a, float b) {
 float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // t when 0 < t or unordered, else 0.
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
-// A float copied through the FPU (FLD / FSTP) in the original; here the value as it is.
+// A float copied through the FPU in the original; here the value as it is.
 float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
-// The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
+// The client world's time: (float)(int)tick + the tick's fraction, rounded once.
 float AnimationTime() {
     const CWorldClient* world = &g_clientWorld.Get();
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);

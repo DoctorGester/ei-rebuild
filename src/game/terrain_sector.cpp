@@ -80,7 +80,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;
         for (int vi = 0; vi < kVertices; ++vi, ++rec, ++vin, src += 8) {
-            // Branch-free selects on the FCOMP status (C0): the minimum keeps its value when it is
+            // Branch-free selects on the comparison: the minimum keeps its value when it is
             // below z, the maximum when z is below it (and both when z is NaN).
             float z = vin->z;
             if (z <= s.minZ) s.minZ = z;
@@ -273,7 +273,7 @@ void ComputeBounds(SectorData& s) {
 }
 
 double RawHeight(Terrain* terrain, float x, float y, int layer) {
-    return terrain->HeightAt(x, y, layer);   // ST0 used unrounded
+    return terrain->HeightAt(x, y, layer);   // used unrounded
 }
 
 static_assert(sizeof(Vector4) == 16);
@@ -458,7 +458,7 @@ void SectorData::ApplyWaterLevels() {
         for (; k < std::ssize(waterMaterials); ++k) {
             float v = levels[waterMaterials[k]];
             EI_NAN_AUDIT(v);
-            if (v != Zero()) break;     // FCOMP; TEST AH,0x40
+            if (v != Zero()) break;
         }
         if (k == std::ssize(waterMaterials)) return;
         unsigned id = waterMaterials[k];

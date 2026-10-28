@@ -155,7 +155,7 @@ public:
     // Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
 
-    // A square of sectors: each bound is FISTP(coordinate -/+ radius - 0.5) / 32, clamped to the map.
+    // A square of sectors: each bound is (coordinate -/+ radius - 0.5) rounded to nearest / 32, clamped to the map.
     void SetVisibleSectors(float x, float y, float radius);
 
     // The light and relight countdowns, the ambient sounds, the waves, then Animate for each drawn sector of
@@ -212,7 +212,7 @@ public:
     float sunRunX;                  // x / z
     float sunSlopeY;                // z / y
     float sunRunY;                  // y / z
-    int sunStepX;                   // FISTP(95 * x)
+    int sunStepX;                   // 95 * x rounded to nearest
     int sunStepY;
     terrain::SectorData* lightingSector;   // the vertex being lit, for SunReaches
     int lightingX;

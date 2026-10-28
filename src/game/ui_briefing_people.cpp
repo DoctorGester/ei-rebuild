@@ -47,7 +47,7 @@ constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
-// A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
+// A copy of `v`, normalised unless its length is zero.
 Vector3 Normalised(float x, float y, float z) {
     Vector3 out{x, y, z};
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));

@@ -58,7 +58,7 @@ constexpr float kPerchHeight = 30.0f;
 constexpr float kPerchHeightStep = 3.0f;
 constexpr double kRandomAngle = 1.4621764913365538e-09;   // 2 pi / 2^32
 
-// a == b, or unordered (FCOMP's C3 is set then too).
+// a == b, or unordered.
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;

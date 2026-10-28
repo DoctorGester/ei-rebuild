@@ -51,7 +51,6 @@ int EdgeMargin() { return static_cast<const volatile int&>(options::g_options->c
 float PerWidth() { return 0.0025f; }
 float PerHeight() { return 0.0033333334f; }
 
-// FCOMP; TEST AH,0x40.
 bool Differs(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a != b;

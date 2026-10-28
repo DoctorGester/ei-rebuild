@@ -97,7 +97,7 @@ struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
 
     // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
     float Get(std::string_view name);
-    // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
+    // Stores `value` under `name`; a zero value (or NaN: the game's equality
     // test) removes the entry instead. Nothing for an empty name.
     void Set(std::string_view name, float value);
     // Removes the entry stored under `name`.

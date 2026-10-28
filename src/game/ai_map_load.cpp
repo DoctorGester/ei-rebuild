@@ -317,7 +317,7 @@ SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const Squa
     return depths;
 }
 
-// A world height in the map's units (FISTP of the float product).
+// A world height in the map's units (the float product rounded to nearest).
 int HeightUnits(float height, float scale) { return x87::fistp(static_cast<float>(height * scale)); }
 
 // The terrain type of a tile word: the type word of its tile, 0xF outside the textures.

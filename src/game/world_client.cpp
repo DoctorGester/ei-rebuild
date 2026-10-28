@@ -43,7 +43,7 @@
 // ---- Heights -------------------------------------------------------------------------------------
 
 float CWorldClient::ClampedGroundHeight(float x, float y) {
-    // Branch-free (FCOM flags turned into a select mask); NaN picks the first operand of each comparison.
+    // Branch-free (the comparison turned into a select mask); NaN picks the first operand of each comparison.
     float cx = 0.0f >= x ? 0.0f : x;
     float maxX = static_cast<float>(terrain_->width - 1.0f);
     cx = maxX >= cx ? cx : maxX;

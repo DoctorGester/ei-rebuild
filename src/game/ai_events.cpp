@@ -55,7 +55,7 @@ void ConstructEventPool() {
 }
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
-    // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).
+    // Each coordinate is scaled, stored to a float and rounded to nearest.
     const int x = x87::fistp(event->x * kCellScale);
     const int y = x87::fistp(event->y * kCellScale);
     if (x < 0 || y < 0 || x >= width || y >= height) return nullptr;

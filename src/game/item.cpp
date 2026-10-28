@@ -69,10 +69,10 @@ double CItemWeapon::RollDamage() {
     float high = damageSpread_ + damage_;   // stored as float
     float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = g_random.Next();
-    volatile std::int64_t roll64 = roll;               // FILD qword: exact
+    volatile std::int64_t roll64 = roll;               // exact
     // The double 0x3DF0000000100000, about 1 / (2^32 - 1).
     constexpr double kRollScale = 0x1.0000000100000p-32;
-    // ((high - low) * roll) * scale + low, all on the FPU stack; returned unrounded in ST0.
+    // ((high - low) * roll) * scale + low, all unrounded; returned as a double.
     return (static_cast<double>(high) - static_cast<double>(low)) * static_cast<double>(roll64) * kRollScale +
            static_cast<double>(low);
 }
@@ -136,7 +136,7 @@ float WeaponAttack(std::uint32_t packedId) {
 int WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     for (int i = 0; i < 7; ++i) {
-        // FCOMP; TEST AH,0x40; JZ: stop at the first weight not equal to zero.
+        // Stop at the first weight not equal to zero.
         EI_NAN_AUDIT(weapon->damageTypes[i]);
         if (weapon->damageTypes[i] != kZero) return i;
     }

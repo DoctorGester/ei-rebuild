@@ -136,7 +136,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         std::uint32_t zero = 0;
         std::memcpy(&(*node).share, &zero, 4);
         total = static_cast<float>(Weight((*node).controller) + total);
-        float stored = total;   // FSTP into the float total
+        float stored = total;   // stored into the float total
         total = stored;
     }
     float minimum;
@@ -362,7 +362,7 @@ void CWorldServer::UpdateMercBriefings() {
                 set(b.hired, 0.0f);
             } else {
                 double hiredValue = VariableGet(variables, b.hired);
-                float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
+                float hired = static_cast<float>(hiredValue);   // stored as float, compared unrounded
                 float hiredStored = hired;
                 double briefed = VariableGet(variables, b.n8);
                 EI_NAN_AUDIT(hiredValue, briefed);

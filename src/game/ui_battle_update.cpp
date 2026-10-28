@@ -216,7 +216,7 @@ bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
     return true;
 }
 
-// FCOMP; TEST AH,0x40: equal.
+// Equal.
 bool Equal(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
@@ -426,7 +426,7 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable);
-            // FCOMP of the unrounded result with 0; TEST AH,0x40.
+            // The unrounded result compared with 0.
             EI_NAN_AUDIT(current);
             if (current == static_cast<double>(0.0f)) return;
         }

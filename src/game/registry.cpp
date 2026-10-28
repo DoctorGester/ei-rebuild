@@ -16,7 +16,7 @@ namespace {
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
-// _ftol of a float: FLD, then the game's _ftol (truncates).
+// _ftol of a float: the game's _ftol (truncates).
 int FloatToInt(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {

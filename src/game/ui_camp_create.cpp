@@ -59,7 +59,7 @@ const TemplateTable* ClassTemplates() { return &g_partyManager->templates; }
 CParty* LocalParty() { return LocalPlayerData(); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
-// Whether the local player's variable `name` is 1. FCOMP also takes an
+// Whether the local player's variable `name` is 1. The original also takes an
 // unordered result (a NaN variable) as equal.
 bool PlayerSwitch(const char* name) { return LocalPlayerVariable(name) == 1.0f; }
 

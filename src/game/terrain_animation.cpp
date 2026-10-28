@@ -32,7 +32,7 @@ constexpr int kVertices = kRow * kRow;   // per layer
 constexpr std::uint32_t kLit = 4;        // SectorData::built
 
 constexpr float kPi = 3.14159274f;                         // float pi
-// Table entries per radian: 256 / pi (doubles) as the FDIV leaves it at 24-bit precision (not the folded
+// Table entries per radian: 256 / pi (doubles) as the division leaves it at 24-bit precision (not the folded
 // double).
 constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
 constexpr float kQuarterTurn = 0.785398126f;
@@ -42,7 +42,7 @@ constexpr float kRiseScale = 0.25f;
 constexpr float kCircleScale = 3.0f;
 constexpr float kMinComponent = 0.01f;
 
-// The world clock: whole ticks (FILD) and the fraction of the current one.
+// The world clock: whole ticks and the fraction of the current one.
 // The sun's ray step scale (1 * 95, a static initialiser), and the cell size.
 constexpr float kSunStepScale = /*007C8964*/ 95.0f;
 float CellSize() { return 1.0f; }
@@ -53,7 +53,7 @@ inline bool SignClear(float v) {
     return (bits & 0x80000000u) == 0;
 }
 
-// The sine table entry at `phase` radians: FISTP of (phase * 256 / pi) stored as a float, mod 512.
+// The sine table entry at `phase` radians: (phase * 256 / pi) stored as a float and rounded to nearest, mod 512.
 inline float Sine(const Terrain* owner, double phase) {
     return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
 }

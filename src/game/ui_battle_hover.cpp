@@ -144,7 +144,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 name = std::string("z.") + name;
                 double value = LocalPlayerVariable(name);
                 const float one = 1.0f;
-                // FCOMP; TEST AH,0x40; JNZ: equal skips.
+                // equal skips.
                 EI_NAN_AUDIT(value);
                 if (value != one) SetCursor(kCursorExit);
             }

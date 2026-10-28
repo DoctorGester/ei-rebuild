@@ -62,7 +62,7 @@ float ScaleRandom(std::uint32_t value, float range) {
     return static_cast<float>(x87::FromUnsigned(value) * range * std::bit_cast<double>(kRandomScaleBits));
 }
 
-// FISTP((float)(time + add)): the sum is rounded to float before the conversion.
+// (float)(time + add) rounded to nearest: the sum is rounded to float before the conversion.
 int RoundTimeOffset(int time, float extra) {
     return x87::fistp(static_cast<float>(static_cast<double>(time) + extra));
 }
@@ -71,7 +71,7 @@ int RoundTimeOffset(int time, float extra) {
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
-// Copies a float's bits (no FLD/FSTP round trip, so a signalling NaN is kept).
+// Copies a float's bits (no FPU round trip, so a signalling NaN is kept).
 void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
@@ -93,7 +93,7 @@ CMapObjectServer* ServerHalf(CEngineObject* object) {
     return ObjectSlots(object)->ServerCompanion();
 }
 
-// The ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded.
+// The ground (or water surface) height under (x, y) for the unit; the result stays unrounded.
 double UnitGroundHeight(CUnit* unit, float x, float y) { return unit->GroundHeight(x, y); }
 
 // The game server session when one runs and is not shut down.
@@ -613,7 +613,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         }
         break;
     }
-    case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (FILD, FCOMP)
+    case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal
         EI_NAN_AUDIT(floatArgs[0]);
         for (CEngineObject* o = objects.First(g_serverWorld->objectManager_); o; o = objects.Next()) {
             CUnit* unit = UnitOrNull(o);

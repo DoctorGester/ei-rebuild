@@ -314,7 +314,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     }
     double angle = libcrt::CiAcos(D(ahead) / distF);
     if (angle > kHalfPi) angle = D(Pi()) - angle;
-    double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the FDIV at the main thread's 24 bits
+    double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the division at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));
     slot->pan = pan;
     if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;

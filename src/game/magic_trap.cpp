@@ -28,7 +28,7 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
-// distance is outside (FCOMPP; TEST AH,0x41).
+// distance is outside.
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     int count = std::ssize(trap->area);
     const TrapCircle* circle = trap->area.data();

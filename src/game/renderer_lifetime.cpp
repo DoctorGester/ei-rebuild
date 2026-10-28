@@ -75,7 +75,7 @@ CVisualizator::~CVisualizator() { DestroyBase(); }
 void CVisualizator::SetBaseColour(std::uint32_t colour) {
     colour_ = colour;
     ITransformPipeline* transform = pipeline_->transform_;
-    // Each byte (FILD of a 64-bit integer) times the float constant, stored as the float argument.
+    // Each byte (as a 64-bit integer) times the float constant, stored as the float argument.
     const int red = static_cast<int>((colour >> 16) & 0xFF);
     const int green = static_cast<int>((colour >> 8) & 0xFF);
     const int blue = static_cast<int>(colour & 0xFF);
@@ -97,7 +97,7 @@ void CVisualizator::SetSun(CLight* light) {
 
 void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
-    // Each product is stored as a float, then FISTP rounds it to the nearest integer.
+    // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
     const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));

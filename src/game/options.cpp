@@ -43,10 +43,10 @@ int FtolProduct(float value, float factor) {
 }
 // _ftol(value).
 int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
-// float(FILD of `value` as an unsigned 64-bit integer, times factor): the product rounded
-// by the FPU's precision, then once to float by FSTP.
+// `value` as an unsigned 64-bit integer times factor: the product rounded
+// by the FPU's precision, then once to float.
 float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(x87::FromUnsigned(value) * factor); }
-// float(FILD of `value` as an unsigned 64-bit integer).
+// `value` as an unsigned 64-bit integer, as a float.
 float Unsigned(std::uint32_t value) { return static_cast<float>(x87::FromUnsigned(value)); }
 
 enum Kind { kInt, kDword, kFloat };

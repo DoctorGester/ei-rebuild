@@ -86,7 +86,7 @@ void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
 }
 
 void CCloudNoise::SetRamp(int start, int width, float speed) {
-    float base = static_cast<float>(width) * (1.0f / 255.0f);   // FSTP to a float
+    float base = static_cast<float>(width) * (1.0f / 255.0f);
     rampStart_ = start;
     rampWidth_ = width;
     speed_ = speed;

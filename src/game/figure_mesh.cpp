@@ -53,7 +53,7 @@ Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Sca
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
 // lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
 // `keepZ`: the original keeps the z component of the upper blend unrounded on the FPU for the
-// final difference (centre and box minimum; FST then FSUB), while the box maximum goes through
+// final difference (centre and box minimum: stored as a float, then subtracted), while the box maximum goes through
 // the out-of-line Vector3 helpers and rounds it.
 Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
     Vector3 lower = LerpStored(LerpStored(Load(v), Load(v + 3), s), LerpStored(Load(v + 6), Load(v + 9), s), t);
@@ -306,7 +306,7 @@ void SkipRecords34(char** cursor) {
 // The limit on the squared distance of the position from the origin (the float 1e8).
 inline float FarLimit() { return 100000000.0f; }
 
-// Grows [min, max] by one transformed point. The original selects with the FCOMP status bit C0
+// Grows [min, max] by one transformed point. The original selects with the comparison's below-or-unordered bit
 // as a mask on the float bits, so a NaN on either side takes the point.
 void Extend(float& max, float& min, float v) {
     max = max >= v ? max : v;

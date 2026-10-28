@@ -17,7 +17,7 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     double cell = static_cast<double>(worlddata::CellSize()) * worlddata::Half();
     double steps = length / cell;
     float stepsF = static_cast<float>(steps);
-    // FCOMP sets C3 for equal and for unordered: a NaN length also returns 1.0.
+    // A zero or NaN length also returns 1.0.
     if (steps == static_cast<double>(worlddata::Zero()) || steps != steps) return worlddata::One();
     float inverse = static_cast<float>(static_cast<double>(worlddata::One()) / stepsF);
     int count = x87::fistp(stepsF);

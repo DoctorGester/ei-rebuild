@@ -10,7 +10,7 @@ constexpr float kColourScale = 255.0f;
 } // namespace
 
 void CSceneRenderer::SetFogColour(float r, float g, float b) {
-    // Each product is stored as a float, then FISTP rounds it to the nearest integer.
+    // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
     const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));

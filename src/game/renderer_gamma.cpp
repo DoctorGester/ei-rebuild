@@ -20,7 +20,7 @@ const float kLevelStep = std::bit_cast<float>(0x3B808081u);   // 1/255
 constexpr float kRampScale = 65280.0f;
 constexpr int kLevels = 256;
 
-// A branchless minimum / maximum (FCOMP; FNSTSW; the C0 bit as a mask): `limit` when it is below / above `v`.
+// A branchless minimum / maximum (the comparison's bit as a mask): `limit` when it is below / above `v`.
 float AtMost(float v, float limit) {
     EI_NAN_AUDIT(v);
     return limit < v ? limit : v;

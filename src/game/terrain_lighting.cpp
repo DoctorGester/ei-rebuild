@@ -29,7 +29,7 @@ constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initiali
 // direction +0xD4) or AddPoint (a point light at `distance` along the unit `direction`). Both clamp each
 // channel to 1 and copy the alpha through.
 
-// Select idiom (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or unordered", picks b).
+// Select idiom: `b` when a < b or unordered.
 float Max(float a, float b) { return a >= b ? a : b; }
 float AtMostOne(float v) { return v <= 1.0f ? v : 1.0f; }
 float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
@@ -40,7 +40,7 @@ bool SignClear(float v) {
     return (bits & 0x80000000u) == 0;
 }
 
-// Channel bytes: the value times 255 stored as a float, then FISTP (here: chop).
+// Channel bytes: the value times 255 stored as a float, then rounded (here: chopped).
 std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v * 255.0f))); }
 
 // Whether the sun's ray march (Terrain::SunReaches) from vertex (column, row) of `sector` can change
@@ -156,7 +156,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         }
         ref = next;
     }
-    // FISTP results are or-ed whole (a negative channel would set the bytes above it).
+    // The rounded results are or-ed whole (a negative channel would set the bytes above it).
     std::uint32_t r = Channel(AtMostOne(Max(colour.x, specular.x)));
     std::uint32_t g = Channel(AtMostOne(Max(colour.y, specular.y)));
     std::uint32_t b = Channel(AtMostOne(Max(colour.z, specular.z)));
@@ -222,7 +222,7 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
 
 void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
-    // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's FISTP truncates), the word restored at
+    // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's rounding truncates), the word restored at
     // the end; loaded only when it changes.
     const std::uint32_t control = x87::ControlWord();
     const std::uint32_t chop = (control & ~x87::kRoundingBits) | x87::kRoundChop;

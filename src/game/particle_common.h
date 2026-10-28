@@ -21,7 +21,7 @@ namespace particle {
 
 inline double D(float f) { return f; }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 inline double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
@@ -40,13 +40,13 @@ inline std::uint32_t Bits(const void* field) {
 
 inline std::uint32_t Next() { return g_random.Next(); }
 
-// IsaacRandom::Range: leaves the result unrounded in ST0.
+// IsaacRandom::Range: leaves the result unrounded.
 inline double Range(float min, float max) { return g_random.Range(min, max); }
 
-// CWorldClient::RawSurfaceHeightAt(x, y) on the client world (ST0).
+// CWorldClient::RawSurfaceHeightAt(x, y) on the client world (unrounded).
 inline double GroundHeight(float x, float y) { return g_clientWorld->RawSurfaceHeightAt(x, y); }
 
-// x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
+// Branch-free selects in the original: `a` when a < b or unordered.
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
 // The game's debug message (one argument; compiled out, other mods may hook it).

@@ -202,7 +202,7 @@ void CHeroStatsPanel::DrawStats() {
         for (int i = 0; i < 3; ++i) {
             double value = static_cast<double>(values[i]);
             storedStats[i] = static_cast<float>(value);
-            std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
+            std::uint32_t colour = value > minimum ? kBright : kGrey;
             draw->DrawLine("-", &rect, 0, colour, 1, 1);
             Down(&rect);
         }

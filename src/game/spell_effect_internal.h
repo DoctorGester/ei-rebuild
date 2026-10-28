@@ -64,7 +64,7 @@ extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
 // The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
 // original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The
 // two clamps select the float bits on C0 (1 < r or unordered; r < 8 or unordered), the first one
-// stored and reloaded (FLD / FSTP; the reload is a plain copy here).
+// stored and reloaded (the reload is a plain copy here).
 inline double ClampPow(float ratio) {
     std::uint32_t bits;
     std::memcpy(&bits, &ratio, sizeof(bits));
@@ -95,7 +95,7 @@ inline void DivideMultiply(const float* a, const float* b, const float* c, float
     *out = static_cast<float>(static_cast<double>(*a) / *b * *c);
 }
 
-// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50) with FILD / FIDIV,
+// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50),
 // unrounded until the game's _ftol truncates it.
 inline int FrightLevel(const int* timer, const int* duration) {
     return static_cast<int>(libcrt::Ftol(static_cast<double>(*timer) / *duration * 250.0f + 50.0f));
@@ -124,7 +124,7 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
     return static_cast<int>(libcrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
-// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height left unrounded in ST0.
+// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height left unrounded.
 inline double WorldHeight(CWorld* world, double (CWorld::*height)(float, float), float x, float y) {
     return (world->*height)(x, y);
 }
@@ -134,7 +134,7 @@ inline void HeightPlus(CWorld* world, double (CWorld::*height)(float, float), fl
     *out = static_cast<float>(WorldHeight(world, height, x, y) + *add);
 }
 
-// The same with height - *sub (FSUB).
+// The same with height - *sub.
 inline void HeightMinus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* sub, float* out) {
     *out = static_cast<float>(WorldHeight(world, height, x, y) - *sub);
 }
@@ -160,7 +160,7 @@ inline void ScaleToSpeed(Vector3* v, const float* speed) {
     v->z = static_cast<float>(k * v->z);
 }
 
-// FISTP((float)((distance / speed) * 15)): the missile's flight time in ticks.
+// (float)((distance / speed) * 15) rounded to nearest: the missile's flight time in ticks.
 inline int FlightTicks(const float* distance, const float* speed) {
     return x87::fistp(static_cast<float>(static_cast<double>(*distance) / *speed * 15.0f));
 }

@@ -43,7 +43,7 @@ float StatFraction(CUnit* unit, int k) {
     return static_cast<float>(static_cast<double>(part.current) / part.maximum);
 }
 
-// fabs(v) > epsilon (FCOMP + TEST AH,0x41).
+// fabs(v) > epsilon (false for a NaN).
 bool Exceeds(float v) {
     float a = v < 0 ? -v : v;
     return a > kStatEpsilon;
@@ -235,7 +235,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         }
         float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
-        // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
+        // A drop (before > now, ordered), or flag 0x10 otherwise.
         bool dropped = hpBefore > hpNow;
         if ((dropped || (unit->params.flags & 0x10)) && first != 0) {
             std::uint8_t flags = unit->params.flags;

@@ -52,7 +52,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(stats.AttributeWithItems(kStatTaming, unit));
     int level = TamingStage();
     float limit = static_cast<float>(level * 10) + bonus;
-    if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
+    if (unit->player || limit >= roll) {   // not taken (the taming succeeds) when the limit is below the roll or NaN
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
         ServerWorld()->diplomacy_.OnAttack(tamer, unit, 10);

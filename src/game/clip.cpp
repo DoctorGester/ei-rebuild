@@ -14,7 +14,7 @@ namespace {
 
 const float kOne = 1.0f;
 
-// The intersection parameter t = (limit - a) / (b - a): the value is stored to `store` as a float (FST) while
+// The intersection parameter t = (limit - a) / (b - a): the value is stored to `store` as a float while
 // the unrounded quotient is compared with 1. Returns non-zero when t > 1 (above, not equal or unordered).
 int StoreRatio(float limit, float a, float b, float* store) {
     const double t = (static_cast<double>(limit) - a) / (static_cast<double>(b) - a);

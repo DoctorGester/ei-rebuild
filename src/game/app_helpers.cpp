@@ -43,7 +43,7 @@ double DiskFreeSpace(const char* path) {
     if (getEx) {
         ULARGE_INTEGER freeForCaller, total, totalFree;
         if (!getEx(path, &freeForCaller, &total, &totalFree)) return 0.0;
-        return static_cast<double>(static_cast<std::int64_t>(freeForCaller.QuadPart));   // FILD qword: signed
+        return static_cast<double>(static_cast<std::int64_t>(freeForCaller.QuadPart));
     }
     DWORD sectorsPerCluster, bytesPerSector, freeClusters, totalClusters;
     if (!gameapi::GetDiskFreeSpaceA(path, &sectorsPerCluster, &bytesPerSector, &freeClusters, &totalClusters)) return 0.0;

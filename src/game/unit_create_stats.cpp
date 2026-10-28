@@ -57,7 +57,7 @@ void CopyDword(To& to, const From& from) {
     std::memcpy(&to, &from, 4);
 }
 
-// FLD [src]; FST [a]; FSTP [b]: a float copied through the FPU to two places.
+// A float copied through the FPU to two places.
 void FpuCopy2(float* a, float* b, const float* src) {
     std::memcpy(a, src, sizeof(float));
     std::memcpy(b, src, sizeof(float));
