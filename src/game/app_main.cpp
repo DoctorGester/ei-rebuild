@@ -1,6 +1,5 @@
 // WinMain: the application's start-up, its main loop and its shutdown. See docs/notes/app.md, "WinMain".
 #include "bink_video.h"
-#include "device.h"   // the old device's calls
 #include "engine_object.h"
 #include "app.h"
 #include "acks_db.h"
@@ -48,7 +47,6 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <ddraw.h>
 
 #include <bit>
 #include <cstdio>
@@ -81,7 +79,7 @@ void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 
 // Constants of the exe, read when they are used (a literal could be folded at another precision).
 // A step of a float expression kept apart from the next: the value passes through a double, which
-// holds any result at the precisions the game runs at (53 bits before Direct3D starts, 24 after).
+// holds any result at the precisions the game runs at (53 bits before the device object is made, 24 after).
 double Step(double value) {
     volatile double kept = value;
     return kept;
@@ -106,13 +104,6 @@ DWORD g_lastTime = /*0079B9F8*/ {};
 std::uint32_t g_serverBacklog = /*0079BC64*/ {};
 std::uint32_t g_clientBacklog = /*0079BC68*/ {};
 float g_clientSpeed = /*00784758*/ 1.0f;
-
-// What the video memory allows (bytes read elsewhere): little texture memory, little memory besides
-// the textures, little non-local memory; and whether a device was named on the command line.
-std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
-constexpr DWORD kLittleMemory = 0x800000;
-
-
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -313,32 +304,16 @@ void CreateFolders(std::string& path) {
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 
-// The renderer created on the window, then what the video memory allows. Returns the free
-// non-local video memory.
-DWORD CreateRenderer() {
+// The renderer created on the window, its gamma set from the options.
+void CreateRenderer() {
     GameOptions* options = &options::g_options.Get();
     CCamera* camera = &g_camera.Get();
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
     g_sceneRenderer->CreateRenderer(g_mainWindow, options);
-
-    DDSCAPS2 caps = {};
-    DWORD total = 0, free = 0;
-    caps.dwCaps = DDSCAPS_VIDEOMEMORY;
-    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
-    DWORD other = free;
-    caps.dwCaps = DDSCAPS_TEXTURE;
-    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
-    g_littleTextureMemory = free <= kLittleMemory;
-    if (free < other) other -= free;
-    g_littleOtherMemory = other <= kLittleMemory;
-    caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
-    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
-    g_littleNonLocalMemory = free <= kLittleMemory;
     g_deviceNamed = options->driverIndex_ != 0;
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
-    return free;
 }
 
 // The sound opened (44.1 kHz, 16 bits) with its music folder, wave archives and volumes. Returns
@@ -437,12 +412,6 @@ std::uint32_t ClientClockMs() {
 void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
-        if (g_sceneRenderer->flags_ & 2) {
-            CTextureDevice* device = g_sceneRenderer->device_;
-            gameapi::EnterCriticalSection(&g_deviceLock);
-            device->lastLoadResult_ = device::RestoreAllSurfaces(device->ddraw_);
-            gameapi::LeaveCriticalSection(&g_deviceLock);
-        }
         g_sceneRenderer->flags_ |= 1;
         gameapi::SetCursor(nullptr);
     } else {
@@ -663,8 +632,6 @@ std::uint8_t g_interfaceHasScreen = /*00784750*/ 1;
 std::uint8_t g_quitAllowed = /*00784751*/ 1;
 std::uint8_t g_recordingFrames = /*0079BC54*/ {};
 int g_showClientSpeed = /*0079BC60*/ {};
-std::uint8_t g_littleOtherMemory = /*00784753*/ 1;
-std::uint8_t g_littleTextureMemory = /*00784754*/ 1;
 std::uint8_t g_deviceNamed = /*00784756*/ 1;
 const char* g_loadingMovieName = /*00791EE0*/ "progres.bik";
 
@@ -714,12 +681,13 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
 
     // "The interface takes the input" is carried in one byte and set after every pass. Before
     // the first pass it holds the top byte of stack memory that start-up used last for the disc
-    // folder's text (with sound) or for the free non-local video memory (without): a message that
-    // waits before the first pass goes to the interface when that byte is not zero.
-    std::uintptr_t reusedSlot = CreateRenderer();
-    if (options->audio_) reusedSlot = OpenSound();
+    // folder's text (with sound) or for the free non-local video memory (without; dgVoodoo's 256 MB,
+    // whose top byte is not zero): a message that waits before the first pass goes to the interface
+    // when that byte is not zero.
+    CreateRenderer();
+    const bool interfaceTakesInput = options->audio_ ? (OpenSound() >> 24) != 0 : true;
 
-    PlayMovies("Start", true, true, 1, 1);
+    PlayMovies("Start", 1, 1);
     g_loadingMovieName = "Progres.bik";
     ShowLoadingMovie(0);
     CloseLoadingMovie();
@@ -735,7 +703,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     StartFirstMap();
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
-    const int result = RunMainLoop((reusedSlot >> 24) != 0);
+    const int result = RunMainLoop(interfaceTakesInput);
     ShutDown();
     return result;
 }

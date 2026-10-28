@@ -42,8 +42,6 @@ extern std::uint8_t g_interfaceHasScreen;
 extern std::uint8_t g_quitAllowed;
 extern std::uint8_t g_recordingFrames;
 extern int g_showClientSpeed;
-extern std::uint8_t g_littleOtherMemory;
-extern std::uint8_t g_littleTextureMemory;
 extern std::uint8_t g_deviceNamed;
 extern const char* g_loadingMovieName;
 
@@ -58,11 +56,10 @@ void PumpMessages();
 int StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void FrameStep(bool draw, bool cursor);
-// Plays the movies listed under `section`, clearing the screen before and, with `clearAfter`, after each.
-void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, int a, int b);
-// The game's message box over the main window, under the window's title: in full screen (the device object's
-// flag 1) DirectDraw first flips to the GDI surface (a failure is reported through FatalErrorCode: "Can't
-// flip to GDI surface."); the cursor that was set is put back afterwards. Returns MessageBoxA's answer.
+// Plays the movies listed under `section` of config\movie.ini.
+void PlayMovies(const std::string& section, int a, int b);
+// The game's message box over the main window, under the window's title; the cursor that was set is put back
+// afterwards. Returns MessageBoxA's answer.
 int ShowMessageBox(const char* text, int flags);
 // The box of the game's library code (AfxMessageBox): no owner, the module's file name as its title, OK with an
 // exclamation icon. Returns MessageBoxA's answer.

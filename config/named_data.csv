@@ -37,7 +37,6 @@ address,size,name,file
 00744E80,16,kGuidXAxis,src/game/input_mouse.cpp
 00744EA0,16,kIidDirectInputDevice7,src/game/input_mouse.cpp
 00744F10,16,kIidDirectInput7,src/game/input_mouse.cpp
-00745A50,16,kIidHalDevice,src/game/device.h
 00745C50,16,kIidDirectDrawSurface4,src/game/app_dxversion.cpp
 00745C60,16,kIidDirectDrawSurface3,src/game/app_dxversion.cpp
 00745C90,16,kIidDirectDraw7,src/game/app_dxversion.cpp
@@ -48,9 +47,6 @@ address,size,name,file
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
-00784753,1,g_littleOtherMemory,src/game/app_main.cpp
-00784754,1,g_littleTextureMemory,src/game/app_main.cpp
-00784755,1,g_littleNonLocalMemory,src/game/app_main.cpp
 00784756,1,g_deviceNamed,src/game/app_main.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
@@ -212,8 +208,6 @@ address,size,name,file
 007AA608,20,g_scriptQuestObjectives,src/game/script_exec_helpers.cpp
 007AA61C,4,g_scriptQuestName,src/game/script_exec_helpers.cpp
 007AA620,4,g_streamedScript,src/game/script.h
-007AA890,16,kSkyDrawA,src/game/sky_object.cpp
-007AA8A0,12,kSkyDrawB,src/game/sky_object.cpp
 007AB8D8,20,g_unreadSet,src/game/buffered_file.cpp
 007AB8F0,4,g_twoPi,src/game/sys_info.cpp
 007AB8F8,264,g_sysInfo,src/game/sys_info.cpp
@@ -242,7 +236,6 @@ address,size,name,file
 007AEE20,16,g_cornerOutcodes,src/game/device_buffers.cpp
 007AEE30,16,g_outcodes,src/game/device_buffers.cpp
 007AEE78,24,g_deviceLock,src/game/renderer_lifetime.cpp
-007AEE94,4,g_holderCount,src/game/device.h
 007AEED0,16,g_movedPackets,src/game/link_mesh_draw.cpp
 007AEF60,20,g_indices,src/game/renderer_sprites.cpp
 007AEF78,20,g_outcodes,src/game/renderer_sprites.cpp

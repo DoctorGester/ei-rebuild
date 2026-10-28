@@ -33,7 +33,6 @@
 #include "lib/str.h"
 
 #include <cmath>
-#include <d3d.h>
 
 #include <initializer_list>
 

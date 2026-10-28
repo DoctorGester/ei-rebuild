@@ -22,7 +22,6 @@
 namespace {
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
 
 const char* NumberFormat() { return "%d"; }
 const char* CostFormat() { return "%s %d (%d)"; }
@@ -30,22 +29,6 @@ const char* CostFormat() { return "%s %d (%d)"; }
 // The item screen's draw (ui_item_view.cpp): the owner screen draws
 // an item's model in a cell.
 void DrawItem(CItemScreen* owner, CSceneRenderer* pass, ItemCell* cell) { owner->DrawItem(pass, cell); }
-
-
-// The depth buffer cleared over `rect` (null: all of it) to
-// `z` under the device lock; the new renderer gets the clear too.
-void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
-    std::uint32_t flags = kClearZBuffer;
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    renderer->lastLoadResult_ = uidevice::Clear(renderer, rect ? 1 : 0, rect, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    if (!rect) {
-        render::ClearDepth(z, nullptr, 0);
-        return;
-    }
-    render::Rect r{rect->left, rect->top, rect->right, rect->bottom};
-    render::ClearDepth(z, &r, 1);
-}
 
 int Channel(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 
@@ -85,10 +68,10 @@ void DrawInSlot(CConstructorPage* page, CSceneRenderer* pass, ItemCell* cell, RE
     CInterface3D* ui = page->interface_;
     ui->ScaleRectToScreenEntry(&slot);
     RECT inside = slot;
-    ClearDepth(ui->renderer_, nullptr, 0.0f);
-    ClearDepth(ui->renderer_, &inside, 1.0f);
+    ClearUiDepth(0.0f);
+    ClearUiDepth(1.0f, &inside, 1);
     DrawItem(page->owner_, pass, cell);
-    ClearDepth(page->interface_->renderer_, nullptr, 1.0f);
+    ClearUiDepth(1.0f);
 }
 
 // A part's prototype by its record type (weapons, armour, quick items), or null.
@@ -131,9 +114,9 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
-    ClearDepth(ui->renderer_, &screen, 0.0f);
+    ClearUiDepth(0.0f, &screen, 1);
     RECT inside = grid;
-    ClearDepth(ui->renderer_, &inside, 1.0f);
+    ClearUiDepth(1.0f, &inside, 1);
 
     std::string text;
     auto* surface = surfaces_[0];
@@ -164,7 +147,7 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     DrawBase(pass);
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
-    ClearDepth(ui->renderer_, &whole, 1.0f);
+    ClearUiDepth(1.0f, &whole, 1);
     return 1;
 }
 

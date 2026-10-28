@@ -6,7 +6,6 @@
 #include "bink_video.h"
 #include "game_strings.h"
 #include "mod_folders.h"
-#include "device.h"
 #include "net_session.h"
 #include "sound.h"
 #include "texture.h"
@@ -99,7 +98,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
     }
     Surface* surfaceHolder = this->holder;
     Surface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
-    if (!device::SameSurface(target, surfaceHolder)) render::MovieBlit(this, ToRender(to));
+    if (target != surfaceHolder) render::MovieBlit(this, ToRender(to));
     const BinkHeader* header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
@@ -181,7 +180,7 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
         CopyFrame(bink, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
         Surface* primary = holder->device->primary_;
-        if (!device::SameSurface(primary, holder)) {
+        if (primary != holder) {
             if (clearScreen) render::Fill(ToRender(screen), 0);
             render::MovieBlit(&g_movieKey, ToRender(to));
             PresentMovieFrame();
@@ -249,7 +248,7 @@ void ShowLoadingMovie(int progress) {
     Surface* holder = g_loadingHolder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
     Surface* primary = holder->device->primary_;
-    if (!device::SameSurface(primary, holder)) {
+    if (primary != holder) {
         const void* key = &g_loadingScreen;   // the loading movie in the new renderer
         if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);
         render::MovieBlit(key, ToRender(g_loadingScreen));

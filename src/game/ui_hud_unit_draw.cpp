@@ -1,7 +1,6 @@
 // The battle HUD's unit panel: its draw (CHudUnitPanel). Rebirth patches it for its WideScreen layout, reproduced behind
 // the flag (ui_widescreen.h). It drives the Direct3D device itself; those calls are made as they are and mirrored to the
 // new renderer as the hero preview's are (ui_hero_preview.cpp). See docs/notes/ui.md, "Battle HUD unit panel draw".
-#include "device.h"
 #include "ui.h"
 
 #include "map_object.h"
@@ -20,7 +19,6 @@
 #include "world.h"
 
 #include <bit>
-#include <d3d.h>
 
 #include <cstdint>
 #include <cstring>
@@ -46,10 +44,8 @@ constexpr int kInfoPage = 2;          // bodyPart_: the page of texts, without t
 constexpr std::uint32_t kPartHighlight = 0x100;    // a part's flags_: drawn with its highlight colours
 constexpr std::uint32_t kPreviewDraw = 0x800;      // the unit's flags_ while the interface draws it
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-constexpr DWORD kClearedRects = 3;
 
 CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
-IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
 // The quaternion product a * b, inlined twice in the original: w = a.w b.w - a.b (the dot's sum
 // (y + x) + z), the vector part (a x b + b.w a) + a.w b; the first product adds z's last two terms the
@@ -64,21 +60,6 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
     out.y = static_cast<float>((cross.y + b.w * a.y) + a.w * b.y);
     out.z = second ? static_cast<float>((cross.z + b.w * a.z) + a.w * b.z) : static_cast<float>((cross.z + a.w * b.z) + b.w * a.z);
     return out;
-}
-
-// The renderer's batches flushed, then the depth buffer (and the stencil when the device has one)
-// of the three screen rectangles set to `z` under the device lock.
-void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
-    DWORD flags = D3DCLEAR_ZBUFFER;
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    D3DRECT cleared[kClearedRects];
-    for (DWORD i = 0; i < kClearedRects; ++i) cleared[i] = {rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
-    renderer->lastLoadResult_ = device::Clear(D3DDevice(renderer), kClearedRects, cleared, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    render::Rect mirrored[kClearedRects];
-    for (DWORD i = 0; i < kClearedRects; ++i)
-        mirrored[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
-    render::ClearDepth(z, mirrored, static_cast<int>(kClearedRects));
 }
 
 } // namespace
@@ -126,8 +107,8 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             interface_->CallScaleRectToScreenNoMargin(&right);
             interface_->CallScaleRectToScreenNoMargin(&strip);
             interface_->CallScaleRectToScreenNoMargin(&below);
-            RECT rects[kClearedRects] = {right, below, strip};
-            ClearDepthRects(interface_->renderer_, rects, 0.0f);
+            RECT rects[3] = {right, below, strip};
+            ClearUiDepth(0.0f, rects, 3);
 
             savedPosition = model->localPosition_;
             savedOrientation = model->localRotation_;
@@ -167,7 +148,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
 
             unit->flags_ &= ~kPreviewDraw;
             model->ClearPartFlags(kPartHighlight);
-            ClearDepthRects(interface_->renderer_, rects, 1.0f);
+            ClearUiDepth(1.0f, rects, 3);
         }
 
         RECT nameRect = {5, 5, 155, 20};

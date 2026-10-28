@@ -39,9 +39,6 @@ constexpr int kSkyTextureKind = 0x3D;
 const char* const kSkyTextureName = "sky00";
 constexpr float kSkyDrop = 16.0f;                // the dome sits this far below the eye
 constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // radians per world tick
-// Two 16-byte statics the draw passes to the renderer's draw (not read there).
-constexpr Quaternion kSkyDrawA = /*007AA890*/ {1.0f, 0.0f, 0.0f, 0.0f};   // static initialisers: the identity
-constexpr Vector3 kSkyDrawB = /*007AA8A0*/ {};               // and the origin
 
 } // namespace
 
@@ -128,7 +125,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     pipeline->PushMatrix(m, 1);
     TextureHolderEnsureLoaded(&texture);
     renderer->SetTexture(0, texture);
-    renderer->DrawFigure(object, &kSkyDrawA, &kSkyDrawB, 0, 0xFF, nullptr);
+    renderer->DrawFigure(object, nullptr, 0xFF, nullptr);
     const int stacks[2] = {CTransformPipeline::kClipStack, 1};
     for (int stack : stacks) {
         int& count = pipeline->stacks_[stack].count;

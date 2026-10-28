@@ -1,6 +1,5 @@
 // Application helpers around WinMain: window procedure, input dispatcher,
 // message pump and the start of the first map. See app.h.
-#include "device.h"
 #include "app.h"
 #include "console.h"
 #include "player_client.h"
@@ -30,7 +29,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <ddraw.h>
 
 
 namespace app {
@@ -52,8 +50,6 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         g_activationChanged = 1;
         g_cursor->ShowImage(0);
-        CTextureDevice* device = g_sceneRenderer->device_;
-        if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
         if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
         gameapi::ShowWindow(g_mainWindow, SW_MINIMIZE);
@@ -65,7 +61,7 @@ LRESULT OnActivate(WPARAM wParam) {
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
     if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(1);
     CTextureDevice* device = g_sceneRenderer->device_;
-    if (device && (device->flags_ & 1)) {
+    if (device && device->fullScreen_) {
         g_sceneRenderer->RestoreSurfaces();
         device = g_sceneRenderer->device_;
         if (device) {
@@ -135,8 +131,6 @@ int TypedCharacter(WPARAM unit) {
 
 
 void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
-
-const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 int g_fatalErrorCount = /*007A9B9C*/ {};
@@ -283,12 +277,6 @@ int StartFirstMap() {
 
 int ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
-    CTextureDevice* device = g_sceneRenderer->device_;
-    if (device && (device->flags_ & 1)) {
-        long result = device::FlipToGDISurface(device->ddraw_);
-        device->lastLoadResult_ = result;
-        if (result != 0) FatalErrorCode(result, FlipFailedText());
-    }
     // The image's MessageBoxA takes UTF-8.
     int answer = gameapi::MessageBoxA(g_mainWindow, text, g_windowTitle, static_cast<UINT>(flags));
     gameapi::SetCursor(cursor);

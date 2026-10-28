@@ -3,7 +3,6 @@
 // transform pipeline's constructor and destructor with its matrix stacks'. See docs/notes/renderer.md (sections 5
 // and 12).
 #include "app.h"
-#include "device.h"   // the old device's calls
 #include "render/render_state.h"
 #include "dx_errors.h"
 #include "model.h"
@@ -13,8 +12,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include <d3d.h>
-
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -23,12 +20,6 @@
 namespace {
 
 using State = CRenderPreset::State;
-
-static_assert(sizeof(D3DDEVICEDESC7) == sizeof(CRenderHelper::caps_));
-const D3DDEVICEDESC7& Caps(const CRenderHelper* self) { return *reinterpret_cast<const D3DDEVICEDESC7*>(self->caps_); }
-
-// The fatal error's text in the game's data.
-const char* CantGetCapsText() { return "Can't get device caps\n"; }
 
 // A texture stage: the colour is `operation` of `argument` and the stage before, the alpha is switched off.
 // The new elements are filled from an uninitialised local with only the two flags cleared and then writes the
@@ -111,43 +102,19 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 
 // ---- The helper -------------------------------------------------------------------------------------
 
-// The first pass takes the texture stages of the first `stages` states (as many as the device has, or one); each
-// state from there on is a pass of its own. The check of a stage's operations ands the operation's number with the
-// device's capability bits; a stage that fails it ends the first pass's stages there.
+// The first pass takes the texture stages of all the states (of one with `singleStage`); each state from there on
+// is a pass of its own. (The game took as many stages as the Direct3D device had and checked their operations
+// against its capabilities; the presets have at most three states, and the device the game ran on (dgVoodoo's) had
+// eight stages and every operation.)
 void CRenderHelper::Record(const std::vector<State>& states, unsigned index, bool singleStage) {
     const int count = static_cast<int>(states.size());
-    int stages;
-    if (singleStage) {
-        stages = count > 1 ? 1 : count;
-    } else {
-        const int deviceStages = Caps(this).wMaxSimultaneousTextures;
-        stages = deviceStages < count ? deviceStages : count;
-    }
-    const std::uint32_t operations = Caps(this).dwTextureOpCaps;
-    for (int i = 0; i < stages; ++i) {
-        const State& state = states[i];
-        if (!state.enabled) continue;
-        if ((static_cast<std::uint32_t>(state.combiner.colourOp) & operations) == 0 ||
-            (static_cast<std::uint32_t>(state.combiner.alphaOp) & operations) == 0) {
-            stages = i;
-            break;
-        }
-    }
+    const int stages = singleStage && count > 1 ? 1 : count;
     auto* preset = new CRenderPreset(states, stages);
     ++preset->refs_;
     presets_[index] = preset;
 }
 
-CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : device_(device) {
-    if (device) device::AddRef(device);
-
-    std::memset(caps_, 0, sizeof(caps_));
-    const HRESULT result = device::GetCaps(device_, reinterpret_cast<D3DDEVICEDESC7*>(caps_));
-    if (result < 0) {
-        app::FatalErrorCode(result, CantGetCapsText());
-        std::memset(caps_, 0, sizeof(caps_));
-    }
-
+CRenderHelper::CRenderHelper(std::uint32_t flag) {
     for (unsigned index = 0; index < kPresetCount; ++index)
         Record(BuiltInStates(index), index, static_cast<std::uint8_t>(flag) != 0);
 }
@@ -157,7 +124,6 @@ CRenderHelper::~CRenderHelper() {
         if (preset && --preset->refs_ == 0) delete preset;
         preset = nullptr;
     }
-    if (device_) device::Release(device_);
 }
 
 // ---- The preset -------------------------------------------------------------------------------------

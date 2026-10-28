@@ -25,17 +25,6 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 
 
-// IDirect3DDevice7::Clear of the depth buffer over
-// `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
-void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
-    unsigned long flags = 2ul;   // D3DCLEAR_ZBUFFER
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    renderer->lastLoadResult_ = uidevice::Clear(renderer, 1ul, rect, flags, 0ul, z, 0ul);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
-    render::ClearDepth(z, &nr, 1);
-}
-
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
 void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, std::vector<CItem*>* list, CUiSurface* surface, std::string& text, float yOffset,
@@ -71,9 +60,9 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     RECT grid{200, 100, 600, 500};
     ui->ScaleRectToScreenEntry(&grid);
     RECT screen{0, 0, ui->width_, ui->height_};
-    ClearDepth(ui->renderer_, &screen, 0.0f);
+    ClearUiDepth(0.0f, &screen, 1);
     RECT inside = grid;
-    ClearDepth(ui->renderer_, &inside, 1.0f);
+    ClearUiDepth(1.0f, &inside, 1);
     DrawBase(pass);
 
     std::string text;
@@ -87,6 +76,6 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     surface->ReleaseDC();
     ui = interface_;
     RECT whole{0, 0, ui->width_, ui->height_};
-    ClearDepth(ui->renderer_, &whole, 1.0f);
+    ClearUiDepth(1.0f, &whole, 1);
     return 1;
 }

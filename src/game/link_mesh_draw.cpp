@@ -16,7 +16,6 @@
 
 #include <bit>
 #include <cstdlib>
-#include <d3d.h>
 
 #include <cstdint>
 #include <cstring>

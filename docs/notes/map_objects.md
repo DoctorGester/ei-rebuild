@@ -120,7 +120,7 @@ here is gone. Facts a worker needs:
   "FPS" / "num verts" / "num trias"), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
   SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
   lifetime and small slots (renderer_lifetime.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,
-  SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame, 9 ZEnable, 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
+  SetBaseColour; slots 3 DestroyRenderer, 8 ClearFrame and 9 ZEnable (gone in ours, R27c: nothing to clear or ask), 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13
   DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces). AlignedArray copies registered on the template: TLVertex SetSize /
   SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep.
 

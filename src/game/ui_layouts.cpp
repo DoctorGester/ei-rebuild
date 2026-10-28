@@ -488,7 +488,7 @@ void CCreditsScreen::CreateScreen() {
         g_clientWorld->music_->Stop();
     }
     g_cursor->ShowImage(0);
-    app::PlayMovies((name + "fin"), true, false, 0, 0);
+    app::PlayMovies((name + "fin"), 0, 0);
     nextLineAt_ = 0.0f;
     // (Like the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)

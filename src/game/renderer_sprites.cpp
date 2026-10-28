@@ -1,7 +1,6 @@
 // The renderer's sprite draw with its helpers (indexed draw, a radix sort pass, a merge sort pass).
 // More: docs/notes/comments-c22i.md, "renderer_sprites.cpp".
 #include "clip.h"
-#include "device.h"
 #include "model.h"
 #include "texture.h"
 
@@ -111,11 +110,6 @@ void EnsureSortStatics() {
 
 TLVertex* CornerData() { return g_corners.data(); }
 std::uint16_t* IndexData() { return g_indices->data(); }
-// --- Device calls --------------------------------------------------------------------------------
-
-constexpr int kTriangleList = D3DPT_TRIANGLELIST;
-constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
-
 // --- The steps -----------------------------------------------------------------------------------
 
 // A float copied through the FPU: exact, except that a signalling NaN comes out quiet.
@@ -220,14 +214,9 @@ int SortBackToFront() {
     return std::ssize(g_corners) / 4;
 }
 
-// The batch's triangle list through the device holder (the renderer's device_); with distanceFog_
-// set the vertices are fogged by the transform object first. False when the draw fails.
+// The batch's triangle list through the device object (fogged by distance when it says so). True.
 bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
-    CTextureDevice* holder = renderer->device_;
-    TLVertex* vertices = CornerData();
-    std::uint16_t* indices = IndexData();
-    if (holder->distanceFog_) holder->pipeline_->transform_->FogVertices(vertices, vertexCount);
-    return holder->DrawIndexedDirect(kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount) != 0;
+    return renderer->device_->DrawTlTriangles(CornerData(), vertexCount, IndexData(), indexCount) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
@@ -341,17 +330,6 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
             }
         }
     }
-}
-
-// DrawIndexedPrimitive's arguments to the new renderer (src/render); counts vertices, triangles
-// (indices / 3) and calls. Returns 1.
-int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount,
-                           std::uint16_t* indices, int indexCount) {
-    render::TlDraw(this, vertices, fvf, vertexCount, indices, indexCount, primitive);
-    vertexCount_ += vertexCount;
-    primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
-    drawCount_ += 1;
-    return 1;
 }
 
 // With `additive` the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and restored).

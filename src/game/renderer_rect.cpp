@@ -2,7 +2,6 @@
 // pre-transformed triangles over the current blend state, and with `outline` a white one-pixel frame drawn as
 // a line strip around it (the fill then stays a pixel inside). Used for the rubber-band selection and the
 // interface's fades. The new renderer (src/render) takes both draws. See docs/notes/renderer.md.
-#include "device.h"
 #include "model.h"
 #include "texture.h"
 #include "render/render.h"
@@ -47,7 +46,6 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
 
     if (device->stageSurfaces_[0]) {   // no texture on stage 0
         device->stageSurfaces_[0] = nullptr;
-        device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
         ++device->textureChanges_;
     }
     render::ScreenDraw(device, v, 4, indices, 6);

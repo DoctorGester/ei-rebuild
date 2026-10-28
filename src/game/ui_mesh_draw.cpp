@@ -89,9 +89,8 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const std::uint32_t green = ColourByte(tint_[1]);
     const std::uint32_t blue = ColourByte(tint_[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
-    const float origin[3] = {0.0f, 0.0f, 0.0f};
     render::SetInterfaceDraw(true);   // the new renderer streams interface sprites
-    const int drawn = renderer->DrawFigure(this, &kIdentityOrientation, origin, static_cast<CMaterial*>(material_), 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, static_cast<CMaterial*>(material_), 0xFF, nullptr);
     render::SetInterfaceDraw(false);
     renderer->SetColour(saved);
     if (!drawn) return game::FatalError(DrawFailed());

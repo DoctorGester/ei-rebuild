@@ -2,7 +2,7 @@
 // software cursor are drawn. The game flips the primary's chain in full screen and copies the render target to the
 // primary at the client rectangle's corner in a window; here it ends the new renderer's frame, which shows it on the
 // game window placed first (full screen over its monitor, present_window.h). See docs/notes/renderer.md.
-#include "device.h"
+#include "texture.h"
 #include "present_window.h"
 
 #include "render/render.h"

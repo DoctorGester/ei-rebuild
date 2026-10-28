@@ -1,7 +1,7 @@
 // The device object's texture binds: a surface holder, a texture, a texture kept by name. See
 // docs/notes/renderer.md (section 12).
 #include "app.h"
-#include "device.h"
+#include "texture.h"
 
 #include "ground_print.h"       // NamedTexture
 #include "game_singletons.h"
@@ -12,9 +12,6 @@
 int CTextureDevice::BindSurface(int stage, Surface* holder) {
     if (stageSurfaces_[stage] == holder) return 1;
     stageSurfaces_[stage] = holder;
-    // (No holder has a DirectDraw surface: the stage's texture is null on the switch-over; the new
-    // renderer draws with the holder in stageSurfaces_.)
-    lastLoadResult_ = device::SetTexture(device::D3D(this), static_cast<DWORD>(stage), nullptr);
     ++textureChanges_;
     return 1;
 }

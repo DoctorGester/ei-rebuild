@@ -1,7 +1,6 @@
 #include "texture.h"
 
 #include "app.h"
-#include "device.h"
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
@@ -12,7 +11,6 @@
 #include "options.h"
 #include "lib/str.h"
 
-#include <ddraw.h>
 
 
 namespace {
@@ -31,8 +29,6 @@ std::uint32_t BmpFormatFor(int type) {
     }
 }
 
-// The texture quality setting (0 best .. 3).
-const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 
 } // namespace
 
@@ -134,19 +130,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
     case 2: mipLevel_ = 2; break;
     default: mipLevel_ = 3; break;
     }
-    D3DDEVICEDESC7 desc;
-    long result = device::GetCaps(device::D3D(device_), &desc);
-    device_->lastLoadResult_ = result;
-    if (result != 0 && app::FatalErrorCode(result, CantGetDeviceDescriptionText()) == 0)
-        limitTo512_ = 1;
-    else
-        limitTo512_ = desc.dwMaxTextureWidth > 0x100 && desc.dwMaxTextureHeight > 0x100 ? 0 : 1;
-    DDSCAPS2 caps;
-    std::memset(&caps, 0, sizeof(caps));
-    caps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_LOCALVIDMEM;   // 0x10001000
-    DWORD total = 0, available = 0;
-    device::GetAvailableVidMem(device::DDraw(device_), &caps, &total, &available);
-    videoMemoryTenth_ = total / 10;
+    limitTo512_ = 0;   // (the game set 1 for a card whose textures were at most 256 pixels wide or high)
 }
 
 CEngineObject* CTextureManager::NewObject(int type) {

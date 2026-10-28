@@ -231,15 +231,13 @@ public:
     int stages_;                         // texture stages the first pass sets
 };
 
-struct IDirect3DDevice7;
-
 // The renderer's counted helper: the nine built-in render state presets of the materials.
 class CRenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
-    // Takes the device's capabilities and records the nine presets (`flag`'s low byte: one texture stage each).
-    CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
+    // Records the nine presets (`flag`'s low byte: one texture stage each).
+    explicit CRenderHelper(std::uint32_t flag);
     ~CRenderHelper();
     // Preset `index` of the nine, or null beyond them.
     CRenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets_[index] : nullptr; }
@@ -248,8 +246,6 @@ public:
     CRenderHelper& operator=(const CRenderHelper&) = delete;
 
     int refs_ = 0;
-    IDirect3DDevice7* device_;          // counted (AddRef / Release)
-    std::uint8_t caps_[0xEC];           // the device's D3DDEVICEDESC7
 
 private:
     // Preset `index` made of `states`. `singleStage`: at most one texture stage.
@@ -271,16 +267,13 @@ public:
     virtual std::uint32_t FrameTime() = 0;
     // SetBaseColour (the renderer's version also tints the device object). Sets the draw colour.
     virtual void SetColour(std::uint32_t colour);
-    virtual int ClearFrame() = 0;
-    virtual std::uint32_t ZEnable() = 0;
     virtual int SetBlend(render::Blend source, render::Blend dest) = 0;
     virtual int SetTexture(int stage, CTexture* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
                               unsigned indexCount) = 0;
     virtual int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                               CTexture* textureA, CTexture* textureB) = 0;
-    virtual int DrawFigure(CFigureMesh* figure, const void* rotation, const void* position, CMaterial* material, int alpha,
-                           tagRECT* screen) = 0;
+    virtual int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen) = 0;
     virtual void DrawLineList(LineBatch* lines) = 0;
     virtual int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length,
                           float offset, float slant) = 0;
@@ -375,11 +368,6 @@ public:
     // Sets the colour the next draws are tinted with (also the device object's colour_) and the ambient
     // from it (SetBaseColour).
     void SetColour(std::uint32_t colour) override;
-    // Clears the render target and the depth (and the stencil when the device has one) to the fog colour
-    // and 1.
-    int ClearFrame() override;
-    // The device object's z-buffer setting (CTextureDevice::zEnable_).
-    std::uint32_t ZEnable() override;
     // Sets SRCBLEND, then DESTBLEND.
     int SetBlend(render::Blend source, render::Blend dest) override;
     // Binds `texture` (a texture object, or null) to stage `stage`.
@@ -392,9 +380,8 @@ public:
                       CTexture* textureB) override;
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
-    // is passed on. The second and third arguments are not read there.
-    int DrawFigure(CFigureMesh* figure, const void* rotation, const void* position, CMaterial* material, int alpha,
-                   tagRECT* screen) override;
+    // is passed on.
+    int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen) override;
     void DrawLineList(LineBatch* lines) override;
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured

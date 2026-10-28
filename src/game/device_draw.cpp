@@ -5,7 +5,6 @@
 // states, sets stage 0 from the next stage record and draws again, and the blend states are
 // restored at the end. A second form draws twice: with a first surface, then blended (source alpha, inverse source
 // alpha) with a second one. See docs/notes/models.md ("Material draw").
-#include "device.h"
 #include "device_material.h"
 #include "engine_object.h"
 #include "model.h"   // CRenderPreset
@@ -66,7 +65,6 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     Surface*& bound = device->stageSurfaces_[stage];
     if (bound) {
         bound = nullptr;
-        device->lastLoadResult_ = device::SetTexture(device::D3D(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
     }
 }
@@ -115,12 +113,11 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, int vertexCount, 
     state.destBlend = savedDest;
 }
 
-// Stage 0's surface, as the surface bind does it: when it changes, the stage's texture set (null: no holder has a
-// DirectDraw surface; the new renderer draws with the holder in stageSurfaces_), and the change counted.
+// Stage 0's holder, as the surface bind does it: when it changes, kept for the new renderer (stageSurfaces_) and the
+// change counted.
 void BindStage0(CTextureDevice* device, Surface* holder) {
     if (device->stageSurfaces_[0] == holder) return;
     device->stageSurfaces_[0] = holder;
-    device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
     ++device->textureChanges_;
 }
 

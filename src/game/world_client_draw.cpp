@@ -24,7 +24,6 @@
 #include "model.h"
 #include "terrain.h"
 #include "texture.h"
-#include "device.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -292,7 +291,7 @@ int CWorldClient::Render() {
         renderer->distanceFog_ = 0;
         numbers_->Draw(&g_sceneRenderer.Get());
         renderer->distanceFog_ = 1;
-        state.depthTest = renderer->zEnable_ != 0;
+        state.depthTest = true;
     }
     render::EndWorld();
     return 1;

@@ -42,16 +42,6 @@ void LockCursorAtCallSite() {
 // The movie list's .ini path: the folder and the file name joined into `a0`.
 std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
 
-// Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
-// render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
-// without a surface (renderer.md section 9): nothing to fill, the result 0.
-void ClearScreen() {
-    CTextureDevice* device = g_sceneRenderer->device_;
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    device->lastLoadResult_ = 0;
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-}
-
 std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
 
 } // namespace
@@ -103,8 +93,8 @@ void FrameStep(bool draw, bool cursor) {
 }
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
-// from the movie directory), clearing the screen before and, with `clearAfter`, after each.
-void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, int a, int b) {
+// from the movie directory).
+void PlayMovies(const std::string& section, int a, int b) {
     std::vector<std::string> list;
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();
@@ -114,13 +104,11 @@ void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, in
         ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
     }
     ini->GetList(section.c_str(), "movies", &list, ',');
-    if (clearFirst) ClearScreen();
     for (const std::string& movie : list) {
         {
             const std::string full = g_discFolder->c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, 1, 0, 0, static_cast<char>(a), b);
         }
-        if (clearAfter) ClearScreen();
     }
     ini->Destruct();
 }

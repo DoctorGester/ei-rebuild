@@ -12,7 +12,7 @@ namespace render::game {
 
 struct Addresses {
     HWND* window;               // the game window (app::g_mainWindow)
-    CSceneRenderer* renderer;   // its clear colour, device object, render target and IDirect3DDevice7
+    CSceneRenderer* renderer;   // its clear colour, device object and render target
 };
 
 Addresses& Where();

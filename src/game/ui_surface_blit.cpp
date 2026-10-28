@@ -2,7 +2,7 @@
 // rectangle inside the screen is blitted onto the render target, the whole surface stretched when bit 2 is set, with the
 // source colour key background_ when bit 1 is set; the new renderer takes the blit (render::SurfaceBlit). A native
 // surface (ui_native.h) can draw its canvas instead. See docs/notes/ui.md, "Surface blit".
-#include "device.h"
+#include "texture.h"
 #include "ui.h"
 
 #include "lib/gameapi.h"
@@ -26,7 +26,7 @@ void CUiSurface::Blit() {
     source.bottom = source.top + (clipped.bottom - clipped.top);
     bool stretched = (flags & 2) != 0;
     bool keyed = (flags & 1) != 0;
-    if (device::SameSurface(holder->device->renderTarget_, holder)) return;
+    if (holder->device->renderTarget_ == holder) return;
     render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};
     render::Rect part{source.left, source.top, source.right, source.bottom};
     // A native surface (ui_native.h) draws its canvas when the interface's path says so.

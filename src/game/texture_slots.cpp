@@ -117,7 +117,7 @@ CTexture* CTextureManager::FindOrLoad(int type, std::string_view name) {
 }
 
 void CTextureManager::TrimCache() {
-    const auto overLimit = [this] { return cachedBytes_ > static_cast<int>(videoMemoryTenth_); };
+    const auto overLimit = [this] { return cachedBytes_ > kCacheLimit; };
     if (!overLimit()) return;
     for (auto node = cache_.begin(); node != cache_.end();) {
         auto next = std::next(node);
