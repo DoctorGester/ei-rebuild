@@ -8,7 +8,6 @@
 #include "core_maths.h"
 #include "model.h"        // CSceneRenderer, CTransformPipeline
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -86,7 +85,6 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     }
     return renderer->DrawSprites(0, &Points(), &Sprites());
 }
-EI_REWRITTEN(0x004E1EB0, CVisibilityFog::Draw);
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------
 
@@ -131,7 +129,3 @@ void CRainSnow::PrepareBuffers() {
     indices.SetSize(kDropVertices, -1);
     for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
-EI_REWRITTEN(0x004E3C20, CRainSnow::PrepareBuffers);
-EI_REWRITTEN(0x004E2260, FreePoints);
-
-EI_REWRITTEN(0x004E2280, DestroySprites);

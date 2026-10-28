@@ -5,7 +5,6 @@
 
 #include "model.h"   // ChunkArchive
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "record_lifetime.h"
 #include "record_vectors.h"
@@ -100,7 +99,6 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0x2A, &secondWeaponName);
     Dword(ar, 0x2B, &experienceValue);
 }
-EI_REWRITTEN(0x0052D740, UnitPrototypeRecord::Serialize);
 
 void UnitModelRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
@@ -143,7 +141,6 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x31, &eyeWidth);
     Dword(ar, 0x32, &eyeHeight);
 }
-EI_REWRITTEN(0x0052DC70, UnitModelRecord::Serialize);
 
 void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
@@ -162,7 +159,6 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 13, &startMoney);
     ar->Field(14, &voiced, 1);
 }
-EI_REWRITTEN(0x0052DA60, UnitNpcRecord::Serialize);
 
 // --- The unit database's pieces and vectors -----------------------------------------------
 
@@ -172,7 +168,6 @@ void UnitGoldRoll::Serialize(ChunkArchive* ar) {
     Dword(ar, 2, &minimum);
     Dword(ar, 3, &maximum);
 }
-EI_REWRITTEN(0x0052D6A0, UnitGoldRoll::Serialize);
 
 void UnitModelSlot::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &levelName);
@@ -180,7 +175,6 @@ void UnitModelSlot::Serialize(ChunkArchive* ar) {
     Dword(ar, 2, &share);
     Dword(ar, 3, &factor);
 }
-EI_REWRITTEN(0x0052D6F0, UnitModelSlot::Serialize);
 
 void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
@@ -189,10 +183,8 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 3, &vitalMask);
     Dword(ar, 4, &slotType);
 }
-EI_REWRITTEN(0x0052DEE0, UnitLevelRecord::Serialize);
 
 void ChunkArchive::SerializeStrings(int id, stlp::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
-EI_REWRITTEN(0x0052DF40, ChunkArchive::SerializeStrings);
 
 namespace {
 
@@ -232,24 +224,20 @@ void ChunkArchive::SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>
     SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { unitdb::DestroyPrototypeRecord(r); },
                      &recordvec::UnitPrototypeVector::ResizeDefault, &UnitPrototypeRecord::Serialize);
 }
-EI_REWRITTEN(0x0053DC10, ChunkArchive::SerializePrototypes);
 
 void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, &recordvec::UnitNpcVector::ResizeDefault,
                      &UnitNpcRecord::Serialize);
 }
-EI_REWRITTEN(0x0053DD00, ChunkArchive::SerializeNpcs);
 
 void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
     SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
                      &recordvec::UnitModelVector::ResizeDefault, &UnitModelRecord::Serialize);
 }
-EI_REWRITTEN(0x0053DF50, ChunkArchive::SerializeModels);
 
 void ChunkArchive::SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void*) {
     SerializeRecords(this, id, records, DestroyLevelName, &recordvec::UnitLevelVector::ResizeDefault, &UnitLevelRecord::Serialize);
 }
-EI_REWRITTEN(0x0053E1B0, ChunkArchive::SerializeUnitLevels);
 
 // --- The skill database --------------------------------------------------------------------------
 
@@ -268,7 +256,6 @@ void SkillRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 2, &field2);
     InlineStrings(ar, 10, &statNames);
 }
-EI_REWRITTEN(0x0051F3A0, SkillRecord::Serialize);
 
 void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &field0);
@@ -280,14 +267,12 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x16, &learnable, 1);
     Dword(ar, 0x17, &exclusionGroup);
 }
-EI_REWRITTEN(0x0051F480, SkillLevelRecord::Serialize);
 
 void SkillRecord::Destruct() {
     records::DestroyVector(statNames);
     std::destroy_at(&field1);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x00520D20, SkillRecord::Destruct);
 
 void SkillLevelRecord::Destruct() {
     std::destroy_at(&requiredSkillName);
@@ -295,7 +280,6 @@ void SkillLevelRecord::Destruct() {
     std::destroy_at(&name);
     std::destroy_at(&field0);
 }
-EI_REWRITTEN(0x00520DE0, SkillLevelRecord::Destruct);
 
 void SkillDatabase::Reset() {
     for (SkillLevelRecord* p = levels.begin(); p != levels.end(); ++p) p->Destruct();
@@ -305,7 +289,6 @@ void SkillDatabase::Reset() {
     skills.Start() = skills.Finish() = skills.EndOfStorage() = nullptr;
     levels.Start() = levels.Finish() = levels.EndOfStorage() = nullptr;
 }
-EI_REWRITTEN(0x0057CD60, SkillDatabase::Reset);
 
 void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void*) {
     if (!EnterChunk(id)) return;
@@ -328,27 +311,23 @@ void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, vo
     }
     LeaveChunk();
 }
-EI_REWRITTEN(0x005207D0, ChunkArchive::SerializeSkills);
 
 void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {
     if (!EnterChunk(id)) return;
     record->Serialize(this);
     LeaveChunk();
 }
-EI_REWRITTEN(0x00521480, ChunkArchive::SkillLevelChunk);
 
 SkillLevelRecord* SkillDatabase::FindLevel(const char* levelName) {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return &levels[i];
     return nullptr;
 }
-EI_REWRITTEN(0x0051FE00, SkillDatabase::FindLevel);
 
 int SkillDatabase::IndexOf(const char* levelName) const {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return static_cast<int>(i);
     return -1;
 }
-EI_REWRITTEN(0x0051FE80, SkillDatabase::IndexOf);
 
 // SkillDatabase::IndexOfLevel is in unit_skill_price.cpp (ei_vectors links it there).

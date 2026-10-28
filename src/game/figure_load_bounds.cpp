@@ -5,8 +5,6 @@
 // one, both with the morph weights. Returns 1. See figure_mesh.h and docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -45,5 +43,3 @@ int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const 
     else CloseFile(data);
     return 1;
 }
-
-EI_REWRITTEN(0x005AC010, CFigureManager::LoadFigureBounds);

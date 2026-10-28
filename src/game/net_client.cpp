@@ -7,7 +7,6 @@
 #include "party.h"
 
 #include "core_refcount.h"
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -33,7 +32,6 @@ ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
     self->extra = 0;
     return self;
 }
-EI_REWRITTEN(0x0041C420, ClientVectorConstruct);
 
 // The client base's constructor is inlined into the game client's: the session base, its lobby fields, an unbound
 // socket.
@@ -114,7 +112,6 @@ ClientSession::ClientSession() {
     parties_[0]->Create();
     parties_[1]->Create();
 }
-EI_REWRITTEN_SPECIAL(0x0041BC40, ClientSession::ClientSession);
 
 // What the server receives from this client: the local player's login, the timed objects and the file
 // requests, and our trade offer with its members. All priority 1.
@@ -133,6 +130,5 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
         }
     }
 }
-EI_REWRITTEN(0x0041D050, ClientSession::CollectReplicated);
 
 } // namespace net

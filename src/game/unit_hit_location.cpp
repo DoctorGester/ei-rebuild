@@ -3,8 +3,6 @@
 #include "random.h"
 #include "unit.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -37,4 +35,3 @@ int UnitStats::PickLocation(int location) {
     if (count == 0) return kFallback;
     return working[IsaacRandom::Global().Next() % count];   // the draw is inlined
 }
-EI_REWRITTEN(0x00525B20, UnitStats::PickLocation);

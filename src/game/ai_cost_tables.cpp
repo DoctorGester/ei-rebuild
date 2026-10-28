@@ -3,8 +3,6 @@
 // SetStepSpeeds use them). See ai_map.h.
 #include "ai_map.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -24,5 +22,3 @@ void __fastcall InitCostTables(CAIMap* map) {
         steps[i] = kStepCosts[i];
     }
 }
-
-EI_REWRITTEN(0x005B6070, InitCostTables);

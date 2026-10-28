@@ -6,7 +6,6 @@
 #include "figure_manager.h"       // CFigureManager, FigureModel
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -56,7 +55,6 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     return 1;
 }
 
-EI_REWRITTEN(0x005AC880, CFigureManager::LoadSkeletonLinks);
 // A bone's cage. The data comes from the cached model's bones archive (GetFile with the bone's name and the
 // size out) or from the file "<bone's model name><bone's name>.bon" (the manager's GetFile with the size
 // out); none returns 0. 0x48 bytes go to one bone loader, other sizes to another, as {data, size}. The data
@@ -82,4 +80,3 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     else bone->InterpolateCube(stream);
     return 1;
 }
-EI_REWRITTEN(0x005ACB80, CFigureManager::LoadFigureBones);

@@ -10,7 +10,6 @@
 #include "record_lists.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_vector_refs.h"
@@ -55,7 +54,6 @@ RefPtr* __fastcall FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessa
     }
     return first;
 }
-EI_REWRITTEN(0x00429FC0, FindSameMessage);
 
 // Rebuilds the member messages of our offer from our party: one per
 // item of the party. Each gives its spell's id, type and packed id and the spell's Save,
@@ -116,7 +114,6 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         if (p->ptr) p->ptr->Release();
     stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);
 }
-EI_REWRITTEN(0x0041DA50, ClientPublishParty);
 
 // The received offer that pairs with ours: its partner is our
 // player and its player our partner, and it is live. Null without one.
@@ -130,7 +127,6 @@ PartyMessage* __fastcall ClientFindParty(ClientSession* self) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x0041E220, ClientFindParty);
 
 // An accepted offer is unaccepted with its version moved on, so it is sent again.
 void __fastcall ClientCommitParty(ClientSession* self) {
@@ -139,7 +135,6 @@ void __fastcall ClientCommitParty(ClientSession* self) {
     state->accepted_ = 0;
     ++self->party_.Get()->version_;
 }
-EI_REWRITTEN(0x0041E180, ClientCommitParty);
 
 // Rebuilds the partner's party from the paired offer, once every member message of it holds data. Each
 // message gives (when its first dword, the spell's id, is positive) a spell made by the party's spell manager
@@ -203,6 +198,5 @@ void __fastcall ClientApplyParty(ClientSession* self) {
         if (*p) (*p)->Release();
     stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);
 }
-EI_REWRITTEN(0x0041DDC0, ClientApplyParty);
 
 } // namespace net

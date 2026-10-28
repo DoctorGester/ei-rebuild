@@ -5,7 +5,6 @@
 #include "device.h"
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_ui.h"
@@ -36,4 +35,3 @@ void CUiSurface::Blit() {
     else
         render::SurfaceBlit(holder, destination, stretched ? nullptr : &part, keyed, surface->background_);
 }
-EI_REWRITTEN(0x005FDA80, CUiSurface::Blit);

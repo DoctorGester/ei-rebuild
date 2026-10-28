@@ -7,7 +7,6 @@
 
 #include "random.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
@@ -35,22 +34,17 @@ AIMode::AIMode() {
     flags6_ = 0;
     flags7_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x005D8850, AIMode::AIMode);
 
 AIActionMode::AIActionMode() {}
-EI_REWRITTEN_SPECIAL(0x005D6D10, AIActionMode::AIActionMode);
 
 void AIMode::Execute(AIBrain* brain) {
     if (IsaacRandom::Global().Next() % 1001 == 1) brain->owner->voice.Raise(kRemarkIdle);
     brain->attention.LookAround(brain, 0);
 }
-EI_REWRITTEN(0x005D0A90, AIMode::Execute);
 
 int PatrolMode::GetType() { return kTypePatrol; }
-EI_REWRITTEN(0x005D1210, PatrolMode::GetType);
 
 int FearMode::GetType() { return kTypeFear; }
-EI_REWRITTEN(0x005D2920, FearMode::GetType);
 
 PlayerMode::PlayerMode() {
     target = nullptr;
@@ -59,7 +53,6 @@ PlayerMode::PlayerMode() {
     state = kStateFollow;
     run = 0;
 }
-EI_REWRITTEN_SPECIAL(0x005D3760, PlayerMode::PlayerMode);
 
 namespace {
 // A patrol mode's points as the constructor leaves them: none, the constructors' table.
@@ -76,12 +69,9 @@ PatrolMode::PatrolMode() {
     ClearPoints(points);
     current = 0;
 }
-EI_REWRITTEN_SPECIAL(0x005D0F60, PatrolMode::PatrolMode);
 
 // Each point's looks freed (their base table), then the points (the array keeps its pointer and count).
 PatrolMode::~PatrolMode() { points.Destruct(); }
-EI_REWRITTEN_SPECIAL(0x005D1240, PatrolMode::~PatrolMode);
-EI_REWRITTEN_SPECIAL(0x005D1220, PatrolMode::~PatrolMode);
 
 // Destroyed and built again in place (the reference count kept).
 int PatrolMode::OnShutdown() {
@@ -90,7 +80,6 @@ int PatrolMode::OnShutdown() {
     current = 0;
     return 0;
 }
-EI_REWRITTEN(0x005D1140, PatrolMode::OnShutdown);
 
 // Point `index` copied into `out`: the position, then a
 // new look array sized to the source's (new looks zeroed) with each look copied.
@@ -102,8 +91,6 @@ PatrolPoint* PatrolPointArray::CopyAt(PatrolPoint* out, int index) const {
     for (int i = 0; i < source.looks.size; ++i) out->looks.data[i] = source.looks.data[i];
     return out;
 }
-EI_REWRITTEN(0x005D9E40, PatrolPointArray::CopyAt);
-EI_REWRITTEN(0x005D9590, PatrolPointArray::CopyAt);
 
 // A copy with its own points, each through a temporary copy of the source point
 // (PatrolPointArray::CopyAt) whose looks are freed after.
@@ -128,7 +115,6 @@ PatrolMode* PatrolMode::Clone() {
     clone->current = current;
     return clone;
 }
-EI_REWRITTEN(0x005D0F90, PatrolMode::Clone);
 
 FearMode* FearMode::Clone() {
     auto* clone = new FearMode(flag);
@@ -139,17 +125,13 @@ FearMode* FearMode::Clone() {
     clone->fleePoint = fleePoint;
     return clone;
 }
-EI_REWRITTEN(0x005D2880, FearMode::Clone);
 
 int FearMode::OnShutdown() {
     Init(0);
     return 0;
 }
-EI_REWRITTEN(0x005D28F0, FearMode::OnShutdown);
 
 FearMode::~FearMode() {}
-EI_REWRITTEN_SPECIAL(0x005D2950, FearMode::~FearMode);
-EI_REWRITTEN_SPECIAL(0x005D2930, FearMode::~FearMode);
 
 void PatrolPointArray::Destruct() {
     vtable = PatrolPointsBaseClass::Vtable();
@@ -161,14 +143,9 @@ void PatrolPointArray::Destruct() {
     }
     gamecrt::operator_delete(data);
 }
-EI_REWRITTEN(0x005D8CF0, PatrolPointArray::Destruct);
-EI_REWRITTEN(0x005D95B0, PatrolPointArray::Destruct);
 
 PatrolPointArray* PatrolPointArray::DeletingDestruct(int flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x005D8CD0, PatrolPointArray::DeletingDestruct);
-EI_REWRITTEN(0x005D9D00, PatrolPointArray::DeletingDestruct);   // byte-identical copy
-

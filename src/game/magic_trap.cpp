@@ -10,7 +10,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -106,7 +105,6 @@ void MagicTrap::UpdateVictims() {
     newcomers.RemoveAll();
     found.RemoveAll();
 }
-EI_REWRITTEN(0x0052A680, MagicTrap::UpdateVictims);
 
 void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CUnit>* out) {
@@ -128,7 +126,6 @@ void __fastcall FindTrapVictims(CWorldServer* context, const TrapArea* area, std
     }
     found.RemoveAll();
 }
-EI_REWRITTEN(0x0052A920, FindTrapVictims);
 
 namespace {
 constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at the units
@@ -174,7 +171,6 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
     }
     countdown = period;
 }
-EI_REWRITTEN(0x0052A4B0, MagicTrap::CastAtUnits);
 
 namespace {
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
@@ -221,7 +217,6 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     countdown = 0;
     singleTarget = record->singleTarget != 0 ? 1 : 0;
 }
-EI_REWRITTEN(0x0052A2C0, MagicTrap::SetUp);
 
 // --- Construction, destruction, Save / Load ------------------------------------------
 
@@ -280,7 +275,6 @@ MagicTrap::MagicTrap() {
     singleTarget = 0;
     period = static_cast<int>(kDefaultPeriod);
 }
-EI_REWRITTEN_SPECIAL(0x00529DD0, MagicTrap::MagicTrap);
 
 MagicTrap::~MagicTrap() {
     DestroyMapObject();
@@ -298,7 +292,6 @@ MagicTrap::~MagicTrap() {
     if (area.data) gamecrt::operator_delete(area.data);
     if (spell) spell->Release();
 }
-EI_REWRITTEN_SPECIAL(0x00529F90, MagicTrap::~MagicTrap);
 
 void MagicTrap::Load(CStream* stream) { LoadTrap(stream); }
 void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
@@ -325,7 +318,6 @@ void MagicTrap::SaveTrap(CStream* stream) {
         stream->Write(&value, 4);
     }
 }
-EI_REWRITTEN(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
     LoadMapObject(stream);
@@ -343,7 +335,6 @@ void MagicTrap::LoadTrap(CStream* stream) {
     for (int i = 0; i < points.size; ++i) stream->Read(&points.data[i], sizeof(TrapPoint));
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);
 }
-EI_REWRITTEN(0x0052ADC0, MagicTrap::LoadTrap);
 
 // --- Create, Destroy, the update, firing, forgetting a removed object -------------
 
@@ -384,7 +375,6 @@ int MagicTrap::CreateTrap() {
     singleTarget = 0;
     return result;
 }
-EI_REWRITTEN(0x0052A100, MagicTrap::CreateTrap);
 
 void MagicTrap::DestroyTrap() {
     DestroyMapObject();
@@ -393,7 +383,6 @@ void MagicTrap::DestroyTrap() {
     points.SetSize(0, -1);
     ClearVictims(this);
 }
-EI_REWRITTEN(0x0052A200, MagicTrap::DestroyTrap);
 
 int MagicTrap::UpdateTrap() {
     int result = CMapObject::Update();
@@ -407,7 +396,6 @@ int MagicTrap::UpdateTrap() {
     if (countdown <= 0) FireAtOccupants();
     return result;
 }
-EI_REWRITTEN(0x0052AC20, MagicTrap::UpdateTrap);
 
 void MagicTrap::FireAtOccupants() {
     CWorldServer* context = ServerWorld();
@@ -418,7 +406,6 @@ void MagicTrap::FireAtOccupants() {
     }
     DestroyPtrList(found);
 }
-EI_REWRITTEN(0x0052AB30, MagicTrap::FireAtOccupants);
 
 int MagicTrap::ForgetObject(CEngineObject* object) {
     for (UnitList::Node* node = inside.head; node;) {
@@ -440,4 +427,3 @@ int MagicTrap::ForgetObject(CEngineObject* object) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0052AC90, MagicTrap::ForgetObject);

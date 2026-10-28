@@ -19,7 +19,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "lib/nan_audit.h"
@@ -419,5 +418,3 @@ void UpdateMotion(CUnitServer* c) {
     }
     Exhaustion(c);
 }
-
-EI_REWRITTEN(0x00547890, UpdateMotion);

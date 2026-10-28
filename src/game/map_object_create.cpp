@@ -12,8 +12,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -57,14 +55,12 @@ int CMapObject::CreateMapObject() {
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;
 }
-EI_REWRITTEN(0x0050E770, CMapObject::CreateMapObject);
 
 void CMapObject::DestroyMapObject() {
     SetEffectCount(0);
     DetachCompanion(this);
     Destroy3D();
 }
-EI_REWRITTEN(0x0050E840, CMapObject::DestroyMapObject);
 
 // --- Units and torches -----------------------------------------------------------------------------
 
@@ -74,7 +70,6 @@ int CUnit::CreateUnit() {
     MapObject()->NetState()->SetFieldCount(kUnitNetFields);
     return 1;
 }
-EI_REWRITTEN(0x0052E400, CUnit::CreateUnit);
 
 int CTorchObject::CreateTorch() {
     CreateMapObject();
@@ -86,4 +81,3 @@ int CTorchObject::CreateTorch() {
     state->Reset();
     return 1;
 }
-EI_REWRITTEN(0x0052BFC0, CTorchObject::CreateTorch);

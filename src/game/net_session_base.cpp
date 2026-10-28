@@ -5,7 +5,6 @@
 
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "ei/hook.h"
 #include "lib/stlp.h"
 #include "record_vectors.h"
 
@@ -36,7 +35,6 @@ int TypeRegistry::TypeOf(const std::uint32_t* key) const {
     const ByVtable::Node* node = byVtable.Find(*key);
     return node ? static_cast<int>(node->value) : -1;
 }
-EI_REWRITTEN(0x00429F40, TypeRegistry::TypeOf);
 
 void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     Message* prototype = factory();
@@ -46,13 +44,11 @@ void TypeRegistry::Register(std::uint32_t type, MessageFactory factory) {
     byType.FindOrInsert({type, nullptr})->value = factory;
     if (prototype && --prototype->refs_ == 0) delete prototype;
 }
-EI_REWRITTEN(0x0042A890, TypeRegistry::Register);
 
 Message* TypeRegistry::Create(std::uint32_t type) {
     MessageFactory factory = byType.FindOrInsert({type, nullptr})->value;
     return factory ? factory() : nullptr;
 }
-EI_REWRITTEN(0x00438930, TypeRegistry::Create);
 
 SessionBase::SessionBase() {
     // The connection list: an empty STLport list (a 12-byte sentinel linked to itself).
@@ -74,7 +70,6 @@ SessionBase::SessionBase() {
     maxRoundTrip_ = 5;
     idReuseTime_ = 0x4B;
 }
-EI_REWRITTEN_SPECIAL(0x00436770, SessionBase::SessionBase);
 
 void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler handler) {
     if (channel < 0 || channel >= kChannels) return;
@@ -86,7 +81,6 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler han
     if (v.end()) *v.Finish() = handler;
     ++v.Finish();
 }
-EI_REWRITTEN(0x004377D0, SessionBase::AddHandler);
 
 void SessionBase::AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler) {
     RefPtr ref;
@@ -110,7 +104,6 @@ void SessionBase::RegisterMessageTypes() {
         types_.Register(type, kFactories[type - 1]);
     }
 }
-EI_REWRITTEN(0x004142F0, SessionBase::RegisterMessageTypes);
 
 ClientNode* SessionBase::ClientAt(const NetAddress* address) {
     ClientNode* found;

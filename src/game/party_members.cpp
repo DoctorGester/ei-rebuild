@@ -14,7 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -75,7 +74,6 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
     CopyList(armor, source->armor, party);
     CopyList(spells, source->spells, party);
 }
-EI_REWRITTEN(0x00660500, PartyUnitRecord::CopyItemsFrom);
 
 PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     for (int i = 0; i < 7; ++i) texts[i] = source->texts[i];
@@ -88,11 +86,6 @@ PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     fightAtWill = source->fightAtWill;
     return this;
 }
-EI_REWRITTEN(0x00664950, PartyUnitRecord::Assign);
-
-EI_REWRITTEN(0x00664490, AlignedPtrArray::SetAtGrow);
-EI_REWRITTEN(0x006645D0, AlignedPtrArray::SetAtGrow);
-EI_REWRITTEN(0x00664710, AlignedPtrArray::SetAtGrow);
 
 namespace {
 // The stack record: zeroed storage the record is constructed and destroyed in by hand.
@@ -125,7 +118,6 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
     FillFromPrototype(record);
     return record;
 }
-EI_REWRITTEN(0x006628D0, CParty::AddMember);
 
 BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = unitdb::PrototypeTable().FindByName(record->texts[5].c_str());
@@ -165,7 +157,6 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->texts[6] = record->texts[5];
     return 1;
 }
-EI_REWRITTEN(0x006621F0, CParty::FillFromPrototype);
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
@@ -204,11 +195,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     record->texts[6] = record->texts[5];
     return 1;
 }
-EI_REWRITTEN(0x006625B0, CParty::EquipFromPrototype);
 
-EI_REWRITTEN(0x00663E40, AlignedPtrArray::Add);
-EI_REWRITTEN(0x00663F60, AlignedPtrArray::RemoveRange);
-EI_REWRITTEN(0x00663A70, AlignedPtrArray::RemoveRange);
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
         PartyUnitRecord* record = &members_.data[i];
@@ -221,8 +208,6 @@ BOOL CParty::RemoveMember(int key) {
     }
     return 0;
 }
-EI_REWRITTEN(0x006620F0, CParty::RemoveMember);
-
 
 namespace {
 const char* ZoneVariableFormat() { return "z.%s"; }
@@ -245,4 +230,3 @@ void CParty::OpenEdgeExits() {
         if (value == 0.0f) variables.Set(variable.c_str(), kOpened);
     }
 }
-EI_REWRITTEN(0x006629D0, CParty::OpenEdgeExits);

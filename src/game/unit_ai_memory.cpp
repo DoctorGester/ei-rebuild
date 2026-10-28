@@ -11,7 +11,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 #include "lib/crt_iostream.h"
 
@@ -46,7 +45,6 @@ AIObjectList::Node* AIObjectList::AddCountedTail(CUnit* object) {
     if (object) ++object->refCount_;
     return node;
 }
-EI_REWRITTEN(0x005CD500, AIObjectList::AddCountedTail);
 
 void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     out->RemoveAll();
@@ -56,8 +54,6 @@ void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
         out->AddTail(other);
     }
 }
-
-EI_REWRITTEN(0x005CB260, AIMemory::FindEnemies);
 
 void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
     out->RemoveAll();
@@ -77,8 +73,6 @@ void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* po
     }
 }
 
-EI_REWRITTEN(0x005CB480, AIMemory::FindEnemiesNear);
-
 CUnit* AIMemory::NearestEnemy(CUnit* self) {
     CUnit* nearest = nullptr;
     float best = kFar;
@@ -97,8 +91,6 @@ CUnit* AIMemory::NearestEnemy(CUnit* self) {
     }
     return nearest;
 }
-
-EI_REWRITTEN(0x005CB670, AIMemory::NearestEnemy);
 
 void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     if (visible.Find(object)) return;
@@ -131,7 +123,6 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         console::EndLine(AiLog()->PutFloat(distance) << "m distance");
     }
 }
-EI_REWRITTEN(0x005CBC80, AIMemory::ForceSee);
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
@@ -139,8 +130,6 @@ void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
     seenCorpses.AddCountedTail(corpse);
     if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }
-
-EI_REWRITTEN(0x005CBE90, AIMemory::SeeCorpse);
 
 namespace {
 constexpr float kMaxExposure = 3.0f;
@@ -185,5 +174,3 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
                                                  theirs->stats.valuesB0[3].current * self->stats.valuesE0[3].current));
     }
 }
-
-EI_REWRITTEN(0x005CB850, AIMemory::MeasureExposure);

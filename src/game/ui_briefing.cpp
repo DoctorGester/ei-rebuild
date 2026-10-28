@@ -11,7 +11,6 @@
 #include "object_tables.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
@@ -67,8 +66,6 @@ void CBriefingScreen::Close() {
     std::uint32_t& flags = TheCamera()->flags_;
     flags = (flags & ~(CCamera::kBounded | CCamera::kAlternate)) | CCamera::kFree;
 }
-EI_REWRITTEN(0x00602BB0, CBriefingScreen::Close);
-
 
 void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     switch (result) {
@@ -143,8 +140,6 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         break;
     }
 }
-EI_REWRITTEN(0x00602C90, CBriefingScreen::OnUnitJoined);
-
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
@@ -156,37 +151,25 @@ void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (after != 0) std::memmove(&party_.data[index], &party_.data[index + 1], after * sizeof(party_.data[0]));
     --party_.size;
 }
-EI_REWRITTEN(0x00603010, CBriefingScreen::OnUnitLeft);
-
 
 void CBriefingScreen::OnGameOver(int) {
     interface_->PlaySound("buttons\\gameover.wav", 0);
     CMessageBox* box = new CMessageBox(interface_, "game_over", "game_over_msg", kGameOverResult, 3, 1);
     interface_->PushWindow(box, 1, 1);
 }
-EI_REWRITTEN(0x00608C70, CBriefingScreen::OnGameOver);
-
 
 void CBriefingScreen::OnBriefing(const char* name) {
     topic_ = name;
     StartDialogue(1, 1);
 }
-EI_REWRITTEN(0x006030C0, CBriefingScreen::OnBriefing);
-
 
 void CBriefingScreen::ShowChat(char show) {
     if (IsMultiplayerClient() && show && chat_) chat_->ShowPlayers();
 }
-EI_REWRITTEN(0x00603090, CBriefingScreen::ShowChat);
-
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);
 }
-EI_REWRITTEN(0x00602490, CBriefingScreen::SaveState);
-EI_REWRITTEN(0x00606F40, CBriefingScreen::OnMessageResult);
-
 
 void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }
-EI_REWRITTEN(0x00607720, CBriefingScreen::LoadPersonTexts);

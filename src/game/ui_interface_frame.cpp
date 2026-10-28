@@ -9,7 +9,6 @@
 #include "lib/mfc.h"
 #include "lib/str.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "net_classes.h"
 
@@ -167,6 +166,3 @@ void CInterface3D::OnStringEvent(const char* event) {
         if (stack_.Start() != stack_.Finish()) ScreenOf(top())->GameOver(1);
     }
 }
-
-EI_REWRITTEN(0x005F57C0, CInterface3D::Update);
-EI_REWRITTEN(0x005F8070, CInterface3D::OnStringEvent);

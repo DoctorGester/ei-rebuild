@@ -9,8 +9,6 @@
 #include "map_object.h"
 #include "lib/vecmath.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include "game_data.h"
 
@@ -75,8 +73,3 @@ void AIPath::StandAndTurnUntil(int time, const CMapObject* unit, const Vector3* 
 void AIPath::StandStill(const CMapObject* unit) {
     StandAt(this, &motionOrder.startTime, unit);
 }
-
-EI_REWRITTEN(0x005B1DE0, AIPath::StandAndTurn);
-EI_REWRITTEN(0x005B1F10, AIPath::StandAndTrack);
-EI_REWRITTEN(0x005B2050, AIPath::StandAndTurnUntil);
-EI_REWRITTEN(0x005B2190, AIPath::StandStill);

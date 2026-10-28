@@ -8,7 +8,6 @@
 #include "spell.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
@@ -88,7 +87,6 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     if (sector) DeleteSector(sector);
     return nullptr;
 }
-EI_REWRITTEN(0x006C8140, Terrain::SectorAt);
 
 void Terrain::SetVisibleSectors(float x, float y, float radius) {
     int columnFirst = SectorBound(x - radius - 0.5f, sectorsX);
@@ -105,7 +103,6 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
     }
     visibleRowFirst = rowFirst;
 }
-EI_REWRITTEN(0x006CA260, Terrain::SetVisibleSectors);
 
 // ---- Create, Destroy, Reset and the waves --------------------------------------------------------
 
@@ -148,7 +145,6 @@ void Terrain::BuildVertexTiles() {
         }
     }
 }
-EI_REWRITTEN(0x006C7A80, Terrain::BuildVertexTiles);
 
 void Terrain::ClearMap() {
     for (int slot = 0; slot < 3; ++slot) {
@@ -181,7 +177,6 @@ void Terrain::ClearMap() {
         table = nullptr;
     }
 }
-EI_REWRITTEN(0x006C7750, Terrain::ClearMap);
 
 namespace {
 
@@ -248,8 +243,6 @@ Terrain::~Terrain() {
     pageMaterials.FreeData();
     pageTextures.FreeData();
 }
-EI_REWRITTEN_SPECIAL(0x00562B80, Terrain::~Terrain);
-EI_REWRITTEN_SPECIAL(0x00562B60, Terrain::~Terrain);
 
 int Terrain::Create() {
     Reset();
@@ -407,7 +400,6 @@ int Terrain::SetupPages(int count) {
     }
     return 1;
 }
-EI_REWRITTEN(0x006C5AA0, Terrain::SetupPages);
 
 // --- The map loader ----------------------------------------------------------------------------
 
@@ -607,7 +599,6 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
     return 1;
 }
-EI_REWRITTEN(0x006C68B0, Terrain::LoadMap);
 
 // ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
 
@@ -621,7 +612,6 @@ void Terrain::SetLightInterval(int frames) {
     if (frames < 0) lightCountdown = -1;
     if (lightCountdown < frames) lightCountdown = frames;
 }
-EI_REWRITTEN(0x006C9290, Terrain::SetLightInterval);
 
 void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= materials.size) return;
@@ -632,7 +622,6 @@ void Terrain::SetWaterLevel(int material, float level) {
         sectorLevel = change + sectorLevel;
     }
 }
-EI_REWRITTEN(0x006CC7F0, Terrain::SetWaterLevel);
 
 void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage) {
     constexpr int kSide = 3;                  // a tile's vertices per row
@@ -673,17 +662,3 @@ void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float si
         v[i] = vBase + v[i];
     }
 }
-EI_REWRITTEN(0x006C7940, Terrain::BuildTileUv);
-
-EI_REWRITTEN(0x006C5430, Terrain::Create);
-EI_REWRITTEN(0x006C54D0, Terrain::Destroy);
-EI_REWRITTEN(0x006C6070, Terrain::CombineRotation);
-EI_REWRITTEN(0x006C5620, Terrain::Reset);
-EI_REWRITTEN(0x006C57E0, Terrain::BuildWavePhases);
-EI_REWRITTEN(0x006C7D70, Terrain::SetWaveStrength);
-EI_REWRITTEN(0x006CD5C0, lib::AlignedArray<std::uint32_t>::SetSize);
-EI_REWRITTEN(0x006CE890, lib::AlignedArray<std::uint32_t>::SetSize);
-EI_REWRITTEN(0x006CDD50, lib::AlignedArray<std::uint32_t>::SetAtGrow);
-EI_REWRITTEN(0x006CDE90, lib::AlignedArray<std::uint32_t>::SetAtGrow);
-EI_REWRITTEN(0x006C7EB0, Terrain::SetWaves);
-

@@ -10,7 +10,6 @@
 #include "ui_item_info.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 
 #include <cstdint>
@@ -159,4 +158,3 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     // Rebirth's WideScreen: the curtains shown but on the list.
     widescreen::ShowHeroCurtains(this, mode);
 }
-EI_REWRITTEN(0x00615D30, CMpHeroScreen::SetModeVanilla);

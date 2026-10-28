@@ -5,7 +5,6 @@
 #include "ui_gdi.h"
 #include "ui_native.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_gdi.h"
 
@@ -24,7 +23,6 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     gameapi::FrameRect(dc->hdc, &frame, static_cast<HBRUSH>(brush.handle));
     ui_native::FrameRect(this, frame, colour);
 }
-EI_REWRITTEN(0x005FDCB0, CUiSurface::FrameRect);
 
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;
@@ -34,7 +32,5 @@ void CUiSurface::Fill(COLORREF colour) {
     dc->FillSolidRect(&whole, colour);
     ui_native::Fill(this, whole, colour);
 }
-EI_REWRITTEN(0x005FE370, CUiSurface::Fill);
 
 void CUiSurface::Clear() { Fill(background_); }
-EI_REWRITTEN(0x005FE2F0, CUiSurface::Clear);

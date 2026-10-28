@@ -7,7 +7,6 @@
 
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_tree_abi.h"
@@ -38,9 +37,6 @@ using Packets = stlp::list<SentPacket>;
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
 void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
-EI_REWRITTEN(0x00434980, FreeReplicated);
-
-
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
@@ -104,7 +100,6 @@ std::uint16_t IdPool::Allocate() {
     --free.Finish();
     return *free.end();
 }
-EI_REWRITTEN(0x00435F10, IdPool::Allocate);
 
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
@@ -130,7 +125,6 @@ void Connection::WriteAcks(std::uint8_t** p) {
         }
     }
 }
-EI_REWRITTEN(0x00434C20, Connection::WriteAcks);
 
 void Connection::QueueHeader(int budget) {
     if (headers_.Empty()) {
@@ -164,7 +158,6 @@ void Connection::QueueHeader(int budget) {
     if (head->next == best) return;
     Chunks::SpliceRange(headers_.First(), best, best->next);
 }
-EI_REWRITTEN(0x00434990, Connection::QueueHeader);
 
 void Connection::RollBack(SentPacket* packet) {
     if (packet->rolledBack) return;
@@ -181,7 +174,6 @@ void Connection::RollBack(SentPacket* packet) {
     if (packet->header.Size() != 0) Chunks::Insert<ChunkElement>(headers_.End(), packet->header);
     packet->rolledBack = 1;
 }
-EI_REWRITTEN(0x00433F20, Connection::RollBack);
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedMap::Node* lb;
@@ -197,7 +189,6 @@ void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32
     lb->second.id = static_cast<std::uint16_t>(key);
     lb->second.type = static_cast<std::uint8_t>(type);
 }
-EI_REWRITTEN(0x004352F0, Connection::AttachRecord);
 
 bool Connection::SendUpdate(int budget) {
     bool complete = true;
@@ -317,7 +308,6 @@ bool Connection::SendUpdate(int budget) {
     Packets::Erase<PacketRecordElement>(history_.End()->prev);
     return false;
 }
-EI_REWRITTEN(0x00435A00, Connection::SendUpdate);
 
 bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     std::uint32_t created = cursor->GetBit();
@@ -400,7 +390,6 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     found->second.version = version;
     return true;
 }
-EI_REWRITTEN(0x00435F30, Connection::ReadRecord);
 
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
@@ -455,7 +444,6 @@ void Connection::Track(Replicated* item) {
     std::uint8_t reliable = g_currentSession->reliable_[type];
     entry->flags_ = static_cast<std::uint8_t>(((reliable ^ entry->flags_) & 1) ^ entry->flags_);
 }
-EI_REWRITTEN(0x00434110, Connection::Track);
 
 void Connection::CollectChanges() {
     ReplicatedVector& items = g_replicated;
@@ -525,7 +513,6 @@ void Connection::CollectChanges() {
         byObject_.EraseAt(gone);
     }
 }
-EI_REWRITTEN(0x004346D0, Connection::CollectChanges);
 
 } // namespace net
 
@@ -547,7 +534,6 @@ void BufferCursor::PutBit(std::uint32_t bit) {
         ++p;
     }
 }
-EI_REWRITTEN(0x004357C0, BufferCursor::PutBit);
 
 namespace net {
 
@@ -597,7 +583,6 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     *cursor->p++ = 0;
     cursor->WriteBytes(&zero, 2);
 }
-EI_REWRITTEN(0x004355B0, Connection::WriteObjectRef);
 
 // The original reads the type and id into dwords whose upper bytes it masks off (and passes the
 // type dword on to AttachRecord, which keeps only its low byte in use); they start as zero here.
@@ -645,7 +630,6 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;
 }
-EI_REWRITTEN(0x00435820, Connection::ReadObjectRef);
 
 } // namespace net
 
@@ -667,7 +651,6 @@ void Connection::Acknowledge(std::uint16_t sequence) {
         }
     }
 }
-EI_REWRITTEN(0x00434CE0, Connection::Acknowledge);
 
 // ackMask_ shifts along when the peer's newest acknowledged sequence moves.
 void Connection::ReadAcks(BufferCursor* cursor) {
@@ -698,7 +681,6 @@ void Connection::ReadAcks(BufferCursor* cursor) {
         if (fresh & (1u << (k - 1))) Acknowledge(older);
     }
 }
-EI_REWRITTEN(0x00434D70, Connection::ReadAcks);
 
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
@@ -728,7 +710,6 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     return true;
 }
-EI_REWRITTEN(0x00434E50, Connection::Accept);
 
 void Connection::ProcessHeaders() {
     bool progress;
@@ -759,7 +740,6 @@ void Connection::ProcessHeaders() {
         } while (node != incoming_.End());
     } while (progress);
 }
-EI_REWRITTEN(0x00434AE0, Connection::ProcessHeaders);
 
 bool Connection::ReadUpdate(BufferCursor* cursor) {
     g_currentConnection = this;
@@ -801,7 +781,6 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
     g_currentConnection = nullptr;
     return true;
 }
-EI_REWRITTEN(0x00436470, Connection::ReadUpdate);
 
 void Connection::Close() {
     g_currentConnection = this;
@@ -822,6 +801,5 @@ void Connection::Close() {
     }
     g_currentConnection = nullptr;
 }
-EI_REWRITTEN(0x00436620, Connection::Close);
 
 } // namespace net

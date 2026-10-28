@@ -6,7 +6,6 @@
 #include "record_arrays.h"
 #include "unit_ai.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -97,7 +96,6 @@ CUnitServer::CUnitServer() {
     std::memset(&voice, 0, sizeof(voice));
     ResetController();
 }
-EI_REWRITTEN_SPECIAL(0x00545580, CUnitServer::CUnitServer);
 
 // --- AIPath -------------------------------------------------------------------------------------
 
@@ -109,7 +107,6 @@ void AIPath::Destruct() {
     steps.vtable = PathCellListVtable();
     steps.RemoveAll();
 }
-EI_REWRITTEN(0x00546100, AIPath::Destruct);
 
 // --- OrderPlan ----------------------------------------------------------------------------------
 
@@ -130,7 +127,6 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     isCast = 0;
     if (steps.data) gamecrt::operator_delete(steps.data);
 }
-EI_REWRITTEN(0x00545110, OrderPlan::TakeSteps);
 
 // --- AIBrain ------------------------------------------------------------------------------------
 
@@ -164,7 +160,6 @@ AIBrain* AIBrain::Construct() {
     Init();
     return this;
 }
-EI_REWRITTEN(0x00545990, AIBrain::Construct);
 
 void AIMemory::Destruct() {
     calls.vtable = MemoryRecordArrayClass::Vtable();
@@ -185,7 +180,6 @@ void AIMemory::Destruct() {
     DestroyObjectList(visible);
     DestroyObjectList(nearby);
 }
-EI_REWRITTEN(0x00545CB0, AIMemory::Destruct);
 
 void AIBrain::Destruct() {
     Init();
@@ -208,4 +202,3 @@ void AIBrain::Destruct() {
     move.looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
     if (move.looks.data) gamecrt::operator_delete(move.looks.data);
 }
-EI_REWRITTEN(0x005457E0, AIBrain::Destruct);

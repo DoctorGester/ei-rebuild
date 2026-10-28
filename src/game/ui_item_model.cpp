@@ -5,7 +5,6 @@
 #include "figure_mesh.h"
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 
 namespace {
@@ -31,4 +30,3 @@ CUiMesh* __fastcall ItemModel(const char* name) {
     ++model->refCount_;
     return model;
 }
-EI_REWRITTEN(0x005EBFB0, ItemModel);

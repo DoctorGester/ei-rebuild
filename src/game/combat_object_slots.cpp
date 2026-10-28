@@ -11,7 +11,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
@@ -45,7 +44,6 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
     }
     BrainOf(this)->memory.AddClaim(mask, kCallClaim, text.c_str());
 }
-EI_REWRITTEN(0x00552D00, CUnitServer::ClaimHostility);
 
 BOOL CUnitServer::TakeUpWeapon(int slot) {
     auto* weapon = unit->GetWeapon(static_cast<std::uint32_t>(slot));
@@ -57,7 +55,6 @@ BOOL CUnitServer::TakeUpWeapon(int slot) {
     RefreshItemSpells();
     return Usable(weapon) ? 1 : 0;
 }
-EI_REWRITTEN(0x00553610, CUnitServer::TakeUpWeapon);
 
 void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     if (!object) return;
@@ -76,7 +73,6 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
         if (old) old->Release();
     }
 }
-EI_REWRITTEN(0x00552670, CUnitServer::OnObjectDeleted);
 
 void CUnitServer::Resettle() {
     if (unit->IsDead()) return;
@@ -102,20 +98,15 @@ void CUnitServer::Resettle() {
     }
     TheServerWorld()->AIMap()->SectorMap()->Add(unit);
 }
-EI_REWRITTEN(0x00553260, CUnitServer::Resettle);
 
 int CUnitServer::Create() {
     ResetController();
     BrainOf(this)->SetOwner(this);
     return 1;
 }
-EI_REWRITTEN(0x00546450, CUnitServer::Create);
 
 void CUnitServer::ClearState() { ResetController(); }
-EI_REWRITTEN(0x00546080, CUnitServer::ClearState);
 
 void CUnitServer::Destroy() { ResetController(); }
-EI_REWRITTEN(0x00546470, CUnitServer::Destroy);
 
 int CUnitServer::TamingStage() { return tameStage; }
-EI_REWRITTEN(0x005460A0, CUnitServer::TamingStage);

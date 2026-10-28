@@ -6,8 +6,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
-
 namespace {
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may ask for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
@@ -61,7 +59,6 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
     FreeCandidates(candidates);
     return picked;
 }
-EI_REWRITTEN(0x005190C0, CObject3D::RandomAnimation);
 
 FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     AnimationDatabase* database = Animations();
@@ -83,8 +80,3 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     FreeCandidates(candidates);
     return picked;
 }
-EI_REWRITTEN(0x00519380, CObject3D::RandomAnimationOfKind);
-
-// The candidate lists' helpers are the same code as AlignedPtrArray's.
-EI_REWRITTEN(0x0051A010, AlignedPtrArray::SetAtGrow);
-EI_REWRITTEN(0x0051A190, AlignedPtrArray::SetSize);

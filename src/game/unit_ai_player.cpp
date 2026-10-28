@@ -10,7 +10,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -162,8 +161,6 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     candidates.RemoveAll();
 }
 
-EI_REWRITTEN(0x005D4170, PlayerMode::UpdateCombat);
-
 void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     AIObjectList nearby;
     InitList(nearby);
@@ -184,8 +181,6 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     }
     nearby.RemoveAll();
 }
-
-EI_REWRITTEN(0x005D3F50, PlayerMode::AddPartyTargets);
 
 void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     party->RemoveAll();
@@ -215,8 +210,6 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     } while (added);
 }
 
-EI_REWRITTEN(0x005D4600, PlayerMode::CollectParty);
-
 bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     float slack = moving ? kMovingSlack : kStandingSlack;
     CUnit* unit = brain->owner->unit;
@@ -236,5 +229,3 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     }
     return true;
 }
-
-EI_REWRITTEN(0x005D4860, PlayerMode::StaysWithParty);

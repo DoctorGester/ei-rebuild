@@ -1,7 +1,6 @@
 // Splitting texts into strings, joining them and replacing characters. See text_split.h.
 #include "text_split.h"
 
-#include "ei/hook.h"
 #include "lib/str.h"
 
 #include <string>
@@ -37,12 +36,10 @@ int SplitAt(const char* text, std::vector<std::string>* array, char separator, b
 int Split(const char* text, std::vector<std::string>* array, char separator) {
     return SplitAt(text, array, separator, false);
 }
-EI_REWRITTEN(0x004DBE40, Split);
 
 int SplitWords(const char* text, std::vector<std::string>* array, char separator) {
     return SplitAt(text, array, separator, true);
 }
-EI_REWRITTEN(0x004DBF50, SplitWords);
 
 int __fastcall ReplaceChar(std::string* string, char from, char to) {
     std::string result;
@@ -58,7 +55,6 @@ int __fastcall ReplaceChar(std::string* string, char from, char to) {
     *string = result;
     return 1;
 }
-EI_REWRITTEN(0x004DC400, ReplaceChar);
 
 int Join(std::string* out, const std::vector<std::string>& parts, char separator) {
     out->clear();
@@ -70,6 +66,5 @@ int Join(std::string* out, const std::vector<std::string>& parts, char separator
     }
     return 1;
 }
-EI_REWRITTEN(0x004DC390, Join);
 
 } // namespace text

@@ -8,7 +8,6 @@
 #include "resource_local.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -41,4 +40,3 @@ int __cdecl LoadLightningNoise() {
     resource.Get()->CMappedResource::CloseFile(data);
     return 1;
 }
-EI_REWRITTEN(0x00468A00, LoadLightningNoise);

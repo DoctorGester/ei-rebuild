@@ -3,7 +3,6 @@
 #include "map_object.h"
 #include "sector_map.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/stlp.h"
@@ -34,18 +33,15 @@ int __stdcall LevelForSizeClass(int sizeClass) {
     if (sizeClass < 0 || sizeClass >= 8) return sizeClass & ~0xFF;   // XOR AL,AL
     return PositiveOrZero(x87::fistp((2.0f - kSizeClassHeights[sizeClass]) * 16.0f));
 }
-EI_REWRITTEN(0x005B7B20, LevelForSizeClass);
 
 int __stdcall StandingLevel(const CUnit* unit) {
     return PositiveOrZero(x87::fistp((2.0f - unit->standingHeight) * 16.0f));
 }
-EI_REWRITTEN(0x005B7B70, StandingLevel);
 
 int BridgeHeights::HeightAt(short x, short y) const {
     const auto* node = FindBridgeHeight(this, x, y);
     return node ? static_cast<std::uint16_t>(node->value) : 0;
 }
-EI_REWRITTEN(0x005B3160, BridgeHeights::HeightAt);
 
 // --- Cell queries --------------------------------------------------------------------------------
 
@@ -62,7 +58,6 @@ bool CAIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
     *reason = 0;
     return true;
 }
-EI_REWRITTEN(0x005B80F0, CAIMap::CanStandAt);
 
 bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
@@ -82,7 +77,6 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     *reason = 0;
     return true;
 }
-EI_REWRITTEN(0x005B81B0, CAIMap::CanStandAtFromHere);
 
 bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
     if (unit->GetClassId() != kClassUnit) return true;
@@ -98,21 +92,18 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
     sectorMap.Add(unit);
     return passable;
 }
-EI_REWRITTEN(0x005B7A40, CAIMap::IsPassableWithoutSelf);
 
 bool CAIMap::IsUnitCellPassable(CUnit* unit) {
     int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
 }
-EI_REWRITTEN(0x005BA6E0, CAIMap::IsUnitCellPassable);
 
 bool CAIMap::IsPassableForClass(std::uint8_t sizeClass, const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return ((cells[y][x].passable >> ((sizeClass & 7) * 4)) & 0xF) != 0;
 }
-EI_REWRITTEN(0x005BA790, CAIMap::IsPassableForClass);
 
 bool CAIMap::CanLeaveCell(CUnit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
@@ -131,14 +122,12 @@ bool CAIMap::CanLeaveCell(CUnit* unit) {
     }
     return false;
 }
-EI_REWRITTEN(0x005BA830, CAIMap::CanLeaveCell);
 
 // --- Heights -------------------------------------------------------------------------------------
 
 float CAIMap::GroundHeight(int x, int y) {
     return static_cast<float>(static_cast<int>(cells[y][x].groundLevel)) / heightScale;
 }
-EI_REWRITTEN(0x005B77F0, CAIMap::GroundHeight);
 
 float CAIMap::TopHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
@@ -146,7 +135,6 @@ float CAIMap::TopHeightAt(const Vector3* position) {
     const AIMapCell& cell = cells[y][x];
     return static_cast<float>((cell.flags & 0x3F) + cell.groundLevel) / heightScale;
 }
-EI_REWRITTEN(0x005BBB20, CAIMap::TopHeightAt);
 
 float CAIMap::SlopeAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
@@ -167,14 +155,12 @@ float CAIMap::SlopeAt(const Vector3* position) {
     if (!(slope > d)) slope = d;
     return static_cast<float>(slope) / heightScale;
 }
-EI_REWRITTEN(0x005BC2A0, CAIMap::SlopeAt);
 
 bool CAIMap::CellFlag80At(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return (cells[y][x].flags >> 7) & 1;
 }
-EI_REWRITTEN(0x005BBC70, CAIMap::CellFlag80At);
 
 namespace {
 constexpr std::uint32_t kOccluderNone = 0x100;
@@ -198,28 +184,24 @@ bool CAIMap::HasKind3Occluder(int x, int y) {
     }
     return false;
 }
-EI_REWRITTEN(0x005BBD10, CAIMap::HasKind3Occluder);
 
 bool CAIMap::HasKind3OccluderAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     return HasKind3Occluder(x, y);
 }
-EI_REWRITTEN(0x005BBDB0, CAIMap::HasKind3OccluderAt);
 
 int CAIMap::MaterialAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return -1;
     return occluders[y][x] & 0x1F;
 }
-EI_REWRITTEN(0x005BBE40, CAIMap::MaterialAt);
 
 AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return materials.data;
     return materials.data + (occluders[y][x] & 0x1F);
 }
-EI_REWRITTEN(0x005BC1F0, CAIMap::MaterialRecordAt);
 
 void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
     CSectorMap* map = SectorMap();
@@ -227,7 +209,6 @@ void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
     object->localRotation_ = *rotation;
     map->Add(object);
 }
-EI_REWRITTEN(0x005BC180, CAIMap::TurnObject);
 
 bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     int deck = 0;
@@ -250,7 +231,6 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     if (deckHeight) *deckHeight = deck;
     return found;
 }
-EI_REWRITTEN(0x005B64E0, CAIMap::BridgeDeckAt);
 
 // --- Line of sight -------------------------------------------------------------------------------
 
@@ -314,7 +294,6 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     }
     return visibility;
 }
-EI_REWRITTEN(0x005BC3E0, CAIMap::LineOfSight);
 
 // --- Free cell search ----------------------------------------------------------------------------
 
@@ -356,7 +335,6 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
     radius = r;
     return SpiralOffsets();
 }
-EI_REWRITTEN(0x005BFC40, SpiralCache::Get);
 
 bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target) {
     auto& guard = g_findFreeGuard;
@@ -394,4 +372,3 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     }
     return false;
 }
-EI_REWRITTEN(0x005BA9D0, CAIMap::FindFreeCellNear);

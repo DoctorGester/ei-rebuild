@@ -7,7 +7,6 @@
 #include "sound.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp.h"
@@ -89,7 +88,6 @@ void CRainSnow::UpdateFade(float now) {
     density = 64;
     fadeDuration = 0.0f;
 }
-EI_REWRITTEN(0x004E40B0, CRainSnow::UpdateFade);
 
 void CRainSnow::SetWind(const Vector3& direction, float strength) {
     float x = static_cast<float>(strength * direction.x);
@@ -99,7 +97,6 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
     wind.y = y;
     wind.z = z;
 }
-EI_REWRITTEN(0x004E41F0, CRainSnow::SetWind);
 
 namespace {
 constexpr int kWeatherTextureKind = 6;
@@ -126,9 +123,6 @@ void CRainSnow::Clear() {
     fadeDuration = 0.0f;
     density = kFullDensity;
 }
-EI_REWRITTEN(0x004E3B80, CRainSnow::Clear);
-// The compiler's jump thunk to it, registered as the same replacement.
-EI_REWRITTEN(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
     texture.Load(kWeatherTextureKind, WeatherTextureName());
@@ -142,7 +136,6 @@ void CRainSnow::Start(int newMode, float duration) {
     std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));
     fadeStart = static_cast<float>(world->tick_);
 }
-EI_REWRITTEN(0x004E3FC0, CRainSnow::Start);
 
 CRainSnow::CRainSnow() {
     ClearFields();
@@ -170,13 +163,9 @@ CRainSnow::~CRainSnow() {
     projected.FreeData();
     if (texture) texture->Release();
 }
-EI_REWRITTEN_SPECIAL(0x005616C0, CRainSnow::~CRainSnow);
-EI_REWRITTEN_SPECIAL(0x005617E0, CRainSnow::~CRainSnow);
 
 const char* CRainSnow::GetClassName() { return "CWeather"; }
 int CRainSnow::GetClassId() { return 0x1D; }
-EI_REWRITTEN(0x005617C0, CRainSnow::GetClassName);
-EI_REWRITTEN(0x005617D0, CRainSnow::GetClassId);
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
@@ -224,7 +213,6 @@ void CVisibilityFog::ComputeBounds() {
     bounds.flags = 3;
     boundsValid = 1;
 }
-EI_REWRITTEN(0x004E1770, CVisibilityFog::ComputeBounds);
 
 // Per-frame fade: visible cells halve their distance to opaque, the others halve their alpha and
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
@@ -262,7 +250,6 @@ int CVisibilityFog::UpdateCells() {
     }
     return (refCount_ > 1 || cells.Size() != 0) ? 1 : 0;
 }
-EI_REWRITTEN(0x004E1AB0, CVisibilityFog::UpdateCells);
 
 // Marks the cells of the visible squares (adding new ones, transparent, at a jittered point on
 // the ground) and clears the mark on all others.
@@ -298,7 +285,6 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
         }
     }
 }
-EI_REWRITTEN(0x004E1C60, CVisibilityFog::Reveal);
 
 // ---- The fog object's virtuals ------------------------------------------------------------------
 
@@ -325,8 +311,6 @@ CVisibilityFog::~CVisibilityFog() {
     ClearCells();
     cells.Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x004E24E0, CVisibilityFog::~CVisibilityFog);
-EI_REWRITTEN_SPECIAL(0x004E24C0, CVisibilityFog::~CVisibilityFog);
 
 int CVisibilityFog::Create() {
     ClearCells();
@@ -334,9 +318,3 @@ int CVisibilityFog::Create() {
 }
 const char* CVisibilityFog::GetClassName() { return "CVisibilityFog"; }
 int CVisibilityFog::GetClassId() { return 0x5F; }
-EI_REWRITTEN(0x004E23D0, CVisibilityFog::Create);
-EI_REWRITTEN(0x004E2440, CVisibilityFog::Destroy);
-EI_REWRITTEN(0x004E24A0, CVisibilityFog::GetClassName);
-EI_REWRITTEN(0x004E24B0, CVisibilityFog::GetClassId);
-
-EI_REWRITTEN(0x004E1C50, DestroyDeadCells);

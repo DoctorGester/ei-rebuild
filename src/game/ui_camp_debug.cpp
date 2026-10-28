@@ -9,7 +9,6 @@
 #include "item_db.h"
 #include "party.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "resource_manager.h"
 #include "game_data.h"
@@ -140,4 +139,3 @@ void CCampPages::DebugFill() {
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }
 }
-EI_REWRITTEN(0x00612CF0, CCampPages::DebugFill);

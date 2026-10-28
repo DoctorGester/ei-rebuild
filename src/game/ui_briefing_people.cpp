@@ -16,7 +16,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -108,9 +107,6 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     first->prev = node;
     controller->Brain()->Walk(&target, run, 0);
 }
-
-EI_REWRITTEN(0x006089D0, CBriefingScreen::MovePerson);
-
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     (void)unused;
@@ -212,4 +208,3 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     first->prev->next = node;
     first->prev = node;
 }
-EI_REWRITTEN(0x00605DE0, CBriefingScreen::ShowItem);

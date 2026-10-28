@@ -111,7 +111,8 @@ lands; `compare --strict` keeps them) are empty.
 ## 3. Function vectors
 
 **Record mode** (`EI_VECTORS=1`, game.exe with `--no-hooks`): a family's recorders (`EI_RECORD(addr, recorder, stolen,
-orig)` in tests/vectors/record_<family>.cpp; stolen bytes checked by check_stolen.py and check_signatures.py) copy the
+orig, rewrite)` in tests/vectors/record_<family>.cpp; stolen bytes checked by check_stolen.py, the recorder's and the
+rewrite's stack arguments, the function the replay calls, by check_signatures.py) copy the
 arguments and the state the function reads, the x87 control word, call the original and copy the result and state
 after, as a plain payload (tests/vectors/<family>_vectors.h) offered to a `Sampler`: repeats dropped by hash, a
 fixed-seed reservoir of `cap` distinct calls per bucket (so a rare path is kept). The report writes

@@ -4,7 +4,6 @@
 #include "scene_loader.h"
 
 #include "lib/vecmath.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -69,6 +68,5 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const Vector3& at = points[vertex[1]].point;
     distance = static_cast<float>(DotZYX(at, normal));
 }
-EI_REWRITTEN(0x0049AEC0, MeshFace::ComputeNormal);
 
 } // namespace scene

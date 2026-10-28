@@ -12,7 +12,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "unit_ai.h"
 
 #include <string>
@@ -49,7 +48,6 @@ int ScriptBindings::Add(const ScriptBinding& binding) {
     data[index] = binding;
     return index;
 }
-EI_REWRITTEN(0x004D5B50, ScriptBindings::Add);
 
 int ScriptSubCalls::Add(const ScriptSubCall& call) {
     int index = Append(this, kSubCalls);
@@ -59,27 +57,23 @@ int ScriptSubCalls::Add(const ScriptSubCall& call) {
     element.cmd->ScriptCmdAssign(call.cmd);
     return index;
 }
-EI_REWRITTEN(0x004D5CB0, ScriptSubCalls::Add);
 
 int ScriptCommands::Add(const SSCCmd& cmd) {
     int index = Append(this, kCmds);
     data[index].ScriptCmdAssign(&cmd);
     return index;
 }
-EI_REWRITTEN(0x004D5ED0, ScriptCommands::Add);
 
 void ScriptCommands::SetAtGrow(int index, const SSCCmd& cmd) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kCmds);
     data[index].ScriptCmdAssign(&cmd);
 }
-EI_REWRITTEN(0x004D65E0, ScriptCommands::SetAtGrow);
 
 int ScriptDefinitions::Add(const ScriptDefinition& definition) {
     int index = Append(this, kDefinitions);
     data[index].ScriptDefinitionAssign(&definition);
     return index;
 }
-EI_REWRITTEN(0x004D6100, ScriptDefinitions::Add);
 
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
     SSCCmd* cmd = call->cmd;
@@ -88,7 +82,6 @@ void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
         gamecrt::operator_delete(cmd);
     }
 }
-EI_REWRITTEN(0x004C5480, ScriptSubCallDestruct);
 
 template <typename T>
 int ScriptNamedValues<T>::FindName(const char* name) const {
@@ -102,10 +95,6 @@ template int ScriptNamedValues<float>::FindName(const char*) const;
 template int ScriptNamedValues<std::string>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
-EI_REWRITTEN(0x004D5A50, ScriptNamedValues<float>::FindName);
-EI_REWRITTEN(0x004D5A90, ScriptNamedValues<std::string>::FindName);
-EI_REWRITTEN(0x004D5AD0, ScriptNamedValues<ScriptObjectRef>::FindName);
-EI_REWRITTEN(0x004D5B10, ScriptNamedValues<ScriptGroup>::FindName);
 
 ScriptCommands* ScriptCommands::ConstructEmpty() {
     data = nullptr;
@@ -115,7 +104,6 @@ ScriptCommands* ScriptCommands::ConstructEmpty() {
     vtable = recordarrays::SubCallArrayClass::Vtable();   // the loader arrays
     return this;
 }
-EI_REWRITTEN(0x004D5A10, ScriptCommands::ConstructEmpty);
 
 ScriptIfThens* ScriptIfThens::ConstructEmpty() {
     data = nullptr;
@@ -125,22 +113,18 @@ ScriptIfThens* ScriptIfThens::ConstructEmpty() {
     vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
     return this;
 }
-EI_REWRITTEN(0x004D5A30, ScriptIfThens::ConstructEmpty);
 
 void ScriptStrings::SetAtGrow(int index, const std::string& text) {
     if (index >= size) SetSize(index + 1, -1);
     data[index] = text;
 }
-EI_REWRITTEN(0x004CE5F0, ScriptStrings::SetAtGrow);
 
 void ScriptStrings::CopyTo(int index, std::string* out) const {
     std::string copy = data[index];   // the by-value GetAt
     *out = copy;
 }
-EI_REWRITTEN(0x004C2F80, ScriptStrings::CopyTo);
 
 void AILooks::SetAtGrow(int index, const AILook& look) {
     if (index >= size) InlineSetSize(Raw(this), index + 1, kLooks);
     data[index] = look;
 }
-EI_REWRITTEN(0x004CDCB0, AILooks::SetAtGrow);

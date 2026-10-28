@@ -47,7 +47,6 @@
 #include "lib/stlp.h"
 #include "lib/mfc_array.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "party_manager.h"
 #include "party_records.h"
@@ -161,9 +160,6 @@ void __cdecl ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
     libcrt::AtExit(DestroySaveStream);
 }
-
-EI_REWRITTEN(0x00578530, ConstructSaveStream);
-EI_REWRITTEN(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
     FileStream file;
@@ -920,7 +916,6 @@ void GameFlow::StartClient() {
     AssignCounted(net::GameClient(), client);
     AfterServerStart();
 }
-EI_REWRITTEN(0x0057EA50, GameFlow::StartClient);
 
 void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
     GrowingBuffer hello;
@@ -929,7 +924,6 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
     net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
 }
-EI_REWRITTEN(0x0057E970, GameFlow::JoinServer);
 
 namespace {
 
@@ -1243,7 +1237,6 @@ void __fastcall SwitchResourceDatabases(const char* name) {
     ItemDatabaseObject()->Reset();
     ItemDatabaseObject()->Load(ResourcesPath(), name);
 }
-EI_REWRITTEN(0x0057CB50, SwitchResourceDatabases);
 
 void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
@@ -1265,7 +1258,6 @@ void GameFlow::UseResources(bool network) {
         Spectator0() = SavedSpectator();
     }
 }
-EI_REWRITTEN(0x0057DEE0, GameFlow::UseResources);
 
 void GameFlow::ProcessRequest() {
     int& state = state_;
@@ -1466,14 +1458,12 @@ GameFlow* GameFlow::Construct() {
     state_ = 0;
     return this;
 }
-EI_REWRITTEN(0x00578460, GameFlow::Construct);
 
 void GameFlow::Destruct() {
     std::destroy_at(&zone7C_);
     RequestParty()->~CParty();
     std::destroy_at(&requestTarget_);
 }
-EI_REWRITTEN(0x005784D0, GameFlow::Destruct);
 
 // The flow, zero at the start: built by a static initialiser and destroyed by the exit function it
 // registers (docs/notes/standalone.md, "The static initialisers' objects").
@@ -1489,9 +1479,6 @@ void __cdecl ConstructGameFlow() {
     libcrt::AtExit(DestroyGameFlow);
 }
 
-EI_REWRITTEN(0x00578440, ConstructGameFlow);
-EI_REWRITTEN(0x005784C0, DestroyGameFlow);
-
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
     folder.Format(kCurrentFolder, DataFolderText());
@@ -1499,7 +1486,6 @@ void GameFlow::SetNetworkZone(const char* zone) {
     zone7C_ = zone ? zone : "";   // null (LeaveZone): no zone
     if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZone(zone);
 }
-EI_REWRITTEN(0x0057ED60, GameFlow::SetNetworkZone);
 
 int CurrentSaveSize() {
     mfc::CFileFind find;
@@ -1515,7 +1501,6 @@ int CurrentSaveSize() {
     }
     return total;
 }
-EI_REWRITTEN(0x0057BC30, CurrentSaveSize);
 
 void GameFlow::AfterServerStart() {
     UseResources(true);
@@ -1818,47 +1803,3 @@ void GameFlow::BuildZoneTable() {
     }
     find.Close();
 }
-EI_REWRITTEN(0x0057F560, GameFlow::BuildZoneTable);
-EI_REWRITTEN(0x0057F4A0, DestroyZoneTable);
-
-EI_REWRITTEN(0x0057B3B0, GameFlow::SaveGame);
-EI_REWRITTEN(0x0057F0F0, GameFlow::ReturnLocalParty);
-EI_REWRITTEN(0x0057F150, GameFlow::UpdateAndAcknowledge);
-EI_REWRITTEN(0x0057FB60, GameFlow::RequestBriefing);
-EI_REWRITTEN(0x0057F820, NameInList);
-EI_REWRITTEN(0x0057AAB0, ClearSaveFolder);
-EI_REWRITTEN(0x0057EE10, GameFlow::SwitchMultiplayerZone);
-EI_REWRITTEN(0x0057E740, GameFlow::StartServer);
-EI_REWRITTEN(0x0058DAF0, CWorldServer::AcceptNewPlayers);
-EI_REWRITTEN(0x0057F850, PickZones);
-EI_REWRITTEN(0x00579E60, LoadMission);
-EI_REWRITTEN(0x00596140, CWorldServer::ReadAIGraph);
-EI_REWRITTEN(0x00596350, CWorldServer::LoadZoneScripts);
-EI_REWRITTEN(0x0057F390, GameFlow::RecreateClientSession);
-EI_REWRITTEN(0x00581610, GameFlow::SaveGameThunk);
-EI_REWRITTEN(0x00581630, RequestZone);
-EI_REWRITTEN(0x00581660, GameFlow::CloseSessions);
-EI_REWRITTEN(0x0057ECA0, GameFlow::DropSessions);
-EI_REWRITTEN(0x0057ED00, GameFlow::EndSession);
-EI_REWRITTEN(0x005816C0, GameFlow::RequestState3);
-EI_REWRITTEN(0x005816D0, GameFlow::RequestLoad);
-EI_REWRITTEN(0x00581700, GameFlow::RequestZoneChange);
-EI_REWRITTEN(0x00581730, GameFlow::RequestPartyZone5);
-EI_REWRITTEN(0x00581760, GameFlow::RequestPartyZone6);
-EI_REWRITTEN(0x00581620, GameFlow::DisconnectClient);
-EI_REWRITTEN(0x0057F190, GameFlow::UpdateMultiplayerVariable);
-EI_REWRITTEN(0x0057E6B0, GameFlow::MultiplayerZoneInto);
-EI_REWRITTEN(0x0057F280, GameFlow::BeginMultiplayerGame);
-EI_REWRITTEN(0x0057AA80, CWorldServer::ZoneNameInto);
-EI_REWRITTEN(0x0057A780, LeaveZone);
-EI_REWRITTEN(0x0057A060, EnterZone);
-EI_REWRITTEN(0x0057BDF0, StartNetworkZone);
-EI_REWRITTEN(0x0057C460, GameFlow::StartZone);
-EI_REWRITTEN(0x0057BD10, GameFlow::StartNewGame);
-EI_REWRITTEN(0x0057C700, GameFlow::ProcessRequest);
-EI_REWRITTEN(0x0057ABA0, GameFlow::LoadGame);
-EI_REWRITTEN(0x0057EB10, GameFlow::AfterServerStart);
-EI_REWRITTEN(0x005800C0, GameFlow::UpdateFromServer);
-EI_REWRITTEN(0x00662FB0, SavedParties::Reload);
-
-EI_REWRITTEN(0x0057E6A0, DestroyLastResources);

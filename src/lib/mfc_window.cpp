@@ -2,7 +2,6 @@
 // (mfc_window.h).
 #include "mfc_window.h"
 
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "mfc.h"
 #include "mfc_runtime_class.h"
@@ -92,20 +91,6 @@ void* __stdcall CreateCMenu() { return new CMenu(); }
 
 void* __stdcall CreateCTempMenu() { return new CTempMenu(); }
 
-EI_REWRITTEN_SPECIAL(0x00703EAE, CCmdTarget::CCmdTarget);
-EI_REWRITTEN(0x0070D32B, CreateCWnd);
-EI_REWRITTEN(0x0070D363, CreateCTempWnd);
-EI_REWRITTEN(0x0070DC80, CreateCMenu);
-EI_REWRITTEN(0x0070DCA0, CreateCTempMenu);
-EI_REWRITTEN_SPECIAL(0x00703EC8, CCmdTarget::~CCmdTarget);
-EI_REWRITTEN(0x007043FA, RegisterDragListMessage);
-EI_REWRITTEN(0x00704546, CWnd::Construct);
-EI_REWRITTEN_SPECIAL(0x007068AA, CWnd::CWnd);
-EI_REWRITTEN(0x00704FE3, DestroyStaticWindow);
-EI_REWRITTEN_SPECIAL(0x0070452A, CWnd::~CWnd);   // deleting
-EI_REWRITTEN(0x0070D35D, CWnd::GetRuntimeClass);
-EI_REWRITTEN(0x0070DC9A, CMenu::GetRuntimeClass);
-
 int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {
     if (!(type & MB_ICONMASK)) {
         const unsigned buttons = type & MB_TYPEMASK;
@@ -122,8 +107,5 @@ int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
     if (helpId == static_cast<unsigned>(-1)) helpId = promptId;
     return MessageBoxText(prompt, type, helpId);
 }
-
-EI_REWRITTEN(0x0070AC94, MessageBoxText);
-EI_REWRITTEN(0x0070ACCC, MessageBoxId);
 
 } // namespace mfc::impl

@@ -4,7 +4,6 @@
 
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_slots.h"
 
 #include <cstddef>
@@ -28,7 +27,6 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
     }
     choice->object = UnitOrNull(brain->target);
 }
-EI_REWRITTEN(0x005CF220, AIAttention::CurrentAttack);
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
     AIObjectList candidates{};
@@ -68,4 +66,3 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
     // The list's RemoveAll: no element destruction.
     candidates.RemoveAll();
 }
-EI_REWRITTEN(0x005CFE40, AIAttention::LookAround);

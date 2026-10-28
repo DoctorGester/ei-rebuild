@@ -6,7 +6,6 @@
 #include "random.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -106,7 +105,6 @@ float NoiseAmplitude(float power) {
 // --- NoiseKey / LightningSegment ----------------------------------------------------------------
 
 void NoiseKey::Randomize(float amplitude) { RandomizeKey(*this, amplitude, false); }
-EI_REWRITTEN(0x00466190, NoiseKey::Randomize);
 
 void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, float amplitude) {
     double elapsed = static_cast<double>(time) - noiseTime;
@@ -143,7 +141,6 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
     SampleCurve(this, sideKeys, blend, outSide, amplitude);
     SampleCurve(this, upKeys, blend, outUp, amplitude);
 }
-EI_REWRITTEN(0x004662C0, LightningSegment::SampleNoise);
 
 void LightningSegment::Animate(float time, float amplitude) {
     int count = points.size;
@@ -185,7 +182,6 @@ void LightningSegment::Animate(float time, float amplitude) {
         upAt = upAt + upSlope;
     }
 }
-EI_REWRITTEN(0x00466CE0, LightningSegment::Animate);
 
 void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     std::memcpy(&start, from, sizeof(start));
@@ -240,7 +236,6 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.z = static_cast<float>(step.z / n);
     points.SetSize(count, -1);
 }
-EI_REWRITTEN(0x00466820, LightningSegment::Init);
 
 // --- CLightning --------------------------------------------------------------------------------
 
@@ -254,7 +249,6 @@ void CLightning::Destroy() {
     glowTexture_ = nullptr;
     if (glow) glow->Release();
 }
-EI_REWRITTEN(0x00468790, CLightning::Destroy);
 
 int CLightning::Create() {
     Destroy();
@@ -263,7 +257,6 @@ int CLightning::Create() {
     ++refCount_;
     return 1;
 }
-EI_REWRITTEN(0x00466EA0, CLightning::Create);
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {
     for (int i = 0; i < segment->points.size; ++i) {
@@ -277,7 +270,6 @@ void CLightning::ExpandBounds(const LightningSegment* segment) {
         bounds_.boxMax.z = bounds_.boxMax.z >= p.z ? bounds_.boxMax.z : p.z;
     }
 }
-EI_REWRITTEN(0x00466FD0, CLightning::ExpandBounds);
 
 void CLightning::UpdateBounds() {
     const float largest = FromBits(0x7149F2CA);      // 1e30
@@ -309,7 +301,6 @@ void CLightning::UpdateBounds() {
     bounds_.flags = 3;
     bounds_.radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(bounds_.boxMax)));
 }
-EI_REWRITTEN(0x00467150, CLightning::UpdateBounds);
 
 void CLightning::Animate() {
     float sway = amplitude_;
@@ -366,7 +357,6 @@ void CLightning::Animate() {
     }
     for (int i = 0; i < 6; ++i) branches_[i].Animate(time, NoiseAmplitude(power_));
 }
-EI_REWRITTEN(0x004672E0, CLightning::Animate);
 
 void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
     main_.Init(from, to);
@@ -420,7 +410,6 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
     if (power_ < 0.0f) Animate();
     UpdateBounds();
 }
-EI_REWRITTEN(0x00467E10, CLightning::SetEndpoints);
 
 // --- CLightningManager --------------------------------------------------------------------------
 
@@ -438,4 +427,3 @@ int CLightningManager::DrawAll(CSceneRenderer* device) {
     newBolts_.RemoveAll();
     return 1;
 }
-EI_REWRITTEN(0x00468940, CLightningManager::DrawAll);

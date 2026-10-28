@@ -4,7 +4,6 @@
 #include "record_vectors.h"
 #include "terrain.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/nan_audit.h"
@@ -74,11 +73,6 @@ void ChunkArchive::SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records
 void ChunkArchive::SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void*) {
     SerializeArray<recordvec::ExtraAcksVector>(this, id, records);
 }
-EI_REWRITTEN(0x006D23A0, ChunkArchive::SerializePrints);
-EI_REWRITTEN(0x006D25F0, ChunkArchive::SerializePrints2);
-EI_REWRITTEN(0x006DB430, ChunkArchive::SerializeAcks);
-EI_REWRITTEN(0x006DB680, ChunkArchive::SerializeAcks2);
-EI_REWRITTEN(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
@@ -94,7 +88,6 @@ void PrintRecord::Serialize(ChunkArchive* ar) {
     TripleChunk(ar, 2, &look2);
     TripleChunk(ar, 3, &look3);
 }
-EI_REWRITTEN(0x006D41D0, PrintRecord::Serialize);
 
 void PrintRecord2::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
@@ -102,11 +95,7 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
     TripleChunk(ar, 3, &look3);
     TripleChunk(ar, 10, values10);
 }
-EI_REWRITTEN(0x006D4270, PrintRecord2::Serialize);
 
-
-EI_REWRITTEN(0x006D43E0, WaterTweens::RemoveAll);
-EI_REWRITTEN(0x006D4840, WaterTweens::SetSize);
 void WaterTweens::SetTarget(int key, float target, int steps) {
     if (steps < 1) steps = 1;
     int count = size;
@@ -124,7 +113,6 @@ void WaterTweens::SetTarget(int key, float target, int steps) {
     e.steps = steps;
     e.step = (target - data[count].value) / steps;
 }
-EI_REWRITTEN(0x006D4410, WaterTweens::SetTarget);
 
 bool WaterTweens::Tick() {
     bool moving = false;
@@ -145,15 +133,12 @@ bool WaterTweens::Tick() {
     }
     return moving;
 }
-EI_REWRITTEN(0x006D44E0, WaterTweens::Tick);
 
 void WaterTweens::Save(CStream* stream) const {
     int count = size;
     stream->Write(&count, 4);
     for (int i = 0; i < size; ++i) stream->Write(&data[i], 16);
 }
-EI_REWRITTEN(0x006D4570, WaterTweens::Save);
-EI_REWRITTEN(0x006D47E0, WaterTweens::Save);
 
 void WaterTweens::ReadEntries(CStream* stream, int unread) {
     int count = unread;
@@ -166,10 +151,8 @@ void WaterTweens::Load(CStream* stream, Terrain* terrain) {
     ReadEntries(stream, 0);
     for (int i = 0; i < size; ++i) terrain->SetWaterLevel(data[i].key, data[i].value);
 }
-EI_REWRITTEN(0x006D45D0, WaterTweens::Load);
 
 void WaterTweens::LoadEntries(CStream* stream) {
     // The count is read into an uninitialised local; the game's streams always write it.
     ReadEntries(stream, 0);
 }
-EI_REWRITTEN(0x006D4660, WaterTweens::LoadEntries);

@@ -18,7 +18,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 
@@ -151,5 +150,3 @@ int CWorldServer::Update() {
     ++updateCount_;
     return 1;
 }
-
-EI_REWRITTEN(0x0058DFF0, CWorldServer::Update);

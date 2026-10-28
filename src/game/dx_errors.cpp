@@ -2,7 +2,6 @@
 // from the exe's strings).
 #include "dx_errors.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
@@ -183,7 +182,6 @@ const char* __fastcall DirectXErrorText(long result) {
                                               [](const ErrorText& e, std::uint32_t k) { return e.result < k; });
     return found != std::end(kErrorTexts) && found->result == key ? found->text : kUnrecognized;
 }
-EI_REWRITTEN(0x00480B80, DirectXErrorText);
 
 // ---- The thrown error object ---------------------------------------------------
 
@@ -212,15 +210,12 @@ void CGameException::operator delete(void* block) { gamecrt::operator_delete(blo
 CGameException::~CGameException() {
     if (message) gamecrt::operator_delete(message);
 }
-EI_REWRITTEN_SPECIAL(0x004815D0, CGameException::~CGameException);
-EI_REWRITTEN_SPECIAL(0x00481580, CGameException::~CGameException);
 
 CDXException::CDXException(const char* format, va_list args) {
     char text[kBuffer];
     gameapi::wvsprintfA(text, format, args);
     message = CopyMessage(text);
 }
-EI_REWRITTEN_SPECIAL(0x00480250, CDXException::CDXException);
 
 CDXException::CDXException(long resultIn, const char* format, va_list args) {
     char text[kBuffer];
@@ -232,7 +227,6 @@ CDXException::CDXException(long resultIn, const char* format, va_list args) {
 }
 
 CDXException::~CDXException() = default;
-EI_REWRITTEN_SPECIAL(0x004815B0, CDXException::~CDXException);
 
 void ThrowGameError(const char* format, ...) {
     va_list args;

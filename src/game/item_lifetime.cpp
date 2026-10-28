@@ -6,8 +6,6 @@
 #include "spell.h"
 #include "../lib/crt.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 #undef GetClassName   // CEngineObject::GetClassName
@@ -47,14 +45,12 @@ CItem::CItem() {
     count_ = 1;
     DropSpell(spell_);
 }
-EI_REWRITTEN_SPECIAL(0x0069FCA0, CItem::CItem);
 
 int CItem::Create() {
     count_ = 1;
     DropSpell(spell_);
     return 1;
 }
-EI_REWRITTEN(0x0069FE20, CItem::Create);
 
 void CItem::Destroy() {
     DropSpell(spell_);
@@ -62,7 +58,6 @@ void CItem::Destroy() {
     link_ = nullptr;
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
-EI_REWRITTEN(0x0069FE50, CItem::Destroy);
 
 CItem::~CItem() {
     CItem::Destroy();
@@ -71,22 +66,6 @@ CItem::~CItem() {
     CRefCounted* link = Link(link_);
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
-// The destructor and its byte-identical copies per class (the weapon's, armour's, quick item's, quest
-// item's, loot's and scroll's), then the scalar deleting destructors.
-EI_REWRITTEN_SPECIAL(0x0069FD70, CItem::~CItem);
-EI_REWRITTEN_SPECIAL(0x006A05B0, CItemWeapon::~CItemWeapon);
-EI_REWRITTEN_SPECIAL(0x006A2FC0, CItemArmor::~CItemArmor);
-EI_REWRITTEN_SPECIAL(0x006A3B30, CItemQuick::~CItemQuick);
-EI_REWRITTEN_SPECIAL(0x006A4420, CItemQuest::~CItemQuest);
-EI_REWRITTEN_SPECIAL(0x006A4A00, CItemLoot::~CItemLoot);
-EI_REWRITTEN_SPECIAL(0x006A5740, CItemSpell::~CItemSpell);
-EI_REWRITTEN_SPECIAL(0x0069FD30, CItem::~CItem);
-EI_REWRITTEN_SPECIAL(0x006A0590, CItemWeapon::~CItemWeapon);
-EI_REWRITTEN_SPECIAL(0x006A2FA0, CItemArmor::~CItemArmor);
-EI_REWRITTEN_SPECIAL(0x006A3B10, CItemQuick::~CItemQuick);
-EI_REWRITTEN_SPECIAL(0x006A4400, CItemQuest::~CItemQuest);
-EI_REWRITTEN_SPECIAL(0x006A49E0, CItemLoot::~CItemLoot);
-EI_REWRITTEN_SPECIAL(0x006A5720, CItemSpell::~CItemSpell);
 
 CItemWeapon::CItemWeapon() {
     SetMinusOne(damage_);
@@ -94,26 +73,20 @@ CItemWeapon::CItemWeapon() {
     SetMinusOne(reach_);
     actionValue_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x006A0540, CItemWeapon::CItemWeapon);
 
 CItemArmor::CItemArmor() {
     std::memset(absorb_, 0, sizeof(absorb_));
     layerMask_[1] = 0;
     layerMask_[0] = 0;
 }
-EI_REWRITTEN_SPECIAL(0x006A2F20, CItemArmor::CItemArmor);
 
 CItemQuick::CItemQuick() = default;
-EI_REWRITTEN_SPECIAL(0x006A3AD0, CItemQuick::CItemQuick);
 
 CItemQuest::CItemQuest() = default;
-EI_REWRITTEN_SPECIAL(0x006A43A0, CItemQuest::CItemQuest);
 
 CItemLoot::CItemLoot() = default;
-EI_REWRITTEN_SPECIAL(0x006A49A0, CItemLoot::CItemLoot);
 
 CItemSpell::CItemSpell() = default;
-EI_REWRITTEN_SPECIAL(0x006A56E0, CItemSpell::CItemSpell);
 
 const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
 int CItemWeapon::GetClassId() { return 0x11; }
@@ -127,18 +100,6 @@ const char* CItemLoot::GetClassName() { return "CItemLoot"; }
 int CItemLoot::GetClassId() { return 0x15; }
 const char* CItemSpell::GetClassName() { return "CItemSpell"; }
 int CItemSpell::GetClassId() { return 0x16; }
-EI_REWRITTEN(0x006A0570, CItemWeapon::GetClassName);
-EI_REWRITTEN(0x006A0580, CItemWeapon::GetClassId);
-EI_REWRITTEN(0x006A2F80, CItemArmor::GetClassName);
-EI_REWRITTEN(0x006A2F90, CItemArmor::GetClassId);
-EI_REWRITTEN(0x006A3AF0, CItemQuick::GetClassName);
-EI_REWRITTEN(0x006A3B00, CItemQuick::GetClassId);
-EI_REWRITTEN(0x006A43E0, CItemQuest::GetClassName);
-EI_REWRITTEN(0x006A43F0, CItemQuest::GetClassId);
-EI_REWRITTEN(0x006A49C0, CItemLoot::GetClassName);
-EI_REWRITTEN(0x006A49D0, CItemLoot::GetClassId);
-EI_REWRITTEN(0x006A5700, CItemSpell::GetClassName);
-EI_REWRITTEN(0x006A5710, CItemSpell::GetClassId);
 
 // --- The item manager's Create and factory -------------------------------------------------
 
@@ -159,6 +120,3 @@ CEngineObject* CItemManager::NewObject(int kind) {
     if (object != nullptr) object->type_ = kind;
     return object;
 }
-
-EI_REWRITTEN(0x006AC780, CItemManager::Create);
-EI_REWRITTEN(0x006AC810, CItemManager::NewObject);

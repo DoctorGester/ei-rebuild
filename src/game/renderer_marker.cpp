@@ -6,7 +6,6 @@
 #include "model.h"         // CSceneRenderer
 #include "texture.h"       // CTextureDevice
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -71,4 +70,3 @@ int CSceneRenderer::DrawSelectionMarker(const Vector3* point, float size, const 
     device_->DrawFlatBlocks(blocks, uvs, kBlocks, indices, 18, kColour, kSpecular, nullptr, 1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00503A40, CSceneRenderer::DrawSelectionMarker);

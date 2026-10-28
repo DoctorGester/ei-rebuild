@@ -413,13 +413,11 @@ void CSpellEffect::Start(int type) {
     }
     UpdateFootprint(type, 1);
 }
-EI_REWRITTEN(0x0067F870, CSpellEffect::Start);
 
 void CSpellEffect::SetVisual(CEffect* object) {
     Assign(this, &visual, object);
     world->AddTimedObject(visual);
 }
-EI_REWRITTEN(0x0067EF40, CSpellEffect::SetVisual);
 
 void CSpellEffect::UpdateFootprint(int type, int stamp) {
     if (!visual) return;
@@ -449,7 +447,6 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
         footprintStamped = 0;
     }
 }
-EI_REWRITTEN(0x0067EFC0, CSpellEffect::UpdateFootprint);
 
 void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3* color, float range) {
@@ -469,7 +466,6 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
     Assign<CEffect>(this, &visual, arrow);
     world->AddTimedObject(visual);
 }
-EI_REWRITTEN(0x0067F170, CSpellEffect::CreateArrow);
 
 CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
                                               const Vector3* velocity, CEngineObject* attachTo) {
@@ -489,7 +485,6 @@ CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const 
     }
     return particle;
 }
-EI_REWRITTEN(0x0067F260, CSpellEffect::CreateParticle);
 
 void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, CEngineObject* source, float power,
                                    int flag) {
@@ -504,7 +499,6 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
     Assign<CEffect>(this, &visual, bolt);
     world->AddTimedObject(visual);
 }
-EI_REWRITTEN(0x0067F410, CSpellEffect::CreateLightning);
 
 void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
                                float hearing) {
@@ -519,7 +513,6 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     if (keep) Assign<CEffect>(this, &sound, effect);
     world->AddTimedObject(effect);
 }
-EI_REWRITTEN(0x0067F580, CSpellEffect::CreateSound);
 
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
@@ -543,7 +536,6 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
     Assign<CEffect>(this, &sound, effect);
     world->AddTimedObject(effect);
 }
-EI_REWRITTEN(0x0067F660, CSpellEffect::CreateSoundSequence);
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
     auto* effect = CreateObject<CEffectPointLight>(this, kClassPointLight);
@@ -555,4 +547,3 @@ void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, flo
     Assign(this, &light, effect);
     world->AddTimedObject(effect);
 }
-EI_REWRITTEN(0x0067F7C0, CSpellEffect::CreatePointLight);

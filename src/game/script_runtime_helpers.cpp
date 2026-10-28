@@ -7,7 +7,6 @@
 #include "script.h"
 #include "sector_map.h"
 
-#include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -22,7 +21,6 @@ void ScriptGroup::DestructBody() {
     }
     gamecrt::operator_delete(data);
 }
-EI_REWRITTEN(0x004B5EF0, ScriptGroup::DestructBody);
 
 void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     mfc::CArray<SSCCmd>& commands = block->commands;
@@ -31,13 +29,11 @@ void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
     for (int i = 0; i < commands.size; ++i) ScriptCmdDestruct(&commands.data[i]);
     gamecrt::operator_delete(commands.data);
 }
-EI_REWRITTEN(0x004BF7E0, ScriptDeclDestruct);
 
 void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines) {
     ei::SetVtable(defines, gameslots::DefineListClass::Vtable());   // CList<ScriptDefine>
     defines->RemoveAll();
 }
-EI_REWRITTEN(0x004D6340, ScriptDefinesDestruct);
 
 // ---- The AI map's sector map ------------------------------------------------------------------------
 
@@ -51,23 +47,18 @@ std::uint8_t CAIMap::SetRefreshUnits(int on) {
     flag = static_cast<std::uint8_t>(on);
     return old;
 }
-EI_REWRITTEN(0x004BA090, CAIMap::SetRefreshUnits);
 
 bool CAIMap::AddToSectors(CMapObject* object) { return Sectors(this)->Add(object); }
-EI_REWRITTEN(0x004BA0A0, CAIMap::AddToSectors);
 
 bool CAIMap::RemoveFromSectors(CMapObject* object) { return Sectors(this)->Remove(object); }
-EI_REWRITTEN(0x004BA0C0, CAIMap::RemoveFromSectors);
 
 bool CAIMap::MoveInSectors(CMapObject* object, const Vector3* position) {
     return Sectors(this)->Move(object, position);
 }
-EI_REWRITTEN(0x004BA0E0, CAIMap::MoveInSectors);
 
 void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
     Sectors(this)->FindUnitsInRadius(position, result, radius);
 }
-EI_REWRITTEN(0x004BA100, CAIMap::FindUnitsInRadius);
 
 // ---- Console output -------------------------------------------------------------------------------
 
@@ -75,4 +66,3 @@ console::GameOStream& console::GameOStream::PutFloatArgument(float f) {
     floatUsed = 1;
     return *this << static_cast<double>(f);
 }
-EI_REWRITTEN(0x004BA9D0, console::GameOStream::PutFloatArgument);

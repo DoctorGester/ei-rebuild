@@ -11,7 +11,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -71,13 +70,11 @@ int CMapObjectServer::RunTick() {
     } while (i < owner->effects.size);
     return 0;
 }
-EI_REWRITTEN(0x00515820, CMapObjectServer::RunTick);
 
 void CMapObjectServer::SetData(const UnitVitals* data) {
     std::memcpy(&vitals, data, sizeof(vitals));
     owner->MarkChanged(0);
 }
-EI_REWRITTEN(0x00515950, CMapObjectServer::SetData);
 
 BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
     if (!vitals.TakeHit(hit)) return 0;
@@ -88,8 +85,6 @@ BOOL CMapObjectServer::TakeHit(const DamageInfo* hit) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00515980, CMapObjectServer::TakeHit);
-
 
 int CMapObjectClientSpecific::RunTick() {
     // Effects count down here too (the server's list arrives over the network); an effect about
@@ -157,4 +152,3 @@ int CMapObjectClientSpecific::RunTick() {
     }
     return 1;
 }
-EI_REWRITTEN(0x00510890, CMapObjectClientSpecific::RunTick);

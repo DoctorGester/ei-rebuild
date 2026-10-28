@@ -15,7 +15,6 @@
 #include "ui_cursor.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -265,9 +264,3 @@ void CBriefingScreen::DrawTopics() {
     }
     UiSurfaceReleaseDC(surface);
 }
-
-EI_REWRITTEN(0x006030F0, CBriefingScreen::OnLeftDown);
-EI_REWRITTEN(0x00603360, CBriefingScreen::OnLeftDouble);
-EI_REWRITTEN(0x00603D00, CBriefingScreen::OnMouseMove);
-EI_REWRITTEN(0x00608B60, CBriefingScreen::OpenTopics);
-EI_REWRITTEN(0x006071E0, CBriefingScreen::DrawTopics);

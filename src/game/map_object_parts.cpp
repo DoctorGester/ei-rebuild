@@ -8,8 +8,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 #include <string>
 
@@ -50,14 +48,12 @@ CFigureMesh* CObject3D::FindPartByPrefix(const char* prefix) {
     if (CFigureMesh* part = FirstPart(parts, startsWith)) return part;
     return FirstPart(pendingParts, startsWith);
 }
-EI_REWRITTEN(0x00516A80, CObject3D::FindPartByPrefix);
 
 CFigureMesh* CObject3D::FindPart(const char* partName) {
     auto named = [partName](CFigureMesh* part) { return std::strcmp(part->GetName(), partName) == 0; };
     if (CFigureMesh* part = FirstPart(parts, named)) return part;
     return FirstPart(pendingParts, named);
 }
-EI_REWRITTEN(0x005169A0, CObject3D::FindPart);
 
 int CObject3D::RemovePart(CFigureMesh* part) {
     if (attached) Specific()->OnPartRemoved(part);
@@ -74,7 +70,6 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     part->Release();
     return 1;
 }
-EI_REWRITTEN(0x005167E0, CObject3D::RemovePart);
 
 CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
     CFigureMesh* part = FindPart(partName);
@@ -82,7 +77,6 @@ CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
     RemovePart(part);
     return part;
 }
-EI_REWRITTEN(0x005168F0, CObject3D::RemovePartNamed);
 
 float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float scaleX, scaleY, scaleZ;
@@ -107,7 +101,6 @@ float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     out[2] = z * scaleZ + localPosition_.z;
     return out;
 }
-EI_REWRITTEN(0x005188B0, CObject3D::PartWorldPosition);
 
 // --- The animation database -------------------------------------------------------------------
 
@@ -119,14 +112,12 @@ AnimationDatabase* CObject3D::Animations() {
     }
     return animations;
 }
-EI_REWRITTEN(0x00518CA0, CObject3D::Animations);
 
 FigureAnimation* CObject3D::AnimationAt(std::uint32_t key) {
     if (!Animations()) return nullptr;
     std::uint32_t index = key & 0xFF;
     return index < animations->count ? &animations->animations[index] : nullptr;
 }
-EI_REWRITTEN(0x00518F80, CObject3D::AnimationAt);
 
 FigureAnimation* CObject3D::FindSkillAnimation(int number) {
     if (!Animations()) return nullptr;
@@ -137,17 +128,14 @@ FigureAnimation* CObject3D::FindSkillAnimation(int number) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00518FC0, CObject3D::FindSkillAnimation);
 
 double CObject3D::AnimationFactor(float time) {
     if (GetClassId() != kClassUnit || !Animations()) return 1.0;
     return animations->TimeFactor(time);
 }
-EI_REWRITTEN(0x00518D30, CObject3D::AnimationFactor);
 
 int CObject3D::FindPartIndex(const char* partName) {
     for (std::size_t i = 0; i < partNames.size(); ++i)
         if (gamecrt::mbscmp(partNames[i].c_str(), partName) == 0) return static_cast<int>(i);
     return -1;
 }
-EI_REWRITTEN(0x00517990, CObject3D::FindPartIndex);

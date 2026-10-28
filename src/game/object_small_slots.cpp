@@ -8,8 +8,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 
-#include "ei/hook.h"
-
 namespace {
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
 constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
@@ -20,7 +18,6 @@ bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }
-EI_REWRITTEN(0x0050F0F0, CMapObject::ApplyScience);
 
 void CMapObject::FreeArray(UseSpotArray* array, int) {
     if (array->data) {
@@ -30,7 +27,6 @@ void CMapObject::FreeArray(UseSpotArray* array, int) {
     array->maxSize = 0;
     array->size = 0;
 }
-EI_REWRITTEN(0x0050F120, CMapObject::FreeArray);
 
 int CMapObjectClientSpecific::Create() {
     lightStateA = 0;
@@ -40,26 +36,22 @@ int CMapObjectClientSpecific::Create() {
     owner = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x00510770, CMapObjectClientSpecific::Create);
 
 int CMapObjectServer::Create() {
     owner = nullptr;
     vitals.Reset();
     return 1;
 }
-EI_REWRITTEN(0x005157C0, CMapObjectServer::Create);
 
 void CMapObjectServer::Destroy() {
     vitals.Reset();
     strings.clear();
     owner = nullptr;
 }
-EI_REWRITTEN(0x005157E0, CMapObjectServer::Destroy);
 
 int CMapObject::CompanionQuery(int first, int second, int) {
     return companion->Query(first, second);
 }
-EI_REWRITTEN(0x0050E460, CMapObject::CompanionQuery);
 
 // The game's function reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
 // weaponIds: the name is provisional. Found when zone bz1g's units mismatched.
@@ -68,11 +60,9 @@ int CUnitClientSpecific::HasOtherArmour() {
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005391B0, CUnitClientSpecific::HasOtherArmour);
 
 int CUnitClientSpecific::HasMainArmour() {
     for (int slot = 0; slot < kDressedArmourSlots; ++slot)
         if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005391E0, CUnitClientSpecific::HasMainArmour);

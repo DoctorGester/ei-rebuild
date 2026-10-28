@@ -4,7 +4,6 @@
 #include "ai_unit_layer.h"
 #include "record_arrays.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -21,7 +20,6 @@ FootprintCellSet* FootprintCellSet::Construct() {
     hashed = true;
     return this;
 }
-EI_REWRITTEN(0x0067E4E0, FootprintCellSet::Construct);
 
 // The spells' footprint set, empty at the start: built by a static initialiser, freed by its exit function.
 namespace spellfx {
@@ -38,11 +36,7 @@ void __cdecl ConstructSpellFootprint() {
     libcrt::AtExit(FreeSpellFootprint);
 }
 
-EI_REWRITTEN(0x0067E4C0, ConstructSpellFootprint);
-EI_REWRITTEN(0x0067E500, FreeSpellFootprint);
-
 void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
-EI_REWRITTEN(0x005BD350, FootprintCellSet::SetSize);
 
 namespace {
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
@@ -73,7 +67,6 @@ void FootprintCellSet::AddTop(int x, int y, int height, std::int8_t kind, std::i
     FootprintCell cell{x, y, 0x7FFFFFFF, height, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
-EI_REWRITTEN(0x005B2D10, FootprintCellSet::AddTop);
 
 void FootprintCellSet::AddBottom(int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
     hashed = true;
@@ -84,7 +77,6 @@ void FootprintCellSet::AddBottom(int x, int y, int height, std::int8_t kind, std
     FootprintCell cell{x, y, height, 0, kind, transparency, 0, 0, 0};
     AppendCell(this, cell);
 }
-EI_REWRITTEN(0x005B2E10, FootprintCellSet::AddBottom);
 
 void FootprintCellSet::GetBounds(int* bounds) const {
     bounds[0] = 100000;
@@ -99,7 +91,6 @@ void FootprintCellSet::GetBounds(int* bounds) const {
         if (!(bounds[3] > y)) bounds[3] = y;
     }
 }
-EI_REWRITTEN(0x005B2F40, FootprintCellSet::GetBounds);
 
 // --- Footprints ----------------------------------------------------------------------------------
 
@@ -278,7 +269,6 @@ bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
     refreshUnits = savedRefreshUnits;
     return fits;
 }
-EI_REWRITTEN(0x005B6A80, CAIMap::MarkFootprint);
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
@@ -293,7 +283,6 @@ bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     }
     return true;
 }
-EI_REWRITTEN(0x005B65B0, CAIMap::ApplyFootprint);
 
 bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
@@ -306,7 +295,6 @@ bool CAIMap::StampFootprint(int tick, FootprintCellSet* set) {
     refreshUnits = savedRefreshUnits;
     return fits;
 }
-EI_REWRITTEN(0x005B7820, CAIMap::StampFootprint);
 
 bool CAIMap::ClearFootprint(FootprintCellSet* set) {
     std::uint8_t savedRefreshUnits = refreshUnits;
@@ -318,7 +306,6 @@ bool CAIMap::ClearFootprint(FootprintCellSet* set) {
     refreshUnits = savedRefreshUnits;
     return cleared;
 }
-EI_REWRITTEN(0x005B78F0, CAIMap::ClearFootprint);
 
 void CAIMap::BeginRefresh() {
     if (batching) {
@@ -328,10 +315,8 @@ void CAIMap::BeginRefresh() {
     dirty.Reset();
     batching = true;
 }
-EI_REWRITTEN(0x005B8B30, CAIMap::BeginRefresh);
 
 void CAIMap::EndRefresh() {
     RefreshArea(dirty.minX, dirty.maxX, dirty.minY, dirty.maxY);
     batching = false;
 }
-EI_REWRITTEN(0x005B8B80, CAIMap::EndRefresh);

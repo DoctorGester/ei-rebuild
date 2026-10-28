@@ -3,7 +3,6 @@
 #include "party_records.h"
 #include "player_messages.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -28,5 +27,3 @@ CParty* __fastcall PartyForScript(CPlayer* player, std::string* name) {
     if (gamecrt::mbscmp(owner, RecordList()->text10) == 0) return player->Party();
     return (RecordList())->Find(owner.c_str());
 }
-EI_REWRITTEN(0x004BAEC0, PartyForScript);
-

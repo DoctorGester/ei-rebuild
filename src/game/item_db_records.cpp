@@ -6,7 +6,6 @@
 #include "console.h"
 #include "game_data.h"
 
-#include "ei/hook.h"
 #include "record_lifetime.h"
 
 #include <cstddef>
@@ -31,13 +30,6 @@ int ArmorRecord::Kind() { return 0x3005; }
 int QuickItemRecord::Kind() { return 0x3006; }
 int QuestItemRecord::Kind() { return 0x3009; }
 int LootItemRecord::Kind() { return 0x3007; }
-EI_REWRITTEN(0x006A6430, WeaponRecord::Kind);
-EI_REWRITTEN(0x006A6440, ArmorRecord::Kind);
-EI_REWRITTEN(0x006A6450, QuickItemRecord::Kind);
-EI_REWRITTEN(0x006A6460, QuestItemRecord::Kind);
-EI_REWRITTEN(0x006A6470, LootItemRecord::Kind);
-
-EI_REWRITTEN_SPECIAL(0x006A63B0, ItemRecordHead::ItemRecordHead);
 
 void* ItemRecordHead::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void ItemRecordHead::operator delete(void* block) { gamecrt::operator_delete(block); }
@@ -53,7 +45,6 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     list20 = source->list20;
     return this;
 }
-EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, category), offsetof(WeaponRecord, attackBonus) - 1);
@@ -71,7 +62,6 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
     CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
-EI_REWRITTEN(0x006A9E40, MaterialRecordHead::CopyConstruct);
 
 void MaterialRecordHead::AssignMaterial(const MaterialRecordHead* source) {
     key = source->key;
@@ -89,25 +79,19 @@ void MaterialRecordHead::ConstructDefault() {
 // ---- The records' destructors ------------------------------------------------------------------
 
 ItemRecordHead::~ItemRecordHead() = default;
-EI_REWRITTEN_SPECIAL(0x006A8950, ItemRecordHead::~ItemRecordHead);   // weapons
-EI_REWRITTEN_SPECIAL(0x006A89D0, ItemRecordHead::~ItemRecordHead);   // armours
-EI_REWRITTEN_SPECIAL(0x006A8BD0, ItemRecordHead::~ItemRecordHead);   // loot
 
 QuickItemRecord::~QuickItemRecord() = default;
-EI_REWRITTEN_SPECIAL(0x006A8A50, QuickItemRecord::~QuickItemRecord);
 
 QuestItemRecord::~QuestItemRecord() {
     for (std::string& zone : zones) std::destroy_at(&zone);
     zones.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x006A8AE0, QuestItemRecord::~QuestItemRecord);
 
 void MaterialRecordHead::Destruct() {
     std::destroy_at(&name);
     std::destroy_at(&soundName);
     std::destroy_at(&key);
 }
-EI_REWRITTEN(0x006A88F0, MaterialRecordHead::Destruct);
 
 void SpellRecord::Destruct() {
     list54.FreeStorage();
@@ -116,13 +100,11 @@ void SpellRecord::Destruct() {
     std::destroy_at(&code);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x00685AA0, SpellRecord::Destruct);
 
 void SpellModifierRecord::Destruct() {
     std::destroy_at(&text1C);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x00685B70, SpellModifierRecord::Destruct);
 
 void SpellListRecord::Destruct() {
     std::destroy_at(&repeated);
@@ -130,7 +112,6 @@ void SpellListRecord::Destruct() {
     records::DestroyVector(required);
     std::destroy_at(&spell);
 }
-EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
 // ---- The spell records as vector elements -------------------------------------
 
@@ -210,15 +191,6 @@ void SpellListRecord::ConstructDefault() {
     std::construct_at(&repeated);
 }
 
-// The material and weapon tables' At, as the unit skins and the client's maps read them (records of
-// sizeof(MaterialRecordHead) / sizeof(WeaponRecord) bytes).
-EI_REWRITTEN(0x0056E400, itemdb::MaterialTable::At);
-EI_REWRITTEN(0x0056E440, itemdb::WeaponTable::At);
-EI_REWRITTEN(0x006A5950, itemdb::ArmorTable::At);
-EI_REWRITTEN(0x006A5990, itemdb::QuickItemTable::At);
-EI_REWRITTEN(0x006A59D0, itemdb::QuestItemTable::At);
-EI_REWRITTEN(0x006A5A10, itemdb::LootItemTable::At);
-
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;
     CopyBytes(this, source, offsetof(QuickItemRecord, attributeBonus), offsetof(QuickItemRecord, unused_8B));
@@ -291,14 +263,3 @@ template LootItemRecord* __fastcall CopyItemRecords(const LootItemRecord*, const
 template LootItemRecord* __fastcall FillItemRecords(LootItemRecord*, int, const LootItemRecord*, int);
 
 } // namespace itemdb
-
-EI_REWRITTEN(0x006AB9C0, CopyItemRecords<WeaponRecord>);
-EI_REWRITTEN(0x006ABB50, FillItemRecords<WeaponRecord>);
-EI_REWRITTEN(0x006ABCD0, CopyItemRecords<ArmorRecord>);
-EI_REWRITTEN(0x006ABE20, FillItemRecords<ArmorRecord>);
-EI_REWRITTEN(0x006ABF60, CopyItemRecords<QuickItemRecord>);
-EI_REWRITTEN(0x006AC0D0, FillItemRecords<QuickItemRecord>);
-EI_REWRITTEN(0x006AC240, CopyItemRecords<QuestItemRecord>);
-EI_REWRITTEN(0x006AC3B0, FillItemRecords<QuestItemRecord>);
-EI_REWRITTEN(0x006AC520, CopyItemRecords<LootItemRecord>);
-EI_REWRITTEN(0x006AC640, FillItemRecords<LootItemRecord>);

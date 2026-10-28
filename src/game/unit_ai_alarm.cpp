@@ -8,7 +8,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -88,7 +87,6 @@ void AIAlarmRecordElements::Destruct(AIAlarmRecord* records, int count) {
     for (int i = 0; i < count; ++i) mapspec::BehaviourDestruct(&records[i]);
 }
 
-EI_REWRITTEN(0x005D9840, AIAlarmRecordArray::SetSize);
 void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
@@ -156,7 +154,6 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     attention.Build(owner->unit);
     if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);
 }
-EI_REWRITTEN(0x005D6630, AIBrain::ApplyBehaviour);
 
 void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
     alarmRecords.SetSize(count, -1);
@@ -169,7 +166,6 @@ void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
     }
     ApplyBehaviour(alarmRecords.data, 0);
 }
-EI_REWRITTEN(0x005D6D20, AIBrain::SetAlarmRecords);
 
 void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
@@ -178,11 +174,9 @@ void AIBrain::HearAlarm(int slot) {
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->voice.Raise(kAlarmHeard);
 }
-EI_REWRITTEN(0x005D5940, AIBrain::HearAlarm);
 
 void AIBrain::ResetBehaviour() {
     memory.Reset();
     int slot = alarmSlot;
     ApplyBehaviour(&alarmRecords.data[slot], slot);
 }
-EI_REWRITTEN(0x005D7C30, AIBrain::ResetBehaviour);

@@ -11,7 +11,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
 #include "game_data.h"
@@ -59,13 +58,11 @@ CMaterial* CObject3DClientSpecific::FirstMaterial() {
     materialCursor = 0;
     return materials[0];
 }
-EI_REWRITTEN(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
 
 CMaterial* CObject3DClientSpecific::NextMaterial() {
     ++materialCursor;
     return materials.size > materialCursor ? materials[materialCursor] : nullptr;
 }
-EI_REWRITTEN(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
 int CUnitClientSpecific::RunTick() {
     if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);
@@ -127,7 +124,6 @@ int CUnitClientSpecific::RunTick() {
         StartIdleAnimation(0);
     return 1;
 }
-EI_REWRITTEN(0x005341A0, CUnitClientSpecific::RunTick);
 
 // --- Fade-in, level and wounds slots ----------------------------------------------------------
 
@@ -143,14 +139,12 @@ int CUnitClientSpecific::FiguresLoaded() {
     SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 1;
 }
-EI_REWRITTEN(0x005344E0, CUnitClientSpecific::FiguresLoaded);
 
 int CUnitClientSpecific::RestartFadeIn() {
     fadeIn = 0.0f;
     SetPartsAlpha(unit->ClientSpecific(), fadeIn);
     return 0;
 }
-EI_REWRITTEN(0x005344A0, CUnitClientSpecific::RestartFadeIn);
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
@@ -160,7 +154,6 @@ int CUnitClientSpecific::Level() {
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.
     return x87::RoundToInt(level);
 }
-EI_REWRITTEN(0x00539160, CUnitClientSpecific::Level);
 
 int CUnitClientSpecific::RefreshWounds() {
     if (ComposeWoundsTexture()) {
@@ -172,4 +165,3 @@ int CUnitClientSpecific::RefreshWounds() {
     }
     return 1;
 }
-EI_REWRITTEN(0x00537360, CUnitClientSpecific::RefreshWounds);

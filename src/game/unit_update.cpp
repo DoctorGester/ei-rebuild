@@ -8,7 +8,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -34,28 +33,23 @@ int CUnit::Tick() {
     Update();
     return 1;
 }
-EI_REWRITTEN(0x0052F7D0, CUnit::Tick);
 
 void CUnit::RecomputeScale() {
     CMapObject::RecomputeScale();
     Controller()->Resettle();
 }
-EI_REWRITTEN(0x00532A80, CUnit::RecomputeScale);
 
 void CUnit::EffectsChanged() {
     Controller()->EffectsChanged();
 }
-EI_REWRITTEN(0x00532AB0, CUnit::EffectsChanged);
 
 void CUnit::ApplyBaseScale() { SetFigureScale(&baseScale.x); }
-EI_REWRITTEN(0x00532AA0, CUnit::ApplyBaseScale);
 
 void CUnit::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return;
     CObject3D::LoadFigures();
     Controller()->FiguresLoaded();
 }
-EI_REWRITTEN(0x0052E910, CUnit::LoadFigures);
 
 void CUnit::AttachObject(CEngineObject* object) {
     if (!object || object->type_ != kControllerType) {
@@ -70,31 +64,26 @@ void CUnit::AttachObject(CEngineObject* object) {
     Controller()->unit = this;
     ++controller->refCount_;
 }
-EI_REWRITTEN(0x0052E870, CUnit::AttachObject);
 
 int CUnit::StatsChanged() {
     PackVitals();
     if (controller) Controller()->RepackStats();
     return 1;
 }
-EI_REWRITTEN(0x0052EB50, CUnit::StatsChanged);
 
 void CUnit::ScaleEffectChanged(int value) {
     if (controller) Controller()->RefreshVitals(static_cast<char>(value));
 }
-EI_REWRITTEN(0x0052EB30, CUnit::ScaleEffectChanged);
 
 void CUnit::SetStats(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return;
     ServerController()->SetStats(stats);
 }
-EI_REWRITTEN(0x00530A20, CUnit::SetStats);
 
 void CUnit::UpdateSizeClasses() {
     Controller()->UpdateSizeClasses();
 }
-EI_REWRITTEN(0x00530A50, CUnit::UpdateSizeClasses);
 
 float* CUnit::StandPoint(float* out) {
     float x = localPosition_.x;
@@ -116,7 +105,6 @@ float* CUnit::StandPoint(float* out) {
     out[2] = static_cast<float>(height + lift);
     return out;
 }
-EI_REWRITTEN(0x005303A0, CUnit::StandPoint);
 
 void CUnit::PlaceOnGround(float offset) {
     float x = localPosition_.x;
@@ -133,7 +121,6 @@ void CUnit::PlaceOnGround(float offset) {
         localPosition_.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
-EI_REWRITTEN(0x0052F740, CUnit::PlaceOnGround);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     stats->Pack(this, Params());
@@ -142,7 +129,6 @@ void CUnit::SetFromStats(UnitStats* stats) {
     packedVitals.maxHitPoints = static_cast<std::int16_t>(gamecrt::Ftol(limit));
     packedVitals.hitPoints = static_cast<std::int16_t>(gamecrt::Ftol(stats->Reduce(limit)));
 }
-EI_REWRITTEN(0x00532A20, CUnit::SetFromStats);
 
 int CUnit::Level() {
     if (IsTextKey(id_) & 0xFF) return Controller()->Level();
@@ -150,7 +136,6 @@ int CUnit::Level() {
         unitdb::PrototypeRecord(prototypeId_);
     return static_cast<int>(prototype->level);
 }
-EI_REWRITTEN(0x00532D40, CUnit::Level);
 
 // --- The virtuals -------------------------------------------------------------
 

@@ -6,7 +6,6 @@
 #include "crt.h"
 #include "crt_locale_data.h"
 
-#include "ei/hook.h"
 #include "game/game_data.h"
 #include "gameapi.h"
 #include "str.h"
@@ -916,7 +915,6 @@ int __cdecl Vsprintf(char* buffer, const char* format, va_list args) {
     *sink.next = '\0';
     return written;
 }
-EI_REWRITTEN(0x006ECC47, libcrt::Vsprintf);
 
 namespace {
 unsigned char g_gameStreams[3][0x20];   // the size of game.exe's FILE

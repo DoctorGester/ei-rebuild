@@ -13,7 +13,6 @@
 #include "ui_native.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -107,7 +106,6 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     SetRenderState(renderer->device_, kZEnable, 1);
     return 1;
 }
-EI_REWRITTEN(0x005E69C0, CScreenFade::Draw);
 
 void CScreenFade::Start(int ms) {
     rate_ = kOpaque / static_cast<float>(ms);
@@ -115,7 +113,6 @@ void CScreenFade::Start(int ms) {
     lastTime_ = gameapi::timeGetTime();
     active_ = 1;
 }
-EI_REWRITTEN(0x005E6B90, CScreenFade::Start);
 
 int CInterface3D::Draw() {
     CloseAllPending();
@@ -124,7 +121,6 @@ int CInterface3D::Draw() {
     fade_->Draw(SceneRenderer());
     return 1;
 }
-EI_REWRITTEN(0x005F5220, CInterface3D::Draw);
 
 void CInterface3D::DrawOverlays() {
     std::string text;
@@ -182,4 +178,3 @@ void CInterface3D::DrawOverlays() {
     if (fpsSurface_) fpsSurface_->Blit();
     if (console_ && console_->shown_) console_->Blit();
 }
-EI_REWRITTEN(0x005F5320, CInterface3D::DrawOverlays);

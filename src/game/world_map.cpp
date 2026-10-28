@@ -19,7 +19,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "core_streams.h"
 #include "map_object.h"
 #include "lib/containers.h"
@@ -307,15 +306,8 @@ void CWorldServer::ResetState() {
     startPosition_.z = 0.0f;
 }
 
-EI_REWRITTEN(0x0058B600, CWorldServer::ResetState);
-EI_REWRITTEN(0x00595C70, CWorldServer::LoadMap);
-EI_REWRITTEN(0x005957E0, CWorldServer::TeardownZone);
-
 void CWorldServer::EnsureZone(const char* map, const char* mob) {
     if (gamecrt::mbscmp(mapName_, map) == 0 && gamecrt::mbscmp(mobName_, mob) == 0) return;
     NewZone(map, mob, nullptr);
     TeardownZone();
 }
-EI_REWRITTEN(0x00595B50, CWorldServer::EnsureZone);
-EI_REWRITTEN(0x005951A0, CWorldServer::SendFreshObjects);
-EI_REWRITTEN(0x0058B250, CWorldServer::ResetZone);

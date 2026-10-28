@@ -17,7 +17,6 @@
 #include "unit_client_models.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
-#include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "unit_looks.h"
@@ -275,7 +274,6 @@ void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp:
     for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
-EI_REWRITTEN(0x00568800, CWorldClient::BuildUnitSkins);
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records: [0] the body
 // (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of items[1..6] (0x3005, the
@@ -321,5 +319,3 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
     out[1].itemType = static_cast<std::uint32_t>(
         itemdb::WeaponAt(weapon >> 16)->type);
 }
-EI_REWRITTEN(0x005683D0, UnitTextureRecords);
-

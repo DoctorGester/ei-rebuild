@@ -7,7 +7,6 @@
 #include "maths.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -198,7 +197,6 @@ void COptionsWindow::RefreshRows() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x00651350, COptionsWindow::RefreshRows);
 
 void COptionsWindow::ShowGroup(int group) {
     std::string tip;
@@ -252,7 +250,6 @@ void COptionsWindow::ShowGroup(int group) {
     waitingForKey_ = false;
     RefreshRows();
 }
-EI_REWRITTEN(0x00651D70, COptionsWindow::ShowGroup);
 
 void COptionsWindow::BuildSettings() {
     settings_.clear();   // copy and destructors inlined
@@ -290,7 +287,6 @@ void COptionsWindow::BuildSettings() {
         }
     }
 }
-EI_REWRITTEN(0x00651940, COptionsWindow::BuildSettings);
 
 void COptionsWindow::BuildBindings() {
     for (OptionBinding& binding : bindings_) binding.Destroy();
@@ -319,7 +315,6 @@ void COptionsWindow::BuildBindings() {
         str::TrimRight(binding.keysText_, TextKeyTrim());
     }
 }
-EI_REWRITTEN(0x00651600, COptionsWindow::BuildBindings);
 
 namespace {
 void RebuildKeysText(OptionBinding& binding) {
@@ -362,7 +357,6 @@ void COptionsWindow::CommitBinding() {
     }
     keyOfScan_[pressedKey_->scan_] = static_cast<signed char>(binding->action_->id_);
 }
-EI_REWRITTEN(0x00652000, COptionsWindow::CommitBinding);
 
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
@@ -408,7 +402,6 @@ void COptionsWindow::LoadSettings() {
             s[i].spin_->SetValue(s[i].value_);
     }
 }
-EI_REWRITTEN(0x00652200, COptionsWindow::LoadSettings);
 
 void COptionsWindow::Apply() {
     std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));
@@ -455,7 +448,6 @@ void COptionsWindow::Apply() {
     }
     if (shadowsChanged_) TheClientWorld()->DropShadows();
 }
-EI_REWRITTEN(0x006524A0, COptionsWindow::Apply);
 
 // --- The slider's virtual ------------------------------------------------------------------
 
@@ -504,4 +496,3 @@ void CUiSlider::SetRect(const RECT* rect) {
     position_ = position - 1;
     SetPosition(position);
 }
-EI_REWRITTEN(0x0065B8B0, CUiSlider::SetRect);

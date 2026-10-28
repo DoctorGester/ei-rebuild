@@ -1,6 +1,5 @@
 // CFakeUnit (class id 0x50; derives from CUnit; declared as scene::FakeUnitScene, scene_loader.h): the skin and
 // four CArrays (figures, meshes, bone links, helpers) over a unit. See docs/notes/objects.md ("Rewritten").
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "figure_mesh.h"
@@ -93,15 +92,3 @@ int FakeUnitScene::LoadScene(const char* file, const char* regFile) {
     }
     return 1;
 }
-
-EI_REWRITTEN_SPECIAL(0x004466D0, FakeUnitScene::FakeUnitScene);
-EI_REWRITTEN_SPECIAL(0x00446910, FakeUnitScene::~FakeUnitScene);
-EI_REWRITTEN_SPECIAL(0x004468F0, FakeUnitScene::~FakeUnitScene);   // deleting
-
-namespace fakeunit {
-
-EI_REWRITTEN(0x00446B20, FakeUnitScene::Destroy);
-EI_REWRITTEN(0x00446BA0, FakeUnitScene::LoadScene);
-EI_REWRITTEN(0x004468E0, FakeUnitScene::GetClassId);
-
-} // namespace fakeunit

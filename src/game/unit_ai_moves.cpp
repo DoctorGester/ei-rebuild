@@ -12,7 +12,6 @@
 #include "script.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -129,7 +128,6 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
         planned.SetAtGrow(planned.size, look);
     }
 }
-EI_REWRITTEN(0x005D5B40, AIBrain::PlanLooks);
 
 bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     if (standCooldown > 0) {
@@ -187,7 +185,6 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     units.RemoveAll();
     return result;
 }
-EI_REWRITTEN(0x005D7F80, AIBrain::FindStandPoint);
 
 void AIBrain::UpdateFollow() {
     if (!target || target->IsDead()) {
@@ -304,7 +301,6 @@ void AIBrain::UpdateFollow() {
         }
     }
 }
-EI_REWRITTEN(0x005D6F90, AIBrain::UpdateFollow);
 
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* to) {
     double fy = from->y - to->y;
@@ -323,4 +319,3 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     TheServerWorld()->Sectors()->Move(unit, &saved);
     return found;
 }
-EI_REWRITTEN(0x005D37E0, PlayerMode::PathClear);

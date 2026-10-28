@@ -5,8 +5,6 @@
 #include "console.h"
 #include "library_trees.h"
 
-#include "ei/hook.h"
-
 namespace console {
 
 constinit lib::StaticObject<CommandMap> g_publicCommands = /*007C7B28*/ {};
@@ -102,40 +100,3 @@ void __cdecl ConstructUnitAcksLogOut() {
 }
 void __cdecl ConstructAllLogOut() { BuildStream(console::g_allLogOut, console::g_allLogBuf, DestroyAllLogOut); }
 void __cdecl ConstructConsoleOut() { BuildStream(console::g_consoleOut, console::g_consoleBuf, DestroyConsoleOut); }
-
-EI_REWRITTEN(0x005DC050, ConstructCheatCommands);
-EI_REWRITTEN(0x005DC070, DestroyCheatCommands);
-EI_REWRITTEN(0x005DC120, ConstructPublicCommands);
-EI_REWRITTEN(0x005DC140, DestroyPublicCommands);
-EI_REWRITTEN(0x005DC1E0, ConstructAiLogBuf);
-EI_REWRITTEN(0x005DC2C0, DestroyAiLogBuf);
-EI_REWRITTEN(0x005DC2D0, ConstructEventLogBuf);
-EI_REWRITTEN(0x005DC2F0, DestroyEventLogBuf);
-EI_REWRITTEN(0x005DC300, ConstructGraphicsLogBuf);
-EI_REWRITTEN(0x005DC320, DestroyGraphicsLogBuf);
-EI_REWRITTEN(0x005DC330, ConstructRpgLogBuf);
-EI_REWRITTEN(0x005DC350, DestroyRpgLogBuf);
-EI_REWRITTEN(0x005DC360, ConstructUnitAcksLogBuf);
-EI_REWRITTEN(0x005DC380, DestroyUnitAcksLogBuf);
-EI_REWRITTEN(0x005DC390, ConstructNetLogBuf);
-EI_REWRITTEN(0x005DC3B0, DestroyNetLogBuf);
-EI_REWRITTEN(0x005DC3C0, ConstructAllLogBuf);
-EI_REWRITTEN(0x005DC3E0, DestroyAllLogBuf);
-EI_REWRITTEN(0x005DC3F0, ConstructConsoleBuf);
-EI_REWRITTEN(0x005DC410, DestroyConsoleBuf);
-EI_REWRITTEN(0x005DC420, ConstructAiLogOut);
-EI_REWRITTEN(0x005DC440, DestroyAiLogOut);
-EI_REWRITTEN(0x005DC460, ConstructEventLogOut);
-EI_REWRITTEN(0x005DC480, DestroyEventLogOut);
-EI_REWRITTEN(0x005DC4A0, ConstructGraphicsLogOut);
-EI_REWRITTEN(0x005DC4C0, DestroyGraphicsLogOut);
-EI_REWRITTEN(0x005DC4E0, ConstructRpgLogOut);
-EI_REWRITTEN(0x005DC500, DestroyRpgLogOut);
-EI_REWRITTEN(0x005DC520, ConstructNetLogOut);
-EI_REWRITTEN(0x005DC540, DestroyNetLogOut);
-EI_REWRITTEN(0x005DC560, ConstructUnitAcksLogOut);
-EI_REWRITTEN(0x005DC580, DestroyUnitAcksLogOut);
-EI_REWRITTEN(0x005DC5A0, ConstructAllLogOut);
-EI_REWRITTEN(0x005DC5C0, DestroyAllLogOut);
-EI_REWRITTEN(0x005DC5E0, ConstructConsoleOut);
-EI_REWRITTEN(0x005DC600, DestroyConsoleOut);

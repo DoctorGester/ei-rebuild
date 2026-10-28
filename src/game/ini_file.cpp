@@ -3,7 +3,6 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -88,16 +87,13 @@ CIniFile* CIniFile::Construct() {
     std::construct_at(&path_);
     return this;
 }
-EI_REWRITTEN(0x00695B80, CIniFile::Construct);
 
 BOOL CIniFile::SetPath(const char* path) {
     path_ = path;
     return 1;
 }
-EI_REWRITTEN(0x00695BF0, CIniFile::SetPath);
 
 void CIniFile::Destruct() { std::destroy_at(&path_); }
-EI_REWRITTEN(0x00695BE0, CIniFile::Destruct);
 
 // --- Readers ---------------------------------------------------------------------------------------
 
@@ -124,7 +120,6 @@ BOOL CIniFile::GetKeyNames(const char* section, std::vector<std::string>* out) {
     }
     return 0;
 }
-EI_REWRITTEN(0x00695D10, CIniFile::GetKeyNames);
 
 mfc::CString CIniFile::GetString(const char* section, const char* key, const char* defaultValue) {
     char buffer[0x400];
@@ -132,7 +127,6 @@ mfc::CString CIniFile::GetString(const char* section, const char* key, const cha
     gameapi::GetPrivateProfileStringA(section, key, defaultValue, buffer, 0x3FF, path_.c_str());
     return mfc::CString(buffer);
 }
-EI_REWRITTEN(0x00696030, CIniFile::GetString);
 
 BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::string>* out, char separator) {
     std::string value = ReadString(this, section, key, game::EmptyText()).GetString();
@@ -149,7 +143,6 @@ BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::st
     }
     return 1;
 }
-EI_REWRITTEN(0x00696090, CIniFile::GetList);
 
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
     std::vector<std::string> codes;
@@ -159,7 +152,3 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }
-EI_REWRITTEN(0x00696830, CIniFile::GetIntArray);
-
-// --- Writers ---------------------------------------------------------------------------------------
-

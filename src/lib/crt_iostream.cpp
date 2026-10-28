@@ -8,7 +8,6 @@
 
 #include "compiled_vtable.h"
 #include "crt.h"
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 
@@ -172,15 +171,12 @@ Streambuf::Streambuf(char* buffer, int length) {
     lockFlag = -1;
     gameapi::InitializeCriticalSection(&lock);
 }
-EI_REWRITTEN_SPECIAL(0x006FCAD2, libcrt::Streambuf::Streambuf);
 
 Streambuf::~Streambuf() {
     gameapi::DeleteCriticalSection(&lock);
     Streambuf::Sync();
     if (allocated && base) gamecrt::operator_delete(base);
 }
-EI_REWRITTEN_SPECIAL(0x006FCB35, libcrt::Streambuf::~Streambuf);
-EI_REWRITTEN_SPECIAL(0x006FCAB6, libcrt::Streambuf::~Streambuf);   // deleting
 
 // setb: the reserve area replaced (the old one freed when owned).
 void Streambuf::Setb(char* reserve, char* reserveEnd, int owned) {
@@ -205,7 +201,6 @@ int Streambuf::Sync() {
     if (gptr < egptr || pptr > pbase) return kEof;
     return 0;
 }
-EI_REWRITTEN(0x006FCC86, libcrt::Streambuf::Sync);
 
 // Only while there is no reserve area yet (null otherwise): `buffer` becomes it, or with a null buffer or a
 // zero length the streambuf goes unbuffered.
@@ -220,13 +215,10 @@ Streambuf* Streambuf::Setbuf(char* buffer, int length) {
     }
     return this;
 }
-EI_REWRITTEN(0x006FCB65, libcrt::Streambuf::Setbuf);
 
 long Streambuf::Seekoff(long, int, int) { return kEof; }
-EI_REWRITTEN(0x006FCD18, libcrt::Streambuf::Seekoff);
 
 long Streambuf::Seekpos(long position, int mode) { return Seekoff(position, 0, mode); }
-EI_REWRITTEN(0x006FCD1E, libcrt::Streambuf::Seekpos);
 
 // Byte by byte: into the put area while it has room (and the streambuf is buffered), else overflow, until
 // overflow fails. The count put.
@@ -243,7 +235,6 @@ int Streambuf::Xsputn(const char* text, int count) {
     }
     return put;
 }
-EI_REWRITTEN(0x006FCB99, libcrt::Streambuf::Xsputn);
 
 // Unbuffered: the look-ahead byte (lastChar, fetched by underflow when it is EOF) and the next one after
 // each. Buffered: underflow, then what the get area holds, until `count` bytes or EOF. The count got.
@@ -271,7 +262,6 @@ int Streambuf::Xsgetn(char* text, int count) {
     }
     return got;
 }
-EI_REWRITTEN(0x006FCBEF, libcrt::Streambuf::Xsgetn);
 
 // Room before gptr: sputbackc. Otherwise the source is asked to step back one byte (seekoff(-1, cur, in));
 // when it can and the streambuf is buffered with a get area, the get area shifts up one byte (its last byte
@@ -285,7 +275,6 @@ int Streambuf::Pbackfail(int c) {
     }
     return c;
 }
-EI_REWRITTEN(0x006FCD30, libcrt::Streambuf::Pbackfail);
 
 int Streambuf::Doallocate() {
     char* reserve = gamecrt::operator_new_array<char>(kReserveSize);
@@ -293,7 +282,6 @@ int Streambuf::Doallocate() {
     Setb(reserve, reserve + kReserveSize, 1);
     return 1;
 }
-EI_REWRITTEN(0x006FCCBB, libcrt::Streambuf::Doallocate);
 
 // ---- ios and ostream ------------------------------------------------------------------------------------
 
@@ -314,7 +302,6 @@ Ios* Ios::Construct() {
     if (g_liveIosCount++ == 0) gameapi::InitializeCriticalSection(&g_sharedLock);
     return this;
 }
-EI_REWRITTEN(0x006FCDB1, libcrt::Ios::Construct);
 
 void Ios::Destruct() {
     lockFlag = -1;
@@ -325,14 +312,12 @@ void Ios::Destruct() {
     bp = nullptr;
     state = kBad;
 }
-EI_REWRITTEN(0x006FCEDC, libcrt::Ios::Destruct);
 
 Ios* Ios::DeletingDestruct(unsigned deleteFlags) {
     Destruct();
     if (deleteFlags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x006FCE0F, libcrt::Ios::DeletingDestruct);
 
 void Ios::Init(Streambuf* buffer) {
     if (deleteBuffer && bp) delete bp;
@@ -340,13 +325,11 @@ void Ios::Init(Streambuf* buffer) {
     if (buffer) state &= ~kBad;
     else state |= kBad;
 }
-EI_REWRITTEN(0x006FCF26, libcrt::Ios::Init);
 
 void Ios::DestructOstream() {
     Ostream* stream = reinterpret_cast<Ostream*>(this) - 1;
     stream->Base().vtable = OstreamIosVtable();
 }
-EI_REWRITTEN(0x006FC502, libcrt::Ios::DestructOstream);
 
 Ostream* Ios::DeleteOstream(unsigned deleteFlags) {
     Ostream* stream = reinterpret_cast<Ostream*>(this) - 1;
@@ -355,7 +338,6 @@ Ostream* Ios::DeleteOstream(unsigned deleteFlags) {
     if (deleteFlags & 1) gamecrt::operator_delete(stream);
     return stream;
 }
-EI_REWRITTEN(0x006FC404, libcrt::Ios::DeleteOstream);
 
 Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     if (mostDerived) {
@@ -367,13 +349,11 @@ Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
     floatUsed = 0;
     return this;
 }
-EI_REWRITTEN(0x006FC42F, libcrt::Ostream::Construct);
 
 Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
     manipulator(this);
     return this;
 }
-EI_REWRITTEN(0x00434FE0, libcrt::Ostream::Apply);
 
 // With a width, through writepad as a one-byte string (a zero byte writes only the padding); otherwise
 // put, and on EOF overflow is asked once more before failbit | badbit.
@@ -390,13 +370,11 @@ Ostream* Ostream::PutChar(char c) {
     Suffix(this);
     return this;
 }
-EI_REWRITTEN(0x006FC0B0, libcrt::Ostream::PutChar);
 
 Ostream* Ostream::PutUnsigned(unsigned value) {
     PutInteger(this, value, "%u", 1, true);
     return this;
 }
-EI_REWRITTEN(0x006FC14E, libcrt::Ostream::PutUnsigned);
 
 Ostream* Ostream::PutText(const char* text) {
     if (Prefix(this)) {
@@ -405,7 +383,6 @@ Ostream* Ostream::PutText(const char* text) {
     }
     return this;
 }
-EI_REWRITTEN(0x006FC31D, libcrt::Ostream::PutText);
 
 // "%[+][#].<precision>g", the letter 'f' under fixed, 'e' under scientific (upper case under uppercase,
 // except 'f'); the precision at most 15, or 6 after the inline float inserter (floatUsed, cleared). The
@@ -444,19 +421,16 @@ Ostream* Ostream::PutDouble(double value) {
     Suffix(this);
     return this;
 }
-EI_REWRITTEN(0x006FC7FA, libcrt::Ostream::PutDouble);
 
 Ostream* Ostream::PutLong(long value) {
     PutInteger(this, value, "%ld", 2, value > 0);
     return this;
 }
-EI_REWRITTEN(0x006FC91C, libcrt::Ostream::PutLong);
 
 Ostream* Ostream::PutInt(int value) {
     PutInteger(this, value, "%d", 1, value > 0);
     return this;
 }
-EI_REWRITTEN(0x006FC9C6, libcrt::Ostream::PutInt);
 
 Ostream* Ostream::Flush() {
     Ios& ios = Base();
@@ -467,12 +441,9 @@ Ostream* Ostream::Flush() {
     ios.Unlock();
     return this;
 }
-EI_REWRITTEN(0x006FC346, libcrt::Ostream::Flush);
 
 Ostream* __cdecl FlushManipulator(Ostream* stream) { return stream->Flush(); }
-EI_REWRITTEN(0x00435000, libcrt::FlushManipulator);
 
 Ostream* __cdecl EndlManipulator(Ostream* stream) { return stream->PutChar('\n')->Flush(); }
-EI_REWRITTEN(0x004BA9F0, libcrt::EndlManipulator);
 
 } // namespace libcrt

@@ -13,7 +13,6 @@
 #include "lib/mfc_string.h"
 #include "lib/mfc_array.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 
@@ -41,7 +40,6 @@ template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>
         std::memcpy(&values.data[old + i], &other->values.data[i], sizeof(float));
     }
 }
-EI_REWRITTEN(0x004C2B70, ScriptNamedValues<float>::Append);
 
 template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>* other) {
     int old = values.size;
@@ -52,7 +50,6 @@ template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<
         values.data[old + i] = other->values.data[i];
     }
 }
-EI_REWRITTEN(0x004C2FE0, ScriptNamedValues<std::string>::Append);
 
 // The new slot drops its (null) object, then takes the other's object with a reference of its own.
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
@@ -71,7 +68,6 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedVal
         Release(value.object);
     }
 }
-EI_REWRITTEN(0x004C3450, ScriptNamedValues<ScriptObjectRef>::Append);
 
 // The new group is sized to the other's and each member reference copied in place.
 template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other) {
@@ -99,7 +95,6 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         }
     }
 }
-EI_REWRITTEN(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 
 // ---- Emptying a variable set ---------------------------------------------------------------------
 
@@ -131,24 +126,20 @@ void DestroyGroups(ScriptGroup* groups, int count) {
 void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars) {
     FreeValues(vars, [](float*, int) {});
 }
-EI_REWRITTEN(0x004C1650, ScriptFloatsClear);
 
 void __fastcall ScriptStringsClear(ScriptNamedValues<std::string>* vars) {
     FreeValues(vars, mfc::PlainElements<std::string>::Destruct);
 }
-EI_REWRITTEN(0x004C16B0, ScriptStringsClear);
 
 void __fastcall ScriptObjectsClear(ScriptNamedValues<ScriptObjectRef>* vars) {
     FreeValues(vars, [](ScriptObjectRef* refs, int count) {
         for (int i = 0; i < count; ++i) refs[i].Reset();
     });
 }
-EI_REWRITTEN(0x004C1700, ScriptObjectsClear);
 
 void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
     FreeValues(vars, DestroyGroups);
 }
-EI_REWRITTEN(0x004C1760, ScriptGroupsClear);
 
 // ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
 // storage is freed inline (each group destroyed first).
@@ -168,8 +159,6 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     vars->groups.size = 0;
     vars->groupNames.SetSize(0, -1);
 }
-EI_REWRITTEN(0x004C0020, ScriptVarsClear);
-
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
 void ScriptVars::AppendFrom(const ScriptVars* other) {
@@ -178,4 +167,3 @@ void ScriptVars::AppendFrom(const ScriptVars* other) {
     NamedValues(&objects)->Append(NamedValues(&other->objects));
     NamedValues(&groups)->Append(NamedValues(&other->groups));
 }
-EI_REWRITTEN(0x004B3900, ScriptVars::AppendFrom);

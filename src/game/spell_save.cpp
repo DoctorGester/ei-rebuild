@@ -5,8 +5,6 @@
 #include "core_streams.h"
 #include "map_object.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include <cstring>
 
@@ -17,7 +15,6 @@ void MapEffect::Load(CStream* stream) {
     stream->Read(&value, 4);
     stream->Read(&strength, 4);
 }
-EI_REWRITTEN(0x00688550, MapEffect::Load);
 
 void MapEffect::Save(CStream* stream) const {
     stream->Write(&type, 1);
@@ -26,7 +23,6 @@ void MapEffect::Save(CStream* stream) const {
     stream->Write(&value, 4);
     stream->Write(&strength, 4);
 }
-EI_REWRITTEN(0x006885A0, MapEffect::Save);
 
 void CSpell::Load(CStream* stream) {
     std::memset(modifiers_, 0, sizeof(modifiers_));
@@ -47,7 +43,6 @@ void CSpell::Load(CStream* stream) {
     flags_ = flags;
     stream->Read(&skillNeeded_, 4);
 }
-EI_REWRITTEN(0x0068B860, CSpell::Load);
 
 void CSpell::Save(CStream* stream) {
     Effect().Save(stream);
@@ -63,4 +58,3 @@ void CSpell::Save(CStream* stream) {
     stream->Write(&flags_, 4);
     stream->Write(&skillNeeded_, 4);
 }
-EI_REWRITTEN(0x0068B920, CSpell::Save);

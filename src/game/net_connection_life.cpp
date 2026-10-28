@@ -6,7 +6,6 @@
 #include "library_net_lists.h"
 
 #include "core_streams.h"
-#include "ei/hook.h"
 #include "lib/stlp_vector.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -17,11 +16,6 @@
 
 namespace net {
 
-namespace {
-
-using AttachedMap = trees::Attached;
-
-}  // namespace
 IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {
 // An id pool's destructor: its vector of free ids freed.
@@ -122,7 +116,6 @@ Connection::Connection(std::uint32_t id) {
     ackMask_ = 0;
     ackBase_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00432DA0, Connection::Connection);
 
 // Tears every container down (in the order the destructor's unwinding would)
 // and constructs the connection again with id 0 (the count and the flags kept).
@@ -131,7 +124,6 @@ int Connection::OnShutdown() {
     new (this) Connection(0);
     return 0;
 }
-EI_REWRITTEN(0x00433320, Connection::OnShutdown);
 
 // The reliable streams are members, destroyed after the body (the original frees them first).
 Connection::~Connection() {
@@ -157,8 +149,6 @@ Connection::~Connection() {
     libcrt::DestroyElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
     FreeReceived(this);
 }
-EI_REWRITTEN_SPECIAL(0x004334E0, Connection::~Connection);
-EI_REWRITTEN_SPECIAL(0x004334C0, Connection::~Connection);
 
 } // namespace net
 
@@ -166,7 +156,6 @@ namespace net {
 
 // The copy below as a new connection.
 Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
-EI_REWRITTEN(0x00433060, Connection::Clone);
 
 // The reliable streams are members, copied before the body (the original copies them last).
 Connection::Connection(const Connection& other)
@@ -217,7 +206,6 @@ IdPool* IdPool::CopyFrom(const IdPool& other) {
     next = other.next;
     return this;
 }
-EI_REWRITTEN(0x00433A30, IdPool::CopyFrom);
 
 namespace {
 // The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
@@ -243,7 +231,6 @@ ReplicaEntry::ReplicaEntry(const ReplicaEntry& other)
 
 // Entry copy: a copy of the entry sharing the object.
 ReplicaEntry* ReplicaEntry::Clone() { return NewCounted<ReplicaEntry>(*this); }
-EI_REWRITTEN(0x004343C0, ReplicaEntry::Clone);
 
 // Entry reset: releases the object, then built again in place as the constructor would (object, version and
 // id cleared; type and flags kept). The result means nothing.
@@ -254,11 +241,8 @@ int ReplicaEntry::OnShutdown() {
     id_ = 0;
     return 0;
 }
-EI_REWRITTEN(0x00434430, ReplicaEntry::OnShutdown);
 
 ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
-EI_REWRITTEN_SPECIAL(0x004344C0, ReplicaEntry::~ReplicaEntry);
-EI_REWRITTEN_SPECIAL(0x004344A0, ReplicaEntry::~ReplicaEntry);
 
 // An empty id pool (no free ids, next 0); the connection's constructor passes it to the vector constructor
 // iterator.
@@ -267,6 +251,5 @@ IdPool* __fastcall IdPoolConstruct(IdPool* self) {
     self->next = 0;
     return self;
 }
-EI_REWRITTEN(0x00433040, IdPoolConstruct);
 
 } // namespace net

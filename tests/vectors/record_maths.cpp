@@ -275,23 +275,23 @@ void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int 
 
 } // namespace
 
-EI_RECORD(0x004D9B80, PushRecord, 6, s_push);
-EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply);
-EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix);
-EI_RECORD(0x00401DE0, ConstructRecord, 6, s_construct);
-EI_RECORD(0x00401E00, DotRecord, 6, s_dot);
-EI_RECORD(0x00401E20, LengthRecord, 6, s_length);
-EI_RECORD(0x0049ECC0, FromAxisAngleRecord, 8, s_fromAxisAngle);
-EI_RECORD(0x0040CDC0, AddRecord, 5, s_add);
-EI_RECORD(0x00402200, NegateRecord, 5, s_negate);
-EI_RECORD(0x00410770, ScaleRecord, 7, s_scale);
-EI_RECORD(0x00410750, AddInPlaceRecord, 6, s_addInPlace);
-EI_RECORD(0x004022D0, ClampRecord, 10, s_clamp);
-EI_RECORD(0x0040CB00, IdentityRecord, 10, s_identity);
-EI_RECORD(0x004018A0, PreMultiplyRecord, 5, s_preMultiply);
-EI_RECORD(0x0040D940, AxisXRecord, 7, s_axisX);
-EI_RECORD(0x0040F560, AxisYRecord, 6, s_axisY);
-EI_RECORD(0x0040D6B0, AxisZRecord, 5, s_axisZ);
-EI_RECORD(0x0040E3D0, BSplineRecord, 10, s_bspline);
-EI_RECORD(0x0040E440, EvaluateRecord, 7, s_evaluate);
-EI_RECORD(0x004E5660, EvaluateCopyRecord, 7, s_evaluateCopy);
+EI_RECORD(0x004D9B80, PushRecord, 6, s_push, CTransformPipeline::PushMatrix);
+EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply, Matrix4::Multiply);
+EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix, Quaternion::ToMatrix);
+EI_RECORD(0x00401DE0, ConstructRecord, 6, s_construct, Vector3::Construct);
+EI_RECORD(0x00401E00, DotRecord, 6, s_dot, Dot);
+EI_RECORD(0x00401E20, LengthRecord, 6, s_length, Vector3::Length);
+EI_RECORD(0x0049ECC0, FromAxisAngleRecord, 8, s_fromAxisAngle, Quaternion::FromAxisAngle);
+EI_RECORD(0x0040CDC0, AddRecord, 5, s_add, AddVectors);
+EI_RECORD(0x00402200, NegateRecord, 5, s_negate, NegateVector);
+EI_RECORD(0x00410770, ScaleRecord, 7, s_scale, ScaleVector);
+EI_RECORD(0x00410750, AddInPlaceRecord, 6, s_addInPlace, Vector3::AddInPlace);
+EI_RECORD(0x004022D0, ClampRecord, 10, s_clamp, ClampUnit);
+EI_RECORD(0x0040CB00, IdentityRecord, 10, s_identity, Quaternion::SetIdentity);
+EI_RECORD(0x004018A0, PreMultiplyRecord, 5, s_preMultiply, Quaternion::PreMultiply);
+EI_RECORD(0x0040D940, AxisXRecord, 7, s_axisX, Quaternion::AxisX);
+EI_RECORD(0x0040F560, AxisYRecord, 6, s_axisY, Quaternion::AxisY);
+EI_RECORD(0x0040D6B0, AxisZRecord, 5, s_axisZ, Quaternion::AxisZ);
+EI_RECORD(0x0040E3D0, BSplineRecord, 10, s_bspline, CubicSegment::SetBSpline);
+EI_RECORD(0x0040E440, EvaluateRecord, 7, s_evaluate, CubicSegment::Evaluate);
+EI_RECORD(0x004E5660, EvaluateCopyRecord, 7, s_evaluateCopy, CubicSegment::Evaluate);

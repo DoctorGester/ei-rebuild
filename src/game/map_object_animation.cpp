@@ -4,7 +4,6 @@
 
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -67,4 +66,3 @@ void AnimationTrack::Evaluate(float atTime) {
     }
     std::memcpy(&time, &atTime, 4);
 }
-EI_REWRITTEN(0x0050ACD0, AnimationTrack::Evaluate);

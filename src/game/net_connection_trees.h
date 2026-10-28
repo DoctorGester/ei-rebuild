@@ -1,8 +1,7 @@
 #pragma once
 
-// The connection's five STLport maps as registered instantiations (net_connection_trees.cpp). The
-// types (value policies and stlp::TreeAbi types) are declared with the connection, whose fields
-// they are (net_connection.h).
+// The connection's five STLport maps. The types (value policies and stlp::TreeAbi types) are declared with the
+// connection, whose fields they are (net_connection.h).
 
 #include "net_connection.h"
 

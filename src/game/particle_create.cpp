@@ -8,7 +8,6 @@
 #include "spell.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -797,7 +796,6 @@ void CParticleSource::Reset() {
     SetBits(&turnSin, 0);
     emitSpacing = 1000.0f;
 }
-EI_REWRITTEN(0x004847E0, CParticleSource::Reset);
 
 // Clear (the destroy virtual). Returns every particle to the pool, releases the texture, detaches from the
 // object the source follows, then resets.
@@ -810,7 +808,6 @@ void CParticleSource::Clear() {
         attachedTo->RemoveEffectSource(this);
     Reset();
 }
-EI_REWRITTEN(0x00484710, CParticleSource::Clear);
 
 // Create. Sets the source up for its type; 1, or for an unknown type the fatal error report's result.
 int CParticleSource::Create() {
@@ -837,7 +834,6 @@ int CParticleSource::Create() {
     BuildFrames(this);
     return 1;
 }
-EI_REWRITTEN(0x00485540, CParticleSource::Create);
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
@@ -876,7 +872,6 @@ CParticleSource::CParticleSource(int type) {
 }
 
 CParticleSource* __stdcall NewParticleSource(int type) { return new CParticleSource(type); }
-EI_REWRITTEN(0x004981B0, NewParticleSource);
 
 CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);
@@ -895,32 +890,10 @@ CParticleSource::~CParticleSource() {
     particles.blocks = nullptr;
     if (elements) lib::FreeAligned32(elements);
 }
-EI_REWRITTEN_SPECIAL(0x00498310, CParticleSource::~CParticleSource);
-EI_REWRITTEN_SPECIAL(0x004982F0, CParticleSource::~CParticleSource);
 
 const char* CParticleSource::GetClassName() { return "CParticle"; }
 int CParticleSource::GetClassId() { return 12; }
-EI_REWRITTEN(0x004982D0, CParticleSource::GetClassName);
-EI_REWRITTEN(0x004982E0, CParticleSource::GetClassId);
 
 // The element callbacks that do nothing one per type that stores one (Stench and the spheres,
 // ZoneExit, PortalStar, FireStar, Sparks, VisionStar, Regeneration, Silence, FeebleMind, Stun, CurseStars).
 void CParticleSource::TickNone(ParticleElement*) {}
-
-namespace ei::short_functions {
-void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
-} // namespace ei::short_functions
-using ei::short_functions::Ret4;
-// The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls these
-// any more; kept in the function-to-original map (nothing reads their addresses).
-EI_REWRITTEN(0x00485530, Ret4);
-EI_REWRITTEN(0x00492FB0, Ret4);
-EI_REWRITTEN(0x00493DD0, Ret4);
-EI_REWRITTEN(0x00494A00, Ret4);
-EI_REWRITTEN(0x00494DF0, Ret4);
-EI_REWRITTEN(0x004950A0, Ret4);
-EI_REWRITTEN(0x00495310, Ret4);
-EI_REWRITTEN(0x004957D0, Ret4);
-EI_REWRITTEN(0x00495A20, Ret4);
-EI_REWRITTEN(0x00496260, Ret4);
-EI_REWRITTEN(0x004965D0, Ret4);

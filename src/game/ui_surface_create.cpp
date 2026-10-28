@@ -10,7 +10,6 @@
 #include "dx_surface.h"
 #include "game_strings.h"
 #include "texture.h"
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -86,9 +85,6 @@ CUiSurface::~CUiSurface() {
     if (holder) holder->Release();
     gameapi::SetRectEmpty(&rect_);
 }
-EI_REWRITTEN_SPECIAL(0x005FD120, CUiSurface::~CUiSurface);
-
-EI_REWRITTEN_SPECIAL(0x005FCF80, CUiSurface::CUiSurface);
 
 // The scale flag is a byte.
 CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int bottom, int format, int flag) {
@@ -99,11 +95,9 @@ CUiSurface::CUiSurface(CInterface3D* ui, int left, int top, int right, int botto
     rect_.bottom = bottom;
     Finish(this, static_cast<char>(flag) != 0);
 }
-EI_REWRITTEN_SPECIAL(0x005FCC00, CUiSurface::CUiSurface);
 
 CUiSurface::CUiSurface(CInterface3D* ui, const RECT* rect, int format) {
     Begin(this, ui, format);
     rect_ = *rect;
     Finish(this, true);
 }
-EI_REWRITTEN_SPECIAL(0x005FCDD0, CUiSurface::CUiSurface);

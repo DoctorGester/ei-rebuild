@@ -5,7 +5,6 @@
 #include "ai_map.h"
 #include "ai_grids.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 
@@ -50,7 +49,6 @@ CAIMap::CAIMap() {
     footprintTick = 0;
     refreshUnits = false;
 }
-EI_REWRITTEN_SPECIAL(0x005B3C30, CAIMap::CAIMap);
 
 CAIMap::~CAIMap() {
     Events()->Destroy();
@@ -81,10 +79,7 @@ CAIMap::~CAIMap() {
     mfc::impl::DestructArrayOf<mfc::impl::IntArrayClass>(climbLarge);
 }
 
-EI_REWRITTEN_SPECIAL(0x0058A450, CAIMap::~CAIMap);
-
 void CAIMap::Reset() {
     this->~CAIMap();
     new (this) CAIMap();
 }
-EI_REWRITTEN(0x005B5E10, CAIMap::Reset);

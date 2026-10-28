@@ -11,7 +11,6 @@
 #include "ui_widescreen.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
@@ -216,4 +215,3 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
     DrawBase(pass);
     return 1;
 }
-EI_REWRITTEN(0x006462A0, CHudUnitPanel::DrawVanilla);

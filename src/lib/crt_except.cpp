@@ -4,7 +4,6 @@
 #include "crt.h"
 
 #include "compiled_vtable.h"
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 
@@ -34,7 +33,6 @@ void __stdcall CxxThrowException(void* object, const void* throwInfo) {
                                      reinterpret_cast<ULONG_PTR>(throwInfo)};
     gameapi::RaiseException(kCxxExceptionCode, EXCEPTION_NONCONTINUABLE, 3, parameters);
 }
-EI_REWRITTEN(0x006E7819, libcrt::CxxThrowException);
 
 Exception* Exception::Construct() {
     vtable = ExceptionVtable();
@@ -42,22 +40,18 @@ Exception* Exception::Construct() {
     ownsText = 0;
     return this;
 }
-EI_REWRITTEN(0x006E7CD5, libcrt::Exception::Construct);
 
 void Exception::Destruct() {
     vtable = ExceptionVtable();
     if (ownsText) gamecrt::operator_delete(const_cast<char*>(text));
 }
-EI_REWRITTEN(0x006E7DA8, libcrt::Exception::Destruct);
 
 Exception* Exception::DeletingDestruct(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x006E7CE6, libcrt::Exception::DeletingDestruct);
 
 const char* Exception::What() const { return text ? text : UnknownException(); }
-EI_REWRITTEN(0x006E7DBE, libcrt::Exception::What);
 
 } // namespace libcrt

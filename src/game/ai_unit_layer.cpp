@@ -2,7 +2,6 @@
 // unit moves (CAIMap::MarkFootprint through CSectorMap::Move).
 #include "ai_unit_layer.h"
 
-#include "ei/hook.h"
 #include "lib/compiled_vtable.h"
 
 #include <cstring>
@@ -59,7 +58,6 @@ void CUnitLayer::Add(CUnit* unit, const CUnitShape* shape, int x, int y) {
     node->next = freeNodes;
     freeNodes = node;
 }
-EI_REWRITTEN(0x005B36B0, CUnitLayer::Add);
 
 void CUnitLayer::Remove(CUnit* unit, int x, int y) {
     int firstY = y >> 2, firstX = x >> 2;
@@ -92,7 +90,6 @@ void CUnitLayer::Remove(CUnit* unit, int x, int y) {
         }
     }
 }
-EI_REWRITTEN(0x005B3890, CUnitLayer::Remove);
 
 namespace {
 // The block's 4x4 cells when the block lies in the map (keys are signed 16-bit halves; the
@@ -116,7 +113,6 @@ void CSmallUnitLayer::Set(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B39D0, CSmallUnitLayer::Set);
 
 void CSmallUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
@@ -130,14 +126,12 @@ void CSmallUnitLayer::Merge(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B3A70, CSmallUnitLayer::Merge);
 
 void CLargeUnitLayer::Set(const UnitLayerNode* block) {
     int x, y;
     if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
 }
-EI_REWRITTEN(0x005B3B20, CLargeUnitLayer::Set);
 
 void CLargeUnitLayer::Merge(const UnitLayerNode* block) {
     int x, y;
@@ -151,4 +145,3 @@ void CLargeUnitLayer::Merge(const UnitLayerNode* block) {
         }
     }
 }
-EI_REWRITTEN(0x005B3B90, CLargeUnitLayer::Merge);

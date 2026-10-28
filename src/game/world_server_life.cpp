@@ -11,7 +11,6 @@
 #include "registry.h"
 #include "server_specific_manager.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -106,6 +105,3 @@ void CWorldServer::Destroy() {
     exits_.size = 0;
     CWorld::Destroy();
 }
-
-EI_REWRITTEN(0x0058AE10, CWorldServer::Create);
-EI_REWRITTEN(0x0058B020, CWorldServer::Destroy);

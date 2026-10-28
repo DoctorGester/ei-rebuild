@@ -12,7 +12,6 @@
 #include "lib/mfc.h"
 #include "engine_object.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "record_arrays.h"
@@ -71,7 +70,6 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->floatNames);
     FreePlain(&vars->floats, mfc::impl::ScriptFloatsClass::Vtable());
 }
-EI_REWRITTEN(0x004BE090, ScriptVarsDestruct);
 
 void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     ScriptVars& vars = definition->vars;
@@ -91,7 +89,6 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     std::destroy_at(&definition->params);
     std::destroy_at(&definition->name);
 }
-EI_REWRITTEN(0x004BE9D0, ScriptDefinitionDestruct);
 
 void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
     SetBaseVtable(&cmd->subCalls, recordarrays::SubCallBaseClass::Vtable());
@@ -106,7 +103,6 @@ void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
     FreeStrings(&cmd->stringArgs);
     FreePlain(&cmd->floatArgs, mfc::impl::FloatArrayClass::Vtable());
 }
-EI_REWRITTEN(0x004BF640, ScriptCmdDestruct);
 
 // ---- Element destructors ---------------------------------------------------------------------
 // Bit 0 of the flags also deletes the element; `this` is returned.
@@ -124,14 +120,11 @@ void* ScriptObjectRef::DestroyElement(int flags) {
     object = nullptr;
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE1E0, ScriptObjectRef::DestroyElement);
-EI_REWRITTEN(0x0052D030, ScriptObjectRef::DestroyElement);
 
 void* ScriptGroup::DestroyElement(int flags) {
     DestructBody();
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE210, ScriptGroup::DestroyElement);
 
 // A nested call: its command destroyed and deleted.
 void* ScriptSubCall::DestroyElement(int flags) {
@@ -141,7 +134,6 @@ void* ScriptSubCall::DestroyElement(int flags) {
     }
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE230, ScriptSubCall::DestroyElement);
 
 // A particle source's object: removed from the world's timed objects, then released.
 void* ScriptParticleSource::DestroyElement(int flags) {
@@ -152,22 +144,18 @@ void* ScriptParticleSource::DestroyElement(int flags) {
     object = nullptr;
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE270, ScriptParticleSource::DestroyElement);
 
 void* ScriptFxSource::DestroyElement(int flags) {
     ScriptFxSourceDestruct();
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE2B0, ScriptFxSource::DestroyElement);
 
 void* ScriptDecl::DestroyElement(int flags) {
     ScriptDeclDestruct(this);
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004CE2D0, ScriptDecl::DestroyElement);
 
 void* SSCCmd::DestroyElement(int flags) {
     Destruct();
     return Finish(this, flags);
 }
-EI_REWRITTEN(0x004BF620, SSCCmd::DestroyElement);

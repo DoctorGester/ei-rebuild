@@ -9,7 +9,6 @@
 #include "unit.h"
 #include "unit_create.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 namespace {
@@ -24,22 +23,18 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 
 // No key is accepted.
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }
-EI_REWRITTEN(0x0050F110, CMapObject::AcceptsNoKey);
 
 // A scaling effect came or went; 1.
 int CMapObject::ScaleEffectChangedDefault(int /*scaleEffect*/) { return 1; }
-EI_REWRITTEN(0x0050E960, CMapObject::ScaleEffectChangedDefault);
 
 // --- Slots that read the object ------------------------------------------------------------------------
 
 int CMapObject::CompanionIsDead() { return companion->IsDead(); }
-EI_REWRITTEN(0x0050E500, CMapObject::CompanionIsDead);
 
 int CMapObject::NotifyCompanion() {
     companion->Unused14();
     return 1;
 }
-EI_REWRITTEN(0x0050E930, CMapObject::NotifyCompanion);
 
 void CMapObject::TakePrototype(const char* prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
@@ -49,7 +44,6 @@ void CMapObject::TakePrototype(const char* prototype) {
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
-EI_REWRITTEN(0x0050E9B0, CMapObject::TakePrototype);
 
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
@@ -58,7 +52,6 @@ void CMapObject::WriteFullState() {
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
-EI_REWRITTEN(0x0050EA40, CMapObject::WriteFullState);
 
 void CMapObject::WriteChangedState() {
     if (ChangedParts() & kVitalParts) StatsChanged();
@@ -68,7 +61,6 @@ void CMapObject::WriteChangedState() {
     state->Finish();
     flags_ &= ~kStateUnsent;
 }
-EI_REWRITTEN(0x0050EA70, CMapObject::WriteChangedState);
 
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     DeltaState* state = NetState();
@@ -77,13 +69,11 @@ std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
     state->Finish();
     return result;
 }
-EI_REWRITTEN(0x0050EAB0, CMapObject::ReadState);
 
 std::string* CMapObject::SetSecondName(const char* text) {
     name2 = text;
     return &name2;
 }
-EI_REWRITTEN(0x0050F150, CMapObject::SetSecondName);
 
 // --- The virtuals for the compiler's tables ----------------------------------------------------------------
 // The bodies above and in map_object*.cpp / object_small_slots.cpp, called without dispatch.

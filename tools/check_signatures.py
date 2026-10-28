@@ -6,16 +6,15 @@ three places, which this checks (a declaration with too few stack arguments, or 
 callee disagreeing on the stack and crashes far from the cause):
 - the EI_RECORD recorders (tests/vectors/record_*.cpp): in game.exe, with EI_VECTORS=1, the original calls them;
 - the EI_ORIGINAL forwarders (tests/verify, tests/vectors): our harness calls the original through them;
-- the EI_REWRITTEN functions at an address a recorder records (the vectors' replays call them with the
-  arguments recorded from the original, tests/vectors/replay_*.cpp): the recorded call frame must fit them.
-Every other EI_REWRITTEN function is not checked (`--all` checks them too, for an audit).
+- the rewrite each EI_RECORD names (its last argument: the function the vectors' replays call with the arguments
+  recorded from the original, tests/vectors/replay_*.cpp): the recorded call frame must fit it.
 This takes the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
 
 Argument ORDER is not checked (that needs reading the disassembly); counts are.
 
-usage: python tools/check_signatures.py [--all]   (after build.cmd verify; needs capstone and undname on PATH,
+usage: python tools/check_signatures.py   (after build.cmd verify; needs capstone and undname on PATH,
                                            i.e. run from a VS developer prompt or via build.cmd's vcvars)
 exit code 1 when a mismatch is found
 """
@@ -171,10 +170,8 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REWRITTEN
-    ('replace': our function for the original at the address; EI_REWRITTEN, C20d, has no registration), EI_RECORD
-    ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/: the tools' function-to-original
-    map."""
+    """(address, name, kind, file, line) of every EI_RECORD ('record': the recorder; 'replace': the rewrite it names)
+    and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
                 glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) + \
@@ -186,10 +183,10 @@ def registrations():
         text = re.sub(r'//[^\n]*', blank, text)
         text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
-        for m in re.finditer(r'EI_REWRITTEN(?:_SPECIAL)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:~]+)(?![\w:~<])', text):   # not a template's name: short_functions.cpp's LoadDword<0x24> (C20e)
-            regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
-            regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))
+        for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)\s*,[^,;]*,[^,;]*,\s*([\w:~]+)\s*\)', text):
+            line = text.count('\n', 0, m.start()) + 1
+            regs.append((int(m.group(1), 16), m.group(2), 'record', rel, line))
+            regs.append((int(m.group(1), 16), m.group(3), 'replace', rel, line))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))
     return regs
@@ -225,22 +222,12 @@ def candidates_for(by_name, name, kind, rel, key):
     return candidates
 
 
-def checked_registrations(regs, everything=False):
-    """The registrations whose signature must match the original's: recorders, forwarders and the rewrites at the
-    recorded addresses (the vectors' replays call those with recorded arguments); `everything` adds every rewrite."""
-    recorded = {address for address, _, kind, _, _ in regs if kind == 'record'}
-    return [r for r in regs if r[2] != 'replace' or everything or r[0] in recorded]
-
-
 def main():
-    everything = '--all' in sys.argv[1:]
     data = open(exe_path.resolve(), 'rb').read()
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     sizes = load_sizes()
     by_name = declarations()
     regs = registrations()
-    total = len(regs)
-    regs = checked_registrations(regs, everything)
 
     problems = checked = unresolved = 0
     kinds = {}
@@ -264,14 +251,14 @@ def main():
                 problems += 1
                 print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __cdecl but the original pops {sorted(pops)}')
             continue
-        # A destructor's tag (EI_REWRITTEN_SPECIAL, C28) also names the original's scalar deleting destructor,
-        # which the compiler makes with the flags argument.
+        # A destructor also stands for the original's scalar deleting destructor, which the compiler makes with the
+        # flags argument.
         if pops != {nbytes} and not ('::~' in name and pops == {nbytes + 4}):
             problems += 1
             print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __{conv} with {nbytes} bytes of stack '
                   f'arguments, the original pops {sorted(pops)}')
     by_kind = ', '.join(f'{n} {k}' for k, n in sorted(kinds.items()))
-    print(f'{checked} declarations checked against RET n ({by_kind}; {total} registrations in all), {unresolved} not '
+    print(f'{checked} declarations checked against RET n ({by_kind}), {unresolved} not '
           f'resolved (overloads, templates, lambdas), {problems} problem(s)')
     return 1 if problems else 0
 

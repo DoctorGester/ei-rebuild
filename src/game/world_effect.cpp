@@ -67,7 +67,6 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
         array->push_back(stream->ReadString(&text)->GetString());
     }
 }
-EI_REWRITTEN(0x006773A0, ReadSavedStrings);
 
 void CEffect::MarkChanged() {
     flags_ |= 2;
@@ -315,40 +314,3 @@ void CEffectAmbientSound::Save(CStream* stream) {
 }
 
 double CEffectAmbientSound::Radius() { return radius_; }
-
-// --- Hooks ---------------------------------------------------------------------------------------
-
-EI_REWRITTEN(0x00675B40, CEffect::SendFull);
-EI_REWRITTEN(0x00675B70, CEffect::SendDelta);
-EI_REWRITTEN(0x00675BA0, CEffect::Receive);
-EI_REWRITTEN(0x00675BE0, CEffect::Reset);
-EI_REWRITTEN(0x00675CA0, CEffect::MarkChanged);
-EI_REWRITTEN(0x00675D10, CEffect::Create);
-EI_REWRITTEN(0x00675D40, CEffect::Destroy);
-EI_REWRITTEN(0x00675D50, CEffect::SetVelocity);
-EI_REWRITTEN(0x00675FA0, CEffect::Position);
-EI_REWRITTEN(0x006768F0, CEffect::Radius);
-
-EI_REWRITTEN(0x00676200, CEffectSound::Reset);
-EI_REWRITTEN(0x006762F0, CEffectSound::RunTick);
-EI_REWRITTEN(0x006763A0, CEffectSound::Start);
-EI_REWRITTEN(0x00676430, CEffectSound::Unpack);
-EI_REWRITTEN(0x00676550, CEffectSound::Pack);
-EI_REWRITTEN(0x006765F0, CEffectSound::Load);
-EI_REWRITTEN(0x006766D0, CEffectSound::Save);
-EI_REWRITTEN(0x00676050, CEffectSound::Radius);
-
-EI_REWRITTEN(0x00676B10, CEffectSoundSeq::Reset);
-EI_REWRITTEN(0x00677250, CEffectSoundSeq::RunTick);
-EI_REWRITTEN(0x00677180, CEffectSoundSeq::Pack);
-EI_REWRITTEN(0x006772D0, CEffectSoundSeq::Load);
-EI_REWRITTEN(0x00677430, CEffectSoundSeq::Save);
-EI_REWRITTEN(0x00676930, CEffectSoundSeq::Radius);
-
-EI_REWRITTEN(0x00677870, CEffectAmbientSound::Reset);
-EI_REWRITTEN(0x00677950, CEffectAmbientSound::Start);
-EI_REWRITTEN(0x006779D0, CEffectAmbientSound::Unpack);
-EI_REWRITTEN(0x00677B20, CEffectAmbientSound::Pack);
-EI_REWRITTEN(0x00677BF0, CEffectAmbientSound::Load);
-EI_REWRITTEN(0x00677C60, CEffectAmbientSound::Save);
-EI_REWRITTEN(0x00677690, CEffectAmbientSound::Radius);

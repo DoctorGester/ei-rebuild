@@ -6,7 +6,6 @@
 #include "model.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "render/render_state.h"
@@ -163,8 +162,6 @@ float* __fastcall StripDirection(float* out, int index, int mode, const void* ar
     }
     return out;
 }
-EI_REWRITTEN(0x00502B90, StripDirection);
-EI_REWRITTEN(0x00502AC0, EmitSection);
 
 // Draws an indexed triangle list of TL vertices under the device's critical section; with distanceFog_ set
 // the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
@@ -185,7 +182,6 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
     drawCount_ += 1;
     return 1;
 }
-EI_REWRITTEN(0x00502A20, CTextureDevice::DrawTlTriangles);
 
 // `points` is an array {data, count} of world points (16 bytes each: x, y, z and one more); `width` scales
 // the ribbon's screen width; `mode` 0 projects, 1 projects and clips (points flagged by the transform object
@@ -298,11 +294,3 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
     render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     return result;
 }
-EI_REWRITTEN(0x00501D90, CSceneRenderer::DrawStrip);
-
-EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);
-EI_REWRITTEN(0x00502C00, FreeStrip);
-EI_REWRITTEN(0x00502C20, FreeRibbon);
-EI_REWRITTEN(0x00502C40, FreeProjected);
-EI_REWRITTEN(0x00502C60, FreeIndices);
-EI_REWRITTEN(0x00502C80, FreeClipped);

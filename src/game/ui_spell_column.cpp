@@ -5,7 +5,6 @@
 #include "ui.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "unit.h"
@@ -114,4 +113,3 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         regions_.data[i]->SetTipString(tip.c_str(), 1, static_cast<int>(i) + 0x1E);
     }
 }
-EI_REWRITTEN(0x0063E820, CHudSpellColumn::SetUnit);

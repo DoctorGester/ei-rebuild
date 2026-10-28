@@ -7,7 +7,6 @@
 #include "item_db_text.h"
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -83,7 +82,6 @@ void CHudTopPanel::Build(int page, int shown) {
     ShowPage();
     Layout();
 }
-EI_REWRITTEN(0x00649AF0, CHudTopPanel::Build);
 
 void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     std::string name;
@@ -100,7 +98,6 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     pageTexts_[0] += name;
     if (page_ == 0) owner_->MessageLog()->AddText(name.c_str());
 }
-EI_REWRITTEN(0x0064A4E0, CHudTopPanel::AddPickedUp);
 
 void CHudTopPanel::AddMoney(int money) {
     if (money <= 0) return;
@@ -118,4 +115,3 @@ void CHudTopPanel::AddMoney(int money) {
     pageTexts_[0] += text;
     if (page_ == 0) owner_->MessageLog()->AddText(text.c_str());
 }
-EI_REWRITTEN(0x0064A630, CHudTopPanel::AddMoney);

@@ -5,7 +5,6 @@
 
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -103,7 +102,6 @@ void CHeroStatsPanel::Update() {
         holdTime_ = 0.0f;
     }
 }
-EI_REWRITTEN(0x00624A60, CHeroStatsPanel::Update);
 
 // --- The left button (input click) -----------------------------------------------------------------
 
@@ -130,4 +128,3 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
         owner_->NextHero();
     }
 }
-EI_REWRITTEN(0x00624790, CHeroStatsPanel::OnLButtonDown);

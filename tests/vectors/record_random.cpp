@@ -55,6 +55,6 @@ float __fastcall RangeRecord(IsaacRandom* rng, void*, float min, float max) {
 
 } // namespace
 
-EI_RECORD(0x004667F0, NextRecord, 6, s_next);
-EI_RECORD(0x00488970, RangeRecord, 6, s_range);
-EI_RECORD(0x0049EE70, RefillRecord, 6, s_refill);
+EI_RECORD(0x004667F0, NextRecord, 6, s_next, IsaacRandom::Next);
+EI_RECORD(0x00488970, RangeRecord, 6, s_range, IsaacRandom::Range);
+EI_RECORD(0x0049EE70, RefillRecord, 6, s_refill, IsaacRandom::Refill);

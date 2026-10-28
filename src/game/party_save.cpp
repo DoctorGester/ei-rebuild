@@ -12,8 +12,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -111,7 +109,6 @@ void PartyUnitRecord::Load(CStream* stream) {
     if (Version(stream) < kVersionRecordText6) return;
     ReadText(stream, texts[6]);
 }
-EI_REWRITTEN(0x0065F9B0, PartyUnitRecord::Load);
 
 void PartyUnitRecord::Save(CStream* stream) {
     WriteText(stream, texts[0]);
@@ -134,8 +131,6 @@ void PartyUnitRecord::Save(CStream* stream) {
     stream->Write(&fightAtWill, 4);
     WriteText(stream, texts[6]);
 }
-EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
-
 
 void CParty::LoadParty(CStream* stream, int loadVariables) {
     if (itemManager_ == nullptr) Create();
@@ -164,7 +159,6 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     itemManager_->ReleaseUnused();
     spellManager_->ReleaseUnused();
 }
-EI_REWRITTEN(0x006618C0, CParty::LoadParty);
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
@@ -183,17 +177,14 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     WriteValue(stream, money_ ^ key);
     WriteValue(stream, key);
 }
-EI_REWRITTEN(0x00661C10, CParty::SaveParty);
 
 CParty* CParty::Assign(CParty* source) {
     Clear(1, 0);
     CopyThrough(this, source);
     return this;
 }
-EI_REWRITTEN(0x00661300, CParty::Assign);
 
 CParty::CParty(CParty& source) : CParty() { CopyThrough(this, &source); }
-EI_REWRITTEN_SPECIAL(0x006613C0, CParty::CParty);
 
 // --- The party as a stream field of an archive --------------------------------------
 
@@ -209,4 +200,3 @@ void CParty::ArchiveParty(ChunkArchive* ar) {
         ar->StreamField(kStreamField, &held);
     }
 }
-EI_REWRITTEN(0x006617F0, CParty::ArchiveParty);

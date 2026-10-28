@@ -4,7 +4,6 @@
 #include "ai_map.h"
 #include "game_arrays.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -46,7 +45,6 @@ int TurnCost(int turn, float scale) { return x87::fistp(static_cast<float>(stati
 
 // CArray<SmoothNode>::SetSize (mfc::CArray: new nodes zeroed, nothing destroyed).
 void SmoothPool::SetSize(int size, int growByArg) { nodes.SetSize(size, growByArg); }
-EI_REWRITTEN(0x005C4C20, SmoothPool::SetSize);
 
 void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {
     if (from->cost == kUnreached) return;
@@ -63,7 +61,6 @@ void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, Smooth
     to->node->direction = step->direction;
     to->node->prev = from->node;
 }
-EI_REWRITTEN(0x005C44D0, PathSmoother::Relax);
 
 void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table) {
     SmoothPool& pool = SmoothNodePool();
@@ -82,7 +79,6 @@ void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const Smoot
         Relax(&step, &to[step.from], &to[step.to]);
     }
 }
-EI_REWRITTEN(0x005C45D0, PathSmoother::Advance);
 
 int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int startDirection, float fraction) {
     if (path->count < 3) return 0;
@@ -170,7 +166,6 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         }
     }
 }
-EI_REWRITTEN(0x005C46C0, PathSmoother::Smooth);
 
 // ---- The transition tables ----------------------------------------------------------------------
 
@@ -192,7 +187,6 @@ void SmoothEdges::AddStraightEdges(int mx, int my, int sx, int sy) {
     Add(SmoothEdge{sx, sy, mx, my, 0});
     Add(SmoothEdge{0, 0, mx - sx, my - sy, 0});
 }
-EI_REWRITTEN(0x005C3840, SmoothEdges::AddStraightEdges);
 
 // The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its two straight
 // halves and (ox, oy) the other.
@@ -208,7 +202,6 @@ void SmoothEdges::AddDiagonalEdges(int mx, int my, int sx, int sy) {
     Add(SmoothEdge{sx, sy, mx, my, 0});
     Add(SmoothEdge{ox, oy, mx, my, 0});
 }
-EI_REWRITTEN(0x005C3A00, SmoothEdges::AddDiagonalEdges);
 
 namespace {
 
@@ -235,7 +228,6 @@ void __fastcall MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const S
     }
     step->direction = toDirection == 0 ? 0 : Opposite(toDirection);
 }
-EI_REWRITTEN(0x005C4050, MakeSmoothStep);
 
 } // namespace
 
@@ -263,7 +255,6 @@ void SmoothEdges::BuildEdges(int direction, bool incoming) {
     }
     for (int i = 0; i < edges->size; ++i) edges->data[i].index = i;
 }
-EI_REWRITTEN(0x005C3690, SmoothEdges::BuildEdges);
 
 SmoothTable* SmoothTable::Construct() {
     copies.Construct(mfc::impl::SmoothCopyArrayClass::Vtable());
@@ -271,7 +262,6 @@ SmoothTable* SmoothTable::Construct() {
     chained.Construct(mfc::impl::SmoothStepArrayClass::Vtable());
     return this;
 }
-EI_REWRITTEN(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
     chained.vtable = mfc::impl::SmoothStepArrayClass::Vtable();
@@ -281,7 +271,6 @@ void SmoothTable::Destruct() {
     copies.vtable = mfc::impl::SmoothCopyArrayClass::Vtable();
     copies.FreeData();
 }
-EI_REWRITTEN(0x005C4250, SmoothTable::Destruct);
 
 void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
     copies.SetSize(0, -1);
@@ -315,7 +304,6 @@ void SmoothTable::Build(const SmoothEdges* from, const SmoothEdges* to) {
         }
     }
 }
-EI_REWRITTEN(0x005C3E10, SmoothTable::Build);
 
 void BuildSmoothTablesAt(SmoothTable* tables) {
     for (int previous = 0; previous < kStates; ++previous) {
@@ -346,7 +334,6 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 
 // The static initialiser's second half, after the 81 tables have been constructed empty.
 void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
-EI_REWRITTEN(0x005C42B0, BuildSmoothTables);
 
 // ---- The pool and the tables ----------------------------------------------------------
 
@@ -377,8 +364,3 @@ void __cdecl ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
     RegisterExit(DestroySmoothPool);
 }
-
-EI_REWRITTEN(0x005C41C0, ConstructSmoothTables);
-EI_REWRITTEN(0x005C41F0, DestroySmoothTables);
-EI_REWRITTEN(0x005C4460, ConstructSmoothPool);
-EI_REWRITTEN(0x005C4480, DestroySmoothPool);

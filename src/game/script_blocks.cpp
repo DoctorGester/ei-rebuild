@@ -11,7 +11,6 @@
 #include "record_arrays.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "game_slots.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
@@ -56,13 +55,11 @@ ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
 ScriptDecl* CScript::NewCommandList() {
     return AppendBlock(&blocks_, 0);
 }
-EI_REWRITTEN(0x004BF540, CScript::NewCommandList);
 
 // CScript::NewWorldScript.
 ScriptDecl* CScript::NewWorldScript() {
     return AppendBlock(&worldBlocks_, 0x80000000u);
 }
-EI_REWRITTEN(0x004BF900, CScript::NewWorldScript);
 
 // CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // constructs the slot), the empty temporary's parts are copied in and the last
@@ -79,7 +76,6 @@ ScriptAreaParts* CScript::FindArea(int id) {
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
 }
-EI_REWRITTEN(0x004BCE10, CScript::FindArea);
 
 // CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
@@ -96,7 +92,6 @@ ScriptObjectRef* CScript::NewTempObject() {
     list.tail = node;
     return ref;
 }
-EI_REWRITTEN(0x004B59F0, CScript::NewTempObject);
 
 // SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
 // their SetSize(0, -1).
@@ -116,5 +111,3 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);
     cmd->calledScript = nullptr;
 }
-EI_REWRITTEN(0x004B5F70, ScriptCmdClear);
-

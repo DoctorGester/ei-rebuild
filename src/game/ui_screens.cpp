@@ -14,7 +14,6 @@
 #include "party.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_data.h"
@@ -55,30 +54,25 @@ bool __stdcall UiItemKinds::IsSpell(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 3;
 }
-EI_REWRITTEN(0x005EE050, UiItemKinds::IsSpell);
 
 bool __stdcall UiItemKinds::IsModifier(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ == 4;
 }
-EI_REWRITTEN(0x005EE080, UiItemKinds::IsModifier);
 
 BOOL __stdcall UiItemKinds::IsSpellContainer(const CItem* item) {
     return item->type_ == kTypeSpellContainer;
 }
-EI_REWRITTEN(0x005EE0B0, UiItemKinds::IsSpellContainer);
 
 bool __stdcall UiItemKinds::IsPart(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 2 && loot->recordType_ <= 2;
 }
-EI_REWRITTEN(0x005EE0D0, UiItemKinds::IsPart);
 
 bool __stdcall UiItemKinds::IsKindOne(const CItem* item) {
     const CItemLoot* loot = LootOrNull(item);
     return loot && loot->kind_ == 1;
 }
-EI_REWRITTEN(0x005EE110, UiItemKinds::IsKindOne);
 
 bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     auto* object = const_cast<CItem*>(item);
@@ -91,7 +85,6 @@ bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     return prototype &&
            gamecrt::mbsicmp(prototype->materialClass, game::NoneText()) != 0;
 }
-EI_REWRITTEN(0x005EE130, UiItemKinds::IsBuildable);
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { ui->PlaySound(name, flags); }
@@ -116,7 +109,6 @@ void CUiItemStrip::SetTab(int tab) {
     scrollTimer_ = 0.0f;
     scrollDirection_ = 0;
 }
-EI_REWRITTEN(0x00620960, CUiItemStrip::SetTab);
 
 void CUiItemStrip::SetFilter(int filter) {
     for (float& position : position_) position = 0.0f;
@@ -137,12 +129,10 @@ void CUiItemStrip::SetFilter(int filter) {
         regions_.data[i]->SetTip(tipBase + i, 1, 0);
     }
 }
-EI_REWRITTEN(0x00621420, CUiItemStrip::SetFilter);
 
 void CUiItemStrip::SelectTab(int tab) {
     if (TabKeysEnabled()) SetTab(tab);
 }
-EI_REWRITTEN(0x00621510, CUiItemStrip::SelectTab);
 
 void CUiItemStrip::CycleTab(int first, int count) {
     if (!TabKeysEnabled()) return;
@@ -153,7 +143,6 @@ void CUiItemStrip::CycleTab(int first, int count) {
     }
     SetTab(next);
 }
-EI_REWRITTEN(0x00621530, CUiItemStrip::CycleTab);
 
 int CUiItemStrip::ItemTab(const CItem* item) {
     if (UiItemKinds::IsPart(item) || UiItemKinds::IsKindOne(item)) return 0;
@@ -163,7 +152,6 @@ int CUiItemStrip::ItemTab(const CItem* item) {
     if (type == kTypeQuick) return 3;
     return (type != 0x3009) + 4;
 }
-EI_REWRITTEN(0x006218F0, CUiItemStrip::ItemTab);
 
 int CUiItemStrip::SpellTab(const CItem* item) {
     if (UiItemKinds::IsSpell(item)) {
@@ -182,7 +170,6 @@ int CUiItemStrip::SpellTab(const CItem* item) {
     }
     return 5;
 }
-EI_REWRITTEN(0x006219A0, CUiItemStrip::SpellTab);
 
 int CUiItemStrip::ArmorTab(const CItem* item) {
     if (UiItemKinds::IsPart(item)) {
@@ -199,7 +186,6 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
     if (item->type_ == kTypeArmor) return 3;
     return UiItemKinds::IsKindOne(item) ? 4 : 5;
 }
-EI_REWRITTEN(0x00621A80, CUiItemStrip::ArmorTab);
 
 void CForwardingStrip::RebuildList() {
     list_.SetSize(0, -1);
@@ -222,7 +208,6 @@ void CForwardingStrip::RebuildList() {
     }
     count_ = list_.size;
 }
-EI_REWRITTEN(0x006212F0, CForwardingStrip::RebuildList);
 
 int CUiItemStrip::TabOf(const CItem* item) {
     switch (filter_) {
@@ -266,7 +251,6 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
     pending_ = 0.0f;
     velocity_ = 0.0f;
 }
-EI_REWRITTEN(0x00621570, CUiItemStrip::ScrollToItem);
 
 CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
     if (!enabled_) return nullptr;
@@ -285,7 +269,6 @@ CItem* CForwardingStrip::ItemAt(int x, int y, int* cursor) {
     if (index < 0 || index >= list_.size) return nullptr;
     return list_.data[index];
 }
-EI_REWRITTEN(0x00621F30, CForwardingStrip::ItemAt);
 
 void CUiItemStrip::SettleScroll() {
     // Releasing an arrow completes the step under way: the pending scroll keeps its fraction of a
@@ -353,12 +336,6 @@ void CForwardingStrip::OnLButtonDownForward(int flags, int x, int y) {
     if (item) OwnerTakeItem(item);
 }
 
-EI_REWRITTEN(0x00620E10, CUiItemStrip::OnLButtonDown);
-EI_REWRITTEN(0x00621010, CUiItemStrip::OnLButtonUp);
-EI_REWRITTEN(0x00620F10, CUiItemStrip::OnMouseMove);
-EI_REWRITTEN(0x006210F0, CUiItemStrip::OnWheel);
-EI_REWRITTEN(0x006212A0, CForwardingStrip::OnLButtonDownForward);
-
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(UnitStats* stats, int school) {
@@ -396,7 +373,6 @@ void CCampPages::BestPartySkill(int school, int* skill, int* mana) {
     *skill = bestSkill;
     *mana = bestMana;
 }
-EI_REWRITTEN(0x00610020, CCampPages::BestPartySkill);
 
 void CCampPages::ShowPageTabs(int page, int) {
     switch (page) {
@@ -429,7 +405,6 @@ void CCampPages::ShowPageTabs(int page, int) {
         break;
     }
 }
-EI_REWRITTEN(0x006110F0, CCampPages::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
@@ -447,7 +422,6 @@ void CMpHeroScreen::ClampHeroSelection() {
     heroScroll_->TakePosition(&heroTop_);
     CallShowHero(heroIndex_);
 }
-EI_REWRITTEN(0x00618FF0, CMpHeroScreen::ClampHeroSelection);
 
 void CMpHeroScreen::ClampVoiceSelection() {
     if (voiceIndex_ < 0) voiceIndex_ = 0;
@@ -464,7 +438,6 @@ void CMpHeroScreen::ClampVoiceSelection() {
     HeroRecord()->texts[6] = file;
     DrawVoices();
 }
-EI_REWRITTEN(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 
 double CMpHeroScreen::EquipmentWeight() {
     PartyUnitRecord* hero = HeroRecord();
@@ -480,7 +453,6 @@ double CMpHeroScreen::EquipmentWeight() {
 
     return weight;
 }
-EI_REWRITTEN(0x006193C0, CMpHeroScreen::EquipmentWeight);
 
 void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     HeroRecord();   // called for nothing, as in the original
@@ -507,7 +479,6 @@ void CMpHeroScreen::OnItemChosen(CItem* item, int mode) {
     }
     RefreshStats();
 }
-EI_REWRITTEN(0x00618980, CMpHeroScreen::OnItemChosen);
 
 bool CMpHeroScreen::CanEquip(CItem* item, int) {
     if (item->type_ != kTypeSpellContainer) return true;
@@ -516,10 +487,8 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
     return HeroCanUseSpell(&HeroRecord()->stats, spell);
 
 }
-EI_REWRITTEN(0x006188E0, CMpHeroScreen::CanEquip);
 
 PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data; }
-EI_REWRITTEN(0x00616900, CMpHeroScreen::GetHero);
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     CUiContainer::LeftUp(flags, x, y);
@@ -528,8 +497,6 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     if (capture == Input()) capture = nullptr;
     rotating_ = 0;
 }
-
-EI_REWRITTEN(0x006177D0, CMpHeroScreen::OnLButtonUp);
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
@@ -590,10 +557,6 @@ void CEscMenu::OnMessageResult(int result) {
         uiorig::LeaveGame();
     }
 }
-EI_REWRITTEN(0x0062ACC0, CEscMenu::OnMessageResult);
-
-EI_REWRITTEN(0x0062AD10, CEscMenu::OnMouseMove);
-EI_REWRITTEN(0x0062B300, CEscMenu::OnKeyDown);
 
 // --- CCreditsScreen ---------------------------------------------------------------------------
 
@@ -607,9 +570,6 @@ void CCreditsScreen::OnLButtonDown(int, int, int) { Close(); }
 void CCreditsScreen::OnKeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
-
-EI_REWRITTEN(0x0062BFE0, CCreditsScreen::OnLButtonDown);
-EI_REWRITTEN(0x0062C010, CCreditsScreen::OnKeyDown);
 
 // --- CExchangeScreen --------------------------------------------------------------------------
 
@@ -631,5 +591,3 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
         break;
     }
 }
-
-EI_REWRITTEN(0x0062D090, CExchangeScreen::OnKeyDown);

@@ -8,7 +8,6 @@
 #include "spell.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 
@@ -90,7 +89,6 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
     if (selected_ >= count_) selected_ = -1;
     Highlight(selected_, 1);
 }
-EI_REWRITTEN(0x0063C180, CHudWeaponBar::SetUnit);
 
 // --- A quick item's tooltip ----------------------------------------------------------
 
@@ -168,7 +166,6 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
         *text += line;
     }
 }
-EI_REWRITTEN(0x0063CEE0, CHudQuickItems::ItemTip);
 
 // --- The action column's unit --------------------------------------------------------
 
@@ -199,4 +196,3 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     tip = tip + "\n" + title + hint;
     regions_.data[count_ - 1]->SetTipString(tip.c_str(), 1, 0x1D);
 }
-EI_REWRITTEN(0x0063F800, CHudActionColumn::SetUnit);

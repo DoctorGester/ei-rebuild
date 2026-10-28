@@ -6,7 +6,6 @@
 #include "game_strings.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ui.h"
 #include "world.h"
@@ -153,9 +152,5 @@ bool ServerSession::FinishMap(const std::string* name) {
     RefPtrClear(&ref);
     return true;
 }
-
-EI_REWRITTEN(0x004186F0, ServerSession::SetMap);
-EI_REWRITTEN(0x00418530, ServerSession::QueueMapList);
-EI_REWRITTEN(0x004193F0, ServerSession::FinishMap);
 
 } // namespace net

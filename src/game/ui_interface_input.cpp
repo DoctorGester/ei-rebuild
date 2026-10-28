@@ -10,7 +10,6 @@
 #include "ui_cursor.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 
 UiInputSide* CInterface3D::MouseTarget() const {
@@ -29,46 +28,38 @@ void CInterface3D::OnLeftDown(int buttons, int x, int y) {
     doubleClick_ = false;
     Send(this, UiInputSide::kEventLeftDown, buttons, x, y);
 }
-EI_REWRITTEN(0x005F76A0, CInterface3D::OnLeftDown);
 
 void CInterface3D::OnLeftUp(int buttons, int x, int y) {
     Send(this, UiInputSide::kEventLeftUp, buttons, x, y);
     doubleClick_ = false;
 }
-EI_REWRITTEN(0x005F76E0, CInterface3D::OnLeftUp);
 
 void CInterface3D::OnMouseMove(int buttons, int x, int y) { Send(this, UiInputSide::kEventMouseMove, buttons, x, y); }
-EI_REWRITTEN(0x005F7740, CInterface3D::OnMouseMove);
 
 void CInterface3D::OnRightDown(int buttons, int x, int y) {
     rightDown_ = true;
     Send(this, UiInputSide::kEventRightDown, buttons, x, y);
 }
-EI_REWRITTEN(0x005F7780, CInterface3D::OnRightDown);
 
 void CInterface3D::OnRightUp(int buttons, int x, int y) {
     rightDown_ = false;
     Send(this, UiInputSide::kEventRightUp, buttons, x, y);
 }
-EI_REWRITTEN(0x005F77C0, CInterface3D::OnRightUp);
 
 void CInterface3D::OnLeftDouble(int buttons, int x, int y) {
     doubleClick_ = true;
     Send(this, UiInputSide::kEventLeftDouble, buttons, x, y);
 }
-EI_REWRITTEN(0x005F7800, CInterface3D::OnLeftDouble);
 
 void CInterface3D::OnRightDouble(int buttons, int x, int y) {
     rightDown_ = true;
     Send(this, UiInputSide::kEventRightDouble, buttons, x, y);
 }
-EI_REWRITTEN(0x005F7840, CInterface3D::OnRightDouble);
 
 int CInterface3D::OnWheel(int flags, int delta, int x, int y) {
     UiInputSide* target = MouseTarget();
     return target ? target->Wheel(flags, delta, x, y) : 0;
 }
-EI_REWRITTEN(0x005F7880, CInterface3D::OnWheel);
 
 // --- Keys ------------------------------------------------------------------
 
@@ -90,7 +81,6 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
     }
     if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
-EI_REWRITTEN(0x005F7B40, CInterface3D::OnChar);
 
 void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
     if (key == VK_SHIFT)
@@ -105,7 +95,6 @@ void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
     }
     if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
 }
-EI_REWRITTEN(0x005F7BE0, CInterface3D::OnKeyUp);
 
 void console::ConsoleWindow::OnKeyUp(int key, int, int) {
     if (key == VK_SHIFT)
@@ -113,7 +102,6 @@ void console::ConsoleWindow::OnKeyUp(int key, int, int) {
     else if (key == VK_CONTROL)
         ctrl_ = false;
 }
-EI_REWRITTEN(0x005E47E0, console::ConsoleWindow::OnKeyUp);
 
 // --- Every window closed --------------------------------------------------
 
@@ -135,11 +123,9 @@ void CInterface3D::CloseAll() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 }
-EI_REWRITTEN(0x005F74F0, CInterface3D::CloseAll);
 
 void CInterface3D::CloseAllPending() {
     if (!closeAll_) return;
     closeAll_ = false;
     CloseAll();
 }
-EI_REWRITTEN(0x005F5AB0, CInterface3D::CloseAllPending);

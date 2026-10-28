@@ -13,7 +13,6 @@
 #include "options.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -95,11 +94,3 @@ CWorld* CEngineObject::World() const {
     auto* context = owner_->context_;
     return context ? context->ThisWorld() : nullptr;
 }
-
-EI_REWRITTEN(0x00455A90, app::DiskFreeSpace);
-EI_REWRITTEN(0x00455F20, app::QuitGame);
-EI_REWRITTEN(0x00455E20, app::MovieMode);
-EI_REWRITTEN(0x00455BA0, app::ScrambleObjects);
-EI_REWRITTEN(0x00455B50, app::DelayedProtectionCheck);
-EI_REWRITTEN(0x00455E50, app::ConstructProtectionChecks);
-EI_REWRITTEN(0x00455950, CEngineObject::World);

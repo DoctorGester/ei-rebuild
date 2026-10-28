@@ -9,8 +9,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 namespace {
 
 const char* MoveSound() { return "buttons\\camp\\move.wav"; }
@@ -102,11 +100,5 @@ void CCampPages::OnMessageResult(int result) {
     itemStrip_->ScrollToItem(item);
     RefreshWeapons();
 }
-EI_REWRITTEN(0x0060E900, CCampPages::OnMessageResult);
 
 const char* CCampPages::HelpTopic() { return PageHelpTopic(page_); }
-EI_REWRITTEN(0x0060E980, CCampPages::HelpTopic);
-
-EI_REWRITTEN(0x0060F470, CCampPages::OnLButtonDown);
-EI_REWRITTEN(0x0060F5B0, CCampPages::OnLButtonUp);
-EI_REWRITTEN(0x0060F600, CCampPages::OnKeyDown);

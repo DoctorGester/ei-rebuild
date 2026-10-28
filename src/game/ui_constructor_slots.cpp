@@ -5,8 +5,6 @@
 #include "item.h"
 #include "party.h"
 
-#include "ei/hook.h"
-
 namespace {
 
 // Help topics.
@@ -81,6 +79,3 @@ CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
     }
     return nullptr;
 }
-
-EI_REWRITTEN(0x00628B50, CConstructorPage::SpellMakerItemAt);
-EI_REWRITTEN(0x006298B0, CConstructorPage::ItemMakerItemAt);

@@ -13,7 +13,6 @@
 #include "random.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -306,12 +305,3 @@ int Terrain::RunTick() {
     }
     return 1;
 }
-
-EI_REWRITTEN(0x006C3C80, SectorData::Clear);
-EI_REWRITTEN(0x006C3D70, SectorData::ResetFields);
-EI_REWRITTEN(0x006C3E30, SectorData::ScheduleRelight);
-EI_REWRITTEN(0x006C3E50, SectorData::RelightTick);
-EI_REWRITTEN(0x006C3E80, SectorData::Animate);
-EI_REWRITTEN(0x006C8ED0, Terrain::SetSun);
-EI_REWRITTEN(0x006CB1E0, Terrain::RunTick);
-EI_REWRITTEN(0x006C9270, terrain::FreeSortedSectors);

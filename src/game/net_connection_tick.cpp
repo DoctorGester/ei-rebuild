@@ -3,7 +3,6 @@
 // `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_vector.h"
 #include "ei/x87.h"
 #include "net_connection_trees.h"
@@ -128,7 +127,6 @@ bool Connection::Tick(double dt) {
     g_currentConnection = nullptr;
     return alive;
 }
-EI_REWRITTEN(0x00433BD0, Connection::Tick);
 
 } // namespace net
 
@@ -178,6 +176,5 @@ void Connection::Delivered(SentPacket* packet) {
         }
     }
 }
-EI_REWRITTEN(0x00433FA0, Connection::Delivered);
 
 } // namespace net

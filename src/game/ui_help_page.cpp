@@ -12,7 +12,6 @@
 #include "ui_gdi.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -328,4 +327,3 @@ void CHelpWindow::ShowPage() {
     entries.ClearWith([](PageEntry* entry) { entry->~PageEntry(); });
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
-EI_REWRITTEN(0x00659420, CHelpWindow::ShowPage);

@@ -12,7 +12,6 @@
 #include "ui.h"
 #include "ui_native.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc_gdi.h"
 #include "render/render.h"
@@ -67,7 +66,6 @@ mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface) {
     if (!dc && !app::FatalErrorCode(-1, "Can't get surface's DC.\n")) return nullptr;   // "Can't get surface's DC"
     return CdcFromHandle(dc);
 }
-EI_REWRITTEN(0x005FDC00, UiSurfaceGetDC);
 
 // Leaves the device lock and releases the DC (nothing for a DC the getter did not make).
 void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
@@ -87,4 +85,3 @@ void __fastcall UiSurfaceReleaseDC(CUiSurface* surface) {
     }
     surface->dc_ = nullptr;
 }
-EI_REWRITTEN(0x005FDC60, UiSurfaceReleaseDC);

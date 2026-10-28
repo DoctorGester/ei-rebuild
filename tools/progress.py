@@ -1,50 +1,13 @@
-"""Reports rewrite progress: functions replaced in src/.
+"""Prints the "cleanup artefacts" block: the hook-era leftovers that docs/cleanup-plan.md wants to see fall (naked
+functions, offset access, raw data addresses, duplicate layouts). tools/dashboard_data.py charts the same counts.
 
-Counts EI_REPLACE / EI_REPLACE_METHOD registrations against the game functions in
-config/functions.csv (sizes from src/hook/function_sizes.inc).
-
-Then prints the "cleanup artefacts" block: the hook-era leftovers that docs/cleanup-plan.md wants to
-see fall (naked functions, offset access, raw data addresses, duplicate layouts).
+(The rewrite progress it reported first, functions rewritten against config/functions.csv, came from the
+registrations and the function-to-original map; C20l removed the last of them: nothing of game.exe's code runs.)
 """
-import csv, os, re, sys
+import re
 from collections import defaultdict
 
 import srcscan
-from srcscan import ROOT
-
-def main():
-    sizes = {}
-    for line in open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')):
-        m = re.match(r'\{0x([0-9A-F]+), (\d+)\}', line)
-        if m:
-            sizes[int(m.group(1), 16)] = int(m.group(2))
-    game = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'functions.csv')))
-            if r['kind'] == 'game'}
-    # Library code identified later (STLport/MFC/CRT instantiations named in config/library.csv) is not
-    # game code to port: the standalone build links its own runtime.
-    library = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'library.csv')))}
-    # Dead code (config/dead_code.csv: nothing in the exe or Rebirth's binaries reaches it) needs no port.
-    dead = {int(r['address'], 16) for r in csv.DictReader(open(os.path.join(ROOT, 'config', 'dead_code.csv')))}
-    lib_bytes = sum(sizes.get(a, 0) for a in game & library)
-    dead_bytes = sum(sizes.get(a, 0) for a in (game - library) & dead)
-    game -= library | dead
-    game_bytes = sum(sizes.get(a, 0) for a in game)
-
-    replaced = set()
-    for dirpath, _, files in os.walk(os.path.join(ROOT, 'src')):
-        for f in files:
-            if f.endswith('.cpp'):
-                text = open(os.path.join(dirpath, f), encoding='utf-8').read()
-                replaced |= {int(a, 16) for a in re.findall(r'(?:EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?|EI_REWRITTEN(?:_SPECIAL)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)', text)}
-
-    # Only rewrites of counted game code count; hooks on library or dead code are listed separately.
-    other = replaced - game
-    replaced &= game
-    rb = sum(sizes.get(a, 0) for a in replaced)
-    print(f'game functions: {len(game)} ({game_bytes:,} bytes; excluded: library {lib_bytes:,}, dead {dead_bytes:,})')
-    print(f'rewritten:      {len(replaced)} ({rb:,} bytes, {100 * rb / game_bytes:.2f}% of game code)'
-          f' + {len(other)} library/dead/other')
-
 
 # ---- cleanup artefacts (docs/cleanup-plan.md, "What is left and what removes it") -------------------------------------
 # Every count runs over src/ (*.cpp, *.h) with comments blanked; `sources` is srcscan.load_sources().
@@ -127,10 +90,6 @@ HOOK_ERA_COUNTS = [
     ('stlp:: uses', r'\bstlp::'),
     ('gamecrt:: uses', r'\bgamecrt::'),
     ('gameapi:: uses', r'\bgameapi::'),
-    # The interface input shims (UI_INPUT_HANDLER / UI_WHEEL_HANDLER, ui_hud.cpp) register through
-    # EI_REPLACE inside the macro, so each use counts as one registration like the replaced-function
-    # count above.
-    ('EI_REPLACE registrations', r'\b(?:EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?|(?<!#define )UI_(?:INPUT|WHEEL)_HANDLER)\s*\('),
 ]
 
 
@@ -161,6 +120,4 @@ def print_cleanup_artefacts():
 
 
 if __name__ == '__main__':
-    status = main()
     print_cleanup_artefacts()
-    sys.exit(status)

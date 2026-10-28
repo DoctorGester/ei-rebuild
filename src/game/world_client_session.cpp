@@ -8,8 +8,6 @@
 #include "player_messages.h"
 #include "player_source.h"
 
-#include "ei/hook.h"
-
 namespace {
 
 // The local player's link when it is there and not detached (the dword +4's bit 31), else null.
@@ -70,9 +68,3 @@ void CWorldClient::DisconnectLocalPlayer() {
     CPlayerConnection* view = session_ ? Session()->connection_ : nullptr;
     view->player_->Disconnect();
 }
-
-EI_REWRITTEN(0x00566CE0, CWorldClient::SetPlayer);
-EI_REWRITTEN(0x00566D80, CWorldClient::JoinGameClient);
-EI_REWRITTEN(0x00566E20, CWorldClient::PumpHasIncoming);
-EI_REWRITTEN(0x00566E70, CWorldClient::PumpIncomingCount);
-EI_REWRITTEN(0x00566E00, CWorldClient::DisconnectLocalPlayer);

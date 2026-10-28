@@ -11,7 +11,6 @@
 #include "../lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/str.h"
-#include "ei/hook.h"
 #include "record_vectors.h"
 #include "text_split.h"
 
@@ -175,7 +174,6 @@ bool QuestDatabase::LoadRegistry(const void* image) {
     reg.Destroy();
     return true;
 }
-EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
@@ -187,7 +185,6 @@ void __fastcall ReadStringList(CFileRegistry* registry, const char* section, con
         if (!listed.empty()) list->PushBack<ListElement>(listed);
     }
 }
-EI_REWRITTEN(0x006AE740, ReadStringList);
 
 // --- QuestBriefingTable::Add: a briefing added unless its name is there ---------------------------
 
@@ -200,4 +197,3 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) index.Subscript(r->name) = r;
     return true;
 }
-EI_REWRITTEN(0x006B0600, QuestBriefingTable::Add);

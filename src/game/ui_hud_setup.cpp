@@ -6,7 +6,6 @@
 
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -114,7 +113,6 @@ void CHudClock::SetupVanilla(int fast) {
     dial_ = 0.0f;
     widescreen::LeavePanel();
 }
-EI_REWRITTEN(0x00648520, CHudClock::SetupVanilla);
 
 // --- The movement panel --------------------------------------------------------------------
 
@@ -163,4 +161,3 @@ void CHudMovePanel::SetupVanilla() {
     SceneMesh(5)->textureOffsetU_ = 0.48046875f;
     widescreen::LeavePanel();
 }
-EI_REWRITTEN(0x00649190, CHudMovePanel::SetupVanilla);

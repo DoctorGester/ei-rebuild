@@ -11,7 +11,6 @@
 #include "figure_mesh.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
@@ -80,7 +79,6 @@ CFigureAnimationState::CFigureAnimationState() {
     ConstructList(&queue, mfc::impl::AnimationStateListClass::Vtable());
     Reset();
 }
-EI_REWRITTEN_SPECIAL(0x0050C5F0, CFigureAnimationState::CFigureAnimationState);
 
 CFigureAnimationState::~CFigureAnimationState() {
     ReleaseBones();
@@ -90,9 +88,6 @@ CFigureAnimationState::~CFigureAnimationState() {
     bones.vtable = mfc::impl::BoneListClass::Vtable();
     bones.RemoveAll();
 }
-EI_REWRITTEN_SPECIAL(0x0050C730, CFigureAnimationState::~CFigureAnimationState);
-
-EI_REWRITTEN_SPECIAL(0x0050C710, CFigureAnimationState::~CFigureAnimationState);   // deleting
 
 int CFigureAnimationState::Create() { return CreateState(); }
 void CFigureAnimationState::Destroy() { DestroyState(); }
@@ -102,13 +97,11 @@ int CFigureAnimationState::CreateState() {
     Reset();
     return 1;
 }
-EI_REWRITTEN(0x0050C860, CFigureAnimationState::CreateState);
 
 void CFigureAnimationState::DestroyState() {
     ReleaseBones();
     Reset();
 }
-EI_REWRITTEN(0x0050C8E0, CFigureAnimationState::DestroyState);
 
 void CFigureAnimationState::ReleaseBones() {
     for (auto* node = bones.head; node;) {
@@ -118,7 +111,6 @@ void CFigureAnimationState::ReleaseBones() {
     }
     bones.RemoveAll();
 }
-EI_REWRITTEN(0x0050C990, CFigureAnimationState::ReleaseBones);
 
 void CFigureAnimationState::Reset() {
     onEnd = nullptr;
@@ -133,14 +125,12 @@ void CFigureAnimationState::Reset() {
     morphU = 0.0f;
     changed = 1;
 }
-EI_REWRITTEN(0x0050C9E0, CFigureAnimationState::Reset);
 
 FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
     for (auto* node = bones.head; node; node = node->next)
         if (CompareNames(node->data->name, boneName) == 0) return node->data;
     return nullptr;
 }
-EI_REWRITTEN(0x0050CC20, CFigureAnimationState::FindBone);
 
 int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, const char* parentName) {
     CBaseManager* manager = FigureManagerOf(this);
@@ -149,7 +139,6 @@ int CFigureAnimationState::LinkPiece(FigureModel* model, const char* child, cons
     bone->name2 = parentName;
     return LinkBone(model, bone);
 }
-EI_REWRITTEN(0x0050CC60, CFigureAnimationState::LinkPiece);
 
 int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     const char* parentName = bone->name2.c_str();
@@ -179,7 +168,6 @@ int CFigureAnimationState::LinkBone(FigureModel* model, FigureBone* bone) {
     changed = 1;
     return 1;
 }
-EI_REWRITTEN(0x0050CD70, CFigureAnimationState::LinkBone);
 
 int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     changed = 1;
@@ -201,7 +189,6 @@ int CFigureAnimationState::AttachMesh(CEngineObject* part) {
     if (old) old->Release();
     return 1;
 }
-EI_REWRITTEN(0x0050D0E0, CFigureAnimationState::AttachMesh);
 
 int CFigureAnimationState::FindRoot() {
     changed = 1;
@@ -213,13 +200,11 @@ int CFigureAnimationState::FindRoot() {
     }
     return 0;
 }
-EI_REWRITTEN(0x0050D2E0, CFigureAnimationState::FindRoot);
 
 int CFigureAnimationState::SetModel(const char* model) {
     changed = 1;
     return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
-EI_REWRITTEN(0x0050D320, CFigureAnimationState::SetModel);
 
 int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     changed = 1;
@@ -234,7 +219,6 @@ int CFigureAnimationState::DetachMesh(CEngineObject* part) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0050D350, CFigureAnimationState::DetachMesh);
 
 int CFigureAnimationState::DetachMeshes() {
     changed = 1;
@@ -247,14 +231,12 @@ int CFigureAnimationState::DetachMeshes() {
     }
     return 1;
 }
-EI_REWRITTEN(0x0050D3A0, CFigureAnimationState::DetachMeshes);
 
 void CFigureAnimationState::PlaceIfChanged() {
     if (!changed) return;
     changed = 0;
     if (root) PlaceRoot(this);
 }
-EI_REWRITTEN(0x0050D3E0, CFigureAnimationState::PlaceIfChanged);
 
 void CFigureAnimationState::UpdatePose() {
     if (!changed) return;
@@ -265,7 +247,6 @@ void CFigureAnimationState::UpdatePose() {
     }
     PlaceIfChanged();
 }
-EI_REWRITTEN(0x0050D450, CFigureAnimationState::UpdatePose);
 
 void CFigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
@@ -288,16 +269,10 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
     changed = 0;
     if (root) PlaceRoot(this);
 }
-EI_REWRITTEN(0x0050D7C0, CFigureAnimationState::Rescale);
 
 void CFigureAnimationState::CollectBoneNames(std::vector<std::string>* out) {
     for (auto* node = bones.head; node; node = node->next) out->push_back(node->data->name);
 }
-EI_REWRITTEN(0x0050D920, CFigureAnimationState::CollectBoneNames);
-
-// AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key frames' vertex sets). Registered
-// on the template (map_object_figures.cpp).
-EI_REWRITTEN(0x0050DFF0, AlignedPtrArray::SetSize);
 
 int CFigureAnimationState::ClearBoneTracks() {
     changed = 1;
@@ -309,7 +284,6 @@ int CFigureAnimationState::ClearBoneTracks() {
     }
     return 1;
 }
-EI_REWRITTEN(0x0050D950, CFigureAnimationState::ClearBoneTracks);
 
 int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation) {
     changed = 1;
@@ -323,4 +297,3 @@ int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAn
     }
     return 1;
 }
-EI_REWRITTEN(0x0050DA10, CFigureAnimationState::LoadBoneTracks);

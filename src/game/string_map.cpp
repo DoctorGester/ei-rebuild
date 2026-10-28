@@ -4,7 +4,6 @@
 // static initialiser. See docs/notes/app.md.
 #include "debug_panel.h"
 
-#include "ei/hook.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -48,7 +47,6 @@ void CDebugPanel::Set(const char* key, const char* value) {
     }
     it->second.assign(value);
 }
-EI_REWRITTEN(0x004447E0, CDebugPanel::Set);
 
 // Removes `key`.
 void CDebugPanel::Remove(const char* key) {
@@ -60,18 +58,15 @@ void CDebugPanel::Remove(const char* key) {
     }
     if (it != map.end()) map.Erase<Pair>(it);
 }
-EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
 // The destructor (at exit): every node destroyed and freed (_M_erase's loop: the right subtree, the pair's
 // deleting destructor with 0, the node back to the pool), then the header back to the pool.
 CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
-EI_REWRITTEN_SPECIAL(0x00444690, CDebugPanel::~CDebugPanel);
 
 // The constructor. A static initialiser runs it on the global before WinMain and registers the destructor
 // above with atexit. The empty map (its header node from the node pool); the interface, surface and font
 // are Init's. The map's compare byte is an uninitialised stack byte and is left as it is.
 CDebugPanel::CDebugPanel() { entries_.Construct(); }
-EI_REWRITTEN_SPECIAL(0x00444740, CDebugPanel::CDebugPanel);
 
 // The panel, zero at the start: built by a static initialiser in the list's order and destroyed by the exit
 // function
@@ -87,9 +82,6 @@ void __cdecl ConstructDebugPanel() {
     g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }
-
-EI_REWRITTEN(0x00444660, ConstructDebugPanel);
-EI_REWRITTEN(0x00444680, DestroyDebugPanel);
 
 // ---- The panel ---------------------------------------------------------------------------------
 
@@ -120,7 +112,6 @@ void CDebugPanel::Init(CInterface3D* ui) {
     RECT rect = {10, 10, 0x122, 0x122};
     SetRect(&rect);
 }
-EI_REWRITTEN(0x00444A70, CDebugPanel::Init);
 
 // Frees the panel surface and the font.
 void CDebugPanel::Release() {
@@ -131,7 +122,6 @@ void CDebugPanel::Release() {
     delete font_;
     font_ = nullptr;
 }
-EI_REWRITTEN(0x00444BD0, CDebugPanel::Release);
 
 // The panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
 // screen; a shown panel is made again.
@@ -158,7 +148,6 @@ void CDebugPanel::SetRect(const RECT* rect) {
         Show(1);
     }
 }
-EI_REWRITTEN(0x00444C10, CDebugPanel::SetRect);
 
 // Redraws at most every 500 ms, then the panel surface's Blit.
 void CDebugPanel::Tick() {
@@ -169,7 +158,6 @@ void CDebugPanel::Tick() {
     }
     if (CUiSurface* surface = surface_) surface->Blit();
 }
-EI_REWRITTEN(0x00444CD0, CDebugPanel::Tick);
 
 // Clears the panel and draws each entry (the key in the left half, the value in the
 // right half; a dark copy one pixel down and right first) until the next line would not fit.
@@ -206,7 +194,6 @@ void CDebugPanel::Redraw() {
     dc->SelectFont(oldFont);
     UiSurfaceReleaseDC(surface_);
 }
-EI_REWRITTEN(0x00444D00, CDebugPanel::Redraw);
 
 // Shows the panel (its surface made when missing, drawn at once) or hides it (the
 // surface freed).
@@ -225,7 +212,6 @@ void CDebugPanel::Show(std::uint8_t show) {
     }
     surface_ = nullptr;
 }
-EI_REWRITTEN(0x00444F50, CDebugPanel::Show);
 
 } // namespace strmap
 

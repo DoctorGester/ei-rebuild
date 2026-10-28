@@ -8,7 +8,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -112,4 +111,3 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     if (mode_ == kModeNewHero) DrawVoices();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-EI_REWRITTEN(0x00616AC0, CMpHeroScreen::ChooseFigure);

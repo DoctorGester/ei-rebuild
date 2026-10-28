@@ -7,7 +7,6 @@
 
 #include "../lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 
 #include <new>
@@ -85,11 +84,3 @@ void CPlayerManager::SendTextToAll(int unused, const char* text) {
         player->Server()->SendText13(static_cast<std::uint32_t>(unused), text);
     });
 }
-
-EI_REWRITTEN(0x0066C0F0, CPlayerManager::CreatePlayers);
-EI_REWRITTEN(0x0066C110, CPlayerManager::NewPlayer);
-EI_REWRITTEN(0x0066C180, CPlayerManager::CreateSessionPlayer);
-EI_REWRITTEN(0x0066C1D0, CPlayerManager::ReleasePlayer);
-EI_REWRITTEN(0x0066C1E0, CPlayerManager::ChangeId);
-EI_REWRITTEN(0x0066C340, CPlayerManager::SendValueToAll);
-EI_REWRITTEN(0x0066C3C0, CPlayerManager::SendTextToAll);

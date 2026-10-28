@@ -6,7 +6,6 @@
 #include "player_messages.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -81,25 +80,21 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     flags_ |= kFlagSideChanged;
     MarkChanged(kPartRelations);
 }
-EI_REWRITTEN(0x0052E940, CUnit::AddHostileMask);
 
 void CUnit::SetRelationsB(std::uint32_t mask) {
     relationsB = mask;
     MarkChanged(kPartRelations);
 }
-EI_REWRITTEN(0x00530180, CUnit::SetRelationsB);
 
 void CUnit::SetSide(int value) {
     side = value;
     flags_ |= kFlagSideChanged;
     if (controller) MarkChanged(kPartRelations);
 }
-EI_REWRITTEN(0x00530120, CUnit::SetSide);
 
 std::uint32_t CUnit::IsHostileTo(const CUnit* other) {
     return (1u << (other->side & 31)) & relationsB & relationsA;
 }
-EI_REWRITTEN(0x00530150, CUnit::IsHostileTo);
 
 // --- Simple state setters --------------------------------------------------------------------
 
@@ -107,7 +102,6 @@ void CUnit::SetUnknown438(int value) {
     fightAtWill = value;
     MarkChanged(13);
 }
-EI_REWRITTEN(0x0052E9B0, CUnit::SetUnknown438);
 
 void CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
     animationEntry = a;
@@ -116,28 +110,24 @@ void CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t
     animationStart = c;
     MarkChanged(8);
 }
-EI_REWRITTEN(0x0052EA90, CUnit::SetAnimationEntries);
 
 void CUnit::SetMotionMode(int value) {
     if (motionMode == value) return;
     motionMode = value;
     MarkChanged(7);
 }
-EI_REWRITTEN(0x0052EAD0, CUnit::SetMotionMode);
 
 void CUnit::SetPathTimeShift(int value) {
     if (pathTimeShift == value) return;
     pathTimeShift = value;
     MarkChanged(7);
 }
-EI_REWRITTEN(0x0052EAF0, CUnit::SetPathTimeShift);
 
 void CUnit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;
     moveMode2 = mode2;
     MarkChanged(6);
 }
-EI_REWRITTEN(0x0052EB10, CUnit::SetMoveModes);
 
 void CUnit::SetFlag40000000Off(bool on) {
     if (on) {
@@ -147,7 +137,6 @@ void CUnit::SetFlag40000000Off(bool on) {
     }
     MarkChanged(5);
 }
-EI_REWRITTEN(0x0052EBE0, CUnit::SetFlag40000000Off);
 
 std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
@@ -157,7 +146,6 @@ std::uint32_t CUnit::SetStunned(int on) {
     }
     return flags_;
 }
-EI_REWRITTEN(0x0052F7F0, CUnit::SetStunned);
 
 // --- Equipment -------------------------------------------------------------------------------
 
@@ -169,31 +157,25 @@ void CUnit::GetEquipmentIds(std::uint32_t* out) {
         out[4 + i] = armor[i] ? armor[i]->prototypeId_ : 0xFFFFFFFFu;
     }
 }
-EI_REWRITTEN(0x0052EC10, CUnit::GetEquipmentIds);
 
 int CUnit::AddWeapon(CItem* item) {
     if (!item) return 0;
     return AddToSlots(this, weapons, 4, item);
 }
-EI_REWRITTEN(0x00531070, CUnit::AddWeapon);
 
 int CUnit::AddQuickItem(CItem* item) {
     if (!item) return 0;
     return AddToSlots(this, quickItems, 4, item);
 }
-EI_REWRITTEN(0x00531180, CUnit::AddQuickItem);
 
 int CUnit::AddSpell(CItem* item) {
     // No null check here: a null item "is already there" at the first empty slot (returns 1).
     return AddToSlots(this, spells, 8, item);
 }
-EI_REWRITTEN(0x00531820, CUnit::AddSpell);
 
 void CUnit::RemoveWeapon(std::uint32_t slot) { RemoveFromSlots(this, weapons, slot); }
-EI_REWRITTEN(0x005310D0, CUnit::RemoveWeapon);
 
 void CUnit::RemoveQuickItem(std::uint32_t slot) { RemoveFromSlots(this, quickItems, slot); }
-EI_REWRITTEN(0x005311E0, CUnit::RemoveQuickItem);
 
 CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
@@ -204,7 +186,6 @@ CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     }
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
 }
-EI_REWRITTEN(0x005318B0, CUnit::GetWeapon);
 
 CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
@@ -217,7 +198,6 @@ CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     }
     return slot < 4 ? quickItems[slot] : nullptr;
 }
-EI_REWRITTEN(0x00531920, CUnit::GetQuickItem);
 
 CItem* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
@@ -228,7 +208,6 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
     }
     return slot < 8 ? spells[slot] : nullptr;
 }
-EI_REWRITTEN(0x005319A0, CUnit::GetSpell);
 
 CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
@@ -241,7 +220,6 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (slot >= 8 || !spells[slot]) return nullptr;
     return spells[slot]->spell_;
 }
-EI_REWRITTEN(0x00531A10, CUnit::GetSpellObject);
 
 double CUnit::TotalItemWeight() {
     double total = kZero;   // accumulated on the FPU stack
@@ -259,7 +237,6 @@ double CUnit::TotalItemWeight() {
     }
     return total;   // unrounded
 }
-EI_REWRITTEN(0x005307B0, CUnit::TotalItemWeight);
 
 int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     if (slot >= 8) return 3;
@@ -272,7 +249,6 @@ int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     EI_NAN_AUDIT(needed);
     return available < needed ? 1 : 0;
 }
-EI_REWRITTEN(0x0052F820, CUnit::CanCastSpell);
 
 int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
     CItem* object = GetQuickItem(slot);
@@ -285,7 +261,6 @@ int CUnit::CanUseQuickItem(std::uint32_t slot, const float*) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0052F8B0, CUnit::CanUseQuickItem);
 
 // --- Movement --------------------------------------------------------------------------------
 
@@ -313,7 +288,6 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     *backward = scaled;
     *backward = BackwardSpeedScale() * *backward;
 }
-EI_REWRITTEN(0x0052F920, CUnit::GetMoveSpeeds);
 
 namespace {
 // Speed byte of movement mode `mode` (0..4) times the base speed; the base speed for others.
@@ -333,10 +307,8 @@ double ModeSpeedOf(const CUnit* unit, std::uint32_t mode) {
 } // namespace
 
 double CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
-EI_REWRITTEN(0x0052FA20, CUnit::MoveSpeed2);
 
 double CUnit::MoveSpeedFor(int mode) { return ModeSpeedOf(this, static_cast<std::uint32_t>(mode)); }
-EI_REWRITTEN(0x0052FAF0, CUnit::MoveSpeedFor);
 
 double CUnit::ScaledValue(float value) {
     if (!player) return value * kThree + kTen;
@@ -346,13 +318,11 @@ double CUnit::ScaledValue(float value) {
     }
     return kNoPlayerValue;
 }
-EI_REWRITTEN(0x0052FBC0, CUnit::ScaledValue);
 
 double CUnit::BaseSpeed() {
     if (bounds.flags & 2) return bounds.boxMax.z * kFastSpeedScale;
     return bounds.radius * kWalkSpeedScale + bounds.center.z;
 }
-EI_REWRITTEN(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
     float speed = static_cast<float>(BaseSpeed());   // stored as a float
@@ -362,31 +332,26 @@ double CUnit::ModeSpeed() {
     }
     return speed * kIdleScale;
 }
-EI_REWRITTEN(0x005302F0, CUnit::ModeSpeed);
 
 // --- Prototypes ------------------------------------------------------------------------------
 
 UnitPrototypeRecord* CUnit::GetPrototype() { return unitdb::PrototypeRecord(prototypeId_); }
-EI_REWRITTEN(0x00530930, CUnit::GetPrototype);
 
 UnitModelRecord* CUnit::GetPrototypeModel() {
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(prototypeId_);
     if (!prototype) return nullptr;
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
-EI_REWRITTEN(0x00530970, CUnit::GetPrototypeModel);
 
 UnitPrototypeRecord* CUnit::GetPrototype23C() {
     return unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
 }
-EI_REWRITTEN(0x005309E0, CUnit::GetPrototype23C);
 
 std::uint32_t CUnit::SetPrototype23C(const UnitPrototypeRecord* record) {
     int offset = unitdb::PrototypeByteOffset(record);
     prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
     return offset < 0 ? 1u : 0u;   // the sign of the unadjusted quotient
 }
-EI_REWRITTEN(0x005308A0, CUnit::SetPrototype23C);
 
 // --- Combat ----------------------------------------------------------------------------------
 
@@ -401,7 +366,6 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     default: return kOne;
     }
 }
-EI_REWRITTEN(0x005327D0, CUnit::ActionSpeed);
 
 bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
     if (type_ != kUnitTypeHero) return true;
@@ -410,30 +374,23 @@ bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
     if (Controller()->HasMainArmour()) required |= 0x20;
     return (entry->flags & required) == required;
 }
-EI_REWRITTEN(0x00532DA0, CUnit::AcceptsAnimation);
 
 double CUnit::AnimationRatio() {
     float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // stored as a float
     return AnimationFactor(scale.z) / denominator;
 }
-EI_REWRITTEN(0x00532E00, CUnit::AnimationRatio);
 
 double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded
-EI_REWRITTEN(0x005271C0, UnitParams::Period);
 
 // --- Map object state ------------------------------------------------------------------------
 
 BOOL CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
-EI_REWRITTEN(0x005156A0, CMapObjectServer::IsDead);
 
 BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints ? 1 : 0; }
-EI_REWRITTEN(0x005156C0, CMapObjectServer::IsOverkilled);
 
 BOOL CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
-EI_REWRITTEN(0x005104D0, CMapObjectClientSpecific::IsDead);
 
 BOOL CMapObjectClientSpecific::IsOverkilled() {
     int maximum = Unit()->packedVitals.maxHitPoints;
     return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
-EI_REWRITTEN(0x005104F0, CMapObjectClientSpecific::IsOverkilled);

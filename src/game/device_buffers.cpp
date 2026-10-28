@@ -4,8 +4,6 @@
 // never used: config/unread_data.csv.
 #include "device_buffers.h"
 
-#include "ei/hook.h"
-
 namespace devicebuffers {
 
 constinit lib::AlignedArray<std::uint16_t> g_clipIndices = /*007AEDE0*/ {};
@@ -22,9 +20,3 @@ void __cdecl FreeVertices() { g_vertices.FreeData(); }
 void __cdecl FreeClipIndices() { g_clipIndices.FreeData(); }
 
 } // namespace devicebuffers
-
-EI_REWRITTEN(0x004E5C70, devicebuffers::FreeOutcodes);
-EI_REWRITTEN(0x004E5CC0, devicebuffers::FreeCornerOutcodes);
-EI_REWRITTEN(0x004E5D10, devicebuffers::FreeProjected);
-EI_REWRITTEN(0x004E5D60, devicebuffers::FreeVertices);
-EI_REWRITTEN(0x004E5E00, devicebuffers::FreeClipIndices);

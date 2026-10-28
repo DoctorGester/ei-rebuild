@@ -6,7 +6,6 @@
 #include "mod_folders.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/nan_audit.h"
@@ -55,4 +54,3 @@ int CCamera::LoadPath(const char* name, int settle) {
     file.Close();
     return 1;
 }
-EI_REWRITTEN(0x0040ECD0, CCamera::LoadPath);

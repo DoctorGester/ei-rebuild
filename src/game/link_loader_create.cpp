@@ -7,7 +7,6 @@
 #include "mod_folders.h"
 #include "texture.h"   // CTextureDevice
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -54,4 +53,3 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const std::string
         AddArchive(&path);
     }
 }
-EI_REWRITTEN_SPECIAL(0x004F68C0, CLinkFigureLoader::CLinkFigureLoader);

@@ -7,7 +7,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_arrays.h"
@@ -102,7 +101,6 @@ void ScriptAreaParts::AddRect(float x1, float y1, float x2, float y2) {
     part.y2 = y2;
     AddPart(this, part);
 }
-EI_REWRITTEN(0x004B1ED0, ScriptAreaParts::AddRect);
 
 void ScriptAreaParts::AddRound(float x, float y, float radius) {
     ScriptAreaPart part = {};
@@ -112,7 +110,6 @@ void ScriptAreaParts::AddRound(float x, float y, float radius) {
     part.x2OrRadiusSquared = radius * radius;
     AddPart(this, part);
 }
-EI_REWRITTEN(0x004B2070, ScriptAreaParts::AddRound);
 
 void CScript::DeleteArea(int id) {
     // CArray of areas (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
@@ -130,7 +127,6 @@ void CScript::DeleteArea(int id) {
         --i;   // the next area moved into this slot
     }
 }
-EI_REWRITTEN(0x004BCF30, CScript::DeleteArea);
 
 // ---- Point lights -------------------------------------------------------------------------------
 
@@ -175,7 +171,6 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->step.z = 0.0f;
     slot->steps = 0;
 }
-EI_REWRITTEN(0x004BD6A0, CScript::CreatePointLight);
 
 void CScript::MovePointLight(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
@@ -192,7 +187,6 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
     light->steps = x87::fistp(f[4]);
     LightStep(light, &f[1], &light->object->localPosition_.x);
 }
-EI_REWRITTEN(0x004BD820, CScript::MovePointLight);
 
 void CScript::DeletePointLight(const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs.data[0]);
@@ -205,8 +199,6 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
         return;
     }
 }
-EI_REWRITTEN(0x004BD920, CScript::DeletePointLight);
-
 
 namespace {
 
@@ -306,7 +298,6 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     script->Load(&text, 1);
     QuestName() = game::EmptyText();   // the empty string constant
 }
-EI_REWRITTEN(0x004BAAB0, ScriptQuestFinish);
 
 // ---- The quest's objectives and name (script.h) --------------------------------------------------------------------
 
@@ -332,8 +323,3 @@ void __cdecl ConstructScriptQuestName() {
     g_scriptQuestName.Construct();
     libcrt::AtExit(DestroyScriptQuestName);
 }
-
-EI_REWRITTEN(0x004B1790, ConstructScriptQuestName);
-EI_REWRITTEN(0x004B17B0, DestroyScriptQuestName);
-EI_REWRITTEN(0x004B17C0, ConstructScriptQuestObjectives);
-EI_REWRITTEN(0x004B17E0, DestroyScriptQuestObjectives);

@@ -8,7 +8,6 @@
 #include "sound.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -289,7 +288,3 @@ void terrain::CountAmbientVariants(const char* set) {
         }
     }
 }
-
-EI_REWRITTEN(0x006CB390, Terrain::PlayAmbience);
-EI_REWRITTEN(0x006CBC00, CWorldClient::AmbienceTimeOfDay);
-EI_REWRITTEN(0x006CBCD0, Terrain::StopAmbience);

@@ -10,7 +10,6 @@
 #include "ui_cursor.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
@@ -76,30 +75,24 @@ void CViewScreen::CreateScreen() {
     turn.SetAngleAxis(TurnAngle(), axis);
     camera->localRotation_.PreMultiply(turn);
 }
-EI_REWRITTEN(0x0062A830, CViewScreen::CreateScreen);
 
 BOOL CViewScreen::DrawView(CSceneRenderer*) {
     GameRender();
     return TRUE;
 }
-EI_REWRITTEN(0x0062AA50, CViewScreen::DrawView);
 
 void CViewScreen::OnClose() { TheCamera()->flags_ |= CCamera::kFree; }
-EI_REWRITTEN(0x0062AA40, CViewScreen::OnClose);
 
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
     picked_ = UiDwordArray{DwordArrayVtable(), nullptr, 0, 0, 0};
 }
-EI_REWRITTEN_SPECIAL(0x005EB8C0, UnitPickInput::UnitPickInput);
 
 UnitPickInput::~UnitPickInput() {
     picked_.vtable = DwordArrayVtable();
     if (picked_.data) gamecrt::operator_delete(picked_.data);
 }
-EI_REWRITTEN_SPECIAL(0x005EB910, UnitPickInput::~UnitPickInput);
-EI_REWRITTEN_SPECIAL(0x005EB8F0, UnitPickInput::~UnitPickInput);
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = TheClientWorld();
@@ -130,7 +123,6 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
         }
     }
 }
-EI_REWRITTEN(0x005EB940, UnitPickInput::OnLeftDown);
 
 void UnitPickInput::OnRightDown(int, int, int) {
     if (picked_.data) {
@@ -141,7 +133,6 @@ void UnitPickInput::OnRightDown(int, int, int) {
     picked_.size = 0;
     TheClientWorld()->Deselect(nullptr);
 }
-EI_REWRITTEN(0x005EBB40, UnitPickInput::OnRightDown);
 
 void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
@@ -150,9 +141,7 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
         GameSetServerPaused(GameServerPaused() == 0);
     }
 }
-EI_REWRITTEN(0x005EBB80, UnitPickInput::OnKeyDown);
 
 void UnitPickInput::OnKeyUp(int key, int, int) {
     if (key == kVkControl) TheCursor()->SetShape(kCursorNormal);
 }
-EI_REWRITTEN(0x005EBBC0, UnitPickInput::OnKeyUp);

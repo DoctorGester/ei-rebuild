@@ -3,7 +3,6 @@
 // links them. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
 #include "lib/vecmath.h"
@@ -39,7 +38,6 @@ FigureBone::FigureBone() {
     matrices.size = 0;
     CreateBone();
 }
-EI_REWRITTEN_SPECIAL(0x0050AF40, FigureBone::FigureBone);
 
 int FigureBone::CreateBone() {
     // The original assigns "none" to all three names, not an empty string.
@@ -61,7 +59,6 @@ int FigureBone::CreateBone() {
     morphU = 0.0f;
     return 1;
 }
-EI_REWRITTEN(0x0050B370, FigureBone::CreateBone);
 
 void FigureBone::DestroyBone() {
     CFigureMesh* placed = mesh;
@@ -76,7 +73,6 @@ void FigureBone::DestroyBone() {
     counted58 = nullptr;
     CreateBone();
 }
-EI_REWRITTEN(0x0050B510, FigureBone::DestroyBone);
 
 // The names go after the body (name3, name2, name), then the engine object's part.
 FigureBone::~FigureBone() {
@@ -86,11 +82,6 @@ FigureBone::~FigureBone() {
     children.vtable = mfc::impl::BoneListClass::Vtable();
     children.RemoveAll();
 }
-EI_REWRITTEN_SPECIAL(0x0050B1D0, FigureBone::~FigureBone);
-
-EI_REWRITTEN_SPECIAL(0x0050B1B0, FigureBone::~FigureBone);   // deleting
 
 int FigureBone::Create() { return CreateBone(); }
 void FigureBone::Destroy() { DestroyBone(); }
-
-EI_REWRITTEN(0x0050DD40, lib::AlignedArray<Matrix4>::SetSizeDiscardStep);

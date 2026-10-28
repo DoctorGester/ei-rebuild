@@ -24,7 +24,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
@@ -520,7 +519,3 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
                          std::bit_cast<float>(kDrawDepth));
     return 1;
 }
-EI_REWRITTEN(0x0051CE60, CObject3DClientSpecific::DrawShadow);
-EI_REWRITTEN(0x0051CC00, FreeQuads);
-EI_REWRITTEN(0x0051CDD0, FreePoints);
-EI_REWRITTEN(0x0051CE30, FreePixels);

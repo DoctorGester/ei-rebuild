@@ -3,7 +3,6 @@
 #include "random.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -37,4 +36,3 @@ CItem* CUnit::TakeRandomItem() {
     MarkChanged(kPartItems);
     return item;
 }
-EI_REWRITTEN(0x00531400, CUnit::TakeRandomItem);

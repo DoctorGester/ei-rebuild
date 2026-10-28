@@ -4,7 +4,6 @@
 // destructor bodies. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -71,8 +70,6 @@ int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* ou
     *out = str::Left(rest, count);
     return pos + count;
 }
-EI_REWRITTEN(0x0065D970, CUiScrollText::NextToken);
-
 
 void CUiScrollText::Tokenize(const mfc::CString* text) {
     mfc::CString token;
@@ -123,8 +120,6 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         }
     } while (pos < text->GetLength());
 }
-EI_REWRITTEN(0x0065D4B0, CUiScrollText::Tokenize);
-
 
 namespace {
 constexpr int kAlignLeft = 1;
@@ -223,7 +218,6 @@ void CUiScrollText::DrawLines(int scroll) {
     } while (drawn < textRect_.bottom - textRect_.top - offset && line < lines_.size);
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x0065D150, CUiScrollText::DrawLines);
 
 // --- Construction, texts, layout ----------------------------------------------------------
 
@@ -260,7 +254,6 @@ CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, floa
     CUiScrollbar::SetPosition(0);
     align_ = kJustified;
 }
-EI_REWRITTEN_SPECIAL(0x0065CC00, CUiScrollText::CUiScrollText);
 
 void CUiScrollText::DeleteTokens() {
     for (int i = 0; i < tokens_.size; ++i)
@@ -284,9 +277,6 @@ CUiScrollText::~CUiScrollText() {
     tokens_.vtable = mfc::impl::TokenPtrArrayClass::Vtable();
     tokens_.FreeData();
 }
-EI_REWRITTEN_SPECIAL(0x0065CE20, CUiScrollText::~CUiScrollText);
-EI_REWRITTEN_SPECIAL(0x0065CE00, CUiScrollText::~CUiScrollText);   // the deleting destructor
-EI_REWRITTEN_SPECIAL(0x0065E2B0, CUiScrollText::~CUiScrollText);   // the input side's
 
 void CUiScrollText::AddText(const char* text) {
     SetPosition(maxPosition_);
@@ -298,7 +288,6 @@ void CUiScrollText::AddText(const char* text) {
     LayOut(this);
     SetPosition(Maximum() - before + position);
 }
-EI_REWRITTEN(0x0065CF30, CUiScrollText::AddText);
 
 void CUiScrollText::SetText(const char* text) {
     Clear();
@@ -306,26 +295,22 @@ void CUiScrollText::SetText(const char* text) {
     LayOut(this);
     SetPosition(0);
 }
-EI_REWRITTEN(0x0065CFE0, CUiScrollText::SetText);
 
 void CUiScrollText::SetRect(const RECT* rect) {
     CUiScrollbar::SetRect(rect);
     PlaceText(*rect);
 }
-EI_REWRITTEN(0x0065D0A0, CUiScrollText::SetRect);
 
 BOOL CUiScrollText::Draw(CSceneRenderer* pass) {
     int position;
     if (TakePosition(&position)) DrawLines(position);
     return DrawBase(pass);
 }
-EI_REWRITTEN(0x0065D120, CUiScrollText::Draw);
 
 void CUiScrollText::Clear() {
     DeleteTokens();
     tokens_.SetSize(0, -1);
 }
-EI_REWRITTEN(0x0065D450, CUiScrollText::Clear);
 
 void CUiScrollText::Layout() {
     int total = 0;
@@ -367,12 +352,10 @@ void CUiScrollText::Layout() {
     }
     SetMaximum(textRect_.top - textRect_.bottom + total);
 }
-EI_REWRITTEN(0x0065DAA0, CUiScrollText::Layout);
 
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
 int CUiScrollbar::Maximum() const { return maxPosition_; }
-EI_REWRITTEN(0x0065B720, CUiScrollbar::Maximum);
 
 void CUiScrollbar::SetMaximum(int maximum) {
     if (maximum < 0) maximum = 0;
@@ -384,7 +367,6 @@ void CUiScrollbar::SetMaximum(int maximum) {
     position_ = position - 1;
     SetPosition(position);
 }
-EI_REWRITTEN(0x0065AFE0, CUiScrollbar::SetMaximum);
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
@@ -394,13 +376,7 @@ void UiTextToken::operator delete(void* block) { gamecrt::operator_delete(block)
 UiFormatToken::UiFormatToken(int font) : UiTextToken(kFormatType), newline_(false), font_(font), colour_(kConstructedColour) {}
 
 UiTextToken::~UiTextToken() {}
-EI_REWRITTEN_SPECIAL(0x0065D960, UiTextToken::~UiTextToken);
-EI_REWRITTEN_SPECIAL(0x0065D8A0, UiTextToken::~UiTextToken);
 
 UiFormatToken::~UiFormatToken() {}
-EI_REWRITTEN_SPECIAL(0x0065D8E0, UiFormatToken::~UiFormatToken);
-EI_REWRITTEN_SPECIAL(0x0065D8C0, UiFormatToken::~UiFormatToken);
 
 UiWordToken::~UiWordToken() {}
-EI_REWRITTEN_SPECIAL(0x0065D910, UiWordToken::~UiWordToken);
-EI_REWRITTEN_SPECIAL(0x0065D8F0, UiWordToken::~UiWordToken);

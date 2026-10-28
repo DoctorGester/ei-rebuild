@@ -3,7 +3,6 @@
 // a line strip around it (the fill then stays a pixel inside). Used for the rubber-band selection and the
 // interface's fades. The new renderer (src/render) takes both draws; with "nointerface" the old path skips
 // them. See docs/notes/renderer.md.
-#include "ei/hook.h"
 #include "device.h"
 #include "model.h"
 #include "texture.h"
@@ -98,4 +97,3 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     render::state::Render(kZBias, 0);
     return 1;
 }
-EI_REWRITTEN(0x005041F0, CSceneRenderer::DrawRectangle);

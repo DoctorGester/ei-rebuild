@@ -12,7 +12,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -77,7 +76,6 @@ bool CUnitServer::FitsMoveMode(int mode) {
     map->SectorMap()->Add(unit);
     return fits;
 }
-EI_REWRITTEN(0x0054A5A0, CUnitServer::FitsMoveMode);
 
 void CUnitServer::SetMoveStyle(int style) {
     boredTicks = 0;
@@ -88,19 +86,16 @@ void CUnitServer::SetMoveStyle(int style) {
     }
     if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }
-EI_REWRITTEN(0x00555270, CUnitServer::SetMoveStyle);
 
 void CUnitServer::SetWantedWeapon(int slot) {
     boredTicks = 0;
     unit->pendingWeapon = slot;
 }
-EI_REWRITTEN(0x005552E0, CUnitServer::SetWantedWeapon);
 
 void CUnitServer::OrderSteal(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     QueueUse(this, target, kSourceSteal, 0, run, kShoutSteal);
 }
-EI_REWRITTEN(0x005553B0, CUnitServer::OrderSteal);
 
 void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
@@ -108,19 +103,16 @@ void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
     QueueUse(this, target, kSourceTame, 0, run, kShoutTame);
 }
-EI_REWRITTEN(0x00555480, CUnitServer::OrderTame);
 
 void CUnitServer::OrderUse(CMapObject* target, int spot, int run) {
     if (!target) return;
     QueueUse(this, target, kSourceUse, spot, run, kShoutUse);
 }
-EI_REWRITTEN(0x00555570, CUnitServer::OrderUse);
 
 void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
     if (!target || target->IsDead() == 0 || target == unit) return;
     QueueUse(this, target, kSourceSearchBody, 0, run, kShoutSearchBody);
 }
-EI_REWRITTEN(0x00555630, CUnitServer::OrderSearchBody);
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
     if (target->flags_ & kFlagShared) return !TheServerWorld()->IsObjectShared(target->id_, unit->id_);
@@ -136,7 +128,6 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
     }
     return false;
 }
-EI_REWRITTEN(0x0054C760, CUnitServer::TargetBusy);
 
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
@@ -154,7 +145,6 @@ void CUnitServer::PlayAnimation(const char* name) {
     action2.modifier = 0;
     action2.kind = (entry->key & kEmoteKeyBit) ? kOrderEmote : kOrderAnimation;
 }
-EI_REWRITTEN(0x00555700, CUnitServer::PlayAnimation);
 
 void CUnitServer::StopAction() {
     state = kStateStopped;
@@ -172,21 +162,18 @@ void CUnitServer::StopAction() {
     // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.
     if (action.kind != 0 && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
 }
-EI_REWRITTEN(0x00555840, CUnitServer::StopAction);
 
 BOOL CUnitServer::HasOtherArmour() {
     for (int slot = 3; slot < 7; ++slot)
         if (unit->armor[slot]) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005567A0, CUnitServer::HasOtherArmour);
 
 BOOL CUnitServer::HasMainArmour() {
     for (int slot = 0; slot < 3; ++slot)
         if (unit->armor[slot]) return 1;
     return 0;
 }
-EI_REWRITTEN(0x005567E0, CUnitServer::HasMainArmour);
 
 FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, const char* name) {
     AnimationDatabase* database;
@@ -203,4 +190,3 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, co
         if (libcrt::Stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }
-EI_REWRITTEN(0x00512F60, CBaseManager::FindFigureAnimation);

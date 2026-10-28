@@ -9,7 +9,6 @@
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_exception.h"
 #include "lib/mfc_gdi.h"
 #include "lib/mfc_state.h"
@@ -108,43 +107,3 @@ void __cdecl Exit007044ED() {
 }
 
 } // namespace ei::static_init
-
-EI_REWRITTEN(0x0070C0B8, ei::static_init::Exit0070C0B8);
-EI_REWRITTEN(0x0070C0F8, ei::static_init::Exit0070C0F8);
-EI_REWRITTEN(0x0070CC23, ei::static_init::Exit0070CC23);
-EI_REWRITTEN(0x0070CE6D, ei::static_init::Exit0070CE6D);
-EI_REWRITTEN(0x0070D3F3, ei::static_init::Exit0070D3F3);
-EI_REWRITTEN(0x0070DD30, ei::static_init::Exit0070DD30);
-EI_REWRITTEN(0x0070D5EF, ei::static_init::Exit0070D5EF);
-EI_REWRITTEN(0x0070D615, ei::static_init::Exit0070D615);
-EI_REWRITTEN(0x0070DC3E, ei::static_init::Exit0070DC3E);
-EI_REWRITTEN(0x0070BF5A, ei::static_init::Exit0070BF5A);
-EI_REWRITTEN(0x00704433, ei::static_init::Exit00704433);
-EI_REWRITTEN(0x00704471, ei::static_init::Exit00704471);
-EI_REWRITTEN(0x007044AF, ei::static_init::Exit007044AF);
-EI_REWRITTEN(0x007044ED, ei::static_init::Exit007044ED);
-
-// nothing, 1 byte(s); atexit by 004013B0, 00401420, 00402290 and 172 more
-EI_REWRITTEN(0x004013D0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D6D7D, 004D7254, 004D737C and 4 more
-EI_REWRITTEN(0x004D71C0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D71EE, 004D7518, 004D76AA and 4 more
-EI_REWRITTEN(0x004D74A0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D74CE, 004D78C8, 004D7A3F and 3 more
-EI_REWRITTEN(0x004D7850, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D787E, 004D7C92, 004D7DC8
-EI_REWRITTEN(0x004D7BC0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D7BF2
-EI_REWRITTEN(0x004D7E90, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D84AE
-EI_REWRITTEN(0x004D85E0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 004D860E
-EI_REWRITTEN(0x004D8770, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 0056C795
-EI_REWRITTEN(0x0056CE30, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 0058D408
-EI_REWRITTEN(0x0058D5C0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 005B9CEF
-EI_REWRITTEN(0x005BA3F0, ei::short_functions::Ret);
-// nothing, 1 byte(s); atexit at 005BAA08
-EI_REWRITTEN(0x005BAC00, ei::short_functions::Ret);

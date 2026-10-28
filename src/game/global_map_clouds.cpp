@@ -4,7 +4,6 @@
 
 #include "random.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 
@@ -50,7 +49,6 @@ CCloudNoise::CCloudNoise(int size) {
     phase_ = 0.0f;
     step_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00499DC0, CCloudNoise::CCloudNoise);
 
 CCloudNoise::~CCloudNoise() {
     gamecrt::operator_delete(noise_);
@@ -58,18 +56,13 @@ CCloudNoise::~CCloudNoise() {
     for (std::uint8_t* frame : frames_) gamecrt::operator_delete(frame);
     gamecrt::operator_delete(ramp_);
 }
-EI_REWRITTEN_SPECIAL(0x00499E90, CCloudNoise::~CCloudNoise);
-EI_REWRITTEN_SPECIAL(0x00499E30, CCloudNoise::~CCloudNoise);
 
 CGlobalMapClouds::~CGlobalMapClouds() {}
-EI_REWRITTEN_SPECIAL(0x0062EDC0, CGlobalMapClouds::~CGlobalMapClouds);
-EI_REWRITTEN_SPECIAL(0x0062EDA0, CGlobalMapClouds::~CGlobalMapClouds);
 
 void CCloudNoise::Start() {
     for (int step = 0; step < kSteps; ++step) Generate(frames_[0], step);
     for (int step = 0; step < kSteps; ++step) Generate(frames_[1], step);
 }
-EI_REWRITTEN(0x00499EE0, CCloudNoise::Start);
 
 void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     phase_ = seconds * speed_ + phase_;
@@ -93,7 +86,6 @@ void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
     const std::uint8_t* to = frames_[1];
     for (int i = 0; i < count; ++i) pixels[i] = ramp_[(to[i] * blend + from[i] * (256 - blend)) >> 8];
 }
-EI_REWRITTEN(0x00499F10, CCloudNoise::Draw);
 
 void CCloudNoise::SetRamp(int start, int width, float speed) {
     float base = static_cast<float>(width) * (1.0f / 255.0f);   // FSTP to a float
@@ -107,7 +99,6 @@ void CCloudNoise::SetRamp(int start, int width, float speed) {
         ramp_[i] = static_cast<std::uint16_t>(((alpha >> 4) << 12) | 0xFFF);
     }
 }
-EI_REWRITTEN(0x0049A010, CCloudNoise::SetRamp);
 
 void CGlobalMapClouds::MakeLayer(std::uint8_t* out) {
     IsaacRandom& random = IsaacRandom::Global();
@@ -154,5 +145,3 @@ void CGlobalMapClouds::Generate(std::uint8_t* out, int step) {
 namespace {
 // The virtual slots are registered through shims (rewrite-guide rule 4).
 } // namespace
-EI_REWRITTEN(0x0049A090, CGlobalMapClouds::MakeLayer);
-EI_REWRITTEN(0x0049A220, CGlobalMapClouds::Generate);

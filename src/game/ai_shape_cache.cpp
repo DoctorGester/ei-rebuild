@@ -10,7 +10,6 @@
 
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "game_hashes.h"
 
 #include <cstdint>
@@ -57,7 +56,6 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     return created;
 }
 
-EI_REWRITTEN(0x005BD7F0, UnitShapeCache::Get);
 CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
 
 UnitShapeCache* UnitShapeCache::Construct() {
@@ -65,12 +63,10 @@ UnitShapeCache* UnitShapeCache::Construct() {
     shapes.InitZeroedBuckets(kFirstBuckets);
     return this;
 }
-EI_REWRITTEN(0x005B32E0, UnitShapeCache::Construct);
 
 void UnitShapeCache::Destruct() {
     shapes.Destroy();
 }
-EI_REWRITTEN(0x005B31F0, UnitShapeCache::Destruct);
 
 namespace {
 void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }
@@ -80,6 +76,3 @@ void __cdecl ConstructUnitShapes() {
     g_unitShapes->Construct();
     libcrt::AtExit(DestroyUnitShapes);
 }
-
-EI_REWRITTEN(0x005B31C0, ConstructUnitShapes);
-EI_REWRITTEN(0x005B31E0, DestroyUnitShapes);

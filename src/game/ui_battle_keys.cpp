@@ -17,7 +17,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -335,5 +334,3 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
 }
-
-EI_REWRITTEN(0x0063A560, CBattleScreen::OnKeyDown);

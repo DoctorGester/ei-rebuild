@@ -9,7 +9,6 @@
 #include "script_addon.h"
 #include "game_data.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -53,7 +52,6 @@ int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const 
     va_end(args);
     return result;
 }
-EI_REWRITTEN(0x004CF470, ScriptError);
 // Rebirth's AddNewScriptCommands also copies the error to addon.log (not reproduced).
 
 // ---- Keyword table ------------------------------------------------------------------------------
@@ -344,7 +342,6 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
         if (id) *id = k->id;
     }
 }
-EI_REWRITTEN(0x004CF600, ClassifyToken);
 
 const char* __fastcall FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
@@ -366,15 +363,12 @@ const char* __fastcall FunctionSignature(int id, int type) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x004D0B10, FunctionSignature);
 
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
         if (k->id == id) return k->name;
     return "Unknown command";
 }
-EI_REWRITTEN(0x004D0BA0, KeywordName);
-
 
 ScriptToken* ScriptToken::Construct() {
     std::construct_at(&text);
@@ -382,29 +376,24 @@ ScriptToken* ScriptToken::Construct() {
     line = -1;
     return this;
 }
-EI_REWRITTEN(0x004CFB70, ScriptToken::Construct);
 
 ScriptToken* ScriptToken::Assign(const ScriptToken& other) {
     text = other.text;
     line = other.line;
     return this;
 }
-EI_REWRITTEN(0x004D0BD0, ScriptToken::Assign);
 
 ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
     std::construct_at(&text, other.text);
     line = other.line;
     return this;
 }
-EI_REWRITTEN(0x004D1D30, ScriptToken::CopyConstruct);
 
 void __stdcall ConstructTokens(ScriptToken* tokens, int count) {
     std::memset(tokens, 0, static_cast<unsigned>(count) * sizeof(ScriptToken));
     for (; count != 0; --count, ++tokens)
         if (tokens) tokens->Construct();
 }
-EI_REWRITTEN(0x004CF380, ConstructTokens);
-
 
 BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     const char* p = source.c_str();
@@ -486,7 +475,6 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004CF7A0, CScript::Tokenize);
 
 BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
     ScriptPos node = *pos;
@@ -500,8 +488,6 @@ BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id
     if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
     return 1;
 }
-EI_REWRITTEN(0x004CF4D0, CScript::ExpectLexeme);
-
 
 mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
     if (FileCount() == 0) {
@@ -513,7 +499,6 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const std::string& name) {
     std::construct_at(out, qualified);
     return out;
 }
-EI_REWRITTEN(0x004D37F0, CScript::QualifyName);
 
 int CScript::FindScript(const char* name) {
     for (;;) {
@@ -529,7 +514,6 @@ int CScript::FindScript(const char* name) {
         ++name;
     }
 }
-EI_REWRITTEN(0x004D3780, CScript::FindScript);
 
 // ---- #define ------------------------------------------------------------------------------------
 
@@ -560,7 +544,6 @@ void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define)
     else defines->head = node;
     defines->tail = node;
 }
-EI_REWRITTEN(0x004D34F0, AddDefine);
 
 void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines) {
     for (const ScriptDefineList::Node* node = defines->head; node;) {
@@ -578,4 +561,3 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
         node = next;
     }
 }
-EI_REWRITTEN(0x004D33E0, ApplyDefines);

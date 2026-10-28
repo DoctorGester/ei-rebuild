@@ -9,7 +9,6 @@
 #include "ui_cursor.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -95,11 +94,8 @@ CCameraInput::CCameraInput(CInterface3D* ui) : UiInputSide(ui) {
     x_ = 0.0f;
     z_ = 0.0f;
 }
-EI_REWRITTEN_SPECIAL(0x005EACB0, CCameraInput::CCameraInput);
 
 CCameraInput::~CCameraInput() {}
-EI_REWRITTEN_SPECIAL(0x005EACF0, CCameraInput::~CCameraInput);
-EI_REWRITTEN_SPECIAL(0x005EACD0, CCameraInput::~CCameraInput);
 
 void CCameraInput::OnKeyUp(int, int, int flags) {
     switch (KeyActions()[flags & kScanCodeMask]) {
@@ -251,9 +247,3 @@ BOOL CCameraInput::OnWheel(int, int delta, int, int) {
 namespace {
 void __fastcall CameraInputDeactivate(CCameraInput* self) { self->OnDeactivate(); }
 } // namespace
-EI_REWRITTEN(0x005EB090, CCameraInput::OnKeyUp);
-EI_REWRITTEN(0x005EAD00, CCameraInput::OnRightDown);
-EI_REWRITTEN(0x005EAD50, CCameraInput::OnRightUp);
-EI_REWRITTEN(0x005EB210, CCameraInput::OnMouseMove);
-EI_REWRITTEN(0x005EB580, CameraInputDeactivate);
-EI_REWRITTEN(0x005EB540, CCameraInput::OnWheel);

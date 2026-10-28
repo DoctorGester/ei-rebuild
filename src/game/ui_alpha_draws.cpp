@@ -8,7 +8,6 @@
 #include "ui.h"
 #include "ui_camp.h"
 
-#include "ei/hook.h"
 #include "render/render_state.h"
 
 #include <cstdint>
@@ -46,7 +45,6 @@ void CUiContainer::DrawChild(CSceneRenderer* pass) {
     }
     SetState(this, kAlphaRef, savedRef);
 }
-EI_REWRITTEN(0x00600F70, CUiContainer::DrawChild);
 
 BOOL CGlobalMap::Draw(CSceneRenderer* pass) {
     SetState(this, kAlphaBlend, 1);
@@ -57,7 +55,6 @@ BOOL CGlobalMap::Draw(CSceneRenderer* pass) {
     CUiContainer::Draw(pass);
     return 1;
 }
-EI_REWRITTEN(0x0062EFC0, CGlobalMap::Draw);
 
 BOOL CHelpWindow::Draw(CSceneRenderer* pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
@@ -66,4 +63,3 @@ BOOL CHelpWindow::Draw(CSceneRenderer* pass) {
     SetState(this, kAlphaRef, savedRef);
     return 1;
 }
-EI_REWRITTEN(0x0065A6D0, CHelpWindow::Draw);

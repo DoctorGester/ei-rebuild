@@ -6,7 +6,6 @@
 
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/nan_audit.h"
 
@@ -41,16 +40,12 @@ const SkillLevelRecord* LevelRecord(std::uint32_t index) {
 } // namespace
 
 double UnitStats::StrengthRatio() { return stat10 / GameLogicSettings().hpVal[0]; }
-EI_REWRITTEN(0x00523CB0, UnitStats::StrengthRatio);
 
 double UnitStats::DexterityRatio() { return stat18 / GameLogicSettings().mpVal[0]; }
-EI_REWRITTEN(0x00523CC0, UnitStats::DexterityRatio);
 
 double UnitStats::Period20() { return kStatBase / stat20; }
-EI_REWRITTEN(0x00523CD0, UnitStats::Period20);
 
 float UnitStats::AttributeBase(int index) { return static_cast<float>(attributes[index]); }
-EI_REWRITTEN(0x00525DF0, UnitStats::AttributeBase);
 
 double UnitStats::AttributeWithBonus(int index) {
     switch (index) {
@@ -60,10 +55,8 @@ double UnitStats::AttributeWithBonus(int index) {
     default: return kZero;
     }
 }
-EI_REWRITTEN(0x00525E10, UnitStats::AttributeWithBonus);
 
 float UnitStats::SkillBase(int index) { return static_cast<float>(skills[index]); }
-EI_REWRITTEN(0x00527030, UnitStats::SkillBase);
 
 double UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(skills[index]);
@@ -77,7 +70,6 @@ double UnitStats::SkillWithBonus(std::uint32_t index) {
     default: return skill;
     }
 }
-EI_REWRITTEN(0x00527050, UnitStats::SkillWithBonus);
 
 float UnitStats::WeaponSkill(int type) {
     if (type < 5) return static_cast<float>(skills[0]);
@@ -85,14 +77,12 @@ float UnitStats::WeaponSkill(int type) {
     if (type == 8) return static_cast<float>(skills[0]);
     return kZero;
 }
-EI_REWRITTEN(0x00526780, UnitStats::WeaponSkill);
 
 ::SkillLevelRecord* UnitStats::SkillLevelRecord(int index) {
     std::uint8_t level = skillLevels[index];
     if (level == 0) return nullptr;
     return unitdb::SkillLevelAt(static_cast<std::uint32_t>(index * 3 - 1 + level));
 }
-EI_REWRITTEN(0x00528270, UnitStats::SkillLevelRecord);
 
 double UnitStats::SkillLevelValue(int index) {
     std::uint8_t level = skillLevels[index];
@@ -102,7 +92,6 @@ double UnitStats::SkillLevelValue(int index) {
     }
     return kZero;
 }
-EI_REWRITTEN(0x005267E0, UnitStats::SkillLevelValue);
 
 double UnitStats::Value6E8() {
     double strength = stat10 * kTwelve;   // kept on the FPU stack
@@ -115,7 +104,6 @@ double UnitStats::Value6E8() {
     }
     return (kZero * kPercent + kOne) * strength;
 }
-EI_REWRITTEN(0x00524280, UnitStats::Value6E8);
 
 double UnitStats::Value6E9() {
     double base = GameLogicSettings().backstabAdd;
@@ -128,10 +116,8 @@ double UnitStats::Value6E9() {
     }
     return kZero * kPercent + base;
 }
-EI_REWRITTEN(0x00525CD0, UnitStats::Value6E9);
 
 double UnitStats::Value6E9Arg(int) { return Value6E9(); }
-EI_REWRITTEN(0x00525D60, UnitStats::Value6E9Arg);
 
 double UnitStats::Reduce(float value) {
     double taken = kZero;   // accumulated on the FPU stack
@@ -145,7 +131,6 @@ double UnitStats::Reduce(float value) {
     }
     return value - taken;   // unrounded
 }
-EI_REWRITTEN(0x005259B0, UnitStats::Reduce);
 
 double UnitStats::ReduceKind1(float value) {
     double taken = kZero;
@@ -154,7 +139,6 @@ double UnitStats::ReduceKind1(float value) {
     }
     return value - taken;   // unrounded
 }
-EI_REWRITTEN(0x00524020, UnitStats::ReduceKind1);
 
 void UnitStats::GetFactors(float* a, float* b, int) {
     double x = (stat10 - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
@@ -162,7 +146,6 @@ void UnitStats::GetFactors(float* a, float* b, int) {
     *a = static_cast<float>(y * kPointThree + x * kPointSeven);
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }
-EI_REWRITTEN(0x00528840, UnitStats::GetFactors);
 
 BOOL LockKey::Opens(const LockKey* lock) const {
     std::uint32_t common = lock->mask & mask;
@@ -177,7 +160,6 @@ BOOL LockKey::Opens(const LockKey* lock) const {
     }
     return level >= lock->level ? 1 : 0;
 }
-EI_REWRITTEN(0x00522A80, LockKey::Opens);
 
 std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     constexpr std::uint32_t kLarge = 0x7C23D70A;
@@ -191,7 +173,6 @@ std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     info->hitKind = 0;
     return kLarge;
 }
-EI_REWRITTEN(0x00522B40, ResetDamageInfo);
 
 BOOL __fastcall HasElementalDamage(const DamageInfo* info) {
     EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
@@ -200,7 +181,6 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00522B80, HasElementalDamage);
 
 std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
     std::uint16_t sum = 0;
@@ -210,7 +190,6 @@ std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
     }
     return sum;
 }
-EI_REWRITTEN(0x00522AE0, DamageWords::ExcessOver);
 
 // The largest of the damage words 1..7 (unsigned).
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
@@ -219,4 +198,3 @@ std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
         if (largest <= damage[i]) largest = damage[i];
     return largest;
 }
-EI_REWRITTEN(0x00522B20, MaxDamage);

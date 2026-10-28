@@ -97,10 +97,6 @@ NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet'
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
           'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h',
           '__asm block': 'src/lib/crt_x87.cpp'}
-# A literal address directly inside EI_REPLACE(...)/EI_REWRITTEN(...)/UI_INPUT_HANDLER(...) is how registrations
-# are written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest. (EI_ORIGINAL
-# forwarders are the harness's only since C29, tests/verify/harness_original.h: src/ cannot use the macro.)
-REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):
@@ -126,8 +122,6 @@ def counts():
                 row[name] = rx(text)
                 continue
             for m in rx.finditer(text):
-                if name.startswith('raw game address') and REGISTRATION.search(text[max(0, m.start() - 40):m.start()]):
-                    continue
                 if name == 'per-file vector/map/set struct' and m.group(0).split()[-1] in NOT_CONTAINERS:
                     continue
                 n += 1

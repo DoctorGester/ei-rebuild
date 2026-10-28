@@ -5,7 +5,6 @@
 #include "mod_folders.h"
 #include "world_data.h"   // the text resources' folder
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
@@ -42,8 +41,6 @@ CTextureManager::CTextureManager() {
     mipLevel_ = 0;
     limitTo512_ = 0;
 }
-
-EI_REWRITTEN_SPECIAL(0x00691140, CTextureManager::CTextureManager);
 
 // The part Destroy and the destructor share: the shadow surface, the cache, the composed textures
 // and the device.
@@ -93,21 +90,12 @@ CTextureManager::~CTextureManager() {
     cache_.RemoveAll();
 }
 
-EI_REWRITTEN_SPECIAL(0x00691250, CTextureManager::~CTextureManager);
-
-EI_REWRITTEN_SPECIAL(0x00691230, CTextureManager::~CTextureManager);
-
 CEngineObject* CTextureManager::CreateObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObject(type, id);
     object->flags_ |= CreateFlag(type);
     return object;
 }
 
-EI_REWRITTEN(0x00691500, CTextureManager::Create);
-EI_REWRITTEN(0x00691630, CTextureManager::Destroy);
-EI_REWRITTEN(0x00691AA0, CTextureManager::CreateObject);
-
 const char* CTextureManager::GetClassName() { return kClassName; }
 int CTextureManager::GetClassId() { return 0x26; }
 const char* CTextureManager::GetFolderName() { return kFolder; }
-

@@ -15,7 +15,6 @@
 #include "world.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -390,30 +389,3 @@ CEffectArrowFigure::~CEffectArrowFigure() {
     if (figure_ != nullptr) figure_->Release();
     figure_ = nullptr;
 }
-
-EI_REWRITTEN_SPECIAL(0x0067BB90, CEffectArrowFigure::CEffectArrowFigure);
-EI_REWRITTEN_SPECIAL(0x0067BCD0, CEffectArrowFigure::~CEffectArrowFigure);
-EI_REWRITTEN_SPECIAL(0x0067BCB0, CEffectArrowFigure::~CEffectArrowFigure);
-EI_REWRITTEN(0x0067BAA0, CEffectArrowFigure::Reset);
-EI_REWRITTEN(0x0067BE20, CEffectArrowFigure::RunTick);
-EI_REWRITTEN(0x0067BEF0, CEffectArrowFigure::MoveParts);
-EI_REWRITTEN(0x0067BF20, CEffectArrowFigure::Start);
-EI_REWRITTEN(0x0067C080, CEffectArrowFigure::Unpack);
-EI_REWRITTEN(0x0067C170, CEffectArrowFigure::Pack);
-EI_REWRITTEN(0x0067C200, CEffectArrowFigure::Load);
-EI_REWRITTEN(0x0067C290, CEffectArrowFigure::Save);
-
-EI_REWRITTEN_SPECIAL(0x0067AE30, CEffectArrow::CEffectArrow);
-EI_REWRITTEN_SPECIAL(0x0067B1C0, CEffectArrow::~CEffectArrow);
-EI_REWRITTEN_SPECIAL(0x0067B1A0, CEffectArrow::~CEffectArrow);
-EI_REWRITTEN(0x0067AAB0, CEffectMissile::Steer);
-EI_REWRITTEN(0x0067AA00, CEffectMissile::Reset);
-EI_REWRITTEN(0x0067AC70, CEffectMissile::SetTarget);
-EI_REWRITTEN(0x0067AC90, CEffectArrow::RunTick);
-EI_REWRITTEN(0x0067AD10, CEffectArrow::Reset);
-EI_REWRITTEN(0x0067B450, CEffectArrow::MoveParts);
-EI_REWRITTEN(0x0067B4E0, CEffectArrow::Start);
-EI_REWRITTEN(0x0067B690, CEffectArrow::Unpack);
-EI_REWRITTEN(0x0067B800, CEffectArrow::Pack);
-EI_REWRITTEN(0x0067B8E0, CEffectArrow::Load);
-EI_REWRITTEN(0x0067B9A0, CEffectArrow::Save);

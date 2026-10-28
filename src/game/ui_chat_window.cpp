@@ -13,7 +13,6 @@
 #include "ui_screens.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -94,7 +93,6 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
         texts_.push_back(text);
     }
 }
-EI_REWRITTEN_SPECIAL(0x00608D20, CChatWindow::CChatWindow);
 // EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
 // column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
 
@@ -134,7 +132,6 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     ++portraits_;
     AddRegion()->SetRect(left, 0, right, 0x50);
 }
-EI_REWRITTEN(0x00608F90, CChatWindow::AddPortrait);
 
 // --- the players' faces --------------------------------------------------------------------------
 
@@ -209,7 +206,6 @@ void CChatWindow::ShowPlayers() {
         regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
-EI_REWRITTEN(0x006091C0, CChatWindow::ShowPlayers);
 
 // --- Update --------------------------------------------------------------------------------------
 
@@ -256,7 +252,6 @@ void CChatWindow::Update() {
     }
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x006095A0, CChatWindow::Update);
 
 // --- the input side's left button and mouse move -------------------------------------------------
 
@@ -293,6 +288,3 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
     int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0 && index >= 0 && static_cast<unsigned>(index) < players_.size()) TheCursor()->SetShape(0);
 }
-
-EI_REWRITTEN(0x006097E0, CChatWindow::OnLButtonDown);
-EI_REWRITTEN(0x00609900, CChatWindow::OnMouseMove);

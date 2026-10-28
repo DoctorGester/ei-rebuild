@@ -12,7 +12,6 @@
 #include "random.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -118,7 +117,6 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     }
     device->DrawSprites(0, &GlowPoints(), &Sprites());
 }
-EI_REWRITTEN(0x00467590, CLightning::DrawGlow);
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int CLightning::Draw(CSceneRenderer* device) {
@@ -163,6 +161,3 @@ int CLightning::Draw(CSceneRenderer* device) {
     if (power_ == zero) DrawGlow(device, &start, phase, size);
     return 1;
 }
-EI_REWRITTEN(0x00467AD0, CLightning::Draw);
-EI_REWRITTEN(0x004679F0, FreeGlowPoints);
-EI_REWRITTEN(0x00467A10, DestroySprites);

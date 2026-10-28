@@ -3,7 +3,6 @@
 #include "spell.h"
 
 #include "console.h"
-#include "ei/hook.h"
 #include "item.h"
 #include "item_db.h"
 #include "lib/crt.h"
@@ -102,4 +101,3 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     constructor->SetManager(nullptr);
     return spell;
 }
-EI_REWRITTEN(0x00689030, CSpellManager::CreateSpellFromText);

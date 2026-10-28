@@ -11,7 +11,6 @@
 #include "random.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 
@@ -294,4 +293,3 @@ void CHudPortraits::Update() {
         }
     }
 }
-EI_REWRITTEN(0x00641080, CHudPortraits::Update);

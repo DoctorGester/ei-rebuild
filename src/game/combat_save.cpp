@@ -10,8 +10,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
@@ -128,19 +126,16 @@ void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream) {
     steps->SetSize(count, -1);
     for (int i = 0; i < steps->size; ++i) stream->Read(&steps->data[i], sizeof(AnimationStep));
 }
-EI_REWRITTEN(0x005582A0, LoadStepList);
 
 void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream) {
     WriteCopy(stream, steps->size);
     for (int i = 0; i < steps->size; ++i) stream->Write(&steps->data[i], sizeof(AnimationStep));
 }
-EI_REWRITTEN(0x00558420, SaveStepList);
 
 void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, IdOrNone(item));
     WriteCopy(stream, countdown);
 }
-EI_REWRITTEN(0x00545430, ArmourSpell::Save);
 
 void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
     int count = 0;
@@ -164,7 +159,6 @@ void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
         stream->Read(&current->data.countdown, 4);
     }
 }
-EI_REWRITTEN(0x005585F0, LoadArmourSpells);
 
 void CUnitServer::Load(CStream* stream) {
     aiPresence = nullptr;
@@ -227,7 +221,6 @@ void CUnitServer::Load(CStream* stream) {
     if (stream->version_ < kVersion93C) return;
     WriteCopy(stream, waitFrame);    // sic: written, not read
 }
-EI_REWRITTEN(0x00555D10, CUnitServer::Load);
 
 void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, frozen);
@@ -281,4 +274,3 @@ void CUnitServer::Save(CStream* stream) {
     stream->Write(&pendingHit, 0x3C);
     WriteCopy(stream, waitFrame);
 }
-EI_REWRITTEN(0x005561C0, CUnitServer::Save);

@@ -10,7 +10,6 @@
 #include "ui_gdi.h"
 #include "world_glue.h"         // GameClientTexts
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -142,4 +141,3 @@ void CSaveLoadWindow::RefreshListVanilla() {
     surface->DrawTextIn(entry.folder_, &folderRect, kFont, kTextColour, DT_RIGHT, 1);
     UiSurfaceReleaseDC(surface);
 }
-EI_REWRITTEN(0x006567A0, CSaveLoadWindow::RefreshListVanilla);

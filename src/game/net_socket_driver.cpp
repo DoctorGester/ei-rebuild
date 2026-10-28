@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "../hook/log.h"
 #include "game_data.h"
@@ -78,7 +77,6 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     port = libcrt::imports::Htons(static_cast<std::uint16_t>(number));
     return true;
 }
-EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
 // The look-up is given the whole sockaddr.
 std::string NetAddress::Format(int resolve) const {
@@ -99,7 +97,6 @@ std::string NetAddress::Format(int resolve) const {
     }
     return text;
 }
-EI_REWRITTEN(0x00440690, NetAddress::Format);
 
 // ---- The UDP driver ---------------------------------------------------------------------------------
 
@@ -132,7 +129,6 @@ SocketDriver* SocketDriver::Construct() {
     }
     return this;
 }
-EI_REWRITTEN(0x004407F0, SocketDriver::Construct);
 
 void SocketDriver::Destruct() {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
@@ -140,7 +136,6 @@ void SocketDriver::Destruct() {
     libcrt::imports::WsaCleanup();
     addresses.FreeStorage();
 }
-EI_REWRITTEN(0x00440940, SocketDriver::Destruct);
 
 bool SocketDriver::Open(int port) {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
@@ -164,7 +159,6 @@ bool SocketDriver::Open(int port) {
     libcrt::imports::SetSockOpt(socket, 0xFFFF, 0x20, &one, 4);   // SOL_SOCKET, SO_BROADCAST
     return true;
 }
-EI_REWRITTEN(0x004409A0, SocketDriver::Open);
 
 bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     if (index >= AddressCount(this)) return false;
@@ -172,7 +166,6 @@ bool SocketDriver::Broadcast(NetAddress* out, unsigned index, int port) {
     out->port = libcrt::imports::Htons(static_cast<std::uint16_t>(port));
     return true;
 }
-EI_REWRITTEN(0x00440A90, SocketDriver::Broadcast);
 
 // A broadcast address's trailing 0xFF bytes are the host part.
 bool SocketDriver::IsLocal(const NetAddress* address) {
@@ -192,13 +185,11 @@ bool SocketDriver::IsLocal(const NetAddress* address) {
     }
     return false;
 }
-EI_REWRITTEN(0x00440AF0, SocketDriver::IsLocal);
 
 bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     std::int32_t length = Length(buffer);
     return libcrt::imports::SendTo(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
-EI_REWRITTEN(0x00440B90, SocketDriver::SendTo);
 
 // The buffer is first sought (its slot 6) to room for 0x800 bytes.
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
@@ -214,7 +205,6 @@ bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     }
     return n >= 0;
 }
-EI_REWRITTEN(0x00440BE0, SocketDriver::Receive);
 
 // ---- The master server link ----------------------------------------------------------------------
 
@@ -237,13 +227,11 @@ MasterLink::MasterLink(const void* address) {
     libcrt::imports::Connect(socket, address, 0x10);
     state = 1;
 }
-EI_REWRITTEN_SPECIAL(0x00440C60, MasterLink::MasterLink);
 
 // Closes the socket (left as it is); the buffers are destroyed after it (in, then out).
 MasterLink::~MasterLink() {
     if (socket != kNoSocket) libcrt::imports::CloseSocket(socket);
 }
-EI_REWRITTEN_SPECIAL(0x00440D40, MasterLink::~MasterLink);
 
 // One step: connecting (1) until writable (4) or failed; sending (4) the whole outgoing buffer at once,
 // blocking (then 2); receiving (2) into the incoming buffer until the peer closes (3). An error closes the
@@ -317,12 +305,10 @@ int __fastcall MasterLinkTick(MasterLink* self) {
         return self->state;
     }
 }
-EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 
 // The exit function of Winsock's static initialiser (WSAStartup 1.1): WSACleanup once the network
 // threads are gone. The original waits while their count is non-zero; only the thread procedure
 // counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
 void __cdecl CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
-EI_REWRITTEN(0x0047C330, CleanUpWinsock);
 
 } // namespace net

@@ -9,7 +9,6 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -97,7 +96,6 @@ void CHeroStatsPanel::ShowStats(int page) {
     }
     DrawStats();
 }
-EI_REWRITTEN(0x006233C0, CHeroStatsPanel::ShowStats);
 
 // --- Statistics drawing ---------------------------------------------------------------------------
 
@@ -249,7 +247,6 @@ void CHeroStatsPanel::DrawStats() {
     }
     draw->ReleaseDC();
 }
-EI_REWRITTEN(0x00623880, CHeroStatsPanel::DrawStats);
 
 // --- The equipment panel's Build ---------------------------------------------------------
 
@@ -334,7 +331,6 @@ void CHeroEquipPanel::Build(bool body) {
     }
     selected_ = -1;
 }
-EI_REWRITTEN(0x00622000, CHeroEquipPanel::Build);
 
 // --- The statistics panel's Build ---------------------------------------------
 
@@ -363,7 +359,6 @@ void CHeroStatsPanel::Build() {
     heldRegion_ = -1;
     holdTime_ = 0.0f;
 }
-EI_REWRITTEN(0x00622DB0, CHeroStatsPanel::Build);
 
 // --- The trade grid's Build ----------------------------------------------------------------
 
@@ -380,7 +375,6 @@ void CTradeGrid::Build(UiItemList* bought, UiItemList* sold, char spells, char f
     LoadTexture("trade4", 3, 0);   // trade4
     BuildCellGrid(this);
 }
-EI_REWRITTEN(0x006270A0, CTradeGrid::Build);
 
 // --- The item under the mouse ---------------------------------------------------------------
 
@@ -408,7 +402,6 @@ CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     if (region - kGridCellsPerList < sold_->size) return sold_->data[region - kGridCellsPerList];
     return nullptr;
 }
-EI_REWRITTEN(0x00627920, CTradeGrid::ItemAt);
 
 CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
     *topic = 0;
@@ -418,7 +411,6 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
     *topic = kTopicRepair;
     return region < items_->size ? items_->data[region] : nullptr;
 }
-EI_REWRITTEN(0x00628060, CRepairGrid::ItemAt);
 
 // --- The repair grid's Build ---------------------------------------------------------------
 
@@ -432,7 +424,6 @@ void CRepairGrid::Build(UiItemList* items) {
     LoadTexture("repair4", 3, 0);   // repair4
     BuildCellGrid(this);
 }
-EI_REWRITTEN(0x006279E0, CRepairGrid::Build);
 
 // --- The quick strip's Build -------------------------------------------------------------
 
@@ -451,7 +442,6 @@ void CHeroQuickStrip::Build(bool top) {
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
-EI_REWRITTEN(0x00622A80, CHeroQuickStrip::Build);
 
 // --- The constructors' second pages ---------------------------------------------------------------
 
@@ -503,7 +493,6 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
         texts_.push_back(text);
     }
 }
-EI_REWRITTEN(0x006280C0, CSpellMakerPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
@@ -520,4 +509,3 @@ void CConstructorPage::BuildItemMaker(CParty* slots) {
     AddMakerPictures(this);
     pulse_ = 0.0f;
 }
-EI_REWRITTEN(0x00628CC0, CConstructorPage::BuildItemMaker);

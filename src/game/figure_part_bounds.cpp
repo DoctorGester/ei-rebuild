@@ -7,7 +7,6 @@
 #include "renderer_lines.h"   // LineBatch
 
 #include "lib/crt.h"
-#include "ei/hook.h"
 #include "engine_object.h"
 
 #include <cstdint>
@@ -40,5 +39,3 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     renderer->DrawLineList(&lines);
     lines.packets.FreeData();
 }
-
-EI_REWRITTEN(0x005A7290, FigureMeshDrawer::DrawBounds);

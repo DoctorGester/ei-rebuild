@@ -6,7 +6,6 @@
 #include "spell.h"
 
 #include "console.h"
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -98,7 +97,6 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     value3C_ = head->value3C;
     magicLevel_ = head->magicLevel;
 }
-EI_REWRITTEN(0x006A0490, CItem::InitFromRecord);
 
 void CItem::AttachSpell(CSpell* spell) {
     CSpell* previous = spell_;
@@ -108,7 +106,6 @@ void CItem::AttachSpell(CSpell* spell) {
     if (previous) previous->Release();
     if (spell_) price_ = spell_->price_ + price_;
 }
-EI_REWRITTEN(0x006A04D0, CItem::AttachSpell);
 
 void CItem::SetSpell(CSpell* spell) {
     CSpell* previous = spell_;
@@ -116,7 +113,6 @@ void CItem::SetSpell(CSpell* spell) {
     if (spell) ++spell->refCount_;
     if (previous) previous->Release();
 }
-EI_REWRITTEN(0x006A0520, CItem::SetSpell);
 
 // --- CItemConstructor ----------------------------------------------------------------------------
 
@@ -135,9 +131,6 @@ void CItemConstructor::Destroy() {
     spell_ = nullptr;
 }
 
-EI_REWRITTEN(0x006A5B90, CItemConstructor::Create);
-EI_REWRITTEN(0x006A5BD0, CItemConstructor::Destroy);
-
 CItemConstructor::CItemConstructor() {
     ClearFields();
     material_ = nullptr;
@@ -146,23 +139,17 @@ CItemConstructor::CItemConstructor() {
     spell_ = nullptr;
     manager_ = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x006A5AB0, CItemConstructor::CItemConstructor);
 
 CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
-EI_REWRITTEN_SPECIAL(0x006A5B20, CItemConstructor::~CItemConstructor);
-EI_REWRITTEN_SPECIAL(0x006A5B00, CItemConstructor::~CItemConstructor);   // the scalar deleting destructor
 
 const char* CItemConstructor::GetClassName() { return "CItemConstructor"; }
 int CItemConstructor::GetClassId() { return 0x1C; }
-EI_REWRITTEN(0x006A5AE0, CItemConstructor::GetClassName);
-EI_REWRITTEN(0x006A5AF0, CItemConstructor::GetClassId);
 
 void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;
     manager_ = manager;
     if (manager) ++manager->refCount_;
 }
-EI_REWRITTEN(0x006A5C00, CItemConstructor::SetManager);
 
 BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
     CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
@@ -176,25 +163,21 @@ BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
     flags_ |= kFlagConstructing;
     return 1;
 }
-EI_REWRITTEN(0x006A5C50, CItemConstructor::BeginCreateItem);
 
 BOOL CItemConstructor::SetMaterial(MaterialRecordHead* material) {
     material_ = material;
     return 1;
 }
-EI_REWRITTEN(0x006A5CC0, CItemConstructor::SetMaterial);
 
 BOOL CItemConstructor::SetPrototype(ItemRecordHead* prototype) {
     prototype_ = prototype;
     return 1;
 }
-EI_REWRITTEN(0x006A5CD0, CItemConstructor::SetPrototype);
 
 BOOL CItemConstructor::SetSpellObject(CSpell* spell) {
     spell_ = spell;
     return 1;
 }
-EI_REWRITTEN(0x006A5CE0, CItemConstructor::SetSpellObject);
 
 CItem* CItemConstructor::EndCreateItem() {
     if (!Build()) {
@@ -210,7 +193,6 @@ CItem* CItemConstructor::EndCreateItem() {
     count_ = 0;
     return item;
 }
-EI_REWRITTEN(0x006A5CF0, CItemConstructor::EndCreateItem);
 
 BOOL CItemConstructor::Cancel() {
     if (item_) item_->Release();
@@ -220,7 +202,6 @@ BOOL CItemConstructor::Cancel() {
     prototype_ = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x006A5D30, CItemConstructor::Cancel);
 
 namespace {
 
@@ -335,7 +316,6 @@ BOOL CItemConstructor::Build() {
     item_->count_ = static_cast<std::uint32_t>(count_);
     return 1;
 }
-EI_REWRITTEN(0x006A5D60, CItemConstructor::Build);
 
 // --- The item manager's CreateItem ----------------------------------------------------
 
@@ -463,7 +443,6 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
     return item;
 }
-EI_REWRITTEN(0x006AC970, CItemManager::CreateItem);
 
 // --- The item manager's MakeItem ----------------------------------------------------------------
 
@@ -502,7 +481,6 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     constructor->SetManager(nullptr);
     return item;
 }
-EI_REWRITTEN(0x006AD000, CItemManager::MakeItem);
 
 // --- The scroll of a spell text, the name lists, the constructor's magic capacity ----------------
 
@@ -517,7 +495,6 @@ CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spell
     if (item) item->AttachSpell(spell);
     return item;
 }
-EI_REWRITTEN(0x006AD1E0, CItemManager::CreateSpellItem);
 
 namespace {
 
@@ -544,10 +521,6 @@ void CItemManager::ListArmorNames(std::vector<std::string>* names) { ListRecordN
 void CItemManager::ListQuickItemNames(std::vector<std::string>* names) {
     ListRecordNames(TheItemDatabase().quickItems, names, HeadName);
 }
-EI_REWRITTEN(0x006AD260, CItemManager::ListMaterialNames);
-EI_REWRITTEN(0x006AD2F0, CItemManager::ListWeaponNames);
-EI_REWRITTEN(0x006AD380, CItemManager::ListArmorNames);
-EI_REWRITTEN(0x006AD410, CItemManager::ListQuickItemNames);
 
 bool CItemConstructor::MagicCapacity(float* level, float* power) {
     if ((item_->GetClassId() == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return false;
@@ -562,4 +535,3 @@ bool CItemConstructor::MagicCapacity(float* level, float* power) {
     }
     return true;
 }
-EI_REWRITTEN(0x006A6480, CItemConstructor::MagicCapacity);

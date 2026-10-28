@@ -8,7 +8,6 @@
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstddef>
@@ -63,7 +62,3 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (add) layer->Add(owner, Patch(), x0, y0);
     else layer->Remove(owner, x0, y0);
 }
-
-EI_REWRITTEN(0x005B7EF0, CAIMap::StampWaterPatch);
-
-EI_REWRITTEN(0x005B80C0, ReleasePatch);

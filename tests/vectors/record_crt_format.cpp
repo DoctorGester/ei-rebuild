@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "game/game_data.h"
+#include "lib/crt.h"
 
 #include <climits>
 #include <cstdarg>
@@ -300,7 +301,7 @@ double __cdecl AtofRecord(const char* text) {
 
 } // namespace
 
-EI_RECORD(0x006E8715, SprintfRecord, 0, s_unusedSprintf);
-EI_RECORD(0x006ECC47, VsprintfRecord, 0, s_unusedVsprintf);
+EI_RECORD(0x006E8715, SprintfRecord, 0, s_unusedSprintf, libcrt::Vsprintf);
+EI_RECORD(0x006ECC47, VsprintfRecord, 0, s_unusedVsprintf, libcrt::Vsprintf);
 // 006E911A: PUSH EBP; MOV EBP,ESP; SUB ESP,0x18 (6 bytes).
-EI_RECORD(0x006E911A, AtofRecord, 6, s_atof);
+EI_RECORD(0x006E911A, AtofRecord, 6, s_atof, std::atof);

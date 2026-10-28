@@ -4,7 +4,6 @@
 #include "net_messages.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp_vector_refs.h"
 
@@ -71,6 +70,5 @@ void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
     ref.ptr = nullptr;
     ref.Destroy();
 }
-EI_REWRITTEN(0x00419A00, ServerSession::ShareFile);
 
 } // namespace net

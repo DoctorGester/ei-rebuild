@@ -13,7 +13,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 
@@ -189,8 +188,6 @@ bool CCampPages::DeconstructItem() {
     itemMade_ = nullptr;
     return true;
 }
-EI_REWRITTEN(0x00612500, CCampPages::DeconstructSpell);
-EI_REWRITTEN(0x006129C0, CCampPages::DeconstructItem);
 
 // --- the first action button ---------------------------------------------------------------------
 
@@ -301,7 +298,6 @@ void CCampPages::DoAction() {
     }
     PlayerParty()->Money() -= cost_;
 }
-EI_REWRITTEN(0x00611220, CCampPages::DoAction);
 
 // --- the second action button --------------------------------------------------------------------
 
@@ -332,4 +328,3 @@ void CCampPages::UndoAction() {
         break;
     }
 }
-EI_REWRITTEN(0x00611760, CCampPages::UndoAction);

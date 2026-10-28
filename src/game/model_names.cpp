@@ -1,7 +1,6 @@
 // A length-prefixed name in a model file's data. See model.h.
 #include "model.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -21,4 +20,3 @@ void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor)
     gamecrt::operator_delete(text);
     *cursor += length;
 }
-EI_REWRITTEN(0x004DBCA0, ReadPrefixedName);

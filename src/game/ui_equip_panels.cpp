@@ -6,8 +6,6 @@
 #include "item.h"
 #include "unit.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -41,7 +39,6 @@ void CHeroEquipPanel::ShowWeapon(CItem* weapon) {
     int index = IndexIn(hero->weapons, weapon);
     if (index >= 0) hero->weaponIndex = static_cast<std::uint32_t>(index);
 }
-EI_REWRITTEN(0x006229E0, CHeroEquipPanel::ShowWeapon);
 
 void CHeroEquipPanel::ShowArmour(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -49,7 +46,6 @@ void CHeroEquipPanel::ShowArmour(CItem* item) {
     int index = IndexIn(hero->quickItems, item);
     if (index >= 0) selected_ = index;
 }
-EI_REWRITTEN(0x00622A30, CHeroEquipPanel::ShowArmour);
 
 void CHeroQuickStrip::ShowEntry(CItem* item) {
     PartyUnitRecord* hero = owner_->HeroRecord();
@@ -57,7 +53,6 @@ void CHeroQuickStrip::ShowEntry(CItem* item) {
     int index = IndexIn(hero->spells, item);
     if (index >= 0) selected_ = index;
 }
-EI_REWRITTEN(0x00622BC0, CHeroQuickStrip::ShowEntry);
 
 // --- the equipment panel's right button ----------------------------------------------------------
 
@@ -72,7 +67,6 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     }
     RefreshWeapons(owner_);
 }
-EI_REWRITTEN(0x00622960, CHeroEquipPanel::OnRightDown);
 
 // --- the item under a point ----------------------------------------------------------------------
 
@@ -98,7 +92,6 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00622860, CHeroEquipPanel::ItemAt);
 
 CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     *topic = 0;
@@ -110,4 +103,3 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     if (region >= hero->spells.size) return nullptr;
     return hero->spells[region];
 }
-EI_REWRITTEN(0x00622D40, CHeroQuickStrip::ItemAt);

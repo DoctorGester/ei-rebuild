@@ -1,7 +1,6 @@
 // Weapon model parts: the names of the figure parts a weapon is drawn with.
 #include "item.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -78,7 +77,6 @@ void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* 
     if (!record) return;
     ForEachPart(record, [out](const char* name) { out->push_back(name); });
 }
-EI_REWRITTEN(0x006A0FF0, WeaponModelParts);
 
 void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out) {
     const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
@@ -88,4 +86,3 @@ void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std:
         out->push_back(s);
     });
 }
-EI_REWRITTEN(0x006A1780, AppendWeaponModelParts);

@@ -9,7 +9,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -55,19 +54,12 @@ void MakeEffect(EffectSpec* self) {
 
 // The records' destructors are the base record's.
 EffectSpec::~EffectSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046D370, EffectSpec::~EffectSpec);
-EI_REWRITTEN_SPECIAL(0x0046D350, EffectSpec::~EffectSpec);
 ParticleSpec::~ParticleSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046D5A0, ParticleSpec::~ParticleSpec);
-EI_REWRITTEN_SPECIAL(0x0046D580, ParticleSpec::~ParticleSpec);
 LightSpec::~LightSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046DA20, LightSpec::~LightSpec);
-EI_REWRITTEN_SPECIAL(0x0046DA00, LightSpec::~LightSpec);
 
 void* EffectSpec::WorldObject() {
     return TheObjectManager()->FindObject(-3001 - id);
 }
-EI_REWRITTEN(0x0046D3D0, EffectSpec::WorldObject);
 
 CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(object); }
 
@@ -77,8 +69,6 @@ void EffectSpec::SetVisible(std::uint8_t newVisible) {
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
-EI_REWRITTEN(0x0046D3F0, EffectSpec::SetVisible);
-EI_REWRITTEN(0x0046E490, EffectSpec::SetVisible);   // the sound record's SetVisible (the same code)
 
 void EffectSpec::Move(float dx, float dy, float dz) {
     Vector3& p = position;
@@ -89,11 +79,9 @@ void EffectSpec::Move(float dx, float dy, float dz) {
     if (ground > p.z) p.z = static_cast<float>(ground);
     Apply();
 }
-EI_REWRITTEN(0x0046D420, EffectSpec::Move);
 
 // Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
 void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
-EI_REWRITTEN(0x0046D4D0, EffectNotify);
 
 // ---- Particle sources ------------------------------------------------------------------
 
@@ -102,13 +90,11 @@ ParticleSpec::ParticleSpec() {
     kind = 4;
     scale = 1.0f;
 }
-EI_REWRITTEN_SPECIAL(0x0046D520, ParticleSpec::ParticleSpec);
 
 mfc::CString* ParticleSpec::TypeName(mfc::CString* out) {
     std::construct_at(out, "Particle source");
     return out;
 }
-EI_REWRITTEN(0x0046D550, ParticleSpec::TypeName);
 
 void ParticleSpec::Save() {
     BeginWrite(0xDD01);
@@ -120,7 +106,6 @@ void ParticleSpec::Save() {
     WriteFloat(0xDD07, Bits(scale));
     EndWrite();
 }
-EI_REWRITTEN(0x0046D680, ParticleSpec::Save);
 
 void ParticleSpec::OnChunk() {
     Chunk& c = *this;
@@ -134,7 +119,6 @@ void ParticleSpec::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046D730, ParticleSpec::OnChunk);
 
 void ParticleSpec::Apply() {
     if (!object) {
@@ -149,8 +133,6 @@ void ParticleSpec::Apply() {
     std::memcpy(&particle->localPosition_, &position, 12);
     particle->MarkChanged();
 }
-EI_REWRITTEN(0x0046D870, ParticleSpec::Apply);
-
 
 LightSpec::LightSpec() {
     colour.x = 1.0f;
@@ -160,13 +142,11 @@ LightSpec::LightSpec() {
     radius = 10.0f;
     colour.z = 1.0f;
 }
-EI_REWRITTEN_SPECIAL(0x0046D960, LightSpec::LightSpec);
 
 mfc::CString* LightSpec::TypeName(mfc::CString* out) {
     std::construct_at(out, "Light");
     return out;
 }
-EI_REWRITTEN(0x0046D9D0, LightSpec::TypeName);
 
 void LightSpec::Save() {
     BeginWrite(0xAA01);
@@ -179,7 +159,6 @@ void LightSpec::Save() {
     WriteString(0xAA08, comment);
     EndWrite();
 }
-EI_REWRITTEN(0x0046DB20, LightSpec::Save);
 
 void LightSpec::OnChunk() {
     Chunk& c = *this;
@@ -194,7 +173,6 @@ void LightSpec::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046DBF0, LightSpec::OnChunk);
 
 void LightSpec::Apply() {
     if (!object) {
@@ -209,8 +187,6 @@ void LightSpec::Apply() {
     std::memcpy(&Transform()->localPosition_, &position, 12);
     light->MarkChanged();
 }
-EI_REWRITTEN(0x0046DD70, LightSpec::Apply);
-
 
 SoundSpec::SoundSpec() {
     kind = 3;
@@ -223,17 +199,13 @@ SoundSpec::SoundSpec() {
     unused_80 = 0;
     ambient = 0;
 }
-EI_REWRITTEN_SPECIAL(0x0046DE70, SoundSpec::SoundSpec);
 
 SoundSpec::~SoundSpec() = default;
-EI_REWRITTEN_SPECIAL(0x0046DF70, SoundSpec::~SoundSpec);
-EI_REWRITTEN_SPECIAL(0x0046DF50, SoundSpec::~SoundSpec);
 
 mfc::CString* SoundSpec::TypeName(mfc::CString* out) {
     std::construct_at(out, "Sound");
     return out;
 }
-EI_REWRITTEN(0x0046DF20, SoundSpec::TypeName);
 
 void SoundSpec::Save() {
     BeginWrite(0xCC01);
@@ -250,7 +222,6 @@ void SoundSpec::Save() {
     WriteByte(0xCC0E, field0E);
     EndWrite();
 }
-EI_REWRITTEN(0x0046E090, SoundSpec::Save);
 
 void SoundSpec::OnChunk() {
     Chunk& c = *this;
@@ -271,7 +242,6 @@ void SoundSpec::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046E190, SoundSpec::OnChunk);
 
 void SoundSpec::Apply() {
     if (!object) {
@@ -284,6 +254,5 @@ void SoundSpec::Apply() {
     if (!sounds.empty()) MakeEffect(this);
     else effect = nullptr;
 }
-EI_REWRITTEN(0x0046E380, SoundSpec::Apply);
 
 } // namespace mapspec

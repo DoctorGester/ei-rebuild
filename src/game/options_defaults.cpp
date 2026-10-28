@@ -3,8 +3,6 @@
 // master server ("a3master.nival.com"). See docs/notes/objects.md ("Rewritten").
 #include "options.h"
 
-#include "ei/hook.h"
-
 namespace options {
 
 void __fastcall OptionsResetDefaults(GameOptions* self) {
@@ -122,10 +120,5 @@ void __fastcall OptionsResetDefaults(GameOptions* self) {
     self->fogDayStartDistance_ = 90.0f;
     self->masterServerName_ = "a3master.nival.com";
 }
-EI_REWRITTEN(0x00458DA0, OptionsResetDefaults);
-
-// The options object's destructor (at exit, registered by the static initialiser):
-// its eighteen CStrings, the last first (the members' destruction order).
-EI_REWRITTEN_SPECIAL(0x00458730, GameOptions::~GameOptions);
 
 } // namespace options

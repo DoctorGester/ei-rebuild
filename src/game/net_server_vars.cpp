@@ -5,7 +5,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -110,12 +109,5 @@ double ServerSession::GetVariable(const std::string* name) {
     if (node != variables_.End()) return variables_.At(node)->value_;
     return 0.0f /*0073B858*/;
 }
-
-EI_REWRITTEN(0x00419570, ServerSession::FindVariable);
-EI_REWRITTEN(0x004195D0, ServerSession::FindOrAddVariable);
-EI_REWRITTEN(0x00419730, ServerSession::SetVariable);
-EI_REWRITTEN(0x004197D0, ServerSession::RaiseVariable);
-EI_REWRITTEN(0x004198D0, ServerSession::RemoveVariable);
-EI_REWRITTEN(0x00419940, ServerSession::GetVariable);
 
 } // namespace net

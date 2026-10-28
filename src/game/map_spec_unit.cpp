@@ -10,7 +10,6 @@
 #include "record_arrays.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 
@@ -112,7 +111,6 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->alarm = 0;
     return self;
 }
-EI_REWRITTEN(0x0045D5B0, BehaviourConstruct);
 
 // The destructor body (the patrol array's destructor inlined: each patrol's waypoint
 // block freed, then the patrols' block).
@@ -123,7 +121,6 @@ void __fastcall BehaviourDestruct(Behaviour* self) {
     for (int i = 0, n = self->patrols.size; i < n; ++i) DestroyPatrol(patrols[i]);
     gamecrt::operator_delete(self->patrols.data);
 }
-EI_REWRITTEN(0x0046C290, BehaviourDestruct);
 
 void Patrols::CopyFrom(const Patrols& from) {
     int n = from.size;
@@ -175,7 +172,6 @@ void Patrols::CopyFrom(const Patrols& from) {
         if (copy->waypoints.data) gamecrt::operator_delete(copy->waypoints.data);
     }
 }
-EI_REWRITTEN(0x0046E680, Patrols::CopyFrom);
 
 // ---- The chunk classes ---------------------------------------------------------------------------
 
@@ -191,7 +187,6 @@ void WaypointChunk::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046C610, WaypointChunk::OnChunk);
 
 // A patrol's start, or a waypoint appended and read (OnChunk).
 void PatrolChunk::OnChunk() {
@@ -209,7 +204,6 @@ void PatrolChunk::OnChunk() {
     child.target = &again->waypoints.data[patrol->waypoints.size - 1];
     child.ForEachChild();
 }
-EI_REWRITTEN(0x0046C7F0, PatrolChunk::OnChunk);
 
 // A behaviour record's values, or a patrol appended and read (OnChunk). The three alarm flags only lower the
 // level (0, 1, 2) when set.
@@ -256,7 +250,6 @@ void BehaviourChunk::OnChunk() {
     default: break;
     }
 }
-EI_REWRITTEN(0x0046CBC0, BehaviourChunk::OnChunk);
 
 // Writes the behaviour record (chunk BBBC0000), each patrol a BBBD0000 chunk with its
 // waypoints as BBBE0000 chunks.
@@ -296,8 +289,6 @@ void BehaviourChunk::Write() {
     }
     c.EndWrite();
 }
-EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
-
 
 UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
@@ -308,15 +299,12 @@ UnitSpec::UnitSpec() {
     behaviour[0].enabled = 1;
     std::memset(&record.stats, 0, sizeof(record.stats));
 }
-EI_REWRITTEN_SPECIAL(0x0046C010, UnitSpec::UnitSpec);
 
 // The prototype's name goes with the members, after the behaviour records (the original frees it
 // before them).
 UnitSpec::~UnitSpec() {
     VectorDestruct(behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
 }
-EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);
-EI_REWRITTEN_SPECIAL(0x0046C120, UnitSpec::~UnitSpec);
 
 CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
@@ -338,7 +326,6 @@ void UnitSpec::Apply() {
     unit->ServerController()->ResyncWithUnit();
     unit->MarkChanged(1);
 }
-EI_REWRITTEN(0x0046C4D0, UnitSpec::Apply);
 
 // The unit's fields, the common ones, then the five behaviour records (each given the unit's position first).
 void UnitSpec::Save() {
@@ -356,7 +343,6 @@ void UnitSpec::Save() {
     }
     EndWrite();
 }
-EI_REWRITTEN(0x0046CF10, UnitSpec::Save);
 
 // A behaviour record chunk fills the next record (not bounded, as in the original); an alarm level
 // left unset (4) becomes 0.
@@ -386,7 +372,6 @@ void UnitSpec::OnChunk() {
     default: ObjectSpec::OnChunk(); break;
     }
 }
-EI_REWRITTEN(0x0046D080, UnitSpec::OnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
 
@@ -432,7 +417,6 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, CStream* stream) {
     }
     for (int i = 0; i < a->size; ++i) StreamRead(stream, &a->data[i], sizeof(Waypoint));
 }
-EI_REWRITTEN(0x0045DE30, WaypointsRead);
 
 // The count, then the raw waypoints.
 void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
@@ -440,7 +424,6 @@ void __fastcall WaypointsWrite(const Array<Waypoint>* a, CStream* stream) {
     StreamWrite(stream, &n, 4);
     for (int i = 0; i < a->size; ++i) StreamWrite(stream, &a->data[i], sizeof(Waypoint));
 }
-EI_REWRITTEN(0x0045DFB0, WaypointsWrite);
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). field0A is not stored.
@@ -474,7 +457,6 @@ void Behaviour::Read(CStream* stream) {
     else if (oldFlags & 4) alarm = 2;
     else if (oldFlags & 0x10) alarm = 3;
 }
-EI_REWRITTEN(0x0045D610, Behaviour::Read);
 
 // The record to a stream (the same fields).
 void Behaviour::Write(CStream* stream) const {
@@ -498,6 +480,5 @@ void Behaviour::Write(CStream* stream) const {
     StreamWrite(stream, &value, 4);
     StreamWrite(stream, &alarm, 4);
 }
-EI_REWRITTEN(0x0045D760, Behaviour::Write);
 
 } // namespace mapspec

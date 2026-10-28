@@ -7,7 +7,6 @@
 
 #include "render/render.h"   // MeshChanged
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -48,9 +47,6 @@ CSkyObject::~CSkyObject() { distances_.FreeData(); }
 
 const char* CSkyObject::GetClassName() { return kClassName; }
 int CSkyObject::GetClassId() { return kClassId; }
-EI_REWRITTEN_SPECIAL(0x004D9110, CSkyObject::CSkyObject);
-EI_REWRITTEN_SPECIAL(0x004D92B0, CSkyObject::~CSkyObject);
-EI_REWRITTEN_SPECIAL(0x004D9290, CSkyObject::~CSkyObject);   // deleting
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);
@@ -112,7 +108,6 @@ CSky* CSky::Construct() {
     texture.Load(kSkyTextureKind, kSkyTextureName);
     return this;
 }
-EI_REWRITTEN(0x004D9680, CSky::Construct);
 
 void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     if (!object) return;
@@ -146,33 +141,9 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
         if (count != 0) --count;
     }
 }
-EI_REWRITTEN(0x004D96E0, CSky::Draw);
 
 void CSky::Destruct() {
     if (texture) texture->Release();
     if (material) material->Release();
     if (object) object->Release();
 }
-EI_REWRITTEN(0x005636A0, CSky::Destruct);
-
-EI_REWRITTEN(0x004D9270, CSkyObject::GetClassName);
-EI_REWRITTEN(0x004D9280, CSkyObject::GetClassId);
-EI_REWRITTEN(0x004D9360, CSkyObject::Light);
-EI_REWRITTEN(0x004D9DE0, CSky::Light);
-
-// The engine's aligned array constructors (identical copies), on the shared template.
-EI_REWRITTEN(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
-// More copies, of the scene loader's point block, the unit skins' bytes,
-// the figure factory's packets and the terrain's arrays (the texture classes,
-// frames and visible columns; the wave phases; the page materials; the
-// water materials; the vertex tiles).
-EI_REWRITTEN(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x0056FCC0, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x0056FD00, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x0056FD30, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00570DE0, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00570E10, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00570E40, lib::AlignedArray<std::uint32_t>::Construct);
-EI_REWRITTEN(0x00570E70, lib::AlignedArray<std::uint32_t>::Construct);

@@ -1,7 +1,6 @@
 #include "stlp.h"
 
 #include "crt.h"
-#include "ei/hook.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -44,6 +43,5 @@ const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, con
     }
     return first;
 }
-EI_REWRITTEN(0x00408A50, LowerBoundDwords);
 
 } // namespace stlp

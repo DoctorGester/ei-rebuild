@@ -4,7 +4,6 @@
 
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -58,7 +57,3 @@ void FogGrid::Write(CMemoryStream* stream) {
     stream->Write(&value, 4);
     stream->Write(cells.data, static_cast<std::uint32_t>(h * w));
 }
-
-EI_REWRITTEN(0x005C8B60, FogGrid::Clear);
-EI_REWRITTEN(0x005C8BF0, FogGrid::Read);
-EI_REWRITTEN(0x005C8CC0, FogGrid::Write);

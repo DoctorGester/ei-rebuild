@@ -13,7 +13,6 @@
 #include "spell.h"
 #include "terrain.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc.h"
@@ -229,8 +228,6 @@ int CWorldClient::UpdateLighting() {
     return 1;
 }
 
-EI_REWRITTEN(0x00566360, CWorldClient::UpdateLighting);
-
 void CWorldClient::UpdateExitMarkers() {
     if (exits_.size != countedA0_.GetSize()) return;
     NamedFloatTable* variables = &session_->Party()->variables_;
@@ -244,4 +241,3 @@ void CWorldClient::UpdateExitMarkers() {
         marker->extent = {visited == 1.0f ? 1.0f : 0.0f, 0.0f, 0.0f};
     }
 }
-EI_REWRITTEN(0x00567680, CWorldClient::UpdateExitMarkers);

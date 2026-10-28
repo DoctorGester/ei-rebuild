@@ -7,7 +7,6 @@
 #include "net_link.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "game_singletons.h"
 
 #include <memory>
@@ -28,7 +27,6 @@ mfc::CString* __stdcall MapsFolder(mfc::CString* out) {
     mfc::CString folder(ModMaps() ? modfolders::MapsRoot(TheDataFolder()) : TheDataFolder());
     return std::construct_at(out, folder + MapsFolderName());
 }
-EI_REWRITTEN(0x0055E990, MapsFolder);
 
 mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
     std::string path;
@@ -42,7 +40,6 @@ mfc::CString* __stdcall MapPath(mfc::CString* out, const char* name) {
     }
     return std::construct_at(out, path);
 }
-EI_REWRITTEN(0x00595BA0, MapPath);
 
 bool __stdcall MapFileExists(const char* name) {
     mfc::CFileFind find;
@@ -52,7 +49,6 @@ bool __stdcall MapFileExists(const char* name) {
     std::string path = (folder + name).GetString();
     return find.FindFile(path, 0) != 0;
 }
-EI_REWRITTEN(0x005812F0, MapFileExists);
 
 void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     netlink::FileStream file;
@@ -67,4 +63,3 @@ void __stdcall WriteMapFile(const char* name, GameBuffer* buffer) {
     file.Write(buffer->begin, static_cast<std::uint32_t>(buffer->base + (buffer->high - buffer->begin)));
     file.Close();
 }
-EI_REWRITTEN(0x005813A0, WriteMapFile);

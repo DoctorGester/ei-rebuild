@@ -16,7 +16,6 @@
 #include "unit_create.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -81,12 +80,10 @@ void CInterface3D::ResetSavedState() {
     hudTopPage_ = 0;
     fastGame_ = 0;
 }
-EI_REWRITTEN(0x005F51F0, CInterface3D::ResetSavedState);
 
 // --- A region's SetRect from a RECT ---------------------------------------------------
 
 void CUiRegion::SetRectFrom(RECT rect) { SetRect(rect.left, rect.top, rect.right, rect.bottom); }
-EI_REWRITTEN(0x0062AC90, CUiRegion::SetRectFrom);
 
 // --- The version line --------------------------------------------------------------
 
@@ -101,7 +98,6 @@ void CMainMenu::AddVersionLine() {
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
-EI_REWRITTEN(0x006335E0, CMainMenu::AddVersionLine);
 
 // --- Create ----------------------------------------------------------------
 
@@ -133,7 +129,6 @@ void CMainMenu::CreateScreen() {
     hour_ = 0.0f;
     TheMusicSystem()->PlayMainMenu();
 }
-EI_REWRITTEN(0x006326B0, CMainMenu::CreateScreen);
 
 // --- Update (every frame) ---------------------------------------------------
 
@@ -161,7 +156,6 @@ void CMainMenu::Update() {
     }
     hour_ = static_cast<float>(GameServerTimeOfDay());
 }
-EI_REWRITTEN(0x00632B10, CMainMenu::Update);
 
 // --- Close -----------------------------------------------------------------
 
@@ -170,7 +164,6 @@ void CMainMenu::Close() {
     GameStopSounds(1);
     GameStopAmbience();
 }
-EI_REWRITTEN(0x00632910, CMainMenu::Close);
 
 // --- A message box's answer -----------------------------------------------
 
@@ -195,7 +188,6 @@ void CMainMenu::OnMessageResult(int result) {
         AddVersionLine();
     }
 }
-EI_REWRITTEN(0x00632940, CMainMenu::OnMessageResult);
 
 // --- The mouse move and the keys -------------------------------------------
 
@@ -216,11 +208,9 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     }
     CUiContainer::MouseMove(buttons, x, y);
 }
-EI_REWRITTEN(0x00633400, CMainMenu::OnMouseMove);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (key != VK_ESCAPE) return;
     interface_->PushWindow(new CMessageBox(interface_, kQuitTitle, kQuitText, 0x10000, 3, 1), 1, 1);
 }
-EI_REWRITTEN(0x00633540, CMainMenu::OnKeyDown);

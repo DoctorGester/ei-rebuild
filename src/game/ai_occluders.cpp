@@ -6,7 +6,6 @@
 #include "ai_map.h"
 #include "sector_map.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -91,6 +90,3 @@ bool CAIMap::ClearOccluderRecord(FootprintCell* cell) {
     sector->FreeOccluder(index);
     return true;
 }
-
-EI_REWRITTEN(0x005B61B0, CAIMap::AddOccluderRecord);
-EI_REWRITTEN(0x005B6380, CAIMap::ClearOccluderRecord);

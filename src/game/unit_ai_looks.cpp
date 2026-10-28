@@ -4,7 +4,6 @@
 
 #include "core_maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -45,21 +44,16 @@ AILookArray* __fastcall LooksInit(AILookArray* looks) {
     looks->size = 0;
     return looks;
 }
-EI_REWRITTEN(0x005D8EE0, AILookArray::SetSize);
-EI_REWRITTEN(0x005D8B60, AILookArray::Copy);
-EI_REWRITTEN(0x005573F0, LooksInit);
 
 AILook* AILooks::CopyAt(AILook* out, int index) const {
     *out = data[index];
     return out;
 }
-EI_REWRITTEN(0x005D9DE0, AILooks::CopyAt);
 
 void AIMoveOrder::Clear() {
     point = Vector3{0.0f, 0.0f, 0.0f};
     looks.RemoveAll();
 }
-EI_REWRITTEN(0x00545B20, AIMoveOrder::Clear);
 
 void PatrolMode::AppendPoint(const Vector3* position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
@@ -75,7 +69,6 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     // An empty temporary look array is copied into the new point.
     added.looks.SetSize(0, -1);
 }
-EI_REWRITTEN(0x005D12B0, PatrolMode::AppendPoint);
 
 // --- The patrol point array (CArray<PatrolPoint>) ---------------------------------------------------
 
@@ -97,6 +90,3 @@ PatrolPoint& PatrolPoint::operator=(const PatrolPoint& other) {
     looks.Copy(other.looks);
     return *this;
 }
-
-EI_REWRITTEN(0x005D93B0, PatrolPointArray::Add);
-EI_REWRITTEN(0x005D9F30, PatrolPointArray::SetAtGrow);

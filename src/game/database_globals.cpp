@@ -10,8 +10,6 @@
 #include "script.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 static_assert(sizeof(itemdb::SpellDatabase) == 0x64 && sizeof(itemdb::ItemDatabase) == 0xC0);
@@ -62,14 +60,3 @@ void __cdecl ConstructAckDatabase() {
     g_ackDatabase->Construct();
     RegisterExit(DestroyAckDatabase);
 }
-
-EI_REWRITTEN(0x00684360, ConstructSpellDatabase);
-EI_REWRITTEN(0x00684380, DestroySpellDatabase);
-EI_REWRITTEN(0x006A6540, ConstructItemDatabase);
-EI_REWRITTEN(0x006A6560, DestroyItemDatabase);
-EI_REWRITTEN(0x006ADF10, ConstructQuestDatabase);
-EI_REWRITTEN(0x006ADF30, DestroyQuestDatabase);
-EI_REWRITTEN(0x006D00B0, ConstructPrintsDatabase);
-EI_REWRITTEN(0x006D00D0, DestroyPrintsDatabase);
-EI_REWRITTEN(0x006D7080, ConstructAckDatabase);
-EI_REWRITTEN(0x006D70A0, DestroyAckDatabase);

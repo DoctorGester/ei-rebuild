@@ -21,7 +21,6 @@
 #include "ui_screens.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -160,7 +159,6 @@ void CSaveLoadWindow::CreateScreen() {
     ShowPicture();
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REWRITTEN(0x00653DD0, CSaveLoadWindow::CreateScreen);
 
 // --- Options window ------------------------------------------------------------------
 
@@ -227,7 +225,6 @@ void COptionsWindow::CreateScreen() {
     ShowGroup(0);
     if (!sliding_) interface_->OpenHelp(0);
 }
-EI_REWRITTEN(0x006503C0, COptionsWindow::CreateScreen);
 
 // --- Esc menu ------------------------------------------------------------------------
 
@@ -253,7 +250,6 @@ void CEscMenu::CreateScreen() {
     models_.data[0]->Play(1);
     interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
-EI_REWRITTEN(0x0062AB20, CEscMenu::CreateScreen);
 
 // --- Esc menu clicks -------------------------------------------------------------------
 
@@ -296,7 +292,6 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CUiContainer::LeftDown(buttons, x, y);
 }
 
-EI_REWRITTEN(0x0062AE90, CEscMenu::OnLButtonDown);
 // --- Main menu clicks ------------------------------------------------------------
 
 namespace {
@@ -357,8 +352,6 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     }
     CUiContainer::LeftDown(buttons, x, y);
 }
-
-EI_REWRITTEN(0x00632D70, CMainMenu::OnLButtonDown);
 
 // --- Message box -----------------------------------------------------------------------
 
@@ -426,7 +419,6 @@ void CMessageBox::CreateScreen() {
         AddRect(this, 363, bottom + 0x1A, 437, bottom + 0x4A)->SetTip(0xC3B5, 1, 0);
     }
 }
-EI_REWRITTEN(0x00634790, CMessageBox::CreateScreen);
 
 // --- Difficulty question ---------------------------------------------------------------
 
@@ -492,7 +484,6 @@ void CDifficultyBox::CreateScreen() {
     AddRect(this, boxLeft, row, boxRight, row + 0x15);
     AddRect(this, boxLeft, row + 0x18, boxRight, row + 0x2D);
 }
-EI_REWRITTEN(0x006337B0, CDifficultyBox::CreateScreen);
 
 // --- Titles ----------------------------------------------------------------------------
 
@@ -580,4 +571,3 @@ void CCreditsScreen::CreateScreen() {
                                              0);
     finished_ = false;
 }
-EI_REWRITTEN(0x0062B7D0, CCreditsScreen::CreateScreen);

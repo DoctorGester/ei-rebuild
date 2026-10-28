@@ -6,7 +6,6 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
@@ -41,7 +40,6 @@ CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* tex
         text_ = text;
     }
 }
-EI_REWRITTEN_SPECIAL(0x00634650, CMessageBox::CMessageBox);
 
 // --- The objectives window ----------------------------------------------------------------------------
 
@@ -53,7 +51,6 @@ CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
     exits_.maxSize = 0;
     exits_.size = 0;
 }
-EI_REWRITTEN_SPECIAL(0x0063B5D0, CObjectivesWindow::CObjectivesWindow);
 
 // --- The portraits panel ------------------------------------------------------------------------------
 
@@ -62,7 +59,6 @@ CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
     count_ = 0;
     AddSprite(0)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);
 }
-EI_REWRITTEN_SPECIAL(0x0063FE70, CHudPortraits::CHudPortraits);
 
 // --- Its destructor -----------------------------------------------------------------------------------
 
@@ -70,6 +66,3 @@ CHudPortraits::~CHudPortraits() {
     for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) slot->~HudPortraitSlot();
     slots_.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x0063FF70, CHudPortraits::~CHudPortraits);
-EI_REWRITTEN_SPECIAL(0x0063FF50, CHudPortraits::~CHudPortraits);
-EI_REWRITTEN_SPECIAL(0x0064BD30, CHudPortraits::~CHudPortraits);

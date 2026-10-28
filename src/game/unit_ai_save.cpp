@@ -6,8 +6,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/hook.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -45,7 +43,6 @@ void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
         if (stream->version_ >= kStopFlagVersion) stream->Read(&look.stopFirst, 1);
     }
 }
-EI_REWRITTEN(0x005D9010, LoadLooks);
 
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
     WriteCopy(stream, looks->size);
@@ -57,7 +54,6 @@ void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
         WriteCopy(stream, look.stopFirst);
     }
 }
-EI_REWRITTEN(0x005D91B0, SaveLooks);
 
 void AIMemory::Load(CStream* stream) {
     noticedKind = -1;
@@ -87,7 +83,6 @@ void AIMemory::Load(CStream* stream) {
     }
     stream->Read(&noticedKind, 4);
 }
-EI_REWRITTEN(0x005CC1E0, AIMemory::Load);
 
 void AIMemory::Save(CStream* stream) {
     SaveObjectList(nearby, stream);
@@ -112,4 +107,3 @@ void AIMemory::Save(CStream* stream) {
     }
     WriteCopy(stream, noticedKind);
 }
-EI_REWRITTEN(0x005CC350, AIMemory::Save);

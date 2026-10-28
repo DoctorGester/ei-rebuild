@@ -7,7 +7,6 @@
 #include "unit_ai.h"     // AIRef, AICallRecord
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 namespace {
@@ -31,7 +30,6 @@ static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) 
 } // namespace
 
 int __fastcall WorldTick(CWorld* world) { return world->tick_; }
-EI_REWRITTEN(0x0054B220, WorldTick);
 
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     CEngineObject* old = item;
@@ -42,6 +40,5 @@ ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     worn = other->worn;
     return this;
 }
-EI_REWRITTEN(0x00558840, ArmourSpell::Assign);
 
 // The counted reference's and the call record's deleting destructors are in world_deleting_destructors.cpp.

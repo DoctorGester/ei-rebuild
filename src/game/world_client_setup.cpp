@@ -15,7 +15,6 @@
 #include "core_maths.h"
 #include "ini_file.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/str.h"
@@ -95,7 +94,6 @@ int CWorldClient::LoadLights(const char* file) {
     values.SetSize(0, -1);
     return 1;
 }
-EI_REWRITTEN(0x00563930, CWorldClient::LoadLights);
 
 void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     TextureManager()->SetDevice(device);
@@ -121,7 +119,6 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     if (old && --old->refCount_ == 0) delete old;
     Units()->CountSoundFiles(sounds_);
 }
-EI_REWRITTEN(0x00563710, CWorldClient::SetUpGraphics);
 
 // ---- The sky --------------------------------------------------------------------------
 
@@ -164,4 +161,3 @@ void CWorldClient::LoadSky() {
     CEngineObject* material = MaterialManager()->NewMaterial(kSkyMaterialType);
     AssignCounted(skyDome_->material, material);
 }
-EI_REWRITTEN(0x00562F70, CWorldClient::LoadSky);

@@ -7,8 +7,6 @@
 #include "base_manager.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 namespace {
 constexpr int kNoObject = -1;
 }
@@ -60,13 +58,6 @@ template void AIRefTo<CUnit>::Assign(CUnit*);
 template void AIRefTo<CUnit>::Load(CStream*, CWorld*);
 template void AIRefTo<CUnit>::Save(CStream*);
 
-EI_REWRITTEN(0x0052B030, AIRef::Reset);
-EI_REWRITTEN(0x0052B050, AIRef::Reset);
-EI_REWRITTEN(0x00558CE0, AIRef::Reset);
-EI_REWRITTEN(0x0052A8F0, AIRef::Assign);
-EI_REWRITTEN(0x0050E220, AIRef::Load);
-EI_REWRITTEN(0x0050E290, AIRef::Save);
-
 // Reads a count, then that many counted references added at the tail of the list, each loaded in
 // `context` (the trap's units, the brain's lists).
 void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream, CWorld* context) {
@@ -77,4 +68,3 @@ void __fastcall CountedListLoad(mfc::CTypedPtrList<CUnit>* list, CStream* stream
         AIRefTo<CUnit>::Of(&node->data)->Load(stream, context);
     }
 }
-EI_REWRITTEN(0x0052AF20, CountedListLoad);

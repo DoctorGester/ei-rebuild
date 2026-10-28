@@ -4,8 +4,6 @@
 // also from the tables' erase / reallocation code.
 #include "unit_db.h"
 
-
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
@@ -176,18 +174,6 @@ UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
 
 } // namespace unitdb
 
-EI_REWRITTEN(0x0053EE70, unitdb::DestroyModelRecord);
-EI_REWRITTEN(0x0053F010, unitdb::DestroyModelSlot);
-EI_REWRITTEN(0x0053A050, unitdb::DestroyUnitDatabase);
-EI_REWRITTEN(0x0051FB50, unitdb::DestroySkillDatabase);
-EI_REWRITTEN(0x0053EBC0, unitdb::DestroyPrototypeRecord);
-EI_REWRITTEN(0x0053ED30, unitdb::DestroyNpcRecord);
-EI_REWRITTEN(0x00539A10, unitdb::ConstructUnitDatabase);
-EI_REWRITTEN(0x0053EFF0, unitdb::DestroyLevelRecord);
-EI_REWRITTEN(0x00540840, UnitLevelRecord::DeleteScalar);
-EI_REWRITTEN(0x005407E0, UnitPrototypeRecord::DeleteScalar);
-EI_REWRITTEN(0x005214B0, unitdb::DestroyStringRange);
-
 // ---- The unit and skill databases --------------------------------------------------------------------------------
 
 // Built empty by static initialisers in the list's order and destroyed by the exit functions those register
@@ -214,8 +200,3 @@ void __cdecl ConstructSkillDatabaseGlobal() {
 }
 
 } // namespace unitdb
-
-EI_REWRITTEN(0x005399F0, unitdb::ConstructUnitDatabaseGlobal);
-EI_REWRITTEN(0x0053A040, unitdb::DestroyUnitDatabaseGlobal);
-EI_REWRITTEN(0x0051FAF0, unitdb::ConstructSkillDatabaseGlobal);
-EI_REWRITTEN(0x0051FB40, unitdb::DestroySkillDatabaseGlobal);

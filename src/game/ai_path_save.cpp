@@ -7,7 +7,6 @@
 #include "ai_motion.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -99,8 +98,3 @@ void PathOrder::SaveOrder(CStream* stream) {
         node = next;
     }
 }
-
-EI_REWRITTEN(0x005B2430, AIPath::LoadPath);
-EI_REWRITTEN(0x005B2570, AIPath::SavePath);
-EI_REWRITTEN(0x005C8230, PathOrder::LoadOrder);
-EI_REWRITTEN(0x005C8370, PathOrder::SaveOrder);

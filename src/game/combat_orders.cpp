@@ -10,7 +10,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 
 #include <bit>
@@ -122,7 +121,6 @@ void CUnitServer::FinishCast() {
     }
     action.source = kNoSource;
 }
-EI_REWRITTEN(0x0054EE10, CUnitServer::FinishCast);
 
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
@@ -132,7 +130,6 @@ void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     action2.modifier = 0;
     action2.param = static_cast<int>(time);
 }
-EI_REWRITTEN(0x005546B0, CUnitServer::OrderTurn);
 
 void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range) {
     const CWorld* world = WorldContext();
@@ -152,7 +149,6 @@ void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range
     }
     PlanMove(point, walk, run, range);
 }
-EI_REWRITTEN(0x00554740, CUnitServer::OrderMove);
 
 void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
@@ -192,7 +188,6 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
     }
     if (!PlanOrderRoute(&action2, planArg)) ResetOrder(&action2);
 }
-EI_REWRITTEN(0x00554B30, CUnitServer::OrderAttack);
 
 namespace {
 // The spell checks OrderCastAt and OrderCast share: the spell behind `source`; for a party unit's own spell
@@ -251,7 +246,6 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
-EI_REWRITTEN(0x00554D00, CUnitServer::OrderCastAt);
 
 void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     Vector3 aim;
@@ -282,7 +276,6 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
-EI_REWRITTEN(0x00554F50, CUnitServer::OrderCast);
 
 void CUnitServer::StopQueued() {
     if (action.kind == 11) return;
@@ -291,4 +284,3 @@ void CUnitServer::StopQueued() {
     ReleaseTarget(&action2);
     action2.modifier = 0;
 }
-EI_REWRITTEN(0x00555200, CUnitServer::StopQueued);

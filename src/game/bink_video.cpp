@@ -11,7 +11,6 @@
 #include "sound.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -95,7 +94,6 @@ unsigned CBinkVideo::Frame(char toPrimary) {
     const BinkHeader* header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
-EI_REWRITTEN(0x005DBD80, CBinkVideo::Frame);
 
 // --- The movie players outside the frame -----------------------------------
 
@@ -207,7 +205,6 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     TheCursor()->ShowImage(1);
     return escaped ? 0 : 1;
 }
-EI_REWRITTEN(0x005DB3F0, PlayMovie);
 
 // `progress` is a frame number. The loading screen's movie (the file named by a global, opened once) is decoded
 // up to that frame and stretched over the screen. Nothing when the off switch is set.
@@ -270,7 +267,6 @@ void __fastcall ShowLoadingMovie(int progress) {
     TheCursor()->SaveBackground(1);
     TheCursor()->ReleaseLock();
 }
-EI_REWRITTEN(0x005DA400, ShowLoadingMovie);
 
 // --- Opening a movie for the frame's player ----------------------------------------------
 
@@ -311,7 +307,6 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     }
     return 1;
 }
-EI_REWRITTEN(0x005DBA50, CBinkVideo::Open);
 
 // --- Closing --------------------------------------------------------------------------------
 
@@ -323,15 +318,12 @@ void CloseLoadingMovie() {
     if (holder) holder->Release();
     TheCursor()->ShowImage(1);
 }
-EI_REWRITTEN(0x005DA3C0, CloseLoadingMovie);
-EI_REWRITTEN(0x005DA380, ReleaseLoadingHolder);
 
 CBinkVideo* CBinkVideo::Construct() {
     holder = nullptr;
     bink = nullptr;
     return this;
 }
-EI_REWRITTEN(0x005DB340, CBinkVideo::Construct);
 
 void CBinkVideo::Close() {
     if (bink) {
@@ -344,7 +336,5 @@ void CBinkVideo::Close() {
     TheCursor()->SaveBackground(1);
     TheCursor()->ShowImage(1);
 }
-EI_REWRITTEN(0x005DBF70, CBinkVideo::Close);
 
 void CBinkVideo::Destruct() { Close(); }
-EI_REWRITTEN(0x005DB350, CBinkVideo::Destruct);

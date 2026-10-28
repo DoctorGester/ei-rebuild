@@ -8,7 +8,6 @@
 #include "model.h"     // CSceneRenderer
 #include "world.h"     // CWorld
 
-#include "ei/hook.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -44,4 +43,3 @@ int CRainSnow::Draw(CSceneRenderer* renderer) {
     HandOver(this, renderer);
     return result;
 }
-EI_REWRITTEN(0x004E5680, CRainSnow::Draw);

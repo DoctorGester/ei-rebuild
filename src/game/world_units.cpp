@@ -35,7 +35,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -575,7 +574,3 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return reinterpret_cast<int>(message);
     }
 }
-EI_REWRITTEN(0x005927C0, CWorldServer::CreateObject);
-
-EI_REWRITTEN(0x0058EF20, CWorldServer::CreateUnits);
-EI_REWRITTEN(0x0058ECE0, CWorldServer::UseQuickItem);

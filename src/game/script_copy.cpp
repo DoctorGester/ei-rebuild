@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "ei/x87.h"
@@ -54,7 +53,6 @@ ScriptVars* ScriptVars::ScriptVarsAssign(const ScriptVars* other) {
     AssignVars(this, other);
     return this;
 }
-EI_REWRITTEN(0x004CBAE0, ScriptVars::ScriptVarsAssign);
 
 ScriptRun* ScriptRun::ScriptRunAssign(const ScriptRun* other) {
     block = other->block;
@@ -65,7 +63,6 @@ ScriptRun* ScriptRun::ScriptRunAssign(const ScriptRun* other) {
     AssignVars(&vars, &other->vars);
     return this;
 }
-EI_REWRITTEN(0x004CB570, ScriptRun::ScriptRunAssign);
 
 SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     id = other->id;
@@ -79,14 +76,12 @@ SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
     calledScript = other->calledScript;
     return this;
 }
-EI_REWRITTEN(0x004C6BC0, SSCCmd::ScriptCmdAssign);
 
 ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
     commands.CopyFrom(other->commands);
     id = other->id;
     return this;
 }
-EI_REWRITTEN(0x004CB2D0, ScriptDecl::ScriptDeclAssign);
 
 // The FX source element: the first two words, the name assigned, the rest copied as words.
 ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other) {
@@ -96,7 +91,6 @@ ScriptFxSource* ScriptFxSource::ScriptFxSourceAssign(const ScriptFxSource* other
     std::memcpy(static_cast<void*>(&position), &other->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position));
     return this;
 }
-EI_REWRITTEN(0x004CB220, ScriptFxSource::ScriptFxSourceAssign);
 
 // ---- Copy constructors ---------------------------------------------------------------------------
 // Member by member: each array's
@@ -151,7 +145,6 @@ SSCCmd* ScriptCommands::CopyAt(SSCCmd* out, int index) const {
     CopyConstructCmd(out, &data[index]);
     return out;
 }
-EI_REWRITTEN(0x004CE750, ScriptCommands::CopyAt);
 
 // The nested call's command is deep-copied into a new one; when operator new fails, the copy's
 // command is null.
@@ -168,20 +161,16 @@ ScriptSubCall* ScriptSubCalls::CopyAt(ScriptSubCall* out, int index) const {
     out->cmd = cmd;
     return out;
 }
-EI_REWRITTEN(0x004CCAA0, ScriptSubCalls::CopyAt);
 
 // The by-value GetAt, constructed at `out`.
 std::string* ScriptStrings::CopyAt(std::string* out, int index) const {
     return std::construct_at(out, data[index]);
 }
-EI_REWRITTEN(0x004CC840, ScriptStrings::CopyAt);
-EI_REWRITTEN(0x004C2680, ScriptStrings::CopyAt);
 
 void ScriptStrings::CopyFrom(const ScriptStrings& source) {
     SetSize(source.size, -1);
     for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
 }
-EI_REWRITTEN(0x004C14A0, ScriptStrings::CopyFrom);
 
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned.
@@ -200,7 +189,6 @@ ScriptStrings* ScriptStrings::CopyConstruct(const ScriptStrings* other) {
     for (int i = 0; i < other->size; ++i) data[i] = other->data[i];
     return this;
 }
-EI_REWRITTEN(0x004CBA00, ScriptStrings::CopyConstruct);
 
 // Object values: each slot drops its (null) object and takes the GetAt copy's object with a
 // reference of its own; the copy is released.
@@ -220,7 +208,6 @@ template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRe
     CopyConstructStrings(&names, &other->names);
     return this;
 }
-EI_REWRITTEN(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct);
 
 // Group values: each group sized to the GetAt copy's and its members copied in place; the copy's
 // destructor inlined (each reference destroyed, the array freed).
@@ -248,7 +235,6 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
     CopyConstructStrings(&names, &other->names);
     return this;
 }
-EI_REWRITTEN(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 
 // ScriptVars' copy constructor: names, string values (through GetAt), objects through the
 // reference helpers, groups assigned from GetAt copies.
@@ -282,7 +268,6 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     groupNames.CopyConstruct(&other->groupNames);
     return this;
 }
-EI_REWRITTEN(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 
 // ScriptVars' default constructor: each array's base constructor
 // (all fields 0, base vtable) then its derived vtable, in member order; returns the set.
@@ -297,7 +282,6 @@ ScriptVars* ScriptVars::ScriptVarsConstruct() {
     InitArray(&groupNames, gamearrays::ScriptStringValuesClass::Vtable());
     return this;
 }
-EI_REWRITTEN(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 
 // Float values: the values through their SetSize and the FPU, then the names as
 // ScriptNamesCopyConstruct builds them.
@@ -307,7 +291,6 @@ template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(co
     names.CopyConstruct(&other->names);
     return this;
 }
-EI_REWRITTEN(0x004CBB80, ScriptNamedValues<float>::CopyConstruct);
 
 // String values: values and names each through GetAt copies.
 template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::CopyConstruct(const ScriptNamedValues<std::string>* other) {
@@ -315,7 +298,6 @@ template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::Copy
     CopyConstructStrings(&names, &other->names);
     return this;
 }
-EI_REWRITTEN(0x004CBCA0, ScriptNamedValues<std::string>::CopyConstruct);
 
 // ScriptDefinition::operator=: the pairs read straight from the source (no GetAt), the variables as
 // ScriptVars::operator=.
@@ -328,4 +310,3 @@ ScriptDefinition* ScriptDefinition::ScriptDefinitionAssign(const ScriptDefinitio
     AssignVars(&vars, &other->vars);
     return this;
 }
-EI_REWRITTEN(0x004CB460, ScriptDefinition::ScriptDefinitionAssign);

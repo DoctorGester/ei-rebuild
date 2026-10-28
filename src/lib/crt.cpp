@@ -2,7 +2,6 @@
 #include "crt_locale_data.h"
 #include "mfc_handle_map.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "gameapi.h"
 #include "game/game_data.h"
@@ -127,13 +126,11 @@ bool PastAscii(int c) { return c < 0 || c >= 0x80; }
 // names stay for the callers ei_vectors answers from the game CRT's records (tests/vectors/replay_crt.cpp) and
 // for the EI_UTF8 branches.
 int __cdecl Strncmp(const char* a, const char* b, std::size_t n) { return std::strncmp(a, b, n); }
-EI_REWRITTEN(0x006E9180, libcrt::Strncmp);
 
 char* __cdecl Strncpy(char* to, const char* from, std::size_t n) {
 #pragma warning(suppress : 4996)
     return std::strncpy(to, from, n);
 }
-EI_REWRITTEN(0x006E7E80, libcrt::Strncpy);
 
 int __cdecl Stricmp(const char* a, const char* b) {
     if constexpr (kUtf8) {
@@ -142,7 +139,6 @@ int __cdecl Stricmp(const char* a, const char* b) {
         return _stricmp(a, b);
     }
 }
-EI_REWRITTEN(0x006F2230, libcrt::Stricmp);
 
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
     if (n == 0) return 0;
@@ -152,7 +148,6 @@ int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
         return _strnicmp(a, b, n);
     }
 }
-EI_REWRITTEN(0x006FA1A0, libcrt::Strnicmp);
 
 int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
     if constexpr (kUtf8) {
@@ -161,10 +156,8 @@ int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
         return _memicmp(a, b, n);
     }
 }
-EI_REWRITTEN(0x006FD2F0, libcrt::Memicmp);
 
 int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) { return _mbscmp(a, b); }
-EI_REWRITTEN(0x006E848B, libcrt::Mbscmp);
 
 int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
     if constexpr (kUtf8) {
@@ -173,7 +166,6 @@ int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b) {
         return _mbsicmp(a, b);
     }
 }
-EI_REWRITTEN(0x006E8767, libcrt::Mbsicmp);
 
 unsigned char* __cdecl Mbsinc(const unsigned char* p) {
     if constexpr (kUtf8) {
@@ -182,7 +174,6 @@ unsigned char* __cdecl Mbsinc(const unsigned char* p) {
         return _mbsinc(p);
     }
 }
-EI_REWRITTEN(0x006E9947, libcrt::Mbsinc);
 
 int __cdecl Ismbblead(unsigned c) {
     if constexpr (kUtf8) {
@@ -192,7 +183,6 @@ int __cdecl Ismbblead(unsigned c) {
         return _ismbblead(c);
     }
 }
-EI_REWRITTEN(0x006E99F2, libcrt::Ismbblead);
 
 int __cdecl Isleadbyte(int c) {
     if constexpr (kUtf8) {
@@ -202,7 +192,6 @@ int __cdecl Isleadbyte(int c) {
         return isleadbyte(c);
     }
 }
-EI_REWRITTEN(0x006E9A6C, libcrt::Isleadbyte);
 
 int __cdecl Tolower(int c) {
     if constexpr (kUtf8) {
@@ -211,7 +200,6 @@ int __cdecl Tolower(int c) {
         return tolower(c);
     }
 }
-EI_REWRITTEN(0x006EBA53, libcrt::Tolower);
 
 int __cdecl Toupper(int c) {
     if constexpr (kUtf8) {
@@ -220,7 +208,6 @@ int __cdecl Toupper(int c) {
         return toupper(c);
     }
 }
-EI_REWRITTEN(0x006E91C0, libcrt::Toupper);
 
 int __cdecl Isalpha(int c) {
     if constexpr (kUtf8) {
@@ -229,7 +216,6 @@ int __cdecl Isalpha(int c) {
         return isalpha(c);
     }
 }
-EI_REWRITTEN(0x006E92FB, libcrt::Isalpha);
 
 int __cdecl Isdigit(int c) {
     if constexpr (kUtf8) {
@@ -238,7 +224,6 @@ int __cdecl Isdigit(int c) {
         return isdigit(c);
     }
 }
-EI_REWRITTEN(0x006E9379, libcrt::Isdigit);
 
 int __cdecl Isspace(int c) {
     if constexpr (kUtf8) {
@@ -247,7 +232,6 @@ int __cdecl Isspace(int c) {
         return isspace(c);
     }
 }
-EI_REWRITTEN(0x006E93CE, libcrt::Isspace);
 
 int __cdecl Isprint(int c) {
     if constexpr (kUtf8) {
@@ -256,7 +240,6 @@ int __cdecl Isprint(int c) {
         return isprint(c);
     }
 }
-EI_REWRITTEN(0x006E944C, libcrt::Isprint);
 
 namespace {
 
@@ -339,10 +322,8 @@ void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare com
         hi = hiStack[stacked];
     }
 }
-EI_REWRITTEN(0x006E88FC, libcrt::Qsort);
 
 int __cdecl Mbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) { return _mbsncmp(a, b, n); }
-EI_REWRITTEN(0x006ECD2B, libcrt::Mbsncmp);
 
 std::size_t __cdecl Mbclen(const unsigned char* c) {
     if constexpr (kUtf8) {
@@ -352,7 +333,6 @@ std::size_t __cdecl Mbclen(const unsigned char* c) {
         return _mbclen(c);
     }
 }
-EI_REWRITTEN(0x006ECC98, libcrt::Mbclen);
 
 unsigned char* __cdecl Mbslwr(unsigned char* text) {
     if constexpr (kUtf8) {
@@ -363,7 +343,6 @@ unsigned char* __cdecl Mbslwr(unsigned char* text) {
     }
     return text;
 }
-EI_REWRITTEN(0x006EC8A8, libcrt::Mbslwr);
 
 namespace {
 // The seed rand advances: one per thread (the game CRT's _tiddata::_holdrand).
@@ -378,11 +357,9 @@ int __cdecl Rand() {
     seed = seed * 214013u + 2531011u;
     return static_cast<int>((seed >> 16) & 0x7FFF);
 }
-EI_REWRITTEN(0x006E77F7, libcrt::Rand);
 
 void __cdecl Srand(unsigned seed) { RandSeed() = seed; }
 unsigned& RandState() { return RandSeed(); }
-EI_REWRITTEN(0x006E77EA, libcrt::Srand);
 
 // ---- Maths ----
 
@@ -449,7 +426,6 @@ unsigned __cdecl Controlfp(unsigned value, unsigned mask) {
     if ((wanted ^ current) & kKept) x87::SetControlWord(wanted);
     return word;
 }
-EI_REWRITTEN(0x006EBBB4, libcrt::Controlfp);
 
 // ---- The runtime the image owns ------------------------------------------------------------------
 
@@ -462,17 +438,14 @@ constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
 // malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
 void* __cdecl Malloc(std::size_t size) { return std::malloc(size); }
-EI_REWRITTEN(0x006EABD1, libcrt::Malloc);
 
 void __cdecl Free(void* p) { std::free(p); }
-EI_REWRITTEN(0x006EA8AD, libcrt::Free);
 
 gamecrt::NewHandler __cdecl SetNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = g_heapNewHandler;
     g_heapNewHandler = handler;
     return old;
 }
-EI_REWRITTEN(0x006E8D35, libcrt::SetNewHandler);
 
 void* __cdecl OperatorNew(std::size_t size) {
     for (;;) {
@@ -481,10 +454,8 @@ void* __cdecl OperatorNew(std::size_t size) {
         if (!handler || !handler(size)) return nullptr;
     }
 }
-EI_REWRITTEN(0x007005AF, libcrt::OperatorNew);
 
 void __cdecl OperatorDelete(void* p) { Free(p); }
-EI_REWRITTEN(0x007005D8, libcrt::OperatorDelete);
 
 // ---- The STLport node allocator (__node_alloc<true, 0>, no lock) ----
 // Blocks of up to 128 bytes come from 16 free lists by 8-byte size class; an empty list is refilled
@@ -551,7 +522,6 @@ char* __fastcall NodeChunkAlloc(std::size_t size, int* count) {
         g_chunkEnd = g_chunkStart + request;
     }
 }
-EI_REWRITTEN(0x00406B70, libcrt::NodeChunkAlloc);
 
 void* __fastcall NodeRefill(std::size_t bytes) {
     const std::size_t size = RoundUp(bytes);
@@ -571,7 +541,6 @@ void* __fastcall NodeRefill(std::size_t bytes) {
     }
     return chunk;
 }
-EI_REWRITTEN(0x004060E0, libcrt::NodeRefill);
 
 void* __fastcall NodeAllocate(std::size_t bytes) {
     if (bytes > kMaxPooled) return gamecrt::operator_new(bytes);
@@ -582,7 +551,6 @@ void* __fastcall NodeAllocate(std::size_t bytes) {
     }
     return NodeRefill(bytes);
 }
-EI_REWRITTEN(0x00405950, libcrt::NodeAllocate);
 
 void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
     if (bytes > kMaxPooled) {
@@ -593,22 +561,18 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
     static_cast<FreeBlock*>(p)->next = list;
     list = static_cast<FreeBlock*>(p);
 }
-EI_REWRITTEN(0x00404D70, libcrt::NodeDeallocate);
 
 // The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
 // (functions registered while it runs, too) before the host's own terminators.
 ExitFunction __cdecl OnExit(ExitFunction function) {
     return _crt_atexit(function) == 0 ? function : nullptr;
 }
-EI_REWRITTEN(0x006E71FD, libcrt::OnExit);
 
 int __cdecl AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
-EI_REWRITTEN(0x006E727B, libcrt::AtExit);
 
 // exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
 // in the image, where the streams are the host's.
 void __cdecl Exit(int code) { std::exit(code); }
-EI_REWRITTEN(0x006E8DA7, libcrt::Exit);
 
 } // namespace libcrt
 
@@ -651,27 +615,6 @@ long __stdcall DirectInputCreateEx(void* instance, unsigned long version, const 
     return gameapi::DirectInputCreateEx(instance, version, iid, out, outer);
 }
 
-EI_REWRITTEN(0x006E60E2, Htons);
-EI_REWRITTEN(0x006E60E8, GetHostByName);
-EI_REWRITTEN(0x006E60EE, InetAddr);
-EI_REWRITTEN(0x006E60F4, Ntohs);
-EI_REWRITTEN(0x006E60FA, GetHostByAddr);
-EI_REWRITTEN(0x006E6100, GetHostName);
-EI_REWRITTEN(0x006E6106, WsaStartup);
-EI_REWRITTEN(0x006E610C, WsaCleanup);
-EI_REWRITTEN(0x006E6112, CloseSocket);
-EI_REWRITTEN(0x006E6118, SetSockOpt);
-EI_REWRITTEN(0x006E611E, IoctlSocket);
-EI_REWRITTEN(0x006E6124, Bind);
-EI_REWRITTEN(0x006E612A, Socket);
-EI_REWRITTEN(0x006E6130, SendTo);
-EI_REWRITTEN(0x006E6136, RecvFrom);
-EI_REWRITTEN(0x006E613C, Connect);
-EI_REWRITTEN(0x006E6142, Recv);
-EI_REWRITTEN(0x006E6148, Send);
-EI_REWRITTEN(0x006E614E, Select);
-EI_REWRITTEN(0x006E61F0, DirectInputCreateEx);
-
 } // namespace libcrt::imports
 #endif
 
@@ -710,7 +653,6 @@ void __stdcall ConstructElements(void* array, std::size_t size, int count, Eleme
     }
     unwind.done = true;
 }
-EI_REWRITTEN(0x006E8693, libcrt::ConstructElements);
 
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
     char* p = static_cast<char*>(array) + size * count;
@@ -721,6 +663,5 @@ void __stdcall DestroyElements(void* array, std::size_t size, int count, Element
     }
     unwind.done = true;
 }
-EI_REWRITTEN(0x006E859F, libcrt::DestroyElements);
 
 } // namespace libcrt

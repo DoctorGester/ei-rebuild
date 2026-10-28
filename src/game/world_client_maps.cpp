@@ -41,7 +41,6 @@
 #include "unit_looks.h"
 #include "bink_video.h"
 #include "object_tables.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/containers.h"
@@ -157,8 +156,6 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
     scale = factor;
     return this;
 }
-EI_REWRITTEN(0x00571D50, RadiusFunctor::Mark);
-
 
 void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
     stlp::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
@@ -195,13 +192,11 @@ HitCollector* HitCollector::CollectBounds(ScreenEntryNode* first, ScreenEntryNod
                                           LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
-EI_REWRITTEN(0x00571800, HitCollector::CollectBounds);
 
 HitCollector* HitCollector::CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* found, LONG x,
                                          LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
-EI_REWRITTEN(0x005718B0, HitCollector::CollectParts);
 
 int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const {
     const Node* node = Find(*key);
@@ -209,8 +204,6 @@ int PendingIndex::Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node
     *value = node->value;
     return 1;
 }
-EI_REWRITTEN(0x0056FC60, PendingIndex::Lookup);
-
 
 namespace {
 
@@ -483,7 +476,6 @@ bool ReleaseIdentified::Test(CMapObject* object) {
     }
     return false;
 }
-EI_REWRITTEN(0x005726B0, ReleaseIdentified::Test);
 
 void CWorldClient::ClearMaps() {
     SectorGrid& second = secondGrid_;
@@ -993,7 +985,6 @@ void CWorldClient::Select(CMapObject* object) {
     if (node != selected.head) return;
     stlp::list<int>::Insert(selected.head, id);
 }
-EI_REWRITTEN(0x00566030, CWorldClient::Select);
 
 namespace {
 
@@ -1062,10 +1053,6 @@ SectorList* SectorList::VectorDelete(unsigned flags) {
     return this;
 }
 void __fastcall SectorListDestruct(stlp::list<CMapObject*>* list) { DestroySectorList(list); }
-EI_REWRITTEN(0x0056DEF0, SectorListDestruct);
-
-EI_REWRITTEN(0x00572B30, SectorList::VectorDelete);
-EI_REWRITTEN(0x00572C50, SectorList::VectorDelete);
 
 void SectorGrid::Allocate() {
     const int count = unknown08_ * unknown0C_;
@@ -1080,8 +1067,6 @@ void SectorGrid::Allocate() {
     rows_ = gamecrt::operator_new_array<SectorList*>(static_cast<std::size_t>(unknown0C_));
     for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
 }
-EI_REWRITTEN(0x00572820, SectorGrid::Allocate);
-EI_REWRITTEN(0x005728D0, SectorGrid::Allocate);
 
 void SectorGrid::Resize(int width, int height) {
     if (unknown08_ == width && unknown0C_ == height) return;
@@ -1091,8 +1076,6 @@ void SectorGrid::Resize(int width, int height) {
     unknown0C_ = height;
     Allocate();
 }
-EI_REWRITTEN(0x00572450, SectorGrid::Resize);
-EI_REWRITTEN(0x005724F0, SectorGrid::Resize);
 
 int CWorldClient::Create() {
     CWorld::Create();
@@ -1246,7 +1229,6 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00567A60, CWorldClient::LoadItemsAndSpells);
 
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
     for (;;) {
@@ -1270,7 +1252,6 @@ int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
         ++object->refCount_;
     }
 }
-EI_REWRITTEN(0x005679A0, LoadManagerObjects);
 
 int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     block->Seek(0);
@@ -1278,23 +1259,18 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     if (!LoadManagerObjects(SpellManager(), block)) return 0;
     return LoadManagerObjects(ItemFactory(), block) != 0;
 }
-EI_REWRITTEN(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
 int PlatformSet::Create() {
     list.RemoveAll();
     return 1;
 }
-EI_REWRITTEN(0x00561800, PlatformSet::Create);
 
 void PlatformSet::Destroy() { list.RemoveAll(); }
-EI_REWRITTEN(0x00561840, PlatformSet::Destroy);
 
 PlatformSet::~PlatformSet() {
     list.vtable = mfc::impl::PlatformListClass::Vtable();
     list.RemoveAll();
 }
-EI_REWRITTEN_SPECIAL(0x00561A60, PlatformSet::~PlatformSet);
-EI_REWRITTEN_SPECIAL(0x00561AE0, PlatformSet::~PlatformSet);
 
 // What LoadManagerObjects reads back: per object a 1, its id, type and a field, then its own Save; a 0
 // ends the list.
@@ -1332,10 +1308,6 @@ CLightningManager::~CLightningManager() {
     newBolts_.RemoveAll();
 }
 
-EI_REWRITTEN_SPECIAL(0x00562EC0, CLightningManager::~CLightningManager);
-
-EI_REWRITTEN_SPECIAL(0x00562EA0, CLightningManager::~CLightningManager);
-
 ClientArrayManager::ClientArrayManager() {
     texture = nullptr;
     mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&list, 10);
@@ -1347,10 +1319,6 @@ ClientArrayManager::~ClientArrayManager() {
     list.RemoveAll();
     if (CTexture* held = texture) held->Release();
 }
-
-EI_REWRITTEN_SPECIAL(0x00562DF0, ClientArrayManager::~ClientArrayManager);
-
-EI_REWRITTEN_SPECIAL(0x00562DD0, ClientArrayManager::~ClientArrayManager);
 
 namespace {
 
@@ -1495,38 +1463,3 @@ int CWorldClient::LoadZone(CStream* block) {
     CloseLoadingMovie();
     return 1;
 }
-EI_REWRITTEN(0x00567AB0, CWorldClient::LoadZone);
-
-EI_REWRITTEN(0x00561E50, CWorldClient::Create);
-EI_REWRITTEN(0x00560650, PlatformSet::AddFace);
-EI_REWRITTEN(0x00560820, PlatformSet::AddBox);
-EI_REWRITTEN(0x00563290, CWorldClient::Destroy);
-EI_REWRITTEN(0x00565090, CWorldClient::ResetZoneObjects);
-EI_REWRITTEN(0x00566100, CWorldClient::Deselect);
-EI_REWRITTEN(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
-EI_REWRITTEN(0x00563190, CWorldClient::ReleaseItemsAndSpells);
-EI_REWRITTEN(0x0056DAF0, CWorldClient::ObjectsInRange);
-EI_REWRITTEN(0x00566F70, CWorldClient::CreatePartyUnits);
-EI_REWRITTEN(0x005647E0, CWorldClient::AddObject);
-EI_REWRITTEN(0x005651A0, CWorldClient::RefreshPlatforms);
-EI_REWRITTEN(0x0056D7E0, CWorldClient::QueueSynchronised);
-EI_REWRITTEN(0x0056D7A0, CWorldClient::DropShadows);
-EI_REWRITTEN(0x00564BE0, CWorldClient::RemoveObject);
-EI_REWRITTEN(0x00564E70, CWorldClient::ClearMaps);
-EI_REWRITTEN(0x00565790, CWorldClient::PickAt);
-EI_REWRITTEN(0x005659D0, CWorldClient::PickAt2);
-EI_REWRITTEN(0x00565E40, CWorldClient::UnitAt);
-EI_REWRITTEN(0x00565D00, CWorldClient::UnitAt2);
-EI_REWRITTEN(0x005656A0, CWorldClient::UnitsInBox);
-EI_REWRITTEN(0x0056D740, CWorldClient::MarkFootprintsInSight);
-EI_REWRITTEN(0x00564190, CWorldClient::ApplyWind);
-EI_REWRITTEN(0x005662B0, CWorldClient::CentreOn);
-EI_REWRITTEN(0x00578A60, CWorldClient::ExitTarget);
-EI_REWRITTEN(0x005618E0, CWorldClient::GroundHeightAt);
-EI_REWRITTEN(0x00561930, CWorldClient::SurfaceHeightAt);
-EI_REWRITTEN(0x0056CE40, CWorldClient::ShowNumber);
-EI_REWRITTEN(0x0056DE80, CWorldClient::LoadUnitFaces);
-EI_REWRITTEN(0x00567400, CWorldClient::RemoveUnitsOf);
-EI_REWRITTEN(0x00566330, CWorldClient::SendFlag10);
-EI_REWRITTEN(0x00570860, SectorGrid::Move);
-EI_REWRITTEN(0x00570BB0, SectorGrid::Move2);

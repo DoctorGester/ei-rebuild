@@ -11,7 +11,6 @@
 #include "ui_screens.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -208,18 +207,9 @@ void CGlobalMap::Close() {
     backdrop_ = nullptr;
     interface_->StopSound(windSound_);
 }
-EI_REWRITTEN(0x0062EDD0, CGlobalMap::Close);
-EI_REWRITTEN(0x0062EE30, CGlobalMap::OnMessageResult);
-
-EI_REWRITTEN(0x0062FF10, CGlobalMap::OnDeactivate);
 
 // The briefing screen's SaveState, byte for byte.
 void CGlobalMap::SaveState() {
     int zero = 0;
     GameSaveStream()->Write(&zero, 4);
 }
-EI_REWRITTEN(0x0062D330, CGlobalMap::SaveState);
-EI_REWRITTEN(0x0062FF60, CGlobalMap::OnRightDown);
-EI_REWRITTEN(0x0062FFC0, CGlobalMap::OnRightUp);
-EI_REWRITTEN(0x00630010, CGlobalMap::OnMouseMove);
-EI_REWRITTEN(0x00630580, CGlobalMap::OnKeyDown);

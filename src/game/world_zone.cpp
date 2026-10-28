@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "map_object.h"
 #include "net_delta.h"
@@ -238,11 +237,3 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         if (libcrt::Stricmp(zone, "bz7g") == 0) app::g_loadingMovieName = "progres1.bik";
     }
 }
-
-EI_REWRITTEN(0x005915E0, CWorldServer::SetZoneExits);
-EI_REWRITTEN(0x005910A0, CWorldServer::AddUnitToServer);
-EI_REWRITTEN(0x00596030, CWorldServer::LoadMapObjects);
-EI_REWRITTEN(0x00595AB0, CWorldServer::LoadMobFile);
-EI_REWRITTEN(0x00596C60, CWorldServer::ClearMapObjects);
-EI_REWRITTEN(0x00596730, CWorldServer::SaveMapObjects);
-EI_REWRITTEN(0x00595080, SelectLoadingMovie);

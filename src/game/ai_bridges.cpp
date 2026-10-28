@@ -10,7 +10,6 @@
 // left, the ground becomes max(saved ground, highest deck). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
-#include "ei/hook.h"
 #include "lib/stlp.h"
 
 #include <cstdint>
@@ -39,7 +38,6 @@ void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* oc
     *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
     Erase(node);
 }
-EI_REWRITTEN(0x005B30B0, BridgeHeights::RestoreCell);
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
@@ -88,5 +86,3 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     }
     return true;
 }
-
-EI_REWRITTEN(0x005B6740, CAIMap::ApplyBridgeDecks);

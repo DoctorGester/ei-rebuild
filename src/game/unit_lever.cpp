@@ -9,7 +9,6 @@
 #include "sector_map.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -99,8 +98,6 @@ void Lever::SetState(int wanted, float duration) {
     around.RemoveAll();
 }
 
-EI_REWRITTEN(0x0052B7A0, Lever::SetState);
-
 void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     // out->RemoveAll().
     if (out->data) {
@@ -137,4 +134,3 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         out->SetAtGrow(out->size, at);
     }
 }
-EI_REWRITTEN(0x0052BBE0, Lever::CollectUseSpots);

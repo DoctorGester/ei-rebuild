@@ -12,7 +12,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "game_singletons.h"
 
@@ -56,7 +55,6 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     CUnit* unit = TheClientWorld()->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
-EI_REWRITTEN(0x00639D60, CBattleScreen::OnMouseMove);
 
 // --- the left button went down on the battle screen ----------------------------------------------
 
@@ -74,7 +72,6 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     pressY_ = y;
     boxSelecting_ = false;
 }
-EI_REWRITTEN(0x00638A40, CBattleScreen::OnLButtonDown);
 
 // --- a unit's name line --------------------------------------------------------------------------
 
@@ -103,4 +100,3 @@ void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
         *out = line.c_str();
     }
 }
-EI_REWRITTEN(0x0063B920, CBattleScreen::UnitName);

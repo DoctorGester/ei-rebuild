@@ -16,7 +16,6 @@
 #include "script.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "game_lists.h"
@@ -231,30 +230,7 @@ double CWorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
     return AIMap()->TopHeightAt(&point);
 }
-EI_REWRITTEN(0x0058A390, CWorldServer::RawSurfaceHeightAt);
 
 double CWorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }
-EI_REWRITTEN(0x0058A3D0, CWorldServer::GroundHeightAt);
 
 double CWorldServer::SurfaceHeightAt(float x, float y) { return RawSurfaceHeightAt(x, y); }
-EI_REWRITTEN(0x0058A3F0, CWorldServer::SurfaceHeightAt);
-
-EI_REWRITTEN(0x005935C0, CWorldServer::RemoveObject);
-EI_REWRITTEN(0x00593AA0, CWorldServer::FindObject);
-EI_REWRITTEN(0x00594180, CWorldServer::GetPlayer);
-EI_REWRITTEN(0x00594220, CWorldServer::GridHeight);
-EI_REWRITTEN(0x00591740, CWorldServer::CountLivingMercs);
-EI_REWRITTEN(0x005949D0, CWorldServer::IsObjectShared);
-EI_REWRITTEN(0x00594A30, CWorldServer::CollectSharedObjects);
-EI_REWRITTEN(0x0058B6D0, CWorldServer::MarkPlayersDirty);
-EI_REWRITTEN(0x0058CC70, CWorldServer::SetCave);
-EI_REWRITTEN(0x0058CC80, CWorldServer::SetClimate);
-EI_REWRITTEN(0x0058EE00, CWorldServer::SetWeather);
-EI_REWRITTEN(0x005942C0, CWorld::SetServerPaused);
-EI_REWRITTEN(0x00566350, CWorld::SetPaused);
-EI_REWRITTEN(0x0058E4C0, CWorldServer::GetZoneExit);
-EI_REWRITTEN(0x0058E520, CWorldServer::AddTimedObject);
-EI_REWRITTEN(0x0058E5D0, CWorldServer::RemoveTimedObject);
-EI_REWRITTEN(0x0058D5D0, CWorldServer::AddToUpdateMap);
-EI_REWRITTEN(0x005999E0, ObjectIdMap::Set);
-EI_REWRITTEN(0x00599BD0, ObjectIdMap::Set);

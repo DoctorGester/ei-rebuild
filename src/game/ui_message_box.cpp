@@ -6,7 +6,6 @@
 #include "world_glue.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "bink_video.h"
 
@@ -91,9 +90,6 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
     handled_ = true;
 }
 
-EI_REWRITTEN(0x00634D20, CMessageBox::OnLButtonDown);
-EI_REWRITTEN(0x00634E60, CMessageBox::OnKeyDown);
-
 // --- CDifficultyBox ------------------------------------------------------------------------------
 
 void CDifficultyBox::OnLButtonDown(int, int x, int y) {
@@ -137,6 +133,3 @@ void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
     }
     handled_ = true;
 }
-
-EI_REWRITTEN(0x00633DD0, CDifficultyBox::OnLButtonDown);
-EI_REWRITTEN(0x00633EC0, CDifficultyBox::OnKeyDown);

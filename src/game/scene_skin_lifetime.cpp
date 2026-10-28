@@ -4,7 +4,6 @@
 
 #include "figure.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <new>
@@ -43,7 +42,6 @@ SceneSkin::SceneSkin() {
     spareArray.capacity = 0;
     spareArray.size = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00508700, SceneSkin::SceneSkin);
 
 SceneSkin::~SceneSkin() {
     if (DropRoot(this)) bones.SetSize(0, -1);
@@ -52,8 +50,6 @@ SceneSkin::~SceneSkin() {
     if (spareArray.data) lib::FreeAligned32(spareArray.data);
     if (bones.data) lib::FreeAligned32(bones.data);
 }
-
-EI_REWRITTEN_SPECIAL(0x005087B0, SceneSkin::~SceneSkin);
 
 int SceneSkin::Create() {
     if (DropRoot(this)) {
@@ -71,14 +67,11 @@ int SceneSkin::Create() {
     spare4C = 0;
     return 1;
 }
-EI_REWRITTEN(0x00508870, SceneSkin::Create);
 
 void SceneSkin::Clear() {
     if (DropRoot(this)) bones.SetSize(0, -1);
     owner = 0;
     names.clear();
 }
-EI_REWRITTEN(0x005088E0, SceneSkin::Clear);
 
 void SceneSkin::SetOwner(std::uint32_t value) { owner = value; }
-EI_REWRITTEN(0x00508930, SceneSkin::SetOwner);

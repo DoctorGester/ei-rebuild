@@ -8,7 +8,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 
@@ -60,10 +59,8 @@ void Deliver(CSpellEffect* effect, DamageInfo* hit, CMapObject* unit) {
 
 
 int __fastcall IsSpellTarget(CUnit* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
-EI_REWRITTEN(0x00681B80, IsSpellTarget);
 
 void CSpellEffect::HitUnit(DamageInfo* hit, CMapObject* unit) { Deliver(this, hit, unit); }
-EI_REWRITTEN(0x006835B0, CSpellEffect::HitUnit);
 
 void CSpellEffect::HitUnitsInRadius() {
     UnitList list;
@@ -79,7 +76,6 @@ void CSpellEffect::HitUnitsInRadius() {
     }
     DestroyList(list);
 }
-EI_REWRITTEN(0x00683600, CSpellEffect::HitUnitsInRadius);
 
 void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     UnitList list;
@@ -115,4 +111,3 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
     }
     DestroyList(list);
 }
-EI_REWRITTEN(0x00683730, CSpellEffect::HitUnitsAlong);

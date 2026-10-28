@@ -5,7 +5,6 @@
 
 #include "core_maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -185,8 +184,3 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     std::memcpy(&m[13], &moved[1], sizeof(float));
     std::memcpy(&m[14], &moved[2], sizeof(float));
 }
-
-EI_REWRITTEN(0x0059F0F0, CFigureMesh::CopyFigure);
-EI_REWRITTEN(0x0059F510, CFigureMesh::UpdateWorld);
-EI_REWRITTEN(0x0059F710, CFigureMesh::SaveTransform);
-EI_REWRITTEN(0x0059F8F0, CPlainFigureMesh::LoadTransform);

@@ -9,7 +9,6 @@
 #include "unit_db.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -330,10 +329,6 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     CallShowHero(index);
 }
 
-EI_REWRITTEN(0x00617050, CMpHeroScreen::OnLButtonDown);
-
-EI_REWRITTEN(0x00618A10, CMpHeroScreen::OnKeyDown);
-
 // --- Rename ---------------------------------------------------------------------------
 
 namespace {
@@ -368,7 +363,6 @@ void CMpHeroScreen::Rename() {
 namespace {
 void __fastcall MpHeroRename(CMpHeroScreen* self) { self->Rename(); }
 } // namespace
-EI_REWRITTEN(0x00618060, MpHeroRename);
 
 // --- The voice's sound ----------------------------------------------------------------
 
@@ -419,7 +413,6 @@ void CMpHeroScreen::PlayVoice() {
 namespace {
 void __fastcall MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 } // namespace
-EI_REWRITTEN(0x00619150, MpHeroPlayVoice);
 
 // --- Continue -------------------------------------------------------------------------
 
@@ -443,7 +436,6 @@ void CMpHeroScreen::Continue() {
 namespace {
 void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
-EI_REWRITTEN(0x006183B0, MpHeroContinue);
 
 // --- The new hero's statistics and its creation --------------------------------------
 
@@ -471,7 +463,6 @@ void CMpHeroScreen::RefreshHero() {
 namespace {
 void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
 } // namespace
-EI_REWRITTEN(0x00618850, MpHeroRefresh);
 
 void CMpHeroScreen::CreateHero() {
     std::string name = nameEdit_->text_;
@@ -499,7 +490,6 @@ void CMpHeroScreen::CreateHero() {
 namespace {
 void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
-EI_REWRITTEN(0x006186F0, MpHeroCreate);
 // --- A hero deleted, the message box's answer ------------------------------------------
 
 MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
@@ -507,37 +497,31 @@ MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
     file = other->file;
     return this;
 }
-EI_REWRITTEN(0x0061A350, MpHeroRecord::Assign);
 
 void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_.Assign(hero); }
-EI_REWRITTEN(0x00662F80, SavedParties::Select);
 
 MpHeroRecord* MpHeroRecord::Construct() {
     new (Party()) CParty();
     std::construct_at(&file);
     return this;
 }
-EI_REWRITTEN(0x00619540, MpHeroRecord::Construct);
 
 void MpHeroRecord::Destruct() {
     std::destroy_at(&file);
     Party()->CParty::~CParty();
 }
-EI_REWRITTEN(0x00619560, MpHeroRecord::Destruct);
 
 MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
     Destruct();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-EI_REWRITTEN(0x00664AE0, MpHeroRecord::DeletingDestruct);
 
 MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
                                                  MpHeroRecord* dest) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
     return dest;
 }
-EI_REWRITTEN(0x00664410, MpHeroRecord::CopyRange);
 
 namespace {
 // The heroes' folder (a CString; the records follow it) and the records as a vector.
@@ -580,7 +564,6 @@ void CMpHeroScreen::RefreshHeroScroll() {
 namespace {
 void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
 } // namespace
-EI_REWRITTEN(0x00617E40, MpHeroDelete);
 
 void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
@@ -591,7 +574,6 @@ void CMpHeroScreen::OnMessageResult(int result) {
     }
     SetMode(this, nullptr, kModeList);
 }
-EI_REWRITTEN(0x00615940, CMpHeroScreen::OnMessageResult);
 
 // --- The new hero added to the list --------------------------------------------------
 
@@ -676,4 +658,3 @@ void CMpHeroScreen::AddNewHero() {
 namespace {
 void __fastcall MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
 } // namespace
-EI_REWRITTEN(0x00617A50, MpHeroAddNew);

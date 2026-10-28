@@ -3,7 +3,6 @@
 // its morph coefficients (FigureBone, map_object_figures.h); see docs/notes/map_objects.md.
 #include "map_object_figures.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 // Every step is rounded to float where the original stores (its Vector3 constructor arguments, the vector
@@ -50,7 +49,6 @@ void FigureBone::InterpolateCube(const float** stream) {
     point.z = Add(cpScaled.z, point.z);
     *stream += 0x60 / sizeof(float);
 }
-EI_REWRITTEN(0x0050B8C0, FigureBone::InterpolateCube);
 
 void FigureBone::InterpolatePrism(const float** stream) {
     Vector3& point = offset;
@@ -88,4 +86,3 @@ void FigureBone::InterpolatePrism(const float** stream) {
     point.z = Add(h.z, point.z);
     *stream += 0x48 / sizeof(float);
 }
-EI_REWRITTEN(0x0050BC00, FigureBone::InterpolatePrism);

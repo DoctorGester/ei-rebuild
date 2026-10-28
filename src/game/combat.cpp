@@ -20,7 +20,6 @@
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "game_data.h"
@@ -149,14 +148,12 @@ float CUnitServer::AttackRange() {
     if (weapon) return weapon->reach_;
     return stats.combat[UnitStats::kReach];
 }
-EI_REWRITTEN(0x0054B620, CUnitServer::AttackRange);
 
 BOOL CUnitServer::HasRangedWeapon() {
     CItemWeapon* weapon = ActiveWeapon(unit);
     if (!weapon) return 0;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow ? 1 : 0;
 }
-EI_REWRITTEN(0x0054B680, CUnitServer::HasRangedWeapon);
 
 BOOL CUnitServer::AttacksFromRange() {
     if (!ActiveWeapon(unit)) {
@@ -166,7 +163,6 @@ BOOL CUnitServer::AttacksFromRange() {
     if (!weapon) return 0;
     return weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow ? 1 : 0;
 }
-EI_REWRITTEN(0x0054B6C0, CUnitServer::AttacksFromRange);
 
 void CUnitServer::GetDamageByType(DamageWords* out) {
     CUnit* self = unit;
@@ -190,7 +186,6 @@ void CUnitServer::GetDamageByType(DamageWords* out) {
         out->words[1 + i] = static_cast<std::uint16_t>(x87::fistp(value));
     }
 }
-EI_REWRITTEN(0x0054BA30, CUnitServer::GetDamageByType);
 
 void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
@@ -202,7 +197,6 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     }
     out->words[0] = 0x7FFF;
 }
-EI_REWRITTEN(0x0054BB20, CUnitServer::GetSpellDamage);
 
 CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
@@ -211,7 +205,6 @@ CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     if (item->GetCategory() == 5 || item->GetCategory() == 8) return item;
     return nullptr;
 }
-EI_REWRITTEN(0x0054B7C0, CUnitServer::SpellCarrier);
 
 bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
@@ -220,7 +213,6 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return false;
     return item->GetCategory() == 8;
 }
-EI_REWRITTEN(0x0054B820, CUnitServer::IsScrollSource);
 
 CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
@@ -229,7 +221,6 @@ CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return nullptr;
     return item->spell_;
 }
-EI_REWRITTEN(0x0054B880, CUnitServer::SpellOfSource);
 
 bool CUnitServer::IsFighting() {
     if (action.kind == 4 || action.kind == 5) {
@@ -251,7 +242,6 @@ bool CUnitServer::IsFighting() {
     }
     return action.kind == 3;
 }
-EI_REWRITTEN(0x0054B580, CUnitServer::IsFighting);
 
 bool CUnitServer::CanCast(const AIOrder* order) {
     std::uint32_t source = order->source;
@@ -275,7 +265,6 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     }
     return true;
 }
-EI_REWRITTEN(0x0054BF80, CUnitServer::CanCast);
 
 BOOL CUnitServer::GetMovePoint(float* out) {
     if (action.kind == 1) {
@@ -288,7 +277,6 @@ BOOL CUnitServer::GetMovePoint(float* out) {
     }
     return 0;
 }
-EI_REWRITTEN(0x0054B520, CUnitServer::GetMovePoint);
 
 float CUnitServer::ActionDistance(const AIOrder* order) {
     if (order->flag18) return kPointTwo;
@@ -332,7 +320,6 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
     float own = Radius(unit);
     return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
 }
-EI_REWRITTEN(0x0054C070, CUnitServer::ActionDistance);
 
 bool CUnitServer::CanReachTarget(const AIOrder* order) {
     if (order->kind != 3 && order->kind != 6) return true;
@@ -349,7 +336,6 @@ bool CUnitServer::CanReachTarget(const AIOrder* order) {
     EI_NAN_AUDIT(height);
     return height < kOnePointFive;
 }
-EI_REWRITTEN(0x0054C800, CUnitServer::CanReachTarget);
 
 std::uint32_t CUnitServer::WeaponTypeMask() {
     CItemWeapon* weapon = ActiveWeapon(unit);
@@ -358,7 +344,6 @@ std::uint32_t CUnitServer::WeaponTypeMask() {
     if (natural < 7) return 1u << (natural & 31);
     return 0;
 }
-EI_REWRITTEN(0x00550050, CUnitServer::WeaponTypeMask);
 
 std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     switch (static_cast<std::uint32_t>(mode->mode)) {
@@ -371,7 +356,6 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     default: return 0;
     }
 }
-EI_REWRITTEN(0x005500A0, CUnitServer::MoveModeMask);
 
 int CUnitServer::Level() {
     float experience = stats.experience;
@@ -381,13 +365,11 @@ int CUnitServer::Level() {
     const float ratio = static_cast<float>(x87::flog(static_cast<double>(experience) / base) / x87::flog(step));
     return x87::fistp(ratio);
 }
-EI_REWRITTEN(0x00556760, CUnitServer::Level);
 
 void CUnitServer::EffectsChanged() {
     if (unit->HasEffect(0x20) && stats.naturalWeapon != kNoNaturalWeapon) unit->flags_ |= kFlagSpellBlocked;
     else unit->flags_ &= ~kFlagSpellBlocked;
 }
-EI_REWRITTEN(0x00553220, CUnitServer::EffectsChanged);
 
 void CUnitServer::GetAttackParams(AttackParams* out) {
     CUnit* self = unit;
@@ -435,7 +417,6 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     std::memcpy(&out->attackSpread, &stats.combat[UnitStats::kAttackSpread], sizeof(float));
     out->ScaleForDifficulty(keyed);
 }
-EI_REWRITTEN(0x00555A00, CUnitServer::GetAttackParams);
 
 float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     AttackParams theirs;
@@ -465,7 +446,6 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     if (!backstab) roll = roll + speedRatio;
     return MaxZero(static_cast<float>(roll));
 }
-EI_REWRITTEN(0x00555BD0, CUnitServer::AttackRoll);
 
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
@@ -487,7 +467,6 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     std::memcpy(&hit->attackRoll, &result, sizeof(result));
     return result > kZero ? 1 : 0;
 }
-EI_REWRITTEN(0x00553DF0, CUnitServer::ResolveHit);
 
 BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, char calledShot) {
     CUnit* self = unit;
@@ -532,7 +511,6 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->calledShot = static_cast<std::uint8_t>(calledShot);
     return 1;
 }
-EI_REWRITTEN(0x0054F630, CUnitServer::BuildAttackHit);
 
 BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     CWorldServer* world = ServerWorld();
@@ -622,7 +600,6 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     brain.SetSeen(attacker);
     return 0;
 }
-EI_REWRITTEN(0x00553F40, CUnitServer::TakeHit);
 
 namespace {
 // One size class of the size computation: by the load first, then by `size`.
@@ -653,7 +630,6 @@ void CUnitServer::UpdateSizeClasses() {
     combat.sizeClass20 = SizeClassOf(size * kSizeScale20, load);
     combat.sizeClass60 = SizeClassOf(size * kSizeSmall, load);
 }
-EI_REWRITTEN(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
@@ -697,4 +673,3 @@ void CUnitServer::UpdateMoveFactors() {
     else if (speed > kSpeedSlow) speedClass = 7;
     else speedClass = 15;
 }
-EI_REWRITTEN(0x005536B0, CUnitServer::UpdateMoveFactors);

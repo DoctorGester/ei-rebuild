@@ -10,7 +10,6 @@
 
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -42,7 +41,6 @@ bool ZoneExit::Contains(float x, float y) const {
     if (y1 > turnedY) return false;
     return turnedY <= y2;
 }
-EI_REWRITTEN(0x004E59F0, ZoneExit::Contains);
 
 ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     std::memcpy(this, from, offsetof(ZoneExit, target));   // ..+0x24 as dwords
@@ -53,7 +51,6 @@ ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
     deployAngle = from->deployAngle;
     return this;
 }
-EI_REWRITTEN(0x00583B50, ZoneExit::Assign);
 
 // ---- Stream form and the CString reader ------------------
 
@@ -70,7 +67,6 @@ void CStream::ReadInto(Text* out) {
 }
 template void CStream::ReadInto(mfc::CString*);
 template void CStream::ReadInto(std::string*);
-EI_REWRITTEN(0x004E5840, CStream::ReadInto<mfc::CString>);
 
 void ZoneExit::Read(CStream* stream) {
     stream->Read(&passTime, 4);
@@ -91,7 +87,6 @@ void ZoneExit::Read(CStream* stream) {
         stream->Read(&angle, 4);
     }
 }
-EI_REWRITTEN(0x004E5750, ZoneExit::Read);
 
 void ZoneExit::Write(CStream* stream) const {
     auto put = [stream](const void* field, std::uint32_t size) {
@@ -112,4 +107,3 @@ void ZoneExit::Write(CStream* stream) const {
     put(&deployAngle, 4);
     put(&angle, 4);
 }
-EI_REWRITTEN(0x004E58A0, ZoneExit::Write);

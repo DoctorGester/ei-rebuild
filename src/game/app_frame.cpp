@@ -7,7 +7,6 @@
 #include "model.h"
 #include "texture.h"   // CTextureDevice, CDXSurface
 
-#include "ei/hook.h"
 #include "ei/main_loop.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -100,7 +99,6 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     file.Close();
     ++g_movieFrame;
 }
-EI_REWRITTEN(0x00458010, FrameStep);
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.
@@ -124,6 +122,5 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     }
     ini->Destruct();
 }
-EI_REWRITTEN(0x00458270, PlayMovies);
 
 } // namespace app

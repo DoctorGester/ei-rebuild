@@ -6,7 +6,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
@@ -21,26 +20,22 @@ int __fastcall TextKeyFromName(const char* name) {
         h = static_cast<std::uint32_t>(libcrt::Toupper(static_cast<unsigned char>(*p))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
-EI_REWRITTEN(0x00461360, TextKeyFromName);
 
 BOOL __fastcall IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000 ? 1 : 0;
 }
-EI_REWRITTEN(0x004613A0, IsTextKey);
 
 MapRecord* CMapDatabase::FindMap(const char* name) {
     for (int i = 0; i < maps.size; ++i)
         if (gamecrt::mbsicmp(maps.data[i].name, name) == 0) return &maps.data[i];
     return nullptr;
 }
-EI_REWRITTEN(0x0045E850, CMapDatabase::FindMap);
 
 AllodRecord* CMapDatabase::FindAllod(const char* name) {
     for (int i = 0; i < allods.size; ++i)
         if (gamecrt::mbsicmp(allods.data[i].name, name) == 0) return &allods.data[i];
     return nullptr;
 }
-EI_REWRITTEN(0x0045E910, CMapDatabase::FindAllod);
 
 float NamedFloatTable::Get(const char* name) {
     constexpr float kZero = 0.0f;
@@ -51,7 +46,6 @@ float NamedFloatTable::Get(const char* name) {
     }
     return node ? node->value.mapped : kZero;
 }
-EI_REWRITTEN(0x00460AF0, NamedFloatTable::Get);
 
 void NamedFloatTable::Set(const char* name, float value) {
     if (!*name) return;
@@ -63,13 +57,11 @@ void NamedFloatTable::Set(const char* name, float value) {
     }
     (*this)[key] = value;
 }
-EI_REWRITTEN(0x00460BC0, NamedFloatTable::Set);
 
 void NamedFloatTable::Remove(const char* name) {
     std::string key = name;
     EraseKey(key);
 }
-EI_REWRITTEN(0x00460DB0, NamedFloatTable::Remove);
 
 void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     std::size_t length = std::strlen(prefix);
@@ -77,7 +69,6 @@ void NamedFloatTable::CopyPrefixed(const char* prefix, NamedFloatTable* out) {
     for (const Node* node = First(); node; node = Next(node))
         if (gamecrt::strncmp(prefix, node->value.key, length) == 0) (*out)[node->value.key] = node->value.mapped;
 }
-EI_REWRITTEN(0x00460EE0, NamedFloatTable::CopyPrefixed);
 
 void NamedFloatTable::Load(CStream* stream) {
     Clear();   // inlined: each chain's nodes freed in order, the count zeroed
@@ -95,7 +86,6 @@ void NamedFloatTable::Load(CStream* stream) {
         (*this)[key] = value;
     }
 }
-EI_REWRITTEN(0x00460FE0, NamedFloatTable::Load);
 
 void NamedFloatTable::Save(CStream* stream) {
     for (const Node* node = First(); node; node = Next(node)) {
@@ -107,7 +97,6 @@ void NamedFloatTable::Save(CStream* stream) {
     std::string end;
     stream->Write(end.c_str(), static_cast<std::uint32_t>(std::strlen(end.c_str()) + 1));
 }
-EI_REWRITTEN(0x00461260, NamedFloatTable::Save);
 
 void* __fastcall FindCommandByKey(int key) {
     const signed char* keys = g_keyActions;
@@ -118,4 +107,3 @@ void* __fastcall FindCommandByKey(int key) {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x00462F70, FindCommandByKey);

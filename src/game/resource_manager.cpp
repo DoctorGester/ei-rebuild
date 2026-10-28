@@ -1,7 +1,6 @@
 // CResourceManager. See resource_manager.h.
 #include "resource_manager.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -33,7 +32,6 @@ void CloseAll(stlp::vector<ArchiveEntry>& archives) {
 static_assert(std::is_trivially_destructible_v<stlp::vector<ArchiveEntry>>);
 
 CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
-EI_REWRITTEN_SPECIAL(0x00674D90, CResourceManager::CResourceManager);
 
 CResourceManager::~CResourceManager() {
     CloseAll(archives_);
@@ -41,8 +39,6 @@ CResourceManager::~CResourceManager() {
     archives_.clear();
     archives_.FreeStorage();
 }
-EI_REWRITTEN_SPECIAL(0x00674DF0, CResourceManager::~CResourceManager);
-EI_REWRITTEN_SPECIAL(0x00674DD0, CResourceManager::~CResourceManager);
 
 void CResourceManager::Destroy() {
     CloseAll(archives_);
@@ -63,7 +59,6 @@ BOOL CResourceManager::AddArchive(const char* path) {
 BOOL CResourceManager::AddMmioArchive(const char* path) {
     return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
 }
-EI_REWRITTEN(0x005AA360, CResourceManager::AddMmioArchive);
 
 BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*)) {
     for (const ArchiveEntry& e : archives_)
@@ -118,16 +113,3 @@ BOOL CResourceManager::HasFile(const char* name) {
 void CResourceManager::FreeAllFiles() {
     for (ArchiveEntry& e : archives_) e.resource->FreeAllFiles();
 }
-
-EI_REWRITTEN(0x00674F40, CResourceManager::Destroy);
-// The compiler's jump thunks to it (functions.csv "thunk" rows).
-EI_REWRITTEN(0x00512720, CResourceManager::Destroy);
-EI_REWRITTEN(0x0068E8F0, CResourceManager::Destroy);
-EI_REWRITTEN(0x006AC800, CResourceManager::Destroy);
-EI_REWRITTEN(0x00675050, CResourceManager::AddArchive);
-EI_REWRITTEN(0x00675200, CResourceManager::RemoveArchive);
-EI_REWRITTEN(0x00675340, CResourceManager::RemoveAllArchives);
-EI_REWRITTEN(0x00675440, CResourceManager::GetFile);
-EI_REWRITTEN(0x00675490, CResourceManager::CloseFile);
-EI_REWRITTEN(0x006754E0, CResourceManager::HasFile);
-EI_REWRITTEN(0x00675530, CResourceManager::FreeAllFiles);

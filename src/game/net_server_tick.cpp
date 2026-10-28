@@ -8,7 +8,6 @@
 #include "game_strings.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"
@@ -57,7 +56,6 @@ void ServerSession::Tick(double dt) {
         if (gamecrt::mbscmp(host, game::EmptyText()) != 0) AnnounceToMaster();
     }
 }
-EI_REWRITTEN(0x004182E0, ServerSession::Tick);
 
 // Whether the player bound to `connection` (its first binding) is in state 3.
 // False for a dead connection, binding or player.
@@ -73,6 +71,5 @@ bool ServerSession::PlayerStateIs3(const Connection* connection) {
     }
     return false;
 }
-EI_REWRITTEN(0x00417E40, ServerSession::PlayerStateIs3);
 
 } // namespace net

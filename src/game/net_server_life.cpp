@@ -4,7 +4,6 @@
 #include "net_classes.h"
 #include "core_refcount.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 namespace net {
@@ -42,12 +41,8 @@ ServerSession::~ServerSession() {
     lines_.Release();
     players_.Release();
 }
-EI_REWRITTEN_SPECIAL(0x00417BC0, ServerSession::~ServerSession);
-EI_REWRITTEN_SPECIAL(0x00417A10, ServerSession::~ServerSession);
 
 // Also reached from the constructor's unwind funclets.
 ServerBase::~ServerBase() { joins_.Release(); }
-EI_REWRITTEN_SPECIAL(0x004132F0, ServerBase::~ServerBase);
-EI_REWRITTEN_SPECIAL(0x004132D0, ServerBase::~ServerBase);
 
 } // namespace net

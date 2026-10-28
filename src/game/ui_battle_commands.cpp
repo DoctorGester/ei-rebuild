@@ -15,7 +15,6 @@
 #include "party.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -146,7 +145,6 @@ void CBattleScreen::ToggleMember(int index) {
     RefreshSelection();
     if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
-EI_REWRITTEN(0x006379E0, CBattleScreen::ToggleMember);
 
 // --- the selected members ordered at a unit ------------------------------------------------------
 
@@ -174,7 +172,6 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REWRITTEN(0x00637190, CBattleScreen::AttackUnit);
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
@@ -193,7 +190,6 @@ void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REWRITTEN(0x006373A0, CBattleScreen::OrderDeadUnit);
 
 // --- the pending spell or quick item used --------------------------------------------------------
 
@@ -218,7 +214,6 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     }
     DropPendingAction(this, true);
 }
-EI_REWRITTEN(0x00637500, CBattleScreen::UseOnUnit);
 
 void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
     auto* party = &party_;
@@ -249,7 +244,6 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
     }
     DropPendingAction(this, false);
 }
-EI_REWRITTEN(0x00637750, CBattleScreen::UseAtPoint);
 
 // --- a unit's speech event -----------------------------------------------------------------------
 
@@ -305,4 +299,3 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-EI_REWRITTEN(0x006366F0, CBattleScreen::OnUnitSpeech);

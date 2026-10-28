@@ -9,7 +9,6 @@
 #include "texture.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -92,7 +91,6 @@ int PartGroup::ReleaseParts() {
     parts.size = 0;
     return 1;
 }
-EI_REWRITTEN(0x0051AAA0, PartGroup::ReleaseParts);
 
 void TextureParts::Destruct() {
     for (int i = 0; i < groups.size; ++i) {
@@ -111,8 +109,6 @@ void TextureParts::Destruct() {
     texture = nullptr;
     if (groups.data) lib::FreeAligned32(groups.data);
 }
-EI_REWRITTEN(0x0051A370, TextureParts::Destruct);
-
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
     textures = {};
@@ -134,7 +130,6 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
     bounds[0] = 0.0f;
     pulseClock = 0.0f;
 }
-EI_REWRITTEN_SPECIAL(0x0051AB00, CObject3DClientSpecific::CObject3DClientSpecific);
 
 int CObject3DClientSpecific::Create() {
     materialCursor = -1;
@@ -155,7 +150,6 @@ int CObject3DClientSpecific::Create() {
     figureScale.x = 1.0f;
     return 1;
 }
-EI_REWRITTEN(0x0051AEC0, CObject3DClientSpecific::Create);
 
 void CObject3DClientSpecific::Destroy() {
     AssignCounted<CTexture>(&texture, nullptr);
@@ -185,7 +179,6 @@ void CObject3DClientSpecific::Destroy() {
     touchTime = 0;
     flags_ = 0;
 }
-EI_REWRITTEN(0x0051AF70, CObject3DClientSpecific::Destroy);
 
 CObject3DClientSpecific::~CObject3DClientSpecific() {
     CObject3DClientSpecific::Destroy();
@@ -198,8 +191,6 @@ CObject3DClientSpecific::~CObject3DClientSpecific() {
     if (materials.data) lib::FreeAligned32(materials.data);
     if (textures.data) lib::FreeAligned32(textures.data);
 }
-EI_REWRITTEN_SPECIAL(0x0051AD90, CObject3DClientSpecific::~CObject3DClientSpecific);
-EI_REWRITTEN_SPECIAL(0x0051AD70, CObject3DClientSpecific::~CObject3DClientSpecific);
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 
@@ -224,7 +215,6 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
     if (object->type_ == kTypeBuildingLike) set->texture->flags_ |= kTextureFlag2000;
     return set->texture;
 }
-EI_REWRITTEN(0x0051B2F0, CObject3DClientSpecific::FindOrAddTexture);
 
 CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKind) {
     for (int k = 0; k < 2; ++k) {
@@ -237,7 +227,6 @@ CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKi
     }
     return nullptr;
 }
-EI_REWRITTEN(0x0051B5B0, CObject3DClientSpecific::FindMaterial);
 
 CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int materialKind) {
     int k = 0;
@@ -263,7 +252,6 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
     ++group->material->refCount_;
     return group->material;
 }
-EI_REWRITTEN(0x0051B470, CObject3DClientSpecific::FindOrAddMaterial);
 
 int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
     int materialKind = static_cast<int>(part->materialValue_);
@@ -294,17 +282,14 @@ int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0051B050, CObject3DClientSpecific::OnPartAdded);
 
 int CObject3DClientSpecific::OnPartRemoved(CFigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
-EI_REWRITTEN(0x0051B160, CObject3DClientSpecific::OnPartRemoved);
 
 CFigureMesh* CObject3DClientSpecific::RemoveFromPartSets(const char* name) {
     CFigureMesh* part = FindPart(name);
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }
-EI_REWRITTEN(0x0051B210, CObject3DClientSpecific::RemoveFromPartSets);
 
 CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     if (!replacement) return nullptr;
@@ -324,7 +309,6 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     }
     return old;
 }
-EI_REWRITTEN(0x0051B630, CObject3DClientSpecific::ReplaceTexture);
 
 // --- Skins and materials --------------------------------------------------------------------------
 
@@ -358,7 +342,6 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0051C250, CObject3DClientSpecific::SetSkins);
 
 void CObject3DClientSpecific::ApplyMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
@@ -378,7 +361,6 @@ void CObject3DClientSpecific::ApplyMaterials() {
     else
         SetSkins(skinName.c_str(), secondSkinName.c_str());
 }
-EI_REWRITTEN(0x0051CB30, CObject3DClientSpecific::ApplyMaterials);
 
 void CObject3DClientSpecific::SetMaterialsLit(int lit) {
     if (lit) {
@@ -399,8 +381,5 @@ void CObject3DClientSpecific::SetMaterialsLit(int lit) {
         material->entries.pop_back();
     }
 }
-EI_REWRITTEN(0x0051C9F0, CObject3DClientSpecific::SetMaterialsLit);
 
 void CObject3DClientSpecific::SetLit(int lit) { SetMaterialsLit(lit); }
-EI_REWRITTEN(0x0051C9E0, CObject3DClientSpecific::SetLit);
-

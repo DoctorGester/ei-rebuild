@@ -2,7 +2,6 @@
 // spell book's record lookups. See ui.h.
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ui_widescreen.h"
 
@@ -92,42 +91,35 @@ int CInterface3D::ScaleRectToScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectToScreen(rect, false);
     return ScaleRectToScreen(rect);
 }
-EI_REWRITTEN(0x005F7CA0, CInterface3D::ScaleRectToScreenEntry);
 
 int CInterface3D::ScalePointToScreenEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointToScreen(point, false);
     return ScalePointToScreen(point);
 }
-EI_REWRITTEN(0x005F7D20, CInterface3D::ScalePointToScreenEntry);
 
 int CInterface3D::ScalePointFromScreenCopyEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return ScalePointFromScreenCopy(point);
 }
-EI_REWRITTEN(0x005F7E30, CInterface3D::ScalePointFromScreenCopyEntry);
 
 int CInterface3D::ScaleRectFromScreenEntry(RECT* rect) const {
     if (!this && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
     return ScaleRectFromScreen(rect);
 }
-EI_REWRITTEN(0x005F7DA0, CInterface3D::ScaleRectFromScreenEntry);
 
 int CInterface3D::ScalePointFromScreenEntry(POINT* point) const {
     if (!this && widescreen::Active()) return widescreen::PointFromScreen(point, false);
     return ScalePointFromScreen(point);
 }
-EI_REWRITTEN(0x005F7E00, CInterface3D::ScalePointFromScreenEntry);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stack_.begin() != stack_.end() ? stack_.end()[-1] : nullptr;
 }
-EI_REWRITTEN(0x005F7590, CInterface3D::GetActiveWindow);
 
 void CInterface3D::SetPendingValue(std::uint32_t value) {
     pendingFlag_ = true;
     pendingValue_ = value;
 }
-EI_REWRITTEN(0x005F74E0, CInterface3D::SetPendingValue);
 
 // --- CUiSurface ------------------------------------------------------------------------------
 
@@ -138,7 +130,6 @@ void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.bottom = bottom;
     interface_->ScaleRectToScreenEntry(&rect_);
 }
-EI_REWRITTEN(0x005FD3A0, CUiSurface::SetRect);
 
 void CUiSurface::MoveTo(int x, int y) {
     POINT point{x, y};
@@ -150,7 +141,6 @@ void CUiSurface::MoveTo(int x, int y) {
     rect_.right = width + point.x;
     rect_.bottom = height + point.y;
 }
-EI_REWRITTEN(0x005FE400, CUiSurface::MoveTo);
 
 // --- CUiModel --------------------------------------------------------------------------------
 
@@ -168,6 +158,5 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     std::memcpy(&position.y, &value, sizeof(float));
     std::memcpy(&position.z, &depth, sizeof(float));
 }
-EI_REWRITTEN(0x005FC450, CUiModel::SetScreenPosition);
 
 // --- Record lookups --------------------------------------------------------------------------

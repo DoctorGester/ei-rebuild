@@ -5,8 +5,6 @@
 #include "chunk_archive.h"
 #include "unit_db.h"   // InlineStrings
 
-#include "ei/hook.h"
-
 namespace itemdb {
 
 void MaterialRecordHead::Serialize(ChunkArchive* ar) {
@@ -25,7 +23,6 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->Field(12, &armourFlags, 4);
     ar->Field(13, &classMask, 4);
 }
-EI_REWRITTEN(0x0069F620, MaterialRecordHead::Serialize);
 
 void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->CStringField(0, &text04);
@@ -45,7 +42,6 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(14, &classMask, 4);
     ar->Field(15, &buildable, 1);
 }
-EI_REWRITTEN(0x0069F700, ItemRecordHead::SerializeHead);
 
 void WeaponRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -60,7 +56,6 @@ void WeaponRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x1D, &attackBonus, 4);
     ar->Field(0x1E, &defenceBonus, 4);
 }
-EI_REWRITTEN(0x0069F800, WeaponRecord::Serialize);
 
 void ArmorRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -71,7 +66,6 @@ void ArmorRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x19, field19, 3);
     ar->Field(0x1A, field1A, 8);
 }
-EI_REWRITTEN(0x0069F8C0, ArmorRecord::Serialize);
 
 void QuickItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -83,7 +77,6 @@ void QuickItemRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x1A, attributeBonus, 3);
     ar->Field(0x1B, field1B, 8);
 }
-EI_REWRITTEN(0x0069F940, QuickItemRecord::Serialize);
 
 void QuestItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -91,7 +84,6 @@ void QuestItemRecord::Serialize(ChunkArchive* ar) {
     // The list is emptied by the element destructors; the result is the same.
     InlineStrings(ar, 0x16, &zones);
 }
-EI_REWRITTEN(0x0069F9C0, QuestItemRecord::Serialize);
 
 void LootItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
@@ -99,6 +91,5 @@ void LootItemRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x16, &recordType, 4);
     ar->Field(0x17, &index, 4);
 }
-EI_REWRITTEN(0x0069FA90, LootItemRecord::Serialize);
 
 } // namespace itemdb

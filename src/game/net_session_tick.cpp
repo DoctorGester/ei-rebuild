@@ -7,7 +7,6 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
-#include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/crt_iostream.h"
@@ -36,10 +35,8 @@ void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Pu
 void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
-EI_REWRITTEN(0x00419CC0, BufferUpdateHigh);
 
 std::string NetAddress::ToString() const { return Format(0); }
-EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
 // An empty datagram is only logged; the current session is this one meanwhile.
 void SessionBase::Tick(double dt) {
@@ -95,7 +92,6 @@ void SessionBase::Tick(double dt) {
     ++frame_;
     g_currentSession = nullptr;
 }
-EI_REWRITTEN(0x00437370, SessionBase::Tick);
 
 } // namespace net
 
@@ -130,7 +126,6 @@ ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address
     *out = found.node;
     return out;
 }
-EI_REWRITTEN(0x00436CC0, SessionBase::FindClient);
 
 // Logs it, closes the connection and erases the node.
 void SessionBase::RemoveClient(ClientNode* node) {
@@ -177,16 +172,6 @@ void SessionBase::OnAccepted(const NetAddress*, BufferCursor*) { LogText(game::n
 void SessionBase::OnRejected(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleRejected()); }
 void SessionBase::OnMaster(const NetAddress*, BufferCursor*) { LogText(game::nettexts::CantHandleMaster()); }
 
-EI_REWRITTEN(0x00436CF0, SessionBase::RemoveClient);
-EI_REWRITTEN(0x00437080, SessionBase::OnUpdate);
-EI_REWRITTEN(0x00437240, SessionBase::OnLeave);
-EI_REWRITTEN(0x004371E0, SessionBase::OnGetInfo);
-EI_REWRITTEN(0x00437210, SessionBase::OnLogin);
-EI_REWRITTEN(0x004372B0, SessionBase::OnInfo);
-EI_REWRITTEN(0x004372E0, SessionBase::OnAccepted);
-EI_REWRITTEN(0x00437310, SessionBase::OnRejected);
-EI_REWRITTEN(0x00437340, SessionBase::OnMaster);
-
 } // namespace net
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
@@ -196,7 +181,6 @@ GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
     cur += size;
     return this;
 }
-EI_REWRITTEN(0x00436C30, GameBuffer::BufferWriteRaw);
 
 unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
     if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
@@ -205,7 +189,6 @@ unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
     cur += size;
     return size;
 }
-EI_REWRITTEN(0x00436C60, GameBuffer::BufferWrite);
 
 namespace net {
 
@@ -213,13 +196,11 @@ int g_remoteRate = /*00783E34*/ 2500;
 int g_localRate = /*00783E38*/ 12500;
 
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
-EI_REWRITTEN(0x00436F60, SessionBase::Send);
 
 std::uint32_t SessionBase::RateFor(const NetAddress* address) {
     bool local = socket_.IsLocal(address);
     return static_cast<std::uint32_t>(local ? g_localRate : g_remoteRate);
 }
-EI_REWRITTEN(0x00436F80, SessionBase::RateFor);
 
 void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     GrowingBuffer storage;
@@ -241,7 +222,6 @@ void SessionBase::SendLeave(const NetAddress* address, std::uint32_t id) {
     }
     socket_.SendTo(address, buffer);
 }
-EI_REWRITTEN(0x00436FA0, SessionBase::SendLeave);
 
 } // namespace net
 
@@ -289,8 +269,6 @@ SessionBase::~SessionBase() {
     clients_->prev = clients_;
     stlp::deallocate(clients_, sizeof(ClientNode));
 }
-EI_REWRITTEN_SPECIAL(0x00436A50, SessionBase::~SessionBase);
-EI_REWRITTEN_SPECIAL(0x004368D0, SessionBase::~SessionBase);
 
 } // namespace net
 
@@ -319,6 +297,5 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     else if (rate >= 50000) rate = 50000;
     added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f /*0073BF48*/) / static_cast<double>(rate));
 }
-EI_REWRITTEN(0x00436DD0, SessionBase::AddClient);
 
 } // namespace net

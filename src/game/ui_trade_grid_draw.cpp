@@ -11,7 +11,6 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -92,4 +91,3 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }
-EI_REWRITTEN(0x00627390, CTradeGrid::DrawGrid);

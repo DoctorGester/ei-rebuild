@@ -12,7 +12,7 @@ and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue 
 `this`: its world_glue.h functions are called without the dummy this / EDX.
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_static_init,
-gen_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, find_vtables,
+gen_image_cells, gen_iat, check_signatures, check_stolen, find_vtables,
 find_dead_code; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
@@ -71,8 +71,8 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   (`tools/gen_image_cells.py --bytes`, build/<cfg>/image/, which also checks the 1.06 timestamp; C25 measured which
   of them the image reads: "The build without game.exe" below); the section places are constants (game_data.h, hook.h's `kGameTextBegin`-`kGameTextEnd`). InstallHooks reads
   game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
-  dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: the four with a port are
-  EI_REWRITTEN (their callers call the virtual), `EI_REPLACE_DISPATCH` and its byte check are gone.
+  dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: their callers call the
+  virtual, `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
 - **Missing code.** Reaching an address without code (a jump into the guarded .text, a compiled table's
@@ -409,9 +409,9 @@ kinds given.
 - **Pointer elements** (C18c): a type with pointers (TYPES `P`: `char*`, `MaterialKindFile` `iP`) packs no address.
   Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
   literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
-  in .data); the name of another named range its address; the name of a function of ours (`&` optional) the
-  address in the function-to-original map (`EI_REWRITTEN`: the code game.exe's pointer called);
-  nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
+  in .data); the name of another named range its address; the name of a function of ours (`&` optional; any other
+  name, the compiler checks it) some code of game.exe (the function it rewrites; since C20l no table holds its address;
+  a stub of ours reporting an unported function, ei::UnportedSlot, its address); nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
   offset is a pointer element: the only place a cell may sit inside the range. gen_image_cells leaves the cells inside
   named ranges out of image_cells.inc (the bytes are zero, nothing fixes them up) and its
   reviewed groups' counts drop with them; the strings they pointed at stay in the image for their other readers.
@@ -625,8 +625,8 @@ kinds given.
         `constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};`, `constinit stlp::vector<stlp::string>
         g_questFiles = /*007AFDD0*/ {};` (named_data's TYPES names a template, `lib::AlignedArray` / `stlp::vector`;
         a pointer type it does not list is a pointer element: `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
-      - The exit function: ported on the name with `EI_REWRITTEN` at its address, outside any anonymous namespace
-        (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
+      - The exit function: ported on the name, outside any anonymous namespace, with a row in
+        config/static_init_ports.csv (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
         place in the list as `d.AtExit(Name)` and gen_static_init leaves the ported function out of static_exit.cpp. It goes next to the definition
         (device_buffers.cpp's FreeVertices, world_briefing.cpp's DestroyQuestFiles, camera_object.cpp's DestroyCamera).
       - A constructor whose result is no constant (CString's empty string: a copy of 00796E48, a run-time pointer;
@@ -1181,7 +1181,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     the terrain (terrain.h, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2), the text manager
     (item_db_text.h), the player sources' base 0073F38C (slots 2-4 and 6 pure), the server's counted helper 0073F240,
     the client's source 0073F628 and the network session 0073F3A8 (world.h, net_link.h) are real classes since C28g;
-    the bridge manager 0073F4FC (PlatformSet, world.h; since C28g). Generated short-function rows (short_functions.cpp) are written by gen_short_functions.py, not dropped.
+    the bridge manager 0073F4FC (PlatformSet, world.h; since C28g).
   - **Trap: `python tools/find_vtables.py --help` runs the tool** and rewrites config/vtables.csv; restore it with git.
   - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
     0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness
@@ -1498,10 +1498,8 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   plain `X x;`.
 - A constructor or destructor whose address is still called (an EI_ORIGINAL forwarder, C29) keeps a registered
   `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
-- The function-to-original map: virtuals are `EI_REWRITTEN(addr, X::Virtual)`; constructors and destructors, which
-  have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
-  original's scalar deleting destructor is tagged with the destructor's name too: check_signatures (for a recorded address) accepts a
-  destructor tag whose original pops 4 more (the flags argument).
+- check_signatures accepts a destructor named by an EI_RECORD whose original pops 4 more (the scalar deleting
+  destructor's flags argument).
 - game.exe's tables stay in config/vtables.csv; their rows name the real class and its header (every row: all are
   retired; gen_image_cells.py --check fails on a row without one, so a find_vtables.py rerun's new row needs a
   decision).
@@ -1517,8 +1515,7 @@ the item screens over `CItemScreen`'s slots 42-54) and the item panels (`CUiItem
 strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureStrip`) are ordinary classes built with
 `new X(...)`, their slots the overrides (an input slot that runs a named handler is a one-line override,
 `int LeftDown(...) override { return OnLButtonDown(...), 0; }`). Member pointers of
-the windows are two words: `EI_REWRITTEN`'s record points at a constant holding `&fn`, and `ei::MemberAddress`
-takes the code word (adjustment 0). The harness names a window by its class's
+the windows are two words: `ei::MemberAddress` takes the code word (adjustment 0). The harness names a window by its class's
 `typeid` (harness_windows.cpp's `WindowKind`).
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
@@ -1623,20 +1620,18 @@ the `--no-hooks` suite) keeps the registry.
 
 ### Generated code
 
-- **Short functions** (S2): the 200 game functions under five bytes are in src/game/short_functions.cpp, generated by
-  `tools/gen_short_functions.py` from their bytes (12 kinds: `Ret`, `Ret4/8/12`, `ReturnZero`, `ReturnMinusOne`,
-  `ReturnTrue`, `ReturnFalse`, `ReturnThis`, `LoadDword<n>`, `MemberAddress<n>`, `LoadFloat<n>`), each compiling to
-  the original's bytes. Each is an `EI_REWRITTEN(0x..., Kind);` line (C20e). check_short_functions (removed in C25d) checked each
-  kind against game.exe and our code. A few were added by hand (particle element callbacks 00485530,
-  00492FB0-004965D0: `EI_REWRITTEN(Ret4)`).
+- **Short functions** (S2): the game functions under five bytes needed no code of their own once nothing called game.exe;
+  src/game/short_functions.cpp keeps `Ret`, the exit function that does nothing (the initialisers' and the
+  function-local statics' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
+  (12 kinds, each compiling to the original's bytes), went with the map (C20l).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
   interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
   callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
   (static_init.h), with visitors `Run` (the image) and `Check` (the stores, compared with the original's memory).
-- **Calls by name** (C20 batch 2): a call or atexit of a function in the function-to-original map (an EI_REWRITTEN
-  line) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
+- **Calls by name** (C20 batch 2): a call or atexit of a function ported by hand (a row of
+  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
   Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
   `name_calls`). Code::Call converts the decoded dwords to the declared parameters (`Argument`: a pointer from a
   dword, a lib::StaticObject's T for a named object) and returns the result as a dword (`Returned`). The name is the
@@ -1658,8 +1653,8 @@ the `--no-hooks` suite) keeps the registry.
   atexit registrations of function-local statics (PUSH fn, CALL 006E727B within 14 instructions). Their sizes go
   into config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
 - **Compiler jump thunks** (functions.csv kind "thunk"): our callers call the target by name.
-- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30 ported) are
-  `EI_REWRITTEN`: the callers call the virtual.
+- **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30): the
+  callers call the virtual.
 
 ### Registration rules
 
@@ -1671,24 +1666,18 @@ the `--no-hooks` suite) keeps the registry.
   literals of src/ (handler tables, callbacks, factories: `&Fn`, C20f), the harness's image side (C20h), the short
   functions (EI_REWRITTEN, C20e), WinMain (batch 6: EiStandaloneMain calls `app::GameMain`). Registrations: 9,347
   before C20c, 3,527 after C20d, 809 before C20 batch 1, 72 after C20e, 1 after batch 3, 0 after batch 6.
-- **The function-to-original map** (C20d): `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h; `EI_REWRITTEN_SPECIAL`
-  for a constructor or destructor). A line leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which
-  nothing reads at run time, so the compiler checks the name and the function's own copy stays in the image.
-  check_registrations (build.cmd) reads `.eiorg`: one EI_REWRITTEN per address. The tools read the map from the
-  sources: check_signatures.registrations() (check_signatures checks only the rewrites at an address a recorder
-  records, C20j; a signature elsewhere is free), coverage.py, save_trace.py, ui_census_report.py,
-  named_data.py (a pointer element naming a function of ours), gen_static_init (MAP_LINE: calls by name),
-  gen_short_functions.ported_elsewhere (a rewrite: no generated short function, and gen_static_init neither inlines
-  nor decodes it), progress.py's / dashboard_data.py's rewritten counts and check_cleanup (an address in the line is
-  no raw literal). Nothing at run time, in the harness or in tests/vectors reads it (the recorders name game.exe's
-  addresses in their EI_RECORD lines; the replays call by name).
+- **No function-to-original map** (C20l): the `EI_REWRITTEN` lines (C20d-C20k: {address, &Fn} in the DLL's `.eiorg`
+  section, one per address by check_registrations) went with their last readers. What still needs a game address
+  of a function of ours has it where it is used: an EI_RECORD names the rewrite its replays call (check_signatures
+  checks its stack arguments), gen_static_init reads config/static_init_ports.csv, an UnportedSlot stub names its
+  address. The trace tools (coverage, save_trace, ui_census_report, named_data's --emit / --refs) no longer map
+  game.exe's functions to ours; progress / the dashboard dropped the port counts.
 - **game.exe's side**: the vector recorders (`EI_RECORD`, tests/vectors/record_*.cpp) are the only hooks;
   InstallHooks installs them in game.exe with EI_VECTORS=1, leaving out (and counting as unexpected) a second one at
   an address or one whose stolen bytes differ from the file. check_stolen.py checks each against game.exe: a known
   function start, one per address, whole instructions with no relative operand, no jump back into the stolen bytes.
 - **Function sizes** (src/hook/function_sizes.inc from Ghidra, config/extra_function_sizes.csv for what Ghidra lacks
-  or cuts short) are the tools' (check_stolen, check_signatures, coverage, progress, gen_short_functions,
-  gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
+  or cuts short) are the tools' (check_stolen, check_signatures, coverage, gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
   006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted

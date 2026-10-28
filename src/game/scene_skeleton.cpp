@@ -10,7 +10,6 @@
 #include "maths.h"
 #include "../lib/crt.h"
 #include "lib/mfc_array.h"
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -60,7 +59,6 @@ void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames
     int count = static_cast<std::int16_t>(frames) + 1;
     for (int f = 0; f < count; ++f) MakeFrameRelative(nullptr, skin->root, f);
 }
-EI_REWRITTEN(0x00449240, BuildRootBone);
 
 // Every child's rest pivot and rotation copied, recursively.
 void __fastcall CopyRestPose(SceneNode* node) {
@@ -70,7 +68,6 @@ void __fastcall CopyRestPose(SceneNode* node) {
         CopyRestPose(children.data[i]);
     }
 }
-EI_REWRITTEN(0x004491C0, CopyRestPose);
 
 // Links each node to its children (nodes whose parent name equals its name, _mbscmp), finds the root (the
 // last node with an empty parent name, -1 when none) and copies the rest pose from it down. Without a root
@@ -100,7 +97,6 @@ int __fastcall FindRootNode(NodeArray* nodeArray) {
     }
     return root;
 }
-EI_REWRITTEN(0x00449030, FindRootNode);
 
 // Takes the unit's meshes (a CArray; a mesh's virtual 7 is its name) and the nodes; `frames` (its
 // low word counts), `skin`. 1, or 0 without a root node; a first rotation key not at frame 0 is a fatal
@@ -182,6 +178,5 @@ int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int fra
     }
     return 1;
 }
-EI_REWRITTEN(0x00448A40, BuildSkeleton);
 
 } // namespace scene

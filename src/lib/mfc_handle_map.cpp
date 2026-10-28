@@ -2,7 +2,6 @@
 // at their library addresses (mfc_handle_map.h).
 #include "mfc_handle_map.h"
 
-#include "ei/hook.h"
 #include "mfc_exception.h"
 #include "mfc_runtime_class.h"
 #include "mfc_try.h"
@@ -44,12 +43,6 @@ int __cdecl CriticalNewHandler(std::size_t) {
 int __cdecl DefaultNewHandler(std::size_t) {
     ThrowMemoryException();
 }
-
-EI_REWRITTEN(0x0070061B, CRuntimeClass::CreateObject);
-EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
-EI_REWRITTEN(0x0070AB1A, CriticalNewHandler);
-EI_REWRITTEN(0x0070058F, DefaultNewHandler);
-
 
 CMapPtrToPtr::CMapPtrToPtr(int size) : blockSize(size) {}
 
@@ -168,21 +161,6 @@ void CMapPtrToPtr::GetNextAssoc(Assoc*& position, void*& key, void*& value) cons
     value = assoc->value;
 }
 
-EI_REWRITTEN_SPECIAL(0x007002C2, CMapPtrToPtr::CMapPtrToPtr);
-EI_REWRITTEN_SPECIAL(0x00700375, CMapPtrToPtr::~CMapPtrToPtr);
-EI_REWRITTEN_SPECIAL(0x007002E9, CMapPtrToPtr::~CMapPtrToPtr);   // deleting
-EI_REWRITTEN(0x0070D128, CMapPtrToPtr::GetRuntimeClass);
-EI_REWRITTEN(0x00700305, CMapPtrToPtr::InitHashTable);
-EI_REWRITTEN(0x0070034A, CMapPtrToPtr::RemoveAll);
-EI_REWRITTEN(0x0070039E, CMapPtrToPtr::NewAssoc);
-EI_REWRITTEN(0x007003EB, CMapPtrToPtr::FreeAssoc);
-EI_REWRITTEN(0x00700404, CMapPtrToPtr::GetAssocAt);
-EI_REWRITTEN(0x00700436, CMapPtrToPtr::GetValueAt);
-EI_REWRITTEN(0x0070048B, CMapPtrToPtr::At);
-EI_REWRITTEN(0x007004DB, CMapPtrToPtr::RemoveKey);
-EI_REWRITTEN(0x0070051D, CMapPtrToPtr::GetNextAssoc);
-
-
 CHandleMap::~CHandleMap() { DeleteTemp(); }
 
 void CHandleMap::DeleteTemp() {
@@ -229,11 +207,5 @@ void* CHandleMap::FromHandle(HANDLE handle) {
     SetHandles(object, handle);
     return object;
 }
-
-EI_REWRITTEN_SPECIAL(0x00703617, CHandleMap::CHandleMap);
-EI_REWRITTEN_SPECIAL(0x006E6D08, CHandleMap::~CHandleMap);
-EI_REWRITTEN_SPECIAL(0x006E6CEC, CHandleMap::~CHandleMap);   // deleting
-EI_REWRITTEN(0x0070373B, CHandleMap::DeleteTemp);
-EI_REWRITTEN(0x0070367C, CHandleMap::FromHandle);
 
 } // namespace mfc::impl

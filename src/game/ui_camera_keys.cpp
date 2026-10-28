@@ -11,7 +11,6 @@
 
 #include "camera.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -78,5 +77,3 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
     TheCamera()->SetTiltRate(
         static_cast<float>(D(GameFloat(options::TheOptions()->cameraPitch_.powerKeyboard)) * D(GameFloat(options::TheOptions()->cameraPitch_.speed)) * D(x_) * D(50.0f /*0074023C*/)));
 }
-
-EI_REWRITTEN(0x005EADD0, CCameraInput::OnKeyDown);

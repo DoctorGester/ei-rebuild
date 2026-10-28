@@ -8,7 +8,6 @@
 #include "bone_pose.h"
 #include "engine_object.h"  // CEngineObject::GetName
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 #include <cstring>
@@ -46,7 +45,6 @@ void CAnimationNode::ResetPose() {
     normalCursor_ = 0;
     morphCursor_ = 0;
 }
-EI_REWRITTEN(0x00507E80, CAnimationNode::ResetPose);
 
 void CAnimationNode::Rewind() {
     clock_[0] = 0;
@@ -60,7 +58,6 @@ void CAnimationNode::Rewind() {
     }
     for (int i = 0; i < children_.size; ++i) children_.data[i]->Rewind();
 }
-EI_REWRITTEN(0x005081C0, CAnimationNode::Rewind);
 
 // The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
 int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
@@ -82,7 +79,6 @@ int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00507C50, CAnimationNode::AttachMeshes);
 
 namespace scene {
 
@@ -91,12 +87,10 @@ void SceneSkin::Rewind() {
     clock[0] = 0;
     clock[1] = 0;
 }
-EI_REWRITTEN(0x00508990, SceneSkin::Rewind);
 
 int SceneSkin::BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
     if (root) root->AttachMeshes(parts);
     return 1;
 }
-EI_REWRITTEN(0x00508BF0, SceneSkin::BindMeshes);
 
 } // namespace scene

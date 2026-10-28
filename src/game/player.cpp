@@ -11,7 +11,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "world.h"
 #include "lib/mfc_slots.h"
@@ -65,7 +64,6 @@ CPlayer::CPlayer() {
     sessionKind100_ = 0;
     lastScreen_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00664BF0, CPlayer::CPlayer);
 
 CPlayer::~CPlayer() {
     DestroyPlayer();
@@ -80,8 +78,6 @@ CPlayer::~CPlayer() {
     knownObjects_.Destroy();
     if (link_ != nullptr) link_->Release();
 }
-EI_REWRITTEN_SPECIAL(0x00664E20, CPlayer::~CPlayer);
-EI_REWRITTEN_SPECIAL(0x00664E00, CPlayer::~CPlayer);
 
 // The message dispatchers' fatal error: `format` ("... prevID=%x
 // curID=%x") with the previous and the current message type (their low bytes; the callers set
@@ -91,18 +87,14 @@ int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, st
     text = str::Format(format, previous & 0xFF, type & 0xFF);
     return game::FatalError(text.c_str());
 }
-EI_REWRITTEN(0x00664B70, PlayerMessageError);
 
 const char* CPlayer::GetClassName() { return "CPlayer"; }
-EI_REWRITTEN(0x00664DE0, CPlayer::GetClassName);
 int CPlayer::GetClassId() { return 0xF; }
-EI_REWRITTEN(0x00664DF0, CPlayer::GetClassId);
 
 BOOL CPlayer::CreatePlayer() {
     DestroyPlayer();
     return 1;
 }
-EI_REWRITTEN(0x00665010, CPlayer::CreatePlayer);
 
 void CPlayer::DestroyPlayer() {
     recharging_.RemoveAll();
@@ -125,9 +117,6 @@ void CPlayer::DestroyPlayer() {
     sessionKind100_ = 0;
     lastScreen_ = 0;
 }
-EI_REWRITTEN(0x006650E0, CPlayer::DestroyPlayer);
-
-EI_REWRITTEN(0x00665380, CPlayer::DestroyPlayer);
 
 void CPlayer::Clear() {
     for (auto* node = items_.head; node != nullptr;) {
@@ -149,7 +138,6 @@ void CPlayer::Clear() {
     recharging_.RemoveAll();
     if (connection_ != nullptr) connection_->ForgetSentObjects();
 }
-EI_REWRITTEN(0x00665200, CPlayer::Clear);
 
 void CPlayer::SetConnection(CPlayerConnection* connection) {
     if (connection_ != nullptr) {
@@ -162,10 +150,8 @@ void CPlayer::SetConnection(CPlayerConnection* connection) {
         ++connection_->refCount_;
     }
 }
-EI_REWRITTEN(0x00665950, CPlayer::SetConnection);
 
 void CPlayer::SetPlayerId(int id) { playerId_ = id; }
-EI_REWRITTEN(0x00665A60, CPlayer::SetPlayerId);
 
 namespace {
 
@@ -190,7 +176,6 @@ void CPlayer::Connect(netlink::NetLink* link) {
     if (link != nullptr) ++link->refs_;
     connection_->ResetState();
 }
-EI_REWRITTEN(0x00665990, CPlayer::Connect);
 
 void CPlayer::Disconnect() {
     if (link_ != nullptr) connection_->Leave();
@@ -198,7 +183,6 @@ void CPlayer::Disconnect() {
     if (link_ != nullptr) link_->Disconnect();
     DropLink(link_);
 }
-EI_REWRITTEN(0x00665A10, CPlayer::Disconnect);
 
 void CPlayer::ForgetKnownObjects() {
     ReleaseEach(knownTimed_);
@@ -208,14 +192,12 @@ void CPlayer::ForgetKnownObjects() {
     if (connection_ != nullptr) connection_->ForgetSentObjects();
     dirty_ = 0xFFFFFFFFu;
 }
-EI_REWRITTEN(0x006651D0, CPlayer::ForgetKnownObjects);
 
 BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     const PartyMemberArray& members = Party()->members_;
     if (members.size == 0 || unit == nullptr) return 0;
     return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
-EI_REWRITTEN(0x00665440, CPlayer::IsLeader);
 
 void CPlayer::GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag) {
     connection_->ItemsGiven(items, flag);
@@ -226,14 +208,12 @@ void CPlayer::GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag) {
         items_.AddTail(item);
     }
 }
-EI_REWRITTEN(0x00665470, CPlayer::GiveItems);
 
 void CPlayer::TakeAllItems() {
     connection_->ItemsTaken();
     while (items_.count != 0) items_.RemoveHead()->Release();
     items_.RemoveAll();
 }
-EI_REWRITTEN(0x00665550, CPlayer::TakeAllItems);
 
 BOOL CPlayer::HasLoot(int kind) {
     for (auto* node = items_.head; node != nullptr; node = node->next)
@@ -245,7 +225,6 @@ BOOL CPlayer::HasLoot(int kind) {
     }
     return 0;
 }
-EI_REWRITTEN(0x00665640, CPlayer::HasLoot);
 
 namespace {
 
@@ -270,12 +249,10 @@ BOOL CPlayer::TakeLoot(int kind) {
         return item->type_ == kItemQuest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
-EI_REWRITTEN(0x00665780, CPlayer::TakeLoot);
 
 BOOL CPlayer::TakeItem(int id) {
     return TakeFirst(this, [id](CItem* item) { return item->id_ == id; });
 }
-EI_REWRITTEN(0x00665870, CPlayer::TakeItem);
 
 void CPlayer::AddUnit(CUnit* unit) {
     if (unit == nullptr) return;
@@ -286,7 +263,6 @@ void CPlayer::AddUnit(CUnit* unit) {
     units_[id] = unit;
     connection_->UnitChanged(unit);
 }
-EI_REWRITTEN(0x00665A70, CPlayer::AddUnit);
 
 void CPlayer::RemoveUnit(CUnit* unit) {
     if (unit == nullptr) return;
@@ -296,20 +272,17 @@ void CPlayer::RemoveUnit(CUnit* unit) {
     unit->Release();
     connection_->UnitChanged(unit);
 }
-EI_REWRITTEN(0x00665B50, CPlayer::RemoveUnit);
 
 void CPlayer::ItemUsed(CEngineObject* item) {
     std::uint32_t id = static_cast<std::uint32_t>(item->id_);
     if (recharging_.Find(id) == nullptr) recharging_.AddTail(id);
     connection_->ItemUsed(item);
 }
-EI_REWRITTEN(0x00665BE0, CPlayer::ItemUsed);
 
 CParty* CPlayer::AssignParty(CParty* source) {
     recharging_.RemoveAll();
     return Party()->Assign(source);
 }
-EI_REWRITTEN(0x00665CC0, CPlayer::AssignParty);
 
 void CPlayer::ReleaseTamedUnits() {
     // The walk goes on from the node of a unit that has just left (and been erased), as the original's does.
@@ -318,4 +291,3 @@ void CPlayer::ReleaseTamedUnits() {
         if (unit->Controller()->TamingStage() != 0) unit->SetPlayer(nullptr);
     }
 }
-EI_REWRITTEN(0x00665D20, CPlayer::ReleaseTamedUnits);

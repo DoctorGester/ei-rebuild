@@ -4,7 +4,6 @@
 #include "options.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -394,7 +393,6 @@ void GameOptions::LoadFromRegistry(const char* path) {
     key.Close();
     key.Destroy();
 }
-EI_REWRITTEN(0x0045B210, GameOptions::LoadFromRegistry);
 
 void GameOptions::SaveToRegistry(const char* path) {
     std::string resolution;
@@ -429,6 +427,5 @@ void GameOptions::SaveToRegistry(const char* path) {
     key.Close();
     key.Destroy();
 }
-EI_REWRITTEN(0x0045C560, GameOptions::SaveToRegistry);
 
 } // namespace options

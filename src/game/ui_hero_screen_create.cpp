@@ -17,7 +17,6 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -369,4 +368,3 @@ void CMpHeroScreen::CreateScreen() {
     // Rebirth's WideScreen: the curtains, hidden (sprites 19, 20).
     widescreen::AddCurtains(this, 0);
 }
-EI_REWRITTEN(0x00613EA0, CMpHeroScreen::CreateScreen);

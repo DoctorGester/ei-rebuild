@@ -12,7 +12,6 @@
 #include "effects.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_list.h"
 #include "game_lists.h"
 #include "game_singletons.h"
@@ -219,6 +218,3 @@ void CWorldServer::LootDeadUnits() {
     }
     for (IdList::Node* id = dead.Begin(); id != dead.End(); id = id->next) TheServerWorld()->RemoveObject(id->value);
 }
-
-EI_REWRITTEN(0x005942D0, CWorldServer::Loot);
-EI_REWRITTEN(0x00593D60, CWorldServer::LootDeadUnits);

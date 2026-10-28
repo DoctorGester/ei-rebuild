@@ -9,8 +9,6 @@
 #include "quest_records.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
-
 #include <initializer_list>
 #include <new>
 
@@ -23,7 +21,6 @@ SkillDatabase* SkillDatabase::Construct() {
     new (&levels) stlp::vector<SkillLevelRecord>();
     return this;
 }
-EI_REWRITTEN(0x0051FB10, SkillDatabase::Construct);
 
 namespace itemdb {
 
@@ -60,9 +57,6 @@ ItemDatabase* ItemDatabase::Construct() {
 
 } // namespace itemdb
 
-EI_REWRITTEN(0x0057E2F0, itemdb::SpellDatabase::Construct);
-EI_REWRITTEN(0x0057E3D0, itemdb::ItemDatabase::Construct);
-
 QuestDatabase* QuestDatabase::Construct() {
     new (&quests) stlp::vector<QuestRecord>();
     questsByName.InitBuckets(kBuckets);
@@ -70,7 +64,6 @@ QuestDatabase* QuestDatabase::Construct() {
     briefings.index.InitBuckets(kBuckets);
     return this;
 }
-EI_REWRITTEN(0x006AE0F0, QuestDatabase::Construct);
 
 PrintsDatabase* PrintsDatabase::Construct() {
     new (&blood) stlp::vector<PrintRecord>();
@@ -81,7 +74,6 @@ PrintsDatabase* PrintsDatabase::Construct() {
     scorchByName.InitBuckets(kBuckets);
     return this;
 }
-EI_REWRITTEN(0x006D0250, PrintsDatabase::Construct);
 
 namespace acks {
 
@@ -96,5 +88,3 @@ AckDatabase* AckDatabase::Construct() {
 }
 
 } // namespace acks
-
-EI_REWRITTEN(0x006D7220, acks::AckDatabase::Construct);

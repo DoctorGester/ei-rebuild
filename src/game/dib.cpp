@@ -2,7 +2,6 @@
 // reader and writer are in dib_file.cpp.
 #include "dib.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_runtime_class.h"
 #include "lib/mfc_state.h"
@@ -27,7 +26,6 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
 }
 
 void* __stdcall CreateDib() { return new CDib(); }
-EI_REWRITTEN(0x006D49E0, CreateDib);
 
 using mfc::impl::CRuntimeClass;
 using mfc::impl::kClassCObject;
@@ -38,7 +36,6 @@ constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib,
 } // namespace
 
 void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
-EI_REWRITTEN(0x006D4A70, LinkDibClass);
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
@@ -61,26 +58,20 @@ CDib::CDib() {
     palette = nullptr;
     Empty();
 }
-EI_REWRITTEN_SPECIAL(0x006D4AA0, CDib::CDib);
 
 CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     Create(width, height, bitCount, red, green, blue);
 }
-EI_REWRITTEN_SPECIAL(0x006D4B30, CDib::CDib);
 
 CDib::~CDib() { Empty(); }
-EI_REWRITTEN_SPECIAL(0x006D4CD0, CDib::~CDib);
-EI_REWRITTEN_SPECIAL(0x006D4B10, CDib::~CDib);
 
 const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
-EI_REWRITTEN(0x006D4A60, CDib::GetRuntimeClass);
 
 void CDib::Serialize(mfc::CArchive* archive) {
     archive->Flush();
     if (archive->IsLoading()) Read(archive->File());
     else Write(archive->File());
 }
-EI_REWRITTEN(0x006D5BB0, CDib::Serialize);
 
 void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     // What Empty looks at (the constructor above leaves the object raw).
@@ -117,7 +108,6 @@ void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::u
     std::memset(colours, 0, static_cast<std::size_t>(colourCount) * sizeof(RGBQUAD));
     bits = nullptr;
 }
-EI_REWRITTEN(0x006D4BA0, CDib::Create);
 
 void CDib::Empty() {
     if (file) {
@@ -151,7 +141,6 @@ void CDib::Empty() {
     palette = nullptr;
     maskBytes = 0;
 }
-EI_REWRITTEN(0x006D69B0, CDib::Empty);
 
 SIZE* CDib::Size(SIZE* out) const {
     if (!header) {
@@ -163,7 +152,6 @@ SIZE* CDib::Size(SIZE* out) const {
     out->cy = header->biHeight;
     return out;
 }
-EI_REWRITTEN(0x006D4D10, CDib::Size);
 
 int CDib::MakePalette() {
     if (colourCount == 0) return 0;
@@ -184,7 +172,6 @@ int CDib::MakePalette() {
     gamecrt::operator_delete(description);
     return 1;
 }
-EI_REWRITTEN(0x006D54D0, CDib::MakePalette);
 
 std::uint8_t* CDib::AllocateBits() {
     if (header) {
@@ -195,4 +182,3 @@ std::uint8_t* CDib::AllocateBits() {
     }
     return bits;
 }
-EI_REWRITTEN(0x006D6AB0, CDib::AllocateBits);

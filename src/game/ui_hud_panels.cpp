@@ -10,7 +10,6 @@
 #include "party.h"
 #include "player_client.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -95,7 +94,6 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
         break;
     }
 }
-EI_REWRITTEN(0x006477E0, CHudUnitPanel::ShowHealth);
 
 void CHudUnitPanel::ShowParts(CUnit* unit) {
     // Label positions of the six parts.
@@ -130,7 +128,6 @@ void CHudUnitPanel::ShowParts(CUnit* unit) {
                       part.kind == 1 ? kRed : kTextColour, 1, 1);
     }
 }
-EI_REWRITTEN(0x00647B70, CHudUnitPanel::ShowParts);
 
 // --- Movement panel ------------------------------------------------------------------------------
 
@@ -155,7 +152,6 @@ void CHudMovePanel::ToggleFlag() {
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
     Sprite(this, 5)->textureOffsetU_ = value == 0 ? 0.3359375f : 0.0f;
 }
-EI_REWRITTEN(0x00649810, CHudMovePanel::ToggleFlag);
 
 // --- Unit panel: the effects on the unit -----------------------------------------------
 
@@ -233,7 +229,6 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         icon->textureOffsetV_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
     }
 }
-EI_REWRITTEN(0x00646B90, CHudUnitPanel::ShowEffects);
 
 // --- Unit panel: the body part buttons -------------------------------------------------
 
@@ -248,7 +243,6 @@ void CHudUnitPanel::ShowBodyPart() {
         button->tint_[2] = tint;
     }
 }
-EI_REWRITTEN(0x006481D0, CHudUnitPanel::ShowBodyPart);
 
 // --- Top panel -----------------------------------------------------------------------------------
 
@@ -270,7 +264,6 @@ void CHudTopPanel::ShowPage() {
         log->SetPosition(0);
     }
 }
-EI_REWRITTEN(0x0064A320, CHudTopPanel::ShowPage);
 
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
@@ -320,7 +313,6 @@ void CHudTopPanel::ShowItems() {
     }
     merged.RemoveAll();
 }
-EI_REWRITTEN(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
     // Place is Rebirth-patched.
@@ -337,4 +329,3 @@ void CHudTopPanel::Layout() {
         regions_.data[i]->offsetY_ = -offset_;
     }
 }
-EI_REWRITTEN(0x00649E20, CHudTopPanel::Layout);

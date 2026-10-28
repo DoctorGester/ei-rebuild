@@ -1,7 +1,6 @@
 // MFC 4.2's CArchive buffer and string operators, registered at their library addresses (mfc_archive.h).
 #include "mfc_archive.h"
 
-#include "ei/hook.h"
 #include "gameapi.h"
 
 #include <cstring>
@@ -278,17 +277,4 @@ int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
     return written;
 }
 
-EI_REWRITTEN(0x007089D1, CArchive::Flush);
-EI_REWRITTEN(0x00708A4D, CArchive::FillBuffer);
-EI_REWRITTEN(0x006E6214, CArchive::StoreByte);
-EI_REWRITTEN(0x006E6237, CArchive::StoreWord);
-EI_REWRITTEN(0x006E625E, CArchive::StoreDword);
-EI_REWRITTEN(0x006E6284, CArchive::LoadByte);
-EI_REWRITTEN(0x006E62B3, CArchive::LoadWord);
-EI_REWRITTEN(0x006E62E6, CArchive::LoadDword);
-EI_REWRITTEN(0x007084C0, ReadStringLength);
-EI_REWRITTEN(0x00708447, StoreText);
-EI_REWRITTEN(0x00708517, LoadText);
-EI_REWRITTEN(0x00700B20, CString::AssignWide);
-EI_REWRITTEN(0x00700F63, WideToMultiByte);
 } // namespace mfc::impl

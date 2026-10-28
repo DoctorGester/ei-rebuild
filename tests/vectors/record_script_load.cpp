@@ -157,7 +157,7 @@ BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWor
 
 } // namespace
 
-EI_RECORD(0x004CF4D0, ExpectRecord, 6, s_expect);
-EI_RECORD(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction);
-EI_RECORD(0x004D1330, LoadCommandsRecord, 7, s_loadCommands);
-EI_RECORD(0x004D23A0, LoadRecord, 7, s_load);
+EI_RECORD(0x004CF4D0, ExpectRecord, 6, s_expect, CScript::ExpectLexeme);
+EI_RECORD(0x004CFBC0, LoadFunctionRecord, 7, s_loadFunction, CScript::LoadFunction);
+EI_RECORD(0x004D1330, LoadCommandsRecord, 7, s_loadCommands, CScript::LoadCommands);
+EI_RECORD(0x004D23A0, LoadRecord, 7, s_load, CScript::Load);

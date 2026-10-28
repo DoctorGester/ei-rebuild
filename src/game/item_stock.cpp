@@ -13,7 +13,6 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "../lib/stlp_pair.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/stlp_hash.h"
@@ -228,22 +227,15 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
     }
     candidates.Finish() = candidates.begin();
 }
-EI_REWRITTEN(0x0069AE20, ItemStock::GenerateItems);
-
 
 void ItemStock::SetLevels(const float* base, const float* scroll) {
     for (int i = 0; i < 8; ++i) baseLevels[i] = base[i];
     for (int i = 0; i < 8; ++i) scrollLevels[i] = scroll[i];
 }
-EI_REWRITTEN(0x00699410, ItemStock::SetLevels);
 
 void ItemStock::GenerateWeapons(int minCount, int maxCount, StockList* out) { GenerateItems(&weapons, minCount, maxCount, out, 0); }
-EI_REWRITTEN(0x0069B570, ItemStock::GenerateWeapons);
 void ItemStock::GenerateArmors(int minCount, int maxCount, StockList* out) { GenerateItems(&armors, minCount, maxCount, out, 1); }
-EI_REWRITTEN(0x0069B550, ItemStock::GenerateArmors);
 void ItemStock::GenerateQuickItems(int minCount, int maxCount, StockList* out) { GenerateItems(&quickItems, minCount, maxCount, out, 2); }
-EI_REWRITTEN(0x0069B590, ItemStock::GenerateQuickItems);
-
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     CItemConstructor* ctor = ConstructorOf(this);
@@ -272,8 +264,6 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     }
     taken.Finish() = taken.begin();
 }
-EI_REWRITTEN(0x0069A110, ItemStock::GenerateMaterials);
-
 
 namespace {
 
@@ -312,21 +302,17 @@ void ItemStock::GenerateWeaponInstructions(int minCount, int maxCount, StockList
     GenerateInstructions(this, weapons, game::InstructionWeaponText(), itemdb::TheItemDatabase().weapons, nullptr, minCount,
                          maxCount, out);
 }
-EI_REWRITTEN(0x00699810, ItemStock::GenerateWeaponInstructions);
 
 void ItemStock::GenerateArmorInstructions(int minCount, int maxCount, StockList* out) {
     GenerateInstructions(this, armors, game::InstructionArmorText(), itemdb::TheItemDatabase().armors, nullptr, minCount,
                          maxCount, out);
 }
-EI_REWRITTEN(0x006995E0, ItemStock::GenerateArmorInstructions);
 
 // Quick items named "scroll" get no instruction.
 void ItemStock::GenerateQuickItemInstructions(int minCount, int maxCount, StockList* out) {
     GenerateInstructions(this, quickItems, game::InstructionQuickItemText(), itemdb::TheItemDatabase().quickItems,
                          game::ScrollText(), minCount, maxCount, out);
 }
-EI_REWRITTEN(0x00699A40, ItemStock::GenerateQuickItemInstructions);
-
 
 namespace {
 
@@ -399,7 +385,6 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         }
     }
 }
-EI_REWRITTEN(0x0069A480, ItemStock::FillSpellMaps);
 
 void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigned threshold) {
     CSpellManager* spellManager = PartyOf(this)->SpellManager();
@@ -462,8 +447,6 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
     ClearModifierList(chosen);
     if (chosen.head) stlp::deallocate(chosen.head, sizeof(SpellModifierNode));
 }
-EI_REWRITTEN(0x0069A780, ItemStock::GenerateSpells);
-
 
 namespace {
 
@@ -544,8 +527,6 @@ void ItemStock::LoadLists(CStream* stream) {
     LoadMapped(stream, name, count, stock::SpellsByName(), spells);
     LoadMapped(stream, name, count, stock::ModifiersByName(), modifiers);
 }
-EI_REWRITTEN(0x0069B5B0, ItemStock::LoadLists);
-
 
 namespace {
 
@@ -588,8 +569,6 @@ void ItemStock::SaveLists(CStream* out) {
         WriteText(out, text);
     }
 }
-EI_REWRITTEN(0x0069BAC0, ItemStock::SaveLists);
-
 
 void ItemStock::ResetMaterialUnits() {
     for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
@@ -597,14 +576,11 @@ void ItemStock::ResetMaterialUnits() {
         if (e->maxCount > e->minCount) e->left = RandomCount(e->minCount, e->maxCount);
     }
 }
-EI_REWRITTEN(0x006993B0, ItemStock::ResetMaterialUnits);
 
 void ItemStock::CopyMagic(const ItemStock* other) {
     if (&other->spells != &spells) AssignPointers(spells, other->spells);
     if (&other->modifiers != &modifiers) AssignPointers(modifiers, other->modifiers);
 }
-EI_REWRITTEN(0x00699440, ItemStock::CopyMagic);
-
 
 namespace {
 
@@ -652,13 +628,10 @@ void GenerateMagicInstructions(ItemStock* stock, const stlp::vector<Record*>& so
 void ItemStock::GenerateSpellInstructions(int minCount, int maxCount, StockList* out) {
     GenerateMagicInstructions(this, spells, stock::TakenSpells(), game::PrototypeText(), SpellIndex, minCount, maxCount, out);
 }
-EI_REWRITTEN(0x00699C90, ItemStock::GenerateSpellInstructions);
 
 void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, StockList* out) {
     GenerateMagicInstructions(this, modifiers, stock::TakenModifiers(), game::RuneText(), ModifierIndex, minCount, maxCount, out);
 }
-EI_REWRITTEN(0x00699ED0, ItemStock::GenerateModifierInstructions);
-
 
 namespace {
 constexpr int kScrollTries = 10;
@@ -694,7 +667,6 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     }
     DestroySpellList(list);
 }
-EI_REWRITTEN(0x0069AC20, ItemStock::GenerateScrolls);
 
 // --- The stock's lists filled by the class template ------------------------------
 
@@ -715,11 +687,6 @@ void ItemStock::AddWeapon(itemdb::WeaponRecord* record) { AddUnlessPresent<itemd
 void ItemStock::AddQuickItem(itemdb::QuickItemRecord* record) { AddUnlessPresent<itemdb::ItemRecordHead>(quickItems, record); }
 void ItemStock::AddSpell(itemdb::SpellRecord* record) { AddUnlessPresent(spells, record); }
 void ItemStock::AddModifier(itemdb::SpellModifierRecord* record) { AddUnlessPresent(modifiers, record); }
-EI_REWRITTEN(0x00699080, ItemStock::AddArmor);
-EI_REWRITTEN(0x006990E0, ItemStock::AddWeapon);
-EI_REWRITTEN(0x00699140, ItemStock::AddQuickItem);
-EI_REWRITTEN(0x006991A0, ItemStock::AddSpell);
-EI_REWRITTEN(0x00699200, ItemStock::AddModifier);
 
 void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, int maxCount) {
     if (!record) return;
@@ -733,7 +700,6 @@ void ItemStock::AddMaterial(itemdb::MaterialRecordHead* record, int minCount, in
     entry->maxCount = maxCount;
     entry->left = maxCount;
 }
-EI_REWRITTEN(0x00699260, ItemStock::AddMaterial);
 
 // ---- The scratch vectors ---------------------------------------------------------------------------
 
@@ -752,9 +718,3 @@ void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
 void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
 void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }
 void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
-
-EI_REWRITTEN(0x00698E90, FreeTakenPrototypes);
-EI_REWRITTEN(0x00698EE0, FreeTakenSpells);
-EI_REWRITTEN(0x00698F30, FreeTakenModifiers);
-EI_REWRITTEN(0x00698F80, FreeCandidates);
-EI_REWRITTEN(0x00698FD0, FreeTakenMaterials);

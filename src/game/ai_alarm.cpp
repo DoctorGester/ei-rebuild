@@ -11,8 +11,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include "lib/crt_iostream.h"
 #include "game_data.h"
@@ -79,7 +77,6 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
 }
 
 void AIAlarm::Step(CUnitServer* owner) { StepAlarmOf(this, owner); }
-EI_REWRITTEN(0x005AEA80, AIAlarm::Step);
 
 // ---- The state's small members ----------------------------------------------------------
 
@@ -89,10 +86,8 @@ void AIAlarm::Reset() {
     active = 0;
     timer = 0;
 }
-EI_REWRITTEN(0x005AEA40, AIAlarm::Reset);
 
 void AIAlarm::Raise(int newLevel) { pending = newLevel > pending ? newLevel : pending; }
-EI_REWRITTEN(0x005AEA60, AIAlarm::Raise);
 
 void AIAlarm::Load(CStream* stream) {
     stream->Read(&level, 4);
@@ -100,7 +95,6 @@ void AIAlarm::Load(CStream* stream) {
     stream->Read(&active, 4);
     stream->Read(&timer, 4);
 }
-EI_REWRITTEN(0x005AEC40, AIAlarm::Load);
 
 void AIAlarm::Save(CStream* stream) {
     stream->Write(&level, 4);
@@ -109,4 +103,3 @@ void AIAlarm::Save(CStream* stream) {
     int steps = timer;   // keeps the original's copy of the last one
     stream->Write(&steps, 4);
 }
-EI_REWRITTEN(0x005AEC80, AIAlarm::Save);

@@ -4,7 +4,6 @@
 #include "resource_stream.h"
 #include "mod_folders.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -230,18 +229,6 @@ void CMappedResource::FreeAllFiles() {
     filesByName_.Clear();
 }
 
-EI_REWRITTEN(0x00674850, CResourceBase::FindEntry);
-EI_REWRITTEN_SPECIAL(0x00671280, CMappedResource::CMappedResource);
-EI_REWRITTEN(0x006714A0, CMappedResource::Destroy);           // patched by Rebirth: vanilla only
-EI_REWRITTEN_SPECIAL(0x006713A0, CMappedResource::~CMappedResource);   // deleting
-EI_REWRITTEN(0x00671730, CMappedResource::OpenResource);   // patched by Rebirth: installs in the vanilla launch only
-EI_REWRITTEN(0x00671A40, CMappedResource::OpenFromMemory);
-EI_REWRITTEN(0x00671AC0, CMappedResource::CloseResource);
-EI_REWRITTEN(0x00671B40, CMappedResource::GetFile);
-EI_REWRITTEN(0x00671E00, CMappedResource::CloseFile);
-EI_REWRITTEN(0x00672040, CMappedResource::FreeAllFiles);
-
-
 CMappedFile::CMappedFile() { Construct(); }
 
 CMappedFile* CMappedFile::Construct() {
@@ -371,13 +358,3 @@ void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) {
 bool CMMIOResource::CloseFile(void*) { return true; }
 
 void CMMIOResource::FreeAllFiles() {}
-
-EI_REWRITTEN(0x006756B0, CMappedFile::Construct);
-EI_REWRITTEN(0x006756D0, CMappedFile::Close);
-EI_REWRITTEN(0x00675720, CMappedFile::Close);
-EI_REWRITTEN(0x00675770, CMappedFile::Open);
-EI_REWRITTEN(0x00675A50, CMappedFile::Flush);
-EI_REWRITTEN(0x006724E0, CMMIOResource::OpenResource);
-EI_REWRITTEN(0x00672520, CMMIOResource::OpenFromMemory);
-EI_REWRITTEN(0x006725E0, CMMIOResource::GetFile);
-EI_REWRITTEN(0x00672640, CMMIOResource::CloseFile);

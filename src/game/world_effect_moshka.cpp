@@ -18,7 +18,6 @@
 #include "game_singletons.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
@@ -271,13 +270,3 @@ void CEffectMoshka::Follow(int objectId) {
 }
 
 int CEffectMoshka::Unpack(int, DeltaField*) { return 1; }
-
-EI_REWRITTEN_SPECIAL(0x0067C950, CEffectMoshka::CEffectMoshka);
-EI_REWRITTEN_SPECIAL(0x0067CAF0, CEffectMoshka::~CEffectMoshka);
-EI_REWRITTEN_SPECIAL(0x0067CAD0, CEffectMoshka::~CEffectMoshka);
-EI_REWRITTEN(0x0067CC90, CEffectMoshka::Reset);
-EI_REWRITTEN(0x0067CD70, CEffectMoshka::RunTick);
-EI_REWRITTEN(0x0067CD90, CEffectMoshka::FindPerch);
-EI_REWRITTEN(0x0067CEF0, CEffectMoshka::Update);
-EI_REWRITTEN(0x0067D420, CEffectMoshka::Follow);
-EI_REWRITTEN(0x0067D640, CEffectMoshka::Unpack);

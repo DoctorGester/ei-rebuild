@@ -8,8 +8,6 @@
 #include "model.h"
 #include "texture.h"
 
-#include "ei/hook.h"
-
 CTexture* CWorldClient::NewTexture(int type) {
     if (!textureManager_) return nullptr;
     return textureManager_->NewTextureOfType(type);
@@ -36,10 +34,3 @@ int CWorldClient::ReadWaterLevels(CStream* stream) {
 void CWorldServer::SetWaterLevel(int key, float target, int steps) {
     countdowns_.SetTarget(key, target, steps);
 }
-
-EI_REWRITTEN(0x005655D0, CWorldClient::NewTexture);
-EI_REWRITTEN(0x005655F0, CWorldClient::NewMaterial);
-EI_REWRITTEN(0x00565670, CWorldClient::SetCamera);
-EI_REWRITTEN(0x00566C10, CWorldClient::SetWorldValue);
-EI_REWRITTEN(0x005683B0, CWorldClient::ReadWaterLevels);
-EI_REWRITTEN(0x00593FA0, CWorldServer::SetWaterLevel);

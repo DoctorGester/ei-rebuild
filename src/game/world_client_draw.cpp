@@ -23,7 +23,6 @@
 #include "terrain.h"
 #include "texture.h"
 #include "device.h"
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -232,8 +231,6 @@ int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* que
     stlp::list<ScreenEntry>::Insert(queued->head, entry);
     return 1;
 }
-EI_REWRITTEN(0x0056A370, QueueScreenEntry);
-
 
 int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (multisampled, models sampled
@@ -340,14 +337,12 @@ int CWorldClient::Render() {
     render::EndWorld();
     return 1;
 }
-EI_REWRITTEN(0x00569E40, CWorldClient::Render);
 
 int CWorldClient::DrawLineLists() {
     for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
         node->value->Draw(ScenePipeline(), TheRenderDevice());
     return 1;
 }
-EI_REWRITTEN(0x00569D60, CWorldClient::DrawLineLists);
 
 // ---- The debug display's switches -------------------------------------------------------------------
 
@@ -361,26 +356,21 @@ void RemoveDebugLine(const char* key) { DebugInfoPanel()->Remove(key); }
 } // namespace
 
 void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
-EI_REWRITTEN(0x00569A10, CWorldClient::ShowFps);
 
 void CWorldClient::HideFps() {
     debugFlags_ &= ~kShowFps;
     RemoveDebugLine("FPS");
 }
-EI_REWRITTEN(0x00569A20, CWorldClient::HideFps);
 
 void CWorldClient::ShowRenderInfo() { debugFlags_ |= kShowRenderInfo; }
-EI_REWRITTEN(0x00569A40, CWorldClient::ShowRenderInfo);
 
 void CWorldClient::HideRenderInfo() {
     debugFlags_ &= ~kShowRenderInfo;
     RemoveDebugLine("triangles submitted");
     RemoveDebugLine("vertices submitted");
 }
-EI_REWRITTEN(0x00569A50, CWorldClient::HideRenderInfo);
 
 void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
-EI_REWRITTEN(0x00569A90, CWorldClient::ShowManagers);
 
 // Each manager's line is under its class name.
 void CWorldClient::HideManagers() {
@@ -391,18 +381,14 @@ void CWorldClient::HideManagers() {
     RemoveDebugLine(particleManager_->GetClassName());
     RemoveDebugLine(manager190_->GetClassName());
 }
-EI_REWRITTEN(0x00569AA0, CWorldClient::HideManagers);
 
 void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }
-EI_REWRITTEN(0x00569B10, CWorldClient::ShowWorldData);
 
 void CWorldClient::HideWorldData() {
     debugFlags_ &= ~kShowWorldData;
     RemoveDebugLine("Last Event");
     RemoveDebugLine("World Time");
 }
-EI_REWRITTEN(0x00569B20, CWorldClient::HideWorldData);
-
 
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;
@@ -619,4 +605,3 @@ int CWorldClient::DrawPass() {
     touchedModels.EraseRange<stlp::PlainElement<CMapObject*>>(touchedModels.begin(), touchedModels.end());
     return 1;
 }
-EI_REWRITTEN(0x0056AFE0, CWorldClient::DrawPass);

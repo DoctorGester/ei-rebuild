@@ -17,7 +17,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
@@ -126,7 +125,6 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetAtGrow(out->GetSize(), above.c_str());
     out->SetAtGrow(out->GetSize(), below.c_str());
 }
-EI_REWRITTEN(0x005F13A0, ItemDamageLists);
 
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
@@ -398,7 +396,6 @@ tail:
     }
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005EE760, CItemInfoPanel::DescribeItem);
 
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
@@ -436,7 +433,6 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005EFD90, CItemInfoPanel::DescribeMaterial);
 
 void CItemInfoPanel::DescribeBlueprint() {
     CItem* item = Item();
@@ -509,7 +505,6 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005F0370, CItemInfoPanel::DescribeBlueprint);
 
 void CItemInfoPanel::DescribeSpellRecord() {
     CItem* item = Item();
@@ -552,7 +547,6 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Wrapped(description, 4);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005F0B90, CItemInfoPanel::DescribeSpellRecord);
 
 void CItemInfoPanel::DescribeModifierRecord() {
     CItem* item = Item();
@@ -569,7 +563,6 @@ void CItemInfoPanel::DescribeModifierRecord() {
     w.Wrapped(description, 8);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005F1130, CItemInfoPanel::DescribeModifierRecord);
 
 void CItemInfoPanel::DescribeQuickItem() {
     CItem* item = Item();
@@ -588,7 +581,6 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Wrapped(description, 8);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005EF300, CItemInfoPanel::DescribeQuickItem);
 
 void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
@@ -673,7 +665,6 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     }
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005EF5D0, CItemInfoPanel::DescribeCarriedSpell);
 
 // --- The statistic under the mouse ----------------------------------------------------------
 
@@ -928,7 +919,6 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     }
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005F1590, CItemInfoPanel::DescribeStats);
 
 void CItemInfoPanel::ShowHelp(int topic) {
     ItemParty()->Clear(1, 0);
@@ -948,7 +938,6 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Wrapped(description, 16);
     w.Draw()->ReleaseDC();
 }
-EI_REWRITTEN(0x005F2910, CItemInfoPanel::ShowHelp);
 
 void CItemInfoPanel::Describe(CItem* item) {
     if (Item() && item) {
@@ -958,7 +947,6 @@ void CItemInfoPanel::Describe(CItem* item) {
     if (item) ItemParty()->AddItem(item, 0, 1);
     DescribeItem();
 }
-EI_REWRITTEN(0x005EE6C0, CItemInfoPanel::Describe);
 
 // --- Input side: the input virtuals (mouse, key down, key up) ------------------
 
@@ -969,10 +957,6 @@ void CItemInfoPanel::OnKeyDown(int key, int, int flags) {
 void CItemInfoPanel::OnKeyUp(int key, int, int) {
     if (key == VK_CONTROL && Item()) DescribeItem();
 }
-
-EI_REWRITTEN(0x005EE6B0, CItemInfoPanel::DescribeItem);
-EI_REWRITTEN(0x005EE640, CItemInfoPanel::OnKeyDown);
-EI_REWRITTEN(0x005EE680, CItemInfoPanel::OnKeyUp);
 
 CItemInfoPanel::CItemInfoPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {
     new (ItemParty()) CParty();
@@ -996,4 +980,3 @@ void CItemInfoPanel::Build(int x, int y) {
     }
     ItemParty()->Create();
 }
-EI_REWRITTEN(0x005EE440, CItemInfoPanel::Build);

@@ -2,7 +2,6 @@
 // UnitVitalsPacked). See unit.h.
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 
@@ -54,7 +53,6 @@ void UnitVitals::Reset() {
         pair.base = kZero;
     }
 }
-EI_REWRITTEN(0x00523370, UnitVitals::Reset);
 
 void UnitVitals::Pack(UnitVitalsPacked* out) {
     out->hitPoints = static_cast<std::int16_t>(RoundStored(hitPoints));
@@ -63,7 +61,6 @@ void UnitVitals::Pack(UnitVitalsPacked* out) {
     out->maxMana = static_cast<std::int16_t>(RoundStored(maxMana));
     for (int i = 0; i < 7; ++i) out->protection[i] = static_cast<std::int16_t>(RoundStored(protection[i].current));
 }
-EI_REWRITTEN(0x00522C50, UnitVitals::Pack);
 
 int UnitVitalsPacked::Reset() {
     spare00 = 0;
@@ -74,7 +71,6 @@ int UnitVitalsPacked::Reset() {
     for (std::int16_t& p : protection) p = 0;
     return 0;
 }
-EI_REWRITTEN(0x005233B0, UnitVitalsPacked::Reset);
 
 // --- UnitParams ------------------------------------------------------------------------------
 
@@ -84,7 +80,6 @@ int UnitParams::Reset() {
     for (UnitParamsSlot& slot : slots) slot.type = kResetSlotType;
     return 0;
 }
-EI_REWRITTEN(0x00523550, UnitParams::Reset);
 
 void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->experience = RoundStored(experience);
@@ -125,7 +120,6 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     std::memcpy(params->skillLevels, skillLevels, sizeof(params->skillLevels));
     params->flags = static_cast<std::uint8_t>(flags);
 }
-EI_REWRITTEN(0x00522CE0, UnitStats::Pack);
 
 // --- Resets ----------------------------------------------------------------------------------
 
@@ -161,7 +155,6 @@ int UnitStats::Reset() {
     flags = 0;
     return 0;
 }
-EI_REWRITTEN(0x005233E0, UnitStats::Reset);
 
 int UnitStats::ClearOuterLayers() {
     for (UnitStatSlot& slot : slots) {
@@ -174,4 +167,3 @@ int UnitStats::ClearOuterLayers() {
     }
     return 0;
 }
-EI_REWRITTEN(0x005232B0, UnitStats::ClearOuterLayers);

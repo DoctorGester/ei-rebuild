@@ -8,8 +8,7 @@ usage: python tools/ui_census_report.py [run folders or ui_census.csv files...]
               changes no hooked call explains (the source of docs/notes/ui-census.md)
 
 Call chains in the CSVs are code addresses: game.exe as is (named from config/functions.csv),
-E+offset in ei_hook.dll (named from build/verify/ei_hook.map, and given the game address the
-function replaces from the EI_REWRITTEN lines in src/), A+offset in addon.dll. The call site of a row
+E+offset in ei_hook.dll (named from build/verify/ei_hook.map), A+offset in addon.dll. The call site of a row
 is the first frame that is not MFC / library code and not one of the surface helpers (GetDC,
 DrawTextIn, the fills, the text extent); the helpers passed on the way are its "via". A run of the
 standalone image counts under its data's install (standalone: vanilla, standalone-rebirth: rebirth).
@@ -48,24 +47,6 @@ def load_game_functions():
     return [r[0] for r in rows], rows
 
 
-def load_replacements(bare_only=False):
-    """EI_REWRITTEN lines: function name -> game address. `bare_only`: the names
-    written without a class, as written (no aliases)."""
-    out = {}
-    short = collections.defaultdict(set)
-    pattern = re.compile(r'EI_REWRITTEN(?:_SPECIAL)?\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:~]+)\s*\)')
-    for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
-        for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
-            out.setdefault(m.group(2), int(m.group(1), 16))
-            short[m.group(2).split('::')[-1]].add(int(m.group(1), 16))
-    if bare_only:
-        return {name: address for name, address in out.items() if '::' not in name}
-    for name, addresses in short.items():   # a bare name only when it is not ambiguous
-        if len(addresses) == 1:
-            out.setdefault(name, next(iter(addresses)))
-    return out
-
-
 def plain_name(decorated):
     """?Name@Class@ns@@... -> ns::Class::Name (enough to read; no undname needed)."""
     if not decorated.startswith('?'):
@@ -84,15 +65,6 @@ class Resolver:
         map_path = os.path.join(ROOT, 'build', 'verify', 'ei_hook.map')
         self.syms = resolve_crash.load_map(map_path) if os.path.exists(map_path) else []
         self.offsets = [s[0] for s in self.syms]
-        self.replaced = load_replacements()
-        # A function of ours with a bare name (no class) is a rewrite only when EI_REWRITTEN names it
-        # so: the bare aliases of qualified names (Send for SessionBase::Send) would make every
-        # function called Send, a lambda in an anonymous namespace among them, the game's.
-        self.replaced_bare = load_replacements(bare_only=True)
-        self.our_names = {}
-        for name, address in self.replaced.items():
-            if '::' in name or address not in self.our_names:
-                self.our_names[address] = name
         self.cache = {}
 
     def frame(self, token):
@@ -109,7 +81,6 @@ class Resolver:
                     category = 'lib' if kind in ('lib', 'thunk') else 'game'
                     if start in WRAPPERS:
                         category = 'wrapper'
-                    name = self.our_names.get(start, name)
                     out = (f'{start:08X} {name}', start, category)
                 else:
                     out = (token, a, 'game')
@@ -118,21 +89,15 @@ class Resolver:
             i = bisect.bisect_right(self.offsets, off) - 1
             if i >= 0:
                 name = plain_name(self.syms[i][1])
-                game = (self.replaced if '::' in name else self.replaced_bare).get(name)
-                if game in WRAPPERS:
-                    out = (f'{game:08X} {self.our_names.get(game, name)}', game, 'wrapper')
-                elif game:
-                    out = (f'{game:08X} {self.our_names.get(game, name)}', game, 'ei')
-                else:
-                    out = (f'ei:{name}', None, 'helper' if HELPER_NAMES.search(name) else 'ei')
+                out = (f'ei:{name}', None, 'helper' if HELPER_NAMES.search(name) else 'ei')
         elif token.startswith('A+'):
             out = ('addon+' + token[2:], None, 'addon')
         self.cache[token] = out
         return out
 
     def site(self, chain):
-        """(site, via, rebirth): the first caller frame (with the rewritten or game function it lies in
-        when it is a helper of ours without a game address), the surface helpers before it, and whether
+        """(site, via, rebirth): the first caller frame (with the game function it lies in when it is a
+        helper of ours), the surface helpers before it, and whether
         addon code is involved."""
         tokens = [t for t in chain.split() if t and t != '?']
         via = []

@@ -5,8 +5,6 @@
 #include "combat.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
-
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -54,4 +52,3 @@ void CUnit::UpdateSizeClass() {
     // Only for a value above 1.5 (NaN not).
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }
-EI_REWRITTEN(0x00530570, CUnit::UpdateSizeClass);

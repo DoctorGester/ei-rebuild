@@ -9,7 +9,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -79,8 +78,3 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
     out->attackSpread = params->combat[2];
     out->ScaleForDifficulty(keyed);
 }
-EI_REWRITTEN(0x00538960, CUnitClientSpecific::GetAttackParams);
-
-// A second original of ScaleDamageByEffects (unit_vitals.cpp): a byte-for-byte copy, reached as a
-// method of the packed parameters.
-EI_REWRITTEN(0x005285D0, ScaleDamageByEffects);

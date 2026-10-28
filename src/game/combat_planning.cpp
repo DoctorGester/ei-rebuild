@@ -24,7 +24,6 @@
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -176,7 +175,6 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }
-EI_REWRITTEN(0x0054DF50, CUnitServer::FindUseSpot);
 
 // --- The time along a path until an action is possible -----------------------------------------
 
@@ -237,7 +235,6 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
     }
     return t;
 }
-EI_REWRITTEN(0x0054E250, CUnitServer::TimeUntilAction);
 
 // --- Planning an order's way ---------------------------------------------------------------------
 
@@ -326,7 +323,6 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     Shout(order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
     return ok;
 }
-EI_REWRITTEN(0x0054E600, CUnitServer::PlanOrderRoute);
 
 // --- A party unit's move -----------------------------------------------------------------------
 
@@ -373,4 +369,3 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     PlexFreeDataChain(lifted.blocks);
     lifted.blocks = nullptr;
 }
-EI_REWRITTEN(0x00554830, CUnitServer::PlanMove);

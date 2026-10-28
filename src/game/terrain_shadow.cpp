@@ -6,7 +6,6 @@
 #include "terrain_sector.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -111,7 +110,6 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     }
     return 1;
 }
-EI_REWRITTEN(0x006C92C0, Terrain::SunReaches);
 
 std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     if ((landscapeFlags & 4) == 0) return 0xFF;
@@ -134,4 +132,3 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     int amount = x87::fistp(static_cast<float>(depth / fade * 255.0f));
     return static_cast<std::uint8_t>(0xFF - static_cast<std::uint8_t>(amount));
 }
-EI_REWRITTEN(0x006CB020, Terrain::EdgeFade);

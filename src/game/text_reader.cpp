@@ -7,7 +7,6 @@
 
 #include "resource.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/str.h"
@@ -101,7 +100,6 @@ BOOL CTextManager::Open(const char* key) {
     text_ = text;
     return text && length_ != 0;
 }
-EI_REWRITTEN(0x004DEFC0, CTextManager::Open);
 
 BOOL CTextManager::OpenData(const char* key) {
     if (text_) {
@@ -119,10 +117,8 @@ BOOL __fastcall TextClose(CTextManager* self) {
     self->cursor_ = nullptr;
     return 1;
 }
-EI_REWRITTEN(0x004DF020, TextClose);
 
 int __fastcall TextCharCode(const char* p) { return CharCode(p); }
-EI_REWRITTEN(0x004DF4E0, TextCharCode);
 
 BOOL CTextManager::PeekWord(std::string* out) {
     const char* p = cursor_;
@@ -142,7 +138,6 @@ BOOL CTextManager::PeekWord(std::string* out) {
     }
     return 1;
 }
-EI_REWRITTEN(0x004DF770, CTextManager::PeekWord);
 
 BOOL __fastcall TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;
@@ -155,7 +150,6 @@ BOOL __fastcall TextSkipLine(CTextManager* self) {
     self->cursor_ = gamecrt::mbsinc(p);
     return 1;
 }
-EI_REWRITTEN(0x004DF6E0, TextSkipLine);
 
 BOOL __fastcall TextNextLine(CTextManager* self) {
     std::string word;
@@ -166,7 +160,6 @@ BOOL __fastcall TextNextLine(CTextManager* self) {
     }
     return 0;
 }
-EI_REWRITTEN(0x004DF510, TextNextLine);
 
 BOOL CTextManager::ReadLine(std::string* out, BOOL advance) {
     const char* p = cursor_;
@@ -181,7 +174,6 @@ BOOL CTextManager::ReadLine(std::string* out, BOOL advance) {
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REWRITTEN(0x004DF8D0, CTextManager::ReadLine);
 
 BOOL CTextManager::ReadToHash(std::string* out, BOOL advance) {
     const char* p = cursor_;
@@ -195,7 +187,6 @@ BOOL CTextManager::ReadToHash(std::string* out, BOOL advance) {
     if (advance) cursor_ = p;
     return 1;
 }
-EI_REWRITTEN(0x004DFB80, CTextManager::ReadToHash);
 
 BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
     std::string word;
@@ -230,7 +221,6 @@ BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
     if (advance) SkipToNextLine(this, kAfterRead, kInline);
     return 1;
 }
-EI_REWRITTEN(0x004DFCB0, CTextManager::Split);
 
 BOOL CTextManager::FindLine(const char* key) {
     std::vector<std::string> keyWords;
@@ -284,4 +274,3 @@ BOOL CTextManager::FindLine(const char* key) {
     }
     return 0;
 }
-EI_REWRITTEN(0x004DF030, CTextManager::FindLine);

@@ -1,6 +1,5 @@
 #include "random.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -33,7 +32,6 @@ std::uint32_t IsaacRandom::Next() {
     if (g_drawObserver) g_drawObserver(*this, value, _ReturnAddress());
     return value;
 }
-EI_REWRITTEN(0x004667F0, IsaacRandom::Next);
 
 namespace {
 // The 2^-32 scale of Range; its last bit is set (sic).
@@ -50,7 +48,6 @@ double Unsigned(std::uint32_t value) {
 float IsaacRandom::Range(float min, float max) {
     return static_cast<float>(Unsigned(Next()) * (max - min) * kRangeScale + min);
 }
-EI_REWRITTEN(0x00488970, IsaacRandom::Range);
 
 void IsaacRandom::Refill() {
     // One ISAAC step: mix a, produce memory and result words. `ind` reads memory_ at the byte
@@ -88,7 +85,6 @@ void IsaacRandom::Refill() {
     b_ = b;
     a_ = a;
 }
-EI_REWRITTEN(0x0049EE70, IsaacRandom::Refill);
 
 namespace {
 
@@ -145,7 +141,6 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     }
     return 0;
 }
-EI_REWRITTEN(0x0049F4B0, IsaacRandom::FindSeedFile);
 
 // The game opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
 // a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
@@ -193,7 +188,6 @@ void IsaacRandom::Seed() {
         for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(gamecrt::rand());
     }
 }
-EI_REWRITTEN(0x0049F660, IsaacRandom::Seed);
 
 namespace {
 
@@ -241,4 +235,3 @@ void IsaacRandom::Init() {
     count_ = 256;
     seeded_ = 1;
 }
-EI_REWRITTEN(0x0049F150, IsaacRandom::Init);

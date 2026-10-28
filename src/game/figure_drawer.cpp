@@ -6,7 +6,6 @@
 
 #include "world_class_slots.h"   // FigureClientSpecificClassName / ClassId
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -45,7 +44,6 @@ void FigureMeshDrawer::Animate(float time) {
         mesh_->textureOffsetV_ = 1.0f - static_cast<float>(frame / 8) * 0.25f;
     }
 }
-EI_REWRITTEN(0x005A7160, FigureMeshDrawer::Animate);
 
 // ---- Lifetime ---------------------------------------------------------------------------
 
@@ -56,29 +54,21 @@ FigureDrawerBase::FigureDrawerBase() {
 
 // The original's base clears the flags, then its inlined base part the mesh.
 FigureDrawerBase::~FigureDrawerBase() { mesh_ = nullptr; }
-EI_REWRITTEN_SPECIAL(0x005A70C0, FigureDrawerBase::~FigureDrawerBase);
-EI_REWRITTEN_SPECIAL(0x005A70A0, FigureDrawerBase::~FigureDrawerBase);   // deleting
 
 FigureMeshDrawer::FigureMeshDrawer() = default;
 
-EI_REWRITTEN_SPECIAL(0x005A7010, FigureMeshDrawer::FigureMeshDrawer);
-
 FigureMeshDrawer::~FigureMeshDrawer() { flags_ = 0; }
-EI_REWRITTEN_SPECIAL(0x005A7080, FigureMeshDrawer::~FigureMeshDrawer);
-EI_REWRITTEN_SPECIAL(0x005A7060, FigureMeshDrawer::~FigureMeshDrawer);   // deleting
 
 int FigureMeshDrawer::CreateDrawer() {
     flags_ = 0;
     spare30_ = Vector3{1.0f, 1.0f, 1.0f};
     return 1;
 }
-EI_REWRITTEN(0x005A70E0, FigureMeshDrawer::CreateDrawer);
 
 void FigureMeshDrawer::DestroyDrawer() {
     mesh_ = nullptr;
     flags_ = 0;
 }
-EI_REWRITTEN(0x005A7130, FigureMeshDrawer::DestroyDrawer);
 
 int FigureMeshDrawer::Create() { return CreateDrawer(); }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }

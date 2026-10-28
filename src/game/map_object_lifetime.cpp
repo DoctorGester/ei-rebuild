@@ -23,7 +23,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
@@ -88,7 +87,6 @@ void CObject3D::ClearBounds() {
 }
 
 CObject3D::CObject3D() { SetUpObject3D(); }
-EI_REWRITTEN_SPECIAL(0x00515BD0, CObject3D::CObject3D);
 
 void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
@@ -123,8 +121,6 @@ void CObject3D::SetUpObject3D() {
 
 // The name is destroyed after the body, then CEngineObject's part.
 CObject3D::~CObject3D() { TearDownObject3D(); }
-EI_REWRITTEN_SPECIAL(0x00515D70, CObject3D::~CObject3D);
-EI_REWRITTEN_SPECIAL(0x00515D50, CObject3D::~CObject3D);   // deleting
 
 void CObject3D::TearDownObject3D() {
     Destroy3D();
@@ -148,7 +144,6 @@ void CObject3D::TearDownObject3D() {
 
 
 CMapObject::CMapObject() { SetUpMapObject(); }
-EI_REWRITTEN_SPECIAL(0x0050E2D0, CMapObject::CMapObject);
 
 DeltaState::DeltaState() {
     fields_.Construct(recordarrays::DeltaFieldArrayClass::Vtable());
@@ -174,13 +169,6 @@ CMapObject::~CMapObject() {
     effects.vtable = const_cast<void*>(mfc::impl::EffectArrayClass::Vtable());
     effects.FreeData();
 }
-
-EI_REWRITTEN_SPECIAL(0x0050E660, CMapObject::~CMapObject);
-EI_REWRITTEN_SPECIAL(0x0050E560, CMapObject::~CMapObject);
-// The compiler's jump thunks to it (the standalone image has no code at them).
-EI_REWRITTEN_SPECIAL(0x00529B20, CMapObject::~CMapObject);
-EI_REWRITTEN_SPECIAL(0x00529B50, CMapObject::~CMapObject);
-
 
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
@@ -213,7 +201,6 @@ CUnit::CUnit() {
     player = nullptr;
     Reset();
 }
-EI_REWRITTEN_SPECIAL(0x0052E110, CUnit::CUnit);
 
 void CUnit::Reset() {
     scriptName.clear();
@@ -258,7 +245,6 @@ void CUnit::Reset() {
     MapObject()->NetState()->Reset();
     fightAtWill = 1;
 }
-EI_REWRITTEN(0x0052E5B0, CUnit::Reset);
 
 CUnit::~CUnit() {
     // The release-from-the-player virtual, called directly like the original (through the vtable's memory, not
@@ -273,22 +259,16 @@ CUnit::~CUnit() {
     mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(m->waypoints);
     mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(m->points);
 }
-EI_REWRITTEN_SPECIAL(0x0052E310, CUnit::~CUnit);
-EI_REWRITTEN_SPECIAL(0x0052E2A0, CUnit::~CUnit);   // deleting
-
 
 CMapObjectServer::CMapObjectServer() {
     vitals.Reset();
 }
-EI_REWRITTEN_SPECIAL(0x00515610, CMapObjectServer::CMapObjectServer);
 
 CMapObjectServer::~CMapObjectServer() {
     vitals.Reset();
     strings.clear();
     owner = nullptr;
 }
-EI_REWRITTEN_SPECIAL(0x00515720, CMapObjectServer::~CMapObjectServer);
-EI_REWRITTEN_SPECIAL(0x00515700, CMapObjectServer::~CMapObjectServer);
 
 CMapObjectClientSpecific::CMapObjectClientSpecific() {
     // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
@@ -306,7 +286,6 @@ CMapObjectClientSpecific::CMapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
 }
-EI_REWRITTEN_SPECIAL(0x00510450, CMapObjectClientSpecific::CMapObjectClientSpecific);
 
 CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateA = 0;
@@ -335,8 +314,6 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
         gamecrt::operator_delete(particles.data);
     }
 }
-EI_REWRITTEN_SPECIAL(0x00510560, CMapObjectClientSpecific::~CMapObjectClientSpecific);
-EI_REWRITTEN_SPECIAL(0x00510540, CMapObjectClientSpecific::~CMapObjectClientSpecific);
 
 // --- The server unit controller ---------------------------------------------------------------
 
@@ -371,5 +348,3 @@ CUnitServer::~CUnitServer() {
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());
 }
-EI_REWRITTEN_SPECIAL(0x00546230, CUnitServer::~CUnitServer);
-EI_REWRITTEN_SPECIAL(0x005460E0, CUnitServer::~CUnitServer);

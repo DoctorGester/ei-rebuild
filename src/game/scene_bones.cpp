@@ -14,7 +14,6 @@
 #include "../lib/containers.h"
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
@@ -181,7 +180,6 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
                          static_cast<double>(pivot.y), static_cast<double>(pivot.z));
     }
 }
-EI_REWRITTEN(0x004492F0, BuildBone);
 
 } // namespace scene
 

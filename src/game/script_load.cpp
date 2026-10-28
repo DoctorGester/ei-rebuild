@@ -13,7 +13,6 @@
 #include "lib/mfc_string.h"
 #include "record_arrays.h"
 
-#include "ei/hook.h"
 #include "game_arrays.h"
 #include "game_lists.h"
 #include "game_data.h"
@@ -155,7 +154,6 @@ template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004C2D40, ScriptNamedValues<float>::Load);
 
 template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
@@ -166,7 +164,6 @@ template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004C3200, ScriptNamedValues<std::string>::Load);
 
 // An object variable: the world's object with the saved id (FindObject), -1 = none. The old
 // reference is released after the lookup.
@@ -190,7 +187,6 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) 
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004C36B0, ScriptNamedValues<ScriptObjectRef>::Load);
 
 // A group variable: its size, the member ids (each assigned in place, missing objects stay null),
 // then sorted.
@@ -214,7 +210,6 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
         ScriptStringLoad(&names.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
 
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
 
@@ -249,20 +244,17 @@ void SSCCmd::Load(ScriptStream* stream) {
 
     calledScript = SavedScript()->FindBlock(ReadInt(stream));
 }
-EI_REWRITTEN(0x004B5FE0, SSCCmd::Load);
 
 void ScriptSubCall::Load(ScriptStream* stream) {
     stream->Read(&type, 4);
     stream->Read(&argIndex, 4);
     cmd->Load(stream);
 }
-EI_REWRITTEN(0x004B6330, ScriptSubCall::Load);
 
 void __fastcall ScriptStringLoad(std::string* out, ScriptStream* stream) {
     mfc::CString temporary(mfc::CString::kUnset);
     *out = stream->ReadString(&temporary)->GetString();
 }
-EI_REWRITTEN(0x004B3D10, ScriptStringLoad);
 
 // ---- Command blocks and if-then pairs --------------------------------------------------------------
 
@@ -272,7 +264,6 @@ void __fastcall ScriptDeclCommandsLoad(ScriptDecl* block, ScriptStream* stream) 
     InlineSetSize(Raw(&block->commands), count, kCmds);
     for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
 }
-EI_REWRITTEN(0x004C57C0, ScriptDeclCommandsLoad);
 
 // A definition's if-then pairs: the ids of the condition and command blocks, resolved in the
 // saved script's block lists (FindBlock). The first id defaults to -1 when the read leaves it.
@@ -288,7 +279,6 @@ void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream*
         pair->commands = FindBlock(id);
     }
 }
-EI_REWRITTEN(0x004CA000, ScriptIfThenLoad);
 
 // One pair of an instance (the instance loader calls it per pair): as ScriptIfThenLoad's loop.
 void ScriptIfThen::Load(ScriptStream* stream) {
@@ -298,7 +288,6 @@ void ScriptIfThen::Load(ScriptStream* stream) {
     stream->Read(&id, 4);   // the same variable: keeps the first id when the read leaves it
     commands = FindBlock(id);
 }
-EI_REWRITTEN(0x004BB590, ScriptIfThen::Load);
 
 // Negative ids are WorldScript blocks.
 ScriptDecl* CScript::FindBlock(int id) const {
@@ -310,7 +299,6 @@ ScriptDecl* CScript::FindBlock(int id) const {
     }
     return nullptr;
 }
-EI_REWRITTEN(0x004BFA50, CScript::FindBlock);
 
 // ---- ScriptVars::Load ------------------------------------------------------------------------------
 
@@ -366,7 +354,6 @@ void ScriptVars::Load(ScriptStream* stream) {
         ScriptStringLoad(&groupNames.data[i], stream);
     }
 }
-EI_REWRITTEN(0x004B3AD0, ScriptVars::Load);
 
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
 // list from the head (a list that was not empty would have its old nodes read again).
@@ -391,7 +378,6 @@ void __fastcall ScriptParticlesLoad(mfc::CList<ScriptParticleSource>* list, Scri
         stream->Read(&source->lifetime, 4);
     }
 }
-EI_REWRITTEN(0x004CA480, ScriptParticlesLoad);
 
 // FX sources: each node is filled by the FX source loader.
 void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStream* stream) {
@@ -413,7 +399,6 @@ void __fastcall ScriptFxSourcesLoad(mfc::CList<ScriptFxSource>* list, ScriptStre
         source->ScriptFxSourceLoad(stream);
     }
 }
-EI_REWRITTEN(0x004CA5D0, ScriptFxSourcesLoad);
 
 // Lightning: object, id.
 void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStream* stream) {
@@ -431,7 +416,6 @@ void __fastcall ScriptLightningLoad(mfc::CList<ScriptLightning>* list, ScriptStr
         stream->Read(&bolt->id, 4);
     }
 }
-EI_REWRITTEN(0x004CA720, ScriptLightningLoad);
 
 // WorldScript blocks: id, count, each SSCCmd.
 void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
@@ -455,7 +439,6 @@ void __fastcall ScriptWorldBlocksLoad(ScriptDecls* list, ScriptStream* stream) {
         for (int i = 0; i < block->commands.size; ++i) block->commands.data[i].Load(stream);
     }
 }
-EI_REWRITTEN(0x004CA810, ScriptWorldBlocksLoad);
 
 // Script instances: killed flag, name, parameter types, if-then pairs, variables.
 void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream) {
@@ -493,7 +476,6 @@ void __fastcall ScriptInstancesLoad(ScriptInstances* list, ScriptStream* stream)
         LoadVariables(&instance->vars, stream);
     }
 }
-EI_REWRITTEN(0x004CA980, ScriptInstancesLoad);
 
 // Runs: block id, index, ticks, sleep start, the index of its instance in the loading script's instance list
 // (-1 or out of range: none), vars.
@@ -538,7 +520,6 @@ void __fastcall ScriptRunsLoad(ScriptRuns* list, ScriptStream* stream) {
         run->vars.Load(stream);
     }
 }
-EI_REWRITTEN(0x004CAC00, ScriptRunsLoad);
 
 // ---- CScript::Load --------------------------------------------------------------------------------
 
@@ -596,4 +577,3 @@ void CScript::LoadState(ScriptStream* stream) {
         for (int k = 0; k < area->parts.size; ++k) stream->Read(&area->parts.data[k], sizeof(ScriptAreaPart));
     }
 }
-EI_REWRITTEN(0x004C0D00, CScript::LoadState);

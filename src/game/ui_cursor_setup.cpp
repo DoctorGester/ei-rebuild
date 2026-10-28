@@ -5,7 +5,6 @@
 
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -65,7 +64,6 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     AssignHolder(under_, NewSurface(device_, g_cursorWidth, g_cursorHeight));
     AssignHolder(target_, NewSurface(device_, g_cursorWidth * 2, g_cursorHeight * 2));
 }
-EI_REWRITTEN(0x005E60B0, CCursor::Init);
 
 void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     CursorImage* image = nullptr;
@@ -75,7 +73,6 @@ void CCursor::AddShape(const char* name, int hotX, int hotY, int flag) {
     }
     images_.Add(image);
 }
-EI_REWRITTEN(0x005E63F0, CCursor::AddShape);
 
 // --- The cursor's life cycle and state ---------------------------------------
 
@@ -99,7 +96,6 @@ void CursorImage::Destroy() {
     gamecrt::operator_delete(saved);
     if (holder) holder->Release();
 }
-EI_REWRITTEN(0x005E5160, CursorImage::Destroy);
 
 CCursor* CCursor::Construct() {
     device_ = nullptr;
@@ -113,7 +109,6 @@ CCursor* CCursor::Construct() {
     enabled_ = 0;
     return this;
 }
-EI_REWRITTEN(0x005E51C0, CCursor::Construct);
 
 void CCursor::DestroyBody() {
     gameapi::DeleteCriticalSection(&lock_);
@@ -122,7 +117,6 @@ void CCursor::DestroyBody() {
     if (under_) under_->Release();
     if (device_) device_->Release();
 }
-EI_REWRITTEN(0x005E4E00, CCursor::DestroyBody);
 
 // The cursor, zero at the start: built by the static initialiser in the list's order and destroyed by the exit
 // function it registers (docs/notes/standalone.md,
@@ -142,9 +136,6 @@ void __cdecl ConstructGameCursor() {
     g_cursor->Construct();
     libcrt::AtExit(DestroyGameCursor);
 }
-
-EI_REWRITTEN(0x005E4DD0, ConstructGameCursor);
-EI_REWRITTEN(0x005E4DF0, DestroyGameCursor);
 
 namespace {
 // The current image's current frame as the part shown.
@@ -167,7 +158,6 @@ int CCursor::ChangeShape(int shape) {
     gameapi::LeaveCriticalSection(&lock_);
     return previous;
 }
-EI_REWRITTEN(0x005E5200, CCursor::ChangeShape);
 
 void CCursor::ShowImage(int shown) {
     if (!enabled_) return;
@@ -175,7 +165,6 @@ void CCursor::ShowImage(int shown) {
     imageShown_ = shown;
     gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REWRITTEN(0x005E5270, CCursor::ShowImage);
 
 void CCursor::SetHeld(char held) {
     if (!enabled_) return;
@@ -183,17 +172,14 @@ void CCursor::SetHeld(char held) {
     held_ = static_cast<std::uint8_t>(held);
     gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REWRITTEN(0x005E67B0, CCursor::SetHeld);
 
 void CCursor::TakeLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::EnterCriticalSection(&lock_);
 }
-EI_REWRITTEN(0x005E65F0, CCursor::TakeLock);
 
 void CCursor::ReleaseLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::LeaveCriticalSection(&lock_);
 }
-EI_REWRITTEN(0x005E6610, CCursor::ReleaseLock);
 
 void CCursor::Start() {
     shape_ = 0;
@@ -207,7 +193,6 @@ void CCursor::Start() {
     stop_ = 0;
     thread_ = mfc::impl::AfxBeginThread(CursorThreadEntry, this, kThreadPriority, 0, 0, nullptr);
 }
-EI_REWRITTEN(0x005E6260, CCursor::Start);
 
 void CCursor::Shutdown() {
     if (thread_) {
@@ -240,7 +225,6 @@ void CCursor::Shutdown() {
     mode_ = 0;
     enabled_ = 0;
 }
-EI_REWRITTEN(0x005E62E0, CCursor::Shutdown);
 
 char CCursor::UpdatePosition() {
     // The frame: one step per 125 ms since frameTime_ (unsigned), wrapped by the frame count.
@@ -280,4 +264,3 @@ char CCursor::UpdatePosition() {
     position_ = point;
     return moved;
 }
-EI_REWRITTEN(0x005E52E0, CCursor::UpdatePosition);

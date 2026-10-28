@@ -18,7 +18,6 @@
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "ui_widescreen.h"
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -95,7 +94,6 @@ void CHudWeaponBar::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063C6D0, CHudWeaponBar::OnMouseDown);
 
 void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -111,13 +109,11 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     // No check for a missing local view here (like the original).
     if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
 }
-EI_REWRITTEN(0x0063C710, CHudWeaponBar::OnMouseUp);
 
 void CHudWeaponBar::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063C7D0, CHudWeaponBar::OnMouseMove);
 
 void CHudWeaponBar::Update() {
     CUnit* unit = unit_;
@@ -126,7 +122,6 @@ void CHudWeaponBar::Update() {
     selected_ = unit_->pendingWeapon;
     Highlight(selected_, 1);
 }
-EI_REWRITTEN(0x0063C600, CHudWeaponBar::Update);
 
 BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
     std::uint32_t alphaRef, alphaTest;
@@ -141,7 +136,6 @@ BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
     SetRenderState(interface_->renderer_, kRenderStateSpecular, 0);
     return 1;
 }
-EI_REWRITTEN(0x0063C4F0, CHudWeaponBar::Draw);
 
 // The three other panels draw the same way, with specular on (the draw virtual).
 namespace {
@@ -156,9 +150,6 @@ BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
 BOOL CHudQuickItems::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
 BOOL CHudSpellColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
 BOOL CHudActionColumn::Draw(CSceneRenderer* pass) { return DrawWithSpecular(this, pass); }
-EI_REWRITTEN(0x0063CDC0, CHudQuickItems::Draw);
-EI_REWRITTEN(0x0063F190, CHudSpellColumn::Draw);
-EI_REWRITTEN(0x0063FD50, CHudActionColumn::Draw);
 
 // --- Quick items -------------------------------------------------------------------------------
 
@@ -167,19 +158,16 @@ void CHudQuickItems::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063DAA0, CHudQuickItems::OnMouseDown);
 
 void CHudQuickItems::OnDoubleClick(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) < 0) return;
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063DAE0, CHudQuickItems::OnDoubleClick);
 
 void CHudQuickItems::OnMouseMove(int, int x, int y) {
     if (RegionItem(RegionAt(x, y)) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x0063E270, CHudQuickItems::OnMouseMove);
 
 void CHudQuickItems::Update() {
     std::string text;
@@ -191,7 +179,6 @@ void CHudQuickItems::Update() {
         regions_.data[i]->SetTipText(text.c_str());
     }
 }
-EI_REWRITTEN(0x0063D9D0, CHudQuickItems::Update);
 
 // --- Spell column ------------------------------------------------------------------------------
 
@@ -201,10 +188,8 @@ void CHudSpellColumn::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063F1E0, CHudSpellColumn::OnMouseDown);
 
 void CHudSpellColumn::OnDoubleClick(int buttons, int x, int y) { OnMouseDown(buttons, x, y); }
-EI_REWRITTEN(0x0063F220, CHudSpellColumn::OnDoubleClick);
 
 void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -216,13 +201,11 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     else
         Click(region);
 }
-EI_REWRITTEN(0x0063F260, CHudSpellColumn::OnMouseUp);
 
 void CHudSpellColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063F2D0, CHudSpellColumn::OnMouseMove);
 
 // --- Action column -----------------------------------------------------------------------------
 
@@ -232,7 +215,6 @@ void CHudActionColumn::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0063FDA0, CHudActionColumn::OnMouseDown);
 
 void CHudActionColumn::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -241,13 +223,11 @@ void CHudActionColumn::OnMouseUp(int, int x, int y) {
     handled_ = true;
     Select(region);
 }
-EI_REWRITTEN(0x0063FDE0, CHudActionColumn::OnMouseUp);
 
 void CHudActionColumn::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < count_) handled_ = true;
 }
-EI_REWRITTEN(0x0063FE40, CHudActionColumn::OnMouseMove);
 
 // --- Portraits ---------------------------------------------------------------------------------
 
@@ -293,7 +273,6 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         net::GameClient()->SendCommand(5, text);
     interface_->ActiveWindowAs<CBattleScreen>()->portraitMode_ = 0;
 }
-EI_REWRITTEN(0x00641CE0, CHudPortraits::OnMouseDown);
 
 void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (PortraitMode(interface_) != 0) return;
@@ -305,7 +284,6 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     // Rebirth's FixSpellSelfCasting patches SelectUnit.
     if (region < owner->party_.size) owner->SelectUnit(owner->party_[region], 0, 0);
 }
-EI_REWRITTEN(0x00641E20, CHudPortraits::OnMouseUp);
 
 void CHudPortraits::OnMouseMove(int, int x, int y) {
     int region = RegionAt(x, y);
@@ -318,7 +296,6 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
     }
     if (region >= 0 && region < count_) TheCursor()->SetShape(0);
 }
-EI_REWRITTEN(0x00641EA0, CHudPortraits::OnMouseMove);
 
 // --- Map ---------------------------------------------------------------------------------------
 
@@ -335,7 +312,6 @@ void CHudMap::OnMouseDown(int, int x, int y) {
     for (int i = 0; i < 2; ++i)
         SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
-EI_REWRITTEN(0x00645060, CHudMap::OnMouseDown);
 
 void CHudMap::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -391,12 +367,10 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x00645210, CHudMap::OnMouseUp);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00645610, CHudMap::OnMouseMove);
 
 // --- Unit panel --------------------------------------------------------------------------------
 
@@ -405,7 +379,6 @@ void CHudUnitPanel::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00648330, CHudUnitPanel::OnMouseDown);
 
 void CHudUnitPanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -425,18 +398,15 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
     }
     if (region >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00648370, CHudUnitPanel::OnMouseUp);
 
 void CHudUnitPanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x006484C0, CHudUnitPanel::OnMouseMove);
 
 BOOL CHudUnitPanel::OnWheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
     return 1;
 }
-EI_REWRITTEN(0x006484F0, CHudUnitPanel::OnWheel);
 
 // --- Clock -------------------------------------------------------------------------------------
 
@@ -445,7 +415,6 @@ void CHudClock::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00648D30, CHudClock::OnMouseDown);
 
 void CHudClock::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -477,12 +446,10 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x00648D70, CHudClock::OnMouseUp);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00649160, CHudClock::OnMouseMove);
 
 void CHudClock::OpenObjectives() {
     highlight_ = false;
@@ -491,7 +458,6 @@ void CHudClock::OpenObjectives() {
     window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 0);
     interface_->PushWindow(window, 1, 1);
 }
-EI_REWRITTEN(0x00648F10, CHudClock::OpenObjectives);
 
 // --- Movement panel ----------------------------------------------------------------------------
 
@@ -500,7 +466,6 @@ void CHudMovePanel::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x00649630, CHudMovePanel::OnMouseDown);
 
 void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -522,12 +487,10 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     }
     ShowModeVanilla(mode);
 }
-EI_REWRITTEN(0x00649670, CHudMovePanel::OnMouseUp);
 
 void CHudMovePanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x00649750, CHudMovePanel::OnMouseMove);
 
 void CHudMovePanel::ShowModeVanilla(int mode) {
     widescreen::EnterLeftPanel();    // addon's handler; another at the end
@@ -552,7 +515,6 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
     }
     widescreen::LeavePanel();
 }
-EI_REWRITTEN(0x00649910, CHudMovePanel::ShowModeVanilla);
 
 void CHudMovePanel::Update() {
     if (!TheClientWorld()->LocalView()) return;
@@ -579,7 +541,6 @@ void CHudMovePanel::Update() {
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
     std::memcpy(&SceneMesh(5)->textureOffsetU_, &bits, 4);
 }
-EI_REWRITTEN(0x00649550, CHudMovePanel::Update);
 
 // --- Top panel ---------------------------------------------------------------------------------
 
@@ -588,7 +549,6 @@ void CHudTopPanel::OnMouseDown(int, int x, int y) {
     handled_ = true;
     CaptureMouse();
 }
-EI_REWRITTEN(0x0064A1C0, CHudTopPanel::OnMouseDown);
 
 void CHudTopPanel::OnMouseUp(int, int x, int y) {
     if (!ReleaseMouse()) return;
@@ -612,18 +572,15 @@ void CHudTopPanel::OnMouseUp(int, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x0064A200, CHudTopPanel::OnMouseUp);
 
 void CHudTopPanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
 }
-EI_REWRITTEN(0x0064A2C0, CHudTopPanel::OnMouseMove);
 
 BOOL CHudTopPanel::OnWheel(int, int, int x, int y) {
     if (RegionAt(x, y) >= 0) handled_ = true;
     return 1;
 }
-EI_REWRITTEN(0x0064A2F0, CHudTopPanel::OnWheel);
 
 // --- CBattleScreen::SelectUnit --------------------------------------------------------
 
@@ -904,7 +861,6 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 }
-EI_REWRITTEN(0x00638EF0, CBattleScreen::SelectUnit);
 
 // --- The quick item panel's button release -------------------------------------------
 
@@ -953,7 +909,6 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     screen->pendingItem_ = -1;
     clearPanels(-1);
 }
-EI_REWRITTEN(0x0063DB20, CHudQuickItems::OnMouseUp);
 
 // --- The selected units ordered to a point -------------------------------------------
 
@@ -1014,4 +969,3 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     units.FreeData();
 }
-EI_REWRITTEN(0x00636F10, CBattleScreen::OrderAt);

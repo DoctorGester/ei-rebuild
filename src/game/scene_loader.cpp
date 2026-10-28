@@ -13,7 +13,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/mfc_coll.h"
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
@@ -540,13 +539,11 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArr
     for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&helpers->data[i]);
     return 1;
 }
-EI_REWRITTEN(0x00471B10, SceneInfo::Load);
 
 void FaceGroup::Assign(const FaceGroup* from) {
     name = from->name;
     faces.Copy(from->faces);
 }
-EI_REWRITTEN(0x00474C50, FaceGroup::Assign);
 
 // ---- Element constructors and destructors --------------------------------------------------
 
@@ -567,7 +564,6 @@ void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
         groups->faces.Construct();
     }
 }
-EI_REWRITTEN(0x00454DB0, FaceGroup::ConstructElements);
 
 void FaceGroup::Destruct() {
     faces.SetSize(0, -1);
@@ -582,7 +578,6 @@ void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups) {
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
     gamecrt::operator_delete(groups->data);
 }
-EI_REWRITTEN(0x00454CE0, FaceGroupArrayDestruct);
 
 void SceneNode::Destruct() {
     FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
@@ -594,7 +589,6 @@ void SceneNode::Destruct() {
     std::destroy_at(&parent);
     std::destroy_at(&name);
 }
-EI_REWRITTEN(0x004543E0, SceneNode::Destruct);
 
 // ---- Element constructors ------------------------------------------------------------------
 
@@ -636,9 +630,6 @@ SceneMesh::~SceneMesh() {
     positionBlocks.FreeData();
     spareBlocks098.FreeData();
 }
-
-EI_REWRITTEN_SPECIAL(0x00454830, SceneMesh::~SceneMesh);
-EI_REWRITTEN_SPECIAL(0x00454810, SceneMesh::~SceneMesh);   // deleting
 
 void InitSceneMesh(SceneMesh* p) { new (p) SceneMesh(); }
 
@@ -855,6 +846,5 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     std::memcpy(&u->Object3D()->localPosition_, offset, sizeof(offset));
     return 1;
 }
-EI_REWRITTEN(0x00446C10, LoadFakeUnitScene);
 
 } // namespace scene

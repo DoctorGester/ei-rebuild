@@ -11,7 +11,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>
@@ -52,7 +51,6 @@ void CObject3DClientSpecific::InvisiblePulse(float frames) {
     float value = Pulse(pulseClock, frames);
     for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = value;
 }
-EI_REWRITTEN(0x0051CC20, CObject3DClientSpecific::InvisiblePulse);
 
 void CObject3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
@@ -64,7 +62,6 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
         part->flags_ |= kPartTinted;
     }
 }
-EI_REWRITTEN(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
 
 void CUnitClientSpecific::AdvanceTime(float time) {
     float stored = time - lastTime;   // stored as a float
@@ -90,7 +87,6 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     CFigureAnimationState* state = unit->Object3D()->animation;
     if (state && unit->motionMode != kMotionPaused) state->Advance(step);
 }
-EI_REWRITTEN(0x00535B30, CUnitClientSpecific::AdvanceTime);
 
 void CUnitClientSpecific::RestartAnimation(float time) {
     if (unit->flags_ & kFlagFrozen) return;
@@ -125,7 +121,6 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     }
     lastTime = static_cast<float>(start);
 }
-EI_REWRITTEN(0x005352B0, CUnitClientSpecific::RestartAnimation);
 
 void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (unit->flags_ & kFlagFrozen) return;
@@ -149,4 +144,3 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     if (play) unit->Object3D()->animation->Play(animation);
     else unit->Object3D()->animation->Queue(animation);
 }
-EI_REWRITTEN(0x00535480, CUnitClientSpecific::StartIdleAnimation);

@@ -8,8 +8,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 
 namespace {
@@ -57,7 +55,6 @@ void CSpellEffect::Load(CStream* stream) {
     stream->Read(&position, 12);
     UpdateFootprint(static_cast<int>(Spell()->prototypeId_ >> 16), 1);
 }
-EI_REWRITTEN(0x0067E7D0, CSpellEffect::Load);
 
 void CSpellEffect::Save(CStream* stream) {
     stream->Write(&position, 12);
@@ -74,4 +71,3 @@ void CSpellEffect::Save(CStream* stream) {
     stream->Write(&flags, 4);
     stream->Write(&position, 12);
 }
-EI_REWRITTEN(0x0067E960, CSpellEffect::Save);

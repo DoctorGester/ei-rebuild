@@ -8,7 +8,6 @@
 #include "map_object_figures.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 #include <cmath>
@@ -58,7 +57,6 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
     out->z = object->localPosition_.z + object->bounds.boxMax.z;
     return out;
 }
-EI_REWRITTEN(0x00484B40, CParticleSource::PartPoint);
 
 Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     if (!object) {
@@ -85,7 +83,6 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
     out->z = rise + object->localPosition_.z;
     return out;
 }
-EI_REWRITTEN(0x00484C00, CParticleSource::AttachmentPoint);
 
 Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     CObject3D* object = attachedTo;
@@ -110,7 +107,6 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     out->z = object->bounds.center.z;
     return out;
 }
-EI_REWRITTEN(0x00485280, CParticleSource::AttachmentOffset);
 
 void CParticleSource::Attach(CObject3D* object) {
     CObject3D* old = attachedTo;
@@ -146,11 +142,9 @@ void CParticleSource::Attach(CObject3D* object) {
     AttachmentPoint(&point, attachedTo);
     origin = point;
 }
-EI_REWRITTEN(0x004849F0, CParticleSource::Attach);
 
 void CParticleSource::StopAndClear() {
     ReleaseAllParticles();
     flags_ &= ~5u;
     Attach(nullptr);
 }
-EI_REWRITTEN(0x00485380, CParticleSource::StopAndClear);

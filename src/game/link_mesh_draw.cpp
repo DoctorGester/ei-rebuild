@@ -11,7 +11,6 @@
 #include "material.h"            // CMaterial
 #include "texture.h"             // CTextureDevice, CPixelConverter
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "render/render.h"         // MeshChanged
@@ -176,7 +175,6 @@ bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::
     render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps
     return true;
 }
-EI_REWRITTEN(0x004F3AD0, CLinkMesh::FlatColours);
 
 // The arrays sized as above; the colours the part lit on the GPU keeps
 // (CMaterial::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
@@ -207,7 +205,6 @@ bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, C
     render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps
     return true;
 }
-EI_REWRITTEN(0x004F3870, CLinkMesh::LightPart);
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
@@ -215,26 +212,22 @@ int CLinkMesh::DrawPartMoved(const std::string* name, int flags, ColourArray* co
                              lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
-EI_REWRITTEN(0x004F3C60, CLinkMesh::DrawPartMoved);
 
 int CLinkMesh::DrawPart(const std::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                         std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
-EI_REWRITTEN(0x004F3FA0, CLinkMesh::DrawPart);
 
 int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                      ColourArray* colours, ColourArray* speculars,
                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
-EI_REWRITTEN(0x004F42D0, CLinkMesh::DrawPartMovedTextured);
 
 int CLinkMesh::DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                 ColourArray* colours, ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
-EI_REWRITTEN(0x004F4150, CLinkMesh::DrawPartTextured);
 
 // ---- 13 / 14: the shadow ---------------------------------------------------------------------------
 
@@ -250,7 +243,6 @@ int CLinkMesh::ProjectPart(const std::string* name, lib::AlignedArray<Vector3>* 
     pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;
 }
-EI_REWRITTEN(0x004F4680, CLinkMesh::ProjectPart);
 
 // The part's texture coordinates times 255 (as floats, rounded to the nearest integer), then every triangle's
 // corners - the projected point of the corner's position and the texture point of its coordinate - handed to
@@ -282,6 +274,3 @@ int CLinkMesh::RasterisePart(const std::string* name, const PixelPair* pixels, R
     }
     return r.vertices.count << 2;
 }
-EI_REWRITTEN(0x004F4850, CLinkMesh::RasterisePart);
-EI_REWRITTEN(0x004F4B30, FreeTexturePixels);
-EI_REWRITTEN(0x004F2B20, FreeMovedPackets);   // frees the moved packets at exit

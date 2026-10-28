@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "record_vectors.h"      // recordvec::SkillLevelVector
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -69,7 +68,6 @@ UnitModelRecord* UnitModelTable::FindByName(const char* name) {
     UnitModelRecord* record = byName[pairKey];
     return record;
 }
-EI_REWRITTEN(0x0053D240, UnitModelTable::FindByName);
 
 UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
     std::string key(name);
@@ -77,7 +75,6 @@ UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
     UnitLevelRecord* record = byName[pairKey];
     return record;
 }
-EI_REWRITTEN(0x0053D650, UnitLevelTable::FindByName);
 
 // --- The unit database ----------------------------------------------------------------------------
 
@@ -120,7 +117,6 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0053A200, UnitDatabase::Load);
 
 // --- The skill database ---------------------------------------------------------------------------
 
@@ -163,4 +159,3 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     }
     return 1;
 }
-EI_REWRITTEN(0x00520220, SkillDatabase::Load);

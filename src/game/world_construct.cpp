@@ -13,7 +13,6 @@
 #include "world_class_slots.h"
 #include "script.h"
 
-#include "ei/hook.h"
 #include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game/game_slots.h"
@@ -74,8 +73,6 @@ CWorldServer::CWorldServer() {
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ResetState();
 }
-EI_REWRITTEN_SPECIAL(0x00589ED0, CWorldServer::CWorldServer);
-
 
 CWorldClient::CWorldClient() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -128,7 +125,6 @@ CWorldClient::CWorldClient() {
     pausedTitle_ = "EvilIslands Paused";
     constant6E8_ = 0;
 }
-EI_REWRITTEN_SPECIAL(0x005612F0, CWorldClient::CWorldClient);
 
 // ---- The two worlds -------------------------------------------------------------------------------
 
@@ -153,8 +149,3 @@ void __cdecl ConstructClientWorld() {
     g_clientWorld.Construct();
     libcrt::AtExit(DestroyClientWorld);
 }
-
-EI_REWRITTEN(0x00589BE0, ConstructServerWorld);
-EI_REWRITTEN(0x00589C00, DestroyServerWorld);
-EI_REWRITTEN(0x00560620, ConstructClientWorld);
-EI_REWRITTEN(0x00560640, DestroyClientWorld);

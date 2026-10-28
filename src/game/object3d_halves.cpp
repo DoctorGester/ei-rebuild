@@ -15,7 +15,6 @@
 #include "texture.h"
 #include "world_data.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -50,7 +49,6 @@ std::uint32_t CObject3DClientSpecific::ShadowsShown() {
     if (setting <= 0) return static_cast<std::uint32_t>(setting) & 0xFFFFFF00u;
     return ShadowSwitchOf(object) != 0 ? 1u : 0u;
 }
-EI_REWRITTEN(0x0051E200, CObject3DClientSpecific::ShadowsShown);
 
 void CObject3DClientSpecific::ClearShadow() {
     vertices.SetSize(0, -1);
@@ -70,7 +68,6 @@ void CObject3DClientSpecific::ClearShadow() {
     bounds[0] = 0.0f;
     std::memset(&sphere, 0, 0x38);
 }
-EI_REWRITTEN(0x0051E280, CObject3DClientSpecific::ClearShadow);
 
 bool CObject3DClientSpecific::ShadowInView() {
     if (worlddata::ShadowSetting() <= 0 || ShadowSwitchOf(object) == 0) return false;
@@ -86,57 +83,36 @@ bool CObject3DClientSpecific::ShadowInView() {
     sphere.center.z = sphere.center.z - back.z;
     return side != kOutsideView;
 }
-EI_REWRITTEN(0x0051E300, CObject3DClientSpecific::ShadowInView);
-
-// The scene pipeline's pop (model.h; Draw and the decal projector call it).
-EI_REWRITTEN(0x0051C110, CTransformPipeline::PopMatrix);
 
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // Nothing is drawn; 0.
 int CObject3DSpecific::DrawParts(CSceneRenderer* /*context*/, tagRECT* /*dirty*/) { return 0; }
-EI_REWRITTEN(0x0051AC60, CObject3DSpecific::DrawParts);
 int CObject3DSpecific::DrawPartsShadow(CSceneRenderer*) { return 0; }
-EI_REWRITTEN(0x0051AC70, CObject3DSpecific::DrawPartsShadow);
 int CObject3DSpecific::BoundsContainPoint(const long*) { return 0; }
-EI_REWRITTEN(0x0051AC90, CObject3DSpecific::BoundsContainPoint);
 int CObject3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
-EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
-EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
 
 // --- The server half ---------------------------------------------------------------------------------
 
 // The base half's (the engine object's fields, no object). Deleting form: the base half's.
 CObject3DServer::CObject3DServer() {}
-EI_REWRITTEN_SPECIAL(0x0051F240, CObject3DServer::CObject3DServer);
 CObject3DServer::~CObject3DServer() {}
-EI_REWRITTEN_SPECIAL(0x0051F300, CObject3DServer::~CObject3DServer);
-EI_REWRITTEN_SPECIAL(0x0051F2E0, CObject3DServer::~CObject3DServer);
 
 // Slot 3: no object.
 int CObject3DServer::Create() { return 1; }
-EI_REWRITTEN(0x0051F320, CObject3DServer::Create);
 void CObject3DServer::Destroy() { object = nullptr; }
-EI_REWRITTEN(0x0051F330, CObject3DServer::Destroy);
 
 // Slots 11 / 12.
 const char* CObject3DServer::GetClassName() { return kServerClassName; }
-EI_REWRITTEN(0x0051F2C0, CObject3DServer::GetClassName);
 int CObject3DServer::GetClassId() { return kServerClassId; }
-EI_REWRITTEN(0x0051F2D0, CObject3DServer::GetClassId);
 
 // Slots 13-17: no parts; 0.
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }
-EI_REWRITTEN(0x0051F270, CObject3DServer::OnPartAdded);
 CFigureMesh* CObject3DServer::RemoveFromPartSets(const char*) { return nullptr; }
-EI_REWRITTEN(0x0051F290, CObject3DServer::RemoveFromPartSets);
 int CObject3DServer::OnPartRemoved(CFigureMesh*) { return 0; }
-EI_REWRITTEN(0x0051F280, CObject3DServer::OnPartRemoved);
 CFigureMesh* CObject3DServer::FindPart(const char*) { return nullptr; }
-EI_REWRITTEN(0x0051F2B0, CObject3DServer::FindPart);
 CFigureMesh* CObject3DServer::FindPartOfType(int) { return nullptr; }
-EI_REWRITTEN(0x0051F2A0, CObject3DServer::FindPartOfType);
 
 // --- The wounds material and the stage copies ---------------------------------------------------------
 
@@ -147,8 +123,6 @@ WoundsMaterial::~WoundsMaterial() {
         if (--old->refs_ == 0) delete old;
     }
 }
-EI_REWRITTEN_SPECIAL(0x0051C730, WoundsMaterial::~WoundsMaterial);
-EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 
 // A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
@@ -158,5 +132,3 @@ NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
     if (texture) ++texture->refCount_;
     return this;
 }
-EI_REWRITTEN(0x0051E430, NamedTexture::Copy);
-

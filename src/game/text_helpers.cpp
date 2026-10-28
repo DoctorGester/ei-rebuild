@@ -1,7 +1,6 @@
 // Small text helpers of the engine base (text_helpers.h).
 #include "text_helpers.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -24,16 +23,13 @@ const char* TextTokenizer::Next() {
     if (next == -1) return nullptr;
     return word.c_str();
 }
-EI_REWRITTEN(0x00445D30, TextTokenizer::Next);
 
 const char* TextTokenizer::Start() {
     position = 0;
     return Next();
 }
-EI_REWRITTEN(0x00445D20, TextTokenizer::Start);
 
 int __fastcall RemoveCarriageReturns(mfc::CString* text) { return text->Remove('\r'); }
-EI_REWRITTEN(0x004461E0, RemoveCarriageReturns);
 
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name) {
     for (const std::string& listed : *names) {
@@ -45,4 +41,3 @@ mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std
     std::construct_at(out, name);
     return out;
 }
-EI_REWRITTEN(0x00447F50, FindListedName);

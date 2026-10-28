@@ -4,7 +4,6 @@
 #include "../lib/crt.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
-#include "ei/hook.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -79,6 +78,5 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     }
     return 1;
 }
-EI_REWRITTEN(0x0044A2A0, ParseMaterial);
 
 } // namespace scene

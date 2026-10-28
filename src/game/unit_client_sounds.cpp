@@ -15,7 +15,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -87,7 +86,6 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     out->Format("%s\\%d.wav", name, RandomBelow(count) + 1);
     return 1;
 }
-EI_REWRITTEN(0x00534590, CUnitClientSpecific::FootstepSound);
 
 int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out,
                                      std::uint8_t miss) {
@@ -138,7 +136,6 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
     out->Format(format, folder.c_str(), sound);
     return 1;
 }
-EI_REWRITTEN(0x00534760, CUnitClientSpecific::ActionSound);
 
 // --- Playing them --------------------------------------------------------------------------------
 
@@ -317,4 +314,3 @@ void CUnitClientSpecific::PlayStepSounds() {
     lastAnimation = current;
     lastAnimationTime = now;
 }
-EI_REWRITTEN(0x00534B60, CUnitClientSpecific::PlayStepSounds);

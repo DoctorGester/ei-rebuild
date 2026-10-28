@@ -3,8 +3,6 @@
 
 #include "registry.h"
 
-#include "ei/hook.h"
-
 #include <cstring>
 
 namespace {
@@ -78,7 +76,6 @@ void LogicSettings::Load(const char* path) {
     reg.Destroy();
 }
 
-EI_REWRITTEN(0x005CE0F0, LogicSettings::Load);
 LogicSettings* LogicSettings::Construct() {
     // [Logic]
     guardStayTime = 10.0f;
@@ -127,8 +124,6 @@ LogicSettings* LogicSettings::Construct() {
     loaded = false;
     return this;
 }
-EI_REWRITTEN(0x005CDFC0, LogicSettings::Construct);
 
 // A static initialiser (cdecl): the defaults.
 void ConstructLogicSettings() { g_logicSettings.Construct(); }
-EI_REWRITTEN(0x005CDFB0, ConstructLogicSettings);

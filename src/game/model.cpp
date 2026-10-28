@@ -6,7 +6,6 @@
 #include "link_figure.h"   // ITransformPipeline
 #include "resource.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "record_lists.h"
@@ -46,7 +45,6 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
     flags |= 2;
     return flags;
 }
-EI_REWRITTEN(0x004F93A0, ClipBounds::SetBox);
 
 // Clip code of one corner p under matrix m: M * (p, 1), rows x, y and w summed ZXY, z ZYX, each
 // rounded to float. The corner coordinates are kept on the
@@ -106,7 +104,6 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     }
     return 1;
 }
-EI_REWRITTEN(0x004F16A0, CTransformPipeline::ClipTest);
 
 int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks,
                                       const ClipBounds* bounds) {
@@ -118,7 +115,6 @@ int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, vo
     if (where == 1) return transform_->ProjectClipped(Top(kClipStack), positions, projected, outcodes, blocks);
     return 2;
 }
-EI_REWRITTEN(0x004F2650, CTransformPipeline::ProjectBlocks);
 
 int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count,
                                        const ClipBounds* bounds) {
@@ -130,8 +126,6 @@ int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, vo
     if (where == 1) return transform_->ProjectTerrainClipped(Top(kClipStack), vertices, projected, outcodes, count);
     return 2;
 }
-EI_REWRITTEN(0x004F29F0, CTransformPipeline::ProjectTerrain);
-
 
 Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect) {
     float halfWidth = static_cast<float>((rect->right - rect->left) >> 1);
@@ -145,7 +139,6 @@ Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect) {
     out->m[7] = halfHeight;
     return out;
 }
-EI_REWRITTEN(0x004F1370, ViewportMatrix);
 
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     double half = fov * 0.5;
@@ -160,9 +153,6 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
     out->m[11] = -(q * zNear);
     return out;
 }
-EI_REWRITTEN(0x004F0E80, ProjectionMatrix);
-
-EI_REWRITTEN(0x004F57B0, TriangleIndexArray::SetSize);
 
 namespace {
 // list<pair<string, CMMIOResource*>> members (recordlist::LinkArchives'): insert(pos,
@@ -191,4 +181,3 @@ int CLinkFigureLoader::AddArchive(const std::string* path) {
     game::DebugLog("Can't open resource file \"%s\"\n", words[0], words[1], words[2]);
     return 0;
 }
-EI_REWRITTEN(0x004F6D30, CLinkFigureLoader::AddArchive);

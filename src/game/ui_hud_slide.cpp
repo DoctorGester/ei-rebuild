@@ -12,7 +12,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -134,7 +133,6 @@ void CHudMap::Layout() {
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
-EI_REWRITTEN(0x00642930, CHudMap::Layout);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
@@ -165,7 +163,6 @@ void CHudMap::UpdateVanilla() {
     if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - CUiContainer::FrameTime());
     SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
-EI_REWRITTEN(0x00642B40, CHudMap::UpdateVanilla);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
@@ -197,7 +194,6 @@ void CHudUnitPanel::Layout() {
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
 }
-EI_REWRITTEN(0x00645F80, CHudUnitPanel::Layout);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
@@ -213,7 +209,6 @@ void CHudUnitPanel::UpdateVanilla() {
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
     interface_->hudBodyPart_ = bodyPart_;
 }
-EI_REWRITTEN(0x00647FB0, CHudUnitPanel::UpdateVanilla);
 
 // --- The unit panel's setup ----------------------------------------------------------------
 
@@ -330,7 +325,6 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     for (int& icon : effectIcons_) icon = -1;
     widescreen::LeavePanel();        // addon's 100230E2
 }
-EI_REWRITTEN(0x006456E0, CHudUnitPanel::SetupVanilla);
 
 // --- The map's setup ----------------------------------------------------------------------
 
@@ -485,4 +479,3 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359
 }
-EI_REWRITTEN(0x00641F20, CHudMap::SetupVanilla);

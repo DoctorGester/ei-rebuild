@@ -7,7 +7,6 @@
 #include "world_effect.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/mfc_array.h"
@@ -113,7 +112,6 @@ void __fastcall ScriptReset(CScript* script) {
         ScriptDeclDestruct(block.Get());
     }
 }
-EI_REWRITTEN(0x004BE6E0, ScriptReset);
 
 // ScriptDefinition reset (CScript::Load calls it before each `Script` section): the if-then
 // pairs freed inline (no element destructor), each variable array through its instantiation's
@@ -140,4 +138,3 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->params = empty;
     definition->name = empty;
 }
-EI_REWRITTEN(0x004D3320, ScriptDefinitionReset);

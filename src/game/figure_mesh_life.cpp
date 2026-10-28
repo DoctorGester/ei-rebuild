@@ -2,7 +2,6 @@
 // 0x41 and 0x42's constructors, destructors and virtuals, the drawer and owner setters, and the figure
 // manager's constructor and its CreateObject, which gives every new figure a drawer. See figure_mesh.h,
 // figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include "figure_manager.h"
@@ -47,7 +46,6 @@ CFigureMesh::CFigureMesh() {
     SetUpFigure();
     CreateMesh();
 }
-EI_REWRITTEN_SPECIAL(0x005AABC0, CFigureMesh::CFigureMesh);
 
 int CFigureMesh::CreateMesh() {
     radius_ = 0.0f;
@@ -65,7 +63,6 @@ int CFigureMesh::CreateMesh() {
     std::memset(&box_.pivot, 0, sizeof(box_.pivot));
     return 1;
 }
-EI_REWRITTEN(0x0059F210, CFigureMesh::CreateMesh);
 
 // --- Clearing -----------------------------------------------------------------------------------
 
@@ -86,7 +83,6 @@ void CFigureMesh::Clear() {
     drawer_ = nullptr;
     flags_ = 0;
 }
-EI_REWRITTEN(0x0059F2B0, CFigureMesh::Clear);
 
 void CPlainFigureMesh::Destroy() {
     vertices_.SetSize(0);
@@ -97,14 +93,12 @@ void CPlainFigureMesh::Destroy() {
     texCoords_.SetSize(0);
     Clear();
 }
-EI_REWRITTEN(0x005A6C80, CPlainFigureMesh::Destroy);
 
 void CSharedFigureMesh::Destroy() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
     Clear();
 }
-EI_REWRITTEN(0x005A6E10, CSharedFigureMesh::Destroy);
 
 // --- Destruction --------------------------------------------------------------------------------
 
@@ -116,8 +110,6 @@ void CFigureMesh::TearDownFigure() {
 }
 
 CFigureMesh::~CFigureMesh() { TearDownFigure(); }
-EI_REWRITTEN_SPECIAL(0x0059F030, CFigureMesh::~CFigureMesh);
-EI_REWRITTEN_SPECIAL(0x00453470, CFigureMesh::~CFigureMesh);
 
 // --- The classes 0x41 and 0x42 ---------------------------------------------------------------
 
@@ -130,9 +122,6 @@ CSharedFigureMesh::~CSharedFigureMesh() {
     normals_.FreeData();
     vertices_.FreeData();
 }
-
-EI_REWRITTEN_SPECIAL(0x005AADC0, CSharedFigureMesh::~CSharedFigureMesh);
-EI_REWRITTEN_SPECIAL(0x005AADA0, CSharedFigureMesh::~CSharedFigureMesh);
 
 CPlainFigureMesh::CPlainFigureMesh() {
     vertices_.Construct();
@@ -151,9 +140,6 @@ CPlainFigureMesh::~CPlainFigureMesh() {
     normals_.FreeData();
     vertices_.FreeData();
 }
-
-EI_REWRITTEN_SPECIAL(0x00454510, CPlainFigureMesh::~CPlainFigureMesh);
-EI_REWRITTEN_SPECIAL(0x004543A0, CPlainFigureMesh::~CPlainFigureMesh);
 
 // CPlainFigureMesh's constructor, as the scene's figure records inline it: the shared
 // constructor, then zeros over the mesh's six arrays and the class 0x42 vtable.
@@ -180,16 +166,12 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
         ++drawer_->refCount_;
     }
 }
-EI_REWRITTEN(0x0059F390, CFigureMesh::SetDrawer);
 
 void CFigureMesh::SetObject(CTransformObject* object) { object_ = object; }
-EI_REWRITTEN(0x0059F3D0, CFigureMesh::SetObject);
 
 // --- The figure manager -------------------------------------------------------------------------
 
 CFigureManager::CFigureManager() { models_.InitBuckets(100); }
-
-EI_REWRITTEN_SPECIAL(0x005AA070, CFigureManager::CFigureManager);
 
 CEngineObject* CFigureManager::NewObject(int type) {
     return static_cast<CEngineObject*>(::CreateFigureObject(type));
@@ -203,4 +185,3 @@ CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }
-EI_REWRITTEN(0x005AAE00, CFigureManager::CreateFigureObject);

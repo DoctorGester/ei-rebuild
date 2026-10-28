@@ -8,7 +8,6 @@
 #include "lib/crt.h"
 #include "resource_local.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -51,10 +50,8 @@ int LeverRecordTable::Load(const char* folder) {
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
-EI_REWRITTEN(0x00463390, LeverRecordTable::Load);
 
 LeverRecordTable::LeverRecordTable() {
     records.ConstructEmpty();
     byName.InitBuckets(100);
 }
-EI_REWRITTEN_SPECIAL(0x004632A0, LeverRecordTable::LeverRecordTable);

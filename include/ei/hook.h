@@ -34,8 +34,8 @@ struct HookRegistrar {
 // game.exe with EI_VECTORS=1: installs every recorder; returns the number installed. hook.cpp.
 int InstallHooks();
 
-// game.exe's code section (.text, 00401000 up to 0073A670): the addresses the function-to-original map names (the
-// image guards it: standalone_main.cpp reports a stray access there).
+// game.exe's code section (.text, 00401000 up to 0073A670): the image guards it (standalone_main.cpp reports a stray
+// access there).
 constexpr std::uintptr_t kGameTextBegin = 0x00401000;
 constexpr std::uintptr_t kGameTextEnd = 0x0073A670;
 constexpr bool InGameText(std::uintptr_t address) { return address - kGameTextBegin < kGameTextEnd - kGameTextBegin; }
@@ -90,38 +90,13 @@ void SetOriginalWinMainAction(void (*action)());
 
 // Verify build only (tests/vectors/record_*.cpp): in game.exe with EI_VECTORS=1 (the original game, the
 // recorders its only hooks) route `addr` to `recorder`, and store in `orig` a trampoline running the
-// original (its first `stolen` bytes, then a jump back), which the recorder calls and samples.
-#define EI_RECORD(addr, recorder, stolen, orig) \
+// original (its first `stolen` bytes, then a jump back), which the recorder calls and samples. `rewrite` is our
+// function the replays (tests/vectors/replay_*.cpp) call with what this records: the compiler checks the name, and
+// tools/check_signatures.py its stack arguments against the original's RET n.
+#define EI_RECORD(addr, recorder, stolen, orig, rewrite) \
+    using EI_CAT(ei_record_rewrite_, __LINE__) = decltype(&rewrite); \
     static ::ei::HookRegistrar EI_CAT(ei_record_, __LINE__)( \
         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
-
-// The original of a rewritten function (C20d): nothing reaches game.exe's address, our code calls the function by
-// name. EI_REWRITTEN(0x..., Fn); leaves a record {address, &Fn, file, line} in the section .eiorg of the module,
-// which nothing reads at run time: the compiler checks the name, the record keeps the function's own copy in the
-// image, and tools/check_registrations.py reads it (one original per address). These lines are the tools'
-// function-to-original map (check_signatures.registrations(): check_signatures; coverage.py, save_trace.py,
-// ui_census_report.py, named_data.py, gen_short_functions.py, progress.py's rewritten count).
-#pragma section(".eiorg", read, write)
-namespace ei {
-// `code` points at a constant holding &fn (a member pointer of a class with several bases is two words, C28l), or
-// at the name of a constructor or destructor (EI_REWRITTEN_SPECIAL); the record stays four words.
-struct OriginRecord {
-    std::uintptr_t address;
-    const void* code;
-    const char* file;
-    int line;
-};
-} // namespace ei
-#define EI_REWRITTEN(addr, fn) \
-    static constexpr auto EI_CAT(ei_rewritten_fn_, __LINE__) = &fn; \
-    __declspec(allocate(".eiorg")) static ::ei::OriginRecord EI_CAT(ei_rewritten_, __LINE__) = \
-        {addr, &EI_CAT(ei_rewritten_fn_, __LINE__), __FILE__, __LINE__}
-// The same for a constructor or destructor, which has no address to take (C28): `EI_REWRITTEN_SPECIAL(0x...,
-// CItem::CItem);`, `(0x..., CItem::~CItem);` (also for the original's scalar deleting destructor). The record holds
-// the name; the tools read the line like an EI_REWRITTEN one.
-#define EI_REWRITTEN_SPECIAL(addr, name) \
-    __declspec(allocate(".eiorg")) static ::ei::OriginRecord EI_CAT(ei_rewritten_, __LINE__) = \
-        {addr, #name, __FILE__, __LINE__}
 
 // Run `fn` (void()) once in the standalone image before the static initialisers (StartupAction).
 #define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)

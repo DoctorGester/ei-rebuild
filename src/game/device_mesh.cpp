@@ -3,7 +3,6 @@
 // clipped. The new renderer gets the mesh in model space once it is visible. See docs/notes/models.md ("Renderer").
 #include "clip.h"
 
-#include "ei/hook.h"
 #include "device_buffers.h"
 #include "figure_mesh.h"
 #include "model.h"
@@ -220,7 +219,6 @@ int CTextureDevice::DrawMeshBlocks(const VertexPacket* positions, int blocks, co
                words, wordCount, indices, indexCount, &uOffset, &vOffset, alpha, flags};
     return DrawMesh(this, a, nullptr);
 }
-EI_REWRITTEN(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
 int CTextureDevice::DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture,
                                const VertexPacket* positions, int blocks, const NormalPacket* normals, int colourCount,
@@ -233,4 +231,3 @@ int CTextureDevice::DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* second
     Textures textures{firstTexture, secondTexture};
     return DrawMesh(this, a, &textures);
 }
-EI_REWRITTEN(0x004E9A50, CTextureDevice::DrawMeshBlocks2);

@@ -10,7 +10,6 @@
 #include "sys_info.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -80,7 +79,6 @@ void CDXDirectDraw::RestoreDisplayMode() {
     lastLoadResult_ = device::RestoreDisplayMode(ddraw_);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, "Can't restore display mode.\n");
 }
-EI_REWRITTEN(0x004EEC60, CDXDirectDraw::RestoreDisplayMode);
 
 void CDXDirectDraw::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     if (!window_) ThrowGameError("CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n");
@@ -90,7 +88,6 @@ void CDXDirectDraw::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
 }
-EI_REWRITTEN(0x004EECF0, CDXDirectDraw::SetCooperativeLevel);
 
 // (The display mode's restore cannot fail in the switch-over, device_null.cpp; its throw would end the game here
 // through std::terminate, the destructor being noexcept, where the game's handler in WinMain ends it.)
@@ -108,8 +105,6 @@ CDXDirectDraw::~CDXDirectDraw() {
     if (ddraw_) device::Release(ddraw_);
     modes_.Destroy();
 }
-EI_REWRITTEN_SPECIAL(0x004EE330, CDXDirectDraw::~CDXDirectDraw);
-EI_REWRITTEN_SPECIAL(0x004EE310, CDXDirectDraw::~CDXDirectDraw);
 
 // Not kept: the game copies the processor's twelve bytes as a string into a local nothing reads.
 CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
@@ -161,4 +156,3 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     videoFourCC_ = 0;
     overlayStretch_ = false;
 }
-EI_REWRITTEN_SPECIAL(0x004EDD70, CDXDirectDraw::CDXDirectDraw);

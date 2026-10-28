@@ -3,7 +3,6 @@
 // crossing the screen edges, the triangles are clipped. See docs/notes/models.md ("Mesh draws").
 #include "clip.h"
 
-#include "ei/hook.h"
 #include "device_buffers.h"
 #include "model.h"
 #include "render/render.h"
@@ -123,4 +122,3 @@ int CTextureDevice::DrawFlatBlocks(const void* positions, const void* uvs, int b
     render::EndFlatDrawTime();
     return result;
 }
-EI_REWRITTEN(0x004EA4A0, CTextureDevice::DrawFlatBlocks);

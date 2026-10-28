@@ -9,7 +9,6 @@
 #include "model.h"    // CSceneRenderer, ITransformPipeline
 #include "game_singletons.h"
 
-#include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
@@ -36,4 +35,3 @@ int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const
     device->drawCount_ += 1;
     return 1;
 }
-EI_REWRITTEN(0x00501BB0, CSceneRenderer::DrawTriangles);

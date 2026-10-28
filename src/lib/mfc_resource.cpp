@@ -2,7 +2,6 @@
 #include "mfc_resource.h"
 #include "crt_locale_data.h"
 
-#include "ei/hook.h"
 #include "gameapi.h"
 #include "game/game_data.h"
 
@@ -144,8 +143,4 @@ void __stdcall AfxFormatString1(CString& out, unsigned formatId, const char* str
     AfxFormatStringsId(out, formatId, strings, 1);
 }
 
-EI_REWRITTEN(0x00702B92, AfxLoadString);
-EI_REWRITTEN(0x0070B1AD, AfxFormatStrings);
-EI_REWRITTEN(0x0070B173, AfxFormatStringsId);
-EI_REWRITTEN(0x0070B2AC, AfxFormatString1);
 } // namespace mfc::impl

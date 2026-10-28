@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 #include <bit>
@@ -210,4 +209,3 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     Finish(lights, list);
     return 1;
 }
-EI_REWRITTEN(0x0051B7E0, CObject3DClientSpecific::Draw);

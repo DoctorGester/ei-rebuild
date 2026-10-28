@@ -1,8 +1,6 @@
 // The .mob script text decoder. See mob_script_decoder.h.
 #include "mob_script_decoder.h"
 
-#include "ei/hook.h"
-
 #include <cstdint>
 #include <cstring>
 
@@ -22,4 +20,3 @@ void MobScriptDecoder::Decode(mfc::CString* out) {
     std::memmove(out->GetBufferSetLength(size), text.begin(), static_cast<std::size_t>(size));
     out->ReleaseBuffer(-1);
 }
-EI_REWRITTEN(0x004D8E10, MobScriptDecoder::Decode);

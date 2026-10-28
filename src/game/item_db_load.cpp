@@ -6,7 +6,6 @@
 #include "core_streams.h"
 #include "record_vectors.h"
 
-#include "ei/hook.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
 #include "lib/stlp_vector.h"
@@ -104,9 +103,6 @@ void ChunkArchive::SerializeQuestItems(int id, stlp::vector<itemdb::LootItemReco
     SerializeItemRecords<itemdb::LootItemRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::LootItemRecord>, recordvec::ResizeUntyped<recordvec::LootVector>, &itemdb::LootItemRecord::Serialize);
 }
-EI_REWRITTEN(0x006A7C20, ChunkArchive::SerializeQuickItems);
-EI_REWRITTEN(0x006A7D20, ChunkArchive::SerializeLoot);
-EI_REWRITTEN(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
 void ChunkArchive::SerializeMaterials(int id, stlp::vector<itemdb::MaterialRecordHead>* records, void*) {
     SerializeItemRecords<itemdb::MaterialRecordHead>(this, id, records,
@@ -120,13 +116,6 @@ void ChunkArchive::SerializeArmors(int id, stlp::vector<itemdb::ArmorRecord>* re
     SerializeItemRecords<itemdb::ArmorRecord>(this, id, records,
                                     &DestroyItemRecord<itemdb::ArmorRecord>, recordvec::ResizeUntyped<recordvec::ArmorVector>, &itemdb::ArmorRecord::Serialize);
 }
-EI_REWRITTEN(0x006A7940, ChunkArchive::SerializeMaterials);
-EI_REWRITTEN(0x006A7A30, ChunkArchive::SerializeWeapons);
-EI_REWRITTEN(0x006A7B30, ChunkArchive::SerializeArmors);
-
-EI_REWRITTEN(0x006A6E50, itemdb::QuickItemTable::Load);
-EI_REWRITTEN(0x006A7110, itemdb::QuestItemTable::Load);
-EI_REWRITTEN(0x006A73B0, itemdb::LootItemTable::Load);
 
 // --- The spell database's vectors and records ----------------------------------------------
 
@@ -179,7 +168,6 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(22, &classMask, 4);
     for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i], 4);
 }
-EI_REWRITTEN(0x00683B80, itemdb::SpellRecord::Serialize);
 
 void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
@@ -192,7 +180,6 @@ void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(7, &text1C);
     ar->Field(8, &classMask, 4);
 }
-EI_REWRITTEN(0x00683AF0, itemdb::SpellModifierRecord::Serialize);
 
 void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &spell);
@@ -201,7 +188,6 @@ void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(4, &repeated);
     ar->Field(5, &classMask, 4);
 }
-EI_REWRITTEN(0x00683D40, itemdb::SpellListRecord::Serialize);
 
 void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
     if (!EnterChunk(id)) return;
@@ -222,7 +208,6 @@ void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
     }
     LeaveChunk();
 }
-EI_REWRITTEN(0x00683EB0, ChunkArchive::IntVectorField);
 
 void ChunkArchive::SerializeSpells(int id, stlp::vector<itemdb::SpellRecord>* records, void*) {
     SerializeItemRecords<itemdb::SpellRecord>(this, id, records,
@@ -236,9 +221,6 @@ void ChunkArchive::SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRec
     SerializeItemRecords<itemdb::SpellListRecord>(this, id, records,
                                     &itemdb::SpellListRecord::Destruct, recordvec::ResizeUntyped<recordvec::SpellListVector>, &itemdb::SpellListRecord::Serialize);
 }
-EI_REWRITTEN(0x00684EF0, ChunkArchive::SerializeSpells);
-EI_REWRITTEN(0x00684FE0, ChunkArchive::SerializeSpellModifiers);
-EI_REWRITTEN(0x00684C50, ChunkArchive::SerializeSpellLists);
 
 // --- The database's destructor ---------------------------------------------------------------
 
@@ -265,4 +247,3 @@ void itemdb::ItemDatabase::DestructBody() {
     DestroyTable(weapons, &DestroyItemRecord<WeaponRecord>);
     DestroyTable(materials, &MaterialRecordHead::Destruct);
 }
-EI_REWRITTEN(0x006A6570, itemdb::ItemDatabase::DestructBody);

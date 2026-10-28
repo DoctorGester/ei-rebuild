@@ -5,7 +5,6 @@
 #include "device.h"
 #include "present_window.h"
 
-#include "ei/hook.h"
 #include "render/render.h"
 
 // Returns the DirectDraw result: 0.
@@ -14,4 +13,3 @@ long __fastcall DevicePresent(CTextureDevice* device) {
     render::Present();
     return 0;
 }
-EI_REWRITTEN(0x004EF610, DevicePresent);

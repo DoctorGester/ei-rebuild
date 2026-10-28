@@ -20,7 +20,6 @@
 #include "ui_cursor.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -147,8 +146,6 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_.data[1];
 }
-EI_REWRITTEN(0x00656E10, CSaveLoadWindow::ShowPicture);
-
 
 namespace {
 constexpr const char* kQuickFolder = "saveq";
@@ -184,8 +181,6 @@ void SaveEntry::MakeTitle(int) {
         title = str::Format(kPlainFormat, name.c_str());
     }
 }
-EI_REWRITTEN(0x00653A50, SaveEntry::MakeTitle);
-
 
 void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
@@ -257,8 +252,6 @@ void CSaveLoadWindow::SaveGame() {
     TheCursor()->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
 }
-EI_REWRITTEN(0x00655550, CSaveLoadWindow::SaveGame);
-
 
 void CSaveLoadWindow::FillEntries() {
     std::string pattern;
@@ -385,7 +378,6 @@ void CSaveLoadWindow::FillEntries() {
     }
     firstVisible_ = 0;
 }
-EI_REWRITTEN(0x00655D40, CSaveLoadWindow::FillEntries);
 
 // --- Quick and automatic saves ------------------------------------------------------------------------
 
@@ -454,7 +446,6 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     }
     TheCursor()->ChangeShape(0);
 }
-EI_REWRITTEN(0x006570E0, QuickSave);
 
 void __fastcall QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
@@ -466,7 +457,6 @@ void __fastcall QuickLoad(const char* slot) {
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
-EI_REWRITTEN(0x006575B0, QuickLoad);
 
 // --- Entry titles, OK / Delete / load / delete ----------------------------------------------
 
@@ -500,14 +490,12 @@ mfc::CString SaveEntry::ZoneTitle() const {
     if (title.size() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
-EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
     std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }
-EI_REWRITTEN(0x00653CD0, SaveEntry::AllodTitle);
 
 SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
     title_ = from->title_;
@@ -521,7 +509,6 @@ SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
     broken_ = from->broken_;
     return this;
 }
-EI_REWRITTEN(0x006538E0, SaveEntry::Assign);
 
 SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
     std::construct_at(&title_);
@@ -532,7 +519,6 @@ SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
     std::construct_at(&stringArrays_[1]);
     return Assign(from);
 }
-EI_REWRITTEN(0x00656640, SaveEntry::CopyConstruct);
 
 void SaveEntry::Destruct() {
     std::destroy_at(&stringArrays_[1]);
@@ -542,7 +528,6 @@ void SaveEntry::Destruct() {
     std::destroy_at(&folder_);
     std::destroy_at(&title_);
 }
-EI_REWRITTEN(0x00656720, SaveEntry::Destruct);
 
 void CSaveLoadWindow::Confirm() {
     if (selected_ < 0) return;
@@ -557,14 +542,12 @@ void CSaveLoadWindow::Confirm() {
     }
     Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
 }
-EI_REWRITTEN(0x00655290, CSaveLoadWindow::Confirm);
 
 void CSaveLoadWindow::AskDelete() {
     if (selected_ < 0 || (isSave_ && selected_ == 0)) return;
     interface_->PlaySound(kSoundDelete, 0);
     Ask(interface_, "delete", "delete_msg", kAskDelete);
 }
-EI_REWRITTEN(0x00655380, CSaveLoadWindow::AskDelete);
 
 void CSaveLoadWindow::LoadSelected() {
     int selected = selected_;
@@ -577,7 +560,6 @@ void CSaveLoadWindow::LoadSelected() {
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entries_.begin()[selected_].folder_.c_str(), 0);
 }
-EI_REWRITTEN(0x00655A10, CSaveLoadWindow::LoadSelected);
 
 void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
@@ -599,4 +581,3 @@ void CSaveLoadWindow::DeleteSave() {
     RefreshListVanilla();
     ShowPicture();
 }
-EI_REWRITTEN(0x00655B20, CSaveLoadWindow::DeleteSave);

@@ -14,7 +14,6 @@
 #include "net_second_master.h"
 #include "world.h"             // TheGameFlow
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -70,7 +69,6 @@ void ServerSession::AnnounceToMaster() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
 }
-EI_REWRITTEN(0x0041AA10, ServerSession::AnnounceToMaster);
 
 // A packet of kind -1: only from the master server's address (all 16 bytes compared; from any address with
 // EI_Plugin's NewMaster, which NOPs a jump so the answer of its second master server counts). Its first dword
@@ -83,7 +81,6 @@ void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (TakeDword(cursor) != masterKey_) return;
     masterToken_ = TakeDword(cursor);
 }
-EI_REWRITTEN(0x0041ACA0, ServerSession::OnMaster);
 
 // A chat line from the connection being read
 // (g_currentConnection; nothing when it is gone or detached): the first binding of that connection names the
@@ -105,11 +102,9 @@ void __fastcall ServerOnSay(ServerSession* server, SayMessage* message) {
         return;
     }
 }
-EI_REWRITTEN(0x0041B1C0, ServerOnSay);
 
 // The handler of the party members' channels 0 and 1 (ServerSession::Construct). The member message's version
 // moves on, so the connections send it again.
 void __fastcall ServerOnMemberChanged(ServerSession*, Message* message) { ++message->version_; }
-EI_REWRITTEN(0x0041BA20, ServerOnMemberChanged);
 
 } // namespace net

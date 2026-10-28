@@ -4,7 +4,6 @@
 #include "chunk_archive.h"
 #include "lever.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "record_vectors.h"
 #include "lib/mfc.h"
@@ -36,7 +35,6 @@ void __fastcall RecordDestruct(LeverRecord* self) {
     std::destroy_at(&self->text20);
     std::destroy_at(&self->name);
 }
-EI_REWRITTEN(0x004652A0, RecordDestruct);
 } // namespace app
 
 // The record's fields 0 .. 7 (strings 0, 5, 6, 7).
@@ -50,7 +48,6 @@ void LeverRecord::Archive(ChunkArchive* archive) {
     archive->CStringField(6, &sound);
     archive->CStringField(7, &text28);
 }
-EI_REWRITTEN(0x00463030, LeverRecord::Archive);
 
 LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
     name = from->name;
@@ -60,7 +57,6 @@ LeverRecord* LeverRecord::Assign(const LeverRecord* from) {
     text28 = from->text28;
     return this;
 }
-EI_REWRITTEN(0x00465BC0, LeverRecord::Assign);
 
 namespace app {
 
@@ -70,7 +66,6 @@ LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) result->Assign(first);
     return result;
 }
-EI_REWRITTEN(0x00465B20, RecordsCopyForward);
 
 } // namespace app
 
@@ -98,4 +93,3 @@ void ChunkArchive::SerializeLevers(int id, stlp::vector<LeverRecord>* list, int 
     }
     ar->LeaveChunk();
 }
-EI_REWRITTEN(0x00465090, ChunkArchive::SerializeLevers);

@@ -2,7 +2,6 @@
 #include "console.h"
 #include "ui.h"
 
-#include "ei/hook.h"
 #include "text_split.h"
 
 namespace console {
@@ -32,14 +31,12 @@ void ConsoleWindow::SetRect(const RECT* rect) {
         Show(true);
     }
 }
-EI_REWRITTEN(0x005E3E90, ConsoleWindow::SetRect);
 
 void ConsoleWindow::SetHistory(int lines) {
     history_ = lines;
     DropOldLines(lines);
     DrawLines();   // clamps the scroll position, draws the visible lines
 }
-EI_REWRITTEN(0x005E3F90, ConsoleWindow::SetHistory);
 
 void ConsoleWindow::DropOldLines(int count) {
     if (static_cast<int>(lines_.size()) > count) lines_.erase(lines_.begin(), lines_.end() - count);
@@ -59,6 +56,5 @@ void ConsoleWindow::AddText(const char* text) {
     DropOldLines(history_);
     DrawLines();   // clamps the scroll position, draws the visible lines
 }
-EI_REWRITTEN(0x005E4090, ConsoleWindow::AddText);
 
 } // namespace console

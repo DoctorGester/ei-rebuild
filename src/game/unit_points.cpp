@@ -7,7 +7,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 
@@ -109,6 +108,4 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
 }
 
 Vector3* CUnit::PositionAt(Vector3* out, int time) { return PredictPosition(this, out, time); }
-EI_REWRITTEN(0x0052FCC0, CUnit::PositionAt);
 Vector3* CUnit::AimPoint(Vector3* out) { return ActionPoint(this, out); }
-EI_REWRITTEN(0x0052FDF0, CUnit::AimPoint);

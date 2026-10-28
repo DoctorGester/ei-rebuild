@@ -7,7 +7,6 @@
 #include "map_object_figures.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -189,6 +188,3 @@ void CCamera::ClampAboveObjects() {
         stlp::PushSmallNode(list.head);
     }
 }
-EI_REWRITTEN(0x0040D710, CCamera::AlignToTarget);
-EI_REWRITTEN(0x0040E4C0, CCamera::ClampAboveObjects);
-EI_REWRITTEN(0x004110D0, CCamera::LookDirection);

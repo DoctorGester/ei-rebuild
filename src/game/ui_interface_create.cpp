@@ -12,7 +12,6 @@
 #include "ui_gdi.h"
 #include "ui_widescreen.h"
 
-#include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -166,4 +165,3 @@ void CInterface3D::Create(CTextureDevice* device) {
     fpsFrames_ = 0;
     disconnected_ = false;
 }
-EI_REWRITTEN(0x005F4990, CInterface3D::Create);

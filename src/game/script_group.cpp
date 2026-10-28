@@ -5,7 +5,6 @@
 #include "combat.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -61,11 +60,8 @@ bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
 
 
 void ScriptObjectRef::Reset() { Clear(this); }
-EI_REWRITTEN(0x004B24B0, ScriptObjectRef::Reset);
-EI_REWRITTEN(0x004B5AE0, ScriptObjectRef::Reset);
 
 void ScriptObjectRef::Assign(CEngineObject* newObject) { Store(this, newObject); }
-EI_REWRITTEN(0x004B24D0, ScriptObjectRef::Assign);
 
 CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
     CEngineObject* o = other.object;
@@ -73,18 +69,15 @@ CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
     AddRef(o);
     return o;
 }
-EI_REWRITTEN(0x004B2500, ScriptObjectRef::Construct);
 
 CUnit* ScriptObjectRef::AsUnit() const {
     return UnitOrNull(object);
 }
-EI_REWRITTEN(0x004B2530, ScriptObjectRef::AsUnit);
 
 CUnitServer* ScriptObjectRef::GetUnitPerception() const {
     CUnit* unit = UnitOrNull(object);
     return unit ? unit->ServerController() : nullptr;
 }
-EI_REWRITTEN(0x004B2550, ScriptObjectRef::GetUnitPerception);
 
 void ScriptObjectRef::ReleaseIfDeleted() {
     if (object && (object->flags_ & kDeleted)) {
@@ -92,7 +85,6 @@ void ScriptObjectRef::ReleaseIfDeleted() {
         object = nullptr;
     }
 }
-EI_REWRITTEN(0x004B2570, ScriptObjectRef::ReleaseIfDeleted);
 
 void ScriptObjectRef::Load(ScriptStream* stream) {
     int id;
@@ -103,15 +95,12 @@ void ScriptObjectRef::Load(ScriptStream* stream) {
     }
     Store(this, FindObject(id));
 }
-EI_REWRITTEN(0x004B2590, ScriptObjectRef::Load);
 
 void ScriptObjectRef::Save(ScriptStream* stream) const {
     int id = -1;
     if (object) id = object->id_;
     stream->Write(&id, 4);
 }
-EI_REWRITTEN(0x004B25F0, ScriptObjectRef::Save);
-
 
 void ScriptGroup::SetSize(int newSize, int newGrowBy) { mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*this).SetSize(newSize, newGrowBy); }
 
@@ -195,7 +184,6 @@ void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
     }
     SetSize(out, -1);
 }
-EI_REWRITTEN(0x004B2620, ScriptGroup::Union);
 
 void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
     int aSize = a.size, bSize = b.size;
@@ -225,7 +213,6 @@ void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
     }
     SetSize(out, -1);
 }
-EI_REWRITTEN(0x004B2920, ScriptGroup::Difference);
 
 void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
     int aSize = a.size, bSize = b.size;
@@ -249,10 +236,8 @@ void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
     }
     SetSize(out, -1);
 }
-EI_REWRITTEN(0x004B2B60, ScriptGroup::Intersection);
 
 void ScriptGroup::Sort() { GameQsort(data, size, 4, CompareMembers); }
-EI_REWRITTEN(0x004B2D60, ScriptGroup::Sort);
 
 int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
     CEngineObject* o = ref.object;
@@ -260,7 +245,6 @@ int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
         if (data[i].object == o) return i;
     return -1;
 }
-EI_REWRITTEN(0x004B2DA0, ScriptGroup::IndexOf);
 
 void ScriptGroup::Remove(CEngineObject* object) {
     int i = 0;
@@ -273,7 +257,6 @@ void ScriptGroup::Remove(CEngineObject* object) {
     if (after != 0) std::memmove(&data[i], &data[i + 1], after * 4);
     --size;
 }
-EI_REWRITTEN(0x004B2E60, ScriptGroup::Remove);
 
 void ScriptGroup::Insert(CEngineObject* object) {
     int oldSize = size;
@@ -297,7 +280,6 @@ void ScriptGroup::Insert(CEngineObject* object) {
     ++object->refCount_;
     d[low].object = object;
 }
-EI_REWRITTEN(0x004B2EF0, ScriptGroup::Insert);
 
 void ScriptGroup::RemoveDeleted() {
     int i = 0;
@@ -318,7 +300,6 @@ void ScriptGroup::RemoveDeleted() {
         }
     } while (i < size);
 }
-EI_REWRITTEN(0x004B3110, ScriptGroup::RemoveDeleted);
 
 void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CUnit>* list) {
     for (auto* node = list->head; node;) {
@@ -327,7 +308,6 @@ void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CUnit>* list) {
         Insert(current->data);
     }
 }
-EI_REWRITTEN(0x004B31D0, ScriptGroup::InsertAll);
 
 void ScriptGroup::CopyToList(mfc::CTypedPtrList<CUnit>* list) const {
     for (auto* node = list->head; node; node = node->next) {
@@ -347,14 +327,12 @@ void ScriptGroup::CopyToList(mfc::CTypedPtrList<CUnit>* list) const {
         list->tail = node;
     }
 }
-EI_REWRITTEN(0x004B3200, ScriptGroup::CopyToList);
 
 BOOL ScriptGroup::Contains(CEngineObject* object) const {
     for (int i = 0; i < size; ++i)
         if (data[i].object == object) return 1;
     return 0;
 }
-EI_REWRITTEN(0x004B3330, ScriptGroup::Contains);
 
 void ScriptGroup::Load(ScriptStream* stream) {
     int count;
@@ -369,4 +347,3 @@ void ScriptGroup::Load(ScriptStream* stream) {
     }
     GameQsort(data, size, 4, CompareMembers);
 }
-EI_REWRITTEN(0x004B3360, ScriptGroup::Load);

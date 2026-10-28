@@ -6,7 +6,6 @@
 #include "game_lists.h"
 #include "net_connection.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/stlp_vector.h"
@@ -82,24 +81,18 @@ void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_curren
 // The message base.
 
 Message::Message() {}
-EI_REWRITTEN_SPECIAL(0x004186E0, Message::Message);
 
 Message::~Message() {}
-EI_REWRITTEN_SPECIAL(0x00413430, Message::~Message);
-EI_REWRITTEN_SPECIAL(0x00413410, Message::~Message);
 
 // LoginMessage.
 
 LoginMessage::LoginMessage() {}
-EI_REWRITTEN_SPECIAL(0x00413350, LoginMessage::LoginMessage);
 LoginMessage::LoginMessage(const LoginMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), host_(other.host_), state_(other.state_),
       id_(other.id_) {
     CopyCounted(binding_, other.binding_);
 }
 LoginMessage::~LoginMessage() { ReleaseCounted(binding_); }
-EI_REWRITTEN_SPECIAL(0x00413800, LoginMessage::~LoginMessage);
-EI_REWRITTEN_SPECIAL(0x004137E0, LoginMessage::~LoginMessage);
 
 Message* __fastcall LoginMessage::Create() { return NewCounted<LoginMessage>(); }
 LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
@@ -131,9 +124,6 @@ void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text_); }
 void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
 
 SayMessage::SayMessage() {}
-EI_REWRITTEN_SPECIAL(0x004138A0, SayMessage::SayMessage);
-EI_REWRITTEN_SPECIAL(0x00413C40, SayMessage::~SayMessage);
-EI_REWRITTEN_SPECIAL(0x00413C20, SayMessage::~SayMessage);
 Message* __fastcall SayMessage::Create() { return NewCounted<SayMessage>(); }
 SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }
 int SayMessage::OnShutdown() {
@@ -144,9 +134,6 @@ void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 ZoneMessage::ZoneMessage() {}
-EI_REWRITTEN_SPECIAL(0x00418C30, ZoneMessage::ZoneMessage);
-EI_REWRITTEN_SPECIAL(0x00415930, ZoneMessage::~ZoneMessage);
-EI_REWRITTEN_SPECIAL(0x00415910, ZoneMessage::~ZoneMessage);
 Message* __fastcall ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
 ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }
 int ZoneMessage::OnShutdown() {
@@ -156,8 +143,6 @@ int ZoneMessage::OnShutdown() {
 void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
-EI_REWRITTEN_SPECIAL(0x00416110, MapMessage::~MapMessage);
-EI_REWRITTEN_SPECIAL(0x004160F0, MapMessage::~MapMessage);
 Message* __fastcall MapMessage::Create() { return NewCounted<MapMessage>(); }
 MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }
 int MapMessage::OnShutdown() {
@@ -170,10 +155,7 @@ void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 // CommandMessage.
 
 CommandMessage::CommandMessage() {}
-EI_REWRITTEN_SPECIAL(0x00413C90, CommandMessage::CommandMessage);
 CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {}
-EI_REWRITTEN_SPECIAL(0x00414060, CommandMessage::~CommandMessage);
-EI_REWRITTEN_SPECIAL(0x00414040, CommandMessage::~CommandMessage);
 
 Message* __fastcall CommandMessage::Create() { return NewCounted<CommandMessage>(); }
 CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
@@ -204,9 +186,6 @@ void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first_); 
 void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); }
 
 BindingMessage::BindingMessage() {}
-EI_REWRITTEN_SPECIAL(0x0041C870, BindingMessage::BindingMessage);
-EI_REWRITTEN_SPECIAL(0x004154D0, BindingMessage::~BindingMessage);
-EI_REWRITTEN_SPECIAL(0x004154B0, BindingMessage::~BindingMessage);
 Message* __fastcall BindingMessage::Create() { return NewCounted<BindingMessage>(); }
 BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }
 int BindingMessage::OnShutdown() {
@@ -217,9 +196,6 @@ void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 FileRequestMessage::FileRequestMessage() {}
-EI_REWRITTEN_SPECIAL(0x004140B0, FileRequestMessage::FileRequestMessage);
-EI_REWRITTEN_SPECIAL(0x00414270, FileRequestMessage::~FileRequestMessage);
-EI_REWRITTEN_SPECIAL(0x00414250, FileRequestMessage::~FileRequestMessage);
 Message* __fastcall FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
 FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }
 int FileRequestMessage::OnShutdown() {
@@ -232,12 +208,9 @@ void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 // PlayerMessage.
 
 PlayerMessage::PlayerMessage() {}
-EI_REWRITTEN_SPECIAL(0x0041C680, PlayerMessage::PlayerMessage);
 PlayerMessage::PlayerMessage(const PlayerMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), state_(other.state_), host_(other.host_),
       id_(other.id_), serial_(other.serial_), number_(other.number_), firstLine_(other.firstLine_) {}
-EI_REWRITTEN_SPECIAL(0x004148E0, PlayerMessage::~PlayerMessage);
-EI_REWRITTEN_SPECIAL(0x004148C0, PlayerMessage::~PlayerMessage);
 
 Message* __fastcall PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
 PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
@@ -265,13 +238,10 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 // LineMessage.
 
 LineMessage::LineMessage() {}
-EI_REWRITTEN_SPECIAL(0x0041C740, LineMessage::LineMessage);
 LineMessage::LineMessage(const LineMessage& other) : Message(other), number_(other.number_), text_(other.text_) {
     CopyCounted(connection_, other.connection_);
 }
 LineMessage::~LineMessage() { ReleaseCounted(connection_); }
-EI_REWRITTEN_SPECIAL(0x00414D10, LineMessage::~LineMessage);
-EI_REWRITTEN_SPECIAL(0x00414CF0, LineMessage::~LineMessage);
 
 Message* __fastcall LineMessage::Create() { return NewCounted<LineMessage>(); }
 LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
@@ -291,10 +261,7 @@ void LineMessage::Read(BufferCursor* cursor) {
 // HostMessage.
 
 HostMessage::HostMessage() {}
-EI_REWRITTEN_SPECIAL(0x0041C7C0, HostMessage::HostMessage);
 HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(other.address_), zone_(other.zone_) {}
-EI_REWRITTEN_SPECIAL(0x004152A0, HostMessage::~HostMessage);
-EI_REWRITTEN_SPECIAL(0x00415280, HostMessage::~HostMessage);
 
 Message* __fastcall HostMessage::Create() { return NewCounted<HostMessage>(); }
 HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
@@ -318,8 +285,6 @@ VariableMessage::VariableMessage(const VariableMessage& other) : Message(other),
     std::memcpy(&value_, &other.value_, 4);
     serial_ = other.serial_;
 }
-EI_REWRITTEN_SPECIAL(0x00415D00, VariableMessage::~VariableMessage);
-EI_REWRITTEN_SPECIAL(0x00415CE0, VariableMessage::~VariableMessage);
 
 Message* __fastcall VariableMessage::Create() { return NewCounted<VariableMessage>(); }
 VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }
@@ -358,8 +323,6 @@ FileMessage::~FileMessage() {
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
 }
-EI_REWRITTEN_SPECIAL(0x00416640, FileMessage::~FileMessage);
-EI_REWRITTEN_SPECIAL(0x00416620, FileMessage::~FileMessage);
 
 Message* __fastcall FileMessage::Create() { return NewCounted<FileMessage>(); }
 FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
@@ -386,8 +349,6 @@ FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(othe
     std::memcpy(data_, other.data_, kDataSize);
 }
 FileChunkMessage::~FileChunkMessage() { ReleaseCounted(file_); }
-EI_REWRITTEN_SPECIAL(0x004168E0, FileChunkMessage::~FileChunkMessage);
-EI_REWRITTEN_SPECIAL(0x004168C0, FileChunkMessage::~FileChunkMessage);
 
 Message* __fastcall FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
 FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
@@ -415,8 +376,6 @@ AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(ot
 }
 // The original frees the text before it releases the receiver; ours after (the text is a member).
 AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
-EI_REWRITTEN_SPECIAL(0x00416D70, AwardMessage::~AwardMessage);
-EI_REWRITTEN_SPECIAL(0x00416D50, AwardMessage::~AwardMessage);
 
 Message* __fastcall AwardMessage::Create() { return NewCounted<AwardMessage>(); }
 AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
@@ -450,8 +409,6 @@ TradeMessage::~TradeMessage() {
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
 }
-EI_REWRITTEN_SPECIAL(0x00416FC0, TradeMessage::~TradeMessage);
-EI_REWRITTEN_SPECIAL(0x00416FA0, TradeMessage::~TradeMessage);
 
 Message* __fastcall TradeMessage::Create() { return NewCounted<TradeMessage>(); }
 TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
@@ -483,8 +440,6 @@ PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Messag
     CStream* copy = &stream_;
     copy->Read(other.stream_.data_, stream_.size_);
 }
-EI_REWRITTEN_SPECIAL(0x00417620, PartyMemberMessage::~PartyMemberMessage);
-EI_REWRITTEN_SPECIAL(0x00417600, PartyMemberMessage::~PartyMemberMessage);
 
 Message* __fastcall PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
 PartyMemberMessage* PartyMemberMessage::Clone() {
@@ -524,8 +479,6 @@ PartyMessage::~PartyMessage() {
         if (p->ptr) p->ptr->Release();
     stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * sizeof(RefPtr));
 }
-EI_REWRITTEN_SPECIAL(0x004178F0, PartyMessage::~PartyMessage);
-EI_REWRITTEN_SPECIAL(0x004178D0, PartyMessage::~PartyMessage);
 
 Message* __fastcall PartyMessage::Create() { return NewCounted<PartyMessage>(); }
 PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }
@@ -569,8 +522,6 @@ ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), a
     state_ = other.state_;
 }
 ServerEntryBase::~ServerEntryBase() {}
-EI_REWRITTEN_SPECIAL(0x00412960, ServerEntryBase::~ServerEntryBase);
-EI_REWRITTEN_SPECIAL(0x00412970, ServerEntryBase::~ServerEntryBase);
 
 ServerEntry::ServerEntry() {
     AssignEmptyText(name_);
@@ -583,8 +534,6 @@ ServerEntry::ServerEntry() {
 ServerEntry::ServerEntry(const ServerEntry& other)
     : ServerEntryBase(other), name_(other.name_), kind_(other.kind_), description_(other.description_),
       players_(other.players_), maxPlayers_(other.maxPlayers_), password_(other.password_) {}
-EI_REWRITTEN_SPECIAL(0x004128E0, ServerEntry::~ServerEntry);
-EI_REWRITTEN_SPECIAL(0x004128C0, ServerEntry::~ServerEntry);
 
 ServerEntry* ServerEntry::Clone() { return NewCounted<ServerEntry>(*this); }
 int ServerEntry::OnShutdown() {
@@ -607,98 +556,5 @@ void ServerEntry::Read(BufferCursor* cursor) {
     Take(cursor, maxPlayers_);
     Take(cursor, password_);
 }
-
-// The registrations: the factories, then each class's virtuals.
-
-EI_REWRITTEN(0x004170A0, LoginMessage::Create);
-EI_REWRITTEN(0x00413570, LoginMessage::OnShutdown);
-EI_REWRITTEN(0x00413440, LoginMessage::Clone);
-EI_REWRITTEN(0x004136B0, LoginMessage::Write);
-EI_REWRITTEN(0x00413750, LoginMessage::Read);
-EI_REWRITTEN(0x004171A0, SayMessage::Create);
-EI_REWRITTEN(0x00413A50, SayMessage::OnShutdown);
-EI_REWRITTEN(0x00413930, SayMessage::Clone);
-EI_REWRITTEN(0x00413B10, SayMessage::Write);
-EI_REWRITTEN(0x00413B50, SayMessage::Read);
-EI_REWRITTEN(0x00417250, CommandMessage::Create);
-EI_REWRITTEN(0x00413E40, CommandMessage::OnShutdown);
-EI_REWRITTEN(0x00413D20, CommandMessage::Clone);
-EI_REWRITTEN(0x00413F00, CommandMessage::Write);
-EI_REWRITTEN(0x00413F50, CommandMessage::Read);
-EI_REWRITTEN(0x004179E0, FileRequestMessage::Create);
-EI_REWRITTEN(0x00414130, FileRequestMessage::OnShutdown);
-EI_REWRITTEN(0x004140D0, FileRequestMessage::Clone);
-EI_REWRITTEN(0x004141F0, FileRequestMessage::Write);
-EI_REWRITTEN(0x00414210, FileRequestMessage::Read);
-EI_REWRITTEN(0x00417650, PartyMessage::Create);
-EI_REWRITTEN(0x004177A0, PartyMessage::OnShutdown);
-EI_REWRITTEN(0x004176A0, PartyMessage::Clone);
-EI_REWRITTEN(0x00412AC0, PartyMessage::Write);
-EI_REWRITTEN(0x00412B70, PartyMessage::Read);
-EI_REWRITTEN(0x00417300, PartyMemberMessage::Create);
-EI_REWRITTEN(0x004174F0, PartyMemberMessage::OnShutdown);
-EI_REWRITTEN(0x00417420, PartyMemberMessage::Clone);
-EI_REWRITTEN(0x00417560, PartyMemberMessage::Write);
-EI_REWRITTEN(0x004175B0, PartyMemberMessage::Read);
-EI_REWRITTEN(0x00414420, PlayerMessage::Create);
-EI_REWRITTEN(0x00414650, PlayerMessage::OnShutdown);
-EI_REWRITTEN(0x00414500, PlayerMessage::Clone);
-EI_REWRITTEN(0x00414770, PlayerMessage::Write);
-EI_REWRITTEN(0x00414820, PlayerMessage::Read);
-EI_REWRITTEN(0x00414960, LineMessage::Create);
-EI_REWRITTEN(0x00414AC0, LineMessage::OnShutdown);
-EI_REWRITTEN(0x00414A00, LineMessage::Clone);
-EI_REWRITTEN(0x00414BB0, LineMessage::Write);
-EI_REWRITTEN(0x00414C00, LineMessage::Read);
-EI_REWRITTEN(0x00414DB0, HostMessage::Create);
-EI_REWRITTEN(0x00414FA0, HostMessage::OnShutdown);
-EI_REWRITTEN(0x00414E80, HostMessage::Clone);
-EI_REWRITTEN(0x004150B0, HostMessage::Write);
-EI_REWRITTEN(0x00415120, HostMessage::Read);
-EI_REWRITTEN(0x00415320, BindingMessage::Create);
-EI_REWRITTEN(0x004153B0, BindingMessage::OnShutdown);
-EI_REWRITTEN(0x00415350, BindingMessage::Clone);
-EI_REWRITTEN(0x00415450, BindingMessage::Write);
-EI_REWRITTEN(0x00415470, BindingMessage::Read);
-EI_REWRITTEN(0x00415570, ZoneMessage::Create);
-EI_REWRITTEN(0x00415740, ZoneMessage::OnShutdown);
-EI_REWRITTEN(0x00415620, ZoneMessage::Clone);
-EI_REWRITTEN(0x00415800, ZoneMessage::Write);
-EI_REWRITTEN(0x00415840, ZoneMessage::Read);
-EI_REWRITTEN(0x00415D50, MapMessage::Create);
-EI_REWRITTEN(0x00415F20, MapMessage::OnShutdown);
-EI_REWRITTEN(0x00415E00, MapMessage::Clone);
-EI_REWRITTEN(0x00415FE0, MapMessage::Write);
-EI_REWRITTEN(0x00416020, MapMessage::Read);
-EI_REWRITTEN(0x00415980, VariableMessage::Create);
-EI_REWRITTEN(0x00415B60, VariableMessage::OnShutdown);
-EI_REWRITTEN(0x00415A30, VariableMessage::Clone);
-EI_REWRITTEN(0x00415C20, VariableMessage::Write);
-EI_REWRITTEN(0x00415C80, VariableMessage::Read);
-EI_REWRITTEN(0x00416160, FileMessage::Create);
-EI_REWRITTEN(0x00416390, FileMessage::OnShutdown);
-EI_REWRITTEN(0x00416220, FileMessage::Clone);
-EI_REWRITTEN(0x004164D0, FileMessage::Write);
-EI_REWRITTEN(0x00416530, FileMessage::Read);
-EI_REWRITTEN(0x004166F0, FileChunkMessage::Create);
-EI_REWRITTEN(0x00416780, FileChunkMessage::OnShutdown);
-EI_REWRITTEN(0x00416720, FileChunkMessage::Clone);
-EI_REWRITTEN(0x00416800, FileChunkMessage::Write);
-EI_REWRITTEN(0x00416850, FileChunkMessage::Read);
-EI_REWRITTEN(0x00416940, AwardMessage::Create);
-EI_REWRITTEN(0x00416B30, AwardMessage::OnShutdown);
-EI_REWRITTEN(0x00416A10, AwardMessage::Clone);
-EI_REWRITTEN(0x00416C00, AwardMessage::Write);
-EI_REWRITTEN(0x00416C60, AwardMessage::Read);
-EI_REWRITTEN(0x00416DF0, TradeMessage::Create);
-EI_REWRITTEN(0x00416EB0, TradeMessage::OnShutdown);
-EI_REWRITTEN(0x00416E30, TradeMessage::Clone);
-EI_REWRITTEN(0x00412C80, TradeMessage::Write);
-EI_REWRITTEN(0x00412CE0, TradeMessage::Read);
-
-EI_REWRITTEN(0x00412750, ServerEntry::OnShutdown);
-EI_REWRITTEN(0x00412590, ServerEntry::Clone);
-EI_REWRITTEN(0x00412990, ServerEntry::Write);
-EI_REWRITTEN(0x00412A30, ServerEntry::Read);
 
 } // namespace net

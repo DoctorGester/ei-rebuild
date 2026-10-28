@@ -6,7 +6,6 @@
 #include "ai_map.h"
 #include "core_maths.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "world_data.h"
 
@@ -51,5 +50,3 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     }
     return static_cast<double>(largest) / heightScale;
 }
-
-EI_REWRITTEN(0x005BC750, CAIMap::LargestStepAlong);

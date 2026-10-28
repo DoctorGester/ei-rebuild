@@ -6,7 +6,6 @@
 #include "net_delta.h"
 #include "server_specific_manager.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 
@@ -23,13 +22,10 @@ constexpr int kTorchField = 4;
 } // namespace
 
 CTorchObject::CTorchObject() { spec = nullptr; }
-EI_REWRITTEN_SPECIAL(0x0052BEE0, CTorchObject::CTorchObject);
 
 CTorchObject::~CTorchObject() {
     if (spec) spec->Release();
 }
-EI_REWRITTEN_SPECIAL(0x0052BF60, CTorchObject::~CTorchObject);
-EI_REWRITTEN_SPECIAL(0x0052BF40, CTorchObject::~CTorchObject);   // deleting
 
 void CTorchObject::DestroyTorch() {
     CTorchObjectSpec* old = spec;
@@ -38,25 +34,20 @@ void CTorchObject::DestroyTorch() {
     NetState()->Reset();
     DestroyMapObject();
 }
-EI_REWRITTEN(0x0052C150, CTorchObject::DestroyTorch);
 
 int CTorchObject::UpdateTorch() { return 1; }
-EI_REWRITTEN(0x0052BF10, CTorchObject::UpdateTorch);
 
 bool CTorchObject::Slot29True() { return true; }
-EI_REWRITTEN(0x0052BF00, CTorchObject::Slot29True);
 
 void CTorchObject::LoadTorch(CStream* stream) {
     LoadMapObject(stream);
     spec->Load(stream);
 }
-EI_REWRITTEN(0x0052C280, CTorchObject::LoadTorch);
 
 void CTorchObject::SaveTorch(CStream* stream) {
     SaveMapObject(stream);
     spec->Save(stream);
 }
-EI_REWRITTEN(0x0052C2A0, CTorchObject::SaveTorch);
 
 void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
 void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
@@ -72,7 +63,6 @@ void CTorchObject::AttachTorchObject(CEngineObject* object) {
     if (old) old->Release();
     if (spec) spec->torch_ = this;   // the spec's owner
 }
-EI_REWRITTEN(0x0052C2C0, CTorchObject::AttachTorchObject);
 
 void CTorchObject::WriteTorchNetState() {
     CMapObject::WriteNetState();
@@ -87,7 +77,6 @@ void CTorchObject::WriteTorchNetState() {
     field->WriteStringBoth(spec->name_.c_str());
     field->EndField();
 }
-EI_REWRITTEN(0x0052C180, CTorchObject::WriteTorchNetState);
 
 std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
@@ -100,8 +89,6 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     field->EndField();
     return complete;
 }
-EI_REWRITTEN(0x0052C220, CTorchObject::ReadTorchNetState);
 
 const char* CTorchObject::GetClassName() { return kTorchClassName; }
 int CTorchObject::GetClassId() { return kClassTorch; }
-

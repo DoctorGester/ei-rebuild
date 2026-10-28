@@ -14,7 +14,6 @@
 
 #include "lib/crt.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -191,7 +190,6 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     std::uint32_t variant = DecalVariant();
     TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
-EI_REWRITTEN(0x00537500, CUnitClientSpecific::StatChanged);
 
 void CUnitClientSpecific::Wound(float) {
     auto* source = TheParticleManager()->CreateSource(kSparks);
@@ -204,7 +202,6 @@ void CUnitClientSpecific::Wound(float) {
     if (flashCountdown == 0) half->SetMaterialsLit(1);
     if (flashCountdown <= kMinFlashTicks) flashCountdown = kMinFlashTicks;
 }
-EI_REWRITTEN(0x00537C00, CUnitClientSpecific::Wound);
 
 void CUnitClientSpecific::Died() {
     unit->MapObject()->ClientCompanion()->HideLight();
@@ -226,7 +223,6 @@ void CUnitClientSpecific::Died() {
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
-EI_REWRITTEN(0x005373D0, CUnitClientSpecific::Died);
 
 void CUnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
@@ -234,4 +230,3 @@ void CUnitClientSpecific::PlayerChanged(void* player) {
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
     unit->MapObject()->ClientCompanion()->CreateLight(colour, PartyLightRadius(), false);
 }
-EI_REWRITTEN(0x00534140, CUnitClientSpecific::PlayerChanged);

@@ -10,7 +10,6 @@
 #include "record_vectors.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "lib/stlp_hash.h"
@@ -152,7 +151,6 @@ void UnitSet::Add(CUnit* unit) {
     DressedUnitElement::Destroy(&entry.mapped);                      // called twice
     FiguredUnitElement::Destroy(&record);
 }
-EI_REWRITTEN(0x005593D0, UnitSet::Add);
 
 // ---- The helpers UnitSet::Add was compiled with ---------------------------------------------------
 
@@ -161,16 +159,3 @@ namespace unitset {
 void __fastcall DestructName(mfc::CString* name) { std::destroy_at(name); }
 
 } // namespace unitset
-
-EI_REWRITTEN(0x0055AC40, gamehash::FiguredAbi::ConstructDefault);
-EI_REWRITTEN(0x0055AEB0, gamehash::FiguredAbi::CopyConstruct);
-EI_REWRITTEN(0x0055AD10, gamehash::FiguredAbi::Destroy);
-EI_REWRITTEN(0x0055BA10, gamehash::FiguredGroupsAbi::FindOrInsert);
-EI_REWRITTEN(0x0055B540, gamehash::FiguredAbi::InsertEqualNoresize);
-EI_REWRITTEN(0x0055BAC0, gamehash::DressedAbi::InsertEqualNoresize);
-
-// The id and name vectors: _M_insert_overflow, ~_Vector_base (2), _Construct of an id and of a
-// CString, and the CString's scalar deleting destructor (the names' element loop calls it with 0).
-EI_REWRITTEN(0x0055C260, stlp::ConstructAt<std::uint32_t>);
-EI_REWRITTEN(0x0055C270, stlp::ConstructAt<mfc::CString>);
-EI_REWRITTEN(0x0051FAD0, mfc::impl::ScalarDeleting<&unitset::DestructName>::Delete);

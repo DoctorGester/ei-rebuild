@@ -7,7 +7,6 @@
 #include "map_object_animation.h" // AnimationTrack
 #include "bone_pose.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 namespace {
@@ -55,4 +54,3 @@ void FigureBone::Place(const Vector3* origin) {
         child->Place(origin);
     }
 }
-EI_REWRITTEN(0x0050C230, FigureBone::Place);

@@ -7,7 +7,6 @@
 #include "device.h"
 #include "texture.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include "../hook/log.h"
@@ -74,10 +73,8 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     }
     return dib;
 }
-EI_REWRITTEN(0x006D6D40, CaptureSurfaceRect);
 
 CDib* __fastcall CaptureSurface(CDXSurface* self) {
     const RECT whole = {0, 0, self->width, self->height};
     return CaptureSurfaceRect(self, &whole);
 }
-EI_REWRITTEN(0x006D6FC0, CaptureSurface);

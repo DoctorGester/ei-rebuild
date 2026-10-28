@@ -3,12 +3,13 @@ reaches, and whether a golden run (SV3) or function vectors (SV4) check them wit
 
 Reach (tests/coverage/reach.txt): which scenarios run each rewritten function's original. Since A-I23 it comes
 from runs of the original code (--no-hooks) with `EI_COVER=<file>`: every address the file lists (`addresses`
-writes every rewrite's) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei_hook.log names each one the
+writes reach.txt's: the rewritten functions as the function-to-original map had them until C20l, with their
+names) gets a one-shot INT3 (src/hook/cover.cpp) and the run's ei_hook.log names each one the
 run executed (a call the original inlined is not seen, so "reached" is a lower bound for small functions).
 Scenarios collected before S21c came from game.exe with our hooks (EI_COVER=hooks: the hook addresses and our
 replacements' first bytes); `collect --add` keeps them until their scenarios run again.
 
-    python tools\\coverage.py addresses build\\cover.txt       (the watch list: every rewrite's address)
+    python tools\\coverage.py addresses build\\cover.txt       (the watch list: reach.txt's addresses)
     set EI_COVER=<full path of that file>
     python tools\\work.py test <ID> [scenarios] --no-hooks --vanilla-only --fresh
     python tools\\coverage.py collect build\\verify\\runs --add  (reach.txt: these runs' scenarios replaced)
@@ -16,9 +17,9 @@ replacements' first bytes); `collect --add` keeps them until their scenarios run
     python tools\\coverage.py list                          (writes tests/coverage/coverage.csv from
                                                             reach.txt, the sources, goldens and vectors)
     python tools\\coverage.py who <address or name>          (the scenarios that reach a function)
-    python tools\\coverage.py top [N] [--area A]             (the uncovered ones by risk)
+    python tools\\coverage.py top [N]                      (the uncovered ones by risk)
 
-`list` needs no games: rerun it after adding a golden, vectors or a rewrite.
+`list` needs no games: rerun it after adding a golden or vectors.
 
 Status of a function (coverage.csv):
   golden         a scenario with a vanilla golden reaches it
@@ -26,10 +27,8 @@ Status of a function (coverage.csv):
   suite          only scenarios without a golden reach it (nothing checks it against the original
                  until those scenarios get goldens)
   unreached      installed, but no scenario reaches it
-  not-installed  rewritten, but the hook is not installed on vanilla (a SKIP in the log)
   startup, dead  unreached, and tests/coverage/unreachable.txt says why no scenario can reach it
-Risk (for suite and unreached): size in bytes x area weight (game state 3, network / interface /
-library 2, drawing and sound 1) x 2 when unreached.
+Risk (for suite and unreached): size in bytes, x 2 when unreached.
 """
 import argparse, csv, glob, os, re, struct, sys
 
@@ -42,34 +41,6 @@ GOLDEN = os.path.join(ROOT, 'tests', 'golden')
 VECTORS = os.path.join(ROOT, 'tests', 'vectors')
 INSTALL = 'vanilla'
 
-STATE = ('unit', 'world', 'ai', 'script', 'map', 'combat', 'item', 'player', 'spell', 'party', 'object',
-         'quest', 'lever', 'effects', 'trap', 'magic', 'mob', 'torch', 'link', 'logic', 'server', 'sector',
-         'random', 'maths', 'quaternion', 'matrix', 'core', 'game', 'class', 'chunk', 'base', 'global',
-         'small', 'weather', 'trader', 'acks', 'animation', 'aligned', 'hero', 'camp', 'save', 'zone')
-MIDDLE = ('net', 'ui', 'console', 'options', 'text', 'string', 'resource', 'ini', 'registry', 'hash',
-          'app', 'win', 'sys', 'lib')
-SOUND_DRAW = ('device', 'renderer', 'render', 'texture', 'figure', 'scene', 'object3d', 'terrain', 'camera',
-              'sky', 'skin', 'model', 'material', 'dx', 'present', 'clip', 'view', 'particle', 'lightning',
-              'ground', 'bink', 'buffered', 'dib', 'sound', 'engine', 'light', 'mesh', 'font', 'movie')
-
-
-def area_weight(path):
-    if not path:
-        return 2
-    if path.startswith('src/lib/'):
-        return 2
-    if path.startswith('src/render/'):
-        return 1
-    stem = os.path.basename(path).split('.')[0]
-    head = stem.split('_')[0]
-    if head == 'object3d' or stem.startswith('object3d'):
-        return 1
-    for words, weight in ((STATE, 3), (SOUND_DRAW, 1), (MIDDLE, 2)):
-        if head in words:
-            return weight
-    return 2
-
-
 def rel(path):
     return os.path.relpath(path, ROOT).replace('\\', '/')
 
@@ -78,17 +49,6 @@ def sources(pattern):
     for path in glob.glob(os.path.join(ROOT, pattern), recursive=True):
         text = open(path, encoding='utf-8', errors='replace').read()
         yield rel(path), text
-
-
-def rewrites():
-    """address -> (name, file) of every EI_REWRITTEN (a rewrite without a
-    registration, C20d) with a literal address."""
-    found = {}
-    rx = re.compile(r'\bEI_REWRITTEN(?:_SPECIAL)?\(\s*0x([0-9A-Fa-f]{8})\s*,\s*&?\s*([^)\s]+)\s*\)')
-    for path, text in sources('src/**/*.cpp'):
-        for m in rx.finditer(text):
-            found.setdefault(int(m.group(1), 16), (m.group(2), path))
-    return found
 
 
 def function_sizes():
@@ -173,13 +133,11 @@ def read_reach():
 
 
 def write_addresses(args):
-    """The watch list for EI_COVER: every rewrite's address and every address reach.txt has."""
-    found = set(rewrites())
-    if os.path.exists(REACH):
-        found |= set(read_reach()[1])
+    """The watch list for EI_COVER: every address reach.txt has."""
+    found = set(read_reach()[1])
     os.makedirs(os.path.dirname(os.path.abspath(args.file)), exist_ok=True)
     with open(args.file, 'w', encoding='ascii', newline='\n') as f:
-        f.write('# tools/coverage.py addresses: the rewritten functions, for EI_COVER (src/hook/cover.cpp)\n')
+        f.write("# tools/coverage.py addresses: reach.txt's functions, for EI_COVER (src/hook/cover.cpp)\n")
         f.writelines(f'{a:08X}\n' for a in sorted(found))
     print(f'{len(found)} addresses; wrote {args.file}')
 
@@ -199,14 +157,12 @@ def collect(args):
     if not reached:
         sys.exit(f'no {INSTALL} run under {args.runs} was made with EI_COVER')
     collected = len(reached)
-    names = {a: n for a, (n, _) in rewrites().items()}
-    if args.add and os.path.exists(REACH):
-        old_scenarios, old = read_reach()
+    old_scenarios, old = read_reach()
+    names = {a: name for a, (name, _) in old.items()}
+    if args.add:
         for s in old_scenarios:
             if s not in reached:
                 reached[s] = {a for a, (_, who) in old.items() if s in who}
-        for a, (name, _) in old.items():
-            names.setdefault(a, name)
     scenarios = sorted(reached)
     with open(REACH, 'w', encoding='utf-8', newline='\n') as f:
         f.write('# Written by tools/coverage.py collect from runs of the original (--no-hooks, vanilla) with EI_COVER=<the\n'
@@ -225,26 +181,21 @@ def collect(args):
 
 def build_rows():
     scenarios, reach = read_reach()
-    names = rewrites()
     sizes = function_sizes()
     vec_names = recorders()
     vec_data = vector_files()
     goldens = golden_scenarios() & set(scenarios)
     known = unreachable()
     rows = []
-    for a in sorted(set(names) | set(reach)):
-        name, path = names.get(a, (None, ''))
-        logged, who = reach.get(a, (None, set()))
-        name = name or logged
+    for a in sorted(reach):
+        name, who = reach[a]
         golden = sorted(who & goldens)
         if a in vec_names:
             records = vec_data.get(vec_names[a], 0)
             vector = f'{records} records' if records else 'no data'
         else:
             records, vector = 0, ''
-        if a not in reach:
-            status = 'not-installed'
-        elif golden:
+        if golden:
             status = 'golden'
         elif records:
             status = 'vector'
@@ -255,10 +206,10 @@ def build_rows():
         size = sizes.get(a, 0)
         risk = 0
         if status in ('suite', 'unreached'):
-            risk = size * area_weight(path) * (2 if status == 'unreached' else 1)
+            risk = size * (2 if status == 'unreached' else 1)
         others = sorted(who - set(golden), key=lambda s: (s.startswith('watchdog'), s))
         rows.append({
-            'address': f'{a:08X}', 'name': name, 'file': path, 'size': size,
+            'address': f'{a:08X}', 'name': name, 'size': size,
             'status': status, 'risk': int(risk), 'scenarios': len(who), 'golden': ' '.join(golden[:4]) + (f' +{len(golden) - 4}' if len(golden) > 4 else ''),
             'vector': vector, 'reached_by': ' '.join(others[:3]) + (f' +{len(others) - 3}' if len(others) > 3 else ''),
         })
@@ -270,7 +221,7 @@ def write_list(args):
     with open(CSV, 'w', encoding='utf-8', newline='') as f:
         f.write('# Written by tools/coverage.py list (SV5): per rewritten function, how the suite reaches it and what\n'
                 '# checks it without the original exe. status: golden / vector / suite (only scenarios without a golden)\n'
-                '# / unreached / not-installed (vanilla). risk: for suite and unreached, see tools/coverage.py.\n'
+                '# / unreached. risk: for suite and unreached, see tools/coverage.py.\n'
                 '# golden: vanilla golden scenarios that reach it (first 4); reached_by: other scenarios (first 3).\n')
         w = csv.DictWriter(f, fieldnames=list(rows[0]), lineterminator='\n')
         w.writeheader()
@@ -279,7 +230,7 @@ def write_list(args):
     for r in rows:
         counts[r['status']] = counts.get(r['status'], 0) + 1
     print(f'{len(rows)} rewritten functions over {len(scenarios)} scenarios ({len(goldens)} with a golden): ' +
-          ', '.join(f'{counts.get(s, 0)} {s}' for s in ('golden', 'vector', 'suite', 'unreached', 'startup', 'dead', 'not-installed')))
+          ', '.join(f'{counts.get(s, 0)} {s}' for s in ('golden', 'vector', 'suite', 'unreached', 'startup', 'dead')))
     gaps = [r for r in rows if r['vector'] == 'no data']
     if gaps:
         print('vector checks without data: ' + ', '.join(f"{r['name']} ({r['status']})" for r in gaps))
@@ -288,15 +239,14 @@ def write_list(args):
 
 def who(args):
     scenarios, reach = read_reach()
-    names = rewrites()
     goldens = golden_scenarios()
     key = args.function.upper().removeprefix('0X')
     hits = [a for a in reach if f'{a:08X}' == key.zfill(8)] or \
-           [a for a in reach if args.function.lower() in (names.get(a, (reach[a][0],))[0] or '').lower()]
+           [a for a in reach if args.function.lower() in reach[a][0].lower()]
     if not hits:
         sys.exit(f'no installed hook matches {args.function}')
     for a in sorted(hits)[:20]:
-        name = names.get(a, (reach[a][0],))[0]
+        name = reach[a][0]
         found = sorted(reach[a][1])
         tagged = [s + ('*' if s in goldens else '') for s in found]
         print(f'{a:08X} {name}: {len(found)} scenario(s){": " if found else ""}{" ".join(tagged)}')
@@ -306,11 +256,10 @@ def who(args):
 
 def top(args):
     _, _, rows = build_rows()
-    pick = [r for r in rows if r['risk'] and (not args.area or args.area in r['file'])]
+    pick = [r for r in rows if r['risk']]
     pick.sort(key=lambda r: -r['risk'])
     for r in pick[:args.count]:
-        print(f"{r['risk']:7d} {r['status']:9s} {r['address']} {r['name'][:46]:46s} {r['size']:5d} "
-              f"{r['file'][9:] if r['file'].startswith('src/game/') else r['file']}"
+        print(f"{r['risk']:7d} {r['status']:9s} {r['address']} {r['name'][:46]:46s} {r['size']:5d}"
               + (f"  [{r['reached_by']}]" if r['reached_by'] else ''))
 
 
@@ -327,7 +276,6 @@ def main():
     w.add_argument('function', help='address (hex) or part of a name')
     t = sub.add_parser('top')
     t.add_argument('count', nargs='?', type=int, default=40)
-    t.add_argument('--area', help='only files whose path contains this')
     args = ap.parse_args()
     {'list': write_list, 'addresses': write_addresses, 'collect': collect, 'who': who, 'top': top}[args.cmd](args)
 

@@ -3,8 +3,6 @@
 #include "ui.h"
 #include "ui_camp.h"
 
-#include "ei/hook.h"
-
 namespace {
 // Key actions 0x11..0x16 hold the order keys; each releases its flag in orderKeys_.
 constexpr int kFirstOrderKeyAction = 0x11;
@@ -20,7 +18,6 @@ void CBattleScreen::OnDeactivate() {
     boxSelecting_ = false;
     CUiContainer::Deactivate();
 }
-EI_REWRITTEN(0x00638A10, CBattleScreen::OnDeactivate);
 
 // --- a double click on the battle screen ---------------------------------------------------------
 
@@ -35,7 +32,6 @@ void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     pressY_ = y;
     boxSelecting_ = false;
 }
-EI_REWRITTEN(0x00638AD0, CBattleScreen::OnLeftDouble);
 
 // --- a key released on the battle screen ---------------------------------------------------------
 
@@ -45,7 +41,6 @@ void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     int action = KeyActions()[flags & 0x1FF] - kFirstOrderKeyAction;
     if (action >= 0 && action < 6) orderKeys_[kOrderKeyOfAction[action]] = 0;
 }
-EI_REWRITTEN(0x0063B6D0, CBattleScreen::OnKeyUp);
 
 // --- the wheel on the battle screen --------------------------------------------------------------
 
@@ -62,4 +57,3 @@ BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
     for (CUiWindow* panel : panels) panel->SetEnabled(1, 0);
     return 1;
 }
-EI_REWRITTEN(0x0063B770, CBattleScreen::OnWheel);

@@ -14,7 +14,6 @@
 #include "script.h"
 #include "unit.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
@@ -35,8 +34,3 @@ std::uint32_t CMaterial::GpuLitColour() const {
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
     manager->quietStart = 0;
 }
-EI_REWRITTEN(0x004981A0, ParticleManagerClearQuietStart);
-
-// ---- Script commands' accessors -------------------------------------------------------------------
-
-EI_REWRITTEN(0x004BAA20, ObjectListIterator::First);

@@ -13,7 +13,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "game_data.h"
 #include "lib/str.h"
 
@@ -65,7 +64,6 @@ void MpHeroRecord::WriteFile(const char* folder) {
     }
     gameapi::DeleteFileA(TempFile(folder));
 }
-EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
@@ -74,7 +72,6 @@ bool MpHeroRecord::ReadFile(const char* folder) {
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
 }
-EI_REWRITTEN(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
     if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
@@ -83,7 +80,6 @@ void SavedParties::SaveAll() {
     // The count is read again after each write.
     for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_.c_str());
 }
-EI_REWRITTEN(0x006632B0, SavedParties::SaveAll);
 
 SavedParties* SavedParties::Construct() {
     std::construct_at(&folder_);
@@ -91,7 +87,6 @@ SavedParties* SavedParties::Construct() {
     outsideGame_.Construct();
     return this;
 }
-EI_REWRITTEN(0x0065F580, SavedParties::Construct);
 
 void SavedParties::Destruct() {
     outsideGame_.Destruct();
@@ -99,7 +94,6 @@ void SavedParties::Destruct() {
     entries_.FreeStorage();
     std::destroy_at(&folder_);
 }
-EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 
 // The saved parties, empty at the start: built by a static initialiser in the list's order and destroyed by
 // the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
@@ -113,6 +107,3 @@ void __cdecl ConstructSavedParties() {
     g_savedParties->Construct();
     libcrt::AtExit(DestroySavedParties);
 }
-
-EI_REWRITTEN(0x0065F2A0, ConstructSavedParties);
-EI_REWRITTEN(0x0065F2C0, DestroySavedParties);

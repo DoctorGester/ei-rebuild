@@ -4,7 +4,6 @@
 // before any is stored, so `out` may be either input. Returns out. See docs/notes/map_objects.md.
 #include "maths.h"
 
-#include "ei/hook.h"
 #include "lib/vecmath.h"
 
 Quaternion* __fastcall MultiplyQuaternions(Quaternion* out, const Quaternion* a, const Quaternion* b) {
@@ -21,4 +20,3 @@ Quaternion* __fastcall MultiplyQuaternions(Quaternion* out, const Quaternion* a,
     out->z = z;
     return out;
 }
-EI_REWRITTEN(0x00506C70, MultiplyQuaternions);

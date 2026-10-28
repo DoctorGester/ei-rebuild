@@ -20,7 +20,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -133,7 +132,6 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
     modifier = from->modifier;
     return this;
 }
-EI_REWRITTEN(0x0054B320, UnitAction::Assign);
 
 void UnitAction::Reset() {
     kind = kOrderEmpty;
@@ -143,14 +141,12 @@ void UnitAction::Reset() {
     param = 0;
     modifier = 0;
 }
-EI_REWRITTEN(0x0054B230, UnitAction::Reset);
 
 void CUnitServer::SetUnitMoveMode2(int mode) {
     if (mode == unit->moveMode2) return;
     unit->moveMode2 = mode;
     unit->MarkChanged(kPartMoveModes);
 }
-EI_REWRITTEN(0x00546830, CUnitServer::SetUnitMoveMode2);
 
 void CUnitServer::SyncMoveModes() {
     if (action.kind == kOrderAttack) moveMode2.flag4 = 1;
@@ -170,7 +166,6 @@ void CUnitServer::SyncMoveModes() {
     if (action.modifier && moveMode.mode == kModeRun) moveMode2.wasMode3 |= 2;
     if (!unit->player && moveMode2.flag4) moveMode2.wasMode3 |= 1;
 }
-EI_REWRITTEN(0x0054A620, CUnitServer::SyncMoveModes);
 
 namespace {
 // The melee reach test of CanReachTarget as an inlining caller has it: false when the target (a living unit
@@ -219,7 +214,6 @@ void CUnitServer::TakeQueuedOrder() {
     SyncMoveModes();
     waitFrame = TheServerWorld()->tick_;
 }
-EI_REWRITTEN(0x0054A6E0, CUnitServer::TakeQueuedOrder);
 
 // --- Taking over the queued order ----------------------------------------------------------------
 
@@ -438,7 +432,6 @@ bool CUnitServer::StartQueuedOrder() {
         return false;
     }
 }
-EI_REWRITTEN(0x0054A900, CUnitServer::StartQueuedOrder);
 
 // --- Every tick ----------------------------------------------------------------------------------
 
@@ -475,7 +468,6 @@ void CUnitServer::UpdateOrders() {
     }
     StartQueuedOrder();
 }
-EI_REWRITTEN(0x0054B390, CUnitServer::UpdateOrders);
 
 void CUnitServer::ContinueAction() {
     CMapObject* target = action.target;
@@ -526,7 +518,6 @@ void CUnitServer::ContinueAction() {
     if (action2.kind == kOrderEmpty && action.kind != kOrderNone) DropQueuedOrder();
     EndOrder(0);
 }
-EI_REWRITTEN(0x0054DD70, CUnitServer::ContinueAction);
 
 // --- Carrying out the current order ----------------------------------------------------------------
 
@@ -570,7 +561,6 @@ bool CUnitServer::CanReachAndPlan(const AIOrder* order) {
     if (OutOfReachUp(this, order)) return false;
     return CanPlanAction(order);
 }
-EI_REWRITTEN(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
 bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point) {
     if (OutOfReachUp(this, order)) return false;
@@ -582,7 +572,6 @@ bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point
     std::memcpy(&unit->localPosition_, &saved, sizeof(saved));
     return result;
 }
-EI_REWRITTEN(0x0054C960, CUnitServer::CanReachAndPlanFrom);
 
 void CUnitServer::ExecuteOrder() {
     int now = WorldTick(this);
@@ -670,7 +659,6 @@ void CUnitServer::ExecuteOrder() {
     ClearAction(&action);
     if (action2.kind == kOrderEmpty) Idle();
 }
-EI_REWRITTEN(0x0054D960, CUnitServer::ExecuteOrder);
 
 // --- Closing in --------------------------------------------------------------------------------
 
@@ -870,4 +858,3 @@ void CUnitServer::ApproachTarget() {
     }
     interceptTime = when;
 }
-EI_REWRITTEN(0x0054D140, CUnitServer::ApproachTarget);

@@ -359,7 +359,7 @@ int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map,
 } // namespace
 
 // FindPath's callers are rewritten (ContinuePath calls ours directly).
-EI_RECORD(0x005BB350, FindPathRecord, 6, s_findPath);
-EI_RECORD(0x005C1010, RemoveRecord, 7, s_remove);
-EI_RECORD(0x005B9C90, PlanRecord, 7, s_plan);
-EI_RECORD(0x005C46C0, SmoothRecord, 9, s_smooth);
+EI_RECORD(0x005BB350, FindPathRecord, 6, s_findPath, CAIMap::FindPath);
+EI_RECORD(0x005C1010, RemoveRecord, 7, s_remove, CSectorMap::Remove);
+EI_RECORD(0x005B9C90, PlanRecord, 7, s_plan, CAIMap::PlanLongPath);
+EI_RECORD(0x005C46C0, SmoothRecord, 9, s_smooth, PathSmoother::Smooth);

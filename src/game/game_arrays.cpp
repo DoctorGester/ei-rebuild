@@ -6,8 +6,6 @@
 #include "game/item.h"
 #include "game/world.h"
 
-#include "ei/hook.h"
-
 // The map database's element policies (object_tables.h).
 void AllodRecordElements::Construct(AllodRecord* allods, int count) {
     std::memset(static_cast<void*>(allods), 0, static_cast<std::size_t>(count) * sizeof(AllodRecord));
@@ -46,60 +44,6 @@ void MapRecordElements::Destruct(MapRecord* maps, int count) {
     for (; count > 0; --count, ++maps) zone::ZoneRecordDestruct(maps);
 }
 
-namespace gamearrays {
-
-EI_REWRITTEN(0x00573080, Exits::SetSize);
-EI_REWRITTEN(0x00460670, Exits::DestructElements);
-EI_REWRITTEN(0x004607B0, ZoneRecords::DestructElements);
-EI_REWRITTEN(0x0044F7E0, BlocksAt8::SetSize);
-EI_REWRITTEN(0x00452DF0, BlocksAt8::DestructElements);
-EI_REWRITTEN(0x00453700, BlocksAt4::DestructElements);
-// The destructors of global arrays only exit functions call: the vtable back, the elements destroyed, the storage
-// freed. Plain elements: the sector spiral's radius tree keys (CArray<float>, whose exit function is shared) and
-// offsets, the path smoother's node pool, the particles' draw order. The script quest's objectives: each
-// objective's text.
-EI_REWRITTEN(0x005BF870, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Destruct);
-EI_REWRITTEN(0x005C18E0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct);
-EI_REWRITTEN(0x005C4490, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);
-EI_REWRITTEN(0x00498E80, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct);
-EI_REWRITTEN(0x004C9DB0, Objectives::Destruct<ObjectiveArrayClass>);
-EI_REWRITTEN(0x005C5850, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct);   // byte-identical copy
-// Their constructors, which the static initialisers call: the compiled table stored, the rest zero.
-EI_REWRITTEN(0x00498E60, mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Construct);
-EI_REWRITTEN(0x004C9D90, mfc::impl::ArrayHeader<ObjectiveArrayClass>::Construct);
-EI_REWRITTEN(0x005C18C0, mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Construct);
-EI_REWRITTEN(0x005BF890, mfc::impl::ArrayHeader<mfc::impl::FloatArrayClass>::Construct);
-EI_REWRITTEN(0x005C44B0, mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Construct);
-// Their tables' scalar deleting destructors.
-EI_REWRITTEN(0x00499040, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct>::Delete);
-EI_REWRITTEN(0x004CB790, mfc::impl::ScalarDeleting<&Objectives::Destruct<ObjectiveArrayClass>>::Delete);
-EI_REWRITTEN(0x005C1C30, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct>::Delete);
-EI_REWRITTEN(0x005C5830, mfc::impl::ScalarDeleting<&mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct>::Delete);
-
-EI_REWRITTEN(0x005121B0, Particles::SetSize);
-EI_REWRITTEN(0x004C3980, Groups::SetSize);
-EI_REWRITTEN(0x004CC980, Groups::DestructElements);
-EI_REWRITTEN(0x004CDF40, Objectives::SetSize);
-EI_REWRITTEN(0x004CEE80, Objectives::ConstructElements);
-// Object references: the script groups' (ScriptObjectRef) and the bare pointers' (a save's shared
-// objects, the client maps).
-EI_REWRITTEN(0x004C2050, ObjectRefs::SetSize);
-EI_REWRITTEN(0x004C2200, ObjectRefs::RemoveAt);
-EI_REWRITTEN(0x004CC7D0, ObjectRefs::DestructElements);
-EI_REWRITTEN(0x0052CEC0, ObjectRefs::DestructElements);
-EI_REWRITTEN(0x004C2290, ScriptGroup::DestructBody);   // byte-identical copy
-EI_REWRITTEN(0x004CB150, PointLights::Destruct<PointLightArrayClass>);
-EI_REWRITTEN(0x004CB650, Areas::Destruct<mfc::impl::ScriptAreaArrayClass>);
-EI_REWRITTEN(0x004CB310, Definitions::Destruct<recordarrays::DefinitionArrayClass>);
-EI_REWRITTEN(0x004C5CB0, PointLights::SetSize);
-EI_REWRITTEN(0x004C3B20, Groups::Destruct<GroupArrayClass>);
-EI_REWRITTEN(0x0059C8C0, ObjectPtrs::SetSize);
-EI_REWRITTEN(0x00570000, ObjectPtrs::SetSize);
-EI_REWRITTEN(0x0059C890, ObjectPtrs::DestructElements);
-EI_REWRITTEN(0x0059A100, ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>);
-
-} // namespace gamearrays
-
 // ---- The members of the script / world arrays (script.h, world.h) ----------------------------------
 
 ScriptObjectRef* ScriptObjectRefs::CopyAt(ScriptObjectRef* out, int index) const {
@@ -108,8 +52,6 @@ ScriptObjectRef* ScriptObjectRefs::CopyAt(ScriptObjectRef* out, int index) const
     if (object) ++object->refCount_;
     return out;
 }
-EI_REWRITTEN(0x004CC7A0, ScriptObjectRefs::CopyAt);
-EI_REWRITTEN(0x004C21E0, ScriptObjectRefs::CopyAt);
 
 void ScriptObjectRefs::CopyFrom(const ScriptObjectRefs& source) {
     mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*this).SetSize(source.size, -1);
@@ -123,15 +65,12 @@ void ScriptObjectRefs::CopyFrom(const ScriptObjectRefs& source) {
         gamearrays::ReleaseAndClear(&copy);
     }
 }
-EI_REWRITTEN(0x004C1290, ScriptObjectRefs::CopyFrom);
 
 ScriptGroup* ScriptGroups::CopyAt(ScriptGroup* out, int index) const {
     gamearrays::InitGroup(out);
     out->CopyFrom(data[index]);
     return out;
 }
-EI_REWRITTEN(0x004CC890, ScriptGroups::CopyAt);
-EI_REWRITTEN(0x004C3B00, ScriptGroups::CopyAt);
 
 void ScriptGroups::CopyFrom(const ScriptGroups& source) {
     mfc::impl::ArrayAs<gamearrays::Groups>(*this).SetSize(source.size, -1);
@@ -143,7 +82,6 @@ void ScriptGroups::CopyFrom(const ScriptGroups& source) {
         copy->DestructBody();
     }
 }
-EI_REWRITTEN(0x004C1BE0, ScriptGroups::CopyFrom);
 
 template <class T>
 T** CountedPtrs<T>::CopyAt(T** out, int index) const {
@@ -152,8 +90,6 @@ T** CountedPtrs<T>::CopyAt(T** out, int index) const {
     if (object) ++object->refCount_;
     return out;
 }
-EI_REWRITTEN(0x0059E300, EngineObjectPtrs::CopyAt);
-EI_REWRITTEN(0x0059CA40, EngineObjectPtrs::CopyAt);
 
 template <class T>
 void CountedPtrs<T>::CopyFrom(const CountedPtrs& source) {
@@ -168,27 +104,5 @@ void CountedPtrs<T>::CopyFrom(const CountedPtrs& source) {
         if (copy) copy->Release();
     }
 }
-EI_REWRITTEN(0x0059B8F0, EngineObjectPtrs::CopyFrom);
 template struct CountedPtrs<CEngineObject>;
 template struct CountedPtrs<CItem>;   // SharedObject::objects
-
-// The lib templates over tags the game's headers define: the registrations that need the complete tag.
-namespace mfc::impl {
-
-EI_REWRITTEN(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);
-EI_REWRITTEN(0x0056FFE0, ArrayHeader<ExitArrayClass>::Construct);
-EI_REWRITTEN(0x005985C0, ArrayHeader<ObjectPtrArrayClass>::Construct);
-EI_REWRITTEN(0x004CC9B0, ScriptGroups::ConstructElements);
-EI_REWRITTEN(0x004607E0, MapRecords::ConstructElements);
-EI_REWRITTEN(0x0059E330, SharedObjectArray::ConstructElements);
-EI_REWRITTEN(0x0059CA60, SharedObjectNewList::NewNode);
-EI_REWRITTEN(0x00460490, gamearrays::Exits::Destruct<ExitArrayClass>);
-EI_REWRITTEN(0x00460A80, gamearrays::Exits::Destruct<ExitArrayClass>);
-EI_REWRITTEN(0x004606A0, gamearrays::Exits::ConstructElements);
-EI_REWRITTEN(0x00460720, AllodRecords::ConstructElements);
-EI_REWRITTEN(0x004606F0, AllodRecords::DestructElements);
-EI_REWRITTEN(0x0045FBD0, AllodRecords::Destruct<AllodArrayClass>);
-EI_REWRITTEN(0x004600F0, ScalarDeleting<&AllodRecords::Destruct<AllodArrayClass>>::Delete);
-EI_REWRITTEN(0x0045FCB0, AllodRecords::Serialize);   // AllodArrayClass
-
-} // namespace mfc::impl

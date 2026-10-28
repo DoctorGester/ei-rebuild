@@ -10,8 +10,6 @@
 #include "texture.h"
 #include "game_strings.h"
 
-#include "ei/hook.h"
-
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -77,7 +75,6 @@ std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     std::uint32_t larger = levelBytes * (scale - 1) * 4 / (scale * 3);
     return larger + extraSize;
 }
-EI_REWRITTEN(0x006908E0, MmpHeader::MipOffset);
 
 std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const {
     std::uint32_t bits = bitsPerPixel;
@@ -131,8 +128,6 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     std::memcpy(extra_.data, header + 1, header->extraSize);
     return 1;
 }
-EI_REWRITTEN(0x00690430, CTexture::CreateFromMmp);
-
 
 int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     MmpHeader header;
@@ -159,4 +154,3 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     CloseFile(fileHeader);
     return 1;
 }
-EI_REWRITTEN(0x006928C0, CTextureManager::LoadMmpExtra);

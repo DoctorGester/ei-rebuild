@@ -10,7 +10,6 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -307,11 +306,3 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     }
     handled_ = true;
 }
-
-// --- Entry points --------------------------------------------------------------------------------
-
-EI_REWRITTEN(0x006548A0, CSaveLoadWindow::OnKeyDown);
-EI_REWRITTEN(0x00650E40, COptionsWindow::OnKeyDown);
-EI_REWRITTEN(0x00655050, CSaveLoadWindow::OnChar);
-EI_REWRITTEN(0x00655430, CSaveLoadWindow::ShowSelection);
-EI_REWRITTEN(0x00657820, CSaveLoadWindow::IsReservedSave);

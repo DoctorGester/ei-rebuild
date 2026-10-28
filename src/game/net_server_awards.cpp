@@ -8,7 +8,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "ui.h"
 #include "world.h"
@@ -45,8 +44,6 @@ RefPtr* RefPtr::CopyShared(const RefPtr* other) {
 }
 
 namespace net {
-EI_REWRITTEN(0x004263F0, RefPtr::CopyShared);
-EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
@@ -187,10 +184,5 @@ void ServerSession::LeaveZone() {
     QueueMapList();
     TheGameFlow()->SetNetworkZone(nullptr);
 }
-
-EI_REWRITTEN(0x00419D90, ServerSession::QueueAward);
-EI_REWRITTEN(0x004191C0, ServerSession::AwardHost);
-EI_REWRITTEN(0x00418ED0, ServerSession::CompleteZone);
-EI_REWRITTEN(0x00418CC0, ServerSession::LeaveZone);
 
 } // namespace net

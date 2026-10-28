@@ -9,7 +9,6 @@
 #include "unit_ai.h"
 
 #include "../lib/crt.h"
-#include "ei/hook.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -111,15 +110,3 @@ void CEffectShowVisibility::Save(CStream* s) {
     copy = seerId_;
     s->Write(&copy, 4);
 }
-
-EI_REWRITTEN_SPECIAL(0x0067C340, CEffectShowVisibility::CEffectShowVisibility);
-EI_REWRITTEN_SPECIAL(0x0067C490, CEffectShowVisibility::~CEffectShowVisibility);
-EI_REWRITTEN_SPECIAL(0x0067C470, CEffectShowVisibility::~CEffectShowVisibility);
-EI_REWRITTEN(0x0067C5F0, CEffectShowVisibility::Reset);
-EI_REWRITTEN(0x0067C640, CEffectShowVisibility::SetUnits);
-EI_REWRITTEN(0x0067C660, CEffectShowVisibility::Start);
-EI_REWRITTEN(0x0067C6B0, CEffectShowVisibility::Unpack);
-EI_REWRITTEN(0x0067C7A0, CEffectShowVisibility::Pack);
-EI_REWRITTEN(0x0067C840, CEffectShowVisibility::RunTick);
-EI_REWRITTEN(0x0067C8E0, CEffectShowVisibility::Load);
-EI_REWRITTEN(0x0067C910, CEffectShowVisibility::Save);

@@ -7,7 +7,6 @@
 #include "options.h"
 #include "sys_info.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -57,4 +56,3 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
     graphicsProcessor_ = getProcessor();
     return graphicsProcessor_;
 }
-EI_REWRITTEN(0x00500540, CVisualizator::CreateBase);

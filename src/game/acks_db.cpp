@@ -14,7 +14,6 @@
 #include "record_lifetime.h"
 #include "record_vectors.h"   // vector::resize of the speech lists
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -51,15 +50,11 @@ template <typename Record>
 Record* AckTable<Record>::Find(const char* name) {
     return byName[std::string(name)];
 }
-EI_REWRITTEN(0x006D9A30, AckTable<UnitAcks>::Find);
-EI_REWRITTEN(0x006D9CE0, AckTable<ModelAcks>::Find);
-EI_REWRITTEN(0x006D9F80, AckTable<ExtraAcks>::Find);
 
 template <typename Record>
 Record* AckTable<Record>::RecordAt(std::uint32_t index) {
     return index < records.size() ? &records[index] : nullptr;
 }
-EI_REWRITTEN(0x006D8E30, AckTable<ExtraAcks>::RecordAt);
 // model_db_open.cpp's AckDatabase::Load reads the extra acks by index.
 template ExtraAcks* AckTable<ExtraAcks>::RecordAt(std::uint32_t);
 
@@ -74,7 +69,6 @@ const SpeechRecord* Speeches::Pick(int roll) const {
     for (const SpeechRecord* s = begin();; ++s)
         if (s->chance >= roll && chosen-- == 0) return s;
 }
-EI_REWRITTEN(0x006D8780, Speeches::Pick);
 
 const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int roll) const {
     auto eligible = [&](const EnvironmentSpeech& s) {
@@ -88,7 +82,6 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
     for (const EnvironmentSpeech* s = begin();; ++s)
         if (eligible(*s) && chosen-- == 0) return &s->speech;
 }
-EI_REWRITTEN(0x006D88E0, EnvironmentSpeeches::Pick);
 
 // 0xFF stops the unit's speech. A party unit walking slowly says its own kinds (PartyKind). 0x25 /
 // 0x26 only play weapons\timecrash.wav at the unit; 0x23 / 0x24 play weapons\crash.wav and go on.
@@ -157,7 +150,6 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     if (speech) unit->Controller()->Say(speech, static_cast<int>(kind));
     return speech;
 }
-EI_REWRITTEN(0x006D8430, SayAck);
 
 const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
@@ -174,7 +166,6 @@ const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool a
     }
     return nullptr;
 }
-EI_REWRITTEN(0x006D8A40, SayNamedAck);
 
 // ---- Serialising the records (loaded once at startup) ---------------------------------------------
 
@@ -229,8 +220,6 @@ void ChunkArchive::SerializeEnvironmentSpeeches(int id, EnvironmentSpeeches* lis
         ar->Field(10, &speech->environment, 4);
     });
 }
-EI_REWRITTEN(0x006E42F0, ChunkArchive::SerializeSpeechList);
-EI_REWRITTEN(0x006E4410, ChunkArchive::SerializeEnvironmentSpeeches);
 
 namespace acks {
 
@@ -277,9 +266,6 @@ void ExtraAcks::Serialize(ChunkArchive* ar) {
     Lists(ar, lists);
 }
 
-EI_REWRITTEN(0x006E3780, UnitAcks::Serialize);
-EI_REWRITTEN(0x006E3FD0, ModelAcks::Serialize);
-EI_REWRITTEN(0x006E3DC0, ExtraAcks::Serialize);
 // ---- The records' destructors -------------------------------------------------------------
 
 void AckRecordHead::Destruct() {
@@ -293,19 +279,16 @@ void UnitAcks::Destruct() {
     for (int i = 32; i >= 0; --i) records::DestroyVector(lists[i]);
     head.Destruct();
 }
-EI_REWRITTEN(0x006DC390, UnitAcks::Destruct);
 
 void ModelAcks::Destruct() {
     for (int i = 4; i >= 0; --i) records::DestroyVector(lists[i]);
     head.Destruct();
 }
-EI_REWRITTEN(0x006DC920, ModelAcks::Destruct);
 
 void ExtraAcks::Destruct() {
     records::DestroyVector(lists[1]);
     records::DestroyVector(lists[0]);
     head.Destruct();
 }
-EI_REWRITTEN(0x006DCAF0, ExtraAcks::Destruct);
 
 } // namespace acks

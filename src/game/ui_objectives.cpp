@@ -16,7 +16,6 @@
 #include "quest_records.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "lib/stlp_hash.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
@@ -686,13 +685,6 @@ void CObjectivesWindow::DrawQuestList() {
     UiSurfaceReleaseDC(surface);
 }
 
-EI_REWRITTEN(0x0064BE00, ConstructLastQuest);
-EI_REWRITTEN(0x0064BE20, DestroyLastQuest);
-EI_REWRITTEN(0x0064BE80, CObjectivesWindow::CreateScreen);
-EI_REWRITTEN(0x0064D9B0, CObjectivesWindow::DrawQuestList);
-EI_REWRITTEN(0x0064CC10, CObjectivesWindow::ShowZone);
-EI_REWRITTEN(0x0064DC60, CObjectivesWindow::ShowQuest);
-
 // --- What the window is opened for, and its help topic --------------------
 
 namespace {
@@ -706,7 +698,5 @@ void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButt
     exitDistances_ = static_cast<stlp::map<int, float>*>(exitDistances);
     listZones_ = listZones;
 }
-EI_REWRITTEN(0x0064BE40, CObjectivesWindow::Setup);
 
 const char* CObjectivesWindow::HelpTopic() { return twoButtons_ ? kGlobalMapTopic : kMissionTopic; }
-EI_REWRITTEN(0x0064D990, CObjectivesWindow::HelpTopic);

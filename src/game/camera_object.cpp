@@ -4,7 +4,6 @@
 
 #include "core_streams.h"
 
-#include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -28,9 +27,6 @@ float DefaultAngle() { return static_cast<float>(CAM_PI * CAM_TWO_SEVENTHS); }
 
 
 } // namespace
-
-EI_REWRITTEN_SPECIAL(0x0040CB70, CTransformObject::~CTransformObject);
-EI_REWRITTEN_SPECIAL(0x0040CB50, CTransformObject::~CTransformObject);   // deleting
 
 CCamera::CCamera() {
     ClearFields();
@@ -70,7 +66,6 @@ CCamera::CCamera() {
     farDistance_ = 2000.0f;
     fieldOfView_ = DefaultAngle();
 }
-EI_REWRITTEN_SPECIAL(0x0040C8B0, CCamera::CCamera);
 
 CCamera::~CCamera() {
     targetId_ = -1;
@@ -78,8 +73,6 @@ CCamera::~CCamera() {
     viewStack_.Destroy();   // the nodes, then the map
     shakes_.Destroy();      // the nodes, then the sentinel
 }
-EI_REWRITTEN_SPECIAL(0x0040CE60, CCamera::~CCamera);
-EI_REWRITTEN_SPECIAL(0x0040CE10, CCamera::~CCamera);
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.
 constinit lib::StaticObject<CCamera> g_camera = /*0079B2A8*/ {};
@@ -94,14 +87,8 @@ void __cdecl ConstructCamera() {
     libcrt::AtExit(DestroyCamera);
 }
 
-EI_REWRITTEN(0x0040C880, ConstructCamera);
-EI_REWRITTEN(0x0040C8A0, DestroyCamera);
-
 const char* CCamera::GetClassName() { return "CCamera"; }
-EI_REWRITTEN(0x0040CDF0, CCamera::GetClassName);
 int CCamera::GetClassId() { return 0x43; }
-EI_REWRITTEN(0x0040CE00, CCamera::GetClassId);
-EI_REWRITTEN(0x0040E900, CCamera::RunTick);
 
 int CCamera::Create() {
     targetId_ = -1;
@@ -110,9 +97,7 @@ int CCamera::Create() {
     fieldOfView_ = DefaultAngle();
     return 1;
 }
-EI_REWRITTEN(0x0040D190, CCamera::Create);
 void CCamera::Destroy() { targetId_ = -1; }
-EI_REWRITTEN(0x0040D1D0, CCamera::Destroy);
 
 // Init(settings, near, far, fov). Takes the views and the start distance and focus from the settings, keeps the
 // three distances / angle as float bit patterns, switches to free placement, and resets views 6 and 7 to the
@@ -136,13 +121,11 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
     views_[6].pitch = pitch_;
     return 1;
 }
-EI_REWRITTEN(0x0040D0A0, CCamera::Init);
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;
 }
-EI_REWRITTEN(0x0040FB20, CameraAnchor);
 
 namespace {
 
@@ -197,7 +180,6 @@ int CCamera::OpenFile(const char* name) {
     file.Close();
     return 1;
 }
-EI_REWRITTEN(0x0040E910, CCamera::OpenFile);
 
 // While recording (flag 0x10), appends a frame {time, -, local position, local rotation} to fileName_. Returns 1
 // when written, 0 when not recording or the file does not open.
@@ -215,7 +197,6 @@ int CCamera::RecordFrame(std::uint32_t time) {
     file.Close();
     return 1;
 }
-EI_REWRITTEN(0x0040EB60, CCamera::RecordFrame);
 
 // Closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {
@@ -223,7 +204,6 @@ int __fastcall CameraCloseFile(CCamera* self) {
     self->fileName_.clear();
     return 1;
 }
-EI_REWRITTEN(0x0040ECB0, CameraCloseFile);
 
 // Loads the camera state saved by Save. Saves before version 0x6F hold all eight
 // views, later ones views 4..7. A followed target is kept when one is saved (its offsets reset).
@@ -253,7 +233,6 @@ void CCamera::Load(CStream* stream) {
         std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
-EI_REWRITTEN(0x00410AB0, CCamera::Load);
 
 // Saves the camera state (focus, rotation, pitch, distance, the rates, flags, target and views 4..7).
 void CCamera::Save(CStream* stream) {
@@ -270,4 +249,3 @@ void CCamera::Save(CStream* stream) {
     stream->Write(&targetId_, 4);
     stream->Write(&views_[4], 0x60);
 }
-EI_REWRITTEN(0x00410C10, CCamera::Save);

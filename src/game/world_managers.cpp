@@ -11,7 +11,6 @@
 #include "resource_manager.h"
 #include "spell.h"
 
-#include "ei/hook.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -59,7 +58,6 @@ void CWorld::Destroy() {
     DeleteManager(manager4C_);
     DeleteManager(manager48_);
 }
-EI_REWRITTEN(0x0055F8E0, CWorld::Destroy);
 
 // ---- The managers' own small virtuals -------------------------------------
 // GetClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
@@ -80,30 +78,14 @@ CPlayerManager::~CPlayerManager() {}
 const char* CPlayerManager::GetClassName() { return kPlayerManagerName; }
 int CPlayerManager::GetClassId() { return kPlayerManagerId; }
 
-EI_REWRITTEN(0x0055F310, CPlayerManager::GetClassName);
-EI_REWRITTEN(0x0055F320, CPlayerManager::GetClassId);
-EI_REWRITTEN_SPECIAL(0x0055F350, CPlayerManager::~CPlayerManager);
-EI_REWRITTEN_SPECIAL(0x0055F330, CPlayerManager::~CPlayerManager);   // deleting
-
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
 int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 const char* CEffectManager::GetClassName() { return kEffectManagerName; }
 int CEffectManager::GetClassId() { return kEffectManagerId; }
 
-EI_REWRITTEN(0x0055F360, CEffectManager::GetClassName);
-EI_REWRITTEN(0x0055F370, CEffectManager::GetClassId);
-EI_REWRITTEN_SPECIAL(0x0055F3A0, CEffectManager::~CEffectManager);
-EI_REWRITTEN_SPECIAL(0x0055F380, CEffectManager::~CEffectManager);   // deleting
-EI_REWRITTEN(0x0067E150, CEffectManager::Create);
-
 CItemManager::CItemManager() {}
 CItemManager::~CItemManager() {}
 const char* CItemManager::GetClassName() { return kItemManagerName; }
 int CItemManager::GetClassId() { return kItemManagerId; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }
-
-EI_REWRITTEN(0x0055F3C0, CItemManager::GetClassName);
-EI_REWRITTEN(0x0055F3D0, CItemManager::GetClassId);
-EI_REWRITTEN_SPECIAL(0x0055F400, CItemManager::~CItemManager);
-EI_REWRITTEN_SPECIAL(0x0055F3E0, CItemManager::~CItemManager);   // deleting

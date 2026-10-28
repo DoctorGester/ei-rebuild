@@ -5,8 +5,6 @@
 #include "core_transform.h"
 #include "figure_mesh.h"
 
-#include "ei/hook.h"
-
 #include <cmath>
 #include <cstring>
 
@@ -76,9 +74,3 @@ void __stdcall LightShearMatrix(float* out, const Vector3* direction) {
 }
 
 } // namespace view
-
-EI_REWRITTEN(0x004F0EF0, view::CameraViewMatrix);
-EI_REWRITTEN(0x004F15C0, view::LightRotation);
-EI_REWRITTEN(0x004F1440, view::LightShearMatrix);
-// A byte-for-byte copy of CubicSegment::Evaluate.
-EI_REWRITTEN(0x004E5660, CubicSegment::Evaluate);
