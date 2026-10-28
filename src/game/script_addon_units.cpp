@@ -191,9 +191,9 @@ bool PlayerExists(Call* call) {
     return true;
 }
 
-bool GetDexterity(Call* call) { return DataField(call, &UnitStats::stat18, "GetDexterity"); }
-bool GetIntelligence(Call* call) { return DataField(call, &UnitStats::stat20, "GetIntelligence"); }
-bool GetStrength(Call* call) { return DataField(call, &UnitStats::stat10, "GetStrength"); }
+bool GetDexterity(Call* call) { return DataField(call, &UnitStats::dexterity, "GetDexterity"); }
+bool GetIntelligence(Call* call) { return DataField(call, &UnitStats::intelligence, "GetIntelligence"); }
+bool GetStrength(Call* call) { return DataField(call, &UnitStats::strength, "GetStrength"); }
 bool GetActions(Call* call) { return DataField(call, &UnitStats::rate, "GetActions"); }
 bool GetActionsBase(Call* call) { return DataField(call, &UnitStats::rateBase, "GetActionsBase"); }
 bool GetEncumbrance(Call* call) { return DataField(call, &UnitStats::load, "GetEncumbrance"); }

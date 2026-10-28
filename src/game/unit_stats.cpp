@@ -39,19 +39,19 @@ const SkillLevelRecord* LevelRecord(std::uint32_t index) {
 
 } // namespace
 
-double UnitStats::StrengthRatio() { return stat10 / g_logicSettings.hpVal[0]; }
+double UnitStats::StrengthRatio() { return strength / g_logicSettings.hpVal[0]; }
 
-double UnitStats::DexterityRatio() { return stat18 / g_logicSettings.mpVal[0]; }
+double UnitStats::DexterityRatio() { return dexterity / g_logicSettings.mpVal[0]; }
 
-double UnitStats::Period20() { return kStatBase / stat20; }
+double UnitStats::Period20() { return kStatBase / intelligence; }
 
 float UnitStats::AttributeBase(int index) { return static_cast<float>(attributes[index]); }
 
 double UnitStats::AttributeWithBonus(int index) {
     switch (index) {
-    case 0: return (stat18 - kStatBase) + static_cast<float>(attributes[0]);
-    case 1: return (stat18 - kStatBase) + static_cast<float>(attributes[1]);
-    case 2: return (stat20 - kStatBase) + static_cast<float>(attributes[2]);
+    case 0: return (dexterity - kStatBase) + static_cast<float>(attributes[0]);
+    case 1: return (dexterity - kStatBase) + static_cast<float>(attributes[1]);
+    case 2: return (intelligence - kStatBase) + static_cast<float>(attributes[2]);
     default: return kZero;
     }
 }
@@ -64,9 +64,9 @@ double UnitStats::SkillWithBonus(std::uint32_t index) {
     const SkillRecord* skillRecord = unitdb::SkillAt(index);
     const char* name = skillRecord->statNames.begin()[0].c_str();
     switch (*name) {
-    case 'd': return (stat18 - kStatBase) + skill;
-    case 'i': return (stat20 - kStatBase) + skill;
-    case 's': return (stat10 - kStatBase) + skill;
+    case 'd': return (dexterity - kStatBase) + skill;
+    case 'i': return (intelligence - kStatBase) + skill;
+    case 's': return (strength - kStatBase) + skill;
     default: return skill;
     }
 }
@@ -94,15 +94,15 @@ double UnitStats::SkillLevelValue(int index) {
 }
 
 double UnitStats::Value6E8() {
-    double strength = stat10 * kTwelve;   // kept on the FPU stack
+    double scaledStrength = strength * kTwelve;   // kept on the FPU stack
     std::uint8_t level = skillLevels[0x6E8 - 0x6D3];
     if (level != 0) {
         const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E8);
         if (record) {
-            return (record->Value() * kPercent + kOne) * strength;
+            return (record->Value() * kPercent + kOne) * scaledStrength;
         }
     }
-    return (kZero * kPercent + kOne) * strength;
+    return (kZero * kPercent + kOne) * scaledStrength;
 }
 
 double UnitStats::Value6E9() {
@@ -141,8 +141,8 @@ double UnitStats::ReduceKind1(float value) {
 }
 
 void UnitStats::GetFactors(float* a, float* b, int) {
-    double x = (stat10 - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
-    double y = kOne - (stat18 - kFactorBase) / kFactorStatRange;
+    double x = (strength - kFactorBase) / kFactorStatRange;   // both kept on the FPU stack
+    double y = kOne - (dexterity - kFactorBase) / kFactorStatRange;
     *a = static_cast<float>(y * kPointThree + x * kPointSeven);
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }

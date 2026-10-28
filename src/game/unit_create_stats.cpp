@@ -180,7 +180,7 @@ double LevelOrZero(UnitStats* stats, int skill) {
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).
 float CurveHitPoints(UnitStats* stats) {
     double curve = HitPointExperienceCurve(&stats->experience);
-    double scaled = curve * (static_cast<double>(stats->stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
+    double scaled = curve * (static_cast<double>(stats->strength) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]);
     return static_cast<float>((LevelOrZero(stats, kSkillHitPoints) * kPercent + kOneF) * scaled);
 }
 
@@ -261,9 +261,9 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
         return 1;
     }
     SetBits(stats->experience, 0);
-    SetBits(stats->stat10Base, kDefaultStat);
-    SetBits(stats->stat18Base, kDefaultStat);
-    SetBits(stats->stat20Base, kDefaultStat);
+    SetBits(stats->strengthBase, kDefaultStat);
+    SetBits(stats->dexterityBase, kDefaultStat);
+    SetBits(stats->intelligenceBase, kDefaultStat);
     for (float& modeSpeed : stats->modeSpeeds) SetBits(modeSpeed, kDefaultModeSpeed);
     SetBits(stats->spentExperience, 0);
     SetBits(stats->speedBase, kDefaultSpeed);
@@ -271,10 +271,10 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     SetBits(stats->capacity, 0);
     stats->movementKind = 0;
     for (int i = 0; i < 6; ++i) {
-        SetBits(stats->valuesB0[i].base, kHundred);
-        SetBits(stats->valuesB0[i].current, kHundred);
-        SetBits(stats->valuesE0[i].base, kHundred);
-        SetBits(stats->valuesE0[i].current, kHundred);
+        SetBits(stats->perception[i].base, kHundred);
+        SetBits(stats->perception[i].current, kHundred);
+        SetBits(stats->conspicuity[i].base, kHundred);
+        SetBits(stats->conspicuity[i].current, kHundred);
     }
     for (UnitStatSlot& slot : stats->slots) {
         slot.type = 1;
@@ -317,29 +317,29 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     std::memcpy(&stats->fixedMaxHitPoints, &vitals->maxHitPoints, 4);
 
     if (npc) {
-        FpuCopy2(&stats->stat10Base, &stats->stat10, &npc->stats[0]);
-        FpuCopy2(&stats->stat18Base, &stats->stat18, &npc->stats[1]);
-        FpuCopy2(&stats->stat20Base, &stats->stat20, &npc->stats[2]);
-        float rate = static_cast<float>(static_cast<double>(stats->stat18) * kHalf);
+        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
+        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
+        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
+        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * kHalf);
         CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
     } else {
         float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
-        stats->stat10Base = strength;
-        stats->stat10 = strength;
+        stats->strengthBase = strength;
+        stats->strength = strength;
         float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
-        stats->stat18Base = dexterity;
-        stats->stat18 = dexterity;
-        SetBits(stats->stat20Base, kStat25);
-        SetBits(stats->stat20, kStat25);
+        stats->dexterityBase = dexterity;
+        stats->dexterity = dexterity;
+        SetBits(stats->intelligenceBase, kStat25);
+        SetBits(stats->intelligence, kStat25);
         SetBits(stats->rateBase, kRate15);
         CopyDword(stats->speedBase, prototype->speed);
     }
     CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
-        CopyDword(stats->valuesE0[i].base, prototype->valuesE0[i]);
+        CopyDword(stats->perception[i].base, prototype->perception[i]);
+        CopyDword(stats->conspicuity[i].base, prototype->conspicuity[i]);
     }
     stats->sightCone = HalfAngleCosine(model);
     CopyDword(stats->peripheralRange, prototype->peripheralRange);
@@ -373,22 +373,22 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
 
     const float* speed = &prototype->speed;
     if (npc) {
-        FpuCopy2(&stats->stat10Base, &stats->stat10, &npc->stats[0]);
-        FpuCopy2(&stats->stat18Base, &stats->stat18, &npc->stats[1]);
-        FpuCopy2(&stats->stat20Base, &stats->stat20, &npc->stats[2]);
+        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
+        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
+        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
         FpuCopy2(&stats->speedBase, &stats->speed, speed);
-        float rate = static_cast<float>(static_cast<double>(stats->stat18) * kHalf);
+        float rate = static_cast<float>(static_cast<double>(stats->dexterity) * kHalf);
         stats->rateBase = rate;
         stats->rate = rate;
     } else {
         float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
-        stats->stat10Base = strength;
-        stats->stat10 = strength;
+        stats->strengthBase = strength;
+        stats->strength = strength;
         float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
-        stats->stat18Base = dexterity;
-        stats->stat18 = dexterity;
-        SetBits(stats->stat20Base, kStat25);
-        SetBits(stats->stat20, kStat25);
+        stats->dexterityBase = dexterity;
+        stats->dexterity = dexterity;
+        SetBits(stats->intelligenceBase, kStat25);
+        SetBits(stats->intelligence, kStat25);
         FpuCopy2(&stats->speedBase, &stats->speed, speed);
         SetBits(stats->rateBase, kRate15);
         SetBits(stats->rate, kRate15);
@@ -396,8 +396,8 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
     CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);
-        FpuCopy2(&stats->valuesE0[i].base, &stats->valuesE0[i].current, &prototype->valuesE0[i]);
+        FpuCopy2(&stats->perception[i].base, &stats->perception[i].current, &prototype->perception[i]);
+        FpuCopy2(&stats->conspicuity[i].base, &stats->conspicuity[i].current, &prototype->conspicuity[i]);
     }
     stats->sightCone = HalfAngleCosine(model);
     CopyDword(stats->peripheralRange, prototype->peripheralRange);
@@ -430,28 +430,28 @@ int PrototypeObjectClass(const char* name) {
 // --- Statistics from their bases -----------------------------------------------------------------
 
 void UnitStats::ResetToBase(float newLoad) {
-    std::memcpy(&stat10, &stat10Base, 4);
-    std::memcpy(&stat18, &stat18Base, 4);
-    std::memcpy(&stat20, &stat20Base, 4);
+    std::memcpy(&strength, &strengthBase, 4);
+    std::memcpy(&dexterity, &dexterityBase, 4);
+    std::memcpy(&intelligence, &intelligenceBase, 4);
     for (int i = 0; i < 6; ++i) {
-        std::memcpy(&valuesB0[i].current, &valuesB0[i].base, 4);
-        std::memcpy(&valuesE0[i].current, &valuesE0[i].base, 4);
+        std::memcpy(&perception[i].current, &perception[i].base, 4);
+        std::memcpy(&conspicuity[i].current, &conspicuity[i].base, 4);
     }
     double bonus = kZero;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
         double level = LevelOf(record);
         EI_NAN_AUDIT(level);
-        if (level != kZero) bonus = level * valuesB0[1].current * kPercent;
+        if (level != kZero) bonus = level * perception[1].current * kPercent;
     }
-    valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
-    stat10 = static_cast<float>(LevelOrZero(this, kSkillStat10) + stat10);
-    stat18 = static_cast<float>(LevelOrZero(this, kSkillStat18) + stat18);
+    perception[1].current = static_cast<float>(bonus + perception[1].current);
+    strength = static_cast<float>(LevelOrZero(this, kSkillStat10) + strength);
+    dexterity = static_cast<float>(LevelOrZero(this, kSkillStat18) + dexterity);
     std::memcpy(&sightCone, &kMinusTwo, 4);
-    stat20 = static_cast<float>(LevelOrZero(this, kSkillStat20) + stat20);
+    intelligence = static_cast<float>(LevelOrZero(this, kSkillStat20) + intelligence);
 
     double curve = HitPointExperienceCurve(&experience);
     float hitPoints = static_cast<float>(
-        curve * (static_cast<double>(stat10) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
+        curve * (static_cast<double>(strength) / g_logicSettings.hpVal[0] * g_logicSettings.hpVal[1]));
     float perShare = static_cast<float>(
         (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share);
     for (UnitStatSlot& slot : slots) {
@@ -464,13 +464,13 @@ void UnitStats::ResetToBase(float newLoad) {
     }
 
     std::memcpy(&load, &newLoad, 4);   // a dword copy
-    float strengthCapacity = static_cast<float>(static_cast<double>(stat10) * kTwelve);
+    float strengthCapacity = static_cast<float>(static_cast<double>(strength) * kTwelve);
     capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
     float legs = LegsFactor(1);
     loadFactor = legs;
     speed = static_cast<float>(static_cast<double>(legs) * speedBase);
     armsFactor = ArmsFactor(1);
-    rateBase = static_cast<float>(static_cast<double>(stat18) * kPointTwo + kTenF);
+    rateBase = static_cast<float>(static_cast<double>(dexterity) * kPointTwo + kTenF);
     rate = static_cast<float>((LevelOrZero(this, kSkillRate) * kPercent + kOneF) * armsFactor * rateBase);
 }
 
@@ -502,9 +502,9 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
         char stat = record->statNames.begin()[0][0];   // its first stat's letter
         double base;
-        if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
-        else if (stat == 'i') base = static_cast<double>(stat20) - kStatBase;
-        else if (stat == 'd') base = static_cast<double>(stat18) - kStatBase;
+        if (stat == 's') base = static_cast<double>(strength) - kStatBase;
+        else if (stat == 'i') base = static_cast<double>(intelligence) - kStatBase;
+        else if (stat == 'd') base = static_cast<double>(dexterity) - kStatBase;
         else return (static_cast<double>(value) + weapon) + level;
         return ((base + value) + weapon) + level;
     }
@@ -518,10 +518,10 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
 
 BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord* record) {
     if (!record->learnable) return 0;
-    EI_NAN_AUDIT(stat10, stat18, stat20);
-    if (stat10 < record->RequiredStat(0)) return 0;
-    if (stat18 < record->RequiredStat(1)) return 0;
-    if (stat20 < record->RequiredStat(2)) return 0;
+    EI_NAN_AUDIT(strength, dexterity, intelligence);
+    if (strength < record->RequiredStat(0)) return 0;
+    if (dexterity < record->RequiredStat(1)) return 0;
+    if (intelligence < record->RequiredStat(2)) return 0;
     if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;

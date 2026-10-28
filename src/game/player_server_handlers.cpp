@@ -442,7 +442,7 @@ int CPlayerServer::OnJoined() {
     if (state_ != 2) return 0;
     state_ = 1;
     CPlayer* player = player_;
-    player->sessionKind100_ = player->ServerWorld()->sessionKind_;
+    player->sessionKind_ = player->ServerWorld()->sessionKind_;
     TheServerWorld()->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;

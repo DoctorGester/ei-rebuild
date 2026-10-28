@@ -106,7 +106,7 @@ void CPlayerServer::DeleteVariable(const char* name) {
 }
 
 void CPlayerServer::SendGameTime() {
-    std::uint32_t value = static_cast<std::uint32_t>(player_->sessionKind100_);
+    std::uint32_t value = static_cast<std::uint32_t>(player_->sessionKind_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
     WriteDword(&out_, static_cast<std::uint32_t>(CurrentWorldTick()));

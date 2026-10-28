@@ -41,8 +41,8 @@ struct UnitRecordStats {
     std::uint8_t unused_5B[0x70 - 0x5B];
     std::uint8_t protectionScale;   // +0x70 times the prototype model's protection (vitals, each twice)
     std::uint8_t unused_71[3];
-    float valuesB0[6];              // +0x74 -> UnitStats valuesB0 (base and current)
-    float valuesE0[6];              // +0x8C -> valuesE0
+    float perception[6];              // +0x74 -> UnitStats perception (base and current)
+    float conspicuity[6];              // +0x8C -> conspicuity
     std::uint8_t attributes[3];     // +0xA4 -> attributes
     std::uint8_t unused_A7[0xAC - 0xA7];
 };
@@ -51,8 +51,8 @@ static_assert(offsetof(UnitRecordStats, reachHeightScale) == 0x34);
 static_assert(offsetof(UnitRecordStats, reach) == 0x3C);
 static_assert(offsetof(UnitRecordStats, damageWeights) == 0x54);
 static_assert(offsetof(UnitRecordStats, protectionScale) == 0x70);
-static_assert(offsetof(UnitRecordStats, valuesB0) == 0x74);
-static_assert(offsetof(UnitRecordStats, valuesE0) == 0x8C);
+static_assert(offsetof(UnitRecordStats, perception) == 0x74);
+static_assert(offsetof(UnitRecordStats, conspicuity) == 0x8C);
 static_assert(offsetof(UnitRecordStats, attributes) == 0xA4);
 static_assert(sizeof(UnitRecordStats) == 0xAC);
 

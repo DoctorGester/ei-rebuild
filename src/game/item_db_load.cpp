@@ -27,7 +27,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
         archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
     for (Record& record : table->records) {
-        std::string name(record.text04.c_str());
+        std::string name(record.name.c_str());
         table->names[name] = &record;
     }
 }
@@ -92,7 +92,7 @@ void ChunkArchive::SerializeArmors(int id, std::vector<itemdb::ArmorRecord>* rec
 void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->StringField(1, &code);
-    ar->StringField(2, &text08);
+    ar->StringField(2, &unreadText);
     ar->Field(3, &price, 4);
     ar->Field(4, &castType, 4);
     ar->Field(5, &mana, 4);
@@ -104,7 +104,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(11, &targetKind, 4);
     ar->Field(12, &targetCount, 4);
     ar->Field(13, &duration, 4);
-    ar->Field(14, &value3C, 4);
+    ar->Field(14, &castTime, 4);
     ar->Field(15, &needsSight, 4);
     ar->IntVectorField(16, &list48, ar);
     ar->IntVectorField(17, &list54, ar);

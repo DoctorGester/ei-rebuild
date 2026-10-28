@@ -92,8 +92,8 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
 // AI units only act on a target within 1.05 times their sight range: the smaller of two stats values (the
 // movement factor times the sight); the original's select picks the first for a NaN product.
 bool OutOfSightRange(CUnitServer* self, const float* point) {
-    float limit = self->stats.valuesB0[2].current;
-    float range = self->moveFactors[3] * self->stats.valuesB0[0].current;
+    float limit = self->stats.perception[2].current;
+    float range = self->moveFactors[3] * self->stats.perception[0].current;
     float rangeValue = range;
     std::uint32_t chosenBits = rangeValue >= limit ? Bits(rangeValue) : Bits(limit);
     float chosen = std::bit_cast<float>(chosenBits);
@@ -155,12 +155,12 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     return reach < kMeleeReach;
 }
 
-// The quick item or spell value the cast animation is built with: the spell's prototypeField14_ scaled by
+// The quick item or spell value the cast animation is built with: the spell's castTime_ scaled by
 // 15 / stats.rate (unscaled when that is 0), rounded.
 int CastValue(CUnitServer* self, CSpell* spell) {
     double scale = self->stats.rate;
     if (scale != 0.0) scale = kFifteen / scale;   // a NaN stays the same NaN
-    volatile std::int64_t wide = spell->prototypeField14_;
+    volatile std::int64_t wide = spell->castTime_;
     float value = static_cast<float>(static_cast<double>(wide) * scale);
     return x87::fistp(value);
 }

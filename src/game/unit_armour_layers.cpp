@@ -79,9 +79,9 @@ double UnitStats::AttributeWithItems(int index, CUnit* unit) {
         best = best >= bonus ? best : bonus;   // a select
     }
     switch (index) {
-    case 0: return (stat18 - kStatBase) + static_cast<double>(attributes[0]) + best;
-    case 1: return (stat18 - kStatBase) + static_cast<double>(attributes[1]) + best;
-    case 2: return (stat20 - kStatBase) + static_cast<double>(attributes[2]) + best;
+    case 0: return (dexterity - kStatBase) + static_cast<double>(attributes[0]) + best;
+    case 1: return (dexterity - kStatBase) + static_cast<double>(attributes[1]) + best;
+    case 2: return (intelligence - kStatBase) + static_cast<double>(attributes[2]) + best;
     default: return kZero + static_cast<double>(best);
     }
 }
@@ -95,5 +95,5 @@ double UnitStats::SpellSchoolSkill(int school) {
     else if (school >= 5 && school <= 7) base = skills[5];
     // skillLevels[school + 7] and its record.
     double level = SkillLevelValue(school + 7);
-    return (base + level) + (stat20 - kStatBase);
+    return (base + level) + (intelligence - kStatBase);
 }

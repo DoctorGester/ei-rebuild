@@ -54,9 +54,8 @@ int CMapObject::SetVisibilityMode(int mode) {
 
 // ---- CItem's base names and use ----------------------------------------------------------------
 
-// The names a plain item does not have (four identical copies): an empty text.
+// The names a plain item does not have (three identical copies): an empty text.
 std::string CItem::ModelName() { return std::string(game::kEmptyText); }
-std::string CItem::FirstListName() { return std::string(game::kEmptyText); }
 std::string CItem::FigureName() { return std::string(game::kEmptyText); }
 std::string CItem::PictureName() { return std::string(game::kEmptyText); }
 

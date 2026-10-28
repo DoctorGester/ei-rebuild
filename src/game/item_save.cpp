@@ -25,7 +25,7 @@ void CItem::Load(CStream* stream) {
     stream->Read(&chargeRate_, kDword);
     stream->Read(&weight_, kDword);
     stream->Read(&price_, kDword);
-    stream->Read(&value3C_, kDword);
+    stream->Read(&unreadValue_, kDword);
     CSpellManager* spells = WorldContext()->SpellManager();
     std::uint32_t id = 0;
     stream->Read(&id, kDword);
@@ -47,7 +47,7 @@ void CItem::Save(CStream* stream) {
     stream->Write(&chargeRate_, kDword);
     stream->Write(&weight_, kDword);
     stream->Write(&price_, kDword);
-    stream->Write(&value3C_, kDword);
+    stream->Write(&unreadValue_, kDword);
     std::int32_t spellId = spell_ != nullptr ? spell_->id_ : -1;
     stream->Write(&spellId, kDword);
     stream->Write(&count_, kDword);

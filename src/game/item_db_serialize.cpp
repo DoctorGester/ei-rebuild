@@ -13,7 +13,7 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->StringField(2, &name);
     ar->Field(3, &number, 4);
     ar->Field(4, &unitPrice, 4);
-    ar->Field(5, &factor38, 4);
+    ar->Field(5, &weightFactor, 4);
     ar->Field(6, &magicPower, 4);
     ar->Field(7, &magicLevel, 4);
     ar->Field(8, &conditionFactor, 4);
@@ -25,16 +25,16 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
 }
 
 void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
-    ar->StringField(0, &text04);
-    ar->StringField(1, &text08);
+    ar->StringField(0, &name);
+    ar->StringField(1, &family);
     ar->Field(2, &type, 4);
     ar->StringField(3, &materialClass);
     ar->Field(4, &unreadHeadField, 4);
     ar->Field(5, &number, 4);
     ar->Field(6, &variant, 4);
     ar->Field(7, &price, 4);
-    ar->Field(8, &value38, 4);
-    ar->Field(9, &value3C, 4);
+    ar->Field(8, &weight, 4);
+    ar->Field(9, &unreadValue, 4);
     ar->Field(10, &charge, 4);
     ar->Field(11, &magicLevel, 4);
     ar->Field(12, &condition, 4);
@@ -70,10 +70,10 @@ void ArmorRecord::Serialize(ChunkArchive* ar) {
 void QuickItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
-    ar->Field(0x16, &value70, 4);
+    ar->Field(0x16, &actionValue, 4);
     ar->Field(0x17, unreadFields, 4);
     ar->Field(0x18, unreadFields + 4, 4);
-    ar->StringField(0x19, &text7C);
+    ar->StringField(0x19, &spellText);
     ar->Field(0x1A, attributeBonus, 3);
     ar->Field(0x1B, unreadFields + 8, 8);
 }

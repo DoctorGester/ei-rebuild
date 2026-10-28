@@ -35,8 +35,8 @@ double WeaponPrototypeSkillBonus(std::uint32_t itemId) {
 }
 
 double UnitParams::VisionRange(float daylight) {
-    double day = static_cast<double>(valuesB0[1]) * daylight * kPercent;
-    return (day + (static_cast<double>(kOne) - daylight)) * valuesB0[0];
+    double day = static_cast<double>(perception[1]) * daylight * kPercent;
+    return (day + (static_cast<double>(kOne) - daylight)) * perception[0];
 }
 
 void CUnit::AdvanceTime(float time) {

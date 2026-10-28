@@ -79,7 +79,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   prototype's +0x7B, 5-6 skill 1 and +0x7C, each plus (stat named by the skill's first letter - 25) plus the level value
   of skill `type`; type 8 skill 0 and +0x7B; others 0. `SpellSchoolSkill` (00527EB0: school 4 -> 3, 6 / 7 -> 5; skill byte
   +0x6CE / +0x6CF / +0x6D0 plus level value of skill school + 7 plus intelligence - 25). `VisionRange` (005271E0):
-  valuesB0[0] x ((1 - day) + valuesB0[1] % x day).
+  perception[0] x ((1 - day) + perception[1] % x day).
 - Armour layers: table 0073E048 gives three body slots per armour type (7: none); `AddArmourLayer` (005230C0) adds the
   piece's seven absorb floats (+0x4C first slot, +0x68 others) to layer `GetTypeGroup()` (2 for types 0-2 else 1), ORs the
   mask (+0x84 / +0x88), state 3; `RebuildArmourLayers` zeroes layers 1 and 2 (0x90 bytes) and re-adds each worn piece whose

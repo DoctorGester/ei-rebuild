@@ -85,9 +85,9 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->experience = RoundStored(experience);
     float unspent = pendingExperience + experience - spentExperience;
     params->unspentExperience = RoundStored(unspent);
-    params->stat10 = static_cast<std::uint8_t>(RoundStored(stat10));
-    params->stat18 = static_cast<std::uint8_t>(RoundStored(stat18));
-    params->attackRate = static_cast<std::uint8_t>(RoundStored(stat20));
+    params->strength = static_cast<std::uint8_t>(RoundStored(strength));
+    params->dexterity = static_cast<std::uint8_t>(RoundStored(dexterity));
+    params->intelligence = static_cast<std::uint8_t>(RoundStored(intelligence));
     for (int i = 0; i < 4; ++i) params->modeSpeeds[i] = ScaledByte(modeSpeeds[i], kByteMax, kTwo);
     params->baseSpeed = ScaledByte(speed, kSpeedScale, kOne);
     params->rate = static_cast<std::uint8_t>(RoundStored(rate));
@@ -98,8 +98,8 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->damageSpread = static_cast<std::uint8_t>(libcrt::Ftol(damageSpread));
     params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
-        params->valuesB0[i] = static_cast<std::uint8_t>(RoundStored(valuesB0[i].current));
-        params->valuesE0[i] = static_cast<std::uint8_t>(RoundStored(valuesE0[i].current));
+        params->perception[i] = static_cast<std::uint8_t>(RoundStored(perception[i].current));
+        params->conspicuity[i] = static_cast<std::uint8_t>(RoundStored(conspicuity[i].current));
     }
     for (int i = 0; i < 6; ++i) {
         const UnitStatSlot& slot = slots[i];
@@ -127,9 +127,9 @@ int UnitStats::Reset() {
     experience = kZero;
     pendingExperience = kZero;
     spentExperience = kZero;
-    stat10Base = stat10 = kZero;
-    stat18Base = stat18 = kZero;
-    stat20Base = stat20 = kZero;
+    strengthBase = strength = kZero;
+    dexterityBase = dexterity = kZero;
+    intelligenceBase = intelligence = kZero;
     speedBase = speed = kZero;
     rateBase = rate = kZero;
     capacity = kZero;
@@ -139,8 +139,8 @@ int UnitStats::Reset() {
     combat[2] = kOne;   // attack spread
     std::memset(damageWeights, 0, sizeof(damageWeights));
     naturalWeapon = kNoNaturalWeapon;
-    std::memset(valuesB0, 0, sizeof(valuesB0));
-    std::memset(valuesE0, 0, sizeof(valuesE0));
+    std::memset(perception, 0, sizeof(perception));
+    std::memset(conspicuity, 0, sizeof(conspicuity));
     for (UnitStatSlot& slot : slots) {
         slot.vitalMask = 0;
         slot.kind = 0;

@@ -148,7 +148,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
             delete old;
         }
     }
-    if (sector->Load(&archive, sx, sy, pages, perPage, textF8.c_str(), this)) {
+    if (sector->Load(&archive, sx, sy, pages, perPage, mapName.c_str(), this)) {
         sector->lastUsed = frame;
         sectorCache.push_front(sector);
         sectorGrid[sx][sy] = sectorCache.begin();
@@ -282,7 +282,7 @@ void Terrain::Reset() {
     pageMaterials.clear();
     std::memset(&worldMatrix, 0, sizeof(worldMatrix));
     mapLoaded = 0;
-    textF8 = "none";
+    mapName = "none";
     sectorsX = -1;
     sectorsY = -1;
     pageSize = -1;
@@ -311,7 +311,7 @@ void Terrain::Reset() {
         ambientSounds[i] = -1;
         ambientClasses[i] = -1;
     }
-    textAE0 = "none";
+    ambientSet = "none";
 }
 
 void Terrain::BuildWavePhases() {
@@ -379,9 +379,9 @@ int Terrain::SetupPages(int count) {
     for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
-            name = str::Format("%s%3.3i", textF8.c_str(), i);
+            name = str::Format("%s%3.3i", mapName.c_str(), i);
         } else {
-            name = str::Format("%sL%2.2i", textF8.c_str(), i - count);
+            name = str::Format("%sL%2.2i", mapName.c_str(), i - count);
             if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
             ++extraPages;
             pageTextures.push_back(nullptr);
@@ -420,11 +420,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     else textFC = name;
     // (An archive without a map file is not tested for either.)
     const std::string& first = files[0];
-    textF8 = str::Left(first, str::Find(first, '.'));
+    mapName = str::Left(first, str::Find(first, '.'));
 
     // The messages are passed to FatalError as its format string.
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((textF8 + kMapDataExtension).c_str(), &size));
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension).c_str(), &size));
     if (!file) {
         ClearMap();
         return game::FatalError(("Unable to open file \"" + name + "\"").c_str());
@@ -521,8 +521,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     if (dungeon) set = "Dungeon";
     else if (text::CompareIgnoringCase(zone, "Ingos") == 0) set = "Ingos";
     else if (text::CompareIgnoringCase(zone, "Suslanger") == 0) set = "Suslanger";
-    textAE0 = set;
-    terrain::CountAmbientVariants(textAE0.c_str());
+    ambientSet = set;
+    terrain::CountAmbientVariants(ambientSet.c_str());
 
     const int sectors = sectorsY * sectorsX;
     landscapeFlags |= kLowFlags;

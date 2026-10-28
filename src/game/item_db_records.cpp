@@ -27,14 +27,12 @@ int LootItemRecord::Kind() { return 0x3007; }
 
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
-    text04 = source->text04;
-    text08 = source->text08;
+    name = source->name;
+    family = source->family;
     type = source->type;
     materialClass = source->materialClass;
-    CopyBytes(this, source, offsetof(ItemRecordHead, unreadHeadField), offsetof(ItemRecordHead, list20));
-    CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
+    CopyBytes(this, source, offsetof(ItemRecordHead, unreadHeadField), offsetof(ItemRecordHead, classMask));
     buildable = source->buildable;
-    list20 = source->list20;
     return this;
 }
 
@@ -57,7 +55,7 @@ QuestItemRecord::~QuestItemRecord() {
 }
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
-    value70 = source->value70;
+    actionValue = source->actionValue;
     std::memcpy(attributeBonus, source->attributeBonus, sizeof(attributeBonus));
 }
 

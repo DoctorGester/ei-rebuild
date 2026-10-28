@@ -117,7 +117,7 @@ BOOL CSpellContainer::Build() {
     spell->manaCost_ = proto->mana;
     spell->complexity_ = proto->complexity;
     spell->price_ = proto->price;
-    spell->prototypeField14_ = proto->value3C;
+    spell->castTime_ = proto->castTime;
     spell->effectPower_ = 0x10;
 
     itemdb::SpellTable& spells = g_spellDatabase->spells;

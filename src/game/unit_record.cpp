@@ -77,8 +77,8 @@ void UnitRecord::ApplyTo(CUnit* target) {
         vitals.protection[k].base = scaled;
         vitals.protection[k].current = scaled;
     }
-    for (std::size_t i = 0; i < 6; ++i) s.valuesB0[i].base = s.valuesB0[i].current = r.valuesB0[i];
-    for (std::size_t i = 0; i < 6; ++i) s.valuesE0[i].base = s.valuesE0[i].current = r.valuesE0[i];
+    for (std::size_t i = 0; i < 6; ++i) s.perception[i].base = s.perception[i].current = r.perception[i];
+    for (std::size_t i = 0; i < 6; ++i) s.conspicuity[i].base = s.conspicuity[i].current = r.conspicuity[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
     for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name.c_str(), SpellOwner()));

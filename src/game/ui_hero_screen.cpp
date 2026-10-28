@@ -175,7 +175,7 @@ void CMpHeroScreen::Update() {
 
     std::string name = nameEdit_->text_;
     const UnitStats* stats = StatsOf(HeroRecord());
-    double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
+    double points = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
     float target = NewHeroPoints();
     EI_NAN_AUDIT(points, target);
     bool equal = points == target;

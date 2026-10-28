@@ -45,7 +45,7 @@ qualified member).
   `GetClassId` / `Release`; kind 3 takes the first given item whose slot 14 returns 0 (checked against Ghidra, 0041CD80).
 - `CPlayerConnection` has `state_` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty_` (the state bits the server's writers
   clear); `CPlayerServer::player_` and `CPlayerClient::player_` are `CPlayer*`. The writers reach the party variables
-  (`Party()->variables_`) and the game state (`sessionKind100_`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
+  (`Party()->variables_`) and the game state (`sessionKind_`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
   world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge_`
   (+0x28; the FLD / FSTP copy is kept).
 - `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s file is a `lib::File`

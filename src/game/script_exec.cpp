@@ -996,7 +996,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x9C: {   // SetCurrentParty(player, name)
             if (TheWorld()->GetPlayer(Ftol(f[0])))
-                Parties()->text0C = cmd->stringArgs[0];
+                Parties()->requestedName = cmd->stringArgs[0];
             break;
         }
         case 0xE0:   // AddLoot(player, from, to)

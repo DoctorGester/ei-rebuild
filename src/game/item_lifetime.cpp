@@ -40,7 +40,7 @@ CItem::CItem() {
     SetMinusOne(chargeRate_);
     SetMinusOne(weight_);
     SetMinusOne(price_);
-    SetMinusOne(value3C_);
+    SetMinusOne(unreadValue_);
     count_ = 1;
     DropSpell(spell_);
 }

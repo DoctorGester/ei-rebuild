@@ -177,9 +177,9 @@ void CHeroStatsPanel::DrawStats() {
 
     if (page_ == 10) {
         // A new hero's statistics: points left = 75 - (strength + dexterity + intelligence).
-        int strength = static_cast<int>(libcrt::Ftol(D(stats->stat10Base)));
-        int dexterity = static_cast<int>(libcrt::Ftol(D(stats->stat18Base)));
-        int intelligence = static_cast<int>(libcrt::Ftol(D(stats->stat20Base)));
+        int strength = static_cast<int>(libcrt::Ftol(D(stats->strengthBase)));
+        int dexterity = static_cast<int>(libcrt::Ftol(D(stats->dexterityBase)));
+        int intelligence = static_cast<int>(libcrt::Ftol(D(stats->intelligenceBase)));
         int sum = intelligence + dexterity + strength;
         rect = RECT{0x14, 0x41, 0x82, 0x50};
         DrawRow(&rect, "Strength", strength, -1);
@@ -277,11 +277,11 @@ void CHeroStatsPanel::DrawStats() {
         draw->DrawLine(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
-        DrawRow(&rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->stat10))), -1);   // Strength
+        DrawRow(&rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->strength))), -1);   // Strength
         Down(&rect);
-        DrawRow(&rect, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->stat18))), -1);   // Dexterity
+        DrawRow(&rect, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->dexterity))), -1);   // Dexterity
         Down(&rect);
-        DrawRow(&rect, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->stat20))), -1);   // Intelligence
+        DrawRow(&rect, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->intelligence))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
         DrawRow(&rect, "Health", static_cast<int>(libcrt::Ftol(stats->HitPointCurve())), -1);              // Health

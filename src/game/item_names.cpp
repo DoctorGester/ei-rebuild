@@ -61,14 +61,6 @@ std::string ModelNameOf(const NamedRecordTable<Record>& table, const char* const
     return name;
 }
 
-template <typename Record>
-std::string FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
-    const Record* prototype = table.At(PrototypeIndex(id));
-    const std::vector<std::string>* list = &prototype->list20;
-    if (prototype && !list->empty()) return std::string((*list)[0]);
-    return std::string(game::kEmptyText);   // ""
-}
-
 // "unhuma" + the item's model name (a virtual call).
 std::string HumanFigureName(CItem* item) { return kHumanPrefix + item->ModelName(); }
 
@@ -92,8 +84,6 @@ enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRe
 
 std::string CItemWeapon::ModelName() { return ModelNameOf(g_itemDatabase->weapons, kWeaponCodes, prototypeId_); }
 
-std::string CItemWeapon::FirstListName() { return FirstListNameOf(g_itemDatabase->weapons, prototypeId_); }
-
 std::string CItemWeapon::FigureName() { return HumanFigureName(this); }
 
 std::string CItemWeapon::PictureName() {
@@ -101,8 +91,6 @@ std::string CItemWeapon::PictureName() {
 }
 
 std::string CItemArmor::ModelName() { return ModelNameOf(g_itemDatabase->armors, kArmorCodes, prototypeId_); }
-
-std::string CItemArmor::FirstListName() { return FirstListNameOf(g_itemDatabase->armors, prototypeId_); }
 
 std::string CItemArmor::FigureName() { return HumanFigureName(this); }
 

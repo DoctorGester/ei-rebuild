@@ -535,7 +535,7 @@ public:
     CScript* SecondScript() { return commandsB_.Get(); }
     CDiplomacy diplomacy_;
     // The session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld updates the
-    // players' "gtime" first. Joining players take it (CPlayer::sessionKind100_). Also the campaign mode
+    // players' "gtime" first. Joining players take it (CPlayer::sessionKind_). Also the campaign mode
     // (in the server world): GameFlow::StartZone stores its mode here (1 battle, 2 main menu, 3 base,
     // 4 edge, 8 the end of the game), StartFirstMap 7 for the command-line script.
     int sessionKind_;
@@ -1002,7 +1002,7 @@ public:
     CTextManager* texts_;                 // the text resources (counted)
     PlatformSet platforms_;
     // The local session: the local CPlayer; its connection is the local view (a CPlayerClient), its
-    // sessionKind100_ 1 / 3 for kinds of multiplayer session.
+    // sessionKind_ 1 / 3 for kinds of multiplayer session.
     CPlayer* session_;
     CCamera* camera_;                     // the view camera (DrawPass, Render)
     std::string texturePath_;            // <data path>textures\ (Setup)
@@ -1029,7 +1029,7 @@ public:
     // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
     // prints' wet look and an environment flag.
     CRainSnow rainSnow_;
-    std::list<int> list7BC_;             // the selected objects' ids
+    std::list<int> selectedIds_;             // the selected objects' ids
     int worldValue_;                      // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     int constants7C4_[3];                 // 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // HCURSOR wincurs\Df0000.cur

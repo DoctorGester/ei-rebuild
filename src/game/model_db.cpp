@@ -47,9 +47,9 @@ void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records,
 
 PrintRecord::PrintRecord() : look2{}, look3{} {}
 PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), look2(from.look2), look3(from.look3) {}
-PrintRecord2::PrintRecord2() : look2{}, look3{}, values10{} {}
+PrintRecord2::PrintRecord2() : look2{}, look3{}, unreadChunk{} {}
 PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), look2(from.look2), look3(from.look3) {
-    std::memcpy(values10, from.values10, sizeof(values10));
+    std::memcpy(unreadChunk, from.unreadChunk, sizeof(unreadChunk));
 }
 
 void PrintRecord::Serialize(ChunkArchive* ar) {
@@ -62,7 +62,7 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, &look2);
     TripleChunk(ar, 3, &look3);
-    TripleChunk(ar, 10, values10);
+    TripleChunk(ar, 10, unreadChunk);
 }
 
 void WaterTweens::SetTarget(int key, float target, int steps) {

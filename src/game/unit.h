@@ -80,9 +80,9 @@ struct UnitParams {
     std::uint8_t unused_00[4];
     int experience;
     int unspentExperience;          // experience + pending - spent
-    std::uint8_t stat10;
-    std::uint8_t stat18;
-    std::uint8_t attackRate;        // (UnitStats::stat20 rounded)
+    std::uint8_t strength;
+    std::uint8_t dexterity;
+    std::uint8_t intelligence;        // (UnitStats::intelligence rounded)
     std::uint8_t movementKind;      // 2: moves on the water surface
     // Speed bytes of movement modes 3 (and 2's backward), 2, 1, 0 (UnitStats mode speeds * 255 / 2, at most 255).
     std::uint8_t modeSpeeds[4];
@@ -94,8 +94,8 @@ struct UnitParams {
     std::uint8_t damageSpread;      // (truncated)
     std::uint8_t naturalWeapon;
     std::int16_t lastHitSource;         // what last damaged the unit (7 after Reset)
-    std::uint8_t valuesB0[6];       // UnitStats::valuesB0[i].current ([0] night sight range, [1] its day percentage)
-    std::uint8_t valuesE0[6];       // UnitStats::valuesE0[i].current
+    std::uint8_t perception[6];     // UnitStats::perception[i].current ([0] night sight range, [1] its day percentage)
+    std::uint8_t conspicuity[6];    // UnitStats::conspicuity[i].current
     std::uint8_t unused_2E[2];
     UnitParamsSlot slots[6];
     std::uint8_t attributes[3];
@@ -104,7 +104,7 @@ struct UnitParams {
     std::uint8_t flags;             // (UnitStats::flags, low byte)
 
     // The sight range at `daylight` (0 night .. 1 day):
-    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). Unrounded.
+    // perception[0] x ((1 - daylight) + perception[1] x daylight x 0.01). Unrounded.
     double VisionRange(float daylight);
 
     // The seven protection values the unit panel shows, into `out`: for text-key units (`keyed`) the body slots'
@@ -112,7 +112,7 @@ struct UnitParams {
     // times the difficulty factor.
     void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
 };
-static_assert(offsetof(UnitParams, attackRate) == 0x0E);
+static_assert(offsetof(UnitParams, intelligence) == 0x0E);
 static_assert(offsetof(UnitParams, combat) == 0x18);
 static_assert(offsetof(UnitParams, slots) == 0x30);
 static_assert(offsetof(UnitParams, attributes) == 0xD8);
@@ -579,9 +579,9 @@ struct UnitStats {
     // Indices of combat[].
     enum CombatIndex { kReach, kAttack, kAttackSpread, kDefence, kSpeed };
     // The float results below are returned unrounded (declared double: the FPU runs above 24-bit precision
-    // under Rebirth, see CItemWeapon::RollDamage). Period20: 25 / stat20.
+    // under Rebirth, see CItemWeapon::RollDamage). Period20: 25 / intelligence.
     double Period20();
-    // The item panel's lines: stat10 over the setting "HP Val 1", stat18 over "MP Val 1".
+    // The item panel's lines: strength over the setting "HP Val 1", dexterity over "MP Val 1".
     double StrengthRatio();
     double DexterityRatio();
     // pendingExperience 0, then the block read raw, as long as the stream's format version knew it (below
@@ -607,7 +607,7 @@ struct UnitStats {
     double Reduce(float value);
     // `value` minus value * factor of each slot record of kind 1.
     double ReduceKind1(float value);
-    // Two factors from stat10 and stat18 (relative to 15, over 20).
+    // Two factors from strength and dexterity (relative to 15, over 20).
     void GetFactors(float* a, float* b, int unused);
 
     // Recomputes the current values from the bases, the skill levels, the unit's effects, the carried weight and the
@@ -673,7 +673,7 @@ struct UnitStats {
     // Then the hit points. Returns whether any damage passed.
     int DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CItem* weapon);
 
-    // The current values from the bases plus the skills (15: valuesB0[1] by its percentage; 23-25: the stats;
+    // The current values from the bases plus the skills (15: perception[1] by its percentage; 23-25: the stats;
     // unknown_044 = -2), the slot maxima from the hit point curve (current values clamped to them), `load`,
     // the capacity, the legs and arms factors and the rate. NPC statistics are built with it (scale 1).
     void ResetToBase(float load);
@@ -728,12 +728,12 @@ struct UnitStats {
     std::uint32_t builtFlags;           // bit 0 set when built from the prototype
     float experience;
     float spentExperience;
-    float stat10Base;
-    float stat10;                   // 's'
-    float stat18Base;
-    float stat18;                   // 'd'
-    float stat20Base;
-    float stat20;                   // 'i'
+    float strengthBase;
+    float strength;                 // 's'
+    float dexterityBase;
+    float dexterity;                // 'd'
+    float intelligenceBase;
+    float intelligence;             // 'i'
     float speedBase;
     float speed;                    // speedBase * loadFactor
     float rateBase;                 // 15, or dexterity * 0.2 + 10 for text-key units
@@ -760,8 +760,12 @@ struct UnitStats {
     float attackCategory;           // the natural attack's category (UnitPrototypeRecord::attackCategory)
     float damageWeights[7];         // the natural attack's, per damage type
     int naturalWeapon;              // weapon type of the natural attack (0x10: none / spells only)
-    UnitStatPair valuesB0[6];
-    UnitStatPair valuesE0[6];
+    // What the unit senses (the AI's sight and hearing): [0] sight range at night, [1] its percentage by day, [2] the
+    // range it senses at, whatever the light, [3] hearing.
+    UnitStatPair perception[6];
+    // What others sense of it, multiplied with their perception: [0] how visible it is, [2] how near it is sensed,
+    // [3] how loud it is (the noise it makes).
+    UnitStatPair conspicuity[6];
     UnitStatSlot slots[6];
     std::uint8_t attributes[3];
     std::uint8_t skills[8];
@@ -771,15 +775,15 @@ struct UnitStats {
     float fixedMaxHitPoints;        // the maximum of units without a text key
     float pendingExperience;
 };
-static_assert(offsetof(UnitStats, stat10Base) == 0x0C && offsetof(UnitStats, stat10) == 0x10);
-static_assert(offsetof(UnitStats, stat18Base) == 0x14 && offsetof(UnitStats, stat18) == 0x18);
-static_assert(offsetof(UnitStats, stat20Base) == 0x1C);
-static_assert(offsetof(UnitStats, stat20) == 0x20);
+static_assert(offsetof(UnitStats, strengthBase) == 0x0C && offsetof(UnitStats, strength) == 0x10);
+static_assert(offsetof(UnitStats, dexterityBase) == 0x14 && offsetof(UnitStats, dexterity) == 0x18);
+static_assert(offsetof(UnitStats, intelligenceBase) == 0x1C);
+static_assert(offsetof(UnitStats, intelligence) == 0x20);
 static_assert(offsetof(UnitStats, speedBase) == 0x24);
 static_assert(offsetof(UnitStats, load) == 0x50);
 static_assert(offsetof(UnitStats, sizeClass) == 0x68 && offsetof(UnitStats, combat) == 0x70);
 static_assert(offsetof(UnitStats, damageWeights) == 0x90 && offsetof(UnitStats, naturalWeapon) == 0xAC);
-static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
+static_assert(offsetof(UnitStats, perception) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);
 static_assert(sizeof(UnitStats) == 0x704);

@@ -610,7 +610,7 @@ void CUnitServer::UpdateSizeClasses() {
 void CUnitServer::UpdateMoveFactors() {
     const CWorldServer* world = ServerWorld();
     double factor = world->nightLevel_;
-    double scaled = (factor * stats.valuesB0[1].current) * kWorldFactorScale;
+    double scaled = (factor * stats.perception[1].current) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;
     moveFactors[1] = kOne;

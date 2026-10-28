@@ -40,9 +40,9 @@ struct Recorded {
 StatView ViewOf(const UnitStats* s, unsigned parts) {
     StatView v;
     std::memset(&v, 0, sizeof(v));
-    if (parts & kStat10) v.stat10 = s->stat10;
-    if (parts & kStat18) v.stat18 = s->stat18;
-    if (parts & kStat20) v.stat20 = s->stat20;
+    if (parts & kStat10) v.strength = s->strength;
+    if (parts & kStat18) v.dexterity = s->dexterity;
+    if (parts & kStat20) v.intelligence = s->intelligence;
     if (parts & kAttributes) std::memcpy(v.attributes, s->attributes, sizeof(v.attributes));
     if (parts & kSkills) std::memcpy(v.skills, s->skills, sizeof(v.skills));
     if (parts & kSlots) {
@@ -296,9 +296,9 @@ Recorded<SkillBonusCall> g_skillWithBonus("UnitStats::SkillWithBonus");
 double(__fastcall* s_skillWithBonus)(UnitStats*, void*, std::uint32_t);
 double __fastcall SkillWithBonusRecord(UnitStats* self, void*, std::uint32_t index) {
     auto v = Zeroed<SkillBonusCall>();
-    v.stat10 = self->stat10;
-    v.stat18 = self->stat18;
-    v.stat20 = self->stat20;
+    v.strength = self->strength;
+    v.dexterity = self->dexterity;
+    v.intelligence = self->intelligence;
     std::memcpy(v.skills, self->skills, sizeof(v.skills));
     v.index = index;
     int letter = LetterOf(index);
@@ -333,7 +333,7 @@ double(__fastcall* s_value6E8)(UnitStats*);
 double(__fastcall* s_value6E9)(UnitStats*);
 double __fastcall Value6E8Record(UnitStats* self) {
     auto v = Zeroed<LevelCall>();
-    v.stat10 = self->stat10;
+    v.strength = self->strength;
     v.level = self->skillLevels[0x6E8 - 0x6D3];
     if (v.level != 0) v.record = LevelOf(v.level + 0x3Eu);
     std::uint16_t cw = ControlWord();
@@ -360,7 +360,7 @@ double(__fastcall* s_strengthRatio)(UnitStats*);
 double(__fastcall* s_dexterityRatio)(UnitStats*);
 double __fastcall StrengthRatioRecord(UnitStats* self) {
     auto v = Zeroed<RatioCall>();
-    v.stat = self->stat10;
+    v.stat = self->strength;
     v.setting = OriginalLogicSettings().hpVal[0];
     std::uint16_t cw = ControlWord();
     double result = s_strengthRatio(self);
@@ -370,7 +370,7 @@ double __fastcall StrengthRatioRecord(UnitStats* self) {
 }
 double __fastcall DexterityRatioRecord(UnitStats* self) {
     auto v = Zeroed<RatioCall>();
-    v.stat = self->stat18;
+    v.stat = self->dexterity;
     v.setting = OriginalLogicSettings().mpVal[0];
     std::uint16_t cw = ControlWord();
     double result = s_dexterityRatio(self);
@@ -384,8 +384,8 @@ Recorded<FactorsCall> g_getFactors("UnitStats::GetFactors");
 void(__fastcall* s_getFactors)(UnitStats*, void*, float*, float*, int);
 void __fastcall GetFactorsRecord(UnitStats* self, void*, float* a, float* b, int unused) {
     auto v = Zeroed<FactorsCall>();
-    v.stat10 = self->stat10;
-    v.stat18 = self->stat18;
+    v.strength = self->strength;
+    v.dexterity = self->dexterity;
     v.range = ei::OriginalGameData<const float>(0x007AF280);   // unit_stats.cpp's kFactorStatRange
     v.aliased = a == b;
     std::uint16_t cw = ControlWord();
@@ -487,9 +487,9 @@ double(__fastcall* s_weaponSkillBonus)(UnitParams*, void*, int, const char*);
 double __fastcall WeaponSkillBonusRecord(UnitParams* self, void*, int type, const char* weapon) {
     auto v = Zeroed<WeaponBonusCall>();
     v.type = type;
-    v.stat10 = self->stat10;
-    v.stat18 = self->stat18;
-    v.attackRate = self->attackRate;
+    v.strength = self->strength;
+    v.dexterity = self->dexterity;
+    v.intelligence = self->intelligence;
     v.skills[0] = self->skills[0];
     v.skills[1] = self->skills[1];
     if (type >= 0 && type < 7) {

@@ -199,7 +199,7 @@ public:
     int OnPartyUpdate();       // Message 0x50: a sized block loaded into the party (no variables)
     // "Able" units below: present, not blocked (flag 0x800000) and not dead.
     int OnLeave();             // Message 0x01: the connection's Leave
-    // Message 0x04 (joined players, state 1, else 0): the game state into sessionKind100_, the party collected
+    // Message 0x04 (joined players, state 1, else 0): the game state into sessionKind_, the party collected
     // (CollectParty with the placements) and sent, message 0x07 (the state and the world tick), dirty bit
     // 0x10 cleared, state 2.
     int OnGameStateRequest();
@@ -374,7 +374,7 @@ public:
     lib::InPlace<CParty> party_;                        // an embedded CParty
     std::list<CItem*> items_;           // items given to the player (counted)
     int partyId_;                               // the party's key in the party manager; sent with the client's login
-    int sessionKind100_;                        // 3: the client runs a setup on the controllers of new units
+    int sessionKind_;                        // 3: the client runs a setup on the controllers of new units
     std::uint32_t lastScreen_;                  // the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode_;                      // the script's GodMode(player, on); the combat code tests it
     int logTraffic_;                            // logs the size of every flush

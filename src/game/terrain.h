@@ -181,7 +181,7 @@ public:
     Matrix4 worldMatrix;            // rows; position in the last row
     std::vector<CTexture*> pageTextures;     // held
     std::vector<CMaterial*> pageMaterials;   // held ("Wood")
-    std::string textF8;
+    std::string mapName;
     std::string textFC;
     int mapLoaded;                  // nothing is drawn or lit while 0
     int sectorsX;                   // map size in sectors
@@ -236,7 +236,7 @@ public:
     std::vector<int> visibleColumnLast;
     int ambientSounds[3];           // the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // their sound classes, -1 none
-    std::string textAE0;           // the ambient sound set (ambient\<set>\...)
+    std::string ambientSet;           // the ambient sound set (ambient\<set>\...)
     int extraPages;                 // texture pages loaded after the map's own
     std::vector<std::vector<float>> waterLevels;   // per sector, per material
 };

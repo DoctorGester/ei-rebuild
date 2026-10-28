@@ -85,7 +85,7 @@ int CPlayerClient::OnCameraPlacement() {
 
 int CPlayerClient::OnGameState() {
     CPlayer* player = player_;
-    player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind100_);
+    player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind_);
     int state;
     in_.Read(&state, 4);
     int tick;
@@ -94,7 +94,7 @@ int CPlayerClient::OnGameState() {
         TheInterface()->OnKeyDown(-1, kKeyEnter, 0);
         return 1;
     }
-    player->sessionKind100_ = state;
+    player->sessionKind_ = state;
     TheInterface()->CreateScreen(state);
     TheClientWorld()->tick_ = tick;
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();

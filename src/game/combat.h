@@ -458,7 +458,7 @@ public:
     bool PathTo(const Vector3* point, float range);
     // Fills `list` with the units lifted off the sector map for a path: away from `point`, those near it
     // outside the player's group; the party members that move (with `moving`) or follow this unit. Only for a
-    // player's units with sessionKind100_ 1.
+    // player's units with sessionKind_ 1.
     void LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving);
     // Messages 0x0E / 0x01 to a party unit's player, unless the brain's mode is 6.
     void ReportPath(AIPath* path, char partial);

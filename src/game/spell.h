@@ -89,7 +89,7 @@ public:
     float manaCost_;
     std::uint32_t complexity_;      // +1 per modifier
     float price_;
-    std::uint32_t prototypeField14_;  // only loaded and saved
+    std::uint32_t castTime_;  // only loaded and saved
     std::uint32_t skillNeeded_;     // the prototype's plus the modifiers'
     std::int8_t modifiers_[8];      // spell modifier index + 1 each, 0 ends the list
 };

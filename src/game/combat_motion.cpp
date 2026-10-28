@@ -506,7 +506,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
     list->clear();
-    if (!player || player->sessionKind100_ != 1) return;
+    if (!player || player->sessionKind_ != 1) return;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
     float dx = point->x - unit->localPosition_.x;

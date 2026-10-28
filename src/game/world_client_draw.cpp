@@ -499,9 +499,9 @@ int CWorldClient::DrawPass() {
         PopMatrix(device->stacks_[kStackScene1]);
     }
 
-    // Selection markers (list7BC_ of object ids) in single-player mode 1 with units drawn: a marker at
+    // Selection markers (selectedIds_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
-    std::list<int>& selected = list7BC_;
+    std::list<int>& selected = selectedIds_;
     if (!selected.empty() && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTexture(0, nullptr);

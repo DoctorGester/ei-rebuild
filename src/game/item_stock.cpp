@@ -65,7 +65,7 @@ void Output(std::list<CItem*>* out, CItem* item) { out->insert(out->end(), item)
 
 void AddReference(CItem* item) { ++item->refCount_; }
 
-const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->text08.c_str(); }
+const char* PrototypeName(const itemdb::ItemRecordHead* p) { return p->family.c_str(); }
 const char* MaterialClass(const itemdb::ItemRecordHead* p) { return p->materialClass.c_str(); }
 int MaterialUnits(const itemdb::ItemRecordHead* p) { return static_cast<int>(p->materialUnits); }
 
@@ -209,7 +209,7 @@ void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u);
 
 void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->text04);
+    for (const itemdb::ItemRecordHead* record : list) stream->WriteString(record->name);
 }
 
 int SpellIndex(const itemdb::SpellRecord* record) {

@@ -65,7 +65,7 @@ CSpell::CSpell() {
     manaCost_ = 0;
     complexity_ = 0;
     price_ = 0;
-    prototypeField14_ = 0;
+    castTime_ = 0;
     skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
 }

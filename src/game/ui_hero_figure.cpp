@@ -51,10 +51,10 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     if (std::ssize(player->members_) > 0) {
         PartyUnitRecord* first = player->members_.data();
         const auto* stats = &first->stats;
-        strength = stats->stat10;
-        dexterity = stats->stat18;
+        strength = stats->strength;
+        dexterity = stats->dexterity;
         height = first->height;
-        intelligence = stats->stat20;
+        intelligence = stats->intelligence;
         int size = std::ssize(records);
         records.resize(size + 1);
         records[size] = first;
@@ -66,14 +66,14 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     PartyUnitRecord* hero = player->members_.data();
     auto* stats = &hero->stats;
     if (mode_ == kModeList) {
-        stats->stat10Base = stats->stat10 = kDefaultAttribute;
-        stats->stat18Base = stats->stat18 = kDefaultAttribute;
-        stats->stat20Base = stats->stat20 = kDefaultAttribute;
+        stats->strengthBase = stats->strength = kDefaultAttribute;
+        stats->dexterityBase = stats->dexterity = kDefaultAttribute;
+        stats->intelligenceBase = stats->intelligence = kDefaultAttribute;
         hero->height = kDefaultHeight;
     } else {
-        stats->stat10Base = stats->stat10 = strength;
-        stats->stat18Base = stats->stat18 = dexterity;
-        stats->stat20Base = stats->stat20 = intelligence;
+        stats->strengthBase = stats->strength = strength;
+        stats->dexterityBase = stats->dexterity = dexterity;
+        stats->intelligenceBase = stats->intelligence = intelligence;
         hero->height = height;
     }
     // Each strip selects the figure when its list has it; the second list decides the voices.
