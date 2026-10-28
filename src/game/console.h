@@ -9,7 +9,7 @@
 #include "../lib/mfc_file.h"
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_tree_cstring.h"
+#include "../lib/stlp_tree_mbs.h"
 #include "../lib/static_object.h"
 
 #include <cstddef>
@@ -25,26 +25,6 @@ class CUiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
 
 namespace console {
-
-// CString members beyond lib/mfc.h, called on existing strings through this view (no extra data).
-struct Str : mfc::CString {
-    void AppendChar(char c);                        // operator+=(TCHAR)
-    void AppendText(const char* text);              // operator+=(LPCTSTR)
-    void TrimLeft(char c);
-    void TrimRight(char c);
-};
-inline Str& Ops(mfc::CString& s) { return static_cast<Str&>(s); }
-inline const Str& Ops(const mfc::CString& s) { return static_cast<const Str&>(s); }
-
-// A CStringArray local (the registry's, resources' and ini lists still fill them).
-class CStringArray : public mfc::CStringArray {
-public:
-    CStringArray() { Construct(); }
-    ~CStringArray() { Destruct(); }
-    CStringArray(const CStringArray&) = delete;
-    CStringArray& operator=(const CStringArray&) = delete;
-};
-static_assert(sizeof(CStringArray) == 0x14);
 
 // MFC CStdioFile as a local: opened and closed like the C++ class.
 class CStdioFile {
@@ -204,9 +184,7 @@ using Arguments = std::vector<std::string>;
 using CommandHandler = void(__fastcall*)(Arguments* args);
 
 // Keys compared by _mbscmp.
-using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
-using CommandNode = CommandMap::Node;
-static_assert(sizeof(CommandNode) == 0x18);
+using CommandMap = stlp::map<std::string, CommandHandler, stlp::MbsLess>;
 
 // The handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);

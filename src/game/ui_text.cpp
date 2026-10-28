@@ -9,13 +9,15 @@
 
 #include <cstring>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace {
 
 // The game's multibyte CRT.
 
 // The extent of `text` in interface font `font` (CInterface3D::TextExtent).
-SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
+SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size;
@@ -40,48 +42,49 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
                                 int format, int flag) {
     if (!holder_) return 0;
     int width = rect->right - rect->left;
-    mfc::CString ch, word, line;
+    std::string ch, word, line;
     std::string source = text;
     source += game::NewLineText();
-    console::CStringArray lines;
+    std::vector<std::string> lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).
     for (const char* p = source.c_str(); CharAt(p) != 0; p = gamecrt::mbsinc(p)) {
         if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
-            console::Ops(ch).AssignChar(p[0]);
-            console::Ops(ch).AppendChar(p[1]);
+            ch.assign(1, p[0]);
+            ch += p[1];
         } else {
-            console::Ops(ch).AssignChar(*p);
+            ch.assign(1, *p);
         }
         int c = CharAt(p);
         if (c == '\n') {
             if (TextExtent(interface_, line + word, font).cx > width) {
-                lines.SetAtGrow(lines.GetSize(), line);
-                lines.SetAtGrow(lines.GetSize(), word);
+                lines.push_back(line);
+                lines.push_back(word);
             } else {
                 line += word;
-                lines.SetAtGrow(lines.GetSize(), line);
+                lines.push_back(line);
             }
-            line.Empty();
-            word.Empty();
+            line.clear();
+            word.clear();
         } else if (c == ' ') {
             if (TextExtent(interface_, line + word, font).cx > width) {
-                lines.SetAtGrow(lines.GetSize(), line);
+                lines.push_back(line);
                 line = word + game::SpaceText();
             } else {
                 line += word;
                 line += game::SpaceText();
             }
-            word.Empty();
+            word.clear();
         } else {
             word += ch;
         }
     }
     RECT at = *rect;
     int height = rect->bottom - rect->top;
-    for (int i = 0; i < maxLines && i < lines.GetSize(); ++i) {
+    const int count = static_cast<int>(lines.size());
+    for (int i = 0; i < maxLines && i < count; ++i) {
         DrawLine(lines[i], &at, font, colour, format, flag);   // through its address
         gameapi::OffsetRect(&at, 0, height);
     }
-    return lines.GetSize();
+    return count;
 }

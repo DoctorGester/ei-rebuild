@@ -26,7 +26,7 @@ struct ScriptErrorInfo {
 // The console's script command. Loads `text` into the command script (CScript::Load with the WorldScript
 // started), runs it when it loaded and `run` is set (ScriptTick), and copies the script's last error into
 // `error` when given. Returns Load's result.
-int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error);
+int __stdcall RunScriptText(const std::string& text, char run, ScriptErrorInfo* error);
 
 // For the quest and briefing screens: player zero's variables whose names start with `prefix` copied into
 // `out` (NamedFloatTable::CopyPrefixed): the local player's as the client sees them in a network game, else

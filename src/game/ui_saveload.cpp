@@ -310,7 +310,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         infoFind.Close();
         if (static_cast<int>(entry->folder_.size()) > 4) {
-            int number = std::atoi(console::Ops(entry->folder_).Mid(4));
+            int number = std::atoi(str::Mid(entry->folder_, 4).c_str());
             if (!(highest > number)) highest = number;
         }
     }

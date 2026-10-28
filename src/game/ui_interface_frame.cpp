@@ -156,7 +156,7 @@ void CInterface3D::OnStringEvent(const char* event) {
             ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words[1].c_str()));
     } else if (Compare(words[0].c_str(), "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
-        stlp::list<mfc::CString>::Insert(messages_.End(), words[1]);
+        stlp::list<std::string>::Insert(messages_.End(), words[1]);
     } else if (Compare(words[0].c_str(), "briefing") == 0) {
         if (words.size() < 2 || stack_.Start() == stack_.Finish()) return;
         ScreenOf(top())->ShowBriefing(words[1].c_str());

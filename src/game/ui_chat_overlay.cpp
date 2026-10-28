@@ -20,6 +20,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 namespace {
 constexpr int kLineLifetime = 20000;   // ms
 constexpr int kLeft = 10;
@@ -91,19 +92,19 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
     using Node = stlp::list<ChatLine>::Node;
     int before = 0;
     for (Node* node = lines_.First(); node != lines_.End(); node = node->next) ++before;
-    console::CStringArray plain;       // the lines without colour codes
-    console::CStringArray formatted;   // the same lines with them
+    std::vector<std::string> plain;       // the lines without colour codes
+    std::vector<std::string> formatted;   // the same lines with them
     std::string source = text;
-    mfc::CString ch, word, wordFormatted, line, lineFormatted;
+    std::string ch, word, wordFormatted, line, lineFormatted;
     bool mark = false;
     // With EI_UTF8 a character is its whole UTF-8 sequence, so a word wider than a line is broken
     // between characters and measured as text.
     for (const char* p = source.c_str(); CharAt(p) != 0; p = text::kUtf8 ? p + text::CharacterLength(p) : gamecrt::mbsinc(p)) {
-        console::Ops(ch).AssignChar(p[0]);
+        ch.assign(1, p[0]);
         if constexpr (text::kUtf8) {
-            for (int k = 1; k < text::CharacterLength(p); ++k) console::Ops(ch).AppendChar(p[k]);
+            for (int k = 1; k < text::CharacterLength(p); ++k) ch += p[k];
         } else {
-            if (libcrt::Isleadbyte(static_cast<signed char>(*p))) console::Ops(ch).AppendChar(p[1]);
+            if (libcrt::Isleadbyte(static_cast<signed char>(*p))) ch += p[1];
         }
         int c = CharAt(p);
         if (mark) {
@@ -115,28 +116,28 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         } else if (c == ' ') {
             word += ch;
             line += word;
-            word.Empty();
+            word.clear();
             wordFormatted += ch;
             lineFormatted += wordFormatted;
-            wordFormatted.Empty();
+            wordFormatted.clear();
         } else if (c == '^') {
             wordFormatted += ch;
             mark = true;
         } else {
-            if (TextWidth(interface_, (line + word + ch).GetString(), kLineFont) > kLineWidth) {
-                if (line.GetLength() != 0) {
-                    plain.SetAtGrow(plain.GetSize(), line);
-                    formatted.SetAtGrow(formatted.GetSize(), lineFormatted);
+            if (TextWidth(interface_, line + word + ch, kLineFont) > kLineWidth) {
+                if (line.size() != 0) {
+                    plain.push_back(line);
+                    formatted.push_back(lineFormatted);
                 }
-                line.Empty();
-                lineFormatted.Empty();
-                if (TextWidth(interface_, (word + ch).GetString(), kLineFont) > kLineWidth) {
-                    if (word.GetLength() != 0) {
-                        plain.SetAtGrow(plain.GetSize(), word);
-                        formatted.SetAtGrow(formatted.GetSize(), wordFormatted);
+                line.clear();
+                lineFormatted.clear();
+                if (TextWidth(interface_, word + ch, kLineFont) > kLineWidth) {
+                    if (word.size() != 0) {
+                        plain.push_back(word);
+                        formatted.push_back(wordFormatted);
                     }
-                    word.Empty();
-                    wordFormatted.Empty();
+                    word.clear();
+                    wordFormatted.clear();
                 }
             }
             word += ch;
@@ -144,13 +145,14 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
         }
     }
     if (mark) wordFormatted += kDefaultColour;
-    if (line.GetLength() != 0 || word.GetLength() != 0) {
-        plain.SetAtGrow(plain.GetSize(), line + word);
-        formatted.SetAtGrow(formatted.GetSize(), lineFormatted + wordFormatted);
+    if (line.size() != 0 || word.size() != 0) {
+        plain.push_back(line + word);
+        formatted.push_back(lineFormatted + wordFormatted);
     }
+    const int count = static_cast<int>(plain.size());
 
     // The oldest lines go (list::erase, inlined as Update does).
-    for (int i = 0; i < plain.GetSize() + before - kMaxLines; ++i) {
+    for (int i = 0; i < count + before - kMaxLines; ++i) {
         Node* first = lines_.First();
         first->prev->next = first->next;
         first->next->prev = first->prev;
@@ -160,7 +162,7 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 
     std::uint32_t now = gameapi::timeGetTime();
     COLORREF colour = kWhite;
-    for (int i = 0; i < plain.GetSize(); ++i) {
+    for (int i = 0; i < count; ++i) {
         // insert(end()) of an empty line.
         auto* node = stlp::allocate_as<Node>();
         std::construct_at(&node->data.text);
@@ -175,25 +177,24 @@ void CChatOverlay::AddLine(const char* text, std::uint32_t) {
 
         node->data.name = plain[i];
         node->data.time = now;
-        const int width = TextWidth(interface_, plain[i].GetString(), kLineFont) + kLineSurfacePad;
+        const int width = TextWidth(interface_, plain[i], kLineFont) + kLineSurfacePad;
         CUiSurface* surface = new CUiSurface(interface_, 0, 0, width, kLineSurfaceHeight, kLineSurfaceFormat, 1);
         UiSurfaceGetDC(surface);
         surface->Clear();
-        const mfc::CString& codes = formatted[i];
+        const std::string& codes = formatted[i];
         std::string drawn;
         std::string piece;
         int x = 0;
         int start = 0;
-        for (int at = console::Ops(codes).Find(kColourMark, 0); at != -1;
-             at = console::Ops(codes).Find(kColourMark, start)) {
-            piece = console::Ops(codes).Mid(start, at - start);
+        for (int at = str::Find(codes, kColourMark, 0); at != -1; at = str::Find(codes, kColourMark, start)) {
+            piece = str::Mid(codes, start, at - start);
             DrawPiece(surface, piece, x, colour);
             drawn += piece;
             x = TextWidth(interface_, drawn, kLineFont);
-            colour = MarkColour(codes.GetString()[at + 1]);
+            colour = MarkColour(codes[at + 1]);
             start = at + 2;
         }
-        piece = console::Ops(codes).Mid(start);
+        piece = str::Mid(codes, start);
         if (piece.size() != 0) DrawPiece(surface, piece, x, colour);
         UiSurfaceReleaseDC(surface);
         node->data.surface = surface;

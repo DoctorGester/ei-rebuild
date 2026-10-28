@@ -80,11 +80,6 @@ struct FakeUnitRecord9CArrayClass final
     : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &Materials::Destruct<FakeUnitRecord9CArrayClass>,
                                     &Materials::Serialize> {};
 
-// CStringArray over the part names of a map object (the server companion's, the object's own). GetAt by value
-// (two copies), the element copy-constructed into `result`, which is returned.
-struct PartNames : mfc::CArray<mfc::CString> {
-};
-
 // ---- The script's command arrays ------------------------------------------------------------------
 
 // Commands: SSCCmd's constructor values, its destructor.

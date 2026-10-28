@@ -7,14 +7,12 @@
 // description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
 // depends on the item kind.
 
-#include "console.h"   // console::CStringArray
 #include "item.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
-namespace console { class CStringArray; }
 
 // An archive the texts are looked up in.
 struct TextSource {
@@ -37,12 +35,12 @@ struct TextSources : stlp::list<TextSource> {
     void Remove(const char* path);
     void Clear();
     // The data of file `key` from the first archive that has it (GetFile: its size written to `size`, which
-    // must not be null), or null: the file's bytes as they are. FindText (ours): the same, as text: with
+    // must not be null), or null: the file's bytes as they are. FindKeyText (ours): the same, as text: with
     // EI_UTF8 its UTF-8 copy, the size that copy's. ListKeys: `out` emptied, then the names matching `pattern`
     // of every archive appended in list order (a name in two archives is listed twice); Rebirth patches it
     // (ResOverride redirects the call).
     void* Find(const char* key, std::uint32_t* size);
-    void* FindText(const char* key, std::uint32_t* size);
+    void* FindKeyText(const char* key, std::uint32_t* size);
     void ListKeys(std::vector<std::string>* out, const char* pattern);
 };
 static_assert(sizeof(TextSources) == 4);
