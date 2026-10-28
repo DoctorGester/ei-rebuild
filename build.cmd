@@ -1,12 +1,13 @@
 @echo off
 rem Builds the standalone image (ei_standalone.exe, ei_hook.dll), ei_launch.exe and the tools (32-bit) with
 rem the VS 2022 Build Tools.
-rem usage: build.cmd [release|verify|debug]
+rem usage: build.cmd [release|verify|debug|play]
 rem   release  the product: the standalone image
 rem   verify   the harness build: the same image plus the harness (tests/verify) and the vector recorders
 rem            (tests/vectors), for run_all / work.py test (the image's runs, and the original game.exe's
 rem            with --no-hooks for goldens and EI_VECTORS recording)
 rem   debug    the release build unoptimised
+rem   play     the release build into build\play, apart from the builds the suites use (play.cmd)
 rem Neither the build nor its checks read game.exe (C25c, C25d).
 setlocal
 rem EI_VSROOT: the Build Tools' folder when it is not the default below.

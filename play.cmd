@@ -6,7 +6,7 @@ rem                      (config\ei_rebirth_standalone.ini: widescreen, draw rad
 rem                      the bug fixes)
 rem   vanilla            the plain GOG install's data (EI_GAME_VANILLA, default F:\games\EvilIslands) with the default flags (the bug fixes)
 rem                      and widescreen
-rem The UTF-8 release build (build\release-utf8, apart from the builds the suites use) is copied to run\play, so a
+rem The release build (build\play, apart from the builds the suites use) is copied to run\play, so a
 rem game left open never locks a build, and drawn with the smooth option and the smooth camera. The settings are
 rem run\play\ei_settings.ini, next to the exe (imported once from the registry; the starter's WideScreen is the switch).
 rem The performance overlay (FPS, frame and GPU times, draws; docs/notes/renderer.md section 15): add to that file
@@ -19,8 +19,8 @@ setlocal
 set MODE=%~1
 if "%MODE%"=="" set MODE=rebirth
 set _MSPDBSRV_ENDPOINT_=play
-echo play: building the UTF-8 release (build\release-utf8)...
-call "%~dp0build.cmd" release utf8 > "%~dp0build\play_build.log" 2>&1
+echo play: building the release (build\play)...
+call "%~dp0build.cmd" play > "%~dp0build\play_build.log" 2>&1
 if errorlevel 1 (
     echo play: the build failed, see build\play_build.log
     pause
@@ -29,7 +29,7 @@ if errorlevel 1 (
 set PLAY=%~dp0run\play
 if not exist "%PLAY%" mkdir "%PLAY%"
 for %%f in (ei_launch.exe ei_launch.pdb ei_hook.dll ei_hook.pdb ei_standalone.exe ei_standalone.pdb) do (
-    copy /y "%~dp0build\release-utf8\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
+    copy /y "%~dp0build\play\%%f" "%PLAY%\%%f" >nul 2>&1 || echo play: %%f in use, playing the copy already there
 )
 rem The Rebirth flags: ei_rebirth.ini next to ei_hook.dll (docs/notes/rebirth.md).
 if not defined EI_GAME_REBIRTH set "EI_GAME_REBIRTH=F:\games\Evil Islands (Rebirth)"
