@@ -108,7 +108,7 @@ void Lever::SaveLever(CStream* stream) {
 void Lever::Load(CStream* stream) { LoadLever(stream); }
 void Lever::Save(CStream* stream) { SaveLever(stream); }
 bool Lever::ApplyScience(const LockKey* key, CEngineObject*) { return ApplyKey(key, 0); }
-void Lever::UseSpots(UseSpotArray* out, float userRadius) { CollectUseSpots(out, userRadius); }
+void Lever::UseSpots(std::vector<Vector3>* out, float userRadius) { CollectUseSpots(out, userRadius); }
 
 void LockKey::ReadFrom(CStream* stream) {
     stream->Read(&mask, 4);
@@ -147,7 +147,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     field->ReadDelta(&rate, 4);
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
-    BitStream* snapshot = delta::g_readSnapshot;
+    CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t readTo = snapshot->Position();
     std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;

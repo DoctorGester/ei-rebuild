@@ -109,7 +109,6 @@ void ClearAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-using UnitPtrList = std::list<CUnit*>;
 } // namespace
 
 // --- Small helpers -----------------------------------------------------------------------------
@@ -253,7 +252,7 @@ void TakeOver(CUnitServer* self) {
 
 bool CUnitServer::StartMove() {
     CWorldServer* world = ServerWorld();
-    UnitPtrList lifted;
+    std::list<CUnit*> lifted;
     orderStopped = 0;
     TakeOver(this);
     LeaveMoveMode(this);

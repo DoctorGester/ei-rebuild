@@ -15,19 +15,16 @@
 
 namespace {
 
-// A function-local static CArray<{int x, y}>, destroyed at exit by its exit function.
-using PointArray = BlockPointArray;
-
-constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
-PointArray& Blocks() { return *g_blocks; }
+constinit lib::StaticObject<std::vector<BlockPoint>> g_blocks = /*007C2EE0*/ {};
+std::vector<BlockPoint>& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 void DestroyBlocks() { g_blocks.Destroy(); }
 
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
-constinit lib::StaticObject<BlockPointArray> g_floodSecond = /*007C2EF8*/ {};
-constinit lib::StaticObject<BlockPointArray> g_floodQueue = /*007C2F10*/ {};
-PointArray& FloodQueue() { return *g_floodQueue; }
-PointArray& FloodSecond() { return *g_floodSecond; }
+constinit lib::StaticObject<std::vector<BlockPoint>> g_floodSecond = /*007C2EF8*/ {};
+constinit lib::StaticObject<std::vector<BlockPoint>> g_floodQueue = /*007C2F10*/ {};
+std::vector<BlockPoint>& FloodQueue() { return *g_floodQueue; }
+std::vector<BlockPoint>& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
 void DestroyFloodQueue() { g_floodQueue.Destroy(); }
 void DestroyFloodSecond() { g_floodSecond.Destroy(); }
@@ -94,7 +91,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
 
-    PointArray& blocks = Blocks();
+    std::vector<BlockPoint>& blocks = Blocks();
     if (!(g_blocksGuard & 1)) {
         g_blocksGuard |= 1;
         g_blocks.Construct();
@@ -155,8 +152,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 }
 
 void CRegionMap::LabelRegions() {
-    PointArray& queue = FloodQueue();
-    PointArray& second = FloodSecond();
+    std::vector<BlockPoint>& queue = FloodQueue();
+    std::vector<BlockPoint>& second = FloodSecond();
     if (!(g_floodGuard & 1)) {
         g_floodGuard |= 1;
         g_floodQueue.Construct();
@@ -186,7 +183,7 @@ void CRegionMap::LabelRegions() {
     }
 }
 
-void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out) {
+void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<BlockCost>* out) {
     int bx = x / 8, by = y / 8;
     if (BlocksWide(this) - 1 < bx) bx = BlocksWide(this) - 1;
     if (bx < 0) bx = 0;
@@ -320,8 +317,8 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     }
 }
 
-bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
-                                 BlockPointArray* excluded) {
+bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
+                                 std::vector<BlockPoint>* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
     const BlockPoint* points = excluded->data();
@@ -339,7 +336,7 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
 
 int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell (NearbyBlocks, through its address).
-    BlockCostList blocks{};
+    std::list<BlockCost> blocks{};
     NearbyBlocks(sizeClass, false, x, y, &blocks);
     // Count the blocks per region, in first-seen order (the original keeps a CList of {region, count}; at most
     // nine entries).
@@ -369,7 +366,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     return region;
 }
 
-bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
+bool CRegionMap::JoinBlockSearches(PathCells* chain) {
     auto meets = [](BlockSearch& other, int x, int y) {
         const BlockRecord& r = other.records.rows[y][x];
         return r.settled && r.cost < kUnreached;
@@ -396,18 +393,18 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
         y = best->y;
         if (meets(forward, x, y)) break;
     }
-    PathCellList scratch;
+    PathCells scratch;
     if (ok) {
         forward.PathTo(x, y, chain);
         backward.PathTo(x, y, &scratch);
-        PathCellList reversed;
+        PathCells reversed;
         chain->Append(scratch.Reversed(&reversed));
         PathCellsRemoveRepeats(chain);
     }
     return ok;
 }
 
-static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCellList* path) {
+static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* path) {
     auto& search = *searchIn;
     path->clear();
     int columns = search.records.width;
@@ -545,7 +542,7 @@ bool CRegionMap::CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy)
     return first && second;
 }
 
-void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label) {
+void CRegionMap::FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label) {
     const int* dx = StepX();
     const int* dy = StepY();
     std::int16_t** edgeRows = edges[sizeClass].rows;
@@ -569,10 +566,10 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
             }
         }
         if (next->empty()) return;
-        PointArray* swap = frontier;
+        std::vector<BlockPoint>* swap = frontier;
         frontier = next;
         next = swap;
     }
 }
 
-void BlockSearch::PathTo(int x, int y, PathCellList* path) { BlockSearchPathToOf(this, x, y, path); }
+void BlockSearch::PathTo(int x, int y, PathCells* path) { BlockSearchPathToOf(this, x, y, path); }

@@ -29,10 +29,6 @@ namespace netlink {
 class NetLink;
 }
 
-// A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
-// 32-byte boundary, size, capacity, grow-by.
-using PlayerObjectArray = std::vector<CEngineObject*>;
-
 // One row of the server's and the client's handler tables: a message type and its handler, a method of the
 // connection that reads the message from its stream.
 template <typename Connection>
@@ -131,15 +127,15 @@ public:
     // Each new map object (message 0x40: header, scale, names, the server companion's names and strings, a
     // unit's name, its full state) / timed object (0x50: id, class, full state) is sent and kept, counted, in
     // the player's map. 1.
-    int SendObjectsAdded(const PlayerObjectArray* objects);
-    int SendTimedAdded(const PlayerObjectArray* objects);
+    int SendObjectsAdded(const std::vector<CEngineObject*>* objects);
+    int SendTimedAdded(const std::vector<CEngineObject*>* objects);
     // The objects changed in this world update (their stamp equals the world's update count) send their delta
     // (0x41 / 0x51: id, then the delta stream). 1.
-    int SendObjectsChanged(const PlayerObjectArray* objects);
-    int SendTimedChanged(const PlayerObjectArray* objects);
+    int SendObjectsChanged(const std::vector<CEngineObject*>* objects);
+    int SendTimedChanged(const std::vector<CEngineObject*>* objects);
     // Objects gone from view: dropped from the player's map and released (0x42 / 0x52: id). 1.
-    int SendObjectsRemoved(const PlayerObjectArray* objects);
-    int SendTimedRemoved(const PlayerObjectArray* objects);
+    int SendObjectsRemoved(const std::vector<CEngineObject*>* objects);
+    int SendTimedRemoved(const std::vector<CEngineObject*>* objects);
     // Every item of the player's item list the party's item manager knows is sent (SendObject14).
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
@@ -262,13 +258,13 @@ public:
     std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
     Vector3 lastPosition_;          // sent with 0x04 / 0x0F
     int spare_;                     // -1 after Create; nothing reads it
-    BitStream out_;                 // messages to the client
+    CMemoryStream out_;                 // messages to the client
     std::uint8_t flag70_;           // OnLeaderDied collects the party when set, redeploys it when clear
     std::vector<UnitPlacement> placements_;
     CoderState compressor_;         // for the messages sent (Flush)
     CoderState decompressor_;       // for the messages received
-    PlayerObjectArray sentObjects_; // map objects the client has (counted)
-    PlayerObjectArray sentTimed_;   // timed objects the client has (counted)
+    std::vector<CEngineObject*> sentObjects_; // map objects the client has (counted)
+    std::vector<CEngineObject*> sentTimed_;   // timed objects the client has (counted)
     ScriptGroup group50F8_;
     ScriptGroup partyUnits_;        // units always sent (message 0x60)
     int refreshPending_;            // 0, 1 or 2 (SendPartyState)
@@ -375,7 +371,7 @@ public:
     int maxUnitId_;                             // highest id put in units_
     TimedObjectMap knownTimed_;                 // timed objects (effects) sent to the client
     int maxTimedId_;
-    PartyStorage party_;                        // an embedded CParty
+    lib::InPlace<CParty> party_;                        // an embedded CParty
     std::list<CItem*> items_;           // items given to the player (counted)
     int partyId_;                               // the party's key in the party manager; sent with the client's login
     int sessionKind100_;                        // 3: the client runs a setup on the controllers of new units

@@ -32,9 +32,8 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
     const float* rect;
 };
-using SpriteArray = std::vector<SpriteRecord>;
-constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
-SpriteArray& Sprites() { return *g_sprites; }
+constinit lib::StaticObject<std::vector<SpriteRecord>> g_sprites = /*0079C1E0*/ {};
+std::vector<SpriteRecord>& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 void FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
@@ -60,7 +59,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     }
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
-        LightningPointArray& p = g_glowPoints;
+        std::vector<LightningPoint>& p = g_glowPoints;
         std::construct_at(&p);
         std::atexit(FreeGlowPoints);
     }

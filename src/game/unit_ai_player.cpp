@@ -30,7 +30,7 @@ constexpr float kNoRadius = -1.0f;
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // A list on the stack (CPtrList, blocks of 10).
-void InitList(AIObjectList& list) {
+void InitList(CountedUnits& list) {
     list = {};
 }
 
@@ -92,7 +92,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         }
     }
 
-    AIObjectList candidates;
+    CountedUnits candidates;
     InitList(candidates);
     AITargetChoice best{-1, nullptr};
     float radius;
@@ -127,7 +127,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     if (chosen) {
         if (!DirectlyControlled(brain->owner->unit)) {
             // The other followers that are not fighting stop following.
-            AIObjectList party;
+            CountedUnits party;
             InitList(party);
             CollectParty(brain, &party);
             for (auto node = party.begin(); node != party.end();) {
@@ -157,8 +157,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     candidates.clear();
 }
 
-void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
-    AIObjectList nearby;
+void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
+    CountedUnits nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
@@ -178,7 +178,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     nearby.clear();
 }
 
-void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
+void PlayerMode::CollectParty(AIBrain* brain, CountedUnits* party) {
     party->clear();
     CUnit* unit = brain->owner->unit;
     if (!unit) return;

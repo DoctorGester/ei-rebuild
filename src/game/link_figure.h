@@ -36,7 +36,7 @@ protected:
 // of the animated-mesh flag word when the mesh is animated.
 struct FigureMeshDrawer : FigureDrawerBase {
     int DrawPlain(CTextureDevice* device, const void*, const void*, CMaterial*, int alpha, RECT* rect);
-    int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
+    int DrawLit(CTextureDevice* device, const std::vector<CLight*>* lights, CMaterial* material, int alpha, RECT* rect,
                 CTexture* textureA, CTexture* textureB);
     void DrawBounds(CSceneRenderer* renderer);
 
@@ -96,10 +96,6 @@ struct LinkPartRanges {
 };
 static_assert(sizeof(LinkPartRanges) == 0x30);
 
-// The mesh's part maps by part name.
-using LinkHeaderMap = std::map<std::string, LinkPartHeader>;
-using LinkRangeMap = std::map<std::string, LinkPartRanges>;
-
 // A figure's mesh's base (no object of the
 // base alone exists): the reference count, the name and the part headers.
 class CLinkMeshBase {
@@ -130,7 +126,7 @@ public:
     // was drawn. `u`, `v` are members of the mesh.
     virtual bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                              std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
-    virtual bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
+    virtual bool LightPart(const std::string* name, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
                            std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
     virtual int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                               std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
@@ -153,7 +149,7 @@ public:
 
     int refCount_;
     std::string name_;
-    LinkHeaderMap headers_;
+    std::map<std::string, LinkPartHeader> headers_;
 
 protected:
     explicit CLinkMeshBase(const std::string* name);
@@ -178,7 +174,7 @@ public:
                      std::uint16_t** indices, int* vertexCount, int* indexCount) override;
     bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
-    bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
+    bool LightPart(const std::string* name, const std::vector<CLight*>* lights, CMaterial* material, int alpha,
                    std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
     int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
                       std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
@@ -218,10 +214,10 @@ public:
     std::vector<VertexPacket> vertices_;
     std::vector<NormalPacket> normals_;
     std::vector<TexCoord> texCoords_;
-    TriangleIndexArray corners_;            // 6-byte triangle corners (MeshCorner)
+    std::vector<MeshCorner> corners_;            // 6-byte triangle corners (MeshCorner)
     std::vector<std::uint32_t> words_;
     std::vector<std::uint16_t> indices_;
-    LinkRangeMap ranges_;
+    std::map<std::string, LinkPartRanges> ranges_;
     CLinkFigureLoader* loader_;
     ITransformPipeline* pipeline_;
 };

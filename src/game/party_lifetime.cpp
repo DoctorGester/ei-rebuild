@@ -20,7 +20,7 @@
 
 namespace {
 
-void ReleaseAll(const PartyItemArray& list) {
+void ReleaseAll(const std::vector<CItem*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
@@ -70,7 +70,7 @@ void Drop(T*& object) {
     object = nullptr;
 }
 
-void ReleaseItems(const PartyItemArray& items) {
+void ReleaseItems(const std::vector<CItem*>& items) {
     for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
 }
 

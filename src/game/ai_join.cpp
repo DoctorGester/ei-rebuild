@@ -19,7 +19,7 @@ constexpr int kUnreached = 0x7FFFFFFF;
 
 } // namespace
 
-bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
+bool CAIMap::JoinLocalSearches(PathCells* path, int* cost) {
     LocalSearch* forward = &forwardSearch;
     LocalSearch* backward = &backwardSearch;
     bool ok = true;
@@ -42,12 +42,12 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         other = forward->CostAt(x, y);
         if (other < kUnreached) break;
     }
-    PathCellList scratch;
+    PathCells scratch;
     if (ok) {
         if (cost) *cost = other + open;
         forward->PathTo(x, y, path);
         backward->PathTo(x, y, &scratch);
-        PathCellList reversed;
+        PathCells reversed;
         path->Append(scratch.Reversed(&reversed));
         PathCellsRemoveRepeats(path);
         // Like the original, the cells keep the stack word under SearchPathTo's local cell (the forward search's
@@ -59,7 +59,7 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     return ok;
 }
 
-void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
+void CAIMap::BuildCellsTo(int x, int y, PathCells* path) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
     // The original gives each cell's speed word and terrain bits a stack slot it never writes (the planner's last
     // call left a search's row offset there); ours get the plain words.

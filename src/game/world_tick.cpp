@@ -138,9 +138,6 @@ void CWorldServer::SetGameResult(int result) {
 }
 
 namespace {
-// UpdateUnits' two function-local id lists (arrays of data, size, max, grow; the data block starts one dword
-// after its allocation), with their guard bits in g_updateListGuards.
-using IdArray = std::vector<unsigned>;
 constinit std::vector<unsigned> g_removedIds = /*007AFEF0*/ {};    // flagged for removal
 constinit std::vector<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leave the update map
 // The exit functions: each frees its array's block (the fields stay).
@@ -152,12 +149,12 @@ std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 void CWorldServer::UpdateUnits() {
     if (!(g_updateListGuards & 1)) {
         g_updateListGuards |= 1;
-        g_removedIds = IdArray{};
+        g_removedIds = std::vector<unsigned>{};
         std::atexit(FreeRemovedIds);
     }
     if (!(g_updateListGuards & 2)) {
         g_updateListGuards |= 2;
-        g_sleepingIds = IdArray{};
+        g_sleepingIds = std::vector<unsigned>{};
         std::atexit(FreeSleepingIds);
     }
     g_removedIds.clear();

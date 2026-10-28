@@ -13,8 +13,6 @@
 
 class CStream;
 
-using UnitIdList = std::vector<std::uint32_t>;
-
 // A dressed unit of the zone (the second list read): its prototype, the item ids
 // (armour type << 16 | material; 0xFFFFFFFF for none: [0] the helmet's row, [1] / [2] the weapons,
 // [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown. The server's
@@ -25,8 +23,8 @@ struct DressedUnitRecord {
     void Write(CStream* stream);
 
     std::uint16_t prototype;
-    UnitIdList items;
-    UnitIdList extraWeapons;        // weapon index << 16 | material index
+    std::vector<std::uint32_t> items;
+    std::vector<std::uint32_t> extraWeapons;        // weapon index << 16 | material index
     std::int8_t extraWeapon;
     int modelNumber;                // -1: the textures are named after the prototype
 };

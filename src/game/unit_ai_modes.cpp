@@ -94,8 +94,8 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 
 // The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
 // first use and destroyed at exit.
-constinit lib::StaticObject<AIObjectList> g_candidates = /*007C54C8*/ {};
-AIObjectList& Candidates() { return *g_candidates; }
+constinit lib::StaticObject<CountedUnits> g_candidates = /*007C54C8*/ {};
+CountedUnits& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
 void DestroyCandidates() { g_candidates.Destroy(); }
 

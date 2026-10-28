@@ -97,11 +97,11 @@ constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
-void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
+void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
 
 // The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
-ScriptEffect<T> ReadObject(ScriptStream* stream) {
+ScriptEffect<T> ReadObject(CStream* stream) {
     int id;
     stream->Read(&id, 4);
     if (id == -1) return {};
@@ -255,7 +255,7 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
 }
 
 
-void ScriptPointLight::Save(ScriptStream* stream) const {
+void ScriptPointLight::Save(CStream* stream) const {
     WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     WriteInt(stream, removeWhenDone);
@@ -264,7 +264,7 @@ void ScriptPointLight::Save(ScriptStream* stream) const {
     stream->Write(&step, 12);
 }
 
-void ScriptParticleSource::Save(ScriptStream* stream) const {
+void ScriptParticleSource::Save(CStream* stream) const {
     WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     WriteInt(stream, deleteAfterMove);
@@ -274,7 +274,7 @@ void ScriptParticleSource::Save(ScriptStream* stream) const {
     WriteInt(stream, lifetime);
 }
 
-void ScriptFxSource::Save(ScriptStream* stream) const {
+void ScriptFxSource::Save(CStream* stream) const {
     WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     stream->WriteString(name);
@@ -288,13 +288,13 @@ void ScriptFxSource::Save(ScriptStream* stream) const {
     WriteInt(stream, countdown);
 }
 
-void ScriptLightning::Save(ScriptStream* stream) const {
+void ScriptLightning::Save(CStream* stream) const {
     WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
 }
 
 
-void ScriptPointLight::Load(ScriptStream* stream) {
+void ScriptPointLight::Load(CStream* stream) {
     object = ReadObject<CEffectPointLight>(stream);
     stream->Read(&id, 4);
     stream->Read(&removeWhenDone, 4);
@@ -303,7 +303,7 @@ void ScriptPointLight::Load(ScriptStream* stream) {
     stream->Read(&step, 12);
 }
 
-void ScriptFxSource::Load(ScriptStream* stream) {
+void ScriptFxSource::Load(CStream* stream) {
     object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);
     stream->ReadInto(&name);

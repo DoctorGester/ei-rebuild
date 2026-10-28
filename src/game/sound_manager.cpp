@@ -60,7 +60,7 @@ std::uint32_t FadeStepBits() { return 0x3C2AAAABu /*007440E4*/; }
 float StopFadeStep() { return 0.010416667f /*007440E8*/; }
 
 // The slot of the wave's cache list node (its record's uses counts the voices playing it).
-WaveNode& CacheEntry(WaveCache& cache, const SoundSlot* slot) { return cache[slot->name]; }
+std::list<WaveRecord>::iterator& CacheEntry(std::unordered_map<std::string, std::list<WaveRecord>::iterator>& cache, const SoundSlot* slot) { return cache[slot->name]; }
 // May rehash first.
 void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec) {
     deferred[handle] = rec;
@@ -390,7 +390,7 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
 }
 
 // Returns the emitter index or -1.
-int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer,
+int CSoundManager::AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer,
                               int minInterval, int maxInterval) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -448,7 +448,7 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
 }
 
 // Returns the sequence id (generation << 8 | slot) or -1.
-int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
+int CSoundManager::AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist,
                                float farDist, int randomOrder, int count, int(*chooser)(int, int)) {
     if (enabled == 0 || names->empty()) return -1;
     int i = 0;
@@ -1114,7 +1114,7 @@ constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave i
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, WaveNode node) {
+void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, std::list<WaveRecord>::iterator node) {
     m->cacheList.splice(m->cacheList.begin(), m->cacheList, node);
     WaveRecord& record = *node;
     record.lastUsed = gameapi::GetTickCount();
@@ -1126,7 +1126,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const char* name, WaveNode nod
 // Drops unused waves from the least recently used end until the new one fits the budget or the
 // next one was used within the last minute.
 void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
-    WaveList& list = m->cacheList;
+    std::list<WaveRecord>& list = m->cacheList;
     for (auto after = list.end(); after != list.begin();) {
         auto node = std::prev(after);
         const WaveRecord& record = *node;

@@ -153,11 +153,9 @@ public:
     bool shift_;                     // Shift held (0x10): the selection grows
     bool shown_;
 };
-// A console command's arguments (lower case).
-using Arguments = std::vector<std::string>;
-using CommandHandler = void(*)(Arguments* args);
+using CommandHandler = void(*)(std::vector<std::string>* args);
 
-// Keys compared by _mbscmp.
+// Keys compared by _mbscmp. Kept as an alias: the spelled-out map type is 50 characters and named at ten sites.
 using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 
 // The handler slot for `key`, inserted with a null handler if missing.
@@ -192,35 +190,35 @@ void RunAddonAutoExec();
 int Tokenize(const char* text, std::vector<std::string>* out);
 // Loads prefix + text + " arg"... + suffix into the mission script and runs it; prints
 // "Script error: ..." when it does not load.
-void RunScriptLine(const std::string& text, const Arguments& args, const char* prefix, const char* suffix);
+void RunScriptLine(const std::string& text, const std::vector<std::string>& args, const char* prefix, const char* suffix);
 
 namespace commands {
-void Help(Arguments* args);
-void DebugInfo(Arguments* args);
-void ConsolePos(Arguments* args);    // console
-void History(Arguments* args);
-void Filter(Arguments* args);
-void Show(Arguments* args);
-void ListVar(Arguments* args);
-void LoadVar(Arguments* args);
-void LastFps(Arguments* args);
-void Exec(Arguments* args);          // exec, execute
-void Give(Arguments* args);
-void LootAll(Arguments* args);
-void Join(Arguments* args);
-void HostServer(Arguments* args);    // server
-void MemUsage(Arguments* args);
-void Disconnect(Arguments* args);
-void FadeOut(Arguments* args);
-void Net(Arguments* args);
-void GenerateAcks(Arguments* args);
-void Days(Arguments* args);
-void PartyResend(Arguments* args);
-void Kick(Arguments* args);
-void Ban(Arguments* args);
-void Fps(Arguments* args);
-void Rate(Arguments* args);
-void LocalRate(Arguments* args);
+void Help(std::vector<std::string>* args);
+void DebugInfo(std::vector<std::string>* args);
+void ConsolePos(std::vector<std::string>* args);    // console
+void History(std::vector<std::string>* args);
+void Filter(std::vector<std::string>* args);
+void Show(std::vector<std::string>* args);
+void ListVar(std::vector<std::string>* args);
+void LoadVar(std::vector<std::string>* args);
+void LastFps(std::vector<std::string>* args);
+void Exec(std::vector<std::string>* args);          // exec, execute
+void Give(std::vector<std::string>* args);
+void LootAll(std::vector<std::string>* args);
+void Join(std::vector<std::string>* args);
+void HostServer(std::vector<std::string>* args);    // server
+void MemUsage(std::vector<std::string>* args);
+void Disconnect(std::vector<std::string>* args);
+void FadeOut(std::vector<std::string>* args);
+void Net(std::vector<std::string>* args);
+void GenerateAcks(std::vector<std::string>* args);
+void Days(std::vector<std::string>* args);
+void PartyResend(std::vector<std::string>* args);
+void Kick(std::vector<std::string>* args);
+void Ban(std::vector<std::string>* args);
+void Fps(std::vector<std::string>* args);
+void Rate(std::vector<std::string>* args);
+void LocalRate(std::vector<std::string>* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
 void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list);
 void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list);

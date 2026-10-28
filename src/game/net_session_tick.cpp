@@ -110,14 +110,14 @@ void LogConnection(const char* before, Connection* connection, const char* after
 
 } // namespace
 
-ClientList::iterator SessionBase::FindClient(const NetAddress* address) {
+std::list<SharedRefTo<Connection>>::iterator SessionBase::FindClient(const NetAddress* address) {
     auto node = clients_.begin();
     while (node != clients_.end() && std::memcmp(&node->Get()->address_, address, sizeof(NetAddress)) != 0) ++node;
     return node;
 }
 
 // Logs it, closes the connection and erases the node.
-void SessionBase::RemoveClient(ClientList::iterator node) {
+void SessionBase::RemoveClient(std::list<SharedRefTo<Connection>>::iterator node) {
     if (node == clients_.end()) return;
     if (g_netLog) LogConnection(game::nettexts::RemoveClient(), node->Get(), nullptr);
     node->Get()->Close();

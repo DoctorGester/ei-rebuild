@@ -44,15 +44,9 @@ const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName
 
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 
-using IdList = UnitIdList;
-
 // --- Helpers -------------------------------------------------------------------------------------
 
 // --- The dressed units ---------------------------------------------------------------------------
-
-// What the texture cache composes a skin from: the texture records as its layer bytes, the texture file
-// names, the composite's size as its flags.
-using SkinComposition = SkinRequest;
 
 // The vector UnitTextureRecords fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
 // the body, 0x3005 an armour piece, 0x3004 a weapon), the item id and the item record's type.
@@ -61,15 +55,14 @@ struct TextureRecord {
     std::uint32_t id;
     std::uint32_t itemType;   // the item record's type
 };
-using RecordList = std::vector<TextureRecord>;
 } // namespace
 
-void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
+void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list);
 
 namespace {
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
-void CopyRecords(SkinComposition& set, const RecordList& list) {
+void CopyRecords(SkinRequest& set, const std::vector<TextureRecord>& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
     set.layers.resize(size);
     std::memcpy(set.layers.data(), list.data(), static_cast<std::size_t>(size));
@@ -86,7 +79,7 @@ void AppendName(const UnitModelRecord* model, const std::string& name, char* buf
     AppendText(buffer, ".mmp");
 }
 
-void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
+void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
     char buffer[0x100];
     {
         std::string name;
@@ -97,7 +90,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
 }
 
 // The weapons (items 1 and 2): the one whose armour layer is lower first when both exist.
-void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::uint32_t* items) {
+void AddWeapons(SkinRequest& set, const UnitModelRecord* model, const std::uint32_t* items) {
     if (items[1] != kNone && items[2] != kNone) {
         const itemdb::ArmorRecord* second = Armour(items[2] >> 16);
         const itemdb::ArmorRecord* first = Armour(items[1] >> 16);
@@ -115,7 +108,7 @@ void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::u
 }
 
 // The extra weapon picked by the record's index byte in its list: weapon and material records named together.
-void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedUnitRecord* record) {
+void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitRecord* record) {
     const std::uint32_t* list = record->extraWeapons.data();
     int count = static_cast<int>(record->extraWeapons.data() + record->extraWeapons.size() - list);
     int index = record->extraWeapon;
@@ -134,7 +127,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
 }
 
 // The texture cache is the client world's texture manager.
-void Compose(CWorldClient* self, std::string& out, SkinComposition& set, const std::string& name, int size, int kind) {
+void Compose(CWorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
     set.flags = size;
     self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
     self->textureManager_->FindOrLoad(kind, name.c_str());
@@ -143,8 +136,8 @@ void Compose(CWorldClient* self, std::string& out, SkinComposition& set, const s
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    RecordList list;
-    SkinComposition set{};
+    std::vector<TextureRecord> list;
+    SkinRequest set{};
 
     const std::uint32_t* items = record->items.data();
     if (!record->items.empty()) {
@@ -190,13 +183,11 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
 // --- The other units -----------------------------------------------------------------------------
 
-using StringList = std::vector<std::string>;
-
 void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const UnitPrototypeRecord* prototype = UnitPrototype(record->prototype);
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
-    StringList first;
-    StringList second;
+    std::vector<std::string> first;
+    std::vector<std::string> second;
 
     if (record->names.empty()) {
         CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
@@ -226,10 +217,10 @@ void CWorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::v
 // armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (0x3005) and
 // [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list. items[1..6] are
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
-void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list) {
+void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list) {
     constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
     list->clear();
-    auto& items = const_cast<IdList&>(record->items);
+    auto& items = const_cast<std::vector<std::uint32_t>&>(record->items);
     if (items.empty()) return;
     const TextureRecord empty = {0, kNone, kNone};
     const std::uint32_t* ids = items.data();
@@ -254,7 +245,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* 
         out[0].kind = kArmourPiece;
         out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
     }
-    auto& extra = const_cast<IdList&>(record->extraWeapons);
+    auto& extra = const_cast<std::vector<std::uint32_t>&>(record->extraWeapons);
     const auto count = static_cast<std::uint32_t>(extra.size());
     const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
     if (index >= count) return;

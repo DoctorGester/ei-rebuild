@@ -38,7 +38,7 @@ constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
 // The quest database's index (operator[] adds an empty slot for an unknown name).
-QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
+std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 } // namespace
 

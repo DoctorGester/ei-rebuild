@@ -46,10 +46,6 @@ double Unsigned(std::uint32_t value) {
     return static_cast<double>(wide);
 }
 
-// vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
-// update, its guard bit 0).
-using KeyVector = std::vector<std::uint32_t>;
-
 constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
 void DestroyDeadCells() { lib::FreeStorage(g_deadCells); }
@@ -201,7 +197,7 @@ void CVisibilityFog::ComputeBounds() {
 // are dropped below 0.01; every cell steps its texture tile. Returns whether the fog is still
 // needed (referenced elsewhere or has cells).
 int CVisibilityFog::UpdateCells() {
-    KeyVector& dead = g_deadCells;
+    std::vector<std::uint32_t>& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
         std::atexit(DestroyDeadCells);

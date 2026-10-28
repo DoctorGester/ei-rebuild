@@ -202,9 +202,7 @@ void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFla
     MoveWindow(0);
 }
 
-// A hash_set<int> that nothing of ours reads: built by its static initialiser, destroyed by its exit function.
-using UnreadSet = std::unordered_set<int>;
-constinit lib::StaticObject<UnreadSet> g_unreadSet = /*007AB8D8*/ {};
+constinit lib::StaticObject<std::unordered_set<int>> g_unreadSet = /*007AB8D8*/ {};
 namespace {
 void DestroyUnreadSet() { g_unreadSet.Destroy(); }
 } // namespace

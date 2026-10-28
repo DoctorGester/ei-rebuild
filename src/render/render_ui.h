@@ -16,9 +16,6 @@ struct TextLayout;
 
 namespace render::ui {
 
-// A colour as GDI takes it (COLORREF, 0x00BBGGRR).
-using Colour = std::uint32_t;
-
 // A surface's pixel format (SurfaceMemory's): 16 or 32 bits, the colour masks.
 struct PixelFormat {
     int bitsPerPixel = 32;
@@ -27,7 +24,7 @@ struct PixelFormat {
 
 // `colour` as a surface of `format` keeps it (each channel's top bits) widened back to 8 bits a
 // channel, as 0x00RRGGBB: what the canvas holds and the blit shows.
-std::uint32_t Quantise(Colour colour, const PixelFormat& format);
+std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format);
 // A pixel of `format` (a colour key) widened to 0x00RRGGBB; 0x00RRGGBB to a pixel of `format` (the
 // channels' top bits, as CopyFrameTo packs).
 std::uint32_t Widen(std::uint32_t pixel, const PixelFormat& format);
@@ -42,19 +39,19 @@ void DropCanvas(const void* holder);
 
 // Drawing, in canvas pixels; each is clipped to the canvas, and does nothing without one.
 // FillSolidRect: [left, right) x [top, bottom).
-void Fill(const void* holder, const Rect& rect, Colour colour);
+void Fill(const void* holder, const Rect& rect, std::uint32_t colour);
 // FrameRect with a solid brush: the rectangle's one-pixel border inside it.
-void FrameRect(const void* holder, const Rect& rect, Colour colour);
+void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour);
 // MoveTo (x0, y0), LineTo (x1, y1) with a solid pen of `width`. GDI's pixels for horizontal and vertical
 // lines 1 px wide (the end point not drawn) and 2 px wide (the game's pens); wider pens and slanted lines
 // are close to GDI, not exact (a band around the line; Bresenham's steps).
-void Line(const void* holder, int x0, int y0, int x1, int y1, int width, Colour colour);
-void Pixel(const void* holder, int x, int y, Colour colour);
+void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::uint32_t colour);
+void Pixel(const void* holder, int x, int y, std::uint32_t colour);
 // A text layout (render_text.h, its rectangle in canvas pixels) drawn in `colour`: each pixel becomes
 // colour x coverage + what was there x (1 - coverage), overlapping glyphs keeping the larger coverage,
 // underlines fully covered; clipped to the layout's clip rectangle. Over black this is
 // text::ComposeAgainstBlack. The font (and its atlas) must outlive the canvas's queued commands.
-void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, Colour colour);
+void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour);
 // The screen copy: `source` of the frame drawn so far stretched over the whole canvas, nearest
 // pixel (CopyFrameTo's rule), quantised to the format.
 void CopyFrame(const void* holder, const Rect& source);

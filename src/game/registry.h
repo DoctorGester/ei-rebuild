@@ -9,10 +9,6 @@
 
 #include "resource.h"
 
-// The int / float arrays the registry fills.
-using DwordArray = std::vector<std::uint32_t>;
-using IntArray = std::vector<std::int32_t>;
-
 enum RegistryType : std::uint8_t {
     kRegInt = 0,
     kRegFloat = 1,
@@ -54,8 +50,8 @@ public:
     void GetStringBuffer(const char* section, const char* key, char* buffer, int* length, const char* defaultValue);
 
     // Int / float array (or a single value) into `out`. Without the key `out` is emptied and the result is 0.
-    BOOL GetIntArray(const char* section, const char* key, IntArray* out);
-    BOOL GetFloatArray(const char* section, const char* key, DwordArray* out);
+    BOOL GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out);
+    BOOL GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
     // A string array (or a single string) into `out`. Without the key `out` is emptied and the result is 0.
     BOOL GetStringArray(const char* section, const char* key, std::vector<std::string>* out);
 

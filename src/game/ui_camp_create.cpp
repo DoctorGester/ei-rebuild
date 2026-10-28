@@ -55,7 +55,7 @@ constexpr int kActionEquip = 1, kActionSpellParts = 2, kActionItemParts = 3;
 constexpr int kModeSpellTrade = 4, kModeItemTrade = 5;
 constexpr int kFilterItems = 0, kFilterSpells = 1, kFilterArmour = 2;
 
-const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
+const TemplateTable* ClassTemplates() { return &ThePartyManager()->templates; }
 CParty* LocalParty() { return LocalPlayerData(); }
 CUiContainer* AsContainer(CCampPages* camp) { return camp; }
 
@@ -278,7 +278,7 @@ void CCampPages::BuildPages() {
     // world takes the hero records, and put back after the units were set up.
     heroTurn_ = 0;
     turning_ = 0;
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     CParty* player = LocalParty();
     const int count = std::ssize(player->members_);
     for (int i = 0; i < count; ++i) {

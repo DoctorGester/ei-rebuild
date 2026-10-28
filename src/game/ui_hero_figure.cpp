@@ -41,7 +41,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 } // namespace
 
 void CMpHeroScreen::ChooseFigure(const char* prototype) {
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     // The attributes and height to keep (copied as dwords).
     float strength = kDefaultAttribute;
@@ -99,7 +99,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     voiceIndex_ = 0;
     voiceTop_ = 0;
     voices_ = firstVoices ? &voiceLists_[0] : &voiceLists_[1];
-    MpVoiceVector& voices = Voices();
+    std::vector<MpVoiceEntry>& voices = Voices();
     // The first entry's file (the original read it even from an empty list; ours leaves the text then).
     if (voices.begin() != voices.end()) hero->texts[6] = voices.begin()->file;
     // The entry count compared unsigned.

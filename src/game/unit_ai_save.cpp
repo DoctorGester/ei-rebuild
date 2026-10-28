@@ -32,7 +32,7 @@ void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
 }
 } // namespace
 
-void LoadLooks(AILookArray* looks, CStream* stream) {
+void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     looks->resize(count);
@@ -45,7 +45,7 @@ void LoadLooks(AILookArray* looks, CStream* stream) {
     }
 }
 
-void SaveLooks(const AILookArray* looks, CStream* stream) {
+void SaveLooks(const std::vector<AILook>* looks, CStream* stream) {
     WriteCopy(stream, std::ssize(*looks));
     for (int i = 0; i < std::ssize(*looks); ++i) {
         const AILook& look = (*looks)[i];

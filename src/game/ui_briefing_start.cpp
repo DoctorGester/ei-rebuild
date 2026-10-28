@@ -38,7 +38,7 @@ const char* GoodbyeTopic() { return "goodbye"; }
 const char* ConstructorTopic() { return "constr"; }
 const char* BriefingSection() { return "briefing "; }
 const char* ShowLine() { return "#show"; }
-const ClassTemplateVector* ClassTemplates() { return &ThePartyManager()->templates; }
+const TemplateTable* ClassTemplates() { return &ThePartyManager()->templates; }
 const char* TopicPrefix() { return "b."; }
 
 CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }

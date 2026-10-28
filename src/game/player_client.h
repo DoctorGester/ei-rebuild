@@ -85,7 +85,7 @@ public:
     int DispatchMessages();
     // The client world's frame, with the local server's stream. Appends the bytes of `source` (rewound) to
     // the received stream, whose pending bits are stored first; its read position stays.
-    void AppendReceived(BitStream* source);
+    void AppendReceived(CMemoryStream* source);
     // One packet from the link, decompressed into in_ and dispatched: 1 when there was none or it ran
     // through, 0 without a link, when the receive failed or the dispatch returned 0.
     int ReceiveMessages();
@@ -223,8 +223,8 @@ public:
     // The base's state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     using Handler = int (CPlayerClient::*)();
     std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
-    BitStream in_;                  // the server's messages being run
-    BitStream out_;                 // requests for the server
+    CMemoryStream in_;                  // the server's messages being run
+    CMemoryStream out_;                 // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (CUnit::ReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession_;

@@ -273,7 +273,7 @@ void FearMode::Execute(AIBrain* brain) {
 
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
-        AIObjectList candidates{};
+        CountedUnits candidates{};
         AITargetChoice best{-1, nullptr};
         Vector3 at = *PositionOf(brain->owner->unit);
         brain->ChooseTarget(&best, &candidates, &at, 1, 1);

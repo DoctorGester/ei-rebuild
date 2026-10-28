@@ -35,8 +35,8 @@ public:
     std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // set by the constructor and by a quest completion
     // the party objects (ItemsParty / SpellsParty).
-    PartyStorage items;
-    PartyStorage spells;
+    lib::InPlace<CParty> items;
+    lib::InPlace<CParty> spells;
     ItemStock allowed;              // everything the class may use
     ItemStock magic;                // the same layout: spells and modifiers only
 };
@@ -50,7 +50,6 @@ struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
     void Build(unsigned fourClasses);
     ClassTemplate* Find(int type) const;
 };
-using ClassTemplateVector = TemplateTable;
 
 // Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose
 // class mask has the template's bit (spells and modifiers to both lists).

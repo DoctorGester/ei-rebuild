@@ -14,10 +14,6 @@ namespace netlink {
 class NetLink;
 }
 
-// The list slot 6 appends the new connections to, counted (the server world's AcceptNewPlayers'
-// local, a CTypedPtrList of links).
-using JoinedLinks = std::list<netlink::NetLink*>;
-
 class CPlayerSource : public CRefObject {
 public:
     CPlayerSource() {
@@ -30,5 +26,5 @@ public:
     // 2 / 3 / 4 / 6 pure in the base.
     virtual bool Query() = 0;           // Virtual 4: the helpers answer 0, the session 1
     virtual void Pump() {}              // Virtual 5: empty in every source
-    virtual void TakeNew(JoinedLinks* joined) = 0;   // 6: new connections appended to the list
+    virtual void TakeNew(std::list<netlink::NetLink*>* joined) = 0;   // 6: new connections appended to the list
 };

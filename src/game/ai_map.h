@@ -100,7 +100,6 @@ struct PathCells : std::list<PathCell> {
     // `out` constructed (blocks of 0x80) with the cells in reverse order.
     PathCells* Reversed(PathCells* out) const;
 };
-using PathCellList = PathCells;
 
 // The speed word and terrain bits a path builder gives its cells: the plain step speed, no terrain bits. The
 // original leaves stack leftovers there; the harness patches them to this too. SetStepSpeeds rewrites both
@@ -110,19 +109,18 @@ inline void SetPlainCellWords(PathCell* cell) {
     cell->flags = kPlainStepSpeed;
     cell->terrainBits = 0;
 }
-inline void SetPlainCellWords(PathCellList* list) {
+inline void SetPlainCellWords(PathCells* list) {
     for (PathCell& cell : *list) SetPlainCellWords(&cell);
 }
 
 // Removes each cell equal (x, y) to the one before it (the first is compared with (-1, -1)); an emptied list
 // frees its blocks.
-void PathCellsRemoveRepeats(PathCellList* list);
+void PathCellsRemoveRepeats(PathCells* list);
 
 // A block a search reaches.
 struct BlockCost {
     int x, y, cost;
 };
-using BlockCostList = std::list<BlockCost>;
 
 struct CRegionMap;
 
@@ -131,12 +129,6 @@ struct CRegionMap;
 struct BlockPoint {
     int x, y;
 };
-using BlockPointArray = std::vector<BlockPoint>;
-
-// Per size class tables of the cost of a height step between neighbouring cells, indexed from the
-// middle (negative steps down, positive up): an MFC CArray<int> of 1023 costs in 1/1024, -1 for a
-// step that cannot be taken (CAIMap::Load fills them).
-using ClimbTable = std::vector<int>;
 
 // The first 0x20 bytes of PathOrder: what the unit is told to do. Kinds:
 // 0 stand at (x, y) facing `angle` (set by Start / Reset),
@@ -189,7 +181,7 @@ struct PathOrder {
     void SaveOrder(CStream* stream);
 
     MotionOrder motionOrder;
-    PathCellList steps;         // the next cells to walk (at most 32)
+    PathCells steps;         // the next cells to walk (at most 32)
 };
 
 // A unit's path: its order and next steps (PathOrder), the rest of the cells and the search's state.
@@ -210,14 +202,14 @@ struct AIPath : PathOrder {
     // The search's target cell (targetX, targetY) in world units, z 0.
     Vector3* TargetPoint(Vector3* out) const;
 
-    PathCellList cells;         // the rest of the path
+    PathCells cells;         // the rest of the path
     float targetX, targetY;     // in half-cells
     Vector3 goal;               // world position asked for
     bool reached;               // no cells left
     std::uint8_t failed;        // 1: the last search failed; search again
     bool flag6E, flag6F;
     // the blocks the long-range plan avoids (PlanLongPath adds the region it failed in).
-    BlockPointArray excludedBlocks;
+    std::vector<BlockPoint> excludedBlocks;
     int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
 
@@ -276,7 +268,7 @@ struct LocalSearch {
     bool ExpandUntil(int x, int y);
     // The path from the start to map cell (x, y), walked back along the directions, into
     // `out` (emptied first; nothing when the cell is outside the window).
-    void PathTo(int x, int y, PathCellList* out);
+    void PathTo(int x, int y, PathCells* out);
     // Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
     // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
     bool PlaceWindow(int x0, int y0, int x1, int y1);
@@ -346,7 +338,7 @@ struct BlockSearch {
     // Attaches to the region map: one record per block, all unreached.
     void Attach(CRegionMap* regionMap, bool fromTarget);
     // The path from the search's start to block (x, y) into `path` (emptied first).
-    void PathTo(int x, int y, PathCellList* path);
+    void PathTo(int x, int y, PathCells* path);
     // Moves `record` to its place in its bucket (a bucket head stays).
     void Requeue(BlockRecord* record);
     // Relaxes the neighbour of `best` in `direction` (1..8) through the open edge, its back direction `back`.
@@ -386,10 +378,10 @@ struct CRegionMap {
     // middle is better.
     void PickRepresentatives(class CAIMap* map, int bx, int by);
     // The chain of regions from (fromX, fromY) to (toX, toY) into `chain`, avoiding the blocks in `excluded`.
-    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCellList* chain,
-                         BlockPointArray* excluded);
+    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, PathCells* chain,
+                         std::vector<BlockPoint>* excluded);
     // Expands the two block searches until they meet and joins their paths into `chain`; false when one runs out.
-    bool JoinBlockSearches(PathCellList* chain);
+    bool JoinBlockSearches(PathCells* chain);
     // Per size class the block (bx, by)'s edge words: the local search cost to each neighbour's representative
     // cell / 128. The first argument is not read.
     void MeasureBlockEdges(void* unused, int bx, int by);
@@ -398,10 +390,10 @@ struct CRegionMap {
     // Whether cell (xx, yy) of block (bx, by) reaches both side edges or both end edges of the block.
     bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
     // Floods `label` over the blocks connected through open edges, breadth first from `frontier`.
-    void FloodRegionFrom(int sizeClass, BlockPointArray* frontier, BlockPointArray* next, int label);
+    void FloodRegionFrom(int sizeClass, std::vector<BlockPoint>* frontier, std::vector<BlockPoint>* next, int label);
     // The 3x3 blocks around cell (x, y) whose representative cell the local search reaches from it, as {block x,
     // block y, cost} into `out` (emptied first).
-    void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
+    void NearbyBlocks(int sizeClass, bool flag, int x, int y, std::list<BlockCost>* out);
 
     // Re-measures blocks [x0, x1) x [y0, y1) (clamped to the grid): representative cells, then edges, row by
     // row (reporting progress), then the edge clamp, the two block searches and the regions.
@@ -508,7 +500,7 @@ struct PathSmoother {
     // step costs, a turn cost against `startDirection` (1..8) and the previous step, and diagonal end states
     // charged (1 - fraction) * 2048. While a pass finds a cheaper path the cells are rebuilt from the tail
     // along it and the pass repeats. Returns the last pass's cost.
-    int Smooth(CUnit* unit, CAIMap* map, PathCellList* path, int startDirection, float fraction);
+    int Smooth(CUnit* unit, CAIMap* map, PathCells* path, int startDirection, float fraction);
     // The states of the next cell (fresh nodes from the pool) from those of the current one through `table`.
     void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
@@ -583,7 +575,6 @@ struct BridgeHeights : std::unordered_map<std::uint32_t, std::uint32_t> {
     // Bridge deck height of cell (x, y), 0 if none.
     int HeightAt(short x, short y) const;
 };
-using BridgeMap = BridgeHeights;
 
 // CAIMap's dirty rectangle: the area refreshed when a batch of refreshes ends.
 struct AIDirtyRect {
@@ -705,7 +696,7 @@ public:
     // The first unit near world `position` whose occupancy shape blocks `unit` there; null if none.
     CUnit* BlockingUnitAt(CUnit* unit, const Vector3* position);
     // Fills each step's speed word (cost table / climb cost, in 1/512) and flag word.
-    void SetStepSpeeds(CUnit* unit, PathCellList* steps);
+    void SetStepSpeeds(CUnit* unit, PathCells* steps);
     // The passability cost tables for size class `sizeClass`; returns the climb table's middle.
     const int* CostContext(int sizeClass, struct PassCostContext* out);
     // CostContext for `unit`: its size class, speeds and the alternative table with CUnit::altPassCosts.
@@ -725,9 +716,9 @@ public:
     // 100.0 when an end is off the map.
     double LargestStepAlong(const Vector3* from, const Vector3* to);
     // Joins the forward and backward local searches where they meet; false when they cannot.
-    bool JoinLocalSearches(PathCellList* cells, int* cost);
+    bool JoinLocalSearches(PathCells* cells, int* cost);
     // The path to cell (x, y) walked back along the direction marks into `path` (emptied first).
-    void BuildCellsTo(int x, int y, PathCellList* path);
+    void BuildCellsTo(int x, int y, PathCells* path);
     // Adds (or lifts) the water depths around `position` as a pseudo unit of the small-unit layer.
     void StampWaterPatch(const Vector3* position, bool add);
     bool AddOccluderRecord(FootprintCell* cell);
@@ -748,7 +739,7 @@ public:
 
     // Clears the marks of the cells around the blocks of `chain` (8 x 8 cells each): their bounding box widened
     // by four blocks, clipped to the map. Nothing for an empty chain.
-    void ClearMarksAround(const PathCellList* chain);
+    void ClearMarksAround(const PathCells* chain);
     // Every terrain type's `openMarks`, set when the map loads: per size class the passability by
     // its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above: 0); size class 0 always gets 14.
     void BuildOpenMarks();
@@ -763,10 +754,12 @@ public:
     int passCosts[16];                  // cost per passability nibble (1/1024)
     int passCostsAlt[16];               // the same for units with CUnit::altPassCosts set
     int stepCosts[16];                  // step speeds per nibble (SetStepSpeeds)
-    ClimbTable climbLarge;              // size classes other than 0: no step steeper than 40 degrees
-    ClimbTable climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
+    // Per size class: the cost of a height step between neighbouring cells, indexed from the middle (negative
+    // steps down, positive up): 1023 costs in 1/1024, -1 for a step that cannot be taken (CAIMap::Load fills them).
+    std::vector<int> climbLarge;              // size classes other than 0: no step steeper than 40 degrees
+    std::vector<int> climbSmall;              // size class 0: up to 60 degrees, every step at the flat cost
     std::vector<AITerrainType> materials;     // the terrain types (16 after Load)
-    BridgeMap bridgeHeights;            // keyed (short)x << 16 | (short)y
+    BridgeHeights bridgeHeights;            // keyed (short)x << 16 | (short)y
     float heightScale;                  // world z to AI height units
     CSectorMap sectorMap;
     FootprintCellSet footprint;         // scratch for MarkFootprint

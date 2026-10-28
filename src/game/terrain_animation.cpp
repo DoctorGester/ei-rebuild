@@ -88,8 +88,8 @@ void SectorData::ResetFields() {
 void SectorData::Clear() {
     records.clear();
     for (int quarter = 0; quarter < 4; ++quarter) {
-        for (FlagArray& flags : tileFlags[quarter]) flags.clear();
-        for (TileList& list : tiles[quarter]) list.clear();
+        for (std::vector<std::uint8_t>& flags : tileFlags[quarter]) flags.clear();
+        for (std::vector<TileVertex>& list : tiles[quarter]) list.clear();
     }
     ResetFields();
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);

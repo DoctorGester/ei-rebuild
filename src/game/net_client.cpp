@@ -16,7 +16,7 @@ namespace net {
 namespace {
 
 // The embedded party's constructor.
-void PartyConstruct(PartyStorage* party) { new (party->Get()) CParty(); }
+void PartyConstruct(lib::InPlace<CParty>* party) { new (party->Get()) CParty(); }
 
 template <typename T, typename Function>
 void RegisterInline(ClientSession* client, int channel, Function handler) {
@@ -93,7 +93,7 @@ ClientSession::ClientSession() {
 
 // What the server receives from this client: the local player's login, the timed objects and the file
 // requests, and our trade offer with its members. All priority 1.
-void ClientSession::CollectReplicated(ReplicatedVector** out) {
+void ClientSession::CollectReplicated(std::vector<Replicated>** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
     for (auto n = self->timers_.begin(); n != self->timers_.end(); ++n) PushReplicated(*out, n->ref.ptr, 1);
@@ -101,7 +101,7 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
     if (void* group = self->party_.ptr) {
         PushReplicated(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
-            const RefVector& members = self->party_.Get()->members_;
+            const std::vector<CountedRefPtr>& members = self->party_.Get()->members_;
             if (i >= static_cast<std::uint32_t>(members.size())) break;
             PushReplicated(*out, members[i].ptr, 1);
         }

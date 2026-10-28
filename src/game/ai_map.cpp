@@ -103,7 +103,7 @@ bool CAIMap::CanLeaveCell(CUnit* unit) {
     int x = WorldToCell(unit->localPosition_.x), y = WorldToCell(unit->localPosition_.y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     int sizeClass = unit->sizeClass;
-    const ClimbTable& table = sizeClass == 0 ? climbSmall : climbLarge;
+    const std::vector<int>& table = sizeClass == 0 ? climbSmall : climbLarge;
     const int* climbCost = table.data() + std::ssize(table) / 2;
     int here = cells[y][x].groundLevel;
     for (const auto& o : kOffsets) {

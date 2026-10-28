@@ -64,15 +64,9 @@ constexpr int kProgressDone = 7;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-using IdArray = std::vector<int>;
-
-// A player's MFC list of plain dwords (CPlayer::recharging_) and of objects (CPlayer::items_); only the head and
-// the node layout are read here.
-using DwordList = std::list<std::uint32_t>;
-
 // A dword written through a stack copy, as most scalars are.
 template <typename T>
-void WriteCopy(WorldStream* stream, const T& value) {
+void WriteCopy(CStream* stream, const T& value) {
     T copy = value;
     stream->Write(&copy, sizeof(T));
 }
@@ -85,14 +79,14 @@ void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 namespace {
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
-void ReadStringInto(WorldStream* stream, std::string& target) {
+void ReadStringInto(CStream* stream, std::string& target) {
     std::string storage;
     std::string* read = stream->ReadString(&storage);
     target = *read;
 }
 
 template <typename T>
-T ReadValue(WorldStream* stream) {
+T ReadValue(CStream* stream) {
     T value;
     stream->Read(&value, sizeof(T));
     return value;
@@ -116,7 +110,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
     }
 }
 
-void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
+void CWorldServer::LoadSavedMapObjects(CStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
@@ -170,7 +164,7 @@ namespace {
 // The units saved standing where they cannot move (a cell they cannot leave) are put on a free
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
-    IdArray stranded;
+    std::vector<int> stranded;
     for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
         CUnit* unit = UnitOrNull(node->second);
         if (!unit) continue;
@@ -200,7 +194,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
 }
 
 // The players' part of the save (in the player list's order).
-void LoadPlayers(CWorldServer* world, WorldStream* stream) {
+void LoadPlayers(CWorldServer* world, CStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->Server();
@@ -219,7 +213,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         }
         stream->Read(&player->godMode_, 1);
         if (stream->version_ >= kVersionPlayerLists) {
-            DwordList& ids = player->recharging_;
+            std::list<std::uint32_t>& ids = player->recharging_;
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) ids.push_back(0);
             for (auto node = ids.begin(); node != ids.end();) {
@@ -240,7 +234,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
 
 } // namespace
 
-int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
+int CWorldServer::LoadSave(CStream* stream, const char* map) {
     CMemoryStream savedGraph;   // the AI graph state as the zone files have it
     CMemoryStream graph;        // ... with the save's differences applied
     std::string mobName;
@@ -358,7 +352,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
                 auto node = counted_.emplace(counted_.begin());
-                HeldEngineObject::Of(&*node)->Assign(item);
+                HeldObject<CEngineObject>::Of(&*node)->Assign(item);
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
@@ -404,7 +398,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             if (stream->version_ >= kVersionSharedObjects) {
-                SharedObjectList& shared = sharedObjects_;
+                std::list<SharedObject>& shared = sharedObjects_;
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) shared.emplace_back();
                 for (SharedObject& entry : shared) entry.Load(stream);
@@ -423,7 +417,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 namespace {
 
 // The players' part of the save (what LoadPlayers reads).
-void SavePlayers(CWorldServer* world, WorldStream* stream) {
+void SavePlayers(CWorldServer* world, CStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->Write(&player->partyId_, 4);
@@ -436,7 +430,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
         }
         WriteCopy(stream, -1);
         WriteCopy(stream, player->godMode_);
-        DwordList& ids = player->recharging_;
+        std::list<std::uint32_t>& ids = player->recharging_;
         WriteCopy(stream, std::ssize(ids));
         for (auto node = ids.begin(); node != ids.end();) {
             auto next = std::next(node);
@@ -448,7 +442,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
 
 } // namespace
 
-void CWorldServer::SaveWorld(WorldStream* stream) {
+void CWorldServer::SaveWorld(CStream* stream) {
     // The AI graph state as the zone files have it (`base`) and as it is now (`current`); only
     // their differences are saved.
     CMemoryStream base;
@@ -561,7 +555,7 @@ namespace {
 
 } // namespace
 
-void SharedObject::Load(WorldStream* stream) {
+void SharedObject::Load(CStream* stream) {
     SharedObject* entry = this;
     stream->Read(&entry->objectId, 4);
     stream->Read(&entry->player, 4);

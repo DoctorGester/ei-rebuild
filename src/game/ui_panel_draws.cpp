@@ -85,7 +85,7 @@ BOOL CRepairGrid::Draw(CSceneRenderer* pass) {
     auto* surface = surfaces_[0];
     surface->GetDC();
     surface->Clear();
-    const UiItemList* list = items_;
+    const std::vector<CItem*>* list = items_;
     for (int i = 0; i < std::ssize(*list); ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
@@ -153,7 +153,7 @@ CUiMesh* Highlight(CUiWindow* window) { return window->SceneMesh(4); }
 } // namespace
 
 BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
-    const PartyItemArray& slots = slots_->items_;
+    const std::vector<CItem*>& slots = slots_->items_;
     int needed = 0;
     float manaSum = 0.0f;
     float lastMana = 0.0f;
@@ -266,7 +266,7 @@ const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
 
 BOOL CConstructorPage::DrawItemMaker(CSceneRenderer* pass) {
     DrawBase(pass);
-    const PartyItemArray& slots = slots_->items_;
+    const std::vector<CItem*>& slots = slots_->items_;
     bool hasBlueprint = false;   // or a spell container
     bool hasPart = false;
     const itemdb::ItemRecordHead* part = nullptr;

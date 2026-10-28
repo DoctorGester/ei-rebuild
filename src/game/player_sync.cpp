@@ -61,11 +61,11 @@ float LowLevel() { return 2.0f /*0073CDB8*/; }
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 
-void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
-void WriteDword(BitStream* out, std::uint32_t value) { out->Write(&value, 4); }
+void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); }
+void WriteDword(CMemoryStream* out, std::uint32_t value) { out->Write(&value, 4); }
 
 // Appends all of `from` (sought to 0) to `out`, the pending bits of `out` stored first.
-void WriteStateStream(BitStream* out, BitStream* from) {
+void WriteStateStream(CMemoryStream* out, CMemoryStream* from) {
     out->EndBits();
     from->Seek(0);
     std::uint8_t* data = from->data_;
@@ -94,7 +94,6 @@ int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCoun
 constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;
 constexpr int kStateJoined = 1;
-using GivenList = std::list<CItem*>;
 // SaveListedObjects on a typed list.
 template <typename T>
 void SaveListed(const std::list<T*>* list, CStream* stream) {
@@ -111,7 +110,7 @@ T* NextAs(CEngineObject* const*& next) {
 
 } // namespace
 
-void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
+void CPlayerServer::SendItemsGiven(const std::list<CItem*>* items, int flag) {
     if (state_ != kStateJoined) return;
     std::list<CSpell*> spells{};
     std::list<CItem*> gathered{};
@@ -147,7 +146,7 @@ int CPlayerServer::Flush() {
     return sent;
 }
 
-int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
+int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
@@ -183,7 +182,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
     return 1;
 }
 
-int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
+int CPlayerServer::SendObjectsChanged(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player_);
     for (int i = 0; i < std::ssize(*objects); ++i) {
@@ -197,7 +196,7 @@ int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
     return 1;
 }
 
-int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
+int CPlayerServer::SendObjectsRemoved(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
@@ -210,7 +209,7 @@ int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
     return 1;
 }
 
-int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
+int CPlayerServer::SendTimedAdded(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
@@ -227,7 +226,7 @@ int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
     return 1;
 }
 
-int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
+int CPlayerServer::SendTimedChanged(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     int stamp = WorldUpdateCount(player_);
     for (int i = 0; i < std::ssize(*objects); ++i) {
@@ -241,7 +240,7 @@ int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
     return 1;
 }
 
-int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
+int CPlayerServer::SendTimedRemoved(const std::vector<CEngineObject*>* objects) {
     CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;

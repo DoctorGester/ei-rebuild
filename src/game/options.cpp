@@ -52,7 +52,7 @@ float Unsigned(std::uint32_t value) { return static_cast<float>(x87::FromUnsigne
 enum Kind { kInt, kDword, kFloat };
 
 // One value: the getter, the subkey field, the value name, the field it goes to (and whose value is
-// the default): `number` for kInt / kDword, `real` for kFloat.
+// the default): `number` for kInt / kDword, `real` for kFloat. Kept: a pointer-to-member type.
 using KeyField = std::string GameOptions::*;
 struct Value {
     constexpr Value(Kind k, KeyField subkey, const char* valueName, int GameOptions::*field)

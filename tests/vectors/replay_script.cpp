@@ -145,7 +145,7 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     if (!bytes || !r.ok()) return true;   // RunBytes reports the short payload
 
     const std::string source(reinterpret_cast<const char*>(bytes), length);
-    ScriptTokenList tokens;
+    std::list<ScriptToken> tokens;
     g_error = ReportedError();
     const BOOL result = NoScript()->Tokenize(source, &tokens);
 
@@ -177,7 +177,7 @@ EI_VECTOR_CHECK_BYTES("CScript::Tokenize", CheckTokenize);
 bool CheckApplyDefines(Reader& r, char* d, std::size_t n) {
     const std::string before = r.String();
     const std::uint32_t count = r.Get<std::uint32_t>();
-    ScriptDefineList defines;
+    std::list<ScriptDefine> defines;
     for (std::uint32_t i = 0; i < count; ++i) {
         std::string name = r.String();
         std::string value = r.String();

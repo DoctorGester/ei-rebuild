@@ -55,4 +55,4 @@ CUnitShape* CUnitShape::Clone() {
     return copy;
 }
 
-CUnitShape* CreateUnitShape(const UnitShapeHandle* handle) { return new CUnitShape(handle->height); }
+CUnitShape* CreateUnitShape(const ShapeCacheHandle* handle) { return new CUnitShape(handle->height); }

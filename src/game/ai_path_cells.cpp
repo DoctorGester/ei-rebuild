@@ -31,7 +31,7 @@ PathCells* PathCells::Reversed(PathCells* out) const {
     return out;
 }
 
-void PathCellsRemoveRepeats(PathCellList* list) {
+void PathCellsRemoveRepeats(PathCells* list) {
     std::int16_t lastX = -1, lastY = -1;
     list->remove_if([&](const PathCell& cell) {
         bool repeat = cell.x == lastX && cell.y == lastY;
@@ -53,7 +53,7 @@ void AIPath::ToMotionOrder(PathOrder* out) const {
     out->SetTarget(targetX, targetY);
 }
 
-void CAIMap::ClearMarksAround(const PathCellList* chain) {
+void CAIMap::ClearMarksAround(const PathCells* chain) {
     constexpr int kBlock = 8;
     constexpr int kMargin = 4 * kBlock;
     if (chain->empty()) return;

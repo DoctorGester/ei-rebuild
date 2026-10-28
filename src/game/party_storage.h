@@ -8,4 +8,3 @@
 
 #include "lib/static_object.h"
 
-using PartyStorage = lib::InPlace<CParty>;

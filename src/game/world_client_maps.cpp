@@ -71,7 +71,7 @@ namespace {
 std::uint32_t CellOf(float coordinate) { return static_cast<std::uint32_t>(x87::fistp(coordinate)) >> 4; }
 
 // Every element of `list` that is `object` erased (released), the object held meanwhile.
-void RemoveHeld(SectorList& list, CMapObject* object) {
+void RemoveHeld(std::list<HeldPtr<CMapObject>>& list, CMapObject* object) {
     HeldPtr<CMapObject> hold(object);
     std::erase_if(list, [object](const HeldPtr<CMapObject>& held) { return held.get() == object; });
 }
@@ -100,9 +100,9 @@ using HitTest = int (CObject3DSpecific::*)(const long* point);
 
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
 // object still exists and answers `test` go to `hits`.
-HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, LONG x,
+HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* hits, LONG x,
                           LONG y, CMapObjectManager* manager, HitTest test) {
-    for (ScreenEntryNode node = first; node != last; ++node) {
+    for (std::list<ScreenEntry>::iterator node = first; node != last; ++node) {
         const ScreenEntry* entry = &*node;
         POINT pt = {x, y};
         if (!PtInRect(&entry->rect, pt)) continue;
@@ -119,12 +119,12 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryN
 
 } // namespace
 
-HitCollector* HitCollector::CollectBounds(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* found, LONG x,
+HitCollector* HitCollector::CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
                                           LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
 
-HitCollector* HitCollector::CollectParts(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* found, LONG x,
+HitCollector* HitCollector::CollectParts(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* found, LONG x,
                                          LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
@@ -138,17 +138,13 @@ int PendingIndex::Lookup(const std::uint32_t* key, std::list<CMapObject*>::itera
 
 namespace {
 
-// The client's objects answering IsSynchronised (dynamicObjects_).
-using DynamicList = std::list<CMapObject*>;
-using DynamicNode = DynamicList::iterator;
-
 void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
 constexpr int kTypeHero = 0x32;
 
-SectorList* CellFor(SectorGrid& grid, CMapObject* object) {
+std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
     std::uint32_t x = CellOf(object->localPosition_.x);
     std::uint32_t y = CellOf(object->localPosition_.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
@@ -167,7 +163,7 @@ int CWorldClient::AddObject(CMapObject* object) {
     }
     auto entry = dynamicNodes_.find(static_cast<std::uint32_t>(object->id_));
     if (entry == dynamicNodes_.end() && object->IsSynchronised()) {
-        DynamicList& kept = dynamicObjects_;
+        std::list<CMapObject*>& kept = dynamicObjects_;
         auto node = kept.emplace(kept.end(), object);
         int key = object->id_;
         hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
@@ -190,8 +186,8 @@ int CWorldClient::AddObject(CMapObject* object) {
     ++object->refCount_;
     objects_.push_back(object);
 
-    if (SectorList* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
-    if (SectorList* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
+    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
     if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
     return 1;
 }
@@ -199,7 +195,7 @@ int CWorldClient::AddObject(CMapObject* object) {
 void CWorldClient::RefreshPlatforms(CMapObject* object) {
     const int id = object->id_;
     if (std::ranges::none_of(objects_, [id](const CMapObject* filed) { return filed->id_ == id; })) return;
-    PlatformList& platforms = platforms_.list;
+    std::list<Platform>& platforms = platforms_.list;
     for (auto node = platforms.begin(); node != platforms.end();) {
         auto next = std::next(node);
         if (node->id == id) platforms.erase(node);
@@ -215,7 +211,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
 
 bool CWorldClient::QueueSynchronised(CMapObject* object) {
     if (dynamicNodes_.contains(static_cast<std::uint32_t>(object->id_))) return false;
-    DynamicList& kept = dynamicObjects_;
+    std::list<CMapObject*>& kept = dynamicObjects_;
     auto node = kept.emplace(kept.end(), object);
     int key = object->id_;
     hash400::Entry(dynamicNodes_, dynamicMaxId_, key) = node;
@@ -279,7 +275,7 @@ void CWorldClient::LoadUnitFaces() {
 
 const char* CWorldClient::ExitTarget(int index) { return exits_[index].target.c_str(); }
 
-void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
+void CWorldClient::RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records) {
     for (int i = 0; i < std::ssize(*records); ++i)
         RemoveObject(static_cast<int>((*records)[i]->unitId));
 }
@@ -297,16 +293,16 @@ void CWorldClient::DropShadows() {
 }
 
 void CWorldClient::RemoveObject(int id) {
-    PlatformList& platforms = platforms_.list;
+    std::list<Platform>& platforms = platforms_.list;
     for (auto node = platforms.begin(); node != platforms.end();) {
         auto next = std::next(node);
         if (node->id == id) platforms.erase(node);
         node = next;
     }
-    PendingMap& ids = dynamicNodes_;
+    PendingIndex& ids = dynamicNodes_;
     if (auto entry = ids.find(static_cast<std::uint32_t>(id)); entry != ids.end()) {
-        DynamicList& kept = dynamicObjects_;
-        DynamicNode node = entry->second;
+        std::list<CMapObject*>& kept = dynamicObjects_;
+        std::list<CMapObject*>::iterator node = entry->second;
         kept.erase(node);
         if (auto again = ids.find(static_cast<std::uint32_t>(id)); again != ids.end()) ids.erase(again);
     }
@@ -317,7 +313,7 @@ void CWorldClient::RemoveObject(int id) {
         RemoveHeld(heroes_, object);
         if (session_->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
-    if (SectorList* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
+    if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     objects_.erase(filed);
     object->Release();
 }
@@ -356,10 +352,10 @@ void CWorldClient::ClearMaps() {
 
 namespace {
 
-using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode, ScreenEntryNode, ScreenHits*, long, long,
+using Collect = HitCollector* (HitCollector::*)(std::list<ScreenEntry>::iterator, std::list<ScreenEntry>::iterator, std::vector<ScreenEntry>*, long, long,
                                                 CMapObjectManager*);
 CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
-    ScreenHits& hits = client->hits_;
+    std::vector<ScreenEntry>& hits = client->hits_;
     hits.clear();
     CMapObjectManager* manager = client->MapObjectManager();
     std::list<ScreenEntry>& screen = client->screenEntries_;
@@ -412,7 +408,7 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 }
 
 void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) {
-    for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
+    for (std::list<ScreenEntry>::iterator node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
         CMapObject* object = manager40_->FindMapObject(node->objectId);
         if (!object) continue;
         if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
@@ -428,7 +424,7 @@ bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
 // with the prototype's number, or left out at -1), "lh1".."rl3".
-void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
+void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour) {
     std::string hair;
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* record = (*party)[i];
@@ -461,7 +457,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         const char* skin = record->texts[4].c_str();
         figure->SetSkins(game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         unit->WriteFullState();
-        CMapObjectVirtuals* slots = unit;
+        CMapObject* slots = unit;
         slots->SetStats(&record->stats);
         unit->SetFigureScale(&record->scaleX);
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
@@ -519,7 +515,7 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<
     lastY = Ftol(y1) >> 4;
 
     SectorGrid& grid = objectGrid_;
-    for (SectorList* cell = &grid.rows_[y][x]; cell;) {
+    for (std::list<HeldPtr<CMapObject>>* cell = &grid.rows_[y][x]; cell;) {
         for (CMapObject* object : *cell) {
             float pz = point->z;
             float ox = object->localPosition_.x + object->bounds.center.x;
@@ -714,10 +710,9 @@ void Unhighlight(CMapObject* object) {
 
 void CWorldClient::Deselect(CMapObject* object) {
     std::list<int>& selected = list7BC_;
-    using Node = std::list<int>::iterator;
     auto* objects = manager40_;
     if (!object) {
-        for (Node node = selected.begin(); node != selected.end(); ++node) {
+        for (std::list<int>::iterator node = selected.begin(); node != selected.end(); ++node) {
             CMapObject* found = objects->FindMapObject(static_cast<unsigned>((*node)));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
@@ -725,7 +720,7 @@ void CWorldClient::Deselect(CMapObject* object) {
         return;
     }
     const int id = object->id_;
-    Node node = selected.begin();
+    std::list<int>::iterator node = selected.begin();
     while (node != selected.end() && (*node) != id) ++node;
     if (node == selected.end()) return;
     selected.erase(node);
@@ -741,9 +736,8 @@ void CWorldClient::Select(CMapObject* object) {
         object->attached->Unused25(1);
     }
     std::list<int>& selected = list7BC_;
-    using Node = std::list<int>::iterator;
     const int id = object->id_;
-    Node node = selected.begin();
+    std::list<int>::iterator node = selected.begin();
     while (node != selected.end() && (*node) != id) ++node;
     if (node != selected.end()) return;
     selected.insert(selected.end(), id);
@@ -777,8 +771,8 @@ void ReferenceEveryObject(CBaseManager* manager) {
 } // namespace
 
 void SectorGrid::Allocate() {
-    cells_ = std::make_unique<SectorList[]>(static_cast<std::size_t>(unknown08_) * unknown0C_);
-    rows_ = std::make_unique<SectorList*[]>(static_cast<std::size_t>(unknown0C_));
+    cells_ = std::make_unique<std::list<HeldPtr<CMapObject>>[]>(static_cast<std::size_t>(unknown08_) * unknown0C_);
+    rows_ = std::make_unique<std::list<HeldPtr<CMapObject>>*[]>(static_cast<std::size_t>(unknown0C_));
     for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_.get() + y * unknown08_;
 }
 

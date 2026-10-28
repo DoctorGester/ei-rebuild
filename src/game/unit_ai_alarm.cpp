@@ -37,7 +37,7 @@ bool IsZero(double v) {
 
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
 // waypoints as looks of that point (the direction from the start, the wait and the turning time).
-void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
+void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
     mode->points.clear();
     for (int i = 0; i < std::ssize(record->patrols); ++i) {
         const mapspec::Patrol& patrol = record->patrols[i];
@@ -73,7 +73,7 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
 }
 } // namespace
 
-void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
+void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
     float radius = std::bit_cast<float>(record->callRadius);
@@ -141,7 +141,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     if (alwaysUpdated) TheServerWorld()->AddToUpdateMap(owner->unit);
 }
 
-void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
+void AIBrain::SetAlarmRecords(const mapspec::Behaviour* records, int count) {
     alarmRecords.assign(records, records + count);
     ApplyBehaviour(alarmRecords.data(), 0);
 }
@@ -149,7 +149,7 @@ void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
 void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
     if (slot < 0 || slot >= std::ssize(alarmRecords)) return;
-    const AIAlarmRecord* record = &alarmRecords[slot];
+    const mapspec::Behaviour* record = &alarmRecords[slot];
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->voice.Raise(kAlarmHeard);
 }

@@ -16,9 +16,6 @@
 #include <vector>
 #include <unordered_map>
 
-// The spots a use order may go to.
-using LeverSpots = UseSpotArray;
-
 // A model's record in the lever table, read from Levers.ldb by field id. The spot offsets are in the
 // lever's own frame (along its facing's X and Y axes).
 struct LeverRecord {
@@ -36,7 +33,6 @@ struct LeverRecord {
 // The lever table: the records and their index by model name.
 
 struct LeverRecordTable {
-    using NameIndex = std::unordered_map<std::string, LeverRecord*>;
 
     // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and files
     // every record in the index under its name. Returns 1, or the fatal error's result when the archive
@@ -46,7 +42,7 @@ struct LeverRecordTable {
     LeverRecord* Named(const char* name) { return byName[std::string(name)]; }
 
     std::vector<LeverRecord> records;
-    NameIndex byName;
+    std::unordered_map<std::string, LeverRecord*> byName;
 };
 extern lib::StaticObject<LeverRecordTable> g_leverTable;
 inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
@@ -72,7 +68,7 @@ public:
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
     bool KeepsMapFlag() override { return KeepsMapFlagSlot(); }
-    void UseSpots(UseSpotArray* out, float userRadius) override;
+    void UseSpots(std::vector<Vector3>* out, float userRadius) override;
     std::uint32_t ReadNetState(int first) override { return ReadLeverNetState(first); }
     void WriteNetState() override { WriteLeverNetState(); }
     float Radius() override { return static_cast<float>(bounds.radius); }
@@ -86,7 +82,7 @@ public:
     // The spots from which a unit of radius `userRadius` can use the lever, into `out` (emptied first):
     // each offset of the model's record turned into the lever's frame, its length scaled between 1 and
     // the record's farScale by scale.z, plus userRadius. None for an unknown model.
-    void CollectUseSpots(LeverSpots* out, float userRadius);
+    void CollectUseSpots(std::vector<Vector3>* out, float userRadius);
 
     int CreateLever();
     // The map object's update; on the client, while the move runs, the shown position goes from `from`

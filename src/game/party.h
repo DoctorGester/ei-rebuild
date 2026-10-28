@@ -25,10 +25,6 @@ class CSpellConstructor;
 class CSpellManager;
 struct PartyUnitRecord;
 
-// A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an
-// aligned array of item pointers.
-using PartyItemArray = std::vector<CItem*>;
-
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 
@@ -125,7 +121,7 @@ public:
     CSpellManager* spellManager_;
     CSpellConstructor* spellConstructor_;
     std::vector<PartyUnitRecord> members_;
-    PartyItemArray items_;
+    std::vector<CItem*> items_;
     int money_;                 // the party's money (money_; cleared by Clear, saved masked)
     NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)
     std::string zone_;           // the zone name ("gz1g" after a new game)

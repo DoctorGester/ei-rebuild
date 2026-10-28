@@ -23,8 +23,6 @@ struct LightningPoint {
     float x, y, z, w;
 };
 
-using LightningPointArray = std::vector<LightningPoint>;
-
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.
 struct NoiseKey {
@@ -46,7 +44,7 @@ struct LightningSegment {
     NoiseKey sideKeys[3];       // newest first (the noise along `side`)
     NoiseKey upKeys[3];         // (the noise along `up`)
     float noiseTime;            // time of the newest keys
-    LightningPointArray points;
+    std::vector<LightningPoint> points;
     float width;                // passed to the renderer
 
     // Straight segment between two points: start, step and point count (48 below 10 units, 72 above 15, 5 per

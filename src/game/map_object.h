@@ -72,9 +72,6 @@ struct UnitVitals;
 struct UnitStats;
 struct LockKey;
 
-// The spots a use order may go to (UseSpots' `out`).
-using UseSpotArray = std::vector<Vector3>;
-
 // The virtuals' names and their evidence: docs/notes/map_objects.md ("Virtual slot names").
 class CMapObject : public CObject3D {
 public:
@@ -130,7 +127,7 @@ public:
     virtual bool KeepsMapFlag();
     // The spots a user of radius `userRadius` may use the object from, into the CArray<Vector3> `out`: FreeArray
     // (none); levers Lever::CollectUseSpots.
-    virtual void UseSpots(UseSpotArray* out, float userRadius);
+    virtual void UseSpots(std::vector<Vector3>* out, float userRadius);
     // Appends a copy of `effect`, marks part 3 changed and the object dirty, then calls the vitals virtual
     // (with whether the effect scales the object), SetStunned(1) for the stun types, the effects-changed
     // virtual and, for a scaling effect, RecomputeScale. Rebirth's FixSpellEffectsOverflow keeps at most 20
@@ -219,7 +216,7 @@ public:
     // The companion's Query with the first two arguments (both companions return 0).
     int CompanionQuery(int first, int second, int unused);
     // Frees the data of `array` and empties it.
-    void FreeArray(UseSpotArray* array, int unused);
+    void FreeArray(std::vector<Vector3>* array, int unused);
 
     // SetVisibilityMode with mode 0 for `level` 0 (or NaN), 1 for 1, else 2.
     int SetVisibilityLevel(float level);
@@ -267,10 +264,6 @@ public:
 protected:
     CMapObject();
 };
-
-// CMapObjectVirtuals is the name callers outside the map object files reach the virtuals by (CUnit derives
-// from CMapObject).
-using CMapObjectVirtuals = CMapObject;
 
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific derive from it).
 class CMapObjectCompanion : public CEngineObject {

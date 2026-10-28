@@ -325,8 +325,6 @@ struct ParticleDepth {
     CParticleSource* source;
 };
 
-using ParticleDepthArray = std::vector<ParticleDepth>;
-
 // One texture frame's UV rectangle.
 struct SourceFrame {
     float u0, v0, u1, v1;
@@ -572,7 +570,6 @@ struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
-using ParticleSpriteArray = std::vector<ParticleSprite>;
 
 // The world's rain/snow layer.
 class CRainSnow final : public CEngineObject {

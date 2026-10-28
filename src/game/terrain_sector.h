@@ -116,9 +116,6 @@ static_assert(sizeof(SectorPosition) == 12);
 void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove);
 
-using FlagArray = std::vector<std::uint8_t>;
-using TileList = std::vector<TileVertex>;
-
 struct SectorData {
     int DrawPage(void* context, void* /*unused*/, int page, int /*unused*/);
     std::uint8_t hasSpecular;           // a specular light reached a vertex (Light clears it)
@@ -146,8 +143,8 @@ struct SectorData {
     std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[0x100];
     std::vector<int> waterTiles;        // water material per tile, -1 none
-    std::vector<FlagArray> tileFlags[4];  // per quarter, per page
-    std::vector<TileList> tiles[4];       // per quarter, per page (9 per tile)
+    std::vector<std::vector<std::uint8_t>> tileFlags[4];  // per quarter, per page
+    std::vector<std::vector<TileVertex>> tiles[4];       // per quarter, per page (9 per tile)
     std::vector<AnimatedTile> animated;
     std::vector<int> classCounts;       // 16 texture classes
     int lastUsed;                       // owner frame of the last use

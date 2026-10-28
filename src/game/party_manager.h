@@ -38,7 +38,7 @@ struct PartyManager {
     std::vector<PartyManagerEntry> entries;
     int field3;                         // field 3 of the archive (nothing reads it)
     NamedPartyRecords records;
-    ClassTemplateVector templates;
+    TemplateTable templates;
 
     // Reads the block `from` holds (CStream::ReadSized) as an archive: chunk 1
     // the parties, 2 the entries, field 3, chunk 4 the class templates, chunk 5 the records.

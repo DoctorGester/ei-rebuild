@@ -37,7 +37,7 @@ void CUiContainer::DrawChild(CSceneRenderer* pass) {
     std::uint32_t savedRef = GetState(this, kAlphaRef);
     SetState(this, kAlphaRef, 1);
     UpdateRegionTips(pass);
-    const UiPtrArray<CUiWindow>& children = children_;
+    const std::vector<CUiWindow*>& children = children_;
     for (int i = 0; i < std::ssize(children); ++i) {
         CUiWindow* child = children[i];
         if (!child->enabled_) continue;

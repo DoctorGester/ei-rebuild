@@ -108,7 +108,7 @@ void BlockSearch::Expand() {
 
 bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
-    BlockCostList blocks{};
+    std::list<BlockCost> blocks{};
     NearbyBlocks(sizeClass, flag, x, y, &blocks);
     for (auto node = blocks.begin(); node != blocks.end(); ++node) {
         int cost = node->cost / 128;

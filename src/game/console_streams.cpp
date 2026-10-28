@@ -34,14 +34,13 @@ constinit lib::StaticObject<ConsoleStreambuf> g_aiLogBuf = /*007C76D0*/ {};
 namespace {
 
 using console::ConsoleStreambuf;
-using StreambufObject = lib::StaticObject<ConsoleStreambuf>;
 using ExitFunction = void(__cdecl*)();
 
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     map.Construct();
     std::atexit(exit);
 }
-void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
+void BuildStreambuf(lib::StaticObject<ConsoleStreambuf>& buffer, unsigned filter, ExitFunction exit) {
     buffer.Construct(filter);
     std::atexit(exit);
 }

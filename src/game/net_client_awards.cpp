@@ -21,8 +21,6 @@ namespace net {
 
 namespace {
 
-using GivenItems = std::list<CItem*>;
-
 constexpr int kClassQuestItem = 0x14;
 
 CWorldServer* World() { return TheServerWorld(); }
@@ -50,14 +48,14 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 1: {
-            GivenItems none;
+            std::list<CItem*> none;
             player->Party()->money_ += static_cast<int>(libcrt::Ftol(award->value_));
             player->GiveItems(&none, 0);
             none.clear();
             break;
         }
         case 2: {
-            GivenItems items;
+            std::list<CItem*> items;
             CItem* item = player->Party()->ItemManager()->CreateItem(name);
             HeldObject<CItem>::Of(&items.emplace_back())->Assign(item);
             player->GiveItems(&items, 0);
@@ -68,7 +66,7 @@ void ClientSession::ApplyAwards() {
             auto* item = player->Party()->ItemManager()->CreateItem(name);
             if (item) ++item->refCount_;
             for (auto position = player->items_.begin(); position != player->items_.end();) {
-                GivenItems::iterator  current = position;
+                std::list<CItem*>::iterator  current = position;
                 ++position;
                 CItem* owned = *current;
                 if (!owned->IsSameAs(item)) {
@@ -83,7 +81,7 @@ void ClientSession::ApplyAwards() {
         case 4:
             player->Party()->RemoveQuestItems();
             for (auto position = player->items_.begin(); position != player->items_.end();) {
-                GivenItems::iterator  current = position;
+                std::list<CItem*>::iterator  current = position;
                 ++position;
                 CEngineObject* owned = *current;
                 if (owned->GetClassId() == kClassQuestItem) player->TakeItem(owned->id_);

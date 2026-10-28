@@ -34,9 +34,6 @@ inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;
 struct tagRECT;
 
-// An object's figure parts (CObject3D::parts / pendingParts).
-using FigurePartArray = std::vector<CFigureMesh*>;
-
 // One animation of a figure's animation database.
 struct FigureAnimation {
     char name[0x10];                // (the figure manager takes the entry as an animation's name)
@@ -343,7 +340,7 @@ public:
     // The first part (parts, then pending parts) whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
     // Every part (parts, then pending parts) whose name starts with `prefix` appended to `out`.
-    void CollectPartsByPrefix(const char* prefix, FigurePartArray* out);
+    void CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh*>* out);
     // Takes `part` out of the parts (it forgets its owner) or else out of the pending parts, tells the animation
     // state and releases it. The side half hears of it first, found or not. Returns 1 when it was there, else 0.
     int RemovePart(CFigureMesh* part);
@@ -452,8 +449,8 @@ public:
     std::string name;               // the figure's name
     std::list<CParticleSource*> effectSources;   // the particle sources attached to the object
     Vector3 scale;
-    FigurePartArray parts;
-    FigurePartArray pendingParts;   // built by LoadFigures
+    std::vector<CFigureMesh*> parts;
+    std::vector<CFigureMesh*> pendingParts;   // built by LoadFigures
     // the figure (counted; deleted at its last reference), made by the figure cache: the parts' piece headers
     // (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
     CountedRef<CLinkMesh> figure;

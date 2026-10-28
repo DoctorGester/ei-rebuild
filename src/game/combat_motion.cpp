@@ -147,8 +147,6 @@ struct LocalMotionOrder : PathOrder {
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
 };
 
-using UnitList = std::list<CUnit*>;
-
 // A player's party, walked like the original's hash_map iteration.
 using PartyMap = CPlayer::UnitMap;
 
@@ -496,7 +494,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     return true;
 }
 
-void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) {
+void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
     list->clear();
@@ -511,7 +509,7 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
         sectors->FindUnitsInRadius(point, list, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
         for (auto node = list->begin(); node != list->end();) {
-            UnitList::iterator  current = node;
+            std::list<CUnit*>::iterator  current = node;
             ++node;
             CUnit* other = *current;
             if (group->Contains(other) == 0) {

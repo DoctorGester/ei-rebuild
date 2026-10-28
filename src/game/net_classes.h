@@ -230,14 +230,10 @@ MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
     return reinterpret_cast<MessageHandler>(handler);
 }
 
-// A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
-using HandlerVector = std::vector<MessageHandler>;
-
 // The message type registry of a session.
 struct TypeRegistry {
-    using ByVtable = std::unordered_map<std::uint32_t, std::uint32_t>;
 
-    ByVtable byVtable;     // message vtable -> type id
+    std::unordered_map<std::uint32_t, std::uint32_t> byVtable;     // message vtable -> type id
     std::unordered_map<std::uint32_t, MessageFactory> byType;         // type id -> factory
 
     // The key of a message's class: its vtable (the object's first dword).
@@ -291,21 +287,15 @@ struct TimedEntry {
     };
     Ref ref;
 };
-using SharedTimedList = std::list<TimedEntry<SharedRefPtr>>;
-using CountedTimedList = std::list<TimedEntry<CountedRefPtr>>;
-
-// The connections (shared).
-using ClientList = std::list<SharedRefTo<Connection>>;
 
 // What a session replicates to the connection being updated (CollectReplicated fills it).
 struct Replicated {
     Message* object;           // replicated while it is listed
     std::uint8_t priority;     // 0..10
 };
-using ReplicatedVector = std::vector<Replicated>;
 
 // Appends one {object, priority}.
-inline void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
+inline void PushReplicated(std::vector<Replicated>* v, void* object, std::uint8_t priority) {
     v->push_back({static_cast<Message*>(object), priority});
 }
 
@@ -326,7 +316,7 @@ public:
     // The count and the flags are the creator's.
     SessionBase();
     ~SessionBase() override;
-    virtual void RemoveClient(ClientList::iterator node);                     // end() is ignored
+    virtual void RemoveClient(std::list<SharedRefTo<Connection>>::iterator node);                     // end() is ignored
     virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // kind 0
     virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // kind 3 (logs an error)
     virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // kind 4 (logs an error)
@@ -338,7 +328,7 @@ public:
     virtual void OnClientLost(Connection*) {}                                 // timed out or a bad update
     virtual void OnClientLeft(Connection*) {}                                 // sent a leave packet
     // Empty here. Appends what the connection being updated (CurrentConnection) should have to **out.
-    virtual void CollectReplicated(ReplicatedVector**) {}
+    virtual void CollectReplicated(std::vector<Replicated>**) {}
     // Advances the session clock by `dt`, hands the waiting datagrams to the handlers, ticks the connections
     // (dropping timed-out ones) and counts the frame.
     virtual void Tick(double dt);
@@ -357,7 +347,7 @@ public:
     void AddHandlerForPrototype(Message* prototype, int channel, MessageHandler handler);
 
     // The connection to `address` in clients_, end() when none.
-    ClientList::iterator FindClient(const NetAddress* address);
+    std::list<SharedRefTo<Connection>>::iterator FindClient(const NetAddress* address);
     // Logs it, removes a connection to the same address, appends a new connection with `id` and `address`;
     // its send interval follows from `rate`.
     void AddClient(const NetAddress* address, std::uint32_t id, int rate);
@@ -375,11 +365,11 @@ public:
     std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // 1; Tick counts its calls
     double time_;                       // 0; Tick adds the elapsed time
-    ClientList clients_;                // the connections
+    std::list<SharedRefTo<Connection>> clients_;                // the connections
     TypeRegistry types_;
     SocketDriver socket_;
     std::uint8_t reliable_[kMessageTypes];   // per message type: its objects are sent reliably
-    HandlerVector handlers_[kChannels][kMessageTypes];
+    std::vector<MessageHandler> handlers_[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
 
@@ -426,7 +416,7 @@ public:
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;
     void OnClientLost(Connection* connection) override;                       // text 4
     void OnClientLeft(Connection* connection) override;                       // text 1
-    void CollectReplicated(ReplicatedVector** out) override;
+    void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
     void Describe(RefPtr* out) override;
     bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;
@@ -498,10 +488,10 @@ public:
     RefPtrTo<MapMessage> map_;          // the map message while a map is played
     std::list<SharedRefTo<ZoneMessage>> queuedMaps_; // map messages the host may pick next
     std::list<SharedRefTo<VariableMessage>> variables_;
-    SharedTimedList awards_;            // {delay, award}
+    std::list<TimedEntry<SharedRefPtr>> awards_;            // {delay, award}
     std::list<CountedRefTo<PartyMessage>> offers_; // the players' trade offers
     std::list<CountedRefTo<TradeMessage>> trades_;
-    CountedTimedList finishedTrades_;   // {delay, trade}: done trades, kept 60 s
+    std::list<TimedEntry<CountedRefPtr>> finishedTrades_;   // {delay, trade}: done trades, kept 60 s
     std::list<NetAddress> banned_;
     std::string name_;
     std::string mapName_;
@@ -523,7 +513,7 @@ public:
 
     ClientBase();
     ~ClientBase() override;
-    void RemoveClient(ClientList::iterator node) override;
+    void RemoveClient(std::list<SharedRefTo<Connection>>::iterator node) override;
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;
     void OnInfo(const NetAddress* from, BufferCursor* cursor) override;
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;
@@ -569,7 +559,6 @@ public:
 };
 
 // An embedded CParty. The client keeps two, a trade record three.
-using ::PartyStorage;
 
 // A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
 // the two parties and the traded one. A copy copies the parties in order (CParty's copy saves and loads the
@@ -601,7 +590,7 @@ public:
 
     ClientSession();
     ~ClientSession() override;
-    void CollectReplicated(ReplicatedVector** out) override;
+    void CollectReplicated(std::vector<Replicated>** out) override;
     void Tick(double dt) override;
     void OnJoined() override;
     void CreateEntry(RefPtr* out) override;
@@ -624,14 +613,14 @@ public:
     std::list<CountedRefTo<ZoneMessage>> zones_; // map messages the host may pick
     std::list<CountedRefTo<VariableMessage>> variables_;
     RefPtrTo<LoginMessage> player_;     // the local player's login record
-    SharedTimedList timers_;            // {seconds left, object}: objects kept for a while
+    std::list<TimedEntry<SharedRefPtr>> timers_;            // {seconds left, object}: objects kept for a while
     std::list<CountedRefTo<AwardMessage>> awards_; // awards received, applied by ApplyAwards
     RefPtrTo<PartyMessage> party_;      // our trade offer (party description)
     std::list<CountedRefTo<PartyMessage>> offers_; // the other players' trade offers
     std::list<TradeRecord> tradeRecords_;
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
-    PartyStorage parties_[2];           // ours, the partner's
+    lib::InPlace<CParty> parties_[2];           // ours, the partner's
 };
 
 // ---- The game announcement ------------------------------------------------------------------------

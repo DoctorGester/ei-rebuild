@@ -18,14 +18,10 @@ namespace {
 constexpr int kUnreachable = 0x7FFFFFFF;
 constexpr float kAllOffsets = 1.0e20f;   // the spiral radius covering every offset
 
-// The chain of regions is a list of cells (block x, y); the waypoints a list of {x, y, the
-// region node it belongs to}.
-using RegionNode = PathCellList::iterator;
 struct Waypoint {
     int x, y;
-    RegionNode region;
+    PathCells::iterator region;
 };
-using WaypointList = std::list<Waypoint>;
 // The local search: begin (unit, from, to), continue (from, to, fresh), whether a cell was reached, the cost
 // of a cell, commit, finish, reset. Atexit, for the function-local spiral cache.
 
@@ -39,7 +35,7 @@ float Half() { return 0.5f /*0073B86C*/; }
 } // namespace
 
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
-    PathCellList chain;
+    PathCells chain;
     if (!(g_spiralGuard & 1)) {
         Spiral()->radius = -1.0f;
         g_spiralGuard |= 1;
@@ -58,11 +54,11 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     // 8x8 block), then the target.
     int curX = fromX, curY = fromY;
     int bestX = fromX, bestY = fromY;
-    WaypointList waypoints;
+    std::list<Waypoint> waypoints;
     std::uint8_t** cellRows = regionMap.cells[sizeClass].rows;
-    RegionNode previous = chain.begin();
-    for (RegionNode node = chain.begin(); node != chain.end(); ++node) {
-        RegionNode owner = previous;
+    PathCells::iterator previous = chain.begin();
+    for (PathCells::iterator node = chain.begin(); node != chain.end(); ++node) {
+        PathCells::iterator owner = previous;
         previous = node;
         std::uint8_t cell = cellRows[node->y][node->x];
         waypoints.push_back({(cell & 0xF) + node->x * 8, (cell >> 4) + node->y * 8, owner});
@@ -75,7 +71,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint
     int legs = 0;
-    WaypointList::iterator failedAt;
+    std::list<Waypoint>::iterator failedAt;
     bool failed = false;
     for (auto w = waypoints.begin(); w != waypoints.end();) {
         auto next = std::next(w);
@@ -159,10 +155,10 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             search->Reset();
             bool retried = false;
             if (static_cast<char>(retry)) {
-                RegionNode bad = failedAt->region;
+                PathCells::iterator bad = failedAt->region;
                 int x = bad->x;
                 int y = bad->y;
-                BlockPointArray* excluded = &path->excludedBlocks;
+                std::vector<BlockPoint>* excluded = &path->excludedBlocks;
                 int size = std::ssize(*excluded);
                 excluded->resize(size + 1);
                 BlockPoint* data = excluded->data();

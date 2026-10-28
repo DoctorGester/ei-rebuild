@@ -129,7 +129,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     return 1;
 }
 
-int CTextureManager::LoadMmpExtra(const char* name, ByteBuffer* out) {
+int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out) {
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     std::string path;

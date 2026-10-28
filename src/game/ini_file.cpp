@@ -87,7 +87,7 @@ BOOL CIniFile::GetList(const char* section, const char* key, std::vector<std::st
     return 1;
 }
 
-BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
+BOOL CIniFile::GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
     std::vector<std::string> codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = static_cast<int>(codes.size());

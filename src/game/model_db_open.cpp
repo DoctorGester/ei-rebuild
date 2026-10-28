@@ -55,7 +55,7 @@ constexpr KindEntry kUnitKinds[] = {
 constexpr int kFirstModelKind = 0x2E;
 constexpr int kFirstExtraKind = 0x2C;
 
-acks::SpeechList* UnitList(acks::UnitAcks& record, int list) {
+acks::Speeches* UnitList(acks::UnitAcks& record, int list) {
     if (list == kNoList) return nullptr;
     return list == kNamedSpeeches ? &record.namedSpeeches : &record.lists[list];
 }

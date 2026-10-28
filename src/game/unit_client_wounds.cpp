@@ -171,9 +171,9 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
             if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
         }
     }
-    ByteBuffer extra{};
+    std::vector<std::uint8_t> extra{};
     manager->LoadMmpExtra(name, &extra);
-    const ByteBuffer& loaded = woundsTexture->extra_;
+    const std::vector<std::uint8_t>& loaded = woundsTexture->extra_;
     bool same = !extra.empty() && std::ssize(loaded) == std::ssize(extra) &&
                 std::memcmp(loaded.data(), extra.data(), static_cast<std::size_t>(std::ssize(extra))) == 0;
     if (!same) {

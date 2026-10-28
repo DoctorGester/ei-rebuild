@@ -75,7 +75,7 @@ void InitUnitList(std::list<CUnit*>& list) {
 } // namespace
 
 void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wander, bool farGoal) {
-    AILookArray& planned = order->looks;
+    std::vector<AILook>& planned = order->looks;
     planned = {};
 
     IsaacRandom* random = (&g_random);

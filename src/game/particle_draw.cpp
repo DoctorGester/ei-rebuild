@@ -19,8 +19,8 @@ namespace {
 inline double D(float f) { return f; }
 
 // The particles' draw order: built empty by a static initialiser, destroyed at exit.
-constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
-ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
+constinit lib::StaticObject<std::vector<ParticleDepth>> g_drawOrder = /*007A9C50*/ {};
+std::vector<ParticleDepth>& DrawOrder() { return *g_drawOrder; }
 void DestroyDrawOrder() {
     g_drawOrder.Destroy();
 }
@@ -70,7 +70,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
 int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     ++refCount_;
-    ParticleDepthArray& order = DrawOrder();
+    std::vector<ParticleDepth>& order = DrawOrder();
     lib::FreeStorage(order);
     Vector3 axis;
     CameraRotation().AxisZ(&axis);

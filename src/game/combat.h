@@ -137,11 +137,10 @@ struct ArmourSpell {
     int countdown;
     std::uint8_t worn;
 };
-using ArmourSpellList = std::list<ArmourSpell>;
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
-void LoadArmourSpells(ArmourSpellList* list, CStream* stream);
+void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream);
 
 class CUnitServer : public CUnitController {
 public:
@@ -554,7 +553,7 @@ public:
     int tamerSide;                  // the tamer's side (TryTame)
     int speedClass;
     AIEventPresence* aiPresence;    // StepNoise's result, always 0
-    ArmourSpellList armourSpells;   // periodic spells of the worn items (blocks of 10)
+    std::list<ArmourSpell> armourSpells;   // periodic spells of the worn items (blocks of 10)
     int boredTicks;                 // a party unit's updates since its last order (a bored remark past a
                                     // limit); cleared when an order starts and by the move style /
                                     // wanted weapon setters

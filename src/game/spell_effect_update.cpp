@@ -21,8 +21,6 @@ constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
 
-using UnitList = std::list<CUnit*>;
-
 // A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
 CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 
@@ -237,7 +235,7 @@ void CountingCloud(CSpellEffect* e) {
 
 // 0x12: fireworks wake the units around and frighten those in the radius (their AI memory notices
 // the point at a level falling from 300 to 50 over the duration); at -1 they end.
-void Fireworks(CSpellEffect* e, UnitList& units) {
+void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
@@ -264,7 +262,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 
 // 0x14: clairvoyance shows the caster's player every unit in the radius and wakes them; at timer
 // 10 a closing particle and sound. Ends with the timer or without a caster.
-void Clairvoyance(CSpellEffect* e, UnitList& units) {
+void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
@@ -405,7 +403,7 @@ void CSpellEffect::UpdateMissile(int type) {
 }
 
 void CSpellEffect::UpdateLasting(int type) {
-    UnitList units;   // the inline CPtrList the fireworks and clairvoyance fill
+    std::list<CUnit*> units;   // the inline CPtrList the fireworks and clairvoyance fill
 
     switch (type) {
     case 0x00:

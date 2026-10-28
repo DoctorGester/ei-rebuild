@@ -147,7 +147,7 @@ int ConnectionState(void* connection) { return static_cast<CPlayerConnection*>(c
 bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<unsigned>* types) {
     auto* pages = static_cast<CCampPages*>(static_cast<CUiWindow*>(camp));
     *page = pages->page_;
-    const UiPtrArray<CItem>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
+    const std::vector<CItem*>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
     if (!source) return false;
     for (int i = 0; i < std::ssize(*source); ++i) {
         CItem* item = (*source)[i];

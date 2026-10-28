@@ -358,7 +358,7 @@ const char* __fastcall KeywordName(int id) {
     return "Unknown command";
 }
 
-BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
+BOOL CScript::Tokenize(const std::string& source, std::list<ScriptToken>* tokens) {
     const char* p = source.c_str();
 
     tokens->clear();
@@ -426,7 +426,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     return 1;
 }
 
-BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
+BOOL CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id) {
     if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
     const ScriptToken token = *(*pos)++;
     std::string text = token.text;
@@ -464,7 +464,7 @@ int CScript::FindScript(const char* name) {
 
 // ---- #define ------------------------------------------------------------------------------------
 
-void AddDefine(ScriptDefineList* defines, const ScriptDefine* define) {
+void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define) {
     if (defines->empty()) {
         defines->push_back(*define);
         return;
@@ -475,7 +475,7 @@ void AddDefine(ScriptDefineList* defines, const ScriptDefine* define) {
     defines->insert(before, *define);
 }
 
-void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines) {
+void __fastcall ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines) {
     for (const ScriptDefine& define : *defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).

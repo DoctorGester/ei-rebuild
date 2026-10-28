@@ -98,10 +98,6 @@ struct LocalUnitMotion {
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
 };
 
-using SpotArray = UseSpotArray;
-
-using UnitPtrList = std::list<CUnit*>;
-
 CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
 void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, int flag, float limit) {
@@ -116,7 +112,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
-    SpotArray spots{};
+    std::vector<Vector3> spots{};
     float size = static_cast<float>(unit->Radius());
     order->target->UseSpots(&spots, size);
     bool result = true;
@@ -305,7 +301,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
 void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float range) {
     CWorldServer* world = ServerWorld();
     LocalPath path;
-    UnitPtrList lifted{};
+    std::list<CUnit*> lifted{};
     LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
     CSectorMap* sectors = world->Sectors();
@@ -333,7 +329,7 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         sectors->Add(unit);
     }
     for (auto node = lifted.begin(); node != lifted.end();) {
-        UnitPtrList::iterator  current = node;
+        std::list<CUnit*>::iterator  current = node;
         ++node;
         sectors->Add(*current);
     }

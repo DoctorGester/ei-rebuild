@@ -755,7 +755,7 @@ void CCampPages::Close() {
     device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, their keys raised meanwhile.
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     for (int i = 0; i < std::ssize(player->members_); ++i) {
         PartyUnitRecord* record = &player->members_[i];

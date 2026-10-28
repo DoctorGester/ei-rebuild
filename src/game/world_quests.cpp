@@ -295,9 +295,6 @@ struct Share {
     CUnitServer* controller;
     float share;
 };
-using ShareList = std::list<Share>;
-
-using IdArray = std::vector<int>;
 
 // The weight of a unit in the shared experience: sqrt(pending + gained experience) of its controller's statistics.
 double Weight(CUnitServer* controller) {
@@ -307,7 +304,7 @@ double Weight(CUnitServer* controller) {
 // Without a player: the single heroes of every player share `amount` in proportion to their weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.size() == 0) return;
-    ShareList list{};
+    std::list<Share> list{};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
         if (!p->Server() || std::ssize(p->Party()->members_) != 1) return nullptr;
         return world->FindUnit(static_cast<int>(MercRecord(p, 0).unitId));
@@ -362,7 +359,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 
 // With a player: its living heroes share `amount` equally.
 void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
-    IdArray heroes{};
+    std::vector<int> heroes{};
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
         CUnit* unit = node->second;
         if (unit->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
@@ -477,7 +474,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         party->AddItem(*node, 1, 1);
         node = next;
     }
-    RecordPtrArray list{};
+    std::vector<PartyUnitRecord*> list{};
     for (int i = 0; i < std::ssize(player->Party()->members_); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
         auto* record = list[i];
@@ -490,8 +487,6 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
 namespace {
 
 constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
-
-using PlacementArray = std::vector<UnitPlacement>;
 
 // As SyncPartyRecords does, without the items' records.
 void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CUnit* unit) {
@@ -527,7 +522,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CU
 
 } // namespace
 
-void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArray* placements) {
+void CWorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party, std::vector<UnitPlacement>* placements) {
     if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < std::ssize(*list); ++i) {
@@ -556,7 +551,7 @@ void CWorldServer::StoreParty(RecordPtrArray* list, CParty* party, PlacementArra
     }
 }
 
-void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
+void CWorldServer::CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements) {
     if (!player) return;
     if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
     if (sessionKind_ != kKindNetwork) {
@@ -565,7 +560,7 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
     }
     if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
-    RecordPtrArray list{};
+    std::vector<PartyUnitRecord*> list{};
     // Records whose unit is gone (or dead, outside a network client game) are dropped.
     for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
         CUnit* unit = FindUnit(static_cast<int>(MercRecord(player, i).unitId));

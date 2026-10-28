@@ -36,7 +36,7 @@ std::uint32_t PartyKind(std::uint32_t kind) {
 }
 
 // The speech list a record keeps for `kind`, or null.
-SpeechList* ListFor(const AckRecordHead& record, std::uint32_t kind) {
+Speeches* ListFor(const AckRecordHead& record, std::uint32_t kind) {
     auto node = record.speeches.find(static_cast<int>(kind));
     return node != record.speeches.end() ? node->second : nullptr;
 }
@@ -102,7 +102,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
         return nullptr;
     }
     AckDatabase& db = Database();
-    const SpeechList* list = nullptr;
+    const Speeches* list = nullptr;
     const EnvironmentSpeeches* environmentList = nullptr;
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
@@ -213,7 +213,7 @@ constexpr ListChunk kUnitChunks[] = {
 
 // The lists of a record as chunks 10, 11, ... in order.
 template <std::size_t N>
-void Lists(ChunkArchive* ar, SpeechList (&lists)[N]) {
+void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
     for (std::size_t i = 0; i < N; ++i) ar->SerializeSpeechList(static_cast<int>(10 + i), &lists[i], ar);
 }
 

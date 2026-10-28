@@ -246,7 +246,7 @@ void CopyGrid(SearchGrid<T>& grid, const Grid& from) {
     if (!from.bytes.empty()) std::memcpy(grid.data, from.bytes.data(), from.bytes.size());
 }
 
-void FillClimb(ClimbTable& table, const std::vector<int>& values) { table.assign(values.begin(), values.end()); }
+void FillClimb(std::vector<int>& table, const std::vector<int>& values) { table.assign(values.begin(), values.end()); }
 
 // A fresh map with the saved map's sizes and tables (the grids' content is copied per record). The
 // old one is left behind (the replay runs a few maps).
@@ -336,13 +336,13 @@ bool LoadCallMap(Reader& r, char* d, std::size_t n) {
 
 // ---- Paths --------------------------------------------------------------------------------------------
 
-void ReadCells(Reader& r, PathCellList& list) {
+void ReadCells(Reader& r, PathCells& list) {
     const std::uint32_t count = r.Get<std::uint32_t>();
     for (std::uint32_t i = 0; i < count && r.ok(); ++i) list.push_back(r.Get<PathCell>());
 }
 
-void EmptyList(PathCellList& list) {
-    list = PathCellList{};
+void EmptyList(PathCells& list) {
+    list = PathCells{};
 }
 
 void ReadPath(Reader& r, AIPath& path) {
@@ -533,7 +533,7 @@ EI_VECTOR_CHECK_BYTES("CAIMap::PlanLongPath", CheckPlan);
 bool CheckSmooth(Reader& r, char* d, std::size_t n) {
     if (!LoadCallMap(r, d, n)) return !r.ok();
     const UnitState unit = r.Get<UnitState>();
-    PathCellList list;
+    PathCells list;
     EmptyList(list);
     ReadCells(r, list);
     const std::int32_t startDirection = r.Get<std::int32_t>();

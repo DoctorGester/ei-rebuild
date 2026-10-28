@@ -35,8 +35,6 @@ enum ScriptType : int {
     kScriptGroup = 4,
 };
 
-using ScriptStream = CStream;
-
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {
@@ -46,8 +44,8 @@ struct ScriptObjectRef {
     CUnitServer* GetUnitPerception() const;
     void ReleaseIfDeleted();
     // An object id (-1 = none), looked up in the world.
-    void Load(ScriptStream* stream);
-    void Save(ScriptStream* stream) const;
+    void Load(CStream* stream);
+    void Save(CStream* stream) const;
 
     HeldPtr<CEngineObject> object;
 };
@@ -79,35 +77,35 @@ struct ScriptGroup : std::vector<ScriptObjectRef> {
     void CopyToList(std::list<CUnit*>* list) const;
     BOOL Contains(CEngineObject* object) const;
     // A count and that many object ids, then sorted.
-    void Load(ScriptStream* stream);
+    void Load(CStream* stream);
 };
 
 // One type's variables in a ScriptVars: the values and their names (the same count, except where a loader
 // appends values without names).
 template <typename T>
 struct ScriptNamedValues {
-    void Load(ScriptStream* stream);
-    void Save(ScriptStream* stream) const;
+    void Load(CStream* stream);
+    void Save(CStream* stream) const;
     // The other set's values appended, and for each of its names the name and the value with its index.
     void Append(const ScriptNamedValues<T>& other);
 
     std::vector<T> values;
     std::vector<std::string> names;
 };
-template <> void ScriptNamedValues<float>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<float>::Load(CStream* stream);
+template <> void ScriptNamedValues<std::string>::Load(CStream* stream);
+template <> void ScriptNamedValues<ScriptObjectRef>::Load(CStream* stream);
+template <> void ScriptNamedValues<ScriptGroup>::Load(CStream* stream);
+template <> void ScriptNamedValues<float>::Save(CStream* stream) const;
+template <> void ScriptNamedValues<std::string>::Save(CStream* stream) const;
+template <> void ScriptNamedValues<ScriptObjectRef>::Save(CStream* stream) const;
+template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const;
 
 // A set of named script variables, one value array and one name array per type: a script's local variables
 // and the global variables (GlobalVars).
 struct ScriptVars {
     // The four kinds of variables, each as count, then per variable its value and name.
-    void Load(ScriptStream* stream);
+    void Load(CStream* stream);
     void AppendFrom(const ScriptVars& other);
     // Zeroes floats, empties strings, releases objects and empties every group.
     void ResetValues();
@@ -138,11 +136,6 @@ struct ScriptToken {
     std::string text = "None";
     int line = -1;
 };
-
-using ScriptTokenList = std::list<ScriptToken>;
-
-// The parser's current position in the token list (the list's end after the last token).
-using ScriptPos = ScriptTokenList::const_iterator;
 
 // A part of a named area for IsInArea (AddRectToArea / AddRoundToArea).
 struct ScriptAreaPart {
@@ -206,8 +199,8 @@ private:
 // A point light slot (CScript::pointLights_, 256 slots); a free slot is all zero.
 struct ScriptPointLight {
     // The effect object's id (-1: none), then the fields in order.
-    void Save(ScriptStream* stream) const;
-    void Load(ScriptStream* stream);
+    void Save(CStream* stream) const;
+    void Load(CStream* stream);
 
     ScriptEffect<CEffectPointLight> object;   // the light, null when the slot is free
     int id = 0;
@@ -220,7 +213,7 @@ struct ScriptPointLight {
 // CreateParticleSource / MoveParticleSource.
 struct ScriptParticleSource {
     // As the point light's.
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
 
     ScriptEffect<CEffectParticle> object;
     int id = 0;
@@ -235,8 +228,8 @@ struct ScriptParticleSource {
 // its countdown runs out.
 struct ScriptFxSource {
     // The name with its terminator.
-    void Save(ScriptStream* stream) const;
-    void Load(ScriptStream* stream);
+    void Save(CStream* stream) const;
+    void Load(CStream* stream);
 
     ScriptEffect<CEffectSound> object;   // the current sound
     int id = 0;
@@ -254,7 +247,7 @@ struct ScriptFxSource {
 // CreateLightning.
 struct ScriptLightning {
     // As the point light's.
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
 
     ScriptEffect<CEffectLightning> object;
     int id = -1;
@@ -283,7 +276,7 @@ struct ScriptSubCall {
     ScriptSubCall& operator=(ScriptSubCall&& other) noexcept;
     ~ScriptSubCall();
 
-    void Load(ScriptStream* stream);
+    void Load(CStream* stream);
 
     int type = 0;       // ScriptType of the result
     int argIndex = 0;
@@ -296,10 +289,10 @@ class SSCCmd {
 public:
     // The object / group argument slots are left null, bound when run; the called block's id is resolved
     // like FindBlock.
-    void Load(ScriptStream* stream);
+    void Load(CStream* stream);
     // Floats and strings by value, objects and groups by address.
     void SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVars* vars);
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
 
     // Evaluation: each first binds the variables (local, then global) and evaluates the nested calls into the
     // arguments (PrepareArguments), then computes the function `id` into *result.
@@ -342,7 +335,7 @@ inline ScriptSubCall::~ScriptSubCall() = default;
 // A command block the loader creates for a then-section or a For body.
 struct ScriptDecl {
     // Its id, the command count, each command.
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
 
     std::vector<SSCCmd> commands;
     int id = 0;
@@ -351,7 +344,7 @@ struct ScriptDecl {
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
     // Two block ids resolved as FindBlock does.
-    void Load(ScriptStream* stream);
+    void Load(CStream* stream);
     // Evaluates the conditions in the instance's variables; when all are nonzero, runs the commands.
     void Run(CScript* script, ScriptDefinition* instance) const;
     ScriptDecl* conditions = nullptr;
@@ -362,7 +355,7 @@ struct ScriptIfThen {
 // `index` is its "killed" flag (KillScript sets it) and its `vars` hold the call's arguments.
 struct ScriptDefinition {
     // Name and parameter string (terminators included), the if-then pairs (block ids), the variables.
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
     // A script call's arguments (all but the first float and string, which name the script) into the
     // instance's variables; FatalError when a type's count does not match.
     void BindCall(const SSCCmd* call);
@@ -386,7 +379,7 @@ struct ScriptDefinition {
 struct ScriptRun {
     // Block id, index, ticks, sleep start, the index of its instance in g_streamedScript's instance list (-1
     // when absent), the variables.
-    void Save(ScriptStream* stream) const;
+    void Save(CStream* stream) const;
     // Rebirth patches it. Runs commands from `index` until one waits (Sleep, WaitSegment, SleepUntil,
     // SleepUntilIdle) or the block ends. Returns 0 when the block had already ended on entry, else 1.
     BOOL Execute(CScript* script);
@@ -419,11 +412,11 @@ public:
     ScriptDecl* FindBlock(int id) const;
     // Reads what SaveState wrote; the areas only from stream version 0x57 on. g_streamedScript is set while
     // it runs.
-    void LoadState(ScriptStream* stream);
+    void LoadState(CStream* stream);
     // Point lights, particle / FX / lightning sources, two counters, the command blocks and WorldScript
     // blocks, the definitions, the globals, the instances, the runs, the loaded flag and file counter, the
     // areas. g_streamedScript is set while it runs.
-    void SaveState(ScriptStream* stream);
+    void SaveState(CStream* stream);
     void DeleteArea(int id);
     // Point lights (256 slots): create (id, x, y, z, radius, r, g, b), move (id, x, y, z, steps, remove when
     // done), delete (id).
@@ -466,30 +459,30 @@ public:
     // Formats the message into the error text; returns 0. Rebirth patches it.
     static int Error(CScript* script, int line, int code, const char* format, ...);
     // See script.md, "Lexer".
-    BOOL Tokenize(const std::string& text, ScriptTokenList* tokens);
-    BOOL ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id);
+    BOOL Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
+    BOOL ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string* QualifyName(std::string* out, const std::string& name);
     // Retries without each "!<n>!" prefix.
     int FindScript(const char* name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
     // no parentheses; `scriptCall`: one extra float and string slot.
-    BOOL LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id,
+    BOOL LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id,
                       ScriptVars* locals, const char* signature, BOOL assignment, BOOL scriptCall);
     // Float functions up to ')'.
-    BOOL LoadConditions(std::vector<SSCCmd>* conditions, ScriptPos* pos,
-                        const ScriptTokenList* tokens, ScriptVars* locals);
+    BOOL LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos,
+                        const std::list<ScriptToken>* tokens, ScriptVars* locals);
     // `if(...)then(...)` pairs up to ')'.
-    BOOL LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
+    BOOL LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens);
     // `= value` assigned to global variable `name` (command 0x78).
-    BOOL LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens,
+    BOOL LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                             ScriptVars* locals, const std::string* name);
     // `name : type, ...)` (parameters or GlobalVars). Returns 0 without an error when the tokens run out.
-    BOOL LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
-                                  const ScriptTokenList* tokens, BOOL qualify);
+    BOOL LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos,
+                                  const std::list<ScriptToken>* tokens, BOOL qualify);
     // Rebirth patches it. Commands up to ')'; null `locals` means an empty variable set (For bodies; with
     // Rebirth's AllowScriptArgsInLoops a For body gets the enclosing `locals`).
-    BOOL LoadCommands(std::vector<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens,
+    BOOL LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                       ScriptVars* locals);
     // The text is replaced by its #define-expanded form.
     BOOL Load(std::string* text, BOOL runWorldScript);
@@ -563,12 +556,11 @@ struct ScriptDefine {
     std::string name;
     std::string value;
 };
-using ScriptDefineList = std::list<ScriptDefine>;
 // Before the first define with a shorter name (else before the last one; at the end only when the list is
 // empty).
-void AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
+void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define);
 // Each define in list order.
-void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines);
+void __fastcall ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines);
 
 // Rebirth patches it. *id = number (7A), string (7B, closed quote) or the id of the longest keyword the text
 // starts with (case-insensitive; 0 if none), *rest = characters after the matched part. Either may be null.
@@ -594,7 +586,7 @@ void ScriptQuestFinish(CScript* script);
 void ScriptReset(CScript* script);
 
 // A string as the stream holds it, through a temporary.
-void ScriptStringLoad(std::string* out, ScriptStream* stream);
+void ScriptStringLoad(std::string* out, CStream* stream);
 
 // ---- Purge and zone reset ----
 // After every removal of a world object: deleted objects dropped from every variable set, then the

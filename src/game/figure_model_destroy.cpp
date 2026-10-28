@@ -7,7 +7,7 @@
 
 
 FigureModel::~FigureModel() {
-    AnimationMap& table = animationCache;
+    std::unordered_map<std::string, CMappedResource*>& table = animationCache;
     for (auto& [name, animation] : table)
         if (animation) delete animation;
     table.clear();

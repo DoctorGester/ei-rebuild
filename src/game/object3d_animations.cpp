@@ -17,9 +17,6 @@ bool Accepts(CObject3D* object, const FigureAnimation* animation) {
     return object->AcceptsAnimation(animation);
 }
 
-// The candidate list: the database's entries.
-using AnimationList = std::vector<FigureAnimation*>;
-
 // rand() scaled to 0..count-1 as the game does.
 int RandomIndex(int count) { return (libcrt::Rand() * count / kRandMax) % count; }
 } // namespace
@@ -27,7 +24,7 @@ int RandomIndex(int count) { return (libcrt::Rand() * count / kRandMax) % count;
 FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
-    AnimationList candidates{};
+    std::vector<FigureAnimation*> candidates{};
     std::uint32_t wanted = key & kKeyLowBits;
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
@@ -58,7 +55,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
 FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
     AnimationDatabase* database = Animations();
     if (!database) return nullptr;
-    AnimationList candidates{};
+    std::vector<FigureAnimation*> candidates{};
     for (int i = 0; i < static_cast<int>(animations->count); ++i) {
         FigureAnimation* entry = &animations->animations[i];
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;

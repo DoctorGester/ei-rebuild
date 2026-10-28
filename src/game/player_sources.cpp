@@ -12,14 +12,14 @@ namespace {
 
 // AddTail of a counted link as both slots inline it: a new node after the tail (its element
 // zeroed, so nothing is released), the link stored with one more reference.
-void AppendCounted(JoinedLinks* list, netlink::NetLink* link) {
+void AppendCounted(std::list<netlink::NetLink*>* list, netlink::NetLink* link) {
     list->push_back(link);
     ++link->refs_;
 }
 
 } // namespace
 
-void CWorldHandle::TakeNew(JoinedLinks* joined) {
+void CWorldHandle::TakeNew(std::list<netlink::NetLink*>* joined) {
     if (pendingLink_) AppendCounted(joined, pendingLink_);
     netlink::NetLink* link = pendingLink_;
     pendingLink_ = nullptr;
@@ -28,7 +28,7 @@ void CWorldHandle::TakeNew(JoinedLinks* joined) {
 
 namespace netlink {
 
-void DriverSession::TakeNew(JoinedLinks* list) {
+void DriverSession::TakeNew(std::list<netlink::NetLink*>* list) {
     for (const auto& holder : holders_) {
         DriverLink* link = holder.Get();
         if (link && !(link->flags7_ & CRefCounted::kDetached)) AppendCounted(list, link);

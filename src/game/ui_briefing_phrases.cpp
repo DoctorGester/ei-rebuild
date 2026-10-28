@@ -64,7 +64,7 @@ const char* NameLine() { return "\007C\377\377\377 %s %s\n"; }
 const char* TextLine() { return "\007C\377\377\377 %s\n"; }
 const char* ZonePrefix() { return "z"; }
 const char* QuestSection() { return "quest "; }
-QuestBriefingTable::Index& BriefingRecords() { return worlddata::QuestBriefings(); }
+std::unordered_map<std::string, QuestBriefingRecord*>& BriefingRecords() { return worlddata::QuestBriefings(); }
 
 constexpr int kStateRewards = 4;
 constexpr int kQuestNameParts = 3;

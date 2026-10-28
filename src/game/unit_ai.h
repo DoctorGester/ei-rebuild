@@ -35,7 +35,6 @@ struct CountedUnits : std::list<CUnit*> {
     // The brain's corpse list's head handed to `out` with a reference (the list's own reference released). Returns `out`.
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
-using AIObjectList = CountedUnits;
 
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
@@ -68,18 +67,17 @@ struct AILook {
     AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
 };
 
-using AILookArray = std::vector<AILook>;
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
 // flag.
-void LoadLooks(AILookArray* looks, CStream* stream);
-void SaveLooks(const AILookArray* looks, CStream* stream);
+void LoadLooks(std::vector<AILook>* looks, CStream* stream);
+void SaveLooks(const std::vector<AILook>* looks, CStream* stream);
 
 // A move the modes prepare on the stack: where to go and what to look at there.
 struct AIMoveOrder {
     void Clear();
 
     Vector3 point;
-    AILookArray looks;
+    std::vector<AILook> looks;
 };
 
 // Mode types, as the brain names them in its "new motivation" message.
@@ -154,10 +152,8 @@ public:
 
 struct PatrolPoint {
     Vector3 position;
-    AILookArray looks;
+    std::vector<AILook> looks;
 };
-
-using PatrolPointArray = std::vector<PatrolPoint>;
 
 // Patrol: walk a list of points.
 class PatrolMode : public AIMode {
@@ -182,7 +178,7 @@ public:
     // `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
 
-    PatrolPointArray points;
+    std::vector<PatrolPoint> points;
     int current;
 };
 
@@ -382,11 +378,11 @@ public:
     void UpdateCombat(AIBrain* brain);
     // Adds to `targets` (once each) the units that party members within [Logic] PlayerCallForHelp are
     // attacking (action 3), unless they belong to the same player.
-    void AddPartyTargets(AIBrain* brain, AIObjectList* targets);
+    void AddPartyTargets(AIBrain* brain, CountedUnits* targets);
     // `party` emptied, then the unit, the chain of leaders above it (Player mode's leader, or the followed
     // unit), and repeatedly every unit of its player whose leader is listed (the player's units in hash
     // order, up to the first null one).
-    void CollectParty(AIBrain* brain, AIObjectList* party);
+    void CollectParty(AIBrain* brain, CountedUnits* party);
     // False when a unit of the player whose (first) Player mode follows this unit is farther than [Logic]
     // FollowMaxDist x (2 while `moving`, else 1.4) + 1 (3D).
     bool StaysWithParty(AIBrain* brain, bool moving);
@@ -453,9 +449,6 @@ struct AIHeardCalls : std::vector<AICallRecord> {
     void RemoveClaims();
 };
 
-// A unit's alarm / assembly record: the map spec's behaviour record (read and written).
-using AIAlarmRecord = mapspec::Behaviour;
-using AIAlarmRecordArray = std::vector<AIAlarmRecord>;
 // An object the memory reported (the object is a counted reference).
 struct AIReport {
     HeldPtr<CMapObject> object;
@@ -486,9 +479,8 @@ struct AIAttackOption {
     DamageWords damage;             // measured against the target's protection
 };
 
-using AIAttackOptions = std::vector<AIAttackOption>;
 // The count, the array sized to it, then each option.
-void LoadAttackOptions(AIAttackOptions* options, CStream* stream);
+void LoadAttackOptions(std::vector<AIAttackOption>* options, CStream* stream);
 
 // The brain's attention: the unit's attack options and choosing a target.
 struct AIAttention {
@@ -497,7 +489,7 @@ struct AIAttention {
     // sight; the best that scores above the current one and passes IsUsable, the order check (with
     // `alliesOnly`, for targets not near the path) and CanReach wins; a rejected one seen once is reported
     // (20).
-    void Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
+    void Choose(AIBrain* brain, AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, bool alliesOnly,
                 int reachArg);
     // False when the part has no option or an area option (kinds 2, 3) would also hit an ally near the target
     // or the unit itself; true without an object.
@@ -505,7 +497,7 @@ struct AIAttention {
     // How good `option` is against `candidate` (`group` the others it would hit or help): by kind, minus 25
     // per unit of distance beyond the range (x10 outside kinds 0..4) when it reached `threshold`, minus twice
     // the hits needed for attacks. -1e30 when it cannot apply. Unrounded.
-    double Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
+    double Score(const Vector3* from, CUnit* self, CountedUnits* group, CEngineObject* current, CUnit* candidate,
                  float threshold, const AIAttackOption* option);
     // False for a spell aimed at no object against a large unit of size class 0; else the order is checked
     // from the unit's place when `fromHere` (low byte) is set or the target is the unit itself, otherwise
@@ -536,8 +528,8 @@ struct AIAttention {
     // The option kind of a spell by its type: 1..7, 8 for none; 0 without a spell.
     int SpellKind(const CSpell* spell);
 
-    AIAttackOptions weapons;
-    AIAttackOptions spells;
+    std::vector<AIAttackOption> weapons;
+    std::vector<AIAttackOption> spells;
     float healWeight;               // the largest Weight of the weapons (Build); kind 7 scores with it
 };
 
@@ -562,12 +554,12 @@ struct AIMemory {
     void AddClaim(std::uint32_t mask, int kind, const char* text);
     // `out` emptied, then the visible units hostile to the unit (its IsHostileTo), alive and not reported, in
     // visible-list order (no references taken).
-    void FindEnemies(CUnit* self, AIObjectList* out);
+    void FindEnemies(CUnit* self, CountedUnits* out);
     // The same with the visible unit's own IsHostileTo(self); one at or beyond `radius` of `point` (3D; all
     // of them for a radius <= 0) only when it has an aggression mode (not a fixed one without an enemy) whose
     // enemy is none, not a unit, or a unit of a side the unit's side is allied with, and its brain sees an
     // enemy.
-    void FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius);
+    void FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius);
     CUnit* NearestEnemy(CUnit* self);
     // Forces `object` into sight when it is not visible and attacks the unit or stands at or beyond one of
     // the two sight ranges: a corpse joins the seen corpses (and the corpses when allied), a living unit the
@@ -590,10 +582,10 @@ struct AIMemory {
     int noticedLevel;
     int noticedKind;
     int nearbyCountdown;            // updates until the nearby units are listed again
-    AIObjectList nearby;            // the units in the sight cells around (counted references)
-    AIObjectList visible;           // units in sight
-    AIObjectList seenCorpses;       // corpses seen (counted references)
-    AIObjectList corpses;           // allied corpses seen (counted references)
+    CountedUnits nearby;            // the units in the sight cells around (counted references)
+    CountedUnits visible;           // units in sight
+    CountedUnits seenCorpses;       // corpses seen (counted references)
+    CountedUnits corpses;           // allied corpses seen (counted references)
     AIReports reports;          // objects reported to the alarm code
     AIHeardCalls calls;              // calls heard
     std::uint8_t seesEnemy;
@@ -668,9 +660,9 @@ struct AIBrain {
     // The modes of behaviour `record` (type 1 guards, 5 the world alarm point, 3 a sentry, 2 patrols, 4 the
     // party's Player mode, plus the reaction's modes), then the alarm, no action or target, the attack
     // options rebuilt. See docs/notes/unit_ai.md, "AIBrain::ApplyBehaviour".
-    void ApplyBehaviour(const AIAlarmRecord* record, int slot);
+    void ApplyBehaviour(const mapspec::Behaviour* record, int slot);
     // The records copied into `alarmRecords`, then the first applied.
-    void SetAlarmRecords(const AIAlarmRecord* records, int count);
+    void SetAlarmRecords(const mapspec::Behaviour* records, int count);
     // The world alarm `slot` was raised: the behaviour record of that slot is applied (the first always, the
     // others only when enabled) and the owner's voice raises remark 7. Nothing for a slot without a record.
     void HearAlarm(int slot);
@@ -710,7 +702,7 @@ struct AIBrain {
     // Every allied unit within callRadius of the owner's unit hears a call for help (kind 0x1A) at `point`;
     // the message text is formatted only while the console shows filter bit 0.
     void CallAllies(const Vector3* point);
-    void ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b);
+    void ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b);
     AIRefTo<CUnit>* PopCorpse(AIRefTo<CUnit>* out);
 
     CUnitServer* owner;
@@ -735,7 +727,7 @@ struct AIBrain {
     int followTimer;                // UpdateFollow acts once it has counted past 8
     std::list<AIMode*> modes;   // (elements are counted references)
     AIMode* current;
-    AIAlarmRecordArray alarmRecords;
+    std::vector<mapspec::Behaviour> alarmRecords;
     AIAttention attention;
     AIMemory memory;                // perception memory
 };

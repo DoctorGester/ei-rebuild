@@ -21,10 +21,10 @@ public:
     AIPath path;
 
 private:
-    static void InitList(PathCellList& list) {
+    static void InitList(PathCells& list) {
         list = {};
     }
-    static void FreeList(PathCellList& list) {
+    static void FreeList(PathCells& list) {
         list.clear();
     }
 };

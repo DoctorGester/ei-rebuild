@@ -43,7 +43,7 @@ public:
     void SendFull();
     void SendDelta();
     // Unpack from `reader`; `update` is 0 for a new object. Returns Unpack's result.
-    int Receive(int update, BitStream* reader);
+    int Receive(int update, CMemoryStream* reader);
     // Flags bit 1 (changed) and the change stamp (global).
     void MarkChanged();
     // Sets the velocity (moving_ as in UpdateMoving) and marks the effect changed.

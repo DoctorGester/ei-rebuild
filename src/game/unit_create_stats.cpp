@@ -30,9 +30,6 @@
 // Values kept on the FPU stack are double locals; stored values are floats.
 
 namespace {
-using Prototype = UnitPrototypeRecord;
-using Model = UnitModelRecord;
-using Npc = UnitNpcRecord;
 
 constexpr float kThird = std::bit_cast<float>(0x3EAAAAABu);
 constexpr float kHalf = 0.5f;
@@ -68,19 +65,19 @@ void FpuCopy2(float* a, float* b, const float* src) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-const Prototype* FindPrototype(const char* name) { return g_unitDatabase->prototypes.FindByName(name); }
-const Npc* FindNpc(const char* name) { return g_unitDatabase->npcs.FindByName(name); }
+const UnitPrototypeRecord* FindPrototype(const char* name) { return g_unitDatabase->prototypes.FindByName(name); }
+const UnitNpcRecord* FindNpc(const char* name) { return g_unitDatabase->npcs.FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (that faults).
-const Model* ModelOf(const Prototype* prototype) {
-    auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
+const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
+    auto index = static_cast<std::uint32_t>(static_cast<const volatile UnitPrototypeRecord*>(prototype)->modelIndex);
     return unitdb::ModelRecord(index);
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
 
 // cos(angle / 2) with the angle in degrees, stored to a float.
-float HalfAngleCosine(const Model* model) {
+float HalfAngleCosine(const UnitModelRecord* model) {
     double half = static_cast<double>(model->angle) * kHalf;
     double perDegree = g_pi * g_perDegree;
     return static_cast<float>(x87::fcos(half * perDegree));
@@ -91,9 +88,9 @@ float RightAngleCosine() {
     return static_cast<float>(x87::fcos(perDegree * g_ninety));
 }
 
-void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const Npc* npc) {
+void SetAttributesAndSkills(UnitStats* stats, const UnitPrototypeRecord* prototype, const UnitNpcRecord* npc) {
     if (npc) {
-        static_assert(offsetof(Npc, skills) - offsetof(Npc, attributes) == 3);
+        static_assert(offsetof(UnitNpcRecord, skills) - offsetof(UnitNpcRecord, attributes) == 3);
         std::memcpy(stats->attributes, npc->attributes, 3 + 8);   // the attributes and the skills
         return;
     }
@@ -107,7 +104,7 @@ void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const 
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
 // from its level record and no layers; the others unused.
-void SetSlots(UnitStats* stats, const Model* model) {
+void SetSlots(UnitStats* stats, const UnitModelRecord* model) {
     for (int i = 0; i < 6; ++i) {
         const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
@@ -130,7 +127,7 @@ void SetSlots(UnitStats* stats, const Model* model) {
     }
 }
 
-void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model) {
+void SetCombat(UnitStats* stats, const UnitPrototypeRecord* prototype, const UnitModelRecord* model) {
     for (int i = 0; i < 5; ++i) CopyDword(stats->combat[i], prototype->combat[i]);
     CopyDword(stats->damage, prototype->damage);
     CopyDword(stats->damageSpread, prototype->damageSpread);
@@ -139,7 +136,7 @@ void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model)
     CopyDword(stats->naturalWeapon, prototype->naturalWeapon);
 }
 
-void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
+void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     stats->spentExperience = 0.0f;
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
@@ -211,13 +208,13 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
 }
 
 int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
-    const Prototype* prototype = FindPrototype(name);
+    const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) {
         SetDefaults(vitals, stats);
         return 1;
     }
-    const Model* model = ModelOf(prototype);
-    const Npc* npc = FindNpc(name);
+    const UnitModelRecord* model = ModelOf(prototype);
+    const UnitNpcRecord* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
     // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare absorb
     // values, the high bits of builtFlags, ...) are 0, not what the caller's stack held (a determinism fix;
@@ -281,9 +278,9 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
 }
 
 int BuildNpcStats(UnitStats* stats, const char* name) {
-    const Prototype* prototype = FindPrototype(name);
-    const Model* model = ModelOf(prototype);   // reads the prototype before the null test
-    const Npc* npc = FindNpc(name);
+    const UnitPrototypeRecord* prototype = FindPrototype(name);
+    const UnitModelRecord* model = ModelOf(prototype);   // reads the prototype before the null test
+    const UnitNpcRecord* npc = FindNpc(name);
     if (!prototype) return game::FatalError("Can't find prototype \"%s\" for new HERO.\n", name);
     if (!npc) game::DebugLog("Can't find NPC prototype \"%s\" for new HERO.\n", name);
     stats->Reset();
@@ -337,9 +334,9 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
 
 int PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
-    const Prototype* prototype = FindPrototype(name);
+    const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) return kDefaultClass;
-    const Model* model = ModelOf(prototype);
+    const UnitModelRecord* model = ModelOf(prototype);
     if (!model) return kDefaultClass;
     return model->objectClass;
 }
@@ -536,7 +533,7 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
 int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
     UnitStats stats{};
-    const Prototype* prototype = FindPrototype(name);
+    const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) {
         vitals.Reset();
         if (object->GetClassId() != kClassUnit) {
@@ -552,7 +549,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         game::DebugLog("Can't find prototype \"%s\" for object %d.\n", name, object->id_);
         return 1;
     }
-    const Model* model = ModelOf(prototype);
+    const UnitModelRecord* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;

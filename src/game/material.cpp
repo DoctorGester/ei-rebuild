@@ -62,7 +62,7 @@ namespace {
 
 // The table's colours for `key`; an absent key is entered with the default the game builds (its key copied
 // over every dword of the colours).
-MaterialColors& EnterKey(CMaterialManager::ColorTable& table, unsigned key) {
+MaterialColors& EnterKey(std::unordered_map<unsigned, MaterialColors>& table, unsigned key) {
     if (auto found = table.find(key); found != table.end()) return found->second;
     std::uint32_t words[sizeof(MaterialColors) / 4];
     for (std::uint32_t& w : words) w = key;

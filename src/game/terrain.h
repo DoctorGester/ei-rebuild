@@ -203,9 +203,8 @@ public:
     float* uvTables[4];             // per rotation
     float* uvTablesLast[4];         // the same for the last two pages
     std::vector<terrain::VertexTiles> vertexTiles;   // 33 x 33
-    using SectorCache = std::list<terrain::SectorData*>;
-    SectorCache::iterator** sectorGrid;   // [sx][sy]: the sector's cache node, or null
-    SectorCache sectorCache;        // most recently used first
+    std::list<terrain::SectorData*>::iterator** sectorGrid;   // [sx][sy]: the sector's cache node, or null
+    std::list<terrain::SectorData*> sectorCache;        // most recently used first
     int frame;
     int lightInterval;              // frames between sun updates
     int lightCountdown;

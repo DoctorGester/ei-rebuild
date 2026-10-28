@@ -231,10 +231,6 @@ static_assert(sizeof(WorldAlarm) == 16);
 
 // The world the missiles find while they load.
 inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
-// The world server's missiles (the spells being applied), counted.
-using ProjectileList = std::list<CSpellEffect*>;
-
-using WorldStream = CStream;
 
 // An entry of the world server's shared-object list: the loot a unit left.
 struct SharedObject {
@@ -245,11 +241,8 @@ struct SharedObject {
 
     // Reads the entry: id, player, value, then object ids resolved by the item manager; each found
     // object is appended with a reference.
-    void Load(WorldStream* stream);
+    void Load(CStream* stream);
 };
-using SharedObjectList = std::list<SharedObject>;
-
-using RecordPtrArray = std::vector<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
 public:
@@ -347,7 +340,7 @@ public:
 
     // Replaces the zone exits with copies of `source`'s records that lead somewhere (target not "");
     // an exit without an entrance must lead to "none".
-    void SetZoneExits(const ZoneExits* source);
+    void SetZoneExits(const std::vector<ZoneExit>* source);
     // Script AddUnitToServer: creates a unit of prototype `prototype` named `name`, with id `id` (the name's text
     // key), at `position`.
     void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position);
@@ -366,11 +359,11 @@ public:
     // Restores the world from a mission save, in the order SaveWorld writes it; units that cannot stand where they
     // were saved are moved to a free cell or removed. `map` replaces the saved map name when not null. Returns 1, 0
     // when the AI graph cannot be read, or what FatalError returns when the zone cannot be loaded.
-    int LoadSave(WorldStream* stream, const char* map);
+    int LoadSave(CStream* stream, const char* map);
     // Writes what LoadSave reads.
-    void SaveWorld(WorldStream* stream);
+    void SaveWorld(CStream* stream);
     // Reads the map objects SaveMapObjects wrote, registers them in the id maps and wakes them.
-    void LoadSavedMapObjects(WorldStream* stream);
+    void LoadSavedMapObjects(CStream* stream);
     // Adds the time each player missed since its last update (plus `offset`) to its "gtime" variable.
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
@@ -462,7 +455,7 @@ public:
     void SyncPartyRecords(CPlayer* player);
     // Before a zone change: every record of `records` notes its unit's leader, gets a placement (if `placements`), is
     // rebuilt from its unit, and the unit is removed (a dead one just loses its owner).
-    void StoreParty(RecordPtrArray* records, CParty* partyRecords, std::vector<UnitPlacement>* placements);
+    void StoreParty(std::vector<PartyUnitRecord*>* records, CParty* partyRecords, std::vector<UnitPlacement>* placements);
     // The player's party leaves the zone: gtime, its items, then (single player and kind 3, with
     // zoneLoaded_) its records without a unit are dropped and the rest stored (StoreParty).
     void CollectParty(CPlayer* player, std::vector<UnitPlacement>* placements);
@@ -488,7 +481,7 @@ public:
     // entry in `placements` or in a line from `position` along `rotation`, moved to a free cell, under `player`'s
     // control, with its items, spells and AI; heroes get their figure parts, followers their leaders, and with a
     // player the units join the "Heroes" script group.
-    void CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
+    void CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3* position, Quaternion rotation,
                      std::vector<UnitPlacement>* placements);
     // A quick item (potion) is used by `unit`: the effect object "st.tr.130" (model "unhuma", type 9, flags 0x3010)
     // is created at the unit's position and flagged new (flags_ |= 0x180000). `item` is not used.
@@ -512,7 +505,7 @@ public:
     int cave_;                            // the zone is a cave (its record's setting30; sent with the zone)
     int weather_;                         // 0 clear, 1 rain, 2 snow (the script's SetWeather)
     float weatherStrength_;               // sent with the weather
-    ZoneExits exits_;
+    std::vector<ZoneExit> exits_;
     std::uint8_t loaded_;                 // 0 while LoadSave runs
     MapObjectIdMap updateMap_;
     // SendZone also sends the player its start (at its first unit) when set; nothing in the game sets it.
@@ -558,9 +551,9 @@ public:
     ObjectIdMap timedObjects_;
     // The zone header SendFreshObjects sends to a temporary player.
     CMemoryStream zoneHeader_;
-    ProjectileList projectiles_;
+    std::list<CSpellEffect*> projectiles_;
     std::list<CEngineObject*> counted_; // counted references (released on clear)
-    SharedObjectList sharedObjects_;
+    std::list<SharedObject> sharedObjects_;
 };
 
 // One walkable platform (bridge, deck) the client tests positions against.
@@ -575,8 +568,6 @@ struct Platform {
     Vector3 normal;
     float sizeU, sizeV;                   // extent along u and v
 };
-
-using PlatformList = std::list<Platform>;
 
 // The client world's platform set: the engine's CBridgeManager (class 0x34) with the CList of the platform faces
 // (AddFace adds at the head).
@@ -608,7 +599,7 @@ public:
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
 
-    PlatformList list;                    // the faces, the newest first
+    std::list<Platform> list;                    // the faces, the newest first
 };
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
@@ -638,14 +629,9 @@ struct UnitSet {
 // Both vectors are resized to the counts.
 void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
-// The client's sector grids: a list of held objects per 16x16 cell (also the heroes and the deferred units).
-using SectorList = std::list<HeldPtr<CMapObject>>;
-// The client's filed objects, map objects only (every object filed is one the player client created through
-// the map object manager, or a unit). Each holds one reference, taken and dropped by the client.
-using MapObjectList = std::list<CMapObject*>;
 struct SectorGrid {
-    std::unique_ptr<SectorList[]> cells_;
-    std::unique_ptr<SectorList*[]> rows_;   // row y: its lists
+    std::unique_ptr<std::list<HeldPtr<CMapObject>>[]> cells_;
+    std::unique_ptr<std::list<HeldPtr<CMapObject>>*[]> rows_;   // row y: its lists
     int unknown08_, unknown0C_;           // (resized when they change)
     std::uint32_t width_;                 // cells along x
     std::uint32_t height_;                // cells along y
@@ -665,7 +651,6 @@ struct SectorGrid {
 struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> {
     int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
 };
-using PendingMap = PendingIndex;
 
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (TakeNew).
@@ -677,7 +662,7 @@ public:
     int OnShutdown() override;
     CWorldHandle* Clone() override;
     bool Query() override { return false; }
-    void TakeNew(JoinedLinks* joined) override;
+    void TakeNew(std::list<netlink::NetLink*>* joined) override;
 
     netlink::NetLink* pendingLink_;     // counted; handed over by TakeNew
 };
@@ -689,7 +674,7 @@ public:
     CClientHandle* Clone() override;
     bool Query() override { return false; }
     // The client takes no connections: every link of the list is released and the list emptied.
-    void TakeNew(JoinedLinks* joined) override;
+    void TakeNew(std::list<netlink::NetLink*>* joined) override;
 };
 
 // A window rectangle of the frame (the client's screen list and hit vector).
@@ -698,22 +683,19 @@ struct ScreenEntry {
     unsigned objectId;                    // the object, in the map object manager
     tagRECT rect;                         // on the screen
 };
-using ScreenEntryNode = std::list<ScreenEntry>::iterator;
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
 int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
 
-// The entries the pickers find.
-using ScreenHits = std::vector<ScreenEntry>;
 // The functor of the for_each over the screen entries: CollectBounds / CollectParts push to `hits` every entry whose
 // rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual (CollectBounds) or 24
 // (CollectParts) for the point.
 struct HitCollector {
-    HitCollector* CollectBounds(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, long x, long y,
+    HitCollector* CollectBounds(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* hits, long x, long y,
                                 CMapObjectManager* manager);
-    HitCollector* CollectParts(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, long x, long y,
+    HitCollector* CollectParts(std::list<ScreenEntry>::iterator first, std::list<ScreenEntry>::iterator last, std::vector<ScreenEntry>* hits, long x, long y,
                                CMapObjectManager* manager);
-    ScreenHits* hits;
+    std::vector<ScreenEntry>* hits;
 };
 
 class CLightningManager;
@@ -825,7 +807,7 @@ public:
     // Whether the party can leave through `exit`: every living unit of `records` (unit id in the
     // record) stands in an exit (FindExitAt) and that exit is `exit`. Those that do are listed in
     // `inExit` (emptied first). 0 when no unit lives.
-    BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
+    BOOL PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit);
     // Makes the bird when there is none, resets it and has it follow the unit of the local party's first
     // record.
     void SummonBird();
@@ -845,7 +827,7 @@ public:
     // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
     // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list.
-    int CollectVisible(SectorList* list, const Matrix4* view, float animTime, std::uint32_t now,
+    int CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                        char animateUnits, char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt). Returns out (x, y, z).
@@ -927,7 +909,7 @@ public:
     // The target zone of exit `index` (the original copies the exit out of the array and returns the
     // copy's text, which shares the element's buffer).
     const char* ExitTarget(int index);
-    void RemoveUnitsOf(const RecordPtrArray* records);
+    void RemoveUnitsOf(const std::vector<PartyUnitRecord*>* records);
     int SendFlag10(int value);
     // The camera looks at the point (x, y) at its own focus height, with its view applied and kept above
     // the objects. Returns 1.
@@ -947,7 +929,7 @@ public:
     // Creates the party's heroes from their records: the figure from the part names (the hair "hr.%.2d" by the
     // prototype's number), items, player; each unit is filed with AddObject. Armour of type 0 is put on only with
     // `allArmour`. Stops at the first unit that cannot be created or given a figure.
-    void CreatePartyUnits(const RecordPtrArray* party, char allArmour);
+    void CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, char allArmour);
     // Appends to the plain pointer list `out` every object of the sector grid's cells around `point`
     // whose (x, y) lies within radius + hypot(rangeX_, rangeY_) of the point. The cell range (truncated
     // and clamped to the terrain) and the walk's cursor are left in rangeFirstX_ .. rangeY_. The
@@ -976,18 +958,18 @@ public:
 
     int nextClientObjectId_;              // -100000 after Setup; NextClientObjectId counts it down
     std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
-    ZoneExits exits_;
+    std::vector<ZoneExit> exits_;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
     std::vector<HeldPtr<CParticleSource>> countedA0_;
-    SectorList heroes_;                   // heroes with a text-key id (counted)
-    MapObjectList objects_;               // every filed object (one reference each)
+    std::list<HeldPtr<CMapObject>> heroes_;                   // heroes with a text-key id (counted)
+    std::list<CMapObject*> objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
     // in dynamicMaxId_ (Segment drops those whose update returns 0).
     std::list<CMapObject*> dynamicObjects_;
-    PendingMap dynamicNodes_;             // id -> its node in dynamicObjects_
+    PendingIndex dynamicNodes_;             // id -> its node in dynamicObjects_
     int dynamicMaxId_;
     std::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
-    ScreenHits hits_;                     // the entries under the point (PickAt)
+    std::vector<ScreenEntry> hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
     lib::HashMap<unsigned, LineBatch*> lineLists_;   // line lists by key (DrawLineLists: drawn in STLport's order)
     int lastLineListKey_;                 // the last line list key handed out; 0 from the constructor
@@ -1195,7 +1177,7 @@ struct GameFlow {
 
     int state_;                           // the pending request (1..6; ProcessRequest runs it)
     std::string requestTarget_;           // the request's zone or save name
-    PartyStorage requestParty_;
+    lib::InPlace<CParty> requestParty_;
     int requestArg_;                      // the entrance (4) or the load flag (2)
     std::string zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // set by SwitchMultiplayerZone, cleared by the game's start
@@ -1222,7 +1204,7 @@ struct MpHeroRecord {
     bool ReadFile(const char* folder);
     CParty* Party() { return party.Get(); }
 
-    PartyStorage party;
+    lib::InPlace<CParty> party;
     std::string file;
 };
 
@@ -1302,20 +1284,17 @@ inline float FogStartDay() { return options::TheOptions()->fogDayStartDistance_;
 inline float FogStartNight() { return options::TheOptions()->fogNightStartDistance_; }
 inline float FarClipDistance() { return options::TheOptions()->farClipDistance_; }
 
-// The client's per-frame draw lists (CollectVisible files the visible objects, DrawPass sorts, draws and
-// empties them), the globals in this order; then the deferred unit list (counted pointers).
-using FrameQueue = std::vector<CMapObject*>;
-extern FrameQueue g_touchedModels;
-extern FrameQueue g_shadow52;
-extern FrameQueue g_shadowUnits;
-extern FrameQueue g_shadow5D;
-extern FrameQueue g_shadowOther;
-extern FrameQueue g_shadow54;
-extern FrameQueue g_visible52;
-extern FrameQueue g_visibleUnits;
-extern FrameQueue g_visible5D;
-extern FrameQueue g_visibleOther;
-extern FrameQueue g_visible54;
+extern std::vector<CMapObject*> g_touchedModels;
+extern std::vector<CMapObject*> g_shadow52;
+extern std::vector<CMapObject*> g_shadowUnits;
+extern std::vector<CMapObject*> g_shadow5D;
+extern std::vector<CMapObject*> g_shadowOther;
+extern std::vector<CMapObject*> g_shadow54;
+extern std::vector<CMapObject*> g_visible52;
+extern std::vector<CMapObject*> g_visibleUnits;
+extern std::vector<CMapObject*> g_visible5D;
+extern std::vector<CMapObject*> g_visibleOther;
+extern std::vector<CMapObject*> g_visible54;
 enum class FrameList {
     TouchedModels,   // models to keep loaded (by last use)
     Shadow52,
@@ -1329,14 +1308,14 @@ enum class FrameList {
     VisibleOther,
     Visible54,
 };
-inline FrameQueue& FrameObjects(FrameList list) {
-    static constexpr FrameQueue* kQueues[] = {&g_touchedModels, &g_shadow52,     &g_shadowUnits,  &g_shadow5D,
+inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
+    static constexpr std::vector<CMapObject*>* kQueues[] = {&g_touchedModels, &g_shadow52,     &g_shadowUnits,  &g_shadow5D,
                                               &g_shadowOther,   &g_shadow54,     &g_visible52,    &g_visibleUnits,
                                               &g_visible5D,     &g_visibleOther, &g_visible54};
     return *kQueues[static_cast<int>(list)];
 }
-extern lib::StaticObject<SectorList> g_deferredUnits;
-inline SectorList* FrameDeferredUnits() { return &*g_deferredUnits; }
+extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
+inline std::list<HeldPtr<CMapObject>>* FrameDeferredUnits() { return &*g_deferredUnits; }
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }

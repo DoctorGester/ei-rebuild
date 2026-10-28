@@ -202,8 +202,6 @@ class CTexture;
 class CPixelConverter;
 class CFigureMesh;
 class CMaterial;
-// The lights a figure part is lit with (the draw's lights argument).
-using FigureLights = std::vector<CLight*>;
 struct LineBatch;
 struct LightningPoint;
 
@@ -304,7 +302,7 @@ public:
     virtual int SetTexture(int stage, CTexture* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
                               unsigned indexCount) = 0;
-    virtual int DrawFigureLit(CFigureMesh* figure, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
+    virtual int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                               CTexture* textureA, CTexture* textureB) = 0;
     virtual int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                            tagRECT* screen) = 0;
@@ -417,7 +415,7 @@ public:
     int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
     // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
-    int DrawFigureLit(CFigureMesh* figure, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen, CTexture* textureA,
+    int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen, CTexture* textureA,
                       CTexture* textureB) override;
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
@@ -498,7 +496,6 @@ struct MeshCorner {
     std::uint16_t texCoord;
 };
 static_assert(sizeof(MeshCorner) == 6);
-using TriangleIndexArray = std::vector<MeshCorner>;
 
 class CMappedResource;
 
@@ -519,12 +516,11 @@ struct FigureModel {
     FigureModel(const FigureModel&) = delete;
     FigureModel& operator=(const FigureModel&) = delete;
     CMappedResource* FindAnimation(const std::string* name);
-    using AnimationMap = std::unordered_map<std::string, CMappedResource*>;
 
     CMappedResource* mesh;          // the .mod archive
     CMappedResource* bones;
     CMappedResource* animations;
-    AnimationMap animationCache;    // each a CMMIOResource over the animation's data
+    std::unordered_map<std::string, CMappedResource*> animationCache;    // each a CMMIOResource over the animation's data
 
     // The link figure loader's sets open the three archives from the images of the figure's .mod / .bon /
     // .anm files (OpenFromMemory); a null image leaves its archive alone.
@@ -644,8 +640,6 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return seco
 // blood and bloody footprints, chunk 2 footprints, chunk 3 scorch marks; each table is followed by a
 // hash_map by name (filled by the load, never read).
 struct PrintsDatabase {
-    template <typename Record> using NameIndex = std::unordered_map<std::string, Record*>;
-
     // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
     // archive of its own and filed under its records' names. 1; FatalError's result when the archive
     // (reported as "databases.res") or the file cannot be opened.
@@ -656,11 +650,11 @@ struct PrintsDatabase {
     void Destruct();
 
     std::vector<PrintRecord> blood;
-    NameIndex<PrintRecord> bloodByName;
+    std::unordered_map<std::string, PrintRecord*> bloodByName;
     std::vector<PrintRecord2> footprints;
-    NameIndex<PrintRecord2> footprintsByName;
+    std::unordered_map<std::string, PrintRecord2*> footprintsByName;
     std::vector<PrintRecord> scorch;
-    NameIndex<PrintRecord> scorchByName;
+    std::unordered_map<std::string, PrintRecord*> scorchByName;
 };
 extern lib::StaticObject<PrintsDatabase> g_printsDatabase;
 inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }

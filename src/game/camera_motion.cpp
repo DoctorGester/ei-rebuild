@@ -134,10 +134,10 @@ void CCamera::ClampAboveObjects() {
     float average, lowest, highest;
     const Vector3* zero = &camera::kZeroVector;
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
-    NearbyList list;
+    std::list<CObject3D*> list;
     TheClientWorld()->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
-    for (NearbyNode node = list.begin(); node != list.end(); ++node) {
+    for (std::list<CObject3D*>::iterator node = list.begin(); node != list.end(); ++node) {
         const CObject3D* object = (*node);
         const float limit = CAM_OBJECT_EXTENT_LIMIT;
         if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||

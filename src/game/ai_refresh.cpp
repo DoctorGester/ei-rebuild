@@ -32,8 +32,6 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-using ObjectList = std::list<CUnit*>;
-
 } // namespace
 
 void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
@@ -98,7 +96,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (!refreshUnits) return;
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    ObjectList objects{};
+    std::list<CUnit*> objects{};
     double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
@@ -258,7 +256,7 @@ constexpr int kSteepOffsets[34] = /*007916BC*/ {
 const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kSteepOffsets); }
 
 // The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
-int MaxStep(const ClimbTable& table) {
+int MaxStep(const std::vector<int>& table) {
     int n = 0;
     while (table[std::ssize(table) / 2 + n] > -1) ++n;
     return n - 1;

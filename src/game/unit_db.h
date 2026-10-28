@@ -178,7 +178,6 @@ struct UnitLevelRecord {
 
 // The model table: the records and an index by name, as the prototype tables.
 struct UnitModelTable {
-    using NameIndex = std::unordered_map<std::string, UnitModelRecord*>;
 
     // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
@@ -186,18 +185,17 @@ struct UnitModelTable {
     UnitModelRecord* At(std::uint32_t index);
 
     std::vector<UnitModelRecord> records;
-    NameIndex byName;
+    std::unordered_map<std::string, UnitModelRecord*> byName;
 };
 
 // The level record table, laid out the same way.
 struct UnitLevelTable {
-    using NameIndex = std::unordered_map<std::string, UnitLevelRecord*>;
 
     // As UnitModelTable::FindByName.
     UnitLevelRecord* FindByName(std::string_view name);
 
     std::vector<UnitLevelRecord> records;
-    NameIndex byName;
+    std::unordered_map<std::string, UnitLevelRecord*> byName;
 };
 
 struct UnitDatabase {

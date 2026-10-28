@@ -220,11 +220,11 @@ void CFileRegistry::GetStringBuffer(const char* section, const char* key, char* 
     *length = static_cast<int>(std::strlen(buffer));
 }
 
-BOOL CFileRegistry::GetIntArray(const char* section, const char* key, IntArray* out) {
+BOOL CFileRegistry::GetIntArray(const char* section, const char* key, std::vector<std::int32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegInt, out);
 }
 
-BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, DwordArray* out) {
+BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, std::vector<std::uint32_t>* out) {
     return GetDwordArray(this, section, key, kRegArray | kRegFloat, out);
 }
 

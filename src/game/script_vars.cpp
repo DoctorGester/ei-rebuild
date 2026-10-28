@@ -163,7 +163,7 @@ void SSCCmd::Clear() {
     calledScript = nullptr;
 }
 
-void SSCCmd::Save(ScriptStream* stream) const {
+void SSCCmd::Save(CStream* stream) const {
     stream->Write(&id, 4);
     int count = static_cast<int>(floatArgs.size());
     stream->Write(&count, 4);

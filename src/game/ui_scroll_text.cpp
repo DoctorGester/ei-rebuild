@@ -24,7 +24,7 @@ SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
     return size;
 }
 
-void Append(UiTokenArray& tokens, UiTextToken* token) {
+void Append(std::vector<UiTextToken*>& tokens, UiTextToken* token) {
     int index = std::ssize(tokens);
     tokens.resize(index + 1);
     tokens[index] = token;

@@ -132,7 +132,7 @@ BOOL CSpellContainer::Build() {
 
     if (!codes_.empty()) codes_.clear();
 
-    for (SpellModifierNode node = modifiers_.begin(); node != modifiers_.end(); ++node) {
+    for (std::list<itemdb::SpellModifierRecord*>::iterator node = modifiers_.begin(); node != modifiers_.end(); ++node) {
         const itemdb::SpellModifierRecord* modifier = (*node);
         float strength = modifier->strength;
         switch (Letter(modifier, 0)) {
@@ -223,7 +223,7 @@ CSpellContainer* CSpellManager::NewContainer() {
     return CreateObjectAs<CSpellContainer>(kClassSpellContainer, -1);
 }
 
-CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers) {
+CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers) {
     CSpellConstructor* constructor = context_->SpellConstructor();
     if (!constructor) return game::FatalErrorAs<CSpell>(kNoSpellConstructor);
     constructor->SetManager(this);

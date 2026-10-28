@@ -45,9 +45,9 @@ struct UnitByteBlock {      // 5 bytes
 #pragma pack(pop)
 static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);
 
-void WriteType(BitStream& out, std::uint8_t type) { out.Write(&type, 1); }
+void WriteType(CMemoryStream& out, std::uint8_t type) { out.Write(&type, 1); }
 
-void WriteUnits(BitStream& out, const std::vector<CUnit*>* units) {
+void WriteUnits(CMemoryStream& out, const std::vector<CUnit*>* units) {
     int count = std::ssize(*units);
     out.Write(&count, 4);
     for (int i = 0; i < std::ssize(*units); ++i) {
@@ -56,7 +56,7 @@ void WriteUnits(BitStream& out, const std::vector<CUnit*>* units) {
     }
 }
 
-int SendMove(BitStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3* to, int run) {
+int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3* to, int run) {
     WriteType(out, type);
     WriteUnits(out, units);
     out.Write(&run, 4);

@@ -90,7 +90,7 @@ void Lever::SetState(int wanted, float duration) {
     around.clear();
 }
 
-void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
+void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
     // out->RemoveAll().
     lib::FreeStorage(*out);
     const LeverRecord* record = TheLeverTable().Named(name.c_str());

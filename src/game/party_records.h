@@ -22,7 +22,7 @@ public:
     // field 2.
     void Serialize(ChunkArchive* ar) override;
 
-    PartyStorage party;
+    lib::InPlace<CParty> party;
     std::string name;           // "" for the unnamed record
 
     CParty* Party() { return party.Get(); }

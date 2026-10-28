@@ -8,7 +8,7 @@
 namespace {
 // Up to three values of a [DifficultyLevels] array into `out` (copied as dwords).
 void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
-    DwordArray values{};
+    std::vector<std::uint32_t> values{};
     reg.GetFloatArray("DifficultyLevels", key, &values);
     int n = std::ssize(values) < 3 ? std::ssize(values) : 3;
     if (n > 0) std::memcpy(out, values.data(), static_cast<std::size_t>(n) * sizeof(float));

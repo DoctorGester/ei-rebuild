@@ -112,8 +112,6 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-using LoadedFiles = std::vector<std::string>;
-
 } // namespace
 
 // The quest text files (world.h) and the quest folders (g_questFolders, below): empty at the start, as the static
@@ -135,7 +133,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
 void UnloadQuestTexts() {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
-    LoadedFiles& files = g_questFiles;
+    std::vector<std::string>& files = g_questFiles;
     for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(file->data());
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
@@ -202,7 +200,7 @@ bool LoadZoneQuests(const char* zone) {
     std::string path = MapFilePath(file);
     if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
-    LoadedFiles& files = g_questFiles;
+    std::vector<std::string>& files = g_questFiles;
     if (std::find(files.begin(), files.end(), path) == files.end()) {
         files.push_back(path);
         texts->AddSource(path.data());
@@ -233,9 +231,6 @@ namespace {
 
 
 
-// The quest folders registered so far.
-using StringVector = std::vector<std::string>;
-
 bool Equal(const std::string& s, const char* text) {
     std::size_t length = std::strlen(text);
     return s.size() == length && std::memcmp(s.data(), text, length) == 0;
@@ -250,7 +245,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
-    StringVector& folders = g_questFolders;
+    std::vector<std::string>& folders = g_questFolders;
     for (std::string* s = folders.data(); s != folders.data() + folders.size(); ++s)
         if (Equal(*s, folder)) return;
     bool registered;

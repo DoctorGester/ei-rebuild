@@ -54,7 +54,7 @@ bool Named(const std::string& name) {
 }
 
 // The party's copies of `source`'s items, each with the source's count and a reference.
-void CopyList(PartyItemArray& list, const PartyItemArray& source, CParty* party) {
+void CopyList(std::vector<CItem*>& list, const std::vector<CItem*>& source, CParty* party) {
     list.resize(std::ssize(source));
     for (int i = 0; i < std::ssize(source); ++i) {
         CItem* item = source[i];
@@ -120,7 +120,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
         CItem* copy = CountedClone(spell);
-        PartyItemArray& list = record->spells;
+        std::vector<CItem*>& list = record->spells;
         int index = std::ssize(list);
         list.resize(index + 1);
         list[index] = copy;
@@ -132,7 +132,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
 
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
-    for (PartyItemArray* list : {&record->spells, &record->weapons}) {
+    for (std::vector<CItem*>* list : {&record->spells, &record->weapons}) {
         while (!list->empty()) {
             (*list)[0]->Release();
             list->erase(list->begin() + 0, list->begin() + (0 + 1));

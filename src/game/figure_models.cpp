@@ -11,9 +11,6 @@
 
 namespace {
 
-using ModelMap = std::unordered_map<std::string, FigureModel*>;
-using AnimationMap = FigureModel::AnimationMap;
-
 void* OpenPart(CFigureManager* manager, const std::string* name, const char* suffix) {
     char path[0x200];
     std::size_t length = std::strlen(name->data());
@@ -23,13 +20,13 @@ void* OpenPart(CFigureManager* manager, const std::string* name, const char* suf
     return manager->GetFile(path, nullptr);
 }
 
-FigureModel** ModelSlot(ModelMap* map, const std::string* name) { return &(*map)[*name]; }
-CMappedResource** AnimationSlot(AnimationMap* map, const std::string* name) { return &(*map)[*name]; }
+FigureModel** ModelSlot(std::unordered_map<std::string, FigureModel*>* map, const std::string* name) { return &(*map)[*name]; }
+CMappedResource** AnimationSlot(std::unordered_map<std::string, CMappedResource*>* map, const std::string* name) { return &(*map)[*name]; }
 
 } // namespace
 
 FigureModel* CFigureManager::FindModel(const std::string* name) {
-    ModelMap* map = &models_;
+    std::unordered_map<std::string, FigureModel*>* map = &models_;
     if (auto found = map->find(*name); found != map->end()) return found->second;
 
     void* mesh = OpenPart(this, name, ".mod");
@@ -51,7 +48,7 @@ FigureModel* CFigureManager::FindModel(const std::string* name) {
 // a new archive over that data (OpenFromMemory); without data nothing is created. The cached entry is looked
 // up again either way.
 CMappedResource* FigureModel::FindAnimation(const std::string* name) {
-    AnimationMap* map = &animationCache;
+    std::unordered_map<std::string, CMappedResource*>* map = &animationCache;
     if (auto found = map->find(*name); found != map->end()) return found->second;
     void* data = animations->GetFile(name->data(), nullptr);
     if (data) {

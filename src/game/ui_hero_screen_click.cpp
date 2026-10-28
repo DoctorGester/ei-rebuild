@@ -236,7 +236,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A voice row: the hero takes its file.
         int index = voiceTop_ + region - 9;
         if (index < 0) return;
-        MpVoiceVector& voices = Voices();
+        std::vector<MpVoiceEntry>& voices = Voices();
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;

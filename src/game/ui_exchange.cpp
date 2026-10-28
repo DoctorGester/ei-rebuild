@@ -316,7 +316,7 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
         return;
     }
     if (mode != kGridMode) return;
-    const PartyItemArray& offered = ownOffer_->items_;
+    const std::vector<CItem*>& offered = ownOffer_->items_;
     for (int i = 0; i < std::ssize(offered); ++i) {
         if (offered[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);

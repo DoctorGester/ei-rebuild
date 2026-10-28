@@ -37,7 +37,7 @@ std::uint32_t CalmDelay() {
 }
 
 // One name of a theme list: the only one, or one at random.
-const std::string& PickName(const SoundNameArray& names) {
+const std::string& PickName(const std::vector<std::string>& names) {
     std::uint32_t n = static_cast<std::uint32_t>(names.size());
     if (n == 1) return names[0];
     return names[g_random.Next() % n];
@@ -52,9 +52,6 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 // ---- Theme loading ----
 
-// The themes' registry (registry.cpp).
-using Registry = CFileRegistry;
-
 const std::string& TextPath() { return TheTextFolder(); }
 
 } // namespace
@@ -62,7 +59,7 @@ const std::string& TextPath() { return TheTextFolder(); }
 // The error message names the file without its path, and its text is FatalError's
 // format string (original).
 int CMusicSystem::LoadThemes() {
-    Registry reg;
+    CFileRegistry reg;
     reg.Construct();
     bool opened;
     {

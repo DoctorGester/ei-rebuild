@@ -24,9 +24,6 @@
 
 namespace {
 
-using State = RenderPresetRecord::State;
-using StateVector = std::vector<State>;
-
 static_assert(sizeof(D3DDEVICEDESC7) == sizeof(CRenderHelper::caps_));
 D3DDEVICEDESC7& Caps(CRenderHelper* self) { return *reinterpret_cast<D3DDEVICEDESC7*>(self->caps_); }
 
@@ -63,8 +60,8 @@ namespace {
 // fields below, so what a list does not set (stage 0's operations everywhere, the alpha arguments of presets
 // 5-7) is stack contents there and zero here; the helper's slot 1 passes the alpha arguments on to
 // Direct3D even so.
-State TextureStage(D3DTEXTUREOP operation, std::uint32_t argument, bool alphaArguments) {
-    State state{};
+RenderPresetRecord::State TextureStage(D3DTEXTUREOP operation, std::uint32_t argument, bool alphaArguments) {
+    RenderPresetRecord::State state{};
     state.enabled = true;
     state.colourOp = operation;
     state.colourArg1 = argument;
@@ -77,7 +74,7 @@ State TextureStage(D3DTEXTUREOP operation, std::uint32_t argument, bool alphaArg
     return state;
 }
 
-State Blended(State state, D3DBLEND source, D3DBLEND dest) {
+RenderPresetRecord::State Blended(RenderPresetRecord::State state, D3DBLEND source, D3DBLEND dest) {
     state.blend = true;
     state.sourceBlend = source;
     state.destBlend = dest;
@@ -88,10 +85,10 @@ State Blended(State state, D3DBLEND source, D3DBLEND dest) {
 
 // The state list of built-in preset `index` into `states`
 // (emptied first); false beyond the nine. Presets 0 and 8 have no states.
-bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned index) {
+bool CRenderHelper::RenderHelperBuiltInStateList(std::vector<RenderPresetRecord::State>* states, unsigned index) {
     states->clear();
     if (index >= CRenderHelper::kPresetCount) return false;
-    const State unset{};
+    const RenderPresetRecord::State unset{};
     switch (index) {
     case 1:   // texture x frame
         states->resize(2, unset);
@@ -134,7 +131,7 @@ bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned i
 // and switches the next stage off; each state from there on gets a block of its own with its blend factors
 // (an empty block without them). The check of a stage's operations ands the operation's number with the
 // device's capability bits. A stage that fails it ends the first block there. Returns the new preset.
-CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool singleStage) {
+CRenderPreset* CRenderHelper::Record(const std::vector<RenderPresetRecord::State>* states, int index, bool singleStage) {
     const int count = static_cast<int>(states->size());
     int stages;
     if (singleStage) {
@@ -152,7 +149,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
         return Failed(error);
     }
     for (int i = 0; i < stages; ++i) {
-        const State& state = (*states)[i];
+        const RenderPresetRecord::State& state = (*states)[i];
         if (!state.enabled) continue;
         const std::uint32_t operations = Caps(this).dwTextureOpCaps;
         if ((state.colourOp & operations) == 0 || (state.alphaOp & operations) == 0) {
@@ -183,7 +180,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
             const int error = app::FatalErrorCode(result, CantBeginBlockText());
             return Failed(error);
         }
-        const State& state = (*states)[i];
+        const RenderPresetRecord::State& state = (*states)[i];
         if (state.blend) {
             device::SetRenderState(device_, D3DRENDERSTATE_SRCBLEND, state.sourceBlend);
             device::SetRenderState(device_, D3DRENDERSTATE_DESTBLEND, state.destBlend);
@@ -246,7 +243,7 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
     }
 
     presets_.resize(CRenderHelper::kPresetCount);
-    StateVector states;
+    std::vector<RenderPresetRecord::State> states;
     for (unsigned index = 0; index < CRenderHelper::kPresetCount; ++index) {
         if (RenderHelperBuiltInStateList(&states, index)) {
             Record(&states, static_cast<int>(index), static_cast<std::uint8_t>(flag) != 0);
@@ -284,7 +281,7 @@ CRenderPreset* CRenderHelper::Preset(unsigned index) {
 }
 
 // The result is a byte (a bool).
-bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
+bool CRenderHelper::PresetStates(CRenderPreset* preset, std::vector<RenderPresetRecord::State>* out) {
     auto node = records_.find(preset);
     if (node == records_.end()) return false;
     *out = node->second.states;

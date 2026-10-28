@@ -220,7 +220,7 @@ void CWorldClient::CreateExitMarkers() {
     UpdateExitMarkers();
 }
 
-BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit) {
+BOOL CWorldClient::PartyInExit(const std::vector<PartyUnitRecord*>* records, int exit, std::vector<PartyUnitRecord*>* inExit) {
     BOOL result = 1;
     int living = 0;
     inExit->clear();

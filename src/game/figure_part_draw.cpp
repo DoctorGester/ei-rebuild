@@ -52,11 +52,7 @@ void TickTime(float* out) {
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-// The colour arrays (CFigureMesh::colorsA_ / colorsB_) are sized with the inlined SetSize that drops the
-// contents (SetSizeDiscard), the moved positions with the one that keeps them (SetSize).
-using ColourArray = std::vector<std::uint32_t>;
-
-void Fill(ColourArray& a, std::uint32_t value) {
+void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
     for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
 }
 
@@ -65,7 +61,7 @@ void Fill(ColourArray& a, std::uint32_t value) {
 struct Part {
     FigureMeshDrawer* node;
     CTextureDevice* device;
-    const FigureLights* lights;
+    const std::vector<CLight*>* lights;
     CMaterial* material;
     int alpha;
     RECT* rect;
@@ -81,8 +77,8 @@ struct Part {
         return render::MeshSource{node->mesh_, throughFigure ? figure : nullptr, !node->mesh_->offsets_.empty(), coloursWritten,
                                   lighting};
     }
-    ColourArray& Colours() const { return node->mesh_->colorsA_; }
-    ColourArray& Speculars() const { return node->mesh_->colorsB_; }
+    std::vector<std::uint32_t>& Colours() const { return node->mesh_->colorsA_; }
+    std::vector<std::uint32_t>& Speculars() const { return node->mesh_->colorsB_; }
     bool Textured() const { return textureA && textureB; }
 };
 
@@ -230,8 +226,8 @@ void DrawThroughFigure(Part& part) {
     mesh = part.node->mesh_;
     std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
     std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
-    ColourArray* colours = &part.Colours();
-    ColourArray* speculars = &part.Speculars();
+    std::vector<std::uint32_t>* colours = &part.Colours();
+    std::vector<std::uint32_t>* speculars = &part.Speculars();
     std::vector<Vector3>* offsets = &mesh->offsets_;
     const render::MeshSource source = part.Source(true);
     render::SetMeshSource(&source);
@@ -264,7 +260,7 @@ void DrawThroughFigure(Part& part) {
 // `lights` the light objects, `material` the drawing context (flags, light vector), `alpha` the low byte for
 // the speculars, `rect` (optional) receives the screen rectangle, the textures (their surfaces) select the
 // two-texture draw. Returns 1.
-int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights,
+int FigureMeshDrawer::DrawLit(CTextureDevice* device, const std::vector<CLight*>* lights,
                               CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
     CFigureMesh* mesh = mesh_;
     mesh->flags_ &= ~0x40u;

@@ -910,7 +910,6 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
 
 namespace {
 
-using OrderUnits = std::vector<CUnit*>;
 // The constant 1.0f the zone variable is compared with.
 float GameOne() { return 1.0f /*0073B84C*/; }
 
@@ -946,7 +945,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    OrderUnits units{};
+    std::vector<CUnit*> units{};
     for (int i = 0; i < std::ssize(party_); ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;

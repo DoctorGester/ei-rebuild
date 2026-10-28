@@ -43,7 +43,6 @@ struct CameraShake {
     float amplitude;
     float decay;
 };
-using ShakeList = std::list<CameraShake>;
 
 // A key of a recorded camera path (camera\*.cam, played by PlayCamera), and a frame of the file
 // being recorded (the dword at +4 is never written by the recorder: stack bytes there, zero here).
@@ -166,7 +165,7 @@ public:
     float distance_;
     Quaternion viewRotation_;   // heading
     float pitch_;               // degrees
-    ShakeList shakes_;
+    std::list<CameraShake> shakes_;
     Vector3 boundsCenter_;
     float boundsRadius_;
     int targetId_;
@@ -185,10 +184,6 @@ public:
     float timeOffset_;
     int keyIndex_;
 };
-
-// What CWorldClient::ObjectsInRange fills.
-using NearbyList = std::list<CObject3D*>;
-using NearbyNode = NearbyList::iterator;
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* CameraAnchor(const CCamera* self);

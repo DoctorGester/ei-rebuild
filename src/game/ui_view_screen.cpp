@@ -73,7 +73,7 @@ void CViewScreen::OnClose() { TheCamera()->flags_ |= CCamera::kFree; }
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
-    picked_ = UiDwordArray{};
+    picked_ = std::vector<std::uint32_t>{};
 }
 
 UnitPickInput::~UnitPickInput() = default;

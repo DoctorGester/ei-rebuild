@@ -143,8 +143,8 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};
     path->Start(&PositionOf(unit), &backwards, count - 1);
 
-    PathCellList& pathCells = path->cells;
-    PathCellList& steps = path->steps;
+    PathCells& pathCells = path->cells;
+    PathCells& steps = path->steps;
     while (std::ssize(steps) < 32 && std::ssize(pathCells) > 0) {
         steps.push_back(pathCells.front());
         pathCells.pop_front();
@@ -199,7 +199,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
 
     bool found = false;
     PathCell cell;
-    PathCellList& pathCells = path->cells;
+    PathCells& pathCells = path->cells;
     if (ux == tx && uy == ty) {
         int reason;
         if (unit->GetClassId() == kClassUnit && !(CanStandAt(unit, tx, ty, &reason) && IsCellPassable(this, unit, tx, ty))) {

@@ -15,7 +15,7 @@
 namespace {
 
 // Each listed item goes to `party` (keeping its count, merged with an equal one) and is released.
-void HandOver(const StockList& list, CParty* party) {
+void HandOver(const std::list<CItem*>& list, CParty* party) {
     for (CItem* item : list) {
         party->AddItem(item, 1, 1);
         item->Release();
@@ -63,7 +63,7 @@ void ClassTemplate::SetLevels(const float* base, const float* scroll) {
 
 void ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;
-    StockList list;
+    std::list<CItem*> list;
     t->ItemsParty()->Clear(1, 0);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
@@ -81,7 +81,7 @@ void ClassTemplateGenerateItems(ClassTemplate* t) {
 
 void ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->flag0D) return;
-    StockList list;
+    std::list<CItem*> list;
     t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;

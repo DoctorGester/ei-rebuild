@@ -76,7 +76,7 @@ void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const Smoot
     }
 }
 
-int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int startDirection, float fraction) {
+int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int startDirection, float fraction) {
     if (std::ssize(*path) < 3) return 0;
     map = mapArg;
     mapArg->CostContextFor(unit, &costs);

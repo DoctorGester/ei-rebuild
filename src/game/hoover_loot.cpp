@@ -25,17 +25,15 @@
 
 namespace {
 
-using PtrList = std::list<CItem*>;
-
 // CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
-void Append(PtrList* list, CItem* object) {
+void Append(std::list<CItem*>* list, CItem* object) {
     ++object->refCount_;
     auto node = list->emplace(list->end());
     *node = object;
 }
 // The node appended without a new reference (the prototype items on the second list).
-void AppendShared(PtrList* list, CItem* object) {
+void AppendShared(std::list<CItem*>* list, CItem* object) {
     auto node = list->emplace(list->end());
     *node = object;
 }
@@ -58,7 +56,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
 
 } // namespace
 
-int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* items, void* /*unused*/, int* gold) {
+int CHoover::CollectLoot(CWorld* world, CUnit* cunit, std::list<CItem*>* drops, std::list<CItem*>* items, void* /*unused*/, int* gold) {
     bool keyed = IsTextKey(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
     CItemManager* manager = world->ItemFactory();

@@ -33,7 +33,6 @@ bool IsBroken(const CItem* item) {
     return x87::fistp(item->condition_) <= 0;
 }
 
-using UnitItems = std::list<CItem*>;
 } // namespace
 
 // --- Prototype names --------------------------------------------------------------------------
@@ -74,7 +73,7 @@ void CUnitServer::Shout(std::uint32_t code) {
 void CUnit::DropBrokenEquipment() {
     CPlayer* owner = player;
     if (!owner) return;   // the empty list's destructor has nothing to free
-    UnitItems broken{};
+    std::list<CItem*> broken{};
     CPlayerServer* messages = PlayerMessages(owner);
 
     for (CItemArmor*& slot : armor) {

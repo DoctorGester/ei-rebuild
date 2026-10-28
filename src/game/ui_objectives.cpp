@@ -89,9 +89,8 @@ private:
     NamedFloatTable table_;
 };
 
-using ZoneNames = std::vector<std::string>;
-int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
-void PushBack(ZoneNames* v, const std::string& x) {
+int SizeOf(const std::vector<std::string>& v) { return static_cast<int>(v.end() - v.begin()); }
+void PushBack(std::vector<std::string>* v, const std::string& x) {
     v->push_back(x);
 }
 
@@ -292,7 +291,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         auto* table = new (tableStorage) VariableTable();
         prefix = str::Format("q.%s", shownZone_.c_str());
         table->Fill(prefix.c_str());
-        ZoneNames found;
+        std::vector<std::string> found;
         for (auto node = table->begin(); node != table->end(); ++node) {
             EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
@@ -353,7 +352,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 
 namespace {
 
-QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
+std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 QuestRecord* FindQuestRecord(const char* name) {
     std::string key(name);
@@ -579,7 +578,7 @@ void CObjectivesWindow::CreateScreen() {
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         table->Fill("q.");
-        ZoneNames* zones = &zones_;
+        std::vector<std::string>* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_.c_str();
         for (auto node = table->begin(); node != table->end(); ++node) {
             text::Split(node->first, &parts, '.');

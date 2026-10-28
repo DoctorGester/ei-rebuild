@@ -143,7 +143,7 @@ void CObject3D::UpdatePartBounds() {
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
-void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
+void CObject3D::CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh*>* out) {
     // The game asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
     for (int i = 0; i < std::ssize(parts); ++i) {
