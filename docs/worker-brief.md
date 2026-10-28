@@ -71,3 +71,5 @@ Rules:
 - Commit messages end with: Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 
 Report (short): what you changed (addresses, files), how each is verified, risks, branch/commit.
+
+play.cmd (the user plays with it) builds `build.cmd play` into build\play and starts the standalone. If you change build.cmd's arguments or outputs, keep play.cmd working.
