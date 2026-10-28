@@ -206,7 +206,7 @@ void ListVar(Arguments* args) {
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        const char* name = node->value.key;
+        const char* name = node->value.key.c_str();
         EndLine((Out() << name << " = ").PutFloat(node->value.mapped));
         if (writing) {
             line = str::Format("%s %g\n", name, static_cast<double>(node->value.mapped));

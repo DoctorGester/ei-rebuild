@@ -188,18 +188,6 @@ inline void InitKeyFrame40(KeyFrame40* p) {
     p->z = 0.0f;
 }
 
-// Records that hold strings and an array: `Strings` CStrings from +0, an array header of `Class` at `ArrayAt`
-// (0x2C bytes, six strings, the array at +0x18; 0x5C bytes, eight strings, the array at +0x48).
-template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
-struct StringsAndArray {
-    std::uint8_t bytes[Size];
-};
-template <std::size_t Size, int Strings, std::size_t ArrayAt, typename Class>
-void InitStringsAndArray(StringsAndArray<Size, Strings, ArrayAt, Class>* p) {
-    for (int i = 0; i < Strings; ++i) reinterpret_cast<char**>(p->bytes)[i] = PchNil();
-    ConstructHeader<Class>(p->bytes + ArrayAt);
-}
-
 // Elements that hold an array header of `Class` at `ArrayAt` (the 20-byte element is the
 // array; 32-byte patrols with the array at +0xC).
 template <std::size_t Size, std::size_t ArrayAt, typename Class>
@@ -291,17 +279,12 @@ inline void InitParticle16(Particle16* p) {
 }
 
 // The destructors of elements that hold an array header at `ArrayAt`: the vtable of `BaseClass`, the storage
-// freed, the fields left. With `Strings` CStrings from +0: those destroyed afterwards, the last first.
+// freed, the fields left.
 template <typename E, std::size_t ArrayAt, typename BaseClass>
 void DestroyArrayAt(E* p) {
     auto* header = reinterpret_cast<CArray<Bytes<1>>*>(reinterpret_cast<std::uint8_t*>(p) + ArrayAt);
     header->vtable = BaseClass::Vtable();
     if (header->data) gamecrt::operator_delete(header->data);
-}
-template <typename E, int Strings, std::size_t ArrayAt, typename BaseClass>
-void DestroyStringsAndArray(E* p) {
-    DestroyArrayAt<E, ArrayAt, BaseClass>(p);
-    for (int i = Strings; i-- > 0;) reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + 4 * i)->~CString();
 }
 
 // ---- The instantiations --------------------------------------------------------------------------

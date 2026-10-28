@@ -121,7 +121,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
             int found;
             {
                 // MFC's result-slot calls (GetFilePath, operator+) construct these.
-                std::string path = finder.GetFilePath().GetString();
+                std::string path = finder.GetFilePath();
                 std::string sub = path + SubdirectoryPattern();
                 found = FindSeedFile(out, sub.c_str(), target, counter);
             }
@@ -130,7 +130,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         }
         if (*counter >= target) {
             if (finder.GetLength() >= kMinimumFileSize) {
-                std::string path = finder.GetFilePath().GetString();
+                std::string path = finder.GetFilePath();
                 const char* text = path.c_str();
                 std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the game
                 return 1;

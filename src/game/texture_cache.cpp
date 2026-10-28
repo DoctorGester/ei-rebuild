@@ -36,9 +36,9 @@ void DeleteComposedTextures() {
     int more;
     do {
         more = find.FindNext();
-        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath());
+        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath().c_str());
         if (!deleted) {
-            const std::string name = find.GetFileName().GetString();
+            const std::string name = find.GetFileName();
             game::DebugLog(CantDeleteText(), name.c_str(), gameapi::GetLastError());
         }
     } while (more);

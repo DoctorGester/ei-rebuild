@@ -17,68 +17,27 @@ namespace mfc {
 
 using BOOL = int;
 
-// CString: a single pointer to the character data; the reference count, length and capacity live
-// in a header just before it. An empty string points at the shared afxEmptyString data.
+// CString: game.exe's CString in the layouts the function vectors read and replay (tests/vectors' Original* views of
+// game.exe's objects): a single pointer to the character data; the reference count, length and capacity live in a
+// header just before it. An empty string points at the shared afxEmptyString data. The game's text is std::string
+// (str.h); src/lib's MFC has its own CString (mfc_string.h, the same layout), which these members run.
 class CString {
 public:
     CString();
     CString(const char* s);
     CString(const char* s, int length);
     CString(const CString& s);
-    // A bridge while the game's text is half std::string (str.h): the same characters.
-    CString(const std::string& s) : CString(s.c_str()) {}
     ~CString();
     const CString& operator=(const char* s);
     const CString& operator=(const CString& s);
 
-    // Printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
-    void Format(const char* format, ...);
-
-    void Empty();
-    char* GetBufferSetLength(int length);
-    char* GetBuffer(int minLength);
-    void ReleaseBuffer(int newLength);            // (-1: up to the terminator)
     int GetLength() const { return reinterpret_cast<const int*>(data_)[-2]; }
-    void MakeLower();
-    void AssignChar(char c);
-    void TrimRight(const char* targets);
-    void TrimRight();
-    void TrimRight(char target);
-    void TrimLeft();
-    void TrimLeft(char target);
-    const CString& operator+=(char c);
-    const CString& operator+=(const CString& s);
-    const CString& operator+=(const char* s);
-    CString Left(int count) const;
-    CString Right(int count) const;
-    CString Mid(int first) const;
-    CString Mid(int first, int count) const;
-    int Remove(char ch);                          // the count removed
-    int ReverseFind(char ch) const;               // -1 when absent
-    int Find(const char* sub) const;              // -1 when absent
-    int Find(const char* sub, int start) const;
-    int Find(char c) const;                       // -1 when absent
-    int Find(char c, int start) const;
-
     operator const char*() const { return data_; }
-    operator std::string_view() const { return std::string_view(data_, static_cast<std::size_t>(GetLength())); }
-    // The characters (LPCTSTR), for printf-style arguments and other places the conversion is not
-    // implicit (MFC 7's name).
-    const char* GetString() const { return data_; }
-
-    // Storage for a result built in place (mfc.cpp): the pointer is left unset.
-    enum Unset { kUnset };
-    explicit CString(Unset) {}
 
 private:
     char* data_;
 };
 static_assert(sizeof(CString) == 4);
-
-namespace impl { class CString; }
-// The implementation's view of `s` (the two share the layout; mfc.cpp), for the implementation's members that
-// take a string.
-impl::CString& ImplOf(CString& s);
 
 class CFileVirtuals;
 
@@ -153,10 +112,10 @@ public:
     ~CFileFind();
     BOOL FindFile(std::string_view pattern, unsigned long flags);
     unsigned long GetLength() const;                                // (the found file's size, low dword)
-    CString GetFilePath() const;
-    CString GetFileName() const;
+    std::string GetFilePath() const;
+    std::string GetFileName() const;
     // FindNextFile / GetFileTitle (Windows' headers define both names as macros).
-    CString GetTitle() const;
+    std::string GetTitle() const;
     BOOL FindNext();
     BOOL IsDots() const;
     // Whether the found file has one of the attribute bits `mask`.
@@ -168,31 +127,6 @@ private:
 };
 static_assert(sizeof(CFileFind) == 0x1C);
 
-// The virtual slots of MFC 4.2's CFileFind for callers that dispatch through it; slots declared `void
-// Name()` keep their place only (8-13 are the six GetLast*Time / GetCreationTime overloads).
-class __declspec(novtable) CFileFindVirtuals {
-public:
-    virtual void GetRuntimeClass();
-    virtual void DeletingDestructor();
-    virtual void Serialize();
-    virtual CString GetFileName() const;
-    virtual CString GetFilePath() const;
-    virtual CString GetFileTitle() const;
-    virtual void GetFileURL();
-    virtual void GetRoot();
-    virtual void GetTime8();
-    virtual void GetTime9();
-    virtual void GetTime10();
-    virtual void GetTime11();
-    virtual void GetTime12();
-    virtual void GetTime13();
-    virtual BOOL MatchesMask(unsigned long mask) const;     // file attribute bits
-    virtual BOOL IsDots() const;
-    virtual BOOL FindFile(const char* pattern, unsigned long flags);
-    virtual BOOL FindNextFile();
-    virtual BOOL CloseContext();
-};
-
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
 public:
@@ -200,7 +134,7 @@ public:
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
 
     // Strftime of the local time into at most 127 characters (empty when it does not fit).
-    CString Format(const char* format) const;
+    std::string Format(const char* format) const;
 
     long time_;
 };
@@ -698,15 +632,5 @@ static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 // inlines its operations; they are CList<T*>'s (a new node's data is zeroed, nothing destroyed).
 template <typename T>
 using CTypedPtrList = CList<T*>;
-
-
-CString operator+(const CString& a, const char* b);
-CString operator+(const char* a, const CString& b);
-CString operator+(const CString& a, const CString& b);
-CString operator+(const CString& a, char b);
-CString operator+(char a, const CString& b);
-// The same bridge: text joined with a std::string, as the std::string side's type.
-inline std::string operator+(const std::string& a, const CString& b) { return a + b.GetString(); }
-inline CString operator+(const CString& a, const std::string& b) { return a + b.c_str(); }
 
 } // namespace mfc

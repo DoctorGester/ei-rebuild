@@ -4,7 +4,6 @@
 // game code depends on): docs/notes/standalone.md, "The image's source files".
 
 #include "crt.h"
-#include "mfc.h"
 #include "stlp.h"
 #include "stlp_alloc.h"
 #include "stlp_pair.h"
@@ -103,28 +102,26 @@ struct DwordObjectTraits {
     static void Destroy(Value* p) { E::Destroy(&p->mapped); }
 };
 
-// pair<const CString, float> (the party's named variables): hashed by the text up to its zero (HashChars),
-// equal when _mbscmp says so. The node copies the CString (a shared reference) and the float's bits; deleting
-// it releases the CString. A temporary built from a key holds a copy of it and zero.
-struct CStringFloat {
-    mfc::CString key;
+// pair<const string, float> (the party's named variables, game.exe's hash_map<CString, float>): string keys as
+// StringKeyTraits (the game's text has no zero bytes, so HashChars over the size hashes what the CString's did up to
+// its zero, and equal bytes are what _mbscmp called equal). The node copies the string and the float's bits; deleting
+// it frees the string's block. A temporary built from a key holds a copy of it and zero.
+struct StringFloat {
+    std::string key;
     float mapped;
-    explicit CStringFloat(const mfc::CString& k) : key(k), mapped(0.0f) {}
+    explicit StringFloat(const std::string& k) : key(k), mapped(0.0f) {}
 };
-struct CStringFloatTraits {
-    using Value = CStringFloat;
-    using Key = mfc::CString;
+struct StringFloatTraits {
+    using Value = StringFloat;
+    using Key = std::string;
     static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return HashChars(static_cast<const char*>(k)); }
-    static bool Equal(const Key& a, const Key& b) {
-        return gamecrt::mbscmp(static_cast<const char*>(a),
-                               static_cast<const char*>(b)) == 0;
-    }
+    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
+    static bool Equal(const Key& a, const Key& b) { return a == b; }
     static void Construct(Value* to, const Value& from) {
-        new (&to->key) mfc::CString(from.key);
+        std::construct_at(&to->key, from.key);
         std::memcpy(&to->mapped, &from.mapped, sizeof(float));
     }
-    static void Destroy(Value* p) { p->key.~CString(); }
+    static void Destroy(Value* p) { std::destroy_at(&p->key); }
 };
 
 // pair<const string, list<void*>> (the item stock's recipes by spell name): string keys as StringKeyTraits.

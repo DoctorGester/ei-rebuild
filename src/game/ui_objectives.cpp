@@ -309,7 +309,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             EI_NAN_AUDIT(node->value.mapped);
             if (node->value.mapped == 0.0f) continue;
-            text::Split(node->value.key, &parts, '.');
+            text::Split(node->value.key.c_str(), &parts, '.');
             if (parts.size() == 3) PushBack(&found, parts[2].c_str());
         }
         shownQuest_ = -1;
@@ -597,7 +597,7 @@ void CObjectivesWindow::CreateScreen() {
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_.c_str();
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
-            text::Split(node->value.key, &parts, '.');
+            text::Split(node->value.key.c_str(), &parts, '.');
             if (parts.size() != 3) continue;
             if (gamecrt::mbsicmp(interfaceQuest,
                                 parts[2].c_str()) == 0)
