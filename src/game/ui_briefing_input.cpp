@@ -173,7 +173,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (!topics_.empty()) TheCursor()->SetShape(kCursorTalk);
         auto node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
-        CUiSurface* label = surfaces_.data[1];
+        CUiSurface* label = surfaces_[1];
         UiSurfaceGetDC(label);
         label->Clear();
         RECT rect{0, 0, 0, 0};
@@ -247,7 +247,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 void CBriefingScreen::DrawTopics() {
     std::string prefix;
     TheTextManager()->GetString(TopicPrefixKey(), &prefix);
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     int row = topicTop_;

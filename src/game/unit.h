@@ -837,10 +837,10 @@ struct PartyUnitRecord {
     float scaleX;                       // the figure's scale: x (0.8 when constructed) ...
     float scaleY;                       // ... y (0.2 when constructed); height is z
     float height;                   // the hero's height (1.0 when constructed; the hero screen shows it * 100)
-    lib::AlignedArray<CItem*> weapons;
-    lib::AlignedArray<CItem*> quickItems;   // (an entry counts only with count_ > 0)
-    lib::AlignedArray<CItem*> armor;
-    lib::AlignedArray<CItem*> spells;
+    std::vector<CItem*> weapons;
+    std::vector<CItem*> quickItems;   // (an entry counts only with count_ > 0)
+    std::vector<CItem*> armor;
+    std::vector<CItem*> spells;
     int moveMode2;                      // the unit's moveMode2 (2 when constructed)
     std::uint32_t weaponIndex;      // the weapon shown in the camp (0 when constructed)
     std::uint8_t selected;              // the unit is selected (flags_ bit 4; 0 when constructed)

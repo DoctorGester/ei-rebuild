@@ -101,8 +101,8 @@ void CUiTooltip::SetText(const char* text) {
 }
 
 void CUiTooltip::DrawLines() {
-    if (!(surfaces_.size > 0)) return;
-    CUiSurface* surface = surfaces_.data[0];
+    if (!(!surfaces_.empty())) return;
+    CUiSurface* surface = surfaces_[0];
     if (!surface) return;
     UiSurfaceGetDC(surface);
     surface->Fill(kBackground);

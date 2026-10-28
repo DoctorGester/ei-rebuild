@@ -230,8 +230,6 @@ public:
     std::uint8_t unused_28D[3];
     int windSound_;
 };
-static_assert(offsetof(CGlobalMap, zoneCount_) == 0x164);
-static_assert(offsetof(CGlobalMap, allodTitle_) == 0x17C);
 
 // --- Camp trade panel (the level-up page) ---
 // Sells skills for experience: the hero's six magic schools and science, the perks the hero holds and the
@@ -330,13 +328,6 @@ public:
     float holdTime_;                 // from -0.5 s
     std::vector<std::string> texts_; // the titles
 };
-static_assert(offsetof(CTradePanel, owner_) == 0x14C);
-static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
-static_assert(offsetof(CTradePanel, science_) == 0x180);
-static_assert(offsetof(CTradePanel, experience_) == 0x18C);
-static_assert(offsetof(CTradePanel, texts_) == 0x1A4);
-static_assert(offsetof(CTradePanel, records_) == 0x190);
-static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages ---
 // The camp: the party's equipment, trade, repair and the item and spell constructors, with three item
@@ -526,8 +517,6 @@ public:
     int heldRegion_;                 // the -/+ button held on page 10 (-1 none)
     float holdTime_;                 // seconds it has been held (from -0.5)
 };
-static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
-static_assert(offsetof(CHeroStatsPanel, title_) == 0x154);
 
 // --- Hero equipment panel ---
 // The eight quick slots along the top, and in the camp the body with its seven equipment slots.
@@ -553,11 +542,9 @@ public:
     std::uint8_t unused_151[3];
     int selected_;                   // -1
 };
-static_assert(offsetof(CHeroEquipPanel, body_) == 0x150);
-static_assert(sizeof(CHeroEquipPanel) == 0x158);
 
 // A party's or trader's items.
-using UiItemList = lib::AlignedArray<CItem*>;
+using UiItemList = std::vector<CItem*>;
 // The 4 x 4 grid of item cells on the constructors' first pages.
 class CTradeGrid : public CUiItemPanel {
 public:
@@ -577,8 +564,6 @@ public:
     char flag_;
     std::uint8_t unused_161[3];
 };
-static_assert(offsetof(CTradeGrid, bought_) == 0x150);
-static_assert(sizeof(CTradeGrid) == 0x164);
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.
 class CRepairGrid : public CUiItemPanel {
@@ -592,8 +577,6 @@ public:
 
     UiItemList* items_;
 };
-static_assert(offsetof(CRepairGrid, items_) == 0x150);
-static_assert(sizeof(CRepairGrid) == 0x154);
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.
 class CHeroQuickStrip : public CUiItemPanel {
@@ -610,8 +593,6 @@ public:
     int y_;
     int selected_;                   // -1
 };
-static_assert(offsetof(CHeroQuickStrip, y_) == 0x150);
-static_assert(sizeof(CHeroQuickStrip) == 0x158);
 
 // The constructors' second pages: the spell maker and the item maker: the slots of what is being made beside
 // a 2 x 4 grid.
@@ -633,8 +614,6 @@ public:
     CParty* slots_;
     float pulse_;                    // the highlight's time
 };
-static_assert(offsetof(CConstructorPage, slots_) == 0x150);
-static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 class CSpellMakerPage : public CConstructorPage {
 public:
     CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) {}
@@ -649,4 +628,3 @@ public:
 
     std::vector<std::string> texts_; // the cost texts ("infoitem_35", "infoitem_36")
 };
-static_assert(offsetof(CSpellMakerPage, texts_) == 0x158);

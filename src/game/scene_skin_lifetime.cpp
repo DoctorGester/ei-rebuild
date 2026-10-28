@@ -6,6 +6,7 @@
 
 #include "lib/crt.h"
 
+#include <memory>
 #include <new>
 
 using scene::SceneSkin;
@@ -35,30 +36,18 @@ SceneSkin::SceneSkin() {
     name.clear();
     names.clear();
     spare38 = 0;
-    if (spareArray.data) {
-        lib::FreeAligned32(spareArray.data);
-        spareArray.data = nullptr;
-    }
-    spareArray.capacity = 0;
-    spareArray.size = 0;
+    lib::FreeStorage(spareArray);
 }
 
 SceneSkin::~SceneSkin() {
-    if (DropRoot(this)) bones.SetSize(0, -1);
+    if (DropRoot(this)) bones.clear();
     owner = 0;
     names.clear();
-    if (spareArray.data) lib::FreeAligned32(spareArray.data);
-    if (bones.data) lib::FreeAligned32(bones.data);
 }
 
 int SceneSkin::Create() {
     if (DropRoot(this)) {
-        if (bones.data) {
-            lib::FreeAligned32(bones.data);
-            bones.data = nullptr;
-        }
-        bones.capacity = 0;
-        bones.size = 0;
+        lib::FreeStorage(bones);
     }
     clock[0] = 0;
     clock[1] = 0;
@@ -69,7 +58,7 @@ int SceneSkin::Create() {
 }
 
 void SceneSkin::Clear() {
-    if (DropRoot(this)) bones.SetSize(0, -1);
+    if (DropRoot(this)) bones.clear();
     owner = 0;
     names.clear();
 }

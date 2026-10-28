@@ -2,7 +2,7 @@
 
 Code: `object.*` (CEngineObject helpers, CTransformObject / CHoover constructor bodies, unit and figure getters, CMemoryStream),
 `object_diplomacy.*`, `object_maths.*`, `object_tables.*`, `lightning*.cpp`, `scene_*.cpp` (fake unit scenes), `fake_unit.cpp`,
-`figure_slots.cpp`, `aligned_arrays.cpp`, `options*.cpp`, `app.*`, `map_database.*`, `map_spec*.cpp`, `unit_record.*`,
+`figure_slots.cpp`, `options*.cpp`, `app.*`, `map_database.*`, `map_spec*.cpp`, `unit_record.*`,
 `hoover_loot.cpp`, `player*.cpp`, `party.h`. Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `objects_more.txt` (lightning
 bolts, power 5 / 0 / -7, then the lightning spell on a wolf); every other scenario loads zone1, which reaches scene, options, map
 database, unit record and (via 0058B750 every world tick) player message code. Network, table and application functions of the
@@ -92,7 +92,7 @@ normals, bounds, relative frames, skeleton, node hierarchy; LoadFakeUnitScene 00
 62: 00446C10, then a class 0x45 object per figure from the world's slot 21, 0059F390), `skin_rewind.cpp` (A-U9:
 CAnimationNode ResetPose / Rewind, SceneSkin::Rewind; ResetPose: the pose of the first rotation key is parent rotation * key
 (Hamilton), position = parent pose + position_ turned by the parent, root alone, pointsB_ = pointsA_, key cursors 0; 00508A30
-inside 00508990's Ghidra body is unreferenced), `figure_slots.cpp` / `aligned_arrays.cpp`, `options*.cpp` (GameOptions
+inside 00508990's Ghidra body is unreferenced), `figure_slots.cpp` (and aligned_arrays.cpp, deleted by C14h), `options*.cpp` (GameOptions
 LoadFromRegistry over 0x26C bytes, SaveToRegistry, defaults, destructor), `map_database.cpp` (CMapDatabase::Load 0045EA20:
 map.txt / map-LMP.txt through the text manager 007AF788; its directives described there), `unit_record.cpp` /
 `hoover_loot.cpp` (UnitRecord::ApplyTo: controller +0x270, +0x8A8 blocks; a dead unit's loot), `app.cpp` (WindowProc, DispatchInput,

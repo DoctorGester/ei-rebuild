@@ -175,9 +175,9 @@ void CHudQuickItems::Update() {
     if (!unit_) return;
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
-        if (!regions_.data[i]->HasActiveTip()) continue;
+        if (!regions_[i]->HasActiveTip()) continue;
         ItemTip(i, &text);
-        regions_.data[i]->SetTipText(text.c_str());
+        regions_[i]->SetTipText(text.c_str());
     }
 }
 
@@ -311,7 +311,7 @@ void CHudMap::OnMouseDown(int, int x, int y) {
     view_ = region == 3 ? 1 : 2;
     // Scene objects 6 and 7 are the buttons of views 1 and 2.
     for (int i = 0; i < 2; ++i)
-        SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        SetTint(sceneObjects_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
 
 void CHudMap::OnMouseUp(int, int x, int y) {
@@ -319,7 +319,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     if (view_ != 0) {
         // A view button was held: the zoom stops and both buttons go dim.
         view_ = 0;
-        for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        for (int i = 0; i < 2; ++i) SetTint(sceneObjects_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
         return;
     }
     const int region = RegionAt(x, y);
@@ -395,7 +395,7 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick, 0);
         bodyPart_ = region - 1;
         // Scene objects 3-6 are the body parts.
-        for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
+        for (int i = 0; i < 4; ++i) SetTint(sceneObjects_[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
     }
     if (region >= 0) handled_ = true;
 }
@@ -499,7 +499,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
     auto* marker = SceneMesh(0);
     marker->visible_ = mode < 0 ? 0 : 1;
     for (int i = 0; i < 4; ++i) {
-        CEngineObject* button = sceneObjects_.data[1 + i];
+        CEngineObject* button = sceneObjects_[1 + i];
         if (mode_ != i) {
             SetTint(button, kTintDim);
             continue;
@@ -823,7 +823,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < kQuickSlots; ++i) {
             int slot = quick->regionItem_[i];
             if (slot < 0 || slot >= quick->shownCount_) continue;
-            CEngineObject* sprite = quick->sceneObjects_.data[slot];
+            CEngineObject* sprite = quick->sceneObjects_[slot];
             AsUiMesh(sprite)->SetScale(std::bit_cast<float>(i < 4 ? kScaleSmall : kScaleLarge));
             AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
         }
@@ -831,7 +831,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         // The spell and action columns (the same layout: count_, selected_, the sprites).
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
-                CEngineObject* sprite = panel->sceneObjects_.data[i];
+                CEngineObject* sprite = panel->sceneObjects_[i];
                 AsUiMesh(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
                 AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;

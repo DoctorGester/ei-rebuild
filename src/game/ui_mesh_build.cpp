@@ -26,9 +26,9 @@ using IndexArray = std::vector<std::uint16_t>;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {
-    mesh->normals_.SetSize(1, -1);
-    mesh->colorsA_.SetSize(4, -1);
-    mesh->colorsB_.SetSize(4, -1);
+    mesh->normals_.resize(1);
+    mesh->colorsA_.resize(4);
+    mesh->colorsB_.resize(4);
     NormalPacket& block = mesh->normals_[0];
     for (int i = 0; i < 4; ++i) {
         block.block[0][i] = 0.0f;

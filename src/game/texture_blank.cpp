@@ -48,8 +48,6 @@ const BlankFormat* FormatOfKind(int kind) {
 
 
 int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
-    if (block_) lib::FreeAligned32(block_);
-    block_ = nullptr;
     // A square of header->width (the height is not read). The holder: only the new renderer's memory,
     // one level (the mipCount levels and caps by the kind flags are not made), which throws, with the
     // holder's sizes zero, when it cannot be made).

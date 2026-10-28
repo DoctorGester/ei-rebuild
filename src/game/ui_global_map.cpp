@@ -133,7 +133,7 @@ public:
         return out;
     }
     void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
-    CTexture* Texture(int index) const { return map_->objects_.data[index]; }
+    CTexture* Texture(int index) const { return map_->objects_[index]; }
 
     CUiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
         CUiMesh* sprite = AddFigure(map_, figure);
@@ -561,7 +561,7 @@ void CGlobalMap::Update() {
             int right = static_cast<int>(gamecrt::Ftol(D(x) + D(20.0f /*0073CCF8*/)));
             int top = static_cast<int>(gamecrt::Ftol(D(y) - D(25.0f /*0073E124*/)));
             int left = static_cast<int>(gamecrt::Ftol(D(x) - D(20.0f /*0073CCF8*/)));
-            regions_.data[3 + i]->SetRect(left, top, right, bottom);
+            regions_[3 + i]->SetRect(left, top, right, bottom);
         }
     }
 
@@ -570,17 +570,17 @@ void CGlobalMap::Update() {
     double bob = D(0.5f /*0073B86C*/) - x87::fcos(time * D(5.0f /*0073BF34*/)) * D(0.2f /*0073BAD4*/);
     Vector3 above = {position_.x, position_.y, static_cast<float>(bob + D(position_.z))};
     SetPosition(SceneMesh(0), builder.ModelPoint(above));
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);
-    SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, 0.033333335f /*007420E0*/);
+    SetFrameFraction(sceneObjects_[markerCount_ + 3], bobTime_, 0.01f /*0073D09C*/);
+    SetFrameFraction(sceneObjects_[markerCount_ + 4], bobTime_, 0.016666668f /*0073F8A0*/);
+    SetFrameFraction(sceneObjects_[markerCount_ + 5], bobTime_, 0.033333335f /*007420E0*/);
 
     if (selectPending_ != 0) RefreshSelection();
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's pixels: only the new renderer's memory
     // drawn into directly (DirectDraw: between a Lock and an Unlock).
-    if (objects_.size > 4) {
-        CDXSurface* holder = objects_.data[4]->surface_;
+    if (std::ssize(objects_) > 4) {
+        CDXSurface* holder = objects_[4]->surface_;
         auto* lock = TheDeviceLock();
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;

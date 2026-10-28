@@ -74,7 +74,7 @@ void ClientPublishParty(ClientSession* self) {
     state()->money_ = static_cast<std::uint32_t>(party->Money());
 
     std::uint32_t scratch = 0;
-    for (int i = 0; i < party->items_.size; ++i) {
+    for (int i = 0; i < std::ssize(party->items_); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
         RefPtr ref;
         ref.FromRawCounted(message);

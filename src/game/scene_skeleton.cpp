@@ -149,8 +149,8 @@ int BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneS
         float m20 = xz - yw, m21 = yz + xw, m22 = 1.0f - (yy + xx);
         PointBuffer& positions = mesh->positions;
         const Vector3& pivot = node->pivot;
-        for (int i = 0; i < positions.size; ++i) {
-            Vector3& p = positions.data[i].point;   // the file's bits as floats
+        for (int i = 0; i < std::ssize(positions); ++i) {
+            Vector3& p = positions[i].point;   // the file's bits as floats
             p = p - pivot;
             float rx = DotUnrounded<Sum3::XYZ>(m00, m01, m02, p.x, p.y, p.z);
             float ry = DotUnrounded<Sum3::XYZ>(m10, m11, m12, p.x, p.y, p.z);

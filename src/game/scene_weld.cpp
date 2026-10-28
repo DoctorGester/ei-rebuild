@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace scene {
 namespace {
@@ -39,75 +40,73 @@ void WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes) {
         SceneMesh* mesh = &meshes.data[m];
         PointBuffer& positions = mesh->positions;
 
-        points.SetSize(0);
-        pointMap.SetSize(0);
-        pointMap.SetSize(positions.size);
-        for (int i = 0; i < positions.size; ++i) {
-            const Vector3& p = positions.data[i].point;
+        points.clear();
+        pointMap.clear();
+        pointMap.resize(std::ssize(positions));
+        for (int i = 0; i < std::ssize(positions); ++i) {
+            const Vector3& p = positions[i].point;
             int index = 0;
-            for (; index < points.size; ++index) {
-                const Vector3& q = points.data[index].point;
+            for (; index < std::ssize(points); ++index) {
+                const Vector3& q = points[index].point;
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
                 double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz));
                 EI_NAN_AUDIT(length);
                 if (length < weld) break;
             }
-            if (index == points.size) {
-                points.Add(std::bit_cast<PointBits>(p));
-                index = points.size - 1;
+            if (index == std::ssize(points)) {
+                points.push_back(std::bit_cast<PointBits>(p));
+                index = std::ssize(points) - 1;
             }
-            pointMap.data[i] = static_cast<std::uint32_t>(index);
+            pointMap[i] = static_cast<std::uint32_t>(index);
         }
-        positions.SetSize(points.size);
-        std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Vector3));
+        positions.resize(std::ssize(points));
+        std::memcpy(positions.data(), points.data(), static_cast<std::size_t>(std::ssize(points)) * sizeof(Vector3));
 
         // The node's morph keys (0x14 each, an aligned point array at +4) move to the merged list.
         SceneNode* node = &nodes->data[m];
         auto& morph = node->morphKeys;
         for (int k = 0; k < morph.size; ++k) {
-            lib::AlignedArray<Vector3>& keyPoints = morph.data[k].points;
-            int count = points.size;
-            Vector3* moved = count ? lib::AlignedArray<Vector3>::Allocate(count) : nullptr;
-            for (int i = 0; i < keyPoints.size; ++i) moved[pointMap.data[i]] = keyPoints.data[i];
-            keyPoints.SetSize(count);
-            std::memcpy(keyPoints.data, moved, static_cast<std::size_t>(count) * sizeof(Vector3));
-            if (moved) lib::FreeAligned32(moved);
+            std::vector<Vector3>& keyPoints = morph.data[k].points;
+            int count = std::ssize(points);
+            std::vector<Vector3> moved(static_cast<std::size_t>(count));
+            for (int i = 0; i < std::ssize(keyPoints); ++i) moved[pointMap[i]] = keyPoints[i];
+            keyPoints = std::move(moved);
         }
 
         UvBuffer& texCoords = mesh->texCoords;
-        coords.SetSize(0);
-        coordMap.SetSize(0);
-        coordMap.SetSize(texCoords.size);
-        for (int i = 0; i < texCoords.size; ++i) {
-            const float* uv = texCoords.data[i].uv;
+        coords.clear();
+        coordMap.clear();
+        coordMap.resize(std::ssize(texCoords));
+        for (int i = 0; i < std::ssize(texCoords); ++i) {
+            const float* uv = texCoords[i].uv;
             int index = 0;
-            for (; index < coords.size; ++index) {
-                const float* known = coords.data[index].uv;
+            for (; index < std::ssize(coords); ++index) {
+                const float* known = coords[index].uv;
                 float du = known[0] - uv[0], dv = known[1] - uv[1];
                 const double distance = libcrt::Hypot(du, dv);
                 EI_NAN_AUDIT(distance);
                 if (distance < weld) break;
             }
-            if (index == coords.size) {
-                coords.Add(UvBits{std::bit_cast<std::uint32_t>(uv[0]), std::bit_cast<std::uint32_t>(uv[1])});
-                index = coords.size - 1;
+            if (index == std::ssize(coords)) {
+                coords.push_back(UvBits{std::bit_cast<std::uint32_t>(uv[0]), std::bit_cast<std::uint32_t>(uv[1])});
+                index = std::ssize(coords) - 1;
             }
-            coordMap.data[i] = static_cast<std::uint32_t>(index);
+            coordMap[i] = static_cast<std::uint32_t>(index);
         }
-        texCoords.SetSize(coords.size);
-        std::memcpy(texCoords.data, coords.data, static_cast<std::size_t>(coords.size) * 8);
+        texCoords.resize(std::ssize(coords));
+        std::memcpy(texCoords.data(), coords.data(), static_cast<std::size_t>(std::ssize(coords)) * 8);
 
         FaceBuffer& faces = mesh->faces;
-        for (int f = 0; f < faces.size; ++f) {
-            MeshFace& face = faces.data[f];
-            for (auto& v : face.vertex) v = pointMap.data[v];
-            for (auto& v : face.vertex2) v = coordMap.data[v];
+        for (int f = 0; f < std::ssize(faces); ++f) {
+            MeshFace& face = faces[f];
+            for (auto& v : face.vertex) v = pointMap[v];
+            for (auto& v : face.vertex2) v = coordMap[v];
         }
     }
-    points.FreeData();
-    coords.FreeData();
-    coordMap.FreeData();
-    pointMap.FreeData();
+    lib::FreeStorage(points);
+    lib::FreeStorage(coords);
+    lib::FreeStorage(coordMap);
+    lib::FreeStorage(pointMap);
 }
 
 } // namespace scene

@@ -64,7 +64,7 @@ float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()
 float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
 
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
-    AsUiMesh(window->sceneObjects_.data[index])->PlaceBody(x, y, depth);
+    AsUiMesh(window->sceneObjects_[index])->PlaceBody(x, y, depth);
 }
 
 void SetTint(CEngineObject* object, float value) {
@@ -73,9 +73,9 @@ void SetTint(CEngineObject* object, float value) {
 }
 
 void MoveRegions(CUiWindow* window, int offsetX) {
-    for (int i = 1; i < window->regions_.size; ++i) {
-        window->regions_.data[i]->offsetX_ = offsetX;
-        window->regions_.data[i]->offsetY_ = 0;
+    for (int i = 1; i < std::ssize(window->regions_); ++i) {
+        window->regions_[i]->offsetX_ = offsetX;
+        window->regions_[i]->offsetY_ = 0;
     }
 }
 
@@ -129,7 +129,7 @@ void CHudMap::Layout() {
     Place(this, 9, offset + MapFrameX(), 80.0f, 10.0f);
     Place(this, 10, offset + MapNeedleX(), 84.0f, FromBits(kSlingDepthBits));
     Place(this, 11, buttons, 85.0f, 10.0f);
-    surfaces_.data[0]->MoveTo(offset_ + 700 + widescreen::EdgeShift(), 80);   // WideScreen
+    surfaces_[0]->MoveTo(offset_ + 700 + widescreen::EdgeShift(), 80);   // WideScreen
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
@@ -154,14 +154,14 @@ void CHudMap::UpdateVanilla() {
         Layout();
         // WideScreen.
         if (slideDirection_ == 1.0f)
-            PlaceSling(sceneObjects_.data[5], kHudQuarterTurn, RightEdge(713.0f));
+            PlaceSling(sceneObjects_[5], kHudQuarterTurn, RightEdge(713.0f));
         else
-            PlaceSling(sceneObjects_.data[5], -kHudQuarterTurn, RightEdge(850.0f));
+            PlaceSling(sceneObjects_[5], -kHudQuarterTurn, RightEdge(850.0f));
     }
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     if (northTime_ > 0.0f) northTime_ = static_cast<float>(northTime_ - CUiContainer::FrameTime());
-    SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
+    SetTint(sceneObjects_[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 
 // --- The unit panel ------------------------------------------------------------------------------
@@ -190,7 +190,7 @@ void CHudUnitPanel::Layout() {
         Place(this, 15 + 2 * i, x, y, 5.0f);
     }
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, UnitEffectX() - offset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces_.data[0]->MoveTo(20 - widescreen::EdgeShift() - offset_, 0);   // WideScreen
+    surfaces_[0]->MoveTo(20 - widescreen::EdgeShift() - offset_, 0);   // WideScreen
     MoveRegions(this, -offset_);
     widescreen::LeavePanel();        // addon's 100232E9
 }
@@ -201,9 +201,9 @@ void CHudUnitPanel::UpdateVanilla() {
         Layout();
         // WideScreen.
         if (slideDirection_ == -1.0f)
-            PlaceSling(sceneObjects_.data[2], kHudQuarterTurn, LeftEdge(-50.0f));
+            PlaceSling(sceneObjects_[2], kHudQuarterTurn, LeftEdge(-50.0f));
         else
-            PlaceSling(sceneObjects_.data[2], -kHudQuarterTurn, LeftEdge(87.0f));
+            PlaceSling(sceneObjects_[2], -kHudQuarterTurn, LeftEdge(87.0f));
     }
     if (hoverUnit_ && hoverUnit_->IsDead() != 0) hoverUnit_ = nullptr;
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
@@ -297,13 +297,13 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     for (int top = 38; top < 218; top += 30) {
         CUiMesh* icon = AddSprite(nullptr);
         icon->SetRectangle(5.0f, 30.0f, 28.0f, static_cast<float>(top), 52.0f, static_cast<float>(top + 24), 0, 0, 64, 64);
-        icon->texture_ = objects_.data[1];
+        icon->texture_ = objects_[1];
     }
 
     AddSurface(new CUiSurface(interface_, 20, 0, 180, 220, 5, 1));
 
     bodyPart_ = bodyPart;
-    for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
+    for (int i = 0; i < 4; ++i) SetTint(sceneObjects_[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
     Layout();
     shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
@@ -419,12 +419,12 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     // picture too; 2: the markers, four texels of one colour each.
     CUiMesh* bounds = AddSprite(nullptr);
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
-    bounds->texture_ = objects_.data[1];
+    bounds->texture_ = objects_[1];
     bounds->tint_[0] = bounds->tint_[1] = bounds->tint_[2] = 0.8f;
     bounds->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * BoundsScale()));
     CUiMesh* area = AddSprite(nullptr);
     area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
-    area->texture_ = objects_.data[1];
+    area->texture_ = objects_[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
     CUiMesh* markers = AddSprite(nullptr);
     markers->PlaceBody(700.0f, 80.0f, 12.0f);
@@ -474,7 +474,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     BuildMarkers();
 
     view_ = 0;
-    for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
+    for (int i = 0; i < 2; ++i) SetTint(sceneObjects_[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
     Layout();
     northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359

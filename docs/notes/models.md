@@ -79,10 +79,10 @@ Facts not in the code comments:
   RasterTriangle +0x30 is a pointer, `keyTexels` = the skin's `CTexture::block_` when it is keyed (flags 0x2000, a type 0x35
   object's skin): 2DintMMX's slot 9 (10001EB0) samples it as 16-bit 1:5:5:5 texels at the corners' texture points (row pitch
   RasterTarget +0x38 = 0x200 bytes, wrapping) and writes 0xF000 where the top bit is set; slot 8 ignores +0x30 / +0x38.
-  Nothing in this exe allocates block_ (0068F860 is dead, 0068F6C0 frees it), so the keyed path never runs. The unit's
-  controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are `lib::AlignedArray`s of
+  Nothing in this exe allocates block_ (0068F860 is dead, 0068F6C0 frees it), so the keyed path never runs (C14h: our CTexture has no block_; `keyTexels` stays in RasterTriangle, the DLL's layout, and is always null). The unit's
+  controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are (C14e / C14h: vectors) of
   `Vector2`, `RasterTriangle::Point` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
-  004F65B0, 00452E70 allocate as AllocAligned32); the callees take them typed (C9d: ProjectFlat, 004F4680 and
+  004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees take them typed (C9d: ProjectFlat, 004F4680 and
   005A0CD0 `Vector2*`; 004F4850 and 005A0E80 `RasterTriangle::Point*` and `RasterTarget*`, texture.h).
 - **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows

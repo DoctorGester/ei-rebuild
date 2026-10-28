@@ -258,7 +258,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         double half = D(35.0f /*007403E0*/);
         frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                             static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-        frame->texture_ = objects_.data[2];
+        frame->texture_ = objects_[2];
         frame->Draw(pass);
         RemoveSceneObject(frame);
     }
@@ -277,7 +277,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         CUiMesh* mark = AddSprite(0);
         mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);
-        mark->texture_ = objects_.data[1];
+        mark->texture_ = objects_[1];
         mark->SetScale(scale);
         SetShade(mark, cell->mode == 9 ? 0.5f : 1.0f);
         float step = static_cast<float>(D(scale) * D(550.0f /*007403DC*/));
@@ -398,7 +398,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
     double half = D(35.0f /*007403E0*/);
     frame->SetRectangle(frameDepth, 100.0f, static_cast<float>(D(cell->x) - half), static_cast<float>(D(cell->y) - half),
                         static_cast<float>(D(cell->x) + half), static_cast<float>(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-    frame->texture_ = objects_.data[2];
+    frame->texture_ = objects_[2];
     frame->Draw(pass);
     RemoveSceneObject(frame);
     model->Draw(pass);

@@ -25,6 +25,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace scene {
 int ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/);
@@ -169,9 +170,9 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const std::vector<std::string>
         std::uint32_t face = g.faces.data[f];
         for (int k = 0; k < 3; ++k) {
             SceneMesh& mesh = MeshAt(unit, meshIndex);
-            std::uint32_t t = mesh.faces.data[face].vertex2[k];
+            std::uint32_t t = mesh.faces[face].vertex2[k];
             if (MapLookup(seen, t)->value != 0) continue;
-            MapTexCoord(mesh.texCoords.data[t].uv, &m);   // (u, v) as floats
+            MapTexCoord(mesh.texCoords[t].uv, &m);   // (u, v) as floats
             MapMark(seen, t);
         }
     }

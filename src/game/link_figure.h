@@ -5,7 +5,7 @@
 // headerless) record in figures.res / menus.res, morphed by three coefficients and appended to one CLinkMesh.
 // See docs/notes/models.md, "Link figures". Names provisional.
 
-#include "figure_mesh.h"   // AlignedArray, VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
+#include "figure_mesh.h"   // VertexPacket, NormalPacket, TexCoord, MeshCorner, FigHeader
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
 #include "texture.h"       // RasterTarget
 
@@ -134,20 +134,20 @@ public:
     // offsets: first / third; with two textures' surfaces: 11 / 12). The draws return 2 when nothing
     // was drawn. `u`, `v` are members of the mesh.
     virtual bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
-                             lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) = 0;
+                             std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
     virtual bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
-                           lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) = 0;
-    virtual int DrawPartMoved(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                              lib::AlignedArray<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
+                           std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) = 0;
+    virtual int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+                              std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                               std::uint32_t u, std::uint32_t v) = 0;
-    virtual int DrawPart(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                         lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) = 0;
+    virtual int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+                         std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                                      lib::AlignedArray<std::uint32_t>* colours,
-                                      lib::AlignedArray<std::uint32_t>* speculars,
+                                      std::vector<std::uint32_t>* colours,
+                                      std::vector<std::uint32_t>* speculars,
                                       std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                                 lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
+                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
     // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
     // into `points`, growing `bounds`; then its projected points `pixels` rasterised into the shadow target.
@@ -182,19 +182,19 @@ public:
     bool GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
                      std::uint16_t** indices, int* vertexCount, int* indexCount) override;
     bool FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
-                     lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) override;
+                     std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
     bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
-                   lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) override;
-    int DrawPartMoved(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                      lib::AlignedArray<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
+                   std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars) override;
+    int DrawPartMoved(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+                      std::vector<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                       std::uint32_t u, std::uint32_t v) override;
-    int DrawPart(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                 lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) override;
+    int DrawPart(const std::string* name, int flags, std::vector<std::uint32_t>* colours,
+                 std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) override;
     int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
+                              std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                               std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) override;
     int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
-                         lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
+                         std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                          std::uint32_t u, std::uint32_t v) override;
     int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                     Vector2* points, float* bounds) override;

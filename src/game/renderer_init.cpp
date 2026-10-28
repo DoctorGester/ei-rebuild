@@ -66,13 +66,13 @@ void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE
 void StackPush(MatrixStack& stack, const Matrix4* m) {
     if (stack.count == 0) {
         stack.count = 1;
-        std::memcpy(stack.matrices, m, sizeof(Matrix4));
+        std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
         return;
     }
     int n = ++stack.count;
     stack.matrices[n - 1].Multiply(stack.matrices[n - 2].m, m->m);
 }
-const Matrix4* StackTop(const MatrixStack& stack) { return stack.matrices + (stack.count - 1); }
+const Matrix4* StackTop(const MatrixStack& stack) { return stack.matrices.data() + (stack.count - 1); }
 
 // The pipeline's stacks (CTransformPipeline::stacks_) the creation fills.
 constexpr int kProjection = 6;

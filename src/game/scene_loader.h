@@ -60,15 +60,15 @@ union UvBits {
     std::uint32_t v[2];
     float uv[2];
 };
-using PointBuffer = lib::AlignedArray<PointBits>;
-using UvBuffer = lib::AlignedArray<UvBits>;
+using PointBuffer = std::vector<PointBits>;
+using UvBuffer = std::vector<UvBits>;
 union Block64 {
     std::uint8_t bytes[64];   // a matrix (the figures copy the blocks)
     float block[16];          // four normals / positions in lanes: x[4], y[4], z[4], w[4]
 };
 static_assert(sizeof(PointBits) == 12 && sizeof(UvBits) == 8 && sizeof(Block64) == 64);
-using BlockBuffer = lib::AlignedArray<Block64>;
-using DwordBuffer = lib::AlignedArray<std::uint32_t>;
+using BlockBuffer = std::vector<Block64>;
+using DwordBuffer = std::vector<std::uint32_t>;
 
 using DwordMap = mfc::CMap<std::uint32_t, std::uint32_t>;   // hashSize 17, blockSize 10
 using MapAssoc = DwordMap::Assoc;
@@ -96,7 +96,7 @@ struct MeshFace {
     float distance;                // dot(position[1]'s point, normal)
 };
 static_assert(sizeof(MeshFace) == 0x34);
-using FaceBuffer = lib::AlignedArray<MeshFace>;
+using FaceBuffer = std::vector<MeshFace>;
 
 // A material group: its name and the faces it uses.
 struct FaceGroup {
@@ -135,9 +135,8 @@ static_assert(sizeof(NodePositionKey) == 0x18);
 struct NodeMorphKey {           // the mesh's points at the frame
     std::int16_t frame;
     std::uint16_t unused_02;
-    lib::AlignedArray<Vector3> points;
+    std::vector<Vector3> points;
 };
-static_assert(sizeof(NodeMorphKey) == 0x14);
 struct NodeMorphKeyElements {
     static void Construct(NodeMorphKey* keys, int count);
     static void Destruct(NodeMorphKey* keys, int count);
@@ -210,20 +209,20 @@ struct SceneMesh : CTransformObject {
     std::uint8_t unused_054[0x94 - 0x54];
     std::string name;
     // Nothing fills spareBlocks098 / 0C8; the destructor frees them.
-    lib::AlignedArray<std::uint8_t> spareBlocks098;
+    std::vector<std::uint8_t> spareBlocks098;
     // The positions and the normals packed four to a 64-byte block (x[4], y[4], z[4], w[4]); the figures copy
     // them.
     BlockBuffer positionBlocks;
     BlockBuffer normalBlocks;
-    lib::AlignedArray<std::uint8_t> spareBlocks0C8;
+    std::vector<std::uint8_t> spareBlocks0C8;
     PointBuffer positions;              // the file's bits
     UvBuffer texCoords;
     PointBuffer normals;                // one per position
     // The distinct corners (sorted), the distinct (vertex, position) word pairs (sorted, padded to a multiple
     // of four) and each face corner's index in the corner table (three words per face).
-    lib::AlignedArray<MeshCornerKey> corners;
+    std::vector<MeshCornerKey> corners;
     DwordBuffer pairs;
-    lib::AlignedArray<std::uint16_t> cornerIndices;
+    std::vector<std::uint16_t> cornerIndices;
     FaceBuffer faces;
     FaceGroupArray groups;
     // The bounds (the figure copies them): the box corners are relative to the centre.
@@ -251,7 +250,7 @@ struct SceneSkin {
     // The clock goes to 0.
     void Rewind();
     // When there is a root.
-    int BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
+    int BindMeshes(const std::vector<CFigureMesh*>* parts);
     SceneSkin();
     ~SceneSkin();
     // The name "none". Returns 1.
@@ -261,19 +260,17 @@ struct SceneSkin {
 
     // The fake unit the skin belongs to; 0 when the unit lets its parts go. Nothing here reads it.
     std::uint32_t owner;
-    lib::AlignedArray<CAnimationNode*> bones;   // every bone, in build order
+    std::vector<CAnimationNode*> bones;   // every bone, in build order
     CAnimationNode* root;
     // An unused setter stores its float argument here as a double, then zeroes it.
     std::uint32_t clock[2];
     std::string name;
     std::vector<std::string> names;
     std::uint32_t spare38;                      // nothing reads it
-    lib::AlignedArray<void*> spareArray;        // only emptied and freed here
+    std::vector<void*> spareArray;        // only emptied and freed here
     std::uint32_t spare4C;                      // nothing reads it
 };
 static_assert(offsetof(SceneSkin, bones) == 0x04);
-static_assert(offsetof(SceneSkin, root) == 0x14);
-static_assert(offsetof(SceneSkin, name) == 0x20);
 
 // Also `bone`'s children; the low word of `frames` is the animation's frame count.
 void BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);

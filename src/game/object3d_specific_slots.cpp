@@ -50,8 +50,8 @@ int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
 int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
-    for (int i = 0; i < target->parts.size; ++i) {
-        CFigureMesh* part = target->parts.data[i];
+    for (int i = 0; i < std::ssize(target->parts); ++i) {
+        CFigureMesh* part = target->parts[i];
         if (!(part->flags_ & kPartOwnMesh)) continue;
         if (gameapi::PtInRect(PartRect(part), AsPoint(point))) return TRUE;
     }
@@ -61,8 +61,8 @@ int CObject3DClientSpecific::PartsContainPoint(const long* point) {
 int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
-    for (int i = 0; i < target->parts.size; ++i) {
-        CFigureMesh* part = target->parts.data[i];
+    for (int i = 0; i < std::ssize(target->parts); ++i) {
+        CFigureMesh* part = target->parts[i];
         if (!(part->flags_ & kPartOwnMesh)) continue;
         RECT common;
         gameapi::IntersectRect(&common, PartRect(part), rect);
@@ -76,10 +76,10 @@ CFigureMesh* CObject3DClientSpecific::FindPart(const char* name) { return object
 CFigureMesh* CObject3DClientSpecific::FindPartOfType(int type) { return object->FindPartOfType(type); }
 
 CFigureMesh* CObject3D::FindPartOfType(int type) {
-    for (int i = 0; i < parts.size; ++i)
-        if (parts.data[i]->type_ == type) return parts.data[i];
-    for (int i = 0; i < pendingParts.size; ++i)
-        if (pendingParts.data[i]->type_ == type) return pendingParts.data[i];
+    for (int i = 0; i < std::ssize(parts); ++i)
+        if (parts[i]->type_ == type) return parts[i];
+    for (int i = 0; i < std::ssize(pendingParts); ++i)
+        if (pendingParts[i]->type_ == type) return pendingParts[i];
     return nullptr;
 }
 

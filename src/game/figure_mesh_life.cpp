@@ -37,8 +37,8 @@ void CFigureMesh::SetUpFigure() {
     worldRotation_.SetIdentity();
     object_ = nullptr;
     std::construct_at(&offsets_);
-    colorsA_.Construct();
-    colorsB_.Construct();
+    std::construct_at(&colorsA_);
+    std::construct_at(&colorsB_);
     std::memset(&box_.bounds, 0, sizeof(box_.bounds));
     std::memset(&box_.pivot, 0, sizeof(box_.pivot));
 }
@@ -72,8 +72,8 @@ void CFigureMesh::Clear() {
     directory_.clear();
     BuffersChanged();
     offsets_.clear();
-    colorsA_.SetSize(0);
-    colorsB_.SetSize(0);
+    colorsA_.clear();
+    colorsB_.clear();
     std::memset(&buffers_, 0, sizeof(buffers_));
     materialValue_ = 0;
     meshType_ = 0;
@@ -86,8 +86,8 @@ void CFigureMesh::Clear() {
 }
 
 void CPlainFigureMesh::Destroy() {
-    vertices_.SetSize(0);
-    normals_.SetSize(0);
+    vertices_.clear();
+    normals_.clear();
     corners_.clear();
     words_.clear();
     indices_.clear();
@@ -96,8 +96,8 @@ void CPlainFigureMesh::Destroy() {
 }
 
 void CSharedFigureMesh::Destroy() {
-    vertices_.SetSize(0);
-    normals_.SetSize(0);
+    vertices_.clear();
+    normals_.clear();
     Clear();
 }
 
@@ -105,8 +105,8 @@ void CSharedFigureMesh::Destroy() {
 
 void CFigureMesh::TearDownFigure() {
     Clear();
-    colorsB_.FreeData();
-    colorsA_.FreeData();
+    lib::FreeStorage(colorsB_);
+    lib::FreeStorage(colorsA_);
     lib::FreeStorage(offsets_);
 }
 
@@ -115,23 +115,15 @@ CFigureMesh::~CFigureMesh() { TearDownFigure(); }
 // --- The classes 0x41 and 0x42 ---------------------------------------------------------------
 
 CSharedFigureMesh::CSharedFigureMesh() {
-    vertices_.Construct();
-    normals_.Construct();
 }
 
 CSharedFigureMesh::~CSharedFigureMesh() {
-    normals_.FreeData();
-    vertices_.FreeData();
 }
 
 CPlainFigureMesh::CPlainFigureMesh() {
-    vertices_.Construct();
-    normals_.Construct();
 }
 
 CPlainFigureMesh::~CPlainFigureMesh() {
-    normals_.FreeData();
-    vertices_.FreeData();
 }
 
 // CPlainFigureMesh's constructor, as the scene's figure records inline it: the shared

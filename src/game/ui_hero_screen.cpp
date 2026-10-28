@@ -82,7 +82,7 @@ int CTradePanel::PurchaseCost() {
 // --- Draw ------------------------------------------------------------------------------
 
 void CMpHeroScreen::DrawExperience() {
-    CUiSurface* surface = surfaces_.data[2];
+    CUiSurface* surface = surfaces_[2];
     std::string text;
     std::string line;
     UiSurfaceGetDC(surface);
@@ -229,7 +229,7 @@ std::uint32_t MpHeroCount() {
 } // namespace
 
 void CMpHeroScreen::DrawHeroList() {
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
@@ -249,7 +249,7 @@ void CMpHeroScreen::DrawHeroList() {
 }
 
 void CMpHeroScreen::DrawVoices() {
-    CUiSurface* surface = surfaces_.data[2];
+    CUiSurface* surface = surfaces_[2];
     UiSurfaceGetDC(surface);
     surface->Clear();
     SelectionFrame(*this)->visible_ = 0;
@@ -337,7 +337,7 @@ void CMpHeroScreen::ShowHero(int index) {
     auto* hero = HeroRecord();
     auto* unit = GameFindClientUnit(hero->unitId);
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < hero->weapons.size; ++i) unit->AddWeapon(hero->weapons[i]);
+    for (int i = 0; i < std::ssize(hero->weapons); ++i) unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);
     unit->Controller()->RefreshModel();

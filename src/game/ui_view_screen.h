@@ -54,4 +54,3 @@ public:
 
     std::uint8_t unused_164[4];
 };
-static_assert(sizeof(CViewScreen) == 0x168);

@@ -62,7 +62,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     auto& name = name_;
     if (cursor_ > static_cast<int>(name.size())) cursor_ = name.size();
     if (cursor_ < 0) cursor_ = 0;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     CUiMesh* marker = SceneMesh(kMarkerSprite);

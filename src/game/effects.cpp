@@ -245,7 +245,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
 int CParticleSource::UpdateOrbit(Particle* p) {
     if (--p->life == 0) return 0;
     p->frame = (p->frame + 1) % frameCount;
-    const ParticleElement* e = elements;
+    const ParticleElement* e = elements.data();
     float scale;
     std::memcpy(&scale, &e[0].sphere.radius, sizeof(scale));
     float c = e[1].sphereTilt.tiltCos;
@@ -316,7 +316,7 @@ void CParticleSource::TickTendril(ParticleElement*) {
 // Mushroom cloud: the cap widens with ln(ticks + 1) and rises; the Mushroom shakes the camera on
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
-    if (type_ == kTypeMushroom && e->ticks == 0 && e == elements)
+    if (type_ == kTypeMushroom && e->ticks == 0 && e == elements.data())
         TheCamera()->Shake(&origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(x87::flog(ticks + 1) * size * kMushroomWidth);

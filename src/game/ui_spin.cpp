@@ -40,7 +40,7 @@ bool CUiSpin::GetValue(int* value) {
 
 void CUiSpin::SetValue(int value) {
     value_ = value < static_cast<int>(texts_.size()) ? value : 0;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect = layout_;

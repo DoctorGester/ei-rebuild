@@ -6,6 +6,7 @@
 //   std::uint32_t ModeId(AIMode* mode)                   an AI mode's id (ModeKindId; 0 for none)
 //   bool IsSpellEffect(const CSpellEffect* e)            whether a missile is a cast spell
 //   std::uint32_t MissileVtable(const CSpellEffect* e)   a missile's table as game.exe's address
+//   int PartyItemCount(CParty* party)                    the number of items the party carries
 // The standard headers it uses come first (harness_digest_read.h). No pointers go into a record: objects are named by
 // their ids.
 
@@ -80,7 +81,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     b.Unsigned("objects", static_cast<std::uint32_t>(p->knownObjects_.size()));
     CParty* party = p->Party();
     b.Unsigned("money", party->money_);
-    b.Int("partyItems", party->items_.size);
+    b.Int("partyItems", PartyItemCount(party));
     b.Int("members", party->members_.GetSize());
     for (int i = 0; i < party->members_.GetSize(); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);

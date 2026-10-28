@@ -266,15 +266,16 @@ to which template:
   uninitialised, relocated by memcpy, no destructor) are `std::vector` (C14e, a scripted retype; the build has no SIMD, so
   the alignment was not kept). `lib::FreeStorage(v)` frees the storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i,
   x)` grows to i + 1. A record holding a vector in an `mfc::CArray` needs typed elements (construct_at, destroy_n and
-  `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`, `BlocksAt8`, `AlignedArrays`); a raw-lifetime owner
+  `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`); a raw-lifetime owner
   (operator_new + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
   new slots where the original kept stale ones: a site that reads a slot before writing it differs. named_data.py formats
-  a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 39 game.exe addresses of aligned arrays).
-  `lib::AlignedArray<T>` (`src/lib/containers.h`) remains for the declarations C14a's files (scene_loader, ui_item_info)
-  reach and the figure mesh / party / unit / ui item arrays tied to them (figure.h parts, figure_mesh, link_figure colours,
-  unit.h weapons / items / spells, party.h, ui.h `UiPtrArray`, world.h items), and its static Allocate / Free still back
-  the renderer's raw blocks (renderer_lines, particle_emitters, render_helper's matrix stack, texture_compose,
-  link_figure's packets).
+  a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 40 game.exe addresses of aligned arrays).
+  C14h: the last aligned arrays are vectors too (the scene loader's, the figure mesh / link figure / party / unit / ui item
+  arrays) and the raw aligned blocks are std (link_figure's packets, texture_compose's buffers, the renderer's line vertices,
+  the particle sources' `elements`, the transform pipeline's `MatrixStack` as a `std::array`); `lib::AlignedArray`,
+  `AllocAligned32` / `FreeAligned32` and the aligned-block element policy (`AlignedBlockAt`) are gone, `src/lib/containers.h`
+  keeps `FreeStorage` and `SetAtGrow`. game.exe's own layouts of these are only in tests/verify's views and the
+  recorders (record_maths' `ExeMatrixStack`); src/render reads the clip stack through the typed `CTransformPipeline::stacks_` now (render_terrain.cpp read it at pipeline +0x24 / +0x28 and drew no terrain once `MatrixStack` changed: the goldens did not notice, the render_shadows* / render_terrain_seams / render_loose_bmp checks did; run the render_* scenarios after a layout change); the 2DintMMX DLL's `RasterTarget` keeps its layout (its keyed triangle path is never taken: nothing allocates a keyed texture's texels).
 - STLport `vector`, `list`, the hashtable and the tree (strings are std::string; stlp::string is gone; vectors and
   lists of plain elements are std, see C14b below; hash maps and maps are std or lib::HashMap, see C14c): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`

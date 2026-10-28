@@ -52,7 +52,6 @@ void DropPreset(RenderPresetRecord* record) { Release(record->preset); }
 // What a failed Direct3D call leaves as its result: the fatal error's (0 when it comes back).
 CRenderPreset* Failed(int errorResult) { return reinterpret_cast<CRenderPreset*>(static_cast<std::uintptr_t>(errorResult)); }
 
-constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
 
 
 } // namespace
@@ -316,10 +315,6 @@ void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(bloc
 // which no object reaches, are not modelled.
 
 // ---- The transform pipeline (CTransformPipeline) -------------------------------------------------------------
-
-MatrixStack::MatrixStack() : matrices(lib::AlignedArray<Matrix4>::Allocate(kMatrixStackDepth)), count(0) {}
-
-MatrixStack::~MatrixStack() { lib::FreeAligned32(matrices); }
 
 namespace {
 

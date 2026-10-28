@@ -30,6 +30,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -126,7 +127,7 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(panel->surfaces_.data[0]), rect_{15, 10, 185, 25} {}
+        : panel_(panel), draw_(panel->surfaces_[0]), rect_{15, 10, 185, 25} {}
 
     CUiSurface* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
@@ -236,7 +237,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
-    CUiSurface* draw = surfaces_.data[0];
+    CUiSurface* draw = surfaces_[0];
     draw->GetDC();
     draw->Clear();
     draw->ReleaseDC();
@@ -577,7 +578,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     CSpell* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        surfaces_.data[0]->ReleaseDC();   // without a Begin, like the game
+        surfaces_[0]->ReleaseDC();   // without a Begin, like the game
         return;
     }
     CTextManager* texts = TextManager();

@@ -67,7 +67,7 @@ public:
     void Rewind();
     // Binds the first part named like each node as its mesh (one more reference; a mesh held before is
     // overwritten without a release). Returns 1.
-    int AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts);
+    int AttachMeshes(const std::vector<CFigureMesh*>* parts);
 
     // Cleared by the constructor and the destructor; nothing reads them.
     std::uint32_t spare000_;

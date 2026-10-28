@@ -274,7 +274,7 @@ Hero panels, trade panel, strips (`ui_camp_stats.cpp`, `ui_stats_buttons.cpp`, `
   used.
 - Draw details: `CRepairGrid::Draw` puts models at depth 2^(3 - row) * 6; the constructor pages' highlight p = (cos(5 t) +
   1) / 2 stored as float, colours truncated and clamped (an integer edge may differ at another precision; ui_camp_deals
-  pages 3, 5, 6). Lists are `UiItemList` = `lib::AlignedArray<CItem*>`.
+  pages 3, 5, 6). Lists are `UiItemList` = `std::vector<CItem*>`.
 - Trade panel (`ui_trade_panel.cpp`; ui_trade_restore): `SnapshotRecord` copies floats as dwords, `Settle` (the all-branch
   tests the low byte of `keep`), `RestoreRecord` (HealSlots by old hp / old max * new max - Reduce(new max), the maxima
   stored as float). `OnLButtonDown` (`ui_trade_panel_input.cpp`; ui_trade_hold with `ldown` / `lup`, purchases only in

@@ -145,7 +145,7 @@ void CMpHeroScreen::CreateScreen() {
         mesh->flags_ |= kPlainSprite;
         mesh->flatColour_ = colour;
     };
-    auto texture = [this](int index) { return objects_.data[index]; };
+    auto texture = [this](int index) { return objects_[index]; };
     // 0, 1: the two buttons under the list; 2: the selection frame.
     sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32)->texture_ = texture(kSaveLoadTexture);
     sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32)->texture_ = texture(kSaveLoadTexture);
@@ -335,11 +335,11 @@ void CMpHeroScreen::CreateScreen() {
     AddSurface(NewSurface(interface_, 100, 100, 390, 220));
     AddSurface(NewSurface(interface_, 0, 300, 200, 500));
     AddSurface(NewSurface(interface_, 425, 110, 555, 126));
-    surfaces_.data[kSurfaceRename]->Freeze(0, 0);
+    surfaces_[kSurfaceRename]->Freeze(0, 0);
 
     // The list's four commands.
     std::string text;
-    CUiSurface* commands = surfaces_.data[kSurfaceCommands];
+    CUiSurface* commands = surfaces_[kSurfaceCommands];
     UiSurfaceGetDC(commands);
     commands->Clear();
     const char* const commandKeys[] = {

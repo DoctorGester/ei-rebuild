@@ -11,6 +11,7 @@
 #include "lib/vecmath.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -60,9 +61,9 @@ void CAnimationNode::Rewind() {
 }
 
 // The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
-int CAnimationNode::AttachMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
-    for (int i = 0; i < parts->size; ++i) {
-        CFigureMesh* part = parts->data[i];
+int CAnimationNode::AttachMeshes(const std::vector<CFigureMesh*>* parts) {
+    for (int i = 0; i < std::ssize(*parts); ++i) {
+        CFigureMesh* part = (*parts)[i];
         if (std::strcmp(part->GetName(), name_.c_str()) != 0) continue;
         mesh_ = part;
         ++mesh_->refCount_;
@@ -88,7 +89,7 @@ void SceneSkin::Rewind() {
     clock[1] = 0;
 }
 
-int SceneSkin::BindMeshes(const lib::AlignedArray<CFigureMesh*>* parts) {
+int SceneSkin::BindMeshes(const std::vector<CFigureMesh*>* parts) {
     if (root) root->AttachMeshes(parts);
     return 1;
 }

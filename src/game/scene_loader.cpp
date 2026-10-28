@@ -28,6 +28,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace scene {
 namespace {
@@ -86,7 +87,7 @@ using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> 
 
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
-    for (; count--; ++keys) keys->points.FreeData();
+    for (; count--; ++keys) lib::FreeStorage(keys->points);
 }
 
 namespace {
@@ -181,16 +182,16 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
             u = uv[0];
             v = uv[1];
         }
-        m.positions.SetAtGrow(m.positions.size, PointBits{{x, point[1], point[2]}});
+        lib::SetAtGrow(m.positions, std::ssize(m.positions), PointBits{{x, point[1], point[2]}});
         // The third corner goes through the out-of-line Add instantiations (same effect).
         if (corner < 2) {
-            m.texCoords.SetAtGrow(m.texCoords.size, UvBits{{u, v}});
+            lib::SetAtGrow(m.texCoords, std::ssize(m.texCoords), UvBits{{u, v}});
             m.sources.SetAtGrow(m.sources.size, face->position[corner]);
         } else {
-            m.texCoords.Add(UvBits{{u, v}});
+            m.texCoords.push_back(UvBits{{u, v}});
             m.sources.Add(face->position[corner]);
         }
-        m.index.ElementAt(key) = static_cast<std::uint32_t>(m.positions.size - 1);
+        m.index.ElementAt(key) = static_cast<std::uint32_t>(std::ssize(m.positions) - 1);
         m.seen.ElementAt(key) = 1;
     }
     meshFace->vertex[corner] = m.index.ElementAt(key);
@@ -305,16 +306,15 @@ void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* no
     keys.SetSize(r.morphHeads.size);
     for (int k = 0; k < r.morphHeads.size; ++k) {
         int count = h.pointCount;
-        PointBits* points = count ? PointBuffer::Allocate(count) : nullptr;
+        PointBuffer points(static_cast<std::size_t>(count));
         FileMorphHead& head = r.morphHeads.data[k];
         Read(file_, &head.frame, 4);
         Read(file_, &head.extra, 4);
-        Read(file_, points, h.pointCount * 12);
+        Read(file_, points.data(), h.pointCount * 12);
         NodeMorphKey& key = keys.data[k];
         key.frame = static_cast<std::int16_t>(head.frame);
-        key.points.SetSize(count);
-        for (int p = 0; p < count; ++p) std::memcpy(&key.points.data[p], &points[p], sizeof(PointBits));
-        if (points) PointBuffer::Free(points);
+        key.points.resize(count);
+        for (int p = 0; p < count; ++p) std::memcpy(&key.points[p], &points[p], sizeof(PointBits));
     }
 }
 
@@ -322,10 +322,10 @@ void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* no
 // vertices.
 void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     FaceBuffer& meshFaces = mesh->faces;
-    meshFaces.SetSize(r.faces.size);
+    meshFaces.resize(r.faces.size);
     for (int f = 0; f < r.faces.size; ++f) {
         const FileFace* from = r.Face(f);
-        MeshFace& to = meshFaces.data[f];
+        MeshFace& to = meshFaces[f];
         for (int d = 0; d < 3; ++d) {
             to.vertex[d] = from->position[d];
             to.vertex2[d] = from->texture[d];
@@ -350,16 +350,16 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
         for (int j = 0; j < group->faces.size; ++j) {
             std::uint32_t faceIndex = r.Group(g)->faces.data[j];
             for (int corner = 0; corner < 3; ++corner) {
-                MeshFace* meshFace = &mesh->faces.data[faceIndex];
+                MeshFace* meshFace = &mesh->faces[faceIndex];
                 MergeCorner(r, m, meshFace, faceIndex, corner);
             }
         }
     }
 
-    mesh->positions.Copy(m.positions);
-    mesh->texCoords.Copy(m.texCoords);
-    m.positions.SetSize(0);
-    m.texCoords.SetSize(0);
+    mesh->positions = m.positions;
+    mesh->texCoords = m.texCoords;
+    m.positions.clear();
+    m.texCoords.clear();
     // The mesh's groups sized as their instantiation (FaceGroup's constructor and destructor).
     FaceGroupArray* groups = &mesh->groups;
     groups->SetSize(r.groups.size, -1);
@@ -370,18 +370,17 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     // Every morph key's points, reordered to the merged vertices.
     auto& morph = node->morphKeys;
     for (int k = 0; k < morph.size; ++k) {
-        lib::AlignedArray<Vector3> reordered{};
-        reordered.SetSize(m.sources.size);
+        std::vector<Vector3> reordered{};
+        reordered.resize(m.sources.size);
         for (int v = 0; v < m.sources.size; ++v) {
             std::uint32_t source = m.sources.data[v];
-            std::memcpy(&reordered.data[v], &morph.data[k].points.data[source], sizeof(Vector3));   // as dwords
+            std::memcpy(&reordered[v], &morph.data[k].points[source], sizeof(Vector3));   // as dwords
         }
-        morph.data[k].points.Copy(reordered);
-        reordered.FreeData();
+        morph.data[k].points = reordered;
     }
 
-    m.texCoords.FreeData();
-    m.positions.FreeData();
+    lib::FreeStorage(m.texCoords);
+    lib::FreeStorage(m.positions);
     DestructArrayOf<mfc::impl::IndexArrayClass>(m.sources);
     DestructArrayOf<mfc::impl::SceneObjectArrayClass>(m.maps);
     Map32::Destruct<mfc::impl::DwordMapClass>(&m.index);
@@ -468,12 +467,12 @@ void Loader::SkipRecord() {
     if (version_ == kVersionWithNormals) Read(file_, normals.data, normals.size * 0x14);
     for (int k = 0; k < morphHeads.size; ++k) {
         PointBuffer points;
-        points.Construct();
-        points.SetSize(h.pointCount, -1);
+        std::construct_at(&points);
+        points.resize(h.pointCount);
         Read(file_, &morphHeads.data[k].frame, 4);
         Read(file_, &morphHeads.data[k].extra, 4);
-        Read(file_, points.data, h.pointCount * 12);
-        points.FreeData();
+        Read(file_, points.data(), h.pointCount * 12);
+        lib::FreeStorage(points);
     }
     DestructArrayOf<mfc::impl::NormalArrayClass>(normals);
     DestructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
@@ -585,7 +584,7 @@ void SceneNode::Destruct() {
     FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
     FreeArray(frames, mfc::impl::BoneLinkArrayClass::Vtable());
     FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
-    FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
+    FreeArray(morphKeys, mfc::impl::MorphKeyArrayClass::Vtable());
     FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
     FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
     std::destroy_at(&parent);
@@ -605,7 +604,7 @@ void SceneNode::Construct() {
     restRotation.SetIdentity();
     rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
     positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
-    morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
+    morphKeys.Construct(mfc::impl::MorphKeyArrayClass::Vtable());
     normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     frames.Construct(mfc::impl::BoneLinkArrayClass::Vtable());
     children.Construct(mfc::impl::NodeItemsCClass::Vtable());
@@ -620,17 +619,6 @@ SceneMesh::SceneMesh() {
 
 SceneMesh::~SceneMesh() {
     FaceGroupArrayDestruct(&groups);
-    faces.FreeData();
-    cornerIndices.FreeData();
-    pairs.FreeData();
-    corners.FreeData();
-    normals.FreeData();
-    texCoords.FreeData();
-    positions.FreeData();
-    spareBlocks0C8.FreeData();
-    normalBlocks.FreeData();
-    positionBlocks.FreeData();
-    spareBlocks098.FreeData();
 }
 
 void InitSceneMesh(SceneMesh* p) { new (p) SceneMesh(); }
@@ -796,16 +784,16 @@ mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, Fake
     // The figures take the meshes' matrices (64-byte blocks: the figure's vertex and normal
     // packets); their colour arrays get four entries per matrix.
     auto copyBlocks = [](auto& to, const BlockBuffer& from) {
-        to.SetSize(from.size);
-        std::memcpy(static_cast<void*>(to.data), from.data, static_cast<std::size_t>(from.size) << 6);
+        to.resize(std::ssize(from));
+        std::memcpy(static_cast<void*>(to.data()), from.data(), static_cast<std::size_t>(std::ssize(from)) << 6);
     };
     for (int i = 0; i < meshes->size; ++i) {
         CFigureMesh& figure = figureArray.data[i];
         const SceneMesh& mesh = meshArray.data[i];
         copyBlocks(figure.vertices_, mesh.positionBlocks);
         copyBlocks(figure.normals_, mesh.normalBlocks);
-        figure.colorsA_.SetSize(figure.normals_.size * 4);
-        figure.colorsB_.SetSize(figure.normals_.size * 4);
+        figure.colorsA_.resize(std::ssize(figure.normals_) * 4);
+        figure.colorsB_.resize(std::ssize(figure.normals_) * 4);
         std::memcpy(&figure.center_, &mesh.center, sizeof(Vector3));
         std::memcpy(&figure.boxMin_, &mesh.boxMin, sizeof(Vector3));
         std::memcpy(&figure.boxMax_, &mesh.boxMax, sizeof(Vector3));

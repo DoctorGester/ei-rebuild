@@ -176,8 +176,8 @@ public:
     std::string name_;                  // (the scene loader names it after its mesh)
     std::string directory_;             // where its .fig file is (NewFigure empties it)
     std::vector<Vector3> offsets_;     // per-vertex offsets added when drawing
-    lib::AlignedArray<std::uint32_t> colorsA_;   // one per normal (lit colours)
-    lib::AlignedArray<std::uint32_t> colorsB_;   // one per normal
+    std::vector<std::uint32_t> colorsA_;   // one per normal (lit colours)
+    std::vector<std::uint32_t> colorsB_;   // one per normal
     // from the file header (before meshType_): the material value of the scene's mesh (the number in its
     // material group's name). An object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
     std::uint32_t materialValue_;
@@ -190,8 +190,8 @@ public:
     // (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"; the centre
     // is the piece's place in the figure, the radius the blood's size.
     FootprintPart box_;                 // bounds_ and the part's position when it was loaded (cleared with the bounds)
-    lib::AlignedArray<VertexPacket> vertices_;
-    lib::AlignedArray<NormalPacket> normals_;
+    std::vector<VertexPacket> vertices_;
+    std::vector<NormalPacket> normals_;
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, localRotation_) == 0x34);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);

@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 using BOOL = int;
 
@@ -30,7 +31,7 @@ struct PartyUnitRecord;
 
 // A party's item list (CParty::items_) and a unit record's (PartyUnitRecord::weapons, ...): an
 // aligned array of item pointers.
-using PartyItemArray = lib::AlignedArray<CItem*>;
+using PartyItemArray = std::vector<CItem*>;
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};

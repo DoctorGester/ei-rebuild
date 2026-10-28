@@ -61,7 +61,7 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
 - `static_cast<T*>(gamecrt::operator_new(sizeof(T)))` is `gamecrt::operator_new_as<T>()`; a literal size
   the class's size matches (with a `static_assert(sizeof(T) == ...)`) goes the same way, the size in a comment.
   A block of another size is `operator_new_bytes_as<T>(bytes)`, `count` elements `operator_new_array<T>(count)`,
-  and an aligned block of `count` T `lib::AlignedArray<T>::Allocate(count)` (the library's MFC code too).
+  and a block of `count` T that is only a buffer a `std::vector<T>(count)` (C14h: no aligned allocation is left).
   Left: `operator_new_zeroed` (light.cpp), allocations written to before the null test (world_units' player mode)
   and the AI grids' row tables (ai_*.cpp, the C15 area).
 - A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)

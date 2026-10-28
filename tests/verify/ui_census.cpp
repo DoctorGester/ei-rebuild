@@ -286,20 +286,16 @@ std::string WindowLabel(const void* window, const void* surface) {
     std::uintptr_t vtable = 0;
     if (!SafeRead(window, &vtable, sizeof(vtable))) return "W?";
     vtable = WindowKind(window);  // game.exe's table of the window's kind
-    // The window's surfaces (an aligned array: data, size), where each side keeps them.
-    const void* dataField = nullptr;
-    const void* sizeField = nullptr;
-    if (ei::Standalone()) {
-        image::WindowSurfaceFields(window, &dataField, &sizeField);
-    } else {
-        const auto* view = static_cast<const exe::CUiWindow*>(window);
-        dataField = &view->surfaces_.data;
-        sizeField = &view->surfaces_.size;
-    }
+    // The window's surfaces (data, size), where each side keeps them.
     const void* const* data = nullptr;
     int size = 0;
-    SafeRead(dataField, &data, sizeof(data));
-    SafeRead(sizeField, &size, sizeof(size));
+    if (ei::Standalone()) {
+        image::WindowSurfaces(window, &data, &size);
+    } else {
+        const auto* view = static_cast<const exe::CUiWindow*>(window);
+        SafeRead(&view->surfaces_.data, &data, sizeof(data));
+        SafeRead(&view->surfaces_.size, &size, sizeof(size));
+    }
     int index = -1;
     for (int i = 0; i < size && i < 64 && data; ++i) {
         const void* entry = nullptr;

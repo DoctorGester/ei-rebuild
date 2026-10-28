@@ -129,8 +129,8 @@ void CObject3D::TearDownObject3D() {
     if (CLinkMesh* current = figure) {
         if (--current->refCount_ == 0) delete current;
     }
-    if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
-    if (parts.data) gamecrt::operator_delete(parts.data[-1]);
+    lib::FreeStorage(pendingParts);
+    lib::FreeStorage(parts);
     // The part list: emptied, its blocks freed.
     effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
     mfc::CPlex* blocks = effectSources.blocks;

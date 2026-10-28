@@ -204,7 +204,7 @@ void AddCurtains(CUiWindow* window, int visible) {
 }
 
 void ShowHeroCurtains(CUiWindow* window, int mode) {
-    if (!Active() || window->sceneObjects_.size != kHeroScreenSprites) return;
+    if (!Active() || std::ssize(window->sceneObjects_) != kHeroScreenSprites) return;
     const int shown = mode != kHeroListMode ? 1 : 0;
     window->SceneMesh(kHeroScreenSprites - 2)->visible_ = shown;
     window->SceneMesh(kHeroScreenSprites - 1)->visible_ = shown;

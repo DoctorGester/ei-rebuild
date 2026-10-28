@@ -27,7 +27,7 @@
 
 namespace {
 
-using ColourArray = lib::AlignedArray<std::uint32_t>;
+using ColourArray = std::vector<std::uint32_t>;
 
 constexpr int kDrawScreenRect = 1;    // draw flag: the part's screen rectangle is kept
 constexpr int kDrawSpecular = 8;      // draw flag: the material keeps its speculars
@@ -62,7 +62,7 @@ std::vector<PixelPair>& TexturePixels() {
 constexpr RECT kNoScreen = /*0073D780*/ {0, 0, 0, 0};
 
 void Fill(ColourArray& array, std::uint32_t value) {
-    for (int i = 0; i < array.size; ++i) array.data[i] = value;
+    for (int i = 0; i < std::ssize(array); ++i) array[i] = value;
 }
 
 // Vertex i of `packets` (component i & 3 of packet i >> 2), coordinate `axis`.
@@ -118,12 +118,12 @@ struct PartDraw {
         const float vOffset = std::bit_cast<float>(v);
         if (textured) {
             return device->DrawMeshBlocks2(first, second, positions, r.vertices.count, normals, r.normals.count,
-                                           colours->data, speculars->data, texCoords, r.texCoords.count, corners,
+                                           colours->data(), speculars->data(), texCoords, r.texCoords.count, corners,
                                            r.corners.count, words, r.words.count, indices, r.indices.count, uOffset,
                                            vOffset, kOpaque, flags);
         }
-        return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data,
-                                      speculars->data, texCoords, r.texCoords.count, corners, r.corners.count, words,
+        return device->DrawMeshBlocks(positions, r.vertices.count, normals, r.normals.count, colours->data(),
+                                      speculars->data(), texCoords, r.texCoords.count, corners, r.corners.count, words,
                                       r.words.count, indices, r.indices.count, uOffset, vOffset, kOpaque, flags);
     }
 };
@@ -171,11 +171,11 @@ bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::
                             ColourArray* colours, ColourArray* speculars) {
     auto node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
-    colours->SetSizeDiscard(node->second.normals.count * 4);
-    speculars->SetSizeDiscard(node->second.normals.count * 4);
+    colours->resize(node->second.normals.count * 4);
+    speculars->resize(node->second.normals.count * 4);
     Fill(*colours, colour);
     Fill(*speculars, specular);
-    render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps
+    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the new renderer keeps
     return true;
 }
 
@@ -188,8 +188,8 @@ bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, C
     auto node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
-    colours->SetSizeDiscard(r.normals.count * 4);
-    speculars->SetSizeDiscard(r.normals.count * 4);
+    colours->resize(r.normals.count * 4);
+    speculars->resize(r.normals.count * 4);
 
     (void)lights;   // the GPU's (figure_part_draw.cpp, PartLighting)
     Fill(*colours, material->GpuLitColour());
@@ -205,7 +205,7 @@ bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, C
     } else {
         Fill(*speculars, alphaByte << 24);
     }
-    render::MeshChanged(colours->data, render::MeshChange::Colours);   // the colours the new renderer keeps
+    render::MeshChanged(colours->data(), render::MeshChange::Colours);   // the colours the new renderer keeps
     return true;
 }
 

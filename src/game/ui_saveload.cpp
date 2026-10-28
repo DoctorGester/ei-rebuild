@@ -131,7 +131,7 @@ void CSaveLoadWindow::ShowPicture() {
         found = find.FindFile(path);
     }
     if (!found) return;
-    CDXSurface* holder = HolderOf(objects_.data[1]);
+    CDXSurface* holder = HolderOf(objects_[1]);
     gameapi::EnterCriticalSection(TheDeviceLock());
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
@@ -144,7 +144,7 @@ void CSaveLoadWindow::ShowPicture() {
     file.Close();
     gameapi::LeaveCriticalSection(TheDeviceLock());
     SceneMesh(3)->visible_ = 1;
-    SceneMesh(3)->texture_ = objects_.data[1];
+    SceneMesh(3)->texture_ = objects_[1];
 }
 
 namespace {
@@ -356,7 +356,7 @@ void CSaveLoadWindow::FillEntries() {
             CTexture* shot = CreateTexture(0x100, 0x100, 0x1E);
             dialog_ = shot;
             ++shot->refCount_;
-            RemoveObjectAt(objects_.size - 1);
+            RemoveObjectAt(std::ssize(objects_) - 1);
             CDXSurface* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(TheDeviceLock());
             PicturePixels pixels(holder);

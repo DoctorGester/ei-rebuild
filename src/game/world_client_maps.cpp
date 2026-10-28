@@ -268,7 +268,7 @@ int CWorldClient::AddObject(CMapObject* object) {
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
         CObject3D* figure = object->Object3D();
-        for (int i = 0; i < figure->parts.size; ++i) {
+        for (int i = 0; i < std::ssize(figure->parts); ++i) {
             if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
                 int id = object->id_;
                 platforms_.AddBox(id, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
@@ -320,7 +320,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     }
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
     CObject3D* figure = object->Object3D();
-    for (int i = 0; i < figure->parts.size; ++i) {
+    for (int i = 0; i < std::ssize(figure->parts); ++i) {
         if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
         platforms_.AddBox(object->id_, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
     }
@@ -645,15 +645,15 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         unit->ReleaseAllItems();
-        for (int j = 0; j < record->weapons.size; ++j)
+        for (int j = 0; j < std::ssize(record->weapons); ++j)
             unit->AddWeapon(record->weapons[j]);
         CUnitController* controller = unit->Controller();
-        if (record->weapons.size != 0) controller->ShowWeapon(0);
-        for (int j = 0; j < record->armor.size; ++j) {
+        if (!record->weapons.empty()) controller->ShowWeapon(0);
+        for (int j = 0; j < std::ssize(record->armor); ++j) {
             CItem* armour = record->armor[j];
             if (allArmour || AsArmor(armour)->GetType() != 0) unit->EquipArmour(armour);
         }
-        for (int j = 0; j < record->quickItems.size; ++j)
+        for (int j = 0; j < std::ssize(record->quickItems); ++j)
             unit->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();

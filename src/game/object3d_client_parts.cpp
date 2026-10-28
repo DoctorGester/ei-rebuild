@@ -64,9 +64,7 @@ bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
             PartGroup* group = set->groups[g];
             for (int i = 0; i < std::ssize(group->parts); ++i) {
                 if (group->parts[i] != part) continue;
-                int tail = std::ssize(group->parts) - i - 1;
-                if (tail != 0) std::memmove(&group->parts[i], &group->parts[i + 1], static_cast<std::size_t>(tail) * 4);
-                group->parts.pop_back();
+                group->parts.erase(group->parts.begin() + i);
                 part->Release();
                 return true;
             }

@@ -238,7 +238,7 @@ void CObjectivesWindow::Update() {
     blinkTime_ = static_cast<float>(time);
     const std::uint32_t slow = gamecrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = gamecrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = exits_.size + kFirstExitSprite; i < sceneObjects_.size; ++i) {
+    for (int i = exits_.size + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;
         place->flatColour_ = fast << 24 | 0xFF0000u;

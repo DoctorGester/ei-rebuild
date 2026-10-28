@@ -3600,6 +3600,13 @@ files = ["src/lib/mfc_archive.h", "src/lib/mfc_archive.cpp", "src/lib/mfc_except
 note = "C14d left src/lib/mfc_archive.h/.cpp (CArchive over a lib::File, StoreText / LoadText / ReadStringLength / WideToMultiByte) and CArchiveException / ThrowArchiveException (mfc_exception), reached only by the MFC collections' Serialize slots (mfc_slots.h, mfc_array.cpp's Strings::Serialize, game_arrays.h / game_slots.h / party_lifetime.cpp's CompiledCollection tags). Nothing builds an archive, so the slots are dead. When C14m has moved CArray / CList to std (or makes slot 2 CObject's empty Serialize), delete them with mfc_archive, CArchiveException (its vtable row 00746808 to file -, kClassCArchiveException 007467D8 to gen_image_cells UNREAD), kIdpArchiveNone and its resource strings, and the replay_unlinked.cpp stub."
 
 [[ticket]]
+id = "C14s"
+title = "C14 hand-inlined growBy arrays left: CObject3D partBoxes, the AI map's cellRowGrowBy rows, map spec / script SetSize copies"
+group = "cleanup"
+depends = ["C14m"]
+note = "C14h found these hand-written aligned / MFC array shapes outside the vector retype: object3d_figure_setup's partBoxes SetSize (pointer, count, capacity, growBy in CObject3D), ai_local_search's cellRowGrowBy, map_spec_unit and script_addon growBy loops. Each is an inlined CArray SetSize: std::vector once C14m has merged."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

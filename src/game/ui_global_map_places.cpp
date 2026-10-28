@@ -20,6 +20,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -117,9 +118,9 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         CUiMesh* marker = Marker(i);
         int state = zones_.data[i].state;
         if (state == 0) {
-            marker->texture_ = objects_.data[2];
+            marker->texture_ = objects_[2];
         } else if (state == 1 || state == 2) {
-            marker->texture_ = objects_.data[0];
+            marker->texture_ = objects_[0];
             float scale = state == 1 ? 1.0f : 0.5f;
             for (int k = 0; k < 3; ++k) marker->tint_[k] = i == zone ? fog_[k] * scale : scale;
         } else {
@@ -139,7 +140,7 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
 // layers and the rest) shown or hidden.
 void CGlobalMap::ShowAllButZones(int visible) {
     for (int i = 0; i < 3; ++i) SceneMesh(i)->visible_ = visible;
-    for (int i = zoneCount_ + 3; i < sceneObjects_.size; ++i) SceneMesh(i)->visible_ = visible;
+    for (int i = zoneCount_ + 3; i < std::ssize(sceneObjects_); ++i) SceneMesh(i)->visible_ = visible;
 }
 
 void CGlobalMap::RefreshSelection() {
@@ -151,8 +152,8 @@ void CGlobalMap::RefreshSelection() {
         marker->flatColour_ = ((((level | 0xFFFFFF00u) << 8) | level) << 8) | level;
         marker->flags_ |= 0x100u;
     }
-    surfaces_.data[1]->Freeze(0, 0);
-    surfaces_.data[0]->Freeze(0, 0);
+    surfaces_[1]->Freeze(0, 0);
+    surfaces_[0]->Freeze(0, 0);
     ShowAllButZones(0);
     SetRenderState(interface_->renderer_, kShadeMode, 1);
     SetRenderState(interface_->renderer_, kDitherEnable, 0);
@@ -162,7 +163,7 @@ void CGlobalMap::RefreshSelection() {
     SceneRenderer()->fogColour_ = colour;
     SetRenderState(interface_->renderer_, kShadeMode, 2);
     SetRenderState(interface_->renderer_, kDitherEnable, 1);
-    surfaces_.data[1]->Freeze(1, 0);
+    surfaces_[1]->Freeze(1, 0);
     ShowAllButZones(1);
     SceneMesh(markerCount_ + 6)->visible_ = 0;
     SceneMesh(markerCount_ + 7)->visible_ = 0;

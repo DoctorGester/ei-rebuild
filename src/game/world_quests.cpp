@@ -456,10 +456,10 @@ CItem* AddToRecord(CParty* party, PartyUnitRecord* record, CItem* item) {
 
 // The record's four lists emptied (armour, weapons, spells, quick items: the first entry each time).
 void ClearRecordItems(PartyUnitRecord* record) {
-    while (record->armor.size) record->RemoveArmor(record->armor[0]);
-    while (record->weapons.size) record->RemoveWeapon(record->weapons[0]);
-    while (record->spells.size) record->RemoveSpell(record->spells[0]);
-    while (record->quickItems.size) record->RemoveQuickItem(record->quickItems[0]);
+    while (!record->armor.empty()) record->RemoveArmor(record->armor[0]);
+    while (!record->weapons.empty()) record->RemoveWeapon(record->weapons[0]);
+    while (!record->spells.empty()) record->RemoveSpell(record->spells[0]);
+    while (!record->quickItems.empty()) record->RemoveQuickItem(record->quickItems[0]);
 }
 
 void SyncRecord(CParty* party, PartyUnitRecord* record, CUnit* unit) {
@@ -640,7 +640,7 @@ void CWorldServer::StorePlayerItems(CPlayer* player, CParty* party) {
 
 void CWorldServer::ClearPlayerItems(CPlayer* player) {
     CParty* party = player->Party();
-    while (party->items_.size != 0) party->RemoveItem(party->items_.data[0], 1);
+    while (!party->items_.empty()) party->RemoveItem(party->items_[0], 1);
 }
 
 void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {

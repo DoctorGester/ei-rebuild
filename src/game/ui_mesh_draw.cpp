@@ -145,7 +145,7 @@ int CUiMesh::GetClassId() { return I3DFigureClassId(this); }
 // --- The arrays' sizes ---------------------------------
 
 void CUiMesh::SetQuadCount(int count) {
-    vertices_.SetSize(count);
+    vertices_.resize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
             vertices_[i].z()[k] = 0.0f;

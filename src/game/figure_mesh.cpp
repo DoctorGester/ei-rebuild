@@ -316,11 +316,11 @@ namespace {
 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
 // each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
-void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
+void LoadVertices(std::vector<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
     const std::uint32_t one = 0x3F800000;
     if (magic == kFig8Magic) {
-        for (int i = 0; i < vertices.size; ++i) {
-            VertexPacket& v = vertices.data[i];
+        for (int i = 0; i < std::ssize(vertices); ++i) {
+            VertexPacket& v = vertices[i];
             for (int b = 0; b < 3; ++b) {
                 MorphBlock(v.block[b], FloatsAt(*cursor), s, t, u);
                 *cursor += 0x80;
@@ -329,8 +329,8 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
         }
         return;
     }
-    for (int i = 0; i < vertices.size; ++i) {
-        VertexPacket& v = vertices.data[i];
+    for (int i = 0; i < std::ssize(vertices); ++i) {
+        VertexPacket& v = vertices[i];
         for (int b = 0; b < 3; ++b) {
             std::memcpy(v.block[b], *cursor, 16);
             *cursor += 0x10;
@@ -359,15 +359,15 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     meshType_ = Read<std::uint32_t>(*cursor);
     LoadBounds(cursor, s, t, u, header.magic);
 
-    vertices_.SetSize(header.vertexCount);
+    vertices_.resize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
+    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
 
-    normals_.SetSize(header.normalCount);
-    colorsA_.SetSize(header.normalCount * 4);
-    colorsB_.SetSize(header.normalCount * 4);
+    normals_.resize(header.normalCount);
+    colorsA_.resize(header.normalCount * 4);
+    colorsB_.resize(header.normalCount * 4);
     if (header.normalCount != 0) {
-        std::memcpy(normals_.data, *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        std::memcpy(normals_.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
         *cursor += header.normalCount * 0x40;
     }
     LoadArray(texCoords_, cursor, header.texCoordCount);
@@ -376,12 +376,12 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     LoadArray(words_, cursor, header.wordCount);
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data;
-    buffers_.vertexCount = vertices_.size;
-    buffers_.normals = normals_.data;
-    buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);
-    colorsB_.SetSize(normals_.size * 4);
+    buffers_.vertices = vertices_.data();
+    buffers_.vertexCount = std::ssize(vertices_);
+    buffers_.normals = normals_.data();
+    buffers_.normalCount = std::ssize(normals_);
+    colorsA_.resize(std::ssize(normals_) * 4);
+    colorsB_.resize(std::ssize(normals_) * 4);
     buffers_.texCoords = texCoords_.data();
     buffers_.texCoordCount = std::ssize(texCoords_);
     buffers_.indices = indices_.data();
@@ -402,15 +402,15 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     meshType_ = Read<std::uint32_t>(*cursor);
     LoadBounds(cursor, s, t, u, header.magic);
 
-    vertices_.SetSize(header.vertexCount);
+    vertices_.resize(header.vertexCount);
     LoadVertices(vertices_, cursor, header.magic, s, t, u);
-    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
+    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
 
-    normals_.SetSize(header.normalCount);
-    colorsA_.SetSize(header.normalCount * 4);
-    colorsB_.SetSize(header.normalCount * 4);
+    normals_.resize(header.normalCount);
+    colorsA_.resize(header.normalCount * 4);
+    colorsB_.resize(header.normalCount * 4);
     if (header.normalCount != 0) {
-        std::memcpy(normals_.data, *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
+        std::memcpy(normals_.data(), *cursor, static_cast<std::size_t>(header.normalCount) * sizeof(NormalPacket));
         *cursor += header.normalCount * 0x40;
     }
     // The rest stays in the file data.
@@ -424,12 +424,12 @@ void CSharedFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.wordCount = header.wordCount;
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data;
-    buffers_.vertexCount = vertices_.size;
-    buffers_.normals = normals_.data;
-    buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);
-    colorsB_.SetSize(normals_.size * 4);
+    buffers_.vertices = vertices_.data();
+    buffers_.vertexCount = std::ssize(vertices_);
+    buffers_.normals = normals_.data();
+    buffers_.normalCount = std::ssize(normals_);
+    colorsA_.resize(std::ssize(normals_) * 4);
+    colorsB_.resize(std::ssize(normals_) * 4);
     flags_ |= 0x20;
 }
 
@@ -456,9 +456,9 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
     *cursor += 0xF0;
 
     int count = ReadCount(cursor);
-    mesh->vertices_.SetSize(count);
+    mesh->vertices_.resize(count);
     for (int i = 0; i < count; ++i) {
-        VertexPacket& v = mesh->vertices_.data[i];
+        VertexPacket& v = mesh->vertices_[i];
         for (int b = 0; b < 3; ++b) {
             MorphBlock6(v.block[b], FloatsAt(*cursor), s, t, u);
             *cursor += 0x60;
@@ -466,16 +466,16 @@ void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, 
         const std::uint32_t one = 0x3F800000;
         for (int k = 3; k >= 0; --k) std::memcpy(&v.block[3][k], &one, 4);
     }
-    if (mesh->vertices_.size != 0) FitBounds(&mesh->box_.bounds, mesh->vertices_.data, mesh->vertices_.size);
+    if (!mesh->vertices_.empty()) FitBounds(&mesh->box_.bounds, mesh->vertices_.data(), std::ssize(mesh->vertices_));
 
     count = ReadCount(cursor);
-    mesh->normals_.SetSize(count);
-    mesh->colorsA_.SetSize(count * 4);
-    mesh->colorsB_.SetSize(count * 4);
+    mesh->normals_.resize(count);
+    mesh->colorsA_.resize(count * 4);
+    mesh->colorsB_.resize(count * 4);
     if (count != 0) {
-        std::memcpy(mesh->normals_.data, *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
+        std::memcpy(mesh->normals_.data(), *cursor, static_cast<std::size_t>(count) * sizeof(NormalPacket));
         *cursor += count * 0x40;
-        for (int i = 0; i < mesh->colorsB_.size; ++i) mesh->colorsB_.data[i] = 0xFF000000;
+        for (int i = 0; i < std::ssize(mesh->colorsB_); ++i) mesh->colorsB_[i] = 0xFF000000;
     }
 }
 
@@ -497,12 +497,12 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     LoadArray(indices_, cursor, ReadCount(cursor));
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data;
-    buffers_.vertexCount = vertices_.size;
-    buffers_.normals = normals_.data;
-    buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);
-    colorsB_.SetSize(normals_.size * 4);
+    buffers_.vertices = vertices_.data();
+    buffers_.vertexCount = std::ssize(vertices_);
+    buffers_.normals = normals_.data();
+    buffers_.normalCount = std::ssize(normals_);
+    colorsA_.resize(std::ssize(normals_) * 4);
+    colorsB_.resize(std::ssize(normals_) * 4);
     buffers_.texCoords = texCoords_.data();
     buffers_.texCoordCount = std::ssize(texCoords_);
     buffers_.corners = corners_.data();
@@ -529,12 +529,12 @@ void CSharedFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.indices = InFile<std::uint16_t>(cursor, buffers_.indexCount);
 
     BuffersChanged();
-    buffers_.vertices = vertices_.data;
-    buffers_.vertexCount = vertices_.size;
-    buffers_.normals = normals_.data;
-    buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4);
-    colorsB_.SetSize(normals_.size * 4);
+    buffers_.vertices = vertices_.data();
+    buffers_.vertexCount = std::ssize(vertices_);
+    buffers_.normals = normals_.data();
+    buffers_.normalCount = std::ssize(normals_);
+    colorsA_.resize(std::ssize(normals_) * 4);
+    colorsB_.resize(std::ssize(normals_) * 4);
     flags_ |= 0x20;
 }
 
@@ -583,9 +583,9 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 namespace {
 // Negates one component block of every packet.
 template <typename Packet>
-void NegateBlock(lib::AlignedArray<Packet>& packets, int block) {
-    for (int i = 0; i < packets.size; ++i) {
-        float* v = packets.data[i].block[block];
+void NegateBlock(std::vector<Packet>& packets, int block) {
+    for (int i = 0; i < std::ssize(packets); ++i) {
+        float* v = packets[i].block[block];
         for (int k = 0; k < 4; ++k) v[k] = -v[k];
     }
 }
@@ -616,7 +616,7 @@ void CPlainFigureMesh::MirrorX() {
 }
 
 void CFigureMesh::FitVertexBounds() {
-    if (vertices_.size != 0) FitBounds(&box_.bounds, vertices_.data, vertices_.size);
+    if (!vertices_.empty()) FitBounds(&box_.bounds, vertices_.data(), std::ssize(vertices_));
 }
 
 void CPlainFigureMesh::MirrorY() {
@@ -628,12 +628,12 @@ void CPlainFigureMesh::MirrorY() {
 
 void CPlainFigureMesh::RefreshBuffers() {
     BuffersChanged();
-    buffers_.vertices = vertices_.data;
-    buffers_.vertexCount = vertices_.size;
-    buffers_.normals = normals_.data;
-    buffers_.normalCount = normals_.size;
-    colorsA_.SetSize(normals_.size * 4, -1);
-    colorsB_.SetSize(normals_.size * 4, -1);
+    buffers_.vertices = vertices_.data();
+    buffers_.vertexCount = std::ssize(vertices_);
+    buffers_.normals = normals_.data();
+    buffers_.normalCount = std::ssize(normals_);
+    colorsA_.resize(std::ssize(normals_) * 4);
+    colorsB_.resize(std::ssize(normals_) * 4);
     buffers_.texCoords = texCoords_.data();
     buffers_.texCoordCount = std::ssize(texCoords_);
     buffers_.corners = corners_.data();

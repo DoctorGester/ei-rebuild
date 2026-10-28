@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace scene {
 
@@ -29,9 +30,9 @@ namespace {
 // The mesh fields written here: corners, pairs and cornerIndices (SceneMesh, scene_loader.h).
 using Corner = MeshCornerKey;
 
-// The mesh's arrays are engine aligned arrays (lib::AlignedArray): the corner table (6-byte Corners), the
+// The mesh's arrays: the corner table (6-byte Corners), the
 // corner indices (words) and the pairs (dwords).
-using DwordArray = lib::AlignedArray<std::uint32_t>;
+using DwordArray = std::vector<std::uint32_t>;
 
 // The three CMaps (mfc::CMap) and their associations:
 //   corners: 64-bit key -> 64-bit value
@@ -73,7 +74,7 @@ V& Lookup(mfc::CMap<K, V>& map, K key) {
     return map.ElementAt(key);
 }
 
-const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces.data[f]; }
+const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces[f]; }
 
 // The corner key: ((vertex << 16) | position) << 16 | texture vertex, in 64 bits (via __allshl), the
 // indices zero-extended.
@@ -84,9 +85,9 @@ std::uint64_t CornerKey(const MeshFace& face, int k) {
 
 // The index of the corner (vertex, position, texture) in the table, -1 when absent.
 int FindCorner(SceneMesh* mesh, std::uint32_t vertex, std::uint32_t position, std::uint32_t texture) {
-    const lib::AlignedArray<Corner>& table = mesh->corners;
-    const Corner* c = table.data;
-    for (int i = 0; i < table.size; ++i) {
+    const std::vector<Corner>& table = mesh->corners;
+    const Corner* c = table.data();
+    for (int i = 0; i < std::ssize(table); ++i) {
         if (c[i].vertex == vertex && c[i].position == position && c[i].texture == texture) return i;
     }
     return -1;
@@ -95,7 +96,7 @@ int FindCorner(SceneMesh* mesh, std::uint32_t vertex, std::uint32_t position, st
 // Steps 1-3: the distinct corners, sorted, into the corner table (`indices` maps each corner key
 // to its place before the sort; nothing reads it).
 void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners, IndexMap& indices) {
-    for (int f = 0; f < mesh->faces.size; ++f) {
+    for (int f = 0; f < std::ssize(mesh->faces); ++f) {
         for (int k = 0; k < 3; ++k) {
             std::uint64_t key = CornerKey(FaceAt(mesh, f), k);
             Lookup(corners, key) = key;
@@ -117,9 +118,9 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
     }
     GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), CompareCornerRecords);
 
-    mesh->corners.SetSize(records.size);
+    mesh->corners.resize(records.size);
     for (int i = 0; i < records.size; ++i) {
-        Corner* c = mesh->corners.data + i;
+        Corner* c = mesh->corners.data() + i;
         c->vertex = static_cast<std::uint16_t>(records.data[i].vertex);
         c->position = static_cast<std::uint16_t>(records.data[i].position);
         c->texture = static_cast<std::uint16_t>(records.data[i].texture);
@@ -128,13 +129,13 @@ void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners,
 
 // Step 4: each face corner's index in the table (-1 when absent), appended to +0x128.
 void IndexFaceCorners(SceneMesh* mesh) {
-    mesh->cornerIndices.SetSize(0, -1);
-    for (int f = 0; f < mesh->faces.size; ++f) {
+    mesh->cornerIndices.clear();
+    for (int f = 0; f < std::ssize(mesh->faces); ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             int index = FindCorner(mesh, face.vertex[k], face.position[k], face.vertex2[k]);
-            lib::AlignedArray<std::uint16_t>& out = mesh->cornerIndices;
-            out.SetAtGrow(out.size, static_cast<unsigned short>(index));
+            std::vector<std::uint16_t>& out = mesh->cornerIndices;
+            lib::SetAtGrow(out, std::ssize(out), static_cast<unsigned short>(index));
         }
     }
 }
@@ -143,7 +144,7 @@ void IndexFaceCorners(SceneMesh* mesh) {
 // of the last vertex and following positions, into +0x118.
 void BuildPairs(SceneMesh* mesh) {
     PairMap pairs = NewMap<PairMap>(mfc::impl::CornerMapCClass::Vtable());
-    for (int f = 0; f < mesh->faces.size; ++f) {
+    for (int f = 0; f < std::ssize(mesh->faces); ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             std::uint32_t key = (face.vertex[k] << 16) | face.position[k];
@@ -151,34 +152,33 @@ void BuildPairs(SceneMesh* mesh) {
         }
     }
 
-    DwordArray list{nullptr, 0, 0, 0};
+    DwordArray list;
     if (pairs.count != 0) {
         for (Assoc32* a = pairs.Next(nullptr); a; a = pairs.Next(a)) {
             std::uint32_t value = a->value;
             std::uint32_t pair = (value >> 16) | (value << 16);   // words: vertex, position
-            int at = list.size;
-            list.SetSize(at + 1, -1);
-            list.data[at] = pair;
+            int at = std::ssize(list);
+            list.resize(at + 1);
+            list[at] = pair;
         }
     }
-    GameQsort(list.data, static_cast<unsigned>(list.size), 4, CompareWordPairs);
-    if (list.size & 3) {
-        int missing = 4 - (list.size & 3);
-        const std::uint32_t last = list.data[list.size - 1];   // words: vertex, position
+    GameQsort(list.data(), static_cast<unsigned>(std::ssize(list)), 4, CompareWordPairs);
+    if (std::ssize(list) & 3) {
+        int missing = 4 - (std::ssize(list) & 3);
+        const std::uint32_t last = list[std::ssize(list) - 1];   // words: vertex, position
         std::uint16_t vertex = static_cast<std::uint16_t>(last);
         std::uint16_t position = static_cast<std::uint16_t>(last >> 16);
         for (int i = 0; i < missing; ++i) {
             ++position;
-            int at = list.size;
-            list.SetSize(at + 1, -1);
-            list.data[at] = static_cast<std::uint32_t>(vertex) |
-                                                               (static_cast<std::uint32_t>(position) << 16);
+            int at = std::ssize(list);
+            list.resize(at + 1);
+            list[at] = static_cast<std::uint32_t>(vertex) | (static_cast<std::uint32_t>(position) << 16);
         }
     }
     DwordArray& out = mesh->pairs;
-    out.SetSize(list.size, -1);
-    std::memcpy(out.data, list.data, static_cast<std::size_t>(list.size) * 4);
-    list.FreeData();
+    out.resize(std::ssize(list));
+    std::memcpy(out.data(), list.data(), static_cast<std::size_t>(std::ssize(list)) * 4);
+    lib::FreeStorage(list);
     DestroyMap(pairs, mfc::impl::CornerMapCClass::Vtable());
 }
 

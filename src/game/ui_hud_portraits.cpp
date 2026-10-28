@@ -135,12 +135,12 @@ Quaternion AxisAngle(float x, float y, float z, float angle) {
 
 void CHudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : static_cast<float>(CUiContainer::FrameTime());
-    Sprite(sceneObjects_.data[0])->visible_ = 0;   // the selection marker
+    Sprite(sceneObjects_[0])->visible_ = 0;   // the selection marker
 
     for (int i = 0; i < owner_->party_.size; ++i) {
         if (i >= count_) continue;
         // Objects 5i+1 .. 5i+5, read afresh each time (replacing the face model may move the array).
-        auto object = [this, i](int k) { return sceneObjects_.data[i * 5 + k]; };
+        auto object = [this, i](int k) { return sceneObjects_[i * 5 + k]; };
         HudPortraitSlot& slot = slots_[i];
         CUnit* unit = owner_->party_[i];
 
@@ -286,10 +286,10 @@ void CHudPortraits::Update() {
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
         if (SelectedUnitId() == unit->id_) {
-            Sprite(sceneObjects_.data[0])->visible_ = 1;
+            Sprite(sceneObjects_[0])->visible_ = 1;
             float x, y, depth;
             Sprite(object(4))->GetPlacement(&x, &y, &depth);
-            Sprite(sceneObjects_.data[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
+            Sprite(sceneObjects_[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
         }
     }
 }

@@ -23,13 +23,8 @@
 
 namespace {
 
-// The aligned block of a list (kept at data[-1]) freed, the pointer left as it is.
-void FreeStorage(PartyItemArray& list) {
-    if (list.data != nullptr) gamecrt::operator_delete(list.data[-1]);
-}
-
 void ReleaseAll(const PartyItemArray& list) {
-    for (int i = 0; i < list.size; ++i) list.data[i]->Release();
+    for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
 }
 
 // The values the constructor and destructor set (twice in the constructor, around ClearItems).
@@ -47,10 +42,7 @@ void SetDefaults(PartyUnitRecord& record) {
 PartyUnitRecord* PartyUnitRecord::Construct() {
     for (std::string& text : texts) std::construct_at(&text);
     for (PartyItemArray* list : {&weapons, &quickItems, &armor, &spells}) {
-        list->data = nullptr;
-        list->growBy = 0;
-        list->capacity = 0;
-        list->size = 0;
+        std::construct_at(list);
     }
     scaleX = 0.8f;
     scaleY = 0.2f;
@@ -66,10 +58,10 @@ void PartyUnitRecord::Destruct() {
     ClearItems();
     SetDefaults(*this);
     fightAtWill = 1;
-    FreeStorage(spells);
-    FreeStorage(armor);
-    FreeStorage(quickItems);
-    FreeStorage(weapons);
+    lib::FreeStorage(spells);
+    lib::FreeStorage(armor);
+    lib::FreeStorage(quickItems);
+    lib::FreeStorage(weapons);
     for (int i = 6; i >= 0; --i) std::destroy_at(&texts[i]);
 }
 
@@ -78,10 +70,10 @@ void PartyUnitRecord::ClearItems() {
     ReleaseAll(quickItems);
     ReleaseAll(armor);
     ReleaseAll(spells);
-    weapons.SetSize(0, -1);
-    quickItems.SetSize(0, -1);
-    armor.SetSize(0, -1);
-    spells.SetSize(0, -1);
+    weapons.clear();
+    quickItems.clear();
+    armor.clear();
+    spells.clear();
 }
 
 // --- The record array ---------------------------------------------------------------------------
@@ -162,7 +154,7 @@ void Drop(T*& object) {
 }
 
 void ReleaseItems(const PartyItemArray& items) {
-    for (int i = 0; i < items.size; ++i) items.data[i]->Release();
+    for (int i = 0; i < std::ssize(items); ++i) items[i]->Release();
 }
 
 } // namespace
@@ -174,10 +166,6 @@ CParty::CParty() {
     members_.growBy = 0;
     members_.maxSize = 0;
     members_.size = 0;
-    items_.data = nullptr;
-    items_.growBy = 0;
-    items_.capacity = 0;
-    items_.size = 0;
     itemManager_ = nullptr;
     spellManager_ = nullptr;
     itemConstructor_ = nullptr;
@@ -187,7 +175,7 @@ CParty::CParty() {
 CParty::~CParty() {
     Clear(1, 1);
     CParty::Destroy();
-    if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
+    lib::FreeStorage(items_);
     members_.vtable = PartyMembers::Vtable();
     if (members_.data != nullptr) {
         for (int i = 0; i != members_.size; ++i) members_.data[i].Destruct();
@@ -227,7 +215,7 @@ int CParty::Create() {
 void CParty::Destroy() {
     members_.SetSize(0, -1);
     ReleaseItems(items_);
-    items_.SetSize(0, -1);
+    items_.clear();
     Drop(itemConstructor_);
     Drop(spellConstructor_);
     Drop(itemManager_);
@@ -236,7 +224,7 @@ void CParty::Destroy() {
 
 void CParty::Clear(int clearVariables, int keepSpells) {
     ReleaseItems(items_);
-    items_.SetSize(0, -1);
+    items_.clear();
     if (itemManager_ != nullptr) itemManager_->DestroyAll();
     if (spellManager_ != nullptr) {
         spellManager_->Destroy();

@@ -91,10 +91,10 @@ void CHudClock::SetupVanilla(int fast) {
                                      OnArc(i, Sixth(), OuterRadius()), OnArc(i + 1, Sixth(), OuterRadius())};
         for (const ArcPoint& corner : corners) sector->AddPoint(kLayoutRight - corner.across, kLayoutBottom - corner.up);
     }
-    regions_.data[0]->SetTip(0x28A0, 1, 1);
+    regions_[0]->SetTip(0x28A0, 1, 1);
     if (!IsMultiplayerClient()) {
-        regions_.data[1]->SetTip(0x28A2, 1, 2);
-        regions_.data[2]->SetTip(0x28A3, 1, 3);
+        regions_[1]->SetTip(0x28A2, 1, 2);
+        regions_[2]->SetTip(0x28A3, 1, 3);
     }
     // The objectives button: the quarter disc in the corner.
     CUiRegion* middle = AddRegion();

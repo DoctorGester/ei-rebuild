@@ -19,9 +19,10 @@ struct RasterTriangle {
         Point texture;
     };
     Corner corners[3];
-    // A keyed texture's texels (CTexture::block_), or null. Set: the figure meshes rasterise through
-    // the triangle virtual, which samples them as 16-bit 1:5:5:5 texels at the corners' texture points
-    // (wrapping at the row pitch, RasterTarget::keyPitch) and shadows only where the top bit is set.
+    // A keyed texture's texels, or null (always: nothing allocates a keyed texture's texels, the former
+    // CTexture::block_). Set, the DLL's keyed triangle virtual would sample them as 16-bit 1:5:5:5 texels at the
+    // corners' texture points (wrapping at the row pitch, RasterTarget::keyPitch) and shadow only where the top
+    // bit is set. The layout is the DLL's.
     const std::uint8_t* keyTexels;
 };
 static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);

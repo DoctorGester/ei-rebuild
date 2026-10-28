@@ -1,6 +1,6 @@
 // A party's unit records: adding one from a prototype (its texts, statistics and starting items),
 // removing one, the record's assignment and the copy of another record's items; the record lists' copies of
-// AlignedPtrArray::SetAtGrow. See party.h, unit.h and docs/notes/items_spells.md ("Party").
+// item arrays' SetAtGrow. See party.h, unit.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
 #include "game_strings.h"
@@ -55,11 +55,11 @@ bool Named(const std::string& name) {
 
 // The party's copies of `source`'s items, each with the source's count and a reference.
 void CopyList(PartyItemArray& list, const PartyItemArray& source, CParty* party) {
-    list.SetSize(source.size, -1);
-    for (int i = 0; i < source.size; ++i) {
-        CItem* item = source.data[i];
-        list.data[i] = party->CopyItem(item);
-        CItem* copy = list.data[i];
+    list.resize(std::ssize(source));
+    for (int i = 0; i < std::ssize(source); ++i) {
+        CItem* item = source[i];
+        list[i] = party->CopyItem(item);
+        CItem* copy = list[i];
         copy->count_ = item->count_;
         ++copy->refCount_;
     }
@@ -134,14 +134,14 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         CItem* item = MakeItem(this, armour.begin()[i].c_str());
         CItem* copy = CountedClone(item);
-        record->armor.SetAtGrow(record->armor.size, copy);
+        lib::SetAtGrow(record->armor, std::ssize(record->armor), copy);
         Drop(item);
     }
     for (const auto* weapon : {&prototype->weaponName, &prototype->secondWeaponName}) {
         if (!Named((*weapon))) continue;
         CItem* item = MakeItem(this, (*weapon).c_str());
         CItem* copy = CountedClone(item);
-        record->weapons.SetAtGrow(record->weapons.size, copy);
+        lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
     const std::vector<std::string>& spellNames = prototype->spellNames;
@@ -150,9 +150,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
         CItem* copy = CountedClone(spell);
         PartyItemArray& list = record->spells;
-        int index = list.size;
-        list.SetSize(index + 1, -1);
-        list.data[index] = copy;
+        int index = std::ssize(list);
+        list.resize(index + 1);
+        list[index] = copy;
         Drop(spell);
     }
     record->texts[6] = record->texts[5];
@@ -162,9 +162,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
 BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     // Each list emptied from the front (the first entry is looked up and found at 0).
     for (PartyItemArray* list : {&record->spells, &record->weapons}) {
-        while (list->size != 0) {
-            list->data[0]->Release();
-            list->RemoveRange(0, 1);
+        while (!list->empty()) {
+            (*list)[0]->Release();
+            list->erase(list->begin() + 0, list->begin() + (0 + 1));
         }
     }
     auto* npc = unitdb::NpcTable().byName[std::string(record->texts[5].c_str())];
@@ -174,21 +174,21 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
-        record->spells.Add(CountedClone(spell));
+        record->spells.push_back(CountedClone(spell));
         Drop(spell);
     }
     const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
         CItem* item = MakeItem(this, quickNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);
-        record->quickItems.SetAtGrow(record->quickItems.size, copy);
+        lib::SetAtGrow(record->quickItems, std::ssize(record->quickItems), copy);
         Drop(item);
     }
     const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
         CItem* item = MakeItem(this, weaponNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);
-        record->weapons.SetAtGrow(record->weapons.size, copy);
+        lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
     Money() += npc->startMoney;

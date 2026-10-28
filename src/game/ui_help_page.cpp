@@ -239,7 +239,7 @@ void CHelpWindow::ShowPage() {
                     const int cellY = pictures % 4 * kPictureSize;
                     {
                         std::string name = std::string(kPicturePrefix) + entry.picture.data();
-                        CopyImage(objects_.data[1], name.c_str(), kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
+                        CopyImage(objects_[1], name.c_str(), kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
                     CUiMesh* picture = AddSprite(nullptr);
@@ -248,7 +248,7 @@ void CHelpWindow::ShowPage() {
                     picture->textureOffsetV_ = static_cast<float>(cellY + kPictureSize) * Texel();
                     picture->PlaceBody(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
-                    picture->texture_ = objects_.data[1];
+                    picture->texture_ = objects_[1];
                     pictures_.push_back(picture);
                     ++pictures;
                 }
@@ -307,7 +307,7 @@ void CHelpWindow::ShowPage() {
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
         footer->DrawTextIn(lines_[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_.data[0]->SetTip(0x7595, 1, 0);
+        regions_[0]->SetTip(0x7595, 1, 0);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
         std::string hint;
@@ -320,7 +320,7 @@ void CHelpWindow::ShowPage() {
     if (page_ < static_cast<int>(lines_.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};
         footer->DrawTextIn(lines_[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
-        regions_.data[2]->SetTip(0x7596, 1, 0);
+        regions_[2]->SetTip(0x7596, 1, 0);
     }
     UiSurfaceReleaseDC(footer);
 

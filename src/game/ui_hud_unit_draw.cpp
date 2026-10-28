@@ -111,8 +111,8 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
     }
 
     for (int i = kFirstDisplay; i < kDisplaysEnd; ++i) Sprite(this, i)->visible_ = 0;
-    UiSurfaceGetDC(surfaces_.data[0]);
-    surfaces_.data[0]->Clear();
+    UiSurfaceGetDC(surfaces_[0]);
+    surfaces_[0]->Clear();
 
     if (unit && unit->Object3D()->attached) {
         CObject3D* model = unit->Object3D();
@@ -175,7 +175,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
         }
 
         RECT nameRect = {5, 5, 155, 20};
-        surfaces_.data[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, DT_CENTER | DT_WORDBREAK, 1);
+        surfaces_[0]->DrawWrappedText(name, &nameRect, 2, 0, kTextColour, DT_CENTER | DT_WORDBREAK, 1);
 
         switch (bodyPart_) {
         case 0: {
@@ -210,7 +210,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
         }
     }
 
-    UiSurfaceReleaseDC(surfaces_.data[0]);
+    UiSurfaceReleaseDC(surfaces_[0]);
     widescreen::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
     return 1;

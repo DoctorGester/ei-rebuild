@@ -46,8 +46,8 @@ namespace {
 
 CParty* PlayerParty() { return LocalPlayerData(); }
 
-CItem* ItemOf(CParty* list, int i) { return list->items_.data[i]; }
-int CountOf(CParty* list) { return list->items_.size; }
+CItem* ItemOf(CParty* list, int i) { return list->items_[i]; }
+int CountOf(CParty* list) { return std::ssize(list->items_); }
 
 // An item a constructor made: a move into a list shown turning sets its turn's flag.
 bool IsMade(CItem* item) {
@@ -64,7 +64,7 @@ void ScrollTo(CUiItemStrip* strip, CItem* item) { strip->ScrollToItem(item); }
 // `results` is re-read every time: a made item goes to `owner` and into `strip`, the others to the local
 // player and into the item strip.
 void TakeResults(CCampPages* camp, CParty* const& results, CParty* owner, CUiItemStrip* strip) {
-    for (CParty* list = results; list->items_.size != 0; list = results) {
+    for (CParty* list = results; !list->items_.empty(); list = results) {
         CItem* item = ItemOf(list, 0);
         if (IsMade(item)) {
             ScrollTo(strip, MoveBetween(camp, item, owner, list, 0, 1, 0));
@@ -185,7 +185,7 @@ void CCampPages::ShowPage(int page) {
         page_ = page;
         statsPanel_->ShowStats(page);
         trade_->SelectHero(hero_);
-        CUiSurface* title = surfaces_.data[1];
+        CUiSurface* title = surfaces_[1];
         UiSurfaceGetDC(title);
         title->Clear();
         RECT rect = {0, 10, 200, 30};
@@ -197,13 +197,13 @@ void CCampPages::ShowPage(int page) {
     if (page_ == 0 && (!itemConstructor_ || noConstructor_)) {
         SceneMesh(0)->visible_ = 0;
         SceneMesh(1)->visible_ = 0;
-        regions_.data[0]->SetTip(0, 1, 0);
-        regions_.data[1]->SetTip(0, 1, 0);
+        regions_[0]->SetTip(0, 1, 0);
+        regions_[1]->SetTip(0, 1, 0);
     } else {
         SceneMesh(0)->visible_ = 1;
         SceneMesh(1)->visible_ = 1;
-        regions_.data[0]->SetTip(0x4EE8, 1, 0);
-        regions_.data[1]->SetTip(0x4EE9, 1, 0);
+        regions_[0]->SetTip(0x4EE8, 1, 0);
+        regions_[1]->SetTip(0x4EE9, 1, 0);
     }
     // The page buttons (scene objects 2-9) half bright, the current one full.
     for (int i = 2; i < 10; ++i) SetShade(SceneMesh(i), 0.5f);
@@ -490,8 +490,8 @@ void CCampPages::UpdateAction() {
         // Repair all the hero's weapons and armour (where the item constructor works).
         if (itemConstructor_ && !noConstructor_) {
             PartyUnitRecord* hero = HeroRecord();
-            for (int i = 0; i < hero->weapons.size; ++i) cost_ += price(hero->weapons[i], 8);
-            for (int i = 0; i < hero->armor.size; ++i) cost_ += price(hero->armor[i], 8);
+            for (int i = 0; i < std::ssize(hero->weapons); ++i) cost_ += price(hero->weapons[i], 8);
+            for (int i = 0; i < std::ssize(hero->armor); ++i) cost_ += price(hero->armor[i], 8);
             actionEnabled_ = cost_ > 0;
             if (actionEnabled_) action = "camp_repair_all";
         }
@@ -546,7 +546,7 @@ void CCampPages::UpdateAction() {
     std::string text;
     std::string line;
     CTextManager* texts = TheTextManager();
-    CUiSurface* draw = surfaces_.data[0];
+    CUiSurface* draw = surfaces_[0];
     UiSurfaceGetDC(draw);
     draw->Clear();
     if (action.size() != 0) {
@@ -830,7 +830,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 void RebuildArmourLayers(PartyUnitRecord* hero) {
     UnitStats* stats = StatsOf(hero);
     stats->ClearOuterLayers();
-    for (int i = 0; i < hero->armor.size; ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
+    for (int i = 0; i < std::ssize(hero->armor); ++i) stats->AddArmourLayer(AsArmor(hero->armor[i]));
 }
 
 } // namespace
@@ -845,16 +845,16 @@ CItem* CCampPages::TakeOff(CItem* item) {
     switch (ItemType(item)) {
     case 0x3004: {
         // The chosen weapon moves back when the item lies before it.
-        int count = hero->weapons.size;
-        CItem** weapons = hero->weapons.data;
+        int count = std::ssize(hero->weapons);
+        CItem** weapons = hero->weapons.data();
         for (int i = 0; i < count; ++i) {
             if (weapons[i] != item) continue;
             if (static_cast<std::uint32_t>(i) < hero->weaponIndex) --hero->weaponIndex;
             break;
         }
         hero->RemoveWeapon(item);
-        if (hero->weaponIndex >= static_cast<std::uint32_t>(hero->weapons.size))
-            hero->weaponIndex = static_cast<std::uint32_t>(hero->weapons.size - 1);
+        if (hero->weaponIndex >= static_cast<std::uint32_t>(std::ssize(hero->weapons)))
+            hero->weaponIndex = static_cast<std::uint32_t>(std::ssize(hero->weapons) - 1);
         RefreshWeapons();
         break;
     }
@@ -890,15 +890,15 @@ void CCampPages::PutOn(CItem* item) {
     PartyUnitRecord* hero = HeroRecord();
     switch (ItemType(item)) {
     case 0x3004:
-        if (hero->weapons.size >= 4) return;
+        if (std::ssize(hero->weapons) >= 4) return;
         hero->AddWeapon(item);
-        if (hero->weapons.size == 1) hero->weaponIndex = 0;
+        if (std::ssize(hero->weapons) == 1) hero->weaponIndex = 0;
         RefreshWeapons();
         break;
     case 0x3005: {
         // Each piece on the same body part comes off first.
         int type = AsArmor(item)->GetType();
-        for (int i = 0; i < hero->armor.size; ++i) {
+        for (int i = 0; i < std::ssize(hero->armor); ++i) {
             if (AsArmor(hero->armor[i])->GetType() == type)
                 TakeOff(hero->armor[i]);
         }
@@ -911,11 +911,11 @@ void CCampPages::PutOn(CItem* item) {
         break;
     }
     case 0x3006:
-        if (hero->quickItems.size >= 4) return;
+        if (std::ssize(hero->quickItems) >= 4) return;
         hero->AddQuickItem(item);
         break;
     case 0x3008:
-        if (hero->spells.size >= 8) return;
+        if (std::ssize(hero->spells) >= 8) return;
         hero->AddSpell(item);
         break;
     default:
@@ -934,7 +934,7 @@ bool ShiftHeld(CInterface3D* ui) { return ui->shiftDown_ != 0; }
 // Whether `list` holds `item`.
 bool ListHolds(CParty* list, const CItem* item) {
     for (int i = 0; i < CountOf(list); ++i)
-        if (list->items_.data[i] == item) return true;
+        if (list->items_[i] == item) return true;
     return false;
 }
 } // namespace
@@ -1084,7 +1084,7 @@ void CCampPages::RefreshWeapons() {
     CUnit* unit = heroes_[hero_];
     unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(-1));
     for (int slot = 0; slot < 4; ++slot) unit->RemoveWeapon(slot);
-    for (int i = 0; i < hero->weapons.size; ++i)
+    for (int i = 0; i < std::ssize(hero->weapons); ++i)
         unit->AddWeapon(hero->weapons[i]);
     unit->SendEquipment();
     unit->Controller()->ShowWeapon(hero->weaponIndex);

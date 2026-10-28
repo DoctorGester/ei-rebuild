@@ -43,8 +43,8 @@ void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
 // bought (upper) and sold (lower) lists, as do the text rows.
 void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurface* surface, std::string& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
-    CItem** items = list->data;
-    int count = list->size;
+    CItem** items = list->data();
+    int count = std::ssize(*list);
     for (int i = 0; i < count; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
@@ -80,7 +80,7 @@ int CTradeGrid::DrawGrid(CSceneRenderer* pass) {
     DrawBase(pass);
 
     std::string text;
-    auto* surface = surfaces_.data[0];
+    auto* surface = surfaces_[0];
     surface->GetDC();
     surface->Clear();
     DrawItems(this, pass, bought_, surface, text, 150.0f /*0073D618*/, 48.0f, 24.0f, 0x0F, 0x41,

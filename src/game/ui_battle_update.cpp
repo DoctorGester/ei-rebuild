@@ -51,7 +51,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_.data[i]->SetTip(0, 1, 0);
+        regions_[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
     entries_.SetSize(0, -1);   // (zeroed new entries)
@@ -68,7 +68,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // The sprite just added: placed in its row (x from the panels' right column, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
+        CEngineObject* sprite = sceneObjects_[shownCount_ - 1];
         const float right = widescreen::g_panelRight;
         if (slot < 4)
             AsUiMesh(sprite)->PlaceBody(right - static_cast<float>(slot * 50), 575.0f, 20.0f);
@@ -77,7 +77,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         int last = shownCount_ - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < shownCount_) {
-            CEngineObject* shown = sceneObjects_.data[last];
+            CEngineObject* shown = sceneObjects_[last];
             AsUiMesh(shown)->SetScale(slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->flatSpecular_ = 0xFF000000;
         }
@@ -94,7 +94,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, true);
         ItemTip(slot, &tip);
-        regions_.data[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x2A);
+        regions_[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -120,7 +120,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         finish(item, false);
         // The same CString serves as the second and third texts.
         TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
-        regions_.data[slot]->SetTipString(tip.c_str(), 1, 0);
+        regions_[slot]->SetTipString(tip.c_str(), 1, 0);
         place(slot);
         ++slot;
     }

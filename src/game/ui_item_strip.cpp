@@ -153,7 +153,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     };
     const char* const kNumber = "%d";
     std::string text;
-    CUiSurface* counts = surfaces_.data[0];
+    CUiSurface* counts = surfaces_[0];
     counts->GetDC();
     counts->Clear();
     for (int i = 0; i < 8; ++i) {
@@ -165,7 +165,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
         counts->DrawLine(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     counts->ReleaseDC();
-    CUiSurface* numbers = surfaces_.data[1];
+    CUiSurface* numbers = surfaces_[1];
     numbers->GetDC();
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {

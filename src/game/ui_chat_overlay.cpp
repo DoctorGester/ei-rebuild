@@ -208,13 +208,13 @@ constexpr COLORREF kTypedColour = 0xFFFFFF;
 
 void CChatOverlay::DrawTyped() {
     if (!chatOpen_) {
-        surfaces_.data[0]->Freeze(0, 0);
+        surfaces_[0]->Freeze(0, 0);
         return;
     }
-    surfaces_.data[0]->Freeze(1, 0);
+    surfaces_[0]->Freeze(1, 0);
     if (caret_ > static_cast<int>(typed_.size())) caret_ = typed_.size();
     if (caret_ < 0) caret_ = 0;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};

@@ -59,11 +59,11 @@ void CPlainFigureMesh::LoadTransform(lib::File* file) {
     Read(file, str::SetLength(name_, length), length);
     // The arrays the file fills (the renderer's descriptor is not updated here).
     int count = ReadCount(file);
-    vertices_.SetSize(count);
-    Read(file, vertices_.data, count * 0x40);
+    vertices_.resize(count);
+    Read(file, vertices_.data(), count * 0x40);
     count = ReadCount(file);
-    normals_.SetSize(count);
-    Read(file, normals_.data, count * 0x40);
+    normals_.resize(count);
+    Read(file, normals_.data(), count * 0x40);
     count = ReadCount(file);
     texCoords_.resize(count);
     Read(file, texCoords_.data(), count * 8);

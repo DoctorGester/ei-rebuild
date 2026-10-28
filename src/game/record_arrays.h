@@ -123,8 +123,8 @@ struct DeltaFieldArrayClass final
     : mfc::impl::CompiledCollection<DeltaFieldArrayClass, &DeltaFields::Destruct<DeltaFieldArrayClass>, &DeltaFields::Serialize> {};
 using TerrainTileLists = ArrayAbi<terrain::TileList, terrain::TileListElements>;
 // The terrain sectors' tile lists (one vector per texture page).
-struct TerrainAlignedArrayClass final
-    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainTileLists::Destruct<TerrainAlignedArrayClass>, &TerrainTileLists::Serialize> {};
+struct TerrainTileListsClass final
+    : mfc::impl::CompiledCollection<TerrainTileListsClass, &TerrainTileLists::Destruct<TerrainTileListsClass>, &TerrainTileLists::Serialize> {};
 // CAnimationNode's morph frames (their point vectors).
 using MorphFrames = ArrayAbi<AnimationMorphFrame, AnimationMorphFrameElements>;
 struct MorphFrameArrayClass final

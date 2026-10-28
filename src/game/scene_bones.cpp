@@ -18,11 +18,12 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <vector>
 
 namespace scene {
 namespace {
 
-using PointArray = lib::AlignedArray<Vector3>;
+using PointArray = std::vector<Vector3>;
 
 // Out-of-line SetSize [size, growth or -1]: the morph frames'; the aligned arrays' (a frame's points, the children;
 // a frame's points copied) are their members.
@@ -86,15 +87,15 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             out.frame = frame;
             ++frame;
             out.next = frame;
-            out.points.resize(KeyPoints(node, 0).size);
+            out.points.resize(std::ssize(KeyPoints(node, 0)));
             for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
                 Vector3* p = &frames.data[index].points[j];
                 if (key <= 0) {
-                    std::memcpy(p, &KeyPoints(node, key).data[j], sizeof(Vector3));
+                    std::memcpy(p, &KeyPoints(node, key)[j], sizeof(Vector3));
                     continue;
                 }
-                const Vector3& a = KeyPoints(node, key - 1).data[j];
-                const Vector3& b = KeyPoints(node, key).data[j];
+                const Vector3& a = KeyPoints(node, key - 1)[j];
+                const Vector3& b = KeyPoints(node, key)[j];
                 *p = Lerp(a, b, t);
             }
             continue;
@@ -108,16 +109,16 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
         out.frame = frame;
         ++frame;
         out.next = frame;
-        out.points.resize(KeyPoints(node, 0).size);
+        out.points.resize(std::ssize(KeyPoints(node, 0)));
         if (key >= node->morphKeys.size) {
             const PointArray& last = KeyPoints(node, key - 1);
-            frames.data[index].points.assign(last.data, last.data + last.size);
+            frames.data[index].points.assign(last.data(), last.data() + std::ssize(last));
             continue;
         }
         for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
             Vector3* p = &frames.data[index].points[j];
-            const Vector3* a = &KeyPoints(node, key - 1).data[j];
-            const Vector3* b = &KeyPoints(node, key).data[j];
+            const Vector3* a = &KeyPoints(node, key - 1)[j];
+            const Vector3* b = &KeyPoints(node, key)[j];
             Vector3 d, s, r;
             SubtractVectors(&d, *b, *a);
             ScaleVector(&s, d, toNext);
@@ -132,7 +133,7 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
 // `node` is the scene node, the low word of `frames` the animation's frame count.
 void BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames) {
     CAnimationNode* added = bone;
-    skin->bones.SetAtGrowRef(skin->bones.size, &added);
+    lib::SetAtGrow(skin->bones, std::ssize(skin->bones), *(&added));
     bone = added;
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);
@@ -145,7 +146,7 @@ void BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int
     std::memcpy(&bone->restRotation_, &node->restRotation, sizeof(Quaternion));
     std::memcpy(&bone->restPosition_, &node->restPivot, sizeof(Vector3));
     if (node->morphKeys.size != 0) {
-        const auto points = static_cast<std::size_t>(KeyPoints(node, 0).size);
+        const auto points = static_cast<std::size_t>(std::ssize(KeyPoints(node, 0)));
         bone->pointsA_.assign(points, Vector3{});
         bone->pointsB_.assign(points, Vector3{});
     }

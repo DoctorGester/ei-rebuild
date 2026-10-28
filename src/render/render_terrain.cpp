@@ -3,6 +3,7 @@
 #include "render.h"
 #include "render_internal.h"
 
+#include "../game/model.h"
 #include "../game/terrain_sector.h"
 #include "../hook/log.h"
 
@@ -757,15 +758,15 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
     // vertices with (the landscape's model matrix pushed by the terrain passes on top of the view).
-    const char* pipeline = *reinterpret_cast<char* const*>(static_cast<const char*>(renderer) + 8);
+    const CTransformPipeline* pipeline = static_cast<const CSceneRenderer*>(renderer)->pipeline_;
     if (!pipeline) return;
-    const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
-    int depth = *reinterpret_cast<const int*>(pipeline + 0x28);
-    if (!stack || depth <= 0) return;
+    const MatrixStack& clipStack = pipeline->stacks_[CTransformPipeline::kClipStack];
+    const int depth = clipStack.count;
+    if (depth <= 0) return;
     int lod = s->detail;
     if (lod < 0 || lod > 2) return;
     if (!f.haveFog) ReadFog(f);
-    int matrix = AddMatrix(stack[depth - 1]);
+    int matrix = AddMatrix(clipStack.matrices[depth - 1]);
     const void* texture = PageTexture(s, page);
     bool water = page >= s->pages + 2;
     bool seams = lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0);

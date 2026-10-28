@@ -30,10 +30,10 @@ constexpr std::uint16_t kQuadCorners[] = {0, 1, 2, 1, 3, 2};
 
 // One packet of normals facing the viewer (0, 0, 1; the fourth row 1) and a colour pair per corner.
 void SetFlatNormals(CFigureMesh* mesh, int corners) {
-    mesh->normals_.SetSize(1);
-    mesh->colorsA_.SetSize(corners);
-    mesh->colorsB_.SetSize(corners);
-    NormalPacket& normal = mesh->normals_.data[0];
+    mesh->normals_.resize(1);
+    mesh->colorsA_.resize(corners);
+    mesh->colorsB_.resize(corners);
+    NormalPacket& normal = mesh->normals_[0];
     for (int k = 0; k < 4; ++k) {
         normal.block[0][k] = 0.0f;
         normal.block[1][k] = 0.0f;
@@ -85,7 +85,7 @@ void AddQuadIndices(CUiMesh* sprite, int first) {
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
 void SetFlatPackets(CUiMesh* sprite, int count) {
-    sprite->vertices_.SetSize(count);
+    sprite->vertices_.resize(count);
     for (int i = 0; i < count; ++i)
         for (int k = 0; k < 4; ++k) {
             sprite->vertices_[i].z()[k] = 0.0f;
@@ -155,7 +155,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     float stepY = (bottom - top) / scale / static_cast<float>(rows);
     const int points = (columns + 1) * (rows + 1);
     const int packets = points / 4 + (points % 4 != 0 ? 1 : 0);
-    vertices_.SetSize(packets);
+    vertices_.resize(packets);
     int column = 0;
     int row = 0;
     for (int i = 0; i < packets; ++i) {

@@ -93,7 +93,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     UnitParams* params = unitIn->Params();
     std::string suffix;
     Panel panel;
-    panel.surface = *surfaces_.data;
+    panel.surface = surfaces_[0];
     panel.labels = texts_.data();
     panel.rect = {5, 0x23, 0x9B, 0x32};
 

@@ -132,7 +132,7 @@ void DrawWord(CUiSurface* surface, std::string_view text, RECT* rect, int font, 
 } // namespace
 
 void CUiScrollText::DrawLines(int scroll) {
-    CUiSurface* surface = surfaces_.size > 0 ? surfaces_.data[0] : nullptr;
+    CUiSurface* surface = !surfaces_.empty() ? surfaces_[0] : nullptr;
     UiSurfaceGetDC(surface);
     surface->Clear();
     int lineCount = lines_.size;
@@ -260,7 +260,7 @@ void CUiScrollText::DeleteTokens() {
 }
 
 void CUiScrollText::PlaceText(const RECT& rect) {
-    if (surfaces_.size > 0 && surfaces_.data[0]) surfaces_.data[0]->MoveTo(rect.left, rect.top);
+    if (!surfaces_.empty() && surfaces_[0]) surfaces_[0]->MoveTo(rect.left, rect.top);
     textRect_ = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
     textRect_.right -= kBarWidth;
     LayOut(this);

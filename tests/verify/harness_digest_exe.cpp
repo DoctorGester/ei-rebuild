@@ -29,6 +29,8 @@ std::uint32_t ModeId(AIMode* mode) {
     return mode ? *reinterpret_cast<const std::uint32_t*>(mode) : 0;
 }
 
+int PartyItemCount(CParty* party) { return party->items_.size; }
+
 std::uint32_t MissileVtable(const CSpellEffect* e) {
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(e->vtable));
 }

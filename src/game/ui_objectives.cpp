@@ -169,9 +169,9 @@ void ConstructLastQuest() {
 
 void CObjectivesWindow::ShowZone(const char* zone) {
     shownZone_ = zone;
-    while (objects_.size > 2) RemoveObjectAt(2);
-    while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
-    while (regions_.size > 9) RemoveRegionAt(9);
+    while (std::ssize(objects_) > 2) RemoveObjectAt(2);
+    while (std::ssize(sceneObjects_) > 0x15) RemoveSceneObjectAt(0x15);
+    while (std::ssize(regions_) > 9) RemoveRegionAt(9);
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) {
@@ -193,7 +193,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
-    SetSpriteTexture(picture, objects_.data[2]);
+    SetSpriteTexture(picture, objects_[2]);
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
     float nearest = Bits(kFarAway);
@@ -284,7 +284,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
         SceneMesh(0)->visible_ = 0;
-        regions_.data[0]->SetTip(0, 1, 0);
+        regions_[0]->SetTip(0, 1, 0);
     }
 
     std::vector<std::string>& quests = quests_;
@@ -338,7 +338,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             if (foundText) {
                 TheTextManager()->ReadLine(&title, 1);
                 TheTextManager()->ReadToHash(&text, 1);
-                CUiSurface* surface = surfaces_.data[1];
+                CUiSurface* surface = surfaces_[1];
                 UiSurfaceGetDC(surface);
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
@@ -379,7 +379,7 @@ void CObjectivesWindow::ShowQuest() {
     std::string variable;
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
-    static_cast<CUiScrollText*>(children_.data[0])->Clear();
+    static_cast<CUiScrollText*>(children_[0])->Clear();
     std::vector<std::string>& quests = quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= static_cast<int>(quests.size())) return;
     LastQuest() = quests[selectedQuest_];
@@ -448,13 +448,13 @@ void CObjectivesWindow::ShowQuest() {
         text += "\n \n ";
     }
     TextClose(texts);
-    static_cast<CUiScrollText*>(children_.data[0])->SetText(text.c_str());
+    static_cast<CUiScrollText*>(children_[0])->SetText(text.c_str());
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     LoadQuestPlaces(quests[selectedQuest_].c_str());
-    while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
-    while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
+    while (std::ssize(sceneObjects_) > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
+    while (std::ssize(regions_) > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces_.end() - questPlaces_.begin()); ++i) {
         float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
@@ -469,7 +469,7 @@ void CObjectivesWindow::ShowQuest() {
         float top = static_cast<float>(D(y) - kMarkerHalfWidth);
         float left = static_cast<float>(D(x) - kMarkerHalfWidth);
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
-        SetSpriteTexture(marker, objects_.data[1]);
+        SetSpriteTexture(marker, objects_[1]);
         std::memcpy(marker->tint_, red, sizeof(red));
         CUiRegion* region = AddRegion();
         int bottomPixel = static_cast<int>(gamecrt::Ftol(D(bottom)));
@@ -554,7 +554,7 @@ void CObjectivesWindow::CreateScreen() {
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible_ = 0;
-        SetSpriteTexture(mark, objects_.data[1]);
+        SetSpriteTexture(mark, objects_[1]);
     }
 
     // Regions 0-3: the buttons and the two arrows; 4-8: the list rows.
@@ -627,8 +627,8 @@ void CObjectivesWindow::CreateScreen() {
         if (SizeOf(*zones) > 1) {
             SceneMesh(14)->visible_ = 1;
             SceneMesh(15)->visible_ = 1;
-            regions_.data[2]->SetTip(0x13948, 1, 0);
-            regions_.data[3]->SetTip(0x13949, 1, 0);
+            regions_[2]->SetTip(0x13948, 1, 0);
+            regions_[3]->SetTip(0x13949, 1, 0);
         }
         ShowZone(zones->begin()[zoneIndex_].c_str());
         table->~VariableTable();
@@ -641,7 +641,7 @@ void CObjectivesWindow::DrawQuestList() {
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };
     mesh(2)->visible_ = 0;
-    auto* surface = surfaces_.data[0];
+    auto* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;

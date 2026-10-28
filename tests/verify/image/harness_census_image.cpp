@@ -39,10 +39,10 @@ void ReadSurfaceFields(const void* copy, SurfaceFields* fields) {
     fields->height = surface->height_;
 }
 const void* HolderSurfaceField(void* holder) { return &static_cast<CDXSurface*>(holder)->surface; }
-void WindowSurfaceFields(const void* window, const void** data, const void** size) {
+void WindowSurfaces(const void* window, const void* const** data, int* size) {
     const auto* w = static_cast<const CUiWindow*>(window);
-    *data = &w->surfaces_.data;
-    *size = &w->surfaces_.size;
+    *data = reinterpret_cast<const void* const*>(w->surfaces_.data());
+    *size = static_cast<int>(w->surfaces_.size());
 }
 void ReadInterfaceSurfaces(InterfaceSurfaces* surfaces) {
     const CInterface3D* ui = TheInterface();

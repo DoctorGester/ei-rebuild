@@ -21,7 +21,7 @@
 
 namespace {
 
-using ColourArray = lib::AlignedArray<std::uint32_t>;
+using ColourArray = std::vector<std::uint32_t>;
 
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
@@ -37,7 +37,7 @@ void TickTime(float* out) {
 }
 
 void Fill(ColourArray& a, std::uint32_t value) {
-    for (int i = 0; i < a.size; ++i) a.data[i] = value;
+    for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
 }
 
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
@@ -97,7 +97,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     const render::MeshSource source{m, nullptr, !m->offsets_.empty(), (meshFlags & 0x100) != 0};
     render::SetMeshSource(&source);
-    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data, m->colorsB_.data,
+    int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data(), m->colorsB_.data(),
                                         b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
                                         b.indices, b.indexCount, m->textureOffsetU_,
                                         m->textureOffsetV_, alpha, drawFlags);

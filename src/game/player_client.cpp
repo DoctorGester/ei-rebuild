@@ -573,7 +573,7 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < figure->parts.size; ++i) figure->parts.data[i]->flags_ |= kPartFlagFigure;
+        for (int i = 0; i < std::ssize(figure->parts); ++i) figure->parts[i]->flags_ |= kPartFlagFigure;
         created->flags_ |= kFlagNoParts;
     }
     CObject3DClientSpecific* attached = figure->ClientSpecific();

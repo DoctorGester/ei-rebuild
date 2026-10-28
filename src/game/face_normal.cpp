@@ -21,7 +21,7 @@ constexpr double kMinimumSquare = 1e-10;
 } // namespace
 
 void MeshFace::ComputeNormal(const PointBuffer* positions) {
-    const PointBits* points = positions->data;
+    const PointBits* points = positions->data();
     const Vector3& origin = points[vertex[1]].point;
     const Vector3& p2 = points[vertex[2]].point;
     const Vector3& p0 = points[vertex[0]].point;

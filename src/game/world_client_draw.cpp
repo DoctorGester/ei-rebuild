@@ -79,7 +79,7 @@ bool g_haveSceneCamera = false;
 
 void PushMatrix(MatrixStack& stack, const float* matrix) {
     int& depth = stack.count;
-    Matrix4* matrices = stack.matrices;
+    Matrix4* matrices = stack.matrices.data();
     if (depth == 0) {
         depth = 1;
         std::memcpy(matrices, matrix, sizeof(Matrix4));

@@ -79,7 +79,7 @@ void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }
 
 std::uint8_t CTradePanel::Bought() const { return records_[recordIndex_].bought; }
 
-CItem* CItemInfoPanel::FirstItem() { return itemParty_->items_.size ? itemParty_->items_.data[0] : nullptr; }
+CItem* CItemInfoPanel::FirstItem() { return std::ssize(itemParty_->items_) ? itemParty_->items_[0] : nullptr; }
 
 void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_.m[5], &bits, sizeof(bits)); }
 
@@ -154,7 +154,7 @@ int CGlobalMap::OnLButtonUp(int, int, int) {
     return 0;
 }
 
-void CEscMenu::OnClose() { models_.data[0]->Play(0); }
+void CEscMenu::OnClose() { models_[0]->Play(0); }
 
 void CMessageBox::OnClose() {
     ClearSceneObjects();

@@ -11,6 +11,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
 
 namespace {
 // Globals the game fills at startup: the identity quaternion and the default figure scale.
@@ -71,27 +72,22 @@ void CObject3D::Destroy3D() {
         }
         animation = nullptr;
     }
-    for (int i = 0; i < parts.size; ++i) {
-        CEngineObject* part = parts.data[i];
+    for (int i = 0; i < std::ssize(parts); ++i) {
+        CEngineObject* part = parts[i];
         if (part) {
             --part->refCount_;   // no release (sic)
-            parts.data[i] = nullptr;
+            parts[i] = nullptr;
         }
     }
-    parts.SetSize(0, -1);
-    for (int i = 0; i < pendingParts.size; ++i) {
-        CEngineObject* part = pendingParts.data[i];
+    parts.clear();
+    for (int i = 0; i < std::ssize(pendingParts); ++i) {
+        CEngineObject* part = pendingParts[i];
         if (part) {
             part->Release();
-            pendingParts.data[i] = nullptr;
+            pendingParts[i] = nullptr;
         }
     }
-    if (pendingParts.data) {
-        gamecrt::operator_delete(pendingParts.data[-1]);
-        pendingParts.data = nullptr;
-    }
-    pendingParts.capacity = 0;
-    pendingParts.size = 0;
+    lib::FreeStorage(pendingParts);
     if (attached) attached->Release();
     attached = nullptr;
     spare09C = 0;

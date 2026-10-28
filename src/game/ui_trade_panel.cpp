@@ -231,11 +231,11 @@ void DrawSchool(CTradePanel* panel, CUiSurface* draw, RECT* row, TradeRow* schoo
 } // namespace
 
 void CTradePanel::DrawLists() {
-    CUiSurface* draw = surfaces_.data[0];
+    CUiSurface* draw = surfaces_[0];
     draw->GetDC();
     draw->Clear();
     std::string value;
-    while (sceneObjects_.size > 4) RemoveSceneObjectAt(sceneObjects_.size - 1);
+    while (std::ssize(sceneObjects_) > 4) RemoveSceneObjectAt(std::ssize(sceneObjects_) - 1);
 
     RECT title = {0, 10, 200, 25};
     draw->DrawLine(texts_[0], &title, 0, 0xFFFFFF, 1, 1);

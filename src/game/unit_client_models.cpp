@@ -120,8 +120,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 }
 
 namespace {
-// The figure parts collects: an array in 32-byte aligned storage (the block kept at
-// data[-1]), as SkinRequest's layers.
+// The figure parts it collects.
 using PartArray = FigurePartArray;
 
 } // namespace
@@ -151,19 +150,19 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        PartArray parts{nullptr, 0, 0, 0};
+        PartArray parts;
         unit->CollectPartsByPrefix(part.c_str(), &parts);
-        if (parts.size == 1) {
+        if (std::ssize(parts) == 1) {
             // One part of that name: replaced only when it is not the plain part already.
-            if (str::Compare(part, parts.data[0]->GetName()) != 0) {
-                unit->RemovePart(parts.data[0]);
+            if (str::Compare(part, parts[0]->GetName()) != 0) {
+                unit->RemovePart(parts[0]);
                 unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
             }
         } else {
-            for (int k = 0; k < parts.size; ++k) unit->RemovePart(parts.data[k]);
+            for (int k = 0; k < std::ssize(parts); ++k) unit->RemovePart(parts[k]);
             unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
         }
-        if (parts.data) lib::FreeAligned32(parts.data);
+        lib::FreeStorage(parts);
     }
     return true;
 }

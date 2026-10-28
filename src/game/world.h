@@ -500,7 +500,7 @@ public:
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
+    void TakeZoneQuestItems(std::vector<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);

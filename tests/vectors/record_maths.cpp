@@ -262,7 +262,12 @@ Recorded<PushMatrixCall> g_push("CTransformPipeline::PushMatrix");
 void(__fastcall* s_push)(CTransformPipeline*, void*, const float*, int);
 void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int index) {
     auto v = Zeroed<PushMatrixCall>();
-    MatrixStack& stack = self->stacks_[index];
+    // game.exe's pipeline: its matrix stacks (a pointer to the matrices and the depth) from +0x14.
+    struct ExeMatrixStack {
+        Matrix4* matrices;
+        int count;
+    };
+    ExeMatrixStack& stack = reinterpret_cast<ExeMatrixStack*>(reinterpret_cast<char*>(self) + 0x14)[index];
     v.empty = stack.count == 0;
     if (!v.empty) std::memcpy(v.top, stack.matrices[stack.count - 1].m, sizeof(v.top));
     std::memcpy(v.m, m, sizeof(v.m));

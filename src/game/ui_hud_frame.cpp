@@ -92,7 +92,7 @@ void CUiMesh::Place(float a0, float a1, float a2) { PlaceBody(a0, a1, a2); }
 void CHudClock::Update() {
     interface_->fastGame_ = fast_;
     float hours = TimeOfDay();
-    CEngineObject** objects = sceneObjects_.data;
+    CEngineObject** objects = sceneObjects_.data();
     CEngineObject* face = objects[0];
 
     // The blink phase runs from 0 to 1 once a second.
@@ -191,7 +191,7 @@ void CHudTopPanel::Update() {
         EI_NAN_AUDIT(slide_);
         if (Bits(slide_) == 0x3F800000 || slide_ == 0.0f) sliding_ = 0;
         Layout();
-        CEngineObject* sling = sceneObjects_.data[2];
+        CEngineObject* sling = sceneObjects_[2];
         float y;
         if (Bits(slideDirection_) == 0xBF800000) {   // -1: sliding out
             Turn(sling, 1.0f, Pi());

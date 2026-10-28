@@ -108,7 +108,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     case 3: u = 0x80; v = 0x80; break;
     default: break;   // a negative count: u is unset and `texture` is used as v
     }
-    CopyImage(objects_.data[objects_.size - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    CopyImage(objects_[std::ssize(objects_) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 
     CUiMesh* sprite = AddSprite(model);
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;
@@ -128,7 +128,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     }
     sprite->textureOffsetU_ = static_cast<float>(u) * 0.00390625f /*0073EEB8*/;
     sprite->textureOffsetV_ = static_cast<float>(v + 0x80) * 0.00390625f /*0073EEB8*/;
-    sprite->texture_ = objects_.data[objects_.size - 1];
+    sprite->texture_ = objects_[std::ssize(objects_) - 1];
     ++portraits_;
     AddRegion()->SetRect(left, 0, right, 0x50);
 }
@@ -203,7 +203,7 @@ void CChatWindow::ShowPlayers() {
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
         picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
         AddPortrait(model.c_str(), picture.c_str());
-        regions_.data[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
+        regions_[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }
 
@@ -215,7 +215,7 @@ void CChatWindow::Update() {
         GameSendLeave04(9);
         return;
     }
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     std::string status, offer;

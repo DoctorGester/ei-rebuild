@@ -32,13 +32,6 @@ constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS
 constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
 constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
-// inlined: `count` vertices from the game's heap, 32-byte aligned, the block's own
-// address in the dword before them (freed through it).
-LineVertex* NewVertices(int count) {
-    return lib::AlignedArray<LineVertex>::Allocate(count);
-}
-void DeleteVertices(LineVertex* data) { lib::FreeAligned32(data); }
-
 // The draw itself, under the device lock, after the new renderer has taken it.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP)) {
@@ -66,7 +59,7 @@ void SetStageOps(CTextureDevice* device, DWORD op) {
 int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
     int count = points->count;
     if (count < 2) return 0;
-    LineVertex* vertices = NewVertices(count);
+    std::vector<LineVertex> vertices(static_cast<std::size_t>(count));
     for (int i = 0; i < points->count; ++i) {
         LineVertex& v = vertices[i];
         v.x = static_cast<float>(points->xy[i * 2]);
@@ -78,49 +71,28 @@ int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
     }
     CTextureDevice* device = device_;
     SetStageOps(device, kOpDisable);
-    ::DrawStrip(device, vertices, count);
+    ::DrawStrip(device, vertices.data(), count);
     SetStageOps(device, kOpModulate);
-    DeleteVertices(vertices);
     return 1;
 }
 
 // Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.
 long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
-    LineBuffer& buffer = LineVertices();
+    std::vector<LineVertex>& buffer = g_lineVertices;
     int count = points->count;
-    if (!buffer.data) {
-        buffer.data = NewVertices(count);
-        buffer.capacity = count;
-        buffer.size = count;
-    } else if (count <= buffer.capacity) {
-        buffer.size = count;
-    } else {
-        int grow = buffer.growBy;
-        if (grow == 0) {
-            grow = buffer.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = buffer.capacity + grow;
-        if (count >= capacity) capacity = count;
-        LineVertex* data = NewVertices(capacity);
-        DeleteVertices(buffer.data);
-        buffer.capacity = capacity;
-        buffer.data = data;
-        buffer.size = count;
-    }
+    buffer.resize(static_cast<std::size_t>(count));
 
     device::SetRenderState(device::D3D(device), kShadeMode, kShadeFlat);
     render::state::Render(kShadeMode, kShadeFlat);
     SetStageOps(device, kOpDisable);
     for (int i = 0; i < points->count; ++i) {
-        LineVertex& v = buffer.data[i];
+        LineVertex& v = buffer[i];
         std::memcpy(&v.x, &points->points[i], 16);
         v.colour = colour | 0xFF000000u;
         v.specular = 0xFF000000u;
     }
-    DrawStrip(device, buffer.data, buffer.size);
+    DrawStrip(device, buffer.data(), static_cast<int>(buffer.size()));
     SetStageOps(device, kOpModulate);
     long hr = device::SetRenderState(device::D3D(device), kShadeMode, kShadeGouraud);
     render::state::Render(kShadeMode, kShadeGouraud);
@@ -130,7 +102,7 @@ long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, 
 // The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers
 // leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
 // initialisers' objects"). 's array is never used: config/unread_data.csv.
-constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
+constinit std::vector<LineVertex> g_lineVertices = /*007A9CE0*/ {};
 constinit std::vector<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
@@ -140,9 +112,7 @@ void DestroyLineOutcodes() {   // (CByteArray's destructor)
 }
 } // namespace
 
-void FreeLineVertices() {
-    if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
-}
+void FreeLineVertices() { lib::FreeStorage(g_lineVertices); }
 void FreeLineProjected() { lib::FreeStorage(g_lineProjected); }
 void ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);

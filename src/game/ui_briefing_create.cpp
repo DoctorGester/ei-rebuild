@@ -154,7 +154,7 @@ void StepTurning(BriefingMover* node) {
 
 // Meshes `first` onwards shown or hidden.
 void SetMeshesVisible(CUiWindow* window, int visible, int first = 0) {
-    for (int i = first; i < window->sceneObjects_.size; ++i)
+    for (int i = first; i < std::ssize(window->sceneObjects_); ++i)
         window->SceneMesh(i)->visible_ = visible;
 }
 
@@ -210,8 +210,8 @@ void CBriefingScreen::CreateScreen() {
     AddChild(text_);
 
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
-    for (int i = 0; i < children_.size; ++i) children_.data[i]->SetEnabled(0, 1);
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
+    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->SetEnabled(0, 1);
     state_ = kWalking;
     exitPending_ = true;
     exit_ = 0;
@@ -271,9 +271,9 @@ void CBriefingScreen::Update() {
     while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
     UpdateBase();
     SetMeshesVisible(this, 0);
-    for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
-    children_.data[kTopicBarChild]->SetEnabled(0, 1);
-    children_.data[kTextChild]->SetEnabled(0, 1);
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 0);
+    children_[kTopicBarChild]->SetEnabled(0, 1);
+    children_[kTextChild]->SetEnabled(0, 1);
 
     for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
         node->time = static_cast<float>(FrameTime() + node->time);
@@ -294,7 +294,7 @@ void CBriefingScreen::Update() {
 
     switch (state_) {
     case kChoosing: {
-        surfaces_.data[kTopicsSurface]->Freeze(1, 0);
+        surfaces_[kTopicsSurface]->Freeze(1, 0);
         SceneMesh(kTopicBackdrop)->visible_ = 1;
         SceneMesh(kTopicFrame)->visible_ = 1;
         topicBar_->SetEnabled(1, 1);

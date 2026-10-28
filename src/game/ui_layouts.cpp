@@ -245,7 +245,7 @@ void CEscMenu::CreateScreen() {
         gameapi::CopyRect(&rect, source);
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    models_.data[0]->Play(1);
+    models_[0]->Play(1);
     interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
 

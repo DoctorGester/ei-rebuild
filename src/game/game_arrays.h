@@ -13,10 +13,6 @@
 
 #include <memory>
 
-namespace aligned {
-void ArrayAt8Free(void* self);
-} // namespace aligned
-
 namespace zone {
 void ZoneRecordDestruct(MapRecord* self);
 } // namespace zone
@@ -24,11 +20,7 @@ void ZoneRecordDestruct(MapRecord* self);
 namespace gamearrays {
 
 using mfc::impl::ArrayAbi;
-using mfc::impl::Bytes;
 using mfc::impl::EachElements;
-
-// Records holding an aligned block at +8 (24 bytes): the block freed.
-inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
@@ -60,7 +52,6 @@ inline void ReleaseOnly(CEngineObject** p) {
 // The script's point lights: the light leaves the world's timed objects and is released, the slot cleared.
 inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
 
-using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using Exits = ArrayAbi<ZoneExit, ZoneExitElements>;
 using ZoneRecords = ArrayAbi<MapRecord, EachElements<MapRecord, nullptr, DestroyZoneRecord>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;

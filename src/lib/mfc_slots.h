@@ -318,24 +318,11 @@ inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(con
 
 // ---- Element policies of the owned-element arrays ------------------------------------------------
 
-// The engine's aligned block whose pointer is at `At` freed (its allocation's start is the word
-// before), the pointer left.
-template <typename E, std::size_t At>
-void FreeAlignedAt(E* p) {
-    void* data = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + At);
-    if (data) lib::FreeAligned32(data);
-}
-
 template <std::size_t Size>
 using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
-template <std::size_t Size>
-template <std::size_t Size, std::size_t At>
-using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
 
 using SceneObjects = DeletedThroughObject<0x1C>;
 using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
-using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
-using AlignedAt8Records = AlignedBlockAt<0x18, 8>;
 
 // The scene's object records: CMap<DWORD, DWORD>s built, destroyed through slot 1.
 using DwordMap = CMap<std::uint32_t, std::uint32_t>;
@@ -522,12 +509,9 @@ struct SceneObjectArrayClass final
 // The terrain's CByteArray elements (Serialize).
 struct TerrainByteArraysClass final
     : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
-// The scene loader's 20-byte records with an aligned block at +4.
-struct AlignedAt4ArrayClass final
-    : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &AlignedAt4Records::Serialize> {};
-// An animation node's 24-byte records with an aligned block at +8.
-struct AlignedAt8ArrayClass final
-    : CompiledCollection<AlignedAt8ArrayClass, &AlignedAt8Records::Destruct<AlignedAt8ArrayClass>, &AlignedAt8Records::Serialize> {};
+// The scene loader's 20-byte morph keys (a frame and a point vector).
+struct MorphKeyArrayClass final
+    : CompiledCollection<MorphKeyArrayClass, &ArrayHeader<MorphKeyArrayClass>::Destruct, &Plain20::Serialize> {};
 // Patrols (32 bytes, a waypoint array at +0xC).
 struct PatrolArrayClass
     : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &OwnedPatrols::Serialize> {};

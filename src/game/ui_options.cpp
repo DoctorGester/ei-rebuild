@@ -159,7 +159,7 @@ void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
 } // namespace
 
 void COptionsWindow::RefreshRows() {
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     SceneSprite(this, kHighlightSprite)->visible_ = 0;
@@ -209,7 +209,7 @@ void COptionsWindow::ShowGroup(int group) {
     for (int row = 0; row < kOptionRows; ++row) {
         rows_[row].binding_ = nullptr;
         rows_[row].setting_ = nullptr;
-        regions_.data[kFirstRowRegion + row]->SetTip(0, 1, 0);
+        regions_[kFirstRowRegion + row]->SetTip(0, 1, 0);
     }
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         const OptionDefinition& definition = kOptionDefinitions[i];
@@ -217,7 +217,7 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[definition.row_].setting_ = &settings_[i];
         tip = str::Format(TextTipOption(), definition.name_);
         ReadTip(&tip);
-        regions_.data[kFirstRowRegion + definition.row_]->SetTipString(tip.c_str(), 1, 0);
+        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip.c_str(), 1, 0);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
@@ -225,7 +225,7 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[action.row_].binding_ = &bindings_[i];
         tip = str::Format(TextTipAction(), action.name_);
         ReadTip(&tip);
-        regions_.data[kFirstRowRegion + action.row_]->SetTipString(tip.c_str(), 1, 0);
+        regions_[kFirstRowRegion + action.row_]->SetTipString(tip.c_str(), 1, 0);
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)
@@ -487,9 +487,9 @@ void CUiSlider::SetRect(const RECT* rect) {
     left->Place(static_cast<float>(rect->left + 6), static_cast<float>(rect->bottom - 5), depth_);
     TurnQuarter(left);
 
-    regions_.data[0]->SetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
-    regions_.data[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
-    regions_.data[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
+    regions_[0]->SetRect(rect->left, rect->bottom - 10, rect->left + 12, rect->bottom);
+    regions_[1]->SetRect(rect->right - 12, rect->bottom - 10, rect->right, rect->bottom);
+    regions_[2]->SetRect(rect->left, rect->top, rect->right, rect->bottom - 10);
 
     // The position set again (one below first, so the change virtual sees a change).
     int position = position_;

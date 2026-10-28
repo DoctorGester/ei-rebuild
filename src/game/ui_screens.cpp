@@ -129,7 +129,7 @@ void CUiItemStrip::SetFilter(int filter) {
     }
     for (int i = 2; i < 8; ++i) {
         std::memcpy(&SceneMesh(i)->textureOffsetU_, &column, sizeof(column));
-        regions_.data[i]->SetTip(tipBase + i, 1, 0);
+        regions_[i]->SetTip(tipBase + i, 1, 0);
     }
 }
 
@@ -193,15 +193,15 @@ int CUiItemStrip::ArmorTab(const CItem* item) {
 void CForwardingStrip::RebuildList() {
     list_.SetSize(0, -1);
     if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < source_->size; ++i) {
+        for (int i = 0; i < std::ssize(*source_); ++i) {
             int index = list_.size;
-            CItem* item = source_->data[i];
+            CItem* item = (*source_)[i];
             list_.SetSize(index + 1, -1);
             list_.data[index] = item;
         }
     } else {
-        for (int i = 0; i < source_->size; ++i) {
-            CItem* item = source_->data[i];
+        for (int i = 0; i < std::ssize(*source_); ++i) {
+            CItem* item = (*source_)[i];
             if (TabOf(item) == tab_) {
                 int index = list_.size;
                 list_.SetSize(index + 1, -1);
@@ -234,12 +234,12 @@ void CUiItemStrip::ScrollToItem(CItem* item) {
         list_.data[index] = entry;
     };
     if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
+        for (int i = 0; i < std::ssize(*source_); ++i) append((*source_)[i]);
     } else {
         int tab = TabOf(item);
         if (TabKeysEnabled()) SetTab(tab);
-        for (int i = 0; i < source_->size; ++i)
-            if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
+        for (int i = 0; i < std::ssize(*source_); ++i)
+            if (TabOf((*source_)[i]) == tab_) append((*source_)[i]);
     }
     EI_NAN_AUDIT(found);
     if (found >= 0.0f) {
@@ -449,8 +449,8 @@ double CMpHeroScreen::EquipmentWeight() {
     if (armor_) weight += armor_->Weight();
     if (spellContainer_) weight += spellContainer_->Weight();
     // The original reads the armour list as the quick items.
-    int count = hero->armor.size;
-    CItem** quick = hero->armor.data;
+    int count = std::ssize(hero->armor);
+    CItem** quick = hero->armor.data();
     for (int i = 0; i < count; ++i)
         if (quick[i]) weight += quick[i]->Weight();
 
@@ -504,7 +504,7 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
 // --- CEscMenu ---------------------------------------------------------------------------------
 
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
-    CUiModel* model = models_.data[0];
+    CUiModel* model = models_[0];
     int region = RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {

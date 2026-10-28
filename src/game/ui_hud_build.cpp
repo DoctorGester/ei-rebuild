@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -108,7 +109,7 @@ CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
     ClearSceneObjects();
     selected_ = -1;
     count_ = 0;
-    for (int i = 0; i < 4; ++i) regions_.data[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 4; ++i) regions_[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     const int ids[] = {15, 20, 10, 5};
     AddLabels(&labels_, ids);
@@ -128,7 +129,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular_ = kColourOn;
-        regions_.data[index]->SetRect(left, 495, right, 600);
+        regions_[index]->SetRect(left, 495, right, 600);
         widescreen::LeavePanel();
         return;
     }
@@ -140,7 +141,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
     sprite->flatSpecular_ = kColourOff;
-    regions_.data[index]->SetRect(left, 520, right, 600);
+    regions_[index]->SetRect(left, 520, right, 600);
     widescreen::LeavePanel();
 }
 
@@ -149,7 +150,7 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
     // half. (Left unset for a count over 3, which SetUnit never reaches.)
     const int x = count_ >= 2 ? kWeaponWidth : 0;
     const int y = (count_ & 1) ? kWeaponHeight : 0;
-    CopyImage(objects_.data[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
+    CopyImage(objects_[0], image, 0x80, 0x80, kWeaponWidth, kWeaponHeight, x, y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
@@ -191,7 +192,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
     shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_.data[i]->SetTip(0, 1, 0);
+        regions_[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
     entries_.SetSize(0, -1);
@@ -204,7 +205,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
 void CHudQuickItems::AddItem(const char* model, const char* image) {
     if (shownCount_ >= kMaxQuickItems) return;
     const IconPlace at = IconAt(shownCount_, 0x80);
-    CopyImage(objects_.data[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     if (sprite) {
         Quaternion turn;
@@ -236,17 +237,17 @@ CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWi
 void CHudSpellColumn::AddSpell(const char* model, const char* image) {
     widescreen::EnterRightPanel();   // addon's 1002344D; 10023464 at the end
     // What is there moves up a step; the new button takes the bottom place.
-    for (int i = 0; i < regions_.size; ++i) {
+    for (int i = 0; i < std::ssize(regions_); ++i) {
         int top = (i - count_) * kStep;
-        regions_.data[i]->SetRect(760, top + 470, 800, top + 510);
+        regions_[i]->SetRect(760, top + 470, 800, top + 510);
     }
     AddRegion()->SetRect(760, 470, 800, 510);
-    for (int i = 0; i < sceneObjects_.size; ++i) {
+    for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
         float y = ColumnBottom() - static_cast<float>((count_ - i) * kStep);
         Sprite(this, i)->Place(780.0f, y, 40.0f);
     }
     const IconPlace at = IconAt(count_, 0x80);
-    CopyImage(objects_.data[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;
@@ -275,7 +276,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     actions_.SetSize(0, -1);
     count_ = 0;
     selected_ = -1;
-    for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     std::string text;
     TheTextManager()->GetString("infoitem_16", &text);
@@ -285,7 +286,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
 
 void CHudActionColumn::AddAction(const char* model, const char* image, int action) {
     const IconPlace at = IconAt(count_, 0);
-    CopyImage(objects_.data[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
+    CopyImage(objects_[0], image, kIconSize, kIconSize, kIconSize, kIconSize, at.x, at.y, 0, 0);
     CUiMesh* sprite = AddSprite(model);
     SetOffsets(sprite, at.x, at.y + kIconSize);
     Quaternion turn;

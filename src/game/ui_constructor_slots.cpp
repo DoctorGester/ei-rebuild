@@ -26,9 +26,9 @@ template <typename Predicate>
 CItem* NthSlot(CParty* slots, int nth, Predicate matches) {
     const auto& items = slots->items_;
     int found = 0;
-    for (int i = 0; i < items.size; ++i) {
-        if (!matches(items.data[i])) continue;
-        if (found == nth) return items.data[i];
+    for (int i = 0; i < std::ssize(items); ++i) {
+        if (!matches(items[i])) continue;
+        if (found == nth) return items[i];
         ++found;
     }
     return nullptr;

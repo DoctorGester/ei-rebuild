@@ -53,41 +53,6 @@ constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
 void SetBits(void* field, std::uint32_t bits) { std::memcpy(field, &bits, sizeof(bits)); }
 
-// The element array's SetSize(n) as the original inlines it (MFC CArray). After Reset the array is always
-// empty, so only the first branch (allocate exactly n) and the n == 0 branch can run; the others are kept as
-// written.
-void SetElementCount(CParticleSource* s, int n) {
-    if (n == 0) {
-        if (s->elements) {
-            lib::FreeAligned32(s->elements);
-            s->elements = nullptr;
-        }
-        s->elementCapacity = 0;
-        s->elementCount = 0;
-    } else if (!s->elements) {
-        s->elements = AllocateElements(n);
-        s->elementCapacity = n;
-        s->elementCount = n;
-    } else if (n <= s->elementCapacity) {
-        s->elementCount = n;
-    } else {
-        int grow = s->elementGrowBy;
-        if (grow == 0) {
-            grow = s->elementCount / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = s->elementCapacity + grow;
-        if (!(capacity > n)) capacity = n;
-        ParticleElement* data = AllocateElements(capacity);
-        std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        lib::FreeAligned32(s->elements);
-        s->elements = data;
-        s->elementCount = n;
-        s->elementCapacity = capacity;
-    }
-}
-
 // The spread box particles start in, relative to the emission point.
 void SetSpread(CParticleSource* s, float x0, float y0, float z0, float x1, float y1, float z1) {
     s->spreadMin = {x0, y0, z0};
@@ -121,7 +86,7 @@ void SetupSmoke(CParticleSource* s) {
     if (s->type_ == 0x2010) {
         s->emitCount = 20;
         s->maxParticles = 1500;
-        SetElementCount(s, 1);
+        s->elements.resize(1);
         s->emitFn = &Source::EmitTendril;
         s->elementFn = &Source::TickTendril;
     }
@@ -140,8 +105,8 @@ void SetupExplosion(CParticleSource* s) {
     s->height = 1.0f;
     s->growth = 0.8f;
     SetCallbacks(s, &Source::EmitBlast, &Source::UpdateBlast, &Source::TickBlast);
-    SetElementCount(s, 15);
-    for (int i = 0; i < s->elementCount; ++i) {
+    s->elements.resize(15);
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
         float x, y, z;
         double lengthSquared;
@@ -183,8 +148,8 @@ void SetupFireworks(CParticleSource* s) {
     s->emitCount = 20;
     s->frameDelay = 100;
     s->height = 0.3f;
-    SetElementCount(s, 3);
-    for (int i = 0; i < s->elementCount; ++i) {
+    s->elements.resize(3);
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         s->elements[i].ticks = 0;
         s->elements[i].vent.pause = 0;
     }
@@ -194,8 +159,8 @@ void SetupFireworks(CParticleSource* s) {
 
 // Tornado (0x200A) and CurseHolder (0x2050): six rings stacked 2.4 apart.
 void SetupTornadoRings(CParticleSource* s) {
-    SetElementCount(s, 6);
-    for (int i = 0; i < s->elementCount; ++i) {
+    s->elements.resize(6);
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         ParticleElement& e = s->elements[i];
         std::memset(&e.pos, 0, 2 * sizeof(float));
         e.pos.z = static_cast<float>(static_cast<double>(i) * D(EI_TWELVE) * D(EI_POINT_TWO));
@@ -248,7 +213,7 @@ void SetupNuke(CParticleSource* s) {
     s->frameDelay = 1;
     s->height = 1.0f;
     SetCallbacks(s, &Source::EmitNuke, &Source::UpdateDebris, &Source::TickNuke);
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     s->elements[0].ticks = 0;
 }
 
@@ -262,7 +227,7 @@ void SetupWeather(CParticleSource* s) {
     s->lifetime = 6;
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitShower, &Source::UpdateShower, &Source::TickShower);
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     s->elements[0].ray.age = -100;
     switch (s->type_) {
     case 0x200F: s->elements[0].ticks = 12; break;
@@ -282,8 +247,8 @@ void SetupFalling(CParticleSource* s) {
     s->lifetime = 6;
     s->frameDelay = 15;
     SetCallbacks(s, &Source::EmitFalling, &Source::UpdateFalling, &Source::TickFalling);
-    SetElementCount(s, static_cast<int>(IsaacRandom::Global().Next() % 5 + 4));
-    for (int i = 0; i < s->elementCount; ++i) s->elements[i].wind.age = 0;
+    s->elements.resize(static_cast<int>(IsaacRandom::Global().Next() % 5 + 4));
+    for (int i = 0; i < std::ssize(s->elements); ++i) s->elements[i].wind.age = 0;
 }
 
 // ClayRing (0x2018): ten points on a circle around the source's (reset) position.
@@ -293,8 +258,8 @@ void SetupClayRing(CParticleSource* s) {
     s->lifetime = 15;
     s->frameDelay = 2;
     SetCallbacks(s, &Source::EmitClayRing, &Source::UpdateClayRing, &Source::TickClayRing);
-    SetElementCount(s, 10);
-    for (int i = 0; i < s->elementCount; ++i) {
+    s->elements.resize(10);
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
         float* direction = &s->elements[i].clay.direction.x;
         direction[0] = static_cast<float>(x87::fsin(angle));
@@ -313,14 +278,14 @@ void SetupTeleport(CParticleSource* s) {
     s->lifetime = 14;
     s->frameDelay = 1;
     SetCallbacks(s, &Source::EmitTeleport, &Source::UpdateTeleport, &Source::TickTeleport);
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     s->elements[0].ticks = 0;
 }
 
 // Ground plane (0x203A green, 0x203B red): one element holding the colour.
 void SetupGroundPlane(CParticleSource* s) {
     s->flags_ |= 9;
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     s->elements[0].ticks = 0;
     if (s->type_ == 0x203A) {
         s->emitCount = 128;
@@ -341,7 +306,7 @@ void SetupBag(CParticleSource* s) {
     s->flags_ |= 3;
     s->maxParticles = 800;
     SetCallbacks(s, &Source::EmitBag, &Source::UpdateBag, &Source::TickBag);
-    SetElementCount(s, 80);
+    s->elements.resize(80);
     for (int i = 0; i < 80; ++i) s->elements[i].ticks = 0;
 }
 
@@ -352,7 +317,7 @@ void SetupPortal(CParticleSource* s) {
     s->lifetime = 10;
     s->frameDelay = 3;
     SetCallbacks(s, &Source::EmitPortal, &Source::UpdatePortal, &Source::TickPortal);
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     SetBits(&s->additiveBlend, 1);
 }
 
@@ -363,8 +328,8 @@ void SetupCastingCircle(CParticleSource* s) {
     s->frameDelay = 1;
     s->maxParticles = 600;
     SetCallbacks(s, &Source::EmitCylinder, &Source::UpdateCylinder, &Source::TickCylinder);
-    SetElementCount(s, 2);
-    for (int i = 0; i < s->elementCount; ++i) s->elements[i].ticks = 100;
+    s->elements.resize(2);
+    for (int i = 0; i < std::ssize(s->elements); ++i) s->elements[i].ticks = 100;
 }
 
 // FeetCloud1/2 (0x204A blue, 0x204B red): two elements, one per foot.
@@ -373,7 +338,7 @@ void SetupFeetCloud(CParticleSource* s) {
     s->emitCount = 8;
     s->flags_ |= 3;
     s->maxParticles = 300;
-    SetElementCount(s, 2);
+    s->elements.resize(2);
     for (int i = 0; i < 2; ++i) {
         s->elements[i].foot.countdown = -1;
         s->elements[i].ticks = i;
@@ -392,7 +357,7 @@ void SetupStartTrans(CParticleSource* s) {
     s->emitCount = 1;
     s->maxParticles = 300;
     SetCallbacks(s, &Source::EmitStartTrans, &Source::UpdateStartTrans, &Source::TickStartTrans);
-    SetElementCount(s, 1);
+    s->elements.resize(1);
     s->elements[0].ticks = 30;
     SetBits(&s->elements[0].trans.scale, 0);
     s->elements[0].trans.count = 1.0f;
@@ -472,7 +437,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = -1;
         s->frameDelay = 1;
         SetCallbacks(s, &Source::EmitBanshee, &Source::UpdateBanshee, &Source::TickBanshee);
-        SetElementCount(s, 0);
+        s->elements.resize(0);
         return "Banshee";
     case 0x200E: case 0x2052:   // Mushroom, Transform
         s->emitCount = 10;
@@ -775,12 +740,7 @@ void CParticleSource::Reset() {
     elementFn = nullptr;
     SetBits(&windStrength, 0);
     SetBits(&additiveBlend, 0);
-    if (elements) {
-        lib::FreeAligned32(elements);
-        elements = nullptr;
-    }
-    elementCapacity = 0;
-    elementCount = 0;
+    lib::FreeStorage(elements);
     alpha = 1.0f;
     typeParam = 1.0f;
     size = 1.0f;
@@ -849,10 +809,6 @@ CParticleSource::CParticleSource(int type) {
     ClearFields();
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    elements = nullptr;
-    elementGrowBy = 0;
-    elementCapacity = 0;
-    elementCount = 0;
     std::memset(static_cast<void*>(&clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
     ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
     particles.count = 0;
@@ -883,7 +839,6 @@ CParticleSource::~CParticleSource() {
     particles.head = nullptr;
     mfc::PlexFreeDataChain(particles.blocks);
     particles.blocks = nullptr;
-    if (elements) lib::FreeAligned32(elements);
 }
 
 const char* CParticleSource::GetClassName() { return "CParticle"; }

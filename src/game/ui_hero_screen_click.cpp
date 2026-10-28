@@ -34,6 +34,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -52,7 +53,7 @@ int HeroCount() {
 }
 
 // The first entry of one of a hero record's item arrays, or null when it is empty.
-CItem* FirstOf(const lib::AlignedArray<CItem*>& list) { return list.size > 0 ? list.data[0] : nullptr; }
+CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0] : nullptr; }
 
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
@@ -82,7 +83,7 @@ std::string& MpHeroName(int index) {
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    surfaces_.data[3]->Freeze(0, 0);
+    surfaces_[3]->Freeze(0, 0);
     renameEdit_->SetEnabled(0, 1);
     renameEdit_->SetFocused(false);
 }
@@ -90,9 +91,9 @@ void CMpHeroScreen::CloseRenameEdit() {
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(interface_, game::CancelSoundText(), 0);
     statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-    surfaces_.data[0]->GetDC();
-    surfaces_.data[0]->Clear();
-    surfaces_.data[0]->ReleaseDC();
+    surfaces_[0]->GetDC();
+    surfaces_[0]->Clear();
+    surfaces_[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
     nameEdit_->SetText(HeroRecord()->texts[0].c_str());
@@ -294,9 +295,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         ChooseFigure(defaults_[0].c_str());
         statsPanel_->SetHero(0, const_cast<char*>(game::EmptyText()));
-        surfaces_.data[0]->GetDC();
-        surfaces_.data[0]->Clear();
-        surfaces_.data[0]->ReleaseDC();
+        surfaces_[0]->GetDC();
+        surfaces_[0]->Clear();
+        surfaces_[0]->ReleaseDC();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
         nameEdit_->SetText(game::EmptyText());
@@ -353,7 +354,7 @@ void CMpHeroScreen::Rename() {
         name = str::Left(name, bar);
         str::TrimRight(name);
     }
-    auto* surface = surfaces_.data[3];
+    auto* surface = surfaces_[3];
     surface->Freeze(1, 0);
     surface->GetDC();
     surface->Clear();
@@ -474,11 +475,11 @@ void CMpHeroScreen::CreateHero() {
         return;
     }
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
-    weapon_ = hero->weapons.size > 0 ? hero->weapons[0] : nullptr;
+    weapon_ = !hero->weapons.empty() ? hero->weapons[0] : nullptr;
     weaponPanel_->ShowWeapon(weapon_);
-    armor_ = hero->quickItems.size > 0 ? hero->quickItems[0] : nullptr;
+    armor_ = !hero->quickItems.empty() ? hero->quickItems[0] : nullptr;
     weaponPanel_->ShowArmour(armor_);
-    spellContainer_ = hero->spells.size > 0 ? hero->spells[0] : nullptr;
+    spellContainer_ = !hero->spells.empty() ? hero->spells[0] : nullptr;
     spellPanel_->ShowEntry(spellContainer_);
     hero->texts[0] = name;
     statsPanel_->SetHero(0, const_cast<char*>(name.c_str()));
@@ -612,17 +613,17 @@ void CMpHeroScreen::AddNewHero() {
     interface_->PlaySound("buttons\\messbox\\ok.wav", 0);
     auto* hero = HeroRecord();
     // Only the chosen equipment stays (each list walked from its end; the count read once).
-    for (int i = hero->weapons.size - 1; i >= 0; --i)
+    for (int i = std::ssize(hero->weapons) - 1; i >= 0; --i)
         if (hero->weapons[i] != weapon_)
             hero->RemoveWeapon(hero->weapons[i]);
-    for (int i = hero->quickItems.size - 1; i >= 0; --i)
+    for (int i = std::ssize(hero->quickItems) - 1; i >= 0; --i)
         if (hero->quickItems[i] != armor_)
             hero->RemoveQuickItem(hero->quickItems[i]);
-    for (int i = hero->spells.size - 1; i >= 0; --i)
+    for (int i = std::ssize(hero->spells) - 1; i >= 0; --i)
         if (hero->spells[i] != spellContainer_)
             hero->RemoveSpell(hero->spells[i]);
-    hero->weaponIndex = hero->weapons.size > 0 ? 0 : 0xFFFFFFFFu;
-    if (hero->spells.size > 0) {
+    hero->weaponIndex = !hero->weapons.empty() ? 0 : 0xFFFFFFFFu;
+    if (!hero->spells.empty()) {
         auto* container = hero->spells[0];
         CSpell* spell = container->spell_;
         if (spell && !HeroCanUseSpell(&hero->stats, spell)) {

@@ -28,7 +28,7 @@
 
 namespace {
 
-// The positions with the offsets added (a lib::AlignedArray; a function-local static, freed at exit).
+// The positions with the offsets added (a function-local static, freed at exit).
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
@@ -56,10 +56,10 @@ void TickTime(float* out) {
 
 // The colour arrays (CFigureMesh::colorsA_ / colorsB_) are sized with the inlined SetSize that drops the
 // contents (SetSizeDiscard), the moved positions with the one that keeps them (SetSize).
-using ColourArray = lib::AlignedArray<std::uint32_t>;
+using ColourArray = std::vector<std::uint32_t>;
 
 void Fill(ColourArray& a, std::uint32_t value) {
-    for (int i = 0; i < a.size; ++i) a.data[i] = value;
+    for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
 }
 
 // --- The part --------------------------------------------------------------------------------------
@@ -102,8 +102,8 @@ void FlatColours(Part& part) {
         part.figure->FlatColours(&s, mesh->flatColour_, mesh->flatSpecular_, &part.Colours(), &part.Speculars());
         return;
     }
-    part.Colours().SetSizeDiscard(part.Mesh()->buffers_.normalCount * 4);
-    part.Speculars().SetSizeDiscard(part.Mesh()->buffers_.normalCount * 4);
+    part.Colours().resize(part.Mesh()->buffers_.normalCount * 4);
+    part.Speculars().resize(part.Mesh()->buffers_.normalCount * 4);
     Fill(part.Colours(), part.Mesh()->flatColour_);
     Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
@@ -200,13 +200,13 @@ void DrawThroughDevice(Part& part) {
     int result;
     if (part.Textured()) {
         result = part.device->DrawMeshBlocks2(part.textureA->surface_, part.textureB->surface_, positions, blocks,
-                                              b.normals, b.normalCount, mesh->colorsA_.data, mesh->colorsB_.data,
+                                              b.normals, b.normalCount, mesh->colorsA_.data(), mesh->colorsB_.data(),
                                               b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words,
                                               b.wordCount, b.indices, b.indexCount,
                                               mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     } else {
-        result = part.device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, mesh->colorsA_.data,
-                                             mesh->colorsB_.data, b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
+        result = part.device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, mesh->colorsA_.data(),
+                                             mesh->colorsB_.data(), b.texCoords, b.texCoordCount, b.corners, b.cornerCount,
                                              b.words, b.wordCount, b.indices, b.indexCount,
                                              mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     }
