@@ -3711,6 +3711,13 @@ files = ["tests/vectors/record_path.cpp", "tests/vectors/path_vectors.h"]
 note = "C14z's re-record of the script family: every vanilla EI_VECTORS=1 run crashed (C0000005) in record_path.cpp OfferTables / EnsureSaved, because the path recorders read game.exe's CAIMap (and SmoothTable, fixed in C14z phase 0 with an exe::Array view, static_assert 0x3C) through src/game/ai_map.h, whose containers C14u made std. C14z recorded with the path recorders off for that run only. Give record_path.cpp an OriginalAIMap view at game.exe's offsets (cells, waterDepth, marks, the region grids; exe_objects.h's Array / Vector / List as OriginalSmoothTable does), so PutCallMap / Identify / EnsureSaved / MarksOf read no class of ours; then a recording run of the path family must finish and ei_vectors stay at 0 problems."
 
 [[ticket]]
+id = "C14ze"
+title = "C14 the last non-container MFC in the game code: GDI wrappers, BOOL, threads, CTime, message boxes, runtime classes"
+group = "cleanup"
+model = "opus"
+note = "After C14z (2026-10-28) src/game has 0 CArray / CList but still ~100 mfc:: uses: CDC (17, FromHandle 5), CGdiObject 10, CFont 9, CPen 5, CBrush 1 (the text / debug drawing on GDI), mfc::BOOL 16, MessageBoxText 5, WinThread / AfxBeginThread / AfxEndThread (the loader thread), CTime / CurrentTime, CByteArray / CWordArray, CarriedArrayClass, CRuntimeClass / kClassCObject / AfxClassInit, EachElements / ArrayAbi / PlainElements / Bytes. Usage first: GDI through plain HDC / HFONT / HPEN with small RAII holders of ours (or the renderer's text path where it already exists), BOOL to bool / int, the thread to std::thread or CreateThread, CTime to std::time / chrono, message boxes to MessageBoxA / W. Then delete the src/lib/mfc pieces only the tests' game.exe views use. Goal: git grep 'mfc::' -- src/game is 0."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
