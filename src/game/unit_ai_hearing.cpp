@@ -75,7 +75,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
 
 AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
-    const AITerrainType* ground = TheServerWorld()->AIMap()->MaterialRecordAt(position);
+    const AITerrainType* ground = g_serverWorld->AIMap()->MaterialRecordAt(position);
     float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;
     loudness *= ground->noise;
     Noise(source, loudness, kStepNoise, nullptr);

@@ -64,7 +64,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 }
 
 // The local view, whose SetUnitFlag438 sets a unit's flag and sends it to the server.
-CPlayerClient* Orders() { return TheClientWorld()->LocalView(); }
+CPlayerClient* Orders() { return g_clientWorld->LocalView(); }
 
 } // namespace
 
@@ -265,7 +265,7 @@ void CHudTopPanel::ShowItems() {
     CTextManager* texts = TheTextManager();
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     std::list<CItem*> merged{};
-    CPlayer* player = TheClientWorld()->LocalView()->player_;
+    CPlayer* player = g_clientWorld->LocalView()->player_;
     std::string line;
     std::string format;
     for (auto node = player->items_.begin(); node != player->items_.end();) {
@@ -278,7 +278,7 @@ void CHudTopPanel::ShowItems() {
             same->count_ += item->count_;
             continue;
         }
-        CItem* copy = TheClientWorld()->MakeCopyOf(item);
+        CItem* copy = g_clientWorld->MakeCopyOf(item);
         copy->count_ = item->count_;
         ++copy->refCount_;
         merged.push_back(copy);

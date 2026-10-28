@@ -44,7 +44,7 @@ inline std::uint32_t Next() { return g_random.Next(); }
 inline double Range(float min, float max) { return g_random.Range(min, max); }
 
 // CWorldClient::RawSurfaceHeightAt(x, y) on the client world (ST0).
-inline double GroundHeight(float x, float y) { return TheClientWorld()->RawSurfaceHeightAt(x, y); }
+inline double GroundHeight(float x, float y) { return g_clientWorld->RawSurfaceHeightAt(x, y); }
 
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }

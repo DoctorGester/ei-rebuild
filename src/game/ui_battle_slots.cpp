@@ -167,7 +167,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     }
     portraits_->Rebuild(0);
     if (selected) {
-        TheClientWorld()->Select(unit);
+        g_clientWorld->Select(unit);
         MarkPortrait(place);
     }
     // A hero the save had selected.
@@ -176,7 +176,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         int after = std::ssize(heroes_) - i - 1;
         if (after != 0) std::memmove(&heroes_[i], &heroes_[i + 1], after * sizeof(heroes_[0]));
         heroes_.pop_back();
-        TheClientWorld()->Select(unit);
+        g_clientWorld->Select(unit);
         MarkPortrait(place);
         break;
     }

@@ -67,7 +67,7 @@ CUnit* ReadUnit(CStream* stream, const CBaseManager* objects) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    order->target.Load(stream, TheServerWorld());
+    order->target.Load(stream, &g_serverWorld.Get());
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
@@ -110,7 +110,7 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 }
 
 // The item manager (the world server's), which resolves the armour spells' item ids.
-CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
+CItemManager* ItemManager() { return g_serverWorld->itemManager_; }
 
 } // namespace
 

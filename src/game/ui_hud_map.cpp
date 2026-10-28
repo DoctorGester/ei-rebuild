@@ -57,7 +57,7 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 
 // The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
 // and, in multiplayer, of the other players' units (otherUnitIds_).
-CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
 int LocalSide() { return LocalView()->player_->playerId_; }
 
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
@@ -229,7 +229,7 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
     b.y()[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
 }
 
-const CTransformObject* Camera() { return TheClientWorld()->camera_; }
+const CTransformObject* Camera() { return g_clientWorld->camera_; }
 std::uint32_t Bits(const float& f) {
     std::uint32_t bits;
     std::memcpy(&bits, &f, sizeof(bits));
@@ -292,7 +292,7 @@ void CHudMap::BuildMarkers() {
     CLightFactory* markers = TheLightFactory();
     const std::list<int>& marked = markers->litIds_;
     const int markedCount = static_cast<int>(marked.size());
-    int exitCount = static_cast<int>(std::ssize(TheClientWorld()->exits_));
+    int exitCount = static_cast<int>(std::ssize(g_clientWorld->exits_));
     int playerCount = IsMultiplayerClient() ? std::ssize(view->otherUnitIds_) : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
@@ -346,7 +346,7 @@ void CHudMap::BuildMarkers() {
 
     // The zone exits that lead somewhere: squares. (The exit record is copied and the target read from
     // the copy, which shares the string.)
-    CWorldClient* world = TheClientWorld();
+    CWorldClient* world = &g_clientWorld.Get();
     for (int i = 0; i < exitCount; ++i) {
         out.BeginQuad();
         float x, y;

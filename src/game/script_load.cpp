@@ -17,7 +17,7 @@
 namespace {
 
 // The id registry.
-CBaseManager* Registry() { return TheServerWorld()->manager48_; }
+CBaseManager* Registry() { return g_serverWorld->manager48_; }
 
 int ReadInt(CStream* stream) {
     int value = 0;
@@ -39,7 +39,7 @@ T* FindById(int id) {
 
 // The world's first script (the only script a savegame holds): block
 // ids resolve in its lists whatever script is loaded.
-const CScript* SavedScript() { return TheServerWorld()->MainScript(); }
+const CScript* SavedScript() { return g_serverWorld->MainScript(); }
 
 ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 

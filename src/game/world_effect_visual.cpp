@@ -339,15 +339,15 @@ void CEffectParticle::Spawn() {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         float radius = param164_;
         float angle = RandomAngle(((&g_random))->Next());
-        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
     if (type_ == 0x2030) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         float radius = size_;
         float angle = RandomAngle(random);
-        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
-        TheClientWorld()->camera_->Shake(&localPosition_, size_, 2.0f, 0.25f);
+        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
+        g_clientWorld->camera_->Shake(&localPosition_, size_, 2.0f, 0.25f);
     }
 }
 
@@ -507,7 +507,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
         float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
-        TheClientWorld()->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
+        g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, shape[1], inner, shape[0], alpha);
     }
     return 1;
 }

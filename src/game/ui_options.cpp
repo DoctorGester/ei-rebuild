@@ -432,7 +432,7 @@ void COptionsWindow::Apply() {
         OptDifficultyCopy() = s[25].value_;
         GameDifficulty() = s[25].value_;
     }
-    if (shadowsChanged_) TheClientWorld()->DropShadows();
+    if (shadowsChanged_) g_clientWorld->DropShadows();
 }
 
 // --- The slider's virtual ------------------------------------------------------------------

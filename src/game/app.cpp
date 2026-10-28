@@ -256,14 +256,14 @@ int StartFirstMap() {
         MenuOpen(TheGameFlow());
         return 1;
     }
-    CWorldServer* world = TheServerWorld();
+    CWorldServer* world = &g_serverWorld.Get();
     if (!world->NewZone(map.c_str(), cmdMode.c_str(), (const char*)0))
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
-    CWorldClient* client = TheClientWorld();
-    client->SetPlayer(TheServerWorld()->shared5C_.Get());
+    CWorldClient* client = &g_clientWorld.Get();
+    client->SetPlayer(g_serverWorld->shared5C_.Get());
     client->LocalView()->sendParty_ = 0;
-    TheServerWorld()->sessionKind_ = 7;
+    g_serverWorld->sessionKind_ = 7;
     if (cmdScript.size() == 0) return 1;
     CScript* script = TheMissionScript();
     BOOL loaded;

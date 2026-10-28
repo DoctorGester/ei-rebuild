@@ -41,7 +41,7 @@ const char* ShowLine() { return "#show"; }
 const TemplateTable* ClassTemplates() { return &ThePartyManager()->templates; }
 const char* TopicPrefix() { return "b."; }
 
-CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
+CPlayer* LocalServerPlayer() { return g_serverWorld->GetPlayer(0); }
 
 constexpr int kStateWalking = 0;
 constexpr int kEventEnds = 0;
@@ -230,7 +230,7 @@ void CBriefingScreen::FinishDialogue() {
         CUnitClientSpecific* model = unit->ClientController();
         model->blinks = 0;
         model->BlinkOpen(true);
-        auto* serverUnit = TheServerWorld()->FindUnit(unit->id_);
+        auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
         if (!serverUnit) continue;
         serverUnit->SetFlag40000000Off(true);
         GameSetUnitHeight(unit->id_, 0.0f);
@@ -259,7 +259,7 @@ void CBriefingScreen::FinishDialogue() {
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts || text::CompareIgnoringCase(topic_, parts[2]) != 0) continue;
-        TheServerWorld()->CompleteBriefing(0, node->first.c_str());
+        g_serverWorld->CompleteBriefing(0, node->first.c_str());
         break;
     }
 

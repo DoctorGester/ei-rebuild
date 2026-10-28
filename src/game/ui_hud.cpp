@@ -43,7 +43,7 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
-CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
+CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
 
 long SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
     render::state::Render(static_cast<std::uint32_t>(state), value);
@@ -517,7 +517,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
         return;
     }
     int mode = region - 1;
-    if (!TheClientWorld()->LocalView()) return;
+    if (!g_clientWorld->LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick, 0);
         for (int i = 0; i < std::ssize(owner_->party_); ++i) {
@@ -557,7 +557,7 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
 }
 
 void CHudMovePanel::Update() {
-    if (!TheClientWorld()->LocalView()) return;
+    if (!g_clientWorld->LocalView()) return;
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
@@ -630,13 +630,13 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         Vector3 out;
-        Vector3* p = TheClientWorld()->PickSurface(&out, x, y);
+        Vector3* p = g_clientWorld->PickSurface(&out, x, y);
         return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         POINT point = {x, y};
-        return static_cast<CUnit*>(TheClientWorld()->PickAt2(&point));
+        return static_cast<CUnit*>(g_clientWorld->PickAt2(&point));
     };
     // The portrait of member `index` flashes after a short random delay.
     auto flash = [this](int index) { NodPortrait(this, index); };

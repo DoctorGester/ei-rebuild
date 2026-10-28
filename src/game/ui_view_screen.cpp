@@ -79,7 +79,7 @@ UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
 UnitPickInput::~UnitPickInput() = default;
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
-    CWorldClient* world = TheClientWorld();
+    CWorldClient* world = &g_clientWorld.Get();
     const POINT point = {x, y};
     CUnit* unit = world->UnitAt2(&point);
     if (!interface_->ctrlDown_) {
@@ -110,7 +110,7 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
 
 void UnitPickInput::OnRightDown(int, int, int) {
     lib::FreeStorage(picked_);
-    TheClientWorld()->Deselect(nullptr);
+    g_clientWorld->Deselect(nullptr);
 }
 
 void UnitPickInput::OnKeyDown(int key, int, int) {

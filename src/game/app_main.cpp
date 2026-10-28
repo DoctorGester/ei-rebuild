@@ -160,7 +160,7 @@ void ReadCommandLine(const char* commandLine) {
     g_commandLineScript->clear();
     g_commandLineMob->clear();
     g_commandLineMap->clear();
-    CWorldClient* client = TheClientWorld();
+    CWorldClient* client = &g_clientWorld.Get();
     GameOptions* options = options::TheOptions();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
         if (str::Find(arguments[i], "-moviepath_") == 0) {
@@ -477,12 +477,12 @@ bool RunWorlds() {
         bool settled = true;
         if (g_serverBacklog >= TickLength()) {
             settled = false;
-            if (!ServerUpdate()(TheServerWorld(), nullptr)) return false;
+            if (!ServerUpdate()(&g_serverWorld.Get(), nullptr)) return false;
             g_serverBacklog -= TickLength();
             net::Pump();
         }
-        if (g_clientBacklog >= TickLength() && (TheClientWorld()->PumpHasIncoming() || !TheClientWorld()->IsLocalViewMode2())) {
-            if (!ClientSegment()(TheClientWorld(), nullptr)) return false;
+        if (g_clientBacklog >= TickLength() && (g_clientWorld->PumpHasIncoming() || !g_clientWorld->IsLocalViewMode2())) {
+            if (!ClientSegment()(&g_clientWorld.Get(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             g_clientBacklog -= tick;
             g_clientTicksMs += tick;
@@ -530,7 +530,7 @@ bool RunPass() {
         return false;
     }
     GuardPlayerData(1);
-    CWorldClient* client = TheClientWorld();
+    CWorldClient* client = &g_clientWorld.Get();
     if (client->IsLocalPlayerIdle()) {
         if (IsMultiplayerClient()) TheGameFlow()->RecreateClientSession();
         else TheGameFlow()->CloseSessions();
@@ -620,9 +620,9 @@ void ShutDown() {
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
     options::TheOptions()->SaveToRegistry(g_registryRoot->c_str());
-    TheClientWorld()->SetCamera(nullptr);
-    TheServerWorld()->Destroy();
-    TheClientWorld()->Destroy();
+    g_clientWorld->SetCamera(nullptr);
+    g_serverWorld->Destroy();
+    g_clientWorld->Destroy();
 }
 
 } // namespace
@@ -693,13 +693,13 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         g_logicSettings.Load(settings.c_str());
     }
     options->LoadFromRegistry(g_registryRoot->c_str());
-    TheClientWorld()->Create();
-    TheServerWorld()->Create();
+    g_clientWorld->Create();
+    g_serverWorld->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
     TheCamera()->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
                    std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
-    TheClientWorld()->SetCamera(TheCamera());
+    g_clientWorld->SetCamera(TheCamera());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
 
@@ -726,7 +726,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    TheClientWorld()->SetUpGraphics(TheRenderDevice());
+    g_clientWorld->SetUpGraphics(TheRenderDevice());
     // The last argument's upper three bytes are whatever the call before left behind; only the low
     // byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0,

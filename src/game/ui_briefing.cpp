@@ -109,7 +109,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     if (unit->id_ != RecordUnitId(player->members_[0])) return;
 
     leader_ = unit;
-    TheClientWorld()->Select(unit);
+    g_clientWorld->Select(unit);
     TheCamera()->SetTarget(unit);
     MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
     std::string prefix;

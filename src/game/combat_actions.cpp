@@ -122,7 +122,7 @@ void CUnitServer::FinishAction(int location, char) {
         if (item && item->GetCategory() == kQuickItemConsumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
-            TheServerWorld()->UseQuickItem(item, unit);
+            g_serverWorld->UseQuickItem(item, unit);
             item->Release();
         }
         action.kind = 9;
@@ -180,7 +180,7 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const Vector3* at = target->AimPoint(&point);
-    TheServerWorld()->CastSpell(spell, self, &self->localPosition_, target, at, 0);
+    g_serverWorld->CastSpell(spell, self, &self->localPosition_, target, at, 0);
 }
 
 void CUnitServer::TriggerItemSpells(char onHit) {
@@ -196,7 +196,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         UseItemCharge(item, cost);
         CUnit* self = unit;
-        TheServerWorld()->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
+        g_serverWorld->CastSpell(spell, self, &self->localPosition_, self, &self->localPosition_, 0);
     }
 }
 
@@ -364,8 +364,8 @@ void CUnitServer::UseSkill(CMapObject* target) {
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
-        if (CPlayer* player = unit->player) TheServerWorld()->Loot(looted, player);
-        TheServerWorld()->RemoveObject(target->id_);
+        if (CPlayer* player = unit->player) g_serverWorld->Loot(looted, player);
+        g_serverWorld->RemoveObject(target->id_);
         float loudness = static_cast<float>(static_cast<double>(stats.valuesE0[3].current) * kSkillNoiseScale);
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;

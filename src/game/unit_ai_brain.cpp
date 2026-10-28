@@ -273,7 +273,7 @@ void AIBrain::StandardSentry(const Vector3* point) {
 void AIBrain::CallAllies(const Vector3* point) {
     std::list<CUnit*> units{};
     CUnit* self = owner->unit;
-    TheServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(self), &units, callRadius);
+    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(self), &units, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
@@ -367,7 +367,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
 void AIMemory::Update(CUnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.what < 0; });
     calls.Update(who->unit, this);
-    TheServerWorld()->AIEvents()->Update(who, this);
+    g_serverWorld->AIEvents()->Update(who, this);
     noticedLevel += noticedKind;
 }
 
@@ -406,8 +406,8 @@ void AIBrain::Load(CStream* stream) {
     stream->Read(&move.point, 12);
     LoadLooks(&move.looks, stream);
     stream->Read(&actionTime, 4);
-    target.Load(stream, TheServerWorld());
-    seen.Load(stream, TheServerWorld());
+    target.Load(stream, &g_serverWorld.Get());
+    seen.Load(stream, &g_serverWorld.Get());
     stream->Read(&callRadius, 4);
     stream->Read(&nearX, 4);
     stream->Read(&nearY, 4);

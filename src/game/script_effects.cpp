@@ -95,7 +95,7 @@ constexpr int kClassLightning = 0x4D;   // CEffectLightning
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
-CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
+CBaseManager* EffectManager() { return g_serverWorld->manager48_; }
 
 void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
 
@@ -122,7 +122,7 @@ T* FindId(std::list<T>& list, int id) {
 
 // Takes the effect object out of the world's timed objects and drops the reference to it.
 void ScriptDropEffect(CEngineObject* object) {
-    TheServerWorld()->RemoveTimedObject(object->id_);
+    g_serverWorld->RemoveTimedObject(object->id_);
     object->Release();
 }
 
@@ -136,7 +136,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     sound->looping_ = 0;
     const char* name = cmd->stringArgs[0].c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
-    TheServerWorld()->AddTimedObject(sound);
+    g_serverWorld->AddTimedObject(sound);
 }
 
 // CreateFXSource / CreateRandomizedFXSource (script.h). A new source is appended empty. Every field
@@ -179,7 +179,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     std::memcpy(&sound->radius_, &source->radius, 4);
     const char* name = source->name.c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
-    TheServerWorld()->AddTimedObject(sound);
+    g_serverWorld->AddTimedObject(sound);
     source->idle = 0;
 }
 
@@ -197,7 +197,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(&from, &to, f[7]);
-    TheServerWorld()->AddTimedObject(bolt);
+    g_serverWorld->AddTimedObject(bolt);
 }
 
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
@@ -228,7 +228,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     particles->localPosition_ = {f[1], f[2], f[3]};
     source->object = ScriptEffect<CEffectParticle>(particles);
     std::memcpy(&particles->size_, &f[4], 4);
-    TheServerWorld()->AddTimedObject(particles);
+    g_serverWorld->AddTimedObject(particles);
 
     source->id = id;
     source->deleteAfterMove = 0;

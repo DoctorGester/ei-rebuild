@@ -70,7 +70,7 @@ void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
     HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
 }
 
-CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
+CItemManager* ItemManager() { return g_serverWorld->itemManager_; }
 
 } // namespace
 

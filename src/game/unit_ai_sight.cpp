@@ -244,7 +244,7 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     EI_NAN_AUDIT(sight);
     float radius = kZero < sight ? sight : kZero;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = TheServerWorld()->AIMap();
+    CAIMap* map = g_serverWorld->AIMap();
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);

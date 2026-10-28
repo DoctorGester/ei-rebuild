@@ -22,7 +22,7 @@ namespace scriptaddon {
 namespace {
 
 // The world: the player with a number.
-void* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
+void* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
 
 // The sector map: every object within `radius` of `point`, into a pointer
 // list (block size 10).
@@ -69,7 +69,7 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
 // 1001B058).
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
-    auto& objects = TheServerWorld()->objects_.map;
+    auto& objects = g_serverWorld->objects_.map;
     for (const auto& [id, object] : objects) visit(object);
 }
 

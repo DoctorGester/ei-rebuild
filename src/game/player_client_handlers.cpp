@@ -40,7 +40,7 @@ const char* FixedViewZone() { return "gz20g"; }
 // An identity rotation.
 constexpr Quaternion kFixedViewRotation = /*007C8388*/ {1.0f, 0.0f, 0.0f, 0.0f};   // the identity (a static initialiser)
 
-CUnit* FindClientUnit(int id) { return TheClientWorld()->FindUnit(id); }
+CUnit* FindClientUnit(int id) { return g_clientWorld->FindUnit(id); }
 
 
 } // namespace
@@ -66,7 +66,7 @@ int CPlayerClient::OnCameraPlacement() {
     in_.Read(&heading, 4);
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
-    TheClientWorld()->CentreOn(&point);
+    g_clientWorld->CentreOn(&point);
     CCamera* camera = TheCamera();
     const char* zone = player_->Party()->zone_.c_str();
     if (std::strcmp(zone,
@@ -96,8 +96,8 @@ int CPlayerClient::OnGameState() {
     }
     player->sessionKind100_ = state;
     TheInterface()->CreateScreen(state);
-    TheClientWorld()->tick_ = tick;
-    if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
+    g_clientWorld->tick_ = tick;
+    if (state == kGameStateBetweenZones) g_clientWorld->LoadUnitFaces();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
         UnitChanged(node->second);
     if (IsMultiplayerClient()) TheGameFlow()->UpdateFromServer();
@@ -122,7 +122,7 @@ int CPlayerClient::OnObjectValues() {
         in_.Read(&id, 4);
         if (id == -1) return 1;
         if (!in_.ok_) return 0;
-        CItem* item = FindItem(TheClientWorld()->itemManager_, static_cast<unsigned>(id));
+        CItem* item = FindItem(g_clientWorld->itemManager_, static_cast<unsigned>(id));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
         in_.Read(&value, 4);
@@ -186,7 +186,7 @@ int CPlayerClient::OnUnitControl() {
     auto* unit = FindClientUnit(unitId);
     switch (kind) {
     case 0:
-        if (unit) TheClientWorld()->Select(unit);
+        if (unit) g_clientWorld->Select(unit);
         return 1;
     case 1:
     case 2: {
@@ -198,7 +198,7 @@ int CPlayerClient::OnUnitControl() {
         return 1;
     }
     case 3:
-        TheClientWorld()->Deselect(nullptr);
+        g_clientWorld->Deselect(nullptr);
         return 1;
     default:
         return 0;
@@ -230,7 +230,7 @@ int CPlayerClient::OnObjectRemoved() {
     player->knownObjects_.erase(id);
     object->flags_ |= kFlagGone;
     object->Release();
-    TheClientWorld()->RemoveObject(object->id_);
+    g_clientWorld->RemoveObject(object->id_);
     return 1;
 }
 
@@ -283,14 +283,14 @@ int CPlayerClient::OnWeather() {
     std::uint8_t bytes[3];
     in_.Read(bytes, 3);
     const int strength = bytes[1] | (bytes[2] << 8);
-    TheClientWorld()->rainSnow_.Start(bytes[0], static_cast<float>(strength));
+    g_clientWorld->rainSnow_.Start(bytes[0], static_cast<float>(strength));
     return 1;
 }
 
 int CPlayerClient::OnWorldTime() {
     float values[2];   // time, speed
     in_.Read(values, 8);
-    CWorldClient* world = TheClientWorld();
+    CWorldClient* world = &g_clientWorld.Get();
     world->CWorld::SetTimeSpeed(values[1]);
     world->CWorld::SetTime(values[0]);
     world->UpdateLighting();
@@ -302,12 +302,12 @@ int CPlayerClient::OnWorldPoint() {
     in_.Read(&point, 12);
     int value;
     in_.Read(&value, 4);
-    TheClientWorld()->ApplyWind(&point, std::bit_cast<float>(value));
+    g_clientWorld->ApplyWind(&point, std::bit_cast<float>(value));
     return 1;
 }
 
 int CPlayerClient::OnWorldStream() {
-    TheClientWorld()->ReadWaterLevels(&in_);
+    g_clientWorld->ReadWaterLevels(&in_);
     return 1;
 }
 

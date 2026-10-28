@@ -51,7 +51,7 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     }
     // The (x, y) pair is read back through its address.
     POINT point = {x, y};
-    CUnit* unit = TheClientWorld()->UnitAt(&point);
+    CUnit* unit = g_clientWorld->UnitAt(&point);
     HoverUnit(unit, point.x, point.y);
 }
 

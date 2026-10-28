@@ -105,7 +105,7 @@ void TargetPlace(int id, Vector3* at, float* ground) {
     if (ticks.id != id || ticks.count < 2) return;
     if (std::memcmp(at, &ticks.current, sizeof(Vector3)) != 0 || *ground != ticks.currentGround) return;
     if (DistanceSquaredXY(ticks.previous, ticks.current) > kTargetJump * kTargetJump) return;
-    float fraction = TheClientWorld()->tickFraction_;
+    float fraction = g_clientWorld->tickFraction_;
     fraction = fraction > 0.0f ? (fraction < 1.0f ? fraction : 1.0f) : 0.0f;
     *at = Lerp(ticks.previous, ticks.current, fraction);
     *ground = Lerp(ticks.previousGround, ticks.currentGround, fraction);
@@ -143,7 +143,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
 
 void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
-    double centre = TheClientWorld()->RawSurfaceHeightAt(p->x, p->y);
+    double centre = g_clientWorld->RawSurfaceHeightAt(p->x, p->y);
     *minimum = static_cast<float>(centre);
     *maximum = static_cast<float>(centre);
     *average = static_cast<float>(centre);
@@ -154,7 +154,7 @@ void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step,
             float y = static_cast<float>(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
                 if (y >= 0.0f && TheTerrain()->height > y) {
-                    float h = static_cast<float>(TheClientWorld()->RawSurfaceHeightAt(x, y));
+                    float h = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(x, y));
                     float low = *minimum;
                     *minimum = h >= low ? low : h;
                     float high = *maximum;
@@ -316,7 +316,7 @@ void CCamera::Update(float dt) {
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
     if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (TheTerrain()) listener.z = static_cast<float>(TheClientWorld()->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
+        if (TheTerrain()) listener.z = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);

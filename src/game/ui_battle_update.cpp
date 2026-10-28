@@ -158,7 +158,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         int* unitId = &player->id_;
         int* playerId = &player->serial_;
         if (player->state_ == 0 && *unitId >= 0) {
-            if (!TheClientWorld()->FindUnit(*unitId)) {
+            if (!g_clientWorld->FindUnit(*unitId)) {
                 PushId(&ids.without, playerId);
                 continue;
             }
@@ -179,10 +179,10 @@ void RebuildClientParty(CBattleScreen* screen) {
         bool cameraFirst = false;
         for (int* id = ids.withUnit.data(); id != ids.withUnit.data() + ids.withUnit.size(); ++id) {
             int unitId = *id;
-            CUnit* unit = TheClientWorld()->FindUnit(unitId);
+            CUnit* unit = g_clientWorld->FindUnit(unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                TheClientWorld()->Select(unit);
+                g_clientWorld->Select(unit);
                 // Insert at the front (InsertAt).
                 int n = std::ssize(*party);
                 if (n <= 0) {
@@ -276,7 +276,7 @@ void CBattleScreen::Update() {
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         std::list<CMapObject*> units;
-        TheClientWorld()->UnitsInBox(&selectionBox_, &units);
+        g_clientWorld->UnitsInBox(&selectionBox_, &units);
         std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
@@ -331,7 +331,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
         return;
     }
     viewPressed_ = false;
-    CWorldClient* world = TheClientWorld();
+    CWorldClient* world = &g_clientWorld.Get();
     if (!boxSelecting_ || IsMultiplayerClient()) {
         // The (x, y) pair is read back through its address.
         POINT point = {x, y};

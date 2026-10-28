@@ -65,9 +65,9 @@ const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
-CWorldServer* TheWorld() { return TheServerWorld(); }
+CWorldServer* TheWorld() { return &g_serverWorld.Get(); }
 
-CAIMap* TheAIMap() { return TheServerWorld()->AIMap(); }
+CAIMap* TheAIMap() { return g_serverWorld->AIMap(); }
 
 NamedPartyRecords* Parties() { return &ThePartyManager()->records; }
 
@@ -78,9 +78,9 @@ bool ServerActive() {
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
 
-CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
+CPlayerManager* TheEvents() { return g_serverWorld->players_; }
 
-CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
+CSpellManager* TheSpellManager() { return g_serverWorld->manager4C_; }
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
@@ -519,7 +519,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            TheServerWorld()->LoadMobFile(Text(cmd, 0));
+            g_serverWorld->LoadMobFile(Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             GamePlayCameraPath(Text(cmd, 0), 0);
@@ -1031,7 +1031,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xDF: {   // FixItems: every item repaired
-            auto* list = TheServerWorld()->itemManager_;
+            auto* list = g_serverWorld->itemManager_;
             ObjectListIteratorOf<CItem> it;
             it.manager = nullptr;
             for (CItem* item = it.First(list); item; item = it.Next()) item->Repair();

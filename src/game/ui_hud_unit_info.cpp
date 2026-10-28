@@ -111,7 +111,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     panel.text = str::Format(kSpeedLine, panel.labels[2].c_str(), speed, suffix.c_str());
     panel.DrawLine();
 
-    float dayTime = static_cast<float>(WorldDayTime(TheClientWorld()));
+    float dayTime = static_cast<float>(WorldDayTime(&g_clientWorld.Get()));
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
     panel.text = str::Format(kValueUnit, panel.labels[6].c_str(), vision, panel.labels[13].c_str());
     panel.DrawLine();

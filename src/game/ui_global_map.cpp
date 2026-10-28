@@ -196,7 +196,7 @@ void CGlobalMap::CreateScreen() {
     autosave_ = false;
     if (GameSaveStream()->size_ != 0)
         GameSaveStream()->Resize(0);
-    else if (TheClientWorld()->LocalView()->player_->lastScreen_ != 5)
+    else if (g_clientWorld->LocalView()->player_->lastScreen_ != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
     centreX_ = Bits(0x43C80000);   // 400

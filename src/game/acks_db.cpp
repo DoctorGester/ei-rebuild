@@ -166,7 +166,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
         if (!animation) return nullptr;
         std::uint32_t animationKind = animation->key & 0x3C0000;
         if (animationKind != 0x100000 && animationKind != 0x140000 && animationKind != 0x180000) return nullptr;
-        std::uint32_t environment = TheClientWorld()->EnvironmentFlags(unit);
+        std::uint32_t environment = g_clientWorld->EnvironmentFlags(unit);
         speech = environmentList->Pick(environment, Roll());
     } else {
         speech = list->Pick(Roll());

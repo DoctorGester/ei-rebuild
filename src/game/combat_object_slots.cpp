@@ -92,11 +92,11 @@ void CUnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             TakeHit(&hit, nullptr, nullptr);
-            TheServerWorld()->AIMap()->sectorMap.Add(unit);
+            g_serverWorld->AIMap()->sectorMap.Add(unit);
             return;
         }
     }
-    TheServerWorld()->AIMap()->sectorMap.Add(unit);
+    g_serverWorld->AIMap()->sectorMap.Add(unit);
 }
 
 int CUnitServer::Create() {

@@ -181,7 +181,7 @@ int GroundPrint::Draw() {
     if (!visible_) return 1;
     if (!built_) {
         // The quad at the height of the ground or the platform under the point.
-        CWorldClient* world = TheClientWorld();
+        CWorldClient* world = &g_clientWorld.Get();
         std::vector<VertexPacket> quad;
         Vector3 at{position_.x, position_.y, 0.0f};
         float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));

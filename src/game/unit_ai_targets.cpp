@@ -133,7 +133,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         float range = static_cast<float>(self->ScaledValue(distance));
         float targetRadius = static_cast<float>(target->Radius());
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
-        CWorldServer* server = TheServerWorld();
+        CWorldServer* server = &g_serverWorld.Get();
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {

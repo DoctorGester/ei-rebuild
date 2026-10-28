@@ -188,7 +188,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     offset = RandomBelow(x87::fistp(spread));
     at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
-    TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
+    g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 
 void CUnitClientSpecific::Wound(float) {
@@ -221,7 +221,7 @@ void CUnitClientSpecific::Died() {
         at.z = unit->localPosition_.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
-    TheClientWorld()->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
+    g_clientWorld->AddBloodPrint(at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 
 void CUnitClientSpecific::PlayerChanged(void* player) {

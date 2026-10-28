@@ -423,7 +423,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
     VertexPacket* quads = g_quads.data();
-    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
+    g_clientWorld->ProjectDecal(&direction, &point, self->object->bounds.radius, &quads,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (!self->vertices.empty()) {

@@ -135,7 +135,7 @@ void CCamera::ClampAboveObjects() {
     const Vector3* zero = &camera::kZeroVector;
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     std::list<CObject3D*> list;
-    TheClientWorld()->ObjectsInRange(p, 16.0f, &list);
+    g_clientWorld->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
     for (std::list<CObject3D*>::iterator node = list.begin(); node != list.end(); ++node) {
         const CObject3D* object = (*node);

@@ -148,7 +148,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
         for (int i = 0; i < std::ssize(points); ++i) {
             const TrapPoint& point = points[i];
             Vector3 at = {point.x, point.y, 0.0f};
-            TheServerWorld()->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
+            g_serverWorld->CastSpell(spell, nullptr, &from, nullptr, &at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -169,7 +169,7 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
         for (auto node = units->begin(); node != units->end();) {
             auto next = std::next(node);
             CUnit* unit = *node;
-            TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
+            g_serverWorld->CastSpell(spell, nullptr, &from, unit,
                                    &unit->localPosition_, 0);
             node = next;
         }

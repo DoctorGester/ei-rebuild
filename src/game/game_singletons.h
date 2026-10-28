@@ -46,9 +46,9 @@ int CurrentWorldTick();
 int CurrentClientTick();
 float ClientTickFraction();
 
-CWorldClient* TheClientWorld();   // g_clientWorld
+extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
-CWorldServer* TheServerWorld();   // g_serverWorld
+extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp
 
 // The client world's managers: the text manager (the game's string tables), the object
 // manager (finds and creates engine objects by id), the figure manager (models and sprites), the texture, material,

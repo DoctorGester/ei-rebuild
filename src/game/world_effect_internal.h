@@ -23,8 +23,8 @@ namespace effect {
 // --- Globals -------------------------------------------------------------------------------------
 
 // The light and particle managers are TheTerrain(), TheLightFactory() and TheParticleManager() (game_singletons.h).
-inline CLightningManager* BoltFactory() { return TheClientWorld()->listManager_; }   // CreateObject makes bolts
-inline int ChangeStamp() { return TheServerWorld()->updateCount_; }
+inline CLightningManager* BoltFactory() { return g_clientWorld->listManager_; }   // CreateObject makes bolts
+inline int ChangeStamp() { return g_serverWorld->updateCount_; }
 inline std::uint8_t FrameCounter() { return static_cast<std::uint8_t>(CurrentWorldTick()); }
 
 // Constants read from memory, as the original does, so that nothing is folded.

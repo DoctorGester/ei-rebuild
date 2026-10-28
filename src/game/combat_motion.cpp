@@ -54,8 +54,8 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
-CSectorMap* ServerSectors() { return &TheServerWorld()->aiMap_.sectorMap; }
+CAIMap* ServerAIMap() { return g_serverWorld->AIMap(); }
+CSectorMap* ServerSectors() { return &g_serverWorld->aiMap_.sectorMap; }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 float HeroWalkLimit() { return g_logicSettings.damageLevel2Value; }
 float HeroRunLimit() { return g_logicSettings.damageLevel1Value; }
@@ -89,7 +89,7 @@ void ShowHead(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    TheServerWorld()->RemoveTimedObject(self->effectObject->id_);
+    g_serverWorld->RemoveTimedObject(self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
     if (effect) effect->Release();

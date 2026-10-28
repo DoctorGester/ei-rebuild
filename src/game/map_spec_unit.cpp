@@ -206,12 +206,12 @@ CUnit* ObjectSpec::Unit() const { return static_cast<CUnit*>(object); }
 
 void UnitSpec::Apply() {
     if (!object) {
-        TheServerWorld()->CreateObject(this);
+        g_serverWorld->CreateObject(this);
         return;
     }
     CUnit* unit = Unit();
     TheSectorMap()->Move(unit, &position);
-    TheServerWorld()->AIMap()->TurnObject(unit, &rotation);
+    g_serverWorld->AIMap()->TurnObject(unit, &rotation);
     std::memcpy(&unit->localRotation_, &rotation, 16);
     unit->SetFigureScale(&scale.x);
     std::memcpy(&unit->baseScale, &scale, 12);

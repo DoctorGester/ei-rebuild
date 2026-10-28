@@ -213,7 +213,7 @@ int CPlayerClient::Pump() {
     case kStateLoggedIn:
         return 1;
     case kStateSendingCamera: {
-        const Vector3* anchor = CameraAnchor(TheClientWorld()->camera_);
+        const Vector3* anchor = CameraAnchor(g_clientWorld->camera_);
         float point[2] = {anchor->x, anchor->y};
         WriteByte(&out_, kRequestCamera);
         out_.Write(point, sizeof(point));
@@ -283,7 +283,7 @@ int CPlayerClient::OnSetVariable() {
     variables.Set(name, std::bit_cast<float>(value));
     if (IsQuestVariable(name)) {
         TheInterface()->OnQuestVariable(name, std::bit_cast<float>(value));
-        TheClientWorld()->OnQuestVariable(name, std::bit_cast<float>(value));
+        g_clientWorld->OnQuestVariable(name, std::bit_cast<float>(value));
     }
     return 1;
 }
@@ -294,7 +294,7 @@ int CPlayerClient::OnDeleteVariable() {
     player_->Party()->variables_.Remove(name);
     if (IsQuestVariable(name)) {
         TheInterface()->OnQuestVariable(name, 0.0f);
-        TheClientWorld()->OnQuestVariable(name, 0.0f);
+        g_clientWorld->OnQuestVariable(name, 0.0f);
     }
     return 1;
 }
@@ -319,21 +319,21 @@ int CPlayerClient::OnZone() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
     player_->Clear();
-    TheClientWorld()->LoadZone(&block);
+    g_clientWorld->LoadZone(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock3() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    TheClientWorld()->LoadItemsAndSpells(&block);
+    g_clientWorld->LoadItemsAndSpells(&block);
     return 1;
 }
 
 int CPlayerClient::OnWorldBlock5() {
     CMemoryStream block;
     if (in_.ReadStream(&block) == 0) return 0;
-    TheClientWorld()->LoadNewItemsAndSpells(&block);
+    g_clientWorld->LoadNewItemsAndSpells(&block);
     return 1;
 }
 
@@ -357,7 +357,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::UnitMap& units = player_->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        TheClientWorld()->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        g_clientWorld->ShowNumber(unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -367,8 +367,8 @@ int CPlayerClient::OnExperience() {
     float amount;
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
-    auto* unit = TheClientWorld()->FindUnit(id);
-    if (unit != nullptr) TheClientWorld()->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
+    auto* unit = g_clientWorld->FindUnit(id);
+    if (unit != nullptr) g_clientWorld->ShowNumber(id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 
@@ -390,7 +390,7 @@ int CPlayerClient::OnItemsReceived() {
             result = 0;
             break;
         }
-        auto* manager = TheClientWorld()->itemManager_;
+        auto* manager = g_clientWorld->itemManager_;
         if (CItem* item = FindItem(manager, static_cast<unsigned>(id))) items.push_front(item);
     }
     if (result != 0) {
@@ -423,7 +423,7 @@ int CPlayerClient::OnParty() {
             // A multiplayer client keeps its variables.
             party->variables_ = saved;
         }
-        TheClientWorld()->ApplyObjectVariables();
+        g_clientWorld->ApplyObjectVariables();
         console::EndLine(console::g_netLogOut << TextPartyReceived());
         TheGameFlow()->ReturnLocalParty();
     }
@@ -614,9 +614,9 @@ int CPlayerClient::OnNewObject() {
         object->TakePrototype(model);
     object->WriteFullState();
     if (object->ReadState(0, &in_) == 0) return 0;
-    TheClientWorld()->AddObject(object);
+    g_clientWorld->AddObject(object);
     if (object->name2[0] != 0) {
-        const std::string variable = TheClientWorld()->ObjectVariableName(object->name2.c_str());
+        const std::string variable = g_clientWorld->ObjectVariableName(object->name2.c_str());
         object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
     }
     if (player->sessionKind100_ == kSessionClient) {
@@ -714,7 +714,7 @@ int CPlayerClient::OnPartyState() {
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
         if (!g_partyIdSet->contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
-            TheClientWorld()->ticksRun_ >= 1)
+            g_clientWorld->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
     g_partyIdSet->clear();

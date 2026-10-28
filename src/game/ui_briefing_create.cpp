@@ -82,10 +82,10 @@ MapRecord* FindLocalMap() {
 }
 
 CPlayer* LocalViewPlayer() {
-    return TheClientWorld()->LocalView()->player_;
+    return g_clientWorld->LocalView()->player_;
 }
 
-CUnit* ServerUnit(int id) { return TheServerWorld()->FindUnit(id); }
+CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
 
 // A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
@@ -350,9 +350,9 @@ void CBriefingScreen::MarkPeople() {
         open.push_back(id);
     }
     for (int* id = people_.data(); id != people_.data() + people_.size(); ++id) {
-        if (!TheClientWorld()->FindUnit(*id)) continue;
+        if (!g_clientWorld->FindUnit(*id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
-        auto* player = TheServerWorld()->GetPlayer(0);
+        auto* player = g_serverWorld->GetPlayer(0);
         if (player && player->Server())
             player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }

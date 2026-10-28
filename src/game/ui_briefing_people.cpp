@@ -66,7 +66,7 @@ Vector3 Normalised(float x, float y, float z) {
 void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited,
                                  bool immediate, int run) {
     (void)z;   // the server unit's height is used instead
-    auto* serverUnit = TheServerWorld()->FindUnit(unit->id_);
+    auto* serverUnit = g_serverWorld->FindUnit(unit->id_);
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     if (!controller) return;
@@ -92,9 +92,9 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
         if (entry != speakers_.end()) speakers_.erase(entry);
         speakers_.push_back(BriefingSpeaker{unit, name});
-        auto* player = TheServerWorld()->GetPlayer(0);
+        auto* player = g_serverWorld->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
-        if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
+        if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
             if (leader_ && leader_->id_ == unit->id_) serverUnit->SetFlag40000000Off(false);
             serverUnit->ServerController()->actionDone = SpeakerAnimationDone;
         }

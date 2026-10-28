@@ -89,7 +89,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     chunk.ReadHeader();
     chunk.ReadFloat();
-    CWorldServer* server = TheServerWorld();
+    CWorldServer* server = &g_serverWorld.Get();
     server->CWorldServer::SetTime(time);
     float limit = MobWindLimit();
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
@@ -164,7 +164,7 @@ bool MobFile::Load(void*, int keepIds) {
             for (int c = 0; c < 32; ++c)
                 record->trap.sides |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }
-        TheServerWorld()->CreateObject(spec);
+        g_serverWorld->CreateObject(spec);
         auto* object = static_cast<ObjectSpec*>(spec);
         bool skip = spec->id == 2 && str::Compare(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
