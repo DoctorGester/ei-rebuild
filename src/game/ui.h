@@ -63,11 +63,9 @@ struct CScreenFade {
     float rate_;                     // alpha per millisecond
     float alpha_;                    // 0..255
     std::uint8_t active_;            // fading
-    std::uint8_t unused_09[3];
     DWORD lastTime_;                 // timeGetTime of the last step
     std::uint8_t letterbox_;         // the bars are shown
 };
-static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
 // The key of the multiplayer message 12's text (CInterface3D::MessageText), "reserved_02": EI_Plugin's Pause
 // writes its digit, '2' for a pause and '3' ("reserved_03") for a resume (player_server_orders.cpp).
@@ -216,7 +214,6 @@ public:
     int height_;                     // screen height
     CTextureDevice* renderer_;       // the device
     void* mouseCapture_;             // input side that took the button press
-    std::uint8_t unused_10[0x14 - 0x10];
     console::ConsoleWindow* console_;
     CScreenFade* fade_;
     CChatOverlay* root_;             // the chat overlay; updated after the top window every frame
@@ -226,20 +223,16 @@ public:
     int fpsFrames_;
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing_;
-    std::uint8_t unused_31[0x34 - 0x31];
     std::vector<CUiWindow*> stack_;   // the open windows, the top one last
     CUiWindow* queuedWindow_;        // activated by the next frame update
     bool closeAll_;
-    std::uint8_t unused_45[0x48 - 0x45];
     std::uint32_t pendingValue_;
     bool pendingFlag_;
-    std::uint8_t unused_4D[0x50 - 0x4D];
     int backdropMode_;               // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_;
     CUiSurface* secondBackdrop_;
     void* block5C_;                  // freed by the shutdown with operator delete (writer not identified)
     std::uint8_t serverFlag_;        // the server flag kept for the first window (PushWindow)
-    std::uint8_t unused_61[0x64 - 0x61];
     CUiSurface* statusSurface_;      // only while ShowStatusText runs
     int mouseX_;
     int mouseY_;
@@ -254,7 +247,6 @@ public:
     bool rightDown_;
     // The top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop_;
-    std::uint8_t unused_82[0x84 - 0x82];
     std::list<std::string> messages_;   // queued message texts (ShowMessage takes the first)
     bool disconnected_;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
@@ -283,20 +275,6 @@ public:
 
     void ResetSavedState();
 };
-static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
-static_assert(offsetof(CInterface3D, ctrlDown_) == 0x7C && offsetof(CInterface3D, altDown_) == 0x7E);
-static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
-static_assert(offsetof(CInterface3D, stack_) == 0x34);
-
-static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
-static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
-static_assert(offsetof(CInterface3D, console_) == 0x14);
-static_assert(offsetof(CInterface3D, root_) == 0x1C);
-static_assert(offsetof(CInterface3D, drawing_) == 0x30);
-static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
-static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
-static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
-static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 
 extern lib::StaticObject<CInterface3D> g_interface;
 
@@ -340,7 +318,6 @@ public:
     RECT bounds_;
     bool rectOnly_;
     bool enabled_;
-    std::uint8_t unused_26[2];
     int offsetX_;                    // subtracted from tested points
     int offsetY_;
     CUiTooltip* tip_;
@@ -410,16 +387,6 @@ public:
     RECT rect_;                      // screen coordinates
     COLORREF background_;            // the colour Clear fills with (0 from the constructors)
 };
-static_assert(offsetof(CUiSurface, interface_) == 0x04);
-static_assert(offsetof(CUiSurface, rect_) == 0x24);
-static_assert(offsetof(CUiSurface, flags_) == 0x0C);
-static_assert(offsetof(CUiSurface, holder_) == 0x10);
-static_assert(offsetof(CUiSurface, width_) == 0x14);
-static_assert(offsetof(CUiSurface, height_) == 0x18);
-static_assert(offsetof(CUiSurface, kept_) == 0x1C);
-static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
-static_assert(offsetof(CUiSurface, background_) == 0x34);
-static_assert(sizeof(CUiSurface) == 0x38);
 // The surface's DC (null without a DirectDraw surface) and the matching release.
 HDC UiSurfaceGetDC(CUiSurface* surface);
 void UiSurfaceReleaseDC(CUiSurface* surface);
@@ -497,7 +464,6 @@ struct UiInputSide {
     // Events 2-11 by number (the containers' dispatch).
     int Event(int slot, int a, int b, int c);
 
-
     CInterface3D* interface_;
     bool handled_;                   // set by a handler that used the event
 };
@@ -515,7 +481,6 @@ struct UiInertInput final : UiInputSide {
 // never touches.
 class CUiWindowBase : public CTransformObject {
 protected:
-    std::uint8_t unused_054[0x94 - 0x54];
 };
 
 // Base of the interface windows; its input side is its second base.
@@ -622,7 +587,6 @@ extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurfac
 // PixelAt, SwapContents); `writes` for the ones that change the pixels; `caller` the stack slot of the
 // helper's return address. Null otherwise.
 extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
-static_assert(sizeof(CUiWindowBase) == 0x94);
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
@@ -797,7 +761,6 @@ public:
 
     struct Entry {
         bool own;                    // one of the unit's quick items (else the player's)
-        std::uint8_t unused_1[3];
         int id;                      // the item's id
         CItem* item;
     };
@@ -905,11 +868,8 @@ struct HudPortraitSlot {
     Quaternion wobbleTarget_{1.0f, 0.0f, 0.0f, 0.0f};
     float wobbleSpeed_;
     bool hasPlayer_;                 // a multiplayer player without a unit here (no bars)
-    std::uint8_t unused_71[3];
     int playerId_;                   // that player's serial, else -1
 };
-static_assert(offsetof(HudPortraitSlot, wobbleKind_) == 0x38);
-static_assert(offsetof(HudPortraitSlot, faceName_) == 0x40);
 
 // Party portraits (250..550 x 440..600).
 class CHudPortraits : public CUiWindow {
@@ -936,7 +896,6 @@ public:
 
     CBattleScreen* owner_;
     int count_;
-    std::uint8_t unused_150[0x158 - 0x150];
     std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
 
@@ -1026,7 +985,6 @@ public:
     CEngineObject* material_;        // the window's black material
     CTexture* texture_;              // one of the window's referenced textures
 };
-static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
 
 inline CUiMesh* AsUiMesh(CEngineObject* object) { return static_cast<CUiMesh*>(object); }
 inline CUiMesh* CUiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects_[index]); }
@@ -1466,7 +1424,6 @@ public:
     std::uint8_t exitPending_;
     // Key actions 0x11..0x16 held; AttackUnit's order kind is the first one set.
     std::uint8_t orderKeys_[6];
-    std::uint8_t unused_193;
     CHudWeaponBar* weaponBar_;
     CHudQuickItems* quickItems_;
     CHudSpellColumn* spellColumn_;
@@ -1481,7 +1438,6 @@ public:
     CUiScrollText* MessageLog() const;
     bool viewPressed_;               // the left button went down on the view
     bool boxSelecting_;              // a selection box is being dragged
-    std::uint8_t unused_1C2[0x1C4 - 0x1C2];
     int pressX_;                     // where the button went down on the view (screen)
     int pressY_;
     RECT selectionBox_;              // the box
@@ -1489,7 +1445,6 @@ public:
     PersonTextMap personTexts_;      // the "pers" texts by person
     int questSound_;                 // the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // a hero id was added (new game)
-    std::uint8_t unused_201[3];
     PartyIds clientParty_;           // the client's party ids last built
     // The key a player's item gives when it starts mode 6; SelectUnit and the hover hand it to the target's
     // AcceptsKey.
@@ -1536,7 +1491,6 @@ public:
     int grabY_;
     float depth_;                    // the sprites' depth
     bool moved_;
-    std::uint8_t unused_181[3];
     int state_;                      // 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated_;              // scrolled amount not yet applied
 };
@@ -1555,7 +1509,6 @@ public:
     void SetRect(const RECT* rect) override;
 };
 
-
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
 struct UiWordToken;
@@ -1573,11 +1526,9 @@ struct UiFormatToken : UiTextToken {
     ~UiFormatToken() override;
 
     bool newline_;                   // a newline token, or a font change after the first token
-    std::uint8_t unused_09[3];
     int font_;                       // interface font
     COLORREF colour_;
 };
-static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
     UiWordToken() : UiTextToken(2), width_(0) {}
     ~UiWordToken() override;
@@ -1585,7 +1536,6 @@ struct UiWordToken : UiTextToken {
     std::string text_;
     int width_;                      // its width in the token's font
 };
-static_assert(offsetof(UiWordToken, text_) == 0x08);
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
@@ -1747,13 +1697,11 @@ public:
     int firstVisible_;               // list scroll position
     bool isSave_;                    // save (not load) window
     bool sliding_;                   // sliding in; input is ignored meanwhile
-    std::uint8_t unused_17A[2];
     float slide_;                    // 0..1
     CUiScrollbar* scrollbar_;
     CTexture* dialog_;               // the save window's picture of the game for the new save
     std::string name_;              // the save name being edited
     bool nameTyped_;
-    std::uint8_t unused_18D[3];
     int cursor_;                     // caret position in name_ (bytes, at a character's start: U4)
 };
 
@@ -1765,7 +1713,6 @@ struct OptionDefinition {
     int group_;                      // the option group (0-10) it is shown in
     int row_;                        // its row there
 };
-static_assert(sizeof(OptionDefinition) == 0x18);
 constexpr int kOptionDefinitionCount = 26;
 
 struct ActionDefinition {
@@ -1774,7 +1721,6 @@ struct ActionDefinition {
     int group_;
     int row_;
 };
-static_assert(sizeof(ActionDefinition) == 0x10);
 constexpr int kActionDefinitionCount = 59;
 // The key actions (a table of 60; the first is a blank id 0): the key bindings file's names and the options
 // window's rows (group, row).
@@ -1853,7 +1799,6 @@ struct OptionSetting {
 // An exit shown on the objectives window's zone picture.
 struct ObjectiveExit {
     bool flag_;                      // a known distance (global map), or the zone variable is not 1
-    std::uint8_t unused_01[3];
     int exit_;                       // index in the zone's exit list
     float distance_;
     float x_;                        // centre of the exit rectangle (world units)
@@ -1861,7 +1806,6 @@ struct ObjectiveExit {
     float mapX_;                     // on the picture (layout)
     float mapY_;
 };
-static_assert(sizeof(ObjectiveExit) == 0x1C);
 
 // The objectives window (TAB in a zone opens it for the current zone). Left: the quests of the zone (rows),
 // the log; right: the zone picture with its exits; the arrows switch between zones when it lists several.
@@ -1996,11 +1940,9 @@ public:
     OptionRow rows_[14];
     bool waitingForKey_;             // a key binding row waits for the new key
     bool sliding_;
-    std::uint8_t unused_3F6[2];
     float slide_;
     std::vector<std::string> groupNames_;   // the option groups' titles
     bool shadowsChanged_;            // a shadow switch (settings 7-9: units, buildings, flora) changed
-    std::uint8_t unused_411[3];
     const UiKeyName* pressedKey_;    // the key pressed for a binding row
 };
 
@@ -2028,7 +1970,6 @@ public:
     RECT area_;                      // the surface's layout rectangle
     std::uint32_t charClasses_;      // classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
     std::uint8_t centred_;           // SetLook's mode
-    std::uint8_t unused_15D[3];
     int font_;                       // interface font
     int maxLength_;
     COLORREF colour_;                // the text's colour
@@ -2038,7 +1979,6 @@ public:
     bool editing_;                   // an edit key was pressed (the first one sets it)
     bool focused_;                   // keys are taken only while set
     bool changed_;
-    std::uint8_t unused_17B;
 };
 
 // The message box. Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one cancel button), 4 an
@@ -2098,7 +2038,6 @@ public:
     void ShowPage();
 
     bool message_;                       // a message window (ShowMessage), not help
-    std::uint8_t unused_165[3];
     std::string text_;                  // the message, or the help topic
     std::string title_;
     std::vector<std::string> lines_;     // the pages' texts
@@ -2153,7 +2092,6 @@ public:
 
     std::list<ChatLine> lines_;
     bool chatOpen_;                  // a multiplayer client's chat line is open (it takes the keys)
-    std::uint8_t unused_14D[3];
     std::string typed_;
     int caret_;                      // in the typed line (a byte offset at a character's start: U4)
 };

@@ -8,6 +8,9 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# The debug build's containers are the release build's: the checked iterators' proxy is allocated by the
+# constructor, so a constinit std::vector global (the game-order exit functions' containers) fails to compile.
+add_compile_definitions($<$<CONFIG:Debug>:_ITERATOR_DEBUG_LEVEL=0>)
 # No incremental linking in the two builds: an incremental relink of ei_hook.dll twice left out new code
 # from ei_render.lib while reporting success (R16c2), so a run could test stale code.
 foreach(kind EXE SHARED MODULE)

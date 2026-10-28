@@ -45,13 +45,11 @@ struct OneUnit {
     }
     std::vector<CUnit*> units{};
 };
-
 } // namespace
 
 // --- CViewScreen -------------------------------------------------------------
 
 void CViewScreen::CreateScreen() {
-    static_assert(sizeof(UiInputSide) == 0x0C);
     UiInputSide* inert = new UiInertInput(interface_);
     AddInput(inert);
     AddInput(new UnitPickInput(interface_));

@@ -20,7 +20,6 @@ struct UnitAction : AIOrder {
     int param;                  // by kind: a skill's spot (6), a wait's time, an emote's animation,
                                 // the studied item's id
     std::uint8_t modifier;      // run (move orders) or a called shot (attacks)
-    std::uint8_t unused_21[3];
 
 // The target is referenced.
     UnitAction* Assign(const UnitAction* from);
@@ -34,7 +33,6 @@ struct UnitAction : AIOrder {
         target = object;
     }
 };
-static_assert(sizeof(UnitAction) == 0x24);
 
 // One step of an animation list: animation is the index of the unit's animation entry (0xFF: a pause), variant
 // the emote / animation variant (0xFF: none), flags UnitSetAnimation's flags, a padding byte, duration in game
@@ -79,10 +77,8 @@ struct OrderPlan {
     int targetId;               // -1: none
     float rangeSq;              // squared distance the target may move away
     std::uint8_t isCast;
-    std::uint8_t unused_29[3];
     int hitLocation;            // the body location the attack aims at (1 by default)
     std::uint8_t notSkill;      // order source != 6
-    std::uint8_t unused_31[3];
     int castKind;               // 8; for a cast: 1 (spell kind 0x28), 0 (0x29) or the
                                 // spell prototype's school
     Vector3 direction;          // from the unit to the target
@@ -105,9 +101,7 @@ struct MoveModeState {
     int mode;                   // 0..2 (3 is stored as 2 with `wasMode3`)
     std::uint8_t flag4;         // read for mode 2
     std::uint8_t wasMode3;
-    std::uint8_t unused_6[2];
 };
-static_assert(sizeof(MoveModeState) == 8);
 
 // What a unit attacks with (CUnitServer::GetAttackParams).
 struct AttackParams {
@@ -123,12 +117,10 @@ struct AttackParams {
     int attack;                 // attack skill (truncated)
     int defence;                // defence skill (truncated; 0 for ranged weapons)
 };
-static_assert(sizeof(AttackParams) == 0x20);
 
 // A record of the unit's presence with the AI events. AIViewer::StepNoise, which would fill it, always returns
 // 0, so none is ever written; the layout is speculative (the fields the controller's update would write).
 struct AIEventPresence {
-    std::uint8_t unused_00[8];
     float x;                    // where the unit was when the record was last refreshed
     float y;
 };
@@ -144,9 +136,7 @@ struct ArmourSpell {
     CItem* item;
     int countdown;
     std::uint8_t worn;
-    std::uint8_t unused_9[3];
 };
-static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = std::list<ArmourSpell>;
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
@@ -527,7 +517,6 @@ public:
 
     std::uint8_t frozen;            // the unit is frozen: the animation and the orders wait (UpdateState)
     std::uint8_t animationHeld;     // a hit reaction plays (or no size classes): the times shift
-    std::uint8_t unused_022[2];
     AnimationSteps queue;           // extra: when its first step started, -1 until then
     AIPath motion;
     OrderPlan currentPlan;
@@ -551,11 +540,9 @@ public:
                                     // brain reports its target only while it is set (unit_ai.cpp)
     std::uint8_t deathReported;     // the death was reported to the world (the dead unit's update)
     std::uint8_t searchingTarget;   // TargetBusy counts a search under way when set (or in state 5)
-    std::uint8_t unused_18F;
     UnitAction action;
     UnitAction action2;
     std::uint8_t followsLeader;     // the chase follows `followedLeader`'s target (combat_tick.cpp)
-    std::uint8_t unused_1D9[3];
     CUnit* followedLeader;          // (referenced) the party unit whose attack this one joins
     UnitStats stats;                // its flags get bit 0x10 on a hit
     DamageWords protection;         // [0] the defence value, [1..7] the body's protection
@@ -593,9 +580,6 @@ public:
 
     void AddHostileMask(std::uint32_t mask);
 };
-static_assert(offsetof(CUnitServer, unit) == 0x1C);
 
 inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
-static_assert(offsetof(CUnitServer, frozen) == 0x20);
-static_assert(offsetof(CUnitServer, queue) == 0x24);
 

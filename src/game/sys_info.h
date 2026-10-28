@@ -78,7 +78,6 @@ public:
     SYSTEM_INFO system_;
     OSVERSIONINFOA version_;
 };
-static_assert(offsetof(CSysInfo, computerName_) == 0x1C);
 
 extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by its static initialiser
 

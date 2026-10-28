@@ -49,7 +49,6 @@ public:
     // Sets the velocity (moving_ as in UpdateMoving) and marks the effect changed.
     void SetVelocity(const Vector3* velocity);
 
-    std::uint8_t unused_54[0x94 - 0x54];
     int startTick_;            // game tick the effect began (particles: warm-up and lifetime)
     Vector3 velocity_;         // added to the position every tick while moving_
     int moving_;               // velocity is not zero
@@ -80,10 +79,8 @@ public:
     float radius_;
     int looping_;              // 0: the effect ends after its first tick
     std::uint8_t noFade_;      // plays with flag 1000
-    std::uint8_t unused_259[3];
     int sound_;                // handle in the sound system, -1: none
     std::uint8_t fresh_;       // set by Reset, cleared by the first tick
-    std::uint8_t unused_261[3];
 };
 
 // A sequence of sounds picked at random (class id 99).
@@ -107,7 +104,6 @@ public:
     float volume_;
     float radius_;
     std::uint8_t noFade_;
-    std::uint8_t unused_16D[3];
     int sound_;                // sequence handle, -1: none
 };
 
@@ -232,7 +228,6 @@ public:
     int toObject_;             // its position (+1 in z) becomes to_
     int fromObject_;           // a unit: its point becomes from_ (server only)
     std::uint8_t flag_;
-    std::uint8_t unused_175[3];
 };
 
 // A missile homing on a world object (abstract base). Subclasses: CEffectArrow (0x4E) and the class 0x5B
@@ -254,7 +249,6 @@ public:
     int arrived_;
     int targetId_;             // world object id, -1: none
     std::uint8_t fromCaster_;  // the client starts the missile at the caster's effect point
-    std::uint8_t unused_155[3];
 };
 
 // A spell missile: a particle source, a light and a looping sound flying together (class id 0x4E; created by

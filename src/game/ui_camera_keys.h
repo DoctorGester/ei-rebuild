@@ -60,7 +60,6 @@ public:
     POINT pressScreen_;              // where the right button went down (screen)
     POINT pressLayout_;              // the same in layout coordinates
     bool turning_;                   // the right button is held
-    std::uint8_t unused_1D[3];
     float x_;                        // right (+1) / left (-1)
     float y_;                        // forward / back
     float z_;                        // up / down

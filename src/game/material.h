@@ -31,7 +31,6 @@ static_assert(sizeof(MaterialColors) == 0x44);
 struct MaterialEntry {
     Vector4 emissive;
 };
-static_assert(sizeof(MaterialEntry) == 0x10);
 
 // A material (class id 5, "CMaterial"; material.cpp), made by the material manager (the world's
 // pointer, CMaterialManager::NewMaterial; the file's vectors are the ambient, diffuse and specular

@@ -321,7 +321,6 @@ using ParticleDepthArray = std::vector<ParticleDepth>;
 struct SourceFrame {
     float u0, v0, u1, v1;
 };
-static_assert(sizeof(SourceFrame) == 16);
 
 // A particle source: localPosition_ is where it emits relative to what it is attached to, localRotation_ the
 // identity after Reset.
@@ -503,7 +502,6 @@ public:
 
     // CEngineObject's flags_: bit 0 emitting, bit 1 attached-only, bit 2 keep alive; type_ 0x2000.. (the effect
     // names in the type name table).
-    std::uint8_t unused_054[0x94 - 0x54];
     CObject3D* attachedTo;          // the object followed, null: none
     Vector3 origin;                 // world emission point
     Vector3 motion;                 // movement since the last tick
@@ -521,7 +519,6 @@ public:
     int lifetime;
     Vector3 spreadMin;
     Vector3 spreadMax;
-    float unused_108;
     float size;
     float height;
     float growth;
@@ -542,7 +539,6 @@ public:
     // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
     // boundsMax less the centre) relative to the centre; the radius is not written.
     ClipBounds clip;
-    std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     std::list<Particle*> particles;
     std::vector<SourceFrame> frames;
     EmitCallback emitFn;
@@ -630,9 +626,7 @@ struct FogCell {
     float alpha;
     std::uint8_t visible;
     std::int8_t frame;              // 0..14, picks the texture tile
-    std::uint8_t unused_16[2];
 };
-static_assert(sizeof(FogCell) == 0x18);
 
 // The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's Create fills them,
 // the fog's draw hands them to the renderer): a tile's u range, and its v range counted down from 1 a row.
@@ -658,7 +652,6 @@ struct FogGrid {
     int y0;
     SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
 };
-static_assert(sizeof(FogGrid) == 0x18);
 
 class CVisibilityFog final : public CEngineObject {
 public:
@@ -686,7 +679,6 @@ public:
     Vector3 boundsSpare;            // zeroed with the bounds, never read
     CellMap cells;
     std::uint8_t boundsValid;
-    std::uint8_t unused_69[3];
 };
 
 // The size of an orbiting sphere's particle by the ticks it has left (the fire, electricity and air spheres'

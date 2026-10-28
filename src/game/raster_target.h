@@ -25,7 +25,6 @@ struct RasterTriangle {
     // bit is set. The layout is the DLL's.
     const std::uint8_t* keyTexels;
 };
-static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, keyTexels) == 0x30);
 
 // The whole target a shadow's parts are rasterised into (map_object_shadow.cpp fills it): the
 // triangle the callees write, then the surface's bits.
@@ -34,4 +33,3 @@ struct RasterTarget : RasterTriangle {
     int keyPitch;              // the key texels' row pitch in bytes (only that virtual reads it)
     int pitch;
 };
-static_assert(offsetof(RasterTarget, bits) == 0x34 && sizeof(RasterTarget) == 0x40);

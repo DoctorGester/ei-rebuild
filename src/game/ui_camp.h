@@ -164,7 +164,6 @@ public:
     std::string target_;
     bool found_;                     // a way reached the target
     bool beyondTarget_;              // the search goes on through the target zone itself
-    std::uint8_t unused_1DE[2];
     std::map<int, float> arrivals_; // target exit -> shortest time (-1: next to the current zone)
     Quaternion turn_;                // the model's orientation
     float angle_;                    // the model's turn about z (mod kGlobalMapFullTurn)
@@ -177,16 +176,13 @@ public:
     int weatherTable_[18];
     int weatherIndex_;
     bool dragging_;                  // the map is turned with the mouse
-    std::uint8_t unused_265[3];
     POINT dragStart_;                // where the drag began (layout)
     float dragAngle_;                // angle_ when the drag began
     std::string shownName_;         // the zone or link whose tip is shown
     bool gipat_;                     // the allod is gipat
-    std::uint8_t unused_279[3];
     int noCamp_;                     // the player's "i.nocamp" (1: no camp button)
     float fog_[3];                   // by allod
     bool autosave_;                  // save "saveb" once built (arrived from a zone)
-    std::uint8_t unused_28D[3];
     int windSound_;
 };
 
@@ -201,7 +197,6 @@ struct TradeRow {
     int price;                       // experience
     int level;
     bool learnable;                  // set on the learnable list (not written in the others)
-    std::uint8_t unused_15[3];
 };
 
 using TradeRows = std::vector<TradeRow>;
@@ -219,7 +214,6 @@ struct TradeRecord {
     std::uint8_t bought;             // 0; 1 once something was bought on the panel
     std::uint8_t padAfterBought[3];  // not written
 };
-static_assert(sizeof(TradeRecord) == 0x3C);
 
 class CTradePanel : public CUiItemPanel {
 public:
@@ -387,7 +381,6 @@ public:
     bool fromHeroScreen_;            // opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // the spell constructor's pages are offered
     bool itemConstructor_;           // the item constructor's pages are offered
-    std::uint8_t unused_197;
     ClassTemplate* constructor_;     // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
     std::vector<CUnit*> heroes_;
@@ -415,7 +408,6 @@ public:
     bool actionEnabled_;             // the action button can be pressed
     bool actionShown_;
     bool deconstructing_;            // the constructor takes an item apart
-    std::uint8_t unused_213;
     CItem* itemMade_;                // the item the item constructor would make, or null
     CItem* spellMade_;               // the spell the spell constructor would make, or null
     float priceWeights_[9];          // ClassTemplate::weights
@@ -493,7 +485,6 @@ public:
     CItem* ItemAt(int x, int y, int* topic) override;
 
     bool body_;
-    std::uint8_t unused_151[3];
     int selected_;                   // -1
 };
 
@@ -516,7 +507,6 @@ public:
     int buyKind_;
     int sellKind_;
     char flag_;
-    std::uint8_t unused_161[3];
 };
 
 // The repair page's grid: the same cells as the trade grid with textures repair1..4.

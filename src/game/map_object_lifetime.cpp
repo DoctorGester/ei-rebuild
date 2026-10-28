@@ -56,7 +56,6 @@ void InitEngineObject(CEngineObject* object) {
 
 void CObject3D::ClearBounds() {
     std::memset(&bounds, 0, sizeof(bounds));
-    std::memset(unused_150, 0, sizeof(unused_150));
     eyeHeight = 0;
 }
 

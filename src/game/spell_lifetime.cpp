@@ -60,7 +60,6 @@ CSpell::CSpell() {
     duration_ = 0;
     damage_ = 0;
     radius_ = 0;
-    unused_2C = 0;
     speed_ = 0;
     range_ = 0;
     targetCount_ = 0;

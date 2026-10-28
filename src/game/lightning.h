@@ -23,7 +23,6 @@
 struct LightningPoint {
     float x, y, z, w;
 };
-static_assert(sizeof(LightningPoint) == 16);
 
 using LightningPointArray = std::vector<LightningPoint>;
 
@@ -37,7 +36,6 @@ struct NoiseKey {
     // to length `amplitude`.
     void Randomize(float amplitude);
 };
-static_assert(sizeof(NoiseKey) == 16);
 
 // One segment of a bolt: a straight line from `start` in `points.size` steps of
 // `step`, displaced along `side` and `up` by two noise curves.

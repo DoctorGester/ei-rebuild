@@ -72,11 +72,6 @@ private:
     void AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c);
     void ClipStage(DecalVertex* tri, int stage);
 };
-static_assert(sizeof(DecalBuilder) == 0x7C);
-static_assert(offsetof(DecalBuilder, uAxis_) == 0x0C && offsetof(DecalBuilder, normal_) == 0x24);
-static_assert(offsetof(DecalBuilder, slope_) == 0x3C && offsetof(DecalBuilder, point_) == 0x54);
-static_assert(offsetof(DecalBuilder, uOffset_) == 0x60 && offsetof(DecalBuilder, vLength_) == 0x70);
-static_assert(offsetof(DecalBuilder, vertexCount_) == 0x74 && offsetof(DecalBuilder, indexCount_) == 0x78);
 
 namespace decal {
 
@@ -85,5 +80,4 @@ void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, f
 // Clips the triangle `tri` (corner distances a, b, c; a corner is inside when its distance's sign bit is
 // clear) and returns how many triangles are left: 0, 1 (in `tri`) or 2 (`tri` and `out`).
 int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c);
-
 } // namespace decal

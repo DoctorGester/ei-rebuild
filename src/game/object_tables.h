@@ -130,7 +130,6 @@ struct UiKeyName {
     const char* file_;               // the bindings file's name ("TAB", "Q", ...)
     char name_[0x40];                // GetKeyNameTextA's text (up to 31 bytes; LoadKeyBindings)
 };
-static_assert(sizeof(UiKeyName) == 0x48);
 constexpr int kUiKeyNameCount = 88;
 extern UiKeyName g_keyNames[kUiKeyNameCount];
 

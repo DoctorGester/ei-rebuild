@@ -33,7 +33,6 @@ struct StockMaterial {
     int maxCount;
     int left;
 };
-static_assert(sizeof(StockMaterial) == 0x10);
 
 using StockMaterialVector = std::vector<StockMaterial>;
 
@@ -181,5 +180,3 @@ struct ItemStock {
     void SaveLists(CStream* stream);
     void Destruct();
 };
-static_assert(offsetof(ItemStock, materials) == 0x2C);
-static_assert(offsetof(ItemStock, spellMap) == 0x50);

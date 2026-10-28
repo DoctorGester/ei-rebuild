@@ -62,7 +62,7 @@ void CObject3DClientSpecific::ClearShadow() {
     bounds[2] = 0.0f;
     bounds[1] = 0.0f;
     bounds[0] = 0.0f;
-    std::memset(&sphere, 0, 0x38);
+    std::memset(&sphere, 0, sizeof(sphere));
 }
 
 bool CObject3DClientSpecific::ShadowInView() {

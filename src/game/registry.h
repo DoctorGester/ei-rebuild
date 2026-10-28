@@ -21,7 +21,6 @@ enum RegistryType : std::uint8_t {
     kRegArray = 0x80,       // with one of the above
 };
 
-
 class CFileRegistry {
 public:
     // The constructor: nothing open.
@@ -65,6 +64,5 @@ public:
     CMappedFile file_;
     const std::uint8_t* data_;
 };
-static_assert(sizeof(CFileRegistry) == 0x18);
 
 constexpr std::uint32_t kRegistryMagic = 0x45AB3EFB;

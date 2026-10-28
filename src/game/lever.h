@@ -137,6 +137,5 @@ public:
     float rate;                     // 1 / duration (0: no move)
     std::uint8_t flag260;
     std::uint8_t keepsMapFlag;      // the AI map flag kept while it moves
-    std::uint8_t unused_262[2];
 };
 

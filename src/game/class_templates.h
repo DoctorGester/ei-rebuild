@@ -31,11 +31,9 @@ public:
     int type;                       // class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t flag0C;
     std::uint8_t flag0D;
-    std::uint8_t unused_0E[2];
     float weights[9];
     std::uint8_t weightsTail[4];        // field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // set by the constructor and by a quest completion
-    std::uint8_t unused_39[3];
     // the party objects (ItemsParty / SpellsParty).
     PartyStorage items;
     PartyStorage spells;
@@ -44,9 +42,6 @@ public:
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
 CRefCounted* CreateClassTemplate();
-static_assert(offsetof(ClassTemplate, weights) == 0x10);
-static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
-static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 
 // Counted pointers.
 struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
@@ -56,7 +51,6 @@ struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
     ClassTemplate* Find(int type) const;
 };
 using ClassTemplateVector = TemplateTable;
-static_assert(sizeof(ClassTemplateVector) == 12);
 
 // Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose
 // class mask has the template's bit (spells and modifiers to both lists).

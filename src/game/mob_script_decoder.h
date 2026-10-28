@@ -19,5 +19,3 @@ struct MobScriptDecoder {
     // first zero byte (CString ReleaseBuffer(-1)).
     void Decode(std::string* out);
 };
-static_assert(offsetof(MobScriptDecoder, input) == 0x0C);
-static_assert(sizeof(MobScriptDecoder) == 0x18);

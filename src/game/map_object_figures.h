@@ -284,7 +284,6 @@ public:
     float morphU;
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
 };
-static_assert(offsetof(CFigureAnimationState, bones) == 0x24);
 
 // A counted pointer slot of a shared type viewed as the reference the game's copies of Assign take as `this`
 // (CDeviceMaterial::preset, the wounds material's preset).
@@ -463,7 +462,6 @@ public:
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     std::vector<std::string> partNames;    // the figure's part names, in the order of the part boxes
     ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
-    std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight;
     std::vector<FootprintPart> partBoxes;   // one box per animated part (SetUpAnimatedFigure); FootprintPart: model.h
@@ -471,7 +469,3 @@ public:
 protected:
     CObject3D();
 };
-static_assert(offsetof(CObject3D, worldMatrix) == 0x54);
-static_assert(offsetof(CObject3D, attached) == 0x94);
-static_assert(offsetof(CObject3D, animations) == 0xA0);
-static_assert(offsetof(CObject3D, name) == 0xA4);

@@ -30,8 +30,17 @@ shim, stub or workaround lands.
   store a table. They become real virtual classes.
 - `...Hook` / `__fastcall Fn(T* self, void*)` shims and `...Impl` slot bodies, which only existed
   because a pointer to a virtual member could not be registered.
-- `offsetof` / `sizeof` asserts: kept only where bytes leave the process (save files, network packets)
-  or come from the data image.
+- `offsetof` / `sizeof` asserts and `unused_XXX` padding (C36): kept only where bytes leave the process or come
+  from a fixed format: save records written whole (UnitStats, UnitVitals, CameraView, WorldAlarm, ScriptBinding,
+  TweenEntry, ScriptAreaPart, AnimationStep, the motion points), packets (net_messages.h, the order blocks,
+  NetAddress, LockKey), resource files (map, sector, figure, mmp and res headers, the item and unit database
+  records, the zone specs), external structs (D3D / DirectDraw / DirectInput / Miles / Bink, TLVertex), and the
+  types the function vectors copy as bytes or read in game.exe's memory through our header (UnitParams,
+  DamageInfo, IsaacRandom, LogicSettings, CoderState, the path cells). Some saves write a record by a literal
+  size (`Read(&alarm, 16)`, `Read(views_, 0xC0)`): grep `Read(&x, <number>)` as well as `sizeof` before
+  dropping one. A literal-size memset can cover a pad after its member: CObject3DClientSpecific's
+  `memset(&sphere, 0, 0x38)` cleared the bounds and the 12 pad bytes after them, and zeroed `drawnRect` once the pad
+  went (now `sizeof(sphere)`); grep `mem(set|cpy)(..., <number>)` near the class too. ParticleElement keeps its views' padding: the union's views alias each other's slots.
 - Placeholder names: `Vector3::Construct`, `CMappedFile::Construct` (original constructors written as
   methods returning `this` so they could be registered; real constructors), `using BOOL = int` (return
   values the original sets in all of EAX).

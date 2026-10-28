@@ -24,7 +24,6 @@
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
-
 // Bounding volume of a figure part, tested against the view frustum.
 struct ClipBounds {
     std::uint32_t flags;   // bit 0: centre/radius valid, bit 1: box valid
@@ -47,7 +46,6 @@ struct FootprintPart {
                             // the sphere and the box are valid); the centre is the part's offset
     Vector3 pivot;
 };
-static_assert(sizeof(FootprintPart) == 0x38);
 
 // One of the transform pipeline's matrix stacks: the matrices and the depth.
 constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
@@ -140,7 +138,6 @@ public:
                            int wordCount, CLight** lights, int lightCount, const std::uint32_t* vector);
 };
 
-
 // The transform pipeline of the 3D library: the matrix stacks and 3DfpFPU's transform object.
 class CTransformPipeline final : public CRendererBase {
 public:
@@ -188,7 +185,6 @@ public:
 
     // Counted (CRendererBase): holders drop a reference, and the last one deletes it.
 
-    std::uint8_t unused_08[4] = {};
     ITransformPipeline* transform_;   // 3DfpFPU.dll's transform object (projects and clips vertices)
     void* library_;                   // 3DfpFPU.dll's module (FreeLibrary in the destructor)
     MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
@@ -219,7 +215,6 @@ public:
     virtual ~CRenderPreset();
     virtual unsigned Index() { return static_cast<unsigned>(index_); }
 
-
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
 
@@ -230,7 +225,6 @@ public:
     int stages_;                         // texture stages the first block sets
     int index_;                          // the index it was recorded with (below 9: built in)
 };
-static_assert(offsetof(CRenderPreset, blocks_) == 0x08 && sizeof(CRenderPreset) == 0x1C);
 
 // What the helper keeps for a preset: the states it was recorded from (PresetStates) and the preset itself,
 // counted.
@@ -252,8 +246,6 @@ struct RenderPresetRecord {
     std::vector<State> states;
     CRenderPreset* preset;        // counted
 };
-static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
-static_assert(offsetof(RenderPresetRecord::State, blend) == 0x1C);
 
 struct IDirect3DDevice7;
 
@@ -280,7 +272,6 @@ public:
     // PresetStates for built-in preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, std::vector<RenderPresetRecord::State>* out);
 
-
     CRenderHelper(const CRenderHelper&) = delete;
     CRenderHelper& operator=(const CRenderHelper&) = delete;
 
@@ -294,7 +285,6 @@ public:
     std::unordered_map<CRenderPreset*, RenderPresetRecord> records_;   // by preset
     std::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
 };
-static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
 
 // The scene renderer's base class ("CVisualizator" in the game's messages); CSceneRenderer is its only one.
 class CVisualizator {
@@ -381,7 +371,6 @@ struct HeldTexture {
 
     CTexture* texture;
 };
-static_assert(sizeof(HeldTexture) == 4);
 
 // The device object's counted holder (CSceneRenderer::device_): the release leaves
 // the pointer null, the assignment takes `device` (one more reference) and releases
@@ -398,7 +387,6 @@ struct HeldDevice {
 
     CTextureDevice* device;
 };
-static_assert(sizeof(HeldDevice) == 4);
 
 // The scene renderer (the global renderer object, SceneRenderer()).
 class CSceneRenderer : public CVisualizator {
@@ -494,10 +482,6 @@ public:
 
     CSceneRenderer();
 };
-static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
-              offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);
-static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
-              offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
 
 CSceneRenderer* SceneRenderer();
 
@@ -575,7 +559,6 @@ public:
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
 
-
     CLinkFigureLoader(const CLinkFigureLoader&) = delete;
     CLinkFigureLoader& operator=(const CLinkFigureLoader&) = delete;
 
@@ -620,7 +603,6 @@ public:
     std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
 };
 
-
 // What chunks 2 and 3 of both prints.db record types hold: a print's alpha and its life and lifetime in ticks
 // (chunk 3 while it rains or snows).
 struct PrintLook {
@@ -628,7 +610,6 @@ struct PrintLook {
     int life;
     int lifetime;
 };
-static_assert(sizeof(PrintLook) == 0xC);
 
 // A record of prints.db (terrain footprints).
 struct PrintRecord {
@@ -642,7 +623,6 @@ struct PrintRecord {
     PrintLook look2;             // chunk 2
     PrintLook look3;             // chunk 3
 };
-static_assert(offsetof(PrintRecord, name) == 0x04);
 
 // The second record type of prints.db.
 struct PrintRecord2 {
@@ -657,7 +637,6 @@ struct PrintRecord2 {
     PrintLook look3;             // chunk 3
     std::uint32_t values10[3];   // chunk 10
 };
-static_assert(offsetof(PrintRecord2, name) == 0x04);
 
 inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.look3 : r.look2; }
 inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.look3 : r.look2; }

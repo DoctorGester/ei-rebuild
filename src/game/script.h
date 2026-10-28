@@ -269,7 +269,6 @@ struct ScriptParticleType {
     int type;               // CEffectParticle::type_ (0x2000..)
     int lifetime;           // ticks, -1 forever
 };
-static_assert(sizeof(ScriptParticleType) == 12);
 constexpr int kScriptParticleTypeCount = 64;
 
 class CScript;

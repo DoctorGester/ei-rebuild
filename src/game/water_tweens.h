@@ -36,4 +36,3 @@ struct WaterTweens : std::vector<TweenEntry> {
     // `unread` if the stream writes nothing), SetSize, then the entries.
     void ReadEntries(CStream* stream, int unread);
 };
-static_assert(sizeof(WaterTweens) == sizeof(std::vector<TweenEntry>));

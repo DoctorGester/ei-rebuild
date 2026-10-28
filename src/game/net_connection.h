@@ -20,12 +20,10 @@ namespace net {
 struct IdPool {
     std::vector<std::uint16_t> free;   // the ids returned
     std::uint16_t next;        // the last id handed out new
-    std::uint16_t unused_0E;
 
     // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
 };
-static_assert(sizeof(IdPool) == 0x10);
 
 // The tracking record of one replicated object.
 class ReplicaEntry final : public CRefObject {
@@ -84,7 +82,6 @@ struct SentPacket {
 struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
-    std::uint8_t unused_3;
 };
 using FreedIds = std::vector<FreedId>;
 
@@ -98,7 +95,6 @@ struct Record {
 struct AttachedId {
     std::uint16_t id;
     std::uint8_t type;
-    std::uint8_t unused_3;
 };
 
 class Connection final : public CRefObject {
@@ -168,7 +164,6 @@ public:
     void Close();
 
     std::uint16_t sendSequence_;        // starts at GetTickCount()
-    std::uint16_t unused_000A;
     std::uint32_t lastReceived_;        // sequence of the newest packet received
     std::uint32_t sequenceHigh_;        // 0x10000: the upper bits of the received sequences
     std::vector<std::int32_t> received_;   // sequences received recently
@@ -197,10 +192,8 @@ public:
     std::list<ReliableChunk> incoming_;   // reliable chunks received ahead of their turn
     std::uint32_t ackMask_;             // bit k: packet ackBase_ - 1 - k acknowledged already
     std::uint16_t ackBase_;             // the peer's newest acknowledged sequence
-    std::uint16_t unused_112A;
     GrowingBuffer reliableOut_;
     GrowingBuffer reliableIn_;
     std::uint32_t padding_1164;
 };
-
 } // namespace net

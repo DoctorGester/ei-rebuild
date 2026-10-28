@@ -28,7 +28,6 @@ struct SectorOccluder {
     std::int8_t transparency;
     std::int16_t next;          // the cell's next record, or the next free one; negative ends
 };
-static_assert(sizeof(SectorOccluder) == 8);
 
 struct Sector {
     Sector();

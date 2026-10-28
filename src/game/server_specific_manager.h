@@ -34,7 +34,6 @@ public:
     // object (0x5128), 0x4B CTorchObjectSpec (constructed inline, then its Create);
     // null for any other type (0x4A too) or when the allocation fails.
     CEngineObject* NewObject(int type) override;
-
 };
 
 class CTorchObjectSpec : public CEngineObject {
@@ -86,5 +85,3 @@ public:
     float values_[6];           // Create: 1, 10, 1, 1, 1, 1
     float colours_[2][3];       // Create: both black
 };
-static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
-static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);

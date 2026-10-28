@@ -52,5 +52,4 @@ public:
     BOOL Draw(CSceneRenderer* pass) override { return DrawView(pass); }
     void CloseScreen() override { OnClose(); }
 
-    std::uint8_t unused_164[4];
 };

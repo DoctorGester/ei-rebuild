@@ -38,7 +38,6 @@ void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
 bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
-
 } // namespace delta
 
 namespace delta {
@@ -104,8 +103,6 @@ struct DeltaField {
     // some of them call instead, does the same).
     std::uint16_t ReadWord();
 };
-static_assert(offsetof(DeltaField, out) == 0x50);
-static_assert(sizeof(DeltaField) == 0xA0);
 
 // The fields of one object.
 struct DeltaState {
@@ -113,7 +110,6 @@ struct DeltaState {
     std::uint16_t sentMask_ = 0;
     std::uint16_t lastMask_ = 0;
     std::uint16_t mask_ = 0;     // fields to write / read
-    std::uint16_t unused_1A = 0;
     BitStream* reader_ = nullptr;
     int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
     BitStream header_[2];

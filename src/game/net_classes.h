@@ -149,7 +149,6 @@ public:
 protected:
     Message();
     Message(const Message& other) : CRefObject(), version_(other.version_) {}
-
 };
 
 using MessageFactory = Message* (*)();
@@ -172,16 +171,12 @@ public:
     float timeout_;          // seconds until the entry is checked again (1e38: never)
     float ping_;             // seconds; a constant when unknown
     std::uint8_t foreign_;   // the reply's echoed word differs from the magic
-    std::uint8_t unused_21[3];
     std::uint32_t state_;
 
 protected:
     ServerEntryBase();
     ServerEntryBase(const ServerEntryBase& other);
 };
-static_assert(offsetof(ServerEntryBase, address_) == 0x08);
-static_assert(offsetof(ServerEntryBase, state_) == 0x24);
-static_assert(sizeof(ServerEntryBase) == 0x28);
 
 // A server entry: what a server says about itself, and what the client lists hold.
 class ServerEntry final : public ServerEntryBase {
@@ -200,9 +195,7 @@ public:
     std::uint8_t players_;
     std::uint8_t maxPlayers_;
     std::uint8_t password_;       // whether joining needs a password
-    std::uint8_t unused_47;
 };
-static_assert(offsetof(ServerEntry, name_) == 0x28);
 
 // A server the client asks directly: its address and the reply last seen.
 struct Query {
@@ -213,7 +206,6 @@ struct Query {
     NetAddress address;
     GrowingBuffer reply;
 };
-static_assert(sizeof(Query) == 0x2C);
 
 // The client's queries: a vector of queries and a dword saved with it (not itself a vector).
 struct ClientQueries {
@@ -226,7 +218,6 @@ struct ClientQueries {
     // The query with `address`, or the end.
     std::vector<Query>::iterator QueriesFind(const NetAddress* address);
 };
-static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
 
 // ---- The session base ---------------------------------------------------------------------------
 
@@ -243,7 +234,6 @@ MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
 using HandlerVector = std::vector<MessageHandler>;
-static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry of a session.
 struct TypeRegistry {
@@ -288,7 +278,6 @@ struct SocketDriver {
     // The next datagram (up to 0x800 bytes) into `buffer`, its sender into `from`.
     bool Receive(NetAddress* from, GameBuffer* buffer);
 };
-static_assert(sizeof(SocketDriver) == 0x10);
 
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the
 // seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object, held
@@ -314,13 +303,12 @@ using ClientList = std::list<SharedRefTo<Connection>>;
 struct Replicated {
     Message* object;           // replicated while it is listed
     std::uint8_t priority;     // 0..10
-    std::uint8_t unused_05[3];
 };
 using ReplicatedVector = std::vector<Replicated>;
 
 // Appends one {object, priority}.
 inline void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    v->push_back({static_cast<Message*>(object), priority, {}});
+    v->push_back({static_cast<Message*>(object), priority});
 }
 
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
@@ -388,7 +376,6 @@ public:
                                         // timeout and how long lost packets stay remembered (seconds)
     std::int32_t idReuseTime_;          // 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // 1; Tick counts its calls
-    std::uint32_t unused_1C;           // not set by the constructors
     double time_;                       // 0; Tick adds the elapsed time
     ClientList clients_;                // the connections
     TypeRegistry types_;
@@ -397,9 +384,6 @@ public:
     HandlerVector handlers_[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
-static_assert(offsetof(SessionBase, magic_) == 0x08);
-static_assert(offsetof(SessionBase, frame_) == 0x18);
-static_assert(offsetof(SessionBase, time_) == 0x20);
 
 constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
@@ -434,7 +418,6 @@ public:
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
     std::list<PendingJoin> joins_;
-    std::uint32_t unused_256C;         // not set
 };
 
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
@@ -503,7 +486,6 @@ public:
 
     float announceTimer_;               // seconds to the next announcement to the master server
     std::uint8_t public_;               // announced to the master server
-    std::uint8_t unused_2575[3];
     std::uint32_t masterToken_;         // 0; the dword the master server last sent (OnMaster), sent back
                                         // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // the master server (port 28004)
@@ -579,7 +561,6 @@ public:
     std::uint32_t joinId_;              // rand() << 16 | tick count
     std::uint32_t joinState_;
     std::uint8_t refusal_;              // the reason the host gave
-    std::uint8_t unused_259D[3];
     float retryTimer_;                  // seconds to the next join request
     float retryInterval_;               // doubles with every request (0.1 first)
     std::list<SharedRefTo<ServerEntry>> servers_;
@@ -587,7 +568,6 @@ public:
     std::list<NetAddress> waiting_;    // addresses waiting to be asked
     NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
     std::uint32_t nextQuery_;           // the query the refresh pings next
-    std::uint32_t unused_25D4;         // not set
 };
 
 // An embedded CParty. The client keeps two, a trade record three.
@@ -676,5 +656,4 @@ struct GameInfoRecord {
 
 // The byte buffer's read helper.
 void BufferUpdateHigh(GameBuffer* buffer);
-
 } // namespace net

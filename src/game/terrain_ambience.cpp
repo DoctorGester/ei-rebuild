@@ -33,7 +33,6 @@ struct AmbientSoundClass {
     float panLimit;
     int chance;             // percent per frame for a one-shot
 };
-static_assert(sizeof(AmbientSoundClass) == 0x18);
 AmbientSoundClass g_soundClasses[16] = /*007969D0*/ {
     {"Grass", -1, 1.0f, -1, 3e+01f, 6},
     {"Ground", -1, 1.0f, -1, 3e+01f, 6},
@@ -72,7 +71,6 @@ struct ClassVotes {
     int count;
     int sound;
 };
-static_assert(sizeof(ClassVotes) == 0x24);
 
 constexpr float kRadiusCells = 48.0f;
 constexpr float kSectorCells = 32.0f;
@@ -115,7 +113,6 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;
     return static_cast<float>(angle);
 }
-
 } // namespace
 
 std::string* CWorldClient::AmbienceTimeOfDay(std::string* out) {

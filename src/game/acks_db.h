@@ -23,7 +23,6 @@ struct Speeches : std::vector<SpeechRecord> {
     // when there is none. A null list answers null too.
     const SpeechRecord* Pick(int roll) const;
 };
-static_assert(sizeof(Speeches) == 0xC);
 using SpeechList = Speeches;
 
 // A speech that also depends on the surroundings: eligible when the world's environment flags for the unit
@@ -37,7 +36,6 @@ struct EnvironmentSpeeches : std::vector<EnvironmentSpeech> {
     // The same among the speeches whose environment flags include `environment`.
     const SpeechRecord* Pick(std::uint32_t environment, int roll) const;
 };
-static_assert(sizeof(EnvironmentSpeeches) == 0xC);
 
 // The part every record type starts with. By default an empty name and an empty map. A copy's map still points
 // into the source record's lists, as in the game.
@@ -113,5 +111,4 @@ inline AckDatabase& Database() { return *g_ackDatabase; }
 const SpeechRecord* SayAck(CUnit* unit, int kind);
 // The unit says its named speech `name` as kind 0x2A (0x2B with `alternate`). Returns it, or null.
 const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate);
-
 } // namespace acks

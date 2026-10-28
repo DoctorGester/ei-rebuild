@@ -154,7 +154,6 @@ public:
     void SetTarget(const CEngineObject* target);
     void SetTargetId(int id);
 
-    std::uint8_t unused_54[0x94 - 0x54];
     options::GameOptions* settings_;   // the game options: heights, start placement, limits, saved views
     Vector3 offset98_;          // pan velocity
     Vector3 offsetA4_;          // pan velocity target
@@ -168,7 +167,6 @@ public:
     float zoomRate_;
     std::uint32_t zoomTarget_;  // the zoom rate target (float bits; SetZoomTarget)
     float zoomResponse_;
-    std::uint8_t unused_D8[0xE0 - 0xD8];
     Vector3 focus_;             // the point looked at
     float focusHeight_;         // above the ground
     float distance_;
@@ -179,7 +177,6 @@ public:
     float boundsRadius_;
     int targetId_;
     CameraView views_[8];
-    std::uint8_t unused_1E0[0x2E0 - 0x1E0];   // (the original's saved view stack, a deque nothing ever pushed to)
     float nearDistance_;        // (renderer_init reads the three as zNear / zFar / fov)
     float farDistance_;
     float fieldOfView_;
@@ -194,14 +191,6 @@ public:
     float timeOffset_;
     int keyIndex_;
 };
-static_assert(offsetof(CCamera, settings_) == 0x94);
-static_assert(offsetof(CCamera, offset98_) == 0x98);
-static_assert(offsetof(CCamera, turnRate_) == 0xB4);
-static_assert(offsetof(CCamera, tiltTarget_) == 0xC4);
-static_assert(offsetof(CCamera, zoomTarget_) == 0xD0);
-static_assert(offsetof(CCamera, focus_) == 0xE0);
-static_assert(offsetof(CCamera, viewRotation_) == 0xF4);
-static_assert(offsetof(CCamera, shakes_) == 0x108);
 
 // What CWorldClient::ObjectsInRange fills.
 using NearbyList = std::list<CObject3D*>;
@@ -245,7 +234,6 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 // calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
 // the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
 void NoteTargetTick(const CCamera* camera);
-
 } // namespace camera
 
 int CameraCloseFile(CCamera* self);

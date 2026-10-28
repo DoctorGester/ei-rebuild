@@ -24,12 +24,10 @@ public:
     virtual ~CRefCounted() {}
     virtual void Serialize(ChunkArchive*) {}
 
-
     std::int16_t refs_;
     std::uint8_t flags6_;
     std::uint8_t flags7_;
 };
-static_assert(sizeof(CRefCounted) == 8);
 
 // The test the network code inlines before using a counted object: set and not detached.
 inline bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
@@ -47,7 +45,6 @@ public:
     // Calls OnShutdown with an extra reference held, so it cannot destroy itself meanwhile.
     int Shutdown();
 };
-static_assert(sizeof(CRefObject) == 8);
 
 struct RefPtr {
     RefPtr* FromRawCounted(CRefObject* object);
@@ -66,7 +63,6 @@ struct RefPtr {
     // The AI mode list's element assignment: unless already `object`, Destroy, then Share(object).
     RefPtr* ShareAssign(CRefObject* object);
 };
-static_assert(sizeof(RefPtr) == 4);
 
 // A typed pointer slot holding a counted object (CRefCounted): `object` gains a reference, the old one loses
 // one and is deleted with the last (RefPtr::Assign on the slot).
@@ -160,7 +156,6 @@ template <typename T>
 struct RefPtrTo : RefPtr {
     T* Get() const { return static_cast<T*>(ptr); }
 };
-static_assert(sizeof(RefPtrTo<CRefObject>) == 4);
 
 // A RefPtr that holds a plain reference (a container's element): a copy takes one (FromRawCounted), the destructor
 // drops it (the plain release), an assignment takes the new reference before the old one is dropped (Assign). A
@@ -180,7 +175,6 @@ struct CountedRefPtr : RefPtr {
     }
     ~CountedRefPtr() { ReleaseCounted(ptr); }
 };
-static_assert(sizeof(CountedRefPtr) == 4);
 
 // A RefPtr that owns its share (a container's element): a copy shares the object (Share: a clone of a
 // copy-on-share one), the destructor is the owner's release (Destroy), an assignment ShareAssign. A move hands
@@ -200,7 +194,6 @@ struct SharedRefPtr : RefPtr {
     }
     ~SharedRefPtr() { Destroy(); }
 };
-static_assert(sizeof(SharedRefPtr) == 4);
 
 // A SharedRefPtr / CountedRefPtr whose object is always a T (the element of a list of one network message
 // class): the same copies and releases, the object read typed.

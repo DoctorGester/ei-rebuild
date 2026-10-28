@@ -82,7 +82,6 @@ public:
     std::vector<DecalTexCoord> texCoords_;    // one per vertex
     std::vector<std::uint16_t> indices_;
 };
-static_assert(offsetof(GroundPrint, position_) == 0x08 && offsetof(GroundPrint, life_) == 0x1C);
 
 class Footprint : public GroundPrint {
 public:

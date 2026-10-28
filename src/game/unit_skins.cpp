@@ -62,9 +62,7 @@ struct TextureRecord {
     std::uint32_t id;
     std::uint32_t itemType;   // the item record's type
 };
-static_assert(sizeof(TextureRecord) == 12);
 using RecordList = std::vector<TextureRecord>;
-
 } // namespace
 
 void UnitTextureRecords(char body, const DressedUnitRecord* record, RecordList* list);
@@ -216,7 +214,6 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }
 }
-
 } // namespace
 
 // `others` and `dressed` are vectors of unit records; the dressed units (the second argument) come first.

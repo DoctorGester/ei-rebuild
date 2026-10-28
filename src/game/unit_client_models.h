@@ -40,9 +40,7 @@ struct ClientSpeech {
     int delay;                      // ticks until it plays; negative: playing
     int sound;                      // its sound handle (-1 none)
     std::uint8_t talking;           // the server unit has flag 0x800000 while it plays
-    std::uint8_t unused_11[3];
 };
-static_assert(sizeof(ClientSpeech) == 0x14);
 
 // What the speech queue's filters compare.
 struct SpeechFilter {
@@ -52,7 +50,6 @@ struct SpeechFilter {
     int unitId;                     // SpeechFinished: the unit whose talking flag ends
     int kind;                       // SpeechReplaced: the new speech's kind
 };
-
 
 // The figure part names of the three armour groups: a body armour covers "bd" and the arm pieces, trousers
 // "hp" and the legs, a helmet the hair "hr" and the head "hd" (the rest of that row is empty). Armour slots 0
@@ -70,7 +67,6 @@ struct SkinLayer {
     std::uint32_t id = 0xFFFFFFFFu;
     int slot = -1;
 };
-static_assert(sizeof(SkinLayer) == 0xC);
 
 using SkinLayerArray = std::vector<SkinLayer>;
 
@@ -81,7 +77,6 @@ struct SkinRequest {
     std::vector<std::string> textures;
     int flags;
 };
-
 
 struct AttackParams;
 
@@ -266,7 +261,6 @@ public:
     std::uint8_t weaponHidden;      // ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // the next path placement turns the unit to the path at once
-    std::uint8_t unused_077;
     float fadeIn;                   // 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // the drawn parts get their colours back at 0
     int footprint;                  // the last footprint, -1 none
@@ -281,14 +275,9 @@ public:
     std::uint32_t weaponIds[4];
     CTexture* faceTexture;          // the face texture the blink changes (counted)
     std::uint8_t blinks;
-    std::uint8_t unused_0D1[3];
     int blinkTimer;                 // ticks to the next blink change
     int eyesClosed;
 };
-static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
-static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
-static_assert(offsetof(CUnitClientSpecific, lastTime) == 0x34);
-static_assert(offsetof(CUnitClientSpecific, motion) == 0x38);
 
 // The figure part names a unit of prototype `prototype` shows with the armour pieces `armourIds` (appended to
 // `names`: "<part>.armor<number>", the hair as "hr.<hair>.armor<number>" unless the prototype has no hair,

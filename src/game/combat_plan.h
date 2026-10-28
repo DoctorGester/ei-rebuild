@@ -18,5 +18,4 @@ struct SightTarget {
     float eyeHeight;            // the viewer's eye height above the ground
     CUnit* unit;                // the target unit, or null for a point
 };
-static_assert(sizeof(SightTarget) == 0x18);
 

@@ -30,7 +30,6 @@ struct SpriteSortRecord {
     TLVertex* corners;            // the sprite's four corners (in the copy)
     std::uint32_t outcodes;       // their four outcode bytes
 };
-static_assert(sizeof(SpriteSortRecord) == 16);
 
 void SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending);
@@ -298,7 +297,6 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
     if (indexCount <= 0) return true;
     return Draw(renderer, vertexCount, indexCount);
 }
-
 } // namespace
 
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at

@@ -48,7 +48,6 @@ public:
     RECT shown_;                 // the rectangle on screen
     RECT asked_;                 // the rectangle asked for
     std::uint8_t visible_;
-    std::uint8_t unused_3D[3];
     DWORD lastDraw_;             // the tick of the last drawing
 };
 

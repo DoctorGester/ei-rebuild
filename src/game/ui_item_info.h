@@ -46,7 +46,6 @@ struct ItemCell {
     float size;      // the cell (100 in the strips and grids, 120 in the description panel)
     int mode;        // the strip's action mode; 9: greyed out, never shaded as unusable
 };
-static_assert(sizeof(ItemCell) == 0x18);
 
 // A hero's face drawn in a cell (the hero-face draw's argument).
 struct HeroFaceCell {
@@ -56,7 +55,6 @@ struct HeroFaceCell {
     float depth;
     float size;
 };
-static_assert(sizeof(HeroFaceCell) == 0x14);
 
 // A cached object (counted) and when it was last used (timeGetTime).
 template <typename Object>
@@ -99,10 +97,8 @@ public:
     float angle;             // radians, wrapped at 2 pi
     float speed;
     bool flag;               // set by a move into a list shown turning
-    std::uint8_t unused_11[3];
     float glow;              // phase of the spell glow
 };
-static_assert(sizeof(ItemTurn) == 0x18);
 inline ItemTurn* ItemTurnOf(CItem* item) { return static_cast<ItemTurn*>(item->link_); }
 
 class CParty;
@@ -189,7 +185,6 @@ struct ItemHoverInfo {
     UnitStats* stats;        // the hero's statistics (in the hero record)
     std::string text;       // the text key
 };
-static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
 class CItemInfoPanel : public CUiItemPanel {
 public:

@@ -22,7 +22,6 @@ public:
 
     virtual ~CDib();
 
-
     // A new header for `width` x `height` pixels of `bitCount` bits, without a colour table and without bits
     // (AllocateBits). 16 and 32 bits: BI_BITFIELDS with the three channel masks after the header.
     void Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
@@ -57,11 +56,6 @@ public:
     void* view;
     HPALETTE palette;
 };
-static_assert(offsetof(CDib, bits) == 0x0C);
-static_assert(offsetof(CDib, header) == 0x10);
-static_assert(offsetof(CDib, imageSize) == 0x20);
-static_assert(offsetof(CDib, palette) == 0x38);
-static_assert(sizeof(CDib) == 0x3C);
 
 // The bytes of a header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);

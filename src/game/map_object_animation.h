@@ -65,4 +65,3 @@ struct AnimationTrack : CEngineObject {
     // the morphed vertices ({data, size} is what a bone gives).
     std::vector<Vector3> vertices;
 };
-static_assert(offsetof(AnimationTrack, bone) == 0x20 && offsetof(AnimationTrack, positionCount) == 0x24);
