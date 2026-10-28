@@ -4,7 +4,6 @@
 #include "resource.h"
 
 #include "asset_text.h"
-#include "console.h"   // console::CStringArray
 #include "engine_object.h"
 #include "options.h"
 
@@ -160,7 +159,7 @@ void* TextSources::Find(const char* key, std::uint32_t* size) {
 }
 EI_REWRITTEN(0x004DEBC0, TextSources::Find);
 
-void* TextSources::FindText(const char* key, std::uint32_t* size) {
+void* TextSources::FindKeyText(const char* key, std::uint32_t* size) {
     CMappedResource* source = nullptr;
     void* data = FindFile(this, key, size, &source);
     return data ? AsGameText(source, data, size) : nullptr;

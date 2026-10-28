@@ -69,7 +69,7 @@ void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* l
 // The save / load list (ui_saveload.cpp) by the saved time (+0x08, signed), the newest first: the
 // comparison is !(a < b) (a.savedAt < b.savedAt is the less), so equal times compare true both ways (not a strict
 // weak ordering: with two saves of the same time the unguarded scans can leave the range, in the
-// game as here). A SaveEntry copy allocates (its CStringArrays), so every copy, assignment and
+// game as here). A SaveEntry copy allocates (its strings and string lists), so every copy, assignment and
 // destruction is STLport's (stlp::Held, SaveEntryOps): the copy constructor, operator=
 // (inlined in the helpers, the same calls) and the destructor. __introsort_loop,
 // __final_insertion_sort; copy_backward

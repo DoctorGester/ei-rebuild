@@ -1952,7 +1952,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   valid UTF-8), `text::CharacterCount` (a length that means time: one per character, a colour escape `\007C`+3
   bytes by its bytes). U1's ANSI boundary helper `ForAnsiCall` (UTF-8 back into the asset code page at GDI's
   ANSI calls) went with U3.
-- **Sites converted**: the text database (`TextSources::FindText`, which `CTextManager::Open` reads through; the
+- **Sites converted**: the text database (`TextSources::FindKeyText`, which `CTextManager::Open` reads through; the
   copies are cached per data address and dropped when their archive closes); `CTextManager::ListKeys` (key names)
   and the key passed to the lookup (one "pers" key holds Cyrillic); CFileRegistry's `GetString`,
   `GetStringBuffer`, `GetStringArray`; Chunk's `ReadString` / `ReadEncodedString` (.mob); credits.scr

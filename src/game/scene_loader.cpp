@@ -691,11 +691,9 @@ struct SceneLoad {
     SceneNodes nodes;
     Registry registry;
     mfc::CFile file;
-    mfc::CString unused90, unused8C, unused94;
-    console::CStringArray unused40;
     TextureLinks textureLinks;
     TextureNames textureNames;
-    console::CStringArray roots;   // the nodes without parent
+    std::vector<std::string> roots;   // the nodes without parent
     // The scene's flags. BuildSkeleton is given them as a dword minus one; the upper word is left
     // uninitialised (its callees only read the low word, with MOVSX).
     union {
@@ -739,13 +737,13 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         SceneNode& n = s.nodes.data[i];
         if (n.parent.size() == 0) {
             ++tops;
-            s.roots.SetAtGrow(s.roots.size, n.name);
+            s.roots.push_back(n.name);
         }
     }
     if (tops > 1) {
         std::string message;
         message = str::Format(scenedata::ManyTopsText(), fileName);
-        for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + scenedata::NewLineText();
+        for (const std::string& root : s.roots) message += root + scenedata::NewLineText();
         game::FatalError(message.c_str());
         return 0;
     }

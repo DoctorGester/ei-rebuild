@@ -351,7 +351,7 @@ void CMpHeroScreen::Rename() {
     if (bar < 0) {
         renameEdit_->SetText(game::EmptyText());
     } else {
-        std::string typed = console::Ops(name).Mid(bar + 1).GetString();
+        std::string typed = str::Mid(name, bar + 1);
         str::TrimLeft(typed);
         renameEdit_->SetText(typed.c_str());
         name = str::Left(name, bar);

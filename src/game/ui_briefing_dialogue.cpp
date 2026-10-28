@@ -61,7 +61,6 @@ void CBriefingScreen::StartPhrases() {
     if (voice_ != -1) TheSoundManager()->StopSound(voice_);
     voice_ = -1;
     TheMusicSystem()->FadeOut();
-    // (An unused CStringArray is also constructed and destroyed here.)
     std::string key = BriefingSection();
     key += topic_;
     if (!TheTextManager()->CTextManager::Open(key.c_str())) {

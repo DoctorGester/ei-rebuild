@@ -50,9 +50,10 @@ namespace {
 CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 } // namespace
 
-int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
+int __stdcall RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
     CScript* script = CommandScript();
-    int loaded = script->Load(text, 1);
+    mfc::CString source(text.c_str());   // CScript::Load preprocesses its text in place
+    int loaded = script->Load(&source, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
         ScriptErrorInfo last{script->ErrorText(), script->ErrorCode(), script->ErrorLine()};

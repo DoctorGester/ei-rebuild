@@ -69,7 +69,7 @@ template <typename Object>
 using ItemCacheOf = stlp::TreeAbi<typename ItemObjectCache<Object>::Map>;
 using ItemCache = ItemCacheOf<CTexture>;
 
-// The console's command maps (console.h; 0x18-byte nodes, CString keys by _mbscmp).
+// The console's command maps (console.h; std::string keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
 // The interface's help topics (0x18-byte nodes, CString keys by _mbscmp).
 using HelpTopics = stlp::TreeAbi<stlp::map<mfc::CString, int, stlp::CStringLess>>;
@@ -77,7 +77,7 @@ using HelpTopics = stlp::TreeAbi<stlp::map<mfc::CString, int, stlp::CStringLess>
 using PersonTexts = stlp::TreeAbi<PersonTextMap>;
 // The global map's arrival times by exit (CGlobalMap::arrivals_; 0x18-byte nodes).
 using Arrivals = stlp::TreeAbi<stlp::map<int, float>>;
-static_assert(sizeof(Commands::Node) == 0x18 && sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
+static_assert(sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:

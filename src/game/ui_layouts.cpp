@@ -367,7 +367,7 @@ int BoxText(CUiSurface* surface, std::string_view text, RECT* rect, int font, CO
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
 }
 
-SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
+SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
     SIZE size;
     ui->TextExtent(&size, text, font);
     return size;
@@ -388,7 +388,7 @@ void CMessageBox::CreateScreen() {
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
-            TextExtent(interface_, mfc::CString("A"), font).cy;
+            TextExtent(interface_, "A", font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};

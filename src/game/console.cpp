@@ -30,11 +30,6 @@ namespace console {
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-void Str::AppendChar(char a0) { mfc::CString::operator+=(a0); }
-void Str::AppendText(const char* a0) { mfc::CString::operator+=(a0); }
-void Str::TrimLeft(char a0) { mfc::CString::TrimLeft(a0); }
-void Str::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
-
 CStdioFile::CStdioFile() {
     std::construct_at(&file_);
     file_.Construct();
@@ -260,8 +255,7 @@ void RunScriptLine(const std::string& text, const Arguments& args, const char* p
         line += arg;
     }
     line += suffix;
-    mfc::CString script(line.c_str());
-    if (!RunScriptText(&script, 1, &error))
+    if (!RunScriptText(line, 1, &error))
         EndLine(Out() << "Script error: " << error.text.c_str());
 }
 EI_REWRITTEN(0x005DD800, RunScriptLine);

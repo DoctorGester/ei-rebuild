@@ -147,7 +147,7 @@ public:
     void ChatKeyBackspace();
     // The extent of `text` in interface font `font`, measured on the game window's DC and scaled to the
     // layout (cx * 800 / width, cy * 600 / height). Rebirth-patched; WideScreen behind its flag.
-    SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
+    SIZE* TextExtent(SIZE* out, std::string_view text, int font);
     // Sets up the stack, lists, map and texts; nothing else is written.
     CInterface3D* Construct();
     // When there is a console window.

@@ -67,12 +67,12 @@ EI_REWRITTEN(0x005FDE20, CUiSurface::DrawTextIn);
 
 // --- TextExtent ---------------------------------------------------------------------------------------
 
-SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
+SIZE* CInterface3D::TextExtent(SIZE* out, std::string_view text, int font) {
     auto* dc = mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow));
     mfc::impl::CGdiObject* oldFont = dc->SelectFont(fonts_[font]);
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
-    gameapi::GetTextExtentPoint32A(dc->hdc, text, text.GetLength(), &size);   // EI_UTF8: measured wide (system_text.h)
+    gameapi::GetTextExtentPoint32A(dc->hdc, text.data(), static_cast<int>(text.size()), &size);   // EI_UTF8: measured wide (system_text.h)
     dc->SelectFont(oldFont);
     gameapi::ReleaseDC(app::g_mainWindow, dc->hdc);
     if (widescreen::Active()) {

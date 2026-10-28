@@ -36,7 +36,6 @@
 
 namespace {
 
-using console::CStringArray;
 
 inline double D(float f) { return f; }
 
@@ -97,9 +96,9 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 
 } // namespace
 
-void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer) {
+void __fastcall ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
     CTextManager* texts = TextManager();
-    out->SetSize(0, -1);
+    out->clear();
     std::string value, above, below, key, text;
     float threshold = values[6];
     // EI_Plugin's Fixes: the jump over the integer format is always taken.
@@ -122,15 +121,13 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     }
     str::TrimRight(above, ", ");
     str::TrimRight(below, ", ");
-    out->SetAtGrow(out->GetSize(), value.c_str());
-    out->SetAtGrow(out->GetSize(), above.c_str());
-    out->SetAtGrow(out->GetSize(), below.c_str());
+    out->push_back(value);
+    out->push_back(above);
+    out->push_back(below);
 }
 EI_REWRITTEN(0x005F13A0, ItemDamageLists);
 
 namespace {
-void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
-
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr std::uint32_t kText = 0xA7D7E4;
 
@@ -179,10 +176,10 @@ public:
     // The lists of 7 damage values: "<label> <threshold>" and, when some kinds lie below it,
     // "<infoitem_24> <those kinds>".
     void DamageLines(const float* values, int label) {
-        CStringArray lists;
-        DamageLists(values, &lists, 0);
+        std::vector<std::string> lists;
+        ItemDamageLists(values, &lists, 0);
         Joined(label, lists[0]);
-        if (lists[2].GetLength() != 0) Joined(24, lists[2]);
+        if (lists[2].size() != 0) Joined(24, lists[2]);
     }
     void School(int school) {
         std::string key;

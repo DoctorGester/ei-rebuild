@@ -18,17 +18,15 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CItemInfoPanel;
 class CTexture;
-namespace console {
-class CStringArray;
-}
 
 // The seven damage values against the last one: into `out` (emptied) the threshold ("%d" when `integer`, else
 // "%.1f"), the damage kinds ("dmg_<n>" texts, ", " separated) of the first six above it and those below it
 // (or unordered).
-void __fastcall ItemDamageLists(const float* values, console::CStringArray* out, char integer);
+void __fastcall ItemDamageLists(const float* values, std::vector<std::string>* out, char integer);
 
 // --- The item screens' model view --------------------------------------------------------------
 

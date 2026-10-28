@@ -95,8 +95,8 @@ BOOL CTextManager::Open(const char* key) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
-    // The first archive that has `key` (TextSources::FindText: the text's size written to length_).
-    const char* text = static_cast<const char*>(sources_.FindText(key, &length_));
+    // The first archive that has `key` (TextSources::FindKeyText: the text's size written to length_).
+    const char* text = static_cast<const char*>(sources_.FindKeyText(key, &length_));
     cursor_ = text;
     text_ = text;
     return text && length_ != 0;

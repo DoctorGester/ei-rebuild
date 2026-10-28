@@ -240,4 +240,6 @@ bool CStringLess::Less(const mfc::CString& a, const mfc::CString& b) {
                            static_cast<const char*>(b)) < 0;
 }
 
+bool MbsLess::Less(const std::string& a, const std::string& b) { return gamecrt::mbscmp(a.c_str(), b.c_str()) < 0; }
+
 } // namespace stlp
