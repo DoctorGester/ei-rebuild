@@ -14,6 +14,7 @@
 #include "game_data.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
@@ -51,7 +52,7 @@ void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(std::at
 // An int stored as a float.
 void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }
 
-void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
+void StoreBits(float* dst, std::uint32_t bits) { *dst = std::bit_cast<float>(bits); }
 
 int CountChar(const char* text, char c) {
     int n = 0;

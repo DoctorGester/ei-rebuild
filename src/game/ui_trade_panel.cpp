@@ -338,9 +338,9 @@ void CTradePanel::SnapshotRecord() {
     record.science = stats->attributes[0];
     for (int i = 0; i < 36; ++i) record.perks[i] = stats->skillLevels[i];
     // Copied bit for bit, as the original does.
-    std::memcpy(&record.experience, &stats->experience, sizeof(float));
-    std::memcpy(&record.pendingExperience, &stats->pendingExperience, sizeof(float));
-    std::memcpy(&record.spentExperience, &stats->spentExperience, sizeof(float));
+    record.experience = stats->experience;
+    record.pendingExperience = stats->pendingExperience;
+    record.spentExperience = stats->spentExperience;
     record.bought = 0;
 }
 
@@ -356,9 +356,9 @@ void CTradePanel::RestoreRecord() {
     for (int i = 0; i < 6; ++i) stats->skills[i] = record.schools[i];
     stats->attributes[0] = record.science;
     for (int i = 0; i < 36; ++i) stats->skillLevels[i] = record.perks[i];
-    std::memcpy(&stats->experience, &record.experience, sizeof(float));
-    std::memcpy(&stats->pendingExperience, &record.pendingExperience, sizeof(float));
-    std::memcpy(&stats->spentExperience, &record.spentExperience, sizeof(float));
+    stats->experience = record.experience;
+    stats->pendingExperience = record.pendingExperience;
+    stats->spentExperience = record.spentExperience;
     record.bought = 0;
     const float newMaximum = static_cast<float>(stats->HitPointCurve());
     // Only when both maxima are above 1: the slots are healed by what keeps the hit points in the

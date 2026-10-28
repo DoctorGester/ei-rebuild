@@ -49,7 +49,7 @@ ServerSession::ServerSession(std::uint32_t kind) {
     kind_ = kind;
     maxPlayers_ = 8;
     QueueMapList();
-    std::memset(&announceTimer_, 0, sizeof(announceTimer_));
+    announceTimer_ = 0.0f;
     public_ = 0;
     masterToken_ = 0;
     std::memset(password_, 0, sizeof(password_));

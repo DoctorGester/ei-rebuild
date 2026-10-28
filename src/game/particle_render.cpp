@@ -8,6 +8,7 @@
 
 #include "lib/crt.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -58,8 +59,7 @@ float Interpolation() {
     double ticks = g_clientWorld->tick_;
     float fraction = static_cast<float>((ticks + D(g_clientWorld->tickFraction_)) - ticks);
     float one;
-    std::uint32_t oneBits = 0x3F800000;
-    std::memcpy(&one, &oneBits, sizeof(one));
+    one = 1.0f;
     float clamped = fraction <= one ? fraction : one;
     return clamped >= 0.0f ? clamped : 0.0f;
 }
@@ -122,6 +122,6 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
         } while (cursor != particles.end());
     }
     int blend;
-    std::memcpy(&blend, &additiveBlend, sizeof(blend));
+    blend = std::bit_cast<std::int32_t>(additiveBlend);
     return renderer->DrawSprites(blend != 0, &g_vertices, &g_sprites.Get());
 }

@@ -106,10 +106,10 @@ void CUnitServer::FinishCast() {
     if (!spell) return;
     Vector3 at;
     if (!action.target) {
-        std::memcpy(&at, &action.point, sizeof(at));
+        at = action.point;
     } else {
         Vector3 point;
-        std::memcpy(&at, action.target->AimPoint(&point), sizeof(at));
+        at = *action.target->AimPoint(&point);
     }
     if (carrier) {
         float cost = spell->manaCost_;
@@ -123,14 +123,14 @@ void CUnitServer::FinishCast() {
         UnitVitals* vitals = ServerStatsOf(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
         float maximum;
-        std::memcpy(&maximum, &vitals->maxMana, sizeof(maximum));
+        maximum = vitals->maxMana;
         float* mana = &vitals->mana;
         float left = static_cast<float>(-needed + *mana);
         *mana = left;
         // Branch-free clamps: min(left, maximum) (left when unordered), then max(0, that).
         float capped = left >= maximum ? maximum : left;
         float result = capped <= 0.0f ? 0.0f : capped;
-        std::memcpy(mana, &result, sizeof(float));
+        *mana = result;
         CompanionOwner(ServerObjectOf(unit))->MarkChanged(0);
         unit->MarkChanged(0);
     }
@@ -155,10 +155,10 @@ void CUnitServer::OrderMove(const Vector3* point, int run, int walk, float range
     const CWorld* world = WorldContext();
     ResetOrder(&action2);
     action2.kind = 1;
-    std::memcpy(&action2.point, point, sizeof(action2.point));
+    action2.point = *point;
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
-    std::memcpy(&action2.point.z, &range, sizeof(range));
+    action2.point.z = range;
     action2.modifier = static_cast<std::uint8_t>(run);
     action2.param = 0;
     if (!unit->player) return;
@@ -211,7 +211,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
 
 void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int run) {
     Vector3 at;
-    std::memcpy(&at, point, sizeof(at));
+    at = *point;
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
@@ -240,7 +240,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     action2.kind = 4;
     if (action2.target) ReleaseTarget(&action2);
     action2.source = source;
-    std::memcpy(&action2.point, &at, sizeof(at));
+    action2.point = at;
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
@@ -270,7 +270,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CMapObject* target, int run) {
     action2.kind = 5;
     SetTarget(&action2, target);
     action2.source = source;
-    std::memset(&action2.point, 0, sizeof(action2.point));
+    action2.point = {};
     action2.modifier = static_cast<std::uint8_t>(run);
     if (!PlanOrderRoute(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }

@@ -9,13 +9,14 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
 
 std::uint32_t Bits(float v) {
     std::uint32_t b;
-    std::memcpy(&b, &v, 4);
+    b = std::bit_cast<std::uint32_t>(v);
     return b;
 }
 

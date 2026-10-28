@@ -108,9 +108,9 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
     // The object's transform: rotation from its orientation, translation from its position.
     float* matrix = object->worldMatrix.m;
     object->localRotation_.ToMatrix((float*)matrix);
-    std::memcpy(&matrix[11], &object->localPosition_.z, 4);
-    std::memcpy(&matrix[3], &object->localPosition_.x, 4);
-    std::memcpy(&matrix[7], &object->localPosition_.y, 4);
+    matrix[11] = object->localPosition_.z;
+    matrix[3] = object->localPosition_.x;
+    matrix[7] = object->localPosition_.y;
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
@@ -147,7 +147,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        std::memcpy(&position, &object->localPosition_, sizeof(position));
+        position = object->localPosition_;
 
         // Stand the object on the ground (or bridge deck) under its centre.
         int cx = WorldToCell(object->localPosition_.x), cy = WorldToCell(object->localPosition_.y);
@@ -171,7 +171,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             p.z = z + placed->bounds.center.z;
             Vector3 world;
             object->worldMatrix.rows.Transform(&world, &p);
-            std::memcpy(&p, &world, sizeof(p));
+            p = world;
             p.x = position.x + p.x;
             p.y = position.y + p.y;
             p.z = position.z + p.z;
@@ -179,7 +179,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
         for (Vector3& v : normal) {
             Vector3 world;
             object->worldMatrix.rows.Transform(&world, &v);
-            std::memcpy(&v, &world, sizeof(v));
+            v = world;
         }
 
         // Sample each face on a grid fine enough to hit every cell it covers.

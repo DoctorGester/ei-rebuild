@@ -86,22 +86,22 @@ void CCamera::GroundPoint(Vector3* out) const {
         out->z = z;
         return;
     }
-    std::memcpy(out, &pos, sizeof(Vector3));
+    *out = pos;
 }
 
 void CCamera::SetTurnRate(float rate) {
-    std::memcpy(&turnTarget_, &rate, sizeof(float));
+    turnTarget_ = rate;
     EI_NAN_AUDIT(turnRate_, rate);
-    if (std::fabs(turnRate_) < std::fabs(rate)) std::memcpy(&turnRate_, &turnTarget_, sizeof(float));
+    if (std::fabs(turnRate_) < std::fabs(rate)) turnRate_ = turnTarget_;
 }
 
 void CCamera::SetTiltRate(float rate) {
-    std::memcpy(&tiltTarget_, &rate, sizeof(float));
+    tiltTarget_ = rate;
     EI_NAN_AUDIT(tiltRate_, rate);
-    if (std::fabs(tiltRate_) < std::fabs(rate)) std::memcpy(&tiltRate_, &tiltTarget_, sizeof(float));
+    if (std::fabs(tiltRate_) < std::fabs(rate)) tiltRate_ = tiltTarget_;
 }
 
-void CCamera::SetZoomTarget(std::uint32_t value) { zoomTarget_ = value; }
+void CCamera::SetZoomTarget(float value) { zoomTarget_ = value; }
 
 void CCamera::SetTarget(const CEngineObject* target) {
     if (!target) {
@@ -114,7 +114,7 @@ void CCamera::SetTarget(const CEngineObject* target) {
 void CCamera::SetTargetId(int id) {
     targetId_ = id;
     if (id != -1) {
-        std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
-        std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
+        panTarget_ = camera::kZeroVector;
+        panVelocity_ = camera::kZeroVector;
     }
 }

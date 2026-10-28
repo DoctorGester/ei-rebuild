@@ -94,7 +94,7 @@ constexpr float kRangeSteps = 65535.0f;
 constexpr float kRangeStep = 0.000015259022f;      // (1 / 65535)
 static_assert(std::bit_cast<std::uint32_t>(kRangeStep) == 0x37800080u);
 
-void StoreBits(float* out, std::uint32_t bits) { std::memcpy(out, &bits, sizeof(bits)); }
+void StoreBits(float* out, std::uint32_t bits) { *out = std::bit_cast<float>(bits); }
 
 // One channel's header: the mask, then the channel's output of every field in it.
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {

@@ -15,6 +15,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -238,7 +239,7 @@ void AIBrain::AddCorpseWatcherMode() { AddMode(new CorpseWatcherMode()); }
 
 void FearMode::Init(std::uint8_t newFlag) {
     std::uint32_t bits = FearDistanceBits();
-    std::memcpy(&distance, &bits, sizeof(bits));
+    distance = std::bit_cast<float>(bits);
     spread = 3.0f;
     shelter.x = -1313.0f;    // unset
     fleePoint.z = 0.0f;
@@ -442,7 +443,7 @@ void AIBrain::Load(CStream* stream) {
     LogicSettings& settings = g_logicSettings;
     EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
     if (callRadius == settings.callForHelpRadiusDefault)
-        std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
+        callRadius = settings.callForHelpRadius;
     stream->Read(&alwaysUpdated, 1);
     if (stream->version_ < 0x4B) return;
     attention.healWeight = 0.0f;

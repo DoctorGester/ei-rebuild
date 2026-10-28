@@ -33,7 +33,7 @@ CPlayerServer* ServerOf(CPlayer* player) { return player->Server(); }
 void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
     auto* missile = e->Visual<CEffectMissile>();
     if (!missile) return;
-    std::memcpy(&e->position, &missile->localPosition_, 12);
+    e->position = missile->localPosition_;
     if (missile->arrived_ == 0) return;
 
     DamageInfo hit;
@@ -44,9 +44,9 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseLight();
 
     CUnit* target = TargetUnit(e);   // no null check
-    std::memcpy(&e->targetPoint, &target->localPosition_, 12);
+    e->targetPoint = target->localPosition_;
     Vector3 at;
-    std::memcpy(&at, &target->localPosition_, 12);
+    at = target->localPosition_;
     at.z = static_cast<float>(target->ModeSpeed());
     at.z = GroundPlus(e, kGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, worlddata::SplashScale());
@@ -170,7 +170,7 @@ void FireWall(CSpellEffect* e) {
     }
     if (ticks == -1) {
         Vector3 at = e->position;
-        if (e->sound) std::memcpy(&at, &e->sound->localPosition_, 12);
+        if (e->sound) at = e->sound->localPosition_;
         e->UpdateFootprint(6, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
@@ -353,7 +353,7 @@ void Teleport(CSpellEffect* e) {
     int arrival = static_cast<int>(e->Spell()->duration_);
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
-    std::memcpy(&e->targetPoint.z, &e->caster->localPosition_.z, 4);
+    e->targetPoint.z = e->caster->localPosition_.z;
     if (!e->world->aiMap_.IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;

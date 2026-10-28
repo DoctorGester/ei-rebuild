@@ -156,7 +156,7 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
         WriteByte(&out_, kMessageObjectAdded);
         out_.Write(header, sizeof(header));
         Vector3 scale;
-        std::memcpy(&scale, &object->scale, sizeof(scale));
+        scale = object->scale;
         out_.Write(&scale, sizeof(scale));
         out_.WriteString(object->name2);
         out_.WriteString(object->name);

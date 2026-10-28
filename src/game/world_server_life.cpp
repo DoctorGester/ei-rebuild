@@ -12,6 +12,7 @@
 #include "server_specific_manager.h"
 
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -26,7 +27,7 @@ constexpr const char* kMessagesFileName = /*0073F918*/ "SMessBase.reg";
 const char* CantCreateText() { return "CWorldServer::Create.\n Can't create base world.\n"; }
 const char* CantOpenText() { return "CWorldServer::Create.\n Can't opent message base resource.\n"; }
 
-constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
+constexpr float kWindStrength = 0.4f;
 
 } // namespace
 
@@ -50,7 +51,7 @@ int CWorldServer::Create() {
     // The wind: along x, no strength yet (three dwords), then 0.4.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
     std::memcpy(windDirection_, direction, sizeof(direction));
-    windStrength_ = kWindStrength;
+    windStrength_ = std::bit_cast<std::uint32_t>(kWindStrength);
     sessionKind_ = 0;
     scriptsActive_ = 0;
     exits_.clear();

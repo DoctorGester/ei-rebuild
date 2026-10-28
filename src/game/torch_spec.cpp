@@ -6,6 +6,7 @@
 #include "core_streams.h"
 #include "net_delta.h"
 
+#include <bit>
 #include <cstring>
 #include <string>
 
@@ -47,9 +48,9 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
     stream->Write(&lightKind_, 4);
     stream->WriteString(name_);
     std::uint32_t value;
-    std::memcpy(&value, &values_[0], 4);
+    value = std::bit_cast<std::uint32_t>(values_[0]);
     stream->Write(&value, 4);
-    std::memcpy(&value, &values_[1], 4);
+    value = std::bit_cast<std::uint32_t>(values_[1]);
     stream->Write(&value, 4);
     stream->Write(&values_[2], 0x10);
     stream->Write(colours_[0], 0xC);

@@ -1,6 +1,7 @@
 // The game server's awards: the zone completion command ("<zone>_3"), the host's item awards and the queued
 // award message, plus the counted pointer copy they use. See net_classes.h and docs/notes/network.md.
 
+#include "ei/x87.h"
 #include "net_messages.h"
 #include "quest_records.h"
 #include "game_strings.h"
@@ -50,7 +51,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     if (connection) ++connection->refs_;
     if (previous) previous->Release();
     award->kind_ = static_cast<std::uint32_t>(kind);
-    std::memcpy(&award->value_, &value, 4);
+    x87::CopyBits(award->value_, value);
 
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
     award->text_ = text;
@@ -116,8 +117,8 @@ void ServerSession::CompleteZone(const std::string* zone) {
         int count = static_cast<int>(clients_.size());
         int share = count < 1 ? 1 : count;
         float value0, value1;
-        std::memcpy(&value0, &entry->exp, 4);
-        std::memcpy(&value1, &entry->money, 4);
+        x87::CopyBits(value0, entry->exp);
+        x87::CopyBits(value1, entry->money);
         const double divisor = share;
         float award0 = static_cast<float>(value0 / divisor);
         float award1 = static_cast<float>(value1 / divisor);

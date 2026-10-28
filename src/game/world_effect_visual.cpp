@@ -125,16 +125,16 @@ int CEffectPointLight::RunTick() {
     localPosition_.z = z;
     if (light_ == nullptr) return 1;
     Vector3 delta;
-    std::memcpy(&delta, &velocity_, sizeof(Vector3));
+    delta = velocity_;
     if ((FrameCounter() & 0xF) == 0) {
         // Every 16th frame the light is re-registered at its new place.
         g_clientWorld->terrain_->RemoveLight(light_);
-        std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+        LightPosition(light_) = localPosition_;
         g_clientWorld->terrain_->AddLight(light_);
         return 1;
     }
     g_clientWorld->terrain_->MoveLight(light_, &delta);
-    std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+    LightPosition(light_) = localPosition_;
     return 1;
 }
 
@@ -142,25 +142,25 @@ void CEffectPointLight::Start(int update) {
     if (update == 0) {
         light_.Assign(g_clientWorld->lightFactory_->CreateLight(0x31));
         Vector3 position;
-        std::memcpy(&position.x, &localPosition_.x, sizeof(float));
-        std::memcpy(&position.y, &localPosition_.y, sizeof(float));
-        std::memcpy(&position.z, &localPosition_.z, sizeof(float));
+        position.x = localPosition_.x;
+        position.y = localPosition_.y;
+        position.z = localPosition_.z;
         Vector3 color;
-        std::memcpy(&color.x, &color_.x, sizeof(float));
-        std::memcpy(&color.y, &color_.y, sizeof(float));
-        std::memcpy(&color.z, &color_.z, sizeof(float));
+        color.x = color_.x;
+        color.y = color_.y;
+        color.z = color_.z;
         light_->SetPoint(&color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
         g_clientWorld->terrain_->AddLight(light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
-        std::memcpy(&light_->color_[0], &color_.x, sizeof(float));
-        std::memcpy(&light_->color_[1], &color_.y, sizeof(float));
-        std::memcpy(&light_->color_[2], &color_.z, sizeof(float));
+        light_->color_[0] = color_.x;
+        light_->color_[1] = color_.y;
+        light_->color_[2] = color_.z;
         float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
         float shownRange;
-        std::memcpy(&shownRange, &light_->range_, 4);
+        shownRange = light_->range_;
         float change = FromBits(Bits(static_cast<float>(shownRange - range)) & 0x7FFFFFFFu);
         EI_NAN_AUDIT(change);
         if (change < ConstAt(worlddata::RangeEpsilon())) {
@@ -171,10 +171,10 @@ void CEffectPointLight::Start(int update) {
             delta.y = static_cast<float>(localPosition_.y - at.y);
             delta.x = static_cast<float>(localPosition_.x - at.x);
             g_clientWorld->terrain_->MoveLight(light_, &delta);
-            std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+            LightPosition(light_) = localPosition_;
         } else {
             g_clientWorld->terrain_->RemoveLight(light_);
-            std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
+            LightPosition(light_) = localPosition_;
             SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
             g_clientWorld->terrain_->AddLight(light_);
         }
@@ -297,7 +297,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
         CUnit* unit = ObjectWorld(this)->FindUnit(unitId_);
         if (unit != nullptr) {
             Vector3 point;
-            std::memcpy(&position, unit->EffectPoint(&point), sizeof(Vector3));
+            position = *unit->EffectPoint(&point);
         }
     }
     localPosition_ = position;
@@ -308,24 +308,24 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
 void CEffectParticle::Spawn() {
     if (source_ != nullptr) {
         // Already running: follow the effect.
-        std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
+        source_->localPosition_ = localPosition_;
         float baseSize;
-        std::memcpy(&baseSize, &source_->baseSize, 4);
+        baseSize = source_->baseSize;
         source_->ScaleSize(static_cast<float>(size_ / baseSize));
-        std::memcpy(&source_->alpha, &alpha_, sizeof(float));
-        std::memcpy(&source_->typeParam, &typeParam_, sizeof(float));
+        source_->alpha = alpha_;
+        source_->typeParam = typeParam_;
         Attach();
         return;
     }
 
     source_.Assign(g_clientWorld->particleManager_->CreateSource(type_));
-    std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
+    source_->localPosition_ = localPosition_;
     float baseSize;
-    std::memcpy(&baseSize, &source_->baseSize, 4);
+    baseSize = source_->baseSize;
     source_->ScaleSize(static_cast<float>(size_ / baseSize));
     source_->Attach(nullptr);
-    std::memcpy(&source_->alpha, &alpha_, sizeof(float));
-    std::memcpy(&source_->typeParam, &typeParam_, sizeof(float));
+    source_->alpha = alpha_;
+    source_->typeParam = typeParam_;
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
@@ -374,18 +374,18 @@ void CEffectParticle::SetAttachedTo(int objectId) {
 }
 
 void CEffectParticle::SetSize(float size) {
-    std::memcpy(&size_, &size, 4);
+    size_ = size;
     MarkChanged();
 }
 
 void CEffectParticle::SetColors(float a, float b) {
-    std::memcpy(&alpha_, &a, 4);
-    std::memcpy(&typeParam_, &b, 4);
+    alpha_ = a;
+    typeParam_ = b;
     MarkChanged();
 }
 
 void CEffectParticle::SetTarget(const Vector3* target) {
-    std::memcpy(&target_, target, sizeof(Vector3));
+    target_ = *target;
     MarkChanged();
 }
 
@@ -402,9 +402,9 @@ void CEffectParticle::Attach() {
     }
     CObject3D* object = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
     Vector3 saved;
-    std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
+    saved = source_->localPosition_;
     source_->Attach(object);
-    if (object == nullptr) std::memcpy(&source_->localPosition_, &saved, sizeof(Vector3));
+    if (object == nullptr) source_->localPosition_ = saved;
 }
 
 void CEffectParticle::Load(CStream* stream) {
@@ -456,8 +456,8 @@ int CEffectParticle::RunTick() {
             std::uint32_t zBits = z >= floor ? Bits(z) : Bits(floor);
             localPosition_.x = x;
             localPosition_.y = y;
-            std::memcpy(&localPosition_.z, &zBits, 4);
-            if (source_ != nullptr) std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
+            localPosition_.z = std::bit_cast<float>(zBits);
+            if (source_ != nullptr) source_->localPosition_ = localPosition_;
         }
     }
     if (!IsOneShotType(type_)) return 1;
@@ -491,7 +491,7 @@ void CEffectWall::Reset() {
 }
 
 void CEffectWall::SetDirection(const Vector3* direction) {
-    std::memcpy(&direction_, direction, sizeof(Vector3));
+    direction_ = *direction;
     MarkChanged();
 }
 
@@ -499,7 +499,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     if (CEffectParticle::Unpack(update, field) == 0) return 0;
     field->ReadFloat16x3(&direction_.x);
     if (!SnapshotReadToEnd()) return 0;
-    if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
+    if (source_ != nullptr) source_->extent = direction_;
     if (update == 0 && type_ == 0x2010) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
@@ -557,13 +557,13 @@ void CEffectLightning::Reset() {
 void CEffectLightning::UpdateEnds() {
     CMapObject* target = WorldOf(this)->ObjectWithId(toObject_);
     if (target != nullptr) {
-        std::memcpy(&to_, &target->localPosition_, sizeof(Vector3));
+        to_ = target->localPosition_;
         to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
     CUnit* source = UnitOrNull(WorldOf(this)->ObjectWithId(fromObject_));
     if (source != nullptr && ContextWorld(this)->IsServer() == 0) {
         Vector3 point;
-        std::memcpy(&from_, source->EffectPoint(&point), sizeof(Vector3));
+        from_ = *source->EffectPoint(&point);
     }
 }
 
@@ -608,9 +608,9 @@ void CEffectLightning::Pack(DeltaField* field) {
 }
 
 void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float width) {
-    std::memcpy(&from_, from, sizeof(Vector3));
-    std::memcpy(&to_, to, sizeof(Vector3));
-    std::memcpy(&width_, &width, 4);
+    from_ = *from;
+    to_ = *to;
+    width_ = width;
     // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
     float half = ConstAt(worlddata::HalfRef());
     float sumY = static_cast<float>(from_.y + to_.y);

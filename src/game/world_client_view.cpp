@@ -132,8 +132,8 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
     }
     device->PopMatrix(CTransformPipeline::kPickStack);
     out->x = outX;
-    std::memcpy(&out->y, &outY, 4);
-    std::memcpy(&out->z, &pz, 4);
+    out->y = outY;
+    out->z = pz;
     return out;
 }
 
@@ -169,15 +169,13 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix.m;
                 static_cast<const Quaternion*>(&o3d->localRotation_)->ToMatrix(matrix);
-                std::memcpy(&matrix[3], &o3d->localPosition_.x, 4);
-                std::memcpy(&matrix[7], &o3d->localPosition_.y, 4);
-                std::memcpy(&matrix[11], &o3d->localPosition_.z, 4);
-                const std::uint32_t zero = 0;
-                const std::uint32_t one = 0x3F800000;   // 1.0f
-                std::memcpy(&matrix[14], &zero, 4);
-                std::memcpy(&matrix[13], &zero, 4);
-                std::memcpy(&matrix[12], &zero, 4);
-                std::memcpy(&matrix[15], &one, 4);
+                matrix[3] = o3d->localPosition_.x;
+                matrix[7] = o3d->localPosition_.y;
+                matrix[11] = o3d->localPosition_.z;
+                matrix[14] = 0.0f;
+                matrix[13] = 0.0f;
+                matrix[12] = 0.0f;
+                matrix[15] = 1.0f;
                 PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
                 int where = g_sceneRenderer->pipeline_->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
                 device->PopMatrix(CTransformPipeline::kClipStack);

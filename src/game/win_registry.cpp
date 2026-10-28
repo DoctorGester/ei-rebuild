@@ -6,6 +6,7 @@
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
 
+#include <bit>
 #include <cstring>
 #include <new>
 #include <string>
@@ -104,7 +105,7 @@ double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_
         bits = defaultBits;
     }
     float value;
-    std::memcpy(&value, &bits, 4);
+    value = std::bit_cast<float>(bits);
     return value;
 }
 

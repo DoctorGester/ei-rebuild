@@ -2,6 +2,7 @@
 // copy (Clone's), OnShutdown, Clone, Write, Read and destructor; the same for the lobby's server entry
 // (net_classes.h; no factory).
 // More: docs/notes/comments-c22i.md, "net_messages.cpp".
+#include "ei/x87.h"
 #include "net_messages.h"
 #include "asset_text.h"
 #include "net_connection.h"
@@ -284,7 +285,7 @@ void HostMessage::Read(BufferCursor* cursor) {
 
 VariableMessage::VariableMessage() {}
 VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name_(other.name_) {
-    std::memcpy(&value_, &other.value_, 4);
+    x87::CopyBits(value_, other.value_);
     serial_ = other.serial_;
 }
 
@@ -360,7 +361,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 AwardMessage::AwardMessage() {}
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
     CopyCounted(connection_, other.connection_);
-    std::memcpy(&value_, &other.value_, 4);
+    x87::CopyBits(value_, other.value_);
 }
 // The original frees the text before it releases the receiver; ours after (the text is a member).
 AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
@@ -497,8 +498,8 @@ void PartyMessage::Read(BufferCursor* cursor) {
 // ServerEntryBase and ServerEntry (net_classes.h): made by the server list code.
 
 ServerEntryBase::ServerEntryBase(const ServerEntryBase& other) : CRefObject(), address_(other.address_) {
-    std::memcpy(&timeout_, &other.timeout_, 4);   // the floats copied bit for bit
-    std::memcpy(&ping_, &other.ping_, 4);
+    x87::CopyBits(timeout_, other.timeout_);   // the floats copied bit for bit
+    x87::CopyBits(ping_, other.ping_);
     foreign_ = other.foreign_;
     state_ = other.state_;
 }

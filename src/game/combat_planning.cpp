@@ -36,9 +36,9 @@ constexpr int kOrderCast = 5;
 constexpr int kOrderSkill = 6;
 constexpr int kMotionPath = 2;                    // MotionOrder kind: follow the steps
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr std::uint32_t kFarBits = 0x49742400u;   // 1e6
-constexpr float kFar = std::bit_cast<float>(kFarBits);
-constexpr std::uint32_t kNoZBits = 0xBF800000u;   // -1.0: an order point without height
+constexpr float kFarBits = 1000000.0f;   // 1e6
+constexpr float kFar = kFarBits;
+constexpr float kNoZBits = -1.0f;   // -1.0: an order point without height
 constexpr int kNoSpot = 0x7FFFFFFF;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
@@ -107,7 +107,7 @@ void PathMessage(CUnit* unit, PathOrder* motion, const float* point, int kind, i
 
 bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
-    order->point.z = std::bit_cast<float>(kNoZBits);
+    order->point.z = kNoZBits;
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     std::vector<Vector3> spots{};
     float size = static_cast<float>(unit->Radius());
@@ -132,14 +132,14 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
-            std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
+            bestSpot = spot;
             if (out) path.path.object.ToMotionOrder(out);
         }
         if (best == kNoSpot) {
             result = false;
         } else {
             order->pointIsUseSpot = 1;
-            std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
+            order->point = bestSpot;
         }
     }
     return result;
@@ -159,7 +159,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
     Vector3 aim = {0.0f, 0.0f, -1000.0f};
     double distance = ActionDistance(order);
     float reachSq = static_cast<float>(distance * distance);
-    if (!order->target) std::memcpy(&aim, &order->point, sizeof(aim));
+    if (!order->target) aim = order->point;
     else order->target->AimPoint(&aim);
     float t = 0.0f;
     for (;;) {
@@ -173,7 +173,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
         simulated.motion.Sample(nullptr, OrderOf(motionOrder), time, &turning,
                                                              &position.x, &direction.x, &speed, &cellX, &cellY);
         if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
-        std::memcpy(&previous, &position, sizeof(previous));
+        previous = position;
         float half = kHalfCell;
         position.x = half * position.x;
         position.y = half * position.y;
@@ -213,7 +213,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     float best = kFar;
     LocalMotionOrder route;
     Vector3 point;
-    if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
+    if (!order->target) point = order->point;
     else order->target->AimPoint(&point);
     bool ok;
     if (!FindUseSpot(order, &route)) {

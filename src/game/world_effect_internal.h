@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <concepts>
 #include <cstdint>
 #include <cstring>
@@ -33,12 +34,12 @@ inline float ConstAt(const float& constant) { return *reinterpret_cast<const vol
 // By reference: a float passed by value would be loaded and stored through the FPU.
 inline std::uint32_t Bits(const float& f) {
     std::uint32_t u;
-    std::memcpy(&u, &f, 4);
+    u = std::bit_cast<std::uint32_t>(f);
     return u;
 }
 inline float FromBits(std::uint32_t u) {
     float f;
-    std::memcpy(&f, &u, 4);
+    f = std::bit_cast<float>(u);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.

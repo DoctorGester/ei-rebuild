@@ -138,7 +138,7 @@ void DirectionalShare(CLight* light, Vector3* out) {
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
 void LightDirection(const Vector3& sum, Vector3* direction) {
     double lengthSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(sum);   // (x + z) + y
-    std::memcpy(direction, &sum, 12);
+    *direction = sum;
     EI_NAN_AUDIT(lengthSquared);
     if (lengthSquared != 0.0) {
         double inverse = 1.0 / std::sqrt(lengthSquared);
@@ -230,10 +230,10 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     turn.z = -turn.z;
     self->object->localRotation_ = kept;
     view = self->object->worldMatrix;
-    std::memcpy(&self->bounds[0], &kFloatMax, 4);
-    std::memcpy(&self->bounds[2], &kFloatLowest, 4);
-    std::memcpy(&self->bounds[1], &kFloatMax, 4);
-    std::memcpy(&self->bounds[3], &kFloatLowest, 4);
+    self->bounds[0] = std::bit_cast<float>(kFloatMax);
+    self->bounds[2] = std::bit_cast<float>(kFloatLowest);
+    self->bounds[1] = std::bit_cast<float>(kFloatMax);
+    self->bounds[3] = std::bit_cast<float>(kFloatLowest);
     view.m[11] = 0.0f;
     view.m[7] = 0.0f;
     view.m[3] = 0.0f;
@@ -270,7 +270,7 @@ void RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context) {
     float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
     float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
     Vector3 at;
-    std::memcpy(&at, &self->object->localPosition_, sizeof(at));
+    at = self->object->localPosition_;
     float wx = static_cast<float>(x2 * turn.w);
     float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
     float wz = static_cast<float>(static_cast<double>(z2) * turn.w);

@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
@@ -32,7 +33,7 @@ float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
 
 bool SignClear(float v) {
     std::uint32_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(v);
     return (bits & 0x80000000u) == 0;
 }
 

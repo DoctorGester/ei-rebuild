@@ -32,6 +32,7 @@
 
 #include "lib/crt.h"
 #include "lib/file_io.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -104,13 +105,10 @@ void RelocateStrandedUnits(CWorldServer* world) {
         CUnit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             world->aiMap_.sectorMap.Remove(unit);
-            float* position = &unit->localPosition_.x;   // x, y, z
-            Vector3 from;
-            Vector3 to;
-            std::memcpy(&from, position, sizeof(Vector3));
-            std::memcpy(&to, position, sizeof(Vector3));
+            Vector3 from = unit->localPosition_;
+            Vector3 to = unit->localPosition_;
             world->aiMap_.FindFreeCellNear(unit, &from, &to);
-            std::memcpy(position, &to, sizeof(Vector3));
+            unit->localPosition_ = to;
             world->aiMap_.sectorMap.Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
@@ -467,7 +465,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     WriteCopy(stream, tick_);
     stream->Write(&weather_, 4);
     std::uint32_t e8;
-    std::memcpy(&e8, &weatherStrength_, 4);
+    e8 = std::bit_cast<std::uint32_t>(weatherStrength_);
     WriteCopy(stream, e8);
     // Stored by the callee as floats; written on as their bytes (WriteCopy takes a reference).
     float time;

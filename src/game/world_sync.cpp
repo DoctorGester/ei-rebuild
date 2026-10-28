@@ -17,6 +17,7 @@
 
 #include "ei/x87.h"
 
+#include <bit>
 #include <cstdlib>
 #include <cstring>
 #include <list>

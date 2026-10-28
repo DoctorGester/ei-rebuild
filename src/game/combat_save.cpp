@@ -164,7 +164,7 @@ void CUnitServer::Load(CStream* stream) {
     LoadOrder(stream, &action2);
     stats.LoadFrom(stream);
     if (stream->version_ < kVersionFixedMaximum)
-        std::memcpy(&stats.fixedMaxHitPoints, &unit->ServerCompanion()->vitals.maxHitPoints, 4);
+        stats.fixedMaxHitPoints = unit->ServerCompanion()->vitals.maxHitPoints;
     for (int i = 0; i < 4; ++i) stream->Read(&moveFactors[i], 4);
     stream->Read(&tameStage, 4);
     stream->Read(&ownSide, 4);

@@ -18,6 +18,7 @@
 #include "lib/gameapi.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
@@ -31,7 +32,7 @@ namespace {
 ServerEntry* EntryOf(std::list<SharedRefTo<ServerEntry>>::iterator node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
-constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
+constexpr float kFirstRetry = 0.1f;
 
 
 // "<text>\n" and a flush.
@@ -45,7 +46,7 @@ void LogAddressLine(const char* text, const NetAddress* address) {
     console::EndLine(*g_netLog << text << s.data());
 }
 
-void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
+void SetBits(float& f, std::uint32_t bits) { f = std::bit_cast<float>(bits); }
 
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
@@ -110,7 +111,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 
 ServerEntryBase::ServerEntryBase() {
     std::memset(&address_, 0, sizeof(address_));
-    SetBits(timeout_, 0);
+    timeout_ = 0.0f;
     ping_ = 9.999f;
     foreign_ = 0;
     state_ = kLocal;
@@ -254,7 +255,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
         SetBits(e->timeout_, kNever);
     }
     float echoed;
-    std::memcpy(&echoed, &echo, 4);
+    echoed = std::bit_cast<float>(echo);
     e->ping_ = static_cast<float>(time_ - echoed);
     if (node == servers_.end()) {
         AppendServer(this, entry);
@@ -424,8 +425,8 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     id |= gameapi::GetTickCount() & 0xFFFF;
     joinId_ = id;
     joinState_ = kAsking;
-    SetBits(retryTimer_, 0);
-    SetBits(retryInterval_, kFirstRetry);
+    retryTimer_ = 0.0f;
+    retryInterval_ = kFirstRetry;
     refusal_ = 0;
     joinData_ = *data;
 }

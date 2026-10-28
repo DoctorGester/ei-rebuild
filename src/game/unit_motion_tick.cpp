@@ -301,7 +301,7 @@ void Exhaustion(CUnitServer* c) {
         float* stamina = &vitals.mana;
         const float* rate = &vitals.maxMana;
         float value;
-        std::memcpy(&value, stamina, 4);
+        value = *stamina;
         EI_NAN_AUDIT(value);
         if (value == 0.0f) {
             c->moveMode2.wasMode3 = 0;
@@ -314,7 +314,7 @@ void Exhaustion(CUnitServer* c) {
             if (Drain(stamina, rate)) {
                 if (UnitOf(c)->player)
                     UnitOf(c)->player->Server()->SendObject0B(UnitOf(c), 0x1D);
-                std::memset(stamina, 0, 4);
+                *stamina = 0.0f;
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
                 if (mode != UnitOf(c)->moveMode2) {

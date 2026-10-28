@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstring>
 #include <string>
 
@@ -39,10 +40,10 @@ constexpr int kStormy = 3;                  // climate_: storms with lightning s
 constexpr int kRaining = 1;                 // weather_
 constexpr int kTypeLightning = 0x65;
 constexpr std::uint32_t kDirtyWeather = 2;
-constexpr std::uint32_t kRainLight = 0x41A00000;   // 20.0f
-constexpr std::uint32_t kRainHeavy = 0x42200000;   // 40.0f
-constexpr std::uint32_t kDayFactorRain = 0x3F666666;   // 0.9f
-constexpr std::uint32_t kDayFactorDry = 0x3F800000;    // 1.0f
+constexpr float kRainLight = 20.0f;
+constexpr float kRainHeavy = 40.0f;
+constexpr float kDayFactorRain = 0.9f;
+constexpr float kDayFactorDry = 1.0f;
 
 
 float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(g_random.Next()) * scale); }
@@ -90,18 +91,18 @@ void UpdateRain(CWorldServer* world) {
         g_weatherDelay = 10;
         if (world->climate_ == 1) {
             world->weather_ = 1;
-            std::memcpy(&world->weatherStrength_, &kRainLight, 4);
+            world->weatherStrength_ = kRainLight;
         } else {
             world->weather_ = 2;
-            std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
+            world->weatherStrength_ = kRainHeavy;
         }
     } else {
         if (g_random.Next() % 31 != 0) return;
         g_weatherDelay = 10;
         int previous = world->climate_;
         world->weather_ = 0;
-        if (previous == 1) std::memcpy(&world->weatherStrength_, &kRainLight, 4);
-        else std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
+        if (previous == 1) world->weatherStrength_ = kRainLight;
+        else world->weatherStrength_ = kRainHeavy;
     }
     world->MarkPlayersDirty(kDirtyWeather);
 }
@@ -130,7 +131,7 @@ CScript& ScriptQueue() { return *g_serverWorld->SecondScript(); }   // a command
 
 void CWorldServer::UpdateWeather() {
     float day = static_cast<float>(NightLevel());
-    std::memcpy(&nightLevel_, &day, 4);
+    nightLevel_ = day;
     if (sessionKind_ == kKindSinglePlayer) {
         if (climate_ != 0) {
             if (climate_ == kStormy) TryLightningStrike(this);
@@ -138,8 +139,7 @@ void CWorldServer::UpdateWeather() {
         }
         if (weather_ == kRaining && tick_ > static_cast<int>(lastRainBoltTick_) + 20) ShowRainBolt(this);
     }
-    std::uint32_t factor = weather_ == 0 ? kDayFactorDry : kDayFactorRain;
-    std::memcpy(&weatherFactor_, &factor, 4);
+    weatherFactor_ = std::bit_cast<std::uint32_t>(weather_ == 0 ? kDayFactorDry : kDayFactorRain);
 
     for (auto node = objects_.map.begin(); node != objects_.map.end(); ++node)
         node->second->UpdateMoveFactors();   // the weather changed

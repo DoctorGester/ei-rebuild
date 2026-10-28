@@ -50,7 +50,7 @@ void Lever::SetState(int wanted, float duration) {
         node = next;
     }
     CAIMap* map = &world->aiMap_;
-    std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
+    map->refreshUnits = keepsMapFlag;   // the byte as it is
     map->BeginRefresh();
     sectors->Remove(this);
 
@@ -58,7 +58,7 @@ void Lever::SetState(int wanted, float duration) {
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
     if (duration > 0.0f) {
         to = travel;
-        std::memcpy(&from, &scale.y, sizeof(from));   // bit for bit
+        from = scale.y;   // bit for bit
         endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
         rate = 1.0f / duration;
     } else {
@@ -81,7 +81,7 @@ void Lever::SetState(int wanted, float duration) {
             Vector3* at = &unit->localPosition_;
             Vector3 free = {at->x, at->y, at->z};
             map->FindFreeCellNear(unit, at, &free);
-            std::memcpy(at, &free, sizeof(free));
+            *at = free;
             unit->ServerController()->ResyncWithUnit();
         }
         sectors->Add(unit);

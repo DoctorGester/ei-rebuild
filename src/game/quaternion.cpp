@@ -59,7 +59,7 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     double cosine = DotWZYXUnrounded<double>(a, b);
     Quaternion c;
-    std::memcpy(&c, &b, sizeof(c));
+    c = b;
     double stored = StoreDouble(cosine);
     EI_NAN_AUDIT(cosine);
     if (cosine < EI_ZERO_D) {

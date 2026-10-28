@@ -15,6 +15,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
@@ -28,12 +29,6 @@ float ClimbSpeed() { return Option(options::g_options->cameraZoom_.powerKeyboard
 float ZoomSpeed() { return Option(options::g_options->cameraZoom_.powerMouse) * Option(options::g_options->cameraZoom_.speed); }
 // The wheel's steps per delta unit (read from the exe, rule 9).
 constexpr float kWheelStep = -0.008333334f;
-
-std::uint32_t Bits(float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, sizeof(bits));
-    return bits;
-}
 
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
 
@@ -121,14 +116,14 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
         Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
-        camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
+        camera->SetZoomTarget(ClimbSpeed() * z_);
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
     camera->SetTurnRate(TurnSpeed() * y_);
-    camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
+    camera->SetZoomTarget(ClimbSpeed() * z_);
     camera->SetTiltRate(TiltSpeed() * x_);
 }
 

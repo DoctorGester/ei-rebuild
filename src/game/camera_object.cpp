@@ -8,6 +8,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -39,11 +40,11 @@ CCamera::CCamera() {
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     for (CameraView& view : views_) {
         view.distance = 30.0f;
-        std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
+        view.rotation = camera::kIdentityRotation;
         view.pitch = DefaultPitch();
     }
-    std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
-    std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
+    panVelocity_ = camera::kZeroVector;
+    panTarget_ = camera::kZeroVector;
     panResponse_ = 2.0f / 15.0f;
     turnResponse_ = 1.0f / 3.0f;
     tiltResponse_ = 1.0f / 3.0f;
@@ -55,10 +56,10 @@ CCamera::CCamera() {
     tiltTarget_ = 0.0f;
     zoomRate_ = 0.0f;
     focus_.y = 10.0f;
-    zoomTarget_ = 0;
+    zoomTarget_ = 0.0f;
     focusHeight_ = 2.0f;
     focus_.z = 2.0f;
-    std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
+    viewRotation_ = camera::kIdentityRotation;
     targetId_ = -1;
     nearDistance_ = 1.0f;
     farDistance_ = 2000.0f;
@@ -104,14 +105,14 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
     focus_.x = settings->cameraDefaultXDeploy_;
     focus_.y = settings->cameraDefaultYDeploy_;
     focus_.z = settings->cameraDefaultHeight_;
-    std::memcpy(&nearDistance_, &nearBits, 4);
-    std::memcpy(&farDistance_, &farBits, 4);
-    std::memcpy(&fieldOfView_, &fovBits, 4);
+    nearDistance_ = std::bit_cast<float>(nearBits);
+    farDistance_ = std::bit_cast<float>(farBits);
+    fieldOfView_ = std::bit_cast<float>(fovBits);
     flags_ |= kFree;
-    std::memcpy(&views_[7].distance, &settings->cameraDefaultDistance_, 4);
+    views_[7].distance = settings->cameraDefaultDistance_;
     pitch_ = DefaultPitch();
     views_[7].pitch = pitch_;
-    std::memcpy(&views_[6].distance, &settings->cameraDefaultDistance_, 4);
+    views_[6].distance = settings->cameraDefaultDistance_;
     pitch_ = DefaultPitch();
     views_[6].pitch = pitch_;
     return 1;
@@ -175,10 +176,10 @@ int CCamera::RecordFrame(std::uint32_t time) {
     if (!(flags_ & CCamera::kRecording)) return 0;
     if (!file.Open(fileName_, lib::File::modeNoTruncate | lib::File::modeWrite)) return 0;   // (an existing file only)
     file.Seek(0, FILE_END);
-    std::memcpy(&record.time, &time, sizeof(record.time));
+    record.time = std::bit_cast<float>(time);
     record.reserved = 0;
-    std::memcpy(&record.position, &localPosition_, sizeof(record.position));
-    std::memcpy(&record.rotation, &localRotation_, sizeof(record.rotation));
+    record.position = localPosition_;
+    record.rotation = localRotation_;
     file.Write(&record, sizeof(record));
     file.Close();
     return 1;
@@ -215,8 +216,8 @@ void CCamera::Load(CStream* stream) {
     }
     targetId_ = target;
     if (target != -1) {
-        std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
-        std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
+        panTarget_ = camera::kZeroVector;
+        panVelocity_ = camera::kZeroVector;
     }
 }
 

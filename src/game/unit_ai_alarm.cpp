@@ -74,11 +74,11 @@ void AddPatrolPoints(PatrolMode* mode, const mapspec::Behaviour* record) {
 void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     // and RefPtr::Assign(0) on the mode in charge, the near point and the decay: ClearModes.
     ClearModes();
-    float radius = std::bit_cast<float>(record->callRadius);
+    float radius = record->callRadius;
     callRadius = radius;
     LogicSettings& logic = g_logicSettings;
     if (Same(radius, logic.callForHelpRadiusDefault))
-        std::memcpy(&callRadius, &logic.callForHelpRadius, sizeof(float));
+        callRadius = logic.callForHelpRadius;
     alertMode = static_cast<int>(record->alertMode);
 
     switch (record->type) {

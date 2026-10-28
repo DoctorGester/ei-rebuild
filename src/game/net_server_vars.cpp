@@ -1,12 +1,14 @@
 // The game server's script variables: named floats the script reads and writes in a
 // network game, replicated to the clients as VariableMessages. See net_messages.h and docs/notes/network.md.
 
+#include "ei/x87.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 
 namespace net {
@@ -38,7 +40,7 @@ void ServerSession::SetVariable(const std::string* name, float value) {
     EI_NAN_AUDIT(value);
     if (value != 0.0f) {
         VariableMessage* variable = FindOrAddVariable(name)->Get();
-        std::memcpy(&variable->value_, &value, 4);
+        x87::CopyBits(variable->value_, value);
         variable->serial_ = g_variableSerial;
         ++g_variableSerial;
         ++variable->version_;
@@ -55,11 +57,11 @@ void ServerSession::RaiseVariable(const std::string* name, float value) {
     VariableMessage* variable = found->Get();
     float current = variable->value_;
     std::uint32_t currentBits, valueBits;
-    std::memcpy(&currentBits, &current, 4);
-    std::memcpy(&valueBits, &value, 4);
+    currentBits = std::bit_cast<std::uint32_t>(current);
+    valueBits = std::bit_cast<std::uint32_t>(value);
     std::uint32_t bits = current >= value ? currentBits : valueBits;
     float selected;
-    std::memcpy(&selected, &bits, 4);
+    selected = std::bit_cast<float>(bits);
     volatile double loaded = selected;   // reloaded through memory, as the original does
     found->Get()->value_ = static_cast<float>(loaded);
     found->Get()->serial_ = g_variableSerial;

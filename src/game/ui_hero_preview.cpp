@@ -112,8 +112,8 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     // Kept to put back afterwards: the position, the orientation and the pass's colour.
     Vector3 savedPosition;
     Quaternion savedOrientation;
-    std::memcpy(&savedPosition, &model->localPosition_, 12);
-    std::memcpy(&savedOrientation, &model->localRotation_, 16);
+    savedPosition = model->localPosition_;
+    savedOrientation = model->localRotation_;
     CSceneRenderer* renderer = pass;
     std::uint32_t savedColour = renderer->colour_;
     // White: 255.0 converted three times, packed as 0xFF rr gg bb.
@@ -158,7 +158,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
                                                     static_cast<float>(D(kTilt) * D(0.15f))),
                     true);
     }
-    std::memcpy(&model->localRotation_, &q, 16);
+    model->localRotation_ = q;
 
     // Drawn brighter (1.2) with texture stage 0's state 0x12 set to 1, then everything put back.
     CObject3DClientSpecific* drawn = model->ClientSpecific();
@@ -177,8 +177,8 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     drawn->figureScale.x = 1.0f;
     drawn->figureScale.y = 1.0f;
     drawn->figureScale.z = 1.0f;
-    std::memcpy(&model->localPosition_, &savedPosition, 12);
-    std::memcpy(&model->localRotation_, &savedOrientation, 16);
+    model->localPosition_ = savedPosition;
+    model->localRotation_ = savedOrientation;
     model->flags_ &= ~0x800u;
     renderer->SetColour(savedColour);
 }

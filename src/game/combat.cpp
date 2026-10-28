@@ -386,11 +386,11 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     int keyed = IsTextKey(self->id_) & 0xFF;
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
-        std::memcpy(&out->damageMin, &weapon->damage_, sizeof(float));
+        out->damageMin = weapon->damage_;
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
-        std::memcpy(&out->speed, &weapon->weight_, sizeof(float));
+        out->speed = weapon->weight_;
         float base = WeaponAttackBonus(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
@@ -399,11 +399,11 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
-        std::memcpy(&out->damageMin, &stats.damage, sizeof(float));
+        out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
         out->attack = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kAttack]));
         out->defence = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kDefence]));
-        std::memcpy(&out->speed, &stats.combat[UnitStats::kSpeed], sizeof(float));
+        out->speed = stats.combat[UnitStats::kSpeed];
         if (weapon) {
             out->weaponType = weapon->GetType();
             out->damageType = WeaponDamageType(weapon->prototypeId_);
@@ -424,7 +424,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
-    std::memcpy(&out->attackSpread, &stats.combat[UnitStats::kAttackSpread], sizeof(float));
+    out->attackSpread = stats.combat[UnitStats::kAttackSpread];
     out->ScaleForDifficulty(keyed);
 }
 
@@ -474,7 +474,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     AttackParamsOf(this, &mine);
     if (hit->backstabFactor > 1.0f) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
-    std::memcpy(&hit->attackRoll, &result, sizeof(result));
+    hit->attackRoll = std::bit_cast<std::uint32_t>(result);
     return result > 0.0f ? 1 : 0;
 }
 
@@ -493,14 +493,14 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + 1.0f));
-        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
+        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
         out->amount = static_cast<float>(weapon->RollDamage());   // stored as a float, as the original
     } else {
         std::memcpy(out->typeWeights, stats.damageWeights, sizeof(out->typeWeights));
         out->weaponValue = 0;
         double factor = keyed ? 1.0f : DifficultyAttackFactor();
         float roll = static_cast<float>(factor * stats.combat[UnitStats::kAttack]);
-        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
+        out->attackRoll = std::bit_cast<std::uint32_t>(roll);
         double extra = 0.0;
         float spread = stats.damageSpread;
         EI_NAN_AUDIT(spread);

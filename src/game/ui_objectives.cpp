@@ -23,6 +23,7 @@
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -50,9 +51,9 @@ template <std::floating_point T> float Bits(T) = delete;
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -117,7 +118,7 @@ void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(&sprite->localRotation_, &q, sizeof(q));
+    sprite->localRotation_ = q;
 }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
@@ -226,12 +227,12 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             for (auto node = exitDistances_->begin(); node != exitDistances_->end(); ++node) {
                 if (node->first == i) {
                     anyKnown = true;
-                    std::memcpy(&exit->distance_, &node->second, 4);
+                    exit->distance_ = node->second;
                     exit->flag_ = true;
                     EI_NAN_AUDIT(node->second, nearest);
                     if (node->second < nearest) {
                         nearestExit_ = index;
-                        std::memcpy(&nearest, &node->second, 4);
+                        nearest = node->second;
                     }
                     break;
                 }
@@ -584,7 +585,7 @@ void CObjectivesWindow::CreateScreen() {
                                 parts[2]) == 0)
                 current = parts[1];
             std::uint32_t one;
-            std::memcpy(&one, &node->second, 4);
+            one = std::bit_cast<std::uint32_t>(node->second);
             if (one != 0x3F800000) continue;
             MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;

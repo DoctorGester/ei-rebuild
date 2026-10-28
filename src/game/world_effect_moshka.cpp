@@ -132,7 +132,7 @@ void CEffectMoshka::Update(float now) {
     const Vector3& followed = PositionOf(followedObject);
     CObject3D* bird = bird_;
     Vector3 birdAt;
-    std::memcpy(&birdAt, &bird->localPosition_, sizeof(birdAt));
+    birdAt = bird->localPosition_;
 
     float elapsed = static_cast<float>(now - lastTime_);
     lastTime_ = now;
@@ -241,7 +241,7 @@ void CEffectMoshka::Follow(int objectId) {
     CObject3DClientSpecific* attached = bird->ClientSpecific();
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));
-    std::memcpy(&bird->localPosition_, &perch, sizeof(bird->localPosition_));
+    bird->localPosition_ = perch;
     std::vector<std::string> parts;
     bird->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

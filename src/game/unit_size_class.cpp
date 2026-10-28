@@ -16,8 +16,8 @@ constexpr float kRadiusExtra = 0.05f;
 constexpr float kPlayerExtra = 0.2f;
 constexpr float kMaxHeight = 2.0f;
 constexpr float kDeepPrototype = 1.5f;
-constexpr std::uint32_t kShallowHeight = 0x3C23D70A;   // 0.01f
-constexpr std::uint32_t kDefaultRadius = 0x3F400000;   // 0.75f
+constexpr float kShallowHeight = 0.01f;
+constexpr float kDefaultRadius = 0.75f;
 constexpr std::uint8_t kMovesOnWater = 2;               // UnitParams::movementKind
 
 } // namespace
@@ -26,7 +26,7 @@ void CUnit::UpdateSizeClass() {
     Controller()->UpdateMoveFactors();   // the server's controller; empty on the others
     if (controller->GetClassId() != kClassUnitServer) {
         sizeClass = params.movementKind == kMovesOnWater ? 0 : 3;
-        std::memcpy(&unitRadius, &kDefaultRadius, 4);
+        unitRadius = kDefaultRadius;
         return;
     }
     // The server controller's size classes, read unsigned.
@@ -50,5 +50,5 @@ void CUnit::UpdateSizeClass() {
     // The prototype by prototypeId_; out of range it reads address 0x24 (kept).
     auto* prototype = unitdb::PrototypeRecord(prototypeId_);
     // Only for a value above 1.5 (NaN not).
-    if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
+    if (std::bit_cast<float>(prototype->height) > kDeepPrototype) standingHeight = kShallowHeight;
 }

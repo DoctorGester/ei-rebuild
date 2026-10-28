@@ -68,11 +68,11 @@ void Finish(ObjectListIterator& lights, std::vector<CLight*>& list) {
 
 void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out) {
     orientation->ToMatrix(out->m);
-    std::memcpy(&out->m[11], &position->z, 4);
-    std::memcpy(&out->m[3], &position->x, 4);
-    std::memcpy(&out->m[7], &position->y, 4);
+    out->m[11] = position->z;
+    out->m[3] = position->x;
+    out->m[7] = position->y;
     std::memset(&out->m[12], 0, 3 * sizeof(float));
-    std::memcpy(&out->m[15], &kOne, 4);
+    out->m[15] = std::bit_cast<float>(kOne);
 }
 
 int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
@@ -80,7 +80,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     std::uint32_t anyDirty = 0;
     CTransformPipeline* pipeline = context->pipeline_;
     Vector3 at;
-    std::memcpy(&at, &object->localPosition_, sizeof(at));
+    at = object->localPosition_;
     object->LoadFigures();
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
@@ -114,10 +114,10 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
                     std::bit_cast<std::uint32_t>(extraScale.z) == kOne);
     if (scaled) {
         std::memset(m.m, 0, sizeof(m));
-        std::memcpy(&m.m[0], &extraScale.x, 4);
-        std::memcpy(&m.m[5], &extraScale.y, 4);
-        std::memcpy(&m.m[10], &extraScale.z, 4);
-        std::memcpy(&m.m[15], &kOne, 4);
+        m.m[0] = extraScale.x;
+        m.m[5] = extraScale.y;
+        m.m[10] = extraScale.z;
+        m.m[15] = std::bit_cast<float>(kOne);
         pipeline->PushMatrix(m.m, kStackView);
         pipeline->PushMatrix(m.m, kStackWorld);
         if (!(object->flags_ & kObjectStatic)) pipeline->PushMatrixProduct(m, kStackObject);

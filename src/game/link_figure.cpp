@@ -14,7 +14,7 @@
 
 namespace {
 
-constexpr std::uint32_t kOne = 0x3F800000;   // 1.0f, the w row of every vertex packet
+constexpr float kOne = 1.0f;   // 1.0f, the w row of every vertex packet
 
 template <typename T>
 T Read(const char** cursor) {
@@ -56,7 +56,7 @@ float Morph6(const float* v, float s, float t, float u) {
 }
 
 void SetW(VertexPacket& packet) {
-    for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
+    for (int k = 3; k >= 0; --k) packet.block[3][k] = kOne;
 }
 
 // One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions; moved

@@ -82,7 +82,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
-    std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
+    model->object_->localRotation_ = turn;
     return model;
 }
 
@@ -245,7 +245,7 @@ void CEscMenu::CreateScreen() {
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, kEscMenuTilt);
-    std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
+    model->object_->localRotation_ = turn;
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through SetRect with a RECT by value.

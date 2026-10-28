@@ -33,15 +33,15 @@ namespace {
 
 constexpr float kThird = 0.33333334f;
 static_assert(std::bit_cast<std::uint32_t>(kThird) == 0x3EAAAAABu);
-constexpr std::uint32_t kStat25 = 0x41C80000;                    // 25.0
-constexpr std::uint32_t kRate15 = 0x41700000;                    // 15.0
-constexpr std::uint32_t kDefaultStat = 0x42480000;               // 50.0
-constexpr std::uint32_t kDefaultModeSpeed = 0x3E088889;          // 0.13333334
-constexpr std::uint32_t kDefaultSpeed = 0x3E4CCCCD;              // 0.2
-constexpr std::uint32_t kOne = 0x3F800000;
-constexpr std::uint32_t kHundred = 0x42C80000;
-constexpr std::uint32_t kThousand = 0x447A0000;
-constexpr std::uint32_t kTen = 0x41200000;
+constexpr float kStat25 = 25.0f;
+constexpr float kRate15 = 15.0f;
+constexpr float kDefaultStat = 50.0f;
+constexpr float kDefaultModeSpeed = 0.13333334f;
+constexpr float kDefaultSpeed = 0.2f;
+constexpr float kOne = 1.0f;
+constexpr float kHundred = 100.0f;
+constexpr float kThousand = 1000.0f;
+constexpr float kTen = 10.0f;
 constexpr int kSlotWorking = 3;
 
 // pi and 1/180 and 90: volatile so the products are computed at run time with the FPU's precision.
@@ -50,17 +50,9 @@ volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_ninety = 90.0;
 
 // These are stored as bit patterns, not through the FPU.
-void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(field)); }
 template <typename To, typename From>
 void CopyDword(To& to, const From& from) {
-    static_assert(sizeof(To) == 4 && sizeof(From) == 4);
-    std::memcpy(&to, &from, 4);
-}
-
-// A float copied through the FPU to two places.
-void FpuCopy2(float* a, float* b, const float* src) {
-    std::memcpy(a, src, sizeof(float));
-    std::memcpy(b, src, sizeof(float));
+    to = std::bit_cast<To>(from);
 }
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
@@ -144,7 +136,7 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
         ::SkillLevelRecord* skill = g_skillDatabase->FindLevel(name->c_str());
         if (skill) stats->LearnSkill(&g_skillDatabase.Get(), skill);
     }
-    std::memcpy(&stats->spentExperience, &stats->experience, 4);
+    stats->spentExperience = stats->experience;
 }
 
 constexpr float kOneF = 1.0f;
@@ -154,7 +146,7 @@ constexpr float kTwelve = 12.0f;
 constexpr float kPointTwo = 0.2f;
 static_assert(std::bit_cast<std::uint32_t>(kPointTwo) == 0x3E4CCCCDu);
 constexpr float kTenF = 10.0f;
-constexpr std::uint32_t kMinusTwo = 0xC0000000u;
+constexpr float kMinusTwo = -2.0f;
 constexpr int kSkillBodyB0 = 15;
 constexpr int kSkillHitPoints = 16;
 constexpr int kSkillRate = 20;
@@ -249,40 +241,40 @@ UnitNpcRecord* NpcPrototypeTable::FindByName(std::string_view name) {
 
 int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
-        SetBits(vitals->hitPoints, kThousand);
-        SetBits(vitals->maxHitPoints, kThousand);
-        SetBits(vitals->hitPointRegen, kTen);
-        SetBits(vitals->mana, kThousand);
-        SetBits(vitals->maxMana, kThousand);
-        SetBits(vitals->manaRegen, kTen);
+        vitals->hitPoints = kThousand;
+        vitals->maxHitPoints = kThousand;
+        vitals->hitPointRegen = kTen;
+        vitals->mana = kThousand;
+        vitals->maxMana = kThousand;
+        vitals->manaRegen = kTen;
         for (UnitStatPair& protection : vitals->protection) {
-            SetBits(protection.current, kHundred);
-            SetBits(protection.base, kHundred);
+            protection.current = kHundred;
+            protection.base = kHundred;
         }
         return 1;
     }
-    SetBits(stats->experience, 0);
-    SetBits(stats->strengthBase, kDefaultStat);
-    SetBits(stats->dexterityBase, kDefaultStat);
-    SetBits(stats->intelligenceBase, kDefaultStat);
-    for (float& modeSpeed : stats->modeSpeeds) SetBits(modeSpeed, kDefaultModeSpeed);
-    SetBits(stats->spentExperience, 0);
-    SetBits(stats->speedBase, kDefaultSpeed);
-    SetBits(stats->rateBase, kOne);
-    SetBits(stats->capacity, 0);
+    stats->experience = 0.0f;
+    stats->strengthBase = kDefaultStat;
+    stats->dexterityBase = kDefaultStat;
+    stats->intelligenceBase = kDefaultStat;
+    for (float& modeSpeed : stats->modeSpeeds) modeSpeed = kDefaultModeSpeed;
+    stats->spentExperience = 0.0f;
+    stats->speedBase = kDefaultSpeed;
+    stats->rateBase = kOne;
+    stats->capacity = 0.0f;
     stats->movementKind = 0;
     for (int i = 0; i < 6; ++i) {
-        SetBits(stats->perception[i].base, kHundred);
-        SetBits(stats->perception[i].current, kHundred);
-        SetBits(stats->conspicuity[i].base, kHundred);
-        SetBits(stats->conspicuity[i].current, kHundred);
+        stats->perception[i].base = kHundred;
+        stats->perception[i].current = kHundred;
+        stats->conspicuity[i].base = kHundred;
+        stats->conspicuity[i].current = kHundred;
     }
     for (UnitStatSlot& slot : stats->slots) {
         slot.type = 1;
         slot.vitalMask = 0;
         slot.kind = kSlotWorking;
-        SetBits(slot.current, kHundred);
-        SetBits(slot.maximum, kHundred);
+        slot.current = kHundred;
+        slot.maximum = kHundred;
         for (UnitStatLayer& layer : slot.layers) {
             layer.layerMask = 0;
             layer.state = 0;
@@ -311,16 +303,21 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     vitals->Reset();
     stats->Reset();
 
-    FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
+    vitals->maxHitPoints = prototype->hitPoints;
+    vitals->hitPoints = prototype->hitPoints;
     CopyDword(vitals->hitPointRegen, model->hitPointRegen);
-    FpuCopy2(&vitals->maxMana, &vitals->mana, &prototype->mana);
+    vitals->maxMana = prototype->mana;
+    vitals->mana = prototype->mana;
     CopyDword(vitals->manaRegen, model->manaRegen);
-    std::memcpy(&stats->fixedMaxHitPoints, &vitals->maxHitPoints, 4);
+    stats->fixedMaxHitPoints = vitals->maxHitPoints;
 
     if (npc) {
-        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
-        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
-        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
+        stats->strengthBase = npc->stats[0];
+        stats->strength = npc->stats[0];
+        stats->dexterityBase = npc->stats[1];
+        stats->dexterity = npc->stats[1];
+        stats->intelligenceBase = npc->stats[2];
+        stats->intelligence = npc->stats[2];
         float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
@@ -331,9 +328,9 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
         stats->dexterityBase = dexterity;
         stats->dexterity = dexterity;
-        SetBits(stats->intelligenceBase, kStat25);
-        SetBits(stats->intelligence, kStat25);
-        SetBits(stats->rateBase, kRate15);
+        stats->intelligenceBase = kStat25;
+        stats->intelligence = kStat25;
+        stats->rateBase = kRate15;
         CopyDword(stats->speedBase, prototype->speed);
     }
     CopyDword(stats->attackCategory, prototype->attackCategory);
@@ -374,10 +371,14 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
 
     const float* speed = &prototype->speed;
     if (npc) {
-        FpuCopy2(&stats->strengthBase, &stats->strength, &npc->stats[0]);
-        FpuCopy2(&stats->dexterityBase, &stats->dexterity, &npc->stats[1]);
-        FpuCopy2(&stats->intelligenceBase, &stats->intelligence, &npc->stats[2]);
-        FpuCopy2(&stats->speedBase, &stats->speed, speed);
+        stats->strengthBase = npc->stats[0];
+        stats->strength = npc->stats[0];
+        stats->dexterityBase = npc->stats[1];
+        stats->dexterity = npc->stats[1];
+        stats->intelligenceBase = npc->stats[2];
+        stats->intelligence = npc->stats[2];
+        stats->speedBase = *speed;
+        stats->speed = *speed;
         float rate = static_cast<float>(static_cast<double>(stats->dexterity) * 0.5f);
         stats->rateBase = rate;
         stats->rate = rate;
@@ -388,17 +389,20 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
         float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
         stats->dexterityBase = dexterity;
         stats->dexterity = dexterity;
-        SetBits(stats->intelligenceBase, kStat25);
-        SetBits(stats->intelligence, kStat25);
-        FpuCopy2(&stats->speedBase, &stats->speed, speed);
-        SetBits(stats->rateBase, kRate15);
-        SetBits(stats->rate, kRate15);
+        stats->intelligenceBase = kStat25;
+        stats->intelligence = kStat25;
+        stats->speedBase = *speed;
+        stats->speed = *speed;
+        stats->rateBase = kRate15;
+        stats->rate = kRate15;
     }
     CopyDword(stats->attackCategory, prototype->attackCategory);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        FpuCopy2(&stats->perception[i].base, &stats->perception[i].current, &prototype->perception[i]);
-        FpuCopy2(&stats->conspicuity[i].base, &stats->conspicuity[i].current, &prototype->conspicuity[i]);
+        stats->perception[i].base = prototype->perception[i];
+        stats->perception[i].current = prototype->perception[i];
+        stats->conspicuity[i].base = prototype->conspicuity[i];
+        stats->conspicuity[i].current = prototype->conspicuity[i];
     }
     stats->sightCone = HalfAngleCosine(model);
     CopyDword(stats->peripheralRange, prototype->peripheralRange);
@@ -431,12 +435,12 @@ int PrototypeObjectClass(std::string_view name) {
 // --- Statistics from their bases -----------------------------------------------------------------
 
 void UnitStats::ResetToBase(float newLoad) {
-    std::memcpy(&strength, &strengthBase, 4);
-    std::memcpy(&dexterity, &dexterityBase, 4);
-    std::memcpy(&intelligence, &intelligenceBase, 4);
+    strength = strengthBase;
+    dexterity = dexterityBase;
+    intelligence = intelligenceBase;
     for (int i = 0; i < 6; ++i) {
-        std::memcpy(&perception[i].current, &perception[i].base, 4);
-        std::memcpy(&conspicuity[i].current, &conspicuity[i].base, 4);
+        perception[i].current = perception[i].base;
+        conspicuity[i].current = conspicuity[i].base;
     }
     double bonus = 0.0;
     if (const ::SkillLevelRecord* record = SkillLevelRecord(kSkillBodyB0)) {
@@ -447,7 +451,7 @@ void UnitStats::ResetToBase(float newLoad) {
     perception[1].current = static_cast<float>(bonus + perception[1].current);
     strength = static_cast<float>(LevelOrZero(this, kSkillStat10) + strength);
     dexterity = static_cast<float>(LevelOrZero(this, kSkillStat18) + dexterity);
-    std::memcpy(&sightCone, &kMinusTwo, 4);
+    sightCone = kMinusTwo;
     intelligence = static_cast<float>(LevelOrZero(this, kSkillStat20) + intelligence);
 
     double curve = HitPointExperienceCurve(&experience);
@@ -464,7 +468,7 @@ void UnitStats::ResetToBase(float newLoad) {
         slot.current = std::bit_cast<float>(chosen);
     }
 
-    std::memcpy(&load, &newLoad, 4);   // a dword copy
+    load = newLoad;   // a dword copy
     float strengthCapacity = static_cast<float>(static_cast<double>(strength) * kTwelve);
     capacity = static_cast<float>((LevelOrZero(this, kSkillCapacity) * kPercent + kOneF) * strengthCapacity);
     float legs = LegsFactor(1);
@@ -572,14 +576,14 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         object->SetStats(&stats);
         float lift = static_cast<float>(-static_cast<double>(model->height));
         CObject3D* figure = object;
-        SetBits(figure->defaultScale.x, 0);
+        figure->defaultScale.x = 0.0f;
         figure->defaultScale.y = lift;
-        SetBits(figure->defaultScale.z, 0);
+        figure->defaultScale.z = 0.0f;
         Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
-        std::memcpy(&scale, &prototype->scale, sizeof(scale));
+        scale = prototype->scale;
         object->SetFigureScale(&scale.x);
-        std::memcpy(&object->baseScale, &scale, sizeof(scale));
+        object->baseScale = scale;
         object->ApplyBaseScale();
         UnitOrNull(object)->SetSecondPrototype(prototype);
     }

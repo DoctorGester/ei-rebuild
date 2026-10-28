@@ -11,6 +11,7 @@
 #include "world.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <concepts>
 #include <cstring>
 #include <initializer_list>
@@ -42,7 +43,7 @@ constexpr float kOffsetFactor = 0.05f;
 
 float FromBits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -183,7 +184,7 @@ void LightningSegment::Animate(float time, float amplitude) {
 }
 
 void LightningSegment::Init(const Vector3* from, const Vector3* to) {
-    std::memcpy(&start, from, sizeof(start));
+    start = *from;
     step.x = static_cast<float>(static_cast<double>(to->x) - from->x);
     step.y = static_cast<float>(static_cast<double>(to->y) - from->y);
     step.z = static_cast<float>(static_cast<double>(to->z) - from->z);

@@ -10,6 +10,7 @@
 #include "combat.h"
 #include "console.h"
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "lib/static_object.h"
@@ -67,10 +68,10 @@ extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
 // stored and reloaded (the reload is a plain copy here).
 inline double ClampPow(float ratio) {
     std::uint32_t bits;
-    std::memcpy(&bits, &ratio, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(ratio);
     const std::uint32_t lowBits = ratio <= 1.0f ? 0x3F800000u : bits;
     float low;
-    std::memcpy(&low, &lowBits, sizeof(low));
+    low = std::bit_cast<float>(lowBits);
     const float clamped = low >= 8.0f ? 8.0f : low;
     return x87::fexp(x87::flog(clamped) * 0.33000001311302185) - 0.20000000298023224;
 }
@@ -171,7 +172,7 @@ inline int FlightTicks(const float* distance, const float* speed) {
 inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out) {
     const double nx = -static_cast<double>(direction->y);
     out->x = static_cast<float>(nx);
-    std::memcpy(&out->y, &direction->x, sizeof(float));
+    out->y = direction->x;
     out->z = 0.0f;
     const double length = std::sqrt(LengthSquared2DUnrounded<double>(out->y, nx));
     const float k = static_cast<float>(*radius / length);
@@ -196,7 +197,7 @@ inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
 
 inline std::uint32_t Bits(const float& f) {
     std::uint32_t u;
-    std::memcpy(&u, &f, 4);
+    u = std::bit_cast<std::uint32_t>(f);
     return u;
 }
 
@@ -226,7 +227,7 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
 }
 
 inline void SetPosition(CTransformObject* object, const Vector3* position) {
-    std::memcpy(&object->localPosition_, position, 12);
+    object->localPosition_ = *position;
 }
 
 // The fields of the spell prototype the casts read.
@@ -238,7 +239,7 @@ inline Vector3 PrototypeColor(CSpellEffect* e) {
 }
 inline float PrototypeRange(CSpellEffect* e) {
     float range;
-    std::memcpy(&range, &Prototype(e)->extraValues[3], 4);
+    range = std::bit_cast<float>(Prototype(e)->extraValues[3]);
     return range;
 }
 
@@ -256,7 +257,7 @@ inline float PowerScaled(CSpellEffect* e, const float& scale) {
 // The lights' rise speed: range / max(extraValues[4], 1) (the larger picked on C0: 1 < v or NaN).
 inline float LightRise(CSpellEffect* e) {
     float value;
-    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);
+    value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     return range / divisor;
@@ -265,7 +266,7 @@ inline float LightRise(CSpellEffect* e) {
 // The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
 inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
     float value;
-    std::memcpy(&value, &Prototype(e)->extraValues[4], 4);
+    value = std::bit_cast<float>(Prototype(e)->extraValues[4]);
     float range = PrototypeRange(e);
     float divisor = value <= 1.0f ? 1.0f : value;
     float out;

@@ -85,12 +85,12 @@ void CPlayerServer::SetVariableMax(std::string_view name, float value) {
     float stored = static_cast<float>(VariableGet(Variables(player_), name));
     float current = stored;
     std::uint32_t currentBits, valueBits;
-    std::memcpy(&currentBits, &current, 4);
-    std::memcpy(&valueBits, &value, 4);
+    currentBits = std::bit_cast<std::uint32_t>(current);
+    valueBits = std::bit_cast<std::uint32_t>(value);
     // The larger value; the current one when the new one is not above it (or either is NaN).
     std::uint32_t resultBits = value >= current ? valueBits : currentBits;
     float result;
-    std::memcpy(&result, &resultBits, 4);
+    result = std::bit_cast<float>(resultBits);
     // Nothing to do when it compares equal.
     EI_NAN_AUDIT(result, current);
     if (result == current) return;
@@ -157,7 +157,7 @@ int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint3
     Write(&out_, at, 12);
     WriteDword(&out_, a);
     WriteDword(&out_, b);
-    std::memcpy(&lastPosition_, at, sizeof(Vector3));
+    lastPosition_ = *at;
     return 1;
 }
 
@@ -166,10 +166,10 @@ std::uint32_t CPlayerServer::SendPosition0F(const Vector3* at, const Vector3* ot
     Write(&out_, at, 12);
     Write(&out_, other, 12);
     Write(&out_, &flag, 1);
-    std::memcpy(&lastPosition_, at, sizeof(Vector3));
+    lastPosition_ = *at;
     // EAX is left holding the position's z.
     std::uint32_t z;
-    std::memcpy(&z, &at->z, 4);
+    z = std::bit_cast<std::uint32_t>(at->z);
     return z;
 }
 
@@ -329,9 +329,9 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     out_.Write(&kind, 4);
     out_.Write(&flag, 4);
     std::uint32_t word;
-    std::memcpy(&word, &point[0], 4);
+    word = std::bit_cast<std::uint32_t>(point[0]);
     out_.Write(&word, 4);
-    std::memcpy(&word, &point[1], 4);
+    word = std::bit_cast<std::uint32_t>(point[1]);
     out_.Write(&word, 4);
     int id = unit->id_;
     out_.Write(&id, 4);

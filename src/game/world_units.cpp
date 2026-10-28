@@ -87,10 +87,10 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& sc
 // rotation's heading.
 void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& rotation, int index) {
     float rx, ry, rz, rw;
-    std::memcpy(&rx, &rotation.w, 4);
-    std::memcpy(&ry, &rotation.x, 4);
-    std::memcpy(&rz, &rotation.y, 4);
-    std::memcpy(&rw, &rotation.z, 4);
+    rx = rotation.w;
+    ry = rotation.x;
+    rz = rotation.y;
+    rw = rotation.z;
     double axis = LengthSquaredUnrounded<Sum3::XYZ, double>(ry, rz, rw);
     double angle;
     EI_NAN_AUDIT(axis);
@@ -108,8 +108,8 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
 
     Spec& spec = *message;
     float zStep = 0.0f;
-    std::memcpy(&spec.position, position, 12);
-    std::memcpy(&spec.rotation, &rotation, 16);
+    spec.position = *position;
+    spec.rotation = rotation;
     float cosine = static_cast<float>(x87::fcos(angle));
     double sine = x87::fsin(angle);
     float step = static_cast<float>(index);
@@ -245,7 +245,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         for (int n = 0; n < std::ssize(record->quickItems); ++n) {
             CItem* item = MakeItem(this, record->quickItems[n]);
             item->count_ = record->quickItems[n]->count_;
-            std::memcpy(&item->charge_, &item->chargeMax_, 4);
+            item->charge_ = item->chargeMax_;
             unit->AddQuickItem(item);
         }
         for (int n = 0; n < std::ssize(record->spells); ++n)
@@ -296,10 +296,10 @@ void CWorldServer::UseQuickItem(CItem* /*item*/, CUnit* unit) {
     message.id = -1;
     message.parentIname = worlddata::QuickEffectModel();
     message.parentId = static_cast<std::int32_t>(kQuickEffectFlags);
-    std::memset(&message.scale.y, 0, 4);
+    message.scale.y = 0.0f;
     // At the unit's position, on the ground.
     std::memcpy(&message.position, &unit->localPosition_.x, 12);
-    std::memset(&message.position.z, 0, 4);
+    message.position.z = 0.0f;
     int id = CreateObject(&message);
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;
@@ -363,10 +363,10 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         float height = flame->offset.z + base.position.z;
         float sum = height;
         std::uint32_t bits;
-        std::memcpy(&bits, &sum, 4);
+        bits = std::bit_cast<std::uint32_t>(sum);
         bits &= 0x7FFFFFFFu;
         float level;
-        std::memcpy(&level, &bits, 4);
+        level = std::bit_cast<float>(bits);
         EI_NAN_AUDIT(level);
         if (level < worlddata::kCampfireHeight) {
             Vector3 at;

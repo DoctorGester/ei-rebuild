@@ -2,10 +2,12 @@
 // >= 0 -> u <= 1 -> v <= 1, with entry points part way), each stage writing its second triangle into its own
 // function-static buffer. ClipStage is that pipeline with one buffer per stage, so the in-place clipping and
 // the order triangles are emitted in are the same.
+#include "ei/x87.h"
 #include "ground_decal.h"
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <vector>
@@ -19,7 +21,7 @@ DecalVertex s_stageBuffers[kEmitStage][3];
 // Sign bit clear: the clipper's "inside" test (NOT; SHR 31 on the distance's bits).
 int Inside(float d) {
     std::uint32_t bits;
-    std::memcpy(&bits, &d, 4);
+    bits = std::bit_cast<std::uint32_t>(d);
     return static_cast<int>((bits >> 31) ^ 1);
 }
 
@@ -112,8 +114,8 @@ DecalBuilder* DecalBuilder::Construct() {
 void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
                          std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                          const Vector3* point, float depth) {
-    std::memcpy(&direction_, direction, sizeof(Vector3));
-    std::memcpy(&point_, point, sizeof(Vector3));
+    direction_ = *direction;
+    point_ = *point;
     points_ = points;
     indices_ = indices;
     texCoords_ = texCoords;
@@ -183,11 +185,11 @@ void DecalBuilder::Reserve(int triangles) {
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
     int i = vertexCount_;
     VertexPacket& packet = (*points_)[i / 4];
-    std::memcpy(&packet.block[0][i & 3], &v->position.x, 4);
-    std::memcpy(&packet.block[1][i & 3], &v->position.y, 4);
-    std::memcpy(&packet.block[2][i & 3], &v->position.z, 4);
-    std::memcpy(&(*texCoords_)[i].u, &v->u, 4);
-    std::memcpy(&(*texCoords_)[i].v, &v->v, 4);
+    x87::CopyBits(packet.block[0][i & 3], v->position.x);
+    x87::CopyBits(packet.block[1][i & 3], v->position.y);
+    x87::CopyBits(packet.block[2][i & 3], v->position.z);
+    x87::CopyBits((*texCoords_)[i].u, v->u);
+    x87::CopyBits((*texCoords_)[i].v, v->v);
     vertexCount_ = i + 1;
     return static_cast<std::uint16_t>(i);
 }
@@ -227,7 +229,7 @@ void DecalBuilder::ClipPlane(DecalVertex* tri) { ClipStage(tri, 0); }
 void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c) {
     const Vector3* corners[3] = {a, b, c};
     for (int k = 0; k < 3; ++k) {
-        std::memcpy(&tri[k].position, corners[k], sizeof(Vector3));
+        tri[k].position = *corners[k];
         tri[k].u = Project(uAxis_, tri[k].position, uOffset_);
         tri[k].v = Project(vAxis_, tri[k].position, vOffset_);
     }
@@ -253,9 +255,9 @@ void DecalBuilder::Finish() {
     for (int i = vertexCount_; i < std::ssize(*points) * 4; ++i) {
         VertexPacket& packet = (*points)[i / 4];
         const VertexPacket& first = (*points)[0];
-        std::memcpy(&packet.block[0][i & 3], &first.block[0][0], 4);
-        std::memcpy(&packet.block[1][i & 3], &first.block[1][0], 4);
-        std::memcpy(&packet.block[2][i & 3], &first.block[2][0], 4);
+        x87::CopyBits(packet.block[0][i & 3], first.block[0][0]);
+        x87::CopyBits(packet.block[1][i & 3], first.block[1][0]);
+        x87::CopyBits(packet.block[2][i & 3], first.block[2][0]);
     }
     points_ = nullptr;
     texCoords_ = nullptr;

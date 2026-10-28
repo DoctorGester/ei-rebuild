@@ -21,6 +21,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {

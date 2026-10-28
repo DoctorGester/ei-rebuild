@@ -152,10 +152,10 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
     Vector3& position = object_->localPosition_;
     float value = px;
-    std::memcpy(&position.x, &value, sizeof(float));
+    position.x = value;
     value = py;
-    std::memcpy(&position.y, &value, sizeof(float));
-    std::memcpy(&position.z, &depth, sizeof(float));
+    position.y = value;
+    position.z = depth;
 }
 
 // --- Record lookups --------------------------------------------------------------------------

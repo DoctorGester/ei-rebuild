@@ -73,7 +73,7 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
     mesh->localPosition_.x = static_cast<float>((x - 1.0) * D(worlddata::kInterfaceView) * D(depth));
     mesh->localPosition_.y = static_cast<float>((y - D(worlddata::kThreeQuarters)) * D(worlddata::kInterfaceView) * D(depth));
-    std::memcpy(&mesh->localPosition_.z, &depth, 4);
+    mesh->localPosition_.z = depth;
 }
 
 // --- Points on a circle, computed on the FPU ---------------------------------------------------------

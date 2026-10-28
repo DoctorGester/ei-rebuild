@@ -49,7 +49,7 @@ inline double D(float f) { return f; }
 
 float Bits(std::uint32_t bits) {
     float f;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -84,12 +84,11 @@ public:
 // --- Sprite fields set directly -------------------------------------------------------------------
 
 // Float fields are written with their bits (immediate stores).
-void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 void SetTexture(CUiMesh* sprite, CTexture* texture) { sprite->texture_ = texture; }
 void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
-void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->localPosition_, &p, 12); }
+void SetPosition(CUiMesh* sprite, const Vector3& p) { sprite->localPosition_ = p; }
 void SetWhite(CUiMesh* sprite) {
-    for (float& tint : sprite->tint_) SetBits(tint, 0x3F800000);
+    for (float& tint : sprite->tint_) tint = 1.0f;
 }
 CUiMesh* AddFigure(CUiWindow* window, const std::string& name) { return window->AddSprite(name); }
 
@@ -114,7 +113,7 @@ public:
         AddVectors(&out, centre, turned);
         return out;
     }
-    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->localRotation_, &map_->turn_, 16); }
+    void Turn(CUiMesh* sprite) const { sprite->localRotation_ = map_->turn_; }
     CTexture* Texture(int index) const { return map_->objects_[index]; }
 
     CUiMesh* Marker(const std::string& figure, const Vector3& local, float scale) const {
@@ -184,7 +183,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
     int whole = static_cast<int>(libcrt::Ftol(v));
     float fraction = static_cast<float>(v - static_cast<double>(whole));
-    std::memcpy(&AsUiMesh(layer)->textureOffsetU_, &fraction, 4);
+    AsUiMesh(layer)->textureOffsetU_ = fraction;
 }
 
 } // namespace
@@ -212,7 +211,7 @@ void CGlobalMap::CreateScreen() {
     {
         Vector3 position;
         ZonePosition(&position, current->name);
-        std::memcpy(&position_, &position, 12);
+        position_ = position;
     }
     const std::string& allodName = allod->name;
     LoadTexture((allodName + "Map"), 3);
@@ -225,7 +224,7 @@ void CGlobalMap::CreateScreen() {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
         q.SetAxisAngle(axis, static_cast<float>(D(3.1415927f) * D(0.8f)));   // pi * 0.8
-        std::memcpy(&turn_, &q, 16);
+        turn_ = q;
     }
     MapBuilder builder(this);
 
@@ -284,7 +283,7 @@ void CGlobalMap::CreateScreen() {
         const NamedFloatTable& table = vars.table_;
         for (auto node = table.begin(); node != table.end(); ++node) {
             std::uint32_t value;
-            std::memcpy(&value, &node->second, 4);
+            value = std::bit_cast<std::uint32_t>(node->second);
             if (value == 0x3F800000) {
                 text::Split(node->first, &parts, '.');
                 if (parts.size() == 3) {
@@ -300,7 +299,7 @@ void CGlobalMap::CreateScreen() {
                     {
                         Vector3 position;
                         QuestPosition(&position, parts[2]);
-                        std::memcpy(&quests_[n].position, &position, 12);
+                        quests_[n].position = position;
                     }
                     CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
                     Vector3 local = quests_[n].position;
@@ -342,7 +341,7 @@ void CGlobalMap::CreateScreen() {
             {
                 Vector3 position;
                 ZonePosition(&position, way->name);
-                std::memcpy(&links_[n].position, &position, 12);
+                links_[n].position = position;
             }
             CUiMesh* sprite = AddFigure(this, way->figure);
             Vector3 local = links_[n].position;
@@ -361,11 +360,11 @@ void CGlobalMap::CreateScreen() {
     {
         CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, Bits(0xBF000000));   // -0.5
         shadow->flatColour_ = 0xA08200C8;
-        SetBits(shadow->textureOffsetV_, 0x3E99999A);   // 0.3
+        shadow->textureOffsetV_ = 0.3f;   // 0.3
         SetPlain(shadow);
         CUiMesh* haze = builder.Layer(0, 0x100, 0x100, Bits(0x3F333333));    // 0.7
         haze->flatColour_ = 0xF0B400FF;
-        SetBits(haze->textureOffsetV_, 0x3F19999A);     // 0.6
+        haze->textureOffsetV_ = 0.6f;     // 0.6
         SetPlain(haze);
         CUiMesh* glow = builder.Layer(0, 0x100, 0x100, Bits(0x40000000));    // 2.0
         glow->flatColour_ = 0x4BFFFFFF;
@@ -505,7 +504,7 @@ void CGlobalMap::Update() {
         Quaternion tilt;
         tilt.SetAxisAngle(side, static_cast<float>(D(3.1415927f) * D(0.8f)));
         Quaternion turn = TurnProduct(spin, tilt);
-        std::memcpy(&turn_, &turn, 16);
+        turn_ = turn;
         EI_NAN_AUDIT(turn_.w);
         if (D(turn_.w) < 0.0) {
             turn_.w = -turn_.w;

@@ -1,5 +1,6 @@
 // Script variables (lookups, resets, the loader's appends of a file's GlobalVars to the globals) and the
 // SSCCmd helpers that bind and save call trees. See script.h and docs/notes/script.md.
+#include "ei/x87.h"
 #include "script.h"
 #include "game_strings.h"
 
@@ -130,7 +131,7 @@ void SSCCmd::SetParameters(const std::vector<ScriptBinding>& bindings, ScriptVar
     for (const ScriptBinding& b : bindings) {
         switch (b.type) {
         case kScriptFloat:
-            std::memcpy(&floatArgs[b.argIndex], &vars->floats.values[b.varIndex], sizeof(float));
+            x87::CopyBits(floatArgs[b.argIndex], vars->floats.values[b.varIndex]);
             break;
         case kScriptString:
             stringArgs[b.argIndex] = vars->strings.values[b.varIndex];

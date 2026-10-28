@@ -19,7 +19,7 @@
 namespace {
 
 constexpr float kColourScale = 255.0f;
-constexpr std::uint32_t kOne = 0x3F800000;
+constexpr float kOne = 1.0f;
 constexpr int kStackWorld = 1;           // the transform pipeline's stacks the sprite is pushed on
 constexpr int kStackView = 2;
 
@@ -45,7 +45,7 @@ void Pop(MatrixStack& stack) {
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
     *x = (localPosition_.x / localPosition_.z / 0.48157462f + 1.0f) * 400.0f;
     *y = localPosition_.y / localPosition_.z / 0.48157462f * 400.0f + 300.0f;
-    std::memcpy(depth, &localPosition_.z, sizeof(float));
+    *depth = localPosition_.z;
 }
 
 // The layout's 1 / 400 and 0.75 with the constants above. Rebirth's WideScreen replaces it (addon's
@@ -57,7 +57,7 @@ void CUiMesh::PlaceBody(float x, float y, float depth) {
     float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
     localPosition_.x = placedX;
     localPosition_.y = placedY;
-    std::memcpy(&localPosition_.z, &depth, sizeof(float));
+    localPosition_.z = depth;
 }
 
 // Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds the placement from the
@@ -76,7 +76,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     worldMatrix_.m[12] = 0.0f;
     worldMatrix_.m[13] = 0.0f;
     worldMatrix_.m[14] = 0.0f;
-    std::memcpy(&worldMatrix_.m[15], &kOne, sizeof(kOne));
+    worldMatrix_.m[15] = kOne;
     Matrix4 placement;
     std::memcpy(&placement, &worldMatrix_, sizeof(placement));
     pipeline->PushMatrix(placement.m, kStackView);

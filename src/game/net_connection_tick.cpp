@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 #include <iterator>
 #include <vector>
@@ -20,10 +21,10 @@ inline double D(float f) { return f; }
 // The clocks are doubles read and written as their 8 bytes.
 double Get(const double* d) {
     double v;
-    std::memcpy(&v, d, 8);
+    v = *d;
     return v;
 }
-void Set(double* d, double v) { std::memcpy(d, &v, 8); }
+void Set(double* d, double v) { *d = v; }
 
 // The reliable stream's size (the buffer's high mark follows its position first).
 std::int32_t ReliableSize(GameBuffer* b) {
@@ -47,13 +48,12 @@ bool Connection::Tick(double dt) {
     Set(&clock_, dt + Get(&clock_));
     float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
     std::uint32_t bits;
-    std::memcpy(&bits, &spread, 4);
+    bits = std::bit_cast<std::uint32_t>(spread);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&spread, &bits, 4);
+    spread = std::bit_cast<float>(bits);
     float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip_));
     float tenth;
-    const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
-    std::memcpy(&tenth, &tenthBits, 4);
+    tenth = 0.1f;
     loss = loss >= tenth ? loss : tenth;
     float longest = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
     loss = longest >= loss ? loss : longest;

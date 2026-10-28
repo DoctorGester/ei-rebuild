@@ -22,6 +22,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -1081,14 +1082,14 @@ void CCampPages::Update() {
     UpdateBase();
     int turning = turning_;
     float turn;
-    std::memcpy(&turn, &heroTurn_, 4);
+    turn = std::bit_cast<float>(heroTurn_);
     // The frame time in seconds (unrounded).
     if (turning == 1) {
         float turned = TurnedBy(FrameTime(), turn, false);
-        std::memcpy(&heroTurn_, &turned, 4);
+        heroTurn_ = std::bit_cast<std::uint32_t>(turned);
     } else if (turning == 2) {
         float turned = TurnedBy(FrameTime(), turn, true);
-        std::memcpy(&heroTurn_, &turned, 4);
+        heroTurn_ = std::bit_cast<std::uint32_t>(turned);
     }
 }
 

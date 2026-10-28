@@ -11,6 +11,7 @@
 
 #include "lib/static_object.h"
 
+#include <bit>
 #include <cstring>
 #include <initializer_list>
 #include <new>
@@ -52,7 +53,7 @@ namespace {
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
-    std::memcpy(&b, &f, 4);
+    b = std::bit_cast<std::uint32_t>(f);
     return b;
 }
 
@@ -62,7 +63,7 @@ void ReadInto(Chunk& c, std::string& field) {
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
-    std::memcpy(&to, c.ReadVector3(&v), sizeof(Vector3));
+    to = *c.ReadVector3(&v);
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
@@ -132,8 +133,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBC000A: b->unreadChunk = c.ReadFloat(); break;
     case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
-        float f = c.ReadFloat();
-        std::memcpy(&b->callRadius, &f, 4);
+        b->callRadius = c.ReadFloat();
         break;
     }
     case 0xBBBC000D:
@@ -159,7 +159,7 @@ void BehaviourChunk::Write() {
     Behaviour* b = target;
     c.BeginWrite(0xBBBC0000);
     c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->alertMode));
-    c.WriteFloat(0xBBBC000C, b->callRadius);
+    c.WriteFloat(0xBBBC000C, std::bit_cast<std::uint32_t>(b->callRadius));
     c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->loop));
     c.WriteByte(0xBBBC000E, static_cast<std::uint8_t>(b->alarm));
     c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));
@@ -212,9 +212,9 @@ void UnitSpec::Apply() {
     CUnit* unit = Unit();
     g_serverWorld->aiMap_.sectorMap.Move(unit, &position);
     g_serverWorld->aiMap_.TurnObject(unit, &rotation);
-    std::memcpy(&unit->localRotation_, &rotation, 16);
+    unit->localRotation_ = rotation;
     unit->SetFigureScale(&scale.x);
-    std::memcpy(&unit->baseScale, &scale, 12);
+    unit->baseScale = scale;
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;
     if (!visible) flags |= 8;

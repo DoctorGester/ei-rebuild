@@ -43,10 +43,10 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
                                  const Vector3* to, int extra) {
     const Vector3* aim = target ? &target->localPosition_ : to;
     Vector3 end;
-    std::memcpy(&end, aim, sizeof(end));
+    end = *aim;
     if (spell->targetFlags_ & kSpellAreaFlag) target = nullptr;
     end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
-    if (caster) std::memcpy(&from, &caster->localPosition_, sizeof(from));
+    if (caster) from = caster->localPosition_;
 
     auto* missile = new CSpellEffect();
     missile->refs_ = 0;   // the count and flags are cleared before the null test
@@ -92,7 +92,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
         CreateMissile(spell, caster, *from, target, to, extra);
     }
     Vector3 center;
-    std::memcpy(&center, caster ? &caster->localPosition_ : from, sizeof(center));
+    center = *(caster ? &caster->localPosition_ : from);
     float radius = spell->range_;
     aiMap_.sectorMap.FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
@@ -120,11 +120,11 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
                 double dx = static_cast<double>(to->x) - unit->localPosition_.x;
                 double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
-                std::memcpy(&bestDistance, &bestBits, 4);
+                bestDistance = std::bit_cast<float>(bestBits);
                 EI_NAN_AUDIT(distance, bestDistance);
                 if (distance < bestDistance) {
                     float stored = static_cast<float>(distance);
-                    std::memcpy(&bestBits, &stored, 4);
+                    bestBits = std::bit_cast<std::uint32_t>(stored);
                     best = unit;
                     bestNode = node;
                 }

@@ -29,11 +29,10 @@ void CameraViewMatrix(float* out, const CTransformObject* camera) {
     out[10] = axisZ.z;
     out[7] = -DotZYX(p, axisY);
     out[11] = -DotZYX(p, axisZ);
-    std::uint32_t zero = 0, one = 0x3F800000;
-    std::memcpy(&out[14], &zero, 4);
-    std::memcpy(&out[13], &zero, 4);
-    std::memcpy(&out[12], &zero, 4);
-    std::memcpy(&out[15], &one, 4);
+    out[14] = 0.0f;
+    out[13] = 0.0f;
+    out[12] = 0.0f;
+    out[15] = 1.0f;
 }
 
 void LightRotation(const Vector3* direction, Quaternion* out) {
@@ -65,10 +64,9 @@ void LightShearMatrix(float* out, const Vector3* direction) {
     Vector3 sum = d * scale + turn;
     Vector3 rotated = {sum.x + along.x, sum.y + along.y, sum.z + along.z};
     std::memset(out, 0, 16 * sizeof(float));
-    std::uint32_t one = 0x3F800000;
-    std::memcpy(&out[15], &one, 4);
-    std::memcpy(&out[5], &one, 4);
-    std::memcpy(&out[0], &one, 4);
+    out[15] = 1.0f;
+    out[5] = 1.0f;
+    out[0] = 1.0f;
     out[2] = -(rotated.x / rotated.z);
     out[6] = -(rotated.y / rotated.z);
 }

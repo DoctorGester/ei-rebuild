@@ -347,10 +347,10 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, std::string_
         auto* old = AsUiMesh(object);
         sprite->material_ = blackMaterial_;
         sprite->texture_ = !objects_.empty() ? objects_[0] : nullptr;
-        std::memcpy(&sprite->localPosition_, &old->localPosition_, 12);
-        std::memcpy(&sprite->textureOffsetU_, &old->textureOffsetU_, sizeof(float));
-        std::memcpy(&sprite->textureOffsetV_, &old->textureOffsetV_, sizeof(float));
-        std::memcpy(&sprite->localRotation_, &old->localRotation_, 16);
+        sprite->localPosition_ = old->localPosition_;
+        sprite->textureOffsetU_ = old->textureOffsetU_;
+        sprite->textureOffsetV_ = old->textureOffsetV_;
+        sprite->localRotation_ = old->localRotation_;
         sprite->texture_ = old->texture_;
         float scale = old->scaleMatrix_.m[0];
         AsUiMesh(made)->SetScale(scale);

@@ -41,11 +41,11 @@ int CItem::RunTick() {
     if (charge_ == chargeMax_) return 0;
     EI_NAN_AUDIT(chargeRate_);
     if (chargeRate_ <= 0.0f) {
-        std::memcpy(&charge_, &chargeMax_, sizeof(float));
+        charge_ = chargeMax_;
         return 1;
     }
     charge_ = chargeRate_ * chargeMax_ + charge_;
-    if (charge_ >= chargeMax_) std::memcpy(&charge_, &chargeMax_, sizeof(float));
+    if (charge_ >= chargeMax_) charge_ = chargeMax_;
     return 1;
 }
 

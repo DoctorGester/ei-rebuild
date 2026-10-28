@@ -118,8 +118,8 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
     if (index == 0 && force) std::memset(alarms_, 0, sizeof(alarms_));
     alarm.active = 1;
     alarm.time = tick_;
-    std::memcpy(&alarm.x, &point[0], sizeof(float));
-    std::memcpy(&alarm.y, &point[1], sizeof(float));
+    alarm.x = point[0];
+    alarm.y = point[1];
 
     // Every AI unit without a player hears it; the walk stops at an empty entry.
     auto& objects = objects_.map;

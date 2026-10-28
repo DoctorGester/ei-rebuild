@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <new>
@@ -38,7 +39,7 @@ CWorld* WorldOf(const CEngineObject* object) { return ObjectWorld(object); }
 
 std::uint32_t Bits(const float& f) {
     std::uint32_t u;
-    std::memcpy(&u, &f, 4);
+    u = std::bit_cast<std::uint32_t>(f);
     return u;
 }
 
@@ -144,9 +145,9 @@ void CEffectArrow::Start(int update) {
     light_.localPosition_ = localPosition_;
     sound_.localPosition_ = localPosition_;
     particle_.type_ = particleType_;
-    std::memcpy(&particle_.size_, &particleSize_, 4);
+    particle_.size_ = particleSize_;
     light_.color_ = lightColor_;
-    std::memcpy(&light_.range_, &lightRange_, 4);
+    light_.range_ = lightRange_;
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
     light_.SetVelocity(&drift);
     light_.lightFlags_ = kLightFlags;
@@ -230,10 +231,10 @@ void CEffectArrow::Save(CStream* s) {
     s->Write(&copy, 4);
     s->WriteString(soundName_);
     s->Write(&lightColor_, 12);
-    std::memcpy(&copy, &lightRange_, 4);
+    copy = std::bit_cast<std::uint32_t>(lightRange_);
     s->Write(&copy, 4);
     s->Write(&particleType_, 4);
-    std::memcpy(&copy, &particleSize_, 4);
+    copy = std::bit_cast<std::uint32_t>(particleSize_);
     s->Write(&copy, 4);
     std::memcpy(&copy, &casterId_, 4);
     s->Write(&copy, 4);
@@ -303,7 +304,7 @@ void CEffectArrowFigure::Start(int update) {
     // figure is made, like the original.
     CObject3D* figure = figure_;
     CObject3DClientSpecific* attached = figure->ClientSpecific();
-    std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
+    figure->localPosition_ = localPosition_;
     std::vector<std::string> parts;
     figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

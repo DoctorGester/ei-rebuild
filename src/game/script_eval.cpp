@@ -71,14 +71,9 @@ int RoundTimeOffset(int time, float extra) {
 // of the 64-bit result.
 int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
-// Copies a float's bits (no FPU round trip, so a signalling NaN is kept).
-void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
-
-void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }
-constexpr std::uint32_t kZero = 0;
-constexpr std::uint32_t kOne = 0x3F800000;
-constexpr std::uint32_t kMinusOne = 0xBF800000;
-constexpr std::uint32_t kFar = 0x7149F2CA;     // 1e30: distance when an object is missing
+constexpr float kMinusOne = -1.0f;
+constexpr float kFar = 1e30f;     // the distance when an object is missing
+static_assert(std::bit_cast<std::uint32_t>(kFar) == 0x7149F2CA);
 
 // (float)(int)b: converts 0/1 exactly.
 float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
@@ -208,23 +203,23 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
                                : id == 0x50 ? &vitals.maxHitPoints
                                : id == 0x51 ? &vitals.mana
                                             : &vitals.maxMana;
-            CopyFloat(result, value);
+            x87::CopyBits(*result, *value);
         } else {
-            StoreBits(result, kZero);
+            *result = 0.0f;
         }
         return;
     }
     case 0x55:   // GetX
     case 0x56: { // GetY
         CEngineObject* o = objectArgs[0]->object;
-        if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->localPosition_.x : &ObjectSlots(o)->localPosition_.y);
-        else StoreBits(result, kZero);
+        if (o) x87::CopyBits(*result, id == 0x55 ? ObjectSlots(o)->localPosition_.x : ObjectSlots(o)->localPosition_.y);
+        else *result = 0.0f;
         return;
     }
     case 0x57: { // GetZ: height above the ground at the object's position
         CEngineObject* o = objectArgs[0]->object;
         if (!o) {
-            StoreBits(result, kZero);
+            *result = 0.0f;
             return;
         }
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y, z = ObjectSlots(o)->localPosition_.z;
@@ -234,13 +229,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0xE1:   // GetLootItemsCount
     case 0xE2: { // GetMoney
-        StoreBits(result, kZero);
+        *result = 0.0f;
         CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
         if (player) *result = static_cast<float>(id == 0xE1 ? std::ssize(player->items_) : player->Party()->money_);
         return;
     }
     case 0xE3: { // WasLooted
-        StoreBits(result, kOne);
+        *result = 1.0f;
         CEngineObject* o = objectArgs[0]->object;
         if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 20) & 1));
         return;
@@ -249,12 +244,12 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xC0: { // GetFutureY
         CEngineObject* o = objectArgs[0]->object;
         if (!o) {
-            StoreBits(result, kZero);
+            *result = 0.0f;
             return;
         }
         Vector3 buffer;
         const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld->tick_, f[0]));
-        std::memcpy(result, id == 0xBF ? &position->x : &position->y, 4);
+        x87::CopyBits(*result, *(id == 0xBF ? &position->x : &position->y));
         return;
     }
     case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
@@ -269,7 +264,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     case 0x5C: { // GroupHas
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, groupArgs[0]->Contains(o) ? kOne : kZero);
+        *result = groupArgs[0]->Contains(o) ? 1.0f : 0.0f;
         return;
     }
     case 0x5F: { // Random(range): [0, range]
@@ -282,16 +277,16 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         int b = Ftol(f[1]);
         int a = Ftol(f[0]);
         int relation = g_serverWorld->diplomacy_.GetRelation(a, b);
-        StoreBits(result, kZero);
-        if (relation == 2) StoreBits(result, kMinusOne);
-        else if (relation == 0) StoreBits(result, kOne);
+        *result = 0.0f;
+        if (relation == 2) *result = kMinusOne;
+        else if (relation == 0) *result = 1.0f;
         return;
     }
     case 0x63:   // IsAlive
     case 0x64: { // IsDead
         CEngineObject* o = objectArgs[0]->object;
         CMapObjectCompanion* stats = o ? ObjectSlots(o)->companion : nullptr;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (!stats) return;
         int state = stats->IsDead();
         *result = static_cast<float>(id == 0x63 ? (state == 0 ? 1 : 0) : state);
@@ -299,7 +294,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x61: { // IsEnemy(unit, player)
         CUnit* unit = UnitOrNull(objectArgs[0]->object);
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (!unit) return;
         int player = Ftol(f[0]);
         std::uint32_t mask = 1u << (player & 31);
@@ -309,26 +304,26 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x65: { // GetPlayer
         CUnit* unit = UnitOrNull(objectArgs[0]->object);
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (unit) *result = static_cast<float>(unit->side);
         return;
     }
     case 0x8F: { // GetAIClass (the unit's size class)
         CUnit* unit = UnitOrNull(objectArgs[0]->object);
-        StoreBits(result, kMinusOne);
+        *result = kMinusOne;
         if (unit) *result = static_cast<float>(unit->sizeClass);
         return;
     }
     case 0x90: { // GetLeverState
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (!o || o->GetClassId() != kClassLever) return;
         *result = static_cast<float>(static_cast<Lever*>(o)->state);
         return;
     }
     case 0x66: { // GetObjectID
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (o) *result = static_cast<float>(o->id_);
         return;
     }
@@ -339,22 +334,22 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(Alarm(x87::fistp(f[0])).time);
         return;
     case 0x8C:   // AlarmPosX
-        std::memcpy(result, &Alarm(x87::fistp(f[0])).x, 4);
+        x87::CopyBits(*result, Alarm(x87::fistp(f[0])).x);
         return;
     case 0x8D:   // AlarmPosY
-        std::memcpy(result, &Alarm(x87::fistp(f[0])).y, 4);
+        x87::CopyBits(*result, Alarm(x87::fistp(f[0])).y);
         return;
     case 0x53: { // DistanceUnitUnit
         CEngineObject* a = objectArgs[0]->object;
         CEngineObject* b = objectArgs[1]->object;
         if (a && b) *result = Distance(ObjectSlots(a)->localPosition_.x, ObjectSlots(a)->localPosition_.y, ObjectSlots(b)->localPosition_.x, ObjectSlots(b)->localPosition_.y);
-        else StoreBits(result, kFar);
+        else *result = kFar;
         return;
     }
     case 0x54: { // DistanceUnitPoint
         CEngineObject* o = objectArgs[0]->object;
         if (o) *result = Distance(ObjectSlots(o)->localPosition_.x, ObjectSlots(o)->localPosition_.y, f[0], f[1]);
-        else StoreBits(result, kFar);
+        else *result = kFar;
         return;
     }
 
@@ -371,7 +366,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
                 break;
             }
         if (!condition) {
-            if (id == 0x68) std::memcpy(result, &floatArgs[0], 4);
+            if (id == 0x68) x87::CopyBits(*result, floatArgs[0]);
             else if (id == 0x69) {
                 EI_NAN_AUDIT(floatArgs[0]);
                 *result = FromBool(floatArgs[0] != 0.0f);
@@ -379,7 +374,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             else *result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
             return;
         }
-        StoreBits(result, id == 0x68 ? kOne : kZero);
+        *result = id == 0x68 ? 1.0f : 0.0f;
         ScriptGroup* g = groupArgs[0];
         if (g->empty()) return;
         int k = 0;
@@ -389,13 +384,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             if (id == 0x68) {
                 EI_NAN_AUDIT(floatArgs[0]);
                 if (floatArgs[0] == 0.0f) {
-                    StoreBits(result, kZero);
+                    *result = 0.0f;
                     return;
                 }
             } else if (id == 0x69) {
                 EI_NAN_AUDIT(floatArgs[0]);
                 if (floatArgs[0] != 0.0f) {
-                    StoreBits(result, kOne);
+                    *result = 1.0f;
                     return;
                 }
             } else {
@@ -408,18 +403,18 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
 
     case 0x7C: { // HaveItem(player, item)
-        StoreBits(result, kZero);
+        *result = 0.0f;
         auto* player = g_serverWorld->GetPlayer(Ftol(f[0]));
-        if (player && player->HasLoot(Ftol(f[1]))) StoreBits(result, kOne);
+        if (player && player->HasLoot(Ftol(f[1]))) *result = 1.0f;
         return;
     }
     case 0xB1:   // IsPlayerInDanger
     case 0xB2: { // IsPlayerInSafety
-        StoreBits(result, kZero);
+        *result = 0.0f;
         CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
         if (!player) return;
         int danger = player->Server()->refreshPending_;
-        if (id == 0xB1 ? danger == 2 : danger == 0) StoreBits(result, kOne);
+        if (id == 0xB1 ? danger == 2 : danger == 0) *result = 1.0f;
         return;
     }
     case 0xD1:   // GetMercsNumber
@@ -433,7 +428,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             *result = static_cast<float>(server->GetVariable(&key));
             return;
         }
-        StoreBits(result, kZero);
+        *result = 0.0f;
         CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
         if (player) *result = player->Party()->variables_.Get(stringArgs[0]);
         return;
@@ -442,7 +437,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<int>(GameCameraPathPlaying()));
         return;
     case 0xAA:   // IsNight (the world's day-time value, copied as a float)
-        CopyFloat(result, &g_serverWorld->nightLevel_);
+        x87::CopyBits(*result, g_serverWorld->nightLevel_);
         return;
     case 0xB5:   // GetWorldTime
         *result = WorldTimeOfDay();
@@ -455,7 +450,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0xBC: { // UnitInSquare(object, x1, y1, x2, y2)
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (!o) return;
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y;
         EI_NAN_AUDIT(x, y, f[0], f[1], f[2], f[3]);
@@ -465,7 +460,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0xE5: { // IsUnitVisible: in the local player's list of units always sent
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (!o) return;
         CPlayer* player = g_serverWorld->GetPlayer(0);
         if (!player) return;
@@ -503,7 +498,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0xE6: { // IsUnitBlocked
         CEngineObject* o = objectArgs[0]->object;
-        StoreBits(result, kZero);
+        *result = 0.0f;
         if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 23) & 1));
         return;
     }

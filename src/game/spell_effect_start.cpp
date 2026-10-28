@@ -425,7 +425,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     switch (type) {
     case 6: {
         Vector3 direction;
-        std::memcpy(&direction, &Visual<CEffectWall>()->direction_, sizeof(direction));
+        direction = (Visual<CEffectWall>()->direction_);
         g_spellFootprint->AlongDirection(aiMap, &position, kHalfBits, &direction);
         break;
     }
@@ -452,12 +452,12 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
                                const char* soundName, const Vector3* color, float range) {
     auto* arrow = CreateObject<CEffectArrow>(this, kClassArrow);
     if (!arrow) return;
-    std::memcpy(&arrow->lightColor_, color, 12);
-    std::memcpy(&arrow->lightRange_, &range, 4);
+    arrow->lightColor_ = *color;
+    arrow->lightRange_ = range;
     SetPosition(arrow, from);
     arrow->SetTarget(missileTarget->id_);
     arrow->particleType_ = particleType;
-    std::memcpy(&arrow->particleSize_, &power, 4);
+    arrow->particleSize_ = power;
     arrow->soundName_ = soundName;
     if (caster) {
         arrow->fromCaster_ = 1;
@@ -473,9 +473,9 @@ CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const 
     auto* particle = CreateObject<CEffectParticle>(this, classId);   // a CEffectWall for the walls
     particle->type_ = particleType;
     SetPosition(particle, at);
-    std::memcpy(&particle->size_, &size, 4);
+    particle->size_ = size;
     particle->SetVelocity(velocity);
-    std::memcpy(&particle->alpha_, &alpha, 4);
+    particle->alpha_ = alpha;
     if (attachTo) particle->SetAttachedTo(attachTo->id_);
     if (keep) {
         Assign<CEffect>(this, &visual, particle);
@@ -505,8 +505,8 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
     auto* effect = CreateObject<CEffectSound>(this, kClassSound);
     SetPosition(effect, at);
     effect->noFade_ = 1;
-    std::memcpy(&effect->radius_, &hearing, 4);
-    std::memcpy(&effect->volume_, &volume, 4);
+    effect->radius_ = hearing;
+    effect->volume_ = volume;
     std::memcpy(effect->name_, name, std::strlen(name) + 1);
     effect->SetVelocity(velocity);
     effect->looping_ = keep;
@@ -520,8 +520,8 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
     auto* effect = CreateObject<CEffectSoundSeq>(this, kClassSoundSequence);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
-    std::memcpy(&effect->radius_, &hearing, 4);
-    std::memcpy(&effect->volume_, &volume, 4);
+    effect->radius_ = hearing;
+    effect->volume_ = volume;
     effect->noFade_ = 1;
     effect->name_ = first;
     auto& names = effect->names_;
@@ -539,9 +539,9 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
     auto* effect = CreateObject<CEffectPointLight>(this, kClassPointLight);
-    std::memcpy(&effect->color_, color, 12);
+    effect->color_ = *color;
     SetPosition(effect, at);
-    std::memcpy(&effect->range_, &range, 4);
+    effect->range_ = range;
     effect->SetVelocity(velocity);
     effect->lightFlags_ = kPointLightFlags;
     Assign(this, &light, effect);

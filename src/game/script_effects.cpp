@@ -130,8 +130,8 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassSound, -1);
     const float* f = cmd->floatArgs.data();
     sound->localPosition_ = {f[0], f[1], f[2]};
-    std::memcpy(&sound->volume_, &f[3], 4);
-    std::memcpy(&sound->radius_, &f[4], 4);
+    x87::CopyBits(sound->volume_, f[3]);
+    x87::CopyBits(sound->radius_, f[4]);
     sound->looping_ = 0;
     const char* name = cmd->stringArgs[0].c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
@@ -159,23 +159,23 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     source->position.x = f[1];
     source->position.y = f[2];
     source->position.z = f[3];
-    std::memcpy(&source->volume, &f[4], 4);
-    std::memcpy(&source->radius, &f[5], 4);
+    x87::CopyBits(source->volume, f[4]);
+    x87::CopyBits(source->radius, f[5]);
     source->name = cmd->stringArgs[0];
 
     if (cmd->id != kCommandCreateFxSource) {
         source->minDelay = x87::RoundToInt(f[6]);
         source->maxDelay = x87::RoundToInt(f[7]);
         source->countdown = 0;
-        std::memcpy(&source->spread, &f[8], 4);
+        x87::CopyBits(source->spread, f[8]);
         source->idle = 1;
         return;
     }
     auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassSound, -1);
     source->object = ScriptEffect<CEffectSound>(sound);
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
-    std::memcpy(&sound->volume_, &source->volume, 4);
-    std::memcpy(&sound->radius_, &source->radius, 4);
+    x87::CopyBits(sound->volume_, source->volume);
+    x87::CopyBits(sound->radius_, source->radius);
     const char* name = source->name.c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
     g_serverWorld->AddTimedObject(sound);
@@ -226,7 +226,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
     source->object = ScriptEffect<CEffectParticle>(particles);
-    std::memcpy(&particles->size_, &f[4], 4);
+    x87::CopyBits(particles->size_, f[4]);
     g_serverWorld->AddTimedObject(particles);
 
     source->id = id;

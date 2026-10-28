@@ -13,6 +13,7 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -43,12 +44,12 @@ constexpr int kParts = 6;
 constexpr int kEffects = 6;
 
 constexpr double kZoomRate = 2.5;                   // the map's zoom changes 2.5 times a second
-constexpr std::uint32_t kSlingDepthBits = 0x4101B287;   // 8.106: the sling buttons and the needle
+constexpr float kSlingDepthBits = 8.106086f;   // 8.106: the sling buttons and the needle
 constexpr float kSlingY = 20.0f;
 
 float FromBits(std::uint32_t bits) {
     float value;
-    std::memcpy(&value, &bits, sizeof(value));
+    value = std::bit_cast<float>(bits);
     return value;
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
@@ -102,7 +103,7 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
     const Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     AsUiMesh(sling)->localRotation_ = *turn.SetAxisAngle(axis, angle);
-    AsUiMesh(sling)->PlaceBody(x, kSlingY, FromBits(kSlingDepthBits));
+    AsUiMesh(sling)->PlaceBody(x, kSlingY, kSlingDepthBits);
 }
 
 constexpr const char* kArrowSprite = "in25arrow";
@@ -160,7 +161,7 @@ void CHudMap::Layout() {
     Place(this, 7, buttons, 145.0f, 10.0f);
     Place(this, 8, centre, 80.0f, 10.0f);
     Place(this, 9, offset + kMapFrameX, 80.0f, 10.0f);
-    Place(this, 10, offset + kMapNeedleX, 84.0f, FromBits(kSlingDepthBits));
+    Place(this, 10, offset + kMapNeedleX, 84.0f, kSlingDepthBits);
     Place(this, 11, buttons, 85.0f, 10.0f);
     surfaces_[0]->MoveTo(offset_ + 700 + widescreen::EdgeShift(), 80);   // WideScreen
     widescreen::LeavePanel();        // addon's 1002337E, before the regions
@@ -447,7 +448,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
-    needle->PlaceBody(900.0f, 80.0f, FromBits(kSlingDepthBits));
+    needle->PlaceBody(900.0f, 80.0f, kSlingDepthBits);
     needle->SetScale(0.8f);
     AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 

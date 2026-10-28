@@ -61,7 +61,7 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
             Coordinate(moved.data(), i, 2) = offset.z + Coordinate(from, i, 2);
         } else {
             for (int axis = 0; axis < 3; ++axis)
-                std::memcpy(&Coordinate(moved.data(), i, axis), &Coordinate(from, i, axis), sizeof(float));
+                Coordinate(moved.data(), i, axis) = Coordinate(from, i, axis);
         }
     }
     return moved.data();

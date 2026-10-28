@@ -130,7 +130,7 @@ void CTransformObject::WorldMatrix(float* m) const {
 void CTransformObject::TiltTowards(const Vector3& target) {
     const Quaternion& q = localRotation_;
     Vector3 v;
-    std::memcpy(&v, &target, sizeof(v));
+    v = target;
     double a = -UpX(q);
     double b = -D(static_cast<float>(UpY(q)));
     double c = -D(static_cast<float>(UpZ(q)));
@@ -162,7 +162,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
 void CTransformObject::TurnTowards(const Vector3& target) {
     const Quaternion& q = localRotation_;
     Vector3 v;
-    std::memcpy(&v, &target, sizeof(v));
+    v = target;
     double a = ForwardX(q);
     float b = static_cast<float>(ForwardY(q));
     float c = static_cast<float>(ForwardZ(q));
@@ -253,5 +253,5 @@ void CTransformObject::SetHeading(const float* dir) {
     Vector3 axis = MakeVector(0.0f, 0.0f, 1.0f);
     Quaternion heading;
     const Quaternion* r = heading.SetAxisAngle(axis, static_cast<float>(x87::fpatan(dir[1], dir[0]) + D(kHeadingOffset)));
-    std::memcpy(&localRotation_, r, sizeof(Quaternion));
+    localRotation_ = *r;
 }

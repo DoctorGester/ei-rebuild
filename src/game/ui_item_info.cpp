@@ -21,6 +21,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -38,14 +39,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A float the item database keeps as its bits (a dword field).
-float FloatOf(std::uint32_t bits) {
-    float v;
-    std::memcpy(&v, &bits, sizeof(v));
-    return v;
-}
-// A float argument would convert to an integer first: callers pass raw bits only.
-template <std::floating_point T> float FloatOf(T) = delete;
 
 int FtolOf(float value) { return static_cast<int>(libcrt::Ftol(D(value))); }
 
@@ -608,7 +601,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         w.Number(38, FtolOf(weapon->attackBonus));
         int type = head->type;
         if (type == 5 || type == 6)
-            w.Number(10, FtolOf(FloatOf(weapon->reach)));
+            w.Number(10, FtolOf(weapon->reach));
         else
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {

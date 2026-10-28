@@ -10,6 +10,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -28,7 +29,7 @@ constexpr int kConstructorPrefixLength = 6;
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
+    bits = std::bit_cast<std::uint32_t>(value);
     return bits;
 }
 

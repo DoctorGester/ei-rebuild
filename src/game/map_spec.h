@@ -90,7 +90,7 @@ struct Behaviour {
     std::uint32_t alarmKind = 0; // the alarm raised when the countdown ends (low byte)
     std::uint32_t enabled = 0;   // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
-    std::uint32_t callRadius = 0x41200000u;   // float bits (10.0)
+    float callRadius = 10.0f;
     std::uint32_t alertMode = 0;
     std::uint32_t alarmDelay = 75;   // the alarm countdown (at least 1)
     std::uint32_t alarm = 0;     // the reaction modes 0..3 (4 while reading: unset)

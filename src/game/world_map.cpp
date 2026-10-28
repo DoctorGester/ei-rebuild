@@ -15,6 +15,7 @@
 #include "world_map_files.h"
 
 #include "lib/crt.h"
+#include <bit>
 #include <string>
 #include "lib/text_case.h"
 
@@ -261,7 +262,7 @@ void CWorldServer::ResetState() {
     }
     sessionKind_ = 0;
     startPosition_.x = 0.0f;
-    weatherFactor_ = 0x3F800000;   // 1.0f
+    weatherFactor_ = std::bit_cast<std::uint32_t>(1.0f);
     loaded_ = 0;
     startPosition_.y = 0.0f;
     lastRainBoltTick_ = 0;

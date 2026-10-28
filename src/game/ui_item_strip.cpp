@@ -5,6 +5,7 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -27,17 +28,17 @@ void CUiItemStrip::Build(char top) {
     if (top) {
         top_ = 0;
         std::uint32_t bits = 0x41000000;   // 8.0
-        std::memcpy(&scale_, &bits, 4);
+        scale_ = std::bit_cast<float>(bits);
     } else {
         top_ = 500;
         std::uint32_t bits = 0x40800000;   // 4.0
-        std::memcpy(&scale_, &bits, 4);
+        scale_ = std::bit_cast<float>(bits);
     }
     rect_ = RECT{0, top_, 800, top_ + 100};
-    for (float& position : position_) std::memset(&position, 0, 4);
-    std::memset(&pending_, 0, 4);
-    std::memset(&velocity_, 0, 4);
-    std::memset(&scrollTimer_, 0, 4);
+    for (float& position : position_) position = 0.0f;
+    pending_ = 0.0f;
+    velocity_ = 0.0f;
+    scrollTimer_ = 0.0f;
     scrollDirection_ = 0;
     count_ = 0;
     selected_ = -1;
@@ -198,7 +199,7 @@ void CUiItemStrip::Update() {
         if (scrollTimer_ == zero) {
             steps = 1;
             const std::uint32_t first = 0x3A83126F;   // 0.001
-            std::memcpy(&scrollTimer_, &first, 4);
+            scrollTimer_ = std::bit_cast<float>(first);
         } else {
             scrollTimer_ = static_cast<float>(dt + scrollTimer_);
             while (scrollTimer_ > repeat) {

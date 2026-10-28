@@ -83,7 +83,7 @@ int CEffect::Create() {
 void CEffect::Destroy() { Reset(); }
 
 void CEffect::SetVelocity(const Vector3* velocity) {
-    std::memcpy(&velocity_, velocity, sizeof(Vector3));
+    velocity_ = *velocity;
     moving_ = IsMoving(velocity_);
     MarkChanged();
 }

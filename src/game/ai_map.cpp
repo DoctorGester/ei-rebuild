@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 
 int WorldToCell(float world) {
@@ -39,7 +40,7 @@ constexpr float kMinVisibility = 0.0001f;
 // as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
-    std::memcpy(&key, &g_spiralRadii->keys[node], sizeof(key));
+    key = std::bit_cast<std::int32_t>(g_spiralRadii->keys[node]);
     return key;
 }
 std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(g_spiralRadii->mask); }
@@ -312,7 +313,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
     for (int depth = g_spiralRadii->depth; depth > 0; --depth) {
         // The radius is compared as an integer with the tree's keys.
         int bits;
-        std::memcpy(&bits, &r, sizeof(bits));
+        bits = std::bit_cast<std::int32_t>(r);
         node = node * 2 + (bits > SpiralKey(node) ? 1 : 0);
     }
     int found = SpiralLengthTable()[SpiralMask() & node];
@@ -340,7 +341,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     int count;
     float radius;
     std::uint32_t radiusBits = 0x60AD78EC;   // about 1e20: the whole spiral
-    std::memcpy(&radius, &radiusBits, sizeof(radius));
+    radius = std::bit_cast<float>(radiusBits);
     const std::int16_t* offset = cache->Get(radius, &count);
     for (int i = 0; i < count; ++i, offset += 2) {
         int cx = offset[0] + tx, cy = offset[1] + ty;

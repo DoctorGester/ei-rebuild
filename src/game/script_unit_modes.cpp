@@ -2,6 +2,7 @@
 // Suspection, Aggression / Revenge, CorpseWatcher) and of a patrol point's look entry; the layouts
 // are in unit_ai.h. Then the modes' own small virtuals (clone, reset, destructors, types).
 // See docs/notes/script.md.
+#include "ei/x87.h"
 #include "unit_ai.h"
 
 #include <cstdint>
@@ -44,9 +45,9 @@ int GuardMode::OnShutdown() {
 GuardMode* GuardMode::Clone() {
     auto* copy = new GuardMode();
     if (!copy) return nullptr;
-    std::memcpy(&copy->point, &point, sizeof(copy->point));
-    std::memcpy(&copy->radius, &radius, sizeof(copy->radius));
-    std::memcpy(&copy->wander, &wander, sizeof(copy->wander));
+    copy->point = point;
+    x87::CopyBits(copy->radius, radius);
+    x87::CopyBits(copy->wander, wander);
     copy->failures = failures;
     return copy;
 }
@@ -60,7 +61,7 @@ int SentryMode::OnShutdown() { return 0; }
 SentryMode* SentryMode::Clone() {
     auto* copy = new SentryMode();
     if (!copy) return nullptr;
-    std::memcpy(&copy->point, &point, sizeof(copy->point));
+    copy->point = point;
     return copy;
 }
 
@@ -87,7 +88,7 @@ int SuspectionMode::OnShutdown() { return 0; }
 SuspectionMode* SuspectionMode::Clone() {
     auto* copy = new SuspectionMode();
     if (!copy) return nullptr;
-    std::memcpy(&copy->point, &point, sizeof(copy->point));
+    copy->point = point;
     copy->level = level;
     return copy;
 }

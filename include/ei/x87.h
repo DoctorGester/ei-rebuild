@@ -8,6 +8,7 @@
 // Square roots are plain std::sqrt (FSQRT at the precision control on this target; docs/notes/cleanup-tooling.md, "SSE2 build").
 // fistp stays an instruction, inlined (R16c4): the CRT's lrint is a FISTP too, but reads the FP environment on every call (SV10j).
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -27,15 +28,20 @@ inline double FromUnsigned(std::uint32_t value) {
 // Under /fp:fast MSVC folds `v != v` to false (found in the sort verify of world_client), and the
 // standalone's compiler flags may change again; comparisons themselves are plain C++.
 inline bool IsNaN(float v) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    const std::uint32_t bits = std::bit_cast<std::uint32_t>(v);
     return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
 }
 
 inline bool IsNaN(double v) {
-    std::uint64_t bits;
-    std::memcpy(&bits, &v, sizeof(bits));
+    const std::uint64_t bits = std::bit_cast<std::uint64_t>(v);
     return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
+}
+
+// A float copied bit for bit. `to = from` loads the value onto the x87 stack and stores it back (FLD / FSTP,
+// /arch:IA32), which turns a signalling NaN into a quiet one; the copies of values that arrive from a file, a
+// message or a script slot (any bit pattern) go through this instead. Computed floats are plain assignments.
+inline void CopyBits(float& to, const float& from) {
+    std::memcpy(&to, &from, sizeof(float));
 }
 
 __declspec(naked) inline double __cdecl fsin(double) {

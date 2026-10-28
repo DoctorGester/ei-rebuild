@@ -18,6 +18,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <bit>
 #include <cstring>
 #include <new>
 #include <string>
@@ -117,7 +118,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     std::vector<std::string> parts;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::uint32_t bits;
-        std::memcpy(&bits, &node->second, 4);
+        bits = std::bit_cast<std::uint32_t>(node->second);
         if (bits != kOneBits) continue;
         text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;

@@ -31,6 +31,7 @@
 #include "ei/x87.h"
 #include "game_singletons.h"
 
+#include <bit>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -100,7 +101,7 @@ constexpr int kClassScratchUnit = 0x32;            // the object manager's class
 constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
 constexpr int kPathParticles = 0x2039;
 constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
-constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0.5
+constexpr float kMarkerSpeedA = 0.5f;
 constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
 constexpr std::uint8_t kRequestRecording = 2;
 
@@ -463,7 +464,7 @@ int CPlayerClient::OnPathMarker() {
         path->ReadState(reading);
         reading->EndField();
         if (MarkersShown()) {
-            walker->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
+            walker->SetMotionSpeeds(kMarkerSpeedA, std::bit_cast<float>(kMarkerSpeedB));
             auto* source = g_clientWorld->particleManager_->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
@@ -545,7 +546,7 @@ int CPlayerClient::OnNewObject() {
     bool isUnit = created->GetClassId() == kClassUnitObject;
     created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
-    std::memcpy(&object->baseScale, &scale, sizeof(scale));
+    object->baseScale = scale;
     object->ApplyBaseScale();
     object->name2 = secondName.c_str();
     if (isUnit) {

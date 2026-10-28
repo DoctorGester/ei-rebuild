@@ -16,6 +16,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/str.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
@@ -32,9 +33,9 @@ inline double D(float f) { return f; }
 
 float AbsBits(float f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     bits &= 0x7FFFFFFF;
-    std::memcpy(&f, &bits, sizeof(f));
+    f = std::bit_cast<float>(bits);
     return f;
 }
 
@@ -232,13 +233,13 @@ void PutArrow(VertexPacket& b, const CUnit* unit, float x, float y) {
 const CTransformObject* Camera() { return g_clientWorld->camera_; }
 std::uint32_t Bits(const float& f) {
     std::uint32_t bits;
-    std::memcpy(&bits, &f, sizeof(bits));
+    bits = std::bit_cast<std::uint32_t>(f);
     return bits;
 }
 std::uint32_t CameraTargetXBits() { return Bits(g_camera->focus_.x); }
 std::uint32_t CameraTargetYBits() { return Bits(g_camera->focus_.y); }
 
-void SetBits(float* f, std::uint32_t bits) { std::memcpy(f, &bits, sizeof(bits)); }
+void SetBits(float* f, std::uint32_t bits) { *f = std::bit_cast<float>(bits); }
 
 // Whether the edge from `prev` to `cur` crosses the line v = edge (coordinate values of the two points).
 bool Crosses(float prev, float cur, float edge) {
@@ -404,7 +405,7 @@ void CHudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
+    SceneMesh(10)->localRotation_ = turn;
 
     auto* area = SceneMesh(1);
     std::vector<UiPointF>& points = visibleArea_;
@@ -553,7 +554,7 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     if (region == 0) {
         double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
         zoom_ = static_cast<float>(zoom);
-        if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
+        if (zoom > D(zoomMax_)) zoom_ = zoomMax_;
         zoom_ = zoom_ >= 1.0f ? zoom_ : 1.0f;
     }
     handled_ = true;

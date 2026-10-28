@@ -24,6 +24,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -57,9 +58,9 @@ long GetRenderState(CTextureDevice* device, int state, std::uint32_t* value) {
 // original stores the constants as dwords).
 void SetTint(CEngineObject* object, std::uint32_t bits) {
     float* tint = AsUiMesh(object)->tint_;
-    std::memcpy(&tint[0], &bits, 4);
-    std::memcpy(&tint[1], &bits, 4);
-    std::memcpy(&tint[2], &bits, 4);
+    tint[0] = std::bit_cast<float>(bits);
+    tint[1] = std::bit_cast<float>(bits);
+    tint[2] = std::bit_cast<float>(bits);
 }
 constexpr std::uint32_t kTintOn = 0x3F800000;    // 1.0f
 constexpr std::uint32_t kTintOff = 0x3F000000;   // 0.5f
@@ -98,7 +99,7 @@ constexpr int kQuickSlots = 8;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
 constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
-constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
+constexpr float kScaleOne = 1.0f;
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
 // A unit's position, copied as three dwords.
@@ -578,7 +579,7 @@ void CHudMovePanel::Update() {
     flag_ = flag;
     // Scene object 5 shows the flag through its texture offset (textureOffsetU_).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    std::memcpy(&SceneMesh(5)->textureOffsetU_, &bits, 4);
+    SceneMesh(5)->textureOffsetU_ = std::bit_cast<float>(bits);
 }
 
 // --- Top panel ---------------------------------------------------------------------------------
@@ -823,7 +824,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_[i];
-                AsUiMesh(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
+                AsUiMesh(sprite)->SetScale(kScaleOne);
                 AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }

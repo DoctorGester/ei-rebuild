@@ -5,18 +5,18 @@
 #include "core_refcount.h"
 #include "spell.h"
 
+#include <bit>
 #include <cstring>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
-constexpr std::uint32_t kMinusOne = 0xBF800000;   // -1.0f
+constexpr float kMinusOne = -1.0f;
 
 template <typename T>
 void SetMinusOne(T& field) {
-    static_assert(sizeof(T) == 4);
-    std::memcpy(&field, &kMinusOne, 4);
+    field = std::bit_cast<T>(kMinusOne);
 }
 
 CRefCounted* Link(CRefObject* value) { return value; }

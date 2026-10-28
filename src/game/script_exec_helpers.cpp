@@ -116,7 +116,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     object->localPosition_.x = f[1];
     object->localPosition_.y = f[2];
     object->localPosition_.z = f[3];
-    std::memcpy(&object->range_, &f[4], 4);   // radius
+    x87::CopyBits(object->range_, f[4]);   // radius
     g_serverWorld->AddTimedObject(object);
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;

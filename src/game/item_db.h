@@ -122,7 +122,7 @@ public:
     // CItem::weight_, times the material's weightFactor; also what WeaponAttack returns, which the unit's attack
     // info shows as the weapon's speed.
     float weight;
-    std::uint32_t unreadValue;          // CItem::unreadValue_ (a float; archive field 9, nothing else reads it)
+    float unreadValue;                  // CItem::unreadValue_ (archive field 9, nothing else reads it)
     float charge;                       // item charge and maximum
     std::uint32_t magicLevel;           // CItem::magicLevel_ (plus the material's)
     float condition;                    // item condition and maximum (times the material's conditionFactor)
@@ -168,7 +168,7 @@ struct WeaponRecord : ItemRecordHead {
     std::uint8_t unused_7D[0x84 - 0x7D];
     float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
     float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
-    std::uint32_t reach;                // CItemWeapon::reach_ (float bits)
+    float reach;                        // CItemWeapon::reach_
     float damage;                       // minimum damage (times the material's damageFactor)
     float damageSpread;                 // maximum damage = damage + spread
     float damageTypes[7];               // weight of each damage type

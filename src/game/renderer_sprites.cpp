@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "device_buffers.h"
 #include "lib/containers.h"
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -141,8 +142,8 @@ void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
 void SetCorner(TLVertex& v, std::uint32_t color, const float* u, const float* t) {
     v.color = color;
     v.specular = 0xFF000000;
-    std::memcpy(&v.u, u, 4);
-    std::memcpy(&v.v, t, 4);
+    v.u = *u;
+    v.v = *t;
 }
 
 // The colour and texture coordinates of the next sprites' corners, at most 511 and at most
@@ -181,7 +182,7 @@ int SortBackToFront() {
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
         SpriteSortRecord* record = g_records.data() + kept;
-        std::memcpy(&record->key, &corners->z, 4);       // written for dropped sprites too
+        record->key = std::bit_cast<std::int32_t>(corners->z);       // written for dropped sprites too
         if (record->key < 0) continue;
         record->corners = corners;
         record->outcodes = outcodes[i];

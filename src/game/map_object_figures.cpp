@@ -88,7 +88,7 @@ void CObject3D::ComputeBounds() {
     }
     for (int i = 0; i < std::ssize(pendingParts); ++i) {
         auto* part = pendingParts[i];
-        std::memset(&part->localPosition_, 0, sizeof(part->localPosition_));
+        part->localPosition_ = {};
         AddPendingPart(box, part);
     }
     if (parts.empty() && pendingParts.empty()) return;
@@ -142,10 +142,10 @@ void CObject3D::SetFigureScale(const float* newScale) {
             }
             part = parts[i];
             const ClipBounds& fitted = piece->second.box.bounds;
-            std::memcpy(&part->box_.bounds.center, &fitted.center, sizeof(part->box_.bounds.center));
-            std::memcpy(&part->box_.bounds.boxMin, &fitted.boxMin, sizeof(part->box_.bounds.boxMin));
-            std::memcpy(&part->box_.bounds.boxMax, &fitted.boxMax, sizeof(part->box_.bounds.boxMax));
-            std::memcpy(&part->box_.bounds.radius, &fitted.radius, sizeof(float));
+            part->box_.bounds.center = fitted.center;
+            part->box_.bounds.boxMin = fitted.boxMin;
+            part->box_.bounds.boxMax = fitted.boxMax;
+            part->box_.bounds.radius = fitted.radius;
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, scale.x, scale.y, scale.z);

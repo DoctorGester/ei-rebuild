@@ -106,7 +106,7 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     center_ = other->center_;
     boxMin_ = other->boxMin_;
     boxMax_ = other->boxMax_;
-    std::memcpy(&radius_, &other->radius_, 4);
+    x87::CopyBits(radius_, other->radius_);
     materialValue_ = other->materialValue_;
     meshType_ = other->meshType_;
 }
@@ -146,11 +146,10 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     // keeps on the FPU stay doubles.
     float* m = poseMatrix_.m;
     std::memset(m, 0, sizeof(poseMatrix_));
-    std::uint32_t one = 0x3F800000;
-    std::memcpy(&m[15], &one, 4);
-    std::memcpy(&m[10], &one, 4);
-    std::memcpy(&m[5], &one, 4);
-    std::memcpy(&m[0], &one, 4);
+    m[15] = 1.0f;
+    m[10] = 1.0f;
+    m[5] = 1.0f;
+    m[0] = 1.0f;
     float qw = worldRotation_.w, qx = worldRotation_.x, qy = worldRotation_.y, qz = worldRotation_.z;
     double x2 = static_cast<double>(qx) + qx;
     float y2 = static_cast<float>(static_cast<double>(qy) + qy);
@@ -174,7 +173,7 @@ void CFigureMesh::UpdateWorld(const Quaternion& rotation, const Vector3& offset)
     m[2] = static_cast<float>(static_cast<double>(xz) - wy);
     m[6] = static_cast<float>(static_cast<double>(yz) + wx);
     m[10] = static_cast<float>(1.0f - (static_cast<double>(yy) + xx));
-    std::memcpy(&m[12], &moved[0], sizeof(float));
-    std::memcpy(&m[13], &moved[1], sizeof(float));
-    std::memcpy(&m[14], &moved[2], sizeof(float));
+    x87::CopyBits(m[12], moved[0]);
+    x87::CopyBits(m[13], moved[1]);
+    x87::CopyBits(m[14], moved[2]);
 }

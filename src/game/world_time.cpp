@@ -1,6 +1,7 @@
 // The world's time of day, time speed and wind (the base world's and the server's versions).
 #include "world.h"
 
+#include <bit>
 #include <cmath>
 #include <cstring>
 
@@ -50,7 +51,7 @@ void CWorld::GetTime(float* hours, float* speed) {
 
 void CWorld::SetWind(const Vector3* direction, float strength) {
     std::memcpy(windDirection_, direction, sizeof(windDirection_));
-    std::memcpy(&windStrength_, &strength, sizeof(windStrength_));
+    windStrength_ = std::bit_cast<std::uint32_t>(strength);
 }
 
 void CWorldServer::SetTime(float hours) {

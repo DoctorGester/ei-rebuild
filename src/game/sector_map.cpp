@@ -7,6 +7,7 @@
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 #include <list>
 #include <vector>
@@ -163,11 +164,11 @@ bool CSectorMap::Remove(CMapObject* object) {
 
 int RadiusTree::Find(float radius) const {
     std::int32_t key;
-    std::memcpy(&key, &radius, sizeof(key));
+    key = std::bit_cast<std::int32_t>(radius);
     int node = 1;
     for (int level = depth; level > 0; --level) {
         std::int32_t nodeKey;
-        std::memcpy(&nodeKey, &keys[node], sizeof(nodeKey));
+        nodeKey = std::bit_cast<std::int32_t>(keys[node]);
         node = node * 2 + (key > nodeKey ? 1 : 0);
     }
     return node & mask;
@@ -281,7 +282,7 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     int cellX = x87::fistp(2.0f * position->x - 0.5f);
     int cellY = x87::fistp(2.0f * position->y - 0.5f);
     Vector3 saved;
-    std::memcpy(&saved, &current, sizeof(saved));   // bitwise (no x87 round trip)
+    saved = current;   // bitwise (no x87 round trip)
 
     int oldSx = object->sectorCellX / 32, oldSy = object->sectorCellY / 32;
     if (oldSx >= width || oldSy >= height) return false;
@@ -292,10 +293,10 @@ bool CSectorMap::Move(CMapObject* object, const Vector3* position) {
     // Lift the footprint, move, and stamp it again; put it back where it was if it does not fit.
     bool moved = false;
     if (aiMap->MarkFootprint(object, true)) {
-        std::memcpy(&current, position, sizeof(current));
+        current = *position;
         moved = aiMap->MarkFootprint(object, false);
         if (!moved) {
-            std::memcpy(&current, &saved, sizeof(current));
+            current = saved;
             aiMap->MarkFootprint(object, false);
         }
     }

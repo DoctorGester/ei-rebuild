@@ -5,17 +5,12 @@
 
 #include "lib/nan_audit.h"
 
+#include <bit>
 #include <cstring>
 
 using namespace itemdb;
 
 namespace {
-
-float FloatOf(std::uint32_t bits) {
-    float f;
-    std::memcpy(&f, &bits, 4);
-    return f;
-}
 
 } // namespace
 
@@ -29,11 +24,11 @@ BOOL CItem::IsSameAs(CItem* other) {
     if (other == this) return 1;
     if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
     EI_NAN_AUDIT(condition_, other->condition_, conditionMax_, other->conditionMax_, charge_,
-                 other->charge_, chargeMax_, other->chargeMax_, FloatOf(weight_), FloatOf(other->weight_), price_, other->price_,
-                 FloatOf(unreadValue_), FloatOf(other->unreadValue_));
+                 other->charge_, chargeMax_, other->chargeMax_, weight_, other->weight_, price_, other->price_,
+                 unreadValue_, other->unreadValue_);
     if (condition_ != other->condition_ || conditionMax_ != other->conditionMax_ ||
-        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || FloatOf(weight_) != FloatOf(other->weight_) ||
-        price_ != other->price_ || FloatOf(unreadValue_) != FloatOf(other->unreadValue_))
+        charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || weight_ != other->weight_ ||
+        price_ != other->price_ || unreadValue_ != other->unreadValue_)
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
     const CSpell* spell = spell_;
@@ -73,9 +68,9 @@ BOOL CItemLoot::IsSameAs(CItem* item) {
 void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordAs<WeaponRecord>(record);
-    std::memcpy(&reach_, &r->reach, 4);
-    std::memcpy(&damage_, &r->damage, 4);
-    std::memcpy(&damageSpread_, &r->damageSpread, 4);
+    reach_ = r->reach;
+    damage_ = r->damage;
+    damageSpread_ = r->damageSpread;
 }
 
 void CItemArmor::InitFromRecord(const ItemRecordHead* record) {

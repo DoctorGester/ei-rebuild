@@ -173,7 +173,7 @@ std::uint32_t ResetDamageInfo(DamageInfo* info) {
     info->multiplier = 1.0f;
     info->weaponValue = 0;
     info->attackRoll = kLarge;
-    std::memcpy(&info->amount, &kLarge, sizeof(kLarge));
+    info->amount = std::bit_cast<float>(kLarge);
     info->location = 6;
     info->hitKind = 0;
     return kLarge;
