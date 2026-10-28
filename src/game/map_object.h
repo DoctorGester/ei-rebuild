@@ -259,7 +259,7 @@ public:
     int updateCountdown;
     float animationSpeed;           // the animation's speed factor (CUnit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // hit points, maximum, mana, maximum
-    mfc::CArray<MapEffect> effects; // (SetEffectCount is its SetSize)
+    std::vector<MapEffect> effects; // (SetEffectCount is its SetSize)
     std::string name2;
     Vector3 baseScale;
     int sectorCellX;

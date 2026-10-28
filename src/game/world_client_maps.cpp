@@ -1218,15 +1218,10 @@ CLightningManager::~CLightningManager() {
     newBolts_.clear();
 }
 
-ClientArrayManager::ClientArrayManager() {
-    texture = nullptr;
-    mfc::impl::ConstructListHeader<mfc::impl::ClientList3Class>(&list, 10);
-}
+ClientArrayManager::ClientArrayManager() { texture = nullptr; }
 
 ClientArrayManager::~ClientArrayManager() {
     VisFogManagerDestroy(this);
-    list.vtable = mfc::impl::ClientList3Class::Vtable();
-    list.RemoveAll();
     if (CTexture* held = texture) held->Release();
 }
 

@@ -218,10 +218,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073DA80,3,,game,0050C5F0 0050C730 0050DE30,007005E3,AnimationStateListClass,-,CList (an animation state's queue); stored only by game.exe (ours is a std::list)
 0073DAA0,61,,game,0050E2D0 0050E660,0050E560,CMapObject,src/game/map_object.h,"CMapObject's own table (slots 11, 12 _purecall)"
 0073DB94,3,,game,0050E2D0 0050E580 0050E660 0050FBC0,007005E3,DeltaFieldArrayClass,-,CArray<DeltaField> (a map object's network records); stored only by game.exe (ours is a std::vector)
-0073DBA0,3,,game,0050E2D0 0050E660 0050FFB0 00510B80 005112A0,007005E3,EffectArrayClass,src/lib/mfc_slots.h,CArray (a map object's effects)
+0073DBA0,3,,game,0050E2D0 0050E660 0050FFB0 00510B80 005112A0,007005E3,EffectArrayClass,-,CArray (a map object's effects); stored only by game.exe (ours is a std::vector)
 0073DBEC,20,,game,00510450 00510560,00510540,CMapObjectClientSpecific,src/game/unit.h,the map objects' client companion
-0073DC3C,3,,game,00510450 00510560 00511E00,007005E3,EffectSoundArrayClass,src/lib/mfc_slots.h,CArray (a map object's effect sounds)
-0073DC48,3,,game,00510450 00510560 00511BB0,007005E3,EffectObjectArrayClass,src/game/game_slots.h,CArray (a map object client's effect records)
+0073DC3C,3,,game,00510450 00510560 00511E00,007005E3,EffectSoundArrayClass,-,CArray (a map object's effect sounds); stored only by game.exe (ours is a std::vector)
+0073DC48,3,,game,00510450 00510560 00511BB0,007005E3,EffectObjectArrayClass,-,CArray (a map object client's effect records); stored only by game.exe (ours is a std::vector)
 0073DC54,20,,game,00510560 00510730 00515610 00515720,00510710,CMapObjectCompanion,src/game/map_object.h,the map object companions' base
 0073DCD8,26,,game,005125E0 00512650,00512630,CMapObjectManager,src/game/unit_create.h,
 0073DD6C,21,,game,00515610 00515720,00515700,CMapObjectServer,src/game/unit.h,the map objects' server companion
@@ -256,7 +256,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073ECD8,54,,game,00533AD0 00533EA0,00533E80,CUnitClientSpecific,src/game/unit_client_models.h,the client's unit controller
 0073EDB0,3,,game,00533AD0 00533E20 00533EA0 00539890 00545750 00545780 00546100 0054E600 0054EAC0 0054EB30 00554830 00556D10 005AF5F0 005B9690 005B9C90 005C5E60 005CF3C0 005D37E0 005D7F80 006706A0,007005E3,CellListClass,-,CList (the units' path cell lists); stored only by game.exe (ours is a std::list)
 0073EDBC,54,,game,00533AD0 00533DB0 00533EA0 00545580 00546230,00533D90,CUnitController,src/game/unit.h,the unit controllers' abstract base
-0073EEA0,3,,game,00536670 005396C0,007005E3,SkinLayerArrayClass,src/lib/mfc_slots.h,CArray (a unit's skin layers (ComposeSkin))
+0073EEA0,3,,game,00536670 005396C0,007005E3,SkinLayerArrayClass,-,CArray (a unit's skin layers (ComposeSkin)); stored only by game.exe (ours is a std::vector)
 0073EF2C,3,,game,005450F0 005461C0 00546210 00546230 00547100 00548700 00548DE0 00548FA0 0054A150 0054C6B0 0054CA40 00550100 00551400 00553AC0 00556C20 00557B60 00557E70,007005E3,AnimationStepsClass,src/lib/mfc_slots.h,CArray (a unit's animation steps)
 0073EF38,54,,game,00545580 00546230,005460E0,CUnitServer,src/game/combat.h,the server's unit controller
 0073F010,3,,game,00545580 00546230 00558070,007005E3,ArmourSpellListClass,-,CList (the armour spells); stored only by game.exe (ours is a std::list)
@@ -298,7 +298,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073F6F0,13,,game,00561E50 005629B0,00562990,CTextManager,src/game/item_db_text.h,the client's text manager
 0073F724,3,,game,00562B80 00570EA0 00570ED0,007005E3,ClientList2Class,-,CList (00570EA0's list); stored only by game.exe (ours is a std::list)
 0073F730,3,,game,00562B80 005711C0 005711E0,007005E3,ClientMapArrayClass,src/game/record_arrays.h,CArray (the client world's water levels)
-0073F73C,3,,game,00562DF0 005715D0 00571600,007005E3,ClientList3Class,src/lib/mfc_slots.h,CList (005715D0's list)
+0073F73C,3,,game,00562DF0 005715D0 00571600,007005E3,ClientList3Class,-,CList (005715D0's list); stored only by game.exe (ours is a std::list)
 0073F754,3,,game,0056F880 006CF660,006CFA20,BloodPrint,src/game/ground_print.h,
 0073F760,3,,game,0056F940 006CFBA0,006CECD0,Footprint,src/game/ground_print.h,
 0073F76C,3,,game,0056F9F0 006CFEA0,006CECD0,GroundPrint,src/game/ground_print.h,

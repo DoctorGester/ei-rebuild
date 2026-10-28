@@ -219,8 +219,6 @@ struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
 // The units' path cell lists
 // The client's third list
-struct ClientList3Class final
-    : CompiledCollection<ClientList3Class, &PtrList::Destruct<ClientList3Class>, &PtrList::Serialize> {};
 // The AI's block cost lists
 // The AI plan's waypoint lists
 // The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
@@ -280,11 +278,7 @@ struct ArgGroupsClass final : ArgGroupsBaseClass {
 struct BindingsBaseClass
     : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &Plain12::Serialize> {};
 // A map object's effects.
-struct EffectArrayClass final
-    : CompiledCollection<EffectArrayClass, &ArrayHeader<EffectArrayClass>::Destruct, &Plain20::Serialize> {};
 // A map object's effect sounds.
-struct EffectSoundArrayClass final
-    : CompiledCollection<EffectSoundArrayClass, &ArrayHeader<EffectSoundArrayClass>::Destruct, &SoundRecords::Serialize> {};
 // A 3D object's frames.
 struct FrameArrayClass final
     : CompiledCollection<FrameArrayClass, &ArrayHeader<FrameArrayClass>::Destruct, &Plain56::Serialize> {};
@@ -292,8 +286,6 @@ struct FrameArrayClass final
 struct CarriedArrayClass final
     : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &Plain4::Serialize> {};
 // A unit's skin layers (ComposeSkin).
-struct SkinLayerArrayClass final
-    : CompiledCollection<SkinLayerArrayClass, &ArrayHeader<SkinLayerArrayClass>::Destruct, &PathRecords::Serialize> {};
 // A sector's occluders.
 struct SectorOccluderArrayClass final
     : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &Plain8::Serialize> {};

@@ -171,10 +171,10 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
     RECT line{40, 35, 155, 50};
 
-    if (unit->effects.size > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
+    if (std::ssize(unit->effects) > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
     // The unit's effects are the map object's records.
-    const MapEffect* effects = unit->effects.data;
-    for (int i = 0; i < unit->effects.size && i < kPlaces; ++i) {
+    const MapEffect* effects = unit->effects.data();
+    for (int i = 0; i < std::ssize(unit->effects) && i < kPlaces; ++i) {
         code.clear();
         text.clear();
         const itemdb::SpellRecord* spell = itemdb::SpellAt(effects[i].type);

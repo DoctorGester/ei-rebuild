@@ -266,10 +266,10 @@ void CWorldServer::TickSleepingEffects() {
     // companion, and is asleep gets one tick taken off each effect; when one runs out, the object goes back into
     // the update map, whose update removes it.
     for (const auto& [id, object] : mapObjects_.map) {
-        if ((object->flags_ & 1) || object->refCount_ == 0 || object->effects.size == 0) continue;
+        if ((object->flags_ & 1) || object->refCount_ == 0 || std::ssize(object->effects) == 0) continue;
         if (object->updateCountdown > 0 || !object->companion) continue;
         bool expired = false;
-        for (int i = 0; i < object->effects.size; ++i) {
+        for (int i = 0; i < std::ssize(object->effects); ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;
         }
         if (expired) AddToUpdateMap(object);

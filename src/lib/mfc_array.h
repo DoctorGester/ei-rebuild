@@ -190,36 +190,6 @@ void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
-// 12-byte path records: 0, then two indices -1.
-struct PathRecord12 {
-    int value;
-    int first;
-    int second;
-};
-inline void InitPathRecord12(PathRecord12* p) {
-    p->value = 0;
-    p->first = -1;
-    p->second = -1;
-}
-
-// 20-byte effect sound records: 0, two handles -1, 0, a flag byte 0.
-struct SoundRecord20 {
-    int value;
-    int first;
-    int second;
-    int extra;
-    std::uint8_t flag;
-    std::uint8_t padding[3];
-};
-static_assert(sizeof(SoundRecord20) == 0x14);
-inline void InitSoundRecord20(SoundRecord20* p) {
-    p->value = 0;
-    p->flag = 0;
-    p->first = -1;
-    p->second = -1;
-    p->extra = 0;
-}
-
 // A unit's animation step (12 bytes; game/combat.h's AnimationStep): the blank step after the zero
 // fill ('s values): animation and variant 0xFF, flags 0, duration -1, kind 0.
 struct AnimationStep12 {
@@ -237,22 +207,6 @@ inline void InitAnimationStep12(AnimationStep12* p) {
     p->duration = -1;
     p->kind = 0;
     p->flags = 0;
-}
-
-// 16-byte effect particles (game/unit.h EffectParticle): type 0, power 0x10, no source, not present
-struct Particle16 {
-    int type;
-    int power;
-    void* source;
-    std::uint8_t present;
-    std::uint8_t padding[3];
-};
-static_assert(sizeof(Particle16) == 0x10);
-inline void InitParticle16(Particle16* p) {
-    p->source = nullptr;
-    p->type = 0;
-    p->power = 0x10;
-    p->present = 0;
 }
 
 // The destructors of elements that hold an array header at `ArrayAt`: the vtable of `BaseClass`, the storage
@@ -277,9 +231,6 @@ using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
 
-using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
-using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;
-using SoundRecords = ArrayAbi<SoundRecord20, InitElements<SoundRecord20, InitSoundRecord20>>;
 using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, InitAnimationStep12>>;
 
 // A unit's animation list (game/combat.h's AnimationSteps): the steps' array and a

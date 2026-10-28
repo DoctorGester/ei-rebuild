@@ -44,12 +44,7 @@ int CMapObject::CreateMapObject() {
     NetState()->SetFieldCount(kMapObjectNetFields);
     NetState()->Reset();
     changeStamp = -1;
-    if (effects.data) {
-        gamecrt::operator_delete(effects.data);
-        effects.data = nullptr;
-    }
-    effects.maxSize = 0;
-    effects.size = 0;
+    effects = {};
     updateCountdown = kInitialCountdown;
     name2 = game::EmptyText();
     baseScale.x = baseScale.y = baseScale.z = 0.0f;

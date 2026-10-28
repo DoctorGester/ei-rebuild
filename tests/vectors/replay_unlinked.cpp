@@ -39,7 +39,6 @@ namespace {
     { Unlinked(what); }
 
 // game_arrays.cpp's other element types.
-void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource")
 void aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
 void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
 

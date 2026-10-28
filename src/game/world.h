@@ -778,7 +778,7 @@ struct ClientArrayManager : CBaseManager {
     int Draw(CSceneRenderer* renderer);
 
     HeldTexture texture;                  // the fog texture (counted)
-    mfc::CList<CEngineObject*> list;      // counted
+    std::list<CEngineObject*> list;       // counted
 };
 // The manager's Clear (its object and every listed one released, the list emptied); a new fog object,
 // counted, at the list end.

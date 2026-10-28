@@ -24,15 +24,6 @@ struct ObjectAndValue {
 static_assert(sizeof(ObjectAndValue) == 8);
 inline void ReleaseObjectAndValue(ObjectAndValue* p) { gamearrays::ReleaseAndClear(&p->ref); }
 
-// A map object client's 16-byte effect records: an engine object (released, left).
-struct EffectObjectRecord {
-    std::uint32_t head[2];
-    CEngineObject* object;
-    std::uint32_t tail;
-};
-static_assert(sizeof(EffectObjectRecord) == 0x10);
-inline void ReleaseEffectObject(EffectObjectRecord* p) { gamearrays::ReleaseOnly(&p->object); }
-
 inline void DestroyCommand(SSCCmd* p) { ScriptCmdDestruct(p); }
 inline void DestroyDecl(ScriptDecl* p) { ScriptDeclDestruct(p); }
 
@@ -40,7 +31,6 @@ using mfc::impl::ArrayAbi;
 using mfc::impl::EachElements;
 using mfc::impl::ListAbi;
 
-using EffectObjects = ArrayAbi<EffectObjectRecord, EachElements<EffectObjectRecord, nullptr, ReleaseEffectObject>>;
 using Definitions = ArrayAbi<ScriptDefinition, EachElements<ScriptDefinition, nullptr, gamelists::DestroyDefinition>>;
 using Commands = ArrayAbi<SSCCmd, EachElements<SSCCmd, nullptr, DestroyCommand>>;
 using DeclList = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
@@ -159,8 +149,6 @@ struct TokenListClass final
 struct DefineListClass final
     : CompiledCollection<DefineListClass, &ScriptDefinesDestruct, &DefinesThrough::Abi::SerializeThrough<DefinesThrough>> {};
 
-struct EffectObjectArrayClass final
-    : CompiledCollection<EffectObjectArrayClass, &EffectObjects::Destruct<EffectObjectArrayClass>, &gamearrays::Particles::Serialize> {};
 struct CommandArrayClass
     : CompiledCollection<CommandArrayClass, &Commands::Destruct<CommandArrayClass>, &BuiltCommands::Serialize> {};
 

@@ -26,7 +26,7 @@ void CMapObject::FreeArray(UseSpotArray* array, int) {
 int CMapObjectClientSpecific::Create() {
     lightStateA = 0;
     lightStateB = 0;
-    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
+    particles.clear();
     endSound = kNoSound;
     owner = nullptr;
     return 1;

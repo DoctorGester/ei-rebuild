@@ -33,13 +33,6 @@ inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 inline void InitObjective(ScriptQuestObjective* p) { std::construct_at(&p->text); }
 inline void DestroyObjective(ScriptQuestObjective* p) { ScriptQuestObjectiveDestruct(p); }
 
-inline void InitParticle(EffectParticle* p) {
-    p->source = nullptr;
-    p->type = 0;
-    p->power = 0x10;
-    p->present = 0;
-}
-inline void DestroyParticle(EffectParticle* p) { p->ReleaseSource(); }
 
 // Object references (ScriptObjectRef and the bare CEngineObject* holders): zero filled; destroyed by a Release,
 // the slot cleared or left.
@@ -57,7 +50,6 @@ inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;
-using Particles = ArrayAbi<EffectParticle, EachElements<EffectParticle, InitParticle, DestroyParticle>>;
 using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, ReleaseAndClear>>;
 using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 

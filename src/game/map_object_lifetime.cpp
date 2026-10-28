@@ -132,7 +132,6 @@ DeltaState::~DeltaState() = default;
 void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
 
 void CMapObject::SetUpMapObject() {
-    effects.Construct(mfc::impl::EffectArrayClass::Vtable());
     companion = nullptr;
     PackedVitals()->Reset();
     sectorCellX = -1;
@@ -140,11 +139,7 @@ void CMapObject::SetUpMapObject() {
     SetBits(animationSpeed, kOne);
 }
 
-// The second name is destroyed after the body (before the effects in the original), then the 3D object.
-CMapObject::~CMapObject() {
-    effects.vtable = const_cast<void*>(mfc::impl::EffectArrayClass::Vtable());
-    effects.FreeData();
-}
+CMapObject::~CMapObject() = default;
 
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
@@ -231,17 +226,6 @@ CMapObjectServer::~CMapObjectServer() {
 }
 
 CMapObjectClientSpecific::CMapObjectClientSpecific() {
-    // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
-    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
-    particles.data = nullptr;
-    particles.growBy = 0;
-    particles.maxSize = 0;
-    particles.size = 0;
-    SetVtable(&sounds, mfc::impl::EffectSoundArrayClass::Vtable());
-    sounds.data = nullptr;
-    sounds.growBy = 0;
-    sounds.maxSize = 0;
-    sounds.size = 0;
     light = nullptr;
     lightStateA = 0;
     lightStateB = 0;
@@ -250,7 +234,7 @@ CMapObjectClientSpecific::CMapObjectClientSpecific() {
 CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     lightStateA = 0;
     lightStateB = 0;
-    mfc::impl::ArrayAs<gamearrays::Particles>(particles).SetSize(0, -1);
+    particles.clear();
     if (light) {
         light->flags_ &= ~0x200u;
         if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
@@ -266,13 +250,6 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
     }
     owner = nullptr;
     if (light) light->Release();
-    DestroyArray(sounds, mfc::impl::EffectSoundArrayClass::Vtable());
-    SetVtable(&particles, gameslots::EffectObjectArrayClass::Vtable());
-    if (EffectParticle* data = particles.data) {
-        for (int i = 0; i < particles.size; ++i)
-            if (data[i].source) data[i].source->Release();
-        gamecrt::operator_delete(particles.data);
-    }
 }
 
 // --- The server unit controller ---------------------------------------------------------------

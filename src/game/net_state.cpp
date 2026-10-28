@@ -46,8 +46,8 @@ void CMapObject::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
-        PutByte(field, static_cast<std::uint8_t>(effects.size));
-        for (int i = 0; i < effects.size; ++i) {
+        PutByte(field, static_cast<std::uint8_t>(std::ssize(effects)));
+        for (int i = 0; i < std::ssize(effects); ++i) {
             MapEffect* effect = &effects[i];
             field->WriteBoth(&effect->type, 1);
             field->WriteBoth(&effect->power, 1);
@@ -181,7 +181,7 @@ std::uint32_t CMapObject::ReadNetState(int first) {
     field->ReadDelta(&countWord, 1);
     int count = static_cast<int>(countWord & 0xFF);
     SetEffectCount(count);
-    for (int i = 0; i < effects.size; ++i) {
+    for (int i = 0; i < std::ssize(effects); ++i) {
         MapEffect* effect = &effects[i];
         effect->ticksLeft = 0;
         field->ReadRaw(&effect->type, 1);
