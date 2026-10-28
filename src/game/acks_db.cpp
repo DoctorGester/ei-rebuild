@@ -128,7 +128,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
         TheSoundManager()->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
         return nullptr;
     }
-    AckDatabase& db = Database();
+    AckDatabase& db = *g_ackDatabase;
     const Speeches* list = nullptr;
     const EnvironmentSpeeches* environmentList = nullptr;
     if (kind <= 0x29) {
@@ -179,7 +179,7 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
     auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
-    UnitAcks* record = Database().units.Find(prototype->name.c_str());
+    UnitAcks* record = g_ackDatabase->units.Find(prototype->name.c_str());
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
     for (const SpeechRecord& s : record->namedSpeeches) {

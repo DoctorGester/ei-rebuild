@@ -56,7 +56,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     CItemManager* items = t->ItemsParty()->ItemManager();
     CSpellManager* spells = t->SpellsParty()->SpellManager();
 
-    itemdb::ItemDatabase& db = itemdb::TheItemDatabase();
+    itemdb::ItemDatabase& db = *g_itemDatabase;
     items->ListWeaponNames(&names);
     for (const std::string& name : names) {
         itemdb::WeaponRecord* record = db.weapons.Named(name.c_str());

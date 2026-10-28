@@ -143,7 +143,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 void Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         std::string name = r.name;
-        Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
+        Command(r.cheat ? &g_cheatCommands.Get() : &g_publicCommands.Get(), name) = r.handler;
     }
 
     std::vector<std::string> args;
@@ -174,8 +174,8 @@ void Execute(const char* text) {
         app::QuitGame(0);
         return;
     }
-    if (Command(PublicCommands(), command)) {
-        (Command(PublicCommands(), command))(&args);
+    if (Command(&g_publicCommands.Get(), command)) {
+        (Command(&g_publicCommands.Get(), command))(&args);
         return;
     }
     if (!g_cheatEnabled) {
@@ -187,8 +187,8 @@ void Execute(const char* text) {
             PrintLine("Activated!");
             return;
         }
-    } else if (Command(CheatCommands(), command)) {
-        if (!NetworkGame()) (Command(CheatCommands(), command))(&args);
+    } else if (Command(&g_cheatCommands.Get(), command)) {
+        if (!NetworkGame()) (Command(&g_cheatCommands.Get(), command))(&args);
         return;
     }
     PrintLine("Unknown command");

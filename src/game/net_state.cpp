@@ -52,7 +52,7 @@ bool Exceeds(float v) {
 } // namespace
 
 void CMapObject::WriteNetState() {
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     if (DeltaField* field = state->BeginField(0)) {
         field->WriteDelta(&packedVitals, 0x18);
         field->EndField();
@@ -83,9 +83,9 @@ void CMapObject::WriteNetState() {
 void CUnit::WriteNetState() {
     CMapObject::WriteNetState();
     CUnit* unit = this;
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     if (DeltaField* field = state->BeginField(4)) {
-        field->WriteDelta(unit->Params(), 0x108);
+        field->WriteDelta(&unit->params, 0x108);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(5)) {
@@ -152,14 +152,14 @@ void CUnit::WriteNetState() {
 
 
 std::uint32_t CMapObject::ReadNetState(int first) {
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
-        short before = PackedVitals()->hitPoints;
+        short before = packedVitals.hitPoints;
         field->ReadDelta(&packedVitals, 0x18);
         complete = SnapshotConsumed();
         field->EndField();
-        if (before != PackedVitals()->hitPoints || first == 1) RefreshWounds();
+        if (before != packedVitals.hitPoints || first == 1) RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
         Vector3 figureScale;
@@ -209,7 +209,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
     CUnit* unit = this;
     float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
     std::uint32_t complete = CMapObject::ReadNetState(first);
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     bool gotItems = false;
     bool changed = false;
     std::uint32_t ids4[4];
@@ -217,7 +217,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
     if (DeltaField* field = state->BeginField(4)) {
         float before[6];
         for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
-        field->ReadDelta(unit->Params(), 0x108);
+        field->ReadDelta(&unit->params, 0x108);
         // Slot 55 (IsDead): a dead unit skips the stat reactions.
         if (!unit->IsDead() && first == 1) {
             bool any = false;
@@ -226,7 +226,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
                 if (Exceeds(now - before[k])) any = true;
                 float change = before[k] - now;
                 if (Exceeds(change)) {
-                    unit->Controller()->StatChanged(k, change, unit->Params()->flags);
+                    unit->Controller()->StatChanged(k, change, unit->params.flags);
                 }
             }
             if (any) unit->Controller()->RefreshWounds();
@@ -237,8 +237,8 @@ std::uint32_t CUnit::ReadNetState(int first) {
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
         // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
         bool dropped = hpBefore > hpNow;
-        if ((dropped || (unit->Params()->flags & 0x10)) && first != 0) {
-            std::uint8_t flags = unit->Params()->flags;
+        if ((dropped || (unit->params.flags & 0x10)) && first != 0) {
+            std::uint8_t flags = unit->params.flags;
             int kind = (flags & 2) ? 2 : 0;
             if (flags & 1) kind |= 1;
             if (flags & 4) kind |= 4;

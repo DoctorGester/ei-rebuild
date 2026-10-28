@@ -35,4 +35,4 @@ CLight* worlddata::SceneSun() { return TheSceneRenderer()->sun_; }
 
 CDiplomacy* GameDiplomacy() { return &TheServerWorld()->diplomacy_; }
 CScript* TheMissionScript() { return TheServerWorld()->MainScript(); }
-CSectorMap* TheSectorMap() { return TheServerWorld()->Sectors(); }
+CSectorMap* TheSectorMap() { return &TheServerWorld()->aiMap_.sectorMap; }

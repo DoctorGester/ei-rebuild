@@ -116,7 +116,7 @@ CTexture* CTextureManager::ShadowRenderSurface() {
 int CTexture::LockPixels(SurfacePixels* pixels) {
     CDXSurface* holder = surface_;
     if (!holder) return 0;
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     holder->result = 0;
     return DirectPixels(holder, pixels) ? 1 : 0;   // (always memory: CreateBlank made it)
 }
@@ -124,7 +124,7 @@ int CTexture::LockPixels(SurfacePixels* pixels) {
 void CTexture::UnlockPixels() {
     CDXSurface* holder = surface_;
     if (!holder) return;
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     holder->result = 0;
 }
 

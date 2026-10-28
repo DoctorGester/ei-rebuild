@@ -70,11 +70,11 @@ Quaternion Product(const Quaternion& a, const Quaternion& b, bool second) {
 void ClearDepthRects(CTextureDevice* renderer, RECT* rects, float z) {
     DWORD flags = D3DCLEAR_ZBUFFER;
     if (uidevice::HasStencil(renderer)) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     D3DRECT cleared[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i) cleared[i] = {rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
     renderer->lastLoadResult_ = device::Clear(D3DDevice(renderer), kClearedRects, cleared, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     render::Rect mirrored[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i)
         mirrored[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};

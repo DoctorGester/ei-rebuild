@@ -370,7 +370,7 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
 // --- Skin -------------------------------------------------------------------------------------
 
 void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* out) {
-    const itemdb::ArmorTable& armours = itemdb::TheItemDatabase().armors;
+    const itemdb::ArmorTable& armours = g_itemDatabase->armors;
     if (!detailed) {
         out->assign(kSimpleLayers, SkinLayer{});
         std::uint32_t id = armourIds[0];

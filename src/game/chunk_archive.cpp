@@ -64,7 +64,6 @@ void ChunkArchive::Ref::Reset() {
 // The class registry, zero at the start: built by its static initialiser in the list's order and destroyed by
 // the exit function it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<ChunkArchive::ClassRegistry> g_classRegistry = /*0079B270*/ {};
-ChunkArchive::ClassRegistry& ChunkArchive::Registry() { return *g_classRegistry; }
 
 // A second block: it uses g_classRegistry (defined above).
 namespace {
@@ -333,7 +332,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         std::uint32_t key = 0;
         index->Read(&classId, 4);
         index->Read(&key, 4);
-        Factory factory = Registry().factories[classId];
+        Factory factory = g_classRegistry->factories[classId];
         CRefCounted* object = factory ? factory() : nullptr;
         saved_.insert(saved_.end(), object);
         loaded_[key] = object;
@@ -387,7 +386,7 @@ void ChunkArchive::Close(CStream* stream) {
             saved_.pop_front();
             std::uint32_t vtable;
             std::memcpy(&vtable, object, 4);
-            const std::unordered_map<std::uint32_t, std::int32_t>& classIds = Registry().classIds;
+            const std::unordered_map<std::uint32_t, std::int32_t>& classIds = g_classRegistry->classIds;
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address

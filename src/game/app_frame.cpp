@@ -47,9 +47,9 @@ std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) 
 // without a surface (renderer.md section 9): nothing to fill, the result 0.
 void ClearScreen() {
     CTextureDevice* device = TheRenderDevice();
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     device->lastLoadResult_ = 0;
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
 }
 
 std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame file of the movie being written
@@ -74,7 +74,7 @@ void FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
-    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", MovieFolder().c_str(), g_movieFrame);
+    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", g_movieFolder->c_str(), g_movieFrame);
     lib::File file;
     if (!file.Open(path, lib::File::modeCreate | lib::File::modeWrite)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
@@ -111,13 +111,13 @@ void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, in
     ini->Construct();
     {
         std::string path;
-        ini->SetPath((*ConcatText(&path, &TheDataFolder(), "config\\movie.ini")).c_str());
+        ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")).c_str());
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
     for (const std::string& movie : list) {
         {
-            const std::string full = TheDiscFolder().c_str() + std::string("Movies\\") + movie;
+            const std::string full = g_discFolder->c_str() + std::string("Movies\\") + movie;
             PlayMovie(full, 0, 1, 0, 0, static_cast<char>(a), b);
         }
         if (clearAfter) ClearScreen();

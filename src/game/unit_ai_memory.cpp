@@ -69,7 +69,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* po
         auto* other = *node;
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
-            AIBrain* theirs = other->ServerController()->Brain();
+            AIBrain* theirs = &other->ServerController()->brain;
             auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
@@ -108,7 +108,7 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
     double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
     float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-    AIBrain* theirBrain = theirs->Brain();
+    AIBrain* theirBrain = &theirs->brain;
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
                      theirBrain->target == self;
     if (!attacksUs) {
@@ -118,19 +118,19 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
         if (sight > distance && nearValue > distance) return;
     }
     if (IsDead(object)) {
-        console::EndLine(AiLog() << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
+        console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << other->id_);
         seenCorpses.AddCountedTail(object);
         if (Allied(self->side, other->side)) corpses.AddCountedTail(object);
     } else {
         visible.push_front(object);
         ++object->refCount_;
-        AiLog() << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
-        console::EndLine(AiLog() << distance << "m distance");
+        *kAiLog << "Unit " << self->id_ << " is forced to see unit " << other->id_ << " from ";
+        console::EndLine(*kAiLog << distance << "m distance");
     }
 }
 
 void AIMemory::SeeCorpse(CUnit* self, CUnit* corpse) {
-    console::EndLine(AiLog() << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
+    console::EndLine(*kAiLog << "Unit " << self->id_ << " sees corpse of unit " << corpse->id_);
     seenCorpses.AddCountedTail(corpse);
     if (Allied(self->side, corpse->side)) corpses.AddCountedTail(corpse);
 }

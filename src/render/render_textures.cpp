@@ -335,7 +335,7 @@ bool MemoryChanged(const std::unordered_map<const void*, std::vector<std::uint8_
     GdiFlush();
     auto it = snapshots.find(holder);
     if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
-    Stats().comparedBytes += it->second.size();
+    g_stats.comparedBytes += it->second.size();
     return std::memcmp(it->second.data(), m.bits, it->second.size()) != 0;
 }
 
@@ -541,7 +541,7 @@ Rect ChangedPart(const SurfaceMemory& m, const std::vector<std::uint8_t>& snapsh
         if (y < changed.top) changed.top = y;
         changed.bottom = y + 1;
     }
-    Stats().comparedBytes += static_cast<std::uint64_t>(within.right - within.left) * bytes * (within.bottom - within.top);
+    g_stats.comparedBytes += static_cast<std::uint64_t>(within.right - within.left) * bytes * (within.bottom - within.top);
     return Empty(changed) ? Rect{} : changed;
 }
 

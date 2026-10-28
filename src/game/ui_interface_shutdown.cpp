@@ -52,7 +52,7 @@ void CInterface3D::Shutdown() {
     lib::TextFile file;
     bool opened;
     {
-        std::string path = TheDataFolder() + game::TutorialIniText();
+        std::string path = *g_dataFolder + game::TutorialIniText();
         opened = file.Open(path, "w") != 0;
     }
     if (opened) {

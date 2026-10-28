@@ -50,13 +50,13 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
     std::list<CUnit*> units{};
     CUnit* unit = source->unit;
     const Vector3* point = at ? at : &unit->localPosition_;
-    map->SectorMap()->FindUnitsInRadius(point, &units, kNoiseRadius);
+    map->sectorMap.FindUnitsInRadius(point, &units, kNoiseRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
         if (!other->IsHostileTo(unit)) continue;
         CUnitServer* control = other->ServerController();
-        AIBrain* brain = control->Brain();
+        AIBrain* brain = &control->brain;
         if (brain->memory.noticedLevel >= kAlertedLevel) continue;
         const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
         const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->localPosition_);

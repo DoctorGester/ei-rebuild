@@ -143,7 +143,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
-        world->Sectors()->FindUnitsInRadius(&unit->localPosition_, &heard, radius);
+        world->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &heard, radius);
         for (auto entry = heard.begin(); entry != heard.end(); ++entry) *out++ = *entry;
         heard.clear();
     }

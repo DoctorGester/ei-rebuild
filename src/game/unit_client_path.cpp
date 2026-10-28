@@ -46,7 +46,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
     int cellX, cellY;
     bool turning;
     CWorld* world = ObjectWorld(self);
-    unit->Motion()->Sample(world, OrderOf(self->MotionPath()), time, &turning, &position.x,
+    unit->Motion()->Sample(world, OrderOf(&self->motion), time, &turning, &position.x,
                            &direction.x, &speed, &cellX, &cellY);
     float toWorld = kCellScale * kHalf;
     position.x = toWorld * position.x;

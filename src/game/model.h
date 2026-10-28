@@ -657,7 +657,6 @@ struct PrintsDatabase {
     std::unordered_map<std::string, PrintRecord*> scorchByName;
 };
 extern lib::StaticObject<PrintsDatabase> g_printsDatabase;
-inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
 // 0), the cursor moved past it.

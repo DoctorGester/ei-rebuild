@@ -90,24 +90,24 @@ enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRe
 
 // --- Weapons and armors ---------------------------------------------------------------------------
 
-std::string CItemWeapon::ModelName() { return ModelNameOf(TheItemDatabase().weapons, kWeaponCodes, prototypeId_); }
+std::string CItemWeapon::ModelName() { return ModelNameOf(g_itemDatabase->weapons, kWeaponCodes, prototypeId_); }
 
-std::string CItemWeapon::FirstListName() { return FirstListNameOf(TheItemDatabase().weapons, prototypeId_); }
+std::string CItemWeapon::FirstListName() { return FirstListNameOf(g_itemDatabase->weapons, prototypeId_); }
 
 std::string CItemWeapon::FigureName() { return HumanFigureName(this); }
 
 std::string CItemWeapon::PictureName() {
-    return PictureNameOf(TheItemDatabase().weapons, kWeaponCodes, kWeaponPicture, prototypeId_);
+    return PictureNameOf(g_itemDatabase->weapons, kWeaponCodes, kWeaponPicture, prototypeId_);
 }
 
-std::string CItemArmor::ModelName() { return ModelNameOf(TheItemDatabase().armors, kArmorCodes, prototypeId_); }
+std::string CItemArmor::ModelName() { return ModelNameOf(g_itemDatabase->armors, kArmorCodes, prototypeId_); }
 
-std::string CItemArmor::FirstListName() { return FirstListNameOf(TheItemDatabase().armors, prototypeId_); }
+std::string CItemArmor::FirstListName() { return FirstListNameOf(g_itemDatabase->armors, prototypeId_); }
 
 std::string CItemArmor::FigureName() { return HumanFigureName(this); }
 
 std::string CItemArmor::PictureName() {
-    return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
+    return PictureNameOf(g_itemDatabase->armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
 // The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 runs into it

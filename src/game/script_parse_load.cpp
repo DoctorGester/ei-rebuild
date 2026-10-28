@@ -98,7 +98,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
 
     if (*pos == tokens->end()) return Error(this, LastLine(tokens), 4, "Expected '%s'", KeywordName(kLexOpen));
 
-    ScriptVars* globals = Globals();
+    ScriptVars* globals = &globals_;
     do {
         token = NextToken(pos);
         text = token.text;
@@ -318,7 +318,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
     if (!ok) return 0;
 
     int index, type;
-    Globals()->FindVariable((*name).c_str(), &index, &type);
+    globals_.FindVariable((*name).c_str(), &index, &type);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
@@ -450,9 +450,9 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 commands->push_back(*cmd);
                 continue;
             }
-            if (Globals()->HasVariable(text.c_str())) {
+            if (globals_.HasVariable(text.c_str())) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &text);
-            } else if (Globals()->HasVariable(qualified.c_str())) {
+            } else if (globals_.HasVariable(qualified.c_str())) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
                 return Error(this, token.line, 3, "Unexpected token '%s'", text.c_str());
@@ -592,7 +592,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             // Declared with qualified names, then added to the global variables.
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 1)) return 0;
             decl->vars.ResetValues();
-            Globals()->AppendFrom(decl->vars);
+            globals_.AppendFrom(decl->vars);
             break;
         }
         default:

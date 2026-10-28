@@ -60,7 +60,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     CUnit* victim = UnitOrNull(target);
     if (victim && caster) {
         if (IsHostileType(SpellType(spell))) {
-            victim->ServerController()->Brain()->SetSeen(caster);
+            victim->ServerController()->brain.SetSeen(caster);
             diplomacy_.OnAttack(caster, victim, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
@@ -94,7 +94,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     Vector3 center;
     std::memcpy(&center, caster ? &caster->localPosition_ : from, sizeof(center));
     float radius = spell->range_;
-    Sectors()->FindUnitsInRadius(&center, &units, radius);
+    aiMap_.sectorMap.FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
         if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
         units.push_front(targetUnit);
@@ -141,7 +141,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
             hit = heroes->partyUnits_.Contains(best) != 0;
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
-            if (lib::Contains(caster->ServerController()->Brain()->memory.visible, best)) {
+            if (lib::Contains(caster->ServerController()->brain.memory.visible, best)) {
                 hit = true;
             } else {
                 int casterSide = caster->side;

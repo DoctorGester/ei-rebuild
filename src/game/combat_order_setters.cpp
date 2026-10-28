@@ -68,13 +68,13 @@ bool CUnitServer::FitsMoveMode(int mode) {
     if (stored == moveMode.mode) return true;
     CAIMap* map = TheServerWorld()->AIMap();
     int saved = unit->moveMode;
-    map->SectorMap()->Remove(unit);
+    map->sectorMap.Remove(unit);
     unit->moveMode = mode;
     unit->UpdateSizeClass();
     bool fits = map->IsUnitCellPassable(unit);
     unit->moveMode = saved;
     unit->UpdateSizeClass();
-    map->SectorMap()->Add(unit);
+    map->sectorMap.Add(unit);
     return fits;
 }
 

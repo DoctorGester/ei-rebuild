@@ -46,7 +46,7 @@ float Pi() { return 3.1415927f /*0073D640*/; }
 } // namespace
 
 void ReadProcessorInfo() {
-    ProcessorInfo* processor = TheProcessorInfo();
+    ProcessorInfo* processor = &g_processorInfo;
     processor->terminator = 0;
     const std::uint32_t before = static_cast<std::uint32_t>(__readeflags());
     __writeeflags(before ^ kEflagsId);
@@ -91,7 +91,7 @@ OSVERSIONINFOA* CSysInfo::QueryVersion() {
 // reads.) Without CPUID the globals keep what they held.
 void CSysInfo::QueryProcessor() {
     ReadProcessorInfo();
-    const std::uint32_t features = TheProcessorInfo()->features;
+    const std::uint32_t features = g_processorInfo.features;
     if (features & kProcessorMmx)
         flags_ |= kMmx;
     else

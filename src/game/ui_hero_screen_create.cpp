@@ -54,7 +54,6 @@ constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 
 // The saved heroes' reload (Rebirth-patched).
-SavedParties* Heroes() { return &TheSavedParties(); }
 
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
@@ -340,8 +339,8 @@ void CMpHeroScreen::CreateScreen() {
     UiSurfaceReleaseDC(commands);
 
     // The saved heroes, from the "mp" folder of the game's data.
-    SavedParties* heroes = Heroes();
-    heroes->folder_ = TheDataFolder() + "mp\\";
+    SavedParties* heroes = &g_savedParties.Get();
+    heroes->folder_ = *g_dataFolder + "mp\\";
     heroes->Reload();
     RefreshHeroScroll();
     DrawHeroList();

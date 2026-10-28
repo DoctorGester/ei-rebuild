@@ -42,7 +42,7 @@ bool DirectlyControlled(const CUnit* unit) {
 
 // Whom a party unit follows: its Player mode's leader, or the unit it follows (action 6).
 CUnit* LeaderOf(const CUnit* unit) {
-    AIBrain* brain = unit->ServerController()->Brain();
+    AIBrain* brain = &unit->ServerController()->brain;
     CMapObject* leader = nullptr;
     if (auto* mode = brain->FindPlayerMode()) leader = mode->leader;
     if (!leader && brain->action == AIBrain::kActionFollow) leader = brain->target;
@@ -134,7 +134,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 auto* other = *node;
                 ++node;
                 if (other == unit) continue;
-                AIBrain* theirs = other->ServerController()->Brain();
+                AIBrain* theirs = &other->ServerController()->brain;
                 auto* mode = theirs->FindPlayerMode();
                 if (!mode || theirs->action == AIBrain::kActionAttack || theirs->action == AIBrain::kActionCast) continue;
                 mode->state = kStateFollow;
@@ -161,13 +161,13 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
     CountedUnits nearby;
     InitList(nearby);
     CUnit* unit = brain->owner->unit;
-    TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
+    TheServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(unit), &nearby,
                                g_logicSettings.playerCallForHelp);
     for (auto node = nearby.begin(); node != nearby.end();) {
         auto* other = *node;
         ++node;
         if (other == unit || other->player != unit->player) continue;
-        AIBrain* theirs = other->ServerController()->Brain();
+        AIBrain* theirs = &other->ServerController()->brain;
         auto* foe = static_cast<CUnit*>(theirs->target.object);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != kClassUnit)
@@ -213,7 +213,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     if (!player) return true;
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
         CUnit* member = node->second;
-        PlayerMode* mode = member->ServerController()->Brain()->FindPlayerMode();
+        PlayerMode* mode = member->ServerController()->brain.FindPlayerMode();
         // A unit without a Player mode would have its leader read at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
         double dx = static_cast<double>(member->localPosition_.x) - unit->localPosition_.x;

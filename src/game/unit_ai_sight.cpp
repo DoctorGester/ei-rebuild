@@ -51,7 +51,7 @@ bool IsZero(double v) {
 
 // "Unit <self> <text> <other>" (no line end).
 console::Stream& LogPair(CUnit* self, const char* text, CEngineObject* other) {
-    return AiLog() << "Unit " << self->id_ << text << other->id_;
+    return *kAiLog << "Unit " << self->id_ << text << other->id_;
 }
 
 // The noticed point taken over inline (Notice's copy).
@@ -94,7 +94,7 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     }
     memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
-        std::list<CUnit*>* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        std::list<CUnit*>* units = map->sectorMap.UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
         for (auto node = units->begin(); node != units->end(); ++node) {
             CUnit* other = *node;
@@ -152,7 +152,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
                 if (dead) continue;
                 EI_NAN_AUDIT(theirs->stats.valuesE0[2].current, ours->stats.valuesB0[2].current, distance);
                 if (static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current <= distance) continue;
-                AiLog() << "using sense life ";
+                *kAiLog << "using sense life ";
                 alive = true;
             }
         }
@@ -169,7 +169,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
             double dz = static_cast<double>(self->localPosition_.z) - other->localPosition_.z;
             LogPair(self, " sees unit ", other) << " from ";
-            console::EndLine(AiLog() << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
+            console::EndLine(*kAiLog << std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) << "m distance");
         }
     }
 }
@@ -206,7 +206,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();
-            AIBrain* theirBrain = theirs->Brain();
+            AIBrain* theirBrain = &theirs->brain;
             if (theirs->moveMode2.onGuard && theirBrain->target == self) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
                            owner->stats.valuesB0[0].current * reachFactor;

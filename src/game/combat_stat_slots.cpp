@@ -53,7 +53,7 @@ void CUnitServer::UpdateProtection() {
 void CUnitServer::RepackStats() {
     std::uint8_t speedsBefore[sizeof(unit->params.modeSpeeds)];
     std::memcpy(speedsBefore, unit->params.modeSpeeds, sizeof(speedsBefore));
-    stats.Pack(unit, unit->Params());
+    stats.Pack(unit, &unit->params);
     stats.flags = 0;
     UpdateProtection();
     unit->MarkChanged(4);

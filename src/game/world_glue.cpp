@@ -27,11 +27,11 @@
 #include "lib/nan_audit.h"
 
 const std::string* GameDataPathString() {
-    return &TheDataFolder();
+    return &g_dataFolder.Get();
 }
 
 const std::string* GameBasePathString() {
-    return &TheDiscFolder();
+    return &g_discFolder.Get();
 }
 
 int FinishQuestMap(const char* name) {
@@ -44,7 +44,6 @@ int FinishQuestMap(const char* name) {
 namespace {
 CScript* CommandScript() { return TheServerWorld()->SecondScript(); }
 
-std::string& StartFolder() { return TheStartFolder(); }
 constexpr unsigned kFolderBufferSize = 0x400;
 
 constexpr double kHoursPerDay = 24.0;
@@ -91,7 +90,7 @@ void StoreStartFolder() {
     char folder[kFolderBufferSize];
     gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
     std::string text = folder;
-    StartFolder() = (text + '\\').c_str();
+    *g_startFolder = (text + '\\').c_str();
 }
 
 // ---- A-W13: the rest of the glue -----------------------------------------------------------------
@@ -125,7 +124,7 @@ void GameSetUnitHeight(int id, float z) {
     EI_NAN_AUDIT(unit->localPosition_.z, z);
     if (unit->localPosition_.z == z) return;
     Vector3 target = {unit->localPosition_.x, unit->localPosition_.y, z};
-    world->Sectors()->Move(unit, &target);
+    world->aiMap_.sectorMap.Move(unit, &target);
     unit->MarkChanged(2);
 }
 

@@ -21,7 +21,7 @@ void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
     EI_NAN_AUDIT(duration);
     if (duration < 0.0f) {
-        const LeverRecord* record = TheLeverTable().Named(name.c_str());
+        const LeverRecord* record = g_leverTable->Named(name.c_str());
         duration = record ? static_cast<float>(static_cast<std::int64_t>(record->duration)) : 10.0f;
     }
     int& current = state;
@@ -41,7 +41,7 @@ void Lever::SetState(int wanted, float duration) {
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
     std::list<CUnit*> around{};
-    CSectorMap* sectors = world->Sectors();
+    CSectorMap* sectors = &world->aiMap_.sectorMap;
     float reach = bounds.radius + 0.5f;
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
     for (auto node = around.begin(); node != around.end();) {
@@ -93,7 +93,7 @@ void Lever::SetState(int wanted, float duration) {
 void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
     // out->RemoveAll().
     lib::FreeStorage(*out);
-    const LeverRecord* record = TheLeverTable().Named(name.c_str());
+    const LeverRecord* record = g_leverTable->Named(name.c_str());
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = localRotation_;
     // The count is read again each time; a count above 2 reads on into the record (sic).

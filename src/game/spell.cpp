@@ -189,7 +189,7 @@ float CLight::GetIntensityAt(const Vector3* point) {
 }
 
 char* SpellCodeByName(const char* name) {
-    const SpellTable& spells = TheSpellDatabase().spells;
+    const SpellTable& spells = g_spellDatabase->spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {
         const SpellRecord* spell = spells.At(i);
         const char* spellName = spell->name.c_str();
@@ -204,7 +204,7 @@ char* SpellCodeByName(const char* name) {
 }
 
 char* SpellModifierCodeByName(const char* name) {
-    SpellModifierTable& modifiers = TheSpellDatabase().modifiers;
+    SpellModifierTable& modifiers = g_spellDatabase->modifiers;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(modifiers.Count()); ++i) {
         const SpellModifierRecord* modifier = modifiers.At(i);
         const char* modifierName = modifier->name.c_str();

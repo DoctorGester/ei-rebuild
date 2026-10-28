@@ -20,7 +20,7 @@ constexpr float kTargetThreshold = 0.5f;
 constexpr float kWallHalfWidth = 1.0f;
 
 // CSectorMap::FindUnitsInRadius (sector_map.cpp).
-CSectorMap* SectorMapOf(const CSpellEffect* effect) { return effect->world->Sectors(); }
+CSectorMap* SectorMapOf(const CSpellEffect* effect) { return &effect->world->aiMap_.sectorMap; }
 
 // The test of IsSpellTarget, inlined in the area loops.
 bool AcceptsAreaSpells(CUnit* unit) {

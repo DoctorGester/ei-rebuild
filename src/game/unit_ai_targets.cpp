@@ -135,7 +135,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         float minDistance = static_cast<float>(static_cast<double>(self->Radius()) + targetRadius);
         CWorldServer* server = TheServerWorld();
         // The target is lifted off the sector map so it does not block its own cell.
-        server->Sectors()->Remove(target);
+        server->aiMap_.sectorMap.Remove(target);
         if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
             float scale = static_cast<float>(kOne * kHalf);
             point.x = static_cast<float>(scale * local.path.targetX);
@@ -144,7 +144,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         } else {
             point = *PositionOf(self);
         }
-        server->Sectors()->Add(target);
+        server->aiMap_.sectorMap.Add(target);
     }
 
     AIOrder order;
@@ -239,7 +239,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, CountedUnits* group,
         long limit = x87::RoundToInt(static_cast<float>(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
         if (hp > limit - 2) return kNoScore;
         if (hp * 3 < limit) {
-            float weight = control->Brain()->attention.healWeight;
+            float weight = control->brain.attention.healWeight;
             score = static_cast<float>(kHealFactor * weight);
             if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = static_cast<float>(static_cast<double>(score) + weight);
         } else {

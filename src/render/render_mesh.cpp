@@ -252,7 +252,7 @@ PassState ReadPassState(char* device) {
         if (stage == 0) s.patch = PatchOf(holder);
     }
     PassDone();
-    ++Stats().stateReads;
+    ++g_stats.stateReads;
     return s;
 }
 
@@ -530,7 +530,7 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     NoteMeshDraw(mesh);
     if (!device || !mesh.matrix || !Active() || !Started()) return;
     StatsTimer timer(&FrameStats::handOverMs);
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
         if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
         return;
@@ -578,10 +578,10 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
 bool MeshPass(void* device) {
     if (!g_pending.active || device != g_pending.device) return true;
     StatsTimer timer(&FrameStats::handOverMs);
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     if (!g_pending.built) {
         g_pending.built = true;
-        ++Stats().meshes;
+        ++g_stats.meshes;
         if (g_pending.caster) NoteCasterPart(MeshSourceOwner());
         // A figure mesh kept on the GPU, else its vertices into the frame's stream.
         g_pending.cached = KeepMesh(g_pending.mesh);
@@ -596,8 +596,8 @@ bool MeshPass(void* device) {
             }
             CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
             if (!g_pending.mesh.corners) {
-                ++Stats().flatMeshes;
-                Stats().flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
+                ++g_stats.flatMeshes;
+                g_stats.flatVertexBytes += (f.meshVertices.size() - first) * sizeof(Vertex);
             }
         }
     }
@@ -625,7 +625,7 @@ bool MeshPass(void* device) {
             batch.uOffset = g_pending.mesh.uOffset;
             batch.vOffset = g_pending.mesh.vOffset;
         }
-        ++Stats().meshPasses;
+        ++g_stats.meshPasses;
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
@@ -639,10 +639,10 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
     if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
     StatsTimer timer(&FrameStats::handOverMs);
-    ++Stats().transformedDraws;
+    ++g_stats.transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) return true;
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
     int stride = fvf == 0x1C4 ? 32 : 24;
@@ -712,10 +712,10 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
     if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
     StatsTimer timer(&FrameStats::handOverMs);
-    ++Stats().transformedDraws;
+    ++g_stats.transformedDraws;
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < count; ++i) {

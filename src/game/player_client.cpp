@@ -181,7 +181,6 @@ constexpr int kSessionKindSingle = 1;
 
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/ {};
-std::unordered_set<int>& PartyIdSet() { return *g_partyIdSet; }
 void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
 int ReadDword(CMemoryStream* in) {
     int value;
@@ -456,7 +455,7 @@ int CPlayerClient::OnPathMarker() {
     if (kind != kKindNoPath) {
         auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
-        PathOrder* path = walker->ClientController()->MotionPath();
+        PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
         path->WriteState(writing);
         writing->EndField();
@@ -696,7 +695,7 @@ void ConstructPartyIdSet() {
 int CPlayerClient::OnPartyState() {
     CPlayer* player = player_;
     for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
-        PartyIdSet().insert(partyUnitIds_[i]);
+        g_partyIdSet->insert(partyUnitIds_[i]);
         CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
@@ -714,11 +713,11 @@ int CPlayerClient::OnPartyState() {
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        if (!PartyIdSet().contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+        if (!g_partyIdSet->contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
             TheClientWorld()->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }
-    PartyIdSet().clear();
+    g_partyIdSet->clear();
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);

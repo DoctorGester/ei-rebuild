@@ -60,7 +60,7 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag)
     saved = new std::uint8_t[maskBytes];
 
     // The mask, under the device lock.
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     const std::uint8_t* pixels = image.bits;
     std::uint32_t rows = pictureHeight, columns = pictureWidth, pitch = static_cast<std::uint32_t>(image.pitch);
     if (holder->bitsPerPixel == 16) {
@@ -72,5 +72,5 @@ CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag)
         for (std::uint32_t y = 0; y < rows; ++y)
             MaskRow<std::uint32_t>(pixels + y * ((pitch >> 2) * 4), mask + y * columns, columns, 0xFFFFFF);
     }
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
 }

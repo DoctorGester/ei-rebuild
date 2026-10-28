@@ -29,9 +29,9 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
 void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
     unsigned long flags = uidevice::HasStencil(renderer) ? 6ul : 2ul;
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, 1ul, rect, flags, 0ul, z, 0ul);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &nr, 1);
 }

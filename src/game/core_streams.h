@@ -137,8 +137,8 @@ public:
 };
 
 CMemoryStream* GameSaveStream();
-// The stream the received packets are decompressed into (ReceiveMessages fills it).
-CMemoryStream& ReceivedMessages();
+// The stream the received packets are decompressed into (ReceiveMessages fills it; player_server_handlers.cpp).
+extern lib::StaticObject<CMemoryStream> g_receivedMessages;
 
 // The harness's view of the memory streams' writes (verify builds; the save trace): the stream, the size and
 // the slot's return address, before the bytes are written. A reference run has the harness take the original's

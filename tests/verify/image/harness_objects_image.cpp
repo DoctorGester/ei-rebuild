@@ -99,7 +99,7 @@ bool ScreenFade(bool* running, float* alpha) {
 int CampaignMode() { return TheServerWorld()->sessionKind_; }
 void* ClientWorldObject() { return TheClientWorld(); }
 void* SceneDevice() { return TheSceneRenderer()->device_.device; }
-void* DeviceLock() { return TheDeviceLock(); }
+void* DeviceLock() { return &g_deviceLock; }
 bool RenderActive() { return render::Active(); }
 
 int ServerUpdate(void* server) { return static_cast<CWorldServer*>(server)->Update(); }
@@ -215,16 +215,16 @@ void LeaveToZone(void* connection, const char* name, int exit) {
 bool RestoreSurfaces(long* result) {
     CTextureDevice* device = TheSceneRenderer()->device_.device;
     if (!device || !device->ddraw_) return false;
-    EnterCriticalSection(TheDeviceLock());
+    EnterCriticalSection(&g_deviceLock);
     *result = DD_OK;   // the image's device object holds a token: nothing to restore
     device->lastLoadResult_ = DD_OK;
-    LeaveCriticalSection(TheDeviceLock());
+    LeaveCriticalSection(&g_deviceLock);
     return true;
 }
 
 int& GamePort() { return net::g_gamePort; }
 
-const char* TextFolder() { return TheTextFolder().c_str(); }
+const char* TextFolder() { return g_textFolder->c_str(); }
 
 long ModFile(const char* path, const char* name) {
     void* memory = ::operator new(sizeof(CMappedResource));

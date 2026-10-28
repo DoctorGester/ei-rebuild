@@ -70,7 +70,7 @@ CMaterial* CObject3DClientSpecific::NextMaterial() {
 }
 
 int CUnitClientSpecific::RunTick() {
-    if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);
+    if (unit->pathTimeShift == 1) motion.ShiftTime(1);
     if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
     if (current) ShowWeaponParts((current->key & kKeyLowBits) == 0);
@@ -143,7 +143,7 @@ int CUnitClientSpecific::RestartFadeIn() {
 }
 
 int CUnitClientSpecific::Level() {
-    double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
+    double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->params.experience));
     double ratio = x87::flog(experience / g_logicSettings.considerModifier) / x87::flog(static_cast<double>(g_logicSettings.considerLogBase));
     float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
     // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the

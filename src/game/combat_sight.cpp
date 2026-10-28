@@ -124,7 +124,7 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
     float vz = static_cast<float>(kZero / side);
 
     // The units the brain lists as nearby.
-    for (auto node = self->Brain()->memory.nearby.begin(); node != self->Brain()->memory.nearby.end();) {
+    for (auto node = self->brain.memory.nearby.begin(); node != self->brain.memory.nearby.end();) {
         CUnit* other = *node;
         ++node;
         if (other == order->target) continue;

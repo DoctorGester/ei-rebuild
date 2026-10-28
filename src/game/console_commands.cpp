@@ -420,7 +420,7 @@ void GenerateAcks(std::vector<std::string>*) {
         if (!file.Open(path, "w")) return;
     }
     lib::TextFile* out = &file;
-    acks::AckDatabase& database = acks::Database();
+    acks::AckDatabase& database = *g_ackDatabase;
     for (acks::UnitAcks& record : database.units.records) {
         for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
         WriteEnvironmentSpeechLines(out, &record.environmentSpeeches);

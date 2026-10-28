@@ -16,15 +16,12 @@
 namespace {
 
 constinit lib::StaticObject<std::vector<BlockPoint>> g_blocks = /*007C2EE0*/ {};
-std::vector<BlockPoint>& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 void DestroyBlocks() { g_blocks.Destroy(); }
 
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
 constinit lib::StaticObject<std::vector<BlockPoint>> g_floodSecond = /*007C2EF8*/ {};
 constinit lib::StaticObject<std::vector<BlockPoint>> g_floodQueue = /*007C2F10*/ {};
-std::vector<BlockPoint>& FloodQueue() { return *g_floodQueue; }
-std::vector<BlockPoint>& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
 void DestroyFloodQueue() { g_floodQueue.Destroy(); }
 void DestroyFloodSecond() { g_floodSecond.Destroy(); }
@@ -89,7 +86,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (BlocksHigh(this) - 1 < by) by = BlocksHigh(this) - 1;
     if (by < 0) by = 0;
 
-    std::vector<BlockPoint>& blocks = Blocks();
+    std::vector<BlockPoint>& blocks = *g_blocks;
     if (!(g_blocksGuard & 1)) {
         g_blocksGuard |= 1;
         g_blocks.Construct();
@@ -150,8 +147,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 }
 
 void CRegionMap::LabelRegions() {
-    std::vector<BlockPoint>& queue = FloodQueue();
-    std::vector<BlockPoint>& second = FloodSecond();
+    std::vector<BlockPoint>& queue = *g_floodQueue;
+    std::vector<BlockPoint>& second = *g_floodSecond;
     if (!(g_floodGuard & 1)) {
         g_floodGuard |= 1;
         g_floodQueue.Construct();

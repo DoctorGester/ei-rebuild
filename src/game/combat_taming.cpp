@@ -75,8 +75,8 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         unit->SetSide(tamer->side);
         unit->SetPlayer(tamerPlayer);
         brain.AddMode(new TamedMode());
-        ClearReferenceList<false>(Brain()->memory.seenCorpses);
-        ClearReferenceList<true>(Brain()->memory.corpses);
+        ClearReferenceList<false>(brain.memory.seenCorpses);
+        ClearReferenceList<true>(brain.memory.corpses);
         Stage(this) = 3;
         break;
     }

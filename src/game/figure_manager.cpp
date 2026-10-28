@@ -48,7 +48,7 @@ int CFigureManager::CreateWithArchives() {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
     }
-    std::string folder = TheTextFolder();
+    std::string folder = *g_textFolder;
     AddArchive((folder + kFiguresArchive).c_str());
     AddArchive((folder + kMenusArchive).c_str());
     LoadMenuRects(g_menuRects);

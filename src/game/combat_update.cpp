@@ -97,7 +97,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
     CWorldServer* world = self->ServerWorld();
     CUnit* unit = self->unit;
     if (static_cast<int>(unit->obstacle) == standing) return;
-    CSectorMap* sectors = world->Sectors();
+    CSectorMap* sectors = &world->aiMap_.sectorMap;
     sectors->Remove(unit);
     self->unit->obstacle = static_cast<std::uint32_t>(standing);
     sectors->Add(self->unit);
@@ -164,7 +164,7 @@ int CUnitServer::RunTick() {
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
-            Brain()->memory.MeasureExposure(this, unit->levels4C8);
+            brain.memory.MeasureExposure(this, unit->levels4C8);
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
@@ -394,7 +394,7 @@ void CUnitServer::StandStill() {
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
     Vector3 direction = -RotatedAxisY(unit->localRotation_);
-    if (MotionPath()->Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
+    if (motion.Start(&unit->localPosition_, &direction, now)) unit->RefreshMotion();
     SetStandingFlag(this, 0);
 }
 
@@ -492,7 +492,7 @@ void CUnitServer::TickAction() {
         int cellX;
         int cellY;
         bool turning;
-        unit->Motion()->Sample(context, OrderOf(MotionPath()), static_cast<float>(TickOf(context)),
+        unit->Motion()->Sample(context, OrderOf(&motion), static_cast<float>(TickOf(context)),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         unit->TurnUpTowards(direction, 0);
@@ -518,7 +518,7 @@ void CUnitServer::TickAction() {
     Vector3 axis;
     unit->localRotation_.AxisY(&axis);
     Vector3 backwards = -axis;
-    if (MotionPath()->Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
+    if (motion.Start(&unit->localPosition_, &backwards, time)) unit->RefreshMotion();
     SetStanding(0);
 }
 

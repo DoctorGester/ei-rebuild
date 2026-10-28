@@ -215,7 +215,7 @@ AITerrainType* CAIMap::MaterialRecordAt(const Vector3* position) {
 }
 
 void CAIMap::TurnObject(CMapObject* object, const Quaternion* rotation) {
-    CSectorMap* map = SectorMap();
+    CSectorMap* map = &sectorMap;
     map->Remove(object);
     object->localRotation_ = *rotation;
     map->Add(object);
@@ -335,7 +335,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
     int sizeClass = unit->sizeClass;
     int x = WorldToCell(from->x), y = WorldToCell(from->y);
     if (x < 1 || y < 1 || x >= cells.width - 1 || y >= cells.height - 1) return false;
-    short region = static_cast<short>(Regions()->DominantRegion(sizeClass, x, y));
+    short region = static_cast<short>(regionMap.DominantRegion(sizeClass, x, y));
 
     int tx = WorldToCell(target->x), ty = WorldToCell(target->y);
     int count;
@@ -348,7 +348,7 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         int reason;
         if (!CanStandAt(unit, cx, cy, &reason)) continue;
         if (!((cells[cy][cx].passable >> ((sizeClass * 4) & 31)) & 0xF)) continue;
-        short r = static_cast<short>(Regions()->DominantRegion(sizeClass, cx, cy));
+        short r = static_cast<short>(regionMap.DominantRegion(sizeClass, cx, cy));
         if (region != 0 && r != region) continue;
         if (i != 0) {
             target->x = CellToWorld(cx);

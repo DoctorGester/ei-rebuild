@@ -121,7 +121,7 @@ void MagicTrap::UpdateVictims() {
 void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out) {
     out->clear();
-    CSectorMap* sectors = context->Sectors();
+    CSectorMap* sectors = &context->aiMap_.sectorMap;
     std::list<CUnit*> found{};
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];

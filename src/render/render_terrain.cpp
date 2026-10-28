@@ -557,7 +557,7 @@ void Restart(const Frame& f) {
 }
 
 void Write(CachedPage& p) {
-    FrameStats& stats = Stats();
+    FrameStats& stats = g_stats;
     if (p.geometryDirty) {
         auto count = static_cast<std::uint32_t>(p.vertices.size());
         g_pool.WriteGeometry(p.place, 0, count, p.vertices.data());
@@ -809,8 +809,8 @@ TerrainCacheInfo TerrainCacheState() {
 void TerrainPage(const SectorData* s, void* renderer, int page) {
     if (!s || !renderer || !Active()) return;
     StatsTimer timer(&FrameStats::terrainMs);
-    ++Stats().terrainPages;
-    Frame& f = CurrentFrame();
+    ++g_stats.terrainPages;
+    Frame& f = g_frame;
     if (f.terrainPieces.size() > 1'000'000) return;   // no present for a long time: drop the rest
     // The clip matrix: the top of the transform pipeline's stack, which the old path transforms the sector's
     // vertices with (the landscape's model matrix pushed by the terrain passes on top of the view).
@@ -890,7 +890,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     }
     auto count = static_cast<int>(f.terrainPieces.size() - firstPiece);
     if (count <= 0) return;
-    ++Stats().terrainReuse[made ? FrameStats::New : moved ? FrameStats::Moved : relit ? FrameStats::Relit : FrameStats::Same];
+    ++g_stats.terrainReuse[made ? FrameStats::New : moved ? FrameStats::Moved : relit ? FrameStats::Relit : FrameStats::Same];
     // The old device's state the page is drawn with; DrawPage changes none of what the pipeline
     // takes before its draws (it turns SPECULARENABLE on around each, which the shader always adds).
     PassState state;
@@ -907,7 +907,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
             return;
         }
     }
-    ++Stats().terrainBatches;
+    ++g_stats.terrainBatches;
     f.terrainBatches.push_back(TerrainBatch{texture, water, matrix, static_cast<int>(firstPiece), count, state});
     f.commands.push_back(Command{Command::Terrain, static_cast<int>(f.terrainBatches.size()) - 1});
 }
@@ -967,7 +967,7 @@ void UploadTerrainCasters() {
         if (!c->dirty || !g_casterPool.Placed(c->place)) continue;
         g_casterPool.WriteGeometry(c->place, 0, vertices, c->vertices.data());
         g_casterPool.WriteIndices(c->place, g_gridIndices.data(), g_gridIndices.size());
-        Stats().terrainVertexBytes += c->vertices.size() * sizeof(TerrainCasterVertex);
+        g_stats.terrainVertexBytes += c->vertices.size() * sizeof(TerrainCasterVertex);
         c->dirty = false;
     }
 }

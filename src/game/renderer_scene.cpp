@@ -34,9 +34,9 @@ IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_;
 // The device calls run under the game's device lock; the result goes to the device's +8.
 template <typename Call>
 long Locked(CTextureDevice* device, Call call) {
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     device->lastLoadResult_ = call(D3DDevice(device));
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     return device->lastLoadResult_;
 }
 

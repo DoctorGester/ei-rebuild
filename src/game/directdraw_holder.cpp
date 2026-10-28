@@ -112,7 +112,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window) {
     const RECT screen = {0, 0, width, height};
 
-    ProcessorInfo& processor = *TheProcessorInfo();
+    ProcessorInfo& processor = g_processorInfo;
     processor.terminator = 0;
     if (HasCpuid()) {
         int registers[4];

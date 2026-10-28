@@ -90,7 +90,7 @@ static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & kUnitBlocked)) return;
-    unit->ServerController()->Brain()->Walk(&point, run, 0);
+    unit->ServerController()->brain.Walk(&point, run, 0);
 }
 
 
@@ -228,7 +228,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     }
     if (leader_ && !noWalk_) {
         CUnit* unit = ServerUnit(leader_->id_);
-        if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->Brain()->StopAction();
+        if (unit && !(unit->flags_ & kUnitBlocked)) unit->ServerController()->brain.StopAction();
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->SetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);

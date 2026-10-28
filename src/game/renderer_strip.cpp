@@ -166,11 +166,11 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
     // The new renderer (src/render) takes the draw (after the fog above); with the old path's
     // objects off it is skipped.
     if (render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
             D3DPT_TRIANGLELIST, kFvfTlVertex, vertices, static_cast<DWORD>(vertexCount), indices,
             static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);

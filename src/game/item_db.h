@@ -391,23 +391,21 @@ struct ItemDatabase {
 extern lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase;
 extern lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase;
 namespace itemdb {
-inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
-inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
 
 
 // The records of those tables typed (null when the index is out of range).
-inline MaterialRecordHead* MaterialAt(std::uint32_t index) { return TheItemDatabase().materials.At(index); }
-inline WeaponRecord* WeaponAt(std::uint32_t index) { return TheItemDatabase().weapons.At(index); }
-inline ArmorRecord* ArmorAt(std::uint32_t index) { return TheItemDatabase().armors.At(index); }
+inline MaterialRecordHead* MaterialAt(std::uint32_t index) { return g_itemDatabase->materials.At(index); }
+inline WeaponRecord* WeaponAt(std::uint32_t index) { return g_itemDatabase->weapons.At(index); }
+inline ArmorRecord* ArmorAt(std::uint32_t index) { return g_itemDatabase->armors.At(index); }
 // A loot record's weapon or armour as their shared head (the item names' model and picture).
 inline ItemRecordHead* WeaponOrArmorAt(bool weapon, std::uint32_t index) {
     if (weapon) return WeaponAt(index);
     return ArmorAt(index);
 }
-inline QuickItemRecord* QuickItemAt(std::uint32_t index) { return TheItemDatabase().quickItems.At(index); }
-inline QuestItemRecord* QuestItemAt(std::uint32_t index) { return TheItemDatabase().questItems.At(index); }
-inline LootItemRecord* LootAt(std::uint32_t index) { return TheItemDatabase().loot.At(index); }
-inline SpellRecord* SpellAt(std::uint32_t index) { return TheSpellDatabase().spells.At(index); }
-inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return TheSpellDatabase().modifiers.At(index); }
+inline QuickItemRecord* QuickItemAt(std::uint32_t index) { return g_itemDatabase->quickItems.At(index); }
+inline QuestItemRecord* QuestItemAt(std::uint32_t index) { return g_itemDatabase->questItems.At(index); }
+inline LootItemRecord* LootAt(std::uint32_t index) { return g_itemDatabase->loot.At(index); }
+inline SpellRecord* SpellAt(std::uint32_t index) { return g_spellDatabase->spells.At(index); }
+inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) { return g_spellDatabase->modifiers.At(index); }
 
 } // namespace itemdb

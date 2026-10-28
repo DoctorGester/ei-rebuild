@@ -8,13 +8,13 @@
 
 // QStart: the old objectives dropped, the quest named.
 void ScriptQuestStart(const char* name) {
-    ScriptQuestObjectives().clear();
-    ScriptQuestName() = name;
+    g_scriptQuestObjectives->clear();
+    *g_scriptQuestName = name;
 }
 
 // The QObj* commands (type, text, with the value on the stack). Appends {type, text, value}.
 void ScriptQuestAddObjective(int type, const std::string& text, float value) {
-    ScriptQuestObjectives().push_back({type, text, value});
+    g_scriptQuestObjectives->push_back({type, text, value});
 }
 
 // operator[]: an unknown name is filed with null.

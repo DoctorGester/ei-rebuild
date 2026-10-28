@@ -22,7 +22,7 @@ constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
 constexpr float kZero = 0.0f;
 
-UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
+UnitParams* ParamsOf(CUnit* unit) { return &unit->params; }
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.
 std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {

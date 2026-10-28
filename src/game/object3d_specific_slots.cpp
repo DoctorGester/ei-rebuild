@@ -47,7 +47,7 @@ constexpr float kNoScale = 1.0f;
 
 int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
     if (!(object->flags_ & kObjectShown)) return FALSE;
-    return gameapi::PtInRect(object->DirtyRect(), AsPoint(point));
+    return gameapi::PtInRect(&object->dirtyRect, AsPoint(point));
 }
 
 int CObject3DClientSpecific::PartsContainPoint(const long* point) {

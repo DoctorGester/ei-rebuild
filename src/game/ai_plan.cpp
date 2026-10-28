@@ -27,7 +27,6 @@ struct Waypoint {
 
 SpiralCache g_spiral = /*007C2F58*/ {};
 std::uint8_t g_spiralGuard = /*007C2F60*/ {};
-SpiralCache* Spiral() { return &g_spiral; }
 
 double Threshold() { return 15.0 /*0073F0A8*/; }
 float Half() { return 0.5f /*0073B86C*/; }
@@ -37,9 +36,9 @@ float Half() { return 0.5f /*0073B86C*/; }
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     PathCells chain;
     if (!(g_spiralGuard & 1)) {
-        Spiral()->radius = -1.0f;
+        g_spiral.radius = -1.0f;
         g_spiralGuard |= 1;
-        Spiral()->length = 0;
+        g_spiral.length = 0;
     }
     int sizeClass = unit->sizeClass;
     path->cells.clear();
@@ -66,7 +65,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     waypoints.push_back({toX, toY, previous});
 
     int count = 0;
-    const std::int16_t* offsets = Spiral()->Get(kAllOffsets, &count);
+    const std::int16_t* offsets = g_spiral.Get(kAllOffsets, &count);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint

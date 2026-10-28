@@ -61,12 +61,11 @@ struct LocalFileStream {
     // The stream's direction byte, then the file's Open.
     void Open(std::string_view path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
     void Close() { s.Close(); }
-    unsigned Read(void* buffer, unsigned size) { return Stream()->Read(buffer, size); }
-    void Write(const void* buffer, unsigned size) { Stream()->Write(buffer, size); }
-    CStream* Stream() { return &s; }
+    unsigned Read(void* buffer, unsigned size) { return s.Read(buffer, size); }
+    void Write(const void* buffer, unsigned size) { s.Write(buffer, size); }
     // A string with its terminating zero.
     void WriteText(std::string_view text) {
-        Stream()->WriteString(text);
+        s.WriteString(text);
     }
 };
 
@@ -164,7 +163,7 @@ void CSaveLoadWindow::ShowPicture() {
     }
     if (!found) return;
     CDXSurface* holder = HolderOf(objects_[1]);
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
     lib::File file;
@@ -174,7 +173,7 @@ void CSaveLoadWindow::ShowPicture() {
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     SceneMesh(3)->visible_ = 1;
     SceneMesh(3)->texture_ = objects_[1];
 }
@@ -237,7 +236,7 @@ void CSaveLoadWindow::SaveGame() {
         entries_.data()->title_ = entry->title_;
     entries_.data()->savedAt_ = lib::CurrentTime();
     SaveEntry* first = entries_.data();
-    info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
+    info.s.WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
     info.WriteText(first->map_);
@@ -250,7 +249,7 @@ void CSaveLoadWindow::SaveGame() {
     // shot.sav: the game's picture.
     if (dialog_) {
         CDXSurface* holder = HolderOf(dialog_);
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         PicturePixels pixels(holder);
         if (!pixels.Begin()) {
             // (The device lock stays held and the cursor busy, as in the original.)
@@ -264,7 +263,7 @@ void CSaveLoadWindow::SaveGame() {
         }
         shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     TheCursor()->ChangeShape(0);
     interface_->SetPendingValue(kClosed);
@@ -297,21 +296,21 @@ void CSaveLoadWindow::FillEntries() {
             infoFind.FindNext();
             LocalFileStream info;
             info.Open(FilePath(infoFind), 0, 1);
-            if (info.Stream()->ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
+            if (info.s.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
                 info.Read(&entry->gameTime_, 4);
                 {
                     std::string map;
-                    info.Stream()->ReadString(&map);
+                    info.s.ReadString(&map);
                     entry->map_ = map;
                 }
-                info.Stream()->ReadInto(&entry->zone_);
+                info.s.ReadInto(&entry->zone_);
                 // The version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) info.Stream()->ReadInto(&entry->title_);
+                if (static_cast<int>(info.s.version_) > 2) info.s.ReadInto(&entry->title_);
             }
             info.Close();
             if (entry->title_.size() == 0) entry->MakeTitle(1);
@@ -350,13 +349,13 @@ void CSaveLoadWindow::FillEntries() {
             ++shot->refCount_;
             RemoveObjectAt(std::ssize(objects_) - 1);
             CDXSurface* holder = HolderOf(dialog_);
-            gameapi::EnterCriticalSection(TheDeviceLock());
+            gameapi::EnterCriticalSection(&g_deviceLock);
             PicturePixels pixels(holder);
             // A failed Lock whose report says stop leaves with the device lock held and the scroll bar as it was (the
             // original's tail of the entry list).
             if (!pixels.Begin()) return;
             std::memcpy(pixels.Bits(), SavePicture(interface_), kShotBytes);
-            gameapi::LeaveCriticalSection(TheDeviceLock());
+            gameapi::LeaveCriticalSection(&g_deviceLock);
         }
     }
 
@@ -401,7 +400,7 @@ void QuickSave(const char* slot, char stepFrame) {
     std::string folder = SlotFolder(slot);
     LocalFileStream info;
     info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
-    info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
+    info.s.WriteHeader(kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
     info.WriteText(map);
     info.WriteText(zone);

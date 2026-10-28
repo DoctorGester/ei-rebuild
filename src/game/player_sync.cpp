@@ -175,7 +175,7 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
         }
         WriteDword(&out_, prototype);
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
-        WriteStateStream(&out_, &object->NetState()->header_[0]);
+        WriteStateStream(&out_, &object->netState_.header_[0]);
         CPlayer* player = player_;
         Keep(player->knownObjects_, player->maxObjectId_, object);
     }
@@ -191,7 +191,7 @@ int CPlayerServer::SendObjectsChanged(const std::vector<CEngineObject*>* objects
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
         WriteByte(&out_, kMessageObjectChanged);
         WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
-        WriteStateStream(&out_, &object->NetState()->header_[1]);
+        WriteStateStream(&out_, &object->netState_.header_[1]);
     }
     return 1;
 }
@@ -286,11 +286,11 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !unit->IsDead()) {
             if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto node = unit->ServerController()->Brain()->memory.nearby.begin(); node != unit->ServerController()->Brain()->memory.nearby.end();) {
+            for (auto node = unit->ServerController()->brain.memory.nearby.begin(); node != unit->ServerController()->brain.memory.nearby.end();) {
                 auto* other = *node;
                 ++node;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
-                if (other->ServerController()->Brain()->AggressionEnemy() == unit) refreshPending_ = 2;
+                if (other->ServerController()->brain.AggressionEnemy() == unit) refreshPending_ = 2;
             }
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
@@ -339,7 +339,7 @@ int CPlayerServer::ReceiveMessages() {
     if (state_ == kStateLeaving) return 0;
     netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 0;
-    CMemoryStream& in = ReceivedMessages();
+    CMemoryStream& in = *g_receivedMessages;
     while (link->HasIncoming()) {
         CMemoryStream packet;
         if (!link->Receive(&packet)) return 0;
@@ -371,13 +371,13 @@ void CPlayerServer::UpdatePartyUnits() {
         for (auto node = units.begin(); node != units.end() && node->second; ++node) {
             CUnit* unit = node->second;
             party.Insert(unit);
-            AIBrain* brain = unit->ServerController()->Brain();
+            AIBrain* brain = &unit->ServerController()->brain;
             party.InsertAll(&brain->memory.visible);
             known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
         for (auto node = units.begin(); node != units.end() && node->second; ++node)
-            known.CopyToList(&node->second->ServerController()->Brain()->memory.seenCorpses);
+            known.CopyToList(&node->second->ServerController()->brain.memory.seenCorpses);
     } else {
         partyUnits_ = party;
         possessedId_ = kNoPartyCopy;

@@ -220,7 +220,7 @@ BOOL CUnitServer::Heal(float amount) {
     stats.Recompute(ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
-    console::EndLine(GameLog() << "Unit " << static_cast<long>(unit->id_) << " was healed");
+    console::EndLine(*kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was healed");
     return 1;
 }
 
@@ -269,7 +269,7 @@ void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUn
                 if (murderer) ++murderer->refCount_;
                 *added = murderer;
             }
-            console::EndLine(GameLog() << "Unit " << static_cast<long>(other->id_)
+            console::EndLine(*kCombatLog << "Unit " << static_cast<long>(other->id_)
                                        << " has seen murder and is forced to see unit " << static_cast<long>(murderer->id_));
         }
         DiplomacyOf(world)->OnAttack(murderer, other, 10);
@@ -343,7 +343,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     }
     unit->ClearEffects();
     SetDead(1);
-    console::EndLine(GameLog() << "Unit " << static_cast<long>(unit->id_) << " damaged to death");
+    console::EndLine(*kCombatLog << "Unit " << static_cast<long>(unit->id_) << " damaged to death");
 
     AnimationSteps animation;
     std::uint32_t direction = HitDirection(attacker, hitKind);
@@ -377,7 +377,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
     float theirs = 0;
     if (other) theirs = static_cast<float>(other->ServerController()->stats.AttributeWithItems(0, other));
 
-    GameLog() << "Unit" << static_cast<long>(unit->id_) << " is using skill ";
+    *kCombatLog << "Unit" << static_cast<long>(unit->id_) << " is using skill ";
     const char* name;
     switch (action.source) {
     case 0: name = "science"; break;
@@ -385,7 +385,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
     case 2: name = "tame"; break;
     default: name = "unknown"; break;
     }
-    console::EndLine(GameLog() << name << " his_skill = " << mine << " target_skill = " << theirs);
+    console::EndLine(*kCombatLog << name << " his_skill = " << mine << " target_skill = " << theirs);
 
     skill = action.source;
     if (skill != 0 && theirs >= mine) {
@@ -411,7 +411,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         if (other->player) return;
         CItem* item = other->TakeRandomItem();
         if (item) {
-            console::EndLine(GameLog() << "Item has been stolen from");
+            console::EndLine(*kCombatLog << "Item has been stolen from");
             if (CPlayer* player = unit->player) {
                 std::list<CItem*> list;
                 list.push_front(item);
@@ -451,7 +451,7 @@ void CUnitServer::Idle() {
 void CUnitServer::SetDead(int dead) {
     auto* world = ServerWorld();
     if (unit->dead == dead) return;
-    CSectorMap* units = world->Sectors();
+    CSectorMap* units = &world->aiMap_.sectorMap;
     units->Remove(unit);
     unit->dead = dead;
     units->Add(unit);

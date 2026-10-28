@@ -105,7 +105,6 @@ struct AckDatabase {
 } // namespace acks
 extern lib::StaticObject<acks::AckDatabase> g_ackDatabase;
 namespace acks {
-inline AckDatabase& Database() { return *g_ackDatabase; }
 
 // The unit says ack `kind` (see acks_db.cpp). Returns the speech given to the controller's Say, or null.
 const SpeechRecord* SayAck(CUnit* unit, int kind);

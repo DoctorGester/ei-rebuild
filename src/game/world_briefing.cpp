@@ -251,7 +251,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
     if (!registered) return;
     // The quest table reads from the texts' cursor (the section just opened).
-    TheQuestDatabase().LoadRegistry(texts->cursor_);   // (its result is not read)
+    g_questDatabase->LoadRegistry(texts->cursor_);   // (its result is not read)
     {
         std::string base = folder;
         std::string path = base + game::briefingwords::MapList();

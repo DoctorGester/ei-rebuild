@@ -48,7 +48,6 @@ int g_problems = 0;   // sokol messages and ei::Log lines
 
 // ---- The host: what render.cpp gives render_ui.cpp -----------------------------------------------------
 
-detail::Frame g_frame;
 std::unordered_map<const void*, SurfaceMemory> g_memories;
 int g_written = 0;
 sg_view g_frameTexture{};   // CopyFrame's source
@@ -67,7 +66,7 @@ constexpr std::uint32_t kTargetClearRgb = 0x28323C;
 // render.cpp's DrawPending: the canvases' queue first, then the frame's commands not drawn yet.
 void DrawTestFrame() {
     detail::RunCanvasCommands();
-    if (g_passes > 0 && g_drawnCommands == g_frame.commands.size()) return;
+    if (g_passes > 0 && g_drawnCommands == detail::g_frame.commands.size()) return;
     sg_pass pass{};
     pass.action.colors[0].load_action = g_passes == 0 ? SG_LOADACTION_CLEAR : SG_LOADACTION_LOAD;
     pass.action.colors[0].clear_value = kTargetClear;
@@ -76,14 +75,14 @@ void DrawTestFrame() {
     pass.attachments.colors[0] = g_targetColour;
     pass.attachments.depth_stencil = g_targetDepthView;
     sg_begin_pass(&pass);
-    for (std::size_t k = g_drawnCommands; k < g_frame.commands.size(); ++k) {
-        const detail::Command& c = g_frame.commands[k];
+    for (std::size_t k = g_drawnCommands; k < detail::g_frame.commands.size(); ++k) {
+        const detail::Command& c = detail::g_frame.commands[k];
         if (c.kind == detail::Command::Canvas)
-            detail::DrawCanvasBatch(g_frame.canvasBatches[static_cast<std::size_t>(c.index)], g_targetWidth, g_targetHeight);
+            detail::DrawCanvasBatch(detail::g_frame.canvasBatches[static_cast<std::size_t>(c.index)], g_targetWidth, g_targetHeight);
     }
     sg_end_pass();
     ++g_passes;
-    g_drawnCommands = g_frame.commands.size();
+    g_drawnCommands = detail::g_frame.commands.size();
     detail::CanvasBlitsDrawn();
 }
 
@@ -119,7 +118,7 @@ const SurfaceMemory* SurfaceMemoryOf(const void* holder) {
 }
 void SurfaceWritten(const void*, const Rect*) { ++g_written; }
 namespace detail {
-Frame& CurrentFrame() { return g_frame; }
+Frame g_frame;
 sg_view FrameTexture() { return g_frameTexture; }
 bool FrameSize(int* width, int* height) {
     *width = g_frameWidth;

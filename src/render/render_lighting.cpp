@@ -63,9 +63,9 @@ namespace detail {
 
 void LightUniforms(LightParams* params) {
     *params = g_params;
-    const Frame& f = CurrentFrame();
+    const Frame& f = g_frame;
     for (int k = 0; k < kMostSceneLights; ++k) params->shadowSlots[k] = static_cast<float>(PointShadowSlot(f, k) + 1);
-    const ShadowFrame& sh = CurrentFrame().shadow;
+    const ShadowFrame& sh = g_frame.shadow;
     Vector3 travel{params->sun[0], params->sun[1], params->sun[2]};
     if (sh.haveSun) MapLightDirection(sh.sun, &travel);
     params->mapSun[0] = travel.x;

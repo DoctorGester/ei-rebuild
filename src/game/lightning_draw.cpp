@@ -33,13 +33,12 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     const float* rect;
 };
 constinit lib::StaticObject<std::vector<SpriteRecord>> g_sprites = /*0079C1E0*/ {};
-std::vector<SpriteRecord>& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 void FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
-void SizeSprites() { Sprites().resize(8); }
+void SizeSprites() { g_sprites->resize(8); }
 void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
@@ -95,12 +94,12 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
         p.y = position->y + along.y;
         p.z = position->z + along.z;
         p.w = static_cast<float>(std::sqrt(1.0f - t * t) * size);
-        SpriteRecord& s = Sprites()[j];
+        SpriteRecord& s = (*g_sprites)[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    device->DrawSprites(0, &g_glowPoints, &Sprites());
+    device->DrawSprites(0, &g_glowPoints, &g_sprites.Get());
 }
 
 // 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).

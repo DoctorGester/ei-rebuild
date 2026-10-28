@@ -268,7 +268,7 @@ void CScript::LoadState(CStream* stream) {
         definition.vars.Load(stream);
     }
 
-    LoadVariables(Globals(), stream);
+    LoadVariables(&globals_, stream);
     LoadInstances(&instances_, stream);
     LoadRuns(&runs_, stream);
     stream->Read(&loaded_, 4);

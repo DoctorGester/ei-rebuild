@@ -84,7 +84,7 @@ bool GeometryStream::Upload(const std::vector<Vertex>& vertices, const std::vect
     std::size_t vertexBytes = vertices.size() * sizeof(Vertex), indexBytes = indices.size() * sizeof(std::uint32_t);
     vertexOffset_ = vertices_.Append(vertices.data(), vertexBytes);
     indexOffset_ = indices_.Append(indices.data(), indexBytes);
-    FrameStats& stats = Stats();
+    FrameStats& stats = g_stats;
     (terrain_ ? stats.terrainVertexBytes : stats.meshVertexBytes) += vertexBytes;
     (terrain_ ? stats.terrainIndexBytes : stats.meshIndexBytes) += indexBytes;
     return vertexOffset_ >= 0 && indexOffset_ >= 0;

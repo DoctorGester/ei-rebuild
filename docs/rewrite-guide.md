@@ -151,11 +151,13 @@ does not need a second pass:
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
-  field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`). Getters stay where they are
-  virtual (GetClassName, the manager context's slots), compute or convert (`return this`, a dereference of a
-  `lib::StaticObject` that order of construction needs), give a base class's shared field its meaning in a
-  subclass (a pair message's `ConnectionRef()` for `second_`), or are the only const view of a file's state (the
-  renderer's `FrameNumber()`). A field is named by what it means, not through a getter (C40);
+  field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
+  address (`*g_dataFolder`, `g_itemDatabase->weapons`, `&g_deviceLock`, `unit->brain.memory`; C38a: a
+  `lib::StaticObject` is built by its static initialiser either way). Getters stay where they are virtual
+  (GetClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), give a base
+  class's shared field its meaning in a subclass (a pair message's `ConnectionRef()` for `second_`), or are the
+  only const view of a file's state (the renderer's `FrameNumber()`). A field is named by what it means, not
+  through a getter (C40);
 - no member named after its offset or format id (`flag18`, `field1B`, `spareDC_`, `unknown08_`; C40): a field
   something reads is named from its setters and readers; a fixed format's field nothing reads (an archive field,
   a map chunk) goes to the record's skip block (`unreadFields`, `unreadField`, `unreadText`, ...) with the format's

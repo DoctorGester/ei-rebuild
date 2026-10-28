@@ -93,7 +93,6 @@ private:
 class TextFont {
 public:
     TextFont(std::unique_ptr<Font> font, bool smoothing);
-    const Font& Face() const { return *font_; }
     const FontMetrics& Metrics() const { return font_->Metrics(); }
     GlyphAtlas& Atlas() { return atlas_; }
     int Advance(char32_t ch);

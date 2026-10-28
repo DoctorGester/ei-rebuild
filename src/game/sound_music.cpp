@@ -52,7 +52,6 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 // ---- Theme loading ----
 
-const std::string& TextPath() { return TheTextFolder(); }
 
 // PlayBriefing / PlayConstructor: the allod's file at `offset` in its theme, if the allod has one.
 void PlayThemeFile(CMusicSystem* music, const char* allod, std::string MusicTheme::*file) {
@@ -77,7 +76,7 @@ int CMusicSystem::LoadThemes() {
     reg.Construct();
     bool opened;
     {
-        std::string folder = TextPath();
+        std::string folder = *g_textFolder;
         std::string path = folder + kMusicReg;
         opened = reg.Open(path.c_str());
     }

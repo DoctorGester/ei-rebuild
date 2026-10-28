@@ -431,7 +431,6 @@ public:
     // The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
 
-    tagRECT* DirtyRect() { return &dirtyRect; }
 
     // The fields the constructor sets past the engine object's and the name, and the destructor's work but for the
     // name.

@@ -68,7 +68,7 @@ Terrain* TheTerrain();
 // DirectDraw / Direct3D calls.
 CSceneRenderer* TheSceneRenderer();   // g_sceneRenderer
 CTextureDevice* TheRenderDevice();
-_RTL_CRITICAL_SECTION* TheDeviceLock();   // g_deviceLock
+extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 CCursor* TheCursor();   // g_cursor
@@ -88,9 +88,4 @@ extern lib::StaticObject<std::string> g_startFolder;
 extern lib::StaticObject<std::string> g_discFolder;
 extern lib::StaticObject<std::string> g_textFolder;
 extern lib::StaticObject<std::string> g_dataFolder;
-inline std::string& TheRegistryRoot() { return *g_registryRoot; }
-inline std::string& TheStartFolder() { return *g_startFolder; }
-inline std::string& TheDiscFolder() { return *g_discFolder; }
-inline std::string& TheTextFolder() { return *g_textFolder; }
-inline std::string& TheDataFolder() { return *g_dataFolder; }
-inline const char* DataFolderText() { return TheDataFolder().c_str(); }
+inline const char* DataFolderText() { return g_dataFolder->c_str(); }

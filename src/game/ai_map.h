@@ -488,7 +488,6 @@ struct SmoothPool {
 };
 extern lib::StaticObject<SmoothPool> g_smoothPool;
 extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
-inline SmoothPool& SmoothNodePool() { return *g_smoothPool; }
 inline const SmoothTable* SmoothTables() { return g_smoothTables.Get(); }
 // The direction (1..8 counter-clockwise from (0, -1), 0 for none) of the step (dx, dy) in -1..1:
 // DirectionSteps()[dy * 3 + dx], from the middle of the table.
@@ -608,9 +607,7 @@ public:
     // added to the dirty rectangle while batching).
     void AttachTerrain();
 
-    AIEventTable* Events() { return &events; }
 
-    CSectorMap* SectorMap() { return &sectorMap; }
     // refreshUnits = the low byte of `on`; returns the old byte.
     std::uint8_t SetRefreshUnits(int on);
     bool AddToSectors(CMapObject* object);
@@ -738,7 +735,6 @@ public:
     // cell whose mark at (x + dx, y + dy) is 0 loses the level's passability nibble.
     void ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1);
 
-    CRegionMap* Regions() { return &regionMap; }
 
     // Clears the marks of the cells around the blocks of `chain` (8 x 8 cells each): their bounding box widened
     // by four blocks, clipped to the map. Nothing for an empty chain.

@@ -194,7 +194,7 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     CTextureDevice* renderer = interface_->renderer_;
     DWORD flags = uidevice::HasStencil(renderer) ? kClearStencil : kClearTarget;
-    auto* lock = TheDeviceLock();
+    auto* lock = &g_deviceLock;
     gameapi::EnterCriticalSection(lock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 1.0f, 0);
     gameapi::LeaveCriticalSection(lock);

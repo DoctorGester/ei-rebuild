@@ -58,10 +58,10 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     device::SetRenderState(device::D3D(device), kZBias, 0);
     render::state::Render(kZBias, 0);
     if (render::ScreenDraw(device, v, 4, indices, 6)) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, v, 4, const_cast<std::uint16_t*>(indices), 6, 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     Count(device, 4, 2);
     if (!outline) return 1;
@@ -82,9 +82,9 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpDisable);
     render::state::Stage(0, kAlphaOp, kOpDisable);
     if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         device->lastLoadResult_ = device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, v, 5, 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     Count(device, 5, 1);
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpModulate);

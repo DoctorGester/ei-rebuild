@@ -76,7 +76,7 @@ void ScrambleObjects() {
 // (its byte is 0). Nothing adds an entry, so the list is empty.
 void DelayedProtectionCheck() {
     if (Scaled(100) % 100 >= 1) return;
-    std::list<std::uint8_t>& checks = ProtectionChecks();
+    std::list<std::uint8_t>& checks = *g_protectionChecks;
     for (std::list<std::uint8_t>::iterator node = checks.begin(); node != checks.end(); ++node) {
         if (!(*node)) {
             ScrambleObjects();

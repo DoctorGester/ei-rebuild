@@ -167,7 +167,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         object->Save(out);
         // The parts changed and those already sent (the network state's mask).
         std::uint32_t flags = static_cast<std::uint32_t>(object->netState_.mask_) |
-                              static_cast<std::uint32_t>(object->NetState()->sentMask_);
+                              static_cast<std::uint32_t>(object->netState_.sentMask_);
         out->Write(&flags, 4u);
     }
     int end = -1;

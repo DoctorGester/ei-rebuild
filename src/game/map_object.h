@@ -234,8 +234,6 @@ public:
 
     CObject3D* Object3D() { return this; }
 
-    UnitVitalsPacked* PackedVitals() { return &packedVitals; }
-    DeltaState* NetState() { return &netState_; }
 
     // The world the object lives in (via its owner), or null.
     CWorld* World();

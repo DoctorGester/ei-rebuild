@@ -217,7 +217,6 @@ public:
     // hostile and remembers the attacker.
     BOOL TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) override;
     void MoveFactorsChanged() override;
-    AIPath* MotionPath() { return &motion; }
     // Part 4 changed; the server companion's hit points and mana set to their maxima.
     void SetStats(const UnitStats* stats);
     // Remark `code` (below 0x2A, or 0x30) to the unit's player (message 0x0B); nothing without a player.
@@ -571,7 +570,6 @@ public:
     AIBrain brain;
     AIAlarm voice;                  // the voice / alarm
 
-    AIBrain* Brain() { return &brain; }
 
     void AddHostileMask(std::uint32_t mask);
 };

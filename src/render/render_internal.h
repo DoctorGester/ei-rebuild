@@ -287,7 +287,7 @@ struct Frame {
     float pixelShift[2] = {0.0f, 0.0f};
     ShadowFrame shadow;
 };
-Frame& CurrentFrame();
+extern Frame g_frame;   // the frame being built
 std::uint32_t FrameNumber();
 std::uint32_t CommitNumber();
 
@@ -543,7 +543,7 @@ void DropBlits();
 
 // The counts of the frame being built (summed at Present). StatsTimer adds its scope's CPU time to a field; a
 // timer inside another's scope takes its time out of the outer one's field.
-FrameStats& Stats();
+extern FrameStats g_stats;
 class StatsTimer {
 public:
     explicit StatsTimer(double FrameStats::* field);

@@ -56,7 +56,7 @@ void CObject3D::RemoveAllEffectSources() {
 int CObject3D::DrawFigure(CSceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
 
 int CObject3D::DrawCollectDirty(CSceneRenderer* context) {
-    gameapi::SetRectEmpty(DirtyRect());
+    gameapi::SetRectEmpty(&dirtyRect);
     return attached ? attached->DrawParts(context, &dirtyRect) : 1;
 }
 

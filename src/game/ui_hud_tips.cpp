@@ -187,7 +187,7 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     title = "Science";
     int found = TheTextManager()->CTextManager::Open((std::string("perk ") + title).c_str());
     if (found) TheTextManager()->ReadLine(&tip, 1);
-    title = str::Format("%s %d\n", labels_[0].c_str(), shown->Params()->attributes[0]);
+    title = str::Format("%s %d\n", labels_[0].c_str(), shown->params.attributes[0]);
     if (TheTextManager()->CTextManager::Open("tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = tip + "\n" + title + hint;
     regions_[count_ - 1]->SetTipString(tip.c_str(), 1, 0x1D);

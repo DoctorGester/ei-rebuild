@@ -115,7 +115,7 @@ float WorldTimeOfDay() {
 
 // What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
-    const auto& visible = controller->Brain()->memory.visible;
+    const auto& visible = controller->brain.memory.visible;
     for (auto node = visible.begin(); node != visible.end();) {
         auto current = node;
         node = std::next(current);
@@ -127,7 +127,7 @@ void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
     SetParameters(localBindings, vars);
-    SetParameters(globalBindings, script->Globals());
+    SetParameters(globalBindings, &script->globals_);
     for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
 }
 

@@ -412,7 +412,7 @@ void RangePass(sg_pipeline pipeline, sg_view attachment, sg_view source, const i
     pass.attachments.colors[0] = attachment;
     pass.label = label;
     sg_begin_pass(&pass);
-    ++Stats().passes;
+    ++g_stats.passes;
     sg_apply_pipeline(pipeline);
     sg_bindings b{};
     b.views[0] = source;
@@ -480,7 +480,7 @@ void CollectQueries() {
         q.pending = false;
         if (d.Disjoint || d.Frequency == 0) continue;
         double ms = 1000.0 / static_cast<double>(d.Frequency);
-        FrameStats& s = Stats();
+        FrameStats& s = g_stats;
         ++s.gpuFrames;
         s.gpuShadowMs += static_cast<double>(t[1] - t[0]) * ms;
         s.gpuFrameMs += static_cast<double>(t[2] - t[0]) * ms;
@@ -614,7 +614,7 @@ const Fit& FitMap(Frame& f) {
 bool CasterArea(float highestTop, float widest, ShadowCasterRect* area) {
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::shadowMs);
-    const Fit& fit = FitMap(CurrentFrame());
+    const Fit& fit = FitMap(g_frame);
     if (!fit.ok) return false;
     // A caster's shadow falls on the visible ground below it along the light: the caster stands
     // above the ground by at most highestTop less the lowest ground, so back towards the sun from it by
@@ -738,7 +738,7 @@ bool UnderCamera(const Matrix4& camera, const Matrix4& placed, Matrix4* model) {
 
 void ShadowSun(const float direction[3]) {
     if (!Active() || !direction) return;
-    ShadowFrame& s = CurrentFrame().shadow;
+    ShadowFrame& s = g_frame.shadow;
     s.haveSun = true;
     s.sun = Vector3{direction[0], direction[1], direction[2]};
 }
@@ -754,7 +754,7 @@ void EndCaster() {
 
 void CastsShadow(const void* object, float strength) {
     if (!Active() || !object) return;
-    CurrentFrame().shadow.casters.emplace_back(object, strength);
+    g_frame.shadow.casters.emplace_back(object, strength);
 }
 
 bool ShadowCasterArea(float highestTop, float widest, ShadowCasterRect* area) {
@@ -784,7 +784,7 @@ bool ShadowCasterReaches(const ShadowCasterSphere& sphere) {
 bool CasterPartDrawn(const void* part) { return part && g_drawnParts.count(part) != 0; }
 
 float CasterStrength(const void* object) {
-    const auto& casters = CurrentFrame().shadow.casters;
+    const auto& casters = g_frame.shadow.casters;
     if (g_strengthsFrame != FrameNumber() || g_strengthsCount != casters.size()) {
         g_strengths.clear();
         for (const auto& c : casters) g_strengths[c.first] = c.second;
@@ -1035,7 +1035,7 @@ void DrawShadowMap(Frame& f) {
             pass.attachments.depth_stencil = g_mapAttachment;
             pass.label = "ei-shadow-map";
             sg_begin_pass(&pass);
-            ++Stats().passes;
+            ++g_stats.passes;
             std::unordered_map<const void*, bool> counted;
             const CachedMesh* lastMesh = nullptr;
             int lastFirst = -1, lastLayout = -1;
@@ -1075,7 +1075,7 @@ void DrawShadowMap(Frame& f) {
                 sg_range fr{&fs, sizeof(fs)};
                 sg_apply_uniforms(1, &fr);
                 sg_draw(first, batch.indexCount, 1);
-                ++Stats().shadowDraws;
+                ++g_stats.shadowDraws;
                 ++g_info.casterDraws;
                 counted[batch.caster] = true;
             }
@@ -1106,7 +1106,7 @@ void DrawShadowMap(Frame& f) {
                     sg_range fr{&fs, sizeof(fs)};
                     sg_apply_uniforms(1, &fr);
                     sg_draw(e.firstIndex, e.indexCount, 1);
-                    ++Stats().shadowDraws;
+                    ++g_stats.shadowDraws;
                     ++g_info.outsideDraws;
                     outside[e.object] = true;
                     counted[e.object] = true;
@@ -1123,7 +1123,7 @@ void DrawShadowMap(Frame& f) {
                 sg_range fr{fs, sizeof(fs)};
                 sg_apply_uniforms(1, &fr);
                 int draws = DrawTerrainCasters(g_terrainCasterPipeline);
-                Stats().shadowDraws += static_cast<std::uint64_t>(draws);
+                g_stats.shadowDraws += static_cast<std::uint64_t>(draws);
                 g_info.terrainCasters = draws;
             }
             sg_end_pass();
@@ -1168,7 +1168,7 @@ void ShadowUniforms(const Frame& f, bool receives, ShadowParams* params) {
 }
 
 void BindShadowMap(sg_bindings& b, int viewSlot, int samplerSlot) {
-    bool on = g_mapTexture.id && g_rangeTexture.id && CurrentFrame().shadow.on;
+    bool on = g_mapTexture.id && g_rangeTexture.id && g_frame.shadow.on;
     b.views[viewSlot] = on ? g_mapTexture : g_dummyTexture;
     b.samplers[samplerSlot] = ShadowCompareSampler();
     // The range, read filtered: with no map its 1 x 1 stand-in (the shaders read neither then).

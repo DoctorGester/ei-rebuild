@@ -286,7 +286,6 @@ std::uint8_t g_freed = /*007C88C9*/ {};
 // The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
 // exit.
 constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
-std::vector<std::uint8_t>& ProjectionOutcodes() { return *g_projectionOutcodes; }
 void DestroyProjectionOutcodes() {
     if (g_freed & 4) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 4);
@@ -560,7 +559,7 @@ SectorData::SectorData() {
     hasSpecular = 0;
     g_projectionInput.resize(kProjectionVertices);
     g_projectionOutput.resize(kProjectionVertices);
-    ProjectionOutcodes().resize(std::ssize(g_projectionInput));
+    g_projectionOutcodes->resize(std::ssize(g_projectionInput));
 }
 
 // Then the members, last first (each record's light list released).
@@ -582,7 +581,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     ++in;
                 }
         const int count = static_cast<int>(in - g_projectionInput.data());
-        const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), ProjectionOutcodes().data(),
+        const int mode = pipeline->ProjectTerrain(g_projectionInput.data(), g_projectionOutput.data(), g_projectionOutcodes->data(),
                                                   count, BoundsOf(quarters[q]));
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
@@ -590,7 +589,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             continue;
         }
         const Vector4* out = g_projectionOutput.data();
-        const std::uint8_t* outcode = ProjectionOutcodes().data();
+        const std::uint8_t* outcode = g_projectionOutcodes->data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {

@@ -241,13 +241,13 @@ void Fireworks(CSpellEffect* e, std::list<CUnit*>& units) {
     if (ticks >= 0) {
         float wake = e->Spell()->radius_ + ConstAt(worlddata::ImpactWakeMargin());
         e->world->WakeUnitsAround(&e->position, wake);
-        e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+        e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
         for (auto node = units.begin(); node != units.end();) {
             CUnit* unit = *node;
             ++node;
             int duration = static_cast<int>(e->Spell()->duration_);
             int level = FrightLevel(&e->timer, &duration);
-            ControllerOf(unit)->Brain()->memory.Notice(&e->position, level, -1);
+            ControllerOf(unit)->brain.memory.Notice(&e->position, level, -1);
         }
         return;
     }
@@ -267,7 +267,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
         auto* player = e->caster->player;
         if (player) {
             ScriptGroup* group = &ServerOf(player)->group50F8_;
-            e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+            e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
             for (auto node = units.begin(); node != units.end();) {
                 CUnit* unit = *node;
                 ++node;
@@ -299,8 +299,8 @@ void Possession(CSpellEffect* e) {
         CUnitServer* server = ControllerOf(TargetUnit(e));
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         group->Insert(target);
-        group->InsertAll(&server->Brain()->memory.visible);
-        group->InsertAll(&server->Brain()->memory.seenCorpses);
+        group->InsertAll(&server->brain.memory.visible);
+        group->InsertAll(&server->brain.memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
         target->flags_ |= 0x2000000;
         float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;
@@ -358,7 +358,7 @@ void Teleport(CSpellEffect* e) {
         if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
         return;
     }
-    e->world->Sectors()->Move(e->caster, &e->targetPoint);
+    e->world->aiMap_.sectorMap.Move(e->caster, &e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;

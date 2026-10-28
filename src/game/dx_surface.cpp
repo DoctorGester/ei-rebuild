@@ -238,9 +238,9 @@ int CDXSurface::LoadPictureData(const MmpHeader* picture, int /*flag*/) {
         // The screen's pixel format. Without an owner the game reads through a null pointer here; the callers always pass
         // one. (The low byte of the flag asked for video memory.)
         PixelFormat format = {};
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         ReadScreenFormat(this->device, &format);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
         // (The "no DXDD" report for a this without an owner is unreachable after the read above, as is its release of an
         // earlier surface: there is none on this path.)
         const int pictureWidth = static_cast<int>(picture->width), pictureHeight = static_cast<int>(picture->height);
@@ -261,9 +261,9 @@ int CDXSurface::LoadPictureData(const MmpHeader* picture, int /*flag*/) {
     SurfacePixels pixels;
     // (Always memory here: made above, or the dead loaders' holder.)
     if (!DirectPixels(this, &pixels)) return game::FatalError("Can't get surface pixel format to load picture.\n");   // "Can't get newSurface pixel format to load picture."
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     FillPicture(this, picture, pixels);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     return 1;
 }
 

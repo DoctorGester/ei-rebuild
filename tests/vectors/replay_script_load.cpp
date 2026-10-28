@@ -81,7 +81,7 @@ State ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
             ReadVars(r, &d.vars);
         }
     }
-    ReadVars(r, s->Globals());
+    ReadVars(r, &s->globals_);
     return state;
 }
 
@@ -274,7 +274,7 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     const std::uint64_t hashes[5] = {
         HashOf([&](Writer& h) { PutText(h, text); }),
         HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->definitions_, pairs); }),
-        HashOf([&](Writer& h) { PutVars(h, *s->Globals()); }),
+        HashOf([&](Writer& h) { PutVars(h, s->globals_); }),
         HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }),
         HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, state.worldBlocks); }),
     };

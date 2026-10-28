@@ -78,9 +78,9 @@ float TimeAsFloat(const int* time) { return static_cast<float>(*time); }
 CUnit* UnitOf(CUnitServer* c) { return c->unit; }
 AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
 int& QueueStart(CUnitServer* c) { return c->queue.extra; }
-AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
+AIPath* MotionPathOf(CUnitServer* c) { return &c->motion; }
 // The path's `failed` byte as the game reads it: compared with 1, so read as a byte, not a bool.
-std::uint8_t FailedByte(CUnitServer* c) { return c->MotionPath()->failed; }
+std::uint8_t FailedByte(CUnitServer* c) { return c->motion.failed; }
 CWorldServer* ServerOf(CUnitServer* c) { return c->ServerWorld(); }
 int WorldTime(const CWorld* world) { return world->tick_; }
 
@@ -109,9 +109,9 @@ void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
     if (static_cast<int>(unit->obstacle) == obstacle) return;
-    world->Sectors()->Remove(unit);
+    world->aiMap_.sectorMap.Remove(unit);
     UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
-    world->Sectors()->Add(UnitOf(c));
+    world->aiMap_.sectorMap.Add(UnitOf(c));
     UnitOf(c)->MarkChanged(7);
 }
 
@@ -259,9 +259,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 // blocked step lifted when `liftBlocker`.
 void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
-        world->Sectors()->Remove(UnitOf(c));
+        world->aiMap_.sectorMap.Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 1);
-        world->Sectors()->Add(UnitOf(c));
+        world->aiMap_.sectorMap.Add(UnitOf(c));
     }
     MotionPathOf(c)->cells.clear();
 
@@ -274,9 +274,9 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     bool found = context->AIMap()->FindPath(UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
     UnitOf(c)->altPassCosts = current;
     if (liftBlocker) {
-        world->Sectors()->Remove(UnitOf(c));
+        world->aiMap_.sectorMap.Remove(UnitOf(c));
         world->AIMap()->StampWaterPatch(position, 0);
-        world->Sectors()->Add(UnitOf(c));
+        world->aiMap_.sectorMap.Add(UnitOf(c));
     }
     if (found) {
         UnitOf(c)->RefreshMotion();
@@ -368,7 +368,7 @@ void UpdateMotion(CUnitServer* c) {
     if (cellX < 0) {
         canStand = true;
     } else {
-        CSectorMap* sectors = world->Sectors();
+        CSectorMap* sectors = &world->aiMap_.sectorMap;
         sectors->Remove(UnitOf(c));
         canStand = world->AIMap()->CanStandAtFromHere(UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
@@ -391,7 +391,7 @@ void UpdateMotion(CUnitServer* c) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && world->Sectors()->Move(UnitOf(c), &position)) {
+    if (!replan && canStand && world->aiMap_.sectorMap.Move(UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         UnitOf(c)->SetHeading(&direction.x);
         if (motionOver) MotionOver(c, world);
