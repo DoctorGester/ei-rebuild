@@ -20,11 +20,19 @@ not take what the aligned array took; one rule per shape rewrites it (`O` is the
   x.SetAtGrow(i, v)   -> lib::SetAtGrow(O, i, v)     x.SetAtGrowRef(i, p) -> lib::SetAtGrow(O, i, *p)
   x.RemoveAt(i)       -> x.erase(x.begin() + i)      x.RemoveRange(i, n) -> x.erase(x.begin() + i, x.begin() + (i + n))
   x.RemoveAll()       -> x.clear()                   x.Copy(y) -> O = y        x.ElementAt(i) -> O[i]
-  x.Construct();      -> in a constructor gone; else std::construct_at(&O);   (the owner built in raw storage)
-  x.FreeData();  `if (x.data) lib::FreeAligned32(x.data);`  `lib::FreeAligned32(x.data);`  (and ...::Free(x.data))
-                      -> in a destructor gone; else std::destroy_at(&O);
+  x.Construct();      -> in a constructor and for a local gone; else std::construct_at(&O);   (the owner built in
+                         raw storage: operator new, then its Construct)
+  `x.data = nullptr; x.capacity = 0; x.size = 0;` (a run of such lines, any order) -> the same as x.Construct()
+  `x.data = ...Allocate(n); x.capacity = n; x.size = n;` (an inlined SetSize)    -> x.resize(n);
+  x.FreeData();  `if (x.data) lib::FreeAligned32(x.data);`  `lib::FreeAligned32(x.data);`  (and A::Free(x.data), A
+                 the array's type or an alias)
+                      -> in a destructor gone, for a local at the end of its block gone; else lib::FreeStorage(O);
+  static_cast<T>(x.size) (the diagnostic at the cast)    -> the field rules on the cast's operand
+  a size or offset static_assert that fails             -> gone (the owner's layout changed; review.txt lists them)
 What no rule takes is listed in build/retype_aligned/manual.txt; the sites that depend on the aligned array's quirks
 (new slots uninitialised, the growth step, the raw storage the owner is built in) in review.txt.
+SKIP (files another ticket owns), KEEP (declarations those reach) and KEEP_FILES (files whose declarations stay) are
+the script's own lists: empty SKIP once C14a has merged and run it again for the rest.
 
 usage (no VS prompt needed; build/verify configured by build.cmd verify):
   python tools/retype_aligned.py run [--iterations N]     step 1 on the current tree, then the fix builds
@@ -46,7 +54,8 @@ BUILD = os.path.join(ROOT, 'build', 'verify')
 STATE = os.path.join(ROOT, 'build', 'retype_aligned')
 VSROOT = os.environ.get('EI_VSROOT', r'E:\bin\vs\buildtools')
 
-FIX_DIRS = [('src', 'game'), ('src', 'lib'), ('tests', 'verify', 'image'), ('tests', 'vectors')]
+FIX_DIRS = [('src', 'game'), ('src', 'lib'), ('src', 'render'), ('src', 'standalone'), ('src', 'hook'),
+            ('tests', 'verify', 'image'), ('tests', 'vectors'), ('tools', 'ui_check'), ('tools', 'perf_check')]
 # Files another ticket owns while this runs (C14a's): their aligned arrays stay (and so do the declarations they
 # reach, KEEP).
 SKIP = {
@@ -56,7 +65,28 @@ SKIP = {
     'src/lib/containers.h',
 }
 # Declarations that stay aligned arrays: (file, declared name). A skipped file's code reaches them.
-KEEP = set()
+KEEP = {
+    ('src/game/ui.h', 'UiPtrArray'),               # the windows' pointer arrays (ui_chat_overlay, ui_item_info, ...)
+    ('src/game/map_object_figures.h', 'FigurePartArray'),   # SceneSkin::BindMeshes (scene_loader.h)
+    ('src/game/figure_mesh.h', 'vertices_'), ('src/game/figure_mesh.h', 'normals_'),   # the scene loader fills them
+    ('src/game/figure_mesh.h', 'colorsA_'), ('src/game/figure_mesh.h', 'colorsB_'),
+    ('src/game/figure_mesh.cpp', 'vertices'), ('src/game/figure_mesh.cpp', 'packets'),   # LoadVertices, NegateBlock
+    ('src/game/sky_object.cpp', 'packets'),        # Row over the figure's packets
+    ('src/game/figure_part_draw.cpp', 'ColourArray'), ('src/game/figure_part_draw_plain.cpp', 'ColourArray'),
+    ('src/game/link_figure.h', 'colours'), ('src/game/link_figure.h', 'speculars'),   # given the mesh's colours
+    ('src/game/link_mesh_draw.cpp', 'ColourArray'),
+    ('src/game/party.h', 'PartyItemArray'),        # CUiItemStrip::Setup's UiPtrArray, the harness digest's items_.size
+    ('src/game/unit.h', 'weapons'), ('src/game/unit.h', 'quickItems'), ('src/game/unit.h', 'armor'),
+    ('src/game/unit.h', 'spells'),                 # the party code's PartyItemArray helpers take them too
+    ('src/game/ui_camp.h', 'UiItemList'), ('src/game/world.h', 'items'),
+    ('src/game/ui_equip_panels.cpp', 'list'), ('src/game/ui_hero_figure.cpp', 'list'),
+    ('src/game/ui_hero_screen_click.cpp', 'list'),
+    ('src/game/figure.h', 'parts'),                # CAnimationNode::AttachMeshes(FigurePartArray)
+}
+# Files whose declarations all stay (the scene loader's family: they work on scene_loader.h's arrays); their uses of
+# retyped arrays are fixed.
+KEEP_FILES = {'src/game/scene_bones.cpp', 'src/game/scene_meshes.cpp', 'src/game/scene_weld.cpp',
+              'src/game/skin_rewind.cpp'}
 
 FIELDS = {'data', 'size', 'capacity', 'growBy'}
 METHODS = {'SetSize', 'SetSizeDiscard', 'SetSizeDiscardStep', 'Add', 'SetAtGrow', 'SetAtGrowRef', 'RemoveAt',
@@ -72,7 +102,7 @@ def files():
     out = []
     for parts in FIX_DIRS:
         d = os.path.join(ROOT, *parts)
-        for name in sorted(os.listdir(d)):
+        for name in sorted(os.listdir(d)) if os.path.isdir(d) else []:
             if name.endswith(('.cpp', '.h', '.inc')):
                 p = os.path.normcase(os.path.join(d, name))
                 if rel(p) not in SKIP:
@@ -125,7 +155,7 @@ def retype_text(path, text):
     masked = src.masked
     edits, done = [], []
     for (start, close, name, qualified) in find_aligned(text):
-        if qualified or (rel(path), name) in KEEP:
+        if qualified or (rel(path), name) in KEEP or rel(path) in KEEP_FILES:
             continue
         edits.append((start, masked.index('<', start) + 1, VECTOR))
         done.append((src.line_of(start), name))
@@ -190,6 +220,8 @@ def parse_diagnostics(output):
 
 MEMBER_MSG = re.compile(r"'std::vector<.*>::(\w+)': non-standard syntax|'(\w+)': is not a member of 'std::vector<")
 ACCESS = re.compile(r'(\.|->)\s*(\w+)\b')
+# The block's free: the library's, or the array's static Free through its own name or an alias of it.
+FREE_CALL = r'(?:\blib::FreeAligned32|\b[\w:]+(?:\s*<[^;{}()]*>)?\s*::\s*Free)'
 
 
 def statement_start(m, start):
@@ -213,6 +245,49 @@ def statement_end(m, end):
     return k < len(m) and m[k] == ';'
 
 
+CONTROL = re.compile(r'(if|for|while|switch|catch|return|sizeof|alignof|decltype|static_assert)')
+NAME_BEFORE = re.compile(r'(~?\s*\w+(?:\s*::\s*~?\s*\w+)*)\s*$')
+
+
+def function_name(m, brace):
+    """The name of the function whose body opens at `brace` ('~X' a destructor; qualified 'A::B'), else None."""
+    i = skip_space_back(m, brace - 1)
+    while True:
+        w = re.search(r'\b(const|noexcept|override|final)\s*$', m[:i + 1])
+        if not w:
+            break
+        i = skip_space_back(m, w.start() - 1)
+    if i < 0 or m[i] not in ')}':
+        return None
+    initialisers = False
+    while True:
+        j = match_backward(m, i)
+        if j < 0:
+            return None
+        n = NAME_BEFORE.search(m[:j])
+        if not n:
+            return None
+        name = re.sub(r'\s+', '', n.group(1))
+        b = skip_space_back(m, n.start() - 1)
+        if b >= 0 and m[b] == ',':
+            initialisers = True
+            i = skip_space_back(m, b - 1)
+            continue
+        if b >= 0 and m[b] == ':' and (b == 0 or m[b - 1] != ':') and \
+                not re.search(r'\b(public|private|protected)\s*:$', m[:b + 1]) and not CONTROL.fullmatch(name):
+            initialisers = True
+            i = skip_space_back(m, b - 1)
+            w = re.search(r'\bnoexcept\s*$', m[:i + 1])
+            if w:
+                i = skip_space_back(m, w.start() - 1)
+            if i < 0 or m[i] != ')':
+                return None
+            continue
+        if m[i] == '}' and not initialisers:
+            return None
+        return name
+
+
 def enclosing_function(m, pos):
     """(name, class name or None) of the function whose body holds `pos`: name '~X' for a destructor."""
     depth = 0
@@ -227,46 +302,46 @@ def enclosing_function(m, pos):
             else:
                 depth -= 1
     for k, brace in enumerate(opens):
-        i = skip_space_back(m, brace - 1)
-        while True:
-            w = re.search(r'\b(const|noexcept|override|final)\s*$', m[:i + 1])
-            if not w:
-                break
-            i = skip_space_back(m, w.start() - 1)
-        if i < 0 or m[i] != ')':
+        name = function_name(m, brace)
+        if name is None or CONTROL.fullmatch(name):
             continue
-        # walk back over a constructor's initialiser list
-        while True:
-            j = match_backward(m, i)
-            if j < 0:
+        parts = name.split('::')
+        owner = None
+        for outer in opens[k + 1:]:
+            h = re.search(r'\b(?:struct|class)\s+(\w+)[^;{}()]*$', m[:outer])
+            if h:
+                owner = h.group(1)
                 break
-            n = re.search(r'(~?\s*\w+(?:\s*::\s*~?\s*\w+)*)\s*$', m[:j])
-            if not n:
-                break
-            name = re.sub(r'\s+', '', n.group(1))
-            b = skip_space_back(m, n.start() - 1)
-            if b >= 0 and (m[b] == ',' or (m[b] == ':' and (b == 0 or m[b - 1] != ':'))) and not \
-                    re.search(r'\b(public|private|protected)\s*:$', m[:b + 1]):
-                i = skip_space_back(m, b - 1)
-                if m[i] == ')' or m[i] == '}':
-                    if m[i] == '}':
-                        i = skip_space_back(m, match_backward(m, i) - 1)
-                    continue
-                break
-            if re.fullmatch(r'(if|for|while|switch|catch|return|sizeof)', name):
-                break
-            parts = name.split('::')
-            owner = None
-            for outer in opens[k + 1:]:
-                h = re.search(r'\b(?:struct|class)\s+(\w+)[^;{}()]*$', m[:outer])
-                if h:
-                    owner = h.group(1)
-                    break
-            if len(parts) >= 2:
-                owner = parts[-2]
-            return parts[-1], owner
-        break
+        if len(parts) >= 2:
+            owner = parts[-2]
+        return parts[-1], owner
     return None, None
+
+
+def function_start(m, pos):
+    """The offset of the body of the function holding `pos` (its outermost function brace), or 0."""
+    depth = 0
+    best = 0
+    for j in range(pos - 1, -1, -1):
+        c = m[j]
+        if c == '}':
+            depth += 1
+        elif c == '{':
+            if depth == 0:
+                name = function_name(m, j)
+                if name is not None and not CONTROL.fullmatch(name):
+                    best = j
+            else:
+                depth -= 1
+    return best
+
+
+def is_local(m, pos, obj):
+    """Whether `obj` is a vector declared in the function body holding `pos`, before it."""
+    if not re.fullmatch(r'\w+', obj):
+        return False
+    start = function_start(m, pos)
+    return re.search(r'\bstd::vector\s*<[^;]*>\s+' + obj + r'\s*[;{=]', m[start:pos]) is not None
 
 
 class Fixer:
@@ -290,11 +365,17 @@ class Fixer:
         if src is None:
             return
         msg = d['msg']
+        if d['code'] in ('C2607', 'C2338'):
+            self.layout_assert(src, d)
+            return
+        if d['code'] == 'C2440' and "from 'overloaded-function'" in msg:
+            self.cast_operand(src, d)
+            return
         member = None
         mm = MEMBER_MSG.search(msg)
         if mm:
             member = mm.group(1) or mm.group(2)
-        elif d['code'] not in ('C2659', 'C2105', 'C2171', 'C2296', 'C2297', 'C2446', 'C2568', 'C2109'):
+        elif d['code'] not in ('C2659', 'C2105', 'C2171', 'C2296', 'C2297', 'C2446', 'C2568', 'C2109', 'C2276', 'C2440'):
             return
         line_start = src.line_starts[d['line'] - 1]
         line_end = src.text.find('\n', line_start)
@@ -328,6 +409,101 @@ class Fixer:
         self.done.add(key)
         self.rewrite(src, x)
 
+    def cast_operand(self, src, d):
+        """`static_cast<T>(x.size)` (the diagnostic at the cast, not the member): the fields in its operand."""
+        m = src.masked
+        pos = src.offset(d['line'], d['col'])
+        c = re.compile(r'\b(?:static|reinterpret)_cast\s*<').search(m, pos, pos + 20)
+        if not c:
+            return
+        lt = c.end() - 1
+        depth, j = 0, lt
+        while j < len(m):
+            depth += m[j] == '<'
+            depth -= m[j] == '>'
+            if depth == 0:
+                break
+            j += 1
+        open_ = skip_space(m, j + 1)
+        if open_ >= len(m) or m[open_] != '(':
+            return
+        close = match_forward(m, open_)
+        for x in ACCESS.finditer(m, open_, close):
+            name = x.group(2)
+            after = skip_space(m, x.end())
+            if name in FIELDS and not (after < len(m) and m[after] == '(') and (src.path, x.start()) not in self.done:
+                self.done.add((src.path, x.start()))
+                self.rewrite(src, x)
+
+    def field_group(self, src, a, x, obj, arrow, acc):
+        """The run of statements around [a, ...) that set the array's fields by hand (one per line): zeroing them all
+        is the vector's construction (gone in a constructor and for a local; else std::construct_at), an inlined
+        SetSize (`data = ...Allocate(n); capacity = n; size = n;`) is resize(n). False when the run has no `data`
+        store (the field rules take each one)."""
+        m, t = src.masked, src.text
+        key = ''.join(r'\s*\.\s*' if p == '.' else r'\s*->\s*' if p == '->' else re.escape(p)
+                      for p in re.split(r'(\.|->)', re.sub(r'\s+', '', acc)) if p)
+        pattern = re.compile(r'[ \t]*' + key + r'(data|capacity|size|growBy)\s*=(?!=)\s*([^;\n]*?)\s*;[ \t]*\n')
+        ls = t.rfind('\n', 0, a) + 1
+        first = pattern.match(m, ls)
+        if not first:
+            return False
+        starts = [ls]
+        while True:   # earlier lines
+            prev = t.rfind('\n', 0, starts[0] - 1) + 1
+            if prev >= starts[0] or not pattern.match(m, prev):
+                break
+            starts.insert(0, prev)
+        stmts = []
+        at = starts[0]
+        while True:
+            g = pattern.match(m, at)
+            if not g:
+                break
+            stmts.append((at, g.end(), g.group(1), t[g.start(2):g.end(2)].strip()))
+            at = g.end()
+        fields = {f: v for (_, _, f, v) in stmts}
+        if 'data' not in fields or len(fields) != len(stmts):
+            return False
+        begin, stop = stmts[0][0], stmts[-1][1]
+        for s0, s1, _, _ in stmts:
+            for y in ACCESS.finditer(m, s0, s1):
+                self.done.add((src.path, y.start()))
+        indent = re.match(r'[ \t]*', t[begin:]).group(0)
+        zero = all(v in ('0', 'nullptr', 'NULL') for v in fields.values())
+        if zero:
+            fn, owner = enclosing_function(m, a)
+            if (fn and owner and fn == owner) or is_local(m, a, obj):
+                self.add(src.path, begin, stop, '')
+                return True
+            self.add(src.path, begin, stop, '%sstd::construct_at(%s);\n' % (indent, obj if arrow else '&' + obj))
+            self.note('review', src, a, 'std::construct_at (fields zeroed) in %s (%s): %s' % (fn, owner, obj))
+            return True
+        if 'Allocate(' in fields['data'] and 'size' in fields:
+            n = fields['size']
+            self.add(src.path, begin, stop, '%s%sresize(%s);\n' % (indent, acc, n))
+            self.note('review', src, a, 'inlined SetSize -> resize(%s): %s' % (n, obj))
+            return True
+        self.note('manual', src, a, 'fields set by hand: %s %s' % (obj, ', '.join('%s = %s' % kv for kv in fields.items())))
+        return True
+
+    def layout_assert(self, src, d):
+        """A size or offset assert the vector broke (the owner's layout changed): it goes."""
+        m = src.masked
+        pos = src.offset(d['line'], d['col'])
+        line_start = src.line_starts[d['line'] - 1]
+        at = m.rfind('static_assert', 0, pos + 1)
+        if at < 0 or at < m.rfind(';', 0, pos) or not re.search(r'\b(sizeof|offsetof)\b', m[at:m.find(';', at)]):
+            self.manual.append('%s:%d %s %s' % (rel(src.path), d['line'], d['code'], d['msg'][:160]))
+            return
+        if (src.path, at) in self.done:
+            return
+        self.done.add((src.path, at))
+        close = match_forward(m, m.index('(', at))
+        stop = skip_space(m, close + 1) + 1
+        self.note('review', src, at, 'layout assert gone: %s' % re.sub(r'\s+', ' ', src.text[at:stop]))
+        self.remove_statement(src, at, stop)
+
     def rewrite(self, src, x):
         m, t = src.masked, src.text
         dot, name = x.group(1), x.group(2)
@@ -339,12 +515,19 @@ class Fixer:
         acc = obj + dot                            # `x.` / `p->`
         end = x.end()
         path = src.path
+        if name in FIELDS and statement_start(m, a) and re.match(r'\s*=(?!=)', m[end:]):
+            if self.field_group(src, a, x, obj, arrow, acc):
+                return
         if name == 'data':
             k = skip_space(m, end)
             if k < len(m) and m[k] == '[':
                 self.add(path, a, k, P)
                 return
             if self.free_statement(src, a, x):
+                return
+            amp = skip_space_back(m, a - 1)
+            if re.match(r'\s*=(?!=)', m[end:]) or (m[amp] == '&' and m[amp - 1] != '&'):
+                self.note('manual', src, a, 'data stored or its address taken: %s' % obj)
                 return
             test = self.test_context(m, a, end)
             if test is not None:
@@ -479,13 +662,23 @@ class Fixer:
         if what == 'destroy' and fn and fn.startswith('~'):
             self.remove_statement(src, a, stop)
             return
-        if what == 'construct' and fn and owner and fn == owner:
+        local = is_local(m, a, obj)
+        if what == 'construct' and ((fn and owner and fn == owner) or local):
             self.remove_statement(src, a, stop)
             return
-        call = 'std::construct_at' if what == 'construct' else 'std::destroy_at'
+        # a local freed as its block ends: its destructor does it
+        if what == 'destroy' and local and m[skip_space(m, stop):skip_space(m, stop) + 1] == '}':
+            self.remove_statement(src, a, stop)
+            return
         semi = stop - 1 if t[stop - 1] == ';' else stop
-        self.add(path, a, semi, '%s(%s)' % (call, target))
-        self.note('review', src, a, '%s in %s (%s): %s' % (call, fn, owner, obj))
+        if what == 'construct':
+            # the owner is built in raw storage (operator new, then its Construct)
+            self.add(path, a, semi, 'std::construct_at(%s)' % target)
+            self.note('review', src, a, 'std::construct_at in %s (%s): %s' % (fn, owner, obj))
+            return
+        # the block freed, the vector left empty (its owner's destructor, or none, ends it)
+        self.add(path, a, semi, 'lib::FreeStorage(%s)' % ('*' + obj if arrow else obj))
+        self.note('review', src, a, 'lib::FreeStorage in %s (%s): %s' % (fn, owner, obj))
 
     def remove_statement(self, src, a, stop):
         t = src.text
@@ -505,7 +698,7 @@ class Fixer:
         arrow = x.group(1) == '->'
         acc = re.escape(re.sub(r'\s+', '', m[a:x.end()]))
         before = m[:a]
-        f = re.search(r'(?:\blib::FreeAligned32|\blib::AlignedArray\s*<[^;{}]*>\s*::\s*Free)\s*\(\s*$', before)
+        f = re.search(FREE_CALL + r'\s*\(\s*$', before)
         if not f:
             # the guard of such a statement
             g = re.search(r'\bif\s*\(\s*$', before)
@@ -515,8 +708,7 @@ class Fixer:
             if close >= len(m) or m[close] != ')':
                 return False
             rest = m[close + 1:]
-            h = re.match(r'\s*(?:lib::FreeAligned32|lib::AlignedArray\s*<[^;{}]*>\s*::\s*Free)\s*\(\s*([^;]*?)\s*\)\s*;',
-                         rest)
+            h = re.match(r'\s*' + FREE_CALL + r'\s*\(\s*([^;]*?)\s*\)\s*;', rest)
             if not h or re.sub(r'\s+', '', h.group(1)) != re.sub(r'\s+', '', m[a:x.end()]):
                 return False
             if not statement_start(m, g.start()):
