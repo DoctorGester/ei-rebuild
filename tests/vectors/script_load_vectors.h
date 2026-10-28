@@ -66,15 +66,15 @@ void PutTexts(Writer& w, const mfc::CArray<Text>& a) {
 // by count). game.exe's (OriginalScriptVars) when recording, ours when checking.
 template <typename Vars>
 void PutVars(Writer& w, const Vars& v) {
-    PutShape(w, v.floats);
-    if (v.floats.size) w.PutBytes(v.floats.data, static_cast<std::size_t>(v.floats.size) * 4);
-    PutTexts(w, v.floatNames);
-    PutTexts(w, v.strings);
-    PutTexts(w, v.stringNames);
-    PutShape(w, v.objects);
-    PutTexts(w, v.objectNames);
-    PutShape(w, v.groups);
-    PutTexts(w, v.groupNames);
+    PutShape(w, v.floats.values);
+    if (v.floats.values.size) w.PutBytes(v.floats.values.data, static_cast<std::size_t>(v.floats.values.size) * 4);
+    PutTexts(w, v.floats.names);
+    PutTexts(w, v.strings.values);
+    PutTexts(w, v.strings.names);
+    PutShape(w, v.objects.values);
+    PutTexts(w, v.objects.names);
+    PutShape(w, v.groups.values);
+    PutTexts(w, v.groups.names);
 }
 
 template <typename Block>

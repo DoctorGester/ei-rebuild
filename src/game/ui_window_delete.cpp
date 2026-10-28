@@ -115,8 +115,8 @@ CBattleScreen::~CBattleScreen() {
 static_assert(sizeof(BriefingMover) == 0x30);
 
 CBriefingScreen::~CBriefingScreen() {
-    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) std::destroy_at(&speaker->name);
-    FreeVectorStorage(speakers_, speakersCapacity_);
+    for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) std::destroy_at(&speaker->name);
+    speakers_.FreeStorage();
     people_.FreeStorage();
     // The shown items' list (node 0x18 bytes: next, prev, then the item record).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {

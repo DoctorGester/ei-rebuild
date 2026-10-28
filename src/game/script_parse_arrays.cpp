@@ -28,16 +28,16 @@ using namespace scriptarray;
 constexpr RangeFn DestroySubCalls = DestroyEach<ScriptSubCall, ScriptSubCallDestruct>;
 constexpr RangeFn DestroyDefinitions = DestroyEach<ScriptDefinition, ScriptDefinitionDestruct>;
 
-const ElementKind kBindings{sizeof(ScriptBinding), ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
-const ElementKind kSubCalls{sizeof(ScriptSubCall), ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};
-const ElementKind kDefinitions{sizeof(ScriptDefinition), ConstructAs<mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>, DestroyDefinitions, DestroyDefinitions};
-const ElementKind kLooks{sizeof(AILook), ConstructAs<mfc::impl::Plain16>, nullptr, nullptr};
+const ElementKind kBindings{ConstructAs<mfc::impl::Plain12>, nullptr, nullptr};
+const ElementKind kSubCalls{ConstructAs<recordarrays::SubCalls>, DestroySubCalls, DestroySubCalls};
+const ElementKind kDefinitions{ConstructAs<mfc::impl::ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>, DestroyDefinitions, DestroyDefinitions};
+const ElementKind kLooks{ConstructAs<mfc::impl::Plain16>, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).
 template <typename T>
 int Append(mfc::CArray<T>* array, const ElementKind& kind) {
     int index = array->size;
-    InlineSetSize(Raw(array), index + 1, kind);
+    InlineSetSize(array, index + 1, kind);
     return index;
 }
 
@@ -65,7 +65,7 @@ int ScriptCommands::Add(const SSCCmd& cmd) {
 }
 
 void ScriptCommands::SetAtGrow(int index, const SSCCmd& cmd) {
-    if (index >= size) InlineSetSize(Raw(this), index + 1, kCmds);
+    if (index >= size) InlineSetSize(this, index + 1, kCmds);
     data[index].ScriptCmdAssign(&cmd);
 }
 
@@ -125,6 +125,6 @@ void ScriptStrings::CopyTo(int index, std::string* out) const {
 }
 
 void AILooks::SetAtGrow(int index, const AILook& look) {
-    if (index >= size) InlineSetSize(Raw(this), index + 1, kLooks);
+    if (index >= size) InlineSetSize(this, index + 1, kLooks);
     data[index] = look;
 }

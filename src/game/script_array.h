@@ -6,16 +6,13 @@
 
 #include "script.h"
 
+#include "lib/crt.h"
 #include "lib/mfc_array.h"
 
+#include <cstring>
 #include <type_traits>
 
 namespace scriptarray {
-
-// Any CArray seen as bytes; the element size comes from its ElementKind.
-using RawArray = mfc::CArray<char>;
-template <typename T>
-RawArray* Raw(mfc::CArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
 
 using RangeFn = void(__stdcall*)(void* first, int count);
 
@@ -44,7 +41,6 @@ void __stdcall DestroyEach(void* first, int count) {
 
 // The element helpers of one instantiation, as the inlined SetSize uses them.
 struct ElementKind {
-    int size;
     RangeFn construct;
     RangeFn destroyAll;    // n == 0 (null: plain delete)
     RangeFn destroyTail;   // shrinking (null: nothing)
@@ -60,6 +56,49 @@ extern const ElementKind kCmds;
 extern const ElementKind kIfThen;
 extern const ElementKind kPointers;
 
-void InlineSetSize(RawArray* a, int n, const ElementKind& kind);
+template <typename T>
+void InlineSetSize(mfc::CArray<T>* a, int n, const ElementKind& kind) {
+    if (n == 0) {
+        if (a->data) {
+            if (kind.destroyAll) kind.destroyAll(a->data, a->size);
+            gamecrt::operator_delete(a->data);
+            a->data = nullptr;
+        }
+        a->maxSize = 0;
+        a->size = 0;
+        return;
+    }
+    if (!a->data) {
+        a->data = gamecrt::operator_new_array<T>(static_cast<unsigned>(n));
+        kind.construct(a->data, n);
+        a->maxSize = n;
+        a->size = n;
+        return;
+    }
+    if (n <= a->maxSize) {
+        if (a->size < n) {
+            kind.construct(a->data + a->size, n - a->size);
+        } else if (n < a->size && kind.destroyTail) {
+            kind.destroyTail(a->data + n, a->size - n);
+        }
+        a->size = n;
+        return;
+    }
+    int grow = a->growBy;
+    if (grow == 0) {
+        grow = a->size / 8;
+        if (grow < 4) grow = 4;
+        else if (grow > 0x400) grow = 0x400;
+    }
+    int newMax = a->maxSize + grow;
+    if (n >= newMax) newMax = n;
+    T* fresh = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
+    std::memcpy(static_cast<void*>(fresh), a->data, static_cast<unsigned>(a->size) * sizeof(T));
+    kind.construct(fresh + a->size, n - a->size);
+    gamecrt::operator_delete(a->data);
+    a->data = fresh;
+    a->size = n;
+    a->maxSize = newMax;
+}
 
 } // namespace scriptarray

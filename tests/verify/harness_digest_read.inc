@@ -374,15 +374,15 @@ void ReadEvents(const AIEventTable* t, Builder& b) {
 // a group is kept in address order).
 std::uint32_t HashVars(const ScriptVars& v) {
     Hash h;
-    h.Add(static_cast<std::uint32_t>(v.floats.GetSize()));
-    for (int i = 0; i < v.floats.GetSize(); ++i) h.Add(FloatBits(v.floats[i]));
-    h.Add(static_cast<std::uint32_t>(v.strings.GetSize()));
-    for (int i = 0; i < v.strings.GetSize(); ++i) h.AddText(Text(v.strings[i]));
-    h.Add(static_cast<std::uint32_t>(v.objects.GetSize()));
-    for (int i = 0; i < v.objects.GetSize(); ++i) h.Add(static_cast<std::uint32_t>(IdOf(v.objects[i].object)));
-    h.Add(static_cast<std::uint32_t>(v.groups.GetSize()));
-    for (int i = 0; i < v.groups.GetSize(); ++i) {
-        const ScriptGroup& group = v.groups[i];
+    h.Add(static_cast<std::uint32_t>(v.floats.values.GetSize()));
+    for (int i = 0; i < v.floats.values.GetSize(); ++i) h.Add(FloatBits(v.floats.values[i]));
+    h.Add(static_cast<std::uint32_t>(v.strings.values.GetSize()));
+    for (int i = 0; i < v.strings.values.GetSize(); ++i) h.AddText(Text(v.strings.values[i]));
+    h.Add(static_cast<std::uint32_t>(v.objects.values.GetSize()));
+    for (int i = 0; i < v.objects.values.GetSize(); ++i) h.Add(static_cast<std::uint32_t>(IdOf(v.objects.values[i].object)));
+    h.Add(static_cast<std::uint32_t>(v.groups.values.GetSize()));
+    for (int i = 0; i < v.groups.values.GetSize(); ++i) {
+        const ScriptGroup& group = v.groups.values[i];
         std::vector<int> ids;
         for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
         std::sort(ids.begin(), ids.end());
@@ -432,18 +432,18 @@ void ReadScript(CScript* s, Builder& b) {
         if (v < names.GetSize()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), v, type, value);
     };
-    for (int v = 0; v < g.floats.GetSize(); ++v) field("global", g.floatNames, v, Kind::Float, FloatBits(g.floats[v]));
-    for (int v = 0; v < g.strings.GetSize(); ++v) field("gstring", g.stringNames, v, Kind::Bits, TextHash(Text(g.strings[v])));
-    for (int v = 0; v < g.objects.GetSize(); ++v)
-        field("gobject", g.objectNames, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects[v].object)));
-    for (int v = 0; v < g.groups.GetSize(); ++v) {
-        const ScriptGroup& group = g.groups[v];
+    for (int v = 0; v < g.floats.values.GetSize(); ++v) field("global", g.floats.names, v, Kind::Float, FloatBits(g.floats.values[v]));
+    for (int v = 0; v < g.strings.values.GetSize(); ++v) field("gstring", g.strings.names, v, Kind::Bits, TextHash(Text(g.strings.values[v])));
+    for (int v = 0; v < g.objects.values.GetSize(); ++v)
+        field("gobject", g.objects.names, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects.values[v].object)));
+    for (int v = 0; v < g.groups.values.GetSize(); ++v) {
+        const ScriptGroup& group = g.groups.values[v];
         std::vector<int> ids;
         for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
         std::sort(ids.begin(), ids.end());
-        field("ggroup", g.groupNames, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
+        field("ggroup", g.groups.names, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
     }
-    b.Int("globals.names", g.floatNames.GetSize() + g.stringNames.GetSize() + g.objectNames.GetSize() + g.groupNames.GetSize());
+    b.Int("globals.names", g.floats.names.GetSize() + g.strings.names.GetSize() + g.objects.names.GetSize() + g.groups.names.GetSize());
     i = 0;
     for (auto* n = s->fxSources_.head; n; n = n->next, ++i) {
         const ScriptFxSource& fx = n->data;

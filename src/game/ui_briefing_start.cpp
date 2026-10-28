@@ -245,7 +245,7 @@ void CBriefingScreen::FinishDialogue() {
     TheMusicSystem()->FadeIn();
     ClearShownItems();
 
-    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
+    for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) {
         CUnit* unit = speaker->unit;
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, unit->id_);
@@ -262,8 +262,8 @@ void CBriefingScreen::FinishDialogue() {
         // (The unit is then looked up among the party's first members; the result is not used.)
     }
     // vector::clear (then the entries' destructor).
-    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) std::destroy_at(&speaker->name);
-    speakersEnd_ = speakers_;
+    for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) std::destroy_at(&speaker->name);
+    speakers_.Finish() = speakers_.begin();
     speaking_ = nullptr;
 
     if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);

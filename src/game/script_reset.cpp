@@ -64,10 +64,10 @@ void __fastcall ScriptReset(CScript* script) {
     RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { block->DestroyElement(0); });
 
     ScriptVars* globals = script->Globals();
-    ScriptFloatsClear(NamedValues(&globals->floats));
-    ScriptStringsClear(NamedValues<std::string>(&globals->strings));
-    ScriptObjectsClear(NamedValues<ScriptObjectRef>(&globals->objects));
-    ScriptGroupsClear(NamedValues<ScriptGroup>(&globals->groups));
+    ScriptFloatsClear(&globals->floats);
+    ScriptStringsClear(&globals->strings);
+    ScriptObjectsClear(&globals->objects);
+    ScriptGroupsClear(&globals->groups);
     script->forDepth_ = 0;
 
     // Temporaries: every entry but one dropped, the last one emptied.
@@ -125,14 +125,14 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     definition->ifThen.maxSize = 0;
     definition->ifThen.size = 0;
     ScriptVars& vars = definition->vars;
-    vars.floats.SetSize(0, -1);
-    vars.floatNames.SetSize(0, -1);
-    vars.strings.SetSize(0, -1);
-    vars.stringNames.SetSize(0, -1);
-    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(0, -1);
-    vars.objectNames.SetSize(0, -1);
-    mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups).SetSize(0, -1);
-    vars.groupNames.SetSize(0, -1);
+    vars.floats.values.SetSize(0, -1);
+    vars.floats.names.SetSize(0, -1);
+    vars.strings.values.SetSize(0, -1);
+    vars.strings.names.SetSize(0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects.values).SetSize(0, -1);
+    vars.objects.names.SetSize(0, -1);
+    mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups.values).SetSize(0, -1);
+    vars.groups.names.SetSize(0, -1);
     definition->index = 0;
     const char* empty = game::EmptyText();
     definition->params = empty;

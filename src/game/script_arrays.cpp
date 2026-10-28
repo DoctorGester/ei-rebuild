@@ -107,22 +107,22 @@ void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
 // The run's variables, members from the last to the first.
 void __fastcall ScriptRunDestruct(ScriptRun* run) {
     ScriptVars& vars = run->vars;
-    FreeStrings(&vars.groupNames);
-    vars.groups.vtable = gamearrays::GroupArrayClass::Vtable();
-    if (vars.groups.data) {
-        gamearrays::Groups::DestructElements(vars.groups.data, vars.groups.size);
-        gamecrt::operator_delete(vars.groups.data);
+    FreeStrings(&vars.groups.names);
+    vars.groups.values.vtable = gamearrays::GroupArrayClass::Vtable();
+    if (vars.groups.values.data) {
+        gamearrays::Groups::DestructElements(vars.groups.values.data, vars.groups.values.size);
+        gamecrt::operator_delete(vars.groups.values.data);
     }
-    FreeStrings(&vars.objectNames);
-    vars.objects.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-    if (vars.objects.data) {
-        gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
-        gamecrt::operator_delete(vars.objects.data);
+    FreeStrings(&vars.objects.names);
+    vars.objects.values.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
+    if (vars.objects.values.data) {
+        gamearrays::ObjectRefs::DestructElements(vars.objects.values.data, vars.objects.values.size);
+        gamecrt::operator_delete(vars.objects.values.data);
     }
-    FreeStrings(&vars.stringNames);
-    FreeStrings(&vars.strings);
-    FreeStrings(&vars.floatNames);
-    FreePlain(&vars.floats, mfc::impl::ScriptFloatsClass::Vtable());
+    FreeStrings(&vars.strings.names);
+    FreeStrings(&vars.strings.values);
+    FreeStrings(&vars.floats.names);
+    FreePlain(&vars.floats.values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
 // The names, then each group's references through the element destructor and

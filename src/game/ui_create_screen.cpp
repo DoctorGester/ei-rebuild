@@ -57,9 +57,7 @@ CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
     people_.ConstructEmpty();
-    speakers_ = nullptr;                // the speakers' vector: no storage
-    speakersEnd_ = nullptr;
-    speakersCapacity_ = nullptr;
+    speakers_.ConstructEmpty();
 }
 
 void CInterface3D::CreateScreen(int id) {

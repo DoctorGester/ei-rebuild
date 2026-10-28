@@ -269,7 +269,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (!skip || last) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);
-        for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
+        for (std::size_t i = 0; i < speakers_.size(); ++i) {
             if (Compare(speakers_[i].name, named()) != 0) continue;
             if (view) {
                 CUnit* target;
@@ -302,7 +302,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
 
     // The speaker talks, the others listen.
     if (!skip && spoke) {
-        for (std::size_t i = 0; i < static_cast<std::size_t>(speakersEnd_ - speakers_); ++i) {
+        for (std::size_t i = 0; i < speakers_.size(); ++i) {
             CUnit* unit = speakers_[i].unit;
             if (Compare(speakers_[i].name, named()) != 0) {
                 PlaySpeakerAnimation(unit, 0, 0);
@@ -331,7 +331,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         text_->SetText(dialogueText_.c_str());
         text_->SetPosition(text_->maxPosition_);
         text_->moved_ = true;
-        for (BriefingSpeaker* p = speakers_; p != speakersEnd_; ++p) {
+        for (BriefingSpeaker* p = speakers_.begin(); p != speakers_.end(); ++p) {
             SetBlink(p->unit, 0);
             PlaySpeakerAnimation(p->unit, 0, 0);
         }

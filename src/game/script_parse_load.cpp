@@ -283,9 +283,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'f':
             local.type = kScriptFloat;
             global.type = kScriptFloat;
-            local.varIndex = FindName(locals->floatNames, text);
-            global.varIndex = FindName(globals->floatNames, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->floatNames, qualified);
+            local.varIndex = FindName(locals->floats.names, text);
+            global.varIndex = FindName(globals->floats.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified);
             local.argIndex = floatCount;
             global.argIndex = floatCount;
             if (tokenId == kLexNumber) {
@@ -298,9 +298,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 's':
             local.type = kScriptString;
             global.type = kScriptString;
-            local.varIndex = FindName(locals->stringNames, text);
-            global.varIndex = FindName(globals->stringNames, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->stringNames, qualified);
+            local.varIndex = FindName(locals->strings.names, text);
+            global.varIndex = FindName(globals->strings.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified);
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
@@ -313,9 +313,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'o':
             local.type = kScriptObject;
             global.type = kScriptObject;
-            local.varIndex = FindName(locals->objectNames, text);
-            global.varIndex = FindName(globals->objectNames, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->objectNames, qualified);
+            local.varIndex = FindName(locals->objects.names, text);
+            global.varIndex = FindName(globals->objects.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified);
             local.argIndex = objectCount;
             global.argIndex = objectCount;
             ++objectCount;
@@ -325,9 +325,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
             local.varIndex = -1;
             global.type = kScriptObject;
-            global.varIndex = FindName(globals->objectNames, text);
+            global.varIndex = FindName(globals->objects.names, text);
             if (global.varIndex < 0) {
-                global.varIndex = FindName(globals->objectNames, qualified);
+                global.varIndex = FindName(globals->objects.names, qualified);
                 if (global.varIndex < 0) {
                     result = Error(this, token.line, 8, "Only global variables are allowed to be loop counters");   // "Only global variables ..."
                     DeleteCmd(sub.cmd);
@@ -341,9 +341,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'g':
             local.type = kScriptGroup;
             global.type = kScriptGroup;
-            local.varIndex = FindName(locals->groupNames, text);
-            global.varIndex = FindName(globals->groupNames, text);
-            if (global.varIndex < 0) global.varIndex = FindName(globals->groupNames, qualified);
+            local.varIndex = FindName(locals->groups.names, text);
+            global.varIndex = FindName(globals->groups.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified);
             local.argIndex = groupCount;
             global.argIndex = groupCount;
             ++groupCount;

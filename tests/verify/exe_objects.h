@@ -631,15 +631,16 @@ struct ScriptObjectRef {
 static_assert(sizeof(ScriptObjectRef) == 0x4);
 
 // A script's variables: values and names of the four kinds (script.h).
+template <typename Value>
+struct ScriptNamedValues {
+    Array<Value> values;                    // +0x00
+    Array<CString> names;                   // +0x14
+};
 struct ScriptVars {
-    Array<float> floats;                    // +0x00
-    Array<CString> floatNames;              // +0x14
-    Array<CString> strings;                 // +0x28
-    Array<CString> stringNames;             // +0x3C
-    Array<ScriptObjectRef> objects;         // +0x50
-    Array<CString> objectNames;             // +0x64
-    Array<ScriptGroup> groups;              // +0x78
-    Array<CString> groupNames;              // +0x8C
+    ScriptNamedValues<float> floats;        // +0x00
+    ScriptNamedValues<CString> strings;     // +0x28
+    ScriptNamedValues<ScriptObjectRef> objects; // +0x50
+    ScriptNamedValues<ScriptGroup> groups;  // +0x78
 };
 static_assert(sizeof(ScriptVars) == 0xA0);
 

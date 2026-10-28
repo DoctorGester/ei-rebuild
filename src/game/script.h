@@ -193,6 +193,50 @@ struct ScriptTempObjects : mfc::CList<ScriptObjectRef> {
     ScriptObjectRef* PopTail(ScriptObjectRef* out);
 };
 
+// One type's variables in a ScriptVars: the value array and the name array after it.
+template <typename T>
+struct ScriptValueType {
+    using Type = mfc::CArray<T>;
+};
+template <> struct ScriptValueType<std::string> {
+    using Type = ScriptStrings;
+};
+template <> struct ScriptValueType<ScriptObjectRef> {
+    using Type = ScriptObjectRefs;
+};
+template <> struct ScriptValueType<ScriptGroup> {
+    using Type = ScriptGroups;
+};
+
+template <typename T>
+struct ScriptNamedValues {
+    void Load(ScriptStream* stream);
+    void Save(ScriptStream* stream) const;
+    void Append(const ScriptNamedValues<T>* other);
+    ScriptNamedValues<T>* CopyConstruct(const ScriptNamedValues<T>* other);
+    // -1 if absent.
+    int FindName(const char* name) const;
+    typename ScriptValueType<T>::Type values;
+    ScriptStrings names;
+};
+template <> void ScriptNamedValues<float>::Load(ScriptStream* stream);
+template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream);
+template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream);
+template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream);
+template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const;
+template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other);
+template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>* other);
+template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other);
+template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other);
+template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other);
+template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::CopyConstruct(const ScriptNamedValues<std::string>* other);
+template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other);
+template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other);
+static_assert(sizeof(ScriptNamedValues<float>) == 0x28);
+
 // A set of named script variables, one value array and one name array per type: a script's local variables
 // and the global variables (GlobalVars).
 struct ScriptVars {
@@ -210,18 +254,14 @@ struct ScriptVars {
     ScriptVars* ScriptVarsCopyConstruct(const ScriptVars* other);
     ScriptVars* ScriptVarsConstruct();
 
-    mfc::CArray<float> floats;
-    ScriptStrings floatNames;
-    ScriptStrings strings;
-    ScriptStrings stringNames;
-    ScriptObjectRefs objects;
-    ScriptStrings objectNames;
-    ScriptGroups groups;
-    ScriptStrings groupNames;
+    ScriptNamedValues<float> floats;
+    ScriptNamedValues<std::string> strings;
+    ScriptNamedValues<ScriptObjectRef> objects;
+    ScriptNamedValues<ScriptGroup> groups;
 };
 static_assert(sizeof(ScriptVars) == 0xA0);
 static_assert(offsetof(ScriptVars, objects) == 0x50);
-static_assert(offsetof(ScriptVars, groupNames) == 0x8C);
+static_assert(offsetof(ScriptVars, groups) == 0x78);
 
 // Binds argument `argIndex` of a command to variable `varIndex` of the same type.
 struct ScriptBinding {
@@ -716,51 +756,6 @@ void __fastcall ScriptQuestFinish(CScript* script);
 void __fastcall ScriptReset(CScript* script);
 
 // ---- Saving ----
-
-// One type's variables in a ScriptVars: the value array and the name array after it.
-template <typename T>
-struct ScriptValueType {
-    using Type = mfc::CArray<T>;
-};
-template <> struct ScriptValueType<ScriptObjectRef> {
-    using Type = ScriptObjectRefs;
-};
-template <> struct ScriptValueType<ScriptGroup> {
-    using Type = ScriptGroups;
-};
-
-template <typename T>
-struct ScriptNamedValues {
-    void Load(ScriptStream* stream);
-    void Save(ScriptStream* stream) const;
-    void Append(const ScriptNamedValues<T>* other);
-    ScriptNamedValues<T>* CopyConstruct(const ScriptNamedValues<T>* other);
-    // -1 if absent.
-    int FindName(const char* name) const;
-    typename ScriptValueType<T>::Type values;
-    ScriptStrings names;
-};
-template <> void ScriptNamedValues<float>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<std::string>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream);
-template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const;
-template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other);
-template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>* other);
-template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other);
-template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other);
-template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other);
-template <> ScriptNamedValues<std::string>* ScriptNamedValues<std::string>::CopyConstruct(const ScriptNamedValues<std::string>* other);
-template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other);
-template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other);
-static_assert(sizeof(ScriptNamedValues<float>) == 0x28);
-template <typename T>
-ScriptNamedValues<T>* NamedValues(mfc::CArray<T>* values) { return reinterpret_cast<ScriptNamedValues<T>*>(values); }
-template <typename T>
-const ScriptNamedValues<T>* NamedValues(const mfc::CArray<T>* values) { return reinterpret_cast<const ScriptNamedValues<T>*>(values); }
 
 // An area of IsInArea.
 struct ScriptArea {

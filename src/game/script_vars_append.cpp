@@ -33,7 +33,7 @@ void CopyName(mfc::CArray<std::string>* names, int to, const mfc::CArray<std::st
 
 template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other) {
     int old = values.size;
-    InlineSetSize(Raw(&values), other->values.size + old, kFloats);
+    InlineSetSize(&values, other->values.size + old, kFloats);
     names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
@@ -54,7 +54,7 @@ template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<
 // The new slot drops its (null) object, then takes the other's object with a reference of its own.
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
     int old = values.size;
-    InlineSetSize(Raw(&values), other->values.size + old, kRefs);
+    InlineSetSize(&values, other->values.size + old, kRefs);
     names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
@@ -72,7 +72,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedVal
 // The new group is sized to the other's and each member reference copied in place.
 template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other) {
     int old = values.size;
-    InlineSetSize(Raw(&values), other->values.size + old, kGroups);
+    InlineSetSize(&values, other->values.size + old, kGroups);
     names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
@@ -144,26 +144,26 @@ void __fastcall ScriptGroupsClear(ScriptNamedValues<ScriptGroup>* vars) {
 // ScriptVars::RemoveAll: the out-of-line SetSize(0) of each array except the groups, whose
 // storage is freed inline (each group destroyed first).
 void __fastcall ScriptVarsClear(ScriptVars* vars) {
-    vars->floats.SetSize(0, -1);
-    vars->floatNames.SetSize(0, -1);
-    vars->strings.SetSize(0, -1);
-    vars->stringNames.SetSize(0, -1);
-    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars->objects).SetSize(0, -1);
-    vars->objectNames.SetSize(0, -1);
-    if (vars->groups.data) {
-        DestroyGroups(vars->groups.data, vars->groups.size);
-        gamecrt::operator_delete(vars->groups.data);
-        vars->groups.data = nullptr;
+    vars->floats.values.SetSize(0, -1);
+    vars->floats.names.SetSize(0, -1);
+    vars->strings.values.SetSize(0, -1);
+    vars->strings.names.SetSize(0, -1);
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars->objects.values).SetSize(0, -1);
+    vars->objects.names.SetSize(0, -1);
+    if (vars->groups.values.data) {
+        DestroyGroups(vars->groups.values.data, vars->groups.values.size);
+        gamecrt::operator_delete(vars->groups.values.data);
+        vars->groups.values.data = nullptr;
     }
-    vars->groups.maxSize = 0;
-    vars->groups.size = 0;
-    vars->groupNames.SetSize(0, -1);
+    vars->groups.values.maxSize = 0;
+    vars->groups.values.size = 0;
+    vars->groups.names.SetSize(0, -1);
 }
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
 void ScriptVars::AppendFrom(const ScriptVars* other) {
-    NamedValues(&floats)->Append(NamedValues(&other->floats));
-    NamedValues(&strings)->Append(NamedValues(&other->strings));
-    NamedValues(&objects)->Append(NamedValues(&other->objects));
-    NamedValues(&groups)->Append(NamedValues(&other->groups));
+    floats.Append(&other->floats);
+    strings.Append(&other->strings);
+    objects.Append(&other->objects);
+    groups.Append(&other->groups);
 }

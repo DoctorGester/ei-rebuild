@@ -121,7 +121,7 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     auto* unit = TheClientWorld()->FindUnit(serverUnit->id_);
     if (!unit) return;
     auto* screen = TheInterface()->ActiveWindowAs<CBriefingScreen>();
-    for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
+    for (std::size_t i = 0; i < screen->speakers_.size(); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
 
@@ -287,9 +287,9 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         }
         return;
     }
-    BriefingSpeaker* entry = speakers_;
-    while (entry != speakersEnd_ && entry->unit != person) ++entry;
-    if (entry != speakersEnd_) {
+    BriefingSpeaker* entry = speakers_.begin();
+    while (entry != speakers_.end() && entry->unit != person) ++entry;
+    if (entry != speakers_.end()) {
         CPlayerServer* server = LocalServerPlayer()->Server();
         if (server) server->SendPair19(kEventLeaves, person->id_);
         CUnitClientSpecific* model = person->ClientController();
@@ -304,13 +304,13 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
             // (The person is then looked up among the party's first members; the result is not used.)
         }
         // vector::erase (then the last entry's destructor).
-        for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
+        for (BriefingSpeaker* p = entry; p + 1 != speakers_.end(); ++p) {
             p->unit = p[1].unit;
             p->name = p[1].name;
             p->spareFlag = p[1].spareFlag;
         }
-        --speakersEnd_;
-        std::destroy_at(&speakersEnd_->name);
+        --speakers_.Finish();
+        std::destroy_at(&speakers_.Finish()->name);
     }
     if (person == third_) {
         MovePerson(person, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,

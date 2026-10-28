@@ -60,10 +60,10 @@ void CopyConstructRun(ScriptRun* to, const ScriptRun* from) {
     to->ticks = from->ticks;
     to->sleepStart = from->sleepStart;
     to->killFlag = from->killFlag;
-    NamedValues(&to->vars.floats)->CopyConstruct(NamedValues(&from->vars.floats));
-    NamedValues(&to->vars.strings)->CopyConstruct(NamedValues(&from->vars.strings));
-    NamedValues(&to->vars.objects)->CopyConstruct(NamedValues(&from->vars.objects));
-    NamedValues(&to->vars.groups)->CopyConstruct(NamedValues(&from->vars.groups));
+    to->vars.floats.CopyConstruct(&from->vars.floats);
+    to->vars.strings.CopyConstruct(&from->vars.strings);
+    to->vars.objects.CopyConstruct(&from->vars.objects);
+    to->vars.groups.CopyConstruct(&from->vars.groups);
 }
 
 // A group's copy constructor: an empty group, then the references copied.

@@ -411,21 +411,21 @@ BOOL ScriptRun::Execute(CScript* script) {
             ScriptVars* globals = script->Globals();
             switch (Ftol(f[1])) {
             case 0:
-                std::memcpy(&globals->floats.data[Ftol(f[0])], &f[2], 4);
+                std::memcpy(&globals->floats.values.data[Ftol(f[0])], &f[2], 4);
                 break;
             case 1:
-                globals->strings.data[Ftol(f[0])] = cmd->stringArgs.data[0];
+                globals->strings.values.data[Ftol(f[0])] = cmd->stringArgs.data[0];
                 break;
             case 2: {
                 ScriptObjectRef* value = cmd->objectArgs.data[0];
-                ScriptObjectRef* slot = &globals->objects.data[Ftol(f[0])];
+                ScriptObjectRef* slot = &globals->objects.values.data[Ftol(f[0])];
                 slot->Reset();
                 slot->Construct(*value);
                 break;
             }
             case 3: {
                 ScriptGroup* value = cmd->groupArgs.data[0];
-                globals->groups.data[Ftol(f[0])].CopyFrom(*value);
+                globals->groups.values.data[Ftol(f[0])].CopyFrom(*value);
                 break;
             }
             default:

@@ -113,28 +113,27 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
-        BriefingSpeaker* entry = speakers_;
-        while (entry != speakersEnd_ && entry->unit != unit) ++entry;
-        if (entry != speakersEnd_) {
+        BriefingSpeaker* entry = speakers_.begin();
+        while (entry != speakers_.end() && entry->unit != unit) ++entry;
+        if (entry != speakers_.end()) {
             // vector::erase (then the last entry's destructor).
-            for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
+            for (BriefingSpeaker* p = entry; p + 1 != speakers_.end(); ++p) {
                 p->unit = p[1].unit;
                 p->name = p[1].name;
                 p->spareFlag = p[1].spareFlag;
             }
-            --speakersEnd_;
-            std::destroy_at(&speakersEnd_->name);
+            --speakers_.Finish();
+            std::destroy_at(&speakers_.Finish()->name);
         }
         BriefingSpeaker added{unit, std::string(), false};
-        if (speakersEnd_ != speakersCapacity_) {
-            libcontainers::ConstructSpeaker(speakersEnd_, &added);
-            ++speakersEnd_;
+        if (speakers_.Finish() != speakers_.EndOfStorage()) {
+            libcontainers::ConstructSpeaker(speakers_.Finish(), &added);
+            ++speakers_.Finish();
         } else {
-            reinterpret_cast<stlp::vector<BriefingSpeaker>*>(&speakers_)
-                ->InsertOverflow<libcontainers::SpeakerElement>(speakersEnd_, added, 1);
+            speakers_.InsertOverflow<libcontainers::SpeakerElement>(speakers_.Finish(), added, 1);
         }
-        speakersEnd_[-1].unit = unit;
-        speakersEnd_[-1].name = name;
+        speakers_.back().unit = unit;
+        speakers_.back().name = name;
         auto* player = TheServerWorld()->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = TheServerWorld()->FindUnit(unit->id_)) {
