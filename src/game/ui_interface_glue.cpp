@@ -95,8 +95,8 @@ void CInterface3D::OnGameLost() {
     if (!stack_.empty()) ScreenOf(stack_.back())->GameOver(0);
 }
 
-void CInterface3D::OnUnitSpeech(int id, unsigned event) {
-    if (!stack_.empty()) ScreenOf(stack_.back())->Speech(id, event, kNoExtra);
+void CInterface3D::OnUnitSpeech(int id, AckKind kind) {
+    if (!stack_.empty()) ScreenOf(stack_.back())->Speech(id, kind, kNoExtra);
 }
 
 void CInterface3D::OnPlayersChanged(int added) {

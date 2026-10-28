@@ -335,7 +335,7 @@ void Link(CSpellEffect* e) {
         e->CreateSound(0, "magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
     } else {
         e->CreateSound(0, "magic\\Link\\end.wav", &e->position, &kZeroVector, kVolume, kHearing);
-        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x19);
+        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkEnded);
     }
     e->state = 3;
 }
@@ -355,7 +355,7 @@ void Teleport(CSpellEffect* e) {
     if (e->timer != arrival) return;
     e->targetPoint.z = e->caster->localPosition_.z;
     if (!e->world->aiMap_.IsPassableWithoutSelf(e->caster, &e->targetPoint)) {
-        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x10);
+        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::CantTeleport);
         return;
     }
     e->world->aiMap_.sectorMap.Move(e->caster, &e->targetPoint);

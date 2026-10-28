@@ -2,6 +2,7 @@
 
 // Units (creatures; class id 0x50), their controllers, statistics and party records.
 
+#include "ack_kind.h"
 #include "core_streams.h"
 #include "engine_object.h"
 #include "item.h"
@@ -183,7 +184,7 @@ public:
     virtual void EffectsChanged() {}
     virtual void GetAttackParams(struct AttackParams* out) = 0;
     // Queues `speech` (an acks.db record) as `kind` (client).
-    virtual void Say(const SpeechRecord*, int) {}
+    virtual void Say(const SpeechRecord*, AckKind) {}
     virtual void StopSpeech() {}
     virtual void MoveFactorsChanged() {}
 
@@ -839,7 +840,7 @@ struct PartyUnitRecord {
 
 // Wears `item` by `amount` (shared by its count_ pieces); the owner says `brokenRemark` when its condition
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
-void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
+void WearItem(CItem* item, CUnit* unit, float amount, AckKind brokenRemark, AckKind wornRemark);
 // `item` joins `items` and its spell `spells`.
 void GatherItem(std::list<CItem*>* items, std::list<CSpell*>* spells, CItem* item);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by

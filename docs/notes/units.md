@@ -59,7 +59,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 - Hits: `ApplyHit` (005254B0, from CUnitServer::TakeHit): damage per type beyond the vitals' protection (times the
   difficulty without a player), `WearItem` (005253E0; remarks 0x24 / 0x26), `DamageSlot` (00525070) on the hit location or
   all six slots for 6: layers (text-key units; `WearArmour` 00525720, tables 0073E09C / A0 / A4, remarks 0x23 / 0x25),
-  backstab multiplier, sever (-5 x maximum; remark 0x1E arm / 0x1F leg) or disable, log "<type> passed damage = <n>[ HL
+  backstab multiplier, sever (-5 x maximum; remark ArmCrippled / LegCrippled) or disable, log "<type> passed damage = <n>[ HL
   was crippled| HL is dead]"; then 00532AC0 drops broken equipment. `IsBehind` (00530A60): units with a player and no bow /
   crossbow; behind when the dot with the target's facing is below -0.5 (or NaN). `PickLocation` (00525B20): the aimed slot
   is kept while its kind is 3; else a neighbour table (head 1, 2, 3; body 0, 2, 3, 4, 5; hand 2: 3, 1; hand 3: 2, 1; leg 4:
@@ -418,6 +418,22 @@ of the ground (unless silenced, effect 0x10) and, when not crawling, shake by th
 the model's +0x11C) through the client world. An attack's sound waits for the
 speech sound and becomes it; an idle's becomes +0x88. Then +0x30 / +0x2C take the
 animation and frame.
+
+## Ack kinds
+
+`AckKind` (`ack_kind.h`) is the one enum of the codes in message 0x0B (`CPlayerServer::SendObject0B`, `CUnitServer::Shout`,
+`CWorldServer::TellParties`; the client's `OnUnitSpeech` reads it back and `acks::SayAck` picks the list). The wire
+carries the dword; `SendObject0B` converts once and `CPlayerClient::OnUnitSpeech` converts back once. The names are
+the folders of acks.db's sounds (Acks\<unit>\<folder>
+.wav), read from the unit table's chunks (the chunk-to-kind
+order is `kUnitChunks` / `kUnitKinds`; the models table's 0x2E..0x32 are Agress / Suspect / Kill / Rest / InAgress).
+Where the code's old names disagreed with the data, the data won: 0x0B is `NoWayToAttack` ("I cannot reach there",
+not "target lost"; 0x12 `NoTarget` is "where did he go"), 0x0E `NoPath` (not "cannot do"), 0x0F `NoMana` (acks.db
+"CantCast": no strength to cast) against 0x13 `SpellTooComplex` ("ComplSp": "am I a great mage?"), 0x14 / 0x15
+`Overloaded` / `Injured` (what UpdateSneak says when running is refused). 0x0C `OutOfReach` has no speech list in any
+unit record (silent); 0x11 `ScienceFailed` is also what a quick item without a charge says. 0x16 and 0x18..0x1B have no
+list either. `Shout` and the planner pass only the kinds up to `Bored` and `Kill` (`IsShoutable`); `None` (-1) is the
+planner's "say nothing".
 
 ## Creation helpers
 

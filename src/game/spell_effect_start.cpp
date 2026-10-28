@@ -297,7 +297,7 @@ Next StartLink(CSpellEffect* e) {
     bool free = e->target->IsLargeUnit() == 0 && e->caster->IsLargeUnit() == 0 &&
                 e->target->IsDead() == 0 && e->target != e->caster;
     if (!free) {
-        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x18);
+        if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkImpossible);
         return Next::Done;
     }
     Vector3 scratch;
@@ -346,7 +346,7 @@ Next StartCharm(CSpellEffect* e) {
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
         if (tamed->TryTame(e->caster, skill) == 0) {
-            if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(0x1A);
+            if (IsUnit(e->caster)) ControllerOf(e->caster)->Shout(AckKind::LinkTameFailed);
             return Next::Done;
         }
     }

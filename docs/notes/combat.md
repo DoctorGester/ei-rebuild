@@ -96,7 +96,7 @@ others their stats scaled by difficulty (0052E0D0); no defence with a bow or cro
 - Planning a route (0054E600): a use order goes to the reachable spot its target offers (slot 44 / 60) within 0073EF28;
   otherwise the path is searched with the target lifted off the sector map (path flag 007B00D2 cleared, CUnit +0x43C = 1),
   turned into a motion order (005B22C0), and TimeUntilAction (motion simulated in steps of 5 ticks) goes to the player's
-  path message (0066D490). Shouts 0x0B (attacks) / 0x0E on failure.
+  path message (0066D490). Shouts `NoWayToAttack` (attacks) / `NoPath` on failure.
 
 ### Update (slot 6, 00552300), movement tick (00547890), damage and death
 

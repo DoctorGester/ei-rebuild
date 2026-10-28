@@ -23,9 +23,6 @@ constexpr int kPartStats = 4;          // MarkChanged parts
 constexpr int kPartEquipment = 5;
 constexpr int kPartWeapons = 6;
 
-constexpr std::uint32_t kLastPlainRemark = 0x29;
-constexpr std::uint32_t kExtraRemark = 0x30;
-
 CPlayerServer* PlayerMessages(const CPlayer* player) { return player->Server(); }
 
 // The item's condition rounds to nothing.
@@ -61,11 +58,10 @@ void CUnitServer::SetStats(const UnitStats* source) {
     companion->vitals.mana = companion->vitals.maxMana;
 }
 
-void CUnitServer::Shout(std::uint32_t code) {
-    if (code > kLastPlainRemark && code != kExtraRemark) return;
-    if (code == 0xFFFFFFFFu) return;   // already excluded above; tested anyway
+void CUnitServer::Shout(AckKind kind) {
+    if (!IsShoutable(kind)) return;
     if (!unit->player) return;
-    PlayerMessages(unit->player)->SendObject0B(unit, code);
+    PlayerMessages(unit->player)->SendObject0B(unit, kind);
 }
 
 // --- Broken equipment -------------------------------------------------------------------------

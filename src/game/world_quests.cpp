@@ -571,11 +571,11 @@ void CWorldServer::ClearPlayerItems(CPlayer* player) {
     while (!party->items_.empty()) party->RemoveItem(party->items_[0], 1);
 }
 
-void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
+void CWorldServer::TellParties(CEngineObject* unit, AckKind kind) {
     PlayerIterator it;
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* server = player->Server();
-        if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, value);
+        if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, kind);
     }
 }
 

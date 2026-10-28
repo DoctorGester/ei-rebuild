@@ -11,15 +11,15 @@ class CUnitServer;
 
 // The levels an AI raises (AIAlarm::Raise), as the alarm's log names them when the unit takes one up.
 enum AIRemark : int {
-    kRemarkIdle = 1,              // "idleSound"; tells the parties 0x31
-    kRemarkFightingIdle = 2,      // "idleSound" in aggression; tells the parties 0x32
+    kRemarkIdle = 1,              // "idleSound"; tells the parties AckKind::Rest
+    kRemarkFightingIdle = 2,      // "idleSound" in aggression; tells the parties AckKind::FightingRest
     kRemarkCalmFromSuspicion = 3,
     kRemarkCalmFromAggression = 4,
-    kRemarkSuspicion = 5,         // tells the parties 0x2F
-    kRemarkAggression = 6,        // tells the parties 0x2E
+    kRemarkSuspicion = 5,         // tells the parties AckKind::Suspicion
+    kRemarkAggression = 6,        // tells the parties AckKind::Aggression
     kRemarkToAlarm = 7,
     kRemarkAlarm = 8,             // "ALARM ALARM ALARM"
-    kRemarkKill = 9,              // an AI unit that killed a party unit ("poluchi gadina"); tells the parties 0x30
+    kRemarkKill = 9,              // an AI unit that killed a party unit ("poluchi gadina"); tells the parties AckKind::Kill
 };
 
 struct AIAlarm {

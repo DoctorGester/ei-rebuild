@@ -217,8 +217,8 @@ void CPlayerServer::SendObject43(const CEngineObject* object) {
     WriteDword(&out_, ObjectId(object));
 }
 
-void CPlayerServer::SendObject0B(const CEngineObject* object, std::uint32_t value) {
-    std::uint32_t payload[2] = {ObjectId(object), value};
+void CPlayerServer::SendObject0B(const CEngineObject* object, AckKind kind) {
+    std::uint32_t payload[2] = {ObjectId(object), static_cast<std::uint32_t>(kind)};
     WriteByte(&out_, 0x0B);
     Write(&out_, payload, 8);
 }

@@ -46,9 +46,6 @@ constexpr std::uint8_t kEmoteStand = 0xFE;   // the idle "emote" of a walking he
 constexpr float kNoRange = 1e38f;
 static_assert(std::bit_cast<std::uint32_t>(kNoRange) == 0x7E967699u);
 constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
-constexpr int kMessageModeBlocked = 0x0D;
-constexpr int kMessageCannotDo = 0x0E;
-constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
@@ -355,9 +352,8 @@ void CUnitServer::UpdateSneak() {
     int running = stats.MovementState(1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
-        std::uint32_t code = running == 1 ? 0x15 : 0x14;
-        if ((code <= 0x29 || code == 0x30) && code != 0xFFFFFFFFu && unit->player)
-            PlayerMessage(unit->player->Server(), unit, static_cast<int>(code));
+        AckKind kind = running == 1 ? AckKind::Injured : AckKind::Overloaded;
+        if (IsShoutable(kind) && unit->player) PlayerMessage(unit->player->Server(), unit, kind);
         if (action.modifier != 0) action.modifier = 0;
         moveMode2.wasMode3 = 0;
         int mode = moveMode2.mode;
@@ -428,7 +424,7 @@ bool CUnitServer::ChangeMoveMode() {
         unit->UpdateSizeClass();
         g_serverWorld->aiMap_.sectorMap.Add(unit);
         CUnit* self = unit;
-        if (self->player) PlayerMessage(self->player->Server(), self, kMessageModeBlocked);
+        if (self->player) PlayerMessage(self->player->Server(), self, AckKind::CantChangePosition);
         return false;
     }
     if (state == kStateIdle) {
@@ -543,13 +539,13 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
     // The path as a motion order for the message. The header is left uninitialised when the path is not partial
     // (the message does not read it for kind 3).
     LocalMotionOrder end;
-    int message;
+    AckKind message;
     if (!partial) {
         if (self->player) self->player->Server()->SendPathMessage(self, &end, goal, 3, 1, kFarBits);
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
-        message = kMessageCannotDo;
+        message = AckKind::NoPath;
     } else {
         path->ToMotionOrder(&end);
         float dy = self->localPosition_.y - goal[1];
@@ -565,7 +561,7 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
         if (brain.LeaderOrFollowed()) return;
         self = unit;
         if (!self->player) return;
-        message = stillFar ? kMessagePartial : kMessageCannotDo;
+        message = stillFar ? AckKind::Move : AckKind::NoPath;
     }
     PlayerMessage(self->player->Server(), self, message);
 }

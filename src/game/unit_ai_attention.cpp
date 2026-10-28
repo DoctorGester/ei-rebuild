@@ -38,14 +38,14 @@ void AIAttention::LookAround(AIBrain* brain, int reachArg) {
             if (part == -1) {
                 brain->action = AIBrain::kActionAttack;
                 brain->target.Assign(chosen);
-                int flags = 0x1C;
+                AckKind flags = AckKind::DecidedToAttack;
                 if (brain->owner->unit->player) {
                     AIOrder order{};
                     order.kind = kOrderAttack;
                     order.source = 6;
                     ++chosen->refCount_;
                     order.target = chosen;
-                    if (brain->owner->CanReachAndPlan(&order)) flags = -1;
+                    if (brain->owner->CanReachAndPlan(&order)) flags = AckKind::None;
                     order.target.Reset();
                 }
                 brain->owner->OrderAttack(brain->target, 6, 0, flags);
