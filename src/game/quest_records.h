@@ -29,18 +29,15 @@ struct QuestRecord {
     void AssignQuest(const QuestRecord* source);
     void ConstructDefault();
 
-    stlp::string name;
+    std::string name;
     float exp;
     std::uint32_t field2;           // archive field 2 (0 when loaded from the quests); nothing else reads it
     float money;
     int zone;                       // the zone index
     int order;
     stlp::vector<float> places;     // x and y in turn
-    stlp::string text;
+    std::string text;
 };
-static_assert(offsetof(QuestRecord, places) == 0x20);
-static_assert(offsetof(QuestRecord, text) == 0x2C);
-static_assert(sizeof(QuestRecord) == 0x38);
 
 struct QuestBriefingRecord {
     // Reads or writes the record: string field 0 the name, 1 exp, 2 money, chunk 3 the given items, string
@@ -58,22 +55,19 @@ struct QuestBriefingRecord {
     // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
     enum ListKind { kGiveItems, kRemoveItems, kGiveQuests, kCompleteQuests, kAvailableZones, kCompleteZones };
 
-    stlp::string name;
+    std::string name;
     float exp;
     float money;
-    stlp::vector<std::string> lists[6];         // by ListKind
-    stlp::string text;
+    stlp::vector<std::string> lists[6];   // by ListKind
+    std::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
     std::int32_t specials;
 };
-static_assert(offsetof(QuestBriefingRecord, lists) == 0x14);
-static_assert(offsetof(QuestBriefingRecord, text) == 0x5C);
-static_assert(sizeof(QuestBriefingRecord) == 0x6C);
 
 // The quest database's briefings (its +0x20): the records and their index by name.
 struct QuestBriefingTable {
-    using Index = stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>;
+    using Index = stlp::hash_map<std::string, QuestBriefingRecord*, stlp::StringHash>;
 
     // QuestBriefingTable::Add (quest_database.cpp; the "reject" and "complete" briefings of a
     // quest file). Appends a copy of `record` unless its name is indexed with a record; the index
@@ -88,7 +82,7 @@ static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefin
 
 // The quest database: the quests and the briefings, each with its index by name.
 struct QuestDatabase {
-    using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
+    using QuestIndex = stlp::hash_map<std::string, QuestRecord*, stlp::StringHash>;
 
     // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its

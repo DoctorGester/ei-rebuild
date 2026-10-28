@@ -633,7 +633,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(stlp::string(record->texts[5].c_str()));
+                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(std::string(record->texts[5].c_str()));
                 int number = prototype->hair;
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);
@@ -841,7 +841,7 @@ void EmptyList(stlp::list<T>& list, F free) {
 void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
     EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
         node->data.Destruct();
-        stlp::deallocate(node, 164);
+        stlp::deallocate(node, sizeof(*node));
     });
     EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
         node->data.DeletingDestruct(0);

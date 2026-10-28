@@ -65,21 +65,21 @@ struct QueueStreamElement {
 };
 static_assert(sizeof(stlp::list<CMemoryStream>::Node) == 0x30);
 
-// CLinkFigureLoader's archives (LinkArchiveNode, 24-byte nodes): pair<string, CMMIOResource*>.
+// CLinkFigureLoader's archives (LinkArchiveNode): pair<string, CMMIOResource*>.
 // The string copied into a block of its length + 1; T() is an empty string with room for
 // 8 bytes and the resource as the stack held it (AddArchive sets it).
 struct LinkArchive {
-    stlp::string name;
+    std::string name;
     CMappedResource* resource;
 };
 static_assert(sizeof(stlp::list<LinkArchive>::Node) == sizeof(LinkArchiveNode));
 struct LinkArchiveElement {
     static void Copy(LinkArchive* to, const LinkArchive& from) {
-        new (&to->name) stlp::string(from.name);
+        std::construct_at(&to->name, from.name);
         to->resource = from.resource;
     }
-    static void Destroy(LinkArchive* p) { p->name.~string(); }
-    static void Default(LinkArchive* p) { stlp::StringElement::Default(&p->name); }
+    static void Destroy(LinkArchive* p) { std::destroy_at(&p->name); }
+    static void Default(LinkArchive* p) { std::construct_at(&p->name); }
 };
 
 // The client world's ground prints (0x94 / 0x9C / 0xA4-byte nodes from operator new): the node copies (blood,

@@ -125,10 +125,10 @@ void SpellModifierRecord::Destruct() {
 EI_REWRITTEN(0x00685B70, SpellModifierRecord::Destruct);
 
 void SpellListRecord::Destruct() {
-    repeated.~string();
+    std::destroy_at(&repeated);
     records::DestroyVector(optional);
     records::DestroyVector(required);
-    spell.~string();
+    std::destroy_at(&spell);
 }
 EI_REWRITTEN(0x00589860, SpellListRecord::Destruct);
 
@@ -188,26 +188,26 @@ void SpellModifierRecord::ConstructDefault() {
 }
 
 void SpellListRecord::CopyConstruct(const SpellListRecord* source) {
-    new (&spell) stlp::string(source->spell);
-    required.CopyConstruct<stlp::StringElement>(source->required);
-    optional.CopyConstruct<stlp::StringElement>(source->optional);
-    new (&repeated) stlp::string(source->repeated);
+    std::construct_at(&spell, source->spell);
+    required.CopyConstruct<stlp::ObjectElement<std::string>>(source->required);
+    optional.CopyConstruct<stlp::ObjectElement<std::string>>(source->optional);
+    std::construct_at(&repeated, source->repeated);
     classMask = source->classMask;
 }
 
 void SpellListRecord::AssignList(const SpellListRecord* source) {
-    spell.AssignFrom(source->spell);
-    required.AssignVector<stlp::StringElement>(source->required);
-    optional.AssignVector<stlp::StringElement>(source->optional);
-    repeated.AssignFrom(source->repeated);
+    spell = source->spell;
+    required.AssignVector<stlp::ObjectElement<std::string>>(source->required);
+    optional.AssignVector<stlp::ObjectElement<std::string>>(source->optional);
+    repeated = source->repeated;
     classMask = source->classMask;
 }
 
 void SpellListRecord::ConstructDefault() {
-    stlp::StringElement::Default(&spell);
+    std::construct_at(&spell);
     required.ConstructEmpty();
     optional.ConstructEmpty();
-    stlp::StringElement::Default(&repeated);
+    std::construct_at(&repeated);
 }
 
 // The material and weapon tables' At, as the unit skins and the client's maps read them (records of

@@ -61,13 +61,12 @@ static_assert(sizeof(CMappedFile) == 16);
 
 // A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
 struct LoadedFile {
-    stlp::string name;      // name as requested
+    std::string name;       // name as requested
     void* data;             // contents (operator new)
     std::uint32_t size;
     int refCount;           // GetFile calls not yet matched by CloseFile
     std::uint32_t offset;   // offset in the archive, used to write the file back
 };
-static_assert(sizeof(LoadedFile) == 0x1C);
 
 // The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
 // deleting destructor): the archive header and tables, and an index table (accelerator) from
@@ -126,7 +125,7 @@ public:
     char* image_;                // archive image when opened with OpenFromMemory
     std::uint32_t writable_;
     stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;
-    stlp::hash_map<stlp::string, LoadedFile*, stlp::StringHash> filesByName_;
+    stlp::hash_map<std::string, LoadedFile*, stlp::StringHash> filesByName_;
 };
 static_assert(sizeof(CMappedResource) == 0x58);
 

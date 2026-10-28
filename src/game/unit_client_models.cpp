@@ -82,7 +82,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 
     FigureModel* model;
     {
-        stlp::string name(unit->name.c_str());
+        std::string name(unit->name.c_str());
         model = manager->FindModel(&name);
     }
     if (!model) return false;
@@ -141,7 +141,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
 
     FigureModel* model;
     {
-        stlp::string name(unit->name.c_str());
+        std::string name(unit->name.c_str());
         model = TheFigureManager()->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
@@ -190,7 +190,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::vector<std::string> names;
     FigureModel* model;
     {
-        stlp::string name(unit->name.c_str());
+        std::string name(unit->name.c_str());
         model = TheFigureManager()->FindModel(&name);
     }
     if (previous != kNone) {
@@ -282,7 +282,7 @@ EI_REWRITTEN(0x00538C20, CUnitClientSpecific::UpdateArrow);
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
-                                       stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames) {
+                                       stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames) {
     char text[0x401];
     for (const std::uint32_t* id = armourIds->begin(); id != armourIds->end(); ++id) {
         const itemdb::ArmorRecord* armour = ArmourRecord(*id >> 16);
@@ -299,7 +299,7 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
             } else {
                 gamecrt::sprintf(text, "%s.armor%.2d", plain, armour->number);
             }
-            stlp::string name(text);
+            std::string name(text);
             names->push_back(name);
         }
     }
@@ -314,10 +314,10 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
                 int hair = prototype->hair;
                 if (hair == -1) continue;
                 gamecrt::sprintf(text, "hr.%.2d", hair);
-                stlp::string name(text);
+                std::string name(text);
                 plainNames->push_back(name);
             } else {
-                stlp::string name(plain);
+                std::string name(plain);
                 plainNames->push_back(name);
             }
         }

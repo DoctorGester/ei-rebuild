@@ -60,7 +60,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
     command->kind_ = static_cast<std::uint32_t>(kind);
     // The inlined assign of a C string: copied over the current characters, the rest cut (the
     // terminator moved down) or appended.
-    command->text_.Assign(text);
+    command->text_.assign(text);
 
     RefPtr raw;
     RefPtrFromRaw(&raw, command);

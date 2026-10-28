@@ -78,7 +78,7 @@ int PrintsDatabase::Load(const char* folder) {
     FillStream(*stream, data, size);
 
     // The serialisers' unused third argument is the file's data.
-    const auto name = [](auto& record) -> const stlp::string& { return record.name; };
+    const auto name = [](auto& record) -> const std::string& { return record.name; };
     LoadTable(stream, kBloodChunk, &ChunkArchive::SerializePrints, &blood, data,
               [&] { FileRecords(blood, bloodByName, name); });
     LoadTable(stream, kFootprintsChunk, &ChunkArchive::SerializePrints2, &footprints, data,
@@ -110,7 +110,7 @@ int AckDatabase::Load(const char* folder) {
 
     // The serialisers' unused third argument: an unwritten stack slot for the
     // first table, the model table's address for the other two.
-    const auto name = [](auto& record) -> const stlp::string& { return record.head.name; };
+    const auto name = [](auto& record) -> const std::string& { return record.head.name; };
     LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records, nullptr,
               [&] { FileRecords(units.records, units.byName, name); });
     LoadTable(stream, kModelAcksChunk, &ChunkArchive::SerializeAcks2, &models.records, &models,

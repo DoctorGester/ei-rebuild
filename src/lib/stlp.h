@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <string>
 #include <type_traits>
 
 #include "stlp_alloc.h"
@@ -113,6 +114,11 @@ struct IntHash {
 };
 struct StringHash {
     std::uint32_t operator()(const string& s) const { return s.Hash(); }
+    std::uint32_t operator()(const std::string& s) const {
+        std::uint32_t h = 0;
+        for (char c : s) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(c));
+        return h;
+    }
 };
 
 // Next STLport bucket count >= n (__stl_prime_list).

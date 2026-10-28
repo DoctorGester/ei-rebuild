@@ -64,7 +64,7 @@ using PlacementArray = mfc::CArray<Placement>;
 void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& scratch) {
     UnitPrototypeRecord* prototype;
     {
-        prototype = unitdb::PrototypeNamed(stlp::string(prototypeName));   // find_or_insert of {name, null}
+        prototype = unitdb::PrototypeNamed(std::string(prototypeName));    // find_or_insert of {name, null}
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
@@ -480,7 +480,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             const char* prototypeName = unitSpec->prototype.c_str();
             UnitPrototypeRecord* prototype;
             {
-                stlp::string key(prototypeName);
+                std::string key(prototypeName);
                 prototype = unitdb::PrototypeNamed(key);
             }
             unsigned index;

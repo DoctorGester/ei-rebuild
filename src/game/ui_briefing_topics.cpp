@@ -43,10 +43,10 @@ public:
         list_.clear();
         list_.FreeStorage();
     }
-    stlp::vector<stlp::string>& Get() { return list_; }
+    stlp::vector<std::string>& Get() { return list_; }
 
 private:
-    stlp::vector<stlp::string> list_;
+    stlp::vector<std::string> list_;
 };
 
 } // namespace
@@ -74,9 +74,9 @@ void CBriefingScreen::FindTopics(int personId) {
             continue;
         }
         const char* text = name.c_str();
-        found.Get().push_back(stlp::string(text, text + std::strlen(text)));
+        found.Get().push_back(std::string(text, text + std::strlen(text)));
     }
-    stlp::vector<stlp::string>& list = found.Get();
+    stlp::vector<std::string>& list = found.Get();
     if (IsMultiplayerClient() && list.begin() != list.end()) {
         int depth = 0;
         for (int n = static_cast<int>(list.end() - list.begin()); n != 1; n >>= 1) ++depth;
@@ -84,7 +84,7 @@ void CBriefingScreen::FindTopics(int personId) {
         stl_sorts::TopicFinalSort(list.begin(), list.end(), personId);
     }
     topics_.clear();
-    for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.push_back(topic->data());
+    for (std::string* topic = list.begin(); topic != list.end(); ++topic) topics_.push_back(*topic);
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 EI_REWRITTEN(0x00607360, CBriefingScreen::FindTopics);

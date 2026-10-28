@@ -712,8 +712,8 @@ bool Connection::Accept(std::uint32_t sequence) {
     for (std::int32_t* it = received_.begin(); it != received_.end(); ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
             if (g_netLog) {
-                stlp::string peer;
-                const char* text = address_.ToString(&peer)->data();
+                std::string peer = address_.ToString();
+                const char* text = peer.data();
                 g_netLog->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
             }
             return false;

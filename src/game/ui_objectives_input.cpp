@@ -152,7 +152,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;
     places.clear();
     if (IsMultiplayerClient()) {
-        stlp::string key(name);
+        std::string key(name);
         QuestRecord* record = QuestIndex().Subscript(key);
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)

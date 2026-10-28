@@ -250,7 +250,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
         if (part->flags_ & kPartHidden) continue;
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
-            stlp::string key(name);
+            std::string key(name);
             count += figure->RasterisePart(&key, &Pixels()[count], &target);
         } else {
             count += part->Rasterise(static_cast<CPixelConverter*>(device), &Pixels()[count], &target);
@@ -340,7 +340,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         pipeline->PushMatrixProduct(view, kShadowStack);
         if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
-            stlp::string key(name);
+            std::string key(name);
             count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), &Points()[count],
                                          self->bounds);
         } else {

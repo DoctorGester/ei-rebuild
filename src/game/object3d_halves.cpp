@@ -153,7 +153,7 @@ EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 // A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
 NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
-    new (&name) stlp::string(other->name);
+    std::construct_at(&name, other->name);
     texture = other->texture;
     if (texture) ++texture->refCount_;
     return this;

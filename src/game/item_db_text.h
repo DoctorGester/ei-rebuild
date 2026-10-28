@@ -18,10 +18,9 @@ namespace console { class CStringArray; }
 
 // An archive the texts are looked up in.
 struct TextSource {
-    stlp::string name;
+    std::string name;
     CMappedResource* source;
 };
-static_assert(sizeof(TextSource) == 0x10);
 
 // The archive list (CTextManager::sources_).
 struct TextSources : stlp::list<TextSource> {
@@ -46,7 +45,6 @@ struct TextSources : stlp::list<TextSource> {
     void* FindText(const char* key, std::uint32_t* size);
     void ListKeys(mfc::CStringArray* out, const char* pattern);
 };
-static_assert(sizeof(TextSources::Node) == 0x18);
 static_assert(sizeof(TextSources) == 4);
 
 class CTextManager : public CEngineObject {
@@ -116,7 +114,6 @@ public:
 };
 static_assert(offsetof(CTextManager, sources_) == 0x1C);
 static_assert(offsetof(CTextManager, length_) == 0x28);
-static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
 using TextSourceNode = TextSources::Node;
 

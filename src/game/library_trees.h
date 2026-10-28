@@ -22,12 +22,12 @@ template <typename K, typename Second>
 using PairTree = stlp::TreeAbi<stlp::map<K, typename Second::Type>,
                                stlp::PairElement<typename stlp::map<K, typename Second::Type>::Value, Second>>;
 
-// The debug panel's entries (string_map.cpp; 0x28-byte nodes).
-using StringPairs = stlp::TreeAbi<stlp::map<stlp::string, stlp::string>>;
+// The debug panel's entries (string_map.cpp).
+using StringPairs = stlp::TreeAbi<stlp::map<std::string, std::string>>;
 
-// The .mob loader's tint lists by name (a local in a branch that never runs; 0x20-byte
-// nodes): list<16-byte record> values, copied by list(const list&) (a sentinel, then the
-// elements in order) and destroyed with the list (the nodes, then the sentinel).
+// The .mob loader's tint lists by name (a local in a branch that never runs): list<16-byte record> values,
+// copied by list(const list&) (a sentinel, then the elements in order) and destroyed with the list (the nodes,
+// then the sentinel).
 using TintList = stlp::list<stlp::Opaque<16>>;
 struct TintListValue {
     using Type = TintList;
@@ -37,34 +37,33 @@ struct TintListValue {
     }
     static void Destroy(TintList* p) { p->Release(); }
 };
-using TintLists = PairTree<stlp::string, TintListValue>;
+using TintLists = PairTree<std::string, TintListValue>;
 
-// A link mesh's part headers (LinkHeaderMap, 0x6C-byte nodes): copied as bytes, zeroed by
+// A link mesh's part headers (LinkHeaderMap): copied as bytes, zeroed by
 // the pair's destructor before the key goes.
 struct ZeroedHeader {
     using Type = LinkPartHeader;
     static void Copy(LinkPartHeader* to, const LinkPartHeader& from) { std::memcpy(to, &from, sizeof(*to)); }
     static void Destroy(LinkPartHeader* p) { std::memset(p, 0, sizeof(*p)); }
 };
-using LinkHeaders = PairTree<stlp::string, ZeroedHeader>;
-static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap) && sizeof(LinkHeaders::Node) == 0x6C);
+using LinkHeaders = PairTree<std::string, ZeroedHeader>;
+static_assert(sizeof(LinkHeaders::Tree) == sizeof(LinkHeaderMap));
 // The headers' element policy, for calling the map's members on CLinkMesh::headers_
 // (`headers_.Subscript<LinkHeaderElement>(name)`).
 using LinkHeaderElement = stlp::PairElement<LinkHeaderMap::Value, ZeroedHeader>;
 static_assert(std::is_same_v<LinkHeaders, stlp::TreeAbi<LinkHeaderMap, LinkHeaderElement>>);
 // Find(key) on a link mesh's part headers (LinkHeaders' instantiation): the node, or the header for none.
-inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const stlp::string* key) { return map->find(*key); }
-// A link mesh's part ranges (LinkRangeMap, 0x4C-byte nodes; plain values).
+inline LinkHeaderMap::Node* FindLinkHeader(LinkHeaderMap* map, const std::string* key) { return map->find(*key); }
+// A link mesh's part ranges (LinkRangeMap; plain values).
 using LinkRanges = stlp::TreeAbi<LinkRangeMap>;
 
-// The link loader's mesh cache (a multimap<string, CLinkMesh*> of counted references; 0x20-byte
-// nodes): one more reference per copy, released by the pair's destructor.
+// The link loader's mesh cache (a multimap<string, CLinkMesh*> of counted references): one more reference per copy, released by the pair's destructor.
 struct CountedMesh : stlp::CountedRef {
     using Type = RefPtr;
 };
-using MeshCache = PairTree<stlp::string, CountedMesh>;
+using MeshCache = PairTree<std::string, CountedMesh>;
 
-// The item screens' model and texture caches (ItemObjectCache, ui_item_info.h; 0x24-byte nodes):
+// The item screens' model and texture caches (ItemObjectCache, ui_item_info.h):
 // the cached object and when it was last used. The game has one instantiation for both.
 template <typename Object>
 using ItemCacheOf = stlp::TreeAbi<typename ItemObjectCache<Object>::Map>;

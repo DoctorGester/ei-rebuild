@@ -155,7 +155,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
             const char* pieceName = part->GetName();
             const LinkHeaderMap::Node* piece;
             {
-                stlp::string key(pieceName);
+                std::string key(pieceName);
                 piece = lib_trees::FindLinkHeader(&figure->headers_, &key);
             }
             part = parts.data[i];
@@ -190,7 +190,7 @@ void CObject3D::LoadFigures() {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
     {
-        stlp::string key(name.c_str());
+        std::string key(name.c_str());
         model = manager->FindModel(&key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {

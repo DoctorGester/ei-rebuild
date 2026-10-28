@@ -11,7 +11,7 @@
 
 namespace {
 
-bool SameName(const stlp::string& a, const char* b) {
+bool SameName(const std::string& a, const char* b) {
     std::size_t n = std::strlen(b);
     return a.size() == n && std::memcmp(a.data(), b, n) == 0;
 }
@@ -72,8 +72,8 @@ BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedR
     void* memory = gamecrt::operator_new(size);
     CMappedResource* resource = memory ? construct(memory) : nullptr;
     {
-        stlp::string name(path);
-        stlp::string copy(name);
+        std::string name(path);
+        std::string copy(name);
         archives_.push_back(ArchiveEntry(copy, resource));
     }
     // The result is ignored: a missing archive stays in the list, empty.

@@ -15,14 +15,14 @@
 
 namespace {
 
-using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
+using ModelMap = stlp::hash_map<std::string, FigureModel*, stlp::StringHash>;
 using AnimationMap = FigureModel::AnimationMap;
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an allocator
 // and a value, lower_bound over the prime list and insert(pos, n, value); reserve is the vector's own.
 using BucketVector = stlp::vector<AnimationMap::Node*>;
 
-void* OpenPart(CFigureManager* manager, const stlp::string* name, const char* suffix) {
+void* OpenPart(CFigureManager* manager, const std::string* name, const char* suffix) {
     char path[0x200];
     std::size_t length = std::strlen(name->data());
     std::memcpy(path, name->data(), length);
@@ -31,12 +31,12 @@ void* OpenPart(CFigureManager* manager, const stlp::string* name, const char* su
     return manager->GetFile(path, nullptr);
 }
 
-FigureModel** ModelSlot(ModelMap* map, const stlp::string* name) { return &map->Subscript(*name); }
-CMappedResource** AnimationSlot(AnimationMap* map, const stlp::string* name) { return &map->Subscript(*name); }
+FigureModel** ModelSlot(ModelMap* map, const std::string* name) { return &map->Subscript(*name); }
+CMappedResource** AnimationSlot(AnimationMap* map, const std::string* name) { return &map->Subscript(*name); }
 
 } // namespace
 
-FigureModel* CFigureManager::FindModel(const stlp::string* name) {
+FigureModel* CFigureManager::FindModel(const std::string* name) {
     ModelMap* map = &models_;
     if (const ModelMap::Node* found = map->Find(*name)) return found->value;
 
@@ -60,7 +60,7 @@ EI_REWRITTEN(0x005AA5F0, CFigureManager::FindModel);
 // The model's animation of a name, loaded on first use from its animation archive (GetFile with the name) into
 // a new archive over that data (OpenFromMemory); without data nothing is created. The cached entry is looked
 // up again either way.
-CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
+CMappedResource* FigureModel::FindAnimation(const std::string* name) {
     AnimationMap* map = &animationCache;
     if (const AnimationMap::Node* found = map->Find(*name)) return found->value;
     void* data = animations->GetFile(name->data(), nullptr);

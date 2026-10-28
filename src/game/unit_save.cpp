@@ -53,7 +53,7 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
 // The prototype record named `name` through the name map (an unknown name is added to it; hash_map<string,
 // record*>::operator[], inlined).
 UnitPrototypeRecord* PrototypeByName(const char* name) {
-    stlp::string key(name);
+    std::string key(name);
     return unitdb::PrototypeTable().byName.Subscript(key);
 }
 

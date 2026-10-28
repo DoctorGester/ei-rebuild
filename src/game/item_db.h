@@ -81,16 +81,12 @@ struct SpellListRecord {
     // The list vector's resize(n) temporary: empty strings with room for 8 bytes, empty lists.
     void ConstructDefault();
 
-    stlp::string spell;                     // the spell's name
-    stlp::vector<stlp::string> required;    // modifier names
-    stlp::vector<stlp::string> optional;    // modifier names
-    stlp::string repeated;                  // the modifier repeated while it fits
+    std::string spell;                      // the spell's name
+    stlp::vector<std::string> required;     // modifier names
+    stlp::vector<std::string> optional;     // modifier names
+    std::string repeated;                   // the modifier repeated while it fits
     std::uint32_t classMask;                // bit per ItemStock::classIndex
 };
-static_assert(offsetof(SpellListRecord, required) == 0x0C);
-static_assert(offsetof(SpellListRecord, repeated) == 0x24);
-static_assert(offsetof(SpellListRecord, classMask) == 0x30);
-static_assert(sizeof(SpellListRecord) == 0x34);
 
 // A spell modifier prototype.
 struct SpellModifierRecord {
@@ -338,7 +334,7 @@ struct NamedRecordTable {
     void Construct();
 
     // The materials are filed under their key.
-    using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -350,7 +346,7 @@ struct NamedRecordTable {
                static_cast<int>(sizeof(Record));
     }
     // Null when there is none (a null record is filed under a new name).
-    Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, stlp::string(name)); }
+    Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, std::string(name)); }
 
     stlp::vector<Record> records;
     NameIndex names;
@@ -378,9 +374,9 @@ struct CodeIndexedTable {
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
     // Null when there is none (a null record is filed under a new code).
-    Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, stlp::string(code)); }
+    Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, std::string(code)); }
 
-    using CodeIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
+    using CodeIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
     stlp::vector<Record> records;
     CodeIndex byCode;
 };

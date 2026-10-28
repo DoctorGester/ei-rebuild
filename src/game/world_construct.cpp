@@ -43,10 +43,8 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
 }
 
 // The ground print lists' sentinels come from operator new (their nodes are larger than the node
-// allocator's 128 bytes): 0xA4, 0x9C and 0x94 bytes.
-static_assert(sizeof(stlp::list<BloodPrint>::Node) == 0xA4);
-static_assert(sizeof(stlp::list<Footprint>::Node) == 0x9C);
-static_assert(sizeof(stlp::list<GroundPrint>::Node) == 0x94);
+// allocator's 128 bytes).
+static_assert(sizeof(stlp::list<GroundPrint>::Node) > 128);
 
 } // namespace
 

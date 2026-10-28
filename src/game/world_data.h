@@ -135,7 +135,7 @@ inline const char* BriefingCompleteScript() { return "WorldScript( GSSetVar( %i,
 inline const char* HumanHeroText() { return "Human Hero"; }
 // The quest database's briefings by name (QuestBriefingTable::Index, quest_records.h; operator[]
 // Stlp::NamedSlot).
-stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();
+stlp::hash_map<std::string, QuestBriefingRecord*, stlp::StringHash>& QuestBriefings();
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
 inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' perception scale (SyncPlayer too)

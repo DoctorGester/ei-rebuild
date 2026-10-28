@@ -5,12 +5,14 @@
 
 #include "ei/hook.h"
 
+#include <memory>
 #include <new>
+#include <string>
 
 namespace stlp {
 
-StringListPair* StringListPair::Construct(const string& firstValue, const list<void*>& secondValue) {
-    new (&key) string(firstValue);
+StringListPair* StringListPair::Construct(const std::string& firstValue, const list<void*>& secondValue) {
+    std::construct_at(&key, firstValue);
     mapped.Construct();
     list<void*>::InsertRange(mapped.End(), secondValue.First(), secondValue.End());
     return this;
@@ -18,7 +20,7 @@ StringListPair* StringListPair::Construct(const string& firstValue, const list<v
 
 void StringListPair::Destruct() {
     mapped.Destroy();
-    key.~string();
+    std::destroy_at(&key);
 }
 
 void StringPair::Destruct() {

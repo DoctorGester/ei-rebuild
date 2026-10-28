@@ -28,7 +28,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
     lines_.Insert(lines_.End(), *value);
 
     auto* added = lines_.Back();
-    added->text_.Assign(text);
+    added->text_.assign(text);
     added->number_ = nextLine_;
     ++nextLine_;
 

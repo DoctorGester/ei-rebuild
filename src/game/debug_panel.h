@@ -5,12 +5,12 @@
 // code (renderer_scene.cpp, ui_interface_draw.cpp) sets its lines, the console shortcuts remove them.
 
 #include "lib/stlp.h"
-#include "lib/stlp_string.h"
 #include "lib/stlp_tree.h"
 
 #include <windows.h>
 
 #include <cstdint>
+#include <string>
 
 class CInterface3D;
 class CUiSurface;
@@ -18,7 +18,7 @@ namespace mfc::impl { class CFont; }
 
 namespace strmap {
 
-using StringMap = stlp::map<stlp::string, stlp::string>;
+using StringMap = stlp::map<std::string, std::string>;
 
 // The vtable has two slots and no destructor, over the abstract one.
 class CDebugPanel {

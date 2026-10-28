@@ -228,12 +228,12 @@ void CHudPortraits::Rebuild(int wide) {
 
         UnitPrototypeRecord* prototype;
         {
-            prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
+            prototype = unitdb::PrototypeNamed(std::string(player->text_));
             // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
-        const UnitModelRecord* figure = unitdb::ModelNamed(stlp::string(prototype->modelName.c_str()));
+        const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName.c_str()));
         SexOf(figure->figureName.c_str(), sex);
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);

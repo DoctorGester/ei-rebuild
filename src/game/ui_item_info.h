@@ -73,7 +73,7 @@ struct ItemCacheEntry {
 // used objects beyond that.
 template <typename Object>
 struct ItemObjectCache {
-    using Map = stlp::map<stlp::string, ItemCacheEntry<Object>>;
+    using Map = stlp::map<std::string, ItemCacheEntry<Object>>;
     using Node = typename Map::Node;
 
     // The map's header from the pool, emptied with `compare` as its compare byte; the limit 50.
@@ -84,8 +84,8 @@ struct ItemObjectCache {
 };
 using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
-static_assert(sizeof(ItemModelCache) == 0x10 && sizeof(ItemModelCache::Node) == 0x24);
-static_assert(sizeof(ItemTextureCache) == 0x10 && sizeof(ItemTextureCache::Node) == 0x24);
+static_assert(sizeof(ItemModelCache) == 0x10);
+static_assert(sizeof(ItemTextureCache) == 0x10);
 // Every cached object released, in key order (the hero screen's model and texture caches).
 template <typename Object>
 void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache);

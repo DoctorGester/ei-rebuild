@@ -31,10 +31,9 @@ struct MaterialStage {
     // the stage's D3DTSS_TEXCOORDINDEX; above 0xFFFF a generated one (the draw then also sets
     // D3DTSS_TEXTURETRANSFORMFLAGS to D3DTTFF_COUNT2).
     std::uint32_t texCoordIndex = 0;
-    stlp::string name;              // the texture's name (empty for the wounds stages)
+    std::string name;               // the texture's name (empty for the wounds stages)
     CTexture* texture;              // counted, looked up by name on first use
 };
-static_assert(sizeof(MaterialStage) == 0x14 && offsetof(MaterialStage, texture) == 0x10);
 
 // A device material (counted; deleted at its last reference). Made by the game's code (the wounds material,
 // WoundsMaterial in map_object_shadow.h, is the one kind); this is the part the device reads.

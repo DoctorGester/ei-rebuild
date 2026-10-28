@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 
 #include <cstdint>
+#include <string>
 
 namespace {
 
@@ -122,9 +123,9 @@ EI_REWRITTEN(0x005ADAD0, Vector4::FillInsert);
 EI_REWRITTEN(0x006ADC10, Vector4::FillInsert);
 EI_REWRITTEN(0x0042D370, Vector1::FillInsert);
 EI_REWRITTEN(0x004FBA40, Vector4::FillInsert);
-// vector<stlp::string> (StringElement).
+// vector<string>.
 namespace {
-using StringVector = stlp::VectorAbi<stlp::string, stlp::StringElement>;
+using StringVector = stlp::VectorAbi<std::string, stlp::ObjectElement<std::string>>;
 } // namespace
 EI_REWRITTEN(0x004DC900, StringVector::ResizeDefault);
 EI_REWRITTEN(0x004DCE90, StringVector::InsertOverflow);

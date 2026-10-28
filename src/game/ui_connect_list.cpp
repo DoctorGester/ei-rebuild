@@ -241,8 +241,8 @@ void CMpConnectScreen::DrawListVanilla() {
             text = str::Format("%s %s", label(4), entry.description.c_str());
             int lines = surface->DrawWrappedText(text.c_str(), &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
-            stlp::string address;
-            text = str::Format("%s %s", label(5), entry.address.ToString(&address)->data());
+            std::string address = entry.address.ToString();
+            text = str::Format("%s %s", label(5), address.data());
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             text = str::Format("%s %d", label(6), entry.ping);

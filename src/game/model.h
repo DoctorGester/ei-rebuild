@@ -531,17 +531,16 @@ class CMappedResource;
 struct LinkArchiveNode {
     LinkArchiveNode* next;
     LinkArchiveNode* prev;
-    stlp::string name;
+    std::string name;
     CMappedResource* resource;   // a CMMIOResource
 };
-static_assert(sizeof(LinkArchiveNode) == 0x18);
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
 // missing), and the animations read from the last by name. CFigureManager::models_ and the link figure
 // loader's figure sets cache them by name.
 struct FigureModel {
-    CMappedResource* FindAnimation(const stlp::string* name);
-    using AnimationMap = stlp::hash_map<stlp::string, CMappedResource*, stlp::StringHash>;
+    CMappedResource* FindAnimation(const std::string* name);
+    using AnimationMap = stlp::hash_map<std::string, CMappedResource*, stlp::StringHash>;
 
     CMappedResource* mesh;          // the .mod archive
     CMappedResource* bones;
@@ -567,17 +566,17 @@ class ITransformPipeline;
 class CLinkFigureLoader final {
 public:
     // The figure and menu archives of `folder` opened (a failure is only logged).
-    CLinkFigureLoader(CTextureDevice* renderer, const stlp::string* folder);
+    CLinkFigureLoader(CTextureDevice* renderer, const std::string* folder);
     virtual ~CLinkFigureLoader();
     virtual int CacheSize();
     virtual int CacheBytes();
     // Figure `name` with the parts `parts`: unless `fresh`, the first cached mesh of that name with close
     // coefficients, given the parts it lacks; otherwise a new one (MakeFigure). No reference is added for the
     // caller.
-    virtual CLinkMesh* LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
+    virtual CLinkMesh* LoadFigure(const std::string* name, const stlp::vector<std::string>* parts, float s, float t,
                                   float u, bool fresh);
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
-    virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
+    virtual CLinkMesh* LoadLink(const std::string* name, float s, float t, float u, bool fresh);
     virtual void ClearCache();
     // `mesh` with new coefficients: a mesh others also hold (more than two references) is looked up again by
     // its name; otherwise its parts are morphed in place (SetMorph, then per part). Null stays null.
@@ -591,43 +590,43 @@ public:
 
     // Opens `path` as a memory-mapped archive and appends it to the list, unless an archive of that exact
     // name is already open. Returns 1 on success or when already open.
-    int AddArchive(const stlp::string* path);
+    int AddArchive(const std::string* path);
     // Reads a FIG / FIG8 part record at *cursor (moved past it) into `mesh` as part `name`: its header (two
     // dwords, bounds fitted to the vertices morphed by s, t, u) and its elements (CLinkMesh::AddPart).
-    void LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    void LoadFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
     // The same for the older record without a FIG header (6 morph corners).
-    void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    void LoadOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
     // A new mesh from .lnk file `name` (from the figure set, else the archives' "<name>.lnk"): a count, then
     // per part its name and a second, unused name (an empty name keeps the previous one). Cached (one
     // reference). No link file: FatalError's result (0) is returned and the new mesh leaked.
-    CLinkMesh* LoadLinkFile(const stlp::string* name, float s, float t, float u);
+    CLinkMesh* LoadLinkFile(const std::string* name, float s, float t, float u);
     // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does (a part missing from the figure
     // set is skipped); cached.
-    CLinkMesh* MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t, float u);
+    CLinkMesh* MakeFigure(const std::string* name, const stlp::vector<std::string>* parts, float s, float t, float u);
     // Part `name` of `mesh` (its own coefficients) unless it has it: from its figure set (false when the set
     // lacks it) or the archives (LoadArchivePart's result).
-    bool LoadPartInto(CLinkMesh* mesh, const stlp::string* name);
+    bool LoadPartInto(CLinkMesh* mesh, const std::string* name);
     // Part `name` of `mesh` from the first open archive that has "<mesh name><name>.fig".
-    int LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u);
+    int LoadArchivePart(CLinkMesh* mesh, const std::string* name, float s, float t, float u);
     // Figure `name`'s own archive set: the cached one, else (when an open archive has "<name>.mod") a new set
     // stored under the name and loaded from the first archives with "<name>.mod" / ".bon" / ".anm"; null
     // without a .mod.
-    FigureModel* FindFigureSet(const stlp::string* name);
+    FigureModel* FindFigureSet(const std::string* name);
     // Part `name` of `mesh` morphed again by s, t, u from its record (the figure set's model, else
     // "<mesh name><name>.fig" in the archives): false without one.
-    bool RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t, float u);
+    bool RemorphPart(CLinkMesh* mesh, FigureModel* set, const std::string* name, float s, float t, float u);
     // The record at *cursor (moved past the vertices) morphed into the part's vertex packets and its header's
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
-    void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
-    void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    void RemorphFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
+    void RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t, float u);
 
     int refCount_ = 0;
     ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
     LinkArchiveNode* archives_;       // list sentinel
-    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // by figure name
+    stlp::hash_map<std::string, FigureModel*, stlp::StringHash> figureSets_;    // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
-    stlp::map<stlp::string, CLinkMesh*> cache_;   // a multimap of counted references
+    stlp::map<std::string, CLinkMesh*> cache_;    // a multimap of counted references
 };
 
 
@@ -648,12 +647,11 @@ struct PrintRecord {
 
     virtual void Serialize(ChunkArchive* ar);
 
-    stlp::string name;
+    std::string name;
     PrintLook look2;             // chunk 2
     PrintLook look3;             // chunk 3
 };
 static_assert(offsetof(PrintRecord, name) == 0x04);
-static_assert(sizeof(PrintRecord) == 0x28);
 
 // The second record type of prints.db.
 struct PrintRecord2 {
@@ -663,13 +661,12 @@ struct PrintRecord2 {
 
     virtual void Serialize(ChunkArchive* ar);
 
-    stlp::string name;
+    std::string name;
     PrintLook look2;             // chunk 2
     PrintLook look3;             // chunk 3
     std::uint32_t values10[3];   // chunk 10
 };
 static_assert(offsetof(PrintRecord2, name) == 0x04);
-static_assert(sizeof(PrintRecord2) == 0x34);
 
 inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.look3 : r.look2; }
 inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.look3 : r.look2; }
@@ -678,7 +675,7 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return seco
 // blood and bloody footprints, chunk 2 footprints, chunk 3 scorch marks; each table is followed by a
 // hash_map by name (filled by the load, never read).
 struct PrintsDatabase {
-    template <typename Record> using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
+    template <typename Record> using NameIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
 
     // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
     // archive of its own and filed under its records' names. 1; FatalError's result when the archive

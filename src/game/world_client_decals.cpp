@@ -79,7 +79,7 @@ struct PartData {
 void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMesh* part, PartData& data) {
     const Matrix4* top = pipeline->Top(CTransformPipeline::kDecalStack);
     {
-        stlp::string name(part->GetName());
+        std::string name(part->GetName());
         figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
     }
     lib::AlignedArray<Vector4>& points = PartPoints();

@@ -24,7 +24,7 @@ void Put(GameBuffer* buffer, const void* value, unsigned size) {
 }
 
 // Control characters (below 0x20) of a received string become '|'.
-void Sanitize(stlp::string* s) {
+void Sanitize(std::string* s) {
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(s->size()); ++i) {
         if (static_cast<std::uint8_t>((*s)[i]) < 0x20) (*s)[i] = '|';
     }

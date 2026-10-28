@@ -42,11 +42,9 @@ void AssignCounted(RefPtr& ref, CRefObject* object) {
     }
 }
 
-// An empty string with an 8-byte block (the member's own constructor leaves it unset).
-void StringEmpty(stlp::string& s) { stlp::string::Reserve(s, 8); }
-void AssignEmptyText(stlp::string& s) {
+void AssignEmptyText(std::string& s) {
     const char* text = EmptyText();
-    s.Assign(text, text + std::strlen(text));
+    s.assign(text, text + std::strlen(text));
 }
 
 // The byte cursor.
@@ -68,11 +66,11 @@ void TakeBytes(BufferCursor* cursor, void* to, std::size_t n) {
     std::memcpy(to, cursor->p, n);
     cursor->p += n;
 }
-void PutString(BufferCursor* cursor, const stlp::string& s) { PutBytes(cursor, s.data(), std::strlen(s.data()) + 1); }
-void TakeString(BufferCursor* cursor, stlp::string& s) {
+void PutString(BufferCursor* cursor, const std::string& s) { PutBytes(cursor, s.data(), std::strlen(s.data()) + 1); }
+void TakeString(BufferCursor* cursor, std::string& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
     std::size_t length = std::strlen(text);
-    s.Assign(text, text + length);
+    s.assign(text, text + length);
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
@@ -92,10 +90,7 @@ EI_REWRITTEN_SPECIAL(0x00413410, Message::~Message);
 
 // LoginMessage.
 
-LoginMessage::LoginMessage() {
-    StringEmpty(name_);
-    StringEmpty(text_);
-}
+LoginMessage::LoginMessage() {}
 EI_REWRITTEN_SPECIAL(0x00413350, LoginMessage::LoginMessage);
 LoginMessage::LoginMessage(const LoginMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), host_(other.host_), state_(other.state_),
@@ -129,7 +124,7 @@ void LoginMessage::Read(BufferCursor* cursor) {
 
 // TextMessage: SayMessage, ZoneMessage, MapMessage.
 
-TextMessage::TextMessage() { StringEmpty(text_); }
+TextMessage::TextMessage() {}
 TextMessage::TextMessage(const TextMessage& other) : Message(other), text_(other.text_) {}
 TextMessage::~TextMessage() {}
 void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text_); }
@@ -174,7 +169,7 @@ void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 // CommandMessage.
 
-CommandMessage::CommandMessage() { StringEmpty(text_); }
+CommandMessage::CommandMessage() {}
 EI_REWRITTEN_SPECIAL(0x00413C90, CommandMessage::CommandMessage);
 CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {}
 EI_REWRITTEN_SPECIAL(0x00414060, CommandMessage::~CommandMessage);
@@ -236,10 +231,7 @@ void FileRequestMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 // PlayerMessage.
 
-PlayerMessage::PlayerMessage() {
-    StringEmpty(name_);
-    StringEmpty(text_);
-}
+PlayerMessage::PlayerMessage() {}
 EI_REWRITTEN_SPECIAL(0x0041C680, PlayerMessage::PlayerMessage);
 PlayerMessage::PlayerMessage(const PlayerMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), state_(other.state_), host_(other.host_),
@@ -272,7 +264,7 @@ void PlayerMessage::Read(BufferCursor* cursor) {
 
 // LineMessage.
 
-LineMessage::LineMessage() { StringEmpty(text_); }
+LineMessage::LineMessage() {}
 EI_REWRITTEN_SPECIAL(0x0041C740, LineMessage::LineMessage);
 LineMessage::LineMessage(const LineMessage& other) : Message(other), number_(other.number_), text_(other.text_) {
     CopyCounted(connection_, other.connection_);
@@ -298,10 +290,7 @@ void LineMessage::Read(BufferCursor* cursor) {
 
 // HostMessage.
 
-HostMessage::HostMessage() {
-    StringEmpty(address_);
-    StringEmpty(zone_);
-}
+HostMessage::HostMessage() {}
 EI_REWRITTEN_SPECIAL(0x0041C7C0, HostMessage::HostMessage);
 HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(other.address_), zone_(other.zone_) {}
 EI_REWRITTEN_SPECIAL(0x004152A0, HostMessage::~HostMessage);
@@ -324,7 +313,7 @@ void HostMessage::Read(BufferCursor* cursor) {
 
 // VariableMessage.
 
-VariableMessage::VariableMessage() { StringEmpty(name_); }
+VariableMessage::VariableMessage() {}
 VariableMessage::VariableMessage(const VariableMessage& other) : Message(other), name_(other.name_) {
     std::memcpy(&value_, &other.value_, 4);
     serial_ = other.serial_;
@@ -352,7 +341,6 @@ void VariableMessage::Read(BufferCursor* cursor) {
 // FileMessage.
 
 FileMessage::FileMessage() {
-    StringEmpty(name_);
     chunks_.ConstructEmpty();
 }
 FileMessage::FileMessage(const FileMessage& other)
@@ -420,7 +408,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {
 
 // AwardMessage.
 
-AwardMessage::AwardMessage() { StringEmpty(text_); }
+AwardMessage::AwardMessage() {}
 AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {
     CopyCounted(connection_, other.connection_);
     std::memcpy(&value_, &other.value_, 4);
@@ -585,8 +573,6 @@ EI_REWRITTEN_SPECIAL(0x00412960, ServerEntryBase::~ServerEntryBase);
 EI_REWRITTEN_SPECIAL(0x00412970, ServerEntryBase::~ServerEntryBase);
 
 ServerEntry::ServerEntry() {
-    StringEmpty(name_);
-    StringEmpty(description_);
     AssignEmptyText(name_);
     kind_ = 4;
     AssignEmptyText(description_);

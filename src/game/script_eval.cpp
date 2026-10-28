@@ -451,7 +451,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
         if (server) {
             const char* name = stringArgs.data[0].c_str();
-            stlp::string key(name);
+            std::string key(name);
             *result = static_cast<float>(server->GetVariable(&key));
             return;
         }

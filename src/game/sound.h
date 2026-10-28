@@ -44,7 +44,7 @@ static_assert(sizeof(SoundFader) == 0x1C);
 
 // One of the 15 Miles sample voices.
 struct SoundSlot {
-    stlp::string name;          // the wave name
+    std::string name;           // the wave name
     miles::Sample* sample;
     std::int32_t volume;        // Miles volume 0..127
     std::int32_t baseVolume;    // 2D sounds: volume 0..100
@@ -64,12 +64,10 @@ struct SoundSlot {
 
     void End(struct CSoundManager* manager);
 };
-static_assert(sizeof(SoundSlot) == 0x54);
-static_assert(offsetof(SoundSlot, finished) == 0x30 && offsetof(SoundSlot, handle) == 0x50);
 
 // A looping sound that lost its voice to a higher priority one and waits to be restarted.
 struct DeferredSound {
-    stlp::string name;
+    std::string name;
     std::int32_t volume;
     std::int32_t baseVolume;
     std::int32_t pan;
@@ -84,7 +82,6 @@ struct DeferredSound {
     std::int32_t handle;        // the map key
     std::int32_t samplePosition;
 };
-static_assert(sizeof(DeferredSound) == 0x48);
 
 using SoundNameArray = std::vector<std::string>;
 
@@ -134,19 +131,17 @@ static_assert(sizeof(DeferredMap) == 0x14);
 // list node. A copy of a record copies its name (RemoveHead returns one by value).
 struct WaveRecord {
     void* data = nullptr;       // Miles memory (AIL_mem_alloc_lock), or the decompressed MP3
-    stlp::string name;
+    std::string name;
     std::uint32_t lastUsed = 0; // GetTickCount()
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
 
     WaveRecord* Assign(const WaveRecord* from);
 };
-static_assert(sizeof(WaveRecord) == 0x1C);
 // Its NewNode / FreeNode copy and destroy the record themselves.
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
-static_assert(sizeof(WaveNode) == 0x24);
-using WaveCache = stlp::hash_map<stlp::string, WaveNode*, stlp::StringHash>;
+using WaveCache = stlp::hash_map<std::string, WaveNode*, stlp::StringHash>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open

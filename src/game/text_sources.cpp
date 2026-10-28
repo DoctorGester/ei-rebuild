@@ -101,7 +101,7 @@ BOOL TextSources::Add(const char* path, BOOL writable) {
     CMappedResource* memory = gamecrt::operator_new_as<CMappedResource>();
     CMappedResource* resource = memory ? new (memory) CMappedResource() : nullptr;
     {
-        TextSource value{stlp::string(path), resource};
+        TextSource value{std::string(path), resource};
         Node* inserted;
         Insert(&inserted, head, &value);
     }
@@ -125,7 +125,7 @@ void TextSources::Clear() {
     for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->data.source);
     for (Node* node = sentinel->next; node != sentinel;) {
         Node* next = node->next;
-        node->data.name.~string();   // the storage freed
+        std::destroy_at(&node->data.name);   // the storage freed
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }
@@ -151,7 +151,7 @@ CTextManager::~CTextManager() {
     ClearSources();
     sources_.Clear();
     // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
-    sources_.ClearWith([](TextSource* source) { source->name.~string(); });
+    sources_.ClearWith([](TextSource* source) { std::destroy_at(&source->name); });
     stlp::deallocate(sources_.head, sizeof(TextSourceNode));
 }
 

@@ -80,11 +80,11 @@ void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* 
 }
 EI_REWRITTEN(0x006A0FF0, WeaponModelParts);
 
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out) {
+void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out) {
     const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
     if (!record) return;
     ForEachPart(record, [out](const char* name) {
-        stlp::string s(name);
+        std::string s(name);
         out->push_back(s);
     });
 }

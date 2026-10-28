@@ -36,8 +36,6 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 void ClientSession::ReadServerList(GameBuffer* in) {
     GameInfoRecord read;   // its strings freed at the end (description first)
     GameInfoRecord* record = &read;
-    stlp::StringElement::Default(&record->name);
-    stlp::StringElement::Default(&record->description);
     GrowingBuffer buffer;
     CoderState coder;
     coder.Construct();
@@ -65,10 +63,10 @@ void ClientSession::ReadServerList(GameBuffer* in) {
             entry->password_ = record->hasPassword;
             entry->maxPlayers_ = record->maxPlayers;
             entry->players_ = record->players;
-            stlp::string* name = &entry->name_;
-            if (&record->name != name) name->AssignFrom(record->name);
-            stlp::string* description = &entry->description_;
-            if (&record->description != description) description->AssignFrom(record->description);
+            std::string* name = &entry->name_;
+            if (&record->name != name) *name = record->name;
+            std::string* description = &entry->description_;
+            if (&record->description != description) *description = record->description;
             AddServer(entry);
         }
     }

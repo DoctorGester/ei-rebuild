@@ -1408,7 +1408,7 @@ int __stdcall RequestZone(const char* zone, int entrance);
 // With the briefing texts loaded: every quest text file loaded so far (g_questFiles) is unloaded and
 // the list emptied.
 void UnloadQuestTexts();
-extern stlp::vector<stlp::string> g_questFiles;
+extern stlp::vector<std::string> g_questFiles;
 
 // Loads the quest texts of `zone`: false without the briefing texts or when the maps folder has no
 // "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients
@@ -1423,7 +1423,7 @@ void __fastcall ClearSaveFolder(const char* path);
 // For the zone table entries with `id`, grouped by their second name in order of first appearance: one
 // random entry per group (never the one whose first name is `exclude` when there is a choice; one
 // IsaacRandom draw per group) has its first name appended to `out` (an STLport vector of strings).
-void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude);
+void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exclude);
 
 // Reads mission.sav from a file stream (magic 0x102) and restores the world (LoadSave); old versions
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.

@@ -57,8 +57,8 @@ constexpr int kWrapFormat = DT_WORDBREAK | DT_EXPANDTABS;
 // A "#text" entry of the page: the text's key and its picture's name (empty: none). The original
 // keeps an STLport list of pair<string, string>.
 struct PageEntry {
-    stlp::string key;
-    stlp::string picture;
+    std::string key;
+    std::string picture;
 };
 
 bool Same(std::string_view word, std::string_view text) {
@@ -205,17 +205,16 @@ void CHelpWindow::ShowPage() {
             SetPlain(mark, 0x82FF0000);
             pulsing_.PushBack(mark);
         } else if (Same(words[0], kTextLine)) {
-            stlp::string picture;
-            stlp::string::Reserve(picture, 8);
+            std::string picture;
             if (words.GetSize() > 1) {
                 const char* name = words[1];
-                picture.Assign(name, name + std::strlen(name));
+                picture.assign(name, name + std::strlen(name));
             }
             // The next line's first word is the text's key.
             texts->Split(&words, 1);
             if (words.GetSize() > 0) {
                 const char* key = words[0];
-                const PageEntry entry{stlp::string(key), picture};
+                const PageEntry entry{std::string(key), picture};
                 entries.PushBack(entry);
             }
         }

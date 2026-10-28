@@ -375,7 +375,10 @@ EI_REWRITTEN(0x00618060, MpHeroRename);
 namespace {
 constexpr std::uint32_t kVoiceFlags = 0x2282;
 
-bool IsVoice(const UnitSoundEntry& entry) { return (entry.flags & kVoiceFlags) == kVoiceFlags && entry.name; }
+// A voice: an environment speech whose flags include kVoiceFlags, with a chance.
+bool IsVoice(const acks::EnvironmentSpeech& entry) {
+    return (entry.environment & kVoiceFlags) == kVoiceFlags && entry.speech.chance != 0;
+}
 } // namespace
 
 void CMpHeroScreen::PlayVoice() {
@@ -384,31 +387,32 @@ void CMpHeroScreen::PlayVoice() {
     auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
     {
-        stlp::string key(hero->texts[6].c_str());
+        std::string key(hero->texts[6].c_str());
         prototype = unitdb::PrototypeTable().byName.Subscript(key);
     }
     if (!prototype) return;
-    UnitSoundBank* set;
+    acks::UnitAcks* set;
     {
-        stlp::string key(prototype->name.c_str());
+        std::string key(prototype->name.c_str());
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
-        set = reinterpret_cast<UnitSoundBank*>(acks::Database().units.byName.Subscript(key));
+        set = acks::Database().units.byName.Subscript(key);
     }
     if (!set) return;
     // The voice entries are counted and found again by their rank (no allocation; the original gathers
     // them in a temporary vector).
     int count = 0;
-    for (const UnitSoundEntry* e = set->entries.begin(); e != set->entries.end(); ++e)
+    const acks::EnvironmentSpeeches& entries = set->environmentSpeeches;
+    for (const acks::EnvironmentSpeech* e = entries.begin(); e != entries.end(); ++e)
         if (IsVoice(*e)) ++count;
     if (count == 0) return;
-    auto nth = [&](int rank) -> const UnitSoundEntry* {
-        for (const UnitSoundEntry* e = set->entries.begin(); e != set->entries.end(); ++e)
+    auto nth = [&](int rank) -> const acks::EnvironmentSpeech* {
+        for (const acks::EnvironmentSpeech* e = entries.begin(); e != entries.end(); ++e)
             if (IsVoice(*e) && rank-- == 0) return e;
         return nullptr;
     };
     int index = gamecrt::rand() * count / 0x7FFF % count;
     for (int tries = 0; tries < count && voiceSound_ == -1; ++tries) {
-        voiceSound_ = interface_->PlaySound(nth(index)->sound, 0);
+        voiceSound_ = interface_->PlaySound(nth(index)->speech.sound.c_str(), 0);
         index = (index + 1) % count;
     }
 }

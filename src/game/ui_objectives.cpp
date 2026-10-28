@@ -373,7 +373,7 @@ namespace {
 QuestDatabase::QuestIndex& QuestIndex() { return TheQuestDatabase().questsByName; }
 
 QuestRecord* FindQuestRecord(const char* name) {
-    stlp::string key(name);
+    std::string key(name);
     return QuestIndex().Subscript(key);
 }
 

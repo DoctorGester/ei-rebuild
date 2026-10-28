@@ -38,7 +38,7 @@ using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*)
 template <typename Record, typename Index>
 void IndexNames(Record* begin, Record* const& end, Index* index) {
     for (Record* record = begin; record != end; ++record) {
-        stlp::string key(record->name.c_str());
+        std::string key(record->name.c_str());
         auto& slot = index->Subscript(key);
         slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
     }
@@ -64,16 +64,16 @@ void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, 
 UnitModelRecord* UnitModelTable::FindByName(const char* name) {
     // As UnitPrototypeTable::FindByName: the key is built twice (a string, then the pair the
     // original would insert) and both are freed afterwards.
-    stlp::string key(name);
-    stlp::string pairKey(key);
+    std::string key(name);
+    std::string pairKey(key);
     UnitModelRecord* record = byName[pairKey];
     return record;
 }
 EI_REWRITTEN(0x0053D240, UnitModelTable::FindByName);
 
 UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
-    stlp::string key(name);
-    stlp::string pairKey(key);
+    std::string key(name);
+    std::string pairKey(key);
     UnitLevelRecord* record = byName[pairKey];
     return record;
 }

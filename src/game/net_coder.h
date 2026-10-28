@@ -6,13 +6,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 // A byte buffer: GrowingBuffer, BufferView (a fixed view over memory owned elsewhere) and BufferedStream (a
 // window onto a file).
-namespace stlp {
-class string;
-}
-
 class GameBuffer {
 public:
     GameBuffer(const GameBuffer&) = delete;
@@ -31,12 +28,12 @@ public:
     // Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
     // Length-prefixed strings: the length * 2 in one byte, or length * 2 + 1 in four bytes from 0x80 on.
-    // Reads one into the STLport string `s` (assign): false with error bit 3 when it is longer than
+    // Reads one into `s` (assign): false with error bit 3 when it is longer than
     // `maxLength` (> 0). The bytes are read in place (ReserveRead first when they run past `end`), then
     // Commit.
-    bool ReadString(stlp::string* s, int maxLength);
+    bool ReadString(std::string* s, int maxLength);
     // Writes `s`: in place when it fits before `end` (flags bit 0), else through WriteMore.
-    void WriteString(const stlp::string* s);
+    void WriteString(const std::string* s);
     // A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what is left before `high`
     // (through ReadMore when that crosses `end`); the cursor ends at `high`. Returns the bytes read.
     std::uint32_t ReadPastEnd(void* to, std::uint32_t size);

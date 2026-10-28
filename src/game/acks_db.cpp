@@ -49,7 +49,7 @@ SpeechList* ListFor(const AckRecordHead& record, std::uint32_t kind) {
 
 template <typename Record>
 Record* AckTable<Record>::Find(const char* name) {
-    return byName[stlp::string(name)];
+    return byName[std::string(name)];
 }
 EI_REWRITTEN(0x006D9A30, AckTable<UnitAcks>::Find);
 EI_REWRITTEN(0x006D9CE0, AckTable<ModelAcks>::Find);
@@ -284,7 +284,7 @@ EI_REWRITTEN(0x006E3DC0, ExtraAcks::Serialize);
 
 void AckRecordHead::Destruct() {
     speeches.Destroy();
-    name.~string();
+    std::destroy_at(&name);
 }
 
 void UnitAcks::Destruct() {

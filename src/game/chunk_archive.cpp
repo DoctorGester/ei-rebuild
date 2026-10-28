@@ -221,9 +221,9 @@ template void ChunkArchive::CStringField(int, mfc::CString*);
 template void ChunkArchive::CStringField(int, std::string*);
 EI_REWRITTEN(0x004093A0, ChunkArchive::CStringField<mfc::CString>);
 
-// An STLport string field, written with its terminator; read through an inlined assign (the empty
+// A string field, written with its terminator; read through an inlined assign (the empty
 // string when missing).
-void ChunkArchive::StringField(int id, stlp::string* s) {
+void ChunkArchive::StringField(int id, std::string* s) {
     if (!loading_) {
         AppendChild(Current(), id, s->data(), static_cast<std::uint32_t>(std::strlen(s->data()) + 1));
         return;
@@ -231,8 +231,8 @@ void ChunkArchive::StringField(int id, stlp::string* s) {
     Ref child;
     // string::assign(text, text + strlen(text)), inlined: overwrite in place and
     // cut the rest, or overwrite the whole string and append the remainder.
-    if (FindField(this, id, &child)) s->Assign(TextAt(Data() + child.offset));
-    else s->Assign(game::EmptyText());
+    if (FindField(this, id, &child)) s->assign(TextAt(Data() + child.offset));
+    else s->assign(game::EmptyText());
 }
 EI_REWRITTEN(0x00409470, ChunkArchive::StringField);
 

@@ -90,14 +90,14 @@ void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t,
 
 
 // No references is the base's.
-CLinkMeshBase::CLinkMeshBase(const stlp::string* name) : refCount_(0), name_(*name) { headers_.Construct(); }
+CLinkMeshBase::CLinkMeshBase(const std::string* name) : refCount_(0), name_(*name) { headers_.Construct(); }
 
 // The name goes after the body (a member).
 CLinkMeshBase::~CLinkMeshBase() { headers_.Destroy(); }
 EI_REWRITTEN_SPECIAL(0x004F2D40, CLinkMeshBase::~CLinkMeshBase);   // reached only from EH unwinding
 EI_REWRITTEN_SPECIAL(0x004F2E00, CLinkMeshBase::~CLinkMeshBase);   // deleting
 
-CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u)
+CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s, float t, float u)
     : CLinkMeshBase(name) {
     morphWeights_[0] = s;
     morphWeights_[1] = t;
@@ -128,7 +128,7 @@ EI_REWRITTEN_SPECIAL(0x004F2E40, CLinkMesh::~CLinkMesh);
 
 EI_REWRITTEN_SPECIAL(0x004F2E20, CLinkMesh::~CLinkMesh);   // deleting
 
-bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
+bool CLinkMesh::AddPart(const std::string* name, const VertexPacket* vertices, int vertexCount,
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
                         const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                         const std::uint16_t* indices, int indexCount) {
@@ -156,7 +156,7 @@ EI_REWRITTEN(0x004F30F0, CLinkMesh::AddPart);
 
 // ---- Part loaders ---------------------------------------------------------------------------------
 
-void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
+void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
                                     float u) {
     LinkPartHeader* header = &mesh->headers_.Subscript<lib_trees::LinkHeaderElement>(*name);
     FigHeader fig = Read<FigHeader>(cursor);
@@ -194,7 +194,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
 }
 EI_REWRITTEN(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 
-void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
+void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
                                     float u) {
     LinkPartHeader* header = &mesh->headers_.Subscript<lib_trees::LinkHeaderElement>(*name);
     header->materialValue = Read<std::uint32_t>(cursor);
@@ -234,7 +234,7 @@ EI_REWRITTEN(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
 
-void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers_.Subscript<lib_trees::LinkHeaderElement>(*name);
     FigHeader fig;
@@ -249,7 +249,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name
 }
 EI_REWRITTEN(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
 
-void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s,
                                        float t, float u) {
     LinkPartHeader* header = &mesh->headers_.Subscript<lib_trees::LinkHeaderElement>(*name);
     *cursor += 0xF8;   // two dwords and the morphed bounds
@@ -269,7 +269,7 @@ int CLinkMesh::MemoryBytes() const {
 }
 EI_REWRITTEN(0x004F4B50, CLinkMesh::MemoryBytes);
 
-bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count) {
+bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* vertices, unsigned count) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
@@ -316,19 +316,19 @@ void CLinkMesh::UpdateScreenRect() {
     }
 }
 
-bool CLinkMesh::HasPart(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
+bool CLinkMesh::HasPart(const std::string* name) { return ranges_.find(*name) != ranges_.end(); }
 EI_REWRITTEN(0x004F3040, CLinkMesh::HasPart);
 
-void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
+void CLinkMesh::CollectPartNames(stlp::vector<std::string>* out) {
     for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
         out->push_back(node->first);
 }
 EI_REWRITTEN(0x004F2FB0, CLinkMesh::CollectPartNames);
 
-bool CLinkMesh::LoadPart(const stlp::string* name) { return loader_->LoadPartInto(this, name); }
+bool CLinkMesh::LoadPart(const std::string* name) { return loader_->LoadPartInto(this, name); }
 EI_REWRITTEN(0x004F30D0, CLinkMesh::LoadPart);
 
-bool CLinkMesh::RemovePart(const stlp::string* name) {
+bool CLinkMesh::RemovePart(const std::string* name) {
     LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
@@ -356,7 +356,7 @@ bool CLinkMesh::RemovePart(const stlp::string* name) {
 }
 EI_REWRITTEN(0x004F3530, CLinkMesh::RemovePart);
 
-bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
+bool CLinkMesh::GetPartData(const std::string* name, VertexPacket** vertices, MeshCorner** corners,
                             std::uint16_t** indices, int* vertexCount, int* indexCount) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;

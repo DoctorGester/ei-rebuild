@@ -117,7 +117,7 @@ public:
     // A text field (mfc::CString or std::string), written with its terminator.
     template <typename Text>
     void CStringField(int id, Text* s);
-    void StringField(int id, stlp::string* s);
+    void StringField(int id, std::string* s);
     void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
     void SaveObjectRef(int id, CRefCounted* object);   // object's number, object kept for Close
     CRefCounted* ObjectRef(int id);                    // the object a saved key stands for

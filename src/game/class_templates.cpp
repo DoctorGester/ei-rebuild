@@ -58,13 +58,13 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     }
     ListQuickItems(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        stlp::string key(names.data[i]);
+        std::string key(names.data[i]);
         itemdb::QuickItemRecord* record = stlp::NamedSlot<itemdb::QuickItemRecord>(db.quickItems.names, key);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddQuickItem(record);
     }
     ListFourthKind(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        stlp::string key(names.data[i]);
+        std::string key(names.data[i]);
         itemdb::MaterialRecordHead* record = stlp::NamedSlot<itemdb::MaterialRecordHead>(db.materials.names, key);
         if (record && Allowed(t, record->classMask)) t->allowed.AddMaterial(record, 0x14, 0x32);
     }
@@ -73,7 +73,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     ListSpells(spells, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         const char* code = SpellCodeByName(names.data[i]);
-        stlp::string key(code);
+        std::string key(code);
         itemdb::SpellRecord* record = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), key);
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddSpell(record);
@@ -83,7 +83,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     ListModifiers(spells, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         const char* code = SpellModifierCodeByName(names.data[i]);
-        stlp::string key(code);
+        std::string key(code);
         auto* record = stlp::NamedSlot<itemdb::SpellModifierRecord>(stock::ModifiersByName(), key);
         if (record && Allowed(t, record->classMask)) {
             MagicList(t)->AddModifier(record);

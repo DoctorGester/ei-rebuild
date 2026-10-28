@@ -38,10 +38,7 @@ void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
 }
 EI_REWRITTEN(0x00419CC0, BufferUpdateHigh);
 
-stlp::string* NetAddress::ToString(stlp::string* out) const {
-    Format(out, 0);
-    return out;
-}
+std::string NetAddress::ToString() const { return Format(0); }
 EI_REWRITTEN(0x00435010, NetAddress::ToString);
 
 // An empty datagram is only logged; the current session is this one meanwhile.
@@ -54,8 +51,8 @@ void SessionBase::Tick(double dt) {
         BufferUpdateHigh(buffer);
         if (buffer->PositionOf(buffer->high) == 0) {
             if (g_netLog) {
-                stlp::string address;
-                const char* text = from.ToString(&address)->data();
+                std::string address = from.ToString();
+                const char* text = address.data();
                 LogAddress(game::nettexts::ZeroLength(), text);
             }
             continue;
@@ -86,8 +83,8 @@ void SessionBase::Tick(double dt) {
         Connection* connection = node->connection;
         if (!connection->Tick(dt)) {
             if (g_netLog) {
-                stlp::string address;
-                const char* text = connection->address_.ToString(&address)->data();
+                std::string address = connection->address_.ToString();
+                const char* text = address.data();
                 LogAddress(game::nettexts::Timeout(), text);
             }
             OnClientLost(connection);
@@ -116,8 +113,8 @@ void LogText(const char* text) {
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(const char* before, Connection* connection, const char* after) {
-    stlp::string peer;
-    const char* text = connection->address_.ToString(&peer)->data();
+    std::string peer = connection->address_.ToString();
+    const char* text = peer.data();
     LogStream* log = g_netLog->Put(before)->Put(text);
     if (after) log = log->Put(after);
     log->PutChar('\n')->Flush();
@@ -308,8 +305,8 @@ namespace {
 // The send interval is the constant over the rate clamped to [500, 50000].
 void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rate) {
     if (g_netLog) {
-        stlp::string peer;
-        const char* text = address->ToString(&peer)->data();
+        std::string peer = address->ToString();
+        const char* text = peer.data();
         LogAddress(game::nettexts::AddClient(), text);
     }
     RemoveClient(ClientAt(address));

@@ -40,8 +40,8 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;
-    stlp::string text_;
+    std::string name_;
+    std::string text_;
     std::uint8_t host_ = 0;         // asks to host (honoured with a local client)
     std::uint8_t unused_25[3];
     std::uint32_t state_ = 4;       // the player record's state
@@ -52,7 +52,7 @@ public:
 // One string: the base of SayMessage, ZoneMessage and MapMessage, which differ only in their classes.
 class TextMessage : public Message {
 public:
-    stlp::string text_;
+    std::string text_;
 
 protected:
     TextMessage();
@@ -92,7 +92,7 @@ public:
     static Message* __fastcall Create();
 
     std::uint32_t kind_;
-    stlp::string text_;
+    std::string text_;
 };
 
 // Two counted pointers; only the first is sent. The base of BindingMessage and
@@ -188,8 +188,8 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;
-    stlp::string text_;
+    std::string name_;
+    std::string text_;
     std::uint32_t state_ = 1;       // from the login
     std::uint8_t host_ = 0;         // the hosting player
     std::uint8_t unused_29[3];
@@ -214,7 +214,7 @@ public:
     static Message* __fastcall Create();
 
     std::uint32_t number_;
-    stlp::string text_;
+    std::string text_;
     RefPtr connection_{};           // the only receiver (null: everyone; not sent)
 };
 
@@ -232,8 +232,8 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string address_;          // "host:port"
-    stlp::string zone_;
+    std::string address_;           // "host:port"
+    std::string zone_;
 };
 
 // Type 4: binds a player record (first_) to its connection (second_, not sent).
@@ -299,7 +299,7 @@ public:
 
     static Message* __fastcall Create();
 
-    stlp::string name_;
+    std::string name_;
     float value_;
     std::uint32_t serial_;       // from g_variableSerial
 };
@@ -321,7 +321,7 @@ public:
     std::uint16_t chunkCount_;
     std::uint16_t unused_0E;
     std::int32_t size_;          // in bytes
-    stlp::string name_;
+    std::string name_;
     RefVector chunks_;           // the chunk messages (not sent)
 };
 
@@ -364,7 +364,7 @@ public:
     RefPtr connection_{};        // the receiver (not sent)
     std::uint32_t kind_;         // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
     float value_;
-    stlp::string text_;          // the item's name
+    std::string text_;           // the item's name
 };
 
 // Type 17: a trade between two offers.

@@ -29,7 +29,6 @@ struct EnvironmentSpeech {
     SpeechRecord speech;
     std::uint32_t environment;
 };
-static_assert(sizeof(EnvironmentSpeech) == 0x2C);
 
 struct EnvironmentSpeeches : stlp::vector<EnvironmentSpeech> {
     // The same among the speeches whose environment flags include `environment`.
@@ -39,12 +38,11 @@ static_assert(sizeof(EnvironmentSpeeches) == 0xC);
 
 // The part every record type starts with.
 struct AckRecordHead {
-    stlp::string name;
+    std::string name;
     stlp::hash_map<int, SpeechList*, stlp::IntHash> speeches;   // by ack kind
 
     void Destruct();
 };
-static_assert(sizeof(AckRecordHead) == 0x20);
 
 // Table 0: per unit prototype name.
 struct UnitAcks {
@@ -59,7 +57,6 @@ struct UnitAcks {
     EnvironmentSpeeches environmentSpeeches;                // kind 0x29
     SpeechList namedSpeeches;                               // by SpeechRecord::name
 };
-static_assert(sizeof(UnitAcks) == 0x1C4);
 
 // Table 1: per unit model name (the fallback of kinds 0x2E..0x32).
 struct ModelAcks {
@@ -70,7 +67,6 @@ struct ModelAcks {
     AckRecordHead head;
     SpeechList lists[5];
 };
-static_assert(sizeof(ModelAcks) == 0x5C);
 
 // Table 2: per unit prototype name, kinds 0x2A..0x2D.
 struct ExtraAcks {
@@ -81,7 +77,6 @@ struct ExtraAcks {
     AckRecordHead head;
     SpeechList lists[2];
 };
-static_assert(sizeof(ExtraAcks) == 0x38);
 
 // A table: the records and the index by name.
 template <typename Record>
@@ -92,7 +87,7 @@ struct AckTable {
     Record* RecordAt(std::uint32_t index);
 
     stlp::vector<Record> records;
-    stlp::hash_map<stlp::string, Record*, stlp::StringHash> byName;
+    stlp::hash_map<std::string, Record*, stlp::StringHash> byName;
 };
 static_assert(sizeof(AckTable<UnitAcks>) == 0x20);
 

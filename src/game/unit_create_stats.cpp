@@ -158,8 +158,8 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
 
 EI_REWRITTEN(0x005144D0, UnitPrototypeTable::FindByName);
 UnitNpcRecord* NpcPrototypeTable::FindByName(const char* name) {
-    stlp::string key(name);
-    stlp::string pairKey(key);
+    std::string key(name);
+    std::string pairKey(key);
     UnitNpcRecord* record = byName[pairKey];
     return record;
 }

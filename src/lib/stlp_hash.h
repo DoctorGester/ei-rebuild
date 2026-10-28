@@ -13,7 +13,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
+#include <string>
 
 namespace stlp {
 
@@ -58,10 +60,10 @@ inline std::uint32_t HashChars(const char* s) {
 // and zeroes, as value_type(key, T()) does.
 template <std::size_t MappedBytes>
 struct StringKeyed {
-    string key;
+    std::string key;
     unsigned char mapped[MappedBytes];
     StringKeyed() = default;
-    explicit StringKeyed(const string& k) : key(k), mapped{} {}
+    explicit StringKeyed(const std::string& k) : key(k), mapped{} {}
 };
 
 // The traits of a hashtable keyed by a string (HashChars over its bytes; equal when the sizes and bytes
@@ -69,15 +71,15 @@ struct StringKeyed {
 template <std::size_t MappedBytes>
 struct StringKeyTraits {
     using Value = StringKeyed<MappedBytes>;
-    using Key = string;
+    using Key = std::string;
     static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return k.Hash(); }
+    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
     static bool Equal(const Key& a, const Key& b) { return a == b; }
     static void Construct(Value* to, const Value& from) {
-        new (&to->key) string(from.key);
+        std::construct_at(&to->key, from.key);
         std::memcpy(to->mapped, from.mapped, MappedBytes);
     }
-    static void Destroy(Value* p) { p->key.~string(); }
+    static void Destroy(Value* p) { std::destroy_at(&p->key); }
 };
 
 // A value of a dword key (hashed as itself) and a T whose copy and destruction are an element
@@ -129,18 +131,18 @@ struct CStringFloatTraits {
 // The node copies the string, then the list; deleting it frees the list's nodes, its sentinel, then the string.
 struct StringListTraits {
     using Value = StringListPair;
-    using Key = string;
+    using Key = std::string;
     static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return k.Hash(); }
+    static std::uint32_t Hash(const Key& k) { return HashChars(k.data(), k.data() + k.size()); }
     static bool Equal(const Key& a, const Key& b) { return a == b; }
     static void Construct(Value* to, const Value& from) {
-        new (&to->key) string(from.key);
+        std::construct_at(&to->key, from.key);
         to->mapped.Construct();
         list<void*>::InsertRange(to->mapped.head, from.mapped.First(), from.mapped.End());
     }
     static void Destroy(Value* p) {
         p->mapped.Release();
-        p->key.~string();
+        std::destroy_at(&p->key);
     }
 };
 
@@ -597,21 +599,21 @@ struct HashtableAbi : hashtable<Traits> {
     };
 };
 
-std::uint32_t __fastcall HashString(const string* s);
+std::uint32_t __fastcall HashString(const std::string* s);
 
 // hash_map<string, T*>: the record tables' maps by name, the spells and modifiers by name.
 using NameMap = hashtable<StringKeyTraits<4>>;
 // operator[](name) and find_or_insert({name, null}): the slot of
 // `name`'s record, a null one inserted for a new name (from a copy of the name, freed after).
 template <typename T>
-T*& NamedSlot(NameMap& map, const string& name) {
+T*& NamedSlot(NameMap& map, const std::string& name) {
     NameMap::Value obj(name);
     return *reinterpret_cast<T**>(map.FindOrInsert(obj).mapped);
 }
 // The same on a typed hash_map<string, T*> (the item and spell tables' indexes): operator[] as
 // STLport writes it, a {name, null} temporary for find_or_insert.
 template <typename T>
-T*& NamedSlot(hash_map<string, T*, StringHash>& map, const string& name) {
+T*& NamedSlot(hash_map<std::string, T*, StringHash>& map, const std::string& name) {
     return map.Subscript(name);
 }
 

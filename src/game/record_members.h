@@ -28,10 +28,6 @@ template <>
 struct ElementOf<std::string> {
     using type = stlp::ObjectElement<std::string>;
 };
-template <>
-struct ElementOf<stlp::string> {
-    using type = stlp::StringElement;
-};
 
 inline void CopyMember(mfc::CString& to, const mfc::CString& from) { std::construct_at(&to, from); }
 inline void AssignMember(mfc::CString& to, const mfc::CString& from) { to = from; }
@@ -40,10 +36,6 @@ inline void DefaultMember(mfc::CString& to) { std::construct_at(&to); }
 inline void CopyMember(std::string& to, const std::string& from) { std::construct_at(&to, from); }
 inline void AssignMember(std::string& to, const std::string& from) { to = from; }
 inline void DefaultMember(std::string& to) { std::construct_at(&to); }
-
-inline void CopyMember(stlp::string& to, const stlp::string& from) { new (&to) stlp::string(from); }
-inline void AssignMember(stlp::string& to, const stlp::string& from) { to.AssignFrom(from); }
-inline void DefaultMember(stlp::string& to) { stlp::StringElement::Default(&to); }
 
 template <typename T>
 void CopyMember(stlp::vector<T>& to, const stlp::vector<T>& from) {
@@ -75,7 +67,7 @@ struct IsPlain : std::bool_constant<std::is_trivially_copyable_v<T> && !kVectorL
 template <>
 struct IsPlain<mfc::CString> : std::false_type {};
 template <>
-struct IsPlain<stlp::string> : std::false_type {};
+struct IsPlain<std::string> : std::false_type {};
 template <typename T>
 struct IsPlain<stlp::vector<T>> : std::false_type {};
 template <typename T, std::size_t N>

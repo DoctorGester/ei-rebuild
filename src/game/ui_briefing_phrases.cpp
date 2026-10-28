@@ -192,7 +192,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         state_ = kStateRewards;
         QuestBriefingRecord* record;
         {
-            stlp::string key(topic_.c_str());
+            std::string key(topic_.c_str());
             record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
         }
         if (record) {

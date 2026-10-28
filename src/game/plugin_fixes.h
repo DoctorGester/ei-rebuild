@@ -41,7 +41,7 @@ inline UnitPrototypeRecord* FallbackPrototype() {
     auto& index = unitdb::PrototypeTable().byName;
     for (std::size_t b = 0; b < index.BucketCount(); ++b) {
         auto* node = index.Bucket(b);
-        if (!node || !node->key.data()) continue;
+        if (!node) continue;
         const char* name = node->key.data();
         bool listed = false;
         for (const char* race : {"NPC", "Human", "Orc", "Undead", "Male", "Female"})

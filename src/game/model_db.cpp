@@ -82,9 +82,9 @@ EI_REWRITTEN(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
-PrintRecord::PrintRecord() : look2{}, look3{} { stlp::string::Reserve(name, 8); }
+PrintRecord::PrintRecord() : look2{}, look3{} {}
 PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), look2(from.look2), look3(from.look3) {}
-PrintRecord2::PrintRecord2() : look2{}, look3{}, values10{} { stlp::string::Reserve(name, 8); }
+PrintRecord2::PrintRecord2() : look2{}, look3{}, values10{} {}
 PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), look2(from.look2), look3(from.look3) {
     std::memcpy(values10, from.values10, sizeof(values10));
 }

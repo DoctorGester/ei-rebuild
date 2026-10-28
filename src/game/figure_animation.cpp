@@ -20,13 +20,13 @@ namespace {
 int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char* modelName,
                                        const FigureAnimation* animation) {
     if (!animation) return figure->ClearBoneTracks();
-    stlp::string key(modelName);
+    std::string key(modelName);
     FigureModel* model = FindModel(&key);
     if (!model) {
         game::DebugLog("Can't open model \"%s\"\n", modelName);
         return 0;
     }
-    stlp::string name(animation->name);
+    std::string name(animation->name);
     void* found = model->FindAnimation(&name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation->name, modelName);

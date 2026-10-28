@@ -128,7 +128,7 @@ struct PartDraw {
 
 // After a draw: the part's header takes the rectangle the device drew (draw flag 1, something
 // drawn) or the empty one.
-void KeepScreen(CLinkMesh* mesh, const stlp::string* name, int flags, int result) {
+void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
         const RECT& drawn = mesh->loader_->renderer_->drawnRect_;
         static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name)->screen = drawn;
@@ -139,7 +139,7 @@ void KeepScreen(CLinkMesh* mesh, const stlp::string* name, int flags, int result
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without
 // surfaces the device's specular is on around the draw for draw flag 8.
-int DrawPartCommon(CLinkMesh* mesh, const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                    bool textured, ColourArray* colours, ColourArray* speculars,
                    const lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     const LinkRangeMap::Node* node = mesh->ranges_.find(*name);
@@ -165,7 +165,7 @@ void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 
 // Both arrays sized to four per normal packet (their contents dropped), then filled.
-bool CLinkMesh::FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
+bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                             ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -182,7 +182,7 @@ EI_REWRITTEN(0x004F3AD0, CLinkMesh::FlatColours);
 // (CMaterial::GpuLitColour; the transform object's LightMesh lit them before); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
+bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                           ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -211,26 +211,26 @@ EI_REWRITTEN(0x004F3870, CLinkMesh::LightPart);
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
-int CLinkMesh::DrawPartMoved(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
+int CLinkMesh::DrawPartMoved(const std::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                              lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
 EI_REWRITTEN(0x004F3C60, CLinkMesh::DrawPartMoved);
 
-int CLinkMesh::DrawPart(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
+int CLinkMesh::DrawPart(const std::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                         std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
 EI_REWRITTEN(0x004F3FA0, CLinkMesh::DrawPart);
 
-int CLinkMesh::DrawPartMovedTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                      ColourArray* colours, ColourArray* speculars,
                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
 EI_REWRITTEN(0x004F42D0, CLinkMesh::DrawPartMovedTextured);
 
-int CLinkMesh::DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                 ColourArray* colours, ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
@@ -240,7 +240,7 @@ EI_REWRITTEN(0x004F4150, CLinkMesh::DrawPartTextured);
 
 // The part's positions (moved by `offsets` when it has any) through
 // the transform object's flat projection; four points per packet.
-int CLinkMesh::ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+int CLinkMesh::ProjectPart(const std::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                            Vector2* points, float* bounds) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
@@ -255,7 +255,7 @@ EI_REWRITTEN(0x004F4680, CLinkMesh::ProjectPart);
 // The part's texture coordinates times 255 (as floats, rounded to the nearest integer), then every triangle's
 // corners - the projected point of the corner's position and the texture point of its coordinate - handed to
 // the pixel converter's rasteriser at the start of `target`.
-int CLinkMesh::RasterisePart(const stlp::string* name, const PixelPair* pixels, RasterTarget* target) {
+int CLinkMesh::RasterisePart(const std::string* name, const PixelPair* pixels, RasterTarget* target) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;

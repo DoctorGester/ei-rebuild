@@ -23,7 +23,7 @@ namespace {
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4). The game flow at 0x7AFE20
 // (world_briefing.cpp, world_game.cpp): loading a zone's quests. vector<string> (library): the block free.
-void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * 12); }
+void __fastcall NamesFree(std::string* a0, std::size_t a1) { stlp::deallocate(a0, a1 * sizeof(std::string)); }
 
 
 
@@ -34,14 +34,14 @@ void __fastcall NamesFree(stlp::string* a0, std::size_t a1) { stlp::deallocate(a
 // when the map registry knows "name + suffix", sets a script variable to 1 for each of the map's names (inline,
 // through FindOrAddVariable) and for two paths built from the map name (SetVariable), and queues the host's item
 // awards (without the final award).
-void ServerSession::SetMap(const stlp::string* name) {
+void ServerSession::SetMap(const std::string* name) {
     queuedMaps_.Clear();
     variables_.Clear();
 
     {
-        stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix2Text());
+        std::string messageName = *name + game::ZoneSuffix2Text();
         auto* message = NewCounted<ZoneMessage>();
-        message->text_.AssignFrom(messageName);
+        message->text_ = messageName;
         RefPtr ref;
         queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
         RefPtrClear(&ref);
@@ -54,8 +54,8 @@ void ServerSession::SetMap(const stlp::string* name) {
         holder->Share(mapMessage);
     }
     MapMessage* current = map_.Get();
-    if (name != &current->text_) current->text_.AssignFrom(*name);
-    if (name != &mapName_) mapName_.AssignFrom(*name);
+    if (name != &current->text_) current->text_ = *name;
+    if (name != &mapName_) mapName_ = *name;
 
     GameFlow* world = TheGameFlow();
     world->RegisterQuests(name->data());
@@ -68,14 +68,14 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     QuestBriefingRecord* entry;
     {
-        stlp::string registryName = stlp::Plus(*name, game::ZoneSuffix1Text());
+        std::string registryName = *name + game::ZoneSuffix1Text();
         entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), registryName);
     }
     if (!entry) return;
 
     const stlp::vector<std::string>& quests = entry->lists[2];   // the quests given
     for (const std::string* it = quests.begin(); it != quests.end(); ++it) {
-        stlp::string resourceName(it->c_str());
+        std::string resourceName(*it);
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = variables_.At(added);
@@ -88,18 +88,18 @@ void ServerSession::SetMap(const stlp::string* name) {
 
     // "<prefix><name>.<name>" and the same with the path suffix; the temporaries freed in reverse.
     {
-        stlp::string prefix(flowdata::kQuestVariablePrefix);
-        stlp::string a = stlp::Plus(prefix, *name);
-        stlp::string b = stlp::Plus(a, flowdata::kDot);
-        stlp::string path = stlp::Plus(b, *name);
+        std::string prefix(flowdata::kQuestVariablePrefix);
+        std::string a = prefix + *name;
+        std::string b = a + flowdata::kDot;
+        std::string path = b + *name;
         SetVariable(&path, 1.0f);
     }
     {
-        stlp::string prefix(flowdata::kQuestVariablePrefix);
-        stlp::string a = stlp::Plus(prefix, *name);
-        stlp::string b = stlp::Plus(a, flowdata::kDot);
-        stlp::string c = stlp::Plus(b, *name);
-        stlp::string path = stlp::Plus(c, game::PathSuffixText());
+        std::string prefix(flowdata::kQuestVariablePrefix);
+        std::string a = prefix + *name;
+        std::string b = a + flowdata::kDot;
+        std::string c = b + *name;
+        std::string path = c + game::PathSuffixText();
         SetVariable(&path, 1.0f);
     }
 
@@ -109,30 +109,30 @@ void ServerSession::SetMap(const stlp::string* name) {
 // the flow picks for the server's kind after the current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
-    stlp::vector<stlp::string> zones;   // empty
+    stlp::vector<std::string> zones;    // empty
     PickZones(&zones, kind_, mapName_.data());
-    for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) {
+    for (std::string* zone = zones.begin(); zone != zones.end(); ++zone) {
         {
-            stlp::string key = stlp::Plus(*zone, game::ZoneSuffix1Text());
+            std::string key = *zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();
-            message->text_.AssignFrom(key);
+            message->text_ = key;
             RefPtr ref;
             queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
             RefPtrClear(&ref);
         }
         LoadZoneQuests(zone->data());
     }
-    for (stlp::string* zone = zones.begin(); zone != zones.end(); ++zone) zone->~string();
+    for (std::string* zone = zones.begin(); zone != zones.end(); ++zone) std::destroy_at(zone);
     NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));
 }
 
 // When the held map message names `name`: drops it, empties the queued messages
 // And queues a map message "name" + "_3". Returns whether it did.
-bool ServerSession::FinishMap(const stlp::string* name) {
+bool ServerSession::FinishMap(const std::string* name) {
     auto* holder = &map_;
     MapMessage* map = holder->Get();
     if (!IsLive(map)) return false;
-    const stlp::string* held = &map->text_;
+    const std::string* held = &map->text_;
     if (!(*held == *name)) return false;
 
     if (CRefObject* object = holder->ptr) {
@@ -145,9 +145,9 @@ bool ServerSession::FinishMap(const stlp::string* name) {
     }
     queuedMaps_.Clear();
 
-    stlp::string messageName = stlp::Plus(*name, game::ZoneSuffix3Text());
+    std::string messageName = *name + game::ZoneSuffix3Text();
     auto* message = NewCounted<ZoneMessage>();
-    message->text_.AssignFrom(messageName);
+    message->text_ = messageName;
     RefPtr ref;
     queuedMaps_.PushBack(*RefPtrFromRaw(&ref, message));
     RefPtrClear(&ref);

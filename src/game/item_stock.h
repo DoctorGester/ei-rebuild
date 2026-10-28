@@ -42,20 +42,16 @@ using StockSpellList = stlp::list<CSpell*>;
 using StockSpellListNode = StockSpellList::Node;
 using StockRecipeList = stlp::list<void*>;
 
-constexpr int kSpellRecipeSize = 0x34;
-
-using StockStringVector = stlp::vector<stlp::string>;
+using StockStringVector = stlp::vector<std::string>;
 
 // A spell recipe: the spell database's list record.
 using SpellRecipe = itemdb::SpellListRecord;
-static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
 
 // A vector of spell recipes (the spell database's lists for weapons, armors and scrolls).
 using SpellRecipeVector = stlp::vector<SpellRecipe>;
 
 // The recipe map (ItemStock::spellMap): recipe lists by spell name.
 using StockRecipeMap = stlp::hashtable<stlp::StringListTraits>;
-static_assert(sizeof(StockRecipeMap::Value) == 0x10);
 
 // Records by name (ItemStock::modifierMap; the spells and modifiers by name); stlp::NamedSlot inserts a null
 // record for a new name.

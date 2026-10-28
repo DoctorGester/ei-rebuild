@@ -71,7 +71,7 @@ void SetDeferred(DeferredMap& deferred, std::int32_t handle, DeferredSound* rec)
     deferred.FindOrInsert({handle, nullptr})->value = rec;
 }
 void FreeDeferred(DeferredSound* rec) {
-    rec->name.~string();
+    std::destroy_at(&rec->name);
     gamecrt::operator_delete(rec);
 }
 
@@ -1009,8 +1009,8 @@ int CSoundManager::AllocateVoice(int priority) {
     if (slot->looping != 0) {
         // The stolen looping sound waits in the deferred map with its state and sample position.
         auto* rec = gamecrt::operator_new_as<DeferredSound>();
-        if (rec) stlp::string::Reserve(rec->name, 8);
-        rec->name.AssignFrom(slot->name);
+        if (rec) std::construct_at(&rec->name);
+        rec->name = slot->name;
         rec->volume = slot->volume;
         rec->baseVolume = slot->baseVolume;
         rec->pan = slot->pan;
@@ -1052,8 +1052,8 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.
 int DeferLooping(CSoundManager* m, const char* name, int priority, int volume, int pan, int heightFade, int speech) {
     auto* rec = gamecrt::operator_new_as<DeferredSound>();
-    if (rec) stlp::string::Reserve(rec->name, 8);
-    rec->name.Assign(name);
+    if (rec) std::construct_at(&rec->name);
+    rec->name.assign(name);
     rec->baseVolume = volume;
     rec->pan = pan;
     rec->priority = priority;
@@ -1122,8 +1122,8 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
     if (index == -1) {
         if (loop == 0) return -1;
         auto* rec = gamecrt::operator_new_as<DeferredSound>();
-        if (rec) stlp::string::Reserve(rec->name, 8);
-        rec->name.Assign(name);
+        if (rec) std::construct_at(&rec->name);
+        rec->name.assign(name);
         std::memcpy(&rec->position, position, sizeof(rec->position));
         std::memcpy(&rec->nearDistance, &nearDist, 4);
         std::memcpy(&rec->farDistance, &farDist, 4);
@@ -1181,10 +1181,10 @@ void PushBack(WaveList& list, const WaveRecord* record) {
     else list.head = node;
     list.tail = node;
 }
-void CacheSet(CSoundManager* m, const stlp::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
+void CacheSet(CSoundManager* m, const std::string* key, WaveNode* node) { stlp::NamedSlot<WaveNode>(m->cache, *key) = node; }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.
-void UseCached(CSoundManager* m, SoundSlot* slot, const stlp::string* key, const char* name, const WaveCache::Node* cached) {
+void UseCached(CSoundManager* m, SoundSlot* slot, const std::string* key, const char* name, const WaveCache::Node* cached) {
     WaveNode* node = cached->value;
     WaveRecord record = node->data;
     Unlink(m->cacheList, node);
@@ -1222,7 +1222,7 @@ void Evict(CSoundManager* m, int incoming, std::uint32_t now) {
 // making room (kept at its front). Sets the voice's length, name, playing flag and a new handle.
 // Returns 0 when no archive has the file or the decompression fails.
 int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, int compressed) {
-    stlp::string key(name);   // freed on each return
+    std::string key(name);    // freed on each return
     const WaveCache::Node* cached = cache.Find(key);
     if (cached != nullptr) {
         if (compressed == 0) UseCached(this, slot, &key, name, cached);
@@ -1252,8 +1252,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             Evict(this, size, now);
         }
         WaveRecord record;
-        stlp::string::Reserve(record.name, 8);
-        record.name.AssignFrom(key);
+        record.name = key;
         record.lastUsed = now;
         record.size = size;
         record.uses = 1;
@@ -1274,7 +1273,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
         }
         slot->length = static_cast<float>(WaveLength(record.data, record.size));
     }
-    slot->name.AssignFrom(key);
+    slot->name = key;
     slot->playing = 1;
     slot->handle = nextHandle;
     ++nextHandle;
@@ -1287,7 +1286,7 @@ void CSoundManager::StreamNotify(int /*mode*/) {}
 
 WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
     data = from->data;
-    if (&from->name != &name) name.AssignFrom(from->name);
+    if (&from->name != &name) name = from->name;
     lastUsed = from->lastUsed;
     size = from->size;
     uses = from->uses;

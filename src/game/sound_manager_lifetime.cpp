@@ -8,7 +8,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
-#include "../lib/stlp_string.h"
 
 #include "ei/hook.h"
 #include "lib/mfc_thread.h"
@@ -576,7 +575,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
         block->count = kVoiceCount;
         voices = block->voices;
         // The CRT's eh vector constructor iterator: each voice's name string (basic_string()).
-        for (int i = 0; i < kVoiceCount; ++i) stlp::StringAbi::ConstructDefault(&voices[i].name);
+        for (int i = 0; i < kVoiceCount; ++i) std::construct_at(&voices[i].name);
     }
     slots = voices;
     for (int i = 0; i < kVoiceCount; ++i) {
@@ -618,7 +617,7 @@ void CSoundManager::Close() {
         // operator delete[]: the count stands before the voices.
         std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
         // The CRT's eh vector destructor iterator: each voice's name string, last to first.
-        for (int i = *block; --i >= 0;) slots[i].name.~string();
+        for (int i = *block; --i >= 0;) std::destroy_at(&slots[i].name);
         gamecrt::operator_delete(block);
     }
     DeleteDeferred();

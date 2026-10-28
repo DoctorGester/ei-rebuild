@@ -20,7 +20,6 @@
 #include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/stlp_string.h"
 #include "unit_looks.h"
 #include "lib/str.h"
 
@@ -58,7 +57,7 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 // --- Helpers -------------------------------------------------------------------------------------
 
 // The storage of `a1` strings back to the pool.
-void __fastcall StringsFree(stlp::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * 12); }
+void __fastcall StringsFree(std::string* a0, int a1) { stlp::deallocate(a0, static_cast<std::size_t>(a1) * sizeof(std::string)); }
 
 // --- The dressed units ---------------------------------------------------------------------------
 
@@ -207,7 +206,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
 // --- The other units -----------------------------------------------------------------------------
 
-using StringList = stlp::vector<stlp::string>;
+using StringList = stlp::vector<std::string>;
 int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - list.Start()); }
 
 // Room for `needed` strings as inlined (reserve): a copy into new storage, the old strings destroyed
@@ -215,13 +214,13 @@ int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - l
 void Reserve(StringList& list, int needed) {
     int size = static_cast<int>(list.size());
     if (!(static_cast<std::uint32_t>(Capacity(list)) < static_cast<std::uint32_t>(needed))) return;
-    stlp::string* storage;
+    std::string* storage;
     if (list.Start()) {
-        storage = StringList::AllocateAndCopy<stlp::StringElement>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
-        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) s->~string();
+        storage = StringList::AllocateAndCopy<stlp::ObjectElement<std::string>>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
+        for (std::string* s = list.Start(); s != list.Finish(); ++s) std::destroy_at(s);
         StringsFree(list.Start(), Capacity(list));
     } else {
-        storage = needed ? stlp::allocate_as<stlp::string>(static_cast<std::size_t>(needed)) : nullptr;
+        storage = needed ? stlp::allocate_as<std::string>(static_cast<std::size_t>(needed)) : nullptr;
     }
     list.Start() = storage;
     list.Finish() = storage + size;
@@ -246,27 +245,27 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
         int count = static_cast<int>(record->names.Finish() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
         for (const mfc::CString* p = record->names.Start(); p != record->names.Finish(); ++p) {
-            stlp::string string(p->GetString());
+            std::string string(p->GetString());
             if (first.Finish() != first.EndOfStorage()) {
-                stlp::StringAbi::ConstructAt(first.Finish(), &string);
+                std::construct_at(first.Finish(), string);
                 ++first.Finish();
             } else {
-                first.InsertOverflow<stlp::StringElement>(first.Finish(), string, 1);
+                first.InsertOverflow<stlp::ObjectElement<std::string>>(first.Finish(), string, 1);
             }
         }
     }
-    first.RangeInsert<stlp::StringElement>(first.Finish(), second.Start(), second.Finish());
+    first.RangeInsert<stlp::ObjectElement<std::string>>(first.Finish(), second.Start(), second.Finish());
 
     {
-        stlp::string name(ModelPrefix(model));
+        std::string name(ModelPrefix(model));
         // The figure loader's LoadFigure (not fresh).
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }
 
-    for (stlp::string* s = second.Start(); s != second.Finish(); ++s) s->~string();
-    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * 12);
-    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) s->~string();
-    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * 12);
+    for (std::string* s = second.Start(); s != second.Finish(); ++s) std::destroy_at(s);
+    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * sizeof(std::string));
+    for (std::string* s = first.Start(); s != first.Finish(); ++s) std::destroy_at(s);
+    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * sizeof(std::string));
 }
 
 } // namespace

@@ -42,10 +42,10 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     ref.Destroy();
     BindingMessage* bound = self->bindings_.Back();
 
-    stlp::string* name = &record->name_;
-    if (&msg->name_ != name) name->AssignFrom(msg->name_);
+    std::string* name = &record->name_;
+    if (&msg->name_ != name) *name = msg->name_;
     record->state_ = msg->state_;
-    if (&msg->text_ != &record->text_) record->text_.AssignFrom(msg->text_);
+    if (&msg->text_ != &record->text_) record->text_ = msg->text_;
     record->id_ = msg->id_;
 
     // The lowest player number no player has yet.

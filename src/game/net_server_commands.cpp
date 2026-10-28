@@ -31,7 +31,7 @@ enum CommandKind : std::uint32_t {
 Connection* CurrentConnectionObject() { return g_currentConnection; }
 std::size_t StringNpos() { return 0xFFFFFFFFu /*0073BDE8*/; }
 
-bool Is(const stlp::string& s, const char* t) {
+bool Is(const std::string& s, const char* t) {
     std::size_t length = std::strlen(t);
     return s.size() == length && std::memcmp(s.data(), t, length) == 0;
 }
@@ -73,7 +73,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.
 void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
-    stlp::string* text = &message->text_;
+    std::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:
         if (self->IsHostConnection(CurrentConnectionObject())) TheGameFlow()->SetNetworkZone(text->data());
@@ -87,8 +87,8 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
         }
         if (node == self->queuedMaps_.End()) return;
         const std::size_t cut = text->size() - 2;
-        stlp::string suffix = text->substr(cut, StringNpos());
-        stlp::string name = text->substr(0, text->size() - 2);
+        std::string suffix = text->substr(cut, StringNpos());
+        std::string name = text->substr(0, text->size() - 2);
         if (Is(suffix, game::ZoneSuffix1Text())) self->SetMap(&name);
         if (Is(suffix, game::ZoneSuffix2Text())) self->LeaveZone();
         if (Is(suffix, game::ZoneSuffix3Text())) self->CompleteZone(&name);

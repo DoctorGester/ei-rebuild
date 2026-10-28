@@ -43,7 +43,7 @@ int LeverRecordTable::Load(const char* folder) {
     archive.SerializeLevers(1, &records, static_cast<int>(size));
     archive.Close(&local);
     for (LeverRecord& record : records) {
-        stlp::string key(record.name.c_str());
+        std::string key(record.name.c_str());
         byName[key] = &record;
     }
 

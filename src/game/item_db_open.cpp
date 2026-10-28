@@ -36,7 +36,7 @@ constexpr int kLootChunk = 6;
 template <typename Record, typename Key>
 void FileRecords(itemdb::NamedRecordTable<Record>& table, Key key) {
     for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
-        stlp::string text(key(record));
+        std::string text(key(record));
         table.names[text] = record;
     }
 }
@@ -49,7 +49,7 @@ const char* CodeText(const char* code) { return code; }
 template <typename Record>
 void FileByCode(itemdb::CodeIndexedTable<Record>& table) {
     for (Record* record = table.records.begin(); record != table.records.end(); ++record) {
-        stlp::string text(CodeText(record->code));
+        std::string text(CodeText(record->code));
         table.byCode[text] = record;
     }
 }
