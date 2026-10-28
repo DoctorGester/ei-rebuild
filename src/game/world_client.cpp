@@ -280,13 +280,12 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     if (value == 2.0f && str::Find(name, dot) < 0) SummonBird();
 }
 
-mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
-    const std::string zone = LocalPlayerZone();
-    std::construct_at(out, QuestPrefixText());
-    *out += zone.c_str();
-    *out += DotText();
-    *out += name;
-    return out;
+std::string CWorldClient::ObjectVariableName(const char* name) {
+    std::string variable = QuestPrefixText();
+    variable += LocalPlayerZone();
+    variable += DotText();
+    variable += name;
+    return variable;
 }
 
 void CWorldClient::ApplyObjectVariables() {
@@ -295,8 +294,7 @@ void CWorldClient::ApplyObjectVariables() {
         CMapObject* object = node->data;
         const char* name = object->name2.c_str();
         if (!name || !*name) continue;
-        mfc::CString variable(mfc::CString::kUnset);
-        object->SetVisibilityLevel(variables->Get(*ObjectVariableName(&variable, name)));
+        object->SetVisibilityLevel(variables->Get(ObjectVariableName(name).c_str()));
     }
 }
 

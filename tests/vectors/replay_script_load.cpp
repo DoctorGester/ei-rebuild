@@ -45,12 +45,9 @@ void ReadShape(Reader& r, mfc::CArray<T>* a, void* vtable) {
     }
 }
 
-void ReadTexts(Reader& r, mfc::CArray<mfc::CString>* a) {
+void ReadTexts(Reader& r, mfc::CArray<std::string>* a) {
     ReadShape(r, a, gamearrays::ScriptStringValuesClass::Vtable());
-    for (int i = 0; i < a->size; ++i) {
-        const std::string text = r.String();
-        std::construct_at(&a->data[i], text.c_str(), static_cast<int>(text.size()));
-    }
+    for (int i = 0; i < a->size; ++i) std::construct_at(&a->data[i], r.String());
 }
 
 // PutVars' set: objects null, groups empty (the loader reads neither).

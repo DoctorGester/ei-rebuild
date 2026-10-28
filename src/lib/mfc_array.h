@@ -398,7 +398,6 @@ inline void FreeAlignedData(Bytes<16>* p) {
 }
 using AlignedArrays = ArrayAbi<Bytes<16>, EachElements<Bytes<16>, nullptr, FreeAlignedData>>;
 
-// CArray<CString>: built and destroyed by MFC's ConstructElements / DestructElements<CString>
-// (mfc_string.cpp).
-using Strings = ArrayAbi<CString, HelperElements<CString, ConstructStrings, DestructStrings>>;
+// The script's string arrays (game.exe's CArray<CString>): std::string elements.
+using Strings = ArrayAbi<std::string>;
 } // namespace mfc::impl

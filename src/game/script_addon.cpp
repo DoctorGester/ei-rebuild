@@ -174,11 +174,9 @@ const Built& Build() {
 // size + growBy elements, growBy 0 meaning 4 (its clamp of size / 8 always gives 4).
 template <typename T>
 void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
-    static_assert(sizeof(T) == 4);
-    constexpr bool strings = std::is_same_v<T, mfc::CString>;
+    using Elements = mfc::PlainElements<T>;
     if (n <= a.size) {
-        if constexpr (strings)
-            for (int i = n; i < a.size; ++i) std::destroy_at(&a.data[i]);
+        Elements::Destruct(a.data + n, a.size - n);
         if (n == 0) {
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
@@ -192,14 +190,12 @@ void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
         int newMax = a.size + grow;
         if (newMax < n) newMax = n;
         T* data = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
-        std::memcpy(data, a.data, static_cast<unsigned>(a.size) * 4);
+        mfc::CArray<T>::Relocate(data, a.data, a.size);
         gamecrt::operator_delete(a.data);
         a.data = data;
         a.maxSize = newMax;
     }
-    std::memset(a.data + a.size, 0, static_cast<unsigned>(n - a.size) * 4);
-    if constexpr (strings)
-        for (int i = a.size; i < n; ++i) std::construct_at(&a.data[i]);
+    Elements::Construct(a.data + a.size, n - a.size);
     a.size = n;
 }
 
@@ -321,7 +317,7 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
     }
 }
 
-void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, mfc::CString* result) {
+void CalcString(SSCCmd* cmd, CScript* script, ScriptVars* vars, std::string* result) {
     cmd->PrepareArguments(script, vars);
     Call call{cmd, script, result, nullptr, nullptr};
     if (Dispatch(&call)) return;

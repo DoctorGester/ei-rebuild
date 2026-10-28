@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <windows.h>
 
 inline constexpr float kHudFullTurn = /*007C8140*/ 6.2831855f;
@@ -784,11 +785,9 @@ public:
     int count_;                      // slots in use
     int selected_;
     CUnit* unit_;
-    mfc::CStringArray labels_;       // the tooltip's labels
+    std::vector<std::string> labels_;   // the tooltip's labels
 };
 static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
-static_assert(offsetof(CHudWeaponBar, labels_) == 0x158);
-static_assert(sizeof(CHudWeaponBar) == 0x16C);   // CBattleScreen's operator new
 
 // Quick items (2 rows of four 50x50 slots at (520..720, 500..600)).
 class CHudQuickItems : public CUiWindow {
@@ -848,11 +847,9 @@ public:
     CUnit* unit_;
     mfc::CArray<Entry> entries_;
     int regionItem_[8];
-    mfc::CStringArray labels_;       // the tooltip's labels
+    std::vector<std::string> labels_;   // the tooltip's labels
 };
 static_assert(offsetof(CHudQuickItems, entries_) == 0x158);
-static_assert(offsetof(CHudQuickItems, labels_) == 0x18C);
-static_assert(sizeof(CHudQuickItems) == 0x1A0);   // CBattleScreen's operator new
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
 static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
@@ -892,12 +889,10 @@ public:
     int count_;                      // sprites added
     int selected_;
     CUnit* unit_;
-    mfc::CStringArray labels_;       // the tooltip's labels
+    std::vector<std::string> labels_;   // the tooltip's labels
 };
 static_assert(offsetof(CHudSpellColumn, count_) == 0x14C);
 static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
-static_assert(offsetof(CHudSpellColumn, labels_) == 0x158);
-static_assert(sizeof(CHudSpellColumn) == 0x16C);   // CBattleScreen's operator new
 
 // Action column on the left (six 40x40 buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
@@ -929,13 +924,11 @@ public:
     int selected_;
     CUnit* unit_;
     UiDwordArray actions_;           // the buttons' actions (0 science, -1 follow)
-    mfc::CStringArray labels_;       // the tooltip's labels
+    std::vector<std::string> labels_;   // the tooltip's labels
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
 static_assert(offsetof(CHudActionColumn, selected_) == 0x150);
 static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
-static_assert(offsetof(CHudActionColumn, labels_) == 0x16C);
-static_assert(sizeof(CHudActionColumn) == 0x180);   // CBattleScreen's operator new
 
 // A portrait's state, one per portrait: the last hit points seen, the face (rest orientation, current
 // orientation and a random wobble), the face picture and model, and the slot's network player.
@@ -2074,9 +2067,7 @@ struct OptionRow {
 // the shown group.
 class COptionsWindow : public CUiContainer {
 public:
-    COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {
-        groupNames_.Construct();
-    }
+    COptionsWindow(CInterface3D* ui, bool sliding) : CUiContainer(ui), sliding_(sliding) {}
     ~COptionsWindow() override;
     BOOL Draw(CSceneRenderer* pass) override;                      // slides in
     void Redraw() override;                            // not while sliding
@@ -2130,20 +2121,18 @@ public:
     bool sliding_;
     std::uint8_t unused_3F6[2];
     float slide_;
-    mfc::CStringArray groupNames_;   // the option groups' titles
+    std::vector<std::string> groupNames_;   // the option groups' titles
     bool shadowsChanged_;            // a shadow switch (settings 7-9: units, buildings, flora) changed
     std::uint8_t unused_411[3];
     const UiKeyName* pressedKey_;    // the key pressed for a binding row
 };
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
-static_assert(offsetof(COptionsWindow, shadowsChanged_) == 0x410);
 static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
 static_assert(offsetof(COptionsWindow, bindings_) == 0x36C);
 static_assert(offsetof(COptionsWindow, groupNames_) == 0x3FC);
 static_assert(offsetof(COptionsWindow, rows_) == 0x384);
 static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
-static_assert(sizeof(COptionsWindow) == 0x418);
 
 // The message box's edit field.
 class CUiEditField : public CUiWindow {

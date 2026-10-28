@@ -21,23 +21,13 @@ using namespace scriptarray;
 
 namespace {
 
-// CArray members called out of line: CStringArray SetSize, GetAt (CString by
-// value; also on string values), GetAt of a reference array (ScriptObjectRef by value,
-// referenced), GetAt of a group array (ScriptGroup by value).
-mfc::CString* StringAt(const void* array, void* out, int index) {
-    return static_cast<const ScriptStrings*>(array)->CopyAt(static_cast<mfc::CString*>(out), index);
-}
-// A reference's destructor (flags).
-
 void Release(CEngineObject* object) {
     if (object) object->Release();
 }
 
 // The name of the other set's variable i into slot `to` of this set's names.
-void CopyName(mfc::CArray<mfc::CString>* names, int to, const mfc::CArray<mfc::CString>* otherNames, int i) {
-    TempString name;
-    StringAt(otherNames, &name, i);
-    names->data[to] = name.Get();
+void CopyName(mfc::CArray<std::string>* names, int to, const mfc::CArray<std::string>* otherNames, int i) {
+    names->data[to] = otherNames->data[i];
 }
 
 } // namespace
@@ -53,18 +43,16 @@ template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>
 }
 EI_REWRITTEN(0x004C2B70, ScriptNamedValues<float>::Append);
 
-template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues<mfc::CString>* other) {
+template <> void ScriptNamedValues<std::string>::Append(const ScriptNamedValues<std::string>* other) {
     int old = values.size;
-    InlineSetSize(Raw(&values), other->values.size + old, kStrings);
+    values.SetSize(other->values.size + old, -1);
     names.SetSize(other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
         CopyName(&names, old + i, &other->names, i);
-        TempString value;
-        StringAt(&other->values, &value, i);
-        values.data[old + i] = value.Get();
+        values.data[old + i] = other->values.data[i];
     }
 }
-EI_REWRITTEN(0x004C2FE0, ScriptNamedValues<mfc::CString>::Append);
+EI_REWRITTEN(0x004C2FE0, ScriptNamedValues<std::string>::Append);
 
 // The new slot drops its (null) object, then takes the other's object with a reference of its own.
 template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
@@ -117,7 +105,6 @@ EI_REWRITTEN(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 
 namespace {
 
-void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
 // A group's destructor body (references released, array freed).
 void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
@@ -146,8 +133,8 @@ void __fastcall ScriptFloatsClear(ScriptNamedValues<float>* vars) {
 }
 EI_REWRITTEN(0x004C1650, ScriptFloatsClear);
 
-void __fastcall ScriptStringsClear(ScriptNamedValues<mfc::CString>* vars) {
-    FreeValues(vars, [](mfc::CString* strings, int count) { DestructStrings(strings, count); });
+void __fastcall ScriptStringsClear(ScriptNamedValues<std::string>* vars) {
+    FreeValues(vars, mfc::PlainElements<std::string>::Destruct);
 }
 EI_REWRITTEN(0x004C16B0, ScriptStringsClear);
 

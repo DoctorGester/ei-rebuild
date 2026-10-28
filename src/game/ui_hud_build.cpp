@@ -44,13 +44,13 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 
 // The tooltips' labels: the texts "infoitem_<id>" appended in order.
 template <int N>
-void AddLabels(mfc::CStringArray* labels, const int (&ids)[N]) {
+void AddLabels(std::vector<std::string>* labels, const int (&ids)[N]) {
     CTextManager* texts = TheTextManager();
     std::string text;
     for (int id : ids) {
         text = str::Format("infoitem_%d", id);
         texts->GetString(text.c_str(), &text);
-        labels->SetAtGrow(labels->size, text);
+        labels->push_back(text);
     }
 }
 
@@ -101,7 +101,6 @@ Quaternion ProductSecond(const Quaternion& q, const Quaternion& r) {
 // --- Weapon bar ------------------------------------------------------------------------------------------------
 
 CHudWeaponBar::CHudWeaponBar(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    labels_.Construct();
     // WideScreen: the rectangle and the first region from 80 - shift; the
     // regions still run up to x 240, so the bar has more of them (no tips beyond the fourth).
     const int shift = widescreen::EdgeShift();
@@ -187,7 +186,6 @@ EI_REWRITTEN(0x0063BCC0, CHudWeaponBar::AddWeapon);
 CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
     entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
-    labels_.Construct();
     const int shift = widescreen::EdgeShift();
     rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
@@ -230,7 +228,6 @@ EI_REWRITTEN(0x0063CAE0, CHudQuickItems::AddItem);
 // --- Spell column ----------------------------------------------------------------------------------------------
 
 CHudSpellColumn::CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    labels_.Construct();
     const int shift = widescreen::EdgeShift();
     rect_ = {760 + shift, 190, 800 + shift, 510};   // WideScreen
     ClearSceneObjects();
@@ -277,7 +274,6 @@ EI_REWRITTEN(0x0063E4B0, CHudSpellColumn::AddSpell);
 
 CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     actions_.Construct(mfc::impl::IntArrayClass::Vtable());
-    labels_.Construct();
     // WideScreen (addon's handler): the panel offset from here on, the rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
@@ -291,7 +287,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     unit_ = nullptr;
     std::string text;
     TheTextManager()->GetString("infoitem_16", &text);
-    labels_.SetAtGrow(labels_.size, text);
+    labels_.push_back(text);
     widescreen::LeavePanel();        // addon's 10023430
 }
 EI_REWRITTEN_SPECIAL(0x0063F300, CHudActionColumn::CHudActionColumn);

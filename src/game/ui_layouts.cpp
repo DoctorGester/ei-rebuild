@@ -203,7 +203,7 @@ void COptionsWindow::CreateScreen() {
             std::string key = prefix + OptionGroupName(k);
             TheTextManager()->GetString(key.c_str(), &text);
         }
-        groupNames_.SetAtGrow(groupNames_.GetSize(), text);
+        groupNames_.push_back(text);
     }
 
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);

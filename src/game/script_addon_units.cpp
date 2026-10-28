@@ -97,7 +97,7 @@ bool GetPlayerOfUnit(Call* call) {
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* what = call->cmd->stringArgs.size == 0 ? "max" : call->cmd->stringArgs.data[0].GetString();
+    const char* what = call->cmd->stringArgs.size == 0 ? "max" : call->cmd->stringArgs.data[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
@@ -209,7 +209,7 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 // GetSkill(unit, name): a skill byte of the unit's data.
 bool GetSkill(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs.data[0];
+    const char* name = call->cmd->stringArgs.data[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
@@ -229,7 +229,7 @@ bool GetSkill(Call* call) {
 // GetPerk(unit, name): a perk byte of the unit's data (+0x8B3 + the perk's index).
 bool GetPerk(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs.data[0];
+    const char* name = call->cmd->stringArgs.data[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
     static const char* const kPerks[] = {"sword", "axe", "dagger", "spear", "hammer", "bow", "crossbow",

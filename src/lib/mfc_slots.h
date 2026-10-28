@@ -106,7 +106,7 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
 
 // SerializeElements<CString>: each string stored (operator<<) or loaded (operator>>).
 void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count);
-// CArray<CString>::Serialize: the count, then the strings.
+// The script's string arrays' Serialize: the count, then the strings.
 template <>
 void Strings::Serialize(CArchive* ar);
 
@@ -266,7 +266,7 @@ struct CellRowArrayClass final
 // The AI map's area lists (CArray<{int, int}>)
 struct AreaListClass final
     : CompiledCollection<AreaListClass, &ArrayHeader<AreaListClass>::Destruct, &Plain8::Serialize> {};
-// CArray<CString> (the script's string variables)
+// The script's string arrays (game.exe's CArray<CString>; std::string elements)
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
 // CPtrList (the lists the code builds on the stack; blocks of 10)

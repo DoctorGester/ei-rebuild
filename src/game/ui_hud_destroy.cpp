@@ -16,13 +16,12 @@ void* QuickEntriesVtable() { return mfc::impl::QuickEntryArrayClass::Vtable(); }
 void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }     // CDWordArray
 } // namespace
 
-CHudWeaponBar::~CHudWeaponBar() { labels_.Destruct(); }
+CHudWeaponBar::~CHudWeaponBar() = default;
 EI_REWRITTEN_SPECIAL(0x0063BC70, CHudWeaponBar::~CHudWeaponBar);
 EI_REWRITTEN_SPECIAL(0x0063BC50, CHudWeaponBar::~CHudWeaponBar);
 EI_REWRITTEN_SPECIAL(0x0064BCF0, CHudWeaponBar::~CHudWeaponBar);
 
 CHudQuickItems::~CHudQuickItems() {
-    labels_.Destruct();
     entries_.vtable = QuickEntriesVtable();
     if (entries_.data) gamecrt::operator_delete(entries_.data);
 }
@@ -30,13 +29,12 @@ EI_REWRITTEN_SPECIAL(0x0063CA70, CHudQuickItems::~CHudQuickItems);
 EI_REWRITTEN_SPECIAL(0x0063CA50, CHudQuickItems::~CHudQuickItems);
 EI_REWRITTEN_SPECIAL(0x0064BD00, CHudQuickItems::~CHudQuickItems);
 
-CHudSpellColumn::~CHudSpellColumn() { labels_.Destruct(); }
+CHudSpellColumn::~CHudSpellColumn() = default;
 EI_REWRITTEN_SPECIAL(0x0063E460, CHudSpellColumn::~CHudSpellColumn);
 EI_REWRITTEN_SPECIAL(0x0063E440, CHudSpellColumn::~CHudSpellColumn);
 EI_REWRITTEN_SPECIAL(0x0064BD10, CHudSpellColumn::~CHudSpellColumn);
 
 CHudActionColumn::~CHudActionColumn() {
-    labels_.Destruct();
     actions_.vtable = DwordArrayVtable();
     if (actions_.data) gamecrt::operator_delete(actions_.data);
 }

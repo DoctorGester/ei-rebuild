@@ -136,7 +136,7 @@ void __fastcall Execs(CStringArray* args) {
 // listgvar: the global script variables (floats, strings, objects, groups).
 void __fastcall ListGlobals(CStringArray*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
-    auto name = [](const mfc::CArray<mfc::CString>& names, int i) { return names.data[i].GetString(); };
+    auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
     for (int i = 0; i < globals.floats.size; ++i)
         SayFormat("%s : float = %f", name(globals.floatNames, i), static_cast<double>(globals.floats.data[i]));
     for (int i = 0; i < globals.strings.size; ++i)

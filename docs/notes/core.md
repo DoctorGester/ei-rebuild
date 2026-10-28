@@ -396,9 +396,23 @@ to which template:
   ReadLine, ReadToHash, PeekWord, GetString, GetItemTexts, FormatItemName, text::ReplaceChar, and their callers'
   locals (c14_strings.py --string-out), CHudQuickItems::ItemTip, the trade panel's PerkBaseName, the options'
   ReadTip; Split collects into a std::string word.
+  Batch 10: ScriptStrings (the variables' names and string values, the commands' string arguments) is a
+  `mfc::CArray<std::string>`: mfc.h's `PlainElements<std::string>` builds, destroys and relocates the elements (the
+  CString one's counterpart), and `mfc::impl::Strings` (StringArrayClass, ScriptStringValuesClass) is its ABI. The
+  script's hand-inlined SetSizes of string arrays (`kStrings`, LoadFunction's InlineSetSize, addon's
+  ArgumentsSetSize) are CArray::SetSize or element-type generic; the GetAt-by-value temporaries (`TempString`) went:
+  the copies assign. ScriptStringLoad, CopyTo, CopyAt, CalcString's result, ScriptQuestAddObjective's text take
+  std::strings. The recorders read game.exe's through script_original.h's `OriginalScriptVars`,
+  `OriginalSSCCmd` / `OriginalScriptSubCall`, `OriginalScriptDecl` (`OriginalBlocks`, `OriginalGlobals`);
+  script_load_vectors.h's PutVars / PutCmd / PutCmds / PutBlocksAfter are templates over either side's types. The
+  harness digest reads the strings through `Text()`. Also: text::Join fills a std::string, Split cuts a std::string,
+  `CWorldClient::ObjectVariableName` returns the name. The first CStringArray members are
+  `std::vector<std::string>`: the HUD tooltips' `labels_` (CHudWeaponBar, CHudQuickItems, CHudSpellColumn,
+  CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
+  (the layout asserts after them went).
 - Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
-  (ScriptStrings: the script's variable names and string values, which the recorders read in game.exe through
-  script.h; ScriptStringLoad loads into their elements).
+  (mfc::CStringArray and console::CStringArray: the console's history and lines, every command's arguments, Split /
+  SplitWords / Join, the ui's label and text arrays, the map specs' name lists).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
@@ -406,6 +420,9 @@ to which template:
   EI_VECTORS, so the plain original suite only replays its cache. Batch 8 did it for stats and script (14
   scenarios: 0 problems); the path family's raw recording does not replay without `tools/path_vectors.py prune`
   (its @AIMap records are sampled: searches on maps not kept crash), so check it only through that procedure.
+  Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
+  lexer reads): without that folder ei_vectors loops forever at full CPU (batch 10). Replay a scratch folder
+  with a timeout.
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
   holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
   needs; `mfc::MoveElements` does it for any element type): bytes are fine for MSVC's std::string at

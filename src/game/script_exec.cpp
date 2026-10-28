@@ -111,7 +111,7 @@ Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPos
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
 CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
-const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i]; }
+const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i].c_str(); }
 
 CUnitServer* UnitStateArg(const SSCCmd* cmd) {
     CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
@@ -130,10 +130,7 @@ ScriptParticleSource* FindParticle(CScript* script, int id) {
 }
 
 // For the quest objective commands that take no text.
-void QuestObjectiveNoText(int id, float value) {
-    mfc::CString text(game::EmptyText());
-    ScriptQuestAddObjective(id, &text, value);
-}
+void QuestObjectiveNoText(int id, float value) { ScriptQuestAddObjective(id, game::EmptyText(), value); }
 
 // Runs a For body in the same ScriptRun (the variables are shared).
 void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
@@ -1129,10 +1126,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xD9:   // QObjSeeUnit
         case 0xDA:   // QObjKillUnit
         case 0xDB:   // QObjKillGroup
-            ScriptQuestAddObjective(cmd->id, &cmd->stringArgs.data[0], 0.0f);
+            ScriptQuestAddObjective(cmd->id, cmd->stringArgs.data[0], 0.0f);
             break;
         case 0xDC:   // QObjUse(name, value)
-            ScriptQuestAddObjective(cmd->id, &cmd->stringArgs.data[0], f[0]);
+            ScriptQuestAddObjective(cmd->id, cmd->stringArgs.data[0], f[0]);
             break;
 
         default:   // functions, sections and commands without effect here

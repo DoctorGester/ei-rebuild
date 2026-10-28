@@ -21,8 +21,8 @@ const char* AlphaPrefixText() { return "a_"; }
 // The path is split at `\` (each piece trimmed), the alpha file is "a_" + the file name in the same
 // directory; both are joined again.
 int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
-    mfc::CString file;
-    mfc::CString alphaPath;
+    std::string file;
+    std::string alphaPath;
     console::CStringArray pieces;
     if ((flags_ & kTextureLoaded) &&
         gamecrt::mbscmp(name_, path) == 0) {
@@ -32,12 +32,12 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     text::Split(path, &pieces, '\\');
     file = pieces[pieces.GetSize() - 1];
     pieces.RemoveAt(pieces.GetSize() - 1, 1);
-    alphaPath = mfc::operator+(AlphaPrefixText(), file);
+    alphaPath = AlphaPrefixText() + file;
     pieces.SetAtGrow(pieces.GetSize(), alphaPath);
     text::Join(&alphaPath, &pieces, '\\');
     pieces.RemoveAt(pieces.GetSize() - 1, 1);
     pieces.SetAtGrow(pieces.GetSize(), file);
     text::Join(&file, &pieces, '\\');
-    return LoadBmpFiles(device, file, alphaPath);
+    return LoadBmpFiles(device, file.c_str(), alphaPath.c_str());
 }
 EI_REWRITTEN(0x00690260, CTexture::LoadBmp);

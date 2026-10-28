@@ -1,6 +1,6 @@
 // AddNewScriptCommands: addon's string functions and its two text commands. String results are
-// assigned to the CString addon gets (CString::operator=(const char*)) from a std::string addon
-// builds first.
+// assigned to the string addon gets (its c_str(), as CString::operator=(const char*) took it) from a
+// std::string addon builds first.
 // FloatToStr formats with the C runtime's "%.<n>f" and StrToFloat parses with atof.
 #include "net_classes.h"
 #include "world.h"
@@ -28,13 +28,13 @@ namespace {
 // Sends a chat line from the server (second argument 0).
 
 
-const mfc::CString& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
+const std::string& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
 
-// 10010D8F: every string argument appended in order (each by its CString length).
+// 10010D8F: every string argument appended in order (each by its length).
 std::string Joined(Call* call) {
     std::string text;
-    const mfc::CArray<mfc::CString>& strings = call->cmd->stringArgs;
-    for (int i = 0; i < strings.size; ++i) text.append(strings.data[i].GetString(), strings.data[i].GetLength());
+    const mfc::CArray<std::string>& strings = call->cmd->stringArgs;
+    for (int i = 0; i < strings.size; ++i) text += strings.data[i];
     return text;
 }
 
@@ -84,7 +84,7 @@ bool FloatToStr(Call* call) {
 }
 
 bool StrToFloat(Call* call) {
-    Store(call->FloatResult(), static_cast<float>(std::atof(Arg(call, 0))));
+    Store(call->FloatResult(), static_cast<float>(std::atof(Arg(call, 0).c_str())));
     return true;
 }
 
@@ -102,12 +102,12 @@ bool StrLen(Call* call) {
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
     std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
-    *call->StringResult() = Arg(call, static_cast<int>(index)).GetString();
+    *call->StringResult() = Arg(call, static_cast<int>(index));
     return true;
 }
 
 bool StrHas(Call* call) {
-    Store(call->FloatResult(), std::strstr(Arg(call, 0), Arg(call, 1)) ? 1.0f : 0.0f);
+    Store(call->FloatResult(), std::strstr(Arg(call, 0).c_str(), Arg(call, 1).c_str()) ? 1.0f : 0.0f);
     return true;
 }
 
@@ -115,7 +115,7 @@ bool StrHas(Call* call) {
 // character), count 0 means the rest; a negative count leaves the result as it was. Start and count are
 // characters (U5: with EI_UTF8 the bytes of each character's UTF-8 sequence; without it one byte each).
 bool StrMid(Call* call) {
-    const mfc::CString& string = Arg(call, 0);
+    const std::string& string = Arg(call, 0);
     int length = text::CharacterCount(string);
     int start = Ftol(call->cmd->floatArgs.data[0]);
     int count = Ftol(call->cmd->floatArgs.data[1]);
@@ -127,7 +127,7 @@ bool StrMid(Call* call) {
     else if (length < start) start = length;
     int available = length - start + 1;
     if (count >= available) count = available;
-    const char* bytes = string;
+    const char* bytes = string.c_str();
     const char* first = bytes + text::CharacterBytes(string, start - 1);
     const char* last = bytes + text::CharacterBytes(string, start - 1 + count);
     std::string part;
@@ -137,12 +137,12 @@ bool StrMid(Call* call) {
 }
 
 bool StrLower(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0), false));
+    Assign(call, CaseConverted(Arg(call, 0).c_str(), false));
     return true;
 }
 
 bool StrUpper(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0), true));
+    Assign(call, CaseConverted(Arg(call, 0).c_str(), true));
     return true;
 }
 
