@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <cstring>
 
-#undef GetClassName
 
 namespace {
 
@@ -136,7 +135,7 @@ CUiMesh::~CUiMesh() {}
 
 int CUiMesh::Create() { return CreateSprite(); }
 void CUiMesh::Destroy() { DestroySprite(); }
-const char* CUiMesh::GetClassName() { return I3DFigureClassName(this); }
+const char* CUiMesh::ClassName() { return I3DFigureClassName(this); }
 ClassId CUiMesh::GetClassId() { return kClassUiMesh; }
 
 // --- The arrays' sizes ---------------------------------

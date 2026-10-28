@@ -1,6 +1,6 @@
 #pragma once
 
-// The torch's client half, CTorchObjectClientSpecific (the exe's GetClassName; class id
+// The torch's client half, CTorchObjectClientSpecific (the exe's ClassName; class id
 // 0x41; 19 slots; 0x64 bytes; a real virtual class: the compiler makes its vtable): the
 // client-specific manager makes it for type 'K'.
 // It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CLight;
 class CParticleSource;
@@ -30,7 +29,7 @@ public:
     int Create() override { return CreateClient(); }
     void Destroy() override { DestroyClient(); }
     int RunTick() override;                             // returns 1
-    const char* GetClassName() override;                // "CTorchObjectClientSpecific"
+    const char* ClassName() override;                // "CTorchObjectClientSpecific"
     ClassId GetClassId() override;
     void ShowEffectsSlot() override { ShowEffects(); }
     void HideEffectsSlot() override { HideEffects(); }

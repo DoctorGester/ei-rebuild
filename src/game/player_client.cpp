@@ -681,7 +681,7 @@ CPlayerClient::~CPlayerClient() {
     compressor_.out.End();
 }
 
-const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
+const char* CPlayerClient::ClassName() { return "CPlayerClient"; }
 ClassId CPlayerClient::GetClassId() { return kClassPlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------

@@ -29,9 +29,6 @@
 #include <cstdio>
 #include <new>
 
-// windows.h (through texture.h) renames CEngineObject's GetClassName.
-#undef GetClassName
-
 namespace {
 constexpr int kBodyParts = 6;
 constexpr int kTypeHero = 0x32;
@@ -174,7 +171,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         AssignTexture(&woundsTexture, manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
             AssignTexture(&woundsTexture, manager->FindOrCreate(kWoundsTextureKind, name));
-            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
+            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->ClassName(), object->id_);
         }
     }
     std::vector<std::uint8_t> extra{};

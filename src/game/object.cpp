@@ -13,5 +13,5 @@ CHoover::CHoover() { ClearFields(); }
 CHoover::~CHoover() {}
 
 int CHoover::Create() { return 1; }
-const char* CHoover::GetClassName() { return kHooverName; }
+const char* CHoover::ClassName() { return kHooverName; }
 ClassId CHoover::GetClassId() { return kClassHoover; }

@@ -84,7 +84,7 @@ void ConstructCamera() {
     std::atexit(DestroyCamera);
 }
 
-const char* CCamera::GetClassName() { return "CCamera"; }
+const char* CCamera::ClassName() { return "CCamera"; }
 ClassId CCamera::GetClassId() { return kClassCamera; }
 
 int CCamera::Create() {

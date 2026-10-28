@@ -9,7 +9,6 @@
 #include <initializer_list>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";
@@ -86,5 +85,5 @@ std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     return complete;
 }
 
-const char* CTorchObject::GetClassName() { return kTorchClassName; }
+const char* CTorchObject::ClassName() { return kTorchClassName; }
 ClassId CTorchObject::GetClassId() { return kClassTorchObject; }

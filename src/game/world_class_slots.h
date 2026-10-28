@@ -8,7 +8,7 @@
 
 class CEngineObject;
 
-// GetClassName of the vtable named in the comment.
+// ClassName of the vtable named in the comment.
 const char* I3DFigureClassName(CEngineObject*);           // "CI3DFigure"
 const char* FigureClientSpecificClassName(CEngineObject*);   // "CFigureClientSpecific"
 // The interface objects' base (53 window classes keep these): Create answers 1, the name is "Sorry, no

@@ -3,7 +3,6 @@
 #include "maths.h"
 #include "map_object.h"
 
-#undef GetClassName   // windows.h's macro would rename CEngineObject::GetClassName
 #include "lock_key.h"
 #include "map_spec.h"   // LeverSetup
 #include "unit.h"
@@ -58,7 +57,7 @@ public:
     int RunTick() override { return UpdateLever(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return NeedsKey(); }

@@ -139,7 +139,7 @@ CRainSnow::~CRainSnow() {
     if (texture) texture->Release();
 }
 
-const char* CRainSnow::GetClassName() { return "CWeather"; }
+const char* CRainSnow::ClassName() { return "CWeather"; }
 ClassId CRainSnow::GetClassId() { return kClassRainSnow; }
 
 // --- Visibility fog -----------------------------------------------------------------------------
@@ -270,5 +270,5 @@ int CVisibilityFog::Create() {
     ClearCells();
     return 1;
 }
-const char* CVisibilityFog::GetClassName() { return "CVisibilityFog"; }
+const char* CVisibilityFog::ClassName() { return "CVisibilityFog"; }
 ClassId CVisibilityFog::GetClassId() { return kClassVisibilityFog; }

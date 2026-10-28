@@ -86,7 +86,7 @@ CParty::~CParty() {
     lib::FreeStorage(items_);
 }
 
-const char* CParty::GetClassName() { return "CParty"; }
+const char* CParty::ClassName() { return "CParty"; }
 ClassId CParty::GetClassId() { return kClassParty; }
 
 CItemConstructor* CParty::ItemConstructor() { return itemConstructor_; }

@@ -86,7 +86,7 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
 }
 
 // The class name and id 0x37.
-const char* CObject3DClientSpecific::GetClassName() { return ClientClassName(); }
+const char* CObject3DClientSpecific::ClassName() { return ClientClassName(); }
 ClassId CObject3DClientSpecific::GetClassId() { return kClassObject3DClientSpecific; }
 
 // The base half's destructor (deleting form): the object forgotten.

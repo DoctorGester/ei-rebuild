@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -71,5 +70,5 @@ void FigureMeshDrawer::DestroyDrawer() {
 
 int FigureMeshDrawer::Create() { return CreateDrawer(); }
 void FigureMeshDrawer::Destroy() { DestroyDrawer(); }
-const char* FigureMeshDrawer::GetClassName() { return FigureClientSpecificClassName(this); }
+const char* FigureMeshDrawer::ClassName() { return FigureClientSpecificClassName(this); }
 ClassId FigureMeshDrawer::GetClassId() { return kClassFigureMeshDrawer; }

@@ -13,7 +13,6 @@
 #include <vector>
 #include <windows.h>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +45,7 @@ struct FigureMeshDrawer : FigureDrawerBase {
     // The vtable: CEngineObject's but for 0, 2, 3, 11 and 12.
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
+    const char* ClassName() override;   // "CFigureClientSpecific" (world_class_slots.cpp)
     ClassId GetClassId() override;
 
     // No flags. Returns 1.

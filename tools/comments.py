@@ -90,7 +90,7 @@ RULER_ONE_WORD = re.compile(r'//\s*-{2,}\s*[\w:~]+\s*-{2,}\s*')              # /
 REGISTER_RX = re.compile(r'\b(?:ST0|EAX|ECX|EDX|ESI|EDI|EBX|EBP|ESP|AL|RET \d+|RET n|__thiscall|__stdcall|'
                          r'__fastcall|__cdecl|thunk|inlined)\b')
 FILE_TRAILER = re.compile(r'//\s*(?:[\w/]+\.(?:h|cpp)|"[^"]*")')              # class X;   // x.h   /   // "CItem"
-DECLARATION = re.compile(r'\s*(?:(?:class|struct|union|enum)\b[^{]*;|.*\bGetClassName\b.*)\s*$')
+DECLARATION = re.compile(r'\s*(?:(?:class|struct|union|enum)\b[^{]*;|.*\bClassName\b.*)\s*$')
 STALE_RX = re.compile(r"(?i)not (?:yet )?rewritten|not ported|game\.exe's code|still (?:the original|game\.exe)|"
                       r"inside game\.exe|the hook build|hooked\b")
 BARE_ORIGINAL = re.compile(r'(?i)(?:as|like) (?:in )?the original(?: does| did| game)?\)?[.;]?\s*$')

@@ -20,7 +20,6 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 

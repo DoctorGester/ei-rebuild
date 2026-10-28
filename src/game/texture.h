@@ -14,7 +14,6 @@
 #include <vector>
 #include <windows.h>
 
-#undef GetClassName
 
 class CTexture;
 class CTextureManager;
@@ -178,7 +177,7 @@ public:
     int Create() override;
     void Destroy() override;
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     std::string name_;
@@ -215,7 +214,7 @@ public:
 
     CTextureManager();
     ~CTextureManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "textures"
     // Rebirth-patched. Also deletes the composed textures and adds the archives "textures.res", "redress.res"

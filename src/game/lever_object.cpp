@@ -15,7 +15,6 @@
 #include <initializer_list>
 #include <new>
 
-#undef GetClassName   // windows.h's macro would rename CEngineObject::GetClassName
 
 namespace {
 constexpr int kLeverNetFields = 6;
@@ -207,5 +206,5 @@ bool Lever::ApplyKey(const LockKey* key) {
 
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 
-const char* Lever::GetClassName() { return kLeverClassName; }
+const char* Lever::ClassName() { return kLeverClassName; }
 ClassId Lever::GetClassId() { return kClassLever; }

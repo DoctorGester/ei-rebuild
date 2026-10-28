@@ -11,7 +11,6 @@
 #include <new>
 #include <string>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -86,6 +85,6 @@ CEngineObject* CTextureManager::CreateObject(int type, int id) {
     return object;
 }
 
-const char* CTextureManager::GetClassName() { return kClassName; }
+const char* CTextureManager::ClassName() { return kClassName; }
 ClassId CTextureManager::GetClassId() { return kClassTextureManager; }
 const char* CTextureManager::GetFolderName() { return kFolder; }

@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <list>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CSpell;
 
@@ -25,7 +24,7 @@ public:
     int RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;                   // "CMagicTrapObject"
+    const char* ClassName() override;                   // "CMagicTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return true; }
 

@@ -310,7 +310,7 @@ CPlayerServer::~CPlayerServer() {
     compressor_.out.End();
 }
 
-const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }
+const char* CPlayerServer::ClassName() { return "CPlayerServer"; }
 ClassId CPlayerServer::GetClassId() { return kClassPlayerServer; }
 
 void CPlayerServer::ReleaseSentObjects() {

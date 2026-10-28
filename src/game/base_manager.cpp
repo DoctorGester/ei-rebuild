@@ -9,7 +9,6 @@
 #include <list>
 #include <type_traits>
 
-#undef GetClassName
 
 namespace {
 

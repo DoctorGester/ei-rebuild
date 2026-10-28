@@ -8,14 +8,13 @@
 
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 template <ClassId Id>
 class PlainMapObject : public CMapObject {
 public:
     PlainMapObject();
     ~PlainMapObject() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 };
 

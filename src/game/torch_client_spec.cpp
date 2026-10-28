@@ -17,7 +17,6 @@
 #include <cstring>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -170,5 +169,5 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 // The update returns 1; the class name and id.
 
 int CTorchObjectClientSpec::RunTick() { return 1; }
-const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }
+const char* CTorchObjectClientSpec::ClassName() { return ClassNameText(); }
 ClassId CTorchObjectClientSpec::GetClassId() { return kClassTorchObjectClientSpec; }

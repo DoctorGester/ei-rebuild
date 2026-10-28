@@ -21,7 +21,6 @@
 #include <list>
 #include <vector>
 
-#undef GetClassName
 
 class CLight;
 class CParty;
@@ -204,7 +203,7 @@ public:
     const char* GetName() override;          // the script name
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     bool IsSynchronised() override;
     void ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) override;
@@ -868,7 +867,7 @@ class CMapObjectServer : public CMapObjectCompanion {
 public:
     CMapObjectServer();
     ~CMapObjectServer() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Hit points rounded to a 16-bit value are <= 0.
@@ -930,13 +929,13 @@ struct EffectSoundRecord {
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
-// The client-side companion of a map object (GetClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
+// The client-side companion of a map object (ClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.
 class CMapObjectClientSpecific : public CMapObjectCompanion {
 public:
     CMapObjectClientSpecific();
     ~CMapObjectClientSpecific() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     BOOL IsDead() override;

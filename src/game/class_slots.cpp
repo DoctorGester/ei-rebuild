@@ -13,7 +13,6 @@
 #include <cstdint>
 #include <new>
 
-#undef GetClassName
 
 namespace {
 

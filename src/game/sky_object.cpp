@@ -2,8 +2,6 @@
 #include "sky_object.h"
 #include "texture.h"
 #include "world.h"
-// windows.h (texture.h) renames CEngineObject's GetClassName.
-#undef GetClassName
 
 #include "render/render.h"   // MeshChanged
 
@@ -47,7 +45,7 @@ CSkyObject::CSkyObject() {
 
 CSkyObject::~CSkyObject() {  }
 
-const char* CSkyObject::GetClassName() { return kClassName; }
+const char* CSkyObject::ClassName() { return kClassName; }
 ClassId CSkyObject::GetClassId() { return kClassSkyObject; }
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {

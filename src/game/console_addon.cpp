@@ -26,7 +26,6 @@
 #include <vector>
 
 #include <windows.h>
-#undef GetClassName
 
 namespace console {
 
@@ -62,7 +61,7 @@ void SayFormat(const char* format, Args&&... args) {
 std::string ObjectText(const ScriptObjectRef& ref) {
     CEngineObject* object = ref.object;
     if (!object) return "null";
-    const char* name = object->GetClassName();
+    const char* name = object->ClassName();
     char id[16];
     std::snprintf(id, sizeof(id), "%d", object->id_);
     return std::string("<") + name + ":" + id + ">";

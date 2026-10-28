@@ -18,7 +18,6 @@
 #include <unordered_map>
 #include <vector>
 
-#undef GetClassName
 
 class CStream;
 class CWorldServer;
@@ -42,7 +41,7 @@ public:
     // first.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     BOOL InitFromPrototype(const itemdb::SpellRecord* prototype);
@@ -218,7 +217,7 @@ public:
     // As Create, but the spell gets its Destroy.
     void Destroy() override;
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Null is a fatal error (its result is returned). Returns 1.
@@ -264,7 +263,7 @@ class CSpellManager : public CResourceManager {
 public:
     CSpellManager();
     ~CSpellManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "spells"
 
@@ -308,7 +307,7 @@ public:
     int Create() override;
     // Also drops the manager's count.
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Counts a reference to `manager` that is never released.
@@ -339,7 +338,7 @@ public:
     ~CLight() override;
     int Create() override;                  // returns 1
     void Destroy() override;                // flags_ bit 5 cleared
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // Kind 1; flags_ bit 3 (changed). Returns 1.
     BOOL SetPoint(const Vector3* color, const Vector3* position);
@@ -369,7 +368,7 @@ class CLightFactory : public CBaseManager {
 public:
     CLightFactory();
     ~CLightFactory() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Other types are logged and give null.

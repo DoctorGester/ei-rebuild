@@ -4,7 +4,7 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "sky_object.h"   // before windows.h (GetClassName)
+#include "sky_object.h"
 
 #include "effects.h"
 #include "link_figure.h"

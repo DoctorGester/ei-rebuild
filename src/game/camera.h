@@ -72,7 +72,7 @@ public:
     int RunTick() override { return 1; }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Starts recording into ".\camera\" + `name` (1 when the file

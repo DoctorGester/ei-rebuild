@@ -14,7 +14,7 @@
 #include "figure_manager.h"
 #include "world_data.h"
 
-#include "sky_object.h"   // before windows.h (GetClassName)
+#include "sky_object.h"
 
 #include "ai_map.h"
 #include "base_manager.h"

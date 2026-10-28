@@ -47,7 +47,7 @@ bool CUnitController::RemoveWeaponModel(std::uint32_t) { return false; }
 
 // --- The client controller -------------------------------------------------------------------------------
 
-const char* CUnitClientSpecific::GetClassName() { return kClientClassName; }
+const char* CUnitClientSpecific::ClassName() { return kClientClassName; }
 ClassId CUnitClientSpecific::GetClassId() { return kClassUnitClientSpecific; }
 
 void CUnitClientSpecific::SetMarkers(CParticleSource* path, CParticleSource* marker) {

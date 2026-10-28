@@ -23,7 +23,6 @@
 
 #include <windows.h>   // RECT (dirtyRect)
 
-#undef GetClassName   // CEngineObject::GetClassName
 
 class CObject3D;
 class CParticleSource;
@@ -129,7 +128,7 @@ public:
     ~CObject3DServer() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     int OnPartAdded(CFigureMesh* part) override;
     CFigureMesh* RemoveFromPartSets(const char* name) override;
@@ -163,7 +162,7 @@ struct FigureBone : CEngineObject {
     int Create() override;
     void Destroy() override;
     const char* GetName() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     int CreateBone();
@@ -207,7 +206,7 @@ public:
 
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     int CreateState();

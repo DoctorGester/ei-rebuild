@@ -5,7 +5,6 @@
 #include "ai_map.h"      // AIPath
 #include "ai_motion.h"   // UnitMotion
 
-#undef GetClassName
 
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();

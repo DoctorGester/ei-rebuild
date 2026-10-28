@@ -12,7 +12,6 @@
 
 #include <cstring>
 
-#undef GetClassName
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
@@ -145,7 +144,7 @@ int CUnit::RunTick() { return Tick(); }
 const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
-const char* CUnit::GetClassName() { return kUnitClassName; }
+const char* CUnit::ClassName() { return kUnitClassName; }
 ClassId CUnit::GetClassId() { return kClassUnit; }
 bool CUnit::IsSynchronised() { return true; }
 Vector3* CUnit::EyePoint(Vector3* out) {

@@ -38,7 +38,7 @@ void CMapObjectClientSpecific::Hit(int damage, int kind) {
 }
 
 // Class name and id.
-const char* CMapObjectClientSpecific::GetClassName() { return kClientClassName; }
+const char* CMapObjectClientSpecific::ClassName() { return kClientClassName; }
 ClassId CMapObjectClientSpecific::GetClassId() { return kClassMapObjectClientSpecific; }
 
 // Class name and id.
@@ -46,7 +46,7 @@ EffectParticle::EffectParticle(EffectParticle&&) noexcept = default;
 EffectParticle& EffectParticle::operator=(EffectParticle&&) noexcept = default;
 EffectParticle::~EffectParticle() = default;
 
-const char* CMapObjectServer::GetClassName() { return kServerClassName; }
+const char* CMapObjectServer::ClassName() { return kServerClassName; }
 ClassId CMapObjectServer::GetClassId() { return kClassMapObjectServer; }
 
 // --- The client companion's particle records and the network records ---------------------------------

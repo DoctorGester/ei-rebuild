@@ -175,7 +175,7 @@ int CSysInfo::Create() {
     return 1;
 }
 
-const char* CSysInfo::GetClassName() { return SysInfoClassNameText(); }
+const char* CSysInfo::ClassName() { return SysInfoClassNameText(); }
 ClassId CSysInfo::GetClassId() { return kClassSysInfo; }
 
 // The global's destructor (registered with atexit by the static initialiser).

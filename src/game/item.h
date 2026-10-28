@@ -17,7 +17,6 @@
 
 #include <vector>
 
-#undef GetClassName
 
 class CSpell;
 class CSpellManager;
@@ -122,7 +121,7 @@ inline CItemLink* CItem::ServerLink() const { return static_cast<CItemLink*>(lin
 class CItemWeapon : public CItem {
 public:
     CItemWeapon();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The weapon type from the prototype (faults if the index is out of range).
@@ -159,7 +158,7 @@ public:
 class CItemArmor : public CItem {
 public:
     CItemArmor();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The armor type from the prototype (faults if the index is out of range).
@@ -190,7 +189,7 @@ public:
 class CItemQuick : public CItem {
 public:
     CItemQuick();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // "qitem<number>.<material name>" when the prototype's materialClass is not "none" ("uq" for a material
@@ -211,7 +210,7 @@ public:
 class CItemQuest : public CItem {
 public:
     CItemQuest();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     std::string FigureName() override;    // "quitem<number>"
@@ -233,7 +232,7 @@ public:
 class CItemSpell : public CItemQuick {
 public:
     CItemSpell();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // "spell<the carried spell's prototype icon>" (no null checks).
@@ -246,7 +245,7 @@ public:
 class CItemLoot : public CItem {
 public:
     CItemLoot();
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The base price. Depends on what the loot stands for (kind_): itself (price_), a material, or a record
@@ -313,7 +312,7 @@ public:
     // count_ is left as it is.
     CItemConstructor();
     ~CItemConstructor() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The reset: the manager forgotten (its count dropped), the item released, the records and spell cleared.
@@ -388,7 +387,7 @@ struct CItemManager : CResourceManager {
 
     CItemManager();
     ~CItemManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // "items"
 

@@ -15,7 +15,6 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 const char* const kTrapName = "CTrapObject";
@@ -90,7 +89,7 @@ bool CTrapObject::Slot29True() { return true; }
 
 int CTrapObject::Slot38One() { return 1; }
 
-const char* CTrapObject::GetClassName() { return kTrapName; }
+const char* CTrapObject::ClassName() { return kTrapName; }
 ClassId CTrapObject::GetClassId() { return kClassTrapObject; }
-const char* MagicTrap::GetClassName() { return kMagicTrapName; }
+const char* MagicTrap::ClassName() { return kMagicTrapName; }
 ClassId MagicTrap::GetClassId() { return kClassMagicTrap; }

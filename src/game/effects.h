@@ -23,7 +23,6 @@
 #include <list>
 #include <vector>
 
-#undef GetClassName
 
 struct VertexPacket;
 
@@ -292,7 +291,7 @@ public:
 
     CParticleManager();
     ~CParticleManager() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
@@ -338,7 +337,7 @@ public:
     int Create() override;                          // per-type parameters
     void Destroy() override { Clear(); }
     int RunTick() override;                         // 1 while the source stays alive
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     CParticleManager* Manager() const { return static_cast<CParticleManager*>(owner_); }
@@ -577,7 +576,7 @@ public:
     ~CRainSnow() override;
     int Create() override { return 0; }
     void Destroy() override { Clear(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     int Draw(CSceneRenderer* renderer);
@@ -668,7 +667,7 @@ public:
     int Create() override;
     void Destroy() override { ClearCells(); }
     int RunTick() override { return UpdateCells(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     void ComputeBounds();

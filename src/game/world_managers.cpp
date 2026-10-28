@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 // The world's reference is dropped and the manager deleted without testing the count.
@@ -64,22 +63,22 @@ void CWorld::Destroy() {
 }
 
 // ---- The managers' own small virtuals -------------------------------------
-// GetClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
+// ClassName / GetClassId and the destructors of the player manager, the effect manager and the item manager
 // (the item manager's folder name "items" is in world_class_slots.cpp). The deleting destructor adds the delete.
 
 CPlayerManager::CPlayerManager() {}
 CPlayerManager::~CPlayerManager() {}
-const char* CPlayerManager::GetClassName() { return kPlayerManagerName; }
+const char* CPlayerManager::ClassName() { return kPlayerManagerName; }
 ClassId CPlayerManager::GetClassId() { return kClassPlayerManager; }
 
 CEffectManager::CEffectManager() {}
 CEffectManager::~CEffectManager() {}
 int CEffectManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
-const char* CEffectManager::GetClassName() { return kEffectManagerName; }
+const char* CEffectManager::ClassName() { return kEffectManagerName; }
 ClassId CEffectManager::GetClassId() { return kClassEffectManager; }
 
 CItemManager::CItemManager() {}
 CItemManager::~CItemManager() {}
-const char* CItemManager::GetClassName() { return kItemManagerName; }
+const char* CItemManager::ClassName() { return kItemManagerName; }
 ClassId CItemManager::GetClassId() { return kClassItemManager; }
 const char* CItemManager::GetFolderName() { return kItemsFolderName; }

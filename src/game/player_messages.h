@@ -79,7 +79,7 @@ public:
 
     int Create() override { return CreateServer(); }
     void Destroy() override { ClearServerState(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
@@ -307,7 +307,7 @@ public:
 
     int Create() override { return CreatePlayer(); }
     void Destroy() override { DestroyPlayer(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     BOOL CreatePlayer();

@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 

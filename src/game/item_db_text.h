@@ -53,7 +53,7 @@ public:
     // code page set to the locale's; returns 1. The constructor calls it too.
     int Create() override;
     void Destroy() override { ClearSources(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a

@@ -13,7 +13,6 @@
 #include <vector>
 #include <unordered_map>
 
-#undef GetClassName
 
 struct FigureAnimation;
 class CUnit;
@@ -57,7 +56,7 @@ struct CMapObjectManager : CResourceManager {
     CMapObjectManager();
     ~CMapObjectManager() override;
     int Create() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
     CEngineObject* CreateObject(int type, int id) override;

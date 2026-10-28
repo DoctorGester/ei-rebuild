@@ -12,7 +12,6 @@
 #include <new>
 #include <vector>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -91,7 +90,7 @@ CSpellManager::~CSpellManager() {
     CResourceManager::Destroy();
 }
 
-const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }
+const char* CSpellManager::ClassName() { return kSpellManagerClassName; }
 ClassId CSpellManager::GetClassId() { return kClassSpellManager; }
 const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
@@ -117,5 +116,5 @@ CSpellContainer::~CSpellContainer() {
     spell_.Destroy();
 }
 
-const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }
+const char* CSpellContainer::ClassName() { return "CSpellContainer"; }
 ClassId CSpellContainer::GetClassId() { return kClassSpellContainer; }

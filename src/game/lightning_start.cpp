@@ -127,7 +127,7 @@ CLightning::CLightning() {
 // The texture references are null after the reset (releasing them again is a no-op).
 CLightning::~CLightning() { CLightning::Destroy(); }
 
-const char* CLightning::GetClassName() { return "CLightning"; }
+const char* CLightning::ClassName() { return "CLightning"; }
 ClassId CLightning::GetClassId() { return kClassLightning; }
 
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }

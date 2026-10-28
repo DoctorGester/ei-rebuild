@@ -238,7 +238,7 @@ void ReadObject(CEngineObject* o, bool mapObject, const std::map<const void*, in
 
 std::string Describe(CEngineObject* o, bool mapObject) {
     std::string text = std::to_string(o->GetClassId());
-    if (!mapObject) return text + " " + Text(o->GetClassName());
+    if (!mapObject) return text + " " + Text(o->ClassName());
     auto* m = static_cast<CMapObject*>(o);
     text += std::string(" ") + Text(m->name);
     if (o->GetClassId() == kClassUnit) text += std::string(" \"") + Text(static_cast<CUnit*>(m)->scriptName) + "\"";
@@ -608,7 +608,7 @@ void Read(void* server, Snapshot& s) {
     // The timed objects' own state (the effects), by id.
     for (const auto& [id, object] : ObjectsById(w->timedObjects_)) {
         Entity entity;
-        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->GetClassName());
+        entity.description = std::to_string(object->GetClassId()) + " " + Text(object->ClassName());
         b.entity = &entity;
         if (ReadTimed(object, b)) s.state[{kTimed, static_cast<int>(id)}] = std::move(entity);
     }

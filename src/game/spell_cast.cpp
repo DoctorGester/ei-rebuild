@@ -244,7 +244,7 @@ CSpellConstructor::~CSpellConstructor() {
     if (container_) container_->Release();   // the container member's destructor
 }
 
-const char* CSpellConstructor::GetClassName() { return "CSpellConstructor"; }
+const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
 ClassId CSpellConstructor::GetClassId() { return kClassSpellConstructor; }
 
 int CSpellConstructor::Create() {

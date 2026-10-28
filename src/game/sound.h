@@ -20,7 +20,6 @@
 #include <vector>
 #include <windows.h>
 
-#undef GetClassName
 
 // A volume envelope: the music stream's and the MIDI sequence's.
 struct SoundFader {
@@ -160,7 +159,7 @@ struct CSoundManager : CEngineObject {
 
     int Create() override { return CreateBody(); }
     void Destroy() override { Close(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     miles::DigitalDriver* waveDriver;
@@ -340,7 +339,7 @@ struct CMusicSystem : CEngineObject {
     int Create() override { return LoadThemes(); }
     void Destroy() override { ResetThemes(); }
     int RunTick() override { return UpdateMusic(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     std::vector<MusicTheme> themes;

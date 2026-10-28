@@ -18,7 +18,6 @@
 #include <new>
 #include <string>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 
 namespace {
@@ -62,7 +61,7 @@ CMapObjectManager::CMapObjectManager() {}
 CMapObjectManager::~CMapObjectManager() {}
 
 const char* CMapObjectManager::GetFolderName() { return kFolderName; }
-const char* CMapObjectManager::GetClassName() { return kClassName; }
+const char* CMapObjectManager::ClassName() { return kClassName; }
 ClassId CMapObjectManager::GetClassId() { return kClassMapObjectManager; }
 int CMapObjectManager::Create() { return CreateManager(); }
 CEngineObject* CMapObjectManager::CreateObject(int type, int id) { return CreateMapObject(type, id); }

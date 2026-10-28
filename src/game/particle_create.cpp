@@ -820,7 +820,7 @@ CParticleSource::~CParticleSource() {
     particles.clear();
 }
 
-const char* CParticleSource::GetClassName() { return "CParticle"; }
+const char* CParticleSource::ClassName() { return "CParticle"; }
 ClassId CParticleSource::GetClassId() { return kClassParticleSource; }
 
 // The element callbacks that do nothing one per type that stores one (Stench and the spheres,

@@ -8,7 +8,6 @@
 
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 class CPlayer;
 
@@ -17,7 +16,7 @@ public:
     CPlayerManager();
     ~CPlayerManager() override;
     int Create() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 

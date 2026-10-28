@@ -57,7 +57,7 @@ public:
     ~CObject3DClientSpecific() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     // `context` is the scene renderer.
     int DrawParts(CSceneRenderer* context, tagRECT* dirty) override { return Draw(context, dirty); }

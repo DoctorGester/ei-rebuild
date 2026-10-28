@@ -23,7 +23,7 @@ public:
 
     int Create() override;
     void Destroy() override {}              // empty
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // (hoover_loot.cpp; `this`, the world's hoover, is not read): the loot of the

@@ -484,7 +484,7 @@ public:
     // The class name is "Sorry, no other way." and the id 0x45.
     int Create() override;
     void Destroy() override {}
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     virtual void Build() {}
     virtual void Show(int show) { ShowSurfaces(show); }
@@ -876,7 +876,6 @@ public:
     std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
 
-#undef GetClassName
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
 class CUiMesh : public CPlainFigureMesh {
 public:
@@ -884,7 +883,7 @@ public:
     ~CUiMesh() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // The quads get z 0 and w 1, the vertices a zero normal index.

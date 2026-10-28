@@ -1,6 +1,6 @@
 #pragma once
 
-// Placed traps (GetClassName "CTrapObject", class id 0x55, 0x23C bytes, made by the factory
+// Placed traps (ClassName "CTrapObject", class id 0x55, 0x23C bytes, made by the factory
 // for kind 0x3010; a real virtual class: the compiler makes its vtable):
 // the world arms one when a trap item is used (the world server calls
 // Arm); while armed on the server, the first unit within 1 of it sets it off: a world script
@@ -12,7 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 struct LockKey;
 
@@ -24,7 +23,7 @@ public:
     int RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;                      // LoadTrapObject
     void Save(CStream* stream) override;                      // SaveTrapObject
-    const char* GetClassName() override;                   // "CTrapObject"
+    const char* ClassName() override;                   // "CTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return Slot38One(); }

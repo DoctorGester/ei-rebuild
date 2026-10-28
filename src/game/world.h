@@ -39,7 +39,6 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
-#undef GetClassName
 
 inline constexpr Quaternion kNewUnitRotation = /*007C2DE0*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
@@ -252,7 +251,7 @@ public:
     // group, synchronises every player (SyncPlayer; 0 drops it). Returns 1.
     int Update();
     int RunTick() override { return Update(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CItem* DuplicateItem(CItem* item) override { return CopyItem(item); }
     int IsServer() override;
@@ -568,7 +567,7 @@ public:
     ~PlatformSet() override;
     int Create() override;
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     // Max(height, z of every platform surface whose area contains the point); the point is projected
@@ -697,7 +696,7 @@ struct ClientArrayManager : CBaseManager {
     int Create() override;
     void Destroy() override;
     int RunTick() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEngineObject* NewObject(int type) override;
 
@@ -726,7 +725,7 @@ public:
     // disconnected, FatalError; Rebirth's DisableExitOnCrashReport keeps the session).
     int Segment();
     int RunTick() override { return Segment(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     const char* TexturePath() override;
     double GridHeightAt(float x, float y) override { return ClampedGroundHeight(x, y); }

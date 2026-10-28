@@ -133,7 +133,7 @@ about a fact (a why, a quirk, a layout), keep it, shortened.
    `void SetWind(const Vector3* direction, float strength);`, `// The fog start for `hour`.` over
    `float FogStart(float hour)`, `// Only on the server.` over `if (!world->IsServer()) return;`,
    `// CR LF` after `TrimRight("\r\n")`, a constructor's or destructor's comment that lists what its
-   body assigns or calls, `// "CItemArmor"` after a `GetClassName()` declaration.
+   body assigns or calls, `// "CItemArmor"` after a `ClassName()` declaration.
 2. **The same comment twice.** A function commented at its declaration and again at its definition
    keeps one: the header's for what it does, the definition's only for a why the body needs.
 3. **Member-offset trailers and offsets in prose** (`// +0x1C ...`, "(CUnit +0x334)", "+0xCC").
@@ -279,7 +279,7 @@ offset and slot trailers lose 40-50%, .cpp files 15-25%.
 | number trailers | a comment after code that is only a number (`// 26`, `// 0.8`, `// 10: empty`) |
 | rulers | bare rulers and rulers titled with one word |
 | registers | ST0, EAX..ESP, AL, RET n, calling conventions, "thunk", "inlined" |
-| file trailers | `// file.h` after a forward declaration, `// "Name"` after a GetClassName |
+| file trailers | `// file.h` after a forward declaration, `// "Name"` after a ClassName |
 | stale claims | "not rewritten", "game.exe's code", "inside game.exe", "the hook build", "hooked" |
 | bare original | a comment ending in "as / like the original (does)" |
 | long blocks | lines in own-line comment blocks of 8 lines or more (docs/notes candidates) |

@@ -249,7 +249,7 @@ struct ScriptObjectRef;
 // A script's group of objects: a CArray of object references.
 struct ScriptGroup : Vector<ScriptObjectRef> {};
 
-// CEngineObject (engine_object.h): every world object's base. Slot 11 GetClassName, slot 12 GetClassId.
+// CEngineObject (engine_object.h): every world object's base. Slot 11 ClassName, slot 12 GetClassId.
 struct CEngineObject {
     const void* const* vtable;              // +0x00
     int refCount_;                          // +0x04
@@ -258,7 +258,7 @@ struct CEngineObject {
     int type_;                              // +0x10
     std::uint8_t unknown14[0x4];
     std::uint32_t prototypeId_;             // +0x18
-    const char* GetClassName() { return CallSlot<const char*>(11); }
+    const char* ClassName() { return CallSlot<const char*>(11); }
     int GetClassId() { return CallSlot<int>(12); }
     template <class R> R CallSlot(int slot) { return reinterpret_cast<R(__thiscall*)(CEngineObject*)>(vtable[slot])(this); }
 };

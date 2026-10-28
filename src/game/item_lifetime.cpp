@@ -8,7 +8,6 @@
 #include <bit>
 #include <cstring>
 
-#undef GetClassName   // CEngineObject::GetClassName
 
 namespace {
 
@@ -87,17 +86,17 @@ CItemLoot::CItemLoot() = default;
 
 CItemSpell::CItemSpell() = default;
 
-const char* CItemWeapon::GetClassName() { return "CItemWeapon"; }
+const char* CItemWeapon::ClassName() { return "CItemWeapon"; }
 ClassId CItemWeapon::GetClassId() { return kClassItemWeapon; }
-const char* CItemArmor::GetClassName() { return "CItemArmor"; }
+const char* CItemArmor::ClassName() { return "CItemArmor"; }
 ClassId CItemArmor::GetClassId() { return kClassItemArmor; }
-const char* CItemQuick::GetClassName() { return "CItemQuick"; }
+const char* CItemQuick::ClassName() { return "CItemQuick"; }
 ClassId CItemQuick::GetClassId() { return kClassItemQuick; }
-const char* CItemQuest::GetClassName() { return "CItemQuest"; }
+const char* CItemQuest::ClassName() { return "CItemQuest"; }
 ClassId CItemQuest::GetClassId() { return kClassItemQuest; }
-const char* CItemLoot::GetClassName() { return "CItemLoot"; }
+const char* CItemLoot::ClassName() { return "CItemLoot"; }
 ClassId CItemLoot::GetClassId() { return kClassItemLoot; }
-const char* CItemSpell::GetClassName() { return "CItemSpell"; }
+const char* CItemSpell::ClassName() { return "CItemSpell"; }
 ClassId CItemSpell::GetClassId() { return kClassItemSpell; }
 
 // --- The item manager's Create and factory -------------------------------------------------

@@ -45,7 +45,7 @@ public:
     // Empties the record array, releases the items and frees their storage, then drops
     // (count, delete) the item constructor, spell constructor, item manager and spell manager.
     void Destroy() override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
 
     CItemConstructor* ItemConstructor() override;

@@ -21,7 +21,6 @@
 #include <cstdlib>
 #include <new>
 
-#undef GetClassName   // CEngineObject::GetClassName (console.h brings windows.h after item.h)
 
 using namespace itemdb;
 
@@ -254,7 +253,7 @@ CItemConstructor::CItemConstructor() {
 
 CItemConstructor::~CItemConstructor() { CItemConstructor::Destroy(); }
 
-const char* CItemConstructor::GetClassName() { return "CItemConstructor"; }
+const char* CItemConstructor::ClassName() { return "CItemConstructor"; }
 ClassId CItemConstructor::GetClassId() { return kClassItemConstructor; }
 
 void CItemConstructor::SetManager(CBaseManager* manager) {

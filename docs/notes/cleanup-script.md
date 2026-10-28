@@ -23,7 +23,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 - The original's CTime (006FE3BB `Construct`) is lib/calendar.h and CString::FormatV (006FDC12) `str::Format`; `ConsoleStreambuf::StreambufConstruct` /
   `StreambufDestruct` (the old iostream base, 006FCAD2 / 006FCB35); `CUiWindow::VirtualPlayerList(mode)` (slot 38, kick / ban) and
   `VirtualDebugFill()` (slot 39, "give assortment"). `listgvar` reads `CScript::globals_` of the console script 007C27D4 (`ScriptObjectRef`,
-  `ScriptGroup`, `CEngineObject::GetClassName` slot 11, `id_`); `execs` prints its `errorLine_` / `errorText_`.
+  `ScriptGroup`, `CEngineObject::ClassName` slot 11, `id_`); `execs` prints its `errorLine_` / `errorText_`.
 - `RunScriptText` (005785D0) stays a call through its address. The player state calls keep the shared forwarders
   (`PlayerStateSetVariableOriginal` with a computed float, `PlayerStateRefreshOriginal`, `PlayerResendPartyOriginal`).
 

@@ -1,7 +1,6 @@
 // The member-less map object classes (map_object_kinds.h, A-U6): CTree, CBuilding, CStone and CStuffObject.
 #include "map_object_kinds.h"
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 template <ClassId Id> constexpr const char* kName = nullptr;
@@ -22,7 +21,7 @@ PlainMapObject<Id>::~PlainMapObject() {
 }
 
 template <ClassId Id>
-const char* PlainMapObject<Id>::GetClassName() {
+const char* PlainMapObject<Id>::ClassName() {
     return kName<Id>;
 }
 

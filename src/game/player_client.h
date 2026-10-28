@@ -18,7 +18,7 @@ public:
     int Create() override { return CreateClient(); }
     void Destroy() override { Clear(); }
     int RunTick() override { return Pump(); }
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     void ForgetSentObjects() override {}
     void UnitChanged(CUnit* unit) override { NotifyUnitChanged(unit); }

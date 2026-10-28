@@ -23,7 +23,6 @@
 #include <new>
 #include <string>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 namespace {
 
@@ -256,6 +255,6 @@ CMusicSystem::~CMusicSystem() {
 void CMusicSystem::FadeOut() { g_clientWorld->sounds_->FadeOutStream(); }
 void CMusicSystem::FadeIn() { g_clientWorld->sounds_->FadeInStream(); }
 
-// GetClassName and GetClassId.
-const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }
+// ClassName and GetClassId.
+const char* CMusicSystem::ClassName() { return MusicClassNameText(); }
 ClassId CMusicSystem::GetClassId() { return kClassMusicSystem; }

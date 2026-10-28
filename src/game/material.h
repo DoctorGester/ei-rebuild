@@ -13,7 +13,6 @@
 #include <vector>
 #include <unordered_map>
 
-#undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
 // A material's lighting colours: diffuse, ambient, specular and emissive (r, g, b, a) and the specular power.
 // 0x44 bytes.
@@ -51,7 +50,7 @@ public:
     void Destroy() override;
     // The name's text
     const char* GetName() override;
-    const char* GetClassName() override;   // 11: "CMaterial"
+    const char* ClassName() override;   // 11: "CMaterial"
     ClassId GetClassId() override;
 
     std::string name;
@@ -69,7 +68,7 @@ public:
 
     CMaterialManager();
     ~CMaterialManager() override;
-    const char* GetClassName() override;     // 11: "CMaterialManager"
+    const char* ClassName() override;     // 11: "CMaterialManager"
     ClassId GetClassId() override;
     const char* GetFolderName() override;    // 25: "materials"
 

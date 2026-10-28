@@ -61,7 +61,7 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream);
 // A positional sound (class id 0x48).
 class CEffectSound final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectSound();
     ~CEffectSound() override;
@@ -86,7 +86,7 @@ public:
 // A sequence of sounds picked at random (class id 99).
 class CEffectSoundSeq final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectSoundSeq();
     ~CEffectSoundSeq() override;
@@ -110,7 +110,7 @@ public:
 // A looping ambient sound (class id 0x49).
 class CEffectAmbientSound final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectAmbientSound();
     ~CEffectAmbientSound() override;
@@ -133,7 +133,7 @@ public:
 // A point light (class id 0x4B).
 class CEffectPointLight final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectPointLight();
     ~CEffectPointLight() override;
@@ -155,7 +155,7 @@ public:
 // A particle source (class id 0x4A; CreateParticleSource).
 class CEffectParticle : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectParticle();
     ~CEffectParticle() override;
@@ -188,7 +188,7 @@ public:
 // A particle wall (class id 0x5A; fire wall).
 class CEffectWall final : public CEffectParticle {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectWall();
     ~CEffectWall() override;
@@ -205,7 +205,7 @@ public:
 // A lightning bolt between two points or objects (class id 0x4D).
 class CEffectLightning final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectLightning();
     ~CEffectLightning() override;
@@ -255,7 +255,7 @@ public:
 // CSpellEffect::CreateArrow).
 class CEffectArrow final : public CEffectMissile {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectArrow();
     ~CEffectArrow() override;
@@ -286,7 +286,7 @@ public:
 // velocity; on arrival the server hands the hit to the target (ReceiveHit).
 class CEffectArrowFigure final : public CEffectMissile {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectArrowFigure();
     ~CEffectArrowFigure() override;
@@ -309,7 +309,7 @@ public:
 // tick and sends them; the client reveals them in a fog object of its own.
 class CEffectShowVisibility final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectShowVisibility();
     ~CEffectShowVisibility() override;
@@ -335,7 +335,7 @@ public:
 // a particle source (0x203C). Nothing is sent or saved (Load / Save are the base's, Pack / Start do nothing).
 class CEffectMoshka final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectMoshka();
     ~CEffectMoshka() override;
@@ -369,7 +369,7 @@ public:
 // take a hit of 5 (damage type 6). The source stops emitting for the last 110 ticks.
 class CEffectTornado final : public CEffect {
 public:
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     CEffectTornado();
     ~CEffectTornado() override;

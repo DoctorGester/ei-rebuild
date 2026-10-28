@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#undef GetClassName
 
 namespace {
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
@@ -161,7 +160,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
 
 } // namespace
 
-const char* CSoundManager::GetClassName() { return kSoundManagerClassNameAddress; }
+const char* CSoundManager::ClassName() { return kSoundManagerClassNameAddress; }
 ClassId CSoundManager::GetClassId() { return kClassSoundManager; }
 
 int CSoundManager::CreateBody() {

@@ -157,7 +157,7 @@ public:
     // 0x44 on. Save writes the same at the current version.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* GetClassName() override;
+    const char* ClassName() override;
     ClassId GetClassId() override;
     PathOrder* Path() override { return &motion; }
     void Unused17() override {}

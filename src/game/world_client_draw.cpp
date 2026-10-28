@@ -52,9 +52,6 @@
 #include "system_text.h"
 #include "lib/float_select.h"
 
-// windows.h renames CEngineObject's GetClassName.
-#undef GetClassName
-
 namespace {
 
 // The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world draw's, 9 the views.
@@ -325,11 +322,11 @@ void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
 // Each manager's line is under its class name.
 void CWorldClient::HideManagers() {
     debugFlags_ &= ~kShowManagers;
-    RemoveDebugLine(figureManager_->GetClassName());
-    RemoveDebugLine(objectManager_->GetClassName());
-    RemoveDebugLine(textureManager_->GetClassName());
-    RemoveDebugLine(particleManager_->GetClassName());
-    RemoveDebugLine(lightFactory_->GetClassName());
+    RemoveDebugLine(figureManager_->ClassName());
+    RemoveDebugLine(objectManager_->ClassName());
+    RemoveDebugLine(textureManager_->ClassName());
+    RemoveDebugLine(particleManager_->ClassName());
+    RemoveDebugLine(lightFactory_->ClassName());
 }
 
 void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }

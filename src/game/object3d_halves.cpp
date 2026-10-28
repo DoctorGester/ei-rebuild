@@ -92,7 +92,7 @@ int CObject3DServer::Create() { return 1; }
 void CObject3DServer::Destroy() { object = nullptr; }
 
 // Class name and id.
-const char* CObject3DServer::GetClassName() { return kServerClassName; }
+const char* CObject3DServer::ClassName() { return kServerClassName; }
 ClassId CObject3DServer::GetClassId() { return kClassObject3DServer; }
 
 // The part virtuals: no parts; 0.
