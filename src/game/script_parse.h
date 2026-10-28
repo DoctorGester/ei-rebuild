@@ -23,15 +23,6 @@ int __cdecl IsDigit(int c);
 int __cdecl IsSpace(int c);
 int __cdecl Mbscmp(std::string_view a, std::string_view b);
 
-// CString members beyond lib/mfc.h, called on existing strings through this view.
-struct StringOps : mfc::CString {
-    StringOps* InitN(const char* text, int length);
-    char* LockBuffer();
-    void UnlockBuffer();
-};
-inline const StringOps& Ops(const mfc::CString& s) { return reinterpret_cast<const StringOps&>(s); }
-inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s); }
-
 
 // Formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error is the same.)

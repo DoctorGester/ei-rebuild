@@ -256,7 +256,7 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->index = 0;
     run->ticks = 0;
     run->sleepStart = -1;
-    run->killFlag = reinterpret_cast<int*>(instance);
+    run->killFlag = &instance->index;
     if (run->Execute(this)) {
         // Not finished: a copy goes to the head of the run list (AddHead with an inlined NewNode).
         // The kill flag (the instance pointer) is cleared before the copy.

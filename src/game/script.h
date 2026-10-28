@@ -462,7 +462,6 @@ public:
     std::string& ErrorText() { return errorText_; }
     int& ErrorCode() { return errorCode_; }
     int& ErrorLine() { return errorLine_; }
-    char* Field(int offset) { return reinterpret_cast<char*>(this) + offset; }
 
     mfc::CArray<ScriptPointLight> pointLights_;        // 256 slots
     mfc::CList<ScriptParticleSource> particles_;

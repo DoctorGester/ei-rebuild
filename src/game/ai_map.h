@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ai_event_table.h"
 #include "engine_object.h"
 #include "game_data.h"
 #include "maths.h"
@@ -639,8 +640,6 @@ struct AreaOffset {
     int dx, dy;
 };
 
-struct AIEventTable;
-
 // The cells under a bridge (CAIMap::bridgeHeights): an STLport hash_map keyed (short)x << 16 | (short)y, the
 // value the cell's saved ground level (low word), object height (bits 16-21) and occluder kind (bits 24-28).
 struct BridgeHeights : stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash> {
@@ -682,7 +681,7 @@ public:
     // added to the dirty rectangle while batching).
     void AttachTerrain();
 
-    AIEventTable* Events() { return reinterpret_cast<AIEventTable*>(this + 1); }
+    AIEventTable* Events() { return &events; }
 
     CSectorMap* SectorMap() { return &sectorMap; }
     // refreshUnits = the low byte of `on`; returns the old byte.
@@ -856,6 +855,7 @@ public:
     SearchGrid<AIMapCell> cells;        // the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers
+    AIEventTable events;                // the world's AI events (CWorldServer::AIEvents)
 };
 static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
 static_assert(offsetof(CAIMap, dirty) == 0x04 && sizeof(AIDirtyRect) == 0x10);
@@ -879,7 +879,8 @@ static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
 static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, footprintTick) == 0x2694);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
-static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
+static_assert(offsetof(CAIMap, events) == 0x26C8);
+static_assert(sizeof(CAIMap) == 0x26C8 + 0x1003C);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

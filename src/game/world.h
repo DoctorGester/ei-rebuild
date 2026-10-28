@@ -577,8 +577,7 @@ public:
     CAIMap aiMap_;
     CAIMap* AIMap() { return &aiMap_; }
     CSectorMap* Sectors() { return &aiMap_.sectorMap; }
-    AIEventTable aiEvents_;
-    AIEventTable* AIEvents() { return &aiEvents_; }
+    AIEventTable* AIEvents() { return aiMap_.Events(); }
     // Its globals_ hold the "Heroes" group.
     lib::InPlace<CScript> commandsA_;
     CScript* MainScript() { return commandsA_.Get(); }

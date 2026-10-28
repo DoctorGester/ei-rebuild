@@ -30,13 +30,6 @@ int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
 int __cdecl IsSpace(int c) { return gamecrt::isspace(c); }
 int __cdecl Mbscmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
-StringOps* StringOps::InitN(const char* text, int length) {
-    new (this) mfc::CString(text, length);
-    return this;
-}
-char* StringOps::LockBuffer() { return reinterpret_cast<mfc::impl::CString*>(this)->LockBuffer(); }
-void StringOps::UnlockBuffer() { reinterpret_cast<mfc::impl::CString*>(this)->UnlockBuffer(); }
-
 } // namespace scriptparse
 
 using namespace scriptparse;
@@ -480,8 +473,7 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
         int rest;
         ClassifyToken(buffer, nullptr, &rest);
         p -= rest;
-        mfc::CString text;
-        reinterpret_cast<StringOps*>(&text)->InitN(buffer, static_cast<int>(std::strlen(buffer)) - rest);
+        mfc::CString text(buffer, static_cast<int>(std::strlen(buffer)) - rest);
 
         // CList::AddTail as the game inlines it: the new node's token zeroed, then constructed.
         ScriptTokenList::Node* node = tokens->NewNode(tokens->tail, nullptr);
@@ -576,10 +568,10 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).
         for (;;) {
-            const StringOps& text = Ops(*line);
+            const mfc::CString& text = *line;
             int at = text.Find(node->data.name.c_str());
             if (at < 0) break;
-            std::string right = (static_cast<const mfc::CString&>(text).Right(line->GetLength() - static_cast<int>(node->data.name.size()) - at)).GetString();
+            std::string right = text.Right(line->GetLength() - static_cast<int>(node->data.name.size()) - at).GetString();
             std::string left = text.Left(at).GetString();
             *line = (left + node->data.value) + right;
         }
