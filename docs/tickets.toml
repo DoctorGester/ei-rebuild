@@ -5176,3 +5176,10 @@ group = "cleanup"
 model = "opus"
 depends = ["C45c"]
 note = "User 2026-10-28. After C45 src/game still has ~450 '== 0x..', ~600 'case 0x..', ~435 '& 0x..'. First a survey: classify each by meaning (packet ids, x87/float bits, file magic and colour masks stay; unnamed kinds, flags and states get names), write the list into build/style_review/magic_numbers.md and split into batches by owner (C45d1..). Each new kind is an enum class in its owning header (see C45c), flag words use the shared bit operators. Names from the data/strings where possible; ambiguous meanings recorded, not guessed. Goldens unchanged."
+
+[[ticket]]
+id = "C48"
+title = "Host without a fixed base or game.exe range guard"
+group = "cleanup"
+model = "sonnet"
+note = "User 2026-10-28: the standalone exe's fixed base (CMakeLists /DYNAMICBASE:NO /FIXED:NO /BASE:0x01000000, the 'temporary' of 2026-10-21) can go. It only kept ASLR from loading the host inside 0x400000-0x7D7000 so the host's ReserveGameRange guard was whole. With 0 raw game addresses the guard is a safety net only: remove the base, ReserveGameRange / OnGameRange / EiStandaloneRangeTaken in host.cpp and standalone_main.cpp's read of it, and the IMAGE_TIES row in tools/dashboard_data.py; keep the DLL's own reports for the moved data (image_data.cpp, StrayGameAddress). Update docs/notes/standalone.md section 2. play.cmd and goldens unchanged."
