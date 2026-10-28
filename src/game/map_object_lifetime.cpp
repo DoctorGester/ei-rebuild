@@ -95,7 +95,7 @@ void CObject3D::SetUpObject3D() {
     std::memset(&scale, 0, sizeof(scale));
     defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
-    // only for its shadow before it was ever in view (a NaN there made UnitOrderLess irreflexive). It starts at
+    // only for its shadow before it was ever in view (a NaN there made the draw order irreflexive). It starts at
     // zero here, and in the original through a harness patch (harness_leftovers.cpp).
     std::memset(&worldPosition_, 0, sizeof(worldPosition_));
 }

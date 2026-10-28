@@ -84,7 +84,7 @@ they were at the split) and calls game.exe's virtuals at game.exe's slots, and r
 (tests/verify/image). A cleanup that reorders, retypes or renames members of ours (C14a and later) changes neither
 the original's runs nor the reference cache's key (tools/check_harness_key.py); when a cleanup renames a member, the
 view may keep the old name. Of src/ game.exe's side still builds from src/hook (but standalone_main.cpp), rebirth.cpp,
-image_data.cpp with image_cells.inc, game_data.h, gameapi.h with import_table.h, and stlp_algo.h.
+image_data.cpp with image_cells.inc, game_data.h, gameapi.h with import_table.h, and intro_sort.h.
 
 ## `__asm` and `float_control` (cleanup ticket C12)
 

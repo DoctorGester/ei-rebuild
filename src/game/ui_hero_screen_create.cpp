@@ -3,7 +3,6 @@
 // patches it too (EiPluginFixes, reproduced: the figures' sex test). See ui_screens.h and docs/notes/ui.md,
 // section 5. Scenarios ui_hero_screen, ui_hero_stats and ui_hero_delete open the screen.
 #include "party.h"
-#include "stl_sorts.h"
 #include "ui.h"
 #include "ui_screens.h"
 #include "game_strings.h"
@@ -73,16 +72,8 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollba
 
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
-// std::sort(begin, end) (its first level of the introsort loop does the same steps as the out-of-line loop).
-void SortNames(NameList& names) {
-    std::string* first = names.data();
-    std::string* last = names.data() + names.size();
-    if (first == last) return;
-    int depth = 0;
-    for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
-    stl_sorts::NameIntroSort(first, last, nullptr, depth * 2);
-    stl_sorts::NameFinalSort(first, last);
-}
+// By name (_mbscmp). Names that compare equal are the same text.
+void SortNames(NameList& names) { std::sort(names.begin(), names.end(), str::MbsLess()); }
 
 // A figure the new hero can take: its voice (when the creature's record has the flag) and its
 // prototype's name.

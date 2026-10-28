@@ -441,14 +441,10 @@ struct CItemManager : CResourceManager {
 
 // --- Weapon model parts------------------------------------------------------
 
-namespace stlp {
-template <typename T> class vector;
-} // namespace stlp
-
 // The names of the figure parts a weapon prototype (by index) is drawn with, replacing
 // the contents of `out`: "rh3.sword07" for a sword with number 7, the bow and crossbow pieces plus
 // the quiver and arrows. Nothing for an index out of range or an unknown weapon type.
 void WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
 
-// The same names for a packed item id, appended to an STLport vector of strings.
+// The same names for a packed item id, appended to a vector of strings.
 void AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out);

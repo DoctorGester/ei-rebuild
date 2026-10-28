@@ -15,10 +15,12 @@
 #include "figure_manager.h"
 #include "world_data.h"
 
+#include "address_order.h"
 #include "camera.h"
 #include "effects.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "model.h"
 #include "terrain.h"
 #include "texture.h"
@@ -30,6 +32,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/intro_sort.h"
 #include "render/render.h"
 
 #include <iterator>
@@ -146,25 +149,13 @@ float AnimationTime() {
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
-// floor(log2(n)) (n >= 1).
-int Log2(int n) {
-    int depth = 0;
-    while (n != 1) {
-        n >>= 1;
-        ++depth;
-    }
-    return depth;
-}
-
-// Sorts one draw list with UnitOrderLess. (The comparator is empty; nothing reads the renderer the
-// original pushes for it.)
+// Sorts one draw list by the first part set's texture, then the figure, then the view depth (the game's
+// comparator compares the texture and the figure by address; ours by name: address_order::DrawBefore).
+// Objects with the same keys are drawn in the game's sort's order.
 void SortByModel(FrameList list) {
     std::vector<CMapObject*>& v = FrameObjects(list);
-    CMapObject** first = v.data();
-    CMapObject** last = v.data() + v.size();
-    if (first == last) return;
-    IntroSortByModel(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
-    FinalSortByModel(first, last, 0);
+    lib::IntroSort(v.data(), v.data() + v.size(),
+                   [](CMapObject* a, CMapObject* b) { return address_order::DrawBefore(a, b); });
 }
 
 template <typename Draw>
@@ -421,10 +412,10 @@ int CWorldClient::DrawPass() {
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
     std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
     if (models.begin() != models.end()) {
-        CMapObject** first = models.data();
-        CMapObject** last = models.data() + models.size();
-        IntroSortByModelUse(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
-        FinalSortByModelUse(first, last, 0);
+        // The most recently used first; the models used in the same frame stay in the game's sort's order.
+        lib::IntroSort(models.data(), models.data() + models.size(), [](CMapObject* a, CMapObject* b) {
+            return b->ClientSpecific()->touchTime < a->ClientSpecific()->touchTime;
+        });
         int count = touched >> 3;
         if (count < 10) count = 10;
         for (CMapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {

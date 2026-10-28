@@ -409,7 +409,7 @@ happen (the harness logs "share id" if one does).
   .inc compiled once per side (harness_digest_read.inc, harness_hud_read.inc, harness_netstate_read.h). So a cleanup
   may reorder, retype or rename our members without playing the original's runs again; tools/check_harness_key.py
   (build.cmd) fails when a header of src/game, src/render or src/lib other than game_data.h, gameapi.h,
-  import_table.h and stlp_algo.h comes back into the key. A src/ static initialiser builds host state only (it runs in
+  import_table.h and intro_sort.h comes back into the key. A src/ static initialiser builds host state only (it runs in
   game.exe too). A new call from game.exe's side into a src .cpp goes into `HARNESS_SHARED`, or the cache misses its
   changes.
 

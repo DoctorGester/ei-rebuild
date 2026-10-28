@@ -1088,15 +1088,9 @@ public:
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
 struct DepthLess {
-    float* view;                          // the view matrix (row-major): row 2 the depth axis, its translation the offset
+    const float* view;                    // the view matrix (row-major): row 2 the depth axis, its translation the offset
     CMapObjectManager* manager;
-    bool Less(const ScreenEntry* a, const ScreenEntry* b);
-};
-// The draw lists' order (DrawPass): by the first part set's texture, then the figure, then the view
-// depth. The original compares the texture and the figure by address; ours by name
-// (address_order::DrawBefore).
-struct UnitOrderLess {
-    bool Less(CMapObject* a, CMapObject* b);
+    bool Less(const ScreenEntry* a, const ScreenEntry* b) const;
 };
 
 BOOL IsMultiplayerClient();
@@ -1385,24 +1379,6 @@ void ShowBolt(Vector3 from, Vector3 to);
 void GuardPlayerData(char plain);
 void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
 
-// ---- Client draw lists and their sorting --------------------------------
-// STLport's sort instantiated for two orderings; the entry points keep STLport's signature (first, last, a
-// dummy value-type pointer, the depth limit, the empty comparator).
-
-// STLport __introsort_loop with UnitOrderLess (model rank, a model field, view depth).
-void IntroSortByModel(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
-                                 int comp);
-// STLport __final_insertion_sort with UnitOrderLess.
-void FinalSortByModel(CMapObject** first, CMapObject** last, int comp);
-// __introsort_loop ordering objects by their model's last use, most recent first.
-void IntroSortByModelUse(CMapObject** first, CMapObject** last, void* valueType, int depthLimit,
-                                    int comp);
-// __final_insertion_sort with the same ordering.
-void FinalSortByModelUse(CMapObject** first, CMapObject** last, int comp);
-// The comparator of that ordering: b's model used before a's.
-struct ModelUseLess {
-    BOOL Less(CMapObject* a, CMapObject* b);
-};
 
 // Reads objects up to a zero byte: after each mark an id, a class and a field of the object; an object
 // registered under the id is released first (its count raised to 1 when 0), then a new one is created

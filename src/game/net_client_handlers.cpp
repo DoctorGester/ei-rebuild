@@ -10,13 +10,13 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "stl_sorts.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
 #include "world_map_files.h"
 #include "game_singletons.h"
 
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -271,13 +271,10 @@ void ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     }
     if (count == file->chunkCount_) {
         GrowingBuffer buffer;
-        // std::sort by the chunks' index (the instantiation's two halves).
-        if (chunks.begin() != chunks.end()) {
-            int depth = 0;
-            for (int n = static_cast<int>(chunks.size()); n != 1; n >>= 1) ++depth;
-            stl_sorts::ChunkIntroSort(chunks.data(), chunks.data() + chunks.size(), nullptr, depth * 2, 0);
-            stl_sorts::ChunkFinalSort(chunks.data(), chunks.data() + chunks.size(), 0);
-        }
+        // By the chunks' index. A file's chunks have different indices, and two messages of one index would
+        // carry the same chunk's data: any sort writes the same bytes.
+        std::sort(chunks.begin(), chunks.end(),
+                  [](const FileChunkMessage* a, const FileChunkMessage* b) { return a->index_ < b->index_; });
         for (FileChunkMessage** chunk = chunks.data(); chunk != chunks.data() + chunks.size(); ++chunk) {
             const std::uint8_t* data = (*chunk)->data_;
             if (buffer.cur + FileChunkMessage::kDataSize <= buffer.end) {

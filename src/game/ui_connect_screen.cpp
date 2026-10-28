@@ -4,7 +4,6 @@
 // its patches.
 #include "net_classes.h"
 #include "options.h"
-#include "stl_sorts.h"
 #include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
@@ -25,6 +24,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "lib/intro_sort.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -423,22 +423,23 @@ void CMpConnectScreen::RebuildList() {
         entry.password = server->password_ != 0;
     }
 
-    MpAddressEntry* first = entries_.data();
-    MpAddressEntry* last = first + entries_.size();
-    int key = sortKey_;
-    if (first != last) {
-        int count = static_cast<int>(last - first);
-        int depth = 0;
-        for (int n = count; n != 1; n >>= 1) ++depth;
-        stl_sorts::ServerIntroSort(first, last, nullptr, depth * 2, key);
-        constexpr int kThreshold = 16;
-        if (count > kThreshold) {
-            stl_sorts::ServerInsertionSort(first, first + kThreshold, key);
-            stl_sorts::ServerUnguardedInsertionSort(first + kThreshold, last, nullptr, key);
-        } else {
-            stl_sorts::ServerInsertionSort(first, last, key);
+    // By the sort key: 1 / 2 the name ascending / descending (_mbscmp), 3 / 4 the players, 5 / 6 the game type,
+    // 7 / 8 the ping, anything else the state, ascending. Servers with the same value keep the game's sort's order.
+    const int key = sortKey_;
+    lib::IntroSort(entries_.data(), entries_.data() + entries_.size(),
+                   [key](const MpAddressEntry& a, const MpAddressEntry& b) {
+        switch (key) {
+        case 1: return str::Compare(a.name, b.name) < 0;
+        case 2: return str::Compare(a.name, b.name) > 0;
+        case 3: return a.players < b.players;
+        case 4: return b.players < a.players;
+        case 5: return a.gameType < b.gameType;
+        case 6: return b.gameType < a.gameType;
+        case 7: return a.ping < b.ping;
+        case 8: return b.ping < a.ping;
+        default: return a.state < b.state;
         }
-    }
+    });
 
     MpAddressEntry& newGame = *entries_.emplace(entries_.begin());
     newGame.address = net::NetAddress{};

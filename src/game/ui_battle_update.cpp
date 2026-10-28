@@ -11,7 +11,6 @@
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
-#include "stl_sorts.h"
 #include "text_reader.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -25,6 +24,7 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <bit>
@@ -159,14 +159,7 @@ void PushIdInline(IdVector* ids, const int* value) {
     ids->push_back(*value);
 }
 
-// std::sort: the introsort loop with depth 2 * floor(log2(n)), then the final insertion sort.
-void SortIds(IdVector* ids) {
-    if (ids->begin() == ids->end()) return;
-    int depth = 0;
-    for (int n = static_cast<int>(ids->end() - ids->begin()); n != 1; n >>= 1) ++depth;
-    stl_sorts::IdIntroSort(ids->data(), ids->data() + ids->size(), nullptr, depth * 2);
-    stl_sorts::IdFinalSort(ids->data(), ids->data() + ids->size());
-}
+void SortIds(IdVector* ids) { std::sort(ids->begin(), ids->end()); }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
