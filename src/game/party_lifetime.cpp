@@ -40,10 +40,6 @@ void SetDefaults(PartyUnitRecord& record) {
 
 
 PartyUnitRecord* PartyUnitRecord::Construct() {
-    for (std::string& text : texts) std::construct_at(&text);
-    for (PartyItemArray* list : {&weapons, &quickItems, &armor, &spells}) {
-        std::construct_at(list);
-    }
     scaleX = 0.8f;
     scaleY = 0.2f;
     height = 1.0f;
@@ -79,9 +75,10 @@ void PartyUnitRecord::ClearItems() {
 // --- The record array ---------------------------------------------------------------------------
 
 void ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
-    std::memset(records, 0, static_cast<std::size_t>(count) * sizeof(PartyUnitRecord));
-    for (PartyUnitRecord* record = records; count != 0; --count, ++record)
-        if (record != nullptr) record->Construct();
+    for (PartyUnitRecord* record = records; count != 0; --count, ++record) {
+        std::construct_at(record);   // value-initialised: zeroed, the texts and lists empty
+        record->Construct();
+    }
 }
 
 void DestructPartyUnitRecords(PartyUnitRecord* records, int count) {

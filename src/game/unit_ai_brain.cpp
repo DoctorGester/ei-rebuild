@@ -363,11 +363,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedKind = -3;
             if (changed) console::EndLine(AiLog() << "Delayed sound: " << call.text.c_str());
         }
-        call.Destruct();
-        int after = size - i - 1;
-        if (after != 0) std::memmove(&data[i], &data[i + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
-        --size;
-        --i;
+        RemoveAt(i--);
     }
 }
 

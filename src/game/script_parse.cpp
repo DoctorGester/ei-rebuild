@@ -380,7 +380,6 @@ ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
 }
 
 void ConstructTokens(ScriptToken* tokens, int count) {
-    std::memset(tokens, 0, static_cast<unsigned>(count) * sizeof(ScriptToken));
     for (; count != 0; --count, ++tokens)
         if (tokens) tokens->Construct();
 }

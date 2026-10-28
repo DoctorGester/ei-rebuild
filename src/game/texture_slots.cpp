@@ -81,7 +81,6 @@ void CTexture::Destroy() {
 
 CTexture::CTexture() {
     ClearFields();
-    std::memset(&extra_, 0, sizeof(extra_));
     surface_ = nullptr;
     name_.clear();
     DropSurface(this);

@@ -36,7 +36,7 @@ using PartyItemArray = std::vector<CItem*>;
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 
-// MFC ConstructElements for the records: the memory zeroed, then each record constructed.
+// MFC ConstructElements for the records: each one value-initialised (zeroed, its texts and lists empty), then constructed.
 void ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
 
 // MFC DestructElements for the records: each record's Destruct (a count of 0 does nothing).

@@ -27,14 +27,6 @@ constexpr float kNoiseRadius = 50.0f;   // the units asked for around a noise
 constexpr int kAlertedLevel = 900;      // a unit noticing something at this level or above hears nothing
 const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 
-// The inlined RemoveAt(index, 1): the record's text freed, the tail moved down.
-void RemoveCall(AIHeardCalls* calls, int index) {
-    calls->data[index].Destruct();
-    int after = calls->size - index - 1;
-    if (after != 0) std::memmove(&calls->data[index], &calls->data[index + 1], static_cast<std::size_t>(after) * sizeof(AICallRecord));
-    --calls->size;
-}
-
 // The inlined Add: SetSize, then the record assigned (the text shared).
 void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32_t mask, const std::string& text) {
     int index = calls->size;
@@ -51,7 +43,7 @@ void AppendCall(AIHeardCalls* calls, const Vector3& point, int kind, std::uint32
 void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
     for (int i = 0; i < size; ++i) {
         const AICallRecord& call = data[i];
-        if (call.hostileMask == 0 && call.kind >= kind) RemoveCall(this, i--);
+        if (call.hostileMask == 0 && call.kind >= kind) RemoveAt(i--);
     }
     const Vector3 at = *point;
     std::string copy = text;
@@ -68,7 +60,7 @@ void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
 
 void AIHeardCalls::RemoveClaims() {
     for (int i = 0; i < size; ++i)
-        if (data[i].hostileMask != 0) RemoveCall(this, i--);
+        if (data[i].hostileMask != 0) RemoveAt(i--);
 }
 
 void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }

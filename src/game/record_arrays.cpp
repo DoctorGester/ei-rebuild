@@ -144,10 +144,10 @@ mapspec::Patrol* mapspec::Patrols::CopyAt(Patrol* result, int index) const {
     return result;
 }
 
-// The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
+// The first ten floats, the target copy-constructed, then the rest (the flag as a byte).
 ZoneExit* ZoneExits::CopyAt(ZoneExit* result, int index) const {
     const ZoneExit& from = data[index];
-    std::memcpy(result, &from, offsetof(ZoneExit, target));
+    result->CopyAreaFields(from);
     std::construct_at(&result->target, from.target);
     result->entrance = from.entrance;
     result->view = from.view;
