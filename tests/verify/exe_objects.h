@@ -427,9 +427,12 @@ struct CUnit : CMapObject {
     UnitMotion motion;                      // +0x27C
     float heightOffset;                     // +0x320
     int sizeClass;                          // +0x324
-    std::uint8_t unknown328[0x110];
+    std::uint8_t unknown328[0x4];
+    float standingHeight;                   // +0x32C
+    std::uint8_t unknown330[0x108];
     int fightAtWill;                        // +0x438
-    std::uint8_t unknown43C[0xA0];
+    std::uint32_t altPassCosts;             // +0x43C
+    std::uint8_t unknown440[0x9C];
     UnitMotion* Motion() { return &motion; }
 };
 static_assert(sizeof(CUnit) == 0x4DC);
