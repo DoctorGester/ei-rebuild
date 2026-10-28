@@ -13,14 +13,13 @@
 
 class CRenderPreset;
 
-// A texture stage of a material (0x14 bytes): copied with the texture gaining a reference, destroyed by releasing
-// the texture and freeing the name.
+// A texture stage of a material: copied with the texture gaining a reference, destroyed by releasing the texture and
+// freeing the name.
 struct MaterialStage {
     explicit MaterialStage(CTexture* stageTexture) : name("", ""), texture(stageTexture) {
         if (texture) ++texture->refCount_;
     }
-    MaterialStage(const MaterialStage& other)
-        : texCoordIndex(other.texCoordIndex), name(other.name), texture(other.texture) {
+    MaterialStage(const MaterialStage& other) : name(other.name), texture(other.texture) {
         if (texture) ++texture->refCount_;
     }
     MaterialStage& operator=(const MaterialStage&) = delete;
@@ -28,9 +27,6 @@ struct MaterialStage {
         if (texture) texture->Release();
     }
 
-    // the stage's D3DTSS_TEXCOORDINDEX; above 0xFFFF a generated one (the draw then also sets
-    // D3DTSS_TEXTURETRANSFORMFLAGS to D3DTTFF_COUNT2).
-    std::uint32_t texCoordIndex = 0;
     std::string name;               // the texture's name (empty for the wounds stages)
     CTexture* texture;              // counted, looked up by name on first use
 };

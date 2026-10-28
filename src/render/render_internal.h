@@ -34,7 +34,7 @@ struct Vertex {
 };
 static_assert(sizeof(Vertex) == 40);
 
-// One texture stage of the old device for a pass (D3DTEXTURESTAGESTATETYPE values).
+// One texture stage of a pass (render_state.h's values as numbers).
 struct StageState {
     std::uint8_t colourOp = 1, colourArg1 = 2, colourArg2 = 1;   // D3DTOP_DISABLE, TEXTURE, CURRENT
     std::uint8_t alphaOp = 1, alphaArg1 = 2, alphaArg2 = 1;
@@ -72,7 +72,7 @@ extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kU
 ShaderBytecode DepthFromMultisampledShader(int samples);
 void SetBytecode(sg_shader_desc& s, const ShaderBytecode& code);
 
-// The old device's state for one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
+// The render state of one pass of a mesh draw. Blend, depth and culling make the pipeline; the rest
 // goes to the shader.
 struct PassState {
     bool blend = false;
@@ -97,7 +97,7 @@ struct PassState {
     }
 };
 
-// The state the game code fed for the pass about to be drawn (render_state.h). `device`'s bound surfaces
+// The render state the game set for the pass about to be drawn (render_state.h). `device`'s bound surfaces
 // become the stages' textures; null: no textures.
 PassState ReadPassState(char* device);
 void ApplyPassState(sg_pipeline_desc& p, const PassState& s);
@@ -293,16 +293,8 @@ std::uint32_t CommitNumber();
 
 // Added when it differs from the last one.
 int AddMatrix(const Matrix4& m);
-// FOGENABLE / FOGCOLOR of the old device, read once per frame.
+// The game's fog switch and colour (render_state.h), read once per frame.
 void ReadFog(Frame& f);
-// The switch-over device's states, which keep every state the game sets.
-void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count);
-void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
-// A pass's render / stage state values from the state the game code fed (render_state.h), the old device for
-// the rest (logged); PassDone counts the passes that needed the old device.
-void RenderValues(const std::uint32_t* states, std::uint32_t* values, int count);
-void StageValues(int stage, const std::uint32_t* states, std::uint32_t* values, int count);
-void PassDone();
 CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up: the device and the pipelines made at the first use (a failure ends the game: Fatal).

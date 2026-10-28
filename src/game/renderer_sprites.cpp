@@ -113,7 +113,6 @@ TLVertex* CornerData() { return g_corners.data(); }
 std::uint16_t* IndexData() { return g_indices->data(); }
 // --- Device calls --------------------------------------------------------------------------------
 
-IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer->device_); }
 constexpr int kTriangleList = D3DPT_TRIANGLELIST;
 constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
@@ -375,15 +374,12 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     const SpritePoint* point = points->data();
     int remaining = std::ssize(*points);
     const Sprite* sprite = sprites->data();
-    DWORD savedSource = 0;
-    DWORD savedDest = 0;
+    render::RenderState& state = render::g_renderState;
+    const render::Blend savedSource = state.sourceBlend;
+    const render::Blend savedDest = state.destBlend;
     if (additive) {
-        device::GetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, &savedSource);
-        device::GetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, &savedDest);
-        device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-        device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-        render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-        render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::One;
     }
 
     ScreenSize screen;
@@ -402,10 +398,8 @@ int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* sp
     }
 
     if (additive) {
-        device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
-        device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
-        render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
-        render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
+        state.sourceBlend = savedSource;
+        state.destBlend = savedDest;
     }
     return 1;
 }

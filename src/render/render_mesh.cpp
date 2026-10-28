@@ -2,6 +2,7 @@
 // See docs/notes/renderer.md, "The renderer's source files".
 #include "render.h"
 #include "render_internal.h"
+#include "render_state.h"
 
 #include "../game/texture.h"
 #include "../hook/log.h"
@@ -187,81 +188,44 @@ sg_pipeline Pipeline(const PassState& s, bool lines, bool cached) {
 namespace detail {
 
 PassState ReadPassState(char* device) {
-    static const std::uint32_t kStates[] = {
-        27,   // ALPHABLENDENABLE
-        19,   // SRCBLEND
-        20,   // DESTBLEND
-        15,   // ALPHATESTENABLE
-        25,   // ALPHAFUNC
-        24,   // ALPHAREF
-        7,    // ZENABLE
-        14,   // ZWRITEENABLE
-        23,   // ZFUNC
-        22,   // CULLMODE
-        29,   // SPECULARENABLE
-        28,   // FOGENABLE
-        34,   // FOGCOLOR
-        60,   // TEXTUREFACTOR
-    };
-    constexpr int kStateCount = static_cast<int>(sizeof(kStates) / sizeof(kStates[0]));
-    std::uint32_t v[kStateCount];
-    RenderValues(kStates, v, kStateCount);
+    const RenderState& d = g_renderState;
     PassState s;
-    s.blend = v[0] != 0;
-    s.sourceBlend = static_cast<std::uint8_t>(v[1]);
-    s.destBlend = static_cast<std::uint8_t>(v[2]);
-    s.alphaTest = v[3] != 0;
-    s.alphaFunc = static_cast<std::uint8_t>(v[4]);
-    s.alphaReference = static_cast<std::uint8_t>(v[5]);
-    s.depthTest = v[6] != 0;
-    s.depthWrite = v[7] != 0;
-    s.depthFunc = static_cast<std::uint8_t>(v[8]);
-    s.cull = static_cast<std::uint8_t>(v[9]);
-    s.specular = v[10] != 0;
-    s.fog = v[11] != 0;
-    s.fogColour = v[12];
-    s.textureFactor = v[13];
-
-    static const std::uint32_t kStageStates[] = {
-        1, 2, 3,      // COLOROP, COLORARG1, COLORARG2
-        4, 5, 6,      // ALPHAOP, ALPHAARG1, ALPHAARG2
-        16, 17, 18,   // MAGFILTER, MINFILTER, MIPFILTER
-        13, 14,       // ADDRESSU, ADDRESSV
-    };
-    constexpr int kStageCount = static_cast<int>(sizeof(kStageStates) / sizeof(kStageStates[0]));
+    s.blend = d.blend;
+    s.sourceBlend = static_cast<std::uint8_t>(d.sourceBlend);
+    s.destBlend = static_cast<std::uint8_t>(d.destBlend);
+    s.alphaTest = d.alphaTest;
+    s.alphaFunc = static_cast<std::uint8_t>(d.alphaFunc);
+    s.alphaReference = d.alphaReference;
+    s.depthTest = d.depthTest;
+    s.depthWrite = d.depthWrite;
+    s.depthFunc = static_cast<std::uint8_t>(d.depthFunc);
+    s.cull = static_cast<std::uint8_t>(d.cull);
+    s.specular = d.specular;
+    s.fog = d.fog;
+    s.fogColour = d.fogColour;
+    s.textureFactor = d.textureFactor;
     for (int stage = 0; stage < 2; ++stage) {
-        std::uint32_t t[kStageCount];
-        if (stage == 1) {   // stage 1 only when it is on (COLOROP not D3DTOP_DISABLE)
-            const std::uint32_t op = 1;
-            std::uint32_t value = 0;
-            StageValues(1, &op, &value, 1);
-            if (value <= 1) {
-                s.stages[1].colourOp = static_cast<std::uint8_t>(value);
-                break;
-            }
-        }
-        StageValues(stage, kStageStates, t, kStageCount);
+        const TextureStage& from = d.stages[stage];
         StageState& st = s.stages[stage];
-        st.colourOp = static_cast<std::uint8_t>(t[0]);
-        st.colourArg1 = static_cast<std::uint8_t>(t[1]);
-        st.colourArg2 = static_cast<std::uint8_t>(t[2]);
-        st.alphaOp = static_cast<std::uint8_t>(t[3]);
-        st.alphaArg1 = static_cast<std::uint8_t>(t[4]);
-        st.alphaArg2 = static_cast<std::uint8_t>(t[5]);
-        st.magFilter = static_cast<std::uint8_t>(t[6]);
-        st.minFilter = static_cast<std::uint8_t>(t[7]);
-        st.mipFilter = static_cast<std::uint8_t>(t[8]);
-        st.addressU = static_cast<std::uint8_t>(t[9]);
-        st.addressV = static_cast<std::uint8_t>(t[10]);
-        if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
-        // The surface holder the old path bound to the stage.
+        st.colourOp = static_cast<std::uint8_t>(from.combiner.colourOp);
+        if (stage == 1 && st.colourOp <= 1) break;   // TextureOp::Disable: stage 1 unused
+        st.colourArg1 = from.combiner.colourArg1;
+        st.colourArg2 = from.combiner.colourArg2;
+        st.alphaOp = static_cast<std::uint8_t>(from.combiner.alphaOp);
+        st.alphaArg1 = from.combiner.alphaArg1;
+        st.alphaArg2 = from.combiner.alphaArg2;
+        st.magFilter = static_cast<std::uint8_t>(from.magFilter);
+        st.minFilter = static_cast<std::uint8_t>(from.minFilter);
+        st.mipFilter = static_cast<std::uint8_t>(from.mipFilter);
+        st.addressU = static_cast<std::uint8_t>(from.addressU);
+        st.addressV = static_cast<std::uint8_t>(from.addressV);
+        // The surface holder the game bound to the stage.
         if (!device) continue;
         const void* holder = reinterpret_cast<const CTextureDevice*>(device)->stageSurfaces_[stage];
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
         if (stage == 0) s.patch = PatchOf(holder);
     }
-    PassDone();
     ++g_stats.stateReads;
     return s;
 }

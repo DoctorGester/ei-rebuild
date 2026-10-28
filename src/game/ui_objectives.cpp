@@ -131,13 +131,6 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
         return new CUiSurface(ui, left, top, right, bottom, 5, 1);
 }
 
-void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
-    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-}
-void GetRenderState(CTextureDevice* device, int state, std::uint32_t* value) {
-    uidevice::GetRenderState(device, static_cast<std::uint32_t>(state), value);
-}
 
 // Layout constants (zone picture centre and size on the right half of the window).
 constexpr float kPictureCentreX = 580.0f;
@@ -477,9 +470,8 @@ void CObjectivesWindow::ShowQuest() {
 // --- Create ------------------------------------------------------------------------------
 
 void CObjectivesWindow::CreateScreen() {
-    CTextureDevice* device = interface_->renderer_;
-    GetRenderState(device, kRenderStateAlphaRef, &savedAlphaRef_);
-    SetRenderState(device, kRenderStateAlphaRef, 1);
+    savedAlphaRef_ = render::g_renderState.alphaReference;
+    render::g_renderState.alphaReference = 1;
 
     std::string text;
     std::string key;

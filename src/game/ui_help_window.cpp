@@ -28,12 +28,6 @@ const char* OkSound() { return "buttons\\tutorial\\ok.wav"; }
 
 constexpr char kHelpAction = ';';   // the help key's action (g_keyActions)
 
-// Direct3D render states, fed to the renderer's mirror.
-void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
-    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-}
-
 // Opens text `section` + `key` and, when it is there, replaces `text` with it up to the next '#'
 // (the line ends trimmed).
 template <typename Text>
@@ -84,7 +78,7 @@ void CHelpWindow::CreateScreen() {
     if (page_ < 0) page_ = 0;
     if (page_ >= static_cast<int>(lines_.size())) page_ = static_cast<int>(lines_.size()) - 1;
     pulseTime_ = 0.0f;
-    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
+    render::g_renderState.alphaReference = 1;
     ShowPage();
 }
 

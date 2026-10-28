@@ -753,6 +753,13 @@ model = "sonnet"
 depends = ["R27d"]
 note = "~80 EI_RENDER_VALIDATION lines: keep the checks that still validate something (uploads, read-backs), delete the A/B ones whose old path is gone. CPixelConverter's RasteriseTriangle, RasteriseKeyedTriangle, BlurShadow 1/2 have no callers since R26: delete them unless the DLL interface still needs them, and say which."
 
+[[ticket]]
+id = "R27a1"
+title = "CRenderHelper without its uncalled slots: ReleasePreset, PresetBlock, PresetStates, BuiltInStates and the records' state copies"
+group = "renderer"
+depends = ["R27a"]
+note = "Found in R27a: nothing calls CRenderHelper's ReleasePreset, PresetBlock, PresetStates or BuiltInStates (model.h, render_helper.cpp); with them gone RenderPresetRecord::states is written only (each CRenderPreset keeps its own states_ since R27a), and records_ can shrink to the counted presets. The helper's device_ / caps_ go with R27c. Goldens must stay the same."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

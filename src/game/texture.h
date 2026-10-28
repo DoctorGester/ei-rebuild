@@ -7,6 +7,7 @@
 #include "lib/static_object.h"
 #include "raster_target.h"
 #include "renderer_base.h"
+#include "render/render_state.h"
 
 #include <list>
 #include <string>
@@ -113,7 +114,6 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // Also records the four stage 0 state blocks (g_stageBlocks).
     CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
                    unsigned backBuffers, int depthBits, int stencilBits);
     ~CTextureDevice() override;
@@ -149,11 +149,18 @@ public:
     int textureChanges_;
 };
 
-// The four state blocks of texture stage 0: the scene's (texture x diffuse, alpha diffuse), texture x diffuse
-// with the texture's alpha, the alpha passes' (texture x diffuse for colour and alpha) and the terrain's
-// (texture x current, alpha texture).
-enum StageBlock { kSceneBlock, kTextureAlphaBlock, kAlphaPassBlock, kTerrainBlock, kStageBlockCount };
-extern DWORD g_stageBlocks[kStageBlockCount];
+// Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x
+// diffuse, alpha diffuse), the alpha passes' (texture x diffuse for colour and alpha) and the terrain's (texture x
+// current, alpha texture).
+inline constexpr render::StageCombiner kSceneStage = {render::TextureOp::Modulate, render::kArgTexture,
+                                                      render::kArgDiffuse, render::TextureOp::SelectArg1,
+                                                      render::kArgDiffuse, render::kArgCurrent};
+inline constexpr render::StageCombiner kAlphaPassStage = {render::TextureOp::Modulate, render::kArgTexture,
+                                                          render::kArgDiffuse, render::TextureOp::Modulate,
+                                                          render::kArgTexture, render::kArgDiffuse};
+inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modulate, render::kArgTexture,
+                                                        render::kArgCurrent, render::TextureOp::SelectArg1,
+                                                        render::kArgTexture, render::kArgCurrent};
 
 // Once a frame; returns the DirectDraw result (0).
 long DevicePresent(CTextureDevice* device);

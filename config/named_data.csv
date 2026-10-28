@@ -236,7 +236,6 @@ address,size,name,file
 007AEDA0,4,kSnowRise,src/game/weather_particles.cpp
 007AEDA4,4,kRainRise,src/game/weather_particles.cpp
 007AEDA8,4,kCellSize,src/game/weather_particles.cpp
-007AEDD0,16,g_stageBlocks,src/game/device_object.cpp
 007AEDE0,16,g_clipIndices,src/game/device_buffers.cpp
 007AEE00,16,g_vertices,src/game/device_buffers.cpp
 007AEE10,16,g_projected,src/game/device_buffers.cpp

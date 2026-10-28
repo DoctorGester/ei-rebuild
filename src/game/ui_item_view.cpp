@@ -9,7 +9,6 @@
 #include "ui_item_info.h"
 #include "plugin_fixes.h"
 
-#include "device.h"
 #include "dx_surface.h"
 #include "item.h"
 #include "random.h"
@@ -23,6 +22,7 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "render/render_state.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -166,9 +166,7 @@ void SetShade(CUiMesh* sprite, float grey) {
     sprite->tint_[2] = grey;
 }
 
-void SetSpecular(int on) {
-    device::SetRenderState(device::D3D(g_sceneRenderer->device_), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
-}
+void SetSpecular(int on) { render::g_renderState.specular = on != 0; }
 
 bool SameText(const char* a, const char* b) {
     for (;; ++a, ++b) {

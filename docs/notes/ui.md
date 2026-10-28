@@ -780,8 +780,8 @@ surfaces.
 
 Interface draws that still talked to the old Direct3D device without handing anything to the new
 renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
-- the container windows' base draw (CUiContainer): stage-0 state block
-  applied, then the window's own sprites and models and its enabled children;
+- the container windows' base draw (CUiContainer): stage 0 set to
+  `kAlphaPassStage`, then the window's own sprites and models and its enabled children;
 - the draws of interface screens 3 the base / briefing screen,
 and 2: the menu frame step, (screen 3) a mouse move to the input
   side, a depth clear, then the children;
@@ -790,7 +790,7 @@ and 2: the menu frame step, (screen 3) a mouse move to the input
   equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
   afterwards), as the hero preview and the trade grid do;
 - the alpha reference set to the window's +0x1EC.
-Every state set goes to render::state too; every depth clear to render::ClearDepth. In the
+Every state set goes to render::g_renderState; every depth clear to render::ClearDepth. In the
 switch-over (`present`) the old device's clears are left out: nothing the old path still draws
 there reads its depth buffer (its interface and world meshes are off). The item models go through
 and the mesh draws, which hand over already.

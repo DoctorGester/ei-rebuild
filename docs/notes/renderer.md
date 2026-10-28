@@ -140,7 +140,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
 | Movies | Bink: BinkCopyToBuffer (32-bit type 4) into a CPU buffer; CBinkVideo 005DBA50 opens, 005DBD80 steps and blits into a letterboxed rectangle | `bink_video.cpp` -> `render::MovieFrame` / `MovieBlit` / `SurfaceBlit`, `render::Fill` | drawn |
 | Present | 004EF610 | `device_present.cpp` -> `render::Present` (the new frame on the window's swap chain, section 9) | done |
-| Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; render states FOGENABLE / FOGCOLOR of the old device (zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | fog still read from the stand-in device's state (section 9) |
+| Clear colour, target size, fog | renderer +0x14; device object 007AF080 -> +0x18; the render state's fog switch and colour (section 5; zone colour through slot 0 00501AB0) | EndFrame / terrain hand-over | done |
 
 Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
 handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data once meshes stop
@@ -156,38 +156,45 @@ blitting its surface.
 
 ## 5. Pass state
 
-`src/render/render_state.h`: every rewritten place that sets a render state, a texture stage state or applies a state
-block on the old device also calls `render::state::Render / Stage / Block` with the same values (writers in
-device_draw, device_states, renderer_init (and a reset at device creation), renderer_lines, renderer_rect,
-renderer_sprites, renderer_strip, terrain_draw, world_client_draw, ui_alpha_draws, ui_camp, ui_container_draws,
-ui_create_screen, ui_hero_preview, ui_hud, ui_item_view, ui_objectives, ui_help_window). A pass takes its states from
-this mirror. The device records only four state blocks at its creation (004E6392..004E67BD; handles 007AEDDC / D8 /
-D4 / D0), each a stage-0 setup; a material's technique is a list of those handles plus blend factors and texture
-records:
+`src/render/render_state.h` (R27a): the render state the game draws with is one plain struct the renderer owns,
+`render::g_renderState` (`render::RenderState`; not "DrawState": winuser.h makes that a macro): blending and its
+factors, the alpha test, depth test / write / function, culling, specular, fog and its colour, the texture factor,
+and two texture stages (each its colour and alpha operations and arguments, `StageCombiner`, its filters and
+addressing). The values keep Direct3D 7's numbers in typed enums (`Blend`, `Compare`, `Cull`, `TextureOp`,
+`TextureArg`, `Filter`, `MipFilter`, `Address`), which the pipelines and the mesh shader take as they are. The game
+code writes the members where the original called SetRenderState / SetTextureStageState (device_draw,
+device_states, renderer_init, renderer_lines, renderer_rect, renderer_sprites, renderer_strip, link_mesh_draw,
+particle_draw through `SetBlend`, world_client_draw, ui_alpha_draws, ui_container_draws, ui_create_screen,
+ui_help_window, ui_hero_preview, ui_hud, ui_hud_unit_draw, ui_interface_draw, ui_item_view, ui_objectives); the
+original's GetRenderState / GetTextureStageState around a draw (saved and put back) are reads of the members.
+`CSceneRenderer::CreateRenderer` resets it to a new Direct3D 7 device's state (the members' initialisers) before the
+game's own settings. Each pass copies it (`ReadPassState`, render_mesh.cpp; the fog once a frame, `ReadFog`). There
+is no other copy: the stand-in device (section 9) keeps no states.
 
-| handle | colour | alpha |
-|---|---|---|
-| 007AEDDC | texture x current (MODULATE) | texture (SELECTARG1) |
-| 007AEDD8 | texture x diffuse | texture x diffuse |
-| 007AEDD4 | texture x diffuse | texture (SELECTARG1) |
-| 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
+Not kept, because nothing in the renderer reads them: shade mode, dithering, z bias, antialiasing (the camp's switch
+is gone with it), perspective correction, fog vertex mode, extents, clipping, lighting, ambient, fill mode, the
+texture coordinate index and transform flags (every material stage's index was 0), and stages 2-7.
 
-A state nothing has fed is read from the stand-in device (which keeps every state the game sets; `OldRenderStates` /
-`OldStageStates` in render.cpp) and logged once ("render: pass state: render state N not fed by the game code yet").
-The harness build (`EI_RENDER_VALIDATION`) reads every fed state back from it and logs disagreements ("fed X but the
-old device has Y": a writer not converted) and draws the device's value. States the game never sets (ZFUNC, TEXTUREFACTOR,
-ADDRESSU / V, stage 1 off) start with the device's initial values.
-Stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's picture, is fed by
-`CHudUnitPanel::DrawVanilla` (ui_hud_unit_draw.cpp).
+The device recorded four stage-0 state blocks at its creation (004E6392..004E67BD; handles 007AEDDC / D8 / D4 / D0).
+They are constants in texture.h; the 007AEDD4 one (texture x diffuse, alpha texture) had no user and is gone:
 
-Rewritten state setters (all feed the mirror): 00501C60 (renderer slot 10, `device_states.cpp`: SRCBLEND then
-DESTBLEND, failure through 004800E0; known caller the particle draw 00498940);
-005045D0 (a strip through integer screen points, no caller: deleted in R26c) and 0049B4B0 (`renderer_lines.cpp`: the strip of
-the renderer's line lists, 0049B780 from slot 15 00501CE0: bounds boxes 005A7290, line lists 00569D60; flat shaded,
-into a growing vertex buffer at 007A9CE0; both turn stage 0's colour / alpha ops off and back to MODULATE) go to
-`render::TlDraw` (line strip, FVF 0xC4), not reached by scenarios; 005041F0 (`renderer_rect.cpp`). 0049B140
-only appends a line-list point (the device calls under it belong to 0049B320, a dead two-point line draw); 0050434F
-and 00504341 are not functions (inside 005041F0; a false vtable entry 00747E2C in config/vtables.csv).
+| original | constant | colour | alpha |
+|---|---|---|---|
+| 007AEDDC | `kTerrainStage` | texture x current (MODULATE) | texture (SELECTARG1) |
+| 007AEDD8 | `kAlphaPassStage` | texture x diffuse | texture x diffuse |
+| 007AEDD0 | `kSceneStage` | texture x diffuse | diffuse (SELECTARG1) |
+
+A material's preset (`CRenderPreset`, model.h; render_helper.cpp; the original's 004FD2A0 recorded state blocks)
+keeps its state list: `ApplyPass(0)` sets the combiners of its first `stages_` stages (the enabled ones) and turns
+the next stage off; pass n > 0 sets that state's blend factors (device_draw.cpp's multi-pass draw puts the blend
+back afterwards).
+
+Rewritten state setters: 00501C60 (renderer slot 10, `device_states.cpp` `SetBlend`: the two blend factors; known
+caller the particle draw 00498940); 0049B4B0 (`renderer_lines.cpp`: the strip of the renderer's line lists, 0049B780
+from slot 15 00501CE0: bounds boxes 005A7290, line lists 00569D60; stage 0's colour / alpha ops off and back to
+MODULATE around it) goes to `render::TlDraw` (line strip, FVF 0xC4), not reached by scenarios; 005041F0
+(`renderer_rect.cpp`). 0049B140 only appends a line-list point; 0050434F and 00504341 are not functions (inside
+005041F0; a false vtable entry 00747E2C in config/vtables.csv).
 
 ## 6. Interface windows and holders on game memory (`cpuwindows`)
 
@@ -313,9 +320,9 @@ Scenarios: render_present*, render_movie_present, render_titles_present, ui_save
 ## 8. Draws with old-device calls, movies and the cursor outside the frame
 
 Interface draws (`ui_container_draws.cpp`; each keeps the original's device calls in order, states go to
-`render::state`, depth clears to `render::ClearDepth`; the old device's clears are left out (+8 = 0); the older clear
+`render::g_renderState`, depth clears to `render::ClearDepth`; the old device's clears are left out (+8 = 0); the older clear
 hand-overs 00636020, 005EC300, 00627390 still call the stand-in's Clear, which does nothing). The rewrites:
-00600EF0 (CUiContainer slot 20: state block 007AEDD8, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
+00600EF0 (CUiContainer slot 20: stage 0 `kAlphaPassStage`, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
 screen 3, vtable 007405AC / screen 2, 00740688: depth clear then 00600EF0; no scenario reaches them); 00622420
 (CHeroEquipPanel slot 20, vtable 007418E0: highlight frames, quick items' models (005ECA10), in the camp the armour
 models in seven slots between three depth clears, each after a flush of the two batches); 0064D970 (slot 26 of vtable
@@ -366,7 +373,7 @@ come first, then what holds for the present path (the subsection names are cited
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). `CDXSurface::surface` (+0x10) stays, always null.
   Left: device.h's calls on the switch-over device (R9b2 replaced the COM stand-ins with tokens, R9a below). R11d: the blink is a texture patch drawn in the shader (section 7).
-- No ticket yet: the fog colour and range come from the stand-in device's state (not game data); weather's old draw
+- No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
   before clipping, the shadow rasteriser) want plain C++ replacements; several steps (holders, saved pictures, interface
@@ -384,21 +391,18 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes DDSCL_FPUSETUP), builds
   the format table from the stand-in's fixed list (5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1-5: what dgVoodoo listed;
   **DXT2/4/5 must stay**: Rebirth's battle00 and footprints are DXT5, and without them the texture load failed and
-  `SetTexture` crashed), sets the viewport and records the four state blocks on it (handles 1..4, which
-  `render::state::Block` knows by their addresses).
+  `SetTexture` crashed) and sets the viewport. Its four stage-0 state blocks are constants now (section 5).
 - `src/game/device_null.cpp`: the switch-over device, `SwitchOverDevice`, a plain object with what a Direct3D 7
-  device and its DirectDraw object would keep (render / stage states, Direct3D 7's defaults at the start, fed to the
-  mirror `render_state.h`; state blocks recorded / applied / captured / deleted; bound textures, viewport, scene
-  bracket, display mode). The device object's +0x0C / +0x54 hold two tokens, not interfaces (R9b2; the COM stand-ins
+  device and its DirectDraw object would keep, without the render states (the renderer's, section 5): bound
+  textures, viewport, scene bracket, display mode. The device object's +0x0C / +0x54 hold two tokens, not interfaces (R9b2; the COM stand-ins
   are gone): each slot of a token's method table ends the run with `old device: IDirect3DDevice7 method <n> called
   from <caller>` (the image's failure report), so a direct call is found at once. Fixed answers: the device's GetCaps
   (8 stages, every texture operation, 4096 textures, no sort-independent antialiasing); GetDisplayMode the chosen mode
   in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what dx_surface.cpp's ReadScreenFormat reads; the windows'
   colour keys, CUiSurface +0x34, are 0 or a COLORREF set without the format, so they agree); DirectDraw's GetCaps 3D /
   texture / mipmap capabilities and no gamma or FourCC; GetAvailableVidMem 256 MB.
-- `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the code uses (GetCaps,
-  EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
-  GetTextureStageState, state block calls, SetTexture, AddRef / Release (no draws: R26b);
+- `device.h`: one call per method the code uses (GetCaps, EnumTextureFormats, Begin / EndScene, Clear,
+  SetViewport, SetTexture, AddRef / Release (no draws: R26b, no states: R27a);
   IDirectDraw7 GetCaps, GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
   GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank, Release). Each answers from
   `SwitchOverDevice` (R9b3: no branch to another interface any more; the interface argument is not read): draws,
@@ -406,8 +410,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   interface's `UiD3DDevice` (ui.h) has declared methods (`ui_d3d_device.cpp`). The harness's RestoreAfterMinimise
   calls game.exe's own IDirectDraw7 directly in the original's runs (nothing in the image). The vertex-buffer
   batches are gone (R9b3: the batch members, 004E7820 / 004E7E00 and the flush bodies with their
-  DrawIndexedPrimitiveVB; R9b4 took out the empty `FlushBatch` / `FlushBatch2` ports 004E7840 / 004E7A40 and their ~35 callers). The new renderer's state reads (render.cpp `OldRenderStates` / `OldStageStates`) read
-  `SwitchOverDevice` through `device_switchover.h` (no Direct3D 7 headers there).
+  DrawIndexedPrimitiveVB; R9b4 took out the empty `FlushBatch` / `FlushBatch2` ports 004E7840 / 004E7A40 and their ~35 callers).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
@@ -763,7 +766,7 @@ File map of the device layer (all in `src/game`; the files' headers name the add
   batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `directdraw_holder.cpp` (the DirectDraw base 004EDD70, 004EECF0, 004EEC60, destructor body 004EE330; the
   driver list 004EE4A0 / 004ED610 / 004EE5D0, 004EEA90, 004EEBC0, 004EEE30 are not ported: dead_code.csv, R11b);
   `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819); `device_object.cpp` (constructor
-  004E5E50, 004E6EE0 format table, destructor body 004E68A0, the four state blocks of stage 0 at 007AEDD0..DC; the
+  004E5E50, 004E6EE0 format table, destructor body 004E68A0 (the four stage-0 state blocks at 007AEDD0..DC are section 5's constants); the
   depth buffer 004E6C30 / 004E6BC0 and the device callback 004ED820 are not ported); `pixel_formats.cpp` (004EDAA0 /
   004EDC00 / 004EDC70 and the format lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
   axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`
@@ -1553,9 +1556,8 @@ begins the next frame's draws: the frame target is partly drawn until then).
 Meshes in the new renderer: everything the old path draws through the device's mesh draws (figures and map objects,
 the sky, the interface's sprites (CUiMesh) and 3D previews). The game hands the mesh over in model space with the
 matrix it projects it with (BeginMesh); each pass the old path then draws (src/game/device_draw.cpp) becomes a
-batch with the old device's state of that moment (MeshPass): blend, alpha test, depth, culling, fog, the two
-texture stages' operations, filters and textures. The material's state blocks are opaque to us, so the state is
-read back from the old device. A figure mesh drawn through the figure part draws is kept on the GPU
+batch with the render state of that moment (MeshPass, section 5): blend, alpha test, depth, culling, fog, the two
+texture stages' operations, filters and textures. A figure mesh drawn through the figure part draws is kept on the GPU
 (render_mesh_cache.cpp) and its batches draw from that pool; every other mesh is built into the frame's stream. A
 figure part handed over with its lighting (MeshSource::lighting) is lit in the shader from its normals.
 

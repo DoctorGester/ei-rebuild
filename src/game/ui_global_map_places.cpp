@@ -52,14 +52,6 @@ std::uint32_t Argb(const int* entry) {
     return c;
 }
 
-// IDirect3DDevice7::SetRenderState, recorded for the frame capture.
-constexpr int kShadeMode = 9;          // D3DRENDERSTATE_SHADEMODE: 1 flat, 2 Gouraud
-constexpr int kDitherEnable = 0x1A;    // D3DRENDERSTATE_DITHERENABLE
-void SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
-    uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-}
-
 } // namespace
 
 // --- titles --------------------------------------------------------------------------------------
@@ -157,14 +149,10 @@ void CGlobalMap::RefreshSelection() {
     surfaces_[1]->Freeze(0, 0);
     surfaces_[0]->Freeze(0, 0);
     ShowAllButZones(0);
-    SetRenderState(interface_->renderer_, kShadeMode, 1);
-    SetRenderState(interface_->renderer_, kDitherEnable, 0);
     std::uint32_t colour = g_sceneRenderer->fogColour_;
     g_sceneRenderer->fogColour_ = 0;
     app::FrameStep(false, false);
     g_sceneRenderer->fogColour_ = colour;
-    SetRenderState(interface_->renderer_, kShadeMode, 2);
-    SetRenderState(interface_->renderer_, kDitherEnable, 1);
     surfaces_[1]->Freeze(1, 0);
     ShowAllButZones(1);
     SceneMesh(markerCount_ + 6)->visible_ = 0;

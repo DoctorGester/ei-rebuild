@@ -3,7 +3,6 @@
 // device enumeration callback and the depth buffer are gone (config/dead_code.csv). The base class is in See
 // docs/notes/renderer.md (sections 9, 12). A failed call throws the game's error object (ThrowGameError,
 // dx_errors.h); every such throw ends the game in WinMain.
-#include "app.h"
 #include "device.h"
 #include "game_strings.h"
 #include "device_material.h"
@@ -22,25 +21,7 @@
 #include <list>
 #include <memory>
 
-DWORD g_stageBlocks[4] = /*007AEDD0*/ {};
-static_assert(kStageBlockCount == 4);
-
 namespace {
-
-
-// The four state blocks of texture stage 0's colour and alpha operations, in the order they are
-// recorded (the terrain's first, the scene's last): their handle and what differs between them. Every
-// block has colour argument 1 the texture and the colour operation modulate.
-struct StageBlockSetup {
-    StageBlock block;
-    DWORD colourArg2, alphaArg1, alphaOp, alphaArg2;
-};
-const StageBlockSetup kStageBlocks[kStageBlockCount] = {
-    {kTerrainBlock, D3DTA_CURRENT, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {kAlphaPassBlock, D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_MODULATE, D3DTA_DIFFUSE},
-    {kTextureAlphaBlock, D3DTA_DIFFUSE, D3DTA_TEXTURE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-    {kSceneBlock, D3DTA_DIFFUSE, D3DTA_DIFFUSE, D3DTOP_SELECTARG1, D3DTA_CURRENT},
-};
 
 constexpr std::uint32_t kDxtCode = MAKEFOURCC('D', 'X', 'T', 0);   // a DXT format's code without its digit
 // The format ids of the RGB layouts (MmpHeader::format).
@@ -56,29 +37,9 @@ HRESULT CALLBACK PixelFormatCallback(DDPIXELFORMAT* format, void* context) {
     return D3DENUMRET_OK;
 }
 
-// The four state blocks of texture stage 0 (kStageBlocks) recorded on the device.
-void RecordStageBlocks(CTextureDevice* device) {
-    for (const StageBlockSetup& block : kStageBlocks) {
-        IDirect3DDevice7* d3d = device::D3D(device);
-        device->lastLoadResult_ = device::BeginStateBlock(d3d);
-        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't begin state block.\n"))   // "Can't begin state block.\n"
-            ThrowGameError("Can't begin state block.\n");
-        device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-        device::SetTextureStageState(d3d, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-        device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG2, block.colourArg2);
-        device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG1, block.alphaArg1);
-        device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAOP, block.alphaOp);
-        device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG2, block.alphaArg2);
-        device->lastLoadResult_ = device::EndStateBlock(d3d, &g_stageBlocks[block.block]);
-        if (device->lastLoadResult_ != 0 && !app::FatalErrorCode(device->lastLoadResult_, "Can't end state block.\n"))   // "Can't end state block.\n"
-            ThrowGameError("Can't end state block.\n");
-    }
-}
-
 // The rest of the constructor in the switch-over: no Direct3D object, device list, depth formats, depth
 // buffer or render target; the IDirect3DDevice7 token in their place (with the HAL device's id). The texture
-// formats come from the switch-over's fixed table, the state blocks are recorded on it (their handles tokens
-// the new renderer's mirror knows), the viewport is the screen's.
+// formats come from the switch-over's fixed table, the viewport is the screen's.
 void ConstructWithoutDirect3D(CTextureDevice* device) {
     device->d3dDevice_ = device::Direct3DDeviceToken();
     device->deviceGuid_ = device::kIidHalDevice;
@@ -98,7 +59,6 @@ void ConstructWithoutDirect3D(CTextureDevice* device) {
     viewport.dvMaxZ = 1.0f;
     device::SetViewport(device::D3D(device), &viewport);
     for (CDXSurface*& holder : device->stageSurfaces_) holder = nullptr;
-    RecordStageBlocks(device);
     device->colour_ = 0xFF000000;
 }
 
@@ -161,11 +121,6 @@ void CTextureDevice::BuildFormatTable() {
 }
 
 CTextureDevice::~CTextureDevice() {
-    for (const StageBlockSetup& block : kStageBlocks) {
-        const DWORD handle = g_stageBlocks[block.block];
-        lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
-        if (lastLoadResult_ != 0) app::FatalErrorCode(lastLoadResult_, "Can't delete state block %d.\n", handle);   // "Can't delete state block %d.\n"
-    }
     device::AssignHolder(depth2_, nullptr);
     device::AssignHolder(depth_, nullptr);
     if (CTransformPipeline* pipeline = pipeline_) {

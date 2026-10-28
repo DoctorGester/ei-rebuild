@@ -1,7 +1,7 @@
 // The renderer's creation. It
 // picks the Direct3D driver from the settings, creates the device object, fills the transform pipeline's
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
-// and depth range, the render and texture stage states, a default light and the ambient colour, and creates
+// and depth range, the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
 #include "device.h"   // the old device's calls
@@ -48,16 +48,6 @@ IDirect3DDevice7* D3DDevice(CSceneRenderer* renderer) {
     return renderer->device_->d3dDevice_;
 }
 
-void SetRenderState(CSceneRenderer* renderer, D3DRENDERSTATETYPE state, std::uint32_t value) {
-    device::SetRenderState(D3DDevice(renderer), state, value);
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-}
-// SetTextureStageState; the result goes to the device object's +8, as every call there does.
-void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE type, int value) {
-    CTextureDevice* device = renderer->device_;
-    device->lastLoadResult_ = device::SetTextureStageState(device->d3dDevice_, stage, type, value);
-    render::state::Stage(static_cast<std::uint32_t>(stage), static_cast<std::uint32_t>(type), static_cast<std::uint32_t>(value));
-}
 
 // --- Matrix stacks -------------------------------------------------------------------------------
 
@@ -145,42 +135,34 @@ void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     renderer->pipeline_->transform_->SetDepthRange(first, second);
 }
 
-// The texture filters of every stage the device can use at once: Filtering picks point (0) or
-// linear (1, 2) min / mag filters; the mip filter is point with Mipmapping, else none.
-void SetTextureStages(CSceneRenderer* renderer, const GameOptions* settings, const D3DDEVICEDESC7& deviceDesc) {
-    for (int stage = 0;; ++stage) {
-        if (stage >= static_cast<int>(deviceDesc.wMaxSimultaneousTextures)) break;
+// The texture filters of the stages: Filtering picks point (0) or linear (1, 2) min / mag filters; the mip filter
+// is point with Mipmapping, else none.
+void SetTextureFilters(const GameOptions* settings) {
+    for (render::TextureStage& stage : render::g_renderState.stages) {
         int filter = settings->filtering_;
         if (filter == 0 || filter == 1 || filter == 2) {
-            int value = filter == 0 ? D3DTFN_POINT : D3DTFN_LINEAR;   // the D3DTFG_ values are the same
-            SetStageState(renderer, stage, D3DTSS_MINFILTER, value);
-            SetStageState(renderer, stage, D3DTSS_MAGFILTER, value);
-            if (settings->mipmapping_) SetStageState(renderer, stage, D3DTSS_MIPFILTER, D3DTFP_POINT);
+            stage.minFilter = stage.magFilter = filter == 0 ? render::Filter::Point : render::Filter::Linear;
+            if (settings->mipmapping_) stage.mipFilter = render::MipFilter::Point;
         }
-        if (settings->mipmapping_ == 0) SetStageState(renderer, stage, D3DTSS_MIPFILTER, D3DTFP_NONE);
+        if (settings->mipmapping_ == 0) stage.mipFilter = render::MipFilter::None;
     }
 }
 
-void SetRenderStates(CSceneRenderer* renderer, const GameOptions* settings) {
-    SetRenderState(renderer, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-    SetRenderState(renderer, D3DRENDERSTATE_ALPHATESTENABLE, 1);
-    SetRenderState(renderer, D3DRENDERSTATE_ALPHAFUNC, D3DCMP_GREATER);
-    SetRenderState(renderer, D3DRENDERSTATE_ALPHAREF, 200);
-    SetRenderState(renderer, D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
-    SetRenderState(renderer, D3DRENDERSTATE_DESTBLEND, D3DBLEND_ZERO);
-    SetRenderState(renderer, D3DRENDERSTATE_CULLMODE, D3DCULL_CW);
-    SetRenderState(renderer, D3DRENDERSTATE_SPECULARENABLE, static_cast<std::uint32_t>(settings->specular_));
-    SetRenderState(renderer, D3DRENDERSTATE_DITHERENABLE, static_cast<std::uint32_t>(settings->dithering_));
-    SetRenderState(renderer, D3DRENDERSTATE_TEXTUREPERSPECTIVE,
-                   static_cast<std::uint32_t>(settings->perspectiveCorrection_));
-    SetRenderState(renderer, D3DRENDERSTATE_ANTIALIAS, settings->antialiasing_ ? D3DANTIALIAS_SORTINDEPENDENT : 0);
-    SetRenderState(renderer, D3DRENDERSTATE_FOGENABLE, 1);
-    SetRenderState(renderer, D3DRENDERSTATE_FOGVERTEXMODE, D3DFOG_LINEAR);
-    SetRenderState(renderer, D3DRENDERSTATE_FOGCOLOR, 0);
-    SetRenderState(renderer, D3DRENDERSTATE_EXTENTS, 0);
-    SetRenderState(renderer, D3DRENDERSTATE_CLIPPING, 0);
-    SetRenderState(renderer, D3DRENDERSTATE_LIGHTING, 0);
-    SetRenderState(renderer, D3DRENDERSTATE_AMBIENT, 0);
+// Blending (one, zero) and the alpha test (greater than 200) on, clockwise triangles dropped, specular from the
+// options, fog on in black. (The options' dithering, perspective correction and antialiasing do nothing: the
+// renderer always draws with perspective correction.)
+void SetRenderState(const GameOptions* settings) {
+    render::RenderState& state = render::g_renderState;
+    state.blend = true;
+    state.alphaTest = true;
+    state.alphaFunc = render::Compare::Greater;
+    state.alphaReference = 200;
+    state.sourceBlend = render::Blend::One;
+    state.destBlend = render::Blend::Zero;
+    state.cull = render::Cull::Clockwise;
+    state.specular = settings->specular_ != 0;
+    state.fog = true;
+    state.fogColour = 0;
 }
 
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
@@ -211,7 +193,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 } // namespace
 
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
-    render::state::Reset();   // a new device: nothing it has is known yet
+    render::g_renderState = {};   // a new device's
     CreateBase(window, settings);
     // The switch-over (the new renderer presents, device.h): no DirectDraw driver is listed or
     // tried; the device object is built without one.
@@ -223,17 +205,10 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
 
     FillMatrixStacks(this);
     SetViewport(this, settings);
-    SetRenderState(this, D3DRENDERSTATE_ZENABLE, device_->zEnable_);
-    SetRenderState(this, D3DRENDERSTATE_ZWRITEENABLE, 1);
-    SetRenderState(this, D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID);
-    SetRenderState(this, D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD);
+    render::g_renderState.depthTest = device_->zEnable_ != 0;
+    render::g_renderState.depthWrite = true;
 
-    // The device's capabilities, then DirectDraw's (driver and emulation, 0x17C bytes each).
-    D3DDEVICEDESC7 deviceDesc;   // not cleared
-    CTextureDevice* holder = device_;
-    long result = device::GetCaps(holder->d3dDevice_, &deviceDesc);
-    holder->lastLoadResult_ = result;
-    if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description"
+    // DirectDraw's capabilities (driver and emulation, 0x17C bytes each).
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);
@@ -241,8 +216,8 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     device::GetCaps(device_->ddraw_, &driverCaps, &emulationCaps);
     if (!(driverCaps.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) settings->mipmapping_ = 0;
 
-    SetTextureStages(this, settings, deviceDesc);
-    SetRenderStates(this, settings);
+    SetTextureFilters(settings);
+    SetRenderState(settings);
 
     frameTime_ = 0;
     flags_ |= 2;

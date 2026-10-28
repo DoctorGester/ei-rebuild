@@ -1,6 +1,5 @@
 // The camp's page switch and the camp panels' layout code (see docs/notes/ui.md, "Camp,
 // global map, hero screens").
-#include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "ui.h"
 #include "unit_create.h"
@@ -786,8 +785,6 @@ bool CCampPages::CanMakeItem() {
 
 void CCampPages::Close() {
     GameSetServerPaused(0);
-    device::SetRenderState(g_sceneRenderer->device_->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
-    render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, their keys raised meanwhile.
     std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();

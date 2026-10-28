@@ -1,7 +1,7 @@
 // CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
-// behind their flags. See world.h and docs/notes/world.md. Both talk to Direct3D 7 through the renderer
-// (g_sceneRenderer->device_: d3dDevice_ the IDirect3DDevice7, lastLoadResult_ the last state block result) and to
-// the scene pipeline's matrix stacks (g_sceneRenderer->pipeline_) with the same calls in the same order as the original.
+// behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
+// (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer->pipeline_) in the original's
+// order.
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -55,17 +55,6 @@
 #undef GetClassName
 
 namespace {
-
-// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState, ApplyStateBlock (its HRESULT goes to
-// the renderer's lastLoadResult_).
-void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
-    device::SetRenderState(device::D3D(renderer), static_cast<D3DRENDERSTATETYPE>(state), value);
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-}
-void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
-    renderer->lastLoadResult_ = device::ApplyStateBlock(device::D3D(renderer), handle);
-    render::state::Block(handle);
-}
 
 // The pipeline's matrix stacks: 1 and 2 pushed by PushSceneMatrixOriginal, 5 the world draw's, 9 the views.
 constexpr int kStackScene1 = 1;
@@ -203,6 +192,7 @@ int QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
 }
 
 int CWorldClient::Render() {
+    render::RenderState& state = render::g_renderState;
     // The world view for the new renderer's smooth option (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
@@ -231,17 +221,17 @@ int CWorldClient::Render() {
     std::uint32_t flags = flags_;
     void* sky = skyDome_;
     if ((flags & 0x1000) && sky) {
-        SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
-        SetRenderState(renderer, 14, 0);
-        SetRenderState(renderer, 22, 1);
-        SetRenderState(renderer, 29, 1);
+        state.alphaTest = false;
+        state.stages[0].combiner = kSceneStage;
+        state.depthWrite = false;
+        state.cull = render::Cull::None;
+        state.specular = true;
         renderer->distanceFog_ = 0;
         skyDome_->Draw(&g_sceneRenderer.Get(), &camera_->localPosition_);
         renderer->distanceFog_ = 1;
-        SetRenderState(renderer, 22, 2);
-        SetRenderState(renderer, 29, 0);
-        SetRenderState(renderer, 14, 1);
+        state.cull = render::Cull::Clockwise;
+        state.specular = false;
+        state.depthWrite = true;
     }
     net::Pump();
     if ((flags_ & 0x100) && terrain_) {
@@ -249,7 +239,7 @@ int CWorldClient::Render() {
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
-        ApplyStateBlock(renderer, g_stageBlocks[kTerrainBlock]);
+        state.stages[0].combiner = kTerrainStage;
         terrain_->DrawGround(&g_sceneRenderer.Get());
     }
     DrawPass();
@@ -259,8 +249,8 @@ int CWorldClient::Render() {
         camera_->GroundPoint(&frame);
         CCamera* camera = camera_;
         terrain_->SetVisibleSectors(camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
-        SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
+        state.alphaTest = false;
+        state.stages[0].combiner = kSceneStage;
         terrain_->DrawWater(&g_sceneRenderer.Get());
     }
     // The shadow map's casters the game did not draw (the map is fitted to the ground drawn above),
@@ -269,27 +259,27 @@ int CWorldClient::Render() {
     HandOverOutsideCasters(this);
     net::Pump();
     if (flags_ & 0x400) {
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        SetRenderState(g_sceneRenderer->device_, 27, 1);
-        SetRenderState(g_sceneRenderer->device_, 15, 0);
-        SetRenderState(g_sceneRenderer->device_, 19, 5);
-        SetRenderState(g_sceneRenderer->device_, 20, 6);
-        SetRenderState(renderer, 14, 0);
+        state.stages[0].combiner = kAlphaPassStage;
+        state.blend = true;
+        state.alphaTest = false;
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::InvSourceAlpha;
+        state.depthWrite = false;
         arrayManager_->Draw(&g_sceneRenderer.Get());
-        SetRenderState(g_sceneRenderer->device_, 19, 5);
-        SetRenderState(g_sceneRenderer->device_, 20, 6);
-        SetRenderState(renderer, 14, 0);
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::InvSourceAlpha;
+        state.depthWrite = false;
         CParticleManager* particles = ClientParticleManager();
         particles->DrawAll(&g_sceneRenderer.Get());
-        SetRenderState(g_sceneRenderer->device_, 19, 5);
-        SetRenderState(g_sceneRenderer->device_, 20, 6);
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::InvSourceAlpha;
         listManager_->DrawAll(&g_sceneRenderer.Get());
-        SetRenderState(g_sceneRenderer->device_, 19, 5);
-        SetRenderState(g_sceneRenderer->device_, 20, 6);
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::InvSourceAlpha;
         rainSnow_.Draw(&g_sceneRenderer.Get());
-        SetRenderState(renderer, 14, 1);
+        state.depthWrite = true;
     }
-    ApplyStateBlock(renderer, g_stageBlocks[kSceneBlock]);
+    state.stages[0].combiner = kSceneStage;
     net::Pump();
     DrawLineLists();
     PopMatrix(device->stacks_[kStackWorld]);
@@ -297,12 +287,12 @@ int CWorldClient::Render() {
     PopMatrix(device->stacks_[kStackScene1]);
     g_haveSceneCamera = false;
     if (flags_ & 0x2000) {
-        SetRenderState(renderer, 7, 0);
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
+        state.depthTest = false;
+        state.stages[0].combiner = kAlphaPassStage;
         renderer->distanceFog_ = 0;
         numbers_->Draw(&g_sceneRenderer.Get());
         renderer->distanceFog_ = 1;
-        SetRenderState(renderer, 7, renderer->zEnable_);
+        state.depthTest = renderer->zEnable_ != 0;
     }
     render::EndWorld();
     return 1;
@@ -352,9 +342,9 @@ void CWorldClient::HideWorldData() {
 }
 
 int CWorldClient::DrawPass() {
+    render::RenderState& state = render::g_renderState;
     Terrain* terrain = terrain_;
     if (!terrain || !terrain->mapLoaded) return 0;
-    CTextureDevice* renderer = g_sceneRenderer->device_;
     CTransformPipeline* device = g_sceneRenderer->pipeline_;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
@@ -423,19 +413,19 @@ int CWorldClient::DrawPass() {
     // The frame's window rectangles (an STLport list of 32-byte nodes).
     std::list<ScreenEntry>& queued = screenEntries_;
     if (flags_ & 0xC0) {
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
+        state.stages[0].combiner = kAlphaPassStage;
         queued.clear();
-        SetRenderState(renderer, 19, 5);
-        SetRenderState(renderer, 20, 6);
-        SetRenderState(renderer, 27, 1);
-        SetRenderState(renderer, 15, 1);
+        state.sourceBlend = render::Blend::SourceAlpha;
+        state.destBlend = render::Blend::InvSourceAlpha;
+        state.blend = true;
+        state.alphaTest = true;
     }
     if (flags_ & 0x40) {
         SortByModel(FrameList::Visible54);
         SortByModel(FrameList::VisibleOther);
         SortByModel(FrameList::Visible5D);
         SortByModel(FrameList::Visible52);
-        SetRenderState(renderer, 24, 0xC8);
+        state.alphaReference = 0xC8;
         DrawEach(FrameList::VisibleOther, kDraw);
         DrawEach(FrameList::Visible5D, kDrawUnit);
         CMapObject** end = FrameObjects(FrameList::Visible5D).data() + FrameObjects(FrameList::Visible5D).size();
@@ -445,8 +435,8 @@ int CWorldClient::DrawPass() {
     }
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits);
-        SetRenderState(renderer, 24, 10);
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
+        state.alphaReference = 10;
+        state.stages[0].combiner = kAlphaPassStage;
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
         CMapObject** end = FrameObjects(FrameList::VisibleUnits).data() + FrameObjects(FrameList::VisibleUnits).size();
         for (CMapObject** p = FrameObjects(FrameList::VisibleUnits).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
@@ -454,13 +444,13 @@ int CWorldClient::DrawPass() {
 
     // Light effects (three lists of the client, each behind its setting).
     if (!bloodPrints_.empty() || !footprints_.empty() || !scorchMarks_.empty()) {
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        SetRenderState(renderer, 15, 0);
-        SetRenderState(renderer, 14, 0);
+        state.stages[0].combiner = kAlphaPassStage;
+        state.alphaTest = false;
+        state.depthWrite = false;
         if (LightEffects1B8()) DrawLightEffects(bloodPrints_);
         if (LightEffects1BC()) DrawLightEffects(footprints_);
         if (LightEffects1C0()) DrawLightEffects(scorchMarks_);
-        SetRenderState(renderer, 14, 1);
+        state.depthWrite = true;
     }
 
     // Shadows: projected along the camera's Z axis (its rotation) scaled by a constant.
@@ -485,15 +475,15 @@ int CWorldClient::DrawPass() {
         matrix.m[11] = product;
         device->PushMatrix(matrix.m, kStackScene2);
         device->PushMatrix(matrix.m, kStackScene1);
-        ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        SetRenderState(renderer, 15, 0);
-        SetRenderState(renderer, 14, 0);
+        state.stages[0].combiner = kAlphaPassStage;
+        state.alphaTest = false;
+        state.depthWrite = false;
         DrawEach(FrameList::Shadow5D, kDrawShadow);
         DrawEach(FrameList::ShadowOther, kDrawShadow);
         DrawEach(FrameList::Shadow54, kDrawShadow);
         DrawEach(FrameList::Shadow52, kDrawShadow);
         DrawEach(FrameList::ShadowUnits, kDrawShadow);
-        SetRenderState(renderer, 14, 1);
+        state.depthWrite = true;
         PopMatrix(device->stacks_[kStackScene2]);
         PopMatrix(device->stacks_[kStackScene1]);
     }
@@ -502,7 +492,7 @@ int CWorldClient::DrawPass() {
     // each living object (at its named part when it has one); dead ones leave the list.
     std::list<int>& selected = selectedIds_;
     if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & 0x80)) {
-        SetRenderState(renderer, 15, 0);
+        state.alphaTest = false;
         g_sceneRenderer->SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager_;
         for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {

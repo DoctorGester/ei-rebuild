@@ -3,7 +3,6 @@
 // callers are the figure part draw (figure_part_draw.cpp) and the shadow
 // (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
-#include "device.h"   // the old device's calls
 #include "link_figure.h"
 
 #include "core_maths.h"
@@ -67,12 +66,6 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
     return moved.data();
 }
 
-// IDirect3DDevice7::SetRenderState(D3DRENDERSTATE_SPECULARENABLE); the result is not kept.
-void SetSpecular(CTextureDevice* device, bool on) {
-    device::SetRenderState(device->d3dDevice_, D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
-    render::state::Render(D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
-}
-
 // What a draw needs of the mesh: a part's ranges, resolved to the device's mesh draw arguments.
 struct PartDraw {
     CLinkMesh* mesh;
@@ -129,12 +122,11 @@ int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurfa
     const VertexPacket* positions = mesh->vertices_.data() + r.vertices.start;
     if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
 
-    CTextureDevice* device = mesh->loader_->renderer_;
     const bool specular = !textured && (flags & kDrawSpecular) != 0;
-    if (specular) SetSpecular(device, true);
+    if (specular) render::g_renderState.specular = true;
     const PartDraw draw{mesh, r, positions, colours, speculars, u, v, flags};
     const int result = draw.Draw(mesh->loader_->renderer_, first, second, textured);
-    if (specular) SetSpecular(device, false);
+    if (specular) render::g_renderState.specular = false;
     KeepScreen(mesh, name, flags, result);
     return result;
 }

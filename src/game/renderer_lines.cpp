@@ -1,5 +1,5 @@
-// The old renderer's line-strip draw, so the new renderer's state mirror (src/render/render_state.h) gets
-// the states it sets and the new renderer gets the lines (render::TlDraw).
+// The old renderer's line-strip draw: stage 0 off around it (src/render/render_state.h), the lines to the new
+// renderer (render::TlDraw).
 // More: docs/notes/comments-c22i.md, "renderer_lines.cpp".
 #include "renderer_lines.h"
 
@@ -20,11 +20,6 @@
 
 namespace {
 
-// The states these draws touch.
-constexpr D3DRENDERSTATETYPE kShadeMode = D3DRENDERSTATE_SHADEMODE;
-constexpr DWORD kShadeFlat = D3DSHADE_FLAT, kShadeGouraud = D3DSHADE_GOURAUD;
-constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS_ALPHAOP;
-constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
 constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
 // The draw itself, to the new renderer, and the device's counters.
@@ -35,11 +30,9 @@ void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     device->drawCount_ += 1;
 }
 
-void SetStageOps(CTextureDevice* device, DWORD op) {
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, op);
-    render::state::Stage(0, kColourOp, op);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, op);
-    render::state::Stage(0, kAlphaOp, op);
+void SetStage0Ops(render::TextureOp op) {
+    render::g_renderState.stages[0].combiner.colourOp = op;
+    render::g_renderState.stages[0].combiner.alphaOp = op;
 }
 
 void DestroyLineOutcodes() {   // (the byte array's destructor)
@@ -48,16 +41,13 @@ void DestroyLineOutcodes() {   // (the byte array's destructor)
 
 } // namespace
 
-// Flat shaded
-// (Gouraud again after); returns the last SetRenderState's result.
+// In one colour (the frame's alpha opaque), stage 0 off and back to modulate. Returns 0.
 long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
     std::vector<LineVertex>& buffer = g_lineVertices;
     int count = points->count;
     buffer.resize(static_cast<std::size_t>(count));
 
-    device::SetRenderState(device::D3D(device), kShadeMode, kShadeFlat);
-    render::state::Render(kShadeMode, kShadeFlat);
-    SetStageOps(device, kOpDisable);
+    SetStage0Ops(render::TextureOp::Disable);
     for (int i = 0; i < points->count; ++i) {
         LineVertex& v = buffer[i];
         std::memcpy(&v.x, &points->points[i], 16);
@@ -65,10 +55,8 @@ long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, 
         v.specular = 0xFF000000u;
     }
     DrawStrip(device, buffer.data(), static_cast<int>(buffer.size()));
-    SetStageOps(device, kOpModulate);
-    long hr = device::SetRenderState(device::D3D(device), kShadeMode, kShadeGouraud);
-    render::state::Render(kShadeMode, kShadeGouraud);
-    return hr;
+    SetStage0Ops(render::TextureOp::Modulate);
+    return 0;
 }
 
 // The line lists' work arrays (renderer_lines.h): zero at the start, as the static initialisers

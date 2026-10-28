@@ -6,6 +6,7 @@
 #include "chunk_archive.h"
 #include "maths.h"
 #include "renderer_base.h"
+#include "render/render_state.h"
 #include "script.h"   // ScriptStream
 #include "water_tweens.h"
 
@@ -202,61 +203,61 @@ class CMaterial;
 struct LineBatch;
 struct LightningPoint;
 
-// A render state preset the renderer's helper keeps (counted).
+class CRenderPreset;
+
+// What the helper keeps for a preset: the states it was recorded from (PresetStates) and the preset itself,
+// counted.
+struct RenderPresetRecord {
+    // One texture stage's operations and the blend factors of its pass.
+    struct State {
+        bool enabled;                     // the stage's operations are set
+        render::StageCombiner combiner;
+        bool blend;                       // the blend factors are set
+        render::Blend sourceBlend;
+        render::Blend destBlend;
+    };
+    std::vector<State> states;
+    CRenderPreset* preset;        // counted
+};
+
+// A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
+// sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
+// the states from `stages_` on, with its blend factors.
 class CRenderPreset final {
 public:
-    CRenderPreset(const std::vector<std::uint32_t>& blocks, int stages, int index);
+    CRenderPreset(const std::vector<RenderPresetRecord::State>& states, int stages, int index);
     virtual ~CRenderPreset();
     virtual unsigned Index() { return static_cast<unsigned>(index_); }
 
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
 
-    int refs_ = 0;
-    // Direct3D state block handles: the texture stages' first, then one for each state from `stages_` on
-    // (its blend factors). The device's draws apply them.
-    std::vector<std::uint32_t> blocks_;
-    int stages_;                         // texture stages the first block sets
-    int index_;                          // the index it was recorded with (below 9: built in)
-};
+    int PassCount() const { return static_cast<int>(states_.size()) - stages_ + 1; }
+    // Pass `pass`'s states set in the renderer's render state (render/render_state.h).
+    void ApplyPass(int pass) const;
 
-// What the helper keeps for a preset: the states it was recorded from (PresetStates) and the preset itself,
-// counted.
-struct RenderPresetRecord {
-    // One texture stage's operations and the blend factors of its pass. Direct3D's values
-    // (D3DTEXTUREOP, D3DTA_*, D3DBLEND).
-    struct State {
-        bool enabled;               // the stage's operations are set
-        std::uint32_t colourOp;
-        std::uint32_t colourArg1;
-        std::uint32_t colourArg2;
-        std::uint32_t alphaOp;
-        std::uint32_t alphaArg1;
-        std::uint32_t alphaArg2;
-        bool blend;                 // the blend factors are set
-        std::uint32_t sourceBlend;
-        std::uint32_t destBlend;
-    };
-    std::vector<State> states;
-    CRenderPreset* preset;        // counted
+    int refs_ = 0;
+    std::vector<RenderPresetRecord::State> states_;
+    int stages_;                         // texture stages the first pass sets
+    int index_;                          // the index it was recorded with (below 9: built in)
 };
 
 struct IDirect3DDevice7;
 
-// The renderer's counted helper: render state presets recorded as Direct3D state blocks.
+// The renderer's counted helper: the render state presets of the materials.
 class CRenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
     CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
     virtual ~CRenderHelper();
-    // Records the state blocks of `states` and keeps the new preset (as built-in preset `index` when that
-    // is below 9). `singleStage`: at most one texture stage.
+    // Makes a preset of `states` and keeps it (as built-in preset `index` when that is below 9). `singleStage`: at
+    // most one texture stage.
     virtual CRenderPreset* Record(const std::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
-    // ReleaseBlock for `preset`'s record, if there is one.
+    // Forget for `preset`'s record, if there is one.
     virtual void ReleasePreset(CRenderPreset* preset);
-    // Deletes the preset's state blocks and drops its record.
-    virtual void ReleaseBlock(CRenderPreset* preset);
+    // Clears the preset's place among the built-in presets and drops its record.
+    virtual void Forget(CRenderPreset* preset);
     // The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
     // Preset `index` of the nine, or null beyond them.
@@ -283,7 +284,7 @@ public:
 // The scene renderer's base class ("CVisualizator" in the game's messages); CSceneRenderer is its only one.
 class CVisualizator {
 public:
-    // Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
+    // Sets the render state's fog colour (render/render_state.h) to `colour`.
     virtual int SetFogColourState(std::uint32_t colour) = 0;
     virtual ~CVisualizator();
     virtual void CreateRenderer(void* window, options::GameOptions* settings);
@@ -295,7 +296,7 @@ public:
     virtual void SetColour(std::uint32_t colour);
     virtual int ClearFrame() = 0;
     virtual std::uint32_t ZEnable() = 0;
-    virtual int SetBlend(std::uint32_t source, std::uint32_t dest) = 0;
+    virtual int SetBlend(render::Blend source, render::Blend dest) = 0;
     virtual int SetTexture(int stage, CTexture* texture) = 0;
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
                               unsigned indexCount) = 0;
@@ -403,7 +404,7 @@ public:
     // The device object's z-buffer setting (CTextureDevice::zEnable_).
     std::uint32_t ZEnable() override;
     // Sets SRCBLEND, then DESTBLEND.
-    int SetBlend(std::uint32_t source, std::uint32_t dest) override;
+    int SetBlend(render::Blend source, render::Blend dest) override;
     // Binds `texture` (a texture object, or null) to stage `stage`.
     int SetTexture(int stage, CTexture* texture) override;
     // Draws pre-transformed vertices (D3DTLVERTEX) as an indexed triangle list with the current state.

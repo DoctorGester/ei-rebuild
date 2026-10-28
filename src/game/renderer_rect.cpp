@@ -12,11 +12,10 @@
 
 namespace {
 
-// The states this draw touches.
-constexpr D3DRENDERSTATETYPE kShadeMode = D3DRENDERSTATE_SHADEMODE, kZBias = D3DRENDERSTATE_ZBIAS;
-constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS_ALPHAOP;
-constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
-constexpr DWORD kShadeFlat = D3DSHADE_FLAT, kShadeGouraud = D3DSHADE_GOURAUD;
+void SetStage0Ops(render::TextureOp op) {
+    render::g_renderState.stages[0].combiner.colourOp = op;
+    render::g_renderState.stages[0].combiner.alphaOp = op;
+}
 
 void Count(CTextureDevice* device, int vertices, int primitives) {
     device->vertexCount_ += vertices;
@@ -51,36 +50,20 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
         device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
         ++device->textureChanges_;
     }
-    device::SetRenderState(device::D3D(device), kZBias, 0);
-    render::state::Render(kZBias, 0);
     render::ScreenDraw(device, v, 4, indices, 6);
     Count(device, 4, 2);
     if (!outline) return 1;
 
-    // The frame: white, on the rectangle's own edges, flat shaded, with a depth bias, the texture stage off.
+    // The frame: white, on the rectangle's own edges, the texture stage off.
     for (auto& p : v) p.colour = 0xFFFFFFFFu;
     v[0].x = x0, v[0].y = y0;
     v[1].x = x0, v[1].y = y1;
     v[2].x = x1, v[2].y = y1;
     v[3].x = x1, v[3].y = y0;
     v[4].x = x0, v[4].y = y0;
-    device::SetRenderState(device::D3D(device), kShadeMode, kShadeFlat);
-    render::state::Render(kShadeMode, kShadeFlat);
-    device::SetRenderState(device::D3D(device), kZBias, 1);
-    render::state::Render(kZBias, 1);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpDisable);
-    render::state::Stage(0, kColourOp, kOpDisable);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpDisable);
-    render::state::Stage(0, kAlphaOp, kOpDisable);
+    SetStage0Ops(render::TextureOp::Disable);
     render::ScreenDraw(device, v, 5, nullptr, 0);
     Count(device, 5, 1);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpModulate);
-    render::state::Stage(0, kColourOp, kOpModulate);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpModulate);
-    render::state::Stage(0, kAlphaOp, kOpModulate);
-    device::SetRenderState(device::D3D(device), kShadeMode, kShadeGouraud);
-    render::state::Render(kShadeMode, kShadeGouraud);
-    device::SetRenderState(device::D3D(device), kZBias, 0);
-    render::state::Render(kZBias, 0);
+    SetStage0Ops(render::TextureOp::Modulate);
     return 1;
 }

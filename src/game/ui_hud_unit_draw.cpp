@@ -160,14 +160,11 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
             unit->flags_ |= kPreviewDraw;
 
             // Texture stage 0's mip filter off around the model's draw.
-            DWORD mipFilter = 0;
-            CTextureDevice* device = g_sceneRenderer->device_;
-            device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
-            device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
-            render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);
+            render::TextureStage& stage0 = render::g_renderState.stages[0];
+            const render::MipFilter mipFilter = stage0.mipFilter;
+            stage0.mipFilter = render::MipFilter::None;
             unit->DrawFigure(pass);
-            device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, mipFilter);
-            render::state::Stage(0, D3DTSS_MIPFILTER, mipFilter);
+            stage0.mipFilter = mipFilter;
 
             unit->flags_ &= ~kPreviewDraw;
             model->ClearPartFlags(kPartHighlight);

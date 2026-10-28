@@ -661,19 +661,9 @@ class CUiScrollText;
 // The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
 namespace uidevice {
 long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
-long GetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, std::uint32_t* value);
-long SetTextureStageState(CTextureDevice* device, DWORD stage, DWORD type, DWORD value);
-long SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value);
-long GetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t* value);
-long ApplyStateBlock(CTextureDevice* device, std::uint32_t handle);
 // Whether the device's depth buffer has a stencil.
 bool HasStencil(const CTextureDevice* device);
 } // namespace uidevice
-
-// Direct3D 7 render states the HUD sets around its drawing.
-constexpr int kRenderStateAlphaTest = 15;    // D3DRENDERSTATE_ALPHATESTENABLE
-constexpr int kRenderStateAlphaRef = 24;     // D3DRENDERSTATE_ALPHAREF
-constexpr int kRenderStateSpecular = 29;     // D3DRENDERSTATE_SPECULARENABLE
 
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class CHudWeaponBar : public CUiWindow {
@@ -1799,7 +1789,7 @@ public:
     void CloseScreen() override { RestoreAlphaRef(); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    long RestoreAlphaRef();
+    void RestoreAlphaRef();
     void CreateScreen() override;
     // Picture, exits, quests and description.
     void ShowZone(std::string_view zone);
@@ -1846,7 +1836,7 @@ public:
     float blinkTime_;                // seconds since the exit was selected (the markers' blink)
     std::vector<UiPointF> questPlaces_;   // the selected quest's places
     std::vector<std::string> objectiveTexts_;   // obj_0..obj_2
-    std::uint32_t savedAlphaRef_;
+    std::uint8_t savedAlphaRef_;
 };
 
 // A key binding row of the options window.

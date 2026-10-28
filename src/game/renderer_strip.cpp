@@ -61,7 +61,6 @@ void EnsureStatics() {
 
 // --- Device calls --------------------------------------------------------------------------------
 
-IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer->device_); }
 constexpr int kTriangleList = D3DPT_TRIANGLELIST;
 constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
@@ -259,19 +258,14 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     }
 
     if (g_indices.empty()) return 1;
-    IDirect3DDevice7* device = Device(this);
-    DWORD savedSource = 0, savedDest = 0;
-    device::GetRenderState(device, D3DRENDERSTATE_SRCBLEND, &savedSource);
-    device::GetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, &savedDest);
-    device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-    device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-    render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+    render::RenderState& state = render::g_renderState;
+    const render::Blend savedSource = state.sourceBlend;
+    const render::Blend savedDest = state.destBlend;
+    state.sourceBlend = render::Blend::SourceAlpha;
+    state.destBlend = render::Blend::One;
     int result = device_->DrawTlTriangles(g_ribbon.data(), std::ssize(g_ribbon),
                                  g_indices.data(), std::ssize(g_indices));
-    device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
-    device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
-    render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
-    render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
+    state.sourceBlend = savedSource;
+    state.destBlend = savedDest;
     return result;
 }

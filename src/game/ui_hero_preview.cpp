@@ -58,8 +58,6 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     return out;
 }
 
-constexpr unsigned long kStageState = 0x12;
-
 // D3DCLEAR_ZBUFFER, with D3DCLEAR_STENCIL when the device has a stencil buffer.
 unsigned long ClearFlags(const CTextureDevice* renderer) { return uidevice::HasStencil(renderer) ? 6 : 2; }
 
@@ -160,19 +158,16 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     }
     model->localRotation_ = q;
 
-    // Drawn brighter (1.2) with texture stage 0's state 0x12 set to 1, then everything put back.
+    // Drawn brighter (1.2) with texture stage 0's mip filter off, then everything put back.
     CObject3DClientSpecific* drawn = model->ClientSpecific();
     drawn->figureScale.x = 1.2f;
     drawn->figureScale.y = 1.2f;
     drawn->figureScale.z = 1.2f;
-    CTextureDevice* device = deviceOf();
-    std::uint32_t savedStage = 0;
-    device->lastLoadResult_ = uidevice::GetTextureStageState(device, 0, kStageState, &savedStage);
-    device->lastLoadResult_ = uidevice::SetTextureStageState(device, 0, kStageState, 1);
-    render::state::Stage(0, kStageState, 1);
+    render::TextureStage& stage0 = render::g_renderState.stages[0];
+    const render::MipFilter savedMipFilter = stage0.mipFilter;
+    stage0.mipFilter = render::MipFilter::None;
     model->DrawFigure(pass);
-    device->lastLoadResult_ = uidevice::SetTextureStageState(device, 0, kStageState, savedStage);
-    render::state::Stage(0, kStageState, savedStage);
+    stage0.mipFilter = savedMipFilter;
     drawn = model->ClientSpecific();
     drawn->figureScale.x = 1.0f;
     drawn->figureScale.y = 1.0f;

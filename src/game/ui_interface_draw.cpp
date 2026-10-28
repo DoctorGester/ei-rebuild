@@ -30,13 +30,6 @@ namespace {
 constexpr float kLetterboxShare = 0.217f;
 
 constexpr float kOpaque = 255.0f;
-constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
-
-// IDirect3DDevice7::SetRenderState, recorded for the frame capture.
-void SetRenderState(CTextureDevice* device, std::uint32_t state, std::uint32_t value) {
-    uidevice::SetRenderState(device, state, value);
-    render::state::Render(state, value);
-}
 
 RECT ScreenOf(const CSceneRenderer* renderer) {
     RECT screen;
@@ -78,10 +71,10 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
         const int width = screen.right - screen.left;
         const int height = screen.bottom - screen.top;
         const int bar = static_cast<int>(static_cast<double>(height) * kLetterboxShare);
-        SetRenderState(renderer->device_, kZEnable, 0);
+        render::g_renderState.depthTest = false;
         renderer->DrawRectangle(0, 0, width, bar, -1, 0);
         renderer->DrawRectangle(0, height - bar, width, height, -1, 0);
-        SetRenderState(renderer->device_, kZEnable, 1);
+        render::g_renderState.depthTest = true;
     }
     if (!active_) return 1;
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
@@ -98,10 +91,10 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
         active_ = 0;
         return 1;
     }
-    SetRenderState(renderer->device_, kZEnable, 0);
+    render::g_renderState.depthTest = false;
     screen = ScreenOf(renderer);
     renderer->DrawRectangle(0, 0, screen.right - screen.left, screen.bottom - screen.top, static_cast<int>(alpha_), 0);
-    SetRenderState(renderer->device_, kZEnable, 1);
+    render::g_renderState.depthTest = true;
     return 1;
 }
 

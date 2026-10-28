@@ -1,10 +1,8 @@
 // Three interface windows' draws (their draw, called with the pass) that only set alpha
-// states around the container draw, rewritten so the new renderer's state mirror
-// (src/render/render_state.h) gets the values: a window with child windows: alpha
-// reference 1 around its region tips and children, when the interface's +0x30 is set),
-// (blending on, source alpha / inverse source alpha, alpha test off, alpha reference 1) and
-// (alpha reference 1 around the container draw). See docs/notes/renderer.md ("Pass
-// state").
+// states (src/render/render_state.h) around the container draw: a window with child windows (alpha
+// reference 1 around its region tips and children, when the interface's +0x30 is set), the global map
+// (blending on, source alpha / inverse source alpha, alpha test off, alpha reference 1) and the help window
+// (alpha reference 1 around the container draw). See docs/notes/renderer.md ("Pass state").
 #include "ui.h"
 #include "ui_camp.h"
 
@@ -12,30 +10,12 @@
 
 #include <cstdint>
 
-namespace {
-
-constexpr std::uint32_t kAlphaBlend = 0x1B, kAlphaTest = 0x0F, kSourceBlend = 0x13, kDestBlend = 0x14, kAlphaRef = 0x18;
-
-// The interface's Direct3D device.
-CTextureDevice* Device(CUiWindow* w) { return w->interface_->renderer_; }
-
-void SetState(CUiWindow* w, std::uint32_t state, std::uint32_t value) {
-    uidevice::SetRenderState(Device(w), state, value);
-    render::state::Render(state, value);
-}
-std::uint32_t GetState(CUiWindow* w, std::uint32_t state) {
-    std::uint32_t value = 0;
-    uidevice::GetRenderState(Device(w), state, &value);
-    return value;
-}
-
-} // namespace
-
 // A container's. The children, each drawn when enabled.
 void CUiContainer::DrawChild(CSceneRenderer* pass) {
     if (!interface_->drawing_) return;
-    std::uint32_t savedRef = GetState(this, kAlphaRef);
-    SetState(this, kAlphaRef, 1);
+    render::RenderState& state = render::g_renderState;
+    const std::uint8_t savedRef = state.alphaReference;
+    state.alphaReference = 1;
     UpdateRegionTips(pass);
     const std::vector<CUiWindow*>& children = children_;
     for (int i = 0; i < std::ssize(children); ++i) {
@@ -43,23 +23,25 @@ void CUiContainer::DrawChild(CSceneRenderer* pass) {
         if (!child->enabled_) continue;
         child->DrawChild(pass);
     }
-    SetState(this, kAlphaRef, savedRef);
+    state.alphaReference = savedRef;
 }
 
 BOOL CGlobalMap::Draw(CSceneRenderer* pass) {
-    SetState(this, kAlphaBlend, 1);
-    SetState(this, kAlphaTest, 0);
-    SetState(this, kSourceBlend, 5);
-    SetState(this, kDestBlend, 6);
-    SetState(this, kAlphaRef, 1);
+    render::RenderState& state = render::g_renderState;
+    state.blend = true;
+    state.alphaTest = false;
+    state.sourceBlend = render::Blend::SourceAlpha;
+    state.destBlend = render::Blend::InvSourceAlpha;
+    state.alphaReference = 1;
     CUiContainer::Draw(pass);
     return 1;
 }
 
 BOOL CHelpWindow::Draw(CSceneRenderer* pass) {
-    std::uint32_t savedRef = GetState(this, kAlphaRef);
-    SetState(this, kAlphaRef, 1);
+    render::RenderState& state = render::g_renderState;
+    const std::uint8_t savedRef = state.alphaReference;
+    state.alphaReference = 1;
     CUiContainer::Draw(pass);
-    SetState(this, kAlphaRef, savedRef);
+    state.alphaReference = savedRef;
     return 1;
 }

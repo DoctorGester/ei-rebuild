@@ -76,19 +76,17 @@ namespace {
 
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
-void SetRenderState(CTextureDevice* device, unsigned long state, unsigned long value) {
-    uidevice::SetRenderState(device, state, value);
-    render::state::Render(static_cast<std::uint32_t>(state), static_cast<std::uint32_t>(value));
-}
-
-// The end both PushWindow and Activate share: the window pushed on the stack, the render states
-// the interface draws with, the window created, the messages pumped, the mouse released.
+// The end both PushWindow and Activate share: the window pushed on the stack, the render state the
+// interface draws with (blending by source alpha, the alpha test against 0x80), the window created, the messages
+// pumped, the mouse released.
 void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     ui->stack_.push_back(window);
-    static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
-    for (const auto& state : kStates) {
-        SetRenderState(ui->renderer_, state[0], state[1]);
-    }
+    render::RenderState& state = render::g_renderState;
+    state.blend = true;
+    state.alphaTest = true;
+    state.sourceBlend = render::Blend::SourceAlpha;
+    state.destBlend = render::Blend::InvSourceAlpha;
+    state.alphaReference = 0x80;
     app::g_interfaceHasScreen = 1;
     ScreenOf(window)->CreateScreen();
     app::PumpMessages();

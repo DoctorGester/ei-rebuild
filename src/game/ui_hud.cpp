@@ -46,13 +46,6 @@ constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";
 
 CPlayerClient* LocalView() { return g_clientWorld->LocalView(); }
 
-long SetRenderState(CTextureDevice* device, int state, std::uint32_t value) {
-    render::state::Render(static_cast<std::uint32_t>(state), value);
-    return uidevice::SetRenderState(device, static_cast<std::uint32_t>(state), value);
-}
-long GetRenderState(CTextureDevice* device, int state, std::uint32_t* value) {
-    return uidevice::GetRenderState(device, static_cast<std::uint32_t>(state), value);
-}
 
 // Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
 // original stores the constants as dwords).
@@ -84,9 +77,9 @@ constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
 BOOL DrawWithSpecular(CUiWindow* window, CSceneRenderer* pass) {
-    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 1);
+    render::g_renderState.specular = true;
     window->DrawBase(pass);
-    SetRenderState(window->interface_->renderer_, kRenderStateSpecular, 0);
+    render::g_renderState.specular = false;
     return 1;
 }
 
@@ -179,16 +172,16 @@ void CHudWeaponBar::Update() {
 }
 
 BOOL CHudWeaponBar::Draw(CSceneRenderer* pass) {
-    std::uint32_t alphaRef, alphaTest;
-    GetRenderState(interface_->renderer_, kRenderStateAlphaRef, &alphaRef);
-    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
-    GetRenderState(interface_->renderer_, kRenderStateAlphaTest, &alphaTest);
-    SetRenderState(interface_->renderer_, kRenderStateAlphaTest, 1);
-    SetRenderState(interface_->renderer_, kRenderStateSpecular, 1);
+    render::RenderState& state = render::g_renderState;
+    const std::uint8_t alphaRef = state.alphaReference;
+    const bool alphaTest = state.alphaTest;
+    state.alphaReference = 1;
+    state.alphaTest = true;
+    state.specular = true;
     DrawBase(pass);
-    SetRenderState(interface_->renderer_, kRenderStateAlphaRef, alphaRef);
-    SetRenderState(interface_->renderer_, kRenderStateAlphaTest, alphaTest);
-    SetRenderState(interface_->renderer_, kRenderStateSpecular, 0);
+    state.alphaReference = alphaRef;
+    state.alphaTest = alphaTest;
+    state.specular = false;
     return 1;
 }
 

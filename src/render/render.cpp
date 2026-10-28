@@ -20,7 +20,7 @@
 #include <d3d12.h>
 #endif
 
-#include "../game/device_switchover.h"
+#include "render_state.h"
 #include "../game/texture.h"
 #include "../game/app.h"
 #include "../game/game_singletons.h"
@@ -1009,23 +1009,11 @@ int AddMatrix(const Matrix4& m) {
     return static_cast<int>(g_frame.matrices.size()) - 1;
 }
 
-// The switch-over device's states: what the game last set, Direct3D 7's defaults before that.
-void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
-    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
-}
-
-void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
-    for (int i = 0; i < count; ++i) values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
-}
-
-// The fog the old path draws with: FOGENABLE (28) and FOGCOLOR (34), once per frame.
+// The game's fog switch and colour, once per frame.
 void ReadFog(Frame& f) {
-    const std::uint32_t states[2] = {28, 34};
-    std::uint32_t values[2];
-    RenderValues(states, values, 2);
     f.haveFog = true;
-    f.fogEnabled = values[0] != 0;
-    f.fogColour = values[1];
+    f.fogEnabled = g_renderState.fog;
+    f.fogColour = g_renderState.fogColour;
 }
 
 } // namespace detail

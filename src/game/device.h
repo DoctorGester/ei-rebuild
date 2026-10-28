@@ -4,7 +4,6 @@
 // and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their COM interfaces: they are
 // the boundary the new renderer sits behind (docs/notes/renderer.md, sections 10 and 12).
 
-#include "device_switchover.h"
 #include "texture.h"
 
 #include <d3d.h>
@@ -48,7 +47,7 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) { return a == 
 // The device object is being built without DirectDraw for a `width` x `height` screen of `bitsPerPixel` (16 or
 // 32). Returns the IDirectDraw7 token (ddraw_).
 IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
-// The IDirect3DDevice7 token (d3dDevice_), the switch-over device's states reset to a new device's.
+// The IDirect3DDevice7 token (d3dDevice_), the switch-over device reset to a new device's state.
 IDirect3DDevice7* Direct3DDeviceToken();
 // The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
 void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
@@ -57,9 +56,9 @@ void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
 
 // ---- The calls into the old device ----
-// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given a token: states are kept in the
-// switch-over device's state (and the new renderer's mirror), queries answer fixed values, and draws, clears and
-// mode changes do nothing. No call reaches an interface.
+// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name, given a token: queries answer fixed values,
+// clears and mode changes do nothing. No call reaches an interface. (Render and texture stage states are the
+// renderer's: render/render_state.h.)
 HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc);
 HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context);
 HRESULT BeginScene(IDirect3DDevice7* d3d);
@@ -67,14 +66,6 @@ HRESULT EndScene(IDirect3DDevice7* d3d);
 HRESULT Clear(IDirect3DDevice7* d3d, DWORD count, D3DRECT* rects, DWORD flags, D3DCOLOR colour, D3DVALUE z,
               DWORD stencil);
 HRESULT SetViewport(IDirect3DDevice7* d3d, D3DVIEWPORT7* viewport);
-HRESULT SetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD value);
-HRESULT GetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD* value);
-HRESULT SetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value);
-HRESULT GetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value);
-HRESULT BeginStateBlock(IDirect3DDevice7* d3d);
-HRESULT EndStateBlock(IDirect3DDevice7* d3d, DWORD* handle);
-HRESULT ApplyStateBlock(IDirect3DDevice7* d3d, DWORD handle);
-HRESULT DeleteStateBlock(IDirect3DDevice7* d3d, DWORD handle);
 HRESULT SetTexture(IDirect3DDevice7* d3d, DWORD stage, IDirectDrawSurface7* texture);
 HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated);
 HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc);

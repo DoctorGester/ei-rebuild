@@ -27,12 +27,6 @@ void DestroyDrawOrder() {
 // The camera's orientation.
 const Quaternion& CameraRotation() { return g_camera->localRotation_; }
 
-// The blend factors set: SRCBLEND, DESTBLEND (5 source alpha; 2 one: additive, 6 inverse source alpha: the
-// default).
-void SetRenderState(CSceneRenderer* renderer, int source, int dest) {
-    renderer->SetBlend(static_cast<std::uint32_t>(source), static_cast<std::uint32_t>(dest));
-}
-
 // A source attached to a unit (class 0x50) is drawn only while the unit has flag 0x400000.
 bool AttachedToHiddenUnit(const CParticleSource* s) {
     CEngineObject* object = s->attachedTo;
@@ -102,12 +96,12 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
         int blend;
         blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 1 && !additive) {
-            SetRenderState(renderer, 5, 2);
+            renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::One);
             additive = true;
         }
         blend = std::bit_cast<std::int32_t>(s->additiveBlend);
         if (blend == 0 && additive) {
-            SetRenderState(renderer, 5, 6);
+            renderer->SetBlend(render::Blend::SourceAlpha, render::Blend::InvSourceAlpha);
             additive = false;
         }
         if (!s->Draw(renderer)) {

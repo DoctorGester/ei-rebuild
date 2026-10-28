@@ -1,6 +1,6 @@
 // Interface draws that still talked to the old Direct3D device without handing anything to the new renderer: the container
 // windows' base draw, the base / briefing screen's and menu frame step's draws and the hero equipment panel's draw. Every
-// state set goes to render::state too; every depth clear to render::ClearDepth. In the switch-over (`present`) the old
+// state set goes to render::g_renderState; every depth clear to render::ClearDepth. In the switch-over (`present`) the old
 // device's clears are left out. See docs/notes/ui.md, "Container draws", and docs/notes/renderer.md, sections 5 and 8.
 #include "item.h"
 #include "world_glue.h"
@@ -8,7 +8,7 @@
 #include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
-#include "texture.h"   // g_stageBlocks
+#include "texture.h"   // kAlphaPassStage
 #include "unit.h"
 #include "ui_cursor.h"
 
@@ -20,8 +20,6 @@
 #include <cstdint>
 
 namespace {
-
-constexpr std::uint32_t kAlphaRef = 0x18;
 
 CTextureDevice* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
 
@@ -47,10 +45,7 @@ int ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
 
 BOOL CUiContainer::Draw(CSceneRenderer* pass) {
     if (!interface_->drawing_) return 1;
-    CTextureDevice* device = DeviceOf(this);
-    std::uint32_t handle = g_stageBlocks[kAlphaPassBlock];
-    device->lastLoadResult_ = uidevice::ApplyStateBlock(device, handle);
-    render::state::Block(handle);
+    render::g_renderState.stages[0].combiner = kAlphaPassStage;
     DrawBase(pass);
     CUiContainer* container = this;
     for (int i = 0; i < std::ssize(container->children_); ++i) {
@@ -123,9 +118,6 @@ int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     return 1;
 }
 
-long CObjectivesWindow::RestoreAlphaRef() {
-    std::uint32_t value = savedAlphaRef_;
-    long hr = uidevice::SetRenderState(DeviceOf(this), kAlphaRef, value);
-    render::state::Render(kAlphaRef, value);
-    return hr;
+void CObjectivesWindow::RestoreAlphaRef() {
+    render::g_renderState.alphaReference = savedAlphaRef_;
 }

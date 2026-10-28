@@ -3,8 +3,6 @@
 // capability and video memory queries with dgVoodoo's values where the game's logic depends on them).
 #include "device.h"
 
-#include "render/render_state.h"
-
 #include "../hook/log.h"
 
 #include <intrin.h>
@@ -12,9 +10,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <utility>
-#include <vector>
 
 #pragma intrinsic(_ReturnAddress)
 
@@ -133,58 +129,19 @@ DDCAPS DirectDrawCaps() {
 }
 
 // ---- The switch-over device's state -------------------------------------------------------------
-// What a Direct3D 7 device and its DirectDraw object would keep, without either.
+// What a Direct3D 7 device and its DirectDraw object would keep, without either (the render and texture stage
+// states are the renderer's: render/render_state.h).
 
-constexpr int kRenderStates = 256;
 constexpr int kStages = 8;
-constexpr int kStageStates = 32;
 
 class SwitchOverDevice {
 public:
-    // A new device's states (the Direct3D 7 defaults), no blocks, no textures.
+    // A new device: no textures, no scene.
     void Reset() {
-        std::memset(render_, 0, sizeof(render_));
-        const std::pair<int, DWORD> defaults[] = {
-            {D3DRENDERSTATE_TEXTUREPERSPECTIVE, TRUE}, {D3DRENDERSTATE_ZENABLE, D3DZB_TRUE},
-            {D3DRENDERSTATE_FILLMODE, D3DFILL_SOLID}, {D3DRENDERSTATE_SHADEMODE, D3DSHADE_GOURAUD},
-            {D3DRENDERSTATE_ZWRITEENABLE, TRUE}, {D3DRENDERSTATE_LASTPIXEL, TRUE},
-            {D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE}, {D3DRENDERSTATE_DESTBLEND, D3DBLEND_ZERO},
-            {D3DRENDERSTATE_CULLMODE, D3DCULL_CCW}, {D3DRENDERSTATE_ZFUNC, D3DCMP_LESSEQUAL},
-            {D3DRENDERSTATE_ALPHAFUNC, D3DCMP_ALWAYS}, {D3DRENDERSTATE_FOGEND, 0x3F800000},   // 1.0f
-            {D3DRENDERSTATE_FOGDENSITY, 0x3F800000}, {D3DRENDERSTATE_STENCILFAIL, D3DSTENCILOP_KEEP},
-            {D3DRENDERSTATE_STENCILZFAIL, D3DSTENCILOP_KEEP}, {D3DRENDERSTATE_STENCILPASS, D3DSTENCILOP_KEEP},
-            {D3DRENDERSTATE_STENCILFUNC, D3DCMP_ALWAYS}, {D3DRENDERSTATE_STENCILMASK, 0xFFFFFFFF},
-            {D3DRENDERSTATE_STENCILWRITEMASK, 0xFFFFFFFF}, {D3DRENDERSTATE_TEXTUREFACTOR, 0xFFFFFFFF},
-            {D3DRENDERSTATE_CLIPPING, TRUE}, {D3DRENDERSTATE_LIGHTING, TRUE},
-            {D3DRENDERSTATE_COLORVERTEX, TRUE}, {D3DRENDERSTATE_LOCALVIEWER, TRUE},
-            {D3DRENDERSTATE_DIFFUSEMATERIALSOURCE, D3DMCS_COLOR1},
-            {D3DRENDERSTATE_SPECULARMATERIALSOURCE, D3DMCS_COLOR2},
-        };
-        for (const auto& [state, value] : defaults) render_[state] = value;
-        std::memset(stage_, 0, sizeof(stage_));
-        for (DWORD s = 0; s < kStages; ++s) {
-            DWORD* st = stage_[s];
-            st[D3DTSS_COLOROP] = s == 0 ? D3DTOP_MODULATE : D3DTOP_DISABLE;
-            st[D3DTSS_COLORARG1] = D3DTA_TEXTURE;
-            st[D3DTSS_COLORARG2] = D3DTA_CURRENT;
-            st[D3DTSS_ALPHAOP] = s == 0 ? D3DTOP_SELECTARG1 : D3DTOP_DISABLE;
-            st[D3DTSS_ALPHAARG1] = D3DTA_TEXTURE;
-            st[D3DTSS_ALPHAARG2] = D3DTA_CURRENT;
-            st[D3DTSS_TEXCOORDINDEX] = s;
-            st[D3DTSS_ADDRESS] = D3DTADDRESS_WRAP;
-            st[D3DTSS_ADDRESSU] = D3DTADDRESS_WRAP;
-            st[D3DTSS_ADDRESSV] = D3DTADDRESS_WRAP;
-            st[D3DTSS_MAGFILTER] = D3DTFG_POINT;
-            st[D3DTSS_MINFILTER] = D3DTFN_POINT;
-            st[D3DTSS_MIPFILTER] = D3DTFP_NONE;
-            st[D3DTSS_MAXANISOTROPY] = 1;
-        }
         for (IDirectDrawSurface7*& texture : textures_) {
             if (texture) texture->Release();
             texture = nullptr;
         }
-        blocks_.clear();
-        recording_ = nullptr;
         inScene_ = false;
         viewport_ = D3DVIEWPORT7{};
     }
@@ -200,41 +157,6 @@ public:
         return D3D_OK;
     }
     void SetViewport(const D3DVIEWPORT7& viewport) { viewport_ = viewport; }
-
-    void SetRenderState(DWORD state, DWORD value) { SetState(Entry{false, 0, state, value}); }
-    DWORD RenderState(DWORD state) const { return state < kRenderStates ? render_[state] : 0; }
-    void SetStageState(DWORD stage, DWORD state, DWORD value) { SetState(Entry{true, stage, state, value}); }
-    DWORD StageState(DWORD stage, DWORD state) const {
-        return stage < kStages && state < kStageStates ? stage_[stage][state] : 0;
-    }
-
-    HRESULT BeginStateBlock() {
-        blocks_.push_back(Block{});
-        recording_ = &blocks_.back();
-        return D3D_OK;
-    }
-    HRESULT EndStateBlock(LPDWORD handle) {
-        if (!recording_) return D3DERR_NOTINBEGINSTATEBLOCK;
-        recording_->handle = NextHandle();
-        if (handle) *handle = recording_->handle;
-        recording_ = nullptr;
-        return D3D_OK;
-    }
-    HRESULT ApplyStateBlock(DWORD handle) {
-        const Block* block = Find(handle);
-        if (!block) return D3DERR_INVALIDSTATEBLOCK;
-        const std::vector<Entry> entries = block->entries;   // (an apply while recording is recorded)
-        for (const Entry& e : entries) SetState(e);
-        return D3D_OK;
-    }
-    HRESULT DeleteStateBlock(DWORD handle) {
-        for (auto it = blocks_.begin(); it != blocks_.end(); ++it) {
-            if (it->handle != handle || &*it == recording_) continue;
-            blocks_.erase(it);
-            return D3D_OK;
-        }
-        return D3DERR_INVALIDSTATEBLOCK;
-    }
 
     HRESULT SetTexture(DWORD stage, LPDIRECTDRAWSURFACE7 texture) {
         if (stage >= kStages) return DDERR_INVALIDPARAMS;
@@ -262,52 +184,7 @@ public:
     }
 
 private:
-    struct Entry {
-        bool stageState;
-        DWORD stage, state, value;
-    };
-    struct Block {
-        DWORD handle = 0;
-        std::vector<Entry> entries;
-    };
-
-    // While a block is recorded the states go into it (not to the device, as Direct3D does); otherwise they are
-    // kept, and those of the two stages the new renderer draws with go to its mirror too.
-    void SetState(const Entry& e) {
-        if (recording_) {
-            for (Entry& r : recording_->entries) {
-                if (r.stageState == e.stageState && r.stage == e.stage && r.state == e.state) {
-                    r.value = e.value;
-                    return;
-                }
-            }
-            recording_->entries.push_back(e);
-            return;
-        }
-        if (!e.stageState) {
-            if (e.state >= kRenderStates) return;
-            render_[e.state] = e.value;
-            render::state::Render(e.state, e.value);
-            return;
-        }
-        if (e.stage >= kStages || e.state >= kStageStates) return;
-        stage_[e.stage][e.state] = e.value;
-        render::state::Stage(e.stage, e.state, e.value);
-    }
-    Block* Find(DWORD handle) {
-        for (Block& b : blocks_)
-            if (b.handle == handle && handle != 0) return &b;
-        return nullptr;
-    }
-    // Block handles go on counting over the whole run (never 0, never reused).
-    DWORD NextHandle() { return ++lastHandle_; }
-
-    DWORD render_[kRenderStates];
-    DWORD stage_[kStages][kStageStates];
     IDirectDrawSurface7* textures_[kStages] = {};
-    std::vector<Block> blocks_;
-    Block* recording_ = nullptr;
-    DWORD lastHandle_ = 0;
     bool inScene_ = false;
     D3DVIEWPORT7 viewport_{};
     int width_ = 0, height_ = 0, bits_ = 32;
@@ -417,11 +294,6 @@ const DDPIXELFORMAT* SwitchOverTextureFormats(int* count) {
     return kTextureFormats;
 }
 
-std::uint32_t SwitchOverRenderState(std::uint32_t state) { return g_switchOver.RenderState(state); }
-std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
-    return g_switchOver.StageState(stage, state);
-}
-
 // ---- The device calls of the rewritten code ----------------------------------------------
 
 void AddRef(IDirect3DDevice7*) {}
@@ -439,28 +311,6 @@ HRESULT SetViewport(IDirect3DDevice7*, D3DVIEWPORT7* viewport) {
     if (viewport) g_switchOver.SetViewport(*viewport);
     return D3D_OK;
 }
-HRESULT SetRenderState(IDirect3DDevice7*, D3DRENDERSTATETYPE state, DWORD value) {
-    g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
-    return D3D_OK;
-}
-HRESULT GetRenderState(IDirect3DDevice7*, D3DRENDERSTATETYPE state, DWORD* value) {
-    if (!value) return DDERR_INVALIDPARAMS;
-    *value = g_switchOver.RenderState(static_cast<DWORD>(state));
-    return D3D_OK;
-}
-HRESULT SetTextureStageState(IDirect3DDevice7*, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) {
-    g_switchOver.SetStageState(stage, static_cast<DWORD>(state), value);
-    return D3D_OK;
-}
-HRESULT GetTextureStageState(IDirect3DDevice7*, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value) {
-    if (!value) return DDERR_INVALIDPARAMS;
-    *value = g_switchOver.StageState(stage, static_cast<DWORD>(state));
-    return D3D_OK;
-}
-HRESULT BeginStateBlock(IDirect3DDevice7*) { return g_switchOver.BeginStateBlock(); }
-HRESULT EndStateBlock(IDirect3DDevice7*, DWORD* handle) { return g_switchOver.EndStateBlock(handle); }
-HRESULT ApplyStateBlock(IDirect3DDevice7*, DWORD handle) { return g_switchOver.ApplyStateBlock(handle); }
-HRESULT DeleteStateBlock(IDirect3DDevice7*, DWORD handle) { return g_switchOver.DeleteStateBlock(handle); }
 HRESULT SetTexture(IDirect3DDevice7*, DWORD stage, IDirectDrawSurface7* texture) {
     return g_switchOver.SetTexture(stage, texture);
 }
