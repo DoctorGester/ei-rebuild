@@ -33,7 +33,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/hash_map.h"
-#include "lib/stlp_hash.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture
 #include "party_storage.h"
@@ -646,18 +645,10 @@ public:
 static_assert(offsetof(PlatformSet, list) == 0x1C);
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
-// records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
-// records by prototype. All three maps hash a key to itself.
-namespace gamehash {
-struct FiguredTableElement;
-// The records in the tables: copied and destroyed by their own members.
-using FiguredUnitElement = stlp::ObjectElement<FiguredUnitRecord>;
-using DressedUnitElement = stlp::ObjectElement<DressedUnitRecord>;
-} // namespace gamehash
+// records grouped by prototype (each group a hash_multimap by three packed 10-bit values), and the dressed records
+// by prototype. All three hash a key to itself; Write walks them in the game's order (the zone message's bytes).
 struct UnitSet {
-    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, gamehash::FiguredUnitElement>>;
-    using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
-    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, gamehash::DressedUnitElement>>;
+    using FiguredGroup = lib::HashMultimap<std::uint32_t, FiguredUnitRecord>;   // by scale key
 
     // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -670,11 +661,9 @@ struct UnitSet {
     // per record a 16-bit prototype, two counted dword arrays, a byte and a dword.
     void Write(CStream* stream);
 
-    FiguredGroups figured;                // by prototype: each group's records by scale key
-    DressedTable dressed;                 // by prototype
+    lib::HashMap<std::uint32_t, FiguredGroup> figured;            // by prototype
+    lib::HashMultimap<std::uint32_t, DressedUnitRecord> dressed;  // by prototype
 };
-static_assert(offsetof(UnitSet, dressed) == 0x14);
-static_assert(sizeof(UnitSet) == 0x28);
 
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list

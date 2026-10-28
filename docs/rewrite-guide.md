@@ -150,10 +150,9 @@ does not need a second pass:
   `src/lib/containers.h`) and `stlp::` (`src/lib/stlp.h`). Do not declare a container layout per
   file (`struct FooArray { void* vtable; T* data; int size; ... }`, `struct ListNode { next, prev }`)
   and do not hand-inline SetSize / RemoveAt / Add: call the template's member. Which original addresses belong
-  to which template: `docs/notes/core.md`, "Shared containers". stlp::list's and vector's
-  members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`,
-  `v.InsertOverflow<Abi::Element>(...)`): call them on the typed container rather than casting it
-  to its `ListAbi` / `VectorAbi`;
+  to which template: `docs/notes/core.md`, "Shared containers". stlp::list's
+  members are templates on the element policy (`SectorList::Erase<stlp::HeldObject>(node)`): call them on the
+  typed list rather than casting it to its `ListAbi`;
   no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
   names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
@@ -164,22 +163,18 @@ does not need a second pass:
   pointer casts; check_cleanup does not); objects of a manager come typed from
   `CBaseManager::CreateObjectAs<T>` / `FindObjectAs<T>`, item records by kind from
   `itemdb::RecordAs<T>`, and a manager's context is a `CManagerContext` (CWorld, CParty; its
-  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`). A typed
-  stlp::vector is resized with `v.ResizeDefault<Element>(n)`, not through a `VectorAbi` downcast;
-  a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
+  slots 19, 20 and 22 return `CMapObjectManager*`, `CPlayerManager*` and `CSpellManager*`); a window surface is drawn on through `CUiSurface::GetDC` / `ReleaseDC` / `DrawLine`, not a
   per-file view struct derived from it. A window class that shares another's layout derives from
   it (CUiItemStrip : CUiItemPanel, CMpHeroScreen : CItemScreen) instead of holding a `CUiWindow
   window` member and being punned; the item panels' owner_ is the CItemScreen. A container's input
   side is `CUiContainer::ContainerInput()`. An item screen's slots 42-54 are called through
   `CItemScreen::Virtual*` (VirtualHeroRecord, VirtualPrice, ...), a panel's Build through
   `CUiWindow::VirtualBuild`, not a `VirtualSlot` with a local function type; three pointers that
-  are an STLport vector are an `stlp::vector<T>` member, called with the element policy
-  (`entries_.InsertOverflow<recordvec::SaveEntryElement>(...)`). The interface's active screen is
+  are an STLport vector are a `std::vector<T>` member. The interface's active screen is
   `CInterface3D::ActiveWindowAs<Screen>()`; a counted helper a world holds is a `RefPtrTo<T>` field
   read with `Get()`; the new connections a player source hands over are a `JoinedLinks`
   (`mfc::CTypedPtrList<netlink::NetLink>`); an inlined free of a 12-byte node is
-  `stlp::PushSmallNode(node)`; a map whose element policy is not the default is subscripted with a
-  named one (`headers_.Subscript<lib_trees::LinkHeaderElement>(name)`); a window's handled flag is
+  `stlp::PushSmallNode(node)`; a window's handled flag is
   its `handled_` member (UiInputSide). A counted object is tested with `IsLive(object)` (core_refcount.h: set and
   not detached), not a per-file `Live(const void*)`; the server session's connections are `Connection*`
   and its player records `PlayerMessage*` (FindGuestConnection, FindPlayer, Kick, Ban); a file

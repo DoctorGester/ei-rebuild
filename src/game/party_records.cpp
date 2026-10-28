@@ -10,7 +10,6 @@
 #include "game_lists.h"
 #include "party.h"
 
-#include "game_hashes.h"
 #include "lib/mfc.h"
 
 #include "game_data.h"
@@ -81,13 +80,20 @@ void NamedPartyRecords::Remove(const char* name) {
 
 namespace {
 
-// The party stored under `key` (find, inlined), null if none.
+// The party stored under `key` (find, inlined), null if none. Not const: the parties' copies read their source
+// non-const.
 CParty* FindParty(const PartyMap& parties, int key) {
-    PartyMap::Node* node = parties.Find(static_cast<std::uint32_t>(key));
-    return node ? node->value.mapped.Get() : nullptr;
+    auto found = parties.find(key);
+    return found != parties.end() ? const_cast<CParty*>(&found->second) : nullptr;
 }
 
 } // namespace
+
+CParty* PartyAt(PartyMap& parties, int key) {
+    CParty made;
+    CParty pair(made);
+    return &parties.try_emplace(key, pair).first->second;
+}
 
 void PartyManagerNewGame(PartyManager* manager) {
     PartyRecordsReset(&manager->records);
@@ -123,7 +129,7 @@ bool PartyManager::LoadParty(const char*, const char*, const int* key, CParty* t
 
 bool PartyManager::StoreParty(const int* key, CParty* source) {
     CParty* value = FindParty(parties, *key);
-    if (!value) value = parties.At(key)->Get();
+    if (!value) value = PartyAt(parties, *key);
     value->Assign(source);
     return true;
 }

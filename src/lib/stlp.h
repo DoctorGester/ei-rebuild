@@ -1,8 +1,7 @@
 #pragma once
 
-// The STLport containers compiled into game.exe that our code still uses (vector, list, deque, tree, the
-// hashtable of stlp_hash.h): STLport's layout, the game's pooled node allocator, STLport's hash and order. Each
-// member names the STLport routine it mirrors.
+// The STLport containers compiled into game.exe that our code still uses (list, deque): STLport's layout and the
+// game's pooled node allocator. Each member names the STLport routine it mirrors.
 
 #include <cstddef>
 #include <cstdint>
@@ -14,8 +13,6 @@
 #include "stlp_alloc.h"
 #include "stlp_deque.h"
 #include "stlp_list.h"
-#include "stlp_tree.h"
-#include "stlp_vector.h"
 #include "game/game_data.h"
 
 namespace stlp {
@@ -26,8 +23,5 @@ template <class Node>
 void PushSmallNode(Node* node) {
     deallocate(node, 12);
 }
-
-// Next STLport bucket count >= n (__stl_prime_list).
-std::size_t NextPrime(std::size_t n);
 
 } // namespace stlp

@@ -631,11 +631,8 @@ to which template:
   bucket vector).
 - Walks that erase the entry they stand on step first (CPlayer::ReleaseTamedUnits; the game's walk read the freed
   node); the render helper's destructor collects the presets before releasing them.
-- Kept as stlp (C14q): the connection's five trees (counted RefPtr values with their element policies), UnitSet's
-  figured and dressed tables (record element policies), the party manager's parties (CParty in place) and the shape
-  cache (RefPtr values, its own height equality). stlp_hash.h keeps hashtable / HashtableAbi / DwordObjectTraits for
-  them; the hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp),
-  HashString and LowerBoundDwords went. The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
+- The hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp), HashString
+  and LowerBoundDwords went; C14q did the rest (next section but one). The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
   (begin / end, `->first` / `->second`) so harness_digest_read.inc reads both sides with one loop.
 
 ## Containers: the kept vectors and lists (C14n)
@@ -661,7 +658,35 @@ to which template:
   built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
   the item stock's spells. Still stlp::list (C14s, C14t): the CMapObject* sector lists and their grids, the
   net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
-  stream queues; the bucket vectors inside stlp_hash.h's hashtable go with it (C14q).
+  stream queues.
+
+## Containers: the last STLport hash tables and trees (C14q)
+
+- No stlp hash table, tree or vector is left: stlp_hash.h, stlp_tree.h / .cpp, stlp_tree_abi.h, stlp_tree_mbs.h,
+  stlp_vector.h, game_hashes.h / .cpp and net_connection_trees.h are gone (stlp.h keeps the allocator, the lists and
+  the deque).
+- net::Connection's five trees are `std::map` members (the compiler's lifetimes; Reset destroys them by hand before
+  the placement rebuild, as the rest): the entries by sent id, by object and per priority (`std::array` of 11) hold
+  `EntryRef` (`CountedPtr<ReplicaEntry>`), the records `Record` (a `SharedRefPtr` and the version: copied with
+  Share, released as the owner), the attached ids plain values. Pointer keys compare as the game's unsigned
+  compares, the sent ids signed. The destructor clears the maps where the original destroys them, between the
+  packet and chunk lists it still frees by hand (C14s makes those the compiler's too; then the clears go).
+  operator[] (`bySentId_[key] = entry`) takes the new reference before dropping the old, as the inlined Assign did.
+- UnitSet's tables are lib::HashMap (Write's walk is the zone message's bytes): the figured groups
+  `HashMap<prototype, HashMultimap<scale key, FiguredUnitRecord>>`, the dressed records `HashMultimap<prototype,
+  DressedUnitRecord>`. `lib::HashMultimap` (hash_map.h) is STLport's hash_multimap: insert grows the table for one
+  more and links the value right after the first entry with its key (else at its bucket's head); equal_range ends at
+  the entry after the equal ones in walk order. Add reaches the group twice (`figured[prototype]` before the search
+  and before the insert), as the game's find_or_insert did: each grows the groups for one more entry, and the bucket
+  count is the walk order.
+- The party manager's parties are `lib::HashMap<int, CParty>` (the save's chunks walk it). A new key goes through
+  `PartyAt` (party_records.cpp): a new party, a copy for the pair, a copy of that in the map, as the game's
+  operator[] did; a CParty copy runs its save and load (CParty::Create), so the copies are kept (see the saved
+  heroes above). The manager is raw storage (StaticObject): construct_at / destroy_at.
+- The unit shapes are `std::unordered_map<float, SharedRefPtr>` by standing height (looked up only;
+  `UnitShapeCache::Resolve` is the find-or-create both callers inline). The handle's key (the height's bits, the
+  game's hash) went: the heights are tenths above 0.2, never NaN, so float equality is the game's (its Get treated
+  unordered heights as equal).
 
 ## MFC CArray and CList to std (C14m)
 

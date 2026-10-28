@@ -137,7 +137,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   `GlobalMapZoneTable`, `MpAddresses`, `PartyMembers`, `SectorCellObjects`, `CountedUnits`; check_cleanup forbids new
   `...Array` / `...List` / `...Map` struct names in game files, so a `using OldName = New;` follows). `ScalarDelete<&Destruct>`
   (mfc_slots.h) is the one shared deleting-destructor shim. Left as shims: the serialiser templates (SerializeCArray / CList
-  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (ShapePair, FiguredGroups),
+  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (gone with C14q),
   free-function `void*` selfs, and the Rebirth-patched input handlers.
 - **Constants with homes.** Vtables are the classes' `Vtable()` accessors (C19; C28 replaces them with real virtual
   classes). Texts are accessors in `game_strings.h`

@@ -2,14 +2,11 @@
 // slots. See net_connection.h and docs/notes/network.md.
 #include "net_coder.h"
 #include "net_connection.h"
-#include "net_connection_trees.h"
 #include "library_net_lists.h"
 
 #include "core_streams.h"
-#include "lib/stlp_vector.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/stlp_tree_abi.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -40,15 +37,13 @@ void DestroyForReset(Connection* c) {
     c->reliableOut_.~GrowingBuffer();
     c->incoming_.Release<ChunkElement>();
     c->headers_.Release<ChunkElement>();
-    trees::Attached::Destroy(&c->attached_);
-    trees::Records::Destroy(&c->records_);
+    std::destroy_at(&c->attached_);
+    std::destroy_at(&c->records_);
     c->acknowledged_.Release<PacketRecordElement>();
     c->history_.Release<PacketRecordElement>();
-    libcrt::DestroyElements(c->priorities_, sizeof(Connection::EntryMap), 11, Element<trees::Entries::Destroy>);
-    trees::Objects::Clear(&c->byObject_);
-    trees::Objects::FreeHeader(&c->byObject_);
-    trees::SentIds::Clear(&c->bySentId_);
-    trees::SentIds::FreeHeader(&c->bySentId_);
+    std::destroy_at(&c->priorities_);
+    std::destroy_at(&c->byObject_);
+    std::destroy_at(&c->bySentId_);
     c->freedIds_.Clear<FreedIdsElement>();
     stlp::deallocate(c->freedIds_.End(), sizeof(FreedBatch));
     libcrt::DestroyElements(c->idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolDestruct>);
@@ -62,25 +57,11 @@ void DestroyForReset(Connection* c) {
 // square average is the square of what the memory held, send interval 0.04, budget 220.
 // The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
-    std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     address_ = NetAddress{};
     for (IdPool& pool : idPools_) pool.next = 0;
     freedIds_.Construct();
-    bySentId_.ConstructWith(&tags[3], &tags[2]);
-    byObject_.ConstructWith(&tags[2], &tags[3]);
-    libcrt::ConstructElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Construct>,
-                              Element<trees::Entries::Destroy>);
     history_.Construct();
     acknowledged_.Construct();
-    // The trees' comparison byte is copied from the stack slot of the id argument.
-    records_.ConstructBase(&tags[3]);
-    records_.Count() = 0;
-    records_.Compare() = static_cast<std::uint8_t>(id);
-    trees::Records::EmptyInitialize(&records_);
-    attached_.ConstructBase(&tags[3]);
-    attached_.Compare() = static_cast<std::uint8_t>(id);
-    attached_.Count() = 0;
-    trees::Attached::EmptyInitialize(&attached_);
     headers_.Construct();
     // The list's allocator proxy holds null until the sentinel is made.
     auto* sentinel = static_cast<HeaderNode*>(NodeAllocate(sizeof(HeaderNode)));
@@ -124,25 +105,22 @@ int Connection::OnShutdown() {
     return 0;
 }
 
-// The reliable streams are members, destroyed after the body (the original frees them first).
+// The reliable streams are members, destroyed after the body (the original frees them first). The maps are
+// emptied where the original destroys them, between the lists this body still frees by hand.
 Connection::~Connection() {
     incoming_.Clear<ChunkElement>();
     stlp::deallocate(incoming_.End(), sizeof(HeaderNode));
     headers_.Clear<ChunkElement>();
     stlp::deallocate(headers_.End(), sizeof(HeaderNode));
-    trees::Attached::Clear(&attached_);
-    trees::Attached::FreeHeader(&attached_);
-    trees::Records::Clear(&records_);
-    trees::Records::FreeHeader(&records_);
+    attached_.clear();
+    records_.clear();
     acknowledged_.Clear<PacketRecordElement>();
     stlp::deallocate(acknowledged_.End(), sizeof(HistoryNode));
     history_.Clear<PacketRecordElement>();
     stlp::deallocate(history_.End(), sizeof(HistoryNode));
-    libcrt::DestroyElements(priorities_, sizeof(EntryMap), 11, Element<trees::Entries::Destroy>);
-    trees::Objects::Clear(&byObject_);
-    stlp::deallocate(byObject_.end(), 24);
-    trees::SentIds::Clear(&bySentId_);
-    stlp::deallocate(bySentId_.end(), 24);
+    for (auto map = priorities_.rbegin(); map != priorities_.rend(); ++map) map->clear();
+    byObject_.clear();
+    bySentId_.clear();
     freedIds_.Clear<FreedIdsElement>();
     stlp::deallocate(freedIds_.End(), sizeof(FreedBatch));
 }
@@ -154,9 +132,11 @@ namespace net {
 // The copy below as a new connection.
 Connection* Connection::Clone() { return NewCounted<Connection>(*this); }
 
-// The reliable streams are members, copied before the body (the original copies them last).
+// The maps and the reliable streams are members, copied before the body (the original copies them in order).
 Connection::Connection(const Connection& other)
-    : CRefObject(), reliableOut_(other.reliableOut_), reliableIn_(other.reliableIn_) {
+    : CRefObject(), bySentId_(other.bySentId_), byObject_(other.byObject_), priorities_(other.priorities_),
+      records_(other.records_), attached_(other.attached_), reliableOut_(other.reliableOut_),
+      reliableIn_(other.reliableIn_) {
     sendSequence_ = other.sendSequence_;
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
@@ -168,13 +148,8 @@ Connection::Connection(const Connection& other)
     for (int i = 0; i < kMessageTypes; ++i) idPools_[i] = other.idPools_[i];
     freedIds_.CopyConstruct<FreedIdsElement>(other.freedIds_);
     freedTimer_ = other.freedTimer_;
-    bySentId_.CopyConstruct(&other.bySentId_);
-    byObject_.CopyConstruct(&other.byObject_);
-    for (int i = 0; i < 11; ++i) priorities_[i].CopyConstruct(&other.priorities_[i]);
     history_.CopyConstruct<PacketRecordElement>(other.history_);
     acknowledged_.CopyConstruct<PacketRecordElement>(other.acknowledged_);
-    records_.CopyConstruct(&other.records_);
-    attached_.CopyConstruct(&other.attached_);
     headerSequence_ = other.headerSequence_;
     incomingSequence_ = other.incomingSequence_;
     headers_.CopyConstruct<ChunkElement>(other.headers_);

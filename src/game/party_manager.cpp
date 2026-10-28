@@ -9,7 +9,6 @@
 #include "party.h"
 #include "resource_local.h"   // FillStream
 
-#include "game_hashes.h"
 
 #include <memory>
 #include <string>
@@ -48,7 +47,7 @@ void ChunkArchive::IntField(int id, int* value) { Field(id, value, 4); }
 void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
     if (!EnterChunk(id)) return;
     if (loading_) {
-        gamehash::PartyAbi::Clear(parties);
+        parties->clear();
         int count = CountChunks(1);
         for (int i = 1; i <= count; ++i) {
             int key = 0;
@@ -57,21 +56,21 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
-            CParty* party = parties->At(&key)->Get();
+            CParty* party = PartyAt(*parties, key);
             if (EnterChunk(2)) {
                 party->ArchiveParty(this);
                 LeaveChunk();
             }
         }
     } else {
-        for (PartyMap::Node* node = parties->First(); node; node = parties->Next(node)) {
-            int key = static_cast<int>(node->value.key);
+        for (auto& [stored, party] : *parties) {
+            int key = stored;
             if (EnterChunk(1)) {
                 Field(1, &key, 4);
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
-                node->value.mapped.Get()->ArchiveParty(this);
+                party.ArchiveParty(this);
                 LeaveChunk();
             }
         }

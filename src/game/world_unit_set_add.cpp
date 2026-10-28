@@ -1,32 +1,15 @@
 // The unit set's builder (UnitSet::Add; world.h), called for each unit by the server's SendZone
-// (world_sync.cpp), and the STLport helpers it was compiled with. The set's maps are game_hashes.h's tables:
-// the figured groups (hash_map<prototype, FiguredTable>), each group a hash_multimap of figured records by
-// their scale key, and the dressed records, a hash_multimap by prototype. The temporaries are made, copied and
-// destroyed in the game's order: it reads the heap's address order (docs/notes/standalone-verification.md).
+// (world_sync.cpp): the figured groups (by prototype), each group a hash_multimap of figured records by
+// their scale key, and the dressed records, a hash_multimap by prototype.
 #include "world.h"
 
-#include "game_hashes.h"
 #include "item_db.h"
 #include "unit.h"
 
-#include "lib/mfc.h"
-#include "lib/mfc_slots.h"
-#include "lib/stlp_hash.h"
-#include "lib/stlp_vector.h"
-
 #include <cstdint>
-#include <memory>
 #include <string>
 
 namespace {
-
-using gamehash::DressedTable;
-using gamehash::FiguredGroupsTable;
-using gamehash::FiguredTable;
-using gamehash::DressedUnitElement;
-using gamehash::FiguredUnitElement;
-using IdElement = stlp::PlainElement<std::uint32_t>;
-using NameElement = stlp::ObjectElement<std::string>;
 
 constexpr std::uint32_t kNoItem = 0xFFFFFFFFu;
 constexpr float kScaleSteps = 127.0f;
@@ -49,27 +32,9 @@ std::uint32_t ItemId(const CEngineObject* item, Known known) {
 bool KnownArmour(std::uint32_t index) { return itemdb::ArmorAt(index) != nullptr; }
 bool KnownWeapon(std::uint32_t index) { return itemdb::WeaponAt(index) != nullptr; }
 
-// Two id lists alike: the same length and the same ids.
-bool SameIds(const UnitIdList& a, const UnitIdList& b) {
-    if (a.size() != b.size()) return false;
-    for (std::size_t i = 0; i < a.size(); ++i)
-        if (a[i] != b[i]) return false;
-    return true;
-}
-
-// The group of `prototype` (made when missing) as the game reaches it: an empty table, a pair of the key and a
-// copy of it, find_or_insert of the pair (a new node copies the pair again), then the pair's table and the
-// empty one destroyed.
-FiguredTable* GroupFor(FiguredGroupsTable& groups, std::uint32_t prototype) {
-    FiguredTable empty;
-    empty.Construct(100, 0, 0, 0);
-    FiguredGroupsTable::Value pair;
-    pair.key = prototype;
-    pair.mapped.CopyConstruct(empty);
-    FiguredTable* group = &groups.FindOrInsert(pair).mapped;
-    pair.mapped.Destroy();
-    empty.Destroy();
-    return group;
+// Two records with the same worn and extra weapon ids.
+bool SameIds(const DressedUnitRecord& a, const DressedUnitRecord& b) {
+    return a.items == b.items && a.extraWeapons == b.extraWeapons;
 }
 
 } // namespace
@@ -96,15 +61,10 @@ void UnitSet::Add(CUnit* unit) {
 
     // The figured records: one of the same scale key and ids in the prototype's group is marked
     // (modelNumber -1); else the record goes into the group.
-    FiguredTable* group = GroupFor(figured, prototype);
-    FiguredTable::Node* first;
-    FiguredTable::Node* last;
-    group->EqualRange(scaleKey, first, last);
     bool marked = false;
-    for (FiguredTable::Node* node = first; node != last; node = group->Next(node)) {
-        FiguredUnitRecord& other = node->value.mapped;
-        if (SameIds(other.items, record.items) && SameIds(other.extraWeapons, record.extraWeapons)) {
-            other.modelNumber = static_cast<int>(kNoItem);
+    for (auto [it, last] = figured[prototype].equal_range(scaleKey); it != last; ++it) {
+        if (SameIds(it->second, record)) {
+            it->second.modelNumber = static_cast<int>(kNoItem);
             marked = true;
             break;
         }
@@ -113,40 +73,22 @@ void UnitSet::Add(CUnit* unit) {
         if (unit->type_ != kUnitTypeHero) {
             // The texts the server companion holds (CMapObjectServer's string array).
             const CMapObjectServer* server = unit->ServerCompanion();
-            for (const std::string& name : server->strings) {
-                record.names.push_back(name);
-            }
+            for (const std::string& name : server->strings) record.names.push_back(name);
         }
         record.modelNumber = static_cast<int>(unit->id_);
-        FiguredTable::Value entry;
-        entry.key = scaleKey;
-        FiguredUnitElement::Construct(&entry.mapped, record);
-        group = GroupFor(figured, prototype);
-        group->Resize(group->Count() + 1);
-        group->InsertEqualNoresize(entry);
-        FiguredUnitElement::Destroy(&entry.mapped);
+        // The group reached again as the game does: the groups grow for one more entry each time (their bucket
+        // count is the walk order Write sends).
+        figured[prototype].insert({scaleKey, record});
     }
 
     // The dressed records: one of the same prototype and ids is marked, else a copy of the
     // record's head is added.
-    DressedTable& dressedRecords = dressed;
-    DressedTable::Node* from;
-    DressedTable::Node* to;
-    dressedRecords.EqualRange(prototype, from, to);
-    for (DressedTable::Node* node = from; node != to; node = dressedRecords.Next(node)) {
-        DressedUnitRecord& other = node->value.mapped;
-        if (SameIds(other.items, record.items) && SameIds(other.extraWeapons, record.extraWeapons)) {
-            other.modelNumber = static_cast<int>(kNoItem);
-            FiguredUnitElement::Destroy(&record);
+    for (auto [it, last] = dressed.equal_range(prototype); it != last; ++it) {
+        if (SameIds(it->second, record)) {
+            it->second.modelNumber = static_cast<int>(kNoItem);
             return;
         }
     }
-    record.modelNumber = static_cast<std::uint32_t>(unit->id_);
-    DressedTable::Value entry;
-    entry.key = prototype;
-    DressedUnitElement::Construct(&entry.mapped, record);
-    dressedRecords.Resize(dressedRecords.Count() + 1);
-    dressedRecords.InsertEqualNoresize(entry);
-    DressedUnitElement::Destroy(&entry.mapped);                      // called twice
-    FiguredUnitElement::Destroy(&record);
+    record.modelNumber = static_cast<int>(unit->id_);
+    dressed.insert({prototype, record});
 }

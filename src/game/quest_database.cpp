@@ -26,8 +26,6 @@ namespace {
 // The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
-using PlaceElement = stlp::PlainElement<float>;
-using ListElement = stlp::ObjectElement<std::string>;
 
 std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 

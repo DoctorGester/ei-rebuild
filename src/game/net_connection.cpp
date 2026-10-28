@@ -2,7 +2,6 @@
 #include "console.h"
 #include "net_coder.h"
 #include "net_connection.h"
-#include "net_connection_trees.h"
 #include "library_net_lists.h"
 #include "game_strings.h"
 
@@ -11,25 +10,19 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
-#include "lib/stlp_tree_abi.h"
 
 #include <cstdlib>
 #include <cstring>
 #include "stl_sorts.h"
 #include "game_data.h"
 
-RefPtr* RefPtrNull(RefPtr* /*p*/);
 namespace net {
 
 namespace {
 
-using ObjectMap = trees::Objects;
-using SentIdMap = trees::SentIds;
-using AttachedMap = trees::Attached;
 using EntryMap = Connection::EntryMap;
-using RecordMap = Connection::RecordMap;
 
-// --- STLport container instantiations (library_net_lists.h, net_connection_trees.h) -------------
+// --- STLport container instantiations (library_net_lists.h) -------------------------------------
 // The history's, the chunk lists' and a packet's items' element policies.
 using netlists::ChunkElement;
 using netlists::PacketRecordElement;
@@ -57,12 +50,6 @@ std::int32_t BufferedSize(GameBuffer* b) {
     return b->PositionOf(b->high);
 }
 
-// A tree iterator moved on (the library's ++).
-template <typename Node>
-void Increment(Node*& it) {
-    it = Node::From(stlp::rb::Next(it->Base()));
-}
-
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
@@ -72,29 +59,6 @@ void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObj
 
 // A message's virtual Write and Read over a byte cursor.
 void ReadObject(CRefObject* object, BufferCursor* cursor) { static_cast<Message*>(object)->Read(cursor); }
-
-// records_.insert(hint, pair(key, Record())) as ReadRecord inlines it (the pair constructor, the
-// insert); returns the new node.
-RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::int32_t key) {
-    Record empty;
-    ::RefPtrNull(&empty.object);
-    empty.version = 0;   // left uninitialised by the original; overwritten by every caller
-    RecordMap::ValueAbi pair;
-    pair.MakeValue(key, empty);
-    RecordMap::Node* inserted;
-    records.InsertHint(&inserted, hint, pair);
-    pair.second.object.Destroy();
-    empty.object.Destroy();
-    return inserted;
-}
-
-// The node for `key` in `records`, inserted when missing (the lower_bound + hinted insert idiom).
-RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
-    RecordMap::Node* lb;
-    records.LowerBound(&lb, key);
-    if (lb == records.end() || key < lb->first) lb = InsertRecord(records, lb, key);
-    return lb;
-}
 
 } // namespace
 
@@ -178,18 +142,9 @@ void Connection::RollBack(SentPacket* packet) {
 }
 
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
-    AttachedMap::Node* lb;
-    attached_.LowerBound(&lb, object);
-    if (lb == attached_.end() || object < lb->first) {
-        // The pair holds the type dword in the id's place (both fields are written below).
-        AttachedMap::Value pair{object, {static_cast<std::uint16_t>(type), static_cast<std::uint8_t>(type >> 16),
-                                         static_cast<std::uint8_t>(type >> 24)}};
-        AttachedMap::Node* inserted;
-        attached_.InsertHint(&inserted, lb, pair);
-        lb = inserted;
-    }
-    lb->second.id = static_cast<std::uint16_t>(key);
-    lb->second.type = static_cast<std::uint8_t>(type);
+    AttachedId& attached = attached_[object];
+    attached.id = static_cast<std::uint16_t>(key);
+    attached.type = static_cast<std::uint8_t>(type);
 }
 
 bool Connection::SendUpdate(int budget) {
@@ -227,21 +182,17 @@ bool Connection::SendUpdate(int budget) {
     *count = 0;
     for (int priority = 10; priority >= 0; --priority) {
         EntryMap& map = priorities_[priority];
-        EntryMap::Node* it = map.begin();
-        while (it != map.end()) {
-            ReplicaEntry* entry = it->second.Get();
+        for (auto it = map.begin(); it != map.end(); ++it) {
+            ReplicaEntry* entry = it->second.get();
             Message* object = entry->Object();
             bool alive;
             if (object && !(object->flags7_ & CRefObject::kDetached)) {
                 alive = true;
-                if (entry->version_ == object->version_) {
-                    Increment(it);
-                    continue;
-                }
+                if (entry->version_ == object->version_) continue;
                 if (entry->id_ == 0) {
                     entry->id_ = idPools_[entry->type_].Allocate();
                     std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                    bySentId_.Subscript(key)->Assign(entry);
+                    bySentId_[key] = entry;
                 }
                 c.PutBits(1, 1);
                 std::uint32_t id = entry->id_;
@@ -251,20 +202,14 @@ bool Connection::SendUpdate(int budget) {
                 entry->Object()->Write(&c);
             } else {
                 alive = false;
-                if (entry->id_ == 0) {
-                    Increment(it);
-                    continue;
-                }
+                if (entry->id_ == 0) continue;
                 if (entry->object_.ptr) {
                     CRefObject* key = entry->object_.ptr;
-                    byObject_.EraseKey(key);
+                    byObject_.erase(key);
                     entry->object_.Assign(nullptr);
                     entry->version_ = 0;
                 }
-                if (entry->version_ != 0) {
-                    Increment(it);
-                    continue;
-                }
+                if (entry->version_ != 0) continue;
                 c.PutBits(0, 1);
                 std::uint32_t id = entry->id_;
                 *c.p = entry->type_;
@@ -299,7 +244,6 @@ bool Connection::SendUpdate(int budget) {
                 entry->version_ = 1;
                 item->action = SentItem::kRemoved;
             }
-            Increment(it);
         }
     }
     c.End();
@@ -318,14 +262,13 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     std::uint32_t id = 0;
     cursor->ReadBytes(&id, 2);
     std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
-    RecordMap::Node* found;
-    records_.Find(&found, key);
+    auto found = records_.find(key);
     SessionBase* session = g_currentSession;
 
     if (!created) {
         // Removal.
         if (found == records_.end()) {
-            RecordAt(records_, key)->second.version = version;
+            records_[key].version = version;
             return true;
         }
         if (found->second.version >= version) {
@@ -335,7 +278,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         RefPtr* slot = &found->second.object;
         if (slot->ptr) {
             CRefObject* object = slot->ptr;
-            attached_.EraseKey(object);
+            attached_.erase(object);
             object = slot->ptr;
             session = g_currentSession;
             CallHandlers(session, 2, type, object);
@@ -350,14 +293,14 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
     if (found == records_.end()) {
         // A new object.
-        RecordMap::Node* node = RecordAt(records_, key);
+        Record& record = records_[key];
         CRefObject* object = session->types_.Create(type & 0xFF);
         if (!object) return false;
-        node->second.object.AssignObject(object);
-        node->second.version = 0;
+        record.object.AssignObject(object);
+        record.version = 0;
         AttachRecord(object, type, key);
         ReadObject(object, cursor);
-        node->second.version = version;
+        record.version = version;
         CallHandlers(g_currentSession, 0, type, object);
         return true;
     }
@@ -402,41 +345,8 @@ void Connection::Track(Replicated* item) {
     // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
 
-    CRefObject* key = item->object;
-    ObjectMap::Node* lb;
-    byObject_.LowerBound(&lb, key);
-    if (lb == byObject_.end() || item->object < lb->first) {
-        RefPtrTo<ReplicaEntry> none;
-        ::RefPtrNull(&none);
-        ObjectMap::ValueAbi pair;
-        pair.MakeValue(key, none);
-        ObjectMap::Node* inserted;
-        byObject_.InsertHint(&inserted, lb, pair);
-        lb = inserted;
-        if (pair.second.ptr) pair.second.ptr->Release();
-        if (none.ptr) none.ptr->Release();
-    }
-    CRefObject*& held = lb->second.ptr;
-    CRefObject* old = held;
-    held = entry;
-    if (entry) ++held->refs_;
-    if (old) old->Release();
-
-    EntryMap& map = priorities_[static_cast<std::int8_t>(item->priority)];
-    EntryMap::Node* lb2;
-    map.LowerBound(&lb2, entry);
-    if (lb2 == map.end() || entry < lb2->first) {
-        RefPtrTo<ReplicaEntry> none;
-        ::RefPtrNull(&none);
-        EntryMap::ValueAbi pair;
-        pair.MakeValue(entry, none);
-        EntryMap::Node* inserted;
-        map.InsertHint(&inserted, lb2, pair);
-        lb2 = inserted;
-        if (pair.second.ptr) pair.second.ptr->Release();
-        if (none.ptr) none.ptr->Release();
-    }
-    lb2->second.Assign(entry);
+    byObject_[item->object] = entry;
+    priorities_[static_cast<std::int8_t>(item->priority)][entry] = entry;
     entry->type_ = static_cast<std::uint8_t>(type);
     CRefObject* previous = entry->object_.ptr;
     entry->object_.ptr = item->object;
@@ -466,12 +376,11 @@ void Connection::CollectChanges() {
     }
 
     // Merge the sorted list with byObject_ (both ordered by object pointer).
-    ObjectMap::Node* header = byObject_.end();
-    ObjectMap::Node* node = byObject_.begin();
-    auto entryAt = [](ObjectMap::Node* n) { return n->second.Get(); };
+    auto node = byObject_.begin();
+    auto entryAt = [](auto n) { return n->second.get(); };
     if (item != end) {
         do {
-            if (node == header) {
+            if (node == byObject_.end()) {
                 for (; item < end; ++item) Track(item);
                 return;
             }
@@ -479,39 +388,37 @@ void Connection::CollectChanges() {
             CRefObject* listed = item->object;
             CRefObject* tracked = entry->object_.ptr;
             if (listed == tracked) {
-                Increment(node);
+                ++node;
                 ++item;
             } else if (listed < tracked) {
                 Track(item);
                 ++item;
             } else {
                 // Tracked but no longer listed: never sent -> forgotten; sent -> marked gone.
-                ObjectMap::Node* gone = node;
-                Increment(node);
+                auto gone = node++;
                 entry = entryAt(gone);
                 if (entry->id_ == 0) {
-                    priorities_[entry->flags_ >> 1].EraseKey(entry);
+                    priorities_[entry->flags_ >> 1].erase(entry);
                 } else {
                     CRefObject* old = entry->object_.ptr;
                     entry->object_.ptr = nullptr;
                     if (old) old->Release();
                     entry->version_ = 0;
                 }
-                byObject_.EraseAt(gone);
+                byObject_.erase(gone);
             }
         } while (item != end);
     }
-    while (node != header) {
-        ObjectMap::Node* gone = node;
-        Increment(node);
+    while (node != byObject_.end()) {
+        auto gone = node++;
         ReplicaEntry* entry = entryAt(gone);
         if (entry->id_ == 0) {
-            priorities_[entry->flags_ >> 1].EraseKey(entry);
+            priorities_[entry->flags_ >> 1].erase(entry);
         } else {
             entry->object_.Assign(nullptr);
             entry->version_ = 0;
         }
-        byObject_.EraseAt(gone);
+        byObject_.erase(gone);
     }
 }
 
@@ -538,27 +445,15 @@ void BufferCursor::PutBit(std::uint32_t bit) {
 
 namespace net {
 
-namespace {
-// The entries' 16-bit reference count, as the original inlines RefPtr<ReplicaEntry> assignment:
-// the old entry is deleted when its count reaches zero.
-void AssignEntry(RefPtr* slot, ReplicaEntry* entry) {
-    CRefObject* old = slot->ptr;
-    slot->ptr = entry;
-    if (entry) ++entry->refs_;
-    if (old && --old->refs_ == 0) delete old;
-}
-} // namespace
-
 void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (IsLive(object)) {
-        ObjectMap::Node* found;
-        byObject_.Find(&found, object);
+        auto found = byObject_.find(object);
         if (found != byObject_.end()) {
-            auto* entry = found->second.Get();
+            ReplicaEntry* entry = found->second.get();
             if (entry->id_ == 0) {
                 entry->id_ = idPools_[entry->type_].Allocate();
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                AssignEntry(bySentId_.Subscript(key), entry);
+                bySentId_[key] = entry;
             }
             std::uint16_t id = entry->id_;
             std::uint8_t type = entry->type_;
@@ -567,8 +462,7 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
             cursor->WriteBytes(&id, 2);
             return;
         }
-        AttachedMap::Node* node;
-        attached_.Find(&node, object);
+        auto node = attached_.find(object);
         if (node != attached_.end()) {
             std::uint16_t id = node->second.id;
             std::uint8_t type = node->second.type;
@@ -596,15 +490,13 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     std::int32_t key = static_cast<std::int32_t>(((type & 0xFF) << 16) + (id & 0xFFFF));
     if ((id & 0xFFFF) == 0) return nullptr;
     if (sent) {
-        SentIdMap::Node* node;
-        bySentId_.Find(&node, key);
+        auto node = bySentId_.find(key);
         if (node == bySentId_.end()) return nullptr;
-        return node->second.Get()->object_.ptr;
+        return node->second->object_.ptr;
     }
-    RecordMap::Node* found;
-    records_.Find(&found, key);
+    auto found = records_.find(key);
     if (found == records_.end()) {
-        Record* record = records_.Subscript(key);
+        Record* record = &records_[key];
         CRefObject* object = g_currentSession->types_.Create(type & 0xFF);
         if (!object) return nullptr;
         if (object != record->object.ptr) {
@@ -626,7 +518,7 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         slot->Share(object);
     }
     found->second.version = 0;
-    AttachedId* attachedId = attached_.Subscript(object);
+    AttachedId* attachedId = &attached_[object];
     attachedId->id = static_cast<std::uint16_t>(key);
     attachedId->type = static_cast<std::uint8_t>(type);
     return object;
@@ -779,8 +671,7 @@ bool Connection::ReadUpdate(BufferCursor* cursor) {
 
 void Connection::Close() {
     g_currentConnection = this;
-    RecordMap::Node* it = records_.begin();
-    while (it != records_.end()) {
+    for (auto it = records_.begin(); it != records_.end(); ++it) {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
             SessionBase* session = g_currentSession;
@@ -792,7 +683,6 @@ void Connection::Close() {
             slot->Destroy();
             slot->ptr = nullptr;
         }
-        Increment(it);
     }
     g_currentConnection = nullptr;
 }
