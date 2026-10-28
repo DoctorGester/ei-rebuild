@@ -39,7 +39,9 @@ shim, stub or workaround lands.
   types the function vectors copy as bytes or read in game.exe's memory through our header (UnitParams,
   DamageInfo, IsaacRandom, LogicSettings, CoderState, the path cells). Some saves write a record by a literal
   size (`Read(&alarm, 16)`, `Read(views_, 0xC0)`): grep `Read(&x, <number>)` as well as `sizeof` before
-  dropping one. ParticleElement keeps its views' padding: the union's views alias each other's slots.
+  dropping one. A literal-size memset can cover a pad after its member: CObject3DClientSpecific's
+  `memset(&sphere, 0, 0x38)` cleared the bounds and the 12 pad bytes after them, and zeroed `drawnRect` once the pad
+  went (now `sizeof(sphere)`); grep `mem(set|cpy)(..., <number>)` near the class too. ParticleElement keeps its views' padding: the union's views alias each other's slots.
 - Placeholder names: `Vector3::Construct`, `CMappedFile::Construct` (original constructors written as
   methods returning `this` so they could be registered; real constructors), `using BOOL = int` (return
   values the original sets in all of EAX).

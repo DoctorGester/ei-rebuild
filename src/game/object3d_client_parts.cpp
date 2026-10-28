@@ -90,7 +90,7 @@ TextureParts::~TextureParts() {
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
     texture = nullptr;
-    std::memset(&sphere, 0, 0x38);
+    std::memset(&sphere, 0, sizeof(sphere));
     woundsTexture = nullptr;
     woundsMaterial = nullptr;
     materialCursor = -1;
@@ -114,7 +114,7 @@ int CObject3DClientSpecific::Create() {
     bounds[2] = 0.0f;
     bounds[1] = 0.0f;
     bounds[0] = 0.0f;
-    std::memset(&sphere, 0, 0x38);
+    std::memset(&sphere, 0, sizeof(sphere));
     partSets[0] = nullptr;
     partSets[1] = nullptr;
     touchTime = 0;
