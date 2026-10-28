@@ -64,7 +64,7 @@ constexpr int kProgressDone = 7;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// A dword written through a stack copy, as most scalars are.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;

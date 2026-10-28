@@ -100,7 +100,7 @@ void Transpose(float* m) {
 void FillMatrixStacks(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     MatrixStack* stacks = pipeline->stacks_;
-    // The camera's near and far distances and field of view, as dwords.
+    // The camera's near and far distances and field of view.
     const CCamera* cam = &g_camera.Get();
     float zNear, zFar, fov;
     std::memcpy(&zNear, &cam->nearDistance_, 4);
@@ -132,7 +132,7 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
 }
 
 // The pipeline's viewport size (floats) and depth range (the options' fog start and far clip distances, moved
-// as dwords; both arguments must be passed, or the callee's stack cleanup unbalances the stack).
+// bit for bit; both arguments must be passed, or the callee's stack cleanup unbalances the stack).
 void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     const RECT& screen = renderer->device_->screen_;
     float width = static_cast<float>(screen.right - screen.left);
@@ -183,7 +183,7 @@ void SetRenderStates(CSceneRenderer* renderer, const GameOptions* settings) {
 }
 
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
-// +0x100 = 1e12, +0x104 = 1e-12 (stored as dwords).
+// +0x100 = 1e12, +0x104 = 1e-12.
 void AddDefaultLight(CSceneRenderer* renderer) {
     CLight* light = g_clientWorld->lightFactory_->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};

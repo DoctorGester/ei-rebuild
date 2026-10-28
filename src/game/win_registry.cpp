@@ -93,7 +93,7 @@ int CWinRegistry::GetInt(const char* subkey, const char* name, int defaultValue)
 }
 
 double CWinRegistry::GetFloat(const char* subkey, const char* name, std::uint32_t defaultBits) {
-    // The value is read into the stack slot of `subkey`, so a shorter value keeps the pointer's
+    // The value is read into the storage of `subkey`, so a shorter value keeps the pointer's
     // remaining bytes.
     std::uint32_t bits = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(subkey));
     DWORD type;

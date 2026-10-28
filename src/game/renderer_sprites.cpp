@@ -250,7 +250,7 @@ bool DrawQuads(CSceneRenderer* renderer, int sprites) {
 }
 
 // The render target's size (the holder's render target's width / height) while there is a primary
-// surface; both are kept in stack slots that are never initialised, so without a
+// surface; both are kept in stack memory that is never initialised, so without a
 // surface the previous batch's values (here 0 at first) are used.
 struct ScreenSize {
     std::uint32_t width = 0;

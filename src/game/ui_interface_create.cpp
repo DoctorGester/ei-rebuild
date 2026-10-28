@@ -79,7 +79,7 @@ void ChooseKeyboardLayout() {
 
 void CInterface3D::Create(CTextureDevice* device) {
     renderer_ = device;
-    // (Without a primary surface the original game stores an uninitialised stack slot in both.)
+    // (Without a primary surface the original game stores uninitialised stack memory in both.)
     int width = 0;
     int height = 0;
     if (device->primary_) {

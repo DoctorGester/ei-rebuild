@@ -54,7 +54,7 @@ constexpr float kEmitterMaxScale = 255.0f;
 // pi and pi / 2 (set by a static initialiser).
 float Pi() { return 3.1415927f; }
 constexpr float kHalfPi = /*007C8808*/ 1.5707964f;
-// The fade step every fade request uses (1/96), copied as a dword.
+// The fade step every fade request uses (1/96).
 std::uint32_t FadeStepBits() { return 0x3C2AAAABu; }
 // StopStream's fade-out step, loaded and tested as a float.
 float StopFadeStep() { return 0.010416667f; }

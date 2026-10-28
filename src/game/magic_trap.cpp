@@ -186,7 +186,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
-    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // copied as dwords
+    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
 
     area = record->area;
     points = record->points;

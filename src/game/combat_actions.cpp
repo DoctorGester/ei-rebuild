@@ -31,7 +31,7 @@ namespace {
 constexpr float kZero = 0.0f;
 constexpr float kHitNoiseScale = 2.0f;
 constexpr float kSkillNoiseScale = 1.5f;
-constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared as a dword
+constexpr std::uint32_t kOneBits = 0x3F800000u;                 // 1.0f, compared by its bits
 constexpr int kNoiseKind = 0x1A;
 
 constexpr int kWeaponBow = 5;

@@ -339,7 +339,7 @@ bool SetWeather(Call* call) {
 }
 
 // AddMobEx(file, [keep ids]): loads a .mob file's objects with the loading movie off meanwhile.
-// addon pushes its byte flag as a dword whose upper bytes are left over on its stack; here it is
+// addon pushes its byte flag as a 4-byte value whose upper bytes are left over on its stack; here it is
 // 0 or 1.
 bool AddMobEx(Call* call) {
     std::string file;

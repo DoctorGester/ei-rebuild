@@ -48,7 +48,7 @@ constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 // destroys it again. The prototype and material records are read without a null check where the game reads them
 // without one (a missing record faults there).
 
-// A dword copied as a dword (mov), so float bit patterns pass unchanged.
+// A dword copied bit for bit, so float bit patterns pass unchanged.
 template <typename T> void CopyBits(T& to, const T& from) {
     static_assert(sizeof(T) == 4);
     std::memcpy(&to, &from, sizeof(T));
@@ -214,7 +214,7 @@ const std::string* HeadName(const ItemRecordHead* record) { return &record->name
 
 void CItem::InitFromRecord(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU, which quiets a signalling NaN; the other fields are
-    // copied as dwords.
+    // copied bit for bit.
     std::memcpy(&conditionMax_, &head->condition, sizeof(float));
     std::memcpy(&condition_, &head->condition, sizeof(float));
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);

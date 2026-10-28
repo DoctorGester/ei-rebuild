@@ -221,7 +221,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         // Greyed: half bright, lying still, scaled to fit the cell by the model's larger extent.
         SetShade(model, 0.5f);
         SetOrientation(model, LiesFlat(item) ? HalfTurn(0.0f, 0.0f, 1.0f) : HalfTurn(1.0f, 0.0f, 0.0f));
-        // The larger of the box's x and y extents: y when x is below it (or NaN), selected as dwords.
+        // The larger of the box's x and y extents: y when x is below it (or NaN), selected by their bits.
         const Vector3& extents = model->box_.bounds.boxMax;
         EI_NAN_AUDIT(extents.y, extents.x);
         float extent = extents.x < extents.y ? extents.y : extents.x;

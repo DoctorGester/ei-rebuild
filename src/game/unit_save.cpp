@@ -32,7 +32,7 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
     return record ? static_cast<int>(record - g_unitDatabase->prototypes.records.data()) : -1;
 }
 
-// Writes `value` from a stack copy, as for most scalars.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));

@@ -43,7 +43,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
-    // The attributes and height to keep (copied as dwords).
+    // The attributes and height to keep (copied bit for bit).
     float strength = kDefaultAttribute;
     float dexterity = kDefaultAttribute;
     float intelligence = kDefaultAttribute;

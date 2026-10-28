@@ -680,7 +680,7 @@ void UnitMotion::SaveState(CStream* stream) {
     count = std::ssize(stepSpeeds);
     stream->Write(&count, 4);
     for (const float& step : stepSpeeds) stream->Write(&step, 4);
-    // Copied through a local as dwords.
+    // Copied bit for bit.
     const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
     for (const float* field : fields) {
         std::uint32_t value;

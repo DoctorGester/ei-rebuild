@@ -573,7 +573,7 @@ static_assert(offsetof(UnitVitals, hitPoints) == 0x08);
 static_assert(offsetof(UnitVitals, protection) == 0x20);
 static_assert(sizeof(UnitVitals) == 0x58);
 
-// A creature's computed statistics (built from the unit's parameters, often as a stack copy).
+// A creature's computed statistics (built from the unit's parameters).
 struct UnitStats {
     // Indices of combat[].
     enum CombatIndex { kReach, kAttack, kAttackSpread, kDefence, kSpeed };

@@ -713,7 +713,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     gameapi::SetCursor(nullptr);
 
     // "The interface takes the input" is carried in one byte and set after every pass. Before
-    // the first pass it holds the top byte of a stack slot that start-up used last for the disc
+    // the first pass it holds the top byte of stack memory that start-up used last for the disc
     // folder's text (with sound) or for the free non-local video memory (without): a message that
     // waits before the first pass goes to the interface when that byte is not zero.
     std::uintptr_t reusedSlot = CreateRenderer();

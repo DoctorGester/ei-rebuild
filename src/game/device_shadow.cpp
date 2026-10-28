@@ -27,7 +27,7 @@ constexpr int kScreenStack = 1;
 void ScaleZ(float* z, const float* scale) { *z = *scale * *z; }
 
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
-// (each copied as qwords).
+// (each copied whole).
 void Fill(TLVertex* out, int count, const void* colours, const void* uvs) {
     const ProjectedVertex* projected = g_projected.data();
     for (int i = 0; i < count; ++i) {

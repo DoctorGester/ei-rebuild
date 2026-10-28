@@ -29,7 +29,7 @@ namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
 float InitialCallRadius() { return 10.0f; }
-// A new fear mode's distance (copied as a dword).
+// A new fear mode's distance (copied bit for bit).
 std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
@@ -92,7 +92,7 @@ void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
         RemoveObjectNode(list, node);
 }
 
-// Each scalar is copied into a stack slot before it is written.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;

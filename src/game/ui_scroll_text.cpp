@@ -49,7 +49,7 @@ constexpr int kSurfaceFormat = 5;
 constexpr int kJustified = 2;
 constexpr int kScrollbarSprites = 4;
 // The layout measures fonts 0-2; a format token may name any digit. The original reads its other
-// stack slots (font 3: its return address) for the others; here they are 0.
+// stack memory (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
 
 void TokenizeText(CUiScrollText* self, std::string_view text) {
@@ -197,7 +197,7 @@ void CUiScrollText::DrawLines(int scroll) {
             if (tokens_[t]->type_ == kWordType) wordsWidth += tokens_[t]->AsWord()->width_;
         // Left aligned (a third of the font's height apart), or justified over the width. The
         // last token is read before the count is checked, as in the original. (A font above 2
-        // reads past `heights`; the original reads its other stack slots there.)
+        // reads past `heights`; the original reads its other stack memory there.)
         int gap;
         const UiTextToken* last = align_ != kAlignLeft ? tokens_[end - 1] : nullptr;
         if (align_ == kAlignLeft ||

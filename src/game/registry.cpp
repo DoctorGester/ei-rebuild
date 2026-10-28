@@ -44,7 +44,7 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
     return sum % slots;
 }
 
-// GetIntArray / GetFloatArray: the values are copied as dwords.
+// GetIntArray / GetFloatArray: the values are copied bit for bit.
 template <typename T>
 BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
     int isScalar;

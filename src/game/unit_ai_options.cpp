@@ -71,7 +71,6 @@ void AIAttackOption::Load(CStream* stream) {
 }
 
 void AIAttackOption::Save(CStream* stream) const {
-    // The fields after the first go through a stack copy.
     stream->Write(&kind, 4);
     for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
                                 std::bit_cast<std::uint32_t>(maxCount), std::bit_cast<std::uint32_t>(radius),

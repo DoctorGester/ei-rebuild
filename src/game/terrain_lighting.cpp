@@ -111,7 +111,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         record->lit.z = AtMostOne(static_cast<float>(ambient.z + colour.z));
         return;
     }
-    // The fourth component is an uninitialised stack slot; only copied through.
+    // The fourth component is uninitialised stack memory; only copied through.
     Vector4 shaded;
     Vector4 source = {colour.x, colour.y, colour.z, 0.0f};
     sun->AddDirectional(&shaded, attenuation, &source, &record->normal);

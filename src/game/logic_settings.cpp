@@ -6,7 +6,7 @@
 #include <cstring>
 
 namespace {
-// Up to three values of a [DifficultyLevels] array into `out` (copied as dwords).
+// Up to three values of a [DifficultyLevels] array into `out` (copied bit for bit).
 void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
     std::vector<std::uint32_t> values{};
     reg.GetFloatArray("DifficultyLevels", key, &values);

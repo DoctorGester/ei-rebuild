@@ -379,7 +379,7 @@ int CPlayerClient::OnItemsReceived() {
     int& money = player_->Party()->money_;
     int before = money;
     in_.Read(&money, 4);
-    std::uint8_t flag = 0;   // the original passes this byte with three bytes of the stack slot above it
+    std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
     in_.Read(&flag, 1);
     int result = 1;
     for (;;) {

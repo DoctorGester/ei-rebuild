@@ -98,7 +98,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));
         return;
     }
-    // The database the animation is in: its index (read as a dword) back to the first one.
+    // The database the animation is in: its index back to the first one.
     int index;
     std::memcpy(&index, &animation->index, sizeof(index));
     const auto* database = reinterpret_cast<const AnimationDatabase*>(

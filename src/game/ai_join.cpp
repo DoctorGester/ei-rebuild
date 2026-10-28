@@ -61,7 +61,7 @@ bool CAIMap::JoinLocalSearches(PathCells* path, int* cost) {
 
 void CAIMap::BuildCellsTo(int x, int y, PathCells* path) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return;
-    // The original gives each cell's speed word and terrain bits a stack slot it never writes (the planner's last
+    // The original takes each cell's speed word and terrain bits from stack memory it never writes (the planner's last
     // call left a search's row offset there); ours get the plain words.
     auto cellAt = [](int cx, int cy) {
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), kPlainStepSpeed, 0};

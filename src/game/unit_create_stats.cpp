@@ -49,7 +49,7 @@ volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_ninety = 90.0;
 
-// These are stored as dwords (bit patterns), not through the FPU.
+// These are stored as bit patterns, not through the FPU.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(field)); }
 template <typename To, typename From>
 void CopyDword(To& to, const From& from) {

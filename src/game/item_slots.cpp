@@ -46,7 +46,7 @@ BOOL CItem::IsSameAs(CItem* other) {
 BOOL CItemArmor::IsSameAs(CItem* item) {
     if (!CItem::IsSameAs(item)) return 0;
     auto* other = AsArmor(item);
-    // Both absorption rows and the layer masks, compared as dwords.
+    // Both absorption rows and the layer masks, compared by their bits.
     static_assert(offsetof(CItemArmor, layerMask_) + sizeof(layerMask_) - offsetof(CItemArmor, absorb_) == 0x40);
     return std::memcmp(absorb_, other->absorb_, 0x40) == 0 ? 1 : 0;
 }

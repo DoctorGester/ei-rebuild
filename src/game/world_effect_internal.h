@@ -83,7 +83,7 @@ inline bool SnapshotReadToEnd() {
 inline void Read(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 inline void Write(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 inline int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
-// A dword written through a stack copy, which is how the original writes most scalars.
+// Writes the dword at `field`.
 inline void WriteCopy(CStream* stream, const void* field) {
     std::uint32_t copy;
     std::memcpy(&copy, field, 4);

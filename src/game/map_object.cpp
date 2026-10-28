@@ -104,7 +104,7 @@ void CMapObject::AddEffect(const MapEffect* effect) {
     if (refCount_ != 0) {
         if (CWorld* world = World()) changeStamp = UpdateCount(world);
     }
-    // The original keeps the flag in the low byte of its argument's stack slot and passes the whole dword on.
+    // The original keeps the flag in the low byte of its argument's stack memory and passes the whole dword on.
     int type = effect->type;
     bool scales = type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
                   type == mapeffect::kShrink;

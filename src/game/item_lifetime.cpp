@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr std::uint32_t kMinusOne = 0xBF800000;   // -1.0f, stored as a dword
+constexpr std::uint32_t kMinusOne = 0xBF800000;   // -1.0f
 
 template <typename T>
 void SetMinusOne(T& field) {

@@ -110,7 +110,7 @@ Connection::Connection(const Connection& other)
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
     received_ = other.received_;
-    // id, round trips; timers, clock, budget: copied as dwords.
+    // id, round trips; timers, clock, budget: copied bit for bit.
     std::memcpy(&id_, &other.id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     address_ = other.address_;
     std::memcpy(&sendInterval_, &other.sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));

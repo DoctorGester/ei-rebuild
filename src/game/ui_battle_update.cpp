@@ -128,7 +128,7 @@ namespace {
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
-// The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
+// The unit panel's model view for the unit it now shows, copied from the prototype bit for bit: the
 // size from `first`'s, the height from the shown unit's (+0x24; the same unit).
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
