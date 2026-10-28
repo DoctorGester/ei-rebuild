@@ -4927,3 +4927,59 @@ title = "Offset-named members still left after C40a: manager3C_..58_ / manager18
 group = "cleanup"
 depends = ["C40a"]
 note = "Found by C40a (2026-10-28): members still named after an offset or a format id, not in C40a's list. Name each from its setters and readers (rewrite guide, the offset-name rule), as one scripted rename like C40 / C40a (C:\\Users\\Kirill\\AppData\\Local\\Temp\\claude\\E--workspace-ei\\68b512f1-2aa8-49c2-bc9c-9e235d7da745\\scratchpad\\C40a\\rename_c40a.py is the pattern). Also the methods UnitStats::Value6E8 / Value6E9."
+
+[[ticket]]
+id = "C41"
+title = "Comments: drop the original-binary addresses and the decompilation narration"
+group = "cleanup"
+model = "sonnet"
+depends = ["C38c"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G1. ~1,370 /*00XXXXXX*/ address comments in 232 files: strip by script (sed -E 's@ ?/[*]0[0-9A-F]{7}( f)?[*]/@@g'), then fix lines whose comment became empty (= /*addr*/ {nullptr} -> = nullptr). Check first that no tool reads them; keep a generated list in docs/notes only for data still generated from game.exe (S18d). Then the narration: ~650 lines on x87 instructions / stack slots / 'integer moves' / 'as a dword', ~100 'the inlined ...', 97 'slot N', ~130 naming MFC / STLport operations on std code: rewrite to say what the code does, or delete. Keep 'the original ...' lines that explain a kept quirk. Add the banned words to tools/comments.py. Comment-only: goldens unchanged. Batches by directory."
+
+[[ticket]]
+id = "C42"
+title = "Constants: literal-returning functions, kOne / kZero / kHalf, bit_cast literals"
+group = "cleanup"
+model = "sonnet"
+depends = ["C41"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G2 + G3. ~200 one-liners like float CellSize() { return 1.0f; } (CellSize x8; camera.h's CellSize reads an option: rename it) and 78 kOne/kZero/kHalf/kTwo: delete every multiply / divide by 1.0 (exact), the rest become literals or real constexpr names in the owning header (check the float vs double type is not the point). 122 std::bit_cast<float>(0x...) constants (60 values): a script swaps those that round-trip through float32 repr for the literal with a static_assert. Goldens must stay the same."
+
+[[ticket]]
+id = "C43"
+title = "Float copies: memcpy / memset of one float or a Vector3 to assignment, one x87 bit-copy helper"
+group = "cleanup"
+model = "sonnet"
+depends = ["C42"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G4. 142 memcpy(..., sizeof(Vector3)) -> a = b (script); ~366-473 4-byte memcpy / memset: memset(&f, 0, 4) -> f = 0.0f, copies where NaN bits must survive (/arch:IA32) through one x87::CopyBits in include/ei/x87.h, the rest plain assignment; replace per-file helpers (CopyFloat x2, CopyBits, FloatOf, SetMinusOne, Bits, SignClear / SignSet); uint32 'float bits' fields -> float; 3 memcpy from string literals. Extend check_x87 to flag new raw 4-byte copies. Golden-check per batch."
+
+[[ticket]]
+id = "C44"
+title = "Typed stream I/O: ReadValue / WriteValue instead of Read(&x, 4)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C43"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G5. ~690 stream->Read(&x, 4) / Write(&x, kDword) / Field(id, &x, 4) calls, WriteCopy x7, ReadField. Add template ReadValue(T&) / WriteValue(const T&) with static_assert(trivially copyable) to core_streams.h; a regex replaces the calls, order unchanged. Saves byte-identical (goldens' decoded saves)."
+
+[[ticket]]
+id = "C45"
+title = "Shared enums: class ids, item kinds and categories, AI order kinds, flag words, save versions"
+group = "cleanup"
+model = "opus"
+depends = ["C44"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G6. Script: one ClassId enum in engine_object.h replacing 63 local kClass* constants (0x50 has three names) and 35 raw GetClassId() bodies; 97 raw 0x3004..0x3009 -> the existing kItem* enum. By hand, one enum per kind / flag word in the owning header: ItemCategory (category 8 is a wand in item_constructor.cpp, a potion in item_stock.cpp), item loot kind / record type (hidden in item_names.cpp), UnitOrderKind (137 kind == N, 0x18A95 x14), AIRemark, AIModeType, attack options, landscape flags (named only in world_client_maps.cpp / world_glue.cpp), terrain build stages; ~363 raw flag tests overall, start with these; 27 save-version literals -> save_versions.h."
+
+[[ticket]]
+id = "C46"
+title = "Shared constants and helpers instead of per-file copies"
+group = "cleanup"
+model = "sonnet"
+depends = ["C45"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G7. kRow = 33 x10, kPi in many files (one in lib/vecmath.h), PositionOf x10 with five return types (-> &unit->localPosition_), Allied x3 / Diplomacy() x5 (-> CDiplomacy::IsAllied for the 16 allied_[...] & (1u << ...) sites), IsGone x2, ReleaseRef x2; ~84 raw sign-bit tests and 8 select helpers with different names (Max, Lower, AtMostOne, ...) -> one float_select header (SignBit, MinKeepA / MaxKeepA) or std::min where it matches, NaN included. Goldens unchanged."
+
+[[ticket]]
+id = "C47"
+title = "Small mechanical cleanups: range-for, RandBelow, dead checks, ClassName, include paths, .clang-format"
+group = "cleanup"
+model = "sonnet"
+depends = ["C46"]
+note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G8. ~233 iterator loops and 37 pointer-pair loops whose body has no erase / insert -> range-for; 17 Rand() * n / 0x7FFF -> RandBelow(n) keeping the exact expression; delete 14 null checks after new, 7 self-assignment guards, 5 'fetched and not used' calls; rename the GetClassName virtual to ClassName() and drop 61 #undef GetClassName; 31 '../lib/' includes -> 'lib/'; add a .clang-format (include grouping, continuation indent) and apply it to touched files only."
