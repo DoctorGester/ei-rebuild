@@ -61,7 +61,7 @@ void CUiModel::Play(int animation) {
 void CUiModel::Stop() {
     CObject3D* object = object_;
     std::string name(object->name);
-    object->PlayAnimation(TheObjectManager()->FindAnimation(&name, kRestPoseKind), 1);
+    object->PlayAnimation(g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind), 1);
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).

@@ -63,7 +63,7 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 
-int FindText(const char* key) { return TheTextManager()->Open(key); }
+int FindText(const char* key) { return g_clientWorld->texts_->Open(key); }
 
 // The quest the window last selected (a global CString): built empty by its static initialiser in the list's
 // order, destroyed once by the exit function it registers. Both are defined on their names
@@ -343,8 +343,8 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                 foundText = FindText(key.c_str());
             }
             if (foundText) {
-                TheTextManager()->ReadLine(&title, 1);
-                TheTextManager()->ReadToHash(&text, 1);
+                g_clientWorld->texts_->ReadLine(&title, 1);
+                g_clientWorld->texts_->ReadToHash(&text, 1);
                 CUiSurface* surface = surfaces_[1];
                 UiSurfaceGetDC(surface);
                 surface->Clear();
@@ -363,7 +363,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
 // --- The selected quest ------------------------------------------------------------------
 
 void CObjectivesWindow::ShowQuest() {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string line;
     std::string part;
     std::string text;
@@ -484,7 +484,7 @@ void CObjectivesWindow::CreateScreen() {
     std::string key;
     for (int k = 0; k < 3; ++k) {
         key = str::Format("obj_%d", k);
-        TheTextManager()->GetString(key.c_str(), &text);
+        g_clientWorld->texts_->GetString(key.c_str(), &text);
         objectiveTexts_.push_back(text);
     }
 
@@ -628,7 +628,7 @@ void CObjectivesWindow::CreateScreen() {
     interface_->OpenHelp(0);
 }
 void CObjectivesWindow::DrawQuestList() {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string title;
     std::string variable;
     auto mesh = [this](int index) { return SceneMesh(index); };

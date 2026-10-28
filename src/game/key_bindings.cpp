@@ -13,6 +13,7 @@
 #include "text_split.h"
 #include "ui.h"
 #include "world_glue.h"
+#include "game_singletons.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -51,7 +52,7 @@ std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) 
 // Opens the bindings file with `mode` (TextFile::Open's).
 bool OpenFile(lib::TextFile& file, const char* mode) {
     std::string path;
-    return file.Open(*ConcatText(&path, GameDataPathString(), "config\\keyboard.ini"), mode);
+    return file.Open(*ConcatText(&path, &g_dataFolder.Get(), "config\\keyboard.ini"), mode);
 }
 
 } // namespace

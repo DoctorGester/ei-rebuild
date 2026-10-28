@@ -22,6 +22,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
+#include "world.h"
 
 // Set while a .mob file loads (CWorldServer::LoadMobFile, AddMobEx): the loading screen's movie stays as it is.
 std::uint8_t g_loadingMovieOff = /*007C554C*/ {};
@@ -44,10 +45,6 @@ constexpr unsigned kBinkSurface32R = 4;                      // BinkCopyToBuffer
 RECT g_loadingScreen = /*007C5520*/ {};
 BinkHeader* g_loadingBink = /*007C5550*/ {nullptr};
 unsigned g_loadingSurfaceType = /*007C5554*/ {};
-
-int MoviesMode() { return options::g_options->video_; }           // 0 off, 1 at size, 2 stretched to the width
-int MovieSound() { return options::g_options->audio_; }
-int MovieVolume() { return options::g_options->audioStreaming_; }          // percent
 
 // The movie's surface holder: null at the start; the exit function its static initialiser registers releases
 // it once.
@@ -76,7 +73,7 @@ CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
 }
 
 // A movie frame drawn outside the game's frame becomes a frame of the new renderer, shown by the present.
-void PresentMovieFrame() { DevicePresent(TheRenderDevice()); }
+void PresentMovieFrame() { DevicePresent(g_sceneRenderer->device_); }
 
 int g_movieKey;   // the blocking player's movie in the new renderer
 
@@ -89,7 +86,7 @@ void ReleaseLoadingHolder() {
 }
 
 unsigned CBinkVideo::Frame(char toPrimary) {
-    if (!MoviesMode()) return 0;   // movies off
+    if (!options::g_options->video_) return 0;   // movies off
     BinkHeader* binkHandle = this->bink;
     if (!binkHandle) return 0;
     if (gameapi::BinkWait(binkHandle) == 0) {
@@ -115,27 +112,27 @@ unsigned CBinkVideo::Frame(char toPrimary) {
 // rectangle. Returns 0 when Esc ended it.
 char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int /*unused*/) {
-    if (!MoviesMode()) return 1;
+    if (!options::g_options->video_) return 1;
     const char* file = name.c_str();
-    if (loadingStep) TheSoundManager()->StopAll(1);
-    if (MovieSound()) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, TheSoundManager()->waveDriver);
+    if (loadingStep) g_clientWorld->sounds_->StopAll(1);
+    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld->sounds_->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", file);
         return 1;
     }
-    gameapi::BinkSetVolume(bink, MovieVolume() * 0x7FF6 / 100);
+    gameapi::BinkSetVolume(bink, options::g_options->audioStreaming_ * 0x7FF6 / 100);
     g_cursor->ShowImage(0);
     // (The game fills the primary black and clears the render target when `clearScreen`: the new
     // frames fill the screen themselves, render::Fill below.)
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
-    CDXSurface* holder = NewMovieHolder(TheRenderDevice(), width, height);
+    gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
+    CDXSurface* holder = NewMovieHolder(g_sceneRenderer->device_, width, height);
     // The frame's rectangle: mode 2 stretched to the screen's width (aspect kept), otherwise
     // centred at its size; both centred vertically (divisions round towards zero).
     RECT to;
-    if (MoviesMode() == 2) {
+    if (options::g_options->video_ == 2) {
         int screenWidth = screen.right - screen.left;
         int shown = static_cast<int>(static_cast<double>(screenWidth) * (static_cast<double>(height) / static_cast<double>(width)));
         to.left = 0;
@@ -220,9 +217,9 @@ void ShowLoadingMovie(int progress) {
             return;
         }
         RECT screen;
-        gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
+        gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
         CDXSurface* holder =
-            NewMovieHolder(TheRenderDevice(), static_cast<int>(g_loadingBink->width), static_cast<int>(g_loadingBink->height));
+            NewMovieHolder(g_sceneRenderer->device_, static_cast<int>(g_loadingBink->width), static_cast<int>(g_loadingBink->height));
         CDXSurface* old = g_loadingHolder;
         g_loadingHolder = holder;
         if (old) old->Release();
@@ -270,9 +267,9 @@ void ShowLoadingMovie(int progress) {
 // the height trunc(height / width * screen width), centred vertically (divisions by 2 round towards zero).
 char CBinkVideo::Open(const char* name, char loadingStep) {
     if (bink) gameapi::BinkClose(bink);
-    if (!MoviesMode()) return 0;
-    if (loadingStep) TheSoundManager()->StopAll(1);
-    if (MovieSound()) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, TheSoundManager()->waveDriver);
+    if (!options::g_options->video_) return 0;
+    if (loadingStep) g_clientWorld->sounds_->StopAll(1);
+    if (options::g_options->audio_) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, g_clientWorld->sounds_->waveDriver);
     bink = OpenBink(name, 0);
     if (!bink) {
         game::DebugLog("Can't open (or bad format) video file %s.\n", name);
@@ -281,13 +278,13 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     g_cursor->ShowImage(0);
     int width = static_cast<int>(bink->width), height = static_cast<int>(bink->height);
     RECT screen;
-    gameapi::CopyRect(&screen, &TheRenderDevice()->screen_);
-    CDXSurface* made = NewMovieHolder(TheRenderDevice(), width, height);
+    gameapi::CopyRect(&screen, &g_sceneRenderer->device_->screen_);
+    CDXSurface* made = NewMovieHolder(g_sceneRenderer->device_, width, height);
     CDXSurface* previous = holder;
     holder = made;
     if (previous) previous->Release();
     surfaceType = kBinkSurface32R;
-    if (MoviesMode() == 1) {
+    if (options::g_options->video_ == 1) {
         int x = (screen.right - width - screen.left) / 2;
         int y = (screen.bottom - height - screen.top) / 2;
         to = RECT{x, y, width + x, height + y};

@@ -106,7 +106,7 @@ void CUnit::LoadUnit(CStream* stream) {
     stream->Read(&pendingWeapon, 4);
     stream->Read(&dead, 4);
     stream->Read(&obstacle, 4);
-    Motion()->LoadState(stream);
+    motion.LoadState(stream);
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
     stream->Read(&unitRadius, 4);
@@ -163,7 +163,7 @@ void CUnit::SaveUnit(CStream* stream) {
     WriteCopy(stream, pendingWeapon);
     WriteCopy(stream, dead);
     WriteCopy(stream, obstacle);
-    Motion()->SaveState(stream);
+    motion.SaveState(stream);
     WriteCopy(stream, heightOffset);
     WriteCopy(stream, sizeClass);
     WriteCopy(stream, std::bit_cast<std::uint32_t>(unitRadius));

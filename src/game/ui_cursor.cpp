@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
+#include "model.h"
+#include "world.h"
 
 // --- a cursor image ------------------------------------------------------------------------------
 
@@ -37,10 +39,10 @@ void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits
 CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag) {
     holder = nullptr;
     frame = 0;
-    CTextureManager* manager = TheTextureManager();
+    CTextureManager* manager = g_clientWorld->textureManager_;
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw frees the holder's memory and passes the exception on; that ends the game.)
-    holder = new CDXSurface(TheRenderDevice(), picture, flag);
+    holder = new CDXSurface(g_sceneRenderer->device_, picture, flag);
     if (holder) ++holder->refs_;
     // (A holder kept before here would be released; there is none: it was cleared above.)
     manager->CloseFile(picture);

@@ -107,8 +107,8 @@ void CItemScreen::CreateBase() {
     iconWindow_->Build();
     LoadTexture("modifiers2", 3);
     LoadTexture("campslots", 3);
-    SceneRenderer()->fogColour_ = 0;
-    SceneRenderer()->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
+    g_sceneRenderer->fogColour_ = 0;
+    g_sceneRenderer->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
     // The caches keep 30 entries (20 with little texture memory).
     if (app::g_littleTextureMemory != 0) {
         textures_.limit = 20;

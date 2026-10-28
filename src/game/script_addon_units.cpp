@@ -52,7 +52,7 @@ template <typename Visit>
 void ForObjectsNear(float x, float y, float radius, Visit visit) {
     std::list<CUnit*> list{};
     Vector3 point = {x, y, 0.0f};
-    TheSectorMap()->FindUnitsInRadius(&point, &list, radius);
+    g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(&point, &list, radius);
     for (auto node = list.begin(); node != list.end(); ++node) visit(*node);
 }
 

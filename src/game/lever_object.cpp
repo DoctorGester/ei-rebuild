@@ -64,7 +64,7 @@ int Lever::UpdateLever() {
     Update();
     if (WorldContext()->IsServer()) return 0;
     Vector3 shown = {scale.x, scale.y, scale.z};
-    double t = (endTick - static_cast<double>(CurrentClientTick())) * rate;
+    double t = (endTick - static_cast<double>(g_clientWorld->tick_)) * rate;
     if (t > 0.0) {
         shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
@@ -159,7 +159,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
         const LeverRecord* record = g_leverTable->Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            TheSoundManager()->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
+            g_clientWorld->sounds_->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;
 }

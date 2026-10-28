@@ -117,7 +117,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
     person_ = nullptr;
     third_ = nullptr;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string key = BriefingSection();
     if (!texts->Open((key + topic_).c_str())) {
         state_ = 0;
@@ -218,9 +218,9 @@ void CBriefingScreen::ClearShownItems() {
 }
 
 void CBriefingScreen::FinishDialogue() {
-    if (voice_ != -1) TheSoundManager()->StopSound(voice_);
+    if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
     voice_ = -1;
-    TheMusicSystem()->FadeIn();
+    g_clientWorld->music_->FadeIn();
     ClearShownItems();
 
     for (const BriefingSpeaker& speaker : speakers_) {

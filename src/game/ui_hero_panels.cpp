@@ -172,7 +172,7 @@ void CHeroStatsPanel::DrawStats() {
     CUnit* unit = owner_->HeroUnit(heroIndex_);
     std::string line;
     std::string text;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     RECT rect;
 
     if (page_ == 10) {
@@ -370,7 +370,7 @@ void CHeroStatsPanel::Build() {
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
     for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
@@ -473,7 +473,7 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddMakerPictures(this);
     AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
     pulse_ = 0.0f;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = str::Format("infoitem_%d", key);

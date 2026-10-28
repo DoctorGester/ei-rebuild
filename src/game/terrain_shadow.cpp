@@ -19,7 +19,6 @@ constexpr int kLastCell = 31;       // the column / row a ray enters a sector at
 constexpr int kLoaded = 1;          // SectorAt's stage: the vertex positions
 
 // The width of the fade at the map's edges (the interface's screens set it).
-float MapEdgeFade() { return options::g_options->borderFogDistance_; }
 
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
@@ -112,7 +111,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
 
 std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     if ((landscapeFlags & 4) == 0) return 0xFF;
-    const float fade = MapEdgeFade();
+    const float fade = options::g_options->borderFogDistance_;
     // How far inside the band's inner border the point is, per edge (negative: in the band).
     float left = static_cast<float>(point->x - fade - 1.0f);
     float bottom = static_cast<float>(point->y - fade - 1.0f);

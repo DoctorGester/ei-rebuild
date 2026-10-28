@@ -16,6 +16,7 @@
 #include <vector>
 #include "model.h"
 #include "game_singletons.h"
+#include "world.h"
 
 namespace {
 
@@ -54,8 +55,8 @@ void ConstructArrays() {
 
 // How far the frame is between the last tick and the next, clamped to [0, 1] (NaN gives 1).
 float Interpolation() {
-    double ticks = CurrentClientTick();
-    float fraction = static_cast<float>((ticks + D(ClientTickFraction())) - ticks);
+    double ticks = g_clientWorld->tick_;
+    float fraction = static_cast<float>((ticks + D(g_clientWorld->tickFraction_)) - ticks);
     float one;
     std::uint32_t oneBits = 0x3F800000;
     std::memcpy(&one, &oneBits, sizeof(one));

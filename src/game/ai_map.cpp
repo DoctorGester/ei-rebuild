@@ -37,7 +37,6 @@ constexpr float kMinVisibility = 0.0001f;
 
 // The spiral of cell offsets ordered by distance, built at startup: a binary tree mapping a radius (compared
 // as raw float bits) to the number of offsets within it. (sector_map.h's tables, sector_spiral.cpp).
-int SpiralDepth() { return g_spiralRadii->depth; }
 std::int32_t SpiralKey(std::uint32_t node) {
     std::int32_t key;
     std::memcpy(&key, &g_spiralRadii->keys[node], sizeof(key));
@@ -310,7 +309,7 @@ const std::int16_t* SpiralCache::Get(float r, int* count) {
         return SpiralOffsets();
     }
     std::uint32_t node = 1;
-    for (int depth = SpiralDepth(); depth > 0; --depth) {
+    for (int depth = g_spiralRadii->depth; depth > 0; --depth) {
         // The radius is compared as an integer with the tree's keys.
         int bits;
         std::memcpy(&bits, &r, sizeof(bits));

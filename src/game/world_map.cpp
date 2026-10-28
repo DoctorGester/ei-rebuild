@@ -57,7 +57,7 @@ void ClearMissilePointers(CWorldServer* world) {
 } // namespace
 
 int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave) {
-    CAIMap* aiMap = AIMap();
+    CAIMap* aiMap = &aiMap_;
     if (text::CompareIgnoringCase(mapName_, map) != 0) {
         aiMap->Reset();
         aiMap->BeginRefresh();
@@ -72,7 +72,7 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
         mobName_ = game::kEmptyText;
     }
     graph->Seek(0);
-    if (graph->Size() != 0 && !AIMap()->regionMap.LoadBlocks(graph)) return 0;
+    if (graph->Size() != 0 && !aiMap_.regionMap.LoadBlocks(graph)) return 0;
 
     if (text::CompareIgnoringCase(mobName_, mob) == 0) {
         // The same zone again: start over.
@@ -84,7 +84,7 @@ int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* g
         EndTimedObjects(this);
         keepsState_ = 0;
         loadedFresh_ = fromSave == 0;
-        AIMap()->footprintTick = 0;
+        aiMap_.footprintTick = 0;
     } else {
         ResetZone();
         keepsState_ = 1;
@@ -182,7 +182,7 @@ void CWorldServer::TeardownZone() {
 
     sharedObjects_.clear();
     mobFiles_.clear();
-    AIMap()->refreshUnits = false;   // refreshes off
+    aiMap_.refreshUnits = false;   // refreshes off
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
     diplomacy_.Reset();
@@ -250,7 +250,7 @@ void CWorldServer::ResetState() {
     diplomacy_.Reset();
     ScriptReset(MainScript());
     ScriptReset(SecondScript());
-    AIMap()->Reset();
+    aiMap_.Reset();
     zoneLoaded_ = 0;
     nightLevel_ = 0.0f;
     for (WorldAlarm& alarm : alarms_) {

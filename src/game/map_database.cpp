@@ -12,6 +12,7 @@
 #include "text_reader.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -33,7 +34,7 @@ int TextReader::Split(std::vector<std::string>* words, int flag) {
     return CTextManager::Split(words, flag);
 }
 bool TextReader::Close() { return TextClose(this); }
-TextReader* TheTextReader() { return static_cast<TextReader*>(TheTextManager()); }
+TextReader* TheTextReader() { return static_cast<TextReader*>(g_clientWorld->texts_); }
 
 // *out = float(std::atof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does (the
 // factor is the product of two doubles, rounded by the FPU).

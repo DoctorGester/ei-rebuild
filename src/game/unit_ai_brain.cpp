@@ -277,7 +277,7 @@ void AIBrain::CallAllies(const Vector3* point) {
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
-        if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
+        if (other == self || !(g_serverWorld->diplomacy_.allied_[self->side] & (1u << (other->side & 31)))) continue;
         std::string message;
         AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
@@ -367,7 +367,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
 void AIMemory::Update(CUnitServer* who) {
     std::erase_if(reports, [](AIReport& entry) { return --entry.what < 0; });
     calls.Update(who->unit, this);
-    g_serverWorld->AIEvents()->Update(who, this);
+    g_serverWorld->aiMap_.events.Update(who, this);
     noticedLevel += noticedKind;
 }
 

@@ -21,6 +21,7 @@
 
 #include "game_singletons.h"
 #include "options.h"
+#include "world.h"
 
 #include <list>
 
@@ -111,7 +112,7 @@ const char* SoundFolder(int type) {
 
 // The one-shot ring of Lichdom / strengthen / weaken, scaled by `size` (stored as a float).
 void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
-    CParticleSource* ring = TheParticleManager()->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource);
+    CParticleSource* ring = g_clientWorld->particleManager_->CreateSource(type == kStrengthen || type == kWeaken ? kScaleRingSource : kRingSource);
     ring->Attach(owner);
     float factor = size / ring->baseSize;
     ring->ScaleSize(negate ? -factor : factor);
@@ -149,7 +150,6 @@ constexpr int kUnitClassId = 0x50;
 
 // The default light of mode 1 (r, g, b, radius).
 const float* DefaultLightColour() { return &options::g_options->questLight_.red; }
-float DefaultLightRadius() { return options::g_options->questLight_.radius; }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
     return owner->attached;
@@ -161,7 +161,7 @@ void DropLight(CMapObjectClientSpecific* self) {
     self->HideLight();
     self->light->flags_ |= kLightHeld;
     int id = self->light->id_;
-    TheLightFactory()->litIds_.remove(id);
+    g_clientWorld->lightFactory_->litIds_.remove(id);
     CEngineObject* old = self->light;
     self->light = nullptr;
     if (old) old->Release();
@@ -171,7 +171,7 @@ void DropLight(CMapObjectClientSpecific* self) {
 
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix) {
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     if (kind == kStench) {
         record->timer = 0;
         return;
@@ -184,11 +184,11 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
             // The folder is empty here: the original plays the bare suffix.
             std::string name;
             name += suffix;
-            TheSoundManager()->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
+            g_clientWorld->sounds_->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
-            TheSoundManager()->Play3D("magic\\FeebleMind\\end.wav", 0, position, SoundNear(), SoundFar(), 0, 0);
+            g_clientWorld->sounds_->Play3D("magic\\FeebleMind\\end.wav", 0, position, SoundNear(), SoundFar(), 0, 0);
         }
         return;
     }
@@ -276,7 +276,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
         case kShrink:
             break;
         default: {
-            CParticleSource* source = TheParticleManager()->CreateSource(ParticleSourceType(type));
+            CParticleSource* source = g_clientWorld->particleManager_->CreateSource(ParticleSourceType(type));
             added.source = source;
             source->Attach(CompanionOwner(this));
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
@@ -382,7 +382,7 @@ void CObject3DClientSpecific::ClearPartTints() {
 void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ |= kLightHidden;
-    TheTerrain()->RemoveLight(light);
+    g_clientWorld->terrain_->RemoveLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
@@ -390,14 +390,14 @@ void CMapObjectClientSpecific::HideLight() {
 void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ &= ~kLightHidden;
-    TheTerrain()->AddLight(light);
+    g_clientWorld->terrain_->AddLight(light);
     CMapObject* mapObject = CompanionOwner(this);
     if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    light.Assign(TheLightFactory()->CreateLight(kPointLight));
+    light.Assign(g_clientWorld->lightFactory_->CreateLight(kPointLight));
     Vector3 rgb = {colour[0], colour[1], colour[2]};
     light->SetPoint(&rgb, &rgb);
     CMapObject* mapObject = CompanionOwner(this);
@@ -418,14 +418,14 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
-            CreateLight(colour, DefaultLightRadius(), true);
+            CreateLight(colour, options::g_options->questLight_.radius, true);
         } else {
             light->flags_ &= ~kLightHeld;
             ShowLight();
         }
         light->flags_ |= kLightHeld;
         int id = light->id_;
-        TheLightFactory()->litIds_.insert(TheLightFactory()->litIds_.end(), id);
+        g_clientWorld->lightFactory_->litIds_.insert(g_clientWorld->lightFactory_->litIds_.end(), id);
         return;
     }
     if (mode == 2 && light) DropLight(this);

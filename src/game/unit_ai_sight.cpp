@@ -42,7 +42,7 @@ constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
-bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
+bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 bool IsZero(double v) {
     EI_NAN_AUDIT(v);
@@ -244,7 +244,7 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     EI_NAN_AUDIT(sight);
     float radius = kZero < sight ? sight : kZero;
     float height = static_cast<float>(observer->ModeSpeed());
-    CAIMap* map = g_serverWorld->AIMap();
+    CAIMap* map = &g_serverWorld->aiMap_;
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);

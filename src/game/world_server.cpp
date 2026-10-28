@@ -74,7 +74,7 @@ float CWorldServer::GridHeight(float x, float y) {
     // Cell size 1.0 at half-cell offset: (1 / (1 * 0.5)) * v - 0.5, rounded through a float.
     int cx = x87::fistp(static_cast<float>(2.0f * x - 0.5f));
     int cy = x87::fistp(static_cast<float>(2.0f * y - 0.5f));
-    const CAIMap* map = AIMap();
+    const CAIMap* map = &aiMap_;
     if (cx < 0 || cy < 0 || cx >= map->cells.width || cy >= map->cells.height) return 0.0f;
     int raw = map->cells[cy][cx].groundLevel;
     return static_cast<float>(raw) / map->heightScale;
@@ -228,7 +228,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 
 double CWorldServer::RawSurfaceHeightAt(float x, float y) {
     Vector3 point = {x, y, 0.0f};
-    return AIMap()->TopHeightAt(&point);
+    return aiMap_.TopHeightAt(&point);
 }
 
 double CWorldServer::GroundHeightAt(float x, float y) { return GridHeightAt(x, y); }

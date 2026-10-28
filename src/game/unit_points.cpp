@@ -44,7 +44,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        unit->Motion()->Sample(ObjectWorld(unit), order, static_cast<float>(time), &turning,
+        unit->motion.Sample(ObjectWorld(unit), order, static_cast<float>(time), &turning,
                                &position.x, &direction.x, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
         out->x = toWorld * position.x;
@@ -96,7 +96,7 @@ static Vector3* ActionPoint(CUnit* unit, Vector3* out) {
     auto* world = unit->ServerWorld();
     if (world->IsServer()) {
         Vector3 point = {offset.x + unit->localPosition_.x, offset.y + unit->localPosition_.y, offset.z + unit->localPosition_.z};
-        if (!world->AIMap()->IsPassableForClass(3, &point)) {
+        if (!world->aiMap_.IsPassableForClass(3, &point)) {
             CopyPosition(out, unit);
             return out;
         }

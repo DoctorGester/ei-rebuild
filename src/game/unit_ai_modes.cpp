@@ -27,7 +27,7 @@ constexpr float kZero = 0.0f;
 // (a double, 0.4 / 2^32) (0.8f): the new alertness decay.
 constexpr double kDecayRandomScale = std::bit_cast<double>(0x3DD99999C019999Aull);
 constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
-const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
+const std::uint32_t* Diplomacy() { return g_serverWorld->diplomacy_.allied_; }
 
 // The server side of a unit's player (CPlayer::connection_). Its refreshPending_ == 2 is what the modes take
 // as the player controlling the unit directly.

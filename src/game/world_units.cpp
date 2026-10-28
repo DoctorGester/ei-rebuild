@@ -224,7 +224,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         aiMap_.sectorMap.Remove(unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
-        AIMap()->FindFreeCellNear(unit, position, &free);
+        aiMap_.FindFreeCellNear(unit, position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
         aiMap_.sectorMap.Add(unit);
 
@@ -258,7 +258,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
-            bool flagged = AIMap()->IsPassableForClass(1, &unit->localPosition_);
+            bool flagged = aiMap_.IsPassableForClass(1, &unit->localPosition_);
             if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
             else unit->moveMode2 = static_cast<int>(placement->moveMode);
         }

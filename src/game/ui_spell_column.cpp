@@ -10,6 +10,7 @@
 #include <string>
 #include "unit.h"
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -56,7 +57,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             std::string model = spell->PictureName();
             AddSpell(model.c_str(), image.c_str());
         }
-        TheTextManager()->GetItemTexts(spell, &tip, &description, &description);
+        g_clientWorld->texts_->GetItemTexts(spell, &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table.
         CSpell* data = spell->spell_;   // the spell item's spell
@@ -68,7 +69,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
             line = "Unknown";
             description = str::Format("school_%d", SpellPrototypeOf(data)->castType);
-            TheTextManager()->CTextManager::GetString(description.c_str(), &line);
+            g_clientWorld->texts_->CTextManager::GetString(description.c_str(), &line);
             line = labels[1] + " " + line + " \n";
             tip += line;
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)

@@ -23,6 +23,7 @@
 
 #include "lib/vecmath.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <new>
 
@@ -106,7 +107,7 @@ CMapObject::~CMapObject() = default;
 
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
-    UnitMotion* m = Motion();
+    UnitMotion* m = &motion;
     // (The segment part's constructor only returns it.)
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
@@ -190,13 +191,13 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
         light->flags_ &= ~0x200u;
         if (CLight* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            TheTerrain()->RemoveLight(light);
+            g_clientWorld->terrain_->RemoveLight(light);
             if (CUnit* unit = Unit()) {
                 if (CObject3DSpecific* half = unit->Object3D()->attached) half->SetLit(0);
             }
         }
         int id = light->id_;
-        TheLightFactory()->litIds_.remove(id);
+        g_clientWorld->lightFactory_->litIds_.remove(id);
         light.Assign(nullptr);
     }
     owner = nullptr;

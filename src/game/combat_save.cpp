@@ -182,7 +182,7 @@ void CUnitServer::Load(CStream* stream) {
     AssignCounted(effectObject, ReadObject(stream, effects));
     LoadArmourSpells(&armourSpells, stream);
     stream->Read(&followsLeader, 1);
-    AssignCounted(followedLeader, ReadUnit(stream, WorldObjectManager()));
+    AssignCounted(followedLeader, ReadUnit(stream, g_serverWorld->objectManager_));
 
     if (stream->version_ < kVersion180) return;
     stream->Read(&actingCheckTime, 4);

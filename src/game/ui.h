@@ -637,7 +637,6 @@ public:
 };
 
 // Option 17 of the options window: the numbers flying up from units hit are shown.
-inline int& ShowHitNumbersOption() { return options::g_options->drawFlyingHp_; }
 // The console's "debuginfo" rectangle (string_map.cpp).
 namespace strmap {
 extern lib::StaticObject<CDebugPanel> g_debugPanel;
@@ -2081,13 +2080,13 @@ public:
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
 // cancel) with two check boxes. Its button handler sets easy_ from the boxes (regions 2 / 3) and copies it to
-// GameDifficulty() on OK.
+// options::g_options->difficulty_ on OK.
 class CDifficultyBox : public CMessageBox {
 public:
     explicit CDifficultyBox(CInterface3D* ui) : CMessageBox(ui, "option_difficulty", game::kEmptyText, 0x20000, 3, 1) {}
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int KeyDown(int k, int r, int f) override { return OnKeyDown(k, r, f), 0; }
-    // No container handler. Region 0 OK (easy_ to GameDifficulty()), 1 cancel, 2 / 3 check easy / hard.
+    // No container handler. Region 0 OK (easy_ to options::g_options->difficulty_), 1 cancel, 2 / 3 check easy / hard.
     void OnLButtonDown(int buttons, int x, int y);
     // Unless a child used the key, Enter answers as OK and Esc as cancel.
     void OnKeyDown(int key, int repeat, int flags);
@@ -2104,13 +2103,8 @@ public:
 };
 
 // The cursor's position in screen pixels and the motion a right-button drag accumulates.
-long& MouseScreenX();
-long& MouseScreenY();
-long& MouseDragX();
-long& MouseDragY();
 
 // The game's difficulty (1 easy, 0 hard; combat reads it).
-inline int& GameDifficulty() { return options::g_options->difficulty_; }
 
 // config\keyboard.ini.
 namespace keybind {

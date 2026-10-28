@@ -170,11 +170,11 @@ void CSaveLoadWindow::OnDialogResult(int result) {
 
 void COptionsWindow::RestoreSettings() {
     // The values the window saved when it opened.
-    TheSoundManager()->SetEffectsVolume(options::g_options->audioSfx_);
-    TheSoundManager()->SetMusicVolume(options::g_options->audioStreaming_);
-    TheSoundManager()->SetSpeechVolume(options::g_options->audioSpeech_);
+    g_clientWorld->sounds_->SetEffectsVolume(options::g_options->audioSfx_);
+    g_clientWorld->sounds_->SetMusicVolume(options::g_options->audioStreaming_);
+    g_clientWorld->sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
     // The scene renderer's gamma.
-    SceneRenderer()->SetGamma(options::g_options->brightness_, options::g_options->contrast_,
+    g_sceneRenderer->SetGamma(options::g_options->brightness_, options::g_options->contrast_,
                               options::g_options->gamma_);
 }
 
@@ -281,17 +281,17 @@ void COptionsWindow::Update() {
             settings_[i].value_ = value;
             unsigned id = static_cast<unsigned>(settings_[i].definition_->id_);
             if (id == kSettingVolumeA) {
-                TheSoundManager()->SetEffectsVolume(value);
+                g_clientWorld->sounds_->SetEffectsVolume(value);
             } else if (id == kSettingVolumeB) {
-                TheSoundManager()->SetMusicVolume(value);
+                g_clientWorld->sounds_->SetMusicVolume(value);
             } else if (id == kSettingVolumeC) {
-                TheSoundManager()->SetSpeechVolume(value);
+                g_clientWorld->sounds_->SetSpeechVolume(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
                 const OptionSetting* gamma = settings_.data() + kSettingGammaFirst;
                 float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
                 float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
                 float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
-                SceneRenderer()->SetGamma(r, g, b);
+                g_sceneRenderer->SetGamma(r, g, b);
             }
         }
         if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {
@@ -301,7 +301,7 @@ void COptionsWindow::Update() {
                 if (id <= 9)
                     shadowsChanged_ = true;
                 else if (id == 0x18)   // the sound system's pan switch
-                    TheSoundManager()->panDirect = value != 0;
+                    g_clientWorld->sounds_->panDirect = value != 0;
             }
         }
     }

@@ -19,7 +19,6 @@ namespace mapspec {
 void EffectNotify(const std::string& kind, const std::string& family);
 namespace {
 
-CBaseManager* Effects() { return g_serverWorld->timedObjectManager_; }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -42,7 +41,7 @@ void Notify(const char* kind, const char* family) { EffectNotify(std::string(kin
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
     g_serverWorld->CreateObject(self);
-    self->effect = Effects()->FindObject(self->id);
+    self->effect = g_serverWorld->timedObjectManager_->FindObject(self->id);
 }
 
 } // namespace
@@ -55,7 +54,7 @@ ParticleSpec::~ParticleSpec() = default;
 LightSpec::~LightSpec() = default;
 
 void* EffectSpec::WorldObject() {
-    return TheObjectManager()->FindObject(-3001 - id);
+    return g_clientWorld->objectManager_->FindObject(-3001 - id);
 }
 
 CTransformObject* EffectSpec::Transform() const { return static_cast<CTransformObject*>(object); }
@@ -72,7 +71,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = TheTerrain()->HeightAt(p.x, p.y, 0);
+    double ground = g_clientWorld->terrain_->HeightAt(p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
     Apply();
 }

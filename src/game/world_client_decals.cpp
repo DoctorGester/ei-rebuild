@@ -115,7 +115,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     builder.Begin(points, texCoords, indices, quad, direction, point, depth);
     if (!skipOnPlatform || !platforms_.Contains(point->x, point->y)) terrain_->AddDecalTriangles(&builder, quad);
 
-    CTransformPipeline* pipeline = ScenePipeline();
+    CTransformPipeline* pipeline = g_sceneRenderer->pipeline_;
     if (objects) {
         PartData data;
         for (auto face = platforms_.list.begin(); face != platforms_.list.end();) {

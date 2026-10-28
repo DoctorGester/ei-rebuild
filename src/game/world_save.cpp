@@ -94,7 +94,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
         CUnit* unit = UnitOrNull(node->second);
         if (!unit) continue;
-        if (world->AIMap()->CanLeaveCell(unit)) continue;
+        if (world->aiMap_.CanLeaveCell(unit)) continue;
         int id = unit->id_;
         int index = std::ssize(stranded);
         stranded.resize(index + 1);
@@ -109,7 +109,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             Vector3 to;
             std::memcpy(&from, position, sizeof(Vector3));
             std::memcpy(&to, position, sizeof(Vector3));
-            world->AIMap()->FindFreeCellNear(unit, &from, &to);
+            world->aiMap_.FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             world->aiMap_.sectorMap.Add(unit);
             unit->ServerController()->ResyncWithUnit();
@@ -282,9 +282,9 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             player->Clear();
         }
     }
-    AIMap()->BeginRefresh();
+    aiMap_.BeginRefresh();
     loaded_ = 0;
-    AIMap()->refreshUnits = false;
+    aiMap_.refreshUnits = false;
 
     ReadStringInto(stream, mobName);
     ReadStringInto(stream, mapName);
@@ -368,7 +368,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 AssignCounted(projectiles_.emplace_back(), missile);
             }
 
-            AIEvents()->Load(stream);
+            aiMap_.events.Load(stream);
             MainScript()->LoadState(stream);
             diplomacy_.ReadFrom(stream);
             stream->Read(&climate_, 4);
@@ -412,8 +412,8 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             SetTimeSpeed(speed);
             SetTime(time);
             loaded_ = 1;
-            AIMap()->EndRefresh();
-            AIMap()->refreshUnits = true;
+            aiMap_.EndRefresh();
+            aiMap_.refreshUnits = true;
 
             RelocateStrandedUnits(this);
 
@@ -479,7 +479,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     stream->Write(&sessionKind_, 4);
 
     ReadAIGraph(mapName_, mobName_, &base);
-    AIMap()->regionMap.SaveBlocks(&current);
+    aiMap_.regionMap.SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
@@ -511,7 +511,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     }
     WriteCopy(stream, static_cast<std::uint8_t>(0));
 
-    AIEvents()->Save(stream);
+    aiMap_.events.Save(stream);
     MainScript()->SaveState(stream);
     diplomacy_.WriteTo(stream);
     stream->Write(&climate_, 4);
@@ -562,7 +562,7 @@ void SharedObject::Load(CStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CItem* object = FindItem(WorldItemManager(), id);
+        CItem* object = FindItem(g_serverWorld->itemManager_, id);
         if (object) entry->objects.emplace_back(object);
     }
 }
@@ -603,16 +603,16 @@ int CWorldServer::NewZone(std::string_view map, std::string_view mob, std::optio
     if (!ReadAIGraph(map, mob, &graph))
         return game::FatalError(kCantLoadGraph);
     mobFiles_.clear();
-    AIMap()->BeginRefresh();
+    aiMap_.BeginRefresh();
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
-    AIMap()->refreshUnits = false;
+    aiMap_.refreshUnits = false;
     if (!LoadMap(map, mob, &graph, 0))
         return game::FatalError(kCantLoadMap);
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;
-    AIMap()->EndRefresh();
-    AIMap()->refreshUnits = true;
+    aiMap_.EndRefresh();
+    aiMap_.refreshUnits = true;
     ShowLoadProgress(kProgressDone);
     if (zone) zoneName_ = *zone;
     scriptsActive_ = 0;

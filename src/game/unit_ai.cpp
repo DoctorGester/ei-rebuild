@@ -59,7 +59,7 @@ const char* ModeName(int type) {
 }
 const char* MotivationFormat() { return "Unit %i new motivation %s with power of %i"; }
 
-const std::uint32_t* Diplomacy() { return GameDiplomacy()->allied_; }
+const std::uint32_t* Diplomacy() { return g_serverWorld->diplomacy_.allied_; }
 
 } // namespace
 

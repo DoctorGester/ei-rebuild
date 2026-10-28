@@ -78,8 +78,8 @@ int EdgeCursor(unsigned edges) {
 constexpr int kScanCodeMask = 0x1FF;
 
 void LetCursorGo() {
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
     g_cursor->SetHeld(0);
 }
 
@@ -138,8 +138,8 @@ void CCameraInput::OnRightDown(int, int x, int y) {
     pressLayout_ = POINT{x, y};
     turning_ = true;
     interface_->ScalePointFromScreenEntry(&pressLayout_);
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
     g_cursor->SetHeld(1);
     handled_ = true;
 }
@@ -151,8 +151,8 @@ void CCameraInput::OnRightUp(int, int, int) {
     camera->SetTiltRate(0.0f);
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
-    int x = MouseScreenX();
-    int y = MouseScreenY();
+    int x = g_cursor->position_.x;
+    int y = g_cursor->position_.y;
     LetCursorGo();
     gameapi::SetCursorPos(x, y);
     handled_ = true;
@@ -162,7 +162,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
     CCamera* camera = &g_camera.Get();
     if (turning_) {
         POINT point{x, y};
-        POINT drag{MouseDragX(), MouseDragY()};
+        POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
         interface_->ScalePointFromScreenEntry(&point);
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -183,8 +183,8 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
-        MouseDragY() = 0;
-        MouseDragX() = 0;
+        g_cursor->motion_.y = 0;
+        g_cursor->motion_.x = 0;
         g_cursor->SetShape(kDragCursor);
         handled_ = true;
         pressLayout_ = point;
@@ -230,8 +230,8 @@ void CCameraInput::OnDeactivate() {
     y_ = 0.0f;
     z_ = 0.0f;
     g_cursor->SetHeld(0);
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
     g_camera->StopMotion();
 }
 

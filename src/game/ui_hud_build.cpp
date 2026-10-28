@@ -14,6 +14,7 @@
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <vector>
 
@@ -39,7 +40,7 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 // The tooltips' labels: the texts "infoitem_<id>" appended in order.
 template <int N>
 void AddLabels(std::vector<std::string>* labels, const int (&ids)[N]) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     for (int id : ids) {
         text = str::Format("infoitem_%d", id);
@@ -271,7 +272,7 @@ CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUi
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0, 1, 0);
     unit_ = nullptr;
     std::string text;
-    TheTextManager()->GetString("infoitem_16", &text);
+    g_clientWorld->texts_->GetString("infoitem_16", &text);
     labels_.push_back(text);
     widescreen::LeavePanel();        // addon's 10023430
 }

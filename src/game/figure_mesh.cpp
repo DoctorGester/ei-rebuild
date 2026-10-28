@@ -8,6 +8,7 @@
 #include "link_figure.h"
 
 #include "model.h"
+#include "game_singletons.h"
 #include "render/render.h"
 
 #include <cstring>
@@ -17,7 +18,7 @@ namespace {
 
 // The scene renderer's transform object (in 3DfpFPU.dll, a global): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
-    auto* renderer = SceneRenderer();
+    auto* renderer = &g_sceneRenderer.Get();
     renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
 }
 

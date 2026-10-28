@@ -5,6 +5,7 @@
 
 #include "ground_print.h"       // NamedTexture
 #include "game_singletons.h"
+#include "world.h"
 
 #include "lib/gameapi.h"
 
@@ -25,7 +26,7 @@ int CTextureDevice::BindTexture(int stage, CTexture* texture) {
 
 int CTextureDevice::BindNamedTexture(int stage, NamedTexture* named) {
     if (!named->texture && named->name.size() != 0) {
-        CTexture* found = TheTextureManager()->FindTexture(named->name.data());
+        CTexture* found = g_clientWorld->textureManager_->FindTexture(named->name.data());
         CTexture* previous = named->texture;
         named->texture = found;
         if (found) ++found->refCount_;

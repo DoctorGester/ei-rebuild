@@ -72,7 +72,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     if (!controller) return;
     Vector3 target{x, y, serverUnit->localPosition_.z};
     if (immediate) {
-        TheSectorMap()->Move(serverUnit, &target);
+        g_serverWorld->aiMap_.sectorMap.Move(serverUnit, &target);
         Vector3 facing = Normalised(dx, dy, dz);
         serverUnit->SetHeading(&facing.x);
         unit->SetHeading(&facing.x);

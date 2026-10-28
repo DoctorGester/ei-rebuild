@@ -25,7 +25,6 @@
 namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
-float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
 constexpr std::uint32_t kGameOverLoad = 0x20001;
@@ -49,7 +48,7 @@ BriefingVariables::BriefingVariables(const char* prefix) { PlayerZeroVariables(p
 BriefingVariables::~BriefingVariables() = default;
 
 void CBriefingScreen::Close() {
-    MapEdgeFade() = savedEdgeFade_;
+    options::g_options->borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
     std::uint32_t& flags = g_camera->flags_;

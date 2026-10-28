@@ -463,7 +463,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 0: {   // the pause button
         handled_ = true;
         interface_->PlaySound(kSoundClock, 0);
-        const bool paused = GameClientPaused();
+        const bool paused = g_clientWorld->paused_;
         GameSendFlag10(paused ? 0 : 1);
         return;
     }
@@ -472,7 +472,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
         handled_ = true;
         // Rebirth's MPSpeedControl (the JNEs aimed at the next instruction).
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
-        if (GameClientPaused()) GameSendFlag10(0);
+        if (g_clientWorld->paused_) GameSendFlag10(0);
         fast_ = region - 1;
         worlddata::g_updatePeriod = fast_ ? kFastPeriod : kNormalPeriod;
         interface_->fastGame_ = fast_;

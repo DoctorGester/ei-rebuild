@@ -48,7 +48,6 @@ constexpr int kMixerChannels = 0x12;
 constexpr unsigned kPrefUseWaveOut = 0xF;
 
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
-int SoundOption() { return options::g_options->audio_; }
 
 constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
@@ -460,7 +459,7 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
     Destroy();   // Close
-    const bool waveOut = SoundOption() == kWaveOutMode;
+    const bool waveOut = options::g_options->audio_ == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {
         std::vector<int> devices;

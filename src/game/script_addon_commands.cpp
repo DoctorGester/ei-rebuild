@@ -36,7 +36,6 @@ namespace {
 
 
 // The "draw all units" flag (the console's spectator mode).
-int& DrawAllUnits() { return options::g_options->drawVisibleOnly_; }
 
 CPlayer* GetPlayer(int number) { return g_serverWorld->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
@@ -312,7 +311,7 @@ bool GiveUnitArmor(Call* call) {
 
 // ShowAllUnits(0) sets the "draw all" flag, anything else clears it.
 bool ShowAllUnits(Call* call) {
-    DrawAllUnits() = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
+    options::g_options->drawVisibleOnly_ = Equals(0.0f, Floats(call)[0]) ? 1 : 0;
     return true;
 }
 

@@ -227,7 +227,7 @@ void CWorldClient::CreateExitMarkers() {
                             game::NoneText()) == 0) {
             continue;
         }
-        auto* source = TheParticleManager()->CreateSource(kExitParticles);
+        auto* source = g_clientWorld->particleManager_->CreateSource(kExitParticles);
         exitMarkers_[i] = source;
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};

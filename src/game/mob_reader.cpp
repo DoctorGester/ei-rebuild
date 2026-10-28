@@ -42,7 +42,6 @@ constexpr int kRelationHostile = 2;
 constexpr int kBehaviourCount = 5;
 
 // The limit the .mob wind strength is clamped to (never written: 0).
-float MobWindLimit() { return options::g_options->defaultWindForce_; }
 
 // A new record for the given chunk id, or null for other ids (or without memory).
 Spec* NewRecord(std::uint32_t id) {
@@ -91,7 +90,7 @@ void ReadWeather(Chunk* parent) {
     chunk.ReadFloat();
     CWorldServer* server = &g_serverWorld.Get();
     server->CWorldServer::SetTime(time);
-    float limit = MobWindLimit();
+    float limit = options::g_options->defaultWindForce_;
     server->ChangeWind(&direction, limit >= strength ? strength : limit);
 }
 
@@ -146,7 +145,7 @@ bool MobFile::Load(void*, int keepIds) {
     std::string scripts;
 
     if (ReadChunks(&records, diplomacy, &scripts)) {
-        CDiplomacy* table = GameDiplomacy();
+        CDiplomacy* table = &g_serverWorld->diplomacy_;
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
     }

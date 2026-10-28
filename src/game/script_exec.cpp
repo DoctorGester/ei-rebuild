@@ -63,24 +63,13 @@ constexpr int kClassQuestItem = 0x14;
 const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
-int ConfiguredTimeSpeed() { return options::g_options->defaultTimeScale_; }
 
-CWorldServer* TheWorld() { return &g_serverWorld.Get(); }
-
-CAIMap* TheAIMap() { return g_serverWorld->AIMap(); }
-
-NamedPartyRecords* Parties() { return &g_partyManager->records; }
-
-CDiplomacy* TheDiplomacy() { return GameDiplomacy(); }
+CDiplomacy* TheDiplomacy() { return &g_serverWorld->diplomacy_; }
 
 bool ServerActive() {
     net::ServerSession* server = net::g_gameServer;
     return server && !(server->flags7_ & CRefCounted::kDetached);
 }
-
-CPlayerManager* TheEvents() { return g_serverWorld->players_; }
-
-CSpellManager* TheSpellManager() { return g_serverWorld->spellManager_; }
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
@@ -136,7 +125,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
     const float* f = cmd->floatArgs.data();
-    CAIMap* map = TheAIMap();
+    CAIMap* map = &g_serverWorld->aiMap_;
     if (fast) {
         map->SetRefreshUnits(0);
         Vector3 point = {f[0], f[1], f[2]};
@@ -199,11 +188,11 @@ void GiveSkill(const SSCCmd* cmd) {
 }
 
 void RedeployParty(const SSCCmd* cmd) {
-    CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs[0]));
+    CPlayer* player = g_serverWorld->GetPlayer(Ftol(cmd->floatArgs[0]));
     if (!player) return;
     CPlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
-    TheWorld()->CollectParty(player, &slots);
+    g_serverWorld->CollectParty(player, &slots);
     CParty* party = player->Party();
     g_partyManager->BeginRedeploy(party);
     g_partyManager->EndRedeploy(party);
@@ -212,13 +201,13 @@ void RedeployParty(const SSCCmd* cmd) {
     if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
     state->SendParty();
     player->Server()->lastPosition_.z = -1313.0f;
-    TheWorld()->Redeploy(player, &slots, 0);
+    g_serverWorld->Redeploy(player, &slots, 0);
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
-    if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs[0]))) return;
-    CParty* from = Parties()->Find(Text(cmd, 0));
-    CParty* to = Parties()->Find(Text(cmd, 1));
+    if (!g_serverWorld->GetPlayer(Ftol(cmd->floatArgs[0]))) return;
+    CParty* from = g_partyManager->records.Find(Text(cmd, 0));
+    CParty* to = g_partyManager->records.Find(Text(cmd, 1));
     if (!from || !to) return;
     if (replace) {
         while (!to->items_.empty()) to->RemoveItem(to->items_[0], 1);
@@ -241,23 +230,23 @@ void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
 }
 
 void PlayMovie(const SSCCmd* cmd) {
-    std::string path = *GameBasePathString() + MoviesFolder();
+    std::string path = *g_discFolder + MoviesFolder();
     std::string file = path + cmd->stringArgs[0];
     ::PlayMovie(file, 0, 1, 1, 1, 1, 1);
 }
 
 void CastSpell(const SSCCmd* cmd, bool atUnit) {
-    CSpell* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
+    CSpell* spell = g_serverWorld->spellManager_->CreateSpellFromText(Text(cmd, 0));
     if (spell) ++spell->refCount_;
     if (spell) {
         const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CMapObject* target = MapObjectArg(cmd, 0);
-            if (target) TheWorld()->CastSpell(spell, 0, &from, target, &target->localPosition_, 0);
+            if (target) g_serverWorld->CastSpell(spell, 0, &from, target, &target->localPosition_, 0);
         } else {
             Vector3 to = {f[2], f[3], 0.0f};
-            TheWorld()->CastSpell(spell, 0, &from, nullptr, &to, 0);
+            g_serverWorld->CastSpell(spell, 0, &from, nullptr, &to, 0);
         }
     }
     if (spell) spell->Release();
@@ -458,13 +447,13 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
 
         case 0x39:   // SendEvent(type, value)
-            TheEvents()->SendValueToAll(Ftol(f[0]), Ftol(f[1]));
+            g_serverWorld->players_->SendValueToAll(Ftol(f[0]), Ftol(f[1]));
             break;
         case 0x3A:   // SendStringEvent(type, text)
-            TheEvents()->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
+            g_serverWorld->players_->SendTextToAll(Ftol(f[0]), Text(cmd, 0));
             break;
         case 0x97: {   // GodMode(player, on)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (player) player->godMode_ = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
@@ -477,26 +466,26 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x43: {   // InvokeAlarm(type, x, y)
             Vector3 point = {f[1], f[2], 0.0f};
-            TheWorld()->InvokeAlarm(Ftol(f[0]), &point.x, 1);
+            g_serverWorld->InvokeAlarm(Ftol(f[0]), &point.x, 1);
             break;
         }
         case 0x88: {   // AddUnitToServer(name, prototype, ..., x, y, z)
             Vector3 point = {f[0], f[1], f[2]};
-            TheWorld()->AddUnitToServer(static_cast<unsigned>(TextKeyFromName(Text(cmd, 0))), Text(cmd, 1), Text(cmd, 2), &point);
+            g_serverWorld->AddUnitToServer(static_cast<unsigned>(TextKeyFromName(Text(cmd, 0))), Text(cmd, 1), Text(cmd, 2), &point);
             break;
         }
         case 0x89:     // RemoveUnitFromServer(object)
         case 0x96: {   // RemoveObjectFromServer(object)
             CEngineObject* object = Arg(cmd, 0);
-            if (object) TheWorld()->RemoveObject(object->id_);   // Rebirth patches it
+            if (object) g_serverWorld->RemoveObject(object->id_);   // Rebirth patches it
             break;
         }
         case 0xD2:   // RecalcMercBriefings
-            TheWorld()->UpdateMercBriefings();
+            g_serverWorld->UpdateMercBriefings();
             break;
         case 0x1E: {   // SetWind(x, y, z, strength)
             Vector3 direction = {f[0], f[1], f[2]};
-            TheWorld()->ChangeWind(&direction, f[3]);
+            g_serverWorld->ChangeWind(&direction, f[3]);
             break;
         }
         case 0x1F: {   // SetBackGroundColor(r, g, b): 0..255 scaled by 1/255
@@ -504,19 +493,19 @@ BOOL ScriptRun::Execute(CScript* script) {
             float b = f[2] * scale;
             float g = f[1] * scale;
             float r = f[0] * scale;
-            SceneRenderer()->SetFogColour(r, g, b);
+            g_sceneRenderer->SetFogColour(r, g, b);
             break;
         }
         case 0xB6:   // RunWorldTime(time): the configured speed (int)
-            TheWorld()->SetTimeSpeed(static_cast<float>(ConfiguredTimeSpeed()));
-            TheWorld()->SetTime(f[0]);
+            g_serverWorld->SetTimeSpeed(static_cast<float>(options::g_options->defaultTimeScale_));
+            g_serverWorld->SetTime(f[0]);
             break;
         case 0xB7:   // FixWorldTime(time)
-            TheWorld()->SetTimeSpeed(0.0f);
-            TheWorld()->SetTime(f[0]);
+            g_serverWorld->SetTimeSpeed(0.0f);
+            g_serverWorld->SetTime(f[0]);
             break;
         case 0xB8:   // SetWaterLevel(a, level, b)
-            TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
+            g_serverWorld->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
             g_serverWorld->LoadMobFile(Text(cmd, 0));
@@ -640,7 +629,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (player && unit) unit->SetPlayer(player);
             break;
@@ -669,14 +658,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
+            CItem* item = g_serverWorld->CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            CItem* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
+            CItem* spell = g_serverWorld->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
             unit->AddSpell(spell);
             CUnitServer* state = UnitState(unit);
@@ -745,7 +734,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             float x = f[0];
             float y = f[1];
-            float z = TheWorld()->GridHeight(x, y);
+            float z = g_serverWorld->GridHeight(x, y);
             Vector3 point = {x, y, z};
             BrainOf(state)->CastAt(0, &point, 0);
             break;
@@ -922,7 +911,7 @@ BOOL ScriptRun::Execute(CScript* script) {
                 GSSetVarMultiplayer(cmd);
                 break;
             }
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (player) player->Server()->SetVariable(Text(cmd, 0), std::bit_cast<std::uint32_t>(f[1]));   // the float bits
             break;
         }
@@ -933,19 +922,19 @@ BOOL ScriptRun::Execute(CScript* script) {
                 GSVarMultiplayer(cmd, setMax);
                 break;
             }
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             if (setMax) player->Server()->SetVariableMax(Text(cmd, 0), f[1]);
             else player->Server()->DeleteVariable(Text(cmd, 0));
             break;
         }
         case 0x1D: {   // PlayMusic(player, name)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (player) player->Server()->SendText0D(Text(cmd, 0));
             break;
         }
         case 0x8A: {   // LeaveToZone(player, zone, point)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (player) player->Server()->LeaveToZone(Text(cmd, 0), Ftol(f[1]));
             break;
         }
@@ -954,7 +943,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0x86:     // AddUnitToParty(player, party.unit, prototype)
         case 0x87: {   // RemoveUnitFromParty(player, party.unit)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::string name = cmd->stringArgs[0];
             CParty* records = PartyForScript(player, &name);
@@ -968,7 +957,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0xD4:     // CopyItems(player, from, to)
         case 0x9D: {   // CopyStats(player, from, to)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::string from = cmd->stringArgs[0];
             std::string to = cmd->stringArgs[1];
@@ -987,16 +976,16 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x9A: {   // CreateParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Add(Text(cmd, 0));
+            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager->records.Add(Text(cmd, 0));
             break;
         }
         case 0x9B: {   // RemoveParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Remove(Text(cmd, 0));
+            if (g_serverWorld->GetPlayer(Ftol(f[0]))) g_partyManager->records.Remove(Text(cmd, 0));
             break;
         }
         case 0x9C: {   // SetCurrentParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0])))
-                Parties()->requestedName = cmd->stringArgs[0];
+            if (g_serverWorld->GetPlayer(Ftol(f[0])))
+                g_partyManager->records.requestedName = cmd->stringArgs[0];
             break;
         }
         case 0xE0:   // AddLoot(player, from, to)
@@ -1006,7 +995,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CopyLoot(cmd, true);
             break;
         case 0xA7: {   // GiveMoney(player, amount)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::list<CItem*> items;
             player->Party()->money_ += Ftol(f[1]);
@@ -1015,10 +1004,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x92:     // GiveQuestItem(player, item)
         case 0xA6: {   // GiveItem(player, item)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::list<CItem*> items;
-            CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
+            CItem* item = g_serverWorld->CreateItemNamed(Text(cmd, 0));
             if (item) {
                 items.push_back(item);
                 player->GiveItems(&items, 0);
@@ -1026,7 +1015,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (player) player->TakeLoot(Ftol(f[1]));
             break;
         }
@@ -1046,15 +1035,15 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
                     QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
-                    if (quest) TheWorld()->AwardExperience(nullptr, quest->exp);
+                    if (quest) g_serverWorld->AwardExperience(nullptr, quest->exp);
                 }
                 break;
             }
-            CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
+            CPlayer* player = g_serverWorld->GetPlayer(Ftol(f[0]));
             if (!player) break;
             QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
             if (!quest) break;
-            TheWorld()->AwardExperience(player, quest->exp);
+            g_serverWorld->AwardExperience(player, quest->exp);
             ClassTemplatesQuestCompleted(&g_partyManager.Get());
             break;
         }

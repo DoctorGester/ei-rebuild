@@ -66,7 +66,7 @@ void QueueUse(CUnitServer* self, CMapObject* target, std::uint32_t source, int s
 bool CUnitServer::FitsMoveMode(int mode) {
     int stored = mode == kStyleRun ? kStyleWalk : mode;
     if (stored == moveMode.mode) return true;
-    CAIMap* map = g_serverWorld->AIMap();
+    CAIMap* map = &g_serverWorld->aiMap_;
     int saved = unit->moveMode;
     map->sectorMap.Remove(unit);
     unit->moveMode = mode;

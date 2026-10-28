@@ -21,7 +21,6 @@
 namespace {
 
 // The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
-CBaseManager* EffectManager() { return g_serverWorld->timedObjectManager_; }
 
 ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data(); }
 int LightCount(CScript* script) { return static_cast<int>(script->pointLights_.size()); }
@@ -105,7 +104,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->moving = 0;
     slot->id = id;
     slot->removeWhenDone = 0;
-    slot->object = ScriptEffect<CEffectPointLight>(EffectManager()->CreateObjectAs<CEffectPointLight>(0x4B, -1));
+    slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectPointLight>(0x4B, -1));
     CEffectPointLight* object = slot->object.get();
     const float scale = 0.003921569f /*0073C36C*/;   // 1 / 255
     float red = f[5] * scale;

@@ -10,6 +10,7 @@
 #include "lib/crt.h"
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 
 
@@ -34,7 +35,7 @@ void CUiRegion::SetTip(int textId, int flag, int extra) {
     }
     std::string text;
     text = str::Format(kTipText, textId);
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     if (texts->Open(text.c_str())) texts->ReadToHash(&text, 1);
     delete tip_;
     tip_ = NewTooltip(this, text, flag, extra);

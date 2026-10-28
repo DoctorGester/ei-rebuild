@@ -30,6 +30,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "camera.h"
+#include "ui_cursor.h"
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).
@@ -190,7 +191,7 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
         pass->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
                                                             selectionBox_.bottom, 0x40, 1);
     }
-    Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
+    Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
     // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
     CTextureDevice* renderer = interface_->renderer_;
     DWORD flags = uidevice::HasStencil(renderer) ? kClearStencil : kClearTarget;

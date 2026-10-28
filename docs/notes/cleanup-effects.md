@@ -9,7 +9,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
   `Pack`, `Start`). `CEffectPointLight::light_` is a `CLight*`, `CEffectParticle::source_` a
   `CParticleSource*`, `CEffectLightning::bolt_` a `CLightning*`, `CEffectSoundSeq::name_` a `std::string`. world_effect_internal.h has `WorldOf` /
   `ContextWorld` (a `CWorld*`); the stream helpers go through `CStream`.
-- Spells: `CSpellEffect::world` is a `CWorldServer*` (`AIMap()`, `Sectors()`, `AIEvents()`, `tick_`). The buff record a unit gets is a `MapEffect`
+- Spells: `CSpellEffect::world` is a `CWorldServer*` (`aiMap_`, `aiMap_.events`, `Sectors()`, `tick_`). The buff record a unit gets is a `MapEffect`
   (`power`, `ending`), built by 00688510 through its address. Units go through `ObjectSlots` (`EyePoint`, `AddEffect`, `IsLargeUnit`, `IsDead`,
   `ReceiveHit`); controllers are `CUnitServer` (`Brain()->memory / visible / unknown_12C`, `unit->player`); the possessing player's server is
   `CPlayer::connection_` as `CPlayerServer` (`possessedGroup_`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.

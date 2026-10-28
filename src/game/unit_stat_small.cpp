@@ -13,14 +13,13 @@
 
 namespace {
 // The game's settings (globals read at the time of the call).
-int Difficulty() { return options::g_options->difficulty_; }
 } // namespace
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;
-    attack = static_cast<int>(attack * g_logicSettings.attack[Difficulty()]);
+    attack = static_cast<int>(attack * g_logicSettings.attack[options::g_options->difficulty_]);
     defence =
-        static_cast<int>(static_cast<float>(defence) * g_logicSettings.defence[Difficulty()]);
+        static_cast<int>(static_cast<float>(defence) * g_logicSettings.defence[options::g_options->difficulty_]);
 }
 
 // --- Database records ---------------------------------------------------------------------------------

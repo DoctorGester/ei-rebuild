@@ -33,7 +33,7 @@ constexpr float kReachHeight = 1.5f;
 constexpr int kMessageOutOfReach = 0x0C;
 constexpr int kMessageCannotCast = 0x13;
 
-AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
+AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
 const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
     return spell->GetPrototype();

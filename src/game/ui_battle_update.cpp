@@ -113,7 +113,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The same CString serves as the second and third texts.
-        TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
+        g_clientWorld->texts_->GetItemTexts(item, &tip, &unused, &unused);
         regions_[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
@@ -392,7 +392,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
 // --- a quest variable's notice -------------------------------------------------------------------
 
 void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
-    CTextManager* texts = GameClientTexts();
+    CTextManager* texts = g_clientWorld->texts_;
     std::vector<std::string> parts;
     std::string text;
     std::string title;

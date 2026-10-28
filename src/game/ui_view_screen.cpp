@@ -117,7 +117,7 @@ void UnitPickInput::OnKeyDown(int key, int, int) {
     if (key == kVkControl) {
         g_cursor->SetShape(kCursorCtrl);
     } else if (key == kVkSpace) {
-        GameSetServerPaused(GameServerPaused() == 0);
+        GameSetServerPaused(g_serverWorld->paused_ == 0);
     }
 }
 

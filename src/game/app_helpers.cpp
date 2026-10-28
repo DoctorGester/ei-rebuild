@@ -12,6 +12,7 @@
 #include "unit_create.h"   // CMapObjectManager
 #include "options.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -64,7 +65,7 @@ std::uint8_t g_movieMode = /*00784752*/ 1;
 void ScrambleObjects() {
     options::OptionsResetDefaults(&options::g_options.Get());
     ObjectListIteratorOf<CMapObject> it{};
-    for (CMapObject* object = it.First(TheObjectManager()); object; object = it.Next()) {
+    for (CMapObject* object = it.First(g_clientWorld->objectManager_); object; object = it.Next()) {
         object->AttachCompanion(reinterpret_cast<CEngineObject*>(Scaled(0x1000) % 0x1000));
         object->SetSpecific(reinterpret_cast<CObject3DSpecific*>(Scaled(0x1000) % 0x1000));
     }

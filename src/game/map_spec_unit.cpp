@@ -210,8 +210,8 @@ void UnitSpec::Apply() {
         return;
     }
     CUnit* unit = Unit();
-    TheSectorMap()->Move(unit, &position);
-    g_serverWorld->AIMap()->TurnObject(unit, &rotation);
+    g_serverWorld->aiMap_.sectorMap.Move(unit, &position);
+    g_serverWorld->aiMap_.TurnObject(unit, &rotation);
     std::memcpy(&unit->localRotation_, &rotation, 16);
     unit->SetFigureScale(&scale.x);
     std::memcpy(&unit->baseScale, &scale, 12);

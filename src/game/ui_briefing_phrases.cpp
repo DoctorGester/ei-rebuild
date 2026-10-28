@@ -95,7 +95,7 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 void CBriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string speaker;
     std::string phrase;
     bool last = true;       // no "#phrase" follows this one
@@ -161,7 +161,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         const char* cursor = texts->cursor_;
         if (texts->FindLine(PhraseCommand())) last = false;
         texts->cursor_ = cursor;
-        if (voice_ != -1) TheSoundManager()->StopSound(voice_);
+        if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
         voice_ = -1;
         if (!skip) {
             int number;
@@ -169,7 +169,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 std::string file;
                 int folder = libcrt::Rand() * 2 / 0x7FFF % 2;
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
-                voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                voice_ = g_clientWorld->sounds_->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;

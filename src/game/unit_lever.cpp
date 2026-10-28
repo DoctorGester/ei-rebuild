@@ -49,7 +49,7 @@ void Lever::SetState(int wanted, float duration) {
         sectors->Remove(*node);
         node = next;
     }
-    CAIMap* map = world->AIMap();
+    CAIMap* map = &world->aiMap_;
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
     map->BeginRefresh();
     sectors->Remove(this);

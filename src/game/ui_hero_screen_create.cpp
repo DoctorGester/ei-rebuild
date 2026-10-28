@@ -210,7 +210,7 @@ void CMpHeroScreen::CreateScreen() {
     // The figures a new hero can take, men (model "unhuma") and women ("unhufe"): every creature
     // record whose unit prototype has one of the two models, with a numbered voice when the
     // record has its flag.
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string male;
     std::string female;
     std::string figureModel;

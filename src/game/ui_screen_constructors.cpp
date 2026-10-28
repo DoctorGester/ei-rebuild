@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 
 #include <new>
 
@@ -24,7 +25,7 @@ CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* tex
                          std::uint32_t flags, std::uint32_t format)
     : CUiContainer(ui), result_(result), flags_(flags), format_(format) {
     std::string text;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     texts->GetString(titleKey, &text);
     title_ = text;
     if (flags_ & kEditField) {

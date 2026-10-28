@@ -34,7 +34,6 @@ float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around 
 float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
 float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
-int SpectatorView() { return options::g_options->drawVisibleOnly_; }
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
 constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)
@@ -99,7 +98,7 @@ bool OutOfView(const float* point, const CPlayerServer* state) {
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into g_collected.
 CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerServer* state, CEngineObject** out) {
-    if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
+    if (world->sessionKind_ == kKindSinglePlayer && options::g_options->drawVisibleOnly_ == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
             CMapObject* object = node->second;

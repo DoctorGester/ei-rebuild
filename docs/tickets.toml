@@ -4919,7 +4919,7 @@ id = "C38c"
 title = "AIMap(), Motion(), AIEvents(): the harness's digest reader reads the fields"
 group = "cleanup"
 depends = ["C38a"]
-note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite."
+note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite. Done: AIMap()/AIEvents()/Motion() gone (replica: CAIMap::events at +0x26C8 inside CAIMap, offset asserts for aiMap_/events/motion); GameDataPathString/GameBasePathString, ShowHitNumbersOption/GameDifficulty and ~150 more free one-line getters { return EXPR; } (EXPR a global / field chain; options field getters, g_serverWorld/g_clientWorld/g_sceneRenderer/g_interface/g_cursor member getters, TheTextManager and friends), ~750 calls, by scratchpad C38c/batch1.py, batch2.py (plan: no argument; go: rewrite), batch3.py, blanks.py, includes.py <compiler log>, manual.patch (replica, digest reader, docs; apply it AFTER batch2 or batch2 sees no definitions to rewrite). Left (C38d): names that clash with a class member or a qualified call (CellSize camera::, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevels*, CurrentWorldTick), the out-of-line class member getters (CParty::ItemConstructor ..., CUnitServer::TamingStage), and file-local getters in tests/verify, src/render, src/lib."
 
 [[ticket]]
 id = "C40b"
@@ -4933,7 +4933,7 @@ id = "C41"
 title = "Comments: drop the original-binary addresses and the decompilation narration"
 group = "cleanup"
 model = "sonnet"
-depends = ["C38c"]
+depends = ["C38d", "SV7b5"]
 note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G1. ~1,370 /*00XXXXXX*/ address comments in 232 files: strip by script (sed -E 's@ ?/[*]0[0-9A-F]{7}( f)?[*]/@@g'), then fix lines whose comment became empty (= /*addr*/ {nullptr} -> = nullptr). Check first that no tool reads them; keep a generated list in docs/notes only for data still generated from game.exe (S18d). Then the narration: ~650 lines on x87 instructions / stack slots / 'integer moves' / 'as a dword', ~100 'the inlined ...', 97 'slot N', ~130 naming MFC / STLport operations on std code: rewrite to say what the code does, or delete. Keep 'the original ...' lines that explain a kept quirk. Add the banned words to tools/comments.py. Comment-only: goldens unchanged. Batches by directory."
 
 [[ticket]]
@@ -4983,3 +4983,11 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C46"]
 note = "Style review 2026-10-28 (build/style_review/REPORT.md, user asked to schedule Tier 1 in the suggested order); after SV7b5 and C38d. G8. ~233 iterator loops and 37 pointer-pair loops whose body has no erase / insert -> range-for; 17 Rand() * n / 0x7FFF -> RandBelow(n) keeping the exact expression; delete 14 null checks after new, 7 self-assignment guards, 5 'fetched and not used' calls; rename the GetClassName virtual to ClassName() and drop 61 #undef GetClassName; 31 '../lib/' includes -> 'lib/'; add a .clang-format (include grouping, continuation indent) and apply it to touched files only."
+
+[[ticket]]
+id = "C38d"
+title = "The remaining one-line getters: clashing free names and out-of-line class member getters"
+group = "cleanup"
+model = "sonnet"
+depends = ["C38c"]
+note = "C38c left: free getters whose names clash with a class member or are called qualified (camera::CellSize, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevelsSetting/Period, CurrentWorldTick in tests/vectors), and out-of-line member getters of the form T C::Name() { return field_; } (CParty::ItemConstructor / SpellConstructor / ItemFactory / SpellManager, CUnitServer::TamingStage, CWorldClient::TextureManager / ClientParticleManager, CEngineObject::ManagerContext, CUnit::IsDead / Radius ...: make the field public, callers read it; keep the virtual ones). Scripts: C38c/batch2.py as a base (scratchpad C38c)."

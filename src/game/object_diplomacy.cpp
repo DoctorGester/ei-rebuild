@@ -41,7 +41,7 @@ void CDiplomacy::SetRelation(int player, int other, int relation, BOOL applyToUn
 
     ObjectListIterator it;
     it.manager = nullptr;
-    for (CEngineObject* object = it.First(WorldObjectManager()); object; object = it.Next()) {
+    for (CEngineObject* object = it.First(g_serverWorld->objectManager_); object; object = it.Next()) {
         CUnit* unit = UnitOrNull(object);
         if (!unit) continue;
         if (unit->side != player) continue;

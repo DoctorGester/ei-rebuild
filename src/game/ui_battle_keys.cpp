@@ -153,7 +153,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionPause: {
         auto* clock = clock_;
         clock->interface_->PlaySound(ClockSound(), 0);
-        const bool paused = GameClientPaused();
+        const bool paused = g_clientWorld->paused_;
         GameSendFlag10(paused ? 0 : 1);
         handled_ = true;
         return;
@@ -161,7 +161,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     case kActionNormalSpeed:
     case kActionFastSpeed: {
         auto* clock = clock_;
-        if (GameClientPaused()) return;
+        if (g_clientWorld->paused_) return;
         if (IsMultiplayerClient() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;

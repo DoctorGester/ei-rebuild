@@ -74,7 +74,7 @@ float ArmourValue(float value, float factor, float scale) {
 float LayerSum(const float* p) { return static_cast<float>(((0.0 + p[0]) + p[0x12]) + p[0x24]); }
 
 
-CTextManager* TextManager() { return TheTextManager(); }
+CTextManager* TextManager() { return g_clientWorld->texts_; }
 
 // The prototype record, the category, a weapon's type and damage weights, a spell's prototype and modifier
 // count.

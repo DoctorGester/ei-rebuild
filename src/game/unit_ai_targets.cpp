@@ -49,7 +49,7 @@ float PrototypeSize(CUnit* unit) {
     return std::bit_cast<float>(unit->GetPrototype()->height);
 }
 
-bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
+bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
     return option->damage.ExcessOver(&target->ServerController()->protection);
@@ -136,7 +136,7 @@ bool AIAttention::CanReach(AIBrain* brain, const AITargetChoice* choice, int fro
         CWorldServer* server = &g_serverWorld.Get();
         // The target is lifted off the sector map so it does not block its own cell.
         server->aiMap_.sectorMap.Remove(target);
-        if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
+        if (server->aiMap_.FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
             float scale = static_cast<float>(kOne * kHalf);
             point.x = static_cast<float>(scale * local.path.targetX);
             point.y = static_cast<float>(scale * local.path.targetY);

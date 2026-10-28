@@ -57,7 +57,7 @@ int Clamp255(int value) { return value > 0xFF ? 0xFF : value < 0 ? 0 : value; }
 void CHelpWindow::CreateScreen() {
     LoadTexture(SaveLoadTexture(), 3);
     CreateTexture(0x100, 0x100, 0x20);
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     BOOL found;
     {
         std::string section = std::string(TutorialSection()) + text_;

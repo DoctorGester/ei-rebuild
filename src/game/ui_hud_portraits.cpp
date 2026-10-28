@@ -36,7 +36,6 @@ template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float Pi() { return 3.1415927f /*007423F8*/; }
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
-int SelectedUnitId() { return g_camera->targetId_; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
 constexpr float kBarTexels = 64.0f;
@@ -283,7 +282,7 @@ void CHudPortraits::Update() {
         *RotationOf(object(1)) = face;
 
         // The selection marker (object 0) sits above the selected unit's portrait (object 5i+4).
-        if (SelectedUnitId() == unit->id_) {
+        if (g_camera->targetId_ == unit->id_) {
             Sprite(sceneObjects_[0])->visible_ = 1;
             float x, y, depth;
             Sprite(object(4))->GetPlacement(&x, &y, &depth);

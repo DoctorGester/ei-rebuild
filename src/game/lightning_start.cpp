@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 
 namespace {
@@ -41,8 +42,8 @@ void FreshKeys(LightningSegment& s, float time, float amplitude) {
 } // namespace
 
 void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool demon) {
-    int ticks = CurrentClientTick();
-    float fraction = ClientTickFraction();
+    int ticks = g_clientWorld->tick_;
+    float fraction = g_clientWorld->tickFraction_;
     float time = static_cast<float>((static_cast<double>(ticks) + fraction) / 4.0f /*0073C4F8*/);
     power_ = power;
     const float strength = Absolute(power);

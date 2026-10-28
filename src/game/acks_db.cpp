@@ -125,7 +125,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     if (!prototype) return nullptr;
 
     if (kind == 0x25 || kind == 0x26) {
-        TheSoundManager()->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
+        g_clientWorld->sounds_->Play3D("weapons\\timecrash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
         return nullptr;
     }
     AckDatabase& db = *g_ackDatabase;
@@ -133,7 +133,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     const EnvironmentSpeeches* environmentList = nullptr;
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
-            TheSoundManager()->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
+            g_clientWorld->sounds_->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
         UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
         if (kind == 0x29) {

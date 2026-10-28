@@ -54,11 +54,7 @@ constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-CAIMap* ServerAIMap() { return g_serverWorld->AIMap(); }
-CSectorMap* ServerSectors() { return &g_serverWorld->aiMap_.sectorMap; }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
-float HeroWalkLimit() { return g_logicSettings.damageLevel2Value; }
-float HeroRunLimit() { return g_logicSettings.damageLevel1Value; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
@@ -259,9 +255,9 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         key |= kKeyMoveLoop;
         if (self->type_ == kUnitTypeHero) {
             float stamina = stats.loadFactor;
-            EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
-            if (stamina <= HeroWalkLimit()) key |= 0x800000;
-            else if (stamina <= HeroRunLimit()) key |= 0x400000;
+            EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
+            if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
+            else if (stamina <= g_logicSettings.damageLevel1Value) key |= 0x400000;
         }
     }
     if (const FigureAnimation* entry = self->FindAnimation(key, 1)) {
@@ -287,9 +283,9 @@ AnimationSteps* CUnitServer::NextAnimation() {
         key |= 0x140000;
         if (self->type_ == kUnitTypeHero) {
             float stamina = stats.loadFactor;
-            EI_NAN_AUDIT(stamina, HeroWalkLimit(), HeroRunLimit());
-            if (stamina <= HeroWalkLimit()) key |= 0x800000;
-            else if (stamina <= HeroRunLimit()) key |= 0x400000;
+            EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
+            if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
+            else if (stamina <= g_logicSettings.damageLevel1Value) key |= 0x400000;
         }
     }
     if (MoveKey(this) == key) return &MoveSteps(this);
@@ -373,7 +369,7 @@ void CUnitServer::UpdateSneak() {
         }
     }
     if (moveMode.wasMode3 != 0) {
-        if (moveMode2.wasMode3 != 0 && world->AIMap()->StandsOnCheapCell(unit) && running == 0) {
+        if (moveMode2.wasMode3 != 0 && world->aiMap_.StandsOnCheapCell(unit) && running == 0) {
             sneakWait = 0;
             return;
         }
@@ -394,7 +390,7 @@ void CUnitServer::UpdateSneak() {
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     EI_NAN_AUDIT(ServerVitals(unit).mana);
     if (allowed == 0 && ServerVitals(unit).mana <= 0.0f) return;   // the breath
-    if (!world->AIMap()->StandsOnCheapCell(unit)) return;
+    if (!world->aiMap_.StandsOnCheapCell(unit)) return;
     if (running != 0) return;
     sneakWait = 0;
     moveMode.wasMode3 = 1;
@@ -411,18 +407,18 @@ bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.onGuard == moveMode2.onGuard) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
-    ServerSectors()->Remove(unit);
-    bool passableBefore = ServerAIMap()->IsUnitCellPassable(unit);
+    g_serverWorld->aiMap_.sectorMap.Remove(unit);
+    bool passableBefore = g_serverWorld->aiMap_.IsUnitCellPassable(unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
     unit->UpdateSizeClass();
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? ServerAIMap()->IsUnitCellPassable(unit) : ServerAIMap()->CanLeaveCell(unit)))
+        !(passableBefore ? g_serverWorld->aiMap_.IsUnitCellPassable(unit) : g_serverWorld->aiMap_.CanLeaveCell(unit)))
         placed = false;
     else
-        placed = ServerSectors()->Add(unit);
+        placed = g_serverWorld->aiMap_.sectorMap.Add(unit);
     unit->MarkChanged(6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
@@ -432,7 +428,7 @@ bool CUnitServer::ChangeMoveMode() {
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         unit->UpdateSizeClass();
-        ServerSectors()->Add(unit);
+        g_serverWorld->aiMap_.sectorMap.Add(unit);
         CUnit* self = unit;
         if (self->player) PlayerMessage(self->player->Server(), self, kMessageModeBlocked);
         return false;
@@ -470,7 +466,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     Motion(this)->mayExcludeRegions = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
-    bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
+    bool found = world->aiMap_.FindPath(unit, point, Motion(this), range, 0.0f);
     unit->altPassCosts = before;
     if (!found) {
         // Read as a byte: the original compares it with 1.
@@ -539,7 +535,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
         if (!lift) continue;
         auto added = list->emplace(list->end());
         *added = member;
-        ServerSectors()->Remove(member);
+        g_serverWorld->aiMap_.sectorMap.Remove(member);
     }
 }
 

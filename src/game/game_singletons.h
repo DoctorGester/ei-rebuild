@@ -43,8 +43,6 @@ extern lib::StaticObject<CInterface3D> g_interface;   // ui_small_members.cpp
 // The world tick (the server world's), advanced once per simulation step, and the client's tick counter and the
 // fraction of its current tick (the client world's), advanced each frame.
 int CurrentWorldTick();
-int CurrentClientTick();
-float ClientTickFraction();
 
 extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
@@ -53,28 +51,16 @@ extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp
 // The client world's managers: the text manager (the game's string tables), the object
 // manager (finds and creates engine objects by id), the figure manager (models and sprites), the texture, material,
 // sound and particle managers, the light factory, the music system and the terrain (also the point lights' manager).
-CTextManager* TheTextManager();
-CMapObjectManager* TheObjectManager();
-CFigureManager* TheFigureManager();
-CTextureManager* TheTextureManager();
-CMaterialManager* TheMaterialManager();
-CSoundManager* TheSoundManager();
-CMusicSystem* TheMusicSystem();
-CParticleManager* TheParticleManager();
-CLightFactory* TheLightFactory();
-Terrain* TheTerrain();
 
 // The scene renderer; its device object; the critical section held around the device's
 // DirectDraw / Direct3D calls.
 extern lib::StaticObject<CSceneRenderer> g_sceneRenderer;   // renderer_lifetime.cpp
-CTextureDevice* TheRenderDevice();
 extern _RTL_CRITICAL_SECTION g_deviceLock;   // renderer_lifetime.cpp
 
 // The cursor. The map database. The server world's mission script and sector map. The camera.
 extern lib::StaticObject<CCursor> g_cursor;   // ui_cursor_setup.cpp
 extern lib::StaticObject<CMapDatabase> g_mapDatabase;   // map_database.cpp
 CScript* TheMissionScript();
-CSectorMap* TheSectorMap();
 extern lib::StaticObject<CCamera> g_camera;   // camera_object.cpp
 
 // The party manager (the parties by key, the named records and the class templates).

@@ -34,7 +34,7 @@ void CUnit::RefreshMotion() {
     path->ForgetObject(id_);
     float speed, turnRate;
     GetMoveSpeeds(&speed, &turnRate);
-    UnitMotion* unitMotion = Motion();
+    UnitMotion* unitMotion = &motion;
     unitMotion->segment = -1;
     unitMotion->speedScale = speed;
     unitMotion->baseTurnRate = turnRate;

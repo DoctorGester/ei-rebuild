@@ -292,8 +292,8 @@ void CEffectArrowFigure::Start(int update) {
     }
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
-    int id = NextClientObjectId()--;
-    auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
+    int id = g_clientWorld->nextClientObjectId_--;
+    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     if (object != figure_) {
         figure_.Reset();
         if (object != nullptr) ++object->refCount_;

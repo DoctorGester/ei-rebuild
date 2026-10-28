@@ -127,7 +127,7 @@ void ResetMotion(CCamera* c) {
 
 void camera::NoteTargetTick(const CCamera* camera) {
     TargetTicks& ticks = g_targetTicks;
-    const CObject3D* target = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(camera->targetId_));
+    const CObject3D* target = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(camera->targetId_));
     if (!target) {
         ticks = TargetTicks{};
         return;
@@ -150,10 +150,10 @@ void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step,
     int count = 1;
     float x = static_cast<float>(D(p->x) - halfX);
     while (x <= D(halfX) + p->x) {
-        if (x >= 0.0f && TheTerrain()->width > x) {
+        if (x >= 0.0f && g_clientWorld->terrain_->width > x) {
             float y = static_cast<float>(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
-                if (y >= 0.0f && TheTerrain()->height > y) {
+                if (y >= 0.0f && g_clientWorld->terrain_->height > y) {
                     float h = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(x, y));
                     float low = *minimum;
                     *minimum = h >= low ? low : h;
@@ -316,14 +316,14 @@ void CCamera::Update(float dt) {
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
     if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (TheTerrain()) listener.z = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
+        if (g_clientWorld->terrain_) listener.z = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);
-    TheSoundManager()->SetListener(&listener.x, &forward.x);
+    g_clientWorld->sounds_->SetListener(&listener.x, &forward.x);
     if (flags_ & kPlaced) return;
 
-    CObject3D* target = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(targetId_));
+    CObject3D* target = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(targetId_));
     // The smooth camera: the gains below by time, the target between its last two ticks.
     const bool smooth = render::SmoothCamera();
     Vector3 targetAt = {0.0f, 0.0f, 0.0f};
@@ -362,10 +362,10 @@ void CCamera::Update(float dt) {
         const float gain = smooth ? TimeGain(kTrackGain, dt) : kTrackGain;
         double dx = D(targetAt.x) - focus_.x;
         float dy = static_cast<float>(D(targetAt.y) - focus_.y);
-        float width = TheTerrain()->width;
+        float width = g_clientWorld->terrain_->width;
         float dyStep = static_cast<float>(D(dy) * gain);
         focus_.x = ClampToMap(static_cast<float>(dx * gain + focus_.x), width);
-        float height = TheTerrain()->height;
+        float height = g_clientWorld->terrain_->height;
         focus_.y = ClampToMap(static_cast<float>(D(dyStep) + focus_.y), height);
     }
 
@@ -396,9 +396,9 @@ void CCamera::Update(float dt) {
         float moveY = static_cast<float>(D(dt) * velocity.y);
         float stepX = static_cast<float>(moveX * scale);
         float stepY = static_cast<float>(D(moveY) * scale);
-        float width = TheTerrain()->width;
+        float width = g_clientWorld->terrain_->width;
         focus_.x = ClampToMap(static_cast<float>(D(stepX) + focus_.x), width);
-        float height = TheTerrain()->height;
+        float height = g_clientWorld->terrain_->height;
         float y = ClampToMap(static_cast<float>(D(stepY) + focus_.y), height);
         targetId_ = -1;
         flags_ &= ~kFollowing;

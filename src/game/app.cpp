@@ -46,13 +46,13 @@ LRESULT OnActivate(WPARAM wParam) {
         g_active = 0;
         return 1;
     }
-    auto* sounds = TheSoundManager();
+    auto* sounds = g_clientWorld->sounds_;
     unsigned state = wParam & 0xFFFF;
     if (state == 0) {   // WA_INACTIVE
         g_active = 0;
         g_activationChanged = 1;
         g_cursor->ShowImage(0);
-        CTextureDevice* device = TheRenderDevice();
+        CTextureDevice* device = g_sceneRenderer->device_;
         if (device && (device->flags_ & 1)) device->RestoreDisplayMode();
         if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(0);
         if (sounds) sounds->PauseAll();
@@ -64,10 +64,10 @@ LRESULT OnActivate(WPARAM wParam) {
     g_activationChanged = 1;
     gameapi::ShowWindow(g_mainWindow, SW_RESTORE);
     if (CDirectInputMouse* mouse = g_mouse) mouse->SetActive(1);
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     if (device && (device->flags_ & 1)) {
-        SceneRenderer()->RestoreSurfaces();
-        device = TheRenderDevice();
+        g_sceneRenderer->RestoreSurfaces();
+        device = g_sceneRenderer->device_;
         if (device) {
             // ResetCursors after the device was restored. The last argument is pushed from EAX after only AL
             // was loaded, so its upper bytes are those of the device pointer; the value below rebuilds them.
@@ -283,7 +283,7 @@ int StartFirstMap() {
 
 int ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     if (device && (device->flags_ & 1)) {
         long result = device::FlipToGDISurface(device->ddraw_);
         device->lastLoadResult_ = result;

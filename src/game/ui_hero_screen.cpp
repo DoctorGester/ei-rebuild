@@ -24,6 +24,7 @@
 #include "lib/gameapi.h"
 #include "party.h"
 #include "game_singletons.h"
+#include "ui_cursor.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -100,13 +101,13 @@ void CMpHeroScreen::DrawExperience() {
     std::string line;
     UiSurfaceGetDC(surface);
     surface->Clear();
-    TheTextManager()->CTextManager::GetString(kLevelUpKey, &text);
+    g_clientWorld->texts_->CTextManager::GetString(kLevelUpKey, &text);
     RECT title = {0, 130, 200, 150};
     surface->DrawTextIn(text, &title, kTextFormat, kWhite, 1, 1);
     text = str::Format(kSignedFormat, -tradePanel_->PurchaseCost());
     RECT cost = {0, 150, 200, 170};
     surface->DrawTextIn(text, &cost, kTextFormat, kWhite, 1, 1);
-    TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
+    g_clientWorld->texts_->CTextManager::GetString(kCurrentExpKey, &text);
     line = str::Format(kLabelFormat, text.c_str(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
     surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
@@ -115,8 +116,8 @@ void CMpHeroScreen::DrawExperience() {
 
 BOOL CMpHeroScreen::Draw(CSceneRenderer* pass) {
     if (mode_ == kModeStats) DrawExperience();
-    int x = MouseScreenX();
-    int y = MouseScreenY();
+    int x = g_cursor->position_.x;
+    int y = g_cursor->position_.y;
     hoveredItem_ = nullptr;
     int topic = 0;
     hoveredItem_ = weaponPanel_->ItemAt(x, y, &topic);
@@ -248,7 +249,7 @@ void CMpHeroScreen::DrawVoices() {
     SelectionFrame(*this)->visible_ = 0;
     std::string title;
     RECT rect = {10, 5, 190, 20};
-    TheTextManager()->CTextManager::GetString(kVoicesKey, &title);
+    g_clientWorld->texts_->CTextManager::GetString(kVoicesKey, &title);
     surface->DrawTextIn(title, &rect, 0, kWhite, 1, 1);
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);

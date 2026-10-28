@@ -35,7 +35,7 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 // --- A labelled value ----------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawRow(RECT* rect, std::string_view label, int value, int maximum) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string name;
     std::string number;
     BOOL found;
@@ -80,7 +80,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     std::string unused;
     {
         std::string key = std::string(kPartPrefix) + name;
-        TheTextManager()->CTextManager::GetString(key.c_str(), &label);
+        g_clientWorld->texts_->CTextManager::GetString(key.c_str(), &label);
     }
     label = std::string(kPartIndent) + label;
     CUiSurface* surface = surfaces_[0];

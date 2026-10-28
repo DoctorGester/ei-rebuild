@@ -20,7 +20,7 @@ constexpr int kPersonPrefixLength = 5;                                          
 } // namespace
 
 void LoadPersonTexts(std::map<int, std::string>* map) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::vector<std::string> keys;
     std::string line;
     texts->ListKeys(&keys, PersonPattern());
