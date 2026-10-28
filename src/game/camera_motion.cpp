@@ -36,7 +36,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float heading = static_cast<float>(libcrt::CiAcos(D(ny) / libcrt::Hypot(nx, ny)));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
-        std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
+        viewRotation_ = camera::kIdentityRotation;
     } else {
         double side = -D(nx);
         float z;
@@ -50,7 +50,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
         axis.z = z;
         viewRotation_.FromAxisAngle(axis, heading);
     }
-    std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
+    localRotation_ = viewRotation_;
     const Quaternion& q = localRotation_;
     double xx = D(q.x) * q.x;
     double e1 = Dot2DUnrounded<double>(q.w, q.x, q.z, q.y);

@@ -442,7 +442,7 @@ void AIBrain::Load(CStream* stream) {
     LogicSettings& settings = g_logicSettings;
     EI_NAN_AUDIT(callRadius, settings.callForHelpRadiusDefault);
     if (callRadius == settings.callForHelpRadiusDefault)
-        std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
+        callRadius = settings.callForHelpRadius;
     stream->Read(&alwaysUpdated, 1);
     if (stream->version_ < 0x4B) return;
     attention.healWeight = 0.0f;

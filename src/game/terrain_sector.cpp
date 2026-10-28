@@ -211,7 +211,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                 }
                 for (int r3 = 0; r3 < 3; ++r3, rec += 33) {
                     for (int c3 = 0; c3 < 3; ++c3, ++entry) {
-                        std::memcpy(&entry->u, &uv[r3 * 3 + c3], 4);
+                        entry->u = uv[r3 * 3 + c3];
                         entry->vertex = rec + c3;
                         entry->v = static_cast<float>(1.0 - uv[r3 * 3 + c3 + 9]);
                     }
@@ -378,7 +378,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
                     }
                     if (m == -1) {
                         out->x = static_cast<float>(x);
-                        std::memset(&out->z, 0, 4);
+                        out->z = 0.0f;
                         out->y = static_cast<float>(y);
                     } else if (owner->materials[m].kind != 4) {
                         out->x = static_cast<float>(x);
@@ -438,7 +438,7 @@ void SectorData::Build() {
             std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
             for (int k = 0; k < std::ssize(waterMaterials); ++k) {
                 int id = waterMaterials[k];
-                std::memcpy(&levels[id], &owner->materials[id].level, 4);
+                levels[id] = owner->materials[id].level;
             }
             ApplyWaterLevels();
         }
@@ -466,7 +466,7 @@ void SectorData::ApplyWaterLevels() {
                 *z = static_cast<float>(level + *z);
             }
         }
-        std::memset(&levels[id], 0, 4);
+        levels[id] = 0.0f;
         render::TerrainChanged(this, render::TerrainChange::WaterMoved);
     }
 }
@@ -589,7 +589,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
                     SectorVertex& record = records[layer * kVertices + corner + row * kRow + column];
-                    std::memcpy(&record.projected, out, sizeof(record.projected));
+                    record.projected = *out;
                     record.outcode = mode == kCrossing ? *outcode++ : 0;
                     ++out;
                 }

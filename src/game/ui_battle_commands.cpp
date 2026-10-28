@@ -37,7 +37,7 @@ float PortraitDelay(std::uint32_t random) {
 inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
 
 // A sprite's scale and opacity; the HUD's quick item slots.
-constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
+constexpr float kScaleOne = 1.0f;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr int kQuickSlots = 8;
 
@@ -49,7 +49,7 @@ void DropColumn(Column* panel, bool inlinePanels) {
     for (int i = 0; i < panel->count_; ++i) {
         if (inlinePanels) {
             CUiMesh* sprite = panel->SceneMesh(i);
-            sprite->SetScale(std::bit_cast<float>(kScaleOne));
+            sprite->SetScale(kScaleOne);
             sprite->flatSpecular_ = kSpriteOpaque;
             panel->selected_ = i;
         } else {
@@ -187,7 +187,7 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         Vector3 position;   // the target's position, passed to the (unused) argument of the checks
-        std::memcpy(&position, &target->localPosition_, sizeof(position));
+        position = target->localPosition_;
         int refused;
         if (quick == 0) {
             LocalView(&g_clientWorld.Get())->SendCastOnUnit(pendingSlot_, member, target, ctrl & 0xFF);

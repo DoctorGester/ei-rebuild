@@ -160,7 +160,7 @@ bool Connection::SendUpdate(int budget) {
     std::memcpy(c.p, chunk.bytes, chunkSize);
     c.p += chunkSize;
     SentPacket& sent = history_.emplace_back();
-    std::memcpy(&sent.time, &clock_, sizeof(sent.time));
+    sent.time = clock_;
     sent.sequence = sequence;
     sent.header = chunk;
     headers_.pop_front();

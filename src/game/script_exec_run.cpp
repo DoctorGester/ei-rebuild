@@ -69,8 +69,8 @@ void RespawnFxSources(CScript* script) {
         sound->localPosition_.x = x;
         sound->localPosition_.y = y;
         sound->localPosition_.z = z;
-        std::memcpy(&sound->volume_, &fx.volume, 4);
-        std::memcpy(&sound->radius_, &fx.radius, 4);
+        x87::CopyBits(sound->volume_, fx.volume);
+        x87::CopyBits(sound->radius_, fx.radius);
         fx.object = ScriptEffect<CEffectSound>(sound);
         const char* name = fx.name.c_str();
         std::memcpy(sound->name_, name, std::strlen(name) + 1);
@@ -145,7 +145,7 @@ void ScriptDefinition::BindCall(const SSCCmd* call) {
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
-    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) std::memcpy(&vars.floats.values[i - 1], &call->floatArgs[i], 4);
+    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) x87::CopyBits(vars.floats.values[i - 1], call->floatArgs[i]);
     for (std::size_t i = 1; i < call->stringArgs.size(); ++i) vars.strings.values[i - 1] = call->stringArgs[i];
     for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];
     for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];

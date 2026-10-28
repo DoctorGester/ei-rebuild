@@ -117,7 +117,7 @@ void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(&sprite->localRotation_, &q, sizeof(q));
+    sprite->localRotation_ = q;
 }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
@@ -226,12 +226,12 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             for (auto node = exitDistances_->begin(); node != exitDistances_->end(); ++node) {
                 if (node->first == i) {
                     anyKnown = true;
-                    std::memcpy(&exit->distance_, &node->second, 4);
+                    exit->distance_ = node->second;
                     exit->flag_ = true;
                     EI_NAN_AUDIT(node->second, nearest);
                     if (node->second < nearest) {
                         nearestExit_ = index;
-                        std::memcpy(&nearest, &node->second, 4);
+                        nearest = node->second;
                     }
                     break;
                 }

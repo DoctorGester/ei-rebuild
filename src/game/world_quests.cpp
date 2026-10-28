@@ -102,7 +102,7 @@ struct MercNames {
     std::string merc, n1, n3, n9, n8, n2, n10, hired;
 };
 
-constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
+constexpr float kMinimumWeight = 0.01f;
 
 // An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
 struct Share {
@@ -140,7 +140,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         total = stored;
     }
     float minimum;
-    std::memcpy(&minimum, &kMinimumWeight, 4);
+    minimum = kMinimumWeight;
     float divisor = total >= minimum ? total : minimum;   // branch-free select
 
     for (auto node = list.begin(); node != list.end();) {

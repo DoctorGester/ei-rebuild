@@ -59,7 +59,7 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
         out->z = static_cast<float>(z);
         return out;
     }
-    std::memcpy(out, &localPosition_, sizeof(Vector3));
+    *out = localPosition_;
     return out;
 }
 

@@ -404,7 +404,7 @@ void CHudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
+    SceneMesh(10)->localRotation_ = turn;
 
     auto* area = SceneMesh(1);
     std::vector<UiPointF>& points = visibleArea_;
@@ -553,7 +553,7 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     if (region == 0) {
         double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
         zoom_ = static_cast<float>(zoom);
-        if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
+        if (zoom > D(zoomMax_)) zoom_ = zoomMax_;
         zoom_ = zoom_ >= 1.0f ? zoom_ : 1.0f;
     }
     handled_ = true;

@@ -1,5 +1,6 @@
 // The game server's tick and a player state query (called by the file chunk sender). Float maths in plain C++
 // (rewrite-guide rule 7). See net_classes.h and docs/notes/network.md.
+#include "ei/x87.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "net_connection.h"
@@ -49,7 +50,7 @@ void ServerSession::Tick(double dt) {
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
     EI_NAN_AUDIT(announceTimer_);
     if (announceTimer_ < 0.0f) {   // run out
-        std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
+        x87::CopyBits(announceTimer_, worlddata::AnnouncePeriodRef());
         const char* host = MasterHost();
         if (std::strcmp(host, game::kEmptyText) != 0) AnnounceToMaster();
     }

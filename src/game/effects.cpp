@@ -111,7 +111,7 @@ int CParticleSource::UpdateFalling(Particle* p) {
     EI_NAN_AUDIT(p->pos.z);
     if (p->pos.z < 0.0f) return 0;
     float terminal;
-    std::memcpy(&terminal, &p->velocity.y, sizeof(terminal));
+    terminal = p->velocity.y;
     p->pos.x = p->drift.x + p->pos.x;
     p->pos.y = p->drift.y + p->pos.y;
     p->pos.z = p->drift.z + p->pos.z;
@@ -183,7 +183,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->life = lifetime;
     p->frame = type_ != kTypeSmoke ? 0 : 8;
     p->frameTimer = frameDelay;
-    std::memcpy(&p->size, &size, sizeof(float));
+    p->size = size;
     if (g_random.Next() % 100 + 1 <= 40) {
         p->size = size * 0.5f;
         extra = static_cast<float>(size * kPointThree);
@@ -206,7 +206,7 @@ int CParticleSource::EmitSmoke(Particle* p, int) {
     p->drift.x = 0.0f;
     p->drift.y = 0.0f;
     p->pos.z = static_cast<float>(Unsigned(r) * h * kRandomScale + origin.z);
-    std::memcpy(&p->drift.z, &height, sizeof(float));
+    p->drift.z = height;
     return 1;
 }
 
@@ -252,7 +252,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
     const ParticleElement* e = elements.data();
     float scale;
-    std::memcpy(&scale, &e[0].sphere.radius, sizeof(scale));
+    scale = e[0].sphere.radius;
     float c = e[1].sphereTilt.tiltCos;
     float s = e[1].sphereTilt.tiltSin;
     float x = p->velocity.x;
@@ -272,7 +272,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
         along.Construct(t * n.x, t * n.y, t * n.z);
         SubtractVectors(&offset, p->velocity, along);
     } else {
-        std::memcpy(&offset, &p->velocity, sizeof(offset));
+        offset = p->velocity;
     }
     const Vector3& center = elements[0].pos;
     float by = static_cast<float>(origin.y + center.y);

@@ -157,7 +157,7 @@ int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint3
     Write(&out_, at, 12);
     WriteDword(&out_, a);
     WriteDword(&out_, b);
-    std::memcpy(&lastPosition_, at, sizeof(Vector3));
+    lastPosition_ = *at;
     return 1;
 }
 
@@ -166,7 +166,7 @@ std::uint32_t CPlayerServer::SendPosition0F(const Vector3* at, const Vector3* ot
     Write(&out_, at, 12);
     Write(&out_, other, 12);
     Write(&out_, &flag, 1);
-    std::memcpy(&lastPosition_, at, sizeof(Vector3));
+    lastPosition_ = *at;
     // EAX is left holding the position's z.
     std::uint32_t z;
     std::memcpy(&z, &at->z, 4);

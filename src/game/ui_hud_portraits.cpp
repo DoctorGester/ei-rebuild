@@ -63,7 +63,7 @@ constexpr float kWobbleSpan = 0.2f;
 constexpr float kWobbleFrequency = 5.0f;
 constexpr float kWobbleAmplitude = 0.1f;
 constexpr float kMarkerRise = 60.0f;
-constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
+constexpr float kMarkerDepth = 10.0f;
 
 // The interface sprite helpers on scene objects.
 CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
@@ -285,7 +285,7 @@ void CHudPortraits::Update() {
             Sprite(sceneObjects_[0])->visible_ = 1;
             float x, y, depth;
             Sprite(object(4))->GetPlacement(&x, &y, &depth);
-            Sprite(sceneObjects_[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
+            Sprite(sceneObjects_[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), kMarkerDepth);
         }
     }
 }

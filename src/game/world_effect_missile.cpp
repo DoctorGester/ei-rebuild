@@ -144,9 +144,9 @@ void CEffectArrow::Start(int update) {
     light_.localPosition_ = localPosition_;
     sound_.localPosition_ = localPosition_;
     particle_.type_ = particleType_;
-    std::memcpy(&particle_.size_, &particleSize_, 4);
+    particle_.size_ = particleSize_;
     light_.color_ = lightColor_;
-    std::memcpy(&light_.range_, &lightRange_, 4);
+    light_.range_ = lightRange_;
     Vector3 drift{kLightDrift, 0.0f, 0.0f};
     light_.SetVelocity(&drift);
     light_.lightFlags_ = kLightFlags;
@@ -303,7 +303,7 @@ void CEffectArrowFigure::Start(int update) {
     // figure is made, like the original.
     CObject3D* figure = figure_;
     CObject3DClientSpecific* attached = figure->ClientSpecific();
-    std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
+    figure->localPosition_ = localPosition_;
     std::vector<std::string> parts;
     figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();

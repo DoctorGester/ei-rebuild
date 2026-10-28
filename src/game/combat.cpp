@@ -386,7 +386,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     int keyed = IsTextKey(self->id_) & 0xFF;
     CItemWeapon* weapon = ActiveWeapon(self);
     if (keyed && weapon) {
-        std::memcpy(&out->damageMin, &weapon->damage_, sizeof(float));
+        out->damageMin = weapon->damage_;
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
@@ -399,11 +399,11 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
-        std::memcpy(&out->damageMin, &stats.damage, sizeof(float));
+        out->damageMin = stats.damage;
         out->damageMax = stats.damageSpread + stats.damage;
         out->attack = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kAttack]));
         out->defence = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kDefence]));
-        std::memcpy(&out->speed, &stats.combat[UnitStats::kSpeed], sizeof(float));
+        out->speed = stats.combat[UnitStats::kSpeed];
         if (weapon) {
             out->weaponType = weapon->GetType();
             out->damageType = WeaponDamageType(weapon->prototypeId_);
@@ -424,7 +424,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
     out->damageMax = ScaleDamageByEffects(self, out->damageMax);
     out->damageMin = ScaleDamageByEffects(self, out->damageMin);
-    std::memcpy(&out->attackSpread, &stats.combat[UnitStats::kAttackSpread], sizeof(float));
+    out->attackSpread = stats.combat[UnitStats::kAttackSpread];
     out->ScaleForDifficulty(keyed);
 }
 

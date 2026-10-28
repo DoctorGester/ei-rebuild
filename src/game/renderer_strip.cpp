@@ -72,8 +72,8 @@ constexpr float kWidthScale = 15.0f;
 
 // The texture coordinates of a new cross-section vertex: the current u and `v` (copied as bits).
 void SetUv(TLVertex* vertex, const float& v) {
-    std::memcpy(&vertex->u, &g_currentU, sizeof(float));
-    std::memcpy(&vertex->v, &v, sizeof(float));
+    vertex->u = g_currentU;
+    vertex->v = v;
 }
 
 // The first cross section of a ribbon, at the line's first point: the direction (dx, dy) to the next point
@@ -198,7 +198,7 @@ int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, flo
     EI_NAN_AUDIT(uLength);
     if (uLength == zero) g_currentU = 0.875f;
     g_bottomV = vStart + vSize;
-    std::memcpy(&g_topV, &vStart, 4);
+    g_topV = vStart;
 
     int clipped = mode;
     if (mode == 0) {

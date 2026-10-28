@@ -183,7 +183,7 @@ void LightningSegment::Animate(float time, float amplitude) {
 }
 
 void LightningSegment::Init(const Vector3* from, const Vector3* to) {
-    std::memcpy(&start, from, sizeof(start));
+    start = *from;
     step.x = static_cast<float>(static_cast<double>(to->x) - from->x);
     step.y = static_cast<float>(static_cast<double>(to->y) - from->y);
     step.z = static_cast<float>(static_cast<double>(to->z) - from->z);

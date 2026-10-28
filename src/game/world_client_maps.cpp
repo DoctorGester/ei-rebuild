@@ -626,8 +626,8 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     record->sizeU = lengthU;
     float lengthV = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
     record->sizeV = lengthV;
-    std::memcpy(&record->normal, normal, 12);
-    std::memcpy(&record->origin, a, 12);
+    record->normal = *normal;
+    record->origin = *a;
     record->axisU.x = ux / lengthU;
     record->axisU.y = uy / lengthU;
     record->axisU.z = uz / lengthU;
@@ -677,7 +677,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         record->x = rotated.x + position->x;
         record->y = rotated.y + position->y;
         record->z = rotated.z + position->z;
-        std::memcpy(&record->radius, &item->bounds.radius, 4);   // a dword move
+        record->radius = item->bounds.radius;   // a dword move
     }
 }
 

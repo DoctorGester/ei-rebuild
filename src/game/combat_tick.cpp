@@ -41,7 +41,7 @@ constexpr float kFifteen = 15.0f;
 constexpr float kHeightLimit = 1.5f;
 constexpr double kArrived = 0.02;
 constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the slowest closing speed
-constexpr std::uint32_t kFarBits = 0x49742400u;                     // 1e6: no limit for a path
+constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
 constexpr int kOrderNone = 0;
 constexpr int kOrderMove = 1;
@@ -206,7 +206,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
         if (from->target) ++from->target->refCount_;
         target = from->target;
     }
-    std::memcpy(&point, &from->point, sizeof(point));
+    point = from->point;
     pointIsUseSpot = from->pointIsUseSpot;
     param = from->param;
     param = from->param;   // copied twice, like the original
@@ -258,7 +258,7 @@ void CUnitServer::TakeQueuedOrder() {
         if (target) ++target->refCount_;
         action.target = target;
     }
-    std::memcpy(&action.point, &action2.point, sizeof(action.point));
+    action.point = action2.point;
     action.pointIsUseSpot = action2.pointIsUseSpot;
     action.param = action2.param;
     action.param = action2.param;
@@ -524,10 +524,10 @@ bool CUnitServer::CanReachAndPlanFrom(const AIOrder* order, const Vector3* point
     if (OutOfReachUp(this, order)) return false;
     // The position is swapped bitwise, like the original.
     Vector3 saved;
-    std::memcpy(&saved, &unit->localPosition_, sizeof(saved));
-    std::memcpy(&unit->localPosition_, point, sizeof(saved));
+    saved = unit->localPosition_;
+    unit->localPosition_ = *point;
     bool result = CanPlanAction(order);
-    std::memcpy(&unit->localPosition_, &saved, sizeof(saved));
+    unit->localPosition_ = saved;
     return result;
 }
 
@@ -627,12 +627,12 @@ void CUnitServer::ApproachTarget() {
     if (action.pointIsUseSpot || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
         Vector3 goal;
-        std::memcpy(&goal, &action.point, sizeof(goal));
+        goal = action.point;
         if (state == kStateIdle) {
             EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(goal, motion.goal));
             if (DistanceSquaredXYUnrounded<double>(goal, motion.goal) <= kNearPoint) return;
         }
-        if (PathTo(&goal, std::bit_cast<float>(kFarBits))) {
+        if (PathTo(&goal, kFarBits)) {
             double h = kHalfScale;
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);

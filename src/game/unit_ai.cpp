@@ -288,10 +288,10 @@ std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
     constexpr std::uint32_t kUnset = 0xC4A42000u;      // -1313.0
     std::memcpy(&position.x, &kUnset, 4);
     std::memcpy(&previousPosition.x, &kUnset, 4);
-    std::memset(&position.y, 0, 4);
-    std::memset(&previousPosition.y, 0, 4);
-    std::memset(&position.z, 0, 4);
-    std::memset(&previousPosition.z, 0, 4);
+    position.y = 0.0f;
+    previousPosition.y = 0.0f;
+    position.z = 0.0f;
+    previousPosition.z = 0.0f;
     return kUnset;
 }
 

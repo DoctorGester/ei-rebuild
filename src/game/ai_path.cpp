@@ -49,7 +49,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     }
 
     Vector3 from;
-    std::memcpy(&from, &PositionOf(unit), sizeof(from));
+    from = PositionOf(unit);
     int ux = WorldToCell(from.x), uy = WorldToCell(from.y);
     int sizeClass = unit->sizeClass;
     int region = 0;
@@ -160,8 +160,8 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
         y = static_cast<float>(last->y) + 0.5f;
         x = static_cast<float>(last->x) + 0.5f;
     } else {
-        std::memcpy(&y, &path->targetY, sizeof(y));
-        std::memcpy(&x, &path->targetX, sizeof(x));
+        y = path->targetY;
+        x = path->targetX;
         path->reached = true;
     }
     path->SetTarget(x, y);
@@ -170,9 +170,9 @@ void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
 
 bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float range, float minDistance) {
     Vector3 from, goal;
-    std::memcpy(&from, &PositionOf(unit), sizeof(from));
-    std::memcpy(&goal, target, sizeof(goal));
-    std::memcpy(&path->goal, target, sizeof(goal));
+    from = PositionOf(unit);
+    goal = *target;
+    path->goal = *target;
     if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
 
     sectorMap.Remove(unit);
@@ -180,8 +180,8 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         sectorMap.Add(unit);
         return false;
     }
-    std::memcpy(&path->targetY, &goal.y, 4);
-    std::memcpy(&path->targetX, &goal.x, 4);
+    path->targetY = goal.y;
+    path->targetX = goal.x;
 
     // In half-cell units, like the snapped target.
     float fx = 2.0f * from.x;
@@ -237,15 +237,15 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         }
         if (!tried) {
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
-            std::memcpy(&goal, target, sizeof(goal));
+            goal = *target;
             if (!SnapTarget(unit, &goal, true, minDistance)) {
                 sectorMap.Add(unit);
                 return false;
             }
             int gx = x87::fistp(goal.x - 0.5f);
             int gy = x87::fistp(goal.y - 0.5f);
-            std::memcpy(&path->targetX, &goal.x, 4);
-            std::memcpy(&path->targetY, &goal.y, 4);
+            path->targetX = goal.x;
+            path->targetY = goal.y;
             if (ux == gx && uy == gy) {
                 PathCell& first = pathCells.emplace_front();
                 first.x = static_cast<std::int16_t>(ux);
@@ -266,9 +266,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         unit->localRotation_.AxisY(&facing);
         float bx = -facing.x, by = -facing.y;
         float px;
-        std::memcpy(&px, &path->targetX, 4);
+        px = path->targetX;
         float a = Abs(px - static_cast<float>(x87::fistp(px)));
-        std::memcpy(&px, &path->targetX, 4);    // targetX twice (not targetY), like the original
+        px = path->targetX;    // targetX twice (not targetY), like the original
         float b = Abs(px - static_cast<float>(x87::fistp(px)));
         float b2 = b + b, a2 = a + a;
         float fraction = b2 < a2 ? b2 : a2;   // a and b are the same value (see above)

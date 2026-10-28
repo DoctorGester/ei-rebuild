@@ -1,5 +1,6 @@
 // Figure mesh loaders: the bounding volume and the FIG mesh data of a figure part, morphed by the figure's
 // three morph coefficients. See docs/notes/world.md ("Figure meshes").
+#include "ei/x87.h"
 #include "core_transform.h"
 #include "figure_mesh.h"
 
@@ -213,11 +214,11 @@ void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float 
     q = p + 0x24;
     Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
     float radius = MorphScalar6(p + 0x36, s, t, u);
-    std::memcpy(&bounds.center, &c, 12);
+    bounds.center = c;
     bounds.flags |= 1;
     bounds.radius = radius;
-    std::memcpy(&bounds.boxMin, &mn, 12);
-    std::memcpy(&bounds.boxMax, &mx, 12);
+    bounds.boxMin = mn;
+    bounds.boxMax = mx;
     bounds.flags |= 2;
 }
 
@@ -358,11 +359,11 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
         radius_ = MorphScalar(FloatsAt(*cursor), s, t, u, true);
         *cursor += 0x20;
 
-        std::memcpy(&box_.bounds.center, &center_, 12);
+        box_.bounds.center = center_;
         box_.bounds.radius = radius_;
         box_.bounds.flags |= 1;
-        std::memcpy(&box_.bounds.boxMin, &boxMin_, 12);
-        std::memcpy(&box_.bounds.boxMax, &boxMax_, 12);
+        box_.bounds.boxMin = boxMin_;
+        box_.bounds.boxMax = boxMax_;
         box_.bounds.flags |= 2;
         return;
     }
@@ -374,7 +375,7 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     *cursor += 12;
     std::memcpy(&radius_, *cursor, 4);
     *cursor += 4;
-    std::memcpy(&box_.bounds.center, &center_, 12);
+    box_.bounds.center = center_;
     box_.bounds.flags |= 1;
     box_.bounds.radius = radius_;
     box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
@@ -649,9 +650,9 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                 to[4] = d.y + from[4];
                 to[8] = d.z + from[8];
             } else {
-                std::memcpy(&to[0], &from[0], 4);
-                std::memcpy(&to[4], &from[4], 4);
-                std::memcpy(&to[8], &from[8], 4);
+                x87::CopyBits(to[0], from[0]);
+                x87::CopyBits(to[4], from[4]);
+                x87::CopyBits(to[8], from[8]);
             }
         }
         vertices = moved.data();

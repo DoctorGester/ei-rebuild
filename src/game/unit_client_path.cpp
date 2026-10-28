@@ -90,7 +90,7 @@ static void PlaceOnPathOf(CUnitClientSpecific* self, float time, float rate) {
         return;
     }
     float length;
-    std::memcpy(&length, &animation->stride, sizeof(length));
+    length = animation->stride;
     EI_NAN_AUDIT(length);
     if (length == 0.0f) {
         unit->animationSpeed = static_cast<float>(unit->ActionSpeed(animation));

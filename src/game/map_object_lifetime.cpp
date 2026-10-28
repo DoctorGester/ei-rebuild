@@ -29,10 +29,10 @@
 
 namespace {
 
-constexpr std::uint32_t kOne = 0x3F800000;
-constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
-constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
-constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
+constexpr float kOne = 1.0f;
+constexpr float kTenth = 0.1f;
+constexpr float kThreeQuarters = 0.75f;
+constexpr float kHalf = 0.5f;
 
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
@@ -67,12 +67,12 @@ void CObject3D::SetUpObject3D() {
     ClearBounds();
     attached = nullptr;
     animation = nullptr;
-    std::memset(&scale, 0, sizeof(scale));
+    scale = {};
     defaultScale = kDefaultFigureScale;
     // The original leaves the view position as the heap held it, and the draw sorts read it for an object listed
     // only for its shadow before it was ever in view (a NaN there made the draw order irreflexive). It starts at
     // zero here, and in the original through a harness patch (harness_leftovers.cpp).
-    std::memset(&worldPosition_, 0, sizeof(worldPosition_));
+    worldPosition_ = {};
 }
 
 // The name is destroyed after the body, then CEngineObject's part.
@@ -100,7 +100,7 @@ void CMapObject::SetUpMapObject() {
     packedVitals.Reset();
     sectorCellX = -1;
     sectorCellY = -1;
-    SetBits(animationSpeed, kOne);
+    animationSpeed = kOne;
 }
 
 CMapObject::~CMapObject() = default;
@@ -113,8 +113,8 @@ CUnit::CUnit() {
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
     m->Clear();
-    SetBits(m->speedScale, kTenth);
-    SetBits(m->baseTurnRate, kTenth);
+    m->speedScale = kTenth;
+    m->baseTurnRate = kTenth;
     controller = nullptr;
     player = nullptr;
     Reset();
@@ -125,8 +125,8 @@ void CUnit::Reset() {
     secondPrototype = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
-    SetBits(unitRadius, kThreeQuarters);
-    SetBits(standingHeight, kHalf);
+    unitRadius = kThreeQuarters;
+    standingHeight = kHalf;
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
     side = 0;

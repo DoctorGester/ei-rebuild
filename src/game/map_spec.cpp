@@ -116,7 +116,7 @@ void ObjectSpec::WriteFields() {
     WriteString(0xB00F, comment);
     WriteVector(*this, 0xB009, position);
     Quaternion turn;
-    std::memcpy(&turn, &rotation, 16);
+    turn = rotation;
     WriteQuaternion(0xB00A, turn);
     WriteByte(0xB013, shadow);
     WriteByte(0xB014, visible);
@@ -145,7 +145,7 @@ void ObjectSpec::OnChunk() {
     case 0xB008: ReadInto(c, skinTexture); break;
     case 0xB009: {
         Vector3 v;
-        std::memcpy(&position, c.ReadVector3(&v), sizeof(Vector3));
+        position = *c.ReadVector3(&v);
         break;
     }
     case 0xB00A: {
@@ -192,10 +192,10 @@ void ObjectSpec::Apply() {
     g_serverWorld->aiMap_.BeginRefresh();
     g_serverWorld->aiMap_.sectorMap.Remove(MapObject());
     CMapObject* mapObject = MapObject();
-    std::memcpy(&mapObject->localPosition_, &position, 12);
-    std::memcpy(&mapObject->localRotation_, &rotation, 16);
+    mapObject->localPosition_ = position;
+    mapObject->localRotation_ = rotation;
     mapObject->SetFigureScale(&scale.x);
-    std::memcpy(&mapObject->baseScale, &scale, 12);
+    mapObject->baseScale = scale;
     mapObject->ApplyBaseScale();
     std::uint32_t& flags = mapObject->flags_;
     if (!visible) flags |= 8;
@@ -246,7 +246,7 @@ void FlameSpec::OnChunk() {
     case 0xBBBF0001: volume = c.ReadFloat(); break;
     case 0xBBBF0002: {
         Vector3 v;
-        std::memcpy(&offset, c.ReadVector3(&v), sizeof(Vector3));
+        offset = *c.ReadVector3(&v);
         break;
     }
     case 0xBBBF0003: ReadInto(c, sound); break;

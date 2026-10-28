@@ -289,7 +289,7 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         if (static_cast<double>(from) >= time) where = object->PositionAt(&buffer, from);
         else where = object->AimPoint(&buffer);
         Vector3 target;
-        std::memcpy(&target, where, sizeof(target));
+        target = *where;
         float tx = static_cast<float>(kHalfCellScale * target.x);
         double ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
@@ -389,7 +389,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         }
         if (!found) {
             segmentStart = saved;
-            std::memset(speedOut, 0, sizeof(float));
+            *speedOut = 0.0f;
             const MotionPoint& last = points[std::ssize(points) - 1];
             CopyBits(&position[0], &last.x);
             CopyBits(&position[1], &last.y);

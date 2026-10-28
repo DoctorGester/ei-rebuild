@@ -85,9 +85,9 @@ void CUnitServer::Resettle() {
     if (!map->CanLeaveCell(unit)) {
         auto* position = &unit->localPosition_;
         Vector3 spot;
-        std::memcpy(&spot, position, sizeof(spot));
+        spot = *position;
         if (map->FindFreeCellNear(unit, position, &spot)) {
-            std::memcpy(position, &spot, sizeof(spot));
+            *position = spot;
         } else {
             DamageInfo hit;
             ResetDamageInfo(&hit);

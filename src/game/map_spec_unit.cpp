@@ -62,7 +62,7 @@ void ReadInto(Chunk& c, std::string& field) {
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
-    std::memcpy(&to, c.ReadVector3(&v), sizeof(Vector3));
+    to = *c.ReadVector3(&v);
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
@@ -212,9 +212,9 @@ void UnitSpec::Apply() {
     CUnit* unit = Unit();
     g_serverWorld->aiMap_.sectorMap.Move(unit, &position);
     g_serverWorld->aiMap_.TurnObject(unit, &rotation);
-    std::memcpy(&unit->localRotation_, &rotation, 16);
+    unit->localRotation_ = rotation;
     unit->SetFigureScale(&scale.x);
-    std::memcpy(&unit->baseScale, &scale, 12);
+    unit->baseScale = scale;
     unit->ApplyBaseScale();
     std::uint32_t& flags = unit->flags_;
     if (!visible) flags |= 8;

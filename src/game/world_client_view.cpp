@@ -169,9 +169,9 @@ int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Mat
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix.m;
                 static_cast<const Quaternion*>(&o3d->localRotation_)->ToMatrix(matrix);
-                std::memcpy(&matrix[3], &o3d->localPosition_.x, 4);
-                std::memcpy(&matrix[7], &o3d->localPosition_.y, 4);
-                std::memcpy(&matrix[11], &o3d->localPosition_.z, 4);
+                matrix[3] = o3d->localPosition_.x;
+                matrix[7] = o3d->localPosition_.y;
+                matrix[11] = o3d->localPosition_.z;
                 const std::uint32_t zero = 0;
                 const std::uint32_t one = 0x3F800000;   // 1.0f
                 std::memcpy(&matrix[14], &zero, 4);

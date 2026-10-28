@@ -36,12 +36,12 @@ template void CountedRef<WoundsMaterial>::Assign(WoundsMaterial*);
 template void CountedRef<CRenderPreset>::Assign(CRenderPreset*);
 
 int CObject3D::Create3D() {
-    std::memset(&localPosition_, 0, sizeof(localPosition_));
+    localPosition_ = {};
     localRotation_ = kIdentityOrientation;
     attached = nullptr;
     flags_ = 0;
     animations = nullptr;
-    std::memset(&scale, 0, sizeof(scale));
+    scale = {};
     CLinkMesh* old = figure;
     figure = nullptr;
     DropReference(old);

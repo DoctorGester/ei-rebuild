@@ -512,7 +512,7 @@ int CWorldClient::DrawPass() {
             if (object) {
                 if (object->IsDead() == 0) {
                     Vector3 point;
-                    std::memcpy(&point, &object->localPosition_, sizeof(point));
+                    point = object->localPosition_;
                     if (CFigureMesh* part = object->FindPartByPrefix(MarkerPartName())) {
                         Vector3 scratch;
                         const float* at = object->PartWorldPosition(&scratch.x, part);

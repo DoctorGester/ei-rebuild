@@ -174,10 +174,10 @@ Vector3* Chunk::ReadVector3(Vector3* out) {
     ReadCounted(this, &v[1], 4);
     ReadCounted(this, &v[2], 4);
     std::uint32_t x;
-    std::memcpy(&x, &v[0], 4);
+    x = v[0];
     std::memcpy(&out->x, &x, 4);
     std::uint32_t z;
-    std::memcpy(&z, &v[2], 4);
+    z = v[2];
     std::memcpy(&out->z, &z, 4);
     std::memcpy(&out->y, &v[1], 4);
     return out;

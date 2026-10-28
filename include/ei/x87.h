@@ -38,6 +38,13 @@ inline bool IsNaN(double v) {
     return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
 }
 
+// A float copied bit for bit. `to = from` loads the value onto the x87 stack and stores it back (FLD / FSTP,
+// /arch:IA32), which turns a signalling NaN into a quiet one; the copies of values that arrive from a file, a
+// message or a script slot (any bit pattern) go through this instead. Computed floats are plain assignments.
+inline void CopyBits(float& to, const float& from) {
+    std::memcpy(&to, &from, sizeof(float));
+}
+
 __declspec(naked) inline double __cdecl fsin(double) {
     __asm fld qword ptr [esp + 4]
     __asm fsin

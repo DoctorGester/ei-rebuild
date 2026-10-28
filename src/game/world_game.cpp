@@ -137,7 +137,7 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
 }
 
 constexpr float kCatchUpRadius = 70.0f;
-constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
+constexpr float kStartTime = 4.0f;
 constexpr int kMaxCatchUpTicks = 1000;
 
 
@@ -480,7 +480,7 @@ int EnterZone(CParty* records) {
             }
             if (!loaded) return 0;
             zoneRecord = FindZone(zone);
-            g_serverWorld->SetTime(std::bit_cast<float>(kStartTime));
+            g_serverWorld->SetTime(kStartTime);
         }
         if (zoneRecord->kind == 2) {
             std::string scripts = zoneRecord->mob + kMobExtension;
@@ -527,7 +527,7 @@ int StartNetworkZone(const char* zone) {
             loaded = g_serverWorld->NewZone(map, mob, zone) != 0;
         }
         if (!loaded) return 0;
-        g_serverWorld->SetTime(std::bit_cast<float>(kStartTime));
+        g_serverWorld->SetTime(kStartTime);
     }
 
     // The zone's exits, all leading to "MPGame1".
@@ -942,7 +942,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         player->Connect(connection);
         player->dirty_ = 0xFFFFFFFFu;
         player->sessionKind_ = sessionKind_;
-        std::memcpy(&player->Server()->lastPosition_, &startPosition_, 12);
+        player->Server()->lastPosition_ = startPosition_;
         int id = player->playerId_;
         console::EndLine(console::g_netLogOut << kAcceptedPlayer << id);
         node = next;

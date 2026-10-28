@@ -126,7 +126,7 @@ CLightning::CLightning() {
     texture_ = nullptr;
     glowTexture_ = nullptr;
     std::memset(static_cast<void*>(&bounds_), 0, sizeof(bounds_));
-    std::memset(&boundsSpare_, 0, sizeof(boundsSpare_));
+    boundsSpare_ = {};
     CLightning::Destroy();
 }
 

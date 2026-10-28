@@ -370,7 +370,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             ScriptVars* globals = &script->globals_;
             switch (Ftol(f[1])) {
             case 0:
-                std::memcpy(&globals->floats.values[Ftol(f[0])], &f[2], 4);
+                x87::CopyBits(globals->floats.values[Ftol(f[0])], f[2]);
                 break;
             case 1:
                 globals->strings.values[Ftol(f[0])] = cmd->stringArgs[0];

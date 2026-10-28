@@ -31,7 +31,7 @@ constexpr float kHalfCell = 50.0f;
 constexpr float kFrameDepth = 0.9f;
 constexpr float kFaceDepth = 1.5f;
 constexpr float kSlotsPerPixel = 0.01f;
-constexpr std::uint32_t kDimmed = 0x3E480000;   // 0.1953125 as the end faces' texture offset
+constexpr float kDimmed = 0.1953125f;   // 0.1953125 as the end faces' texture offset
 
 // "buttons\battle\on_off.wav": the sound system keeps the game's own string pointer.
 const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
@@ -72,8 +72,8 @@ BOOL CFigureStrip::Draw(CSceneRenderer* pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);   // _ftol
     const float frac = static_cast<float>(position - static_cast<float>(first));
-    Sprite(*this, 0)->textureOffsetU_ = position_[tab_] > 0.0f ? std::bit_cast<float>(kDimmed) : 0.0f;
-    Sprite(*this, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? std::bit_cast<float>(kDimmed) : 0.0f;
+    Sprite(*this, 0)->textureOffsetU_ = position_[tab_] > 0.0f ? kDimmed : 0.0f;
+    Sprite(*this, 1)->textureOffsetU_ = static_cast<float>(count_ - 7) > position_[tab_] ? kDimmed : 0.0f;
     Sprite(*this, 9)->Place(kHalfCell - frac * kCell, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
         Sprite(*this, 10 + i)->Place(((static_cast<float>(i) - frac) + 1.0f) * kCell, static_cast<float>(top_) + kHalfCell,

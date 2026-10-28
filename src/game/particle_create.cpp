@@ -102,7 +102,7 @@ void SetupExplosion(CParticleSource* s) {
     SetCallbacks(s, &CParticleSource::EmitBlast, &CParticleSource::UpdateBlast, &CParticleSource::TickBlast);
     s->elements.resize(15);
     for (int i = 0; i < std::ssize(s->elements); ++i) {
-        std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
+        s->elements[i].pos = {};
         float x, y, z;
         double lengthSquared;
         for (int tries = 10;;) {
@@ -260,8 +260,8 @@ void SetupClayRing(CParticleSource* s) {
         direction[0] = static_cast<float>(x87::fsin(angle));
         direction[1] = static_cast<float>(x87::fcos(angle));
         SetBits(&direction[2], 0);
-        std::memcpy(&s->elements[i].pos, &s->localPosition_, sizeof(Vector3));
-        std::memcpy(&s->elements[i].clay.previous, &s->localPosition_, sizeof(Vector3));
+        s->elements[i].pos = s->localPosition_;
+        s->elements[i].clay.previous = s->localPosition_;
         s->elements[i].ticks = 14;
     }
 }
@@ -337,7 +337,7 @@ void SetupFeetCloud(CParticleSource* s) {
     for (int i = 0; i < 2; ++i) {
         s->elements[i].foot.countdown = -1;
         s->elements[i].ticks = i;
-        std::memset(&s->elements[i].pos, 0, sizeof(Vector3));
+        s->elements[i].pos = {};
         SetBits(&s->elements[i].foot.radius, 0);
     }
     SetCallbacks(s, &CParticleSource::EmitFeetCloud, &CParticleSource::UpdateFeetCloud, &CParticleSource::TickFeetCloud);
@@ -716,7 +716,7 @@ void BuildFrames(CParticleSource* s) {
 // Back to the defaults: no position, attachment, callbacks or elements; the texture
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
-    std::memset(&localPosition_, 0, sizeof(Vector3));
+    localPosition_ = {};
     localRotation_ = kIdentityRotation;
     attachedTo = nullptr;
     emitChance = 0;
@@ -728,8 +728,8 @@ void CParticleSource::Reset() {
     CTexture* held = texture;
     texture = nullptr;
     if (held) held->Release();
-    std::memset(&windDirection, 0, sizeof(Vector3));
-    std::memset(&extent, 0, sizeof(Vector3));
+    windDirection = {};
+    extent = {};
     emitFn = nullptr;
     updateFn = nullptr;
     elementFn = nullptr;
@@ -740,8 +740,8 @@ void CParticleSource::Reset() {
     typeParam = 1.0f;
     size = 1.0f;
     baseSize = 1.0f;
-    std::memset(&spreadMin, 0, sizeof(Vector3));
-    std::memset(&spreadMax, 0, sizeof(Vector3));
+    spreadMin = {};
+    spreadMax = {};
     SetBits(&emitState, 0);
     SetBits(&height, 0);
     SetBits(&growth, 0);
@@ -773,7 +773,7 @@ int CParticleSource::Create() {
     SetBits(&boundsMin.z, farBound);
     Vector3 nearBound;
     nearBound.Construct(-100000.0f, -100000.0f, -100000.0f);
-    std::memcpy(&boundsMax, &nearBound, sizeof(Vector3));
+    boundsMax = nearBound;
     frameColumns = 4;
     emitChance = 100;
     flags_ = (flags_ & ~0x18u) | 1;

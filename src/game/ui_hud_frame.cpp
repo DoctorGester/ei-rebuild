@@ -50,8 +50,8 @@ constexpr float kPulseMiddle = 0.7f;
 constexpr float kSlideTime = 0.3f;   // 0.3 seconds for a full slide
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
-constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f
-constexpr std::uint32_t kSpriteDepth = 0x4101B287;   // 8.106: the dial marks, the top panel sling
+constexpr float kHandDepth = 8.0f;
+constexpr float kSpriteDepth = 8.106086f;   // 8.106: the dial marks, the top panel sling
 
 // The time of day in hours: (client ticks * scale + offset) mod 24 (_CIfmod), stored.
 float TimeOfDay() {
@@ -63,9 +63,9 @@ CUiMesh* Sprite(CEngineObject* object) { return AsUiMesh(object); }
 
 void SetTint(CEngineObject* object, float value) {
     float* tint = Sprite(object)->tint_;
-    std::memcpy(&tint[0], &value, 4);
-    std::memcpy(&tint[1], &value, 4);
-    std::memcpy(&tint[2], &value, 4);
+    tint[0] = value;
+    tint[1] = value;
+    tint[2] = value;
 }
 
 // Turns a sprite about `axis` (z or -z) by `angle`.
@@ -73,7 +73,7 @@ void Turn(CEngineObject* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(&Sprite(object)->localRotation_, &q, sizeof(q));
+    Sprite(object)->localRotation_ = q;
 }
 
 std::uint32_t Bits(float f) {
@@ -143,7 +143,7 @@ void CHudClock::Update() {
     double handSin = x87::fsin(handAngle);
     float handY = static_cast<float>(kCentreY - handSin * kHandRadius);
     float handX = static_cast<float>(x87::fcos(handAngle) * kHandRadius + widescreen::g_layoutWidth);
-    Sprite(objects[1])->Place(handX, handY, FloatFromBits(kHandDepth));
+    Sprite(objects[1])->Place(handX, handY, kHandDepth);
 
     // The face turns with the time of day.
     Turn(face, 1.0f, static_cast<float>((D(hours) + kFaceOffset) * D(kPi) * kFaceStep));
@@ -156,7 +156,7 @@ void CHudClock::Update() {
         double c = x87::fcos(angle);
         float y = static_cast<float>(kCentreY - c * kDialRadius);
         float x = static_cast<float>(x87::fsin(angle) * kDialRadius + widescreen::g_layoutWidth);
-        Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
+        Sprite(mark)->Place(x, y, kSpriteDepth);
         angle = static_cast<float>(D(angle) - D(static_cast<float>(D(kPi) * kDialStep)));
     }
 
@@ -192,10 +192,10 @@ void CHudTopPanel::Update() {
             Turn(sling, 1.0f, kPi);
             y = kSlingInY;
         } else {
-            std::memcpy(&Sprite(sling)->localRotation_, &kHudRestRotation, 16);
+            Sprite(sling)->localRotation_ = kHudRestRotation;
             y = kSlingOutY;
         }
-        Sprite(sling)->Place(kSlingX, y, FloatFromBits(kSpriteDepth));
+        Sprite(sling)->Place(kSlingX, y, kSpriteDepth);
     }
     interface_->hudPanelsIn_[1] = slideDirection_ > 0.0f ? 1 : 0;   // the panel is (coming) in
     interface_->hudTopPage_ = page_;

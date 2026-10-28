@@ -35,8 +35,8 @@ constexpr float kTen = 10.0f;
 constexpr float kRevived = 0.001f;
 static_assert(std::bit_cast<std::uint32_t>(kRevived) == 0x3A83126Fu);
 constexpr double kMinHeal = 0.001;                                  // a double
-constexpr std::uint32_t kNoCapacity = 0x49742400u;                  // 1000000.0f
-constexpr std::uint32_t kKeyedUnknown044 = 0xC0000000u;             // -2.0f
+constexpr float kNoCapacity = 1000000.0f;
+constexpr float kKeyedUnknown044 = -2.0f;
 constexpr float kUnkeyedRateBase = 15.0f;                           // 0x41700000
 
 constexpr int kRegenPeriod = 15;
@@ -283,7 +283,7 @@ void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
 
 void* UnitStats::RefillSlots() {
     for (UnitStatSlot& slot : slots) {
-        if (slot.kind >= 2) std::memcpy(&slot.current, &slot.maximum, sizeof(float));   // dword copy
+        if (slot.kind >= 2) slot.current = slot.maximum;   // dword copy
     }
     UnitStatSlot* end = slots + 6;
     return &end->maximum;   // where the loop pointer stops
@@ -293,7 +293,7 @@ void* UnitStats::RestoreSlots() {
     for (UnitStatSlot& slot : slots) {
         if (slot.kind > 0) {
             slot.kind = 3;
-            std::memcpy(&slot.current, &slot.maximum, sizeof(float));
+            slot.current = slot.maximum;
         }
     }
     UnitStatSlot* end = slots + 6;
@@ -346,7 +346,7 @@ void UnitStats::RecomputeHitPoints(UnitVitals* vitals, CUnit* unit) {
     if (IsTextKey(unit->id_) & 0xFF) {
         vitals->maxHitPoints = static_cast<float>(HitPointCurve());
     } else {
-        std::memcpy(&vitals->maxHitPoints, &fixedMaxHitPoints, sizeof(float));
+        vitals->maxHitPoints = fixedMaxHitPoints;
     }
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
@@ -362,8 +362,8 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     intelligence = intelligenceBase;
     dexterity = dexterityBase;
     for (int i = 0; i < 6; ++i) {
-        std::memcpy(&perception[i].current, &perception[i].base, sizeof(float));
-        std::memcpy(&conspicuity[i].current, &conspicuity[i].base, sizeof(float));
+        perception[i].current = perception[i].base;
+        conspicuity[i].current = conspicuity[i].base;
     }
 
     double bonus = 0.0;
@@ -379,7 +379,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     dexterity = static_cast<float>((record ? RecordValue(record) : 0.0f) + dexterity);
     record = SkillLevelRecord(kSkillStat20);
     intelligence = static_cast<float>((record ? RecordValue(record) : 0.0f) + intelligence);
-    for (UnitStatPair& protection : vitals->protection) std::memcpy(&protection.current, &protection.base, sizeof(float));
+    for (UnitStatPair& protection : vitals->protection) protection.current = protection.base;
 
     float strongest[kEffectTypes] = {};
     for (int i = 0; i < std::ssize(unit->effects); ++i) {
@@ -418,7 +418,7 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
         scaled = curve * (dexterity / g_logicSettings.mpVal[0] * g_logicSettings.mpVal[1]);
         vitals->maxMana = static_cast<float>((LevelValueOf(this, kSkillMana) * kPercent + 1.0f) * scaled);
     } else {
-        std::memcpy(&vitals->maxHitPoints, &fixedMaxHitPoints, sizeof(float));
+        vitals->maxHitPoints = fixedMaxHitPoints;
     }
 
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
@@ -435,10 +435,10 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     if (keyed) {
         double scaledStrength = strength * kTwelve;
-        std::memcpy(&sightCone, &kKeyedUnknown044, sizeof(float));
+        sightCone = kKeyedUnknown044;
         capacity = static_cast<float>((LevelValueOf(this, kSkillCapacity) * kPercent + 1.0f) * scaledStrength);
     } else {
-        std::memcpy(&capacity, &kNoCapacity, sizeof(float));
+        capacity = kNoCapacity;
     }
     load = static_cast<float>(unit->TotalItemWeight());
     int unusedArg = keyed ? 1 : 0;   // the text-key byte is passed (upper bytes garbage)

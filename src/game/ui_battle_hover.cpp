@@ -63,7 +63,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     };
     auto unitPosition = [](CUnit* u) {
         Vector3 at;
-        std::memcpy(&at, &u->localPosition_, sizeof(at));
+        at = u->localPosition_;
         return at;
     };
 

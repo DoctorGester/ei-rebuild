@@ -56,9 +56,9 @@ void CUnitServer::SetStats(const UnitStats* source) {
     RefreshVitals(0);
     // The companion's vitals: hit points and mana at their maxima (the companion read again).
     auto* companion = unit->ServerCompanion();
-    std::memcpy(&companion->vitals.hitPoints, &companion->vitals.maxHitPoints, 4);
+    companion->vitals.hitPoints = companion->vitals.maxHitPoints;
     companion = unit->ServerCompanion();
-    std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
+    companion->vitals.mana = companion->vitals.maxMana;
 }
 
 void CUnitServer::Shout(std::uint32_t code) {

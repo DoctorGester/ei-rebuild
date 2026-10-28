@@ -92,7 +92,7 @@ void Transpose(float* m) {
     for (const auto& p : kPairs) {
         std::uint32_t lower;
         std::memcpy(&lower, &m[p[1]], 4);
-        std::memcpy(&m[p[1]], &m[p[0]], sizeof(float));
+        m[p[1]] = m[p[0]];
         std::memcpy(&m[p[0]], &lower, 4);
     }
 }
@@ -103,9 +103,9 @@ void FillMatrixStacks(CSceneRenderer* renderer) {
     // The camera's near and far distances and field of view.
     const CCamera* cam = &g_camera.Get();
     float zNear, zFar, fov;
-    std::memcpy(&zNear, &cam->nearDistance_, 4);
-    std::memcpy(&zFar, &cam->farDistance_, 4);
-    std::memcpy(&fov, &cam->fieldOfView_, 4);
+    zNear = cam->nearDistance_;
+    zFar = cam->farDistance_;
+    fov = cam->fieldOfView_;
     Matrix4 m;
     static_assert(std::bit_cast<std::uint32_t>(1.3333334f) == 0x3FAAAAABu);
     ProjectionMatrix(&m, fov, 1.3333334f, zNear, zFar);   // aspect 4/3
@@ -140,8 +140,8 @@ void SetViewport(CSceneRenderer* renderer, const GameOptions* settings) {
     float height = static_cast<float>(screen.bottom - screen.top);
     renderer->pipeline_->transform_->SetViewportSize(width, height);
     float first, second;
-    std::memcpy(&first, &settings->fogDayStartDistance_, 4);
-    std::memcpy(&second, &settings->farClipDistance_, 4);
+    first = settings->fogDayStartDistance_;
+    second = settings->farClipDistance_;
     renderer->pipeline_->transform_->SetDepthRange(first, second);
 }
 
@@ -272,12 +272,12 @@ void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
     for (int i = 15; i >= 0; --i) stacks[i].count = 0;
     const CCamera* cam = &g_camera.Get();
     float zNear, zFar, fov;
-    std::memcpy(&zNear, &cam->nearDistance_, 4);
-    std::memcpy(&zFar, &cam->farDistance_, 4);
-    std::memcpy(&fov, &cam->fieldOfView_, 4);
+    zNear = cam->nearDistance_;
+    zFar = cam->farDistance_;
+    fov = cam->fieldOfView_;
     // Any field of view but 0 replaces the camera's.
     EI_NAN_AUDIT(fieldOfView);
-    if (fieldOfView != 0.0f) std::memcpy(&fov, &fieldOfView, 4);
+    if (fieldOfView != 0.0f) fov = fieldOfView;
     const int width = screen->right - screen->left;
     const int height = screen->bottom - screen->top;
     Matrix4 m;

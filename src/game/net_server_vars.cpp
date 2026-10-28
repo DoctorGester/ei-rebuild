@@ -1,6 +1,7 @@
 // The game server's script variables: named floats the script reads and writes in a
 // network game, replicated to the clients as VariableMessages. See net_messages.h and docs/notes/network.md.
 
+#include "ei/x87.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -38,7 +39,7 @@ void ServerSession::SetVariable(const std::string* name, float value) {
     EI_NAN_AUDIT(value);
     if (value != 0.0f) {
         VariableMessage* variable = FindOrAddVariable(name)->Get();
-        std::memcpy(&variable->value_, &value, 4);
+        x87::CopyBits(variable->value_, value);
         variable->serial_ = g_variableSerial;
         ++g_variableSerial;
         ++variable->version_;

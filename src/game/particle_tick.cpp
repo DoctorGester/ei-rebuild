@@ -26,8 +26,8 @@ inline double D(float f) { return f; }
 #define EI_STILL 0.001   // below this the source is not moving
 #define EI_DEGENERATE 1e-10
 
-constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
-constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
+constexpr float kFarBits = 100000.0f;
+constexpr float kNearBits = -100000.0f;
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
@@ -58,16 +58,16 @@ void GrowBounds(Vector3& low, Vector3& high, const Vector3& p) {
 
 // Saves the fields the update callback may change, so a rejected update can be undone (dword copies).
 void SavePrevious(Particle* p) {
-    std::memcpy(&p->prevPos, &p->pos, sizeof(Vector3));
+    p->prevPos = p->pos;
     p->prevColor = p->color;
-    std::memcpy(&p->prevSize, &p->size, sizeof(float));
+    p->prevSize = p->size;
     p->prevFrame = p->frame;
 }
 
 void RestorePrevious(Particle* p) {
-    std::memcpy(&p->pos, &p->prevPos, sizeof(Vector3));
+    p->pos = p->prevPos;
     p->frame = p->prevFrame;
-    std::memcpy(&p->size, &p->prevSize, sizeof(float));
+    p->size = p->prevSize;
     p->color = p->prevColor;
 }
 
@@ -94,7 +94,7 @@ struct TickSteps {
             s->motion.x = static_cast<float>(D(s->localPosition_.x) - D(s->origin.x));
             s->motion.y = static_cast<float>(D(s->localPosition_.y) - D(s->origin.y));
             s->motion.z = static_cast<float>(D(s->localPosition_.z) - D(s->origin.z));
-            std::memcpy(&s->origin, &s->localPosition_, sizeof(Vector3));
+            s->origin = s->localPosition_;
         }
     }
 
@@ -106,14 +106,14 @@ struct TickSteps {
         s->distance = static_cast<float>(distance);
         EI_NAN_AUDIT(distance);
         if (distance <= EI_STILL) {
-            std::memset(&s->side, 0, sizeof(Vector3));
-            std::memset(&s->up, 0, sizeof(Vector3));
+            s->side = {};
+            s->up = {};
             return;
         }
         double zero = EI_ZERO;
         s->side.x = static_cast<float>(D(m.y) - zero);
         s->side.y = static_cast<float>(zero - D(m.x));
-        SetBits(s->side.z, 0);
+        s->side.z = 0.0f;
         double length = LengthDouble(s->side);
         EI_NAN_AUDIT(length);
         if (length < EI_DEGENERATE) {
@@ -237,12 +237,12 @@ int CParticleSource::RunTick() {
     const CWorldClient* world = &g_clientWorld.Get();
     std::memcpy(&windDirection, world->windDirection_, sizeof(windDirection));
     std::memcpy(&windStrength, &world->windStrength_, sizeof(windStrength));
-    SetBits(boundsMin.x, kFarBits);
-    SetBits(boundsMin.y, kFarBits);
-    SetBits(boundsMin.z, kFarBits);
-    SetBits(boundsMax.x, kNearBits);
-    SetBits(boundsMax.y, kNearBits);
-    SetBits(boundsMax.z, kNearBits);
+    boundsMin.x = kFarBits;
+    boundsMin.y = kFarBits;
+    boundsMin.z = kFarBits;
+    boundsMax.x = kNearBits;
+    boundsMax.y = kNearBits;
+    boundsMax.z = kNearBits;
     if (attachedTo && (attachedTo->flags_ & 1)) Attach(nullptr);
 
     TickSteps steps{this};

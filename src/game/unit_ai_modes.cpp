@@ -77,7 +77,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     }
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
-    std::memcpy(&brain->move.point, &order->point, sizeof(Vector3));
+    brain->move.point = order->point;
     brain->move.looks = order->looks;
     brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
 }
@@ -85,11 +85,11 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
 void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY) {
     brain->nearX = nearX;
     brain->nearY = nearY;
-    std::memcpy(&brain->previousPosition, &brain->position, sizeof(Vector3));
-    std::memcpy(&brain->position, where, sizeof(Vector3));
+    brain->previousPosition = brain->position;
+    brain->position = *where;
     std::uint32_t previous;
     std::memcpy(&previous, &brain->previousPosition.x, 4);
-    if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
+    if (previous == kUnsetBits) brain->previousPosition = *where;
 }
 
 // The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a list built on
@@ -106,7 +106,7 @@ bool DirectControl(const AIBrain* brain) {
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),
 // the run flag, and the references dropped.
 void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, const Vector3* offset) {
-    std::memcpy(&self->point, to, sizeof(Vector3));
+    self->point = *to;
     Vector3 shifted;
     shifted.x = to->x + offset->x;
     shifted.y = to->y + offset->y;
@@ -146,16 +146,16 @@ void AIActionMode::Enter(AIBrain* brain) {
 // --- Guard ---------------------------------------------------------------------------------------
 
 void GuardMode::Set(const Vector3* p, float newRadius, float newWander) {
-    std::memcpy(&point, p, sizeof(Vector3));
+    point = *p;
     failures = 0;
     if (newRadius >= 0.0f)
-        std::memcpy(&radius, &newRadius, 4);
+        radius = newRadius;
     else
-        std::memcpy(&radius, &g_logicSettings.guardRadius, 4);
+        radius = g_logicSettings.guardRadius;
     if (newWander >= 0.0f)
-        std::memcpy(&wander, &newWander, 4);
+        wander = newWander;
     else
-        std::memcpy(&wander, &g_logicSettings.guardStayTime, 4);
+        wander = g_logicSettings.guardStayTime;
 }
 
 void GuardMode::Execute(AIBrain* brain) {
@@ -230,7 +230,7 @@ void PatrolMode::Execute(AIBrain* brain) {
     if (++current >= std::ssize(points)) current = 0;
     PatrolPoint* next = points.data() + current;
     AIMoveOrder order;
-    std::memcpy(&order.point, &next->position, sizeof(Vector3));
+    order.point = next->position;
     order.looks = next->looks;
     if (order.looks.empty()) {
         Vector3 none{0.0f, 0.0f, 0.0f};
@@ -286,7 +286,7 @@ void PatrolMode::Save(CStream* stream) {
 
 // --- Sentry --------------------------------------------------------------------------------------
 
-void SentryMode::Set(const Vector3* p) { std::memcpy(&point, p, sizeof(Vector3)); }
+void SentryMode::Set(const Vector3* p) { point = *p; }
 
 void SentryMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
@@ -294,7 +294,7 @@ void SentryMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
     order.looks.clear();
-    std::memcpy(&order.point, &point, sizeof(Vector3));
+    order.point = point;
     bool farLook = g_random.Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // the wander radii of a far and a near look-around.
@@ -341,7 +341,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         }
         if (!allied) {
             Vector3 where;
-            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen.object)->localPosition_, sizeof(Vector3));
+            where = static_cast<const CMapObject*>(brain->seen.object)->localPosition_;
             brain->memory.Notice(&where, 1000, -2);
         }
     }
@@ -353,8 +353,8 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         return value;
     }
     level = brain->memory.noticedLevel;
-    std::memcpy(&point.x, &brain->memory.noticedX, sizeof(float));
-    std::memcpy(&point.y, &brain->memory.noticedY, sizeof(float));
+    point.x = brain->memory.noticedX;
+    point.y = brain->memory.noticedY;
     point.z = 0.0f;
     return level;
 }
@@ -362,7 +362,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
 void SuspectionMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) {
         Vector3 going;
-        std::memcpy(&going, &brain->move.point, sizeof(Vector3));
+        going = brain->move.point;
         double dy = point.y - going.y;      // kept on the FPU stack
         double dx = point.x - going.x;
         // A new move only when the distance is greater.
@@ -386,14 +386,14 @@ void SuspectionMode::Execute(AIBrain* brain) {
             return;
         }
     } else {
-        std::memcpy(&order.point, &point, sizeof(Vector3));
+        order.point = point;
     }
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     brain->target.Assign(nullptr);
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
-    std::memcpy(&brain->move.point, &order.point, sizeof(Vector3));
+    brain->move.point = order.point;
     brain->move.looks = order.looks;
     brain->owner->OrderMove(&brain->move.point, 0, 0, kMoveTime);
     level = brain->memory.noticedLevel;
@@ -404,7 +404,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
     AIMoveOrder order;
     order.point = Vector3{0.0f, 0.0f, 0.0f};
     order.looks.clear();
-    std::memcpy(&order.point, &point, sizeof(Vector3));
+    order.point = point;
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);
     StartMove(brain, &order);
@@ -632,15 +632,15 @@ void PlayerMode::Execute(AIBrain* brain) {
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !StaysWithParty(brain, true)) {
                 brain->owner->Shout(0x21);
-                std::memset(&point.z, 0, 4);
+                point.z = 0.0f;
                 brain->target.Reset();
                 brain->action = AIBrain::kActionNone;
             }
         } else if (direct || StaysWithParty(brain, false)) {
             std::memcpy(&point.z, &kOneBits, 4);
             Vector3 to;
-            std::memcpy(&to.x, &point.x, 4);
-            std::memcpy(&to.y, &point.y, 4);
+            to.x = point.x;
+            to.y = point.y;
             std::memcpy(&to.z, &kUnsetBits, 4);
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&to, 0, 0, kMoveTime);
@@ -667,7 +667,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
     if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
-        std::memset(&point.z, 0, 4);
+        point.z = 0.0f;
         brain->owner->PlanMove(&point, unknown, 0, kMoveTime);
         return;
     }

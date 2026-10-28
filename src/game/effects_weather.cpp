@@ -120,7 +120,7 @@ void CRainSnow::Start(int newMode, float duration) {
     if (newMode == 1) sound = g_clientWorld->sounds_->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
     targetMode = newMode;
     if (mode == 0) mode = newMode;
-    std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));
+    fadeDuration = duration;
     fadeStart = static_cast<float>(world->tick_);
 }
 

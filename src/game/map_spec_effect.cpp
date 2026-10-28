@@ -1,6 +1,7 @@
 // The zone file's effect records: particle sources (kind 4), lights (kind 2) and sounds (kind 3) on their base
 // (map_spec.h). They keep the world object they made and its effect, are kept above the terrain when moved,
 // and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
+#include "ei/x87.h"
 #include "base_manager.h"
 #include "map_spec.h"
 #include "core_transform.h"
@@ -30,7 +31,7 @@ void ReadInto(Chunk& c, std::string& field) {
 }
 void ReadVector(Chunk& c, Vector3& to) {
     Vector3 v;
-    std::memcpy(&to, c.ReadVector3(&v), sizeof(Vector3));
+    to = *c.ReadVector3(&v);
 }
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
@@ -123,10 +124,10 @@ void ParticleSpec::Apply() {
         return;
     }
     auto* particle = static_cast<CEffectParticle*>(effect);
-    std::memcpy(&Transform()->localPosition_, &position, 12);
-    std::memcpy(&particle->size_, &scale, 4);
-    std::memcpy(&particle->type_, &type, 4);
-    std::memcpy(&particle->localPosition_, &position, 12);
+    Transform()->localPosition_ = position;
+    x87::CopyBits(particle->size_, scale);
+    particle->type_ = type;
+    particle->localPosition_ = position;
     particle->MarkChanged();
 }
 
@@ -177,10 +178,10 @@ void LightSpec::Apply() {
         return;
     }
     auto* light = static_cast<CEffectPointLight*>(effect);
-    std::memcpy(&light->color_, &colour, 12);
-    std::memcpy(&light->range_, &radius, 4);
-    std::memcpy(&light->localPosition_, &position, 12);
-    std::memcpy(&Transform()->localPosition_, &position, 12);
+    light->color_ = colour;
+    x87::CopyBits(light->range_, radius);
+    light->localPosition_ = position;
+    Transform()->localPosition_ = position;
     light->MarkChanged();
 }
 
@@ -245,7 +246,7 @@ void SoundSpec::Apply() {
         if (!sounds.empty()) MakeEffect(this);
         return;
     }
-    std::memcpy(&Transform()->localPosition_, &position, 12);
+    Transform()->localPosition_ = position;
     if (effect) g_serverWorld->RemoveTimedObject(id);
     if (!sounds.empty()) MakeEffect(this);
     else effect = nullptr;

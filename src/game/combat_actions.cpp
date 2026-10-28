@@ -151,7 +151,7 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
         if (!arrow) return;
         Vector3 position;
         const Vector3* from = unit->EyePoint(&position);
-        std::memcpy(&arrow->localPosition_, from, sizeof(Vector3));
+        arrow->localPosition_ = *from;
         arrow->SetTarget(target->id_);
         arrow->fromCaster_ = 1;
         arrow->casterId_ = unit->id_;
@@ -208,7 +208,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     CResourceManager* items = player->Party()->ItemFactory();
     CItem* copy = FindItem(items, link->value);
     if (!copy) return;
-    std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
+    copy->charge_ = item->charge_;
     player->ItemUsed(copy);
 }
 

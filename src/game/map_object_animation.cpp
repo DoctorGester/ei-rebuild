@@ -26,9 +26,9 @@ void LerpPoint(float* out, const float* from, const float* to, float s) {
     float x = static_cast<float>(sx + from[0]);
     float y = static_cast<float>(static_cast<double>(sy) + from[1]);
     float z = static_cast<float>(static_cast<double>(sz) + from[2]);
-    std::memcpy(&out[0], &x, 4);
-    std::memcpy(&out[1], &y, 4);
-    std::memcpy(&out[2], &z, 4);
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
 }
 } // namespace
 
@@ -62,5 +62,5 @@ void AnimationTrack::Evaluate(float atTime) {
     } else if (!frames.empty()) {
         std::memcpy(vertices.data(), frames[std::ssize(frames) - 1], static_cast<std::size_t>(vertexCount) * 12);
     }
-    std::memcpy(&time, &atTime, 4);
+    time = atTime;
 }

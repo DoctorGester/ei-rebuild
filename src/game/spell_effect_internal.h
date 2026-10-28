@@ -171,7 +171,7 @@ inline int FlightTicks(const float* distance, const float* speed) {
 inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out) {
     const double nx = -static_cast<double>(direction->y);
     out->x = static_cast<float>(nx);
-    std::memcpy(&out->y, &direction->x, sizeof(float));
+    out->y = direction->x;
     out->z = 0.0f;
     const double length = std::sqrt(LengthSquared2DUnrounded<double>(out->y, nx));
     const float k = static_cast<float>(*radius / length);
@@ -226,7 +226,7 @@ void Assign(CSpellEffect* e, T** slot, T* object) {
 }
 
 inline void SetPosition(CTransformObject* object, const Vector3* position) {
-    std::memcpy(&object->localPosition_, position, 12);
+    object->localPosition_ = *position;
 }
 
 // The fields of the spell prototype the casts read.

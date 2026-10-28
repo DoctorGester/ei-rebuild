@@ -98,7 +98,7 @@ constexpr int kQuickSlots = 8;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
 constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
-constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
+constexpr float kScaleOne = 1.0f;
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
 // A unit's position, copied as three dwords.
@@ -823,7 +823,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         auto unhighlight = [](auto* panel) {
             for (int i = 0; i < panel->count_; ++i) {
                 CEngineObject* sprite = panel->sceneObjects_[i];
-                AsUiMesh(sprite)->SetScale(std::bit_cast<float>(kScaleOne));
+                AsUiMesh(sprite)->SetScale(kScaleOne);
                 AsUiMesh(sprite)->flatSpecular_ = kSpriteOpaque;
                 panel->selected_ = i;
             }

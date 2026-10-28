@@ -21,7 +21,7 @@ const char* const kHero = "Hero";
 const char* const kHumanHero = "Human Hero";
 const char* const kFirstZone = "gz1g";
 const char* const kGameTime = "gtime";
-constexpr std::uint32_t kSix = 0x40C00000;                                     // 6.0f
+constexpr float kSix = 6.0f;
 
 // A new record with no references (the count dword is cleared only after the allocation is tested).
 PartyRecord* NewRecord() {
@@ -55,7 +55,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
     party->AddMember(kHero, kHumanHero, game::kEmptyText);
     party->zone_ = kFirstZone;
     party->entrance_ = 0;
-    party->variables_.Set(kGameTime, std::bit_cast<float>(kSix));
+    party->variables_.Set(kGameTime, kSix);
 }
 
 CParty* NamedPartyRecords::Find(std::string_view name) const {

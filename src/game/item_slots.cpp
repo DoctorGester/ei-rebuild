@@ -74,8 +74,8 @@ void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordAs<WeaponRecord>(record);
     std::memcpy(&reach_, &r->reach, 4);
-    std::memcpy(&damage_, &r->damage, 4);
-    std::memcpy(&damageSpread_, &r->damageSpread, 4);
+    damage_ = r->damage;
+    damageSpread_ = r->damageSpread;
 }
 
 void CItemArmor::InitFromRecord(const ItemRecordHead* record) {

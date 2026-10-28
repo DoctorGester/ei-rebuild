@@ -196,7 +196,7 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (spell->GetPrototype()->needsSight == 0) return false;
         out->point.x = out->point.y = out->point.z = 0.0f;
-        std::memset(&out->minDistanceSq, 0, sizeof(float));
+        out->minDistanceSq = 0.0f;
         out->unit = nullptr;
         if (CUnit* other = UnitOrNull(target)) {
             out->unit = other;
@@ -205,7 +205,7 @@ bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
             out->eyeHeight = static_cast<float>(unit->BaseSpeed());
             return true;
         }
-        std::memcpy(&out->point, &order->point, sizeof(out->point));
+        out->point = order->point;
         out->point.z = static_cast<float>(
             world->SurfaceHeightAt(out->point.x, out->point.y) + 1.0f);
         out->eyeHeight = static_cast<float>(unit->BaseSpeed());
@@ -319,7 +319,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
 
     Vector3 aim;
     if (order->target) order->target->AimPoint(&aim);
-    else std::memcpy(&aim, &order->point, sizeof(aim));
+    else aim = order->point;
     Vector3 delta;
     delta.x = aim.x - origin.x;
     delta.y = aim.y - origin.y;
@@ -376,7 +376,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
         if (predict) {
             Vector3 scratch;
             const Vector3* p = order->target->PositionAt(&scratch, tick + castDelay + duration + now);
-            std::memcpy(&aim, p, sizeof(aim));
+            aim = *p;
             delta.x = aim.x - origin.x;
             delta.y = aim.y - origin.y;
             delta.z = aim.z - origin.z;

@@ -39,11 +39,11 @@ CCamera::CCamera() {
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     for (CameraView& view : views_) {
         view.distance = 30.0f;
-        std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
+        view.rotation = camera::kIdentityRotation;
         view.pitch = DefaultPitch();
     }
-    std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
-    std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
+    panVelocity_ = camera::kZeroVector;
+    panTarget_ = camera::kZeroVector;
     panResponse_ = 2.0f / 15.0f;
     turnResponse_ = 1.0f / 3.0f;
     tiltResponse_ = 1.0f / 3.0f;
@@ -58,7 +58,7 @@ CCamera::CCamera() {
     zoomTarget_ = 0;
     focusHeight_ = 2.0f;
     focus_.z = 2.0f;
-    std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
+    viewRotation_ = camera::kIdentityRotation;
     targetId_ = -1;
     nearDistance_ = 1.0f;
     farDistance_ = 2000.0f;
@@ -108,10 +108,10 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
     std::memcpy(&farDistance_, &farBits, 4);
     std::memcpy(&fieldOfView_, &fovBits, 4);
     flags_ |= kFree;
-    std::memcpy(&views_[7].distance, &settings->cameraDefaultDistance_, 4);
+    views_[7].distance = settings->cameraDefaultDistance_;
     pitch_ = DefaultPitch();
     views_[7].pitch = pitch_;
-    std::memcpy(&views_[6].distance, &settings->cameraDefaultDistance_, 4);
+    views_[6].distance = settings->cameraDefaultDistance_;
     pitch_ = DefaultPitch();
     views_[6].pitch = pitch_;
     return 1;
@@ -177,8 +177,8 @@ int CCamera::RecordFrame(std::uint32_t time) {
     file.Seek(0, FILE_END);
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
-    std::memcpy(&record.position, &localPosition_, sizeof(record.position));
-    std::memcpy(&record.rotation, &localRotation_, sizeof(record.rotation));
+    record.position = localPosition_;
+    record.rotation = localRotation_;
     file.Write(&record, sizeof(record));
     file.Close();
     return 1;
@@ -215,8 +215,8 @@ void CCamera::Load(CStream* stream) {
     }
     targetId_ = target;
     if (target != -1) {
-        std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
-        std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
+        panTarget_ = camera::kZeroVector;
+        panVelocity_ = camera::kZeroVector;
     }
 }
 

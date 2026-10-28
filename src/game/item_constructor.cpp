@@ -41,7 +41,7 @@ constexpr std::uint32_t kFlagConstructing = 8;
 const char* const kCantCreateItem = "CItemConstructor::BeginCreateItem.\n";
 
 // The charge rate every item starts with (0.001).
-constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
+constexpr float kDefaultChargeRate = 0.001f;
 
 // --- The temporary database record ---------------------------------------------------------------
 // Build creates a record of the item's kind, fills only the fields the item's InitFromRecord reads, and
@@ -51,7 +51,7 @@ constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 // A dword copied bit for bit, so float bit patterns pass unchanged.
 template <typename T> void CopyBits(T& to, const T& from) {
     static_assert(sizeof(T) == 4);
-    std::memcpy(&to, &from, sizeof(T));
+    to = from;
 }
 
 // The temporary record for an item of class `classId` (the base record's construction inline in
@@ -215,13 +215,13 @@ const std::string* HeadName(const ItemRecordHead* record) { return &record->name
 void CItem::InitFromRecord(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU, which quiets a signalling NaN; the other fields are
     // copied bit for bit.
-    std::memcpy(&conditionMax_, &head->condition, sizeof(float));
-    std::memcpy(&condition_, &head->condition, sizeof(float));
-    std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
-    std::memcpy(&chargeMax_, &head->charge, sizeof(float));
-    std::memcpy(&charge_, &head->charge, sizeof(float));
+    conditionMax_ = head->condition;
+    condition_ = head->condition;
+    chargeRate_ = kDefaultChargeRate;
+    chargeMax_ = head->charge;
+    charge_ = head->charge;
     std::memcpy(&weight_, &head->weight, 4);
-    std::memcpy(&price_, &head->price, 4);
+    price_ = head->price;
     unreadValue_ = head->unreadValue;
     magicLevel_ = head->magicLevel;
 }

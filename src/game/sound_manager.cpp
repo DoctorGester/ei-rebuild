@@ -371,9 +371,9 @@ void CSoundManager::SetMusicVolume(int volume) {
 
 // Reverb parameters for new voices (used when reverbOn).
 void CSoundManager::SetReverb(float room, float level, float time) {
-    std::memcpy(&reverb[0], &room, 4);
-    std::memcpy(&reverb[1], &level, 4);
-    std::memcpy(&reverb[2], &time, 4);
+    reverb[0] = room;
+    reverb[1] = level;
+    reverb[2] = time;
 }
 
 // The game window lost / regained focus.
@@ -678,12 +678,12 @@ void CSoundManager::Tick() {
         slot->priority = rec->priority;
         slot->speech = rec->speech;
         slot->looping = 1;
-        std::memcpy(&slot->length, &rec->length, 4);
+        slot->length = rec->length;
         slot->flat = rec->flat;
         slot->heightFade = rec->heightFade;
-        std::memcpy(&slot->position, &rec->position, sizeof(slot->position));
-        std::memcpy(&slot->nearDistance, &rec->nearDistance, 4);
-        std::memcpy(&slot->farDistance, &rec->farDistance, 4);
+        slot->position = rec->position;
+        slot->nearDistance = rec->nearDistance;
+        slot->farDistance = rec->farDistance;
         gameapi::AIL_init_sample(slot->sample);
         // A flat sound's level is recomputed from its saved Miles level as if that were 0..100.
         if (slot->flat != 0) slot->volume = FlatVolume(slot->volume, slot->heightFade, slot->speech);
@@ -1045,12 +1045,12 @@ int CSoundManager::AllocateVoice(int priority) {
         rec->pan = slot->pan;
         rec->priority = slot->priority;
         rec->speech = slot->speech;
-        std::memcpy(&rec->length, &slot->length, 4);
+        rec->length = slot->length;
         rec->flat = slot->flat;
         rec->heightFade = slot->heightFade;
-        std::memcpy(&rec->position, &slot->position, sizeof(rec->position));
-        std::memcpy(&rec->nearDistance, &slot->nearDistance, 4);
-        std::memcpy(&rec->farDistance, &slot->farDistance, 4);
+        rec->position = slot->position;
+        rec->nearDistance = slot->nearDistance;
+        rec->farDistance = slot->farDistance;
         rec->handle = slot->handle;
         rec->samplePosition = gameapi::AIL_sample_position(slot->sample);
         SetDeferred(deferred, rec->handle, rec);
@@ -1100,8 +1100,8 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
         auto* rec = new DeferredSound;
         rec->name.assign(name);
         std::memcpy(&rec->position, position, sizeof(rec->position));
-        std::memcpy(&rec->nearDistance, &nearDist, 4);
-        std::memcpy(&rec->farDistance, &farDist, 4);
+        rec->nearDistance = nearDist;
+        rec->farDistance = farDist;
         rec->flat = 0;
         rec->heightFade = 0;
         rec->speech = speech;
@@ -1116,8 +1116,8 @@ int CSoundManager::Play3D(std::string_view name, int priority, const float* posi
     gameapi::AIL_init_sample(slot->sample);
     slot->looping = loop;
     std::memcpy(&slot->position, position, sizeof(slot->position));
-    std::memcpy(&slot->nearDistance, &nearDist, 4);
-    std::memcpy(&slot->farDistance, &farDist, 4);
+    slot->nearDistance = nearDist;
+    slot->farDistance = farDist;
     slot->flat = 0;
     slot->heightFade = 0;
     slot->speech = speech;

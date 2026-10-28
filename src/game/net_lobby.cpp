@@ -31,7 +31,7 @@ namespace {
 ServerEntry* EntryOf(std::list<SharedRefTo<ServerEntry>>::iterator node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
-constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
+constexpr float kFirstRetry = 0.1f;
 
 
 // "<text>\n" and a flush.
@@ -110,7 +110,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 
 ServerEntryBase::ServerEntryBase() {
     std::memset(&address_, 0, sizeof(address_));
-    SetBits(timeout_, 0);
+    timeout_ = 0.0f;
     ping_ = 9.999f;
     foreign_ = 0;
     state_ = kLocal;
@@ -424,8 +424,8 @@ void ClientBase::Join(const NetAddress* address, const GrowingBuffer* data) {
     id |= gameapi::GetTickCount() & 0xFFFF;
     joinId_ = id;
     joinState_ = kAsking;
-    SetBits(retryTimer_, 0);
-    SetBits(retryInterval_, kFirstRetry);
+    retryTimer_ = 0.0f;
+    retryInterval_ = kFirstRetry;
     refusal_ = 0;
     joinData_ = *data;
 }

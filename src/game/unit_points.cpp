@@ -19,7 +19,7 @@ constexpr int kOrderPath = 2;
 const char* const kNoEntry = "Can't find animation entry index\n %i\n for \"%s\".\n";
 
 bool IsDead(CUnit* unit) { return unit->IsDead() != 0; }
-void CopyPosition(Vector3* out, const CUnit* unit) { std::memcpy(out, &unit->localPosition_, sizeof(Vector3)); }
+void CopyPosition(Vector3* out, const CUnit* unit) { *out = unit->localPosition_; }
 
 } // namespace
 
@@ -47,7 +47,7 @@ static Vector3* PredictPosition(CUnit* unit, Vector3* out, int time) {
         float toWorld = 0.5f;
         out->x = toWorld * position.x;
         out->y = toWorld * position.y;
-        std::memcpy(&out->z, &position.z, 4);
+        out->z = position.z;
         return out;
     }
     CopyPosition(out, unit);

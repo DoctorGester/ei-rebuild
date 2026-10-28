@@ -34,10 +34,10 @@ void CUiItemStrip::Build(char top) {
         std::memcpy(&scale_, &bits, 4);
     }
     rect_ = RECT{0, top_, 800, top_ + 100};
-    for (float& position : position_) std::memset(&position, 0, 4);
-    std::memset(&pending_, 0, 4);
-    std::memset(&velocity_, 0, 4);
-    std::memset(&scrollTimer_, 0, 4);
+    for (float& position : position_) position = 0.0f;
+    pending_ = 0.0f;
+    velocity_ = 0.0f;
+    scrollTimer_ = 0.0f;
     scrollDirection_ = 0;
     count_ = 0;
     selected_ = -1;

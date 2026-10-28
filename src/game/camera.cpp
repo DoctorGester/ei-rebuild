@@ -42,7 +42,7 @@ float AbsBits(float f) {
     return f;
 }
 
-void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(float)); }
+void CopyFloat(float* dst, const float* src) { *dst = *src; }
 
 // Branch-free clamp of a map coordinate to [0, last - 1]: NaN becomes 0, and a NaN limit wins.
 float ClampToMap(float v, float last) {
@@ -112,8 +112,8 @@ void TargetPlace(int id, Vector3* at, float* ground) {
 }
 
 void ResetMotion(CCamera* c) {
-    std::memcpy(&c->panVelocity_, &camera::kZeroVector, sizeof(Vector3));
-    std::memcpy(&c->panTarget_, &camera::kZeroVector, sizeof(Vector3));
+    c->panVelocity_ = camera::kZeroVector;
+    c->panTarget_ = camera::kZeroVector;
     const float zero = 0.0f;
     CopyFloat(&c->turnRate_, &zero);
     CopyFloat(&c->turnTarget_, &zero);
@@ -136,7 +136,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
     ticks.previous = ticks.current;
     ticks.previousGround = ticks.currentGround;
     const CObject3D* body = target;
-    std::memcpy(&ticks.current, &body->localPosition_, sizeof(Vector3));
+    ticks.current = body->localPosition_;
     ticks.currentGround = body->localPosition_.z;
     if (ticks.count < 2) ++ticks.count;
 }
@@ -172,8 +172,8 @@ void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step,
 
 int CCamera::PlaybackStart() {
     if (keys_.empty()) return 0;
-    std::memcpy(&localPosition_, &keys_[0].position, sizeof(Vector3));
-    std::memcpy(&localRotation_, &keys_[0].rotation, sizeof(Quaternion));
+    localPosition_ = keys_[0].position;
+    localRotation_ = keys_[0].rotation;
     return 1;
 }
 
@@ -181,16 +181,16 @@ int CCamera::PlaybackStep(float time) {
     if (!(flags_ & kPlaying) || keys_.empty()) return 0;
     const CameraKey* keys = keys_.data();
     if (keyIndex_ >= std::ssize(keys_) - 1) {
-        std::memcpy(&localPosition_, &keys[std::ssize(keys_) - 1].position, sizeof(Vector3));
-        std::memcpy(&localRotation_, &keys[std::ssize(keys_) - 1].rotation, sizeof(Quaternion));
+        localPosition_ = keys[std::ssize(keys_) - 1].position;
+        localRotation_ = keys[std::ssize(keys_) - 1].rotation;
         return 0;
     }
     double next = D(keys[keyIndex_ + 1].time) + timeOffset_;
     while (time > next) {
         ++keyIndex_;
         if (keyIndex_ >= std::ssize(keys_) - 1) {
-            std::memcpy(&localPosition_, &keys[std::ssize(keys_) - 1].position, sizeof(Vector3));
-            std::memcpy(&localRotation_, &keys[std::ssize(keys_) - 1].rotation, sizeof(Quaternion));
+            localPosition_ = keys[std::ssize(keys_) - 1].position;
+            localRotation_ = keys[std::ssize(keys_) - 1].rotation;
             flags_ &= ~kPlaying;
             return 0;
         }
@@ -248,7 +248,7 @@ void CCamera::StopMotion() {
     up.z = 0.0f;
     Vector3 sum;
     AddVectors(&sum, right, up);
-    std::memcpy(&panTarget_, &sum, sizeof(Vector3));
+    panTarget_ = sum;
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate_, turnRate_);
@@ -260,7 +260,7 @@ void CCamera::StopMotion() {
 }
 
 void CCamera::SetFocus(const Vector3* p) {
-    std::memcpy(&focus_, p, sizeof(Vector3));
+    focus_ = *p;
     float average, low, high;
     SampleTerrain(p, &camera::kZeroVector, &camera::kZeroVector, static_cast<float>(D(options::g_options->cameraTerrainArea_) * 0.5f), options::g_options->cameraTerrainArea_, options::g_options->cameraTerrainArea_, &average,
                   &low, &high);
@@ -268,7 +268,7 @@ void CCamera::SetFocus(const Vector3* p) {
 }
 
 void CCamera::ApplyView() {
-    std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
+    localRotation_ = viewRotation_;
     Vector3 right;
     localRotation_.AxisX(&right);
     Quaternion tilt;
@@ -293,7 +293,7 @@ void CCamera::ApplyView() {
     double dz = D(localPosition_.z) - focus_.z;
     double across = libcrt::Hypot(D(localPosition_.x) - focus_.x, D(localPosition_.y) - focus_.y);
     double angle = x87::fpatan(dz, across);
-    std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
+    localRotation_ = viewRotation_;
     const Quaternion s = localRotation_;
     Vector3 axis;
     axis.x = static_cast<float>((D(s.w) * s.w - LengthSquaredUnrounded<Sum3::ZYX, double>(s.x, s.y, s.z)) + D(s.x) * s.x * 2.0);
@@ -313,9 +313,9 @@ void CCamera::ApplyView() {
 
 void CCamera::Update(float dt) {
     Vector3 listener;
-    std::memcpy(&listener, &localPosition_, sizeof(Vector3));
+    listener = localPosition_;
     if (!(flags_ & kPlaced)) {
-        std::memcpy(&listener, &focus_, sizeof(Vector3));
+        listener = focus_;
         if (g_clientWorld->terrain_) listener.z = static_cast<float>(g_clientWorld->RawSurfaceHeightAt(focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
@@ -330,7 +330,7 @@ void CCamera::Update(float dt) {
     float targetGround = 0.0f;
     if (target) {
         const CObject3D* body = target;
-        std::memcpy(&targetAt, &body->localPosition_, sizeof(Vector3));
+        targetAt = body->localPosition_;
         CopyFloat(&targetGround, &body->localPosition_.z);
         if (smooth) TargetPlace(targetId_, &targetAt, &targetGround);
     }
@@ -340,8 +340,8 @@ void CCamera::Update(float dt) {
             const CTransformObject* t = target;
             const CObject3D* body = target;
             double lift = D(body->bounds.boxMax.z) + body->bounds.center.z;
-            std::memcpy(&localPosition_.x, &targetAt.x, sizeof(float));
-            std::memcpy(&localPosition_.y, &targetAt.y, sizeof(float));
+            localPosition_.x = targetAt.x;
+            localPosition_.y = targetAt.y;
             localPosition_.z = static_cast<float>(lift + targetAt.z);
             Vector3 side;
             t->localRotation_.AxisY(&side);
@@ -387,7 +387,7 @@ void CCamera::Update(float dt) {
         EI_NAN_AUDIT(before, after, goal);
         snap = (before < goal && after > goal) || (before > goal && after < goal);
     }
-    if (snap) std::memcpy(&velocity, &wanted, sizeof(Vector3));
+    if (snap) velocity = wanted;
 
     if (LengthSquaredUnrounded<Sum3::XYZ, double>(velocity) > 0.0) {
         const CameraLimits limits = Limits();
@@ -515,7 +515,7 @@ bool CCamera::SaveView(unsigned slot) {
     CameraView& v = views_[slot];
     CopyFloat(&v.distance, &distance_);
     CopyFloat(&v.pitch, &pitch_);
-    std::memcpy(&v.rotation, &viewRotation_, sizeof(Quaternion));
+    v.rotation = viewRotation_;
     ViewsToSettings(settings_);
     return true;
 }
@@ -594,7 +594,7 @@ void CCamera::SetFree(bool on) {
 
 void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
     flags_ |= kFree;
-    std::memcpy(&localPosition_, from, sizeof(Vector3));
+    localPosition_ = *from;
     float dx = static_cast<float>(D(to->x) - from->x);
     float dy = static_cast<float>(D(to->y) - from->y);
     float dz = static_cast<float>(D(to->z) - from->z);
@@ -602,7 +602,7 @@ void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
 }
 
 void CCamera::SetBounds(const Vector3* center, float radius) {
-    std::memcpy(&boundsCenter_, center, sizeof(Vector3));
+    boundsCenter_ = *center;
     CopyFloat(&boundsRadius_, &radius);
     flags_ |= kBounded;
 }

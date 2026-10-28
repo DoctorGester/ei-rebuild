@@ -78,7 +78,7 @@ void AIBrain::ApplyBehaviour(const mapspec::Behaviour* record, int slot) {
     callRadius = radius;
     LogicSettings& logic = g_logicSettings;
     if (Same(radius, logic.callForHelpRadiusDefault))
-        std::memcpy(&callRadius, &logic.callForHelpRadius, sizeof(float));
+        callRadius = logic.callForHelpRadius;
     alertMode = static_cast<int>(record->alertMode);
 
     switch (record->type) {
