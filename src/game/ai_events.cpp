@@ -31,7 +31,6 @@ constexpr int kWheelMask = kWheelTicks - 1;
 // The records' pool (a CList<AIEvent> whose nodes hold them) and the free list (chained through
 // AIEvent::next).
 constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
-std::list<AIEvent>& AIEventPool() { return *g_eventPool; }
 
 void PushFree(AIEvent* event) {
     event->next = g_freeEvents;
@@ -112,8 +111,8 @@ void AIEventTable::Load(CStream* stream) {
         if (event) {
             g_freeEvents = event->next;
         } else {
-            AIEventPool().push_front(AIEvent{});
-            event = &AIEventPool().front();
+            g_eventPool->push_front(AIEvent{});
+            event = &g_eventPool->front();
         }
         event->next = nullptr;
         event->prev = nullptr;
@@ -188,7 +187,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     new (archive) CMappedResource();
     bool failed;
     {
-        std::string folder = TheTextFolder();
+        std::string folder = *g_textFolder;
         std::string path = folder + kAiInfoArchive;
         failed = archive->CMappedResource::OpenResource(path.c_str(), 0) == 0;
     }

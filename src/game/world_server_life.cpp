@@ -33,7 +33,7 @@ constexpr std::uint32_t kWindStrength = 0x3ECCCCCD;   // 0.4f
 int CWorldServer::Create() {
     Destroy();
     if (!CWorld::Create()) return game::FatalError(CantCreateText());
-    std::string folder = TheTextFolder();
+    std::string folder = *g_textFolder;
     BOOL opened;
     {
         std::string path = folder + kMessagesFileName;

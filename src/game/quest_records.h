@@ -92,7 +92,6 @@ struct QuestDatabase {
     QuestBriefingTable briefings;
 };
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp
-inline QuestDatabase& TheQuestDatabase() { return *g_questDatabase; }
 
 
 class CFileRegistry;

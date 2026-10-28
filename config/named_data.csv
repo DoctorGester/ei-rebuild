@@ -282,7 +282,7 @@ address,size,name,file
 007AF2D0,12,kDefaultColour,src/game/torch_spec.cpp
 007AF330,4,kFullTurn,src/game/unit_client_path.cpp
 007AF358,128,g_unitDatabase,src/game/unit_db_globals.cpp
-007AF3E8,4,kCombatLog,src/game/combat.cpp
+007AF3E8,4,kCombatLog,src/game/combat_internal.h
 007AF40C,4,g_squaredCallRadius,src/game/combat_actions.cpp
 007AF438,1,g_destroyed,src/game/game_folders.cpp
 007AF450,4,g_registryRoot,src/game/game_folders.cpp
@@ -359,7 +359,7 @@ address,size,name,file
 007C3058,4860,g_smoothTables,src/game/ai_path_smooth.cpp
 007C4378,4,kOrderAngleLimit,src/game/ai_path_state.cpp
 007C43A8,28,g_eventPool,src/game/ai_events.cpp
-007C53C4,4,kAiLog,src/game/unit_ai.cpp
+007C53C4,4,kAiLog,src/game/unit_ai.h
 007C53F0,4,g_freeEvents,src/game/ai_grids.cpp
 007C53F8,204,g_logicSettings,src/game/logic_settings.h
 007C54C8,28,g_candidates,src/game/unit_ai_modes.cpp

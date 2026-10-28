@@ -96,9 +96,9 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     if (previous) previous->Release();
     SurfacePixels pixels;
     DirectPixels(memory, &pixels);
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     WritePixels(pixels.bits, pixels.pitch, width, height, pixels.height, pixels.width, colour.bits, alphaBits, layout);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     flags_ |= kTextureLoaded;
     return 1;
 }

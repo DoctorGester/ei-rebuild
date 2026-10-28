@@ -55,7 +55,7 @@ constexpr int kMessagePartial = 0x01;
 // --- Helpers --------------------------------------------------------------------------------------
 
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
-CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
+CSectorMap* ServerSectors() { return &TheServerWorld()->aiMap_.sectorMap; }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 float HeroWalkLimit() { return g_logicSettings.damageLevel2Value; }
 float HeroRunLimit() { return g_logicSettings.damageLevel1Value; }
@@ -63,7 +63,7 @@ float HeroRunLimit() { return g_logicSettings.damageLevel1Value; }
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
 OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
-AIPath* Motion(CUnitServer* self) { return self->MotionPath(); }
+AIPath* Motion(CUnitServer* self) { return &self->motion; }
 AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
 AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
 std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
@@ -167,7 +167,7 @@ void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     if (Motion(self)->Start(&self->unit->localPosition_, &back, now)) self->unit->RefreshMotion();
     CWorldServer* world = ContextOf(self);
     if (self->unit->obstacle != 0) {
-        CSectorMap* sectors = world->Sectors();
+        CSectorMap* sectors = &world->aiMap_.sectorMap;
         sectors->Remove(self->unit);
         self->unit->obstacle = 0;
         sectors->Add(self->unit);
@@ -347,7 +347,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     unit->RefreshMotion();
     CWorldServer* world = ContextOf(this);
     if (unit->obstacle == 0) return;
-    CSectorMap* sectors = world->Sectors();
+    CSectorMap* sectors = &world->aiMap_.sectorMap;
     sectors->Remove(unit);
     unit->obstacle = 0;
     sectors->Add(unit);
@@ -513,7 +513,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
     float dy = point->y - unit->localPosition_.y;
     float dz = point->z - unit->localPosition_.z;
     if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 16.0f /*0073CA98*/) {
-        CSectorMap* sectors = world->Sectors();
+        CSectorMap* sectors = &world->aiMap_.sectorMap;
         sectors->FindUnitsInRadius(point, list, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
         for (auto node = list->begin(); node != list->end();) {

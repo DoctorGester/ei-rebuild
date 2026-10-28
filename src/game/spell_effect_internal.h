@@ -280,7 +280,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     std::list<CUnit*> units;
     DamageInfo hit;
     e->GetDamage(&hit);
-    e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
+    e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
     for (auto node = units.begin(); node != units.end();) {
         CUnit* unit = *node;
         ++node;

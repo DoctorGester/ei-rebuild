@@ -47,31 +47,29 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
 std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
-CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
+CSectorMap* ServerSectors() { return &TheServerWorld()->aiMap_.sectorMap; }
 CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
     lib::InPlace<AIPath> path;
-    AIPath* Path() { return path.Get(); }
-    const AIPath* Path() const { return &path.object; }
     LocalPath() {
-        std::construct_at(&Path()->steps);
-        std::construct_at(&Path()->cells);
-        std::construct_at(&Path()->excludedBlocks);
-        Path()->Clear();
+        std::construct_at(&path.object.steps);
+        std::construct_at(&path.object.cells);
+        std::construct_at(&path.object.excludedBlocks);
+        path.object.Clear();
     }
     ~LocalPath() {
-        std::destroy_at(&Path()->excludedBlocks);
-        std::destroy_at(&Path()->cells);
-        std::destroy_at(&Path()->steps);
+        std::destroy_at(&path.object.excludedBlocks);
+        std::destroy_at(&path.object.cells);
+        std::destroy_at(&path.object.steps);
     }
     LocalPath(const LocalPath&) = delete;
     LocalPath& operator=(const LocalPath&) = delete;
-    float TargetX() const { return Path()->targetX; }
-    float TargetY() const { return Path()->targetY; }
-    int Cost() const { return Path()->smoothing; }
+    float TargetX() const { return path.object.targetX; }
+    float TargetY() const { return path.object.targetY; }
+    int Cost() const { return path.object.smoothing; }
 };
 
 // A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
@@ -124,8 +122,8 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         CAIMap* map = MapOf(world);
         for (int i = 0; i < std::ssize(spots); ++i) {
             spot = spots[i];
-            path.Path()->Clear();
-            if (!map->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
+            path.path.object.Clear();
+            if (!map->FindPath(unit, &spot, &path.path.object, kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
@@ -136,7 +134,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             if (path.Cost() >= best) continue;
             best = path.Cost();
             std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
-            if (out) path.Path()->ToMotionOrder(out);
+            if (out) path.path.object.ToMotionOrder(out);
         }
         if (best == kNoSpot) {
             result = false;
@@ -270,17 +268,17 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 ServerSectors()->Remove(target);
             }
             CWorldServer* world = ServerWorld();
-            path.Path()->flag6E = unit->player == nullptr;
+            path.path.object.flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->altPassCosts;
             unit->altPassCosts = 1;
-            bool found = MapOf(world)->FindPath(unit, &point, path.Path(), kFar, 0.0f);
+            bool found = MapOf(world)->FindPath(unit, &point, &path.path.object, kFar, 0.0f);
             unit->altPassCosts = saved43C;
-            if (!found) path.Path()->StandStill(unit);
+            if (!found) path.path.object.StandStill(unit);
             if (target) {
                 ServerSectors()->Add(target);
                 PathFlag() = savedFlag;
             }
-            path.Path()->ToMotionOrder(&route);
+            path.path.object.ToMotionOrder(&route);
             ok = actsFromDestination();
             if (ok) best = static_cast<float>(TimeUntilAction(order, &route));
         } else {
@@ -304,7 +302,7 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     std::list<CUnit*> lifted{};
     LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
-    CSectorMap* sectors = world->Sectors();
+    CSectorMap* sectors = &world->aiMap_.sectorMap;
     CAIMap* map = MapOf(world);
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
@@ -317,10 +315,10 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     }
     std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
-    path.Path()->flag6E = unit->player == nullptr;
+    path.path.object.flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
-    bool found = MapOf(world2)->FindPath(unit, point, path.Path(), range, 0.0f);
+    bool found = MapOf(world2)->FindPath(unit, point, &path.path.object, range, 0.0f);
     unit->altPassCosts = saved43C;
     if (running) {
         sectors->Remove(unit);
@@ -333,6 +331,6 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         ++node;
         sectors->Add(*current);
     }
-    ReportPath(path.Path(), found ? 1 : 0);
+    ReportPath(&path.path.object, found ? 1 : 0);
     lifted.clear();
 }

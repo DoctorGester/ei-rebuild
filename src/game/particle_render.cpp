@@ -32,7 +32,6 @@ double Unsigned(std::uint32_t value) {
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 void FreeVertices() { lib::FreeStorage(g_vertices); }
 constinit lib::StaticObject<std::vector<ParticleSprite>> g_sprites = /*007A9BE0*/ {};
-std::vector<ParticleSprite>& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
@@ -88,13 +87,13 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     hiddenTicks = 0;
     ConstructArrays();
     float t = Interpolation();
-    Sprites().resize(kReserve);
+    g_sprites->resize(kReserve);
     g_vertices.resize(kReserve);
-    Sprites().resize(particles.size());
+    g_sprites->resize(particles.size());
     g_vertices.resize(particles.size());
     if (!renderer->BindHeldTexture(0, &texture)) return 0;
 
-    ParticleSprite* sprite = Sprites().data();
+    ParticleSprite* sprite = g_sprites->data();
     auto cursor = particles.begin();
     if (cursor != particles.end()) {
         float u = static_cast<float>(D(EI_ONE) - D(t));
@@ -123,5 +122,5 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     }
     int blend;
     std::memcpy(&blend, &additiveBlend, sizeof(blend));
-    return renderer->DrawSprites(blend != 0, &g_vertices, &Sprites());
+    return renderer->DrawSprites(blend != 0, &g_vertices, &g_sprites.Get());
 }

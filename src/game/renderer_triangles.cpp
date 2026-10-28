@@ -24,11 +24,11 @@ int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(static_cast<TLVertex*>(vertices), vertexCount);
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
                        static_cast<int>(D3DPT_TRIANGLELIST))) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, vertices, static_cast<DWORD>(vertexCount), const_cast<WORD*>(indices),
             static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     device->vertexCount_ += vertexCount;
     device->primitiveCount_ += static_cast<int>(indexCount / 3);

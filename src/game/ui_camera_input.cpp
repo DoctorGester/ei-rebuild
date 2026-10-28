@@ -21,12 +21,11 @@ namespace {
 
 // The camera speed options (floats in the game's data; the camera keys multiply two of them).
 float Option(const float& setting) { return static_cast<const volatile float&>(setting); }
-const options::GameOptions& Settings() { return *options::TheOptions(); }
-float PanSpeed() { return Option(Settings().cameraScroll_.powerKeyboard) * Option(Settings().cameraScroll_.speed); }
-float TurnSpeed() { return Option(Settings().cameraRotate_.powerKeyboard) * Option(Settings().cameraRotate_.speed); }
-float TiltSpeed() { return Option(Settings().cameraPitch_.powerKeyboard) * Option(Settings().cameraPitch_.speed); }
-float ClimbSpeed() { return Option(Settings().cameraZoom_.powerKeyboard) * Option(Settings().cameraZoom_.speed); }
-float ZoomSpeed() { return Option(Settings().cameraZoom_.powerMouse) * Option(Settings().cameraZoom_.speed); }
+float PanSpeed() { return Option(options::g_options->cameraScroll_.powerKeyboard) * Option(options::g_options->cameraScroll_.speed); }
+float TurnSpeed() { return Option(options::g_options->cameraRotate_.powerKeyboard) * Option(options::g_options->cameraRotate_.speed); }
+float TiltSpeed() { return Option(options::g_options->cameraPitch_.powerKeyboard) * Option(options::g_options->cameraPitch_.speed); }
+float ClimbSpeed() { return Option(options::g_options->cameraZoom_.powerKeyboard) * Option(options::g_options->cameraZoom_.speed); }
+float ZoomSpeed() { return Option(options::g_options->cameraZoom_.powerMouse) * Option(options::g_options->cameraZoom_.speed); }
 // The wheel's steps per delta unit (read from the exe, rule 9).
 float WheelStep() { return (-0.008333334f /*00740240*/); }
 
@@ -40,14 +39,14 @@ bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_
 
 // The mouse options: the drag's pan speed, its turn and tilt speeds with the mouse factors
 // and the width of the screen edges that pan (0 = off).
-float DragPanSpeed() { return Option(Settings().cameraScroll_.powerMouse) * Option(Settings().cameraScroll_.speed); }
+float DragPanSpeed() { return Option(options::g_options->cameraScroll_.powerMouse) * Option(options::g_options->cameraScroll_.speed); }
 float DragTurnSpeed() {
-    return Option(Settings().cameraRotate_.powerMouse) * Option(Settings().cameraRotate_.speed) * Option(Settings().cameraFlipX_);
+    return Option(options::g_options->cameraRotate_.powerMouse) * Option(options::g_options->cameraRotate_.speed) * Option(options::g_options->cameraFlipX_);
 }
 float DragTiltSpeed() {
-    return Option(Settings().cameraPitch_.powerMouse) * Option(Settings().cameraPitch_.speed) * Option(Settings().cameraFlipY_);
+    return Option(options::g_options->cameraPitch_.powerMouse) * Option(options::g_options->cameraPitch_.speed) * Option(options::g_options->cameraFlipY_);
 }
-int EdgeMargin() { return static_cast<const volatile int&>(Settings().cameraBorderScrollArea_); }
+int EdgeMargin() { return static_cast<const volatile int&>(options::g_options->cameraBorderScrollArea_); }
 // Layout units to a part of the screen and the rates' scales
 float PerWidth() { return 0.0025f /*0074015C*/; }
 float PerHeight() { return 0.0033333334f /*00740204*/; }

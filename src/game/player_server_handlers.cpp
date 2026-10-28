@@ -97,7 +97,7 @@ void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
 
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
-    CMemoryStream& in = ReceivedMessages();
+    CMemoryStream& in = *g_receivedMessages;
     std::vector<CUnit*> units{};
     std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
@@ -107,7 +107,7 @@ int MoveUnits(MoveCommand command) {
     in.Read(&to, sizeof(to));
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < std::ssize(units); ++i) {
-        AIBrain* brain = units[i]->ServerController()->Brain();
+        AIBrain* brain = &units[i]->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
             (mode->*command)(brain, &to, std::ssize(units) > 1, run != 0, &offsets[i]);
     }
@@ -128,7 +128,6 @@ const char* const kResendingParty = "Resending party of player ";
 // The stream the received packets are decompressed into: built by the static initialiser and destroyed once by
 // the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<CMemoryStream> g_receivedMessages = /*007C83D0*/ {};
-CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
 
 // A second block: it uses g_receivedMessages (defined above).
 namespace {
@@ -201,8 +200,8 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    std::list<CUnit*>& known = revived->ServerController()->Brain()->memory.seenCorpses;
-    for (auto node = dead->ServerController()->Brain()->memory.seenCorpses.begin(); node != dead->ServerController()->Brain()->memory.seenCorpses.end();) {
+    std::list<CUnit*>& known = revived->ServerController()->brain.memory.seenCorpses;
+    for (auto node = dead->ServerController()->brain.memory.seenCorpses.begin(); node != dead->ServerController()->brain.memory.seenCorpses.end();) {
         CUnit* object = *node;
         ++node;
         if (object && object->GetClassId() == kClassUnit && !lib::Contains(known, object)) AddCounted(known, object);
@@ -258,7 +257,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 }
 
 int CPlayerServer::OnUseOrder() {
-    CMemoryStream& in = ReceivedMessages();
+    CMemoryStream& in = *g_receivedMessages;
     std::vector<CUnit*> units{};
     int count = 0;
     in.Read(&count, 4);
@@ -332,7 +331,7 @@ int CPlayerServer::OnUseOrder() {
     }
 
     if (chosen) {
-        AIBrain* brain = chosen->ServerController()->Brain();
+        AIBrain* brain = &chosen->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
             mode->CommandUse(brain, object, kind, value, flag != 0);
     }
@@ -433,7 +432,7 @@ int CPlayerServer::OnTakeExit() {
     std::string zone;
     int exit = 0;
     int entrance = 0;
-    ReceivedMessages().Read(&exit, 4);
+    g_receivedMessages->Read(&exit, 4);
     if (!TheServerWorld()->GetZoneExit(exit, &zone, &entrance)) return 0;
     LeaveToZone(zone.c_str(), entrance);
     return 1;
@@ -453,11 +452,11 @@ int CPlayerServer::OnLeaveToZone() {
     std::string zone;
     {
         std::string text;
-        std::string* read = ReceivedMessages().ReadString(&text);
+        std::string* read = g_receivedMessages->ReadString(&text);
         zone = *read;
     }
     int entrance = 0;
-    ReceivedMessages().Read(&entrance, 4);
+    g_receivedMessages->Read(&entrance, 4);
     LeaveToZone(zone.c_str(), entrance);
     return 1;
 }
@@ -466,7 +465,7 @@ int CPlayerServer::OnBriefingDone() {
     std::string name;
     {
         std::string text;
-        std::string* read = ReceivedMessages().ReadString(&text);
+        std::string* read = g_receivedMessages->ReadString(&text);
         name = *read;
     }
     TheServerWorld()->CompleteBriefing(player_->playerId_, name.c_str());
@@ -476,7 +475,7 @@ int CPlayerServer::OnBriefingDone() {
 int CPlayerServer::OnNewParty() {
     CParty local;
     CParty* party = &local;
-    party->LoadParty(&ReceivedMessages(), 1);
+    party->LoadParty(&g_receivedMessages.Get(), 1);
     if (std::ssize(party->members_) != 1) return 0;
     int* key = &player_->partyId_;
     PartyNextId(key);
@@ -502,7 +501,7 @@ int CPlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
 int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
-    CMemoryStream& in = ReceivedMessages();
+    CMemoryStream& in = *g_receivedMessages;
     std::vector<CUnit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
@@ -511,7 +510,7 @@ int CPlayerServer::OnAttack() {
     in.Read(&objectId, 4);
     if (CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
-            AIBrain* brain = units[i]->ServerController()->Brain();
+            AIBrain* brain = &units[i]->ServerController()->brain;
             if (PlayerMode* mode = brain->FindPlayerMode())
                 mode->CommandAttack(brain, object, how, ctrl != 0);
         }
@@ -521,7 +520,7 @@ int CPlayerServer::OnAttack() {
 
 int CPlayerServer::OnPartyUpdate() {
     CMemoryStream block;
-    CMemoryStream& in = ReceivedMessages();
+    CMemoryStream& in = *g_receivedMessages;
     in.ReadSized(&block);
     block.CMemoryStream::Seek(0);
     if (in.ok_) player_->Party()->LoadParty(&block, 0);
@@ -547,7 +546,7 @@ BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
 int CPlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
-    ReceivedMessages().Read(&login, sizeof(login));
+    g_receivedMessages->Read(&login, sizeof(login));
     if (state_ != 0) return 0;
     CPlayer* player = player_;
     if (login.version != kClientVersion) {

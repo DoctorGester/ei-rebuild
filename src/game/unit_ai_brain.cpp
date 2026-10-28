@@ -273,13 +273,13 @@ void AIBrain::StandardSentry(const Vector3* point) {
 void AIBrain::CallAllies(const Vector3* point) {
     std::list<CUnit*> units{};
     CUnit* self = owner->unit;
-    TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(self), &units, callRadius);
+    TheServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(PositionOf(self), &units, callRadius);
     for (auto node = units.begin(); node != units.end();) {
         auto* other = *node;
         ++node;
         if (other == self || !(GameDiplomacy()->allied_[self->side] & (1u << (other->side & 31)))) continue;
         std::string message;
-        AIBrain* ally = other->ServerController()->Brain();
+        AIBrain* ally = &other->ServerController()->brain;
         if (console::g_filterMask & 1) {
             double dz = self->localPosition_.z - other->localPosition_.z;
             double dy = self->localPosition_.y - other->localPosition_.y;
@@ -340,7 +340,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             continue;
         }
         if (call->hostileMask != 0) {
-            console::EndLine(AiLog() << "Unit " << unit->id_ << " hear delayed sound: " << call->text.c_str());
+            console::EndLine(*kAiLog << "Unit " << unit->id_ << " hear delayed sound: " << call->text.c_str());
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
@@ -358,7 +358,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             memory->noticedLevel = 900;
             memory->noticedY = point[1];
             memory->noticedKind = -3;
-            if (changed) console::EndLine(AiLog() << "Delayed sound: " << call->text.c_str());
+            if (changed) console::EndLine(*kAiLog << "Delayed sound: " << call->text.c_str());
         }
         call = erase(call);
     }

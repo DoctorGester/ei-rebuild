@@ -527,8 +527,7 @@ public:
     Vector3 startPosition_;               // where joining players start
     CAIMap aiMap_;
     CAIMap* AIMap() { return &aiMap_; }
-    CSectorMap* Sectors() { return &aiMap_.sectorMap; }
-    AIEventTable* AIEvents() { return aiMap_.Events(); }
+    AIEventTable* AIEvents() { return &aiMap_.events; }
     // Its globals_ hold the "Heroes" group.
     lib::InPlace<CScript> commandsA_;
     CScript* MainScript() { return commandsA_.Get(); }
@@ -1225,10 +1224,8 @@ struct SavedParties {
     std::string folder_;
     std::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
-    MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };
 extern lib::StaticObject<SavedParties> g_savedParties;
-inline SavedParties& TheSavedParties() { return *g_savedParties; }
 
 int RequestZone(const char* zone, int entrance);
 

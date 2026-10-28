@@ -452,7 +452,6 @@ public:
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
     CUnitServer* ServerController() const;
     CUnitClientSpecific* ClientController() const;
-    UnitParams* Params() { return &params; }
     CMapObject* MapObject() { return this; }
     UnitMotion* Motion() { return &motion; }
 

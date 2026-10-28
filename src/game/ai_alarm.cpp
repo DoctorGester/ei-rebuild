@@ -16,7 +16,6 @@ namespace {
 
 // The alarm's log: the unitacks stream.
 constexpr console::Stream* kAlarmLog = /*007C2EB8*/ {&console::g_unitAcksLogOut};
-console::Stream& AlarmLog() { return *kAlarmLog; }
 
 } // namespace
 
@@ -28,7 +27,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             state->active = state->pending;
             state->timer = 20;
             CUnit* unit = server->unit;
-            AlarmLog() << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
+            *kAlarmLog << "Unit " << static_cast<long>(unit->id_) << " acknowledges with ";
             const char* what;
             switch (state->active) {
             case 1: world->TellParties(server->unit, 0x31); what = "idleSound = AAn4XyU"; break;
@@ -42,7 +41,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
             case 9: world->TellParties(server->unit, 0x30); what = "poluchi gadina"; break;
             default: what = "error... :)"; break;
             }
-            console::EndLine(AlarmLog() << what);
+            console::EndLine(*kAlarmLog << what);
         }
         state->pending = 0;
     }
@@ -55,7 +54,7 @@ static void StepAlarmOf(AIAlarm* state, CUnitServer* owner) {
     }
     int side = server->unit->side;
     std::uint32_t allies = world->diplomacy_.allied_[side];
-    for (auto node = server->Brain()->memory.nearby.begin(); node != server->Brain()->memory.nearby.end(); ++node) {
+    for (auto node = server->brain.memory.nearby.begin(); node != server->brain.memory.nearby.end(); ++node) {
         auto* member = *node;
         if (!(allies & (1u << (member->side & 31)))) continue;
         int& alarm = member->ServerController()->voice.level;

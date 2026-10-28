@@ -224,7 +224,7 @@ void ScriptTick(CScript* script) {
     }
 
     // Global variables: drop deleted objects.
-    script->Globals()->RemoveDeletedObjects();
+    script->globals_.RemoveDeletedObjects();
 
     RespawnFxSources(script);
     UpdatePointLights(script);

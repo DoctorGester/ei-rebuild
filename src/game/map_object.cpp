@@ -232,7 +232,7 @@ void CMapObject::AttachObject(CEngineObject* object) {
 
 int CMapObject::PackVitals() {
     if (companion->GetClassId() != kClassMapObjectServer) return 0;
-    ServerCompanion()->vitals.Pack(PackedVitals());
+    ServerCompanion()->vitals.Pack(&packedVitals);
     return 1;
 }
 

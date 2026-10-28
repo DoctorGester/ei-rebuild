@@ -260,7 +260,7 @@ int CUnit::CanCastSpell(std::uint32_t slot, const float*) {
     if (!spell) return 3;
     float cost = SpellCost(spell);
     float available = static_cast<float>(packedVitals.mana);
-    double needed = Params()->Period() * cost;
+    double needed = params.Period() * cost;
     EI_NAN_AUDIT(needed);
     return available < needed ? 1 : 0;
 }

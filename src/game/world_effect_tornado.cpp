@@ -109,7 +109,7 @@ int CEffectTornado::RunTick() {
     CWorld* world = effect::ContextWorld(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
         std::list<CUnit*> units{};
-        ServerWorld()->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
+        ServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
         DamageInfo hit = TornadoHit();
         for (auto node = units.begin(); node != units.end();) {
             auto* unit = *node;

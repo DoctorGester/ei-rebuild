@@ -129,7 +129,7 @@ void StockSpells(CCampPages* camp, CParty* list) {
         item->Repair();
         if (static_cast<std::uint8_t>(UiItemKinds::IsSpellContainer(item))) {
             const char* name = item->spell_->GetPrototype()->code.c_str();
-            stock->AddSpell(itemdb::TheSpellDatabase().spells.Named(name));
+            stock->AddSpell(g_spellDatabase->spells.Named(name));
         } else if (UiItemKinds::IsSpell(item)) {
             std::uint32_t index = AsLoot(item)->index_;
             stock->AddSpell(itemdb::SpellAt(index));
@@ -221,7 +221,7 @@ bool CCampPages::DeconstructItem() {
     }
     if (copy->spell_) {
         CItemManager* manager = results->ItemManager();
-        itemdb::QuickItemTable& quickItems = itemdb::TheItemDatabase().quickItems;
+        itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
         int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
         auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
         if (container) {

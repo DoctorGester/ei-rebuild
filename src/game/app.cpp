@@ -245,9 +245,9 @@ void PumpMessages() {
 }
 
 int StartFirstMap() {
-    const auto& cmdMap = CommandLineMap();    // map on the command line
-    const auto& cmdMode = CommandLineMob();   // empty: main menu
-    const auto& cmdScript = CommandLineScript();
+    const auto& cmdMap = *g_commandLineMap;    // map on the command line
+    const auto& cmdMode = *g_commandLineMob;   // empty: main menu
+    const auto& cmdScript = *g_commandLineScript;
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
     if (str::Compare(cmdMode,
@@ -268,7 +268,7 @@ int StartFirstMap() {
     CScript* script = TheMissionScript();
     BOOL loaded;
     {
-        std::string root = TheDataFolder();
+        std::string root = *g_dataFolder;
         std::string dir = root + "Scripts\\";
         std::string path = dir + cmdScript;
         loaded = script->LoadFile(path.c_str());

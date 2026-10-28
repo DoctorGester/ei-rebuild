@@ -22,7 +22,7 @@ int CUnitClientSpecific::Create() {
     sources[1] = nullptr;
     sources[2] = nullptr;
     lastTime = 0.0f;
-    MotionPath()->Reset();
+    motion.Reset();
     lastAnimationTime = 0.0f;
     lastAnimation = nullptr;
     weaponHidden = 0;

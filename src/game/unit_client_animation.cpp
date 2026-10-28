@@ -134,8 +134,8 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
                 itemdb::WeaponAt(prototype);
             key = 1u << (record->type & 0x1F);
         }
-    } else if (unit->Params()->naturalWeapon < kNaturalWeapons) {
-        key = 1u << unit->Params()->naturalWeapon;
+    } else if (unit->params.naturalWeapon < kNaturalWeapons) {
+        key = 1u << unit->params.naturalWeapon;
     }
     if (unit->type_ != kUnitTypeHero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;

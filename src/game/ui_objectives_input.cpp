@@ -38,7 +38,7 @@ constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
 // The quest database's index (operator[] adds an empty slot for an unknown name).
-std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
+std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
 
 constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
 constexpr int kActionObjectives = 4;   // "obj" in the key table

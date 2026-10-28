@@ -51,7 +51,7 @@ HDC UiSurfaceGetDC(CUiSurface* surface) {
     HDC& dc = surface->dc_;
     dc = nullptr;
     ui_native::Sync(surface);   // GDI draws over the memory: a native surface's canvas read back when it is ahead
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     HBITMAP bitmap = ClientBitmap(holder);
     if (bitmap) dc = CreateCompatibleDC(nullptr);
     if (dc) {
@@ -68,7 +68,7 @@ void UiSurfaceReleaseDC(CUiSurface* surface) {
     CDXSurface* holder = surface->holder_;
     if (holder) {
         HDC dc = surface->dc_;
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
         auto it = g_memoryDcs.find(dc);
         if (it != g_memoryDcs.end()) {
             GdiFlush();

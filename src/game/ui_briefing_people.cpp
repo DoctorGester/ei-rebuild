@@ -81,7 +81,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     }
     if (serverUnit->flags_ & kUnitBlocked) return;
     movers_.push_front(BriefingMover{target, Vector3{dx, dy, dz}, BriefingMover::kWalking, unit, waited != 0, 0.0f});
-    controller->Brain()->Walk(&target, run, 0);
+    controller->brain.Walk(&target, run, 0);
 }
 
 void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
@@ -114,7 +114,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     const itemdb::ItemRecordHead* record;
     // The quest item table's (this window calls it the loot table) name index's
     // operator[] (an unknown name gets a null entry).
-    record = itemdb::TheItemDatabase().questItems.Named(key.c_str());
+    record = g_itemDatabase->questItems.Named(key.c_str());
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);

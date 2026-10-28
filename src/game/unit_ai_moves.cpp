@@ -147,7 +147,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     std::list<CUnit*> units;
     InitUnitList(units);
     CUnit* self = owner->unit;
-    TheServerWorld()->Sectors()->FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
+    TheServerWorld()->aiMap_.sectorMap.FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto node = units.begin(); node != units.end(); ++node) {
         auto* other = *node;
         if (GameDiplomacy()->allied_[other->side] & (1u << (self->side & 31))) {
@@ -305,8 +305,8 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-    TheServerWorld()->Sectors()->Move(unit, from);
+    TheServerWorld()->aiMap_.sectorMap.Move(unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
-    TheServerWorld()->Sectors()->Move(unit, &saved);
+    TheServerWorld()->aiMap_.sectorMap.Move(unit, &saved);
     return found;
 }

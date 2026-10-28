@@ -34,7 +34,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
     if (old) old->Release();
 
     ReadProcessorInfo();
-    if (!(TheProcessorInfo()->features & kProcessorMmx)) {
+    if (!(g_processorInfo.features & kProcessorMmx)) {
         game::FatalError(kNoMmxText);
         std::exit(-1);
     }

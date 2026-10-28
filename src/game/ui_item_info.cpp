@@ -94,7 +94,6 @@ public:
     explicit Writer(CItemInfoPanel* panel)
         : draw(panel->surfaces_[0]), panel_(panel), rect_{15, 10, 185, 25} {}
 
-    RECT* Rect() { return &rect_; }
     const std::string& T(int index) const { return panel_->itemTexts_[index]; }
     const std::string& Skill(int index) const { return panel_->skillTexts_[index]; }
 
@@ -152,6 +151,8 @@ public:
 
 private:
     CItemInfoPanel* panel_;
+
+public:
     RECT rect_;
 };
 
@@ -239,7 +240,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         key += level->name;
         if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
         w.Text(title);
-        if (info->index > i) w.draw->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
+        if (info->index > i) w.draw->DrawLine(w.Skill(21), &w.rect_, 0, kText, 2, 1);   // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
@@ -272,12 +273,12 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         if (drawn) w.Text(w.line);
         w.Down();
         // The cost (negative: 0x7FFFFFFF), on a line 15 pixels wider.
-        w.Rect()->right += 15;
+        w.rect_.right += 15;
         int cost = info->stats->SkillPrice(level);
         if (cost < 0) cost = 0x7FFFFFFF;
         w.line = str::Format(plain, w.Skill(18).c_str(), cost);
         w.Text(w.line);
-        w.Rect()->right -= 15;
+        w.rect_.right -= 15;
         w.Down();
     }
 }
@@ -776,7 +777,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         }
         str::TrimRight(w.line, ",");
         w.line += ".";
-        w.draw->DrawWrappedText(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
+        w.draw->DrawWrappedText(w.line, &w.rect_, 3, 0, kText, 0x10, 1);
     }
     w.draw->ReleaseDC();
 }

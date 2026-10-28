@@ -65,9 +65,9 @@ unsigned long ClearFlags(const CTextureDevice* renderer) { return uidevice::HasS
 
 void ClearDepth(CTextureDevice* renderer, unsigned long count, RECT* rects, float z) {
     unsigned long flags = ClearFlags(renderer);
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, count, rects, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     render::Rect r[6];
     int n = count < 6 ? static_cast<int>(count) : 6;
     for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
@@ -85,9 +85,9 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
     {
         CTextureDevice* renderer = deviceOf();
         unsigned long flags = ClearFlags(renderer);
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 0.0f, 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
         render::ClearDepth(0.0f, nullptr, 0);
     }
     RECT rects[6];

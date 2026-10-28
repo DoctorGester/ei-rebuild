@@ -127,7 +127,6 @@ CSceneRenderer::~CSceneRenderer() {
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
 CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }
 constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
-_RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
 // A second block: it uses g_sceneRenderer and g_deviceLock (defined above).
 namespace {
@@ -160,9 +159,9 @@ int CSceneRenderer::ClearFrame() {
     CTextureDevice* device = device_;
     DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
     if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     device->lastLoadResult_ = device::Clear(D3DDevice(device), 0, nullptr, flags, colour, 1.0f, 0);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     return 1;
 }
 

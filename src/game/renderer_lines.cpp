@@ -33,10 +33,10 @@ constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 // The draw itself, under the device lock, after the new renderer has taken it.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP)) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         device->lastLoadResult_ =
             device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, vertices, static_cast<DWORD>(count), 0);
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<unsigned>(count) / 3;

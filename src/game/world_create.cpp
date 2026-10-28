@@ -39,9 +39,9 @@ void Attach(CBaseManager* manager, CWorld* world) { manager->Init(world); }
 
 int CWorld::Create() {
     paused_ = 0;
-    TheDataFolder() = worlddata::ConfiguredDataPath();
-    TheTextFolder() = worlddata::ConfiguredTextPath();
-    TheDiscFolder() = worlddata::ConfiguredBasePath();
+    *g_dataFolder = worlddata::ConfiguredDataPath();
+    *g_textFolder = worlddata::ConfiguredTextPath();
+    *g_discFolder = worlddata::ConfiguredBasePath();
     tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

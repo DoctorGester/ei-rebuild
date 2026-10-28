@@ -334,7 +334,7 @@ void BloodPrint::Save(CStream* stream) {
 
 void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSize, std::uint32_t tile, int fresh) {
     if (!BloodPrintsOn()) return;
-    const PrintRecord* entry = EntryAt(ThePrintsDatabase().blood, this, x, y);
+    const PrintRecord* entry = EntryAt(g_printsDatabase->blood, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow_.mode != 0);
     EI_NAN_AUDIT(look.alpha);
@@ -359,7 +359,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
             break;
         }
     }
-    const PrintsDatabase& prints = ThePrintsDatabase();
+    const PrintsDatabase& prints = *g_printsDatabase;
     const PrintLook* look = nullptr;
     if (bloodKind == -1) {
         if (const PrintRecord2* entry = EntryAt(prints.footprints, this, x, y)) look = &LookOf(*entry, rainSnow_.mode != 0);
@@ -375,7 +375,7 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
 
 void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha) {
     if (!ScorchMarksOn()) return;
-    const PrintRecord* entry = EntryAt(ThePrintsDatabase().scorch, this, x, y);
+    const PrintRecord* entry = EntryAt(g_printsDatabase->scorch, this, x, y);
     if (!entry) return;
     const PrintLook& look = LookOf(*entry, rainSnow_.mode != 0);
     EI_NAN_AUDIT(alpha);

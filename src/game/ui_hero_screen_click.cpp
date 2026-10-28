@@ -60,7 +60,7 @@ void BackToMainMenu(CInterface3D* ui) {
     ui->SetPendingValue(0);
 }
 
-const char* HeroesFolder() { return TheSavedParties().folder_.c_str(); }
+const char* HeroesFolder() { return g_savedParties->folder_.c_str(); }
 const char* RenameSeparator() { return " | "; }
 const char* RenameBar() { return "|"; }
 
@@ -91,7 +91,6 @@ bool IsVoice(const acks::EnvironmentSpeech& entry) {
 void MpHeroPlayVoice(CMpHeroScreen* self) { self->PlayVoice(); }
 
 const char* SoundOk() { return "buttons\\messbox\\ok.wav"; }
-SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 
 void MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 
@@ -102,8 +101,8 @@ float AttributePoints() { return 75.0f /*00741C98*/; }
 void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 
 // The heroes' folder and the records.
-const std::string& MpHeroesFolder() { return TheSavedParties().folder_; }
-std::vector<MpHeroRecord>& MpHeroes() { return TheSavedParties().entries_; }
+const std::string& MpHeroesFolder() { return g_savedParties->folder_; }
+std::vector<MpHeroRecord>& MpHeroes() { return g_savedParties->entries_; }
 std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(MpHeroes().size()); }
 constexpr std::uint32_t kListRows = 10;
 constexpr int kAnswerOk = 0x10001;
@@ -295,7 +294,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A voice row: the hero takes its file.
         int index = voiceTop_ + region - 9;
         if (index < 0) return;
-        std::vector<MpVoiceEntry>& voices = Voices();
+        std::vector<MpVoiceEntry>& voices = *voices_;
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
         voiceIndex_ = index;
@@ -427,7 +426,7 @@ void CMpHeroScreen::PlayVoice() {
     {
         std::string key(prototype->name.c_str());
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
-        set = acks::Database().units.byName[key];
+        set = g_ackDatabase->units.byName[key];
     }
     if (!set) return;
     // The voice entries are counted and found again by their rank (no allocation; the original gathers
@@ -455,7 +454,7 @@ void CMpHeroScreen::Continue() {
     CInterface3D* ui = interface_;
     ui->PlaySound(SoundOk(), 0);
     if (heroIndex_ >= 0 && static_cast<unsigned>(heroIndex_) < static_cast<unsigned>(HeroCount())) {
-        MpHeroesObject()->SaveAll();
+        g_savedParties->SaveAll();
         ui->PushWindow(new CMpConnectScreen(ui), 1, 1);
         return;
     }
@@ -584,7 +583,7 @@ void CMpHeroScreen::AddNewHero() {
     std::vector<MpHeroRecord>& heroes = MpHeroes();
     if (heroes.size() == heroes.capacity()) {
         MpHeroRecord blank;
-        TheSavedParties().ReserveOne();
+        g_savedParties->ReserveOne();
         heroes.push_back(blank);
     } else {
         heroes.emplace_back();

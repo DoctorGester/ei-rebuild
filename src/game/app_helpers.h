@@ -15,7 +15,6 @@ namespace app {
 
 extern std::uint8_t g_movieMode;   // app_helpers.cpp
 
-inline std::list<std::uint8_t>& ProtectionChecks() { return *g_protectionChecks; }
 
 double DiskFreeSpace(const char* path);
 bool QuitGame(int exitCode);

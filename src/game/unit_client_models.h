@@ -247,7 +247,6 @@ public:
     void SetMarkers(CParticleSource* path, CParticleSource* marker);
     void DropFaceTexture();
 
-    PathOrder* MotionPath() { return &motion; }
 
     CParticleSource* sources[3];    // particle sources the controller keeps (counted)
     float lastAnimationTime;        // the animation state's time at the last update

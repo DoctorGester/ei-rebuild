@@ -62,7 +62,6 @@ float Max0(float value) { return value <= kZero ? kZero : value; }   // select i
 
 // The hit log: the rpg stream (its static initialiser stores the address).
 constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
-console::Stream& HitLog() { return *kHitLog; }
 
 void Remark(CUnit* unit, int code) {
     if (unit->controller->GetClassId() == kClassUnitServer) unit->ServerController()->Shout(code);
@@ -153,13 +152,13 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         } else if (current <= kZero) {
             slot.kind = 2;
         }
-        HitLog() << kTypeNames[type] << kPassedDamage << typeDamage;
+        *kHitLog << kTypeNames[type] << kPassedDamage << typeDamage;
         if (slot.kind == 1) {
-            HitLog() << kCrippled;
+            *kHitLog << kCrippled;
         } else if (slot.kind == 2) {
-            HitLog() << kDead;
+            *kHitLog << kDead;
         }
-        console::EndLine(HitLog());
+        console::EndLine(*kHitLog);
     }
     if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= 1;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));

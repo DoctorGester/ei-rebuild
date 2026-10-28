@@ -39,9 +39,8 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
 }
 
-ScriptQuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
-int QuestObjectiveCount() { return static_cast<int>(ScriptQuestObjectives().size()); }
-std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
+ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives->data(); }
+int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives->size()); }
 
 // operator+(const CString&, const CString&), constructing the result in `out`.
 std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
@@ -171,13 +170,13 @@ void ScriptQuestFinish(CScript* script) {
         std::string condition;
         std::string then;
         std::string tail;
-        const char* quest = QuestName().c_str();
+        const char* quest = g_scriptQuestName->c_str();
         head = str::Format("Script Su%i(if(\n", i);                              // "Script Su%i(if(\n"
         then = str::Format("\n)then(\nKillScript()\nSu%i()\nGSSetVar(0,\"q.%s.%s.%i\",2)\n", i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
             tail = ")\n)\n";                                   // ")\n)\n"
         } else {
-            quest = QuestName().c_str();
+            quest = g_scriptQuestName->c_str();
             tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const ScriptQuestObjective& objective = QuestObjectives()[i];
@@ -214,13 +213,13 @@ void ScriptQuestFinish(CScript* script) {
     }
     {
         std::string last;
-        const char* quest = QuestName().c_str();
+        const char* quest = g_scriptQuestName->c_str();
         last = str::Format("Script Su%i(if()then(KillScript()\nQuestComplete(0,\"%s\")\nGSSetVar(0,\"q.%s.%s\", 2)\n)\n)\n", QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
     text += "WorldScript( Su0() )\n";   // "WorldScript( Su0() )\n"
     script->Load(&text, 1);
-    QuestName() = game::kEmptyText;   // the empty string constant
+    *g_scriptQuestName = game::kEmptyText;   // the empty string constant
 }
 
 // ---- The quest's objectives and name (script.h) --------------------------------------------------------------------

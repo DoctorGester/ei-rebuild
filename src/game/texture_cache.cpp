@@ -29,7 +29,7 @@ const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 
 void DeleteComposedTextures() {
     lib::FileFind find;
-    std::string pattern = std::string(TheDataFolder()) + ComposedTexturePattern();
+    std::string pattern = std::string(*g_dataFolder) + ComposedTexturePattern();
     if (!find.FindFile(pattern)) return;
     int more;
     do {

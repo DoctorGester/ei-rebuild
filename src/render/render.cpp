@@ -405,7 +405,6 @@ bool EnsureTarget(int width, int height, bool mayChange) {
 
 // --- The frame -----------------------------------------------------------------------------------------
 
-Frame g_frame;
 bool g_frameDrawn = false;
 bool g_started = false;
 std::uint32_t g_frameNumber = 0;
@@ -530,7 +529,6 @@ struct GameTimer {
 GameTimer g_decalTimer, g_flatDrawTimer, g_shadowBuildTimer;
 #endif
 
-FrameStats g_stats;         // the frame being built
 FrameStats g_statsSum;      // the presented frames since the last TakeFrameStats
 std::uint32_t g_lastPipeline = 0, g_lastTexture = 0;   // ids applied last in this frame
 #if defined(EI_RENDER_VALIDATION)
@@ -649,7 +647,7 @@ void BeginFramePass() {
     pass.attachments.depth_stencil = g_depthAttachment;
     pass.label = "ei-frame";
     sg_begin_pass(&pass);
-    ++Stats().passes;
+    ++g_stats.passes;
     g_passSamples = 1;
     if (afterWorld) {
         CopyDepthFromMultisampled(g_multiDepthTexture);
@@ -673,7 +671,7 @@ void BeginMultisampledPass() {
         copy.attachments.depth_stencil = g_multiDepthAttachment;
         copy.label = "ei-frame-into-multisampled";
         sg_begin_pass(&copy);
-        ++Stats().passes;
+        ++g_stats.passes;
         g_passSamples = g_targetSamples;
         CopyIntoMultisampled(g_colourTexture, g_depthTexture);
         sg_end_pass();
@@ -691,7 +689,7 @@ void BeginMultisampledPass() {
     pass.attachments.depth_stencil = g_multiDepthAttachment;
     pass.label = "ei-frame-multisampled";
     sg_begin_pass(&pass);
-    ++Stats().passes;
+    ++g_stats.passes;
     g_passSamples = g_targetSamples;
     g_holder = Holder::Multisampled;
     ++g_counts.multisampledPasses;
@@ -959,7 +957,7 @@ FpuGuard::~FpuGuard() {
     if (x87::ControlWord() != saved_) x87::SetControlWord(saved_);
 }
 
-Frame& CurrentFrame() { return g_frame; }
+Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
@@ -1062,7 +1060,7 @@ void EndDeviceMeshTime() {
 void BeginDecalTime(bool shadow) {
 #if defined(EI_RENDER_VALIDATION)
     if (g_decalTimer.running) return;
-    ++(shadow ? detail::Stats().decalShadows : detail::Stats().decalPrints);
+    ++(shadow ? detail::g_stats.decalShadows : detail::g_stats.decalPrints);
     g_decalTimer.Begin(shadow ? &FrameStats::decalShadowMs : &FrameStats::decalPrintMs);
 #else
     (void)shadow;
@@ -1070,7 +1068,7 @@ void BeginDecalTime(bool shadow) {
 }
 void EndDecalTime(int vertices) {
 #if defined(EI_RENDER_VALIDATION)
-    if (g_decalTimer.End()) detail::Stats().decalVertices += static_cast<std::uint64_t>(vertices);
+    if (g_decalTimer.End()) detail::g_stats.decalVertices += static_cast<std::uint64_t>(vertices);
 #else
     (void)vertices;
 #endif
@@ -1078,8 +1076,8 @@ void EndDecalTime(int vertices) {
 void BeginFlatDrawTime(int vertices) {
 #if defined(EI_RENDER_VALIDATION)
     if (g_flatDrawTimer.running) return;
-    ++detail::Stats().flatDraws;
-    detail::Stats().flatDrawVertices += static_cast<std::uint64_t>(vertices);
+    ++detail::g_stats.flatDraws;
+    detail::g_stats.flatDrawVertices += static_cast<std::uint64_t>(vertices);
     g_flatDrawTimer.Begin(&FrameStats::flatMs);
 #else
     (void)vertices;
@@ -1093,7 +1091,7 @@ void EndFlatDrawTime() {
 void BeginShadowBuildTime() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_shadowBuildTimer.running) return;
-    ++detail::Stats().shadowBuilds;
+    ++detail::g_stats.shadowBuilds;
     g_shadowBuildTimer.Begin(&FrameStats::shadowBuildMs);
 #endif
 }
@@ -1166,7 +1164,7 @@ void EndWorld() {
 
 void ClearDepth(float z, const Rect* rects, int count) {
     if (!Active()) return;
-    Stats().depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
+    g_stats.depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
         g_frame.commands.push_back(Command{Command::ClearDepth, static_cast<int>(g_frame.clears.size()) - 1});
@@ -1182,7 +1180,7 @@ void ClearDepth(float z, const Rect* rects, int count) {
 
 namespace detail {
 
-FrameStats& Stats() { return g_stats; }
+FrameStats g_stats;   // the frame being built
 
 StatsTimer::StatsTimer(double FrameStats::* field) : field_(field), start_(0), outer_(nullptr) {
 #if defined(EI_RENDER_VALIDATION)

@@ -235,7 +235,6 @@ public:
     void DrawVoices();
     // The hero list's surface (0): ten rows of names from heroTop_, the selection frame on the selected hero.
     void DrawHeroList();
-    std::vector<MpVoiceEntry>& Voices() { return *voices_; }
     void CallShowHero(int index);
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
@@ -446,8 +445,8 @@ public:
     CUiMesh* bar_;
 };
 
-inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
-inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
+inline MpHeroRecord* SavedHero(int index) { return &g_savedParties->entries_[index]; }
+inline int SavedHeroCount() { return static_cast<int>(g_savedParties->entries_.size()); }
 
 // --- In-game escape menu ----------------------------------------------------------------------
 // Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit

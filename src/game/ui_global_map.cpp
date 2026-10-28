@@ -79,9 +79,6 @@ int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font
 // The local player's variables, copied by name prefix into a local table, freed afterwards.
 class VariableTable {
 public:
-    NamedFloatTable* Table() { return &table_; }
-
-private:
     NamedFloatTable table_;
 };
 
@@ -284,8 +281,8 @@ void CGlobalMap::CreateScreen() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable = str::Format("q.%s", zones_[i].name.c_str());
-        GameLocalPlayerVariables(variable.c_str(), vars.Table());
-        const NamedFloatTable& table = *vars.Table();
+        GameLocalPlayerVariables(variable.c_str(), &vars.table_);
+        const NamedFloatTable& table = vars.table_;
         for (auto node = table.begin(); node != table.end(); ++node) {
             std::uint32_t value;
             std::memcpy(&value, &node->second, 4);
@@ -562,7 +559,7 @@ void CGlobalMap::Update() {
     // drawn into directly (DirectDraw: between a Lock and an Unlock).
     if (std::ssize(objects_) > 4) {
         CDXSurface* holder = objects_[4]->surface_;
-        auto* lock = TheDeviceLock();
+        auto* lock = &g_deviceLock;
         gameapi::EnterCriticalSection(lock);
         SurfacePixels pixels;
         if (DirectPixels(holder, &pixels)) {   // (always: the texture has memory)

@@ -14,5 +14,5 @@ void CUnit::TakePrototype(const char* prototype) {
     stats.Reset();
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, &stats, prototype);
     vitals.Pack(&packedVitals);
-    stats.Pack(nullptr, Params());
+    stats.Pack(nullptr, &params);
 }

@@ -83,7 +83,7 @@ CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
 CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
-AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
+AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }
 PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
 UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
@@ -311,7 +311,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         if (!cont) return 1;
         SSCCmd* cmd = &block->commands[index];
         cmd->SetParameters(cmd->localBindings, &vars);
-        cmd->SetParameters(cmd->globalBindings, script->Globals());
+        cmd->SetParameters(cmd->globalBindings, &script->globals_);
         for (int i = 0; i < std::ssize(cmd->subCalls); ++i)
             cmd->CalcParameters(script, &vars, &cmd->subCalls[i]);
         cont = 1;
@@ -338,7 +338,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
-            if (unit && UnitState(unit)->Brain()->action != 0) cont = 0;
+            if (unit && UnitState(unit)->brain.action != 0) cont = 0;
             break;
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
@@ -379,7 +379,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case kCmdAssign: {   // global = value: float 0 variable index, float 1 type - 1
-            ScriptVars* globals = script->Globals();
+            ScriptVars* globals = &script->globals_;
             switch (Ftol(f[1])) {
             case 0:
                 std::memcpy(&globals->floats.values[Ftol(f[0])], &f[2], 4);
@@ -1045,14 +1045,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9F: {   // QuestComplete(player, quest)
             if (IsMultiplayerClient()) {
                 if (FinishQuestMap(Text(cmd, 0)) != 0) {
-                    QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
+                    QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
                     if (quest) TheWorld()->AwardExperience(nullptr, quest->exp);
                 }
                 break;
             }
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            QuestRecord* quest = TheQuestDatabase().FindQuest(Text(cmd, 0));
+            QuestRecord* quest = g_questDatabase->FindQuest(Text(cmd, 0));
             if (!quest) break;
             TheWorld()->AwardExperience(player, quest->exp);
             ClassTemplatesQuestCompleted(ThePartyManager());

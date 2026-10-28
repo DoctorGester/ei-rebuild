@@ -84,7 +84,7 @@ bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
 // Draws the info lines of `unit`.
 void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     CTextManager* texts = TheTextManager();
-    UnitParams* params = unitIn->Params();
+    UnitParams* params = &unitIn->params;
     std::string suffix;
     Panel panel;
     panel.surface = surfaces_[0];

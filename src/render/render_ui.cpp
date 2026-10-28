@@ -855,7 +855,7 @@ void DrawCanvas(const void* holder, const Rect& destination, const Rect* source,
     auto it = g_canvases.find(holder);
     if (it == g_canvases.end()) return;
     CanvasState& canvas = it->second;
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     CanvasBatch batch{holder, destination, source ? *source : Rect{0, 0, canvas.width, canvas.height}, keyed,
                       Widen(key, canvas.format)};
     f.canvasBatches.push_back(batch);
@@ -982,7 +982,7 @@ void RunCanvasCommands() {
 void CanvasBlitsDrawn() {
     for (auto& entry : g_canvases) entry.second.blitPending = false;
     g_drawnRects.clear();
-    for (const CanvasBatch& batch : CurrentFrame().canvasBatches) g_drawnRects.push_back(batch.destination);
+    for (const CanvasBatch& batch : g_frame.canvasBatches) g_drawnRects.push_back(batch.destination);
 }
 
 void DrawCanvasBatch(const CanvasBatch& batch, int width, int height) {

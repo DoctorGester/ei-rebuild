@@ -144,7 +144,6 @@ constexpr float kCatchUpRadius = 70.0f;
 constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
-const std::string& MoviesFolder() { return TheDiscFolder(); }
 
 // The zone was saved before: read saves\current\<zone>.sav and restore it, then let the world catch up with
 // the time spent away (one tick per elapsed unit, at most 1000, waking the units around the entrance).
@@ -231,7 +230,7 @@ void AnnounceHost(const char* zone) {
 net::LoginMessage* LocalLogin() { return net::g_gameClient->player_.Get(); }
 int ServerPlayerCount() { return static_cast<int>(TheServerWorld()->players_->objects_.size()); }
 
-CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
+CParty* GlobalParty() { return g_savedParties->outsideGame_.Party(); }
 constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's unit id
 
 constexpr int kCommandBriefing = 1;
@@ -308,16 +307,12 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 // UseResources' function-local static: the resources in use (guard bit 0 of g_lastResourcesGuard),
 // destroyed at exit.
 constinit lib::StaticObject<std::string> g_lastResources = /*007AFDEC*/ {};
-std::string& LastResources() { return *g_lastResources; }
 void DestroyLastResources() { g_lastResources.Destroy(); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
 int& Spectator0() { return options::TheOptions()->difficulty_; }
 std::uint8_t& AutoplayOn() { return TheServerWorld()->sendsStartPosition_; }
 const char* ResourcesPath() { return options::TheOptions()->resourcesPath_.c_str(); }
-UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
-itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
-itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
 
 constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
 constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
@@ -454,7 +449,7 @@ int EnterZone(CParty* records) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {
-                std::string movie = MoviesFolder() + kMovieFile;
+                std::string movie = *g_discFolder + kMovieFile;
                 PlayMovie(movie, 0, 1, 1, 1, 1, 1);
             }
             variables->Remove(kMovieVariable);
@@ -668,7 +663,7 @@ void GameFlow::ReturnLocalParty() {
     GlobalParty()->Assign(party);
     ThePartyManager()->BeginRedeploy(party);
     // The global party record written into the heroes' folder.
-    TheSavedParties().OutsideGame()->WriteFile(TheSavedParties().folder_.c_str());
+    g_savedParties->outsideGame_.WriteFile(g_savedParties->folder_.c_str());
     UpdateFromServer();
 }
 
@@ -1137,16 +1132,16 @@ void GameFlow::StartNewGame() {
 // ---- The flow's requests -------------------------------------------------------------
 
 void SwitchResourceDatabases(const char* name) {
-    UnitDatabase* units = UnitDatabaseObject();
+    UnitDatabase* units = &g_unitDatabase.Get();
     units->Reset();
     units->Load(ResourcesPath(), name);
     units->CountSoundFiles(TheSoundManager());
     SkillDb()->Reset();
     SkillDb()->Load(ResourcesPath(), name);
-    SpellTablesObject()->Reset();
-    SpellTablesObject()->Load(ResourcesPath(), name);
-    ItemDatabaseObject()->Reset();
-    ItemDatabaseObject()->Load(ResourcesPath(), name);
+    g_spellDatabase->Reset();
+    g_spellDatabase->Load(ResourcesPath(), name);
+    g_itemDatabase->Reset();
+    g_itemDatabase->Load(ResourcesPath(), name);
 }
 
 void GameFlow::UseResources(bool network) {
@@ -1157,9 +1152,9 @@ void GameFlow::UseResources(bool network) {
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
     if (str::Compare(wanted,
-                        LastResources().c_str()) == 0)
+                        g_lastResources->c_str()) == 0)
         return;
-    LastResources() = wanted;
+    *g_lastResources = wanted;
     SwitchResourceDatabases(wanted.c_str());
     if (network) {
         int value = Spectator0();

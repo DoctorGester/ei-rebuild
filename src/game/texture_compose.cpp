@@ -32,7 +32,7 @@ constexpr unsigned kWriteCreate = lib::File::modeCreate | lib::File::modeWrite;
 const char* const kCantFindLayer = "Can't find texture \"%s\" for layer composition.\n";    // "Can't find texture \"%s\" for layer composition.\n"
 const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n";   // "Texture \"%s\" dimentions are incorrect.\n"
 
-std::string CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
+std::string CachePath(const std::string& name) { return *g_dataFolder + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.

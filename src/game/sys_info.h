@@ -32,7 +32,6 @@ static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorI
 inline constexpr std::uint32_t kProcessorMmx = 1u << 23;   // CPUID.1:EDX bit 23
 inline constexpr std::uint32_t kProcessorSse = 0x02000000;   // CPUID.1:EDX bit 25
 extern ProcessorInfo g_processorInfo;   // sys_info.cpp
-inline ProcessorInfo* TheProcessorInfo() { return &g_processorInfo; }
 // The terminator cleared, then CPUID function 1 into the globals when the processor has CPUID (the
 // EFLAGS ID bit can be flipped; as in the game it stays flipped). Both writers inline this.
 void ReadProcessorInfo();

@@ -62,7 +62,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     if (low > sequence->maxLow) sequence->maxLow = low;
     // A new entry has no container: CopyTo then faults (this = 0x30), as the game does.
     CSpellContainer* container = sequence->containers[low];
-    container->Spell()->CopyTo(spell);
+    container->spell_.CopyTo(spell);
     return spell;
 }
 
@@ -100,9 +100,9 @@ const char* CSpellManager::GetFolderName() { return kSpellManagerFolder; }
 
 // The array takes the table's count, then element i the name of record i while i is below the count (read
 // again each time).
-void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(itemdb::TheSpellDatabase().spells, names); }
+void CSpellManager::ListSpellNames(std::vector<std::string>* names) { ListRecordNames(g_spellDatabase->spells, names); }
 void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
-    ListRecordNames(itemdb::TheSpellDatabase().modifiers, names);
+    ListRecordNames(g_spellDatabase->modifiers, names);
 }
 
 // The spell and the name are members, constructed before the body (the game builds them after the code
@@ -117,7 +117,7 @@ CSpellContainer::~CSpellContainer() {
     // (ClearState is empty and called directly here.)
     prototype_ = nullptr;
     modifiers_.clear();
-    Spell()->Destroy();
+    spell_.Destroy();
 }
 
 const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }

@@ -96,7 +96,7 @@ void DeltaState::SetFieldCount(int count) { fields_.resize(count); }
 
 void CMapObject::SetUpMapObject() {
     companion = nullptr;
-    PackedVitals()->Reset();
+    packedVitals.Reset();
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);
@@ -147,14 +147,14 @@ void CUnit::Reset() {
     dead = 0;
     obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
-    Params()->Reset();
+    params.Reset();
     std::memset(weapons, 0, sizeof(weapons));
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));
     std::memset(spells, 0, sizeof(spells));
     carried.clear();
     altPassCosts = 0;
-    MapObject()->NetState()->Reset();
+    MapObject()->netState_.Reset();
     fightAtWill = 1;
 }
 
@@ -207,7 +207,7 @@ CMapObjectClientSpecific::~CMapObjectClientSpecific() {
 
 CUnitServer::~CUnitServer() {
     ResetController();
-    AIBrain* b = Brain();
+    AIBrain* b = &brain;
     b->Init();
     b->memory.Destruct();
     if (AIMode* current = b->current) BrainObject8CDestroy(current);

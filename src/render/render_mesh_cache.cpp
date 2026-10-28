@@ -272,7 +272,7 @@ void Restart(const Frame& f) {
 }
 
 void Write(CachedMesh& e) {
-    FrameStats& stats = Stats();
+    FrameStats& stats = g_stats;
     if (e.dirty) {
         auto count = static_cast<std::uint32_t>(e.vertices.size());
         g_pool.WriteGeometry(e.place, 0, count, e.vertices.data());
@@ -302,8 +302,8 @@ namespace detail {
 
 CachedMesh* KeepMesh(const MeshDraw& m) {
     if (g_haveSource && g_source.moved) {
-        ++Stats().morphMeshes;
-        Stats().morphCorners += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
+        ++g_stats.morphMeshes;
+        g_stats.morphCorners += static_cast<std::uint64_t>(m.cornerCount > 0 ? m.cornerCount : 0);
     }
     if (!g_haveSource || !g_source.owner || !m.corners || g_interface) return nullptr;
 #if defined(EI_RENDER_VALIDATION)
@@ -347,7 +347,7 @@ CachedMesh* KeepMesh(const MeshDraw& m) {
         e.pending = true;
         g_pending.push_back(&e);
     }
-    ++Stats().meshReuse[reuse];
+    ++g_stats.meshReuse[reuse];
     return &e;
 }
 

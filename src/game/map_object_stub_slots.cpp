@@ -40,11 +40,11 @@ void CMapObject::TakePrototype(const char* prototype) {
     // harness_leftovers.h).
     UnitVitals vitals{};
     MapObjectManagerOf(this)->BuildFromPrototype(&vitals, nullptr, prototype);
-    vitals.Pack(PackedVitals());
+    vitals.Pack(&packedVitals);
 }
 
 void CMapObject::WriteFullState() {
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     state->SetWriteMode(0);
     WriteNetState();
     state->Finish();
@@ -53,7 +53,7 @@ void CMapObject::WriteFullState() {
 
 void CMapObject::WriteChangedState() {
     if (ChangedParts() & kVitalParts) StatsChanged();
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     state->SetWriteMode(1);
     WriteNetState();
     state->Finish();
@@ -61,7 +61,7 @@ void CMapObject::WriteChangedState() {
 }
 
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     state->BeginRead(first, reader);
     std::uint32_t result = ReadNetState(first);
     state->Finish();

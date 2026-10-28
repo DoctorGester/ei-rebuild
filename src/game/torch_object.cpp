@@ -28,7 +28,7 @@ void CTorchObject::DestroyTorch() {
     CTorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();
-    NetState()->Reset();
+    netState_.Reset();
     DestroyMapObject();
 }
 
@@ -63,7 +63,7 @@ void CTorchObject::AttachTorchObject(CEngineObject* object) {
 
 void CTorchObject::WriteTorchNetState() {
     CMapObject::WriteNetState();
-    DeltaField* field = NetState()->BeginField(kTorchField);
+    DeltaField* field = netState_.BeginField(kTorchField);
     if (!field) return;
     std::uint32_t value = spec->lightKind_;
     field->WriteDelta(&value, 4);
@@ -77,7 +77,7 @@ void CTorchObject::WriteTorchNetState() {
 
 std::uint32_t CTorchObject::ReadTorchNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
-    DeltaField* field = NetState()->BeginField(kTorchField);
+    DeltaField* field = netState_.BeginField(kTorchField);
     if (!field) return complete;
     spec->ReadNetState(field);
     std::uint32_t readTo = delta::g_readSnapshot->Position();

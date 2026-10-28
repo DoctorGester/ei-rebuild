@@ -72,7 +72,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         mobName_ = game::kEmptyText;
     }
     graph->Seek(0);
-    if (graph->Size() != 0 && !AIMap()->Regions()->LoadBlocks(graph)) return 0;
+    if (graph->Size() != 0 && !AIMap()->regionMap.LoadBlocks(graph)) return 0;
 
     if (text::CompareIgnoringCase(mobName_, mob) == 0) {
         // The same zone again: start over.

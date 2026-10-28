@@ -391,7 +391,7 @@ void CMpConnectScreen::MasterRequest() {
 void CMpConnectScreen::SaveAddressBook() {
     ChunkArchive archive;
     netlink::FileStream file;
-    if (!file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
+    if (!file.Open(*g_dataFolder + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
     archive.Open(&file, 0, 1);
     net::ClientQueries* queries = &net::g_gameClient->queries_;
     if (archive.EnterChunk(1)) {
@@ -602,7 +602,7 @@ void CMpConnectScreen::CreateScreen() {
     net::ClientQueries queries;
     ChunkArchive archive;
     netlink::FileStream file;
-    if (file.Open(TheDataFolder() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
+    if (file.Open(*g_dataFolder + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
         archive.Open(&file, 1, 1);
         if (archive.EnterChunk(1)) {
             queries.Serialize(&archive);

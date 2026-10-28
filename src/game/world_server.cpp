@@ -185,7 +185,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
     CMapObject* object = *static_cast<CMapObject* const volatile*>(slot);
     if (!object) return;
-    if (object->GetClassId() != kClassNoSector) Sectors()->Remove(*slot);
+    if (object->GetClassId() != kClassNoSector) aiMap_.sectorMap.Remove(*slot);
 
     hash400::RemoveKey(updateMap_.map, id);
     EraseId(objects_, id);

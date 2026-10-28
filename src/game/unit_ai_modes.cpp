@@ -95,7 +95,6 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 // The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
 // first use and destroyed at exit.
 constinit lib::StaticObject<CountedUnits> g_candidates = /*007C54C8*/ {};
-CountedUnits& Candidates() { return *g_candidates; }
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
 void DestroyCandidates() { g_candidates.Destroy(); }
 
@@ -122,7 +121,7 @@ void PrepareWalk(PlayerMode* self, AIBrain* brain, const Vector3* to, int run, c
     self->target.Reset();
 }
 
-PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->Brain()->FindPlayerMode(); }
+PlayerMode* PlayerModeOf(CUnit* unit) { return unit->ServerController()->brain.FindPlayerMode(); }
 
 } // namespace
 
@@ -456,8 +455,8 @@ int AggressionMode::Evaluate(AIBrain* brain) {
         std::atexit(DestroyCandidates);
     }
     CUnit* self = brain->owner->unit;
-    brain->memory.FindEnemies(self, &Candidates());
-    brain->ChooseTarget(&chosen, &Candidates(), &self->localPosition_, 0, 0);
+    brain->memory.FindEnemies(self, &g_candidates.Get());
+    brain->ChooseTarget(&chosen, &g_candidates.Get(), &self->localPosition_, 0, 0);
     CUnit* best = chosen.object;
     if (best != enemy) {
         if (enemy) enemy->Release();
@@ -614,7 +613,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        PlayerMode* leaderMode = leader->ServerController()->Brain()->FindPlayerMode();
+        PlayerMode* leaderMode = leader->ServerController()->brain.FindPlayerMode();
         if (leaderMode && leaderMode->state == kStateCommand) return;
         UpdateCombat(brain);
         return;
@@ -744,7 +743,7 @@ void PlayerMode::SetLeader(AIBrain* brain, CUnit* newLeader) {
             CUnit* next = mode ? mode->leader.object : nullptr;
             if (!next) break;
             if (next == self) {
-                AIBrain* own = next->ServerController()->Brain();
+                AIBrain* own = &next->ServerController()->brain;
                 if (PlayerMode* ownMode = PlayerModeOf(next)) ownMode->SetLeader(own, nullptr);
                 break;
             }

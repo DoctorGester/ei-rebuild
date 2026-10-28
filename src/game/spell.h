@@ -233,7 +233,6 @@ public:
     // area becomes a radius (sqrt(area / pi)); the modifier list is sorted. Returns 1.
     BOOL Build();
 
-    CSpell* Spell() { return &spell_; }
 
     const itemdb::SpellRecord* prototype_;
     std::list<itemdb::SpellModifierRecord*> modifiers_;

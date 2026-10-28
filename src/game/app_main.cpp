@@ -70,11 +70,6 @@ constinit lib::StaticObject<std::string> g_commandLineScript = /*0079BA18*/ {};
 constinit lib::StaticObject<std::string> g_cameraFile = /*0079BA1C*/ {};
 constinit CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};
 
-std::string& MovieFolder() { return *g_movieFolder; }
-std::string& CommandLineMap() { return *g_commandLineMap; }
-std::string& CommandLineMob() { return *g_commandLineMob; }
-std::string& CommandLineScript() { return *g_commandLineScript; }
-std::string& CameraFile() { return *g_cameraFile; }
 
 namespace {
 
@@ -103,12 +98,6 @@ constexpr int kTextSize = 0x100;
 constexpr const char* kWindowTitle = "Evil Islands";
 constexpr const char* kWindowClassName = "EIGAME";
 
-// The registry key of the options and the folders: where the game was started, the disc's, the
-// text resources' and the data folder (the last three are set from the options).
-std::string& RegistryRoot() { return TheRegistryRoot(); }
-std::string& StartFolder() { return TheStartFolder(); }
-std::string& DiscFolder() { return TheDiscFolder(); }
-std::string& TextFolder() { return TheTextFolder(); }
 
 // The loop's clock: the time of the last pass (a function-local static), the time not yet run by the server and by
 // the client (milliseconds), and the client's speed.
@@ -123,14 +112,6 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
-ChunkArchive::ClassRegistry* ClassRegistry() { return &ChunkArchive::Registry(); }
-QuestDatabase* QuestDatabaseObject() { return &TheQuestDatabase(); }
-itemdb::SpellDatabase* SpellTablesObject() { return &itemdb::TheSpellDatabase(); }
-itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); }
-LeverRecordTable* LeverTableObject() { return &TheLeverTable(); }
-acks::AckDatabase* AckDatabaseObject() { return &acks::Database(); }
-PrintsDatabase* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
-UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
 
@@ -175,10 +156,10 @@ std::string Tail(const std::string& argument, int prefixLength) { return str::Ri
 void ReadCommandLine(const char* commandLine) {
     std::vector<std::string> arguments;
     text::Split(commandLine, &arguments, ' ');
-    CameraFile() = ".\\camera.cam";
-    CommandLineScript().clear();
-    CommandLineMob().clear();
-    CommandLineMap().clear();
+    *g_cameraFile = ".\\camera.cam";
+    g_commandLineScript->clear();
+    g_commandLineMob->clear();
+    g_commandLineMap->clear();
     CWorldClient* client = TheClientWorld();
     GameOptions* options = options::TheOptions();
     for (std::size_t i = 0; i < arguments.size(); ++i) {
@@ -186,10 +167,10 @@ void ReadCommandLine(const char* commandLine) {
             client->flags_ &= ~0x20u;
             {
                 std::string folder = Tail(arguments[i], 11);
-                MovieFolder() = folder;
+                *g_movieFolder = folder;
             }
-            const char* folder = MovieFolder().c_str();
-            if (folder[static_cast<int>(MovieFolder().size()) - 1] != '\\') MovieFolder() += '\\';
+            const char* folder = g_movieFolder->c_str();
+            if (folder[static_cast<int>(g_movieFolder->size()) - 1] != '\\') *g_movieFolder += '\\';
             continue;
         }
         if (!(client->flags_ & 0x10)) {
@@ -199,16 +180,16 @@ void ReadCommandLine(const char* commandLine) {
                 continue;
             }
             if (!(client->flags_ & 0x10) && str::Find(arguments[i], ".cam") != -1) {
-                CameraFile() = arguments[i].c_str();
+                *g_cameraFile = arguments[i].c_str();
                 continue;
             }
         }
         if (str::Find(arguments[i], ".scr") != -1) {
-            CommandLineScript() = arguments[i].c_str();
+            *g_commandLineScript = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mob") != -1) {
-            CommandLineMob() = arguments[i].c_str();
+            *g_commandLineMob = arguments[i].c_str();
         } else if (str::Find(arguments[i], ".mpr") != -1) {
-            CommandLineMap() = arguments[i].c_str();
+            *g_commandLineMap = arguments[i].c_str();
         } else if (str::Find(arguments[i], "-benchmark_") == 0) {
             std::string frames = Tail(arguments[i], 11);
             options->numberOfFrames_ = str::ToInt(frames);
@@ -294,8 +275,8 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // disc folder (when it is not the data folder) is not on a volume with the options' label. False
 // when the player cancels.
 bool CheckDrives(const std::vector<std::string>& messages) {
-    std::string discFolder = DiscFolder();
-    std::string dataFolder = TheDataFolder();
+    std::string discFolder = *g_discFolder;
+    std::string dataFolder = *g_dataFolder;
     double freeBytes;
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
@@ -326,11 +307,11 @@ void CreateMouse() {
 }
 
 void CreateFolders(std::string& path) {
-    path = str::Format("%ssaves\\", TheDataFolder().c_str());
+    path = str::Format("%ssaves\\", g_dataFolder->c_str());
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%smp\\", TheDataFolder().c_str());
+    path = str::Format("%smp\\", g_dataFolder->c_str());
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%stextures\\", TheDataFolder().c_str());
+    path = str::Format("%stextures\\", g_dataFolder->c_str());
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 
@@ -366,9 +347,9 @@ DWORD CreateRenderer() {
 // the disc folder's text pointer (see the caller).
 std::uintptr_t OpenSound() {
     GameOptions* options = options::TheOptions();
-    std::string textFolder = TextFolder();
-    std::string dataFolder = TheDataFolder();
-    std::string discFolder = DiscFolder();
+    std::string textFolder = *g_textFolder;
+    std::string dataFolder = *g_dataFolder;
+    std::string discFolder = *g_discFolder;
     TheSoundManager()->Open(g_mainWindow, 1, -1, 44100, 16);
     {
         std::string registry = textFolder + "streamsn.reg";
@@ -397,13 +378,13 @@ void LoadDatabases() {
     const char* archive = "database.res";
     GameOptions* options = options::TheOptions();
     SkillDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    QuestDatabaseObject()->Load(options->resourcesPath_.c_str());
-    UnitDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    SpellTablesObject()->Load(options->resourcesPath_.c_str(), archive);
-    ItemDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    LeverTableObject()->Load(options->resourcesPath_.c_str());
-    AckDatabaseObject()->Load(options->resourcesPath_.c_str());
-    PrintsDatabaseObject()->Load(options->resourcesPath_.c_str());
+    g_questDatabase->Load(options->resourcesPath_.c_str());
+    g_unitDatabase->Load(options->resourcesPath_.c_str(), archive);
+    g_spellDatabase->Load(options->resourcesPath_.c_str(), archive);
+    g_itemDatabase->Load(options->resourcesPath_.c_str(), archive);
+    g_leverTable->Load(options->resourcesPath_.c_str());
+    g_ackDatabase->Load(options->resourcesPath_.c_str());
+    g_printsDatabase->Load(options->resourcesPath_.c_str());
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -459,9 +440,9 @@ void TakeActivationChange() {
     if (g_active) {
         if (TheSceneRenderer()->flags_ & 2) {
             CTextureDevice* device = TheRenderDevice();
-            gameapi::EnterCriticalSection(TheDeviceLock());
+            gameapi::EnterCriticalSection(&g_deviceLock);
             device->lastLoadResult_ = device::RestoreAllSurfaces(device->ddraw_);
-            gameapi::LeaveCriticalSection(TheDeviceLock());
+            gameapi::LeaveCriticalSection(&g_deviceLock);
         }
         SceneRenderer()->flags_ |= 1;
         gameapi::SetCursor(nullptr);
@@ -638,7 +619,7 @@ void ShutDown() {
     if (mouse) ReleaseMouse(mouse);
     TheSceneRenderer()->SetGamma(0.0f, 0.0f, 0.0f);
     SceneRenderer()->DestroyRenderer();
-    options::TheOptions()->SaveToRegistry(RegistryRoot().c_str());
+    options::TheOptions()->SaveToRegistry(g_registryRoot->c_str());
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Destroy();
     TheClientWorld()->Destroy();
@@ -696,22 +677,22 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         return kExitDeclined;
     }
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
-    app::TypeRegistryRegister(ClassRegistry(), nullptr, 1, CreateClassTemplate);
-    app::TypeRegistryRegister(ClassRegistry(), nullptr, 2, CreatePartyRecord);
+    app::TypeRegistryRegister(&g_classRegistry.Get(), nullptr, 1, CreateClassTemplate);
+    app::TypeRegistryRegister(&g_classRegistry.Get(), nullptr, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 
     GameOptions* options = options::TheOptions();
     // NivalRegistry: Rebirth's patch names its own key instead.
-    RegistryRoot() = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
+    *g_registryRoot = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
                          ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
                          : "Software\\Nival Interactive\\EvilIslands";
     StoreStartFolder();
     {
-        std::string settings = StartFolder() + "config\\ai.reg";
+        std::string settings = *g_startFolder + "config\\ai.reg";
         g_logicSettings.Load(settings.c_str());
     }
-    options->LoadFromRegistry(RegistryRoot().c_str());
+    options->LoadFromRegistry(g_registryRoot->c_str());
     TheClientWorld()->Create();
     TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).

@@ -110,7 +110,7 @@ void CUnit::LoadUnit(CStream* stream) {
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
     stream->Read(&unitRadius, 4);
-    Params()->Reset();
+    params.Reset();
     stream->Read(&activeWeapon, 4);             // saved twice; the second copy wins
 
     ReadItems(this, stream, weapons, 4);

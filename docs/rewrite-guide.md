@@ -151,10 +151,11 @@ does not need a second pass:
 - no `__asm`, no `#pragma float_control` (rule 7);
 - no new forwarders (rule 5);
 - no one-line getter that only returns a field or a global under another spelling (C38): callers read the public
-  field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`). Getters stay where they are
-  virtual (GetClassName, the manager context's slots), compute or convert (`return this`, a dereference of a
-  `lib::StaticObject` that order of construction needs), name an unnamed field (`NoBackstab()` for `moveMode2.flag4`,
-  a pair message's `ConnectionRef()`), or are the only const view of a file's state (the renderer's `FrameNumber()`);
+  field or the named global (`g_random`, `net::g_gameClient`, `g_logicSettings`), also through a dereference or an
+  address (`*g_dataFolder`, `g_itemDatabase->weapons`, `&g_deviceLock`, `unit->brain.memory`; C38a: a
+  `lib::StaticObject` is built by its static initialiser either way). Getters stay where they are virtual
+  (GetClassName, the manager context's slots), compute or convert (`return this`, `&stack_.back()`), name an
+  unnamed field (`NoBackstab()` for `moveMode2.flag4`, a pair message's `ConnectionRef()`), or are the only const view of a file's state (the renderer's `FrameNumber()`);
 - new text is `std::string`, with `src/lib/str.h` for what CString did that std::string has no member for (Find
   with -1, Mid, Format with the game's digits, the trims; C14a, `docs/notes/core.md`, "Strings");
 - containers are `std::` (`lib::HashMap` / `lib::HashMultimap`, `src/lib/hash_map.h`, where STLport's walk order is

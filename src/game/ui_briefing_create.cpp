@@ -123,7 +123,7 @@ void StepWalking(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
     Vector3 facing = NormalisedUnlessZero(node->direction);
-    unit->ServerController()->Brain()->TurnTowards(&facing, 1.0f);
+    unit->ServerController()->brain.TurnTowards(&facing, 1.0f);
 }
 
 // A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.

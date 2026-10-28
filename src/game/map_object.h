@@ -235,8 +235,6 @@ public:
 
     CObject3D* Object3D() { return this; }
 
-    UnitVitalsPacked* PackedVitals() { return &packedVitals; }
-    DeltaState* NetState() { return &netState_; }
     // The parts changed since the last send (bit per part: MarkChanged): the network state's mask.
     std::uint16_t& ChangedParts() { return netState_.mask_; }
 

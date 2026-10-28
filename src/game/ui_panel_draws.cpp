@@ -37,9 +37,9 @@ void DrawItem(CItemScreen* owner, CSceneRenderer* pass, ItemCell* cell) { owner-
 // `z` under the device lock; the new renderer gets the clear too.
 void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
     std::uint32_t flags = uidevice::HasStencil(renderer) ? kClearZBuffer | kClearStencil : kClearZBuffer;
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, rect ? 1 : 0, rect, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     if (!rect) {
         render::ClearDepth(z, nullptr, 0);
         return;

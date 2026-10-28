@@ -92,7 +92,7 @@ void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, Smooth
 }
 
 void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table) {
-    SmoothPool& pool = SmoothNodePool();
+    SmoothPool& pool = *g_smoothPool;
     for (int i = 0; i < kStates; ++i) to[i].cost = kUnreached;
     for (int i = 0; i < kStates; ++i) to[i].node = pool.next++;
     for (int i = 0; i < std::ssize(table->copies); ++i) {
@@ -118,7 +118,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int start
     int previousBest = kUnreached;
     const int tailX = path->back().x, tailY = path->back().y;
     const int headX = path->front().x, headY = path->front().y;
-    SmoothPool& pool = SmoothNodePool();
+    SmoothPool& pool = *g_smoothPool;
     for (;;) {
         SmoothState first[kStates], second[kStates];
         pool.SetSize((std::ssize(*path) + 5) * 10);

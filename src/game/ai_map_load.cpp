@@ -191,7 +191,7 @@ int ReadTerrainTypes(CAIMap& map) {
     Archive archive;
     bool opened;
     {
-        std::string folder = TheTextFolder();
+        std::string folder = *g_textFolder;
         opened = archive.Open((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
@@ -462,8 +462,8 @@ void CAIMap::AttachTerrain() {
     forwardSearch.Attach(this, false);
     backwardSearch.Attach(this, true);
     regionMap.Attach(this);
-    Events()->Setup(this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
-    SectorMap()->Init(cells.width, cells.height, this);
+    events.Setup(this, static_cast<float>(cells.width) * kCellSize, static_cast<float>(cells.height) * kCellSize);
+    sectorMap.Init(cells.width, cells.height, this);
     QueueRefresh(0, cells.width - 1, 0, cells.height - 1);
 }
 

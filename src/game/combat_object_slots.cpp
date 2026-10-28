@@ -77,7 +77,7 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
 void CUnitServer::Resettle() {
     if (unit->IsDead()) return;
     auto* world = ServerWorld();
-    world->Sectors()->Remove(unit);
+    world->aiMap_.sectorMap.Remove(unit);
     unit->Object3D()->SetUpAnimatedFigure(unit->name.c_str());
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
@@ -92,11 +92,11 @@ void CUnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             TakeHit(&hit, nullptr, nullptr);
-            TheServerWorld()->AIMap()->SectorMap()->Add(unit);
+            TheServerWorld()->AIMap()->sectorMap.Add(unit);
             return;
         }
     }
-    TheServerWorld()->AIMap()->SectorMap()->Add(unit);
+    TheServerWorld()->AIMap()->sectorMap.Add(unit);
 }
 
 int CUnitServer::Create() {

@@ -72,7 +72,7 @@ CSpell* CSpell::Clone(CSpellManager* manager) {
 int CSpellContainer::Create() {
     prototype_ = nullptr;
     modifiers_.clear();
-    Spell()->Create();
+    spell_.Create();
     return 1;
 }
 
@@ -80,7 +80,7 @@ void CSpellContainer::Destroy() {
     ClearState();
     prototype_ = nullptr;
     modifiers_.clear();
-    Spell()->Destroy();
+    spell_.Destroy();
 }
 
 const char* CSpellContainer::GetName() { return name_.c_str(); }
@@ -104,7 +104,7 @@ int CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier)
 }
 
 BOOL CSpellContainer::Build() {
-    CSpell* spell = Spell();
+    CSpell* spell = &spell_;
     const itemdb::SpellRecord* proto = prototype_;
     spell->speed_ = proto->speed;
     spell->range_ = proto->range;
@@ -120,7 +120,7 @@ BOOL CSpellContainer::Build() {
     spell->prototypeField14_ = proto->value3C;
     spell->effectPower_ = 0x10;
 
-    itemdb::SpellTable& spells = itemdb::TheSpellDatabase().spells;
+    itemdb::SpellTable& spells = g_spellDatabase->spells;
     int index = spells.IndexOf(spells.FindByCode(proto->code.c_str()));
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
@@ -181,7 +181,7 @@ BOOL CSpellContainer::Build() {
         spell->manaCost_ = modifier->mana + spell->manaCost_;
         spell->price_ = modifier->price + spell->price_;
 
-        itemdb::SpellModifierTable& modifiers = itemdb::TheSpellDatabase().modifiers;
+        itemdb::SpellModifierTable& modifiers = g_spellDatabase->modifiers;
         int modifierIndex = modifiers.IndexOf(modifiers.FindByCode(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
         codes_.push_back(code);
@@ -236,7 +236,7 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const s
         ++added;
     }
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);
-    CSpell* spell = constructor->container_->Spell()->Clone(this);
+    CSpell* spell = constructor->container_->spell_.Clone(this);
     constructor->SetManager(nullptr);
     return spell;
 }

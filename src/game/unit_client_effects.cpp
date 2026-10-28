@@ -126,7 +126,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self
 
 // The weapon class of the last hit.
 std::uint8_t HitSoundKind(CUnit* unit) {
-    std::uint16_t weapon = static_cast<std::uint16_t>(unit->Params()->lastHitSource);
+    std::uint16_t weapon = static_cast<std::uint16_t>(unit->params.lastHitSource);
     if (weapon < kFirstPrototypeWeapon) return static_cast<std::uint8_t>(weapon);
     const auto* prototype = unitdb::PrototypeRecord(weapon - kFirstPrototypeWeapon);
     return prototype ? static_cast<std::uint8_t>(prototype->hitSoundKind) : kNoSoundKind;

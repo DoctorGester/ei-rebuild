@@ -220,7 +220,6 @@ struct UnitDatabase {
 
 extern lib::StaticObject<UnitDatabase> g_unitDatabase;
 namespace unitdb {
-inline UnitDatabase& Database() { return *g_unitDatabase; }
 // The record named `name` (an unknown name gets a null entry), or null.
 inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_unitDatabase->prototypes.byName[name]; }
 // The byte distance of `record` from the first prototype record: what the originals divide by
@@ -228,7 +227,7 @@ inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return g_u
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
     return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(g_unitDatabase->prototypes.records.data()));
 }
-inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName[name]; }
+inline UnitModelRecord* ModelNamed(const std::string& name) { return g_unitDatabase->models.byName[name]; }
 } // namespace unitdb
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records
@@ -302,7 +301,7 @@ inline SkillRecord* SkillAt(std::uint32_t index) {
     return index < skills.size() ? &skills[index] : nullptr;
 }
 inline UnitLevelRecord* ModelLevelAt(std::uint32_t index) {
-    UnitLevelTable& levels = Database().levels;
+    UnitLevelTable& levels = g_unitDatabase->levels;
     return index < levels.records.size() ? &levels.records[index] : nullptr;
 }
 } // namespace unitdb

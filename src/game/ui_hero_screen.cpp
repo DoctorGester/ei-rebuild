@@ -42,7 +42,6 @@ float NewHeroPoints() { return 75.0f /*00741C98*/; }
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 // The multiplayer heroes (their vector of SavedHero).
-SavedParties* MpHeroesObject() { return &TheSavedParties(); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
@@ -191,7 +190,7 @@ void CMpHeroScreen::Update() {
 // --- Close -----------------------------------------------------------------------------
 
 void CMpHeroScreen::Close() {
-    MpHeroesObject()->SaveAll();
+    g_savedParties->SaveAll();
     std::vector<PartyUnitRecord*> records = {};
     auto* party = LocalPlayerData();
     for (int i = 0; i < std::ssize(party->members_); ++i) {
@@ -254,7 +253,7 @@ void CMpHeroScreen::DrawVoices() {
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
-        std::vector<MpVoiceEntry>& voices = Voices();
+        std::vector<MpVoiceEntry>& voices = *voices_;
         if (index >= static_cast<std::uint32_t>(voices.end() - voices.begin())) break;
         if (static_cast<int>(index) == voiceIndex_) {
             SelectionFrame(*this)->visible_ = 1;
@@ -318,7 +317,7 @@ void CMpHeroScreen::ShowHero(int index) {
     if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
         heroIndex_ = index;
         player->Assign(MpHero(index));
-        MpHeroesObject()->Select(SavedHero(static_cast<int>(index)));
+        g_savedParties->Select(SavedHero(static_cast<int>(index)));
     }
     MakePreview(1);
     auto* hero = HeroRecord();

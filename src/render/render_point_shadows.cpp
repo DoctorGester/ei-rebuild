@@ -365,7 +365,7 @@ void DrawPointShadows(Frame& f) {
     pass.attachments.depth_stencil = g_atlasAttachment;
     pass.label = "ei-point-shadows";
     sg_begin_pass(&pass);
-    ++Stats().passes;
+    ++g_stats.passes;
     for (std::size_t slot = 0; slot < g_mapped.size(); ++slot) {
         const MappedLight& light = g_mapped[slot];
         for (int face = 0; face < kFaces; ++face) {
@@ -404,7 +404,7 @@ void DrawPointShadows(Frame& f) {
                 sg_range fr{&fs, sizeof(fs)};
                 sg_apply_uniforms(1, &fr);
                 sg_draw(first, batch.indexCount, 1);
-                ++Stats().shadowDraws;
+                ++g_stats.shadowDraws;
             }
         }
     }
@@ -419,7 +419,7 @@ int PointShadowSlot(const Frame& f, int sceneLight) {
 }
 
 void BindPointShadows(sg_bindings& b, int viewSlot, int samplerSlot) {
-    const bool on = g_atlasTexture.id && CurrentFrame().shadow.point.params.on[0] > 0.5f;
+    const bool on = g_atlasTexture.id && g_frame.shadow.point.params.on[0] > 0.5f;
     b.views[viewSlot] = on ? g_atlasTexture : NoShadowTexture();
     b.samplers[samplerSlot] = ShadowCompareSampler();
 }

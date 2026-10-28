@@ -32,7 +32,6 @@ struct FogSprite {
 constinit std::vector<ParticleVertex> g_points = /*007ABA30*/ {};
 void FreePoints() { lib::FreeStorage(g_points); }
 constinit lib::StaticObject<std::vector<FogSprite>> g_sprites = /*007ABA40*/ {};
-std::vector<FogSprite>& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
@@ -73,14 +72,14 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         std::construct_at(&g_points);
         std::atexit(FreePoints);
     }
-    Sprites().resize(kWorkRecords);
+    g_sprites->resize(kWorkRecords);
     g_points.resize(kWorkRecords);
-    Sprites().resize(static_cast<int>(cells.size()));
+    g_sprites->resize(static_cast<int>(cells.size()));
     g_points.resize(static_cast<int>(cells.size()));
 
     int remaining = static_cast<int>(cells.size());
     ParticleVertex* point = g_points.data();
-    FogSprite* sprite = Sprites().data();
+    FogSprite* sprite = g_sprites->data();
     for (auto node = cells.begin(); node != cells.end(); ++node) {
         if (--remaining < 0) break;
         const FogCell& cell = node->second;
@@ -92,7 +91,7 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
         ++point;
         ++sprite;
     }
-    return renderer->DrawSprites(0, &g_points, &Sprites());
+    return renderer->DrawSprites(0, &g_points, &g_sprites.Get());
 }
 
 // ---- Rain and snow ----------------------------------------------------------------------------------------

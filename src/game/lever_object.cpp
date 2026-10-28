@@ -36,7 +36,7 @@ void ResetLever(Lever* self) {
     self->endTick = 0.0f;
     self->to = 0.0f;
     self->from = 0.0f;
-    self->NetState()->SetFieldCount(kLeverNetFields);
+    self->netState_.SetFieldCount(kLeverNetFields);
     self->lock = LockKey{1, 0, 0};
     self->state = 0;
     self->stateCount = 1;
@@ -122,7 +122,7 @@ void LockKey::WriteTo(CStream* stream) const {
 
 void Lever::WriteLeverNetState() {
     CMapObject::WriteNetState();
-    DeltaField* field = NetState()->BeginField(kLeverField);
+    DeltaField* field = netState_.BeginField(kLeverField);
     if (!field) return;
     EI_NAN_AUDIT(to, scale.y);
     if (to != scale.y) {
@@ -138,7 +138,7 @@ void Lever::WriteLeverNetState() {
 
 std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t complete = CMapObject::ReadNetState(first);
-    DeltaField* field = NetState()->BeginField(kLeverField);
+    DeltaField* field = netState_.BeginField(kLeverField);
     if (!field) return complete;
     field->ReadDelta(&lock, sizeof(LockKey));
     field->ReadDelta(&from, 4);
@@ -156,7 +156,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     else flags_ &= ~kDisabled;
     TheClientWorld()->QueueSynchronised(this);
     if (first == 1) {
-        const LeverRecord* record = TheLeverTable().Named(name.c_str());
+        const LeverRecord* record = g_leverTable->Named(name.c_str());
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
             TheSoundManager()->Play3D(record->sound.c_str(), 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);

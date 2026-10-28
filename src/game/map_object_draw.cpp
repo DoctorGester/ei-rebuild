@@ -85,7 +85,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
         gameapi::SetRectEmpty(&drawnRect);
-        gameapi::SetRectEmpty(object->DirtyRect());
+        gameapi::SetRectEmpty(&object->dirtyRect);
     }
     if (object->animation) object->animation->UpdatePose();
 

@@ -800,7 +800,7 @@ void SectorGrid::Resize(int width, int height) {
 int CWorldClient::Create() {
     CWorld::Create();
     {
-        std::string path = TheDataFolder() + worlddata::TexturesFolderText();
+        std::string path = *g_dataFolder + worlddata::TexturesFolderText();
         texturePath_ = path;
     }
     LoadLights(worlddata::LightsTableText());
@@ -844,11 +844,11 @@ int CWorldClient::Create() {
     sounds_->Create();
     texts_->Create();
     {
-        std::string path = TheTextFolder() + worlddata::TextsFileText();
+        std::string path = *g_textFolder + worlddata::TextsFileText();
         texts_->AddSource(path.c_str());
     }
     {
-        std::string path = TheTextFolder() + worlddata::TextsLmpFileText();
+        std::string path = *g_textFolder + worlddata::TextsLmpFileText();
         texts_->AddSource(path.c_str());
     }
 
@@ -870,7 +870,7 @@ int CWorldClient::Create() {
     else
         flags_ &= ~0x200u;
     {
-        std::string path = TheDataFolder() + worlddata::CursorFileText();
+        std::string path = *g_dataFolder + worlddata::CursorFileText();
         cursor_ = text::utf8::LoadCursorFromFileA(path.c_str());
     }
 

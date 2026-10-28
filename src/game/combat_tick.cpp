@@ -310,7 +310,7 @@ bool CUnitServer::StartMove() {
     for (auto node = lifted.begin(); node != lifted.end();) {
         CUnit* current = *node;
         ++node;
-        world->Sectors()->Add(current);
+        world->aiMap_.sectorMap.Add(current);
     }
     bool arrived = false;
     if (action.param) {
@@ -466,7 +466,7 @@ void CUnitServer::ContinueAction() {
     CMapObject* target = action.target;
     bool seen = true;
     CPlayer* player = unit->player;
-    if (player && IsUnit(target) && !Brain()->memory.IsEnemy(unit, target))
+    if (player && IsUnit(target) && !brain.memory.IsEnemy(unit, target))
         seen = PlayerMessages(player)->IsPartyUnit(target);
 
     bool cast = IsCastKind(action.kind);
@@ -767,7 +767,7 @@ void CUnitServer::ApproachTarget() {
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));
     if (DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal) <= kPointOne) return;   // (sic: the path flag stays cleared)
 
-    TheServerWorld()->Sectors()->Remove(chased);
+    TheServerWorld()->aiMap_.sectorMap.Remove(chased);
     float farOffset = static_cast<float>(static_cast<double>(goal.y) * kShort);
     double nearX = static_cast<double>(goal.x) * kShort;
     float unitY = static_cast<float>(static_cast<double>(unit->localPosition_.y) * kLong);
@@ -777,7 +777,7 @@ void CUnitServer::ApproachTarget() {
     point.z = goal.z;
     if (!PathTo(&point, static_cast<float>(patience)))
         stoodBlocked = 1;
-    TheServerWorld()->Sectors()->Add(chased);
+    TheServerWorld()->aiMap_.sectorMap.Add(chased);
 
     double h = HalfScale();
     float headX = static_cast<float>(h * motion.targetX);

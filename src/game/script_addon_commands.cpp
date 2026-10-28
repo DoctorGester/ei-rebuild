@@ -144,7 +144,7 @@ bool StopCameraSave(Call*) {
 bool ResetTarget(Call* call) {
     CUnit* unit = UnitOrNull(ObjectArg(call, 0));   // IsUnit's test
     if (!unit) return InvalidArguments("ResetTarget");
-    AIBrain* brain = unit->ServerController()->Brain();
+    AIBrain* brain = &unit->ServerController()->brain;
     int index = brain->alarmSlot;
     brain->memory.Reset();
     if (index >= std::ssize(brain->alarmRecords)) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);

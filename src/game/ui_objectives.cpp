@@ -71,7 +71,6 @@ int FindText(const char* key) { return TheTextManager()->Open(key); }
 // (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<std::string> g_lastQuest = /*007C8178*/ {};
 constinit std::uint8_t g_lastQuestDestroyed = /*007C8174*/ 0;
-std::string& LastQuest() { return *g_lastQuest; }
 
 void DestroyLastQuest() {
     if (g_lastQuestDestroyed & 1) return;
@@ -101,8 +100,8 @@ void PushBack(std::vector<std::string>* v, const std::string& x) {
 // game's sort's order.
 void SortQuests(std::string* first, std::string* last) {
     lib::IntroSort(first, last, [](const std::string& a, const std::string& b) {
-        const QuestRecord* quest = TheQuestDatabase().FindQuest(a.c_str());
-        const QuestRecord* other = TheQuestDatabase().FindQuest(b.c_str());
+        const QuestRecord* quest = g_questDatabase->FindQuest(a.c_str());
+        const QuestRecord* other = g_questDatabase->FindQuest(b.c_str());
         return !quest || (other && static_cast<unsigned>(quest->order) > static_cast<unsigned>(other->order));
     });
 }
@@ -153,7 +152,7 @@ constexpr std::uint32_t kFarAway = 0x5A0E1BCA;   // 1e16
 constexpr float kExitTurn = /*007C8170*/ 1.5707964f;   // a static initialiser: pi * 0.5
 constexpr float kExitTurnDown = 3.1415927f;
 
-std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return TheQuestDatabase().questsByName; }
+std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
 
 QuestRecord* FindQuestRecord(const char* name) {
     std::string key(name);
@@ -316,18 +315,18 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         selectedQuest_ = 0;
         if (SizeOf(found) == 0) {
             selectedQuest_ = -1;
-            LastQuest().clear();
+            g_lastQuest->clear();
         } else {
             SortQuests(found.data(), found.data() + found.size());
             for (std::string* s = found.data(); s != found.data() + found.size(); ++s) {
                 quests.push_back(s->c_str());
-                const char* current = listZones_ == 0 ? LastQuest().c_str()
+                const char* current = listZones_ == 0 ? g_lastQuest->c_str()
                                                       : interface_->savedText_.c_str();
                 if (text::CompareIgnoringCase(current,
                                     s->c_str()) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
-            LastQuest() = quests[selectedQuest_];
+            *g_lastQuest = quests[selectedQuest_];
         }
         int rows = static_cast<int>(quests.size());
         bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
@@ -376,7 +375,7 @@ void CObjectivesWindow::ShowQuest() {
     static_cast<CUiScrollText*>(children_[0])->Clear();
     std::vector<std::string>& quests = quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= static_cast<int>(quests.size())) return;
-    LastQuest() = quests[selectedQuest_];
+    *g_lastQuest = quests[selectedQuest_];
 
     std::string completed;
     std::string failed;

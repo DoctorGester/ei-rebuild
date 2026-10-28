@@ -273,14 +273,14 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
         g_frameImages.push_back(image);
         g_frameViews.push_back(view);
     }
-    Frame& f = CurrentFrame();
+    Frame& f = g_frame;
     if (use == ImageUse::Cursor && PresentsItself()) {
         // Drawn by the present (DrawToWindow) over the frame, which stays without it for the cursor thread.
         f.cursor = BlitBatch{view, w, h, to, Rect{0, 0, w, h}};
         f.haveCursor = true;
         return;
     }
-    ++Stats().blits;
+    ++g_stats.blits;
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
@@ -457,8 +457,8 @@ void MovieBlit(const void* key, const Rect& to) {
     if (it == g_movies.end() || !it->second.view.id) return;
     Movie& m = it->second;
     m.blitFrame = FrameNumber();
-    ++Stats().blits;
-    Frame& f = CurrentFrame();
+    ++g_stats.blits;
+    Frame& f = g_frame;
     f.blitBatches.push_back(BlitBatch{m.view, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
 }
@@ -514,8 +514,8 @@ void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source
     int width = 0, height = 0;
     sg_view view = WindowSurfaceView(holder, keyed, key, &width, &height);
     if (!view.id) return;
-    ++Stats().blits;
-    Frame& f = CurrentFrame();
+    ++g_stats.blits;
+    Frame& f = g_frame;
     BlitBatch b{view, width, height, destination, source ? *source : Rect{0, 0, width, height}};
     f.blitBatches.push_back(b);
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});

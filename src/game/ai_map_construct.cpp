@@ -29,7 +29,7 @@ CAIMap::CAIMap() {
     cells.Construct(1, 1);
     occluders.Construct(1, 1);
     marks.Construct(1, 1);
-    Events()->Construct();
+    events.Construct();
     loaded = false;
     batching = false;
     dirty.Reset();
@@ -39,7 +39,7 @@ CAIMap::CAIMap() {
 }
 
 CAIMap::~CAIMap() {
-    Events()->Destroy();
+    events.Destroy();
     FreeGrid(marks);
     FreeGrid(occluders);
     FreeGrid(cells);

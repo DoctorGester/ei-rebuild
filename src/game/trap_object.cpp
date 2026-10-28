@@ -49,7 +49,7 @@ int CTrapObject::UpdateTrap() {
     if (!WorldContext()->IsServer()) return 0;
     std::list<CUnit*> units{};
     auto* world = ServerWorld();
-    world->Sectors()->FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
+    world->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
     if ((flags_ & kArmedFresh) && units.empty()) {
         flags_ &= ~kArmedFresh;
     } else if (!units.empty()) {

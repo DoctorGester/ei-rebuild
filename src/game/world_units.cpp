@@ -221,12 +221,12 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         brain->ClearModes();
         brain->AddMode(new PlayerMode());
         brain->StopAction();
-        Sectors()->Remove(unit);
+        aiMap_.sectorMap.Remove(unit);
         Vector3 free;
         std::memcpy(&free, &unit->localPosition_.x, sizeof(free));
         AIMap()->FindFreeCellNear(unit, position, &free);
         std::memcpy(&unit->localPosition_.x, &free, sizeof(free));
-        Sectors()->Add(unit);
+        aiMap_.sectorMap.Add(unit);
 
         unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0].c_str());
@@ -404,7 +404,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
         object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
-        Sectors()->Add(object);
+        aiMap_.sectorMap.Add(object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         return result;
@@ -510,7 +510,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        Sectors()->Add(object);
+        aiMap_.sectorMap.Add(object);
         int result = object->id_;
         if (object->flags_ & 2) object->WriteChangedState();
         if (type >= 8 && type <= 9) {

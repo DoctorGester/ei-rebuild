@@ -38,7 +38,6 @@ constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of th
 
 const char* NumbersName() { return "numbers"; }
 const char* FiguresResource() { return options::TheOptions()->resourcesPath_.c_str(); }
-UnitDatabase* Units() { return &unitdb::Database(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
@@ -100,7 +99,7 @@ int CWorldClient::LoadLights(const char* file) {
     std::vector<std::uint32_t> values{};
     CIniFile ini;   // the empty path, freed at the end
     {
-        std::string folder = TheDataFolder() + ConfigFolder();
+        std::string folder = *g_dataFolder + ConfigFolder();
         std::string path = folder + file;
         ini.SetPath(path.c_str());
     }
@@ -131,7 +130,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     figureLoader_ = loader;
     if (loader) ++loader->refCount_;
     if (old && --old->refCount_ == 0) delete old;
-    Units()->CountSoundFiles(sounds_);
+    g_unitDatabase->CountSoundFiles(sounds_);
 }
 
 // ---- The sky --------------------------------------------------------------------------

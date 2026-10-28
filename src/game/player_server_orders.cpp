@@ -75,7 +75,7 @@ int CPlayerServer::OnGameStateRequest() {
     if (state_ != kStateJoined) return 0;
     CPlayer* player = player_;
     int state;
-    ReceivedMessages().Read(&state, 4);
+    g_receivedMessages->Read(&state, 4);
     player->sessionKind100_ = state;
     TheServerWorld()->CollectParty(player, &placements_);
     SendParty();
@@ -92,7 +92,7 @@ int CPlayerServer::OnGameStateRequest() {
 
 int CPlayerServer::OnPause() {
     std::uint8_t pause = 0;
-    ReceivedMessages().Read(&pause, 1);
+    g_receivedMessages->Read(&pause, 1);
     net::ServerSession* server = net::g_gameServer;
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
@@ -117,12 +117,12 @@ int CPlayerServer::OnPause() {
 
 int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
-    ReceivedMessages().Read(&message, sizeof(message));
+    g_receivedMessages->Read(&message, sizeof(message));
     CPlayer* player = player_;
     CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
     if (target && Able(unit)) {
-        AIBrain* brain = unit->ServerController()->Brain();
+        AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode())
             mode->CommandCast(brain, message.spell, target, message.flag != 0);
     }
@@ -131,10 +131,10 @@ int CPlayerServer::OnCastAtObject() {
 
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
-    ReceivedMessages().Read(&message, sizeof(message));
+    g_receivedMessages->Read(&message, sizeof(message));
     CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) {
-        AIBrain* brain = unit->ServerController()->Brain();
+        AIBrain* brain = &unit->ServerController()->brain;
         if (PlayerMode* mode = brain->FindPlayerMode()) {
             const Vector3 point = message.point;
             mode->CommandCastAt(brain, message.spell, &point, message.flag != 0);
@@ -145,7 +145,7 @@ int CPlayerServer::OnCastAtPoint() {
 
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
-    ReceivedMessages().Read(&message, sizeof(message));
+    g_receivedMessages->Read(&message, sizeof(message));
     CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
@@ -153,7 +153,7 @@ int CPlayerServer::OnWantedWeapon() {
 
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
-    ReceivedMessages().Read(&message, sizeof(message));
+    g_receivedMessages->Read(&message, sizeof(message));
     CUnit* unit = FindUnit(player_, message.unitId);
     if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
@@ -161,37 +161,37 @@ int CPlayerServer::OnMoveStyle() {
 
 int CPlayerServer::OnUnitLookup() {
     int values[2];
-    ReceivedMessages().Read(&values[0], 4);
-    ReceivedMessages().Read(&values[1], 4);
+    g_receivedMessages->Read(&values[0], 4);
+    g_receivedMessages->Read(&values[1], 4);
     FindUnit(player_, values[0]);
     return 1;
 }
 
 int CPlayerServer::OnFollow() {
     int ids[2];   // unit, leader
-    ReceivedMessages().Read(ids, 8);
+    g_receivedMessages->Read(ids, 8);
     CPlayer* player = player_;
     CUnit* unit = FindUnit(player, ids[0]);
     if (!unit) return 1;
     CUnit* leader = FindUnit(player, ids[1]);
-    AIBrain* brain = unit->ServerController()->Brain();
+    AIBrain* brain = &unit->ServerController()->brain;
     if (PlayerMode* mode = brain->FindPlayerMode()) mode->SetLeader(brain, leader);
     return 1;
 }
 
 int CPlayerServer::OnUnitFlag438() {
     int id;
-    ReceivedMessages().Read(&id, 4);
+    g_receivedMessages->Read(&id, 4);
     CUnit* unit = FindUnit(player_, id);
     std::int8_t value = 0;
-    ReceivedMessages().Read(&value, 1);
+    g_receivedMessages->Read(&value, 1);
     if (unit) unit->SetUnknown438(value);
     return 1;
 }
 
 int CPlayerServer::OnLastPosition() {
     std::uint32_t xy[2];   // copied as dwords
-    ReceivedMessages().Read(xy, 8);
+    g_receivedMessages->Read(xy, 8);
     std::memcpy(&lastPosition_.x, &xy[0], 4);
     std::memcpy(&lastPosition_.y, &xy[1], 4);
     return 1;

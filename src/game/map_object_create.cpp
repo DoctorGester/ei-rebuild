@@ -35,11 +35,11 @@ void DetachCompanion(CMapObject* object) {
 int CMapObject::CreateMapObject() {
     Create3D();
     DetachCompanion(this);
-    PackedVitals()->Reset();
+    packedVitals.Reset();
     animationSpeed = 1.0f;
-    PackedVitals()->Reset();
-    NetState()->SetFieldCount(kMapObjectNetFields);
-    NetState()->Reset();
+    packedVitals.Reset();
+    netState_.SetFieldCount(kMapObjectNetFields);
+    netState_.Reset();
     changeStamp = -1;
     effects = {};
     updateCountdown = kInitialCountdown;
@@ -59,7 +59,7 @@ void CMapObject::DestroyMapObject() {
 int CUnit::CreateUnit() {
     CreateMapObject();
     Reset();
-    MapObject()->NetState()->SetFieldCount(kUnitNetFields);
+    MapObject()->netState_.SetFieldCount(kUnitNetFields);
     return 1;
 }
 
@@ -68,7 +68,7 @@ int CTorchObject::CreateTorch() {
     CTorchObjectSpec* old = spec;
     spec = nullptr;
     if (old) old->Release();
-    DeltaState* state = NetState();
+    DeltaState* state = &netState_;
     state->SetFieldCount(kTorchNetFields);
     state->Reset();
     return 1;

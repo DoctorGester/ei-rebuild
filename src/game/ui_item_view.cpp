@@ -434,7 +434,7 @@ CTexture* ItemFigureTexture(const char* name) {
         std::memset(pixels, 0, count * 4);
         PixelConverter()->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
@@ -462,7 +462,7 @@ CTexture* ItemFigureTexture(const char* name) {
         }
     }
     if (pixels) delete[] pixels;
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     manager->FreeAllFiles();
     return texture;
 }
@@ -485,7 +485,7 @@ int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidt
         std::memset(pixels, 0, count * 4);
         interface_->renderer_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
-    gameapi::EnterCriticalSection(TheDeviceLock());
+    gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels target;
     long hr = LockTexture(holder, &target);
     if (hr != 0 && app::FatalErrorCode(hr, "Can't lock surface.\n") == 0) {
@@ -513,7 +513,7 @@ int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidt
         }
     }
     if (pixels) delete[] pixels;
-    gameapi::LeaveCriticalSection(TheDeviceLock());
+    gameapi::LeaveCriticalSection(&g_deviceLock);
     TheTextureManager()->FreeAllFiles();
     return image != nullptr;
 }

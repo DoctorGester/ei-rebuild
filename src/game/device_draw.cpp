@@ -51,11 +51,11 @@ struct DrawArgs {
 // device's current state; the old draw is skipped when the old path no longer draws meshes.
 void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
-        gameapi::EnterCriticalSection(TheDeviceLock());
+        gameapi::EnterCriticalSection(&g_deviceLock);
         device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             static_cast<D3DPRIMITIVETYPE>(a.primitive), static_cast<DWORD>(a.fvf), a.vertices,
             static_cast<DWORD>(a.vertexCount), const_cast<WORD*>(a.indices), a.indexCount, static_cast<DWORD>(a.flags));
-        gameapi::LeaveCriticalSection(TheDeviceLock());
+        gameapi::LeaveCriticalSection(&g_deviceLock);
     }
     device->vertexCount_ += a.vertexCount;
     device->primitiveCount_ += static_cast<int>(triangles);

@@ -103,7 +103,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (int i = 0; i < std::ssize(stranded); ++i) {
         CUnit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
-            world->Sectors()->Remove(unit);
+            world->aiMap_.sectorMap.Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
             Vector3 from;
             Vector3 to;
@@ -111,7 +111,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             std::memcpy(&to, position, sizeof(Vector3));
             world->AIMap()->FindFreeCellNear(unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
-            world->Sectors()->Add(unit);
+            world->aiMap_.sectorMap.Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
             world->RemoveObject(stranded[i]);
@@ -235,7 +235,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         object->MarkChanged(-1);
         if (object->type_ != 0x3B) {
             object->SetUpAnimatedFigure(object->name.c_str());
-            Sectors()->Add(object);
+            aiMap_.sectorMap.Add(object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -254,12 +254,12 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
 
         // Every part is marked changed when any change was saved (the part's bit 1 << i is tested itself, never
         // `changed & bit`).
-        int parts = static_cast<int>(std::ssize(object->NetState()->fields_));
+        int parts = static_cast<int>(std::ssize(object->netState_.fields_));
         for (int i = 0; i < parts; ++i)
             if (changed != 0 && (1u << (i & 31)) != 0) object->MarkChanged(i);
 
         CUnit* unit = UnitOrNull(object);
-        if (unit && unit->ServerController()->Brain()->alwaysUpdated == 0)
+        if (unit && unit->ServerController()->brain.alwaysUpdated == 0)
             continue;   // a unit whose controller does not ask for updates
         AddToUpdateMap(object);
     }
@@ -479,7 +479,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     stream->Write(&sessionKind_, 4);
 
     ReadAIGraph(mapName_.c_str(), mobName_.c_str(), &base);
-    AIMap()->Regions()->SaveBlocks(&current);
+    AIMap()->regionMap.SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).

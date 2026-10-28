@@ -128,7 +128,7 @@ bool GetArmor(Call* call) {
     } else {
         CUnit* unit = data->unit;
         float block[7];
-        unit->Params()->ProtectionBlock(&unit->packedVitals, block, static_cast<unsigned char>(unit->id_ >= 1000000000 ? 1 : 0));
+        unit->params.ProtectionBlock(&unit->packedVitals, block, static_cast<unsigned char>(unit->id_ >= 1000000000 ? 1 : 0));
         Store(call->result.number, block[part]);
     }
     return true;

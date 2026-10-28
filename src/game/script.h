@@ -430,7 +430,6 @@ public:
     // Creates an empty area when it does not exist.
     ScriptArea* FindArea(int id);
 
-    ScriptVars* Globals() { return &globals_; }
     // Returns out.
     ScriptErrorInfo* GetError(ScriptErrorInfo* out);
 
@@ -604,10 +603,8 @@ struct ScriptQuestObjective {
     float value;            // its float argument
 };
 extern lib::StaticObject<std::vector<ScriptQuestObjective>> g_scriptQuestObjectives;
-inline std::vector<ScriptQuestObjective>& ScriptQuestObjectives() { return *g_scriptQuestObjectives; }
 extern lib::StaticObject<std::string> g_scriptQuestName;
 // The script being loaded or saved: the run loader and saver find a run's instance through it.
 inline CScript* g_streamedScript = /*007AA620*/ {nullptr};
-inline std::string& ScriptQuestName() { return *g_scriptQuestName; }
 void ScriptQuestStart(const char* name);
 void ScriptQuestAddObjective(int type, const std::string& text, float value);

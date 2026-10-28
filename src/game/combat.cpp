@@ -32,8 +32,6 @@
 // locals.
 
 namespace {
-constexpr console::Stream* kCombatLog = /*007AF3E8*/ {&console::g_aiLogOut};
-
 constexpr float kZero = 0.0f;
 constexpr float kOne = 1.0f;
 constexpr float kPointOne = std::bit_cast<float>(0x3DCCCCCDu);      // 0.1
@@ -126,7 +124,7 @@ const char* HitLocationName(int location) {
 
 // What last damaged the unit: a weapon type, 0x10 + the attacker's prototype index, or 7 (elemental or no
 // attacker).
-std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->lastHitSource; }
+std::int16_t& LastDamageSource(CUnit* unit) { return unit->params.lastHitSource; }
 
 // One size class of the size computation: by the load first, then by `size`.
 std::int16_t SizeClassOf(double size, float load) {
@@ -139,7 +137,6 @@ std::int16_t SizeClassOf(double size, float load) {
 
 } // namespace
 
-console::Stream& GameLog() { return *kCombatLog; }
 
 
 float CUnitServer::AttackRange() {
@@ -522,19 +519,19 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     if (!dead) {
         world->AddToUpdateMap(unit);
         if (attacker) {
-            GameLog() << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
+            *kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by " << static_cast<long>(attacker->id_);
         } else {
-            GameLog() << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
+            *kCombatLog << "Unit " << static_cast<long>(unit->id_) << " was attacked by xz";
         }
-        GameLog() << " skill=" << std::bit_cast<float>(hit->attackRoll);
+        *kCombatLog << " skill=" << std::bit_cast<float>(hit->attackRoll);
         float amount = hit->amount;
-        GameLog() << " damage=" << amount;
+        *kCombatLog << " damage=" << amount;
         if (hit->backstabFactor > kOne) {
             float power = hit->backstabFactor;
-            GameLog() << " backstab with power=" << power;
+            *kCombatLog << " backstab with power=" << power;
         }
-        if (hit->calledShot) GameLog() << " called shot";
-        console::EndLine(GameLog() << " destHL=" << HitLocationName(hit->location));
+        if (hit->calledShot) *kCombatLog << " called shot";
+        console::EndLine(*kCombatLog << " destHL=" << HitLocationName(hit->location));
     }
 
     CPlayer* player = unit->player;

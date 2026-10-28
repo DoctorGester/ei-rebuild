@@ -99,7 +99,7 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
     const std::int16_t* offsets = g_wakeCache.Get(radius * 0.03125f, &count);   // radius in sectors
     int sx = SectorOf(position->x);
     int sy = SectorOf(position->y);
-    CSectorMap* sectors = Sectors();
+    CSectorMap* sectors = &aiMap_.sectorMap;
     for (int i = 0; i < count; ++i, offsets += 2) {
         auto* units = SectorUnits(sectors, offsets[0] + sx, offsets[1] + sy);
         if (!units) continue;
@@ -127,7 +127,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
         CMapObject* object = node->second;
         if (CUnit* unit = UnitOrNull(object)) {
             if (!unit->player) {
-                AIBrain* brain = unit->ServerController()->Brain();
+                AIBrain* brain = &unit->ServerController()->brain;
                 brain->HearAlarm(index);
                 if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }

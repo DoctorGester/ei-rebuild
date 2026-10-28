@@ -53,7 +53,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
     int sizeClass = unit->sizeClass;
     int region = 0;
     if (sameRegion) {
-        region = Regions()->DominantRegion(sizeClass, ux, uy);
+        region = regionMap.DominantRegion(sizeClass, ux, uy);
         // Clear the reachability marks in the box spanned by the unit and the target (and a margin).
         int dx = (tx - ux < 0 ? ux - tx : tx - ux) + 1;
         int x0 = tx - dx, x1 = tx + dx + 1;
@@ -115,7 +115,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
                 std::uint8_t mark = static_cast<std::uint8_t>(marks.rows[cy][cx]);
                 if (mark != 1) {
                     if (mark == 2) continue;
-                    if (!Regions()->ReachesRegion(sizeClass, cx, cy, region, &marks)) continue;
+                    if (!regionMap.ReachesRegion(sizeClass, cx, cy, region, &marks)) continue;
                 }
             }
             if (r != 0) {
@@ -174,9 +174,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&path->goal, target, sizeof(goal));
     if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
 
-    SectorMap()->Remove(unit);
+    sectorMap.Remove(unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
-        SectorMap()->Add(unit);
+        sectorMap.Add(unit);
         return false;
     }
     std::memcpy(&path->targetY, &goal.y, 4);
@@ -188,7 +188,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float ddx = fx - goal.x, ddy = fy - goal.y;
     EI_NAN_AUDIT(ddy, ddx);
     if (LengthSquared2DUnrounded(ddy, ddx) < 0.001f) {
-        SectorMap()->Add(unit);
+        sectorMap.Add(unit);
         return false;
     }
     int tx = x87::fistp(goal.x - 0.5f);
@@ -238,7 +238,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
             std::memcpy(&goal, target, sizeof(goal));
             if (!SnapTarget(unit, &goal, true, minDistance)) {
-                SectorMap()->Add(unit);
+                sectorMap.Add(unit);
                 return false;
             }
             int gx = x87::fistp(goal.x - 0.5f);
@@ -281,7 +281,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     }
 
 done:
-    SectorMap()->Add(unit);
+    sectorMap.Add(unit);
     if (!found) path->failed = true;
     path->flag6F = false;
     return found;

@@ -20,10 +20,6 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-// The AI's perception log: the AI stream (its static initialiser stores the address).
-constexpr console::Stream* kAiLog = /*007C53C4*/ {&console::g_aiLogOut};
-console::Stream& AiLog() { return *kAiLog; }
-
 namespace {
 constexpr float kDecayScale = 30.0f;
 constexpr float kOne = 1.0f;
