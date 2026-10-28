@@ -19,6 +19,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <cstdlib>
 #include <d3d.h>
 
 #include <bit>
@@ -140,11 +141,11 @@ void DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
 
 void ConstructSceneRenderer() {
     g_sceneRenderer.Construct();
-    libcrt::AtExit(DestroySceneRenderer);
+    std::atexit(DestroySceneRenderer);
 }
 void ConstructDeviceLock() {
     gameapi::InitializeCriticalSection(&g_deviceLock);
-    libcrt::AtExit(DestroyDeviceLock);
+    std::atexit(DestroyDeviceLock);
 }
 
 void CSceneRenderer::DestroyRenderer() {

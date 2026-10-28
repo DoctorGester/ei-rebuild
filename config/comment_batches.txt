@@ -24,7 +24,6 @@ src/game/resource_manager.cpp
 src/game/resource_manager.h
 src/game/resource_stream.cpp
 src/game/resource_stream.h
-src/game/short_functions.cpp
 src/game/ui_battle_commands.cpp
 src/game/ui_battle_hover.cpp
 src/game/ui_battle_input.cpp

@@ -125,19 +125,19 @@ void DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }
 
 void ConstructStringAlloc64() {
     g_stringAlloc64->Construct(0x50, kStringAllocBlock);
-    libcrt::AtExit(DestroyStringAlloc64);
+    std::atexit(DestroyStringAlloc64);
 }
 void ConstructStringAlloc128() {
     g_stringAlloc128->Construct(0x90, kStringAllocBlock);
-    libcrt::AtExit(DestroyStringAlloc128);
+    std::atexit(DestroyStringAlloc128);
 }
 void ConstructStringAlloc256() {
     g_stringAlloc256->Construct(0x110, kStringAllocBlock);
-    libcrt::AtExit(DestroyStringAlloc256);
+    std::atexit(DestroyStringAlloc256);
 }
 void ConstructStringAlloc512() {
     g_stringAlloc512->Construct(0x210, kStringAllocBlock);
-    libcrt::AtExit(DestroyStringAlloc512);
+    std::atexit(DestroyStringAlloc512);
 }
 
 #endif

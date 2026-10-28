@@ -7,6 +7,8 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 
+#include <cstdlib>
+
 LeverRecordTable::~LeverRecordTable() {
     byName.Destroy();
     records.clear();
@@ -22,5 +24,5 @@ void DestroyLeverTable() { g_leverTable.Destroy(); }
 
 void ConstructLeverTable() {
     g_leverTable.Construct();
-    libcrt::AtExit(DestroyLeverTable);
+    std::atexit(DestroyLeverTable);
 }

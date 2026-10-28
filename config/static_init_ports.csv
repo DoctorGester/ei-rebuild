@@ -82,7 +82,6 @@ address,name,file
 004DDD4E,SysInfoStaticRegisterExit,src/game/sys_info.cpp
 004DDD60,SysInfoAtExit,src/game/sys_info.cpp
 004DE855,SysInfoStaticGuard,src/game/sys_info.cpp
-004DE87C,SysInfoStaticRegisterEmptyExit,src/game/sys_info.cpp
 004E1C50,DestroyDeadCells,src/game/effects_weather.cpp
 004E2260,FreePoints,src/game/effects_weather_draw.cpp
 004E2280,DestroySprites,src/game/effects_weather_draw.cpp

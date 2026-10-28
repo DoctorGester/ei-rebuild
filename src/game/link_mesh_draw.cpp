@@ -17,6 +17,7 @@
 #include "render/render_state.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <d3d.h>
 
 #include <cstdint>
@@ -52,7 +53,7 @@ std::vector<PixelPair>& TexturePixels() {
     if (!(constructed & 1)) {
         constructed |= 1;
         std::construct_at(&pixels);
-        libcrt::AtExit(FreeTexturePixels);
+        std::atexit(FreeTexturePixels);
     }
     return pixels;
 }

@@ -11,6 +11,7 @@
 #include "lib/stlp.h"
 #include "lib/stlp_tree_abi.h"
 
+#include <cstdlib>
 #include <cstring>
 #include "stl_sorts.h"
 #include "game_data.h"
@@ -449,7 +450,7 @@ void Connection::CollectChanges() {
     if (!(g_replicatedGuard & 1)) {
         g_replicatedGuard |= 1;
         items.ConstructEmpty();
-        libcrt::AtExit(FreeReplicated);
+        std::atexit(FreeReplicated);
     }
     items.EraseRange<stlp::PlainElement<Replicated>>(items.begin(), items.end());
     ReplicatedVector* target = &items;

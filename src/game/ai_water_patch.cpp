@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include "game_data.h"
 
@@ -38,7 +39,7 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     if (!(Guard() & 1)) {
         Guard() |= 1;
         Patch() = nullptr;
-        libcrt::AtExit(ReleasePatch);
+        std::atexit(ReleasePatch);
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
         CUnitShape* fresh = new CUnitShape();

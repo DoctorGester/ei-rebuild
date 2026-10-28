@@ -11,6 +11,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <cstdlib>
 #include <string>
 
 namespace {
@@ -36,21 +37,21 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
     ReadProcessorInfo();
     if (!(TheProcessorInfo()->features & kProcessorMmx)) {
         game::FatalError(kNoMmxText);
-        libcrt::Exit(-1);
+        std::exit(-1);
     }
 
     graphicsLibrary_ = gameapi::LoadLibraryA((workPath + "2DintMMX.dll").c_str());
     game::DebugLog(kLibraryLoadedText);
     if (!graphicsLibrary_) {
         game::FatalError(kNoLibraryText);
-        libcrt::Exit(-1);
+        std::exit(-1);
     }
     using GetGraphicsProcessor = CPixelConverter*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));
     if (!getProcessor) {
         game::FatalError(kNoFunctionText);
-        libcrt::Exit(-1);
+        std::exit(-1);
     }
     game::DebugLog(kAcquiringText);
     graphicsProcessor_ = getProcessor();

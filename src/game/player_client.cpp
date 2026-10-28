@@ -37,6 +37,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -726,7 +727,7 @@ int ReadDword(BitStream* in) {
 
 void ConstructPartyIdSet() {
     g_partyIdSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(DestroyPartyIdSet);
+    std::atexit(DestroyPartyIdSet);
 }
 
 int CPlayerClient::OnPartyState() {

@@ -358,23 +358,11 @@ unsigned Controlfp(unsigned value, unsigned mask) {
 
 // ---- The runtime the image owns ------------------------------------------------------------------
 
-namespace {
-// The CRT's new handler (_pnhHeap), which _set_new_handler sets (malloc never calls it: the game leaves _newmode 0).
-// MFC's (_afxNewHandler), which operator new calls, is mfc_handle_map.h's g_afxNewHandler.
-constinit gamecrt::NewHandler g_heapNewHandler = /*007CAAD8*/ {nullptr};
-} // namespace
-
 // malloc and free are the host CRT's (VC6's were HeapAlloc / HeapFree on a heap of their own, the size
 // rounded up to 16 bytes).
 void* Malloc(std::size_t size) { return std::malloc(size); }
 
 void Free(void* p) { std::free(p); }
-
-gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler) {
-    const gamecrt::NewHandler old = g_heapNewHandler;
-    g_heapNewHandler = handler;
-    return old;
-}
 
 void* OperatorNew(std::size_t size) {
     for (;;) {
@@ -490,18 +478,6 @@ void NodeDeallocate(void* p, std::size_t bytes) {
     static_cast<FreeBlock*>(p)->next = list;
     list = static_cast<FreeBlock*>(p);
 }
-
-// The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
-// (functions registered while it runs, too) before the host's own terminators.
-ExitFunction OnExit(ExitFunction function) {
-    return _crt_atexit(function) == 0 ? function : nullptr;
-}
-
-int AtExit(ExitFunction function) { return OnExit(function) ? 0 : -1; }
-
-// exit: the host CRT's. The exe's own terminators (__xp / __xt, for the game CRT's streams) have nothing to do
-// in the image, where the streams are the host's.
-void Exit(int code) { std::exit(code); }
 
 } // namespace libcrt
 

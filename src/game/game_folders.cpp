@@ -5,6 +5,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 
 constinit lib::StaticObject<std::string> g_registryRoot = /*007AF450*/ {};
@@ -34,21 +35,21 @@ void DestroyDiscFolder() { DestroyOnce(g_discFolder, 0x10); }
 
 void ConstructRegistryRoot() {
     g_registryRoot.Construct();
-    libcrt::AtExit(DestroyRegistryRoot);
+    std::atexit(DestroyRegistryRoot);
 }
 void ConstructStartFolder() {
     g_startFolder.Construct();
-    libcrt::AtExit(DestroyStartFolder);
+    std::atexit(DestroyStartFolder);
 }
 void ConstructDataFolder() {
     g_dataFolder.Construct();
-    libcrt::AtExit(DestroyDataFolder);
+    std::atexit(DestroyDataFolder);
 }
 void ConstructTextFolder() {
     g_textFolder.Construct();
-    libcrt::AtExit(DestroyTextFolder);
+    std::atexit(DestroyTextFolder);
 }
 void ConstructDiscFolder() {
     g_discFolder.Construct();
-    libcrt::AtExit(DestroyDiscFolder);
+    std::atexit(DestroyDiscFolder);
 }

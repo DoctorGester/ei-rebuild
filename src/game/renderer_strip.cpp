@@ -18,6 +18,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -55,7 +56,7 @@ void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onExit)
     if (g_guards & bit) return;
     array = std::vector<T>{};
     g_guards |= bit;
-    libcrt::AtExit(onExit);
+    std::atexit(onExit);
 }
 
 void EnsureStatics() {

@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <type_traits>
@@ -131,7 +132,7 @@ public:
     // A buffer on the initialiser's stack frame (SUB ESP, n; LEA reg, [ESP + offset]).
     std::uint32_t Local(std::uint32_t offset) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(frame_ + offset)); }
     // The CRT's atexit with an exit function (a port by its name).
-    void AtExit(void(__cdecl* fn)());
+    void AtExit(void(__cdecl* fn)()) { std::atexit(fn); }
 
 private:
     alignas(16) unsigned char frame_[0x400] = {};

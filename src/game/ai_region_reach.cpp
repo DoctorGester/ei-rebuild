@@ -12,6 +12,7 @@
 #include "lib/static_object.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 
@@ -118,7 +119,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
-        libcrt::AtExit(DestroyBlocks);
+        std::atexit(DestroyBlocks);
     }
     if (blocks.data) {
         gamecrt::operator_delete(blocks.data);
@@ -185,12 +186,12 @@ void CRegionMap::LabelRegions() {
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
-        libcrt::AtExit(DestroyFloodQueue);
+        std::atexit(DestroyFloodQueue);
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
         mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
-        libcrt::AtExit(DestroyFloodSecond);
+        std::atexit(DestroyFloodSecond);
     }
     queue.SetSize(0, -1);
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {

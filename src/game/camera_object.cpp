@@ -77,7 +77,7 @@ void DestroyCamera() { g_camera.Destroy(); }
 
 void ConstructCamera() {
     g_camera.Construct();
-    libcrt::AtExit(DestroyCamera);
+    std::atexit(DestroyCamera);
 }
 
 const char* CCamera::GetClassName() { return "CCamera"; }

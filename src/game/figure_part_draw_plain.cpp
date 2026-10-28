@@ -15,6 +15,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -64,7 +65,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = std::vector<VertexPacket>{};
-        libcrt::AtExit(FreeMovedPositions);
+        std::atexit(FreeMovedPositions);
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;

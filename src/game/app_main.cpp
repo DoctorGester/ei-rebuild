@@ -89,23 +89,23 @@ void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 // The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
 void ConstructCameraFile() {
     g_cameraFile.Construct();
-    libcrt::AtExit(DestroyCameraFile);
+    std::atexit(DestroyCameraFile);
 }
 void ConstructCommandLineScript() {
     g_commandLineScript.Construct();
-    libcrt::AtExit(DestroyCommandLineScript);
+    std::atexit(DestroyCommandLineScript);
 }
 void ConstructCommandLineMob() {
     g_commandLineMob.Construct();
-    libcrt::AtExit(DestroyCommandLineMob);
+    std::atexit(DestroyCommandLineMob);
 }
 void ConstructCommandLineMap() {
     g_commandLineMap.Construct();
-    libcrt::AtExit(DestroyCommandLineMap);
+    std::atexit(DestroyCommandLineMap);
 }
 void ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
-    libcrt::AtExit(DestroyMovieFolder);
+    std::atexit(DestroyMovieFolder);
 }
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
@@ -300,7 +300,7 @@ void RegisterWindowClass(HINSTANCE instance) {
         gameapi::BringWindowToTop(popup);
         gameapi::SetForegroundWindow(popup);
     }
-    libcrt::Exit(-1);
+    std::exit(-1);
 }
 
 struct PathParts {
@@ -682,7 +682,7 @@ int RunMainLoop(bool interfaceInput) {
 
 // ---- Shutdown --------------------------------------------------------------------------------------
 
-void ShutDown(gamecrt::NewHandler previousHandler) {
+void ShutDown() {
     DeleteComposedTextures();
     TheInterface()->Shutdown();
     TheCursor()->Shutdown();
@@ -695,7 +695,6 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
     TheClientWorld()->SetCamera(nullptr);
     TheServerWorld()->Destroy();
     TheClientWorld()->Destroy();
-    libcrt::SetNewHandler(previousHandler);
 }
 
 } // namespace
@@ -724,8 +723,6 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
         g_logicSettings.Load(settings.c_str());
     }
     options->LoadFromRegistry(RegistryRoot().c_str());
-    const gamecrt::NewHandler previousHandler =
-        libcrt::SetNewHandler(app::OutOfMemory);
     TheClientWorld()->Create();
     TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).
@@ -770,7 +767,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     TheSceneRenderer()->SetGamma(options->brightness_, options->contrast_, options->gamma_);
 
     const int result = RunMainLoop((reusedSlot >> 24) != 0);
-    ShutDown(previousHandler);
+    ShutDown();
     return result;
 }
 

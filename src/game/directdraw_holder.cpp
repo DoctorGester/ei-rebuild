@@ -15,6 +15,7 @@
 #include "render/render.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <intrin.h>
 
 #include <cstdint>
@@ -124,7 +125,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     }
     if (!(processor.features & kFeatureMmx)) {
         game::FatalError("MMX required in this version !!!.\n");
-        libcrt::Exit(-1);
+        std::exit(-1);
     }
 
     converterLibrary_ = gameapi::LoadLibraryA("2DintMMX.dll");

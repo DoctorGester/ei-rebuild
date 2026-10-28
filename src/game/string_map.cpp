@@ -15,6 +15,7 @@
 #include "ui_gdi.h"    // CDC, CFont
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 #include "game_data.h"
@@ -80,7 +81,7 @@ void DestroyDebugPanel() { g_debugPanel.Destroy(); }
 
 void ConstructDebugPanel() {
     g_debugPanel.Construct();
-    libcrt::AtExit(DestroyDebugPanel);
+    std::atexit(DestroyDebugPanel);
 }
 
 // ---- The panel ---------------------------------------------------------------------------------

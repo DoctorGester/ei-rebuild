@@ -5,6 +5,7 @@
 
 #include "ei/x87.h"
 
+#include <cstdlib>
 #include <cstring>
 #include "game_data.h"
 #include "game_arrays.h"
@@ -82,7 +83,7 @@ int ClipPlane(TLVertex* vertices, int* vertexCount, std::uint16_t* indices, int*
 
 void ConstructWorkWords() {
     mfc::impl::ConstructArrayOf<mfc::impl::WordArrayClass>(*g_workWords);
-    libcrt::AtExit(DestroyWorkWords);
+    std::atexit(DestroyWorkWords);
 }
 
 namespace clip {

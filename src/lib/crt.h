@@ -193,8 +193,6 @@ void NodeDeallocate(void* p, std::size_t bytes);
 void* NodeRefill(std::size_t bytes);
 char* NodeChunkAlloc(std::size_t size, int* count);
 
-gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler);
-
 int Vsprintf(char* buffer, const char* format, va_list args);
 
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
@@ -215,10 +213,6 @@ void* OperatorNew(std::size_t size);
 void OperatorDelete(void* p);
 void* Malloc(std::size_t size);
 void Free(void* p);
-using ExitFunction = void(__cdecl*)();
-ExitFunction OnExit(ExitFunction function);
-int AtExit(ExitFunction function);
-void Exit(int code);
 
 } // namespace libcrt
 

@@ -62,6 +62,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -160,7 +161,7 @@ void DestroySaveStream() { g_saveStream->~CMemoryStream(); }
 
 void ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
-    libcrt::AtExit(DestroySaveStream);
+    std::atexit(DestroySaveStream);
 }
 
 int GameFlow::SaveGame(const char* slot) {
@@ -1235,7 +1236,7 @@ void GameFlow::UseResources(bool network) {
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         g_lastResources.Construct(kResourcesSingle);
-        libcrt::AtExit(DestroyLastResources);
+        std::atexit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
     if (gamecrt::mbscmp(wanted,
@@ -1469,7 +1470,7 @@ void DestroyGameFlow() { g_gameFlow->Destruct(); }
 
 void ConstructGameFlow() {
     g_gameFlow->Construct();
-    libcrt::AtExit(DestroyGameFlow);
+    std::atexit(DestroyGameFlow);
 }
 
 void GameFlow::SetNetworkZone(const char* zone) {

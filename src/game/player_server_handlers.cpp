@@ -35,6 +35,7 @@
 #include "logic_settings.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -90,7 +91,7 @@ void DestroyReceivedMessages() {
 
 void ConstructReceivedMessages() {
     new (&*g_receivedMessages) CMemoryStream();
-    libcrt::AtExit(DestroyReceivedMessages);
+    std::atexit(DestroyReceivedMessages);
 }
 
 // --- The leader died ----------------------------------------------------------------------

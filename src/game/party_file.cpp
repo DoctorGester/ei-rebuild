@@ -16,6 +16,7 @@
 #include "game_data.h"
 #include "lib/str.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -105,5 +106,5 @@ void DestroySavedParties() { g_savedParties->Destruct(); }
 
 void ConstructSavedParties() {
     g_savedParties->Construct();
-    libcrt::AtExit(DestroySavedParties);
+    std::atexit(DestroySavedParties);
 }

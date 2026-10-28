@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <vector>
 #include "lib/crt.h"
@@ -189,11 +190,11 @@ void DestroySkillDatabaseGlobal() {
 
 void ConstructUnitDatabaseGlobal() {
     ConstructUnitDatabase(&g_unitDatabase.Get());
-    libcrt::AtExit(DestroyUnitDatabaseGlobal);
+    std::atexit(DestroyUnitDatabaseGlobal);
 }
 void ConstructSkillDatabaseGlobal() {
     g_skillDatabase->Construct();
-    libcrt::AtExit(DestroySkillDatabaseGlobal);
+    std::atexit(DestroySkillDatabaseGlobal);
 }
 
 } // namespace unitdb

@@ -20,6 +20,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 #include "game_lists.h"
@@ -148,7 +149,6 @@ void CWorldServer::WakeUnitsAround(const Vector3* position, float radius) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
         WakeCache().length = 0;
-        libcrt::AtExit(ei::short_functions::Ret);
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
@@ -221,12 +221,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        libcrt::AtExit(FreeRemovedIds);
+        std::atexit(FreeRemovedIds);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        libcrt::AtExit(FreeSleepingIds);
+        std::atexit(FreeSleepingIds);
     }
     RemovedIds().clear();
     SleepingIds().clear();

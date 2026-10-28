@@ -25,6 +25,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cstdlib>
 #include <ddraw.h>
 
 #include <cstdarg>
@@ -318,7 +319,7 @@ int game::FatalError(const char* format, ...) {
     bool carryOn = ei::rebirth::Enabled(ei::rebirth::Patch::DisableExitOnCrashReport);
     if (!carryOn) app::ShowMessageBox(text, app::kErrorBoxFlags);
     if (auto hook = reinterpret_cast<app::ErrorHook>(app::g_fatalErrorHook)) hook(text);
-    if (++app::g_fatalErrorCount >= 1 && !carryOn) libcrt::Exit(-1);
+    if (++app::g_fatalErrorCount >= 1 && !carryOn) std::exit(-1);
     return 0;
 }
 
@@ -337,7 +338,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
     if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(report);
-    if (++g_fatalErrorCount >= 1) libcrt::Exit(-1);
+    if (++g_fatalErrorCount >= 1) std::exit(-1);
     return 0;
 }
 
@@ -347,17 +348,6 @@ int FatalErrorCode(long result, const char* format, ...) {
     int value = FatalErrorCodeV(result, format, args);
     va_end(args);
     return value;
-}
-
-// ---- The operator new handler -------------------------------------------------------
-
-namespace {
-const char* MemoryDepletedText() { return "Memory depleted"; }
-} // namespace
-
-int OutOfMemory(std::size_t) {
-    ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
-    return 0;
 }
 
 } // namespace app
