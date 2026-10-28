@@ -1006,13 +1006,13 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x87: {   // RemoveUnitFromParty(player, party.unit)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CString name(cmd->stringArgs.data[0]);
+            std::string name = cmd->stringArgs.data[0];
             CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddMember(name, Text(cmd, 1), game::EmptyText());
+                    records->AddMember(name.c_str(), Text(cmd, 1), game::EmptyText());
                 else
-                    records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
+                    records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name.c_str())));
             }
             break;
         }
@@ -1020,12 +1020,12 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9D: {   // CopyStats(player, from, to)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            mfc::CString from(cmd->stringArgs.data[0]);
-            mfc::CString to(cmd->stringArgs.data[1]);
+            std::string from = cmd->stringArgs.data[0];
+            std::string to = cmd->stringArgs.data[1];
             CParty* fromRecords = PartyForScript(player, &from);
             CParty* toRecords = PartyForScript(player, &to);
-            PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from));
-            PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to));
+            PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from.c_str()));
+            PartyUnitRecord* target = toRecords->Find(TextKeyFromName(to.c_str()));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     target->CopyItemsFrom(source, toRecords);
