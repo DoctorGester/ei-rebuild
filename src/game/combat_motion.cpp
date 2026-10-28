@@ -456,7 +456,6 @@ bool CUnitServer::ChangeMoveMode() {
 // --- Paths --------------------------------------------------------------------------------------
 
 bool CUnitServer::PathTo(const Vector3* point, float range) {
-    ManagerContext();
     UpdateSneak();
     motionChanged = 0;
     stoodBlocked = 0;

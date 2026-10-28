@@ -169,7 +169,6 @@ void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
 }
 
 void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
-    ManagerContext();
     auto* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return;
     auto* spell = weapon->spell_;
@@ -184,7 +183,6 @@ void CUnitServer::TriggerWeaponSpell(CMapObject* target) {
 }
 
 void CUnitServer::TriggerItemSpells(char onHit) {
-    ManagerContext();
     for (std::uint32_t slot = 0; slot < 7; ++slot) {
         auto* item = unit->armor[slot];
         if (!item) continue;
@@ -208,7 +206,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     auto* player = unit->player;
     const CItemLink* link = item->ServerLink();
     if (!player || !link) return;
-    CResourceManager* items = player->Party()->ItemManager();
+    CResourceManager* items = player->Party()->ItemFactory();
     CItem* copy = FindItem(items, link->value);
     if (!copy) return;
     std::memcpy(&copy->charge_, &item->charge_, sizeof(float));
@@ -335,7 +333,6 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             attacker->ServerController()->voice.Raise(9);
         }
         if (attacker->GetClassId() == kClassUnit) {
-            ManagerContext();
             CUnitServer* theirs = attacker->ServerController();
             WitnessMurder(&brain.memory.nearby, unit, attacker);
             WitnessMurder(&theirs->brain.memory.nearby, attacker, attacker);

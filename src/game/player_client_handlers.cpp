@@ -157,7 +157,7 @@ int CPlayerClient::OnItemValue() {
     float value;
     in_.Read(&value, 4);
     CPlayer* player = player_;
-    CItem* item = FindItem(player->Party()->ItemManager(), static_cast<unsigned>(id));
+    CItem* item = FindItem(player->Party()->ItemFactory(), static_cast<unsigned>(id));
     if (item) {
         item->charge_ = value;
         player->ItemUsed(item);

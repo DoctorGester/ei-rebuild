@@ -40,10 +40,6 @@ extern lib::StaticObject<GameFlow> g_gameFlow;   // world_game.cpp
 // The interface manager (windows, the quest log, status text, the console window).
 extern lib::StaticObject<CInterface3D> g_interface;   // ui_small_members.cpp
 
-// The world tick (the server world's), advanced once per simulation step, and the client's tick counter and the
-// fraction of its current tick (the client world's), advanced each frame.
-int CurrentWorldTick();
-
 extern lib::StaticObject<CWorldClient> g_clientWorld;   // world_construct.cpp
 
 extern lib::StaticObject<CWorldServer> g_serverWorld;   // world_construct.cpp

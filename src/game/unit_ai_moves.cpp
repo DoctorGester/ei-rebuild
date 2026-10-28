@@ -188,7 +188,7 @@ void AIBrain::UpdateFollow() {
     auto* leader = static_cast<CUnit*>(target.object);
     Vector3 toLeader{static_cast<float>(leader->localPosition_.x - self->localPosition_.x), static_cast<float>(leader->localPosition_.y - self->localPosition_.y),
                      static_cast<float>(leader->localPosition_.z - self->localPosition_.z)};
-    int now = CurrentWorldTick();
+    int now = g_serverWorld->tick_;
     float distance = static_cast<float>(
         std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z)));
     CUnitServer* leaderController = leader->ServerController();

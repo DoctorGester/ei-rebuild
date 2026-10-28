@@ -259,7 +259,7 @@ void CPlayerServer::SendItems() {
         auto current = node;
         ++node;
         unsigned id = *current;
-        CResourceManager* items = player_->Party()->ItemManager();
+        CResourceManager* items = player_->Party()->ItemFactory();
         if (CEngineObject* item = items->FindObject(id)) SendObject14(item);
     }
 }

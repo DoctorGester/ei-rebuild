@@ -67,7 +67,6 @@ CItem* CItemInfoPanel::FirstItem() { return std::ssize(itemParty_->items_) ? ite
 
 void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_.m[5], &bits, sizeof(bits)); }
 
-float CUiMesh::GetScaleX() const { return scaleMatrix_.m[0]; }
 
 // --- Member constructors and destructors -----------------------------------------------------------------
 

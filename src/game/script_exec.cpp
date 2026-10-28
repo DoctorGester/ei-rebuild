@@ -64,7 +64,6 @@ const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 
-CDiplomacy* TheDiplomacy() { return &g_serverWorld->diplomacy_; }
 
 bool ServerActive() {
     net::ServerSession* server = net::g_gameServer;
@@ -461,7 +460,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             int relation;
             if (f[2] > 0.0f) relation = 0;
             else relation = f[2] < 0.0f ? 2 : 1;
-            TheDiplomacy()->SetRelation(Ftol(f[0]), Ftol(f[1]), relation, 1);
+            g_serverWorld->diplomacy_.SetRelation(Ftol(f[0]), Ftol(f[1]), relation, 1);
             break;
         }
         case 0x43: {   // InvokeAlarm(type, x, y)
@@ -595,7 +594,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x36: {   // SetPlayer(unit, player)
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            unit->SetHostileMask(TheDiplomacy()->GetHostileMask(Ftol(f[0])));
+            unit->SetHostileMask(g_serverWorld->diplomacy_.GetHostileMask(Ftol(f[0])));
             unit->SetSide(Ftol(f[0]));
             break;
         }

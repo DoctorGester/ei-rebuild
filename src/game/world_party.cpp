@@ -70,7 +70,6 @@ void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
     HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
 }
 
-CItemManager* ItemManager() { return g_serverWorld->itemManager_; }
 
 } // namespace
 
@@ -212,10 +211,10 @@ CItem* CWorldServer::CopyItem(CItem* source) {
 // ---- Items and spells by name -------------------------------------------------------------------
 
 // As in CopyItem, the game also builds and frees two empty CPtrLists around the call.
-CItem* CWorldServer::CreateItemNamed(const char* name) { return ItemManager()->CreateItem(name); }
+CItem* CWorldServer::CreateItemNamed(const char* name) { return g_serverWorld->itemManager_->CreateItem(name); }
 
 CItem* CWorldServer::CreateSpellNamed(const char* name) {
-    CItemManager* manager = ItemManager();   // read first
+    CItemManager* manager = g_serverWorld->itemManager_;   // read first
     return manager->CreateSpellItem(name, SpellManager());
 }
 
@@ -229,7 +228,7 @@ void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
         if (CItemLink* link = item->ServerLink()) {
             CParty* party = unit->player->Party();
             if (party->Find(unit->id_)) {
-                CItem* source = FindItem(party->ItemManager(), link->value);
+                CItem* source = FindItem(party->ItemFactory(), link->value);
                 if (source) --source->count_;
             }
         }

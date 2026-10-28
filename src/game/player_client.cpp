@@ -413,7 +413,7 @@ int CPlayerClient::OnParty() {
             std::list<std::uint32_t>& recharging = player_->recharging_;
             recharging.clear();
             ObjectListIteratorOf<CItem> walk{};
-            for (CItem* item = walk.First(party->ItemManager()); item != nullptr; item = walk.Next()) {
+            for (CItem* item = walk.First(party->ItemFactory()); item != nullptr; item = walk.Next()) {
                 if (item->chargeMax_ > item->charge_)
                     recharging.push_back(static_cast<std::uint32_t>(item->id_));
             }

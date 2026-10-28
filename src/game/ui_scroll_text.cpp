@@ -269,10 +269,10 @@ void CUiScrollText::AddText(std::string_view text) {
     int position;
     moved_ = true;
     TakePosition(&position);
-    int before = Maximum();
+    int before = maxPosition_;
     TokenizeText(this, text);
     LayOut(this);
-    SetPosition(Maximum() - before + position);
+    SetPosition(maxPosition_ - before + position);
 }
 
 void CUiScrollText::SetText(std::string_view text) {
@@ -341,7 +341,6 @@ void CUiScrollText::Layout() {
 
 // --- The scroll bar's maximum ------------------------------------------------------------------
 
-int CUiScrollbar::Maximum() const { return maxPosition_; }
 
 void CUiScrollbar::SetMaximum(int maximum) {
     if (maximum < 0) maximum = 0;

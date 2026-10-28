@@ -73,7 +73,6 @@ void CInterface3D::CreateScreen(int id) {
 
 namespace {
 
-CCursor* Cursor() { return &g_cursor.Get(); }
 
 // The window stack's insert when it is full (vector<CUiWindow*>'s, plain elements).
 
@@ -94,7 +93,7 @@ void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
     ScreenOf(window)->CreateScreen();
     app::PumpMessages();
     ui->mouseCapture_ = nullptr;
-    Cursor()->SetShape(0);
+    g_cursor->SetShape(0);
 }
 
 void DeleteBackdrop(CUiSurface* surface) {
@@ -105,7 +104,7 @@ void DeleteBackdrop(CUiSurface* surface) {
 } // namespace
 
 void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
-    Cursor()->SetShape(3);
+    g_cursor->SetShape(3);
     bool first = static_cast<std::uint8_t>(a) != 0;
     bool second = static_cast<std::uint8_t>(b) != 0;
     if (first && !second) {
@@ -140,7 +139,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         closeAll_ = false;
         CloseAll();
     }
-    Cursor()->SetShape(3);
+    g_cursor->SetShape(3);
     CUiSurface* backdrop = backdrop_;
     DeleteBackdrop(backdrop);
     backdrop = secondBackdrop_;
@@ -150,7 +149,7 @@ void CInterface3D::Activate(CUiWindow* window) {
     backdropMode_ = 0;
     serverFlag_ = 0;
     GameSetServerPaused(0);
-    Cursor()->SetShape(3);
+    g_cursor->SetShape(3);
     while (!stack_.empty()) {
         stack_.back()->Input()->Deactivate();
         ScreenOf(stack_.back())->CloseScreen();

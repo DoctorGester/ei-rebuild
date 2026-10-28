@@ -195,7 +195,6 @@ namespace camera {
 
 inline double D(float f) { return f; }
 
-inline float CellSize() { return options::g_options->cameraTerrainArea_; }
 // What static initialisers leave: pi * 0.5 (the shake's wave runs at this rate), the
 // zero vector and the identity rotation the camera copies.
 inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;

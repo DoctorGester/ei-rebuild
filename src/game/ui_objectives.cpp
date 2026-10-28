@@ -262,7 +262,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         float base = static_cast<float>(D(y) + kMarkerHeight);
         marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
-        markerScale_ = marker->GetScaleX();
+        markerScale_ = marker->scaleMatrix_.m[0];
         RECT rect;
         rect.left = static_cast<int>(libcrt::Ftol(D(x) - kExitHalf));
         rect.top = static_cast<int>(libcrt::Ftol(D(y) - kExitHalf));

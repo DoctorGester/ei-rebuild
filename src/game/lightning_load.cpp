@@ -33,7 +33,7 @@ int LoadLightningNoise() {
 
     FillStream(local, data, size);
     CStream* stream = &local;
-    float* row = LightningNoiseTable();
+    float* row = g_lightningNoise[0];
     for (int i = 0; i < kLightningNoiseRows; ++i, row += kLightningNoiseRowLength)
         stream->Read(row, kLightningNoiseRowLength * sizeof(float));
     resource.Get()->CMappedResource::CloseFile(data);

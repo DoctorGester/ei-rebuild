@@ -43,7 +43,7 @@ double Unsigned(std::uint32_t value) {
 double Range(float min, float max) { return g_random.Range(min, max); }
 
 // The scene light colour the Tornado takes its particle colour from (the sun's r, g, b).
-const float* SceneLightColor() { return worlddata::SceneSun()->color_; }
+const float* SceneLightColor() { return g_sceneRenderer->sun_->color_; }
 
 // The rotation Reset gives a source: the identity (a static initialiser's stores).
 constexpr Quaternion kIdentityRotation = /*007A9C30*/ {1.0f, 0.0f, 0.0f, 0.0f};

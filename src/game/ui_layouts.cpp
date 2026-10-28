@@ -104,7 +104,6 @@ SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
     return size;
 }
 
-CSceneRenderer* TitlesDisplay() { return &g_sceneRenderer.Get(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
@@ -548,8 +547,8 @@ void CCreditsScreen::CreateScreen() {
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) GameSetServerPaused(0);
-    savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
-    TitlesDisplay()->fogColour_ = 0;
+    savedDisplay_ = static_cast<int>(g_sceneRenderer->fogColour_);
+    g_sceneRenderer->fogColour_ = 0;
     player_.Open((*g_discFolder + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;

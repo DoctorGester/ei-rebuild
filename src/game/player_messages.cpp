@@ -11,6 +11,7 @@
 #include "random.h"
 #include "script.h"
 #include "unit.h"
+#include "world.h"
 
 #include "ei/x87.h"
 #include "lib/static_object.h"
@@ -109,7 +110,7 @@ void CPlayerServer::SendGameTime() {
     std::uint32_t value = static_cast<std::uint32_t>(player_->sessionKind_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
-    WriteDword(&out_, static_cast<std::uint32_t>(CurrentWorldTick()));
+    WriteDword(&out_, static_cast<std::uint32_t>(g_serverWorld->tick_));
     player_->dirty_ &= ~0x10;
 }
 
@@ -253,7 +254,7 @@ void CPlayer::Tick() {
         auto current = node;
         ++node;
         int id = static_cast<int>(*current);
-        CEngineObject* object = Party()->ItemManager()->FindObject(id);
+        CEngineObject* object = Party()->ItemFactory()->FindObject(id);
         if (object == nullptr || object->RunTick() == 0) recharging_.erase(current);
     }
     connection_->TickDone();

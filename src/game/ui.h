@@ -957,7 +957,6 @@ public:
     // The material and the texture forgotten (not released), then the figure's own Destroy.
     void DestroySprite();
     void SetScaleYBits(std::uint32_t bits);
-    float GetScaleX() const;
     // When visible; returns 1.
     int Draw(CSceneRenderer* renderer);
     int CreateSprite();
@@ -1466,7 +1465,6 @@ public:
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
     // Negative: 0. The sprites show only for a maximum above 0; the position is set again as SetRect does.
     void SetMaximum(int maximum);
-    int Maximum() const;
     int maxPosition_;
     float speed_;                    // lines per second while an arrow is held (/16)
     int position_;
