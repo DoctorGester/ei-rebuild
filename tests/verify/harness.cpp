@@ -321,10 +321,6 @@
 //                             draw; check requires that no check of a kept mesh against a fresh build
 //                             (every 16th frame, render::MeshCacheState) found it stale. Ignored in a
 //                             run of the original code
-//   meshcorners read|full     the image's device mesh draws (004E9010 / 004E9A50) do only the per-corner
-//                             work game code reads (render::MeshCornersSkipped, R16k; the default) or all
-//                             the old path's (full: TL vertices, fog, clipped vertices to the screen, as
-//                             before R16k), from the next mesh draw. Ignored in a run of the original code
 //   memorytextures inplace|remake
 //                             the image's textures in the renderer's memory (shadow textures, the global
 //                             map's, the CPU-written ones) updated in place with their levels made on
@@ -2239,7 +2235,7 @@ std::string DescribeTopWindow() {
 
 // The image's renderer's steps (image::RenderStep).
 bool IsRenderStep(const std::string& verb) {
-    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "smooth" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "meshcorners" || verb == "memorytextures" || verb == "shadowcheck" || verb == "renderstats";
+    return verb == "terrainlevels" || verb == "levelsteps" || verb == "hues" || verb == "mmplevels" || verb == "smooth" || verb == "smoothcheck" || verb == "smoothorder" || verb == "shadowcasters" || verb == "shadowview" || verb == "shadowshift" || verb == "terraincache" || verb == "meshcache" || verb == "memorytextures" || verb == "shadowcheck" || verb == "renderstats";
 }
 
 // The steps that post input messages to the game window.
@@ -2792,10 +2788,10 @@ void RunSteps() {
                 }
             }
             g_waitingPresent = false;
-        } else if (now.failed || g_waitPresentDeadline.Passed()) {
+        } else if (g_waitPresentDeadline.Passed()) {
             char what[200];
             std::snprintf(what, sizeof(what), "waitpresent: %s (%u presented, %d ramp checks, one pending %d, identity %d)",
-                          now.failed ? "the game window's swap chain failed" : "timed out", now.presents - g_waitPresentFrom,
+                          "timed out", now.presents - g_waitPresentFrom,
                           now.rampChecks, now.rampCheckPending, now.rampIdentity);
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -2809,7 +2805,7 @@ void RunSteps() {
         // Made again, and (presenting on the game window) a frame presented on the new device.
         bool presented = !ei::Standalone() || !image::PresentsItself() || now.presents > now.presentsAtRecovery;
         const char* verb = g_newDeviceRemoved ? "removedevice" : "losedevice";
-        if (now.deviceRecoveries > g_newDeviceFrom && presented && !now.failed) {
+        if (now.deviceRecoveries > g_newDeviceFrom && presented) {
             Log("harness: %s: a new Direct3D 11 device (%d lost, %d made again; the loss: %08lX, removed reason %08lX%s)%s",
                 verb, now.deviceLosses, now.deviceRecoveries, static_cast<unsigned long>(now.lastLossResult),
                 static_cast<unsigned long>(now.lastLossReason), now.lastLossSimulated ? ", simulated" : "",
@@ -2826,10 +2822,10 @@ void RunSteps() {
                 g_failures.push_back(what);
             }
             g_waitingNewDevice = false;
-        } else if (now.failed || !HarnessRenderActive() || Now() >= g_newDeviceDeadline) {
+        } else if (Now() >= g_newDeviceDeadline) {
             char what[200];
             std::snprintf(what, sizeof(what), "%s: %s (%d lost, %d made again, %u presented since)", verb,
-                          now.failed || !HarnessRenderActive() ? "the new renderer failed" : "timed out", now.deviceLosses,
+                          "timed out", now.deviceLosses,
                           now.deviceRecoveries, now.presents - now.presentsAtRecovery);
             Log("harness: %s", what);
             g_failures.push_back(what);
@@ -3432,7 +3428,7 @@ void RunSteps() {
         } else if (s.verb == "losedevice" || s.verb == "removedevice") {
             int seconds = 10;
             sscanf_s(s.argument.c_str(), "%d", &seconds);
-            if (!HarnessRenderActive()) {
+            if (!ei::Standalone()) {
                 g_failures.push_back(s.verb + ": the new renderer is not on");
                 continue;
             }

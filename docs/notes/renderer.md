@@ -67,9 +67,8 @@ draw in another vertex format than 0x1C4 / 0xC4, too many pre-transformed vertic
 vertices) is nothing to draw, not a refusal. The device layer has no DrawPrimitive / DrawIndexedPrimitive.
 A lost device that is made again (R9c1) is recovery, not a fallback, and stays. There is no `render::Active()` query:
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
-original's process) nothing of ours draws, and the harness asks `ei::Standalone()` first (HarnessRenderActive; its
-image half `image::RenderActive` is constant true until R26a removes it from the shared harness): captures there read
-the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
+original's process) nothing of ours draws, and the harness asks `ei::Standalone()` (R26a folded HarnessRenderActive into it; a renderer failure ends the game, so
+there is no "failed" state to poll): captures there read the old render target. `EI_RENDER` (environment, or the harness step `render <spec>` in a run of the image) is a
 comma-separated list of options: `smooth` (the smooth option, R12a, section 11), `smoothcamera` (the smooth camera, R18, section 14) and the harness build's `removable` (R9c5); `new`, `present` and `cpuwindows` (the old switch, still written by run_all and the scenarios) are accepted
 and change nothing; any other word is logged as unknown (R16i removed `classicshadows`: the shadow map is the only shadow look). The original code (`--no-hooks`) never gets EI_RENDER and the harness ignores its `render`
 step (logged). There is no mode with the old path drawing beside the new renderer (R11), and the renderer reads no
@@ -1354,8 +1353,8 @@ across runs; the goldens check the game state.
     (`DrawIndexed(vertexCount, indexCount)` / `DrawTwoTextures(first, second, vertexCount, indexCount)`: the pass state the
     new renderer reads, the counters). Not made: the TL vertices of a mesh on screen, the fog, the colours and texture
     coordinates of the clipper's vertices, the z scale, the projection to the screen of a clipped mesh without flag 1
-    (R26c took out the arguments of the Direct3D 7 draws and the work only they needed; until then the harness's
-    `meshcorners full|read` switched back to all the old work for an A/B check, 0 pixels different).
+    (R26c took out the arguments of the Direct3D 7 draws and the work only they needed; until then a harness verb
+    `meshcorners full|read` switched back to all the old work for an A/B check, 0 pixels different; R26d dropped the verb).
     Measured (render_stats, vanilla 4K, harness build, two runs; ms a frame; "device mesh draws" read / full in the
     same run, the full stretch between two read ones): zone1 0.094-0.104 / 0.111-0.115, fight 0.23-0.26 / 0.27-0.29,
     town 0.31-0.34 / 0.49-0.51, so 0.02 / 0.04 / 0.18 ms saved. Main-thread CPU (read, full, read again; the

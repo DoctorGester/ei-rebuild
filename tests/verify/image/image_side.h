@@ -80,7 +80,6 @@ int CampaignMode();                             // the server world's session ki
 void* ClientWorldObject();                      // the client world
 void* SceneDevice();                            // the scene renderer's device, null before it is made
 void* DeviceLock();                             // the device's lock (a CRITICAL_SECTION)
-bool RenderActive();                            // render::Active
 
 // ---- the steps' calls of the game (harness.cpp; image/harness_objects_image.cpp)
 
@@ -165,7 +164,6 @@ struct WindowPresents {
     int cursorChecks = 0, cursorMismatches = 0;
     bool rampCheckPending = false;
     bool rampIdentity = true;
-    bool failed = false;
     int deviceLosses = 0;
     int deviceRecoveries = 0;
     std::uint32_t presentsAtRecovery = 0;
