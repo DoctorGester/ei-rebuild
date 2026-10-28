@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
@@ -53,7 +52,7 @@ GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); r
 GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
 GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
 
-CommandHandler& Command(CommandMap* map, const std::string& name) { return map->Subscript(name); }
+CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
 
 namespace {
 

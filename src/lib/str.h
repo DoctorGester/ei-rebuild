@@ -18,6 +18,11 @@
 
 namespace str {
 
+// The order of the maps that had MFC CString keys: _mbscmp below zero, on the text up to its first zero byte.
+struct MbsLess {
+    bool operator()(const std::string& a, const std::string& b) const;
+};
+
 std::string Format(const char* format, ...);
 std::string FormatV(const char* format, va_list arguments);
 

@@ -20,7 +20,6 @@
 #include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "world_glue.h"
-#include "library_trees.h"
 #include "game_singletons.h"
 
 #include <cstdint>
@@ -48,14 +47,12 @@ Node* EmptyList() {
 CBattleScreen::CBattleScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     mfc::impl::ConstructHeader<mfc::impl::IntArrayClass>(&heroes_);
-    personTexts_.Construct();
     itemUseKey_.ConstructItemUseKey();
 }
 
 CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     mfc::impl::ConstructHeader<mfc::impl::UnitPtrArrayClass>(&party_);
     movers_ = EmptyList<BriefingMover>();
-    personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
     speakers_.ConstructEmpty();
 }
@@ -222,17 +219,9 @@ void CInterface3D::OpenHelp(int flag) {
     int seen = -1;
     // The seen-topics map (find; operator[], lower_bound an insert at that
     // hint).
-    decltype(helpTopics_)::Node* found;
-    {
-        std::string key = topic;
-        found = helpTopics_.find(key);
-    }
-    if (found != helpTopics_.end()) {
-        seen = found->second;
-    } else {
-        std::string key = topic;
-        helpTopics_.Subscript(key) = 0;
-    }
+    auto found = helpTopics_.find(std::string(topic));
+    if (found != helpTopics_.end()) seen = found->second;
+    else helpTopics_[std::string(topic)] = 0;
     bool forced = static_cast<std::uint8_t>(flag) != 0;
     if (options::TheOptions()->showTutorial_ != 0) {
         if (!forced && seen >= 0) return;
@@ -246,21 +235,9 @@ void CInterface3D::OpenHelp(int flag) {
 
 namespace {
 
-// Screen 9's two maps are item caches (lib_trees::ItemCache, with two allocators).
-template <typename Object>
-using ItemCache = lib_trees::ItemCacheOf<Object>;
-
 } // namespace
 
-CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
-    // A stack byte and the argument slot serve as the allocators.
-    std::uint8_t junk = 0;
-    CInterface3D* slot = ui;
-    static_cast<ItemCache<CUiMesh>*>(&models_.map)->ConstructWith(&junk, &slot);
-    models_.limit = 50;
-    ItemCache<CTexture>::Construct(&textures_.map);
-    textures_.limit = 50;
-}
+CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {}
 
 // Screen 8's constructor: lines_ gets its header node (its allocator byte, the flag's low byte, is
 // overwritten).

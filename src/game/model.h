@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -630,7 +631,7 @@ public:
     LinkArchiveNode* archives_;       // list sentinel
     stlp::hash_map<std::string, FigureModel*, stlp::StringHash> figureSets_;    // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
-    stlp::map<std::string, CLinkMesh*> cache_;    // a multimap of counted references
+    std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference
 };
 
 

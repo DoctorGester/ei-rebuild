@@ -16,7 +16,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
-#include "library_trees.h"
 
 #include <bit>
 #include <cfloat>
@@ -233,12 +232,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
             loaded = current->LoadPart(&key);
         }
         if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
-        const LinkHeaderMap::Node* node;
-        {
-            std::string key(partName, partName + std::strlen(partName));
-            node = lib_trees::FindLinkHeader(&current->headers_, &key);
-        }
-        const LinkPartHeader& piece = node->second;
+        const LinkPartHeader& piece = current->headers_.find(std::string(partName))->second;
         part->materialValue_ = piece.materialValue;
         part->meshType_ = piece.meshType;
         // The box and the pivot.

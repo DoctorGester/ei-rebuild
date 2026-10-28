@@ -96,7 +96,7 @@ CScreenFade* CScreenFade::Construct() {
 CInterface3D* CInterface3D::Construct() {
     std::construct_at(&stack_);
     std::construct_at(&messages_);
-    helpTopics_.Construct();
+    std::construct_at(&helpTopics_);
     std::construct_at(&messageText_);
     std::construct_at(&savedText_);
     return this;

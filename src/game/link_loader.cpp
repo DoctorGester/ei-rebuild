@@ -7,11 +7,11 @@
 #include "texture.h"           // CTextureDevice
 
 #include "lib/crt.h"
-#include "library_trees.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <memory>
 #include <new>
 #include <vector>
@@ -31,20 +31,10 @@ std::string CLinkMesh::CopyName() const { return name_; }
 
 namespace {
 
-using Cache = stlp::map<std::string, CLinkMesh*>;
+using Cache = std::multimap<std::string, CLinkMesh*>;
 
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr double kSameMorph = 1e-5;           // squared distance of the coefficients
-
-// The cache's node values: the name, then one more reference on the mesh (as
-// lib_trees::MeshCache's counted pointer copies it).
-struct CachedMesh {
-    static void Copy(CLinkMesh** to, CLinkMesh* const& from) {
-        *to = from;
-        if (from) ++from->refCount_;
-    }
-};
-using CacheElement = stlp::PairElement<Cache::Value, CachedMesh>;
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
 void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const std::string* name, const char* data, float s,
@@ -82,18 +72,16 @@ bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
 
 // The first cached mesh named `name` with close coefficients, or null.
 CLinkMesh* FindCached(const Cache& cache, const std::string* name, float s, float t, float u) {
-    Cache::Node* last = cache.upper_bound(*name);
-    for (Cache::Node* n = cache.lower_bound(*name); n != last; n = Cache::Next(n))
+    auto [first, last] = cache.equal_range(*name);
+    for (auto n = first; n != last; ++n)
         if (SameMorph(n->second, s, t, u)) return n->second;
     return nullptr;
 }
 
-// Adds `mesh` to the cache under `name` (the node's reference).
+// Adds `mesh` to the cache under `name`, after the entries of the same name; the entry holds a reference.
 void AddToCache(Cache* cache, const std::string* name, CLinkMesh* mesh) {
-    Cache::Value value{std::string(*name), mesh};
     if (mesh) ++mesh->refCount_;
-    cache->InsertEqual<CacheElement>(value);   // multimap insert_equal
-    if (mesh) --mesh->refCount_;   // the value's reference; the node keeps one
+    cache->emplace(*name, mesh);
 }
 
 // A reference dropped: the mesh deletes itself at zero.
@@ -101,18 +89,6 @@ void ReleaseMesh(CLinkMesh* mesh) {
     if (mesh && --mesh->refCount_ == 0) delete mesh;
 }
 
-// The cache's nodes below and including `node`, right subtrees first (_M_erase): each value's
-// reference dropped, its name freed, the node returned to the pool.
-void EraseNodes(Cache::Node* node) {
-    while (node) {
-        EraseNodes(node->right);
-        Cache::Node* left = node->left;
-        ReleaseMesh(node->second);
-        std::destroy_at(&node->first);
-        stlp::deallocate(node, sizeof(Cache::Node));
-        node = left;
-    }
-}
 
 } // namespace
 
@@ -120,7 +96,7 @@ int CLinkFigureLoader::CacheSize() { return static_cast<int>(cache_.size()); }
 
 int CLinkFigureLoader::CacheBytes() {
     int bytes = 0;
-    for (Cache::Node* n = cache_.begin(); n != cache_.end(); n = Cache::Next(n)) bytes += n->second->MemoryBytes();
+    for (const auto& entry : cache_) bytes += entry.second->MemoryBytes();
     return bytes;
 }
 
@@ -150,10 +126,11 @@ CLinkMesh* CLinkFigureLoader::LoadLink(const std::string* name, float s, float t
     return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
 
+// Each entry's reference dropped, last key first (the order the tree's erase freed its nodes in), then the
+// entries erased.
 void CLinkFigureLoader::ClearCache() {
-    if (cache_.size() == 0) return;
-    EraseNodes(cache_.end()->parent);
-    cache_.ResetToEmpty();
+    for (auto entry = cache_.rbegin(); entry != cache_.rend(); ++entry) ReleaseMesh(entry->second);
+    cache_.clear();
 }
 
 bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
@@ -307,7 +284,6 @@ CLinkFigureLoader::~CLinkFigureLoader() {
         device->Release();
     }
     CLinkFigureLoader::ClearCache();
-    stlp::deallocate(cache_.end(), sizeof(Cache::Node));
     // renderer_ is released here once more, like the original; it is null by now.
     figureSets_.Destroy();
     ClearArchives(archives_);

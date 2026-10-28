@@ -5,7 +5,6 @@
 #include "asset_text.h"
 #include "options.h"
 #include "bink_video.h"
-#include "library_trees.h"
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"

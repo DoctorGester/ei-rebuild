@@ -113,8 +113,6 @@ void SortStrings(std::string* first, std::string* last) {
     }
 }
 
-using DistanceMap = stlp::map<int, float>;
-using DistanceNode = DistanceMap::Node;
 
 int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
@@ -219,8 +217,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         exit->distance_ = 0.0f;
         exit->flag_ = false;
         if (exitDistances_) {
-            DistanceNode* header = exitDistances_->end();
-            for (DistanceNode* node = header->left; node != exitDistances_->end();) {
+            for (auto node = exitDistances_->begin(); node != exitDistances_->end(); ++node) {
                 if (node->first == i) {
                     anyKnown = true;
                     std::memcpy(&exit->distance_, &node->second, 4);
@@ -232,7 +229,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
                     }
                     break;
                 }
-                node = DistanceMap::Next(node);
             }
         } else {
             std::string name;
@@ -689,7 +685,7 @@ const char* const kMissionTopic = "quest_mission";
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
     zoneName_ = zone;
     twoButtons_ = twoButtons;
-    exitDistances_ = static_cast<stlp::map<int, float>*>(exitDistances);
+    exitDistances_ = static_cast<std::map<int, float>*>(exitDistances);
     listZones_ = listZones;
 }
 

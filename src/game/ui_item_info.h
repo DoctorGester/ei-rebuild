@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -71,19 +72,13 @@ struct ItemCacheEntry {
 // used objects beyond that.
 template <typename Object>
 struct ItemObjectCache {
-    using Map = stlp::map<std::string, ItemCacheEntry<Object>>;
-    using Node = typename Map::Node;
-
-    // The map's header from the pool, emptied with `compare` as its compare byte; the limit 50.
-    void Construct(std::uint8_t compare);
+    using Map = std::map<std::string, ItemCacheEntry<Object>>;
 
     Map map;
-    std::uint32_t limit;
+    std::uint32_t limit = 50;
 };
 using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
-static_assert(sizeof(ItemModelCache) == 0x10);
-static_assert(sizeof(ItemTextureCache) == 0x10);
 // Every cached object released, in key order (the hero screen's model and texture caches).
 template <typename Object>
 void ReleaseCachedObjects(ItemObjectCache<Object>* cache);
@@ -186,7 +181,6 @@ static_assert(sizeof(CItemIconWindow) == 0x148);
 inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
 inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic, mode_); }
 static_assert(offsetof(CItemScreen, models_) == 0x170);
-static_assert(offsetof(CItemScreen, textures_) == 0x180);
 
 // What the statistics under the mouse are (filled by the stats panel and the trade panel, read by
 // DescribeStats).

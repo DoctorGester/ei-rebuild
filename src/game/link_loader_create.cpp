@@ -35,7 +35,6 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const std::string
     figureSets_.InitBuckets(kFigureSetBuckets);
     renderer_ = renderer;
     if (renderer) renderer->AddRef();
-    cache_.Construct();
     pipeline_ = renderer_->pipeline_->transform_;
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {

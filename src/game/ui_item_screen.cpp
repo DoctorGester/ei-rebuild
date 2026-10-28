@@ -32,15 +32,6 @@ inline double D(float f) { return f; }
 
 } // namespace
 
-template <typename Object>
-void ItemObjectCache<Object>::Construct(std::uint8_t compare) {
-    map.Header() = stlp::allocate_as<Node>();
-    map.Count() = 0;
-    map.Compare() = compare;
-    map.EmptyInitialize();
-    limit = 50;
-}
-
 // While the cache holds more than its limit: the least recently used entry (used before now) has
 // its object released and is erased. Spins while every entry was
 // used at or after now.
@@ -48,8 +39,8 @@ template <typename Object>
 void TrimItemCache(ItemObjectCache<Object>* cache) {
     while (cache->map.size() > cache->limit) {
         std::uint32_t oldestTime = gameapi::timeGetTime();
-        typename ItemObjectCache<Object>::Node* oldest = cache->map.end();
-        for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node)) {
+        auto oldest = cache->map.end();
+        for (auto node = cache->map.begin(); node != cache->map.end(); ++node) {
             if (node->second.lastUse < oldestTime) {
                 oldestTime = node->second.lastUse;
                 oldest = node;
@@ -57,12 +48,10 @@ void TrimItemCache(ItemObjectCache<Object>* cache) {
         }
         if (oldest != cache->map.end()) {
             oldest->second.object->Release();
-            cache->map.Erase(oldest);
+            cache->map.erase(oldest);
         }
     }
 }
-template struct ItemObjectCache<CUiMesh>;
-template struct ItemObjectCache<CTexture>;
 
 // --- The icon window's frame -------------------------------------------------------------
 
@@ -133,12 +122,10 @@ void CItemScreen::CreateBase() {
 // --- The item screens' destructor bodies -----------------------------------
 
 namespace {
-// A cache's objects released (Release), in key order, then its map destroyed: the nodes erased (a loop
-// over the left spine, or a call on the root), the header back to the pool.
+// A cache's objects released (Release), in key order; the map goes with the screen.
 template <typename Object>
 void DestroyCache(ItemObjectCache<Object>& cache) {
     ReleaseCachedObjects(&cache);
-    cache.map.Destroy();
 }
 } // namespace
 

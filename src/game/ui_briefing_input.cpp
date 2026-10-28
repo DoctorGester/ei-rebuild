@@ -171,7 +171,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (!CanTalk(object)) return;
         FindTopics(id);
         if (!topics_.empty()) TheCursor()->SetShape(kCursorTalk);
-        const PersonTextNode* node = personTexts_.find(id);
+        auto node = personTexts_.find(id);
         if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
         UiSurfaceGetDC(label);

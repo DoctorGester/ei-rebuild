@@ -9,7 +9,6 @@
 #include "console.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
-#include "library_trees.h"
 #include "game_singletons.h"
 
 #include <string>
@@ -34,12 +33,6 @@ void LoadPersonTexts(PersonTextMap* map) {
             std::string name = str::Mid(textKey, kPersonPrefixLength);
             key = TextKeyFromName(name.c_str());
         }
-        PersonTextNode* node = map->lower_bound(key);
-        if (node == map->end() || key < node->first) {
-            std::string empty;
-            const PersonTextMap::Value pair{key, empty};   // the key and the text
-            static_cast<lib_trees::PersonTexts*>(map)->InsertHint(&node, node, pair);
-        }
-        node->second = line;
+        (*map)[key] = line;
     }
 }

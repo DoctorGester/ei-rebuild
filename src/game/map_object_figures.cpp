@@ -10,7 +10,6 @@
 #include "lib/stlp.h"
 
 #include "ei/x87.h"
-#include "library_trees.h"
 #include "lib/nan_audit.h"
 
 #include <concepts>
@@ -142,10 +141,10 @@ void CObject3D::SetFigureScale(const float* newScale) {
         for (int i = 0; i < parts.size; ++i) {
             auto* part = parts.data[i];
             const char* pieceName = part->GetName();
-            const LinkHeaderMap::Node* piece;
+            LinkHeaderMap::const_iterator piece;
             {
                 std::string key(pieceName);
-                piece = lib_trees::FindLinkHeader(&figure->headers_, &key);
+                piece = figure->headers_.find(key);
             }
             part = parts.data[i];
             const ClipBounds& fitted = piece->second.box.bounds;

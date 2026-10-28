@@ -11,6 +11,7 @@
 
 #include "lib/stlp.h"
 
+#include <map>
 #include <vector>
 #include <windows.h>
 
@@ -100,10 +101,9 @@ struct LinkPartRanges {
 };
 static_assert(sizeof(LinkPartRanges) == 0x30);
 
-// The mesh's part maps (STLport map<string, T>; their insert / erase are library instantiations).
-using LinkHeaderMap = stlp::map<std::string, LinkPartHeader>;
-using LinkRangeMap = stlp::map<std::string, LinkPartRanges>;
-static_assert(sizeof(LinkHeaderMap) == 0x0C);
+// The mesh's part maps by part name.
+using LinkHeaderMap = std::map<std::string, LinkPartHeader>;
+using LinkRangeMap = std::map<std::string, LinkPartRanges>;
 
 // A figure's mesh's base (no object of the
 // base alone exists): the reference count, the name and the part headers.

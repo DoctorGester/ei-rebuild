@@ -3,7 +3,6 @@
 // exit function that initialiser registers with the game's atexit (docs/notes/standalone.md, "The static
 // initialisers' objects"). See docs/notes/console.md.
 #include "console.h"
-#include "library_trees.h"
 
 namespace console {
 
@@ -38,7 +37,7 @@ using StreambufObject = lib::StaticObject<ConsoleStreambuf>;
 using ExitFunction = void(__cdecl*)();
 
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
-    lib_trees::Commands::Construct(&map.Get());
+    map.Construct();
     libcrt::AtExit(exit);
 }
 void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
@@ -56,8 +55,8 @@ void DestroyStream(OStreamObject& stream) {
     stream.ios.Destruct();
 }
 
-void DestroyCheatCommands() { lib_trees::Commands::Destroy(&console::g_cheatCommands.Get()); }
-void DestroyPublicCommands() { lib_trees::Commands::Destroy(&console::g_publicCommands.Get()); }
+void DestroyCheatCommands() { console::g_cheatCommands.Destroy(); }
+void DestroyPublicCommands() { console::g_publicCommands.Destroy(); }
 void DestroyAiLogBuf() { console::g_aiLogBuf.Destroy(); }
 void DestroyEventLogBuf() { console::g_eventLogBuf.Destroy(); }
 void DestroyGraphicsLogBuf() { console::g_graphicsLogBuf.Destroy(); }

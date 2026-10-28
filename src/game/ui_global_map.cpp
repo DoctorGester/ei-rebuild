@@ -613,12 +613,6 @@ CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
     EmptyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
     EmptyArray(&links_, GlobalMapPointArrayClass::Vtable());
     EmptyArray(&quests_, GlobalMapPathArrayClass::Vtable());
-    // The tree (the header from the pool; empties it) keeps the first byte of
-    // the compare object, the argument slot holding `ui`.
-    arrivals_.Header() = static_cast<stlp::map<int, float>::Node*>(stlp::allocate(sizeof(stlp::map<int, float>::Node)));
-    arrivals_.Count() = 0;
-    arrivals_.Compare() = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(ui));
-    arrivals_.EmptyInitialize();
     turn_.w = 1.0f;   // the identity turn
     turn_.x = 0.0f;
     turn_.y = 0.0f;
@@ -640,7 +634,6 @@ void DestroyArray(Array* array, void* vtable) {
 } // namespace
 
 CGlobalMap::~CGlobalMap() {
-    arrivals_.Destroy();
     DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());
     DestroyArray(&zones_, GlobalMapZoneArrayClass::Vtable());

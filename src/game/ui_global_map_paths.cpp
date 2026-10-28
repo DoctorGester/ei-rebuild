@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "library_trees.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
@@ -27,23 +26,7 @@
 
 namespace {
 
-using Arrivals = stlp::map<int, float>;
-
 constexpr const char* kZoneVariable = "z.%s";
-
-
-// Insert(hint, value) of the arrivals map (lib_trees::Arrivals').
-
-// operator[]: lower_bound, and a new {exit, 0} entry
-// inserted there when the key is not in the map.
-float& Arrival(Arrivals& arrivals, int exit) {
-    Arrivals::Node* at = arrivals.lower_bound(exit);
-    if (at == arrivals.end() || exit < at->first) {
-        const Arrivals::Value value = {exit, 0.0f};
-        static_cast<lib_trees::Arrivals*>(&arrivals)->InsertHint(&at, at, value);
-    }
-    return at->second;
-}
 
 bool SameName(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
@@ -70,7 +53,7 @@ MapRecord* PlayerZone() {
 void SearchWays(CGlobalMap* map, const std::string& target) {
     map->target_ = target;
     map->pathTime_ = 0.0f;
-    map->arrivals_.Clear();
+    map->arrivals_.clear();
     map->found_ = false;
     map->beyondTarget_ = false;
     map->FindPaths(PlayerZone());
@@ -94,10 +77,10 @@ void CGlobalMap::FindPaths(MapRecord* from) {
             int exit = from->exits.data[i].entrance;
             float time = path_.size() == 0 ? -1.0f : pathTime_;
             if (arrivals_.find(exit) == arrivals_.end()) {
-                Arrival(arrivals_, exit) = time;
+                arrivals_[exit] = time;
             } else {
-                EI_NAN_AUDIT(pathTime_, Arrival(arrivals_, exit));
-                if (pathTime_ < Arrival(arrivals_, exit)) Arrival(arrivals_, exit) = time;
+                EI_NAN_AUDIT(pathTime_, arrivals_[exit]);
+                if (pathTime_ < arrivals_[exit]) arrivals_[exit] = time;
             }
             if (beyondTarget_) continue;
             goesBeyond = true;
@@ -172,6 +155,6 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     // A link: the party goes there at once when there is a way.
     SearchWays(this, links_.data[link].name);
     if (!found_ || !MayTravelTo(this)) return;
-    GamePassTime(Arrival(arrivals_, 0));
+    GamePassTime(arrivals_[0]);
     ::RequestZone(links_.data[link].name.c_str(), 0);
 }

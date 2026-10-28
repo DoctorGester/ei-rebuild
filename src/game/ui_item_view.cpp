@@ -54,11 +54,7 @@ std::uint32_t PackColour(const float* rgb) {
 // least recently used entries beyond its limit. Null when it cannot be made. `make` is the object's maker.
 template <typename Object>
 Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (*make)(const char*)) {
-    typename ItemObjectCache<Object>::Node* node;
-    {
-        std::string key(name);
-        node = cache->map.find(key);
-    }
+    auto node = cache->map.find(std::string(name));
     if (node != cache->map.end()) {
         node->second.lastUse = gameapi::timeGetTime();
         return node->second.object;
@@ -68,7 +64,7 @@ Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (
     std::uint32_t time = gameapi::timeGetTime();
     {
         std::string key(name);
-        ItemCacheEntry<Object>& value = cache->map.Subscript(key);
+        ItemCacheEntry<Object>& value = cache->map[key];
         value.object = object;
         value.lastUse = time;
     }

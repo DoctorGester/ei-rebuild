@@ -158,7 +158,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         } else {
             speaker = unit->GetName();
             if (speaker.size() == 0) {
-                const PersonTextNode* node = personTexts_.find(unit->id_);
+                auto node = personTexts_.find(unit->id_);
                 speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
