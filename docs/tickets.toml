@@ -3665,6 +3665,13 @@ depends = ["C14t"]
 note = "Left by C14s. Files that include lib/stlp.h, lib/stlp_list.h or lib/stlp_list_refs.h without any stlp:: use (C14s's scan: acks_db.h, ai_map.*, app_helpers.h, base_manager.h, chunk_archive.h, class_templates.*, effects.h, item_db*.h/.cpp, lever*, model.h, party*.h, player_messages.h, script.h, texture.h, ui*.h/.cpp, unit_db*.h, world_data.h, ... about 100). stlp.h pulls in <string>, <cstring>, <new>, <type_traits> and game_data.h, so the scripted removal needs the missing direct includes added where the build asks. Best after C14t (stlp_list.h goes) and with C14x (stlp_deque, then stlp.h itself)."
 
 [[ticket]]
+id = "C36"
+title = "Layout leftovers: the offsetof static_asserts and unused_XXX padding arrays nothing needs (341 asserts in 64 files, 192 pads)"
+group = "cleanup"
+model = "opus"
+note = "Found at the C14x merge: camera.h keeps unused_1E0[0x2E0-0x1E0] where the dead view stack was, so its offsetof asserts still hold. The layout rule ended with S21 (normal-cpp-classes). Keep an assert or a pad only where bytes leave the process or come from a fixed format: save files, network packets, resource files, GPU vertex/constant layouts, D3D/DirectDraw structs. tests/verify reads the image through its headers, not offsets, so check before keeping one for the harness. Drop the rest, and the fields nothing reads. Delete what becomes dead. Scripted pass; image suite --golden must stay 121 the same; original suite if tests/verify changes."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
