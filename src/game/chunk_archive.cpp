@@ -249,7 +249,7 @@ std::uint32_t SavedNumber(const ChunkArchive* a, const CRefCounted* object) {
 // then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefCounted* object) {
     if (!numbers_.Find(object)) {
-        SavedList::Insert(saved_.End(), object);
+        saved_.insert(saved_.end(), object);
         ChunkArchive::SavedNumbers::Node* node = numbers_.FindOrInsert({object, 0});
         node->value = static_cast<std::uint32_t>(numbers_.Size());
     }
@@ -283,12 +283,10 @@ ChunkArchive::ChunkArchive() {
     stack_.Construct();
     loaded_.Construct(100);
     numbers_.Construct(100);
-    saved_.Construct();
     version_ = 1;
 }
 
 ChunkArchive::~ChunkArchive() {
-    saved_.Release();
     numbers_.Destroy();
     loaded_.Destroy();
     stack_.Release<RefElement>();
@@ -361,7 +359,7 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
         index->Read(&key, 4);
         Factory factory = Registry().factories[classId];
         CRefCounted* object = factory ? factory() : nullptr;
-        SavedList::Insert(saved_.End(), object);
+        saved_.insert(saved_.end(), object);
         loaded_.FindOrInsert({key, nullptr})->value = object;
     }
     if (version == 1) Field(2, &version_, 4);
@@ -408,9 +406,9 @@ void ChunkArchive::Close(CStream* stream) {
         WriteStreamChunk(stream, 1, data);
         data->Clear();
         Current()->Reset();
-        while (!saved_.Empty()) {
-            CRefCounted* object = saved_.First()->data;
-            SavedList::Erase(saved_.First());
+        while (!saved_.empty()) {
+            CRefCounted* object = (*saved_.begin());
+            SavedList::Erase(saved_.begin());
             std::uint32_t vtable;
             std::memcpy(&vtable, object, 4);
             const ClassRegistry::ClassIdMap::Node* found = Registry().classIds.Find(vtable);
@@ -450,6 +448,6 @@ void ChunkArchive::Close(CStream* stream) {
     data->Clear();
     loaded_.Clear();
     numbers_.Clear();
-    saved_.Clear();
+    saved_.clear();
     stack_.Clear<RefElement>();
 }

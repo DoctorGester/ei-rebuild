@@ -342,12 +342,12 @@ void COptionsWindow::CommitBinding() {
     if (binding != other) {
         if (binding->keys_.size() != 0) {
             for (const UiKeyName* key : binding->keys_) keyOfScan_[key->scan_] = 0;
-            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): copies nothing
+            binding->keys_.clear();   // erase(begin, end): copies nothing
         }
         binding->keys_.push_back(pressedKey_);   // on overflow
         RebuildKeysText(*binding);
         if (other) {
-            for (const UiKeyName** key = other->keys_.begin(); key != other->keys_.end(); ++key) {
+            for (const UiKeyName** key = other->keys_.data(); key != other->keys_.data() + other->keys_.size(); ++key) {
                 if (*key != pressedKey_) continue;
                 other->keys_.erase(key);
                 RebuildKeysText(*other);
@@ -360,7 +360,7 @@ void COptionsWindow::CommitBinding() {
 
 void COptionsWindow::LoadSettings() {
     std::memcpy(keyOfScan_, KeyActions(), sizeof(keyOfScan_));
-    OptionSetting* s = settings_.begin();
+    OptionSetting* s = settings_.data();
     const double fromStep = ConstFromStep();
     const float one = ConstOne();
     s[0].value_ = OptVolume0();
@@ -405,7 +405,7 @@ void COptionsWindow::LoadSettings() {
 
 void COptionsWindow::Apply() {
     std::memcpy(KeyActionTable(), keyOfScan_, sizeof(keyOfScan_));
-    const OptionSetting* s = settings_.begin();
+    const OptionSetting* s = settings_.data();
     const double toStep = ConstToStep();
     const float one = ConstOne();
     OptVolume0() = s[0].value_;

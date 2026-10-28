@@ -32,6 +32,7 @@
 #include <new>
 #include <bit>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -104,7 +105,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-using LoadedFiles = stlp::vector<std::string>;
+using LoadedFiles = std::vector<std::string>;
 LoadedFiles& QuestFiles() { return g_questFiles; }
 
 } // namespace
@@ -112,8 +113,8 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 // The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
 // initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
-constinit stlp::vector<std::string> g_questFiles = /*007AFDD0*/ {};
-constinit stlp::vector<std::string> g_questFolders = /*007AFDC0*/ {};
+constinit std::vector<std::string> g_questFiles = /*007AFDD0*/ {};
+constinit std::vector<std::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
 using QuestStrings = stlp::VectorAbi<std::string, stlp::ObjectElement<std::string>>;
@@ -133,7 +134,7 @@ void UnloadQuestTexts() {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
-    for (std::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
+    for (std::string* file = files.data(); file != files.data() + files.size(); ++file) texts->RemoveSource(file->data());
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
@@ -200,7 +201,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
     LoadedFiles& files = QuestFiles();
-    std::string* listed = files.begin();
+    std::string* listed = files.data();
     while (listed != files.end() && !(*listed == path)) ++listed;
     if (listed == files.end()) {
         files.push_back(path);
@@ -234,7 +235,7 @@ namespace {
 
 
 // The quest folders registered so far.
-using StringVector = stlp::vector<std::string>;
+using StringVector = std::vector<std::string>;
 StringVector& QuestFolders() { return g_questFolders; }
 
 bool Equal(const std::string& s, const char* text) {
@@ -252,7 +253,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     StringVector& folders = QuestFolders();
-    for (std::string* s = folders.begin(); s != folders.end(); ++s)
+    for (std::string* s = folders.data(); s != folders.data() + folders.size(); ++s)
         if (Equal(*s, folder)) return;
     bool registered;
     {
@@ -270,12 +271,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         TheMapDatabase()->Load(path.c_str());
     }
     std::string name(folder);
-    if (folders.Finish() != folders.EndOfStorage()) {
-        new (folders.Finish()) std::string(name);
-        ++folders.Finish();
-    } else {
-        folders.InsertOverflow<stlp::ObjectElement<std::string>>(folders.Finish(), name, 1);
-    }
+    folders.push_back(name);
 }
 
 mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {

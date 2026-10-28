@@ -199,7 +199,7 @@ public:
     GlobalMapPlaces quests_;
     // The way search from the current zone to target_: the zones on the way so far and their summed
     // "#passtime".
-    stlp::vector<GlobalMapStep> path_;
+    std::vector<GlobalMapStep> path_;
     float pathTime_;
     std::string target_;
     bool found_;                     // a way reached the target

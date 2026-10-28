@@ -33,6 +33,9 @@
 #include "lib/stlp.h"
 #include "render/render.h"
 
+#include <iterator>
+#include <list>
+#include <vector>
 #include <windows.h>
 
 #include <bit>
@@ -106,7 +109,7 @@ float LandscapeDrawRadius() {
     return ei::rebirth::Enabled(ei::rebirth::Patch::LandscapeDrawRadius) ? setting : 100.0f;
 }
 
-void VectorClear(stlp::vector<CMapObject*>* v) { v->EraseRange<stlp::PlainElement<CMapObject*>>(v->begin(), v->end()); }
+void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
 CMapObject** VectorCopyBack(CMapObject** first, CMapObject** last, CMapObject** out) {
     return stlp::CopyElements<CMapObject*>(first, last, out);
 }
@@ -161,9 +164,9 @@ int Log2(int n) {
 // Sorts one draw list with UnitOrderLess. (The comparator is empty; nothing reads the renderer the
 // original pushes for it.)
 void SortByModel(FrameList list) {
-    stlp::vector<CMapObject*>& v = FrameObjects(list);
-    CMapObject** first = v.begin();
-    CMapObject** last = v.end();
+    std::vector<CMapObject*>& v = FrameObjects(list);
+    CMapObject** first = v.data();
+    CMapObject** last = v.data() + v.size();
     if (first == last) return;
     IntroSortByModel(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
     FinalSortByModel(first, last, 0);
@@ -221,14 +224,14 @@ bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head;
 
 const Matrix4* worlddata::SceneCamera() { return g_haveSceneCamera ? &g_sceneCamera : nullptr; }
 
-int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* queued) {
+int __fastcall QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
     const CObject3D* figure = object;
     ScreenEntry entry;
     entry.classId = object->GetClassId();
     entry.objectId = static_cast<unsigned>(object->id_);
     entry.rect = figure->dirtyRect;
-    stlp::list<ScreenEntry>::Insert(queued->head, entry);
+    queued->insert(queued->end(), entry);
     return 1;
 }
 
@@ -445,33 +448,33 @@ int CWorldClient::DrawPass() {
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
-    stlp::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
+    std::vector<CMapObject*>& models = FrameObjects(FrameList::TouchedModels);
     if (models.begin() != models.end()) {
-        CMapObject** first = models.begin();
-        CMapObject** last = models.end();
+        CMapObject** first = models.data();
+        CMapObject** last = models.data() + models.size();
         IntroSortByModelUse(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, 0);
         FinalSortByModelUse(first, last, 0);
         int count = touched >> 3;
         if (count < 10) count = 10;
-        for (CMapObject** p = models.begin(); p != models.end() && count != 0; --count) {
+        for (CMapObject** p = models.data(); p != models.data() + models.size() && count != 0; --count) {
             CMapObject* object = *p++;
             object->flags_ &= ~0x400u;
         }
     }
 
     // The frame's window rectangles (an STLport list of 32-byte nodes).
-    stlp::list<ScreenEntry>& queued = screenEntries_;
+    std::list<ScreenEntry>& queued = screenEntries_;
     if (flags_ & 0xC0) {
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        using Node = stlp::list<ScreenEntry>::Node;
-        Node* node = queued.head->next;
-        while (node != queued.head) {
-            Node* current = node;
+        using Node = std::list<ScreenEntry>::iterator;
+        Node node = queued.begin();
+        while (node != queued.end()) {
+            Node current = node;
             node = node->next;
             stlp::deallocate(current, 32);
         }
-        queued.head->next = queued.head;
-        queued.head->prev = queued.head;
+        queued.begin() = queued.end();
+        std::prev(queued.end()) = queued.end();
         SetRenderState(renderer, 19, 5);
         SetRenderState(renderer, 20, 6);
         SetRenderState(renderer, 27, 1);
@@ -485,8 +488,8 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 24, 0xC8);
         DrawEach(FrameList::VisibleOther, kDraw);
         DrawEach(FrameList::Visible5D, kDrawUnit);
-        CMapObject** end = FrameObjects(FrameList::Visible5D).end();
-        for (CMapObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
+        CMapObject** end = FrameObjects(FrameList::Visible5D).data() + FrameObjects(FrameList::Visible5D).size();
+        for (CMapObject** p = FrameObjects(FrameList::Visible5D).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
         DrawEach(FrameList::Visible54, kDraw);
         DrawEach(FrameList::Visible52, kDraw);
     }
@@ -495,8 +498,8 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 24, 10);
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         DrawEach(FrameList::VisibleUnits, kDrawUnit);
-        CMapObject** end = FrameObjects(FrameList::VisibleUnits).end();
-        for (CMapObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueScreenEntry(*p, &queued);
+        CMapObject** end = FrameObjects(FrameList::VisibleUnits).data() + FrameObjects(FrameList::VisibleUnits).size();
+        for (CMapObject** p = FrameObjects(FrameList::VisibleUnits).data(); p != end; ++p) QueueScreenEntry(*p, &queued);
     }
 
     // Light effects (three lists of the client, each behind its setting).
@@ -547,16 +550,16 @@ int CWorldClient::DrawPass() {
 
     // Selection markers (list7BC_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
-    stlp::list<int>& selected = list7BC_;
+    std::list<int>& selected = list7BC_;
     if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTexture(0, nullptr);
         CMapObjectManager* manager = manager40_;
-        using Node = stlp::list<int>::Node;
-        Node* head = selected.head;
-        for (Node* node = head->next; node != head;) {
-            Node* next = node->next;
-            int id = node->data;
+        using Node = std::list<int>::iterator;
+        Node head = selected.end();
+        for (Node node = std::next(head); node != head;) {
+            Node next = std::next(node);
+            int id = (*node);
             auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
             if (object) {
                 if (object->IsDead() == 0) {
@@ -580,7 +583,7 @@ int CWorldClient::DrawPass() {
                         object->attached->Unused25(0);
                         object->attached->SetLit(0);
                     }
-                    stlp::list<int>::Erase(node);
+                    std::list<int>::Erase(node);
                 }
             }
             node = next;
@@ -592,16 +595,16 @@ int CWorldClient::DrawPass() {
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};
     for (FrameList list : kCopied) {
-        stlp::vector<CMapObject*>& v = FrameObjects(list);
-        v.Finish() = VectorCopyBack(v.end(), v.end(), v.begin());
+        std::vector<CMapObject*>& v = FrameObjects(list);
+        v.Finish() = VectorCopyBack(v.data() + v.size(), v.data() + v.size(), v.data());
     }
-    stlp::vector<CMapObject*>& shadow5D = FrameObjects(FrameList::Shadow5D);
-    shadow5D.EraseRange<stlp::PlainElement<CMapObject*>>(shadow5D.begin(), shadow5D.end());
-    stlp::vector<CMapObject*>& shadowUnits = FrameObjects(FrameList::ShadowUnits);
-    shadowUnits.EraseRange<stlp::PlainElement<CMapObject*>>(shadowUnits.begin(), shadowUnits.end());
-    stlp::vector<CMapObject*>& shadow52 = FrameObjects(FrameList::Shadow52);
-    shadow52.Finish() = VectorCopyBack(shadow52.end(), shadow52.end(), shadow52.begin());
-    stlp::vector<CMapObject*>& touchedModels = FrameObjects(FrameList::TouchedModels);
-    touchedModels.EraseRange<stlp::PlainElement<CMapObject*>>(touchedModels.begin(), touchedModels.end());
+    std::vector<CMapObject*>& shadow5D = FrameObjects(FrameList::Shadow5D);
+    shadow5D.clear();
+    std::vector<CMapObject*>& shadowUnits = FrameObjects(FrameList::ShadowUnits);
+    shadowUnits.clear();
+    std::vector<CMapObject*>& shadow52 = FrameObjects(FrameList::Shadow52);
+    shadow52.Finish() = VectorCopyBack(shadow52.data() + shadow52.size(), shadow52.data() + shadow52.size(), shadow52.data());
+    std::vector<CMapObject*>& touchedModels = FrameObjects(FrameList::TouchedModels);
+    touchedModels.clear();
     return 1;
 }

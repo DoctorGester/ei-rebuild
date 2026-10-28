@@ -36,6 +36,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -93,15 +94,10 @@ private:
     NamedFloatTable table_;
 };
 
-using ZoneNames = stlp::vector<mfc::CString>;
+using ZoneNames = std::vector<mfc::CString>;
 int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
 void PushBack(ZoneNames* v, const std::string& x) {
-    if (v->Finish() != v->EndOfStorage()) {
-        std::construct_at(v->Finish(), x);
-        ++v->Finish();
-    } else {
-        v->InsertOverflow<stlp::ObjectElement<mfc::CString>>(v->Finish(), x, 1);
-    }
+    v->push_back(x);
 }
 
 void SortStrings(mfc::CString* first, mfc::CString* last) {
@@ -318,8 +314,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             selectedQuest_ = -1;
             LastQuest().Empty();
         } else {
-            SortStrings(found.begin(), found.end());
-            for (mfc::CString* s = found.begin(); s != found.end(); ++s) {
+            SortStrings(found.data(), found.data() + found.size());
+            for (mfc::CString* s = found.data(); s != found.data() + found.size(); ++s) {
                 quests.push_back(s->GetString());
                 const char* current = listZones_ == 0 ? LastQuest().GetString()
                                                       : interface_->savedText_.c_str();
@@ -358,8 +354,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             }
         }
 
-        for (mfc::CString* s = found.begin(); s != found.end(); ++s) std::destroy_at(s);
-        found.FreeStorage();
         table->~VariableTable();
     }
 }
@@ -612,7 +606,7 @@ void CObjectivesWindow::CreateScreen() {
                                 allodZone->allod) != 0)
                 continue;
             bool listed = false;
-            for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
+            for (mfc::CString* z = zones->data(); z != zones->data() + zones->size(); ++z)
                 if (gamecrt::mbscmp(zone->name,
                                     z->GetString()) == 0) {
                     listed = true;

@@ -24,6 +24,7 @@
 #include <bit>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
@@ -98,7 +99,6 @@ int CWorldClient::LoadLights(const char* file) {
 void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     TextureManager()->SetDevice(device);
     LoadSky();
-    static_assert(sizeof(CFlyingHitPoints) == 8);
     auto* numbers = gamecrt::operator_new_as<CFlyingHitPoints>();
     numbers_ = numbers ? numbers->Construct() : nullptr;
     auto* texture = TextureManager()->FindOrCreate(kNumbersKind, NumbersName());

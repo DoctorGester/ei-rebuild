@@ -24,6 +24,7 @@
 #include "lib/str.h"
 
 #include <cstdint>
+#include <iterator>
 #include <string>
 
 namespace {
@@ -117,7 +118,7 @@ void CScreenFade::Start(int ms) {
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Draw(SceneRenderer());
+    if (!stack_.empty()) stack_.back()->Draw(SceneRenderer());
     fade_->Draw(SceneRenderer());
     return 1;
 }
@@ -129,9 +130,9 @@ void CInterface3D::DrawOverlays() {
     panel->Set("surface stored", text.c_str());
     text = str::Format("%d", SurfaceBytesAllocated());
     panel->Set("surface alloc", text.c_str());
-    if (stack_.Start() != stack_.Finish()) {
-        stack_.Finish()[-1]->Redraw();       // its surfaces blit themselves
-        stack_.Finish()[-1]->RedrawTips();   // its tooltips follow the mouse and redraw
+    if (!stack_.empty()) {
+        stack_.back()->Redraw();       // its surfaces blit themselves
+        stack_.back()->RedrawTips();   // its tooltips follow the mouse and redraw
     }
     // (The original calls an empty function on the fade here; nothing to do.)
     if (statusSurface_) statusSurface_->Blit();
@@ -152,7 +153,7 @@ void CInterface3D::DrawOverlays() {
         backdrop_->CaptureScreen();
         backdropMode_ = 4;
     }
-    if (IsMultiplayerClient() && stack_.Finish() - stack_.Start() == 1) root_->Redraw();
+    if (IsMultiplayerClient() && std::ssize(stack_) == 1) root_->Redraw();
     panel->Tick();
 
     ++fpsFrames_;

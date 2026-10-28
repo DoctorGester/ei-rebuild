@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <vector>
 
 namespace net {
 
@@ -85,7 +86,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
     if (!IsLive(connection)) return;
 
-    const stlp::vector<std::string>& items = entry->lists[0];   // the items given
+    const std::vector<std::string>& items = entry->lists[0];   // the items given
     auto count = [&items] { return static_cast<std::uint32_t>(items.end() - items.begin()); };
     if (count() != 0) {
         std::uint32_t i = 0;

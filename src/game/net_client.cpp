@@ -39,7 +39,6 @@ ClientBase::ClientBase() {
     host_ = NetAddress{};
     servers_.Construct();
     ClientVectorConstruct(&queries_);
-    waiting_.Construct();
     alwaysAsk_ = NetAddress{};
     joinState_ = kNotJoined;
     joinId_ = 0;

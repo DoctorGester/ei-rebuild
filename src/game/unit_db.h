@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class ChunkArchive;
 
@@ -77,12 +78,12 @@ struct UnitPrototypeRecord {
     float valuesE0[6];              // 0x1A
     UnitGoldRoll gold;              // chunk 0x1B, fields 0..3 (the loot)
     UnitGoldRoll secondGold;        // chunk 0x1C (fields 0..3)
-    stlp::vector<std::string> lootItems;            // 0x1D item names its loot draws from
+    std::vector<std::string> lootItems;            // 0x1D item names its loot draws from
     float skills3to5[3];            // 0x1E
     // The starting equipment of a new unit: spells for every unit; armour pieces and two weapons (item names,
     // may be empty) for units of type 0x32.
-    stlp::vector<std::string> spellNames;       // 0x1F
-    stlp::vector<std::string> armourNames;      // 0x20
+    std::vector<std::string> spellNames;       // 0x1F
+    std::vector<std::string> armourNames;      // 0x20
     std::string weaponName;        // 0x21
     std::string secondWeaponName;  // 0x2A
 };
@@ -98,10 +99,10 @@ struct UnitNpcRecord {
     std::uint8_t attributes[3];     // 6 (three bytes)
     std::uint8_t skills[8];         // 7 (eight bytes)
     std::uint8_t unused_23;        // not serialised
-    stlp::vector<std::string> skillNames;       // 8 (the skill level records it learns)
-    stlp::vector<std::string> startWeapons;     // 9: item names a multiplayer hero starts with
-    stlp::vector<std::string> startQuickItems;  // 10: its quick items
-    stlp::vector<std::string> startSpells;      // 11: its spells
+    std::vector<std::string> skillNames;       // 8 (the skill level records it learns)
+    std::vector<std::string> startWeapons;     // 9: item names a multiplayer hero starts with
+    std::vector<std::string> startQuickItems;  // 10: its quick items
+    std::vector<std::string> startSpells;      // 11: its spells
     float experienceFloor;          // 12: its starting experience, which it keeps when it dies in a network game
     int startMoney;                 // 13: money its party starts with
     std::uint8_t voiced;                // 14 (one byte): the multiplayer hero screen offers it as a voice
@@ -139,8 +140,8 @@ struct UnitModelRecord {
     float protection[7];            // 0x27
     UnitModelSlot slots[6];         // chunks 0x0C..0x11
     std::string figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
-    stlp::vector<std::string> field1F;              // 0x1F (nothing reads it)
-    stlp::vector<std::string> field20;              // 0x20 (nothing reads it)
+    std::vector<std::string> field1F;              // 0x1F (nothing reads it)
+    std::vector<std::string> field20;              // 0x20 (nothing reads it)
     float height;                   // 0x21 (the object stands this much lower)
     std::uint32_t bloodKind;        // 0x28 1..4 blood (particles 0x200F / 0x2031..0x2033 and a decal), 5..8 particles only
     int footprintKind;              // 0x2A the footprint texture (-1: none)
@@ -152,11 +153,11 @@ struct UnitModelRecord {
     std::uint32_t sizeScale;            // 0x2E (float bits) multiplies the unit's size for its size classes
     std::string soundFolder;       // 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
     std::uint8_t unused_128[0x10]; // not serialised
-    stlp::vector<std::string> soundNames;       // 0x23 (the .wav files of each are counted)
+    std::vector<std::string> soundNames;       // 0x23 (the .wav files of each are counted)
     // The number of sound files of each soundNames entry (counted at startup; not serialised).
-    stlp::vector<std::uint32_t> soundCounts;
+    std::vector<std::uint32_t> soundCounts;
 
-    const std::uint32_t* SoundCounts() const { return soundCounts.begin(); }
+    const std::uint32_t* SoundCounts() const { return soundCounts.data(); }
     std::uint32_t idleSoundChance;  // 0x25 percent
     std::uint32_t attackSoundChance;    // 0x26 percent
     // The eyes on the skin texture (in 256ths of its width; the blink; read as signed ints): left, distance
@@ -269,7 +270,7 @@ struct SkillRecord {
     std::uint32_t field2;               // 2 (nothing reads it)
     // Chunk 10: the stats it counts; the first one's first letter picks the stat ('s' strength, 'd'
     // dexterity, 'i' intelligence; UnitStats::SkillWithBonus).
-    stlp::vector<std::string> statNames;
+    std::vector<std::string> statNames;
 };
 
 // A skill level record (the perks the trade panel offers).

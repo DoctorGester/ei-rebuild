@@ -14,7 +14,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
+#include <vector>
 
 class ClassTemplate;
 struct LeverRecord;
@@ -77,7 +79,7 @@ public:
     };
     using Stack = stlp::list<Ref>;
     static_assert(sizeof(Stack::Node) == 0x18);
-    using SavedList = stlp::list<CRefCounted*>;
+    using SavedList = std::list<CRefCounted*>;
 
     // While loading: key -> the object the index names (by the key its record is stored under).
     using LoadedObjects = stlp::hash_map<std::uint32_t, CRefCounted*, stlp::IntHash>;
@@ -170,7 +172,7 @@ public:
     void SerializeSpellLists(int id, stlp::vector<itemdb::SpellListRecord>* records, void* unused);
     // vector<int> as chunk `id`: one field 1 per
     // value; loading empties the vector and refills it with as many zeros as there are fields.
-    void IntVectorField(int id, stlp::vector<int>* values, void* unused);
+    void IntVectorField(int id, std::vector<int>* values, void* unused);
 
     // The quest database's vectors: one chunk 1 per record (its Serialize); loading destroys the records and
     // resizes the vector to the record chunks first.
@@ -186,7 +188,7 @@ public:
     void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
     void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
     // A vector of strings as chunk `id` (InlineStrings).
-    void SerializeStrings(int id, stlp::vector<std::string>* strings, void* unused);
+    void SerializeStrings(int id, std::vector<std::string>* strings, void* unused);
 
     ChunkArchive();
     ~ChunkArchive();

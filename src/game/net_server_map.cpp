@@ -15,6 +15,8 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <memory>
+#include <vector>
 
 namespace net {
 
@@ -72,8 +74,8 @@ void ServerSession::SetMap(const std::string* name) {
     }
     if (!entry) return;
 
-    const stlp::vector<std::string>& quests = entry->lists[2];   // the quests given
-    for (const std::string* it = quests.begin(); it != quests.end(); ++it) {
+    const std::vector<std::string>& quests = entry->lists[2];   // the quests given
+    for (const std::string* it = quests.data(); it != quests.data() + quests.size(); ++it) {
         std::string resourceName(*it);
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
@@ -108,9 +110,9 @@ void ServerSession::SetMap(const std::string* name) {
 // the flow picks for the server's kind after the current map, loading each zone's quests.
 void ServerSession::QueueMapList() {
     UnloadQuestTexts();
-    stlp::vector<std::string> zones;    // empty
+    std::vector<std::string> zones;    // empty
     PickZones(&zones, kind_, mapName_.data());
-    for (std::string* zone = zones.begin(); zone != zones.end(); ++zone) {
+    for (std::string* zone = zones.data(); zone != zones.data() + zones.size(); ++zone) {
         {
             std::string key = *zone + game::ZoneSuffix1Text();
             auto* message = NewCounted<ZoneMessage>();
@@ -121,7 +123,7 @@ void ServerSession::QueueMapList() {
         }
         LoadZoneQuests(zone->data());
     }
-    for (std::string* zone = zones.begin(); zone != zones.end(); ++zone) std::destroy_at(zone);
+    for (std::string* zone = zones.data(); zone != zones.data() + zones.size(); ++zone) std::destroy_at(zone);
     NamesFree(zones.begin(), static_cast<std::size_t>(zones.EndOfStorage() - zones.begin()));
 }
 

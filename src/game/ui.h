@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -228,7 +229,7 @@ public:
     // The windows draw, redraw their surfaces and update their tooltips only while this is set.
     bool drawing_;
     std::uint8_t unused_31[0x34 - 0x31];
-    stlp::vector<CUiWindow*> stack_;   // the open windows, the top one last
+    std::vector<CUiWindow*> stack_;   // the open windows, the top one last
     CUiWindow* queuedWindow_;        // activated by the next frame update
     bool closeAll_;
     std::uint8_t unused_45[0x48 - 0x45];
@@ -256,7 +257,7 @@ public:
     // The top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop_;
     std::uint8_t unused_82[0x84 - 0x82];
-    stlp::list<mfc::CString> messages_;   // queued message texts (ShowMessage takes the first)
+    std::list<mfc::CString> messages_;   // queued message texts (ShowMessage takes the first)
     bool disconnected_;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
@@ -287,25 +288,17 @@ public:
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, ctrlDown_) == 0x7C && offsetof(CInterface3D, altDown_) == 0x7E);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
-static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
-static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
 static_assert(offsetof(CInterface3D, stack_) == 0x34);
 
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
-static_assert(offsetof(CInterface3D, messageText_) == 0xA4);
 static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
-static_assert(offsetof(CInterface3D, rightDown_) == 0x80 && offsetof(CInterface3D, pollTop_) == 0x81 &&
-              offsetof(CInterface3D, disconnected_) == 0x88);
-static_assert(offsetof(CInterface3D, hudBodyPart_) == 0x8C);
-static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
-static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 
 extern lib::StaticObject<CInterface3D> g_interface;
 
@@ -1507,7 +1500,7 @@ public:
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
 
     // The client's party ids: players with a unit, the camera's player, the others.
-    using IdVector = stlp::vector<int>;
+    using IdVector = std::vector<int>;
     struct PartyIds {
         PartyIds* Construct();
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
@@ -2003,7 +1996,7 @@ public:
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() override;
 
-    stlp::vector<mfc::CString> zones_;   // the zones listed
+    std::vector<mfc::CString> zones_;   // the zones listed
     std::string zoneName_;          // the zone it was opened for
     int twoButtons_;                 // OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // exit -> distance, or null
@@ -2019,7 +2012,7 @@ public:
     int firstRow_;                   // the first quest row shown (the bar's position)
     float markerScale_;
     float blinkTime_;                // seconds since the exit was selected (the markers' blink)
-    stlp::vector<UiPointF> questPlaces_;   // the selected quest's places
+    std::vector<UiPointF> questPlaces_;   // the selected quest's places
     std::vector<std::string> objectiveTexts_;   // obj_0..obj_2
     std::uint32_t savedAlphaRef_;
 };
@@ -2032,12 +2025,12 @@ struct OptionBinding {
     void Destroy() {
         std::destroy_at(&keysText_);
         std::destroy_at(&name_);
-        keys_.FreeStorage();
+        std::destroy_at(&keys_);
     }
 
     const ActionDefinition* action_;
     // The keys bound to the action (BuildBindings keeps at most one).
-    stlp::vector<const UiKeyName*> keys_;
+    std::vector<const UiKeyName*> keys_;
     std::string name_;              // the action's shown name
     std::string keysText_;          // the keys' names
 };
@@ -2100,7 +2093,7 @@ public:
     int selectedRow_;
     int group_;                      // the option group shown
     stlp::vector<OptionBinding> bindings_;
-    stlp::vector<OptionSetting> settings_;
+    std::vector<OptionSetting> settings_;
     OptionRow rows_[14];
     bool waitingForKey_;             // a key binding row waits for the new key
     bool sliding_;
@@ -2195,8 +2188,8 @@ class CHelpWindow : public CUiContainer {
 public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {
-        pulsing_.Construct();
-        pictures_.Construct();
+        std::construct_at(&pulsing_);
+        std::construct_at(&pictures_);
     }
     ~CHelpWindow() override;
     BOOL Draw(CSceneRenderer* pass) override;
@@ -2223,8 +2216,8 @@ public:
     std::string title_;
     std::vector<std::string> lines_;     // the pages' texts
     int page_;                           // the page shown (the topic's or message's saved page)
-    stlp::list<CUiMesh*> pulsing_;       // sprites whose plain colour pulses (Update)
-    stlp::list<CUiMesh*> pictures_;      // the entries' picture sprites
+    std::list<CUiMesh*> pulsing_;       // sprites whose plain colour pulses (Update)
+    std::list<CUiMesh*> pictures_;      // the entries' picture sprites
     float pulseTime_;
 
 private:

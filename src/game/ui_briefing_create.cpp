@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -357,7 +358,7 @@ void CBriefingScreen::MarkPeople() {
     BriefingVariables variables(TopicPrefix());
     std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
-    stlp::vector<int> open;
+    std::vector<int> open;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;
         std::memcpy(&bits, &node->value.mapped, 4);
@@ -369,7 +370,7 @@ void CBriefingScreen::MarkPeople() {
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
     }
-    for (int* id = people_.begin(); id != people_.end(); ++id) {
+    for (int* id = people_.data(); id != people_.data() + people_.size(); ++id) {
         if (!TheClientWorld()->FindUnit(*id)) continue;
         bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
         auto* player = TheServerWorld()->GetPlayer(0);
@@ -377,7 +378,6 @@ void CBriefingScreen::MarkPeople() {
             player->Server()->SendPair19(hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
     }
     open.clear();
-    open.FreeStorage();
 }
 
 void CBriefingScreen::LeaveIfExitOpen() {

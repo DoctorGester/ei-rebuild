@@ -24,8 +24,10 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -72,7 +74,7 @@ struct TextureRecord {
     std::uint32_t itemType;   // the item record's type
 };
 static_assert(sizeof(TextureRecord) == 12);
-using RecordList = stlp::vector<TextureRecord>;
+using RecordList = std::vector<TextureRecord>;
 
 } // namespace
 
@@ -84,7 +86,7 @@ namespace {
 void CopyRecords(SkinComposition& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
     set.layers.SetSize(size);
-    std::memcpy(set.layers.data, list.begin(), static_cast<std::size_t>(size));
+    std::memcpy(set.layers.data, list.data(), static_cast<std::size_t>(size));
 }
 
 // Inlined strcpy / strcat: the bytes up to and including the terminator.
@@ -128,8 +130,8 @@ void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::u
 
 // The extra weapon picked by the record's index byte in its list: weapon and material records named together.
 void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedUnitRecord* record) {
-    const std::uint32_t* list = record->extraWeapons.Start();
-    int count = static_cast<int>(record->extraWeapons.Finish() - list);
+    const std::uint32_t* list = record->extraWeapons.data();
+    int count = static_cast<int>(record->extraWeapons.data() + record->extraWeapons.size() - list);
     int index = record->extraWeapon;
     if (!(static_cast<std::uint32_t>(count) > static_cast<std::uint32_t>(index))) return;
     std::uint32_t id = list[index];
@@ -157,10 +159,10 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const UnitModelRecord* model = UnitModel(static_cast<std::uint32_t>(prototype->modelIndex));
     lib::InPlace<RecordList> listStorage;
     RecordList& list = *listStorage.Get();
-    list.ConstructEmpty();
+    std::construct_at(&list);
     SkinComposition set{};
 
-    const std::uint32_t* items = record->items.Start();
+    const std::uint32_t* items = record->items.data();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
         mfc::CString built;
         UnitTextureRecords(1, record, &list);
@@ -205,8 +207,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
 // --- The other units -----------------------------------------------------------------------------
 
-using StringList = stlp::vector<std::string>;
-int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - list.Start()); }
+using StringList = std::vector<std::string>;
+int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - list.data()); }
 
 // Room for `needed` strings as inlined (reserve): a copy into new storage, the old strings destroyed
 // and freed.
@@ -214,10 +216,10 @@ void Reserve(StringList& list, int needed) {
     int size = static_cast<int>(list.size());
     if (!(static_cast<std::uint32_t>(Capacity(list)) < static_cast<std::uint32_t>(needed))) return;
     std::string* storage;
-    if (list.Start()) {
-        storage = StringList::AllocateAndCopy<stlp::ObjectElement<std::string>>(static_cast<std::size_t>(needed), list.Start(), list.Finish());
-        for (std::string* s = list.Start(); s != list.Finish(); ++s) std::destroy_at(s);
-        StringsFree(list.Start(), Capacity(list));
+    if (list.data()) {
+        storage = StringList::AllocateAndCopy<stlp::ObjectElement<std::string>>(static_cast<std::size_t>(needed), list.data(), list.data() + list.size());
+        for (std::string* s = list.data(); s != list.data() + list.size(); ++s) std::destroy_at(s);
+        StringsFree(list.data(), Capacity(list));
     } else {
         storage = needed ? stlp::allocate_as<std::string>(static_cast<std::size_t>(needed)) : nullptr;
     }
@@ -233,27 +235,22 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     lib::InPlace<StringList> secondStorage;
     StringList& first = *firstStorage.Get();
     StringList& second = *secondStorage.Get();
-    first.ConstructEmpty();
-    second.ConstructEmpty();
+    std::construct_at(&first);
+    std::construct_at(&second);
 
-    const mfc::CString* names = record->names.Start();
+    const mfc::CString* names = record->names.data();
     if (!(ByteSpan(record->names) & ~std::uintptr_t{3})) {
         CollectArmourPartNames(prototype, &record->items, &record->extraWeapons, &first,
                                &second);
     } else {
-        int count = static_cast<int>(record->names.Finish() - names);
+        int count = static_cast<int>(record->names.data() + record->names.size() - names);
         Reserve(first, static_cast<int>(first.size()) + count);
-        for (const mfc::CString* p = record->names.Start(); p != record->names.Finish(); ++p) {
+        for (const mfc::CString* p = record->names.data(); p != record->names.data() + record->names.size(); ++p) {
             std::string string(p->GetString());
-            if (first.Finish() != first.EndOfStorage()) {
-                std::construct_at(first.Finish(), string);
-                ++first.Finish();
-            } else {
-                first.InsertOverflow<stlp::ObjectElement<std::string>>(first.Finish(), string, 1);
-            }
+            first.push_back(string);
         }
     }
-    first.RangeInsert<stlp::ObjectElement<std::string>>(first.Finish(), second.Start(), second.Finish());
+    first.insert(first.end(), second.data(), second.data() + second.size());
 
     {
         std::string name(ModelPrefix(model));
@@ -261,10 +258,10 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
         self->figureLoader_->LoadFigure(&name, &first, record->morphS, record->morphT, record->morphU, false);
     }
 
-    for (std::string* s = second.Start(); s != second.Finish(); ++s) std::destroy_at(s);
-    stlp::deallocate(second.Start(), static_cast<std::size_t>(Capacity(second)) * sizeof(std::string));
-    for (std::string* s = first.Start(); s != first.Finish(); ++s) std::destroy_at(s);
-    stlp::deallocate(first.Start(), static_cast<std::size_t>(Capacity(first)) * sizeof(std::string));
+    for (std::string* s = second.data(); s != second.data() + second.size(); ++s) std::destroy_at(s);
+    stlp::deallocate(second.data(), static_cast<std::size_t>(Capacity(second)) * sizeof(std::string));
+    for (std::string* s = first.data(); s != first.data() + first.size(); ++s) std::destroy_at(s);
+    stlp::deallocate(first.data(), static_cast<std::size_t>(Capacity(first)) * sizeof(std::string));
 }
 
 } // namespace
@@ -286,10 +283,10 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
     auto& items = const_cast<IdList&>(record->items);
     if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;
     const TextureRecord empty = {0, kNone, kNone};
-    const std::uint32_t* ids = items.Start();
+    const std::uint32_t* ids = items.data();
     if (body) {
-        list->Resize<stlp::PlainElement<TextureRecord>>(8, empty);
-        TextureRecord* out = list->Start();
+        list->resize(8, empty);
+        TextureRecord* out = list->data();
         out[0].id = record->prototype;
         out[0].kind = kBody;
         out[0].itemType = kNone;
@@ -301,8 +298,8 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
         }
         return;
     }
-    list->Resize<stlp::PlainElement<TextureRecord>>(2, empty);
-    TextureRecord* out = list->Start();
+    list->resize(2, empty);
+    TextureRecord* out = list->data();
     if (ids[0] != kNone) {
         out[0].id = ids[0];
         out[0].kind = kArmourPiece;
@@ -312,7 +309,7 @@ void __fastcall UnitTextureRecords(char body, const DressedUnitRecord* record, R
     const auto count = static_cast<std::uint32_t>(ByteSpan(extra) >> 2);
     const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
     if (index >= count) return;
-    const std::uint32_t weapon = extra.Start()[index];
+    const std::uint32_t weapon = extra[index];
     if (weapon == kNone) return;
     out[1].id = weapon;
     out[1].kind = kWeapon;

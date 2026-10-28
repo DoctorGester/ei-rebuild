@@ -33,7 +33,6 @@ CCamera::CCamera() {
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    shakes_.Construct();
     for (CameraView& view : views_) {
         view.distance = 30.0f;
         std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
@@ -71,7 +70,6 @@ CCamera::~CCamera() {
     targetId_ = -1;
     if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
     viewStack_.Destroy();   // the nodes, then the map
-    shakes_.Destroy();      // the nodes, then the sentinel
 }
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.

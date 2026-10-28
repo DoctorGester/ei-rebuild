@@ -62,6 +62,8 @@
 #include "system_text.h"
 #include "lib/str.h"
 
+#include <iterator>
+#include <list>
 #include <new>
 #include <string>
 #include <vector>
@@ -158,7 +160,7 @@ RadiusFunctor* RadiusFunctor::Mark(stlp::list<Footprint>::Node* first, stlp::lis
 }
 
 void ScreenHits::InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count) {
-    stlp::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
+    std::vector<ScreenEntry>::InsertOverflow<stlp::PlainElement<ScreenEntry>>(position, *value,
                                                                               static_cast<std::size_t>(count));
 }
 
@@ -169,9 +171,9 @@ using HitTest = int (CObject3DSpecific::*)(const long* point);
 
 // The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
 // object still exists and answers `test` go to `hits`.
-HitCollector* CollectHits(HitCollector* out, ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, LONG x,
+HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, LONG x,
                           LONG y, CMapObjectManager* manager, HitTest test) {
-    for (ScreenEntryNode* node = first; node != last; node = node->next) {
+    for (ScreenEntryNode node = first; node != last; node = node->next) {
         const ScreenEntry* entry = &node->data;
         POINT pt = {x, y};
         if (!PtInRect(&entry->rect, pt)) continue;
@@ -188,12 +190,12 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode* first, ScreenEntry
 
 } // namespace
 
-HitCollector* HitCollector::CollectBounds(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* found, LONG x,
+HitCollector* HitCollector::CollectBounds(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* found, LONG x,
                                           LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
 
-HitCollector* HitCollector::CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* found, LONG x,
+HitCollector* HitCollector::CollectParts(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* found, LONG x,
                                          LONG y, CMapObjectManager* manager) {
     return CollectHits(this, first, last, found, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
@@ -493,14 +495,14 @@ void CWorldClient::ClearMaps() {
     dynamicNodes_.Clear();
     dynamicMaxId_ = 0;
 
-    stlp::list<int>& records = list7BC_;
-    for (stlp::list<int>::Node* node = records.head->next; node != records.head;) {
-        stlp::list<int>::Node* next = node->next;
+    std::list<int>& records = list7BC_;
+    for (std::list<int>::iterator  node = records.begin(); node != records.end();) {
+        std::list<int>::iterator  next = std::next(node);
         if (node) stlp::deallocate(node, 0xC);
         node = next;
     }
-    records.head->next = records.head;
-    records.head->prev = records.head;
+    records.begin() = records.end();
+    std::prev(records.end()) = records.end();
 
     PlainList& heroes = heroes_;
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
@@ -533,22 +535,22 @@ void CWorldClient::ClearMaps() {
 
 namespace {
 
-using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode*, ScreenEntryNode*, ScreenHits*, long, long,
+using Collect = HitCollector* (HitCollector::*)(ScreenEntryNode, ScreenEntryNode, ScreenHits*, long, long,
                                                 CMapObjectManager*);
 CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     ScreenHits& hits = client->hits_;
     hits.Finish() = hits.Start();
     CMapObjectManager* manager = client->MapObjectManager();
-    stlp::list<ScreenEntry>& screen = client->screenEntries_;
+    std::list<ScreenEntry>& screen = client->screenEntries_;
     HitCollector functor;
-    (functor.*collect)(screen.head->next, screen.head, &hits, point->x, point->y, manager);
+    (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
     if (hits.begin() == hits.end()) return nullptr;
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level inlined.
     const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
     CMapObjectManager* objects = client->MapObjectManager();
-    ScreenEntry* first = hits.begin();
-    ScreenEntry* last = hits.end();
+    ScreenEntry* first = hits.data();
+    ScreenEntry* last = hits.data() + hits.size();
     if (first != last) {
         int count = static_cast<int>(last - first);
         int depth = 0;
@@ -562,7 +564,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
         }
     }
     ScreenEntry*& cursor = client->hitCursor_;
-    for (cursor = hits.begin(); cursor != hits.end(); ++cursor) {
+    for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
         if (CMapObject* object = manager->FindMapObject(cursor->objectId)) return object;
     }
     return nullptr;
@@ -601,7 +603,7 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 }
 
 void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out) {
-    for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
+    for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); node = node->next) {
         CMapObject* object = manager40_->FindMapObject(node->data.objectId);
         if (!object) continue;
         if (!object->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
@@ -689,7 +691,7 @@ std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std:
 
 } // namespace
 
-void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out) {
+void CWorldClient::ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out) {
     float maxX = terrain_->width - 1.0f;
     float maxY = terrain_->height - 1.0f;
     float y1 = MinOf(MaxZero(point->y + radius), maxY);
@@ -722,7 +724,7 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
             double limit = reach * reach;
             // Skipped when the limit is below (or unordered).
             if (limit >= distance) {
-                stlp::list<CObject3D*>::Insert(out->End(), object);
+                out->insert(out->end(), object);
             }
         }
         if (++x > lastX) {
@@ -889,7 +891,7 @@ void CWorldClient::Destroy() {
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
-    EmptyList(list7BC_, [](stlp::list<int>::Node* node) { stlp::deallocate(node, 12); });
+    EmptyList(list7BC_, [](std::list<int>::iterator  node) { stlp::deallocate(node, 12); });
     EmptyList(heroes_, [](SectorListNode* node) {
         if (node->data) node->data->Release();
         stlp::deallocate(node, 12);
@@ -950,22 +952,22 @@ void Unhighlight(CMapObject* object) {
 } // namespace
 
 void CWorldClient::Deselect(CMapObject* object) {
-    stlp::list<int>& selected = list7BC_;
-    using Node = stlp::list<int>::Node;
+    std::list<int>& selected = list7BC_;
+    using Node = std::list<int>::iterator;
     auto* objects = manager40_;
     if (!object) {
-        for (Node* node = selected.head->next; node != selected.head; node = node->next) {
-            CMapObject* found = objects->FindMapObject(static_cast<unsigned>(node->data));
+        for (Node node = selected.begin(); node != selected.end(); ++node) {
+            CMapObject* found = objects->FindMapObject(static_cast<unsigned>((*node)));
             if (found && (found->flags_ & 0x10)) Unhighlight(found);
         }
-        EmptyList(selected, [](Node* node) { stlp::deallocate(node, 12); });
+        EmptyList(selected, [](Node node) { stlp::deallocate(node, 12); });
         return;
     }
     const int id = object->id_;
-    Node* node = selected.head->next;
-    while (node != selected.head && node->data != id) node = node->next;
-    if (node == selected.head) return;
-    stlp::list<int>::Erase(node);
+    Node node = selected.begin();
+    while (node != selected.end() && (*node) != id) ++node;
+    if (node == selected.end()) return;
+    std::list<int>::Erase(node);
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
@@ -977,13 +979,13 @@ void CWorldClient::Select(CMapObject* object) {
         object->flags_ |= 0x10;
         object->attached->Unused25(1);
     }
-    stlp::list<int>& selected = list7BC_;
-    using Node = stlp::list<int>::Node;
+    std::list<int>& selected = list7BC_;
+    using Node = std::list<int>::iterator;
     const int id = object->id_;
-    Node* node = selected.head->next;
-    while (node != selected.head && node->data != id) node = node->next;
-    if (node != selected.head) return;
-    stlp::list<int>::Insert(selected.head, id);
+    Node node = selected.begin();
+    while (node != selected.end() && (*node) != id) ++node;
+    if (node != selected.end()) return;
+    selected.insert(selected.end(), id);
 }
 
 namespace {
@@ -1165,9 +1167,9 @@ int CWorldClient::Create() {
         int count = static_cast<int>(entries.size());
         ScreenEntry* block;
         if (entries.begin()) {
-            block = stlp::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(
+            block = std::vector<ScreenEntry>::AllocateAndCopy<stlp::PlainElement<ScreenEntry>>(
                 400, entries.begin(), entries.end());
-            if (ScreenEntry* old = entries.begin())
+            if (ScreenEntry* old = entries.data())
                 stlp::deallocate(old, static_cast<std::size_t>(entries.EndOfStorage() - old) * sizeof(ScreenEntry));
         } else {
             block = gamecrt::operator_new_array<ScreenEntry>(400);

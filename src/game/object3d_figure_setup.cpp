@@ -22,7 +22,9 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <memory>
 #include <new>
+#include <vector>
 
 namespace {
 constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
@@ -290,7 +292,7 @@ constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 // The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the game
 // sizes it with helper calls and assigns each name).
-void FillPieceNames(stlp::vector<std::string>& pieces, const std::vector<std::string>* names) {
+void FillPieceNames(std::vector<std::string>& pieces, const std::vector<std::string>* names) {
     int count = static_cast<int>(names->size());
     if (count > 0) {
         auto* start = stlp::allocate_as<std::string>(static_cast<std::size_t>(count));
@@ -299,13 +301,12 @@ void FillPieceNames(stlp::vector<std::string>& pieces, const std::vector<std::st
             std::construct_at(&start[i], (*names)[i]);
         }
         pieces.Finish() = start + count;
-        pieces.EndOfStorage() = pieces.Finish();
+        pieces.EndOfStorage() = pieces.data() + pieces.size();
     }
 }
 
-void FreePieceNames(stlp::vector<std::string>& pieces) {
-    for (std::string& piece : pieces) std::destroy_at(&piece);
-    pieces.FreeStorage();
+void FreePieceNames(std::vector<std::string>& pieces) {
+    std::destroy_at(&pieces);
 }
 
 CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
@@ -325,7 +326,7 @@ int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, st
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
     } else {
-        stlp::vector<std::string> pieces;
+        std::vector<std::string> pieces;
         FillPieceNames(pieces, names);
         {
             std::string key(model, model + std::strlen(model));

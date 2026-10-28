@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class ChunkArchive;
 
@@ -35,7 +36,7 @@ struct QuestRecord {
     float money;
     int zone;                       // the zone index
     int order;
-    stlp::vector<float> places;     // x and y in turn
+    std::vector<float> places;     // x and y in turn
     std::string text;
 };
 
@@ -58,7 +59,7 @@ struct QuestBriefingRecord {
     std::string name;
     float exp;
     float money;
-    stlp::vector<std::string> lists[6];   // by ListKind
+    std::vector<std::string> lists[6];   // by ListKind
     std::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
@@ -116,4 +117,4 @@ class CFileRegistry;
 // (__fastcall registry, section; key and list on the stack; quest_database.cpp).
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list);
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list);

@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 
 namespace {
 
@@ -134,11 +135,10 @@ void CCamera::ClampAboveObjects() {
     const Vector3* zero = &camera::kZeroVector;
     SampleTerrain(p, zero, zero, 1.0f, 2.0f, 2.0f, &average, &lowest, &highest);
     NearbyList list;
-    list.Construct();
     TheClientWorld()->ObjectsInRange(p, 16.0f, &list);
     float best = 0.0f;
-    for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {
-        const CObject3D* object = node->data;
+    for (NearbyNode node = list.begin(); node != list.end(); ++node) {
+        const CObject3D* object = (*node);
         const float limit = CAM_OBJECT_EXTENT_LIMIT;
         if (object->bounds.boxMax.x > limit || object->bounds.boxMax.y > limit || object->bounds.boxMax.z > limit ||
             object->bounds.center.z > limit)
@@ -175,16 +175,16 @@ void CCamera::ClampAboveObjects() {
     }
     p->z = raised;
     // The list's destructor, inlined: every node and the sentinel back to the node pool.
-    for (NearbyNode* node = list.head->next; node != list.head;) {
-        NearbyNode* next = node->next;
+    for (NearbyNode node = list.begin(); node != list.end();) {
+        NearbyNode next = std::next(node);
         if (node) {
             stlp::PushSmallNode(node);
         }
         node = next;
     }
-    list.head->next = list.head;
-    list.head->prev = list.head;
-    if (list.head) {
-        stlp::PushSmallNode(list.head);
+    list.begin() = list.end();
+    std::prev(list.end()) = list.end();
+    if (list.end()) {
+        stlp::PushSmallNode(list.end());
     }
 }

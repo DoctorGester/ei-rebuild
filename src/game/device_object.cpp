@@ -20,6 +20,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
+#include <memory>
 
 DWORD g_stageBlocks[4] = /*007AEDD0*/ {};
 static_assert(kStageBlockCount == 4);
@@ -51,7 +53,7 @@ constexpr std::uint32_t kFormat565 = 0x5650, kFormat555 = 0x5550, kFormat1555 = 
 HRESULT CALLBACK PixelFormatCallback(DDPIXELFORMAT* format, void* context) {
     PixelFormat copy;
     std::memcpy(&copy, format, sizeof(copy));
-    static_cast<stlp::list<PixelFormat>*>(context)->PushBack(copy);
+    static_cast<std::list<PixelFormat>*>(context)->push_back(copy);
     return D3DENUMRET_OK;
 }
 
@@ -104,7 +106,7 @@ void ConstructWithoutDirect3D(CTextureDevice* device) {
 } // namespace
 
 void CTextureDevice::BuildFormatTable() {
-    textureFormats_.ClearWith([](PixelFormat*) {});
+    textureFormats_.clear();
     lastLoadResult_ = device::EnumTextureFormats(device::D3D(this), &PixelFormatCallback, &textureFormats_);
     // "Choosen HW device have no texture support.\n"
     if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, "Choosen HW device have no texture support.\n");
@@ -114,7 +116,7 @@ void CTextureDevice::BuildFormatTable() {
     largestFormatId_ = 0;
     formats_.Resize(0x40);
     largestFormatId_ = 0;
-    for (auto* node = textureFormats_.First(); node != textureFormats_.End(); node = node->next) {
+    for (auto* node = textureFormats_.begin(); node != textureFormats_.end(); node = node->next) {
         PixelFormat* format = &node->data;
         const auto* described = reinterpret_cast<const DDPIXELFORMAT*>(format);
         std::uint32_t id;
@@ -176,10 +178,7 @@ CTextureDevice::~CTextureDevice() {
 
     if (material_) material_->Release();
     formats_.Destroy();
-    textureFormats_.Destroy();
-    depthFormats_.Destroy();
-    devices_.ClearWith([](Direct3DDeviceRecord* record) { record->~Direct3DDeviceRecord(); });
-    devices_.Destroy();
+    devices_.clear();
     if (pipeline_) pipeline_->Release();
     if (depth2_) depth2_->Release();
     if (depth_) depth_->Release();
@@ -192,9 +191,9 @@ CTextureDevice::CTextureDevice(HWND window, GUID* driver, int fullScreen, int wi
                                int refreshRate, unsigned backBuffers, int /*depthBits*/, int /*stencilBits*/)
     : CDXDirectDraw(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers, 1),
       depth_(nullptr), depth2_(nullptr), deviceGuid_{}, pipeline_(nullptr) {
-    devices_.Construct();
-    depthFormats_.Construct();
-    textureFormats_.Construct();
+    std::construct_at(&devices_);
+    std::construct_at(&depthFormats_);
+    std::construct_at(&textureFormats_);
     formats_.InitBuckets(100);
     largestFormatId_ = 0;
     material_ = nullptr;

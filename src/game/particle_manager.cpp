@@ -5,6 +5,8 @@
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
+#include <list>
+
 namespace {
 
 // The source types that start without emitting while quietStart is set.
@@ -60,19 +62,17 @@ template <typename Pick>
 void ReleaseHeld(CParticleManager* manager, Pick drop) {
     ObjectListIterator it{nullptr, nullptr};
     CEngineObject* object = it.First(manager);
-    stlp::list<int> ids;
-    ids.Construct();
+    std::list<int> ids;
     for (; object; object = it.Next()) {
         if (!drop(object)) continue;
         int id = object->id_;
         if (!manager->held_.Find(id)) continue;
-        ids.PushBack(id);
+        ids.push_back(id);
         object->Release();
     }
-    for (stlp::list<int>::Node* n = ids.First(); n != ids.End(); n = n->next) {
-        if (CParticleManager::HeldMap::Node* node = manager->held_.Find(n->data)) manager->held_.Erase(node);
+    for (std::list<int>::iterator  n = ids.begin(); n != ids.end(); ++n) {
+        if (CParticleManager::HeldMap::Node* node = manager->held_.Find((*n))) manager->held_.Erase(node);
     }
-    ids.Destroy();
     EndWalk(it);
 }
 

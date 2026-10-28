@@ -30,6 +30,7 @@
 #include <new>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 // A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
 // records::Memberwise (the slot constructor leaves the level name empty).
@@ -129,7 +130,7 @@ struct UnitModelElement {
         &R::castEffect, &R::hitMaterial, &R::swapFeet, &R::sizeScale, &R::soundFolder, &R::unused_128, &R::soundNames>;
     using Tail = records::Memberwise<R, &R::idleSoundChance, &R::attackSoundChance, &R::eyeLeft, &R::eyeBottom,
                                      &R::eyeWidth, &R::eyeHeight>;
-    using Counts = stlp::vector<std::uint32_t>;
+    using Counts = std::vector<std::uint32_t>;
     static Counts& CountsOf(R& r) { return r.soundCounts; }
     static const Counts& CountsOf(const R& r) { return r.soundCounts; }
 
@@ -200,10 +201,9 @@ struct FiguredUnitElement {
         records::DefaultMember(p->names);
     }
     static void Destroy(R* p) {
-        for (mfc::CString* name = p->names.Start(); name != p->names.Finish(); ++name) std::destroy_at(name);
-        p->names.FreeStorage();
-        p->extraWeapons.FreeStorage();
-        p->items.FreeStorage();
+        std::destroy_at(&p->names);
+        std::destroy_at(&p->extraWeapons);
+        std::destroy_at(&p->items);
     }
 };
 
@@ -212,8 +212,8 @@ struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitR
                                                 &DressedUnitRecord::extraWeapons, &DressedUnitRecord::extraWeapon,
                                                 &DressedUnitRecord::modelNumber> {
     static void Destroy(DressedUnitRecord* p) {
-        p->extraWeapons.FreeStorage();
-        p->items.FreeStorage();
+        std::destroy_at(&p->extraWeapons);
+        std::destroy_at(&p->items);
     }
 };
 

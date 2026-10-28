@@ -290,7 +290,7 @@ void COptionsWindow::Update() {
             } else if (id == kSettingVolumeC) {
                 TheSoundManager()->SetSpeechVolume(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
-                const OptionSetting* gamma = settings_.begin() + kSettingGammaFirst;
+                const OptionSetting* gamma = settings_.data() + kSettingGammaFirst;
                 float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
                 float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
                 float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);

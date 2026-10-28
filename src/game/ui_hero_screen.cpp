@@ -216,8 +216,8 @@ template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
 
 namespace {
 void DestroyVoices(MpVoiceVector& voices) {
-    for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
-    stlp::deallocate(voices.begin(), static_cast<std::size_t>(voices.EndOfStorage() - voices.begin()) * sizeof(MpVoiceEntry));
+    for (MpVoiceEntry* entry = voices.data(); entry != voices.data() + voices.size(); ++entry) entry->Destroy();
+    std::destroy_at(&voices);
 }
 void DestroyStrings(mfc::CString* begin, mfc::CString* end) {
     for (mfc::CString* at = begin; at != end; ++at) std::destroy_at(at);
@@ -234,9 +234,8 @@ CMpHeroScreen::CMpHeroScreen(CInterface3D* ui) : CItemScreen(ui) {
 CMpHeroScreen::~CMpHeroScreen() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
-    DestroyStrings(names_.begin(), names_.end());
-    stlp::deallocate(names_.begin(), static_cast<std::size_t>(names_.EndOfStorage() - names_.begin()) * sizeof(void*));
-    DestroyStrings(defaults_.begin(), defaults_.end());
+    DestroyStrings(names_.data(), names_.data() + names_.size());
+    DestroyStrings(defaults_.data(), defaults_.data() + defaults_.size());
     stlp::deallocate(defaults_.begin(),
                      static_cast<std::size_t>(defaults_.EndOfStorage() - defaults_.begin()) * sizeof(void*));
 }

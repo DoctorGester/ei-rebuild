@@ -312,8 +312,8 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 // -1), the parts of the weapons `weaponIds` (also into `names`), and every plain part of the three rows (into
 // `plainNames`, the hair as "hr.<hair>"; the empty names of the helmet row too).
 
-void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
-                                       const stlp::vector<std::uint32_t>* weaponIds,
-                                       stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames);
+void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
+                                       const std::vector<std::uint32_t>* weaponIds,
+                                       std::vector<std::string>* names, std::vector<std::string>* plainNames);
 
 inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }

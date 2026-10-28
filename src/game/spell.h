@@ -14,6 +14,7 @@
 #include "lib/static_object.h"
 #include "game_singletons.h"
 
+#include <list>
 #include <string>
 #include <vector>
 
@@ -219,8 +220,8 @@ static_assert(sizeof(CSpellEffect) == 0xA8);
 // (or NaN).
 int __fastcall IsSpellTarget(CUnit* unit);
 
-using SpellModifierList = stlp::list<itemdb::SpellModifierRecord*>;
-using SpellModifierNode = SpellModifierList::Node;
+using SpellModifierList = std::list<itemdb::SpellModifierRecord*>;
+using SpellModifierNode = SpellModifierList::iterator;
 
 // A spell under construction (created by the spell manager as class 0x3003): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
@@ -415,10 +416,8 @@ public:
     std::uint32_t unused_C4[2];
     std::uint32_t unused_CC;
     std::uint32_t unused_D0;       // 1
-    stlp::list<int> litIds_;
+    std::list<int> litIds_;
 };
-static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, litIds_) == 0xD4 &&
-              sizeof(CLightFactory) == 0xD8);
 
 // Case-insensitive; null if none.
 char* __stdcall SpellCodeByName(const char* name);

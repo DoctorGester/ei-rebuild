@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <string>
 
@@ -56,7 +57,6 @@ CBriefingScreen::CBriefingScreen(CInterface3D* ui) : CUiContainer(ui) {
     movers_ = EmptyList<BriefingMover>();
     personTexts_.Construct();
     shown_ = EmptyList<BriefingShownItem>();
-    people_.ConstructEmpty();
     speakers_.ConstructEmpty();
 }
 
@@ -112,12 +112,7 @@ void SetRenderState(CTextureDevice* device, unsigned long state, unsigned long v
 // The end both PushWindow and Activate share: the window pushed on the stack, the render states
 // the interface draws with, the window created, the messages pumped, the mouse released.
 void OpenOnTop(CInterface3D* ui, CUiWindow* window) {
-    if (ui->stack_.Finish() != ui->stack_.EndOfStorage()) {
-        if (ui->stack_.Finish()) *ui->stack_.Finish() = window;
-        ++ui->stack_.Finish();
-    } else {
-        ui->stack_.InsertOverflow<stlp::PlainElement<CUiWindow*>>(ui->stack_.Finish(), window, 1);
-    }
+    ui->stack_.push_back(window);
     static const unsigned long kStates[5][2] = {{0x1B, 1}, {0x0F, 1}, {0x13, 5}, {0x14, 6}, {0x18, 0x80}};
     for (const auto& state : kStates) {
         SetRenderState(ui->renderer_, state[0], state[1]);
@@ -152,9 +147,9 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
     shiftDown_ = 0;
     rightDown_ = false;
     doubleClick_ = false;
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
-    if (stack_.Start() != stack_.Finish()) {
-        stack_.Finish()[-1]->Show(0);
+    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
+    if (!stack_.empty()) {
+        stack_.back()->Show(0);
     }
     if (!window) game::FatalError("Cannot activate NULL interface screen\n");
     OpenOnTop(this, window);
@@ -185,11 +180,11 @@ void CInterface3D::Activate(CUiWindow* window) {
     serverFlag_ = 0;
     GameSetServerPaused(0);
     Cursor()->SetShape(3);
-    while (stack_.Start() != stack_.Finish()) {
-        stack_.Finish()[-1]->Input()->Deactivate();
-        ScreenOf(stack_.Finish()[-1])->CloseScreen();
-        delete stack_.Finish()[-1];
-        --stack_.Finish();
+    while (!stack_.empty()) {
+        stack_.back()->Input()->Deactivate();
+        ScreenOf(stack_.back())->CloseScreen();
+        delete stack_.back();
+        stack_.pop_back();
     }
     ResetInput();
     app::PumpMessages();
@@ -206,9 +201,9 @@ void CInterface3D::Activate(CUiWindow* window) {
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
     if (!forced) {
-        using Node = stlp::list<mfc::CString>::Node;
-        Node* header = messages_.head;
-        Node* node = header->next;
+        using Node = std::list<mfc::CString>::iterator;
+        Node header = messages_.end();
+        Node node = header->next;
         if (node == header) return;
         std::string text = node->data.GetString();
         messages_.Erase(node);
@@ -223,8 +218,8 @@ void CInterface3D::ShowMessage(int force) {
 // --- the help window -----------------------------------------------------------------------------
 
 void CInterface3D::OpenHelp(int flag) {
-    if (stack_.Start() == stack_.Finish()) return;
-    CUiWindow* active = stack_.Finish()[-1];
+    if (stack_.empty()) return;
+    CUiWindow* active = stack_.back();
     const char* topic = ScreenOf(active)->HelpTopic();
     if (!topic) return;
     int seen = -1;

@@ -11,32 +11,35 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 
+#include <iterator>
+#include <memory>
+
 namespace {
 
 // list<CItem*>'s constructor (inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
     auto* head = stlp::allocate_as<StockListNode>();
-    list->head = head;
-    head->next = head;
-    head->prev = head;
+    list->end() = head;
+    std::next(head) = head;
+    std::prev(head) = head;
 }
 
 // Each listed item goes to `party` (keeping its count, merged with an equal one) and is released;
 // then the nodes and the sentinel go back to the pool (the clear and destructor inlined).
 void HandOverAndFree(StockList* list, CParty* party) {
-    StockListNode* head = list->head;
-    for (StockListNode* node = head->next; node != head; node = node->next) {
-        CItem* item = node->data;
+    StockListNode head = list->end();
+    for (StockListNode node = std::next(head); node != head; ++node) {
+        CItem* item = (*node);
         party->AddItem(item, 1, 1);
         item->Release();
     }
-    for (StockListNode* node = head->next; node != head;) {
-        StockListNode* next = node->next;
+    for (StockListNode node = std::next(head); node != head;) {
+        StockListNode next = std::next(node);
         stlp::deallocate(node, sizeof(StockListNode));
         node = next;
     }
-    head->next = head;
-    head->prev = head;
+    std::next(head) = head;
+    std::prev(head) = head;
     stlp::deallocate(head, sizeof(StockListNode));
 }
 
@@ -82,12 +85,12 @@ void ItemStock::Destruct() {
     modifierMap.Destroy();
     spellMap.Destroy();
     // _Vector_base's destructors: the storage back to the node allocator (operator delete above 128 bytes).
-    modifiers.FreeStorage();
-    spells.FreeStorage();
+    std::destroy_at(&modifiers);
+    std::destroy_at(&spells);
     materials.FreeStorage();
-    quickItems.FreeStorage();
-    weapons.FreeStorage();
-    armors.FreeStorage();
+    std::destroy_at(&quickItems);
+    std::destroy_at(&weapons);
+    std::destroy_at(&armors);
 }
 
 ClassTemplate::~ClassTemplate() {

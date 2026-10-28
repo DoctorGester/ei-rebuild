@@ -64,7 +64,7 @@ void Increment(Node*& it) {
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     HandlerVector& v = session->handlers_[channel][type & 0xFF];
-    for (MessageHandler* h = v.begin(); h != v.end(); ++h) (*h)(session, message);
+    for (MessageHandler* h = v.data(); h != v.data() + v.size(); ++h) (*h)(session, message);
 }
 
 // A message's virtual Write and Read over a byte cursor.
@@ -97,18 +97,18 @@ RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
 
 std::uint16_t IdPool::Allocate() {
     if (free.begin() == free.end()) return ++next;
-    --free.Finish();
+    free.pop_back();
     return *free.end();
 }
 
 void Connection::WriteAcks(std::uint8_t** p) {
     std::uint16_t base = static_cast<std::uint16_t>(lastReceived_);
     std::uint32_t mask = 0;
-    std::int32_t* end = received_.end();
+    std::int32_t* end = received_.data() + received_.size();
     std::int32_t target = static_cast<std::int32_t>(lastReceived_);
     for (int k = 1; k <= 32; ++k) {
         --target;
-        std::int32_t* it = received_.begin();
+        std::int32_t* it = received_.data();
         while (it != end && *it != target) ++it;
         if (it != end) mask |= 1u << (k - 1);
     }
@@ -118,10 +118,10 @@ void Connection::WriteAcks(std::uint8_t** p) {
     *p += 4;
     // Forget sequences more than 32 behind (from the back, shifting the rest down).
     for (std::int32_t i = static_cast<std::int32_t>(received_.size()) - 1; i >= 0; --i) {
-        std::int32_t* at = received_.begin() + i;
+        std::int32_t* at = received_.data() + i;
         if (static_cast<std::uint32_t>(*at) + 0x20 < lastReceived_) {
             for (std::int32_t* q = at; q + 1 < received_.end(); ++q) q[0] = q[1];
-            --received_.Finish();
+            received_.pop_back();
         }
     }
 }
@@ -691,7 +691,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     if (!(newest > sequence)) newest = sequence;
     lastReceived_ = newest;
-    for (std::int32_t* it = received_.begin(); it != received_.end(); ++it) {
+    for (std::int32_t* it = received_.data(); it != received_.data() + received_.size(); ++it) {
         if (*it == static_cast<std::int32_t>(sequence)) {
             if (g_netLog) {
                 std::string peer = address_.ToString();
@@ -703,7 +703,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     }
     auto value = static_cast<std::int32_t>(sequence);
     if (received_.end() == received_.EndOfStorage()) {
-        received_.InsertOverflow<stlp::PlainElement<std::int32_t>>(received_.end(), value, 1);
+        received_.push_back(value);
     } else {
         if (received_.end()) *received_.end() = value;
         ++received_.Finish();

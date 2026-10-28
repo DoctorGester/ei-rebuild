@@ -24,7 +24,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -187,8 +189,7 @@ void CHelpWindow::ShowPage() {
     UiSurfaceReleaseDC(header);
 
     // The page's lines up to the next "#screen": the pulsing frames and the texts.
-    stlp::list<PageEntry> entries;
-    entries.Construct();
+    std::list<PageEntry> entries;
     while (texts->FindLine(nullptr)) {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
@@ -202,7 +203,7 @@ void CHelpWindow::ShowPage() {
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
             SetPlain(mark, 0x82FF0000);
-            pulsing_.PushBack(mark);
+            pulsing_.push_back(mark);
         } else if (Same(words[0], kTextLine)) {
             std::string picture;
             if (words.size() > 1) {
@@ -214,7 +215,7 @@ void CHelpWindow::ShowPage() {
             if (words.size() > 0) {
                 const char* key = words[0].c_str();
                 const PageEntry entry{std::string(key), picture};
-                entries.PushBack(entry);
+                entries.push_back(entry);
             }
         }
     }
@@ -229,7 +230,7 @@ void CHelpWindow::ShowPage() {
         int y = 0;
         UiSurfaceGetDC(body);
         body->Clear();
-        for (auto* node = entries.First(); node != entries.End(); node = node->next) {
+        for (auto* node = entries.begin(); node != entries.end(); node = node->next) {
             const PageEntry& entry = node->data;
             bool withPicture = false;
             if (entry.picture.size() != 0 && pictures < kMaxPictures) {
@@ -249,7 +250,7 @@ void CHelpWindow::ShowPage() {
                     picture->PlaceBody(static_cast<float>(page.left + 47),
                                         static_cast<float>(y + page.top + 95), 3.0f);
                     picture->texture_ = objects_.data[1];
-                    pictures_.PushBack(picture);
+                    pictures_.push_back(picture);
                     ++pictures;
                 }
                 row.left = 90;
@@ -324,6 +325,5 @@ void CHelpWindow::ShowPage() {
     }
     UiSurfaceReleaseDC(footer);
 
-    entries.ClearWith([](PageEntry* entry) { entry->~PageEntry(); });
-    stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
+    entries.clear();
 }

@@ -4,6 +4,7 @@
 #include "resource.h"
 
 #include <cstddef>
+#include <vector>
 
 // An archive opened by a resource manager, kept in open order.
 struct ArchiveEntry {
@@ -47,7 +48,7 @@ private:
     BOOL AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*));
 
 public:
-    stlp::vector<ArchiveEntry> archives_;
+    std::vector<ArchiveEntry> archives_;
 };
 static_assert(offsetof(CResourceManager, archives_) == 0xB0);
 static_assert(sizeof(CResourceManager) == 0xBC);

@@ -10,6 +10,7 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 constexpr const char* kSoundPattern = "*.wav";
@@ -17,9 +18,9 @@ constexpr const char* kSoundPattern = "*.wav";
 // STLport vector<int>::resize(count, value) (inlined here): fewer elements are dropped, more are appended;
 // a full vector grows to size + max(size, added).
 void ResizeCounts(UnitModelRecord* model, std::size_t count, std::uint32_t value) {
-    stlp::vector<std::uint32_t>& counts = model->soundCounts;
-    std::uint32_t*& begin = counts.Start();
-    std::uint32_t*& end = counts.Finish();
+    std::vector<std::uint32_t>& counts = model->soundCounts;
+    std::uint32_t*& begin = counts.data();
+    std::uint32_t*& end = counts.data() + counts.size();
     std::uint32_t*& endOfStorage = counts.EndOfStorage();
     std::size_t size = static_cast<std::size_t>(end - begin);
     if (count < size) {

@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 namespace netlists {
 
@@ -62,10 +63,10 @@ using FreedIds = net::FreedIds;
 // with its storage back to the pool, by its capacity. insert(pos) copies an empty vector.
 struct FreedIdsElement {
     static void Copy(FreedIds* to, const FreedIds& from) {
-        to->CopyConstruct<stlp::PlainElement<net::FreedId>>(from);
+        std::construct_at(to, from);
     }
     static void Destroy(FreedIds* p) { p->FreeStorage(); }
-    static void Default(FreedIds* p) { p->ConstructEmpty(); }
+    static void Default(FreedIds* p) { std::construct_at(p); }
 };
 
 // ---- list<ReliableChunk> (the waiting and out-of-order chunks; 0x10C-byte nodes from operator new)

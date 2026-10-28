@@ -264,7 +264,7 @@ public:
     bool autosave_;                  // unless loading or back from the camp
     std::uint8_t unused_27F;
     CChatWindow* chat_;              // a network client's only
-    stlp::vector<int> people_;       // ids of the local player's objects that are text keys
+    std::vector<int> people_;       // ids of the local player's objects that are text keys
     float markPhase_;                // kept below 1
     stlp::vector<BriefingSpeaker> speakers_;
     int chatActive_;                 // the chat window takes the input

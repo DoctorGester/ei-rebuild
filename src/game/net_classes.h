@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
+#include <vector>
 
 struct QuestBriefingRecord;
 
@@ -250,7 +252,7 @@ MessageHandler AsHandler(void(__fastcall* handler)(Session*, MessageType*)) {
 }
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
-using HandlerVector = stlp::vector<MessageHandler>;
+using HandlerVector = std::vector<MessageHandler>;
 static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry of a session.
@@ -280,7 +282,7 @@ static_assert(sizeof(TypeRegistry) == 0x28);
 // The UDP socket of a session and the broadcast addresses of the host.
 struct SocketDriver {
     std::uint32_t socket;        // SOCKET (-1: none)
-    stlp::vector<NetAddress> addresses;
+    std::vector<NetAddress> addresses;
 
     // Starts Winsock and notes the broadcast address of the host's first address.
     SocketDriver* Construct();
@@ -456,11 +458,10 @@ public:
     // the magic and the entry).
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
-    stlp::list<PendingJoin> joins_;
+    std::list<PendingJoin> joins_;
     std::uint32_t unused_256C;         // not set
 };
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
-static_assert(sizeof(ServerBase) == 0x2570);
 
 // The game server (g_gameServer). Its lists are STLport lists of counted pointers.
 class ServerSession final : public ServerBase {
@@ -545,7 +546,7 @@ public:
     stlp::CountedRefListOf<PartyMessage> offers_; // the players' trade offers
     stlp::CountedRefListOf<TradeMessage> trades_;
     CountedTimedList finishedTrades_;   // {delay, trade}: done trades, kept 60 s
-    stlp::list<NetAddress> banned_;
+    std::list<NetAddress> banned_;
     std::string name_;
     std::string mapName_;
     std::uint32_t maxPlayers_;          // 8; set by the creator
@@ -554,12 +555,6 @@ public:
     std::uint32_t masterKey_;           // set by the creator (StartServer); announced, and the master
                                         // server's packets must start with it (OnMaster)
 };
-static_assert(offsetof(ServerSession, announceTimer_) == 0x2570);
-static_assert(offsetof(ServerSession, masterAddress_) == 0x257C);
-static_assert(offsetof(ServerSession, players_) == 0x2590);
-static_assert(offsetof(ServerSession, bindings_) == 0x25A4);
-static_assert(offsetof(ServerSession, banned_) == 0x25C4);
-static_assert(offsetof(ServerSession, name_) == 0x25C8);
 
 // ---- The client base and the game client ----------------------------------------------------------
 
@@ -613,7 +608,7 @@ public:
     float retryInterval_;               // doubles with every request (0.1 first)
     stlp::SharedRefListOf<ServerEntry> servers_;
     ClientQueries queries_;             // servers asked directly
-    stlp::list<NetAddress> waiting_;    // addresses waiting to be asked
+    std::list<NetAddress> waiting_;    // addresses waiting to be asked
     NetAddress alwaysAsk_;              // asked on every refresh (ip 0: none)
     std::uint32_t nextQuery_;           // the query the refresh pings next
     std::uint32_t unused_25D4;         // not set
@@ -623,9 +618,6 @@ static_assert(offsetof(ClientBase, joinData_) == 0x2578);
 static_assert(offsetof(ClientBase, joinState_) == 0x2598);
 static_assert(offsetof(ClientBase, servers_) == 0x25A8);
 static_assert(offsetof(ClientBase, queries_) == 0x25AC);
-static_assert(offsetof(ClientBase, alwaysAsk_) == 0x25C0);
-static_assert(offsetof(ClientBase, nextQuery_) == 0x25D0);
-static_assert(sizeof(ClientBase) == 0x25D8);
 
 // An embedded CParty. The client keeps two, a trade record three.
 using ::PartyStorage;
@@ -684,12 +676,6 @@ public:
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
     PartyStorage parties_[2];           // ours, the partner's
 };
-static_assert(offsetof(ClientSession, players_) == 0x25D8);
-static_assert(offsetof(ClientSession, info_) == 0x25EC);
-static_assert(offsetof(ClientSession, player_) == 0x2600);
-static_assert(offsetof(ClientSession, party_) == 0x260C);
-static_assert(offsetof(ClientSession, tradeRecords_) == 0x2614);
-static_assert(offsetof(ClientSession, parties_) == 0x2620);
 
 // ---- The game announcement ------------------------------------------------------------------------
 

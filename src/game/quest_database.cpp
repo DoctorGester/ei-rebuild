@@ -17,8 +17,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -30,11 +32,11 @@ using ListElement = stlp::ObjectElement<std::string>;
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
 
-stlp::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
+std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
 // path when the vector is full.
-void PushPlace(QuestRecord* quest, float value) { quest->places.PushBack<PlaceElement>(value); }
+void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value); }
 
 // The "quest" section into the quest record.
 void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& places) {
@@ -101,17 +103,17 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
 void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
     std::vector<std::string> strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
-    stlp::vector<std::string>* v = List(briefing, list);
-    v->EraseRange<ListElement>(v->begin(), v->end());   // erase(begin, end) or clear(): the same
-    v->Reserve<ListElement>(strings.size());
+    std::vector<std::string>* v = List(briefing, list);
+    v->clear();   // erase(begin, end) or clear(): the same
+    v->reserve(strings.size());
     for (const std::string& listed : strings) {
-        if (!listed.empty()) v->PushBack<ListElement>(listed);
+        if (!listed.empty()) v->push_back(listed);
     }
 }
 
 void ConstructBriefing(QuestBriefingRecord* briefing) {
     std::construct_at(&briefing->name);
-    for (int i = 0; i < 6; ++i) List(briefing, i)->ConstructEmpty();
+    for (int i = 0; i < 6; ++i) std::construct_at(List(briefing, i));
     std::construct_at(&briefing->text);
 }
 
@@ -155,7 +157,7 @@ bool QuestDatabase::LoadRegistry(const void* image) {
     lib::InPlace<QuestRecord> questStorage;   // built and destroyed below
     QuestRecord* quest = questStorage.Get();
     std::construct_at(&quest->name);
-    quest->places.ConstructEmpty();
+    std::construct_at(&quest->places);
     std::construct_at(&quest->text);
     {
         std::vector<std::string> places;
@@ -176,13 +178,13 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 }
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, std::vector<std::string>* list) {
     std::vector<std::string> strings;
     registry->GetStringArray(section, key, &strings);
-    list->EraseRange<ListElement>(list->begin(), list->end());
-    list->Reserve<ListElement>(strings.size());
+    list->clear();
+    list->reserve(strings.size());
     for (const std::string& listed : strings) {
-        if (!listed.empty()) list->PushBack<ListElement>(listed);
+        if (!listed.empty()) list->push_back(listed);
     }
 }
 

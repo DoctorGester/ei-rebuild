@@ -5,6 +5,7 @@
 #include "lib/stlp.h"
 
 #include <cstring>
+#include <vector>
 
 using namespace itemdb;
 
@@ -78,7 +79,7 @@ void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* 
     ForEachPart(record, [out](const char* name) { out->push_back(name); });
 }
 
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out) {
+void __fastcall AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out) {
     const WeaponRecord* record = WeaponAt(PrototypeIndex(packedId));
     if (!record) return;
     ForEachPart(record, [out](const char* name) {

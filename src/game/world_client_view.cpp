@@ -14,6 +14,8 @@
 
 #include <cmath>
 #include <cstring>
+#include <memory>
+#include <vector>
 #include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -41,12 +43,7 @@ float* StackTop(CTransformPipeline* device, int index) {
 
 
 void PushBack(FrameQueue& v, CMapObject* const& value) {
-    if (v.Finish() != v.EndOfStorage()) {
-        if (v.Finish()) *v.Finish() = value;
-        ++v.Finish();
-    } else {
-        v.InsertOverflow<stlp::PlainElement<CMapObject*>>(v.Finish(), value, 1);
-    }
+    v.push_back(value);
 }
 
 using ObjectList = stlp::list<CMapObject*>;
@@ -327,26 +324,26 @@ BOOL ModelUseLess::Less(CMapObject* a, CMapObject* b) {
 // Empty at the start, as the static initialisers leave them (in the list's order: the last list
 // first); the exit functions they register free their storage through ~vector() (docs/notes/standalone.md,
 // "The static initialisers' objects").
-constinit stlp::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
-constinit stlp::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
-constinit stlp::vector<CMapObject*> g_shadowUnits = /*007AF528*/ {};
-constinit stlp::vector<CMapObject*> g_shadow5D = /*007AF538*/ {};
-constinit stlp::vector<CMapObject*> g_shadowOther = /*007AF548*/ {};
-constinit stlp::vector<CMapObject*> g_shadow54 = /*007AF558*/ {};
-constinit stlp::vector<CMapObject*> g_visible52 = /*007AF568*/ {};
-constinit stlp::vector<CMapObject*> g_visibleUnits = /*007AF578*/ {};
-constinit stlp::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
-constinit stlp::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
-constinit stlp::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
+constinit std::vector<CMapObject*> g_touchedModels = /*007AF508*/ {};
+constinit std::vector<CMapObject*> g_shadow52 = /*007AF518*/ {};
+constinit std::vector<CMapObject*> g_shadowUnits = /*007AF528*/ {};
+constinit std::vector<CMapObject*> g_shadow5D = /*007AF538*/ {};
+constinit std::vector<CMapObject*> g_shadowOther = /*007AF548*/ {};
+constinit std::vector<CMapObject*> g_shadow54 = /*007AF558*/ {};
+constinit std::vector<CMapObject*> g_visible52 = /*007AF568*/ {};
+constinit std::vector<CMapObject*> g_visibleUnits = /*007AF578*/ {};
+constinit std::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
+constinit std::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
+constinit std::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
-void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }
-void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }
-void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }
-void __cdecl FreeShadow5D() { g_shadow5D.FreeStorage(); }
-void __cdecl FreeShadowOther() { g_shadowOther.FreeStorage(); }
-void __cdecl FreeShadow54() { g_shadow54.FreeStorage(); }
-void __cdecl FreeVisible52() { g_visible52.FreeStorage(); }
-void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
-void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }
-void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }
-void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }
+void __cdecl FreeTouchedModels() { std::destroy_at(&g_touchedModels); }
+void __cdecl FreeShadow52() { std::destroy_at(&g_shadow52); }
+void __cdecl FreeShadowUnits() { std::destroy_at(&g_shadowUnits); }
+void __cdecl FreeShadow5D() { std::destroy_at(&g_shadow5D); }
+void __cdecl FreeShadowOther() { std::destroy_at(&g_shadowOther); }
+void __cdecl FreeShadow54() { std::destroy_at(&g_shadow54); }
+void __cdecl FreeVisible52() { std::destroy_at(&g_visible52); }
+void __cdecl FreeVisibleUnits() { std::destroy_at(&g_visibleUnits); }
+void __cdecl FreeVisible5D() { std::destroy_at(&g_visible5D); }
+void __cdecl FreeVisibleOther() { std::destroy_at(&g_visibleOther); }
+void __cdecl FreeVisible54() { std::destroy_at(&g_visible54); }

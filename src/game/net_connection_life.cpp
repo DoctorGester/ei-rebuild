@@ -13,13 +13,14 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
 
 namespace net {
 
 IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
 namespace {
 // An id pool's destructor: its vector of free ids freed.
-void __fastcall IdPoolDestruct(IdPool* pool) { pool->free.FreeStorage(); }
+void __fastcall IdPoolDestruct(IdPool* pool) { std::destroy_at(&pool->free); }
 // The CRT's eh vector constructor / destructor iterators take them as libcrt::Element<...>.
 using libcrt::Element;
 
@@ -32,7 +33,7 @@ inline void* __fastcall NodeAllocate(std::size_t a0) { return libcrt::NodeAlloca
 void Put32(void* object, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<std::uint8_t*>(object) + offset, &v, 4); }
 
 // The std::vector<int> of received sequences given back to the pool.
-void FreeReceived(Connection* c) { c->received_.FreeStorage(); }
+void FreeReceived(Connection* c) { std::destroy_at(&c->received_); }
 
 // Every container destroyed in the order the destructor's unwinding would (Reset's teardown).
 void DestroyForReset(Connection* c) {
@@ -63,7 +64,6 @@ void DestroyForReset(Connection* c) {
 // The reliable streams are members, built before the body (the original builds them last).
 Connection::Connection(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
-    received_.ConstructEmpty();
     address_ = NetAddress{};
     libcrt::ConstructElements(idPools_, sizeof(IdPool), kMessageTypes, Element<IdPoolConstruct>, Element<IdPoolDestruct>);
     freedIds_.Construct();
@@ -195,13 +195,13 @@ Connection::Connection(const Connection& other)
 namespace net {
 
 IdPool* IdPool::CopyFrom(const IdPool& other) {
-    free.ConstructEmpty();
+    std::construct_at(&free);
     std::size_t count = other.free.size();
     std::uint16_t* block = count ? static_cast<std::uint16_t*>(NodeAllocate(count * 2)) : nullptr;
     free.Start() = block;
     free.Finish() = block;
     free.EndOfStorage() = block + count;
-    std::memmove(block, other.free.begin(), count * 2);
+    std::memmove(block, other.free.data(), count * 2);
     free.Finish() = block + count;
     next = other.next;
     return this;
@@ -247,7 +247,7 @@ ReplicaEntry::~ReplicaEntry() { ReleaseEntryObject(this); }
 // An empty id pool (no free ids, next 0); the connection's constructor passes it to the vector constructor
 // iterator.
 IdPool* __fastcall IdPoolConstruct(IdPool* self) {
-    self->free.ConstructEmpty();
+    std::construct_at(&self->free);
     self->next = 0;
     return self;
 }

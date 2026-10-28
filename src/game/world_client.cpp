@@ -33,6 +33,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <iterator>
 #include <memory>
 #include <new>
 #include <string>
@@ -438,7 +439,7 @@ int CWorldClient::Segment() {
         if (bird_) bird_->RunTick();
     }
     if (IsMultiplayerClient()) {
-        if (static_cast<int>(TheInterface()->stack_.Finish() - TheInterface()->stack_.Start()) > 1) {
+        if (static_cast<int>(std::ssize(TheInterface()->stack_)) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
             for (auto* node = dynamicObjects_.head; node;) {

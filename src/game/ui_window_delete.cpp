@@ -117,7 +117,6 @@ static_assert(sizeof(BriefingMover) == 0x30);
 CBriefingScreen::~CBriefingScreen() {
     for (BriefingSpeaker* speaker = speakers_.begin(); speaker != speakers_.end(); ++speaker) std::destroy_at(&speaker->name);
     speakers_.FreeStorage();
-    people_.FreeStorage();
     // The shown items' list (node 0x18 bytes: next, prev, then the item record).
     for (BriefingShownItem* node = shown_->next; node != shown_;) {
         BriefingShownItem* next = node->next;
@@ -158,7 +157,7 @@ CObjectivesWindow::~CObjectivesWindow() {
     FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
-    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) std::destroy_at(zone);
+    for (mfc::CString* zone = zones_.data(); zone != zones_.data() + zones_.size(); ++zone) std::destroy_at(zone);
     FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
 }
 

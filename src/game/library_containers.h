@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace libcontainers {
 
@@ -35,9 +36,9 @@ struct LoaderLocal {
 
 // Two vectors of pointers, a local two unwind funclets end with: frees the second's storage, then the first's.
 struct PointerVectorsPair {
-    stlp::vector<void*> first;
+    std::vector<void*> first;
     std::uint32_t unused_0C;
-    stlp::vector<void*> second;
+    std::vector<void*> second;
 };
 
 

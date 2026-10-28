@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 namespace net {
 
@@ -102,7 +103,7 @@ std::string NetAddress::Format(int resolve) const {
 
 // The broadcast address is the host's first address with the host part (by its class: A, B or C) set to 0xFF.
 SocketDriver* SocketDriver::Construct() {
-    addresses.ConstructEmpty();
+    std::construct_at(&addresses);
     alignas(4) std::uint8_t wsa[0x190];
     libcrt::imports::WsaStartup(0x101, wsa);
     socket = kNoSocket;
@@ -120,7 +121,7 @@ SocketDriver* SocketDriver::Construct() {
     if (first >= 1 && first <= 0x7E) bytes[1] = bytes[2] = bytes[3] = 0xFF;
     if (first >= 0x80 && first <= 0xBF) bytes[2] = bytes[3] = 0xFF;
     if (first >= 0xC0 && first <= 0xDF) bytes[3] = 0xFF;
-    NetAddress*& end = addresses.Finish();
+    NetAddress*& end = addresses.data() + addresses.size();
     if (end != addresses.EndOfStorage()) {
         if (end) *end = a;
         ++end;

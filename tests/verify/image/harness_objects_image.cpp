@@ -36,8 +36,10 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace ei::verify::image {
 
@@ -130,10 +132,10 @@ void* UnitAt(void* world, int x, int y) {
     return static_cast<CEngineObject*>(static_cast<CWorldClient*>(world)->UnitAt(&p));
 }
 int ScreenRect(void* world, int id, RECT* rect) {
-    const stlp::list<ScreenEntry>& entries = static_cast<CWorldClient*>(world)->screenEntries_;
-    if (!entries.head) return -1;
+    const std::list<ScreenEntry>& entries = static_cast<CWorldClient*>(world)->screenEntries_;
+    if (!entries.end()) return -1;
     int found = 0;
-    for (const ScreenEntryNode* node = entries.First(); node && node != entries.End(); node = node->next) {
+    for (const ScreenEntryNode node = entries.begin(); node && node != entries.end(); node = node->next) {
         if (static_cast<int>(node->data.objectId) != id) continue;
         *rect = node->data.rect;
         found = 1;

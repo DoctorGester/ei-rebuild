@@ -19,27 +19,30 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 
+#include <iterator>
+#include <list>
+#include <memory>
 #include <string>
 
 namespace {
-using Node = stlp::list<FlyingHitPoint>::Node;
+using Node = std::list<FlyingHitPoint>::iterator;
 constexpr std::uint32_t kDelayed = 8;
 constexpr std::uint32_t kDelay = 500;   // ms
 } // namespace
 
 CFlyingHitPoints* CFlyingHitPoints::Construct() {
     auto* sentinel = stlp::allocate_as<Node>();
-    points_.head = sentinel;
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
+    points_.end() = sentinel;
+    std::next(sentinel) = sentinel;
+    std::prev(sentinel) = sentinel;
     texture_ = nullptr;
     return this;
 }
 
 void CFlyingHitPoints::Destruct() {
     if (texture_) texture_->Release();
-    points_.ClearWith([](FlyingHitPoint*) {});
-    stlp::deallocate(points_.head, sizeof(Node));
+    points_.clear();
+    std::destroy_at(&points_);
 }
 
 void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
@@ -47,12 +50,12 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
     std::uint32_t time = (flags & kDelayed) ? gameapi::timeGetTime() + kDelay : gameapi::timeGetTime();
     // list::insert(end, value) (the node made).
     auto* node = stlp::allocate_as<Node>();
-    node->data = FlyingHitPoint{target, amount, flags, time};
-    Node* head = points_.head;
-    node->next = head;
-    node->prev = head->prev;
-    head->prev->next = node;
-    head->prev = node;
+    (*node) = FlyingHitPoint{target, amount, flags, time};
+    Node* head = points_.end();
+    std::next(node) = head;
+    std::prev(node) = std::prev(head);
+    std::next(std::prev(head)) = node;
+    std::prev(head) = node;
 }
 
 // --- drawing -------------------------------------------------------------------------------------
@@ -116,9 +119,9 @@ struct QuadBuffer {
 
 // list::erase: the node unlinked and back to the pool. Returns the next one.
 Node* Erase(Node* node) {
-    Node* next = node->next;
-    node->prev->next = next;
-    next->prev = node->prev;
+    Node* next = std::next(node);
+    std::next(std::prev(node)) = next;
+    std::prev(next) = std::prev(node);
     stlp::deallocate(node, sizeof(Node));
     return next;
 }
@@ -148,16 +151,16 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     if (!texture_) return 0;
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
-    Node* head = points_.head;
-    for (Node* node = head->next; node != head;) {
-        if (static_cast<int>(now - node->data.time) > kLifetime) node = Erase(node);
-        else node = node->next;
+    Node* head = points_.end();
+    for (Node* node = std::next(head); node != head;) {
+        if (static_cast<int>(now - node->time) > kLifetime) node = Erase(node);
+        else ++node;
     }
     if (!ShowHitNumbersOption()) return 1;
 
     const float width = static_cast<float>(targetWidth), height = static_cast<float>(targetHeight);
-    for (Node* node = head->next; node != head; node = node->next) {
-        const FlyingHitPoint& point = node->data;
+    for (Node* node = std::next(head); node != head; ++node) {
+        const FlyingHitPoint& point = (*node);
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);
         if (age > 1.0f || age < 0.0f) continue;   // integer-sourced: never NaN
@@ -238,9 +241,9 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     }
 
     // Markers are shown once.
-    for (Node* node = head->next; node != head;) {
-        if (node->data.flags & kMarker) node = Erase(node);
-        else node = node->next;
+    for (Node* node = std::next(head); node != head;) {
+        if (node->flags & kMarker) node = Erase(node);
+        else ++node;
     }
     return 1;
 }

@@ -12,6 +12,7 @@
 #include <cstring>
 #include <memory>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -41,7 +42,7 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
 }
 
 // The decoder: two byte vectors, the decoded text and the coded input.
-using ByteVector = stlp::vector<std::uint8_t>;
+using ByteVector = std::vector<std::uint8_t>;
 struct TextDecoder {
     ByteVector text;
     ByteVector input;
@@ -226,15 +227,15 @@ mfc::CString* Chunk::ReadString(mfc::CString* out) {
 mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     std::uint32_t length = static_cast<std::uint32_t>(size_ - kHeader);
     TextDecoder decoder;
-    decoder.text.ConstructEmpty();
-    decoder.input.ConstructEmpty();
+    std::construct_at(&decoder.text);
+    std::construct_at(&decoder.input);
     std::uint8_t zero = 0;
     std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());
     if (length < had)
-        decoder.input.EraseRange<stlp::PlainElement<unsigned char>>(decoder.input.begin() + length, decoder.input.end());
+        decoder.input.erase(decoder.input.begin() + length, decoder.input.end());
     else
-        decoder.input.FillInsert<stlp::PlainElement<unsigned char>>(decoder.input.end(), length - had, zero);
-    FileRead(File(), decoder.input.begin(), length);
+        decoder.input.insert(decoder.input.end(), length - had, zero);
+    FileRead(File(), decoder.input.data(), length);
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);
     {
@@ -243,8 +244,8 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
         text::FromAssetText(&text);   // the scripts' literals in UTF-8 with EI_UTF8
         std::construct_at(out, text);
     }
-    stlp::deallocate(decoder.input.Start(), static_cast<std::size_t>(decoder.input.EndOfStorage() - decoder.input.Start()));
-    stlp::deallocate(decoder.text.Start(), static_cast<std::size_t>(decoder.text.EndOfStorage() - decoder.text.Start()));
+    std::destroy_at(&decoder.input);
+    std::destroy_at(&decoder.text);
     return out;
 }
 

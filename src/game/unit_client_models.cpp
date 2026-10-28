@@ -27,6 +27,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
@@ -274,11 +275,11 @@ void CUnitClientSpecific::UpdateArrow() {
     }
 }
 
-void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
-                                       const stlp::vector<std::uint32_t>* weaponIds,
-                                       stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames) {
+void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vector<std::uint32_t>* armourIds,
+                                       const std::vector<std::uint32_t>* weaponIds,
+                                       std::vector<std::string>* names, std::vector<std::string>* plainNames) {
     char text[0x401];
-    for (const std::uint32_t* id = armourIds->begin(); id != armourIds->end(); ++id) {
+    for (const std::uint32_t* id = armourIds->data(); id != armourIds->data() + armourIds->size(); ++id) {
         const itemdb::ArmorRecord* armour = ArmourRecord(*id >> 16);
         if (!armour) continue;
         int row = RowOfSlot(armour->type);
@@ -297,7 +298,7 @@ void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, con
             names->push_back(name);
         }
     }
-    for (const std::uint32_t* id = weaponIds->begin(); id != weaponIds->end(); ++id) AppendWeaponModelParts(*id, names);
+    for (const std::uint32_t* id = weaponIds->data(); id != weaponIds->data() + weaponIds->size(); ++id) AppendWeaponModelParts(*id, names);
 
     // Every plain part of the three rows. All seven names of each row are walked (the
     // test on the name's address never fails), so the empty names of the helmet row go in too.

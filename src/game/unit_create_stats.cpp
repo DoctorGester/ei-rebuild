@@ -144,7 +144,7 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     stats->spentExperience = 0.0f;
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
-    for (const std::string* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
+    for (const std::string* name = npc->skillNames.data(); name != npc->skillNames.data() + npc->skillNames.size(); ++name) {
         ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->c_str());
         if (skill) stats->LearnSkill(SkillDb(), skill);
     }

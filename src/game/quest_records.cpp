@@ -7,6 +7,9 @@
 #include "record_lifetime.h"
 #include "record_vectors.h"
 
+#include <memory>
+#include <vector>
+
 namespace {
 
 // STLport instantiations (library.csv), through their addresses: vector<float>::_M_fill_insert, the records'
@@ -58,15 +61,15 @@ void QuestRecord::Serialize(ChunkArchive* ar) {
     int count;
     if (ar->loading_) {
         // erase(begin, end), then resize(count, 0.0f): the vector is empty, so a fill insert.
-        places.Finish() = places.Start();
+        places.clear();
         count = ar->CountChunks(1);
-        places.FillInsert<stlp::PlainElement<float>>(places.Finish(), static_cast<unsigned>(count), 0.0f);
+        places.insert(places.end(), static_cast<unsigned>(count), 0.0f);
     } else {
         count = static_cast<int>(places.size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ar->Field(1, &places.Start()[i], 4);
+        ar->Field(1, &places[i], 4);
     }
     ar->LeaveChunk();
 }
@@ -83,13 +86,13 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
 
 void QuestRecord::Destruct() {
     std::destroy_at(&text);
-    places.FreeStorage();
+    std::destroy_at(&places);
     std::destroy_at(&name);
 }
 
 void QuestBriefingRecord::Destruct() {
     std::destroy_at(&text);
-    for (int i = 5; i >= 0; --i) records::DestroyVector(lists[i]);
+    for (int i = 5; i >= 0; --i) std::destroy_at(&lists[i]);
     std::destroy_at(&name);
 }
 
@@ -107,7 +110,7 @@ void QuestRecord::CopyConstruct(const QuestRecord* source) {
     money = source->money;
     zone = source->zone;
     order = source->order;
-    places.CopyConstruct<PlaceElement>(source->places);
+    std::construct_at(&places, source->places);
     std::construct_at(&text, source->text);
 }
 
@@ -118,13 +121,13 @@ void QuestRecord::AssignQuest(const QuestRecord* source) {
     money = source->money;
     zone = source->zone;
     order = source->order;
-    places.AssignVector<PlaceElement>(source->places);
+    places = source->places;
     text = source->text;
 }
 
 void QuestRecord::ConstructDefault() {
     std::construct_at(&name);
-    places.ConstructEmpty();
+    std::construct_at(&places);
     std::construct_at(&text);
 }
 
@@ -132,7 +135,7 @@ void QuestBriefingRecord::CopyConstruct(const QuestBriefingRecord* source) {
     std::construct_at(&name, source->name);
     exp = source->exp;
     money = source->money;
-    for (int i = 0; i < 6; ++i) lists[i].CopyConstruct<NameElement>(source->lists[i]);
+    for (int i = 0; i < 6; ++i) std::construct_at(&lists[i], source->lists[i]);
     std::construct_at(&text, source->text);
     specials = source->specials;
 }
@@ -141,14 +144,14 @@ void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
     name = source->name;
     exp = source->exp;
     money = source->money;
-    for (int i = 0; i < 6; ++i) lists[i].AssignVector<NameElement>(source->lists[i]);
+    for (int i = 0; i < 6; ++i) lists[i] = source->lists[i];
     text = source->text;
     specials = source->specials;
 }
 
 void QuestBriefingRecord::ConstructDefault() {
     std::construct_at(&name);
-    for (stlp::vector<std::string>& list : lists) list.ConstructEmpty();
+    for (std::vector<std::string>& list : lists) std::construct_at(&list);
     std::construct_at(&text);
 }
 

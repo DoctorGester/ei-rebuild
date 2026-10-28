@@ -11,10 +11,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 class CStream;
 
-using UnitIdList = stlp::vector<std::uint32_t>;
+using UnitIdList = std::vector<std::uint32_t>;
 
 // A dressed unit of the zone (the second list read): its prototype, the item ids
 // (armour type << 16 | material; 0xFFFFFFFF for none: [0] the helmet's row, [1] / [2] the weapons,
@@ -44,7 +45,7 @@ struct FiguredUnitRecord : DressedUnitRecord {
     float morphS;                   // the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;
-    stlp::vector<mfc::CString> names;
+    std::vector<mfc::CString> names;
 };
 static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
 static_assert(sizeof(FiguredUnitRecord) == 0x3C);
@@ -57,15 +58,14 @@ struct UnitLooks {
     UnitLooks(const UnitLooks&) = delete;
     ~UnitLooks() {
         for (DressedUnitRecord* r = dressed.Start(); r != dressed.Finish(); ++r) {
-            r->extraWeapons.FreeStorage();
-            r->items.FreeStorage();
+            std::destroy_at(&r->extraWeapons);
+            std::destroy_at(&r->items);
         }
         dressed.FreeStorage();
         for (FiguredUnitRecord* r = figured.Start(); r != figured.Finish(); ++r) {
-            for (mfc::CString* name = r->names.Start(); name != r->names.Finish(); ++name) std::destroy_at(name);
-            r->names.FreeStorage();
-            r->extraWeapons.FreeStorage();
-            r->items.FreeStorage();
+            std::destroy_at(&r->names);
+            std::destroy_at(&r->extraWeapons);
+            std::destroy_at(&r->items);
         }
         figured.FreeStorage();
     }

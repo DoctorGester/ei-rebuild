@@ -82,7 +82,6 @@ CWorldClient::CWorldClient() {
     ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());
     dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
-    screenEntries_.Construct();
     hits_.ConstructEmpty();
     lineLists_.InitBuckets(100);
     lastLineListKey_ = 0;
@@ -97,7 +96,6 @@ CWorldClient::CWorldClient() {
     footprints_.Construct();
     scorchMarks_.Construct();
     handle_.ptr = nullptr;
-    list7BC_.Construct();
     flags_ |= kClientFlags;
     debugFlags_ = kClientDebugFlags;
     worldValue_ = -1;

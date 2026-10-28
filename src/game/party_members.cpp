@@ -22,6 +22,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -129,7 +130,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->height = prototype->scale.z;
 
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
-    const stlp::vector<std::string>& armour = prototype->armourNames;
+    const std::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
         CItem* item = MakeItem(this, armour.begin()[i].c_str());
         CItem* copy = CountedClone(item);
@@ -143,7 +144,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         record->weapons.SetAtGrow(record->weapons.size, copy);
         Drop(item);
     }
-    const stlp::vector<std::string>& spellNames = prototype->spellNames;
+    const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
@@ -169,21 +170,21 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     auto* npc = unitdb::NpcTable().byName[std::string(record->texts[5].c_str())];
     if (!npc) return 0;
 
-    const stlp::vector<std::string>& spellNames = npc->startSpells;
+    const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
         auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
         record->spells.Add(CountedClone(spell));
         Drop(spell);
     }
-    const stlp::vector<std::string>& quickNames = npc->startQuickItems;
+    const std::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
         CItem* item = MakeItem(this, quickNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);
         record->quickItems.SetAtGrow(record->quickItems.size, copy);
         Drop(item);
     }
-    const stlp::vector<std::string>& weaponNames = npc->startWeapons;
+    const std::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
         CItem* item = MakeItem(this, weaponNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);

@@ -66,6 +66,7 @@
 #include <new>
 #include <bit>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -765,8 +766,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     CMemoryStream scripts;
     CMemoryStream text;
     MobScriptDecoder decoder;
-    decoder.text.ConstructEmpty();
-    decoder.input.ConstructEmpty();
+    std::construct_at(&decoder.text);
+    std::construct_at(&decoder.input);
     {
         mfc::CString path(mfc::CString::kUnset);   // MapPath constructs it
         MapPath(&path, mob);
@@ -777,8 +778,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         const std::uint8_t* data = text.data_;
         std::uint32_t size = text.size_;
         char zero = 0;
-        decoder.input.Resize<stlp::PlainElement<char>>(size, zero);
-        std::memmove(decoder.input.begin(), data, size);
+        decoder.input.resize(size, zero);
+        std::memmove(decoder.input.data(), data, size);
         decoder.Decode(&script);
     } else if (scripts.FindTagged(kScriptPlain, &text)) {
         text.Seek(text.size_);
@@ -788,8 +789,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     }
     ScriptReset(MainScript());
     MainScript()->Load(&script, 1);
-    decoder.input.FreeStorage();
-    decoder.text.FreeStorage();
+    std::destroy_at(&decoder.input);
+    std::destroy_at(&decoder.text);
 }
 
 namespace {
@@ -972,8 +973,8 @@ namespace {
 // The zone table: a vector of {first, second, id} entries (docs/notes/standalone.md, "The static
 // initialisers' objects").
 using ZoneEntry = recordvec::ZoneTableEntry;
-using ZoneTable = stlp::vector<ZoneEntry>;
-constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
+using ZoneTable = std::vector<ZoneEntry>;
+constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
@@ -998,12 +999,12 @@ struct EntryPicks {
 
 void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
 
-void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exclude) {
+void __stdcall PickZones(std::vector<std::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
     EntryPicks group(total);
-    for (ZoneEntry* e = table.begin(); e != table.end(); ++e)
+    for (ZoneEntry* e = table.data(); e != table.data() + table.size(); ++e)
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
         // The group of the first pending entry's second name, in table order.
@@ -1024,12 +1025,7 @@ void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exc
                 else ++i;
         unsigned pick = ((&IsaacRandom::Global()))->Next() % static_cast<unsigned>(group.count);
         std::string name(group.items[pick]->first.c_str());
-        if (out->Finish() != out->EndOfStorage()) {
-            new (out->Finish()) std::string(name);
-            ++out->Finish();
-        } else {
-            out->InsertOverflow<stlp::ObjectElement<std::string>>(out->Finish(), name, 1);
-        }
+        out->push_back(name);
     }
 }
 
@@ -1562,9 +1558,9 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 void GameFlow::UpdateFromServer() {
     if (!Active(net::GameClient())) return;
     if (CTextManager* texts = TheTextManager()) {
-        for (const std::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
+        for (const std::string* file = g_questFiles.data(); file != g_questFiles.data() + g_questFiles.size(); ++file)
             texts->RemoveSource(file->data());
-        g_questFiles.EraseRange<stlp::ObjectElement<std::string>>(g_questFiles.begin(), g_questFiles.end());
+        g_questFiles.clear();
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
@@ -1631,27 +1627,20 @@ void GameFlow::UpdateFromServer() {
     if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
-        stlp::vector<VariableNode*> changed;
-        changed.ConstructEmpty();
+        std::vector<VariableNode*> changed;
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);
             if (stamp >= AppliedStamp() || stamp < previous) continue;
-            if (changed.Finish() != changed.EndOfStorage()) {
-                if (changed.Finish()) *changed.Finish() = node;
-                ++changed.Finish();
-            } else {
-                VariableNode* value = node;
-                changed.InsertOverflow<stlp::PlainElement<VariableNode*>>(changed.Finish(), value, 1);
-            }
+            changed.push_back(value);
         }
         if (changed.begin() != changed.end()) {
             int depth = 0;
             for (int n = static_cast<int>(changed.size()); n != 1; n >>= 1) ++depth;
-            StampIntroSort(changed.begin(), changed.end(), 0, depth * 2, variables);
-            StampInsertionSort(changed.begin(), changed.end(), variables);
+            StampIntroSort(changed.data(), changed.data() + changed.size(), 0, depth * 2, variables);
+            StampInsertionSort(changed.data(), changed.data() + changed.size(), variables);
         }
-        for (VariableNode** it = changed.begin(); it != changed.end(); ++it) GameFlow::OnVariableChanged(*it);
+        for (VariableNode** it = changed.data(); it != changed.data() + changed.size(); ++it) GameFlow::OnVariableChanged(*it);
         bool settled;
         do {
             settled = true;
@@ -1666,7 +1655,6 @@ void GameFlow::UpdateFromServer() {
                 VariableSetBits(variables, record->name_.data(), ValueBits(record));
             }
         } while (!settled);
-        stlp::deallocate(changed.begin(), static_cast<std::size_t>(changed.EndOfStorage() - changed.begin()) * 4);
     } else {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
@@ -1758,16 +1746,16 @@ int AllodOfMap(const char* map) {
 
 // push_back of an entry with two empty names (its id is not set).
 void AppendEmptyEntry(ZoneTable& table) {
-    if (table.Finish() != table.EndOfStorage()) {
-        if (table.Finish()) {
-            std::construct_at(&table.Finish()->first);
-            std::construct_at(&table.Finish()->second);
+    if (table.data() + table.size() != table.EndOfStorage()) {
+        if (table.data() + table.size()) {
+            std::construct_at(&(table.data() + table.size())->first);
+            std::construct_at(&(table.data() + table.size())->second);
         }
         ++table.Finish();
         return;
     }
     ZoneEntry empty{};
-    table.InsertOverflow<recordvec::ZoneTableVector::Element>(table.Finish(), empty, 1);
+    table.InsertOverflow<recordvec::ZoneTableVector::Element>(table.data() + table.size(), empty, 1);
 }
 
 } // namespace
@@ -1795,7 +1783,7 @@ void GameFlow::BuildZoneTable() {
             map = record->map;
             const int allod = AllodOfMap(map.c_str());
             AppendEmptyEntry(table);
-            ZoneEntry& entry = table.Finish()[-1];
+            ZoneEntry& entry = table.back();
             entry.first = name;
             entry.second = map;
             entry.id = allod;

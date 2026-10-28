@@ -83,8 +83,6 @@ ItemRecordHead::~ItemRecordHead() = default;
 QuickItemRecord::~QuickItemRecord() = default;
 
 QuestItemRecord::~QuestItemRecord() {
-    for (std::string& zone : zones) std::destroy_at(&zone);
-    zones.FreeStorage();
 }
 
 void MaterialRecordHead::Destruct() {
@@ -94,8 +92,8 @@ void MaterialRecordHead::Destruct() {
 }
 
 void SpellRecord::Destruct() {
-    list54.FreeStorage();
-    list48.FreeStorage();
+    std::destroy_at(&list54);
+    std::destroy_at(&list48);
     std::destroy_at(&text08);
     std::destroy_at(&code);
     std::destroy_at(&name);
@@ -108,8 +106,8 @@ void SpellModifierRecord::Destruct() {
 
 void SpellListRecord::Destruct() {
     std::destroy_at(&repeated);
-    records::DestroyVector(optional);
-    records::DestroyVector(required);
+    std::destroy_at(&optional);
+    std::destroy_at(&required);
     std::destroy_at(&spell);
 }
 
@@ -124,8 +122,8 @@ void SpellRecord::CopyConstruct(const SpellRecord* source) {
     std::construct_at(&code, source->code);
     std::construct_at(&text08, source->text08);
     CopyBytes(this, source, offsetof(SpellRecord, price), offsetof(SpellRecord, list48));
-    list48.CopyConstruct<IdElement>(source->list48);
-    list54.CopyConstruct<IdElement>(source->list54);
+    std::construct_at(&list48, source->list48);
+    std::construct_at(&list54, source->list54);
     CopyBytes(this, source, offsetof(SpellRecord, icon), offsetof(SpellRecord, unused_7D));
     classMask = source->classMask;
 }
@@ -135,8 +133,8 @@ void SpellRecord::AssignSpell(const SpellRecord* source) {
     code = source->code;
     text08 = source->text08;
     CopyBytes(this, source, offsetof(SpellRecord, price), offsetof(SpellRecord, list48));
-    list48.AssignVector<IdElement>(source->list48);
-    list54.AssignVector<IdElement>(source->list54);
+    list48 = source->list48;
+    list54 = source->list54;
     CopyBytes(this, source, offsetof(SpellRecord, icon), offsetof(SpellRecord, unused_7D));
     classMask = source->classMask;
 }
@@ -145,8 +143,8 @@ void SpellRecord::ConstructDefault() {
     std::construct_at(&name);
     std::construct_at(&code);
     std::construct_at(&text08);
-    list48.ConstructEmpty();
-    list54.ConstructEmpty();
+    std::construct_at(&list48);
+    std::construct_at(&list54);
 }
 
 void SpellModifierRecord::CopyConstruct(const SpellModifierRecord* source) {
@@ -170,24 +168,24 @@ void SpellModifierRecord::ConstructDefault() {
 
 void SpellListRecord::CopyConstruct(const SpellListRecord* source) {
     std::construct_at(&spell, source->spell);
-    required.CopyConstruct<stlp::ObjectElement<std::string>>(source->required);
-    optional.CopyConstruct<stlp::ObjectElement<std::string>>(source->optional);
+    std::construct_at(&required, source->required);
+    std::construct_at(&optional, source->optional);
     std::construct_at(&repeated, source->repeated);
     classMask = source->classMask;
 }
 
 void SpellListRecord::AssignList(const SpellListRecord* source) {
     spell = source->spell;
-    required.AssignVector<stlp::ObjectElement<std::string>>(source->required);
-    optional.AssignVector<stlp::ObjectElement<std::string>>(source->optional);
+    required = source->required;
+    optional = source->optional;
     repeated = source->repeated;
     classMask = source->classMask;
 }
 
 void SpellListRecord::ConstructDefault() {
     std::construct_at(&spell);
-    required.ConstructEmpty();
-    optional.ConstructEmpty();
+    std::construct_at(&required);
+    std::construct_at(&optional);
     std::construct_at(&repeated);
 }
 
@@ -221,7 +219,6 @@ QuickItemRecord::QuickItemRecord(const QuickItemRecord& from) {
     CopyOwn(&from);
 }
 QuestItemRecord::QuestItemRecord(const QuestItemRecord& from) {
-    zones.ConstructEmpty();
     Assign(&from);
     CopyOwn(&from);
 }

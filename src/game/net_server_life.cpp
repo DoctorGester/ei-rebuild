@@ -26,7 +26,6 @@ void DestroyInline(RefPtr& slot) {
 // The original frees the two names first; ours last (they are members). The pending joins and the session base
 // follow (their destructors).
 ServerSession::~ServerSession() {
-    banned_.Release();
     finishedTrades_.Release();
     trades_.Release();
     offers_.Release();
@@ -43,6 +42,6 @@ ServerSession::~ServerSession() {
 }
 
 // Also reached from the constructor's unwind funclets.
-ServerBase::~ServerBase() { joins_.Release(); }
+ServerBase::~ServerBase() {  }
 
 } // namespace net

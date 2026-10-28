@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -303,7 +304,7 @@ void CLinkMesh::UpdateScreenRect() {
 
 bool CLinkMesh::HasPart(const std::string* name) { return ranges_.find(*name) != ranges_.end(); }
 
-void CLinkMesh::CollectPartNames(stlp::vector<std::string>* out) {
+void CLinkMesh::CollectPartNames(std::vector<std::string>* out) {
     for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
         out->push_back(node->first);
 }

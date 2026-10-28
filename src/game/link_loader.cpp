@@ -12,7 +12,9 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
+#include <vector>
 
 void __fastcall ReadLinkString(std::string* out, const char** cursor) {
     std::uint32_t length;
@@ -122,7 +124,7 @@ int CLinkFigureLoader::CacheBytes() {
     return bytes;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const stlp::vector<std::string>* parts, float s,
+CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                      float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
     if (!mesh) return MakeFigure(name, parts, s, t, u);
@@ -131,7 +133,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const stlp::ve
         std::string meshName = mesh->CopyName();
         set = FindFigureSet(&meshName);
     }
-    for (const std::string* part = parts->begin(); part != parts->end(); ++part) {
+    for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
         if (mesh->HasPart(part)) continue;
         const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
         if (!set) {
@@ -175,7 +177,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
         return LoadLink(&meshName, s, t, u, false);
     }
     if (!mesh) return nullptr;
-    stlp::vector<std::string> names;
+    std::vector<std::string> names;
     mesh->CollectPartNames(&names);
     mesh->SetMorph(s, t, u);
     FigureModel* set;
@@ -183,7 +185,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
         std::string meshName = mesh->CopyName();
         set = FindFigureSet(&meshName);
     }
-    for (std::string* part = names.begin(); part != names.end(); ++part)
+    for (std::string* part = names.data(); part != names.data() + names.size(); ++part)
         RemorphPart(mesh, set, part, s, t, u);
     names.clear();
     names.FreeStorage();
@@ -224,12 +226,12 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, flo
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const stlp::vector<std::string>* parts, float s,
+CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s,
                                          float t, float u) {
     CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
     CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
     FigureModel* set = FindFigureSet(name);
-    for (const std::string* part = parts->begin(); part != parts->end(); ++part) {
+    for (const std::string* part = parts->data(); part != parts->data() + parts->size(); ++part) {
         if (!set) {
             LoadArchivePart(mesh, part, s, t, u);
         } else if (const char* data = FileData(set->mesh, part->data())) {

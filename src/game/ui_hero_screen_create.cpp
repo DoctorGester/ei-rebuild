@@ -76,8 +76,8 @@ CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditFiel
 
 // std::sort(begin, end) (its first level of the introsort loop does the same steps as the out-of-line loop).
 void SortNames(NameList& names) {
-    mfc::CString* first = names.begin();
-    mfc::CString* last = names.end();
+    mfc::CString* first = names.data();
+    mfc::CString* last = names.data() + names.size();
     if (first == last) return;
     int depth = 0;
     for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
@@ -285,7 +285,7 @@ void CMpHeroScreen::CreateScreen() {
     // Both lists by name, the women's from the end.
     SortNames(men);
     SortNames(women);
-    for (mfc::CString *low = women.begin(), *high = women.end(); low < high; ++low) {
+    for (mfc::CString *low = women.data(), *high = women.data() + women.size(); low < high; ++low) {
         --high;
         std::string kept = (*low).GetString();
         *low = *high;

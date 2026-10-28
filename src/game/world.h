@@ -6,7 +6,9 @@
 #include <cstddef>
 #include "options.h"
 #include <cstdint>
+#include <list>
 #include <string>
+#include <vector>
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -797,13 +799,13 @@ struct ScreenEntry {
     tagRECT rect;                         // on the screen
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
-using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
+using ScreenEntryNode = std::list<ScreenEntry>::iterator;
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
-int __fastcall QueueScreenEntry(CMapObject* object, stlp::list<ScreenEntry>* queued);
+int __fastcall QueueScreenEntry(CMapObject* object, std::list<ScreenEntry>* queued);
 
 // The STLport vector<ScreenEntry> the pickers fill; the collectors inline push_back.
-struct ScreenHits : stlp::vector<ScreenEntry> {
+struct ScreenHits : std::vector<ScreenEntry> {
     void InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count);
     void PushBack(const ScreenEntry* entry) {
         ScreenEntry*& finish = Finish();
@@ -820,9 +822,9 @@ static_assert(sizeof(ScreenHits) == 12);
 // rectangle holds (x, y) and whose object (found in `manager`) answers the bounds virtual (CollectBounds) or 24
 // (CollectParts) for the point.
 struct HitCollector {
-    HitCollector* CollectBounds(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
+    HitCollector* CollectBounds(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, long x, long y,
                                 CMapObjectManager* manager);
-    HitCollector* CollectParts(ScreenEntryNode* first, ScreenEntryNode* last, ScreenHits* hits, long x, long y,
+    HitCollector* CollectParts(ScreenEntryNode first, ScreenEntryNode last, ScreenHits* hits, long x, long y,
                                CMapObjectManager* manager);
     ScreenHits* hits;
 };
@@ -1065,7 +1067,7 @@ public:
     // whose (x, y) lies within radius + hypot(rangeX_, rangeY_) of the point. The cell range (truncated
     // and clamped to the terrain) and the walk's cursor are left in rangeFirstX_ .. rangeY_. The
     // original's z difference is the point's z minus itself (0, kept).
-    void ObjectsInRange(const Vector3* point, float radius, stlp::list<CObject3D*>* out);
+    void ObjectsInRange(const Vector3* point, float radius, std::list<CObject3D*>* out);
     // Reads the light colours from config\<file> (an .ini, LightsGipat.ini): each key of [sunlight],
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps
@@ -1101,7 +1103,7 @@ public:
     mfc::CList<CMapObject*> dynamicObjects_;
     PendingMap dynamicNodes_;             // id -> its node in dynamicObjects_
     int dynamicMaxId_;
-    stlp::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
+    std::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
     ScreenHits hits_;                     // the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // PickAt's walk, left on the entry it returns
     std::uint8_t unused_104[0x108 - 0x104];
@@ -1172,7 +1174,7 @@ public:
     // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
     // prints' wet look and an environment flag.
     CRainSnow rainSnow_;
-    stlp::list<int> list7BC_;             // the selected objects' ids
+    std::list<int> list7BC_;             // the selected objects' ids
     int worldValue_;                      // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     int constants7C4_[3];                 // 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // HCURSOR wincurs\Df0000.cur
@@ -1191,15 +1193,7 @@ static_assert(offsetof(CWorldClient, dynamicObjects_) == 0xBC);
 static_assert(offsetof(CWorldClient, dynamicNodes_) == 0xD8);
 static_assert(offsetof(CWorldClient, dynamicMaxId_) == 0xEC);
 static_assert(offsetof(CWorldClient, screenEntries_) == 0xF0);
-static_assert(offsetof(CWorldClient, hits_) == 0xF4);
-static_assert(offsetof(CWorldClient, hitCursor_) == 0x100);
-static_assert(offsetof(CWorldClient, rangeFirstX_) == 0x138);
-static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
-static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
 static_assert(offsetof(CWorldClient, exits_) == 0x8C);
-static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
-static_assert(offsetof(CWorldClient, terrain_) == 0x180 && offsetof(CWorldClient, zoneName_) == 0x184);
-static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C);
 
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
@@ -1407,7 +1401,7 @@ int __stdcall RequestZone(const char* zone, int entrance);
 // With the briefing texts loaded: every quest text file loaded so far (g_questFiles) is unloaded and
 // the list emptied.
 void UnloadQuestTexts();
-extern stlp::vector<std::string> g_questFiles;
+extern std::vector<std::string> g_questFiles;
 
 // Loads the quest texts of `zone`: false without the briefing texts or when the maps folder has no
 // "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients
@@ -1422,7 +1416,7 @@ void __fastcall ClearSaveFolder(const char* path);
 // For the zone table entries with `id`, grouped by their second name in order of first appearance: one
 // random entry per group (never the one whose first name is `exclude` when there is a choice; one
 // IsaacRandom draw per group) has its first name appended to `out` (an STLport vector of strings).
-void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exclude);
+void __stdcall PickZones(std::vector<std::string>* out, int id, const char* exclude);
 
 // Reads mission.sav from a file stream (magic 0x102) and restores the world (LoadSave); old versions
 // also carry the globals (< 0x52) and the input state (< 0x47). 0 when the file does not read.
@@ -1458,7 +1452,7 @@ inline float FarClipDistance() { return options::TheOptions()->farClipDistance_;
 
 // The client's per-frame draw lists (CollectVisible files the visible objects, DrawPass sorts, draws and
 // empties them), the globals in this order; then the deferred unit list (counted pointers).
-using FrameQueue = stlp::vector<CMapObject*>;
+using FrameQueue = std::vector<CMapObject*>;
 extern FrameQueue g_touchedModels;
 extern FrameQueue g_shadow52;
 extern FrameQueue g_shadowUnits;

@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CRenderPreset;
 
@@ -55,7 +56,7 @@ public:
     int destBlend;                  // D3DBLEND
     // the passes (counted): a Direct3D state block each, the first pass's texture stages.
     CRenderPreset* preset;
-    stlp::vector<MaterialStage> stages;   // the first pass's stages, then one per further pass
+    std::vector<MaterialStage> stages;   // the first pass's stages, then one per further pass
 
 protected:
     CDeviceMaterial() {}

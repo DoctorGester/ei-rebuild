@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -36,7 +37,7 @@ bool HasCpuid() {
 
 // IDirectDraw7::EnumDisplayModes's callback: the mode appended to the list `context`.
 HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
-    static_cast<stlp::list<DDSURFACEDESC2>*>(context)->PushBack(*mode);
+    static_cast<std::list<DDSURFACEDESC2>*>(context)->push_back(*mode);
     return DDENUMRET_OK;
 }
 
@@ -103,14 +104,12 @@ CDXDirectDraw::~CDXDirectDraw() {
     device::AssignHolder(renderTarget_, nullptr);
     device::AssignHolder(primary_, nullptr);
     if (ddraw_) device::Release(ddraw_);
-    modes_.Destroy();
 }
 
 // Not kept: the game copies the processor's twelve bytes as a string into a local nothing reads.
 CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                              int /*refreshRate*/, unsigned /*backBuffers*/, int /*for3D*/)
     : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window) {
-    modes_.Construct();
     const RECT screen = {0, 0, width, height};
 
     ProcessorInfo& processor = *TheProcessorInfo();
@@ -145,7 +144,7 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
     ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
     driver_ = driver;
-    modes_.ClearWith([](DDSURFACEDESC2*) {});
+    modes_.clear();
     device::EnumDisplayModes(ddraw_, 0, nullptr, &modes_, &DisplayModeCallback);
     SetCooperativeLevel(fullScreen, &screen);
     // (The holders keep the device object: only a CTextureDevice is ever built on this base.)

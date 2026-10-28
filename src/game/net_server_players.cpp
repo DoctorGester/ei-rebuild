@@ -52,9 +52,9 @@ int ServerSession::LeaderId() {
 bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) {
     *reason = 2;
     // find_if over the banned addresses: the host compared, not the port.
-    auto* banned = banned_.First();
-    while (banned != banned_.End() && banned->data.ip != from->ip) banned = banned->next;
-    if (banned != banned_.End()) return false;
+    auto* banned = banned_.begin();
+    while (banned != banned_.end() && banned->data.ip != from->ip) banned = banned->next;
+    if (banned != banned_.end()) return false;
 
     const char* stored = password_;
     if (stored[0]) {
@@ -67,7 +67,7 @@ bool ServerSession::Admit(const NetAddress* from, std::uint8_t** password, std::
     *reason = 1;
     std::uint32_t clients = ClientCount();
     std::uint32_t pending = 0;
-    for (auto* node = joins_.First(); node != joins_.End(); node = node->next) ++pending;
+    for (auto* node = joins_.begin(); node != joins_.end(); node = node->next) ++pending;
     return pending + clients < maxPlayers_;
 }
 
@@ -166,7 +166,7 @@ void ServerSession::Ban(Connection* connection) {
         break;
     }
     const NetAddress* address = &connection->address_;
-    banned_.Insert(banned_.End(), *address);
+    banned_.Insert(banned_.end(), *address);
     DropClient(this, connection);
 }
 

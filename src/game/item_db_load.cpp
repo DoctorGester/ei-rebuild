@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <vector>
 
 namespace {
 // An item record's destructor (the kinds' are not reachable as member pointers), for the tables'
@@ -123,19 +124,19 @@ namespace {
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.
-void StringListField(ChunkArchive* ar, int id, stlp::vector<std::string>* list) {
+void StringListField(ChunkArchive* ar, int id, std::vector<std::string>* list) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
-        list->EraseRange<stlp::ObjectElement<std::string>>(list->begin(), list->end());
+        list->clear();
         count = ar->CountChunks(1);
-        list->ResizeDefault<stlp::ObjectElement<std::string>>(static_cast<unsigned>(count));
+        list->resize(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(list->size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ar->StringField(1, &list->Start()[i]);
+        ar->StringField(1, &(*list)[i]);
     }
     ar->LeaveChunk();
 }
@@ -189,22 +190,22 @@ void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
     ar->Field(5, &classMask, 4);
 }
 
-void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
+void ChunkArchive::IntVectorField(int id, std::vector<int>* values, void*) {
     if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
         // erase(begin, end) (the tail copy is empty), then resize(count, 0): the vector is empty, so always
         // the fill insert (the shrinking branch is not reached).
-        values->Finish() = values->Start();
+        values->clear();
         count = CountChunks(1);
         int zero = 0;
-        values->FillInsert<stlp::PlainElement<int>>(values->Finish(), static_cast<unsigned>(count), zero);
+        values->insert(values->end(), static_cast<unsigned>(count), zero);
     } else {
         count = static_cast<int>(values->size());
     }
     for (int i = 0; i < count; ++i) {
         Current()->occurrence = i + 1;
-        Field(1, &values->Start()[i], 4);
+        Field(1, &(*values)[i], 4);
     }
     LeaveChunk();
 }

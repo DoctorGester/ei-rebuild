@@ -28,9 +28,9 @@ void DressedUnitRecord::Write(CStream* stream) {
     std::int16_t word = static_cast<std::int16_t>(prototype);
     Put(stream, &word, 2);
     PutWord(stream, static_cast<std::uint32_t>(items.size()));
-    Put(stream, items.begin(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
+    Put(stream, items.data(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
     PutWord(stream, static_cast<std::uint32_t>(extraWeapons.size()));
-    Put(stream, extraWeapons.begin(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
+    Put(stream, extraWeapons.data(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
     std::uint8_t byte = static_cast<std::uint8_t>(extraWeapon);
     Put(stream, &byte, 1);
     PutWord(stream, static_cast<std::uint32_t>(modelNumber));
@@ -72,7 +72,7 @@ void UnitSet::Write(CStream* stream) {
             std::uint32_t n = static_cast<std::uint32_t>(list.size());
             PutWord(stream, n);
             n = static_cast<std::uint32_t>(list.size());
-            Put(stream, list.begin(), n << 2);
+            Put(stream, list.data(), n << 2);
         };
         counted(record->items);
         counted(record->extraWeapons);
@@ -95,8 +95,8 @@ void GetIds(CStream* stream, UnitIdList& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
     std::uint32_t zero = 0;
-    list.Resize<stlp::PlainElement<unsigned int>>(n, zero);
-    Get(stream, list.begin(), static_cast<std::uint32_t>(list.size()) << 2);
+    list.resize(n, zero);
+    Get(stream, list.data(), static_cast<std::uint32_t>(list.size()) << 2);
 }
 
 } // namespace
@@ -117,7 +117,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->morphU, 4);
         std::uint32_t names;
         Get(stream, &names, 4);
-        record->names.ResizeDefault<stlp::ObjectElement<mfc::CString>>(names);
+        record->names.resize(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(&record->names[i]);
     }

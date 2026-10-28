@@ -11,6 +11,7 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <vector>
 
 namespace net {
 
@@ -107,14 +108,14 @@ bool Connection::Tick(double dt) {
     if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
         freedTimer_ = 0.0f;
         FreedIds& oldest = freedIds_.First()->data;
-        for (FreedId* e = oldest.begin(); e != oldest.end(); ++e) {
+        for (FreedId* e = oldest.data(); e != oldest.data() + oldest.size(); ++e) {
             auto id = static_cast<std::uint16_t>(e->id);
-            stlp::vector<std::uint16_t>& pool = idPools_[e->type].free;
+            std::vector<std::uint16_t>& pool = idPools_[e->type].free;
             if (pool.end() != pool.EndOfStorage()) {
                 stlp::ConstructAt(pool.end(), &id);
                 ++pool.Finish();
             } else {
-                pool.InsertOverflow<stlp::PlainElement<std::uint16_t>>(pool.end(), id, 1);
+                pool.push_back(id);
             }
         }
         oldest.Finish() = stlp::CopyElements(oldest.end(), oldest.end(), oldest.begin());   // erase(begin, end)
@@ -169,7 +170,7 @@ void Connection::Delivered(SentPacket* packet) {
                     stlp::ConstructAt(batch.end(), &value);
                     ++batch.Finish();
                 } else {
-                    batch.InsertOverflow<stlp::PlainElement<FreedId>>(batch.end(), value, 1);
+                    batch.push_back(value);
                 }
                 tree->EraseAt(found);
             }

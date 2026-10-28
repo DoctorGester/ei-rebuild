@@ -18,6 +18,7 @@
 #include "lib/gameapi.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace app {
 
@@ -78,15 +79,15 @@ void __cdecl ScrambleObjects() {
 void __cdecl DelayedProtectionCheck() {
     if (Scaled(100) % 100 >= 1) return;
     ProtectionCheckList& checks = ProtectionChecks();
-    for (ProtectionCheckList::Node* node = checks.First(); node != checks.End(); node = node->next) {
-        if (!node->data) {
+    for (ProtectionCheckList::iterator  node = checks.begin(); node != checks.end(); ++node) {
+        if (!(*node)) {
             ScrambleObjects();
             return;
         }
     }
 }
 
-void __stdcall ConstructProtectionChecks() { ProtectionChecks().Construct(); }
+void __stdcall ConstructProtectionChecks() { std::construct_at(&ProtectionChecks()); }
 
 } // namespace app
 

@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -203,8 +204,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 dialogueText_ += line;
                 if (!skip) text_->AddText(line.c_str());
             };
-            auto addItems = [&](const stlp::vector<std::string>& list) {
-                for (const std::string* it = list.begin(); it != list.end(); ++it) {
+            auto addItems = [&](const std::vector<std::string>& list) {
+                for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
                     CItem* item = TheClientWorld()->itemManager_->CreateItem(it->c_str());
                     if (!item) continue;
                     ++item->refCount_;
@@ -214,8 +215,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     item->Release();
                 }
             };
-            auto addQuests = [&](const stlp::vector<std::string>& list) {
-                for (const std::string* it = list.begin(); it != list.end(); ++it) {
+            auto addQuests = [&](const std::vector<std::string>& list) {
+                for (const std::string* it = list.data(); it != list.data() + list.size(); ++it) {
                     text::Split(it->c_str(), &parts, '.');
                     if (parts.size() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;

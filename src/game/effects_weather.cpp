@@ -18,6 +18,8 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <memory>
+#include <vector>
 
 // Rain/snow fading and the visibility fog cells. The order of operations is fixed (the goldens depend on it; see
 // effects.cpp).
@@ -49,15 +51,15 @@ double Unsigned(std::uint32_t value) {
 
 // vector<uint32> as the fog's static list of cells to drop (a function-local static: constructed on the first
 // update, its guard bit 0), with its constructor and insert-overflow.
-using KeyVector = stlp::vector<std::uint32_t>;
+using KeyVector = std::vector<std::uint32_t>;
 static_assert(sizeof(KeyVector) == 12);
 void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
     v->InsertOverflow<stlp::PlainElement<std::uint32_t>>(pos, *value, count);
 }
 
-constinit stlp::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
+constinit std::vector<std::uint32_t> g_deadCells = /*007ABB58*/ {};
 std::uint8_t g_deadCellsGuard = /*007ABB64*/ {};
-void __cdecl DestroyDeadCells() { stlp::VectorAbi<std::uint32_t>::DestroyBase(&g_deadCells); }
+void __cdecl DestroyDeadCells() { std::destroy_at(&g_deadCells); }
 
 } // namespace
 
@@ -221,10 +223,10 @@ int CVisibilityFog::UpdateCells() {
     KeyVector& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
-        dead.ConstructEmpty();
+        std::construct_at(&dead);
         libcrt::AtExit(DestroyDeadCells);
     }
-    dead.Finish() = dead.Start();
+    dead.clear();
     World();   // called and ignored
     cells.ForEach([&dead](CellMap::Node* n) {
         FogCell& cell = n->value;
@@ -234,17 +236,17 @@ int CVisibilityFog::UpdateCells() {
             cell.alpha = cell.alpha * kHalf;
         EI_NAN_AUDIT(cell.alpha);
         if (LoadFloat(cell.alpha) < kFogMinAlpha) {
-            if (dead.Finish() == dead.EndOfStorage()) {
-                KeyVectorInsertOverflow(&dead, dead.Finish(), &n->key, 1);
+            if (dead.data() + dead.size() == dead.EndOfStorage()) {
+                KeyVectorInsertOverflow(&dead, dead.data() + dead.size(), &n->key, 1);
             } else {
-                if (dead.Finish()) *dead.Finish() = n->key;
+                if (dead.data() + dead.size()) *dead.Finish() = n->key;
                 ++dead.Finish();
             }
         }
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     });
-    std::uint32_t* end = dead.end();
-    for (std::uint32_t* key = dead.begin(); key != end; ++key) {
+    std::uint32_t* end = dead.data() + dead.size();
+    for (std::uint32_t* key = dead.data(); key != end; ++key) {
         std::uint32_t copy = *key;
         cells.EraseKey(copy);
     }

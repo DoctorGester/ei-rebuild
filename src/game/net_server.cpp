@@ -20,7 +20,6 @@ namespace {
 } // namespace
 
 ServerBase::ServerBase() {
-    joins_.Construct();
     socket_.Open(g_gamePort);
 }
 
@@ -39,7 +38,6 @@ ServerSession::ServerSession(std::uint32_t kind) {
     offers_.Construct();
     trades_.Construct();
     finishedTrades_.Construct();
-    banned_.Construct();
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 

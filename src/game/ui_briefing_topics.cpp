@@ -15,6 +15,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -42,10 +43,10 @@ public:
         list_.clear();
         list_.FreeStorage();
     }
-    stlp::vector<std::string>& Get() { return list_; }
+    std::vector<std::string>& Get() { return list_; }
 
 private:
-    stlp::vector<std::string> list_;
+    std::vector<std::string> list_;
 };
 
 } // namespace
@@ -75,15 +76,15 @@ void CBriefingScreen::FindTopics(int personId) {
         const char* text = name.c_str();
         found.Get().push_back(std::string(text, text + std::strlen(text)));
     }
-    stlp::vector<std::string>& list = found.Get();
+    std::vector<std::string>& list = found.Get();
     if (IsMultiplayerClient() && list.begin() != list.end()) {
         int depth = 0;
         for (int n = static_cast<int>(list.end() - list.begin()); n != 1; n >>= 1) ++depth;
-        stl_sorts::TopicIntroSort(list.begin(), list.end(), 0, depth * 2, personId);
-        stl_sorts::TopicFinalSort(list.begin(), list.end(), personId);
+        stl_sorts::TopicIntroSort(list.data(), list.data() + list.size(), 0, depth * 2, personId);
+        stl_sorts::TopicFinalSort(list.data(), list.data() + list.size(), personId);
     }
     topics_.clear();
-    for (std::string* topic = list.begin(); topic != list.end(); ++topic) topics_.push_back(*topic);
+    for (std::string* topic = list.data(); topic != list.data() + list.size(); ++topic) topics_.push_back(*topic);
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 

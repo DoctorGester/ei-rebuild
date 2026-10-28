@@ -22,11 +22,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 using State = RenderPresetRecord::State;
-using StateVector = stlp::vector<State>;
+using StateVector = std::vector<State>;
 
 static_assert(sizeof(D3DDEVICEDESC7) == sizeof(CRenderHelper::caps_));
 D3DDEVICEDESC7& Caps(CRenderHelper* self) { return *reinterpret_cast<D3DDEVICEDESC7*>(self->caps_); }
@@ -96,17 +97,17 @@ void AssignStates(StateVector* out, const StateVector& source) {
     using State = RenderPresetRecord::State;
     if (out == &source) return;
     const std::size_t count = source.size();
-    const std::size_t capacity = static_cast<std::size_t>(out->EndOfStorage() - out->Start());
+    const std::size_t capacity = static_cast<std::size_t>(out->EndOfStorage() - out->data());
     if (count > capacity) {
         auto* fresh = stlp::allocate_as<State>(count);
-        std::memcpy(fresh, source.begin(), count * sizeof(State));
-        if (out->Start()) stlp::deallocate(out->Start(), capacity * sizeof(State));
+        std::memcpy(fresh, source.data(), count * sizeof(State));
+        if (out->data()) stlp::deallocate(out->data(), capacity * sizeof(State));
         out->Start() = fresh;
         out->EndOfStorage() = fresh + count;
     } else if (count != 0) {
-        std::memmove(out->Start(), source.begin(), count * sizeof(State));
+        std::memmove(out->data(), source.data(), count * sizeof(State));
     }
-    out->Finish() = out->Start() + count;
+    out->Finish() = out->data() + count;
 }
 
 constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
@@ -149,7 +150,7 @@ State Blended(State state, D3DBLEND source, D3DBLEND dest) {
 // The state list of built-in preset `index` into `states`
 // (emptied first); false beyond the nine. Presets 0 and 8 have no states.
 bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned index) {
-    states->Finish() = states->Start();
+    states->clear();
     if (index >= CRenderHelper::kPresetCount) return false;
     const State unset{};
     switch (index) {
@@ -203,13 +204,12 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
         const int deviceStages = Caps(this).wMaxSimultaneousTextures;
         stages = deviceStages < count ? deviceStages : count;
     }
-    stlp::vector<std::uint32_t> blocks;
+    std::vector<std::uint32_t> blocks;
     Resize(&blocks, static_cast<std::size_t>(count - stages + 1), std::uint32_t{0});
 
     HRESULT result = device::BeginStateBlock(device_);
     if (result < 0) {
         const int error = app::FatalErrorCode(result, CantBeginBlockText());
-        blocks.FreeStorage();
         return Failed(error);
     }
     for (int i = 0; i < stages; ++i) {
@@ -234,7 +234,6 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     result = device::EndStateBlock(device_, &block);
     if (result < 0) {
         const int error = app::FatalErrorCode(result, CantEndBlockText());
-        blocks.FreeStorage();
         return Failed(error);
     }
     blocks[0] = block;
@@ -243,7 +242,6 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
         result = device::BeginStateBlock(device_);
         if (result < 0) {
             const int error = app::FatalErrorCode(result, CantBeginBlockText());
-            blocks.FreeStorage();
             return Failed(error);
         }
         const State& state = (*states)[i];
@@ -254,7 +252,6 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
         result = device::EndStateBlock(device_, &block);
         if (result < 0) {
             const int error = app::FatalErrorCode(result, CantEndBlockText());
-            blocks.FreeStorage();
             return Failed(error);
         }
         blocks[i - stages + 1] = block;
@@ -278,7 +275,6 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     Release(previous);
     copy.FreeStorage();
 
-    blocks.FreeStorage();
     return preset;
 }
 
@@ -347,7 +343,6 @@ CRenderHelper::~CRenderHelper() {
     for (Node* node = records_.First(); node; node = records_.After(node)) {
         if (Node* found = records_.Find(node->key)) ReleaseBlock(found->value.preset);
     }
-    presets_.FreeStorage();
     records_.ClearWith([](Node* node) {
         DestroyRecord(&node->value);
         stlp::deallocate(node, sizeof(Node));
@@ -383,19 +378,19 @@ bool CRenderHelper::PresetStates(CRenderPreset* preset, StateVector* out) {
 }
 
 // The result is a byte (a bool).
-bool CRenderHelper::BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out) {
+bool CRenderHelper::BuiltInStates(unsigned index, std::vector<RenderPresetRecord::State>* out) {
     if (index >= CRenderHelper::kPresetCount || !presets_[index]) return false;
     return PresetStates(presets_[index], out);
 }
 
 // ---- The preset -------------------------------------------------------------------------------------
 
-CRenderPreset::CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stages, int index)
+CRenderPreset::CRenderPreset(const std::vector<std::uint32_t>& blocks, int stages, int index)
     : stages_(stages), index_(index) {
     CopyConstruct(&blocks_, blocks);
 }
 
-CRenderPreset::~CRenderPreset() { blocks_.FreeStorage(); }
+CRenderPreset::~CRenderPreset() {  }
 
 void* CRenderPreset::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CRenderPreset::operator delete(void* block) { gamecrt::operator_delete(block); }

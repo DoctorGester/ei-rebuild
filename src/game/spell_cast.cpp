@@ -14,6 +14,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <iterator>
 
 namespace {
 // The game's own messages (passed by address).
@@ -46,16 +47,16 @@ void AddScaledPositive(float& field, float strength, float base) {
 // Returns every node of the list to the node allocator's free list and leaves it empty. The sentinel is
 // re-read on every step.
 void FreeModifierNodes(SpellModifierList& list) {
-    SpellModifierNode* node = list.head->next;
-    if (node != list.head) {
+    SpellModifierNode node = list.begin();
+    if (node != list.end()) {
         do {
-            SpellModifierNode* current = node;
-            node = node->next;
+            SpellModifierNode current = node;
+            ++node;
             if (current) libcrt::NodeDeallocate(current, sizeof(SpellModifierNode));
-        } while (node != list.head);
+        } while (node != list.end());
     }
-    list.head->next = list.head;
-    list.head->prev = list.head;
+    list.begin() = list.end();
+    std::prev(list.end()) = list.end();
 }
 
 // The code letters of a modifier record.
@@ -103,7 +104,7 @@ const char* CSpellContainer::GetName() { return name_.c_str(); }
 
 BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
-    SpellModifierList::Insert(modifiers_.End(), modifier);
+    modifiers_.insert(modifiers_.end(), modifier);
     return 1;
 }
 
@@ -148,8 +149,8 @@ BOOL CSpellContainer::Build() {
 
     if (!codes_.empty()) codes_.clear();
 
-    for (SpellModifierNode* node = modifiers_.First(); node != modifiers_.End(); node = node->next) {
-        const itemdb::SpellModifierRecord* modifier = node->data;
+    for (SpellModifierNode node = modifiers_.begin(); node != modifiers_.end(); ++node) {
+        const itemdb::SpellModifierRecord* modifier = (*node);
         float strength = modifier->strength;
         switch (Letter(modifier, 0)) {
         case 'a':   // area
@@ -246,9 +247,9 @@ CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const S
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, prototype->code.c_str());
     int added = 0;
-    for (SpellModifierNode* node = modifiers->First(); node != modifiers->End(); node = node->next) {
+    for (SpellModifierNode node = modifiers->begin(); node != modifiers->end(); ++node) {
         if (added >= 8) break;
-        constructor->AddModifier(node->data);
+        constructor->AddModifier((*node));
         ++added;
     }
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);

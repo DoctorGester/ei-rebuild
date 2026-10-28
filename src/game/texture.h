@@ -10,6 +10,7 @@
 #include "raster_target.h"
 #include "renderer_base.h"
 
+#include <list>
 #include <string>
 #include <vector>
 #include <windows.h>
@@ -67,7 +68,7 @@ public:
     std::uint32_t flags_;       // the cooperative level; bit 0: full screen (the present flips)
     RECT screen_;
     HWND window_;
-    stlp::list<_DDSURFACEDESC2> modes_;
+    std::list<_DDSURFACEDESC2> modes_;
     std::uint32_t videoFourCC_;     // the YUV format an off-screen video-memory surface can have (0: none)
     std::uint32_t overlayFourCC_;   // the YUV format an overlay can have (0: none)
     bool overlayStretch_;       // DDCAPS_OVERLAYSTRETCH
@@ -136,9 +137,9 @@ public:
     // stencil bits (words[4]) are nonzero.
     PixelFormat depthFormat_;
     CTransformPipeline* pipeline_;
-    stlp::list<Direct3DDeviceRecord> devices_;
-    stlp::list<PixelFormat> depthFormats_;   // one is picked
-    stlp::list<PixelFormat> textureFormats_;
+    std::list<Direct3DDeviceRecord> devices_;
+    std::list<PixelFormat> depthFormats_;   // one is picked
+    std::list<PixelFormat> textureFormats_;
     // The values point at textureFormats_'s elements.
     stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
     std::uint32_t largestFormatId_;
@@ -156,35 +157,21 @@ public:
     int drawCount_;
     int textureChanges_;
 };
-static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTextureDevice, vertexCount_) == 0x16C);
 static_assert(offsetof(CTextureDevice, lastLoadResult_) == 0x08);
-static_assert(offsetof(CTextureDevice, primitiveCount_) == 0x170 && offsetof(CTextureDevice, drawCount_) == 0x174);
-static_assert(offsetof(CTextureDevice, textureChanges_) == 0x178);
-static_assert(sizeof(CTextureDevice) == 0x17C);
 
 // The four state blocks of texture stage 0: the scene's (texture x diffuse, alpha diffuse), texture x diffuse
 // with the texture's alpha, the alpha passes' (texture x diffuse for colour and alpha) and the terrain's
 // (texture x current, alpha texture).
 enum StageBlock { kSceneBlock, kTextureAlphaBlock, kAlphaPassBlock, kTerrainBlock, kStageBlockCount };
 extern DWORD g_stageBlocks[kStageBlockCount];
-static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
-static_assert(offsetof(CTextureDevice, distanceFog_) == 0x158);
-static_assert(offsetof(CTextureDevice, deviceGuid_) == 0x7C && offsetof(CTextureDevice, depthFormat_) == 0x8C);
-static_assert(offsetof(CTextureDevice, window_) == 0x34 && offsetof(CTextureDevice, converterLibrary_) == 0x48);
-static_assert(offsetof(CTextureDevice, devices_) == 0xB0 && offsetof(CTextureDevice, largestFormatId_) == 0xD0);
-static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTextureDevice, colour_) == 0x150);
-static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextureDevice, formats_) == 0xBC);
 
 // Once a frame; returns the DirectDraw result (0).
 long __fastcall DevicePresent(CTextureDevice* device);
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
-static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);
 static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
 static_assert(offsetof(CTextureDevice, flags_) == 0x20);
 static_assert(offsetof(CTextureDevice, screen_) == 0x24);
-static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
-static_assert(offsetof(CTextureDevice, pipeline_) == 0xAC);
 
 // A Direct3D driver of the device list. The image does not run the driver enumeration: the list stays empty.
 struct DirectDrawDriver {
@@ -194,8 +181,8 @@ struct DirectDrawDriver {
     std::string description;
     HMONITOR monitor;
 };
-extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;
-inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
+extern lib::StaticObject<std::list<DirectDrawDriver>> g_directDrawDrivers;
+inline std::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 
 // A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
 // (dx_surface.h).

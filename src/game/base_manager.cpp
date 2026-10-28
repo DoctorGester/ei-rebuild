@@ -8,6 +8,7 @@
 #include "lib/mfc_list.h"
 #include "lib/mfc_slots.h"
 
+#include <list>
 #include <type_traits>
 
 #undef GetClassName
@@ -21,8 +22,8 @@ using PositionMap = CBaseManager::PositionMap;
 using SpareMap = CBaseManager::SpareMap;
 using SpareCountMap = CBaseManager::SpareCountMap;
 
-using IdList = stlp::list<int>;
-using IdNode = IdList::Node;
+using IdList = std::list<int>;
+using IdNode = IdList::iterator;
 
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
@@ -168,15 +169,14 @@ int CBaseManager::Create() {
 void CBaseManager::Destroy() {
     ForEachObject(objects_, [](CEngineObject* o) { ++o->refCount_; });
     IdList ids;
-    ids.Construct();
     ForEachObject(objects_, [&ids](CEngineObject* o) {
-        IdList::Insert(ids.End(), o->id_);
+        ids.insert(ids.end(), o->id_);
         o->Destroy();
     });
-    for (IdNode* n = ids.First(); n != ids.End(); n = n->next) {
-        if (ObjectMap::Node* found = objects_.Find(static_cast<unsigned>(n->data))) found->value->Release();
+    for (IdNode* n = ids.begin(); n != ids.end(); ++n) {
+        if (ObjectMap::Node* found = objects_.Find(static_cast<unsigned>((*n)))) found->value->Release();
     }
-    ids.Clear();
+    ids.clear();
     objectList_.RemoveAll();
     ForEachObject(objects_, [](CEngineObject* o) { delete o; });
     objects_.Clear();
@@ -189,7 +189,6 @@ void CBaseManager::Destroy() {
     spareCounts_.Clear();
     maxSpareCountType_ = 0;
     context_ = nullptr;
-    ids.Release();
 }
 
 BOOL CBaseManager::Init(CManagerContext* context) {

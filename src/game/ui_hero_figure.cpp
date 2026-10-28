@@ -81,9 +81,9 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     // Each strip selects the figure when its list has it; the second list decides the voices.
     figureStrips_[1]->selected_ = -1;
     figureStrips_[0]->selected_ = -1;
-    int index = IndexOf(defaults_.begin(), defaults_.end(), prototype);
+    int index = IndexOf(defaults_.data(), defaults_.data() + defaults_.size(), prototype);
     if (index >= 0) figureStrips_[0]->selected_ = index;
-    index = IndexOf(names_.begin(), names_.end(), prototype);
+    index = IndexOf(names_.data(), names_.data() + names_.size(), prototype);
     bool firstVoices = index < 0;
     if (index >= 0) figureStrips_[1]->selected_ = index;
 

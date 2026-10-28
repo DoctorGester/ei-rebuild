@@ -13,6 +13,8 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
+#include <vector>
+
 namespace {
 constexpr int kInterfacePriority = 1000;
 constexpr int kFullVolume = 100;
@@ -63,7 +65,7 @@ void CInterface3D::ShowFps(int on) {
 }
 
 void CInterface3D::OnQuestVariable(const char* name, float value) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->QuestVariable(name, value);
+    if (!stack_.empty()) ScreenOf(stack_.back())->QuestVariable(name, value);
     std::vector<std::string> parts;
     EI_NAN_AUDIT(value);
     if (value != 1.0f) return;
@@ -79,27 +81,27 @@ constexpr char* kNoExtra = nullptr;
 } // namespace
 
 void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->ItemsPicked(items, money, crippled);
+    if (!stack_.empty()) ScreenOf(stack_.back())->ItemsPicked(items, money, crippled);
 }
 
 void CInterface3D::OnUnitJoined(CUnit* unit) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->UnitJoined(unit);
+    if (!stack_.empty()) ScreenOf(stack_.back())->UnitJoined(unit);
 }
 
 void CInterface3D::OnUnitLeft(CUnit* unit) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->UnitLeft(unit);
+    if (!stack_.empty()) ScreenOf(stack_.back())->UnitLeft(unit);
 }
 
 void CInterface3D::OnGameLost() {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->GameOver(0);
+    if (!stack_.empty()) ScreenOf(stack_.back())->GameOver(0);
 }
 
 void CInterface3D::OnUnitSpeech(int id, unsigned event) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->Speech(id, event, kNoExtra);
+    if (!stack_.empty()) ScreenOf(stack_.back())->Speech(id, event, kNoExtra);
 }
 
 void CInterface3D::OnPlayersChanged(int added) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->PlayersChanged(added);
+    if (!stack_.empty()) ScreenOf(stack_.back())->PlayersChanged(added);
 }
 
 void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
@@ -107,12 +109,12 @@ void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
 }
 
 void CInterface3D::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC) {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->ExchangeDone(partyB, partyA, partyC);
+    if (!stack_.empty()) ScreenOf(stack_.back())->ExchangeDone(partyB, partyA, partyC);
 }
 
 // The bottom window, not the top one (a save is made from the battle screen under the save window).
 void CInterface3D::SaveWindowState() {
-    if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Start()[0])->SaveState();
+    if (!stack_.empty()) ScreenOf(stack_[0])->SaveState();
 }
 
 void CInterface3D::ShowStatusText(const char* text) {

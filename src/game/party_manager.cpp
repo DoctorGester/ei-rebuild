@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -38,7 +39,7 @@ void AssignCounted(T*& slot, CRefCounted* object) {
 } // namespace
 
 void PartyManagerEntry::Destruct() {
-    ids.FreeStorage();
+    std::destroy_at(&ids);
     std::destroy_at(&text);
     std::destroy_at(&name);
 }
@@ -99,19 +100,19 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
         CStringField(1, &entry->name);
         CStringField(2, &entry->text);
         if (EnterChunk(3)) {
-            stlp::vector<int>& ids = entry->ids;
+            std::vector<int>& ids = entry->ids;
             int idCount;
             if (loading_) {
-                ids.Finish() = ids.Start();
+                ids.clear();
                 idCount = CountChunks(1);
                 const int zero = 0;
-                ids.Resize<stlp::PlainElement<int>>(static_cast<unsigned>(idCount), zero);
+                ids.resize(static_cast<unsigned>(idCount), zero);
             } else {
                 idCount = static_cast<int>(ids.size());
             }
             for (int j = 0; j < idCount; ++j) {
                 Current()->occurrence = j + 1;
-                int* data = ids.begin();
+                int* data = ids.data();
                 if (EnterChunk(1)) {
                     IntField(1, data + j);
                     LeaveChunk();

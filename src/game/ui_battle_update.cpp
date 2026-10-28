@@ -29,7 +29,10 @@
 #include <cstdint>
 #include <cstring>
 #include <bit>
+#include <list>
+#include <memory>
 #include <string>
+#include <vector>
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
@@ -149,28 +152,18 @@ using PartyIds = CBattleScreen::PartyIds;
 // The children's update (CUiContainer::UpdateBase).
 
 // STLport lists of ids and unit pointers.
-using List = stlp::list<std::uintptr_t>;
-using ListNode = List::Node;
+using List = std::list<std::uintptr_t>;
+using ListNode = List::iterator;
 using UnitList = stlp::list<CMapObject*>;
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
 
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
-    if (ids->Finish() != ids->EndOfStorage()) {
-        stlp::ConstructAt(ids->Finish(), value);
-        ++ids->Finish();
-    } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
-    }
+    ids->push_back(*value);
 }
 void PushIdInline(IdVector* ids, const int* value) {
-    if (ids->Finish() != ids->EndOfStorage()) {
-        if (ids->Finish()) *ids->Finish() = *value;
-        ++ids->Finish();
-    } else {
-        ids->InsertOverflow<stlp::PlainElement<int>>(ids->Finish(), *value, 1);
-    }
+    ids->push_back(*value);
 }
 
 // std::sort: the introsort loop with depth 2 * floor(log2(n)), then the final insertion sort.
@@ -178,8 +171,8 @@ void SortIds(IdVector* ids) {
     if (ids->begin() == ids->end()) return;
     int depth = 0;
     for (int n = static_cast<int>(ids->end() - ids->begin()); n != 1; n >>= 1) ++depth;
-    stl_sorts::IdIntroSort(ids->begin(), ids->end(), nullptr, depth * 2);
-    stl_sorts::IdFinalSort(ids->begin(), ids->end());
+    stl_sorts::IdIntroSort(ids->data(), ids->data() + ids->size(), nullptr, depth * 2);
+    stl_sorts::IdFinalSort(ids->data(), ids->data() + ids->size());
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
@@ -213,7 +206,7 @@ void RebuildClientParty(CBattleScreen* screen) {
         auto* party = &screen->party_;
         party->SetSize(0, -1);
         bool cameraFirst = false;
-        for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
+        for (int* id = ids.withUnit.data(); id != ids.withUnit.data() + ids.withUnit.size(); ++id) {
             int unitId = *id;
             CUnit* unit = TheClientWorld()->FindUnit(unitId);
             if (!unit) continue;
@@ -239,12 +232,12 @@ void RebuildClientParty(CBattleScreen* screen) {
             TheCamera()->SetTargetId(ids.camera);
             screen->RefreshSelection();
         }
-        screen->clientParty_.withUnit.AssignVector<stlp::PlainElement<int>>(ids.withUnit);
+        screen->clientParty_.withUnit = ids.withUnit;
         screen->clientParty_.camera = ids.camera;
-        screen->clientParty_.without.AssignVector<stlp::PlainElement<int>>(ids.without);
+        screen->clientParty_.without = ids.without;
     }
-    ids.without.FreeStorage();
-    ids.withUnit.FreeStorage();
+    std::destroy_at(&ids.without);
+    std::destroy_at(&ids.withUnit);
 }
 
 // Frees a list's nodes and empties it (the header is freed by the caller).
@@ -321,11 +314,10 @@ void CBattleScreen::Update() {
         units.Construct();
         TheClientWorld()->UnitsInBox(&selectionBox_, &units);
         List inside;
-        inside.Construct();
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
+                inside.insert(inside.end(), static_cast<std::uintptr_t>(i));   // end, insert
             }
         }
         auto mark = [](CUnit* unit, int on) { unit->Object3D()->attached->SetLit(on); };
@@ -337,8 +329,8 @@ void CBattleScreen::Update() {
                 mark(unit, 0);
             }
         }
-        for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
-            auto* unit = party->data[node->data];
+        for (ListNode* node = inside.begin(); node != inside.end(); ++node) {
+            auto* unit = party->data[(*node)];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 unit->flags_ = flags | 0x100;
@@ -346,7 +338,7 @@ void CBattleScreen::Update() {
             }
         }
         FreeListNodes(&inside);
-        if (inside.head) NodeFree(inside.head, 0xC);
+        if (inside.end()) NodeFree(inside.end(), 0xC);
         FreeListNodes(&units);
         if (units.head) {
             stlp::PushSmallNode(units.head);
@@ -374,7 +366,7 @@ void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 namespace {
 bool SameIds(const IdVector& a, const IdVector& b) {
     if (a.end() - a.begin() != b.end() - b.begin()) return false;
-    for (const int *x = a.begin(), *y = b.begin(); x != a.end(); ++x, ++y)
+    for (const int *x = a.data(), *y = b.data(); x != a.data() + a.size(); ++x, ++y)
         if (*x != *y) return false;
     return true;
 }
@@ -410,12 +402,11 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     units.Construct();
     world->UnitsInBox(&selectionBox_, &units);
     List inside;
-    inside.Construct();
     if (units.head->next != units.head) {
         for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
-                List::Insert(inside.End(), static_cast<std::uintptr_t>(i));   // end, insert
+                inside.insert(inside.end(), static_cast<std::uintptr_t>(i));   // end, insert
                 if (first < 0) first = i;
             }
         }
@@ -434,8 +425,8 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = kHudRestRotation;
             }
-            for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
-                int i = static_cast<int>(node->data);
+            for (ListNode* node = inside.begin(); node != inside.end(); ++node) {
+                int i = static_cast<int>((*node));
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
@@ -443,7 +434,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                world->Select(unitAt(static_cast<int>(node->data)));
+                world->Select(unitAt(static_cast<int>((*node))));
             }
             int id = unitAt(first)->id_;
             Speech(id, 0, nullptr);
@@ -452,7 +443,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     RefreshSelection();
     boxSelecting_ = false;
     FreeListNodes(&inside);
-    if (inside.head) NodeFree(inside.head, 0xC);
+    if (inside.end()) NodeFree(inside.end(), 0xC);
     FreeListNodes(&units);
     if (units.head) {
         stlp::PushSmallNode(units.head);

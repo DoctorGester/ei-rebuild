@@ -480,9 +480,9 @@ void CCamera::Update(float dt) {
 
     ApplyView();
 
-    if (shakes_.Empty()) return;
+    if (shakes_.empty()) return;
     float offset = 0.0f;
-    for (ShakeList::Node* node = shakes_.First(); node != shakes_.End();) {
+    for (ShakeList::iterator  node = shakes_.begin(); node != shakes_.end();) {
         CameraShake* s = &node->data;
         double damping = x87::fexp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::kHalfPi) * s->elapsed * kShakeFrequency);
@@ -620,5 +620,5 @@ void CCamera::Shake(const Vector3* source, float duration, float amplitude, floa
     entry.duration = static_cast<float>(D(duration) * kShakeTicks);
     entry.amplitude = static_cast<float>(strength);
     CopyFloat(&entry.decay, &decay);
-    ShakeList::Insert(shakes_.End(), entry);
+    shakes_.insert(shakes_.end(), entry);
 }

@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace {
 constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
@@ -26,7 +27,7 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 // AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
 // context) is not defined here.
 
-std::uint32_t Count(const stlp::vector<std::string>& names) { return static_cast<std::uint32_t>(names.size()); }
+std::uint32_t Count(const std::vector<std::string>& names) { return static_cast<std::uint32_t>(names.size()); }
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const std::string& name) {

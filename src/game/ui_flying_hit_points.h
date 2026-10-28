@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 
 class CTexture;
 class CSceneRenderer;
@@ -39,6 +40,6 @@ public:
     int Draw(CSceneRenderer* renderer);
 
     CTexture* texture_;   // the digits texture (counted)
-    stlp::list<FlyingHitPoint> points_;
+    std::list<FlyingHitPoint> points_;
 };
 static_assert(offsetof(CFlyingHitPoints, points_) == 4);

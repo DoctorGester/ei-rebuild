@@ -10,10 +10,11 @@
 #include "lib/stlp.h"
 
 #include <cstddef>
+#include <vector>
 
 struct MobScriptDecoder {
-    stlp::vector<char> text;    // decoded
-    stlp::vector<char> input;   // coded: the seed, then the bytes
+    std::vector<char> text;    // decoded
+    std::vector<char> input;   // coded: the seed, then the bytes
 
     // `text` = the input after the seed, unscrambled; `out` = the text up to its
     // first zero byte (CString ReleaseBuffer(-1)).

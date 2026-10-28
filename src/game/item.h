@@ -452,4 +452,4 @@ template <typename T> class vector;
 void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
 
 // The same names for a packed item id, appended to an STLport vector of strings.
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out);
+void __fastcall AppendWeaponModelParts(std::uint32_t packedId, std::vector<std::string>* out);

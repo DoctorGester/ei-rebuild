@@ -46,6 +46,7 @@
 #include <new>
 #include <bit>
 #include <string>
+#include <vector>
 
 
 namespace {
@@ -640,7 +641,7 @@ void DestroyArray(Array* array, void* vtable) {
 
 CGlobalMap::~CGlobalMap() {
     arrivals_.Destroy();
-    stlp::deallocate(path_.Start(), static_cast<std::size_t>(path_.EndOfStorage() - path_.Start()) *
+     *
                                         sizeof(GlobalMapStep));
     DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());

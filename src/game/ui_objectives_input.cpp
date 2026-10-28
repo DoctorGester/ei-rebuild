@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -145,7 +146,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
 }
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
-    stlp::vector<UiPointF>& places = questPlaces_;
+    std::vector<UiPointF>& places = questPlaces_;
     places.clear();
     if (IsMultiplayerClient()) {
         std::string key(name);

@@ -6,13 +6,15 @@
 #include "world.h"
 
 #include <cstdint>
+#include <list>
+#include <memory>
 
 // The three lists, empty at the start: each is built by its static initialiser in the list's order and
 // destroyed by the exit function the initialiser registers with the game's atexit (docs/notes/standalone.md,
 // "The static initialisers' objects"). The copy protection's check list (app_helpers.h), the DirectDraw driver
 // list (texture.h) and the frame's deferred unit list (world.h).
-constinit lib::StaticObject<stlp::list<std::uint8_t>> g_protectionChecks = /*0079BC2C*/ {};
-constinit lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers = /*007AEE64*/ {};
+constinit lib::StaticObject<std::list<std::uint8_t>> g_protectionChecks = /*0079BC2C*/ {};
+constinit lib::StaticObject<std::list<DirectDrawDriver>> g_directDrawDrivers = /*007AEE64*/ {};
 constinit lib::StaticObject<stlp::list<CMapObject*>> g_deferredUnits = /*007AF5B4*/ {};
 
 namespace {
@@ -21,7 +23,7 @@ constinit std::uint8_t g_driversDestroyed = /*007AEE60*/ 0;   // the driver list
 
 namespace static_lists {
 
-void __stdcall ConstructDirectDrawDrivers() { g_directDrawDrivers->Construct(); }
+void __stdcall ConstructDirectDrawDrivers() { std::construct_at(g_directDrawDrivers); }
 
 void __stdcall ConstructDeferredUnits() { g_deferredUnits->Construct(); }
 

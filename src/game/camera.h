@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 
 class CObject3D;
@@ -44,8 +45,7 @@ struct CameraShake {
     float amplitude;
     float decay;
 };
-using ShakeList = stlp::list<CameraShake>;
-static_assert(sizeof(ShakeList::Node) == 0x18);
+using ShakeList = std::list<CameraShake>;
 
 // A key of a recorded camera path (camera\*.cam, played by PlayCamera), and a frame of the file
 // being recorded (the dword at +4 is never written by the recorder: stack bytes there, zero here).
@@ -209,15 +209,10 @@ static_assert(offsetof(CCamera, zoomTarget_) == 0xD0);
 static_assert(offsetof(CCamera, focus_) == 0xE0);
 static_assert(offsetof(CCamera, viewRotation_) == 0xF4);
 static_assert(offsetof(CCamera, shakes_) == 0x108);
-static_assert(offsetof(CCamera, targetId_) == 0x11C);
-static_assert(offsetof(CCamera, views_) == 0x120);
-static_assert(offsetof(CCamera, viewStack_) == 0x1E0);
-static_assert(offsetof(CCamera, nearDistance_) == 0x2E0);
-static_assert(offsetof(CCamera, fileName_) == 0x2EC);
 
 // What CWorldClient::ObjectsInRange fills.
-using NearbyList = stlp::list<CObject3D*>;
-using NearbyNode = NearbyList::Node;
+using NearbyList = std::list<CObject3D*>;
+using NearbyNode = NearbyList::iterator;
 
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self);

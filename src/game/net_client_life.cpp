@@ -55,7 +55,6 @@ ClientSession::~ClientSession() {
 }
 
 ClientBase::~ClientBase() {
-    waiting_.Release();
     recordvec::QueryVector::Destruct(&queries_.list);
     servers_.Release();
 }

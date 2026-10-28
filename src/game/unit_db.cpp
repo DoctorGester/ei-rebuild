@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -41,8 +42,8 @@ void InlineStrings(ChunkArchive* ar, int id, stlp::vector<Text>* strings) {
     }
     ar->LeaveChunk();
 }
-template void InlineStrings(ChunkArchive*, int, stlp::vector<mfc::CString>*);
-template void InlineStrings(ChunkArchive*, int, stlp::vector<std::string>*);
+template void InlineStrings(ChunkArchive*, int, std::vector<mfc::CString>*);
+template void InlineStrings(ChunkArchive*, int, std::vector<std::string>*);
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
@@ -184,7 +185,7 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 4, &slotType);
 }
 
-void ChunkArchive::SerializeStrings(int id, stlp::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
+void ChunkArchive::SerializeStrings(int id, std::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
 
 namespace {
 
@@ -269,7 +270,7 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
 }
 
 void SkillRecord::Destruct() {
-    records::DestroyVector(statNames);
+    std::destroy_at(&statNames);
     std::destroy_at(&field1);
     std::destroy_at(&name);
 }

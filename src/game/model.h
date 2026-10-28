@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
@@ -216,7 +217,7 @@ struct LineBatch;
 // A render state preset the renderer's helper keeps (counted).
 class CRenderPreset final {
 public:
-    CRenderPreset(const stlp::vector<std::uint32_t>& blocks, int stages, int index);
+    CRenderPreset(const std::vector<std::uint32_t>& blocks, int stages, int index);
     virtual ~CRenderPreset();
     virtual unsigned Index() { return static_cast<unsigned>(index_); }
 
@@ -229,7 +230,7 @@ public:
     int refs_ = 0;
     // Direct3D state block handles: the texture stages' first, then one for each state from `stages_` on
     // (its blend factors). The device's draws apply them.
-    stlp::vector<std::uint32_t> blocks_;
+    std::vector<std::uint32_t> blocks_;
     int stages_;                         // texture stages the first block sets
     int index_;                          // the index it was recorded with (below 9: built in)
 };
@@ -252,7 +253,7 @@ struct RenderPresetRecord {
         std::uint32_t sourceBlend;
         std::uint32_t destBlend;
     };
-    stlp::vector<State> states;
+    std::vector<State> states;
     CRenderPreset* preset;        // counted
 };
 static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
@@ -269,7 +270,7 @@ public:
     virtual ~CRenderHelper();
     // Records the state blocks of `states` and keeps the new preset (as built-in preset `index` when that
     // is below 9). `singleStage`: at most one texture stage.
-    virtual CRenderPreset* Record(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
+    virtual CRenderPreset* Record(const std::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
     // ReleaseBlock for `preset`'s record, if there is one.
     virtual void ReleasePreset(CRenderPreset* preset);
     // Deletes the preset's state blocks and drops its record.
@@ -279,9 +280,9 @@ public:
     // Preset `index` of the nine, or null beyond them.
     virtual CRenderPreset* Preset(unsigned index);
     // The states of `preset`'s record copied into `out`; false without a record.
-    virtual bool PresetStates(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
+    virtual bool PresetStates(CRenderPreset* preset, std::vector<RenderPresetRecord::State>* out);
     // PresetStates for built-in preset `index`; false beyond the nine or for a null one.
-    virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
+    virtual bool BuiltInStates(unsigned index, std::vector<RenderPresetRecord::State>* out);
 
     static void* operator new(std::size_t size) noexcept;
     static void operator delete(void* block);
@@ -291,13 +292,13 @@ public:
 
     // The state list of built-in preset `index` into `states` (emptied first); false beyond the nine.
     // Presets 0 and 8 have no states.
-    bool RenderHelperBuiltInStateList(stlp::vector<RenderPresetRecord::State>* states, unsigned index);
+    bool RenderHelperBuiltInStateList(std::vector<RenderPresetRecord::State>* states, unsigned index);
 
     int refs_ = 0;
     IDirect3DDevice7* device_;          // counted (AddRef / Release)
     std::uint8_t caps_[0xEC];           // the device's D3DDEVICEDESC7
     stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // by preset
-    stlp::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
+    std::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
 };
 static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
 static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
@@ -573,7 +574,7 @@ public:
     // Figure `name` with the parts `parts`: unless `fresh`, the first cached mesh of that name with close
     // coefficients, given the parts it lacks; otherwise a new one (MakeFigure). No reference is added for the
     // caller.
-    virtual CLinkMesh* LoadFigure(const std::string* name, const stlp::vector<std::string>* parts, float s, float t,
+    virtual CLinkMesh* LoadFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t,
                                   float u, bool fresh);
     // The same for a .lnk figure: a cached one, or LoadLinkFile.
     virtual CLinkMesh* LoadLink(const std::string* name, float s, float t, float u, bool fresh);
@@ -603,7 +604,7 @@ public:
     CLinkMesh* LoadLinkFile(const std::string* name, float s, float t, float u);
     // A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does (a part missing from the figure
     // set is skipped); cached.
-    CLinkMesh* MakeFigure(const std::string* name, const stlp::vector<std::string>* parts, float s, float t, float u);
+    CLinkMesh* MakeFigure(const std::string* name, const std::vector<std::string>* parts, float s, float t, float u);
     // Part `name` of `mesh` (its own coefficients) unless it has it: from its figure set (false when the set
     // lacks it) or the archives (LoadArchivePart's result).
     bool LoadPartInto(CLinkMesh* mesh, const std::string* name);

@@ -17,13 +17,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // An entry of the manager's list: two texts and a list of ids. Its copy, assignment and
 // destructor are compiler-made (library).
 struct PartyManagerEntry {
     std::string name;               // chunk field 1
     std::string text;               // chunk field 2
-    stlp::vector<int> ids;          // chunk 3
+    std::vector<int> ids;          // chunk 3
 
     // What the destructor does: frees the ids' storage, then destroys the texts.
     void Destruct();

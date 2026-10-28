@@ -13,6 +13,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <list>
 #include <memory>
 #include <string>
 
@@ -32,16 +33,16 @@ void CInterface3D::ResetInput() {
     shiftDown_ = 0;
     rightDown_ = false;
     doubleClick_ = false;
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
+    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
 }
 
 void CInterface3D::Shutdown() {
     TheCursor()->SetShape(kCursorWait);
-    while (stack_.Start() != stack_.Finish()) {
-        stack_.Finish()[-1]->Input()->Deactivate();
-        ScreenOf(stack_.Finish()[-1])->CloseScreen();
-        delete stack_.Finish()[-1];
-        --stack_.Finish();
+    while (!stack_.empty()) {
+        stack_.back()->Input()->Deactivate();
+        ScreenOf(stack_.back())->CloseScreen();
+        delete stack_.back();
+        stack_.pop_back();
     }
     ResetInput();
     app::PumpMessages();
@@ -96,10 +97,10 @@ void CInterface3D::DestroyBody() {
     std::destroy_at(&savedText_);
     std::destroy_at(&messageText_);
     helpTopics_.Destroy();
-    messages_.ClearWith([](mfc::CString* text) { std::destroy_at(text); });
-    stlp::deallocate(messages_.head, sizeof(stlp::list<mfc::CString>::Node));
-    if (stack_.Start()) {
-        stlp::deallocate(stack_.Start(), static_cast<std::size_t>(stack_.EndOfStorage() - stack_.Start()) * sizeof(CUiWindow*));
+    messages_.clear();
+    std::destroy_at(&messages_);
+    if (stack_.data()) {
+        std::destroy_at(&stack_);
     }
 }
 

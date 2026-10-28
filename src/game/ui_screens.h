@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CHeroEquipPanel;
 class CHeroQuickStrip;
@@ -52,7 +53,7 @@ struct UiItemKinds {
     static bool __stdcall IsBuildable(const CItem* item);
 };
 
-using MpStringVector = stlp::vector<mfc::CString>;
+using MpStringVector = std::vector<mfc::CString>;
 
 // --- Camp item strip ------------------------------------------------------------------------
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions
@@ -197,7 +198,7 @@ struct MpVoiceEntry {
     std::string file;
     std::string name;
 };
-using MpVoiceVector = stlp::vector<MpVoiceEntry>;
+using MpVoiceVector = std::vector<MpVoiceEntry>;
 // Opened by the main menu's Multiplayer button (region 5). Modes: 9 hero list, 10 new hero (portrait, name and voice),
 // 11 new hero's statistics. The heroes are records in a global vector.
 class CMpHeroScreen : public CItemScreen {

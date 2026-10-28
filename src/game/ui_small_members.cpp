@@ -109,7 +109,7 @@ CInterface3D* CInterface3D::Construct() {
     stack_.Start() = nullptr;
     stack_.Finish() = nullptr;
     stack_.EndOfStorage() = nullptr;
-    messages_.Construct();
+    std::construct_at(&messages_);
     helpTopics_.Construct();
     std::construct_at(&messageText_);
     std::construct_at(&savedText_);

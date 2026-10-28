@@ -75,7 +75,7 @@ void SessionBase::AddHandler(int channel, std::uint32_t type, MessageHandler han
     if (channel < 0 || channel >= kChannels) return;
     HandlerVector& v = handlers_[channel][type & 0xFF];
     if (v.end() == v.EndOfStorage()) {
-        v.InsertOverflow<stlp::PlainElement<MessageHandler>>(v.end(), handler, 1);
+        v.push_back(handler);
         return;
     }
     if (v.end()) *v.Finish() = handler;

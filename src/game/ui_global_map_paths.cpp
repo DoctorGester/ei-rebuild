@@ -106,7 +106,7 @@ void CGlobalMap::FindPaths(MapRecord* from) {
         // A zone already on the way ends this branch (and leaves beyondTarget_ set when the
         // branch had set it: kept).
         bool onWay = false;
-        for (GlobalMapStep* step = path_.end(); step != path_.begin(); --step) {
+        for (GlobalMapStep* step = path_.data() + path_.size(); step != path_.data(); --step) {
             if (step[-1].zone == zone) {
                 onWay = true;
                 break;

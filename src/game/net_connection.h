@@ -12,12 +12,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace net {
 
 // A free-list of message ids for one message type: returned ids, then the next new id.
 struct IdPool {
-    stlp::vector<std::uint16_t> free;   // the ids returned
+    std::vector<std::uint16_t> free;   // the ids returned
     std::uint16_t next;        // the last id handed out new
     std::uint16_t unused_0E;
 
@@ -99,7 +100,7 @@ struct FreedId {
     std::uint8_t type;
     std::uint8_t unused_3;
 };
-using FreedIds = stlp::vector<FreedId>;
+using FreedIds = std::vector<FreedId>;
 using FreedBatch = stlp::list<FreedIds>::Node;
 static_assert(sizeof(FreedBatch) == 0x14);
 
@@ -216,7 +217,7 @@ public:
     std::uint16_t unused_000A;
     std::uint32_t lastReceived_;        // sequence of the newest packet received
     std::uint32_t sequenceHigh_;        // 0x10000: the upper bits of the received sequences
-    stlp::vector<std::int32_t> received_;   // sequences received recently
+    std::vector<std::int32_t> received_;   // sequences received recently
     std::uint32_t id_;                  // the connection id (sent with a leave packet)
     float roundTrip_;                   // average round trip (seconds)
     float roundTripSquare_;             // average of its square

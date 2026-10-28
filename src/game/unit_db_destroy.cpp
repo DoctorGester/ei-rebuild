@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 #include "lib/crt.h"
 #include "lib/stlp_vector.h"
 
@@ -31,8 +32,8 @@ void DestroyString(Text* s) {
 
 // The inline ~vector<string> of the records: _Destroy, then the storage (the node pool's deallocate of the
 // capacity in whole elements).
-void DestroyStringVector(stlp::vector<std::string>* v) {
-    DestroyStringRange(v->begin(), v->end());
+void DestroyStringVector(std::vector<std::string>* v) {
+    DestroyStringRange(v->data(), v->data() + v->size());
     v->FreeStorage();
 }
 
@@ -117,7 +118,7 @@ void __fastcall DestroyStringRange(std::string* first, std::string* last) {
 // A unit model record's destructor, members in reverse order: the sound counts (storage only), the sound
 // names, the two strings, the two unread string vectors, the figure name, the six slots and the name.
 void __fastcall DestroyModelRecord(UnitModelRecord* record) {
-    record->soundCounts.FreeStorage();
+    std::destroy_at(&record->soundCounts);
     DestroyStringVector(&record->soundNames);
     DestroyString(&record->soundFolder);
     DestroyString(&record->hitMaterial);

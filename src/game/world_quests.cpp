@@ -34,6 +34,7 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -181,7 +182,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     items.free = nullptr;
     items.blocks = nullptr;
     items.blockSize = 10;
-    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveItems].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveItems].data();
          name != record->lists[QuestBriefingRecord::kGiveItems].end(); ++name) {
         CItem* item = CreateNamedItem(name->c_str(), true);
         if (!item) continue;
@@ -193,7 +194,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     }
     if (items.count) player->GiveItems(&items, 0);
 
-    for (const std::string* name = record->lists[QuestBriefingRecord::kRemoveItems].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kRemoveItems].data();
          name != record->lists[QuestBriefingRecord::kRemoveItems].end(); ++name) {
         CItem* item = CreateNamedItem(name->c_str(), false);
         if (!item) continue;
@@ -204,16 +205,16 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     }
 
     CPlayerServer* state = player->Server();
-    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveQuests].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveQuests].data();
          name != record->lists[QuestBriefingRecord::kGiveQuests].end(); ++name)
         state->SetVariableMax(name->c_str(), 1.0f);
-    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteQuests].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteQuests].data();
          name != record->lists[QuestBriefingRecord::kCompleteQuests].end(); ++name)
         state->SetVariable(name->c_str(), std::bit_cast<std::uint32_t>(2.0f));
-    for (const std::string* name = record->lists[QuestBriefingRecord::kAvailableZones].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kAvailableZones].data();
          name != record->lists[QuestBriefingRecord::kAvailableZones].end(); ++name)
         state->SetVariableMax(name->c_str(), 1.0f);
-    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteZones].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteZones].data();
          name != record->lists[QuestBriefingRecord::kCompleteZones].end(); ++name)
         state->SetVariable(name->c_str(), std::bit_cast<std::uint32_t>(2.0f));
 

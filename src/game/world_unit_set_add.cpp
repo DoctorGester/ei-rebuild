@@ -87,9 +87,9 @@ void UnitSet::Add(CUnit* unit) {
 
     if (unit->type_ == kUnitTypeHero) {
         for (int slot = 0; slot < 7; ++slot)
-            record.items.PushBack<IdElement>(ItemId(unit->WornItem(slot), KnownArmour));
+            record.items.push_back(ItemId(unit->WornItem(slot), KnownArmour));
         for (std::uint32_t slot = 0; slot < 4; ++slot)
-            record.extraWeapons.PushBack<IdElement>(ItemId(unit->GetWeapon(slot), KnownWeapon));
+            record.extraWeapons.push_back(ItemId(unit->GetWeapon(slot), KnownWeapon));
         record.extraWeapon = static_cast<std::int8_t>(unit->activeWeapon);
     } else {
         record.extraWeapon = -1;
@@ -115,7 +115,7 @@ void UnitSet::Add(CUnit* unit) {
             // The texts the server companion holds (CMapObjectServer's string array).
             const CMapObjectServer* server = unit->ServerCompanion();
             for (const std::string& name : server->strings) {
-                record.names.PushBack<NameElement>(name);
+                record.names.push_back(name);
             }
         }
         record.modelNumber = static_cast<int>(unit->id_);

@@ -159,7 +159,6 @@ Sector::~Sector() {
 
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
-    list7BC_.Destroy();
     handle_.Destroy();
     scorchMarks_.Release<PrintElement>();
     footprints_.Release<PrintElement>();
@@ -170,7 +169,6 @@ CWorldClient::~CWorldClient() {
     FreeGrid(objectGrid_);
     lineLists_.Destroy();
     hits_.FreeStorage();
-    screenEntries_.Destroy();
     dynamicNodes_.Destroy();
     dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
     dynamicObjects_.RemoveAll();

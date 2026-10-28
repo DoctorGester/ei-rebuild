@@ -25,6 +25,7 @@
 #include "options.h"
 
 #include <cstring>
+#include <list>
 #include <string>
 
 namespace {
@@ -452,7 +453,7 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
         }
         light->flags_ |= kLightHeld;
         int id = light->id_;
-        stlp::list<int>::Insert(TheLightFactory()->litIds_.End(), id);
+        TheLightFactory()->litIds_.insert(TheLightFactory()->litIds_.end(), id);
         return;
     }
     if (mode == 2 && light) DropLight(this);

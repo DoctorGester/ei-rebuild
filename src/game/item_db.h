@@ -58,8 +58,8 @@ struct SpellRecord {
     std::uint32_t value3C;              // copied, loaded and saved, not read
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
-    stlp::vector<int> list48;           // (chunk 16)
-    stlp::vector<int> list54;           // (chunk 17)
+    std::vector<int> list48;           // (chunk 16)
+    std::vector<int> list54;           // (chunk 17)
     std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
     std::uint32_t extraValues[5];       // fields 23-27 (nothing reads them)
     // which modifiers it accepts, one byte per kind by code letter: 'r', 't', 'a', 'e', 'd'; the item info
@@ -82,8 +82,8 @@ struct SpellListRecord {
     void ConstructDefault();
 
     std::string spell;                      // the spell's name
-    stlp::vector<std::string> required;     // modifier names
-    stlp::vector<std::string> optional;     // modifier names
+    std::vector<std::string> required;     // modifier names
+    std::vector<std::string> optional;     // modifier names
     std::string repeated;                   // the modifier repeated while it fits
     std::uint32_t classMask;                // bit per ItemStock::classIndex
 };
@@ -255,7 +255,7 @@ struct QuickItemRecord : ItemRecordHead {
 
 // A quest item prototype with a list of zone names (QuestItemInfo reads the list).
 struct QuestItemRecord : ItemRecordHead {
-    QuestItemRecord() { zones.ConstructEmpty(); }
+    QuestItemRecord() {  }
     QuestItemRecord(const QuestItemRecord& from);
     ~QuestItemRecord();
     int Kind() override;                        // 0x3009
@@ -265,7 +265,7 @@ struct QuestItemRecord : ItemRecordHead {
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
-    stlp::vector<std::string> zones;    // the zone names
+    std::vector<std::string> zones;    // the zone names
 };
 
 // The prototype of a CItemLoot: kind (the head's category), record type, index.

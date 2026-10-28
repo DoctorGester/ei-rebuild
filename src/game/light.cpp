@@ -11,6 +11,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <list>
 #include <new>
 
 #undef GetClassName   // CEngineObject::GetClassName
@@ -124,17 +125,16 @@ int CLight::GetClassId() { return 10; }
 CLightFactory::CLightFactory() {
     held_ = nullptr;
     unused_CC = 0;
-    auto* sentinel = static_cast<stlp::list<int>::Node*>(stlp::allocate(sizeof(stlp::list<int>::Node)));
+    auto* sentinel = static_cast<std::list<int>::iterator >(stlp::allocate(sizeof(std::list<int>::iterator)));
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
-    litIds_.head = sentinel;
+    litIds_.end() = sentinel;
     std::memset(unused_B0, 0, sizeof(unused_B0));
     unused_D0 = 1;
 }
 
 CLightFactory::~CLightFactory() {
-    litIds_.ClearWith([](int*) {});
-    stlp::deallocate(litIds_.head, sizeof(stlp::list<int>::Node));
+    litIds_.clear();
     unused_CC = 0;
     if (held_) held_->Release();
 }

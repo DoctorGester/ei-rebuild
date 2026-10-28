@@ -7,7 +7,9 @@
 
 #include "lib/crt.h"
 
+#include <iterator>
 #include <new>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -28,14 +30,14 @@ void ReleaseContainers(SpellSequence* sequence) {
 }
 
 // The modifier list's nodes back to the node allocator; the sentinel stays, linked to itself.
-void FreeModifierNodes(SpellModifierNode* sentinel) {
-    for (SpellModifierNode* node = sentinel->next; node != sentinel;) {
-        SpellModifierNode* current = node;
-        node = node->next;
+void FreeModifierNodes(SpellModifierNode sentinel) {
+    for (SpellModifierNode node = std::next(sentinel); node != sentinel;) {
+        SpellModifierNode current = node;
+        ++node;
         stlp::deallocate(current, sizeof(SpellModifierNode));
     }
-    sentinel->next = sentinel;
-    sentinel->prev = sentinel;
+    std::next(sentinel) = sentinel;
+    std::prev(sentinel) = sentinel;
 }
 
 } // namespace
@@ -124,7 +126,6 @@ void CSpellManager::ListModifierNames(std::vector<std::string>* names) {
 // string) and destroyed after it (the game: the name and the spell before the string); neither allocates.
 CSpellContainer::CSpellContainer() {
     ClearFields();
-    modifiers_.Construct();
     // The code string: empty, with room for 8 bytes.
     CSpellContainer::Create();
 }
@@ -132,11 +133,11 @@ CSpellContainer::CSpellContainer() {
 CSpellContainer::~CSpellContainer() {
     // (ClearState is empty and called directly here.)
     prototype_ = nullptr;
-    FreeModifierNodes(modifiers_.head);
+    FreeModifierNodes(modifiers_.end());
     Spell()->Destroy();
     // The list's destructor: its (empty) clear, then the sentinel.
-    FreeModifierNodes(modifiers_.head);
-    stlp::deallocate(modifiers_.head, sizeof(SpellModifierNode));
+    FreeModifierNodes(modifiers_.end());
+    stlp::deallocate(modifiers_.end(), sizeof(SpellModifierNode));
 }
 
 const char* CSpellContainer::GetClassName() { return "CSpellContainer"; }

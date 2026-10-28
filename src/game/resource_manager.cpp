@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <type_traits>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -17,7 +18,7 @@ bool SameName(const std::string& a, const char* b) {
 
 // Closes and deletes every archive (its slot 3, then its scalar deleting destructor) and empties
 // the list.
-void CloseAll(stlp::vector<ArchiveEntry>& archives) {
+void CloseAll(std::vector<ArchiveEntry>& archives) {
     for (ArchiveEntry& e : archives) {
         e.resource->CloseResource();
         if (e.resource != nullptr) delete e.resource;
@@ -29,7 +30,7 @@ void CloseAll(stlp::vector<ArchiveEntry>& archives) {
 // --- Construction and destruction ---------------------------------------------------------------
 
 // The archive list has no destructor (the destructor frees it); its default constructor only nulls it.
-static_assert(std::is_trivially_destructible_v<stlp::vector<ArchiveEntry>>);
+static_assert(std::is_trivially_destructible_v<std::vector<ArchiveEntry>>);
 
 CResourceManager::CResourceManager() { std::memset(&archives_, 0, sizeof(archives_)); }
 
@@ -77,7 +78,7 @@ BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedR
 }
 
 BOOL CResourceManager::RemoveArchive(const char* path) {
-    for (ArchiveEntry* e = archives_.begin(); e != archives_.end(); ++e) {
+    for (ArchiveEntry* e = archives_.data(); e != archives_.data() + archives_.size(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
         delete e->resource;

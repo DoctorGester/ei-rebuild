@@ -79,7 +79,7 @@ void CInterface3D::OnChar(int key, int repeat, int flags) {
         root_->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
         return;
     }
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
+    if (!stack_.empty()) stack_.back()->Input()->Event(UiInputSide::kEventChar, key, repeat, flags);
 }
 
 void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
@@ -93,7 +93,7 @@ void CInterface3D::OnKeyUp(int key, int repeat, int flags) {
         console_->OnKeyUp(key, repeat, flags);
         return;
     }
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
+    if (!stack_.empty()) stack_.back()->Input()->Event(UiInputSide::kEventKeyUp, key, repeat, flags);
 }
 
 void console::ConsoleWindow::OnKeyUp(int key, int, int) {
@@ -107,11 +107,11 @@ void console::ConsoleWindow::OnKeyUp(int key, int, int) {
 
 void CInterface3D::CloseAll() {
     TheCursor()->SetShape(kCursorWait);
-    while (stack_.Start() != stack_.Finish()) {
-        stack_.Finish()[-1]->Input()->Deactivate();
-        ScreenOf(stack_.Finish()[-1])->CloseScreen();
-        delete stack_.Finish()[-1];
-        --stack_.Finish();
+    while (!stack_.empty()) {
+        stack_.back()->Input()->Deactivate();
+        ScreenOf(stack_.back())->CloseScreen();
+        delete stack_.back();
+        stack_.pop_back();
     }
     ctrlDown_ = false;
     altDown_ = false;
@@ -119,7 +119,7 @@ void CInterface3D::CloseAll() {
     rightDown_ = false;
     doubleClick_ = false;
     // No top window to deactivate here (the original deactivates it, but none can exist any more).
-    if (stack_.Start() != stack_.Finish()) stack_.Finish()[-1]->Input()->Deactivate();
+    if (!stack_.empty()) stack_.back()->Input()->Deactivate();
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 }

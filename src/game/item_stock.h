@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
+#include <vector>
 
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
@@ -18,9 +20,9 @@ class CParty;
 class CSpell;
 class CStream;
 
-using StockPrototypeVector = stlp::vector<itemdb::ItemRecordHead*>;
-using StockSpellVector = stlp::vector<itemdb::SpellRecord*>;
-using StockModifierVector = stlp::vector<itemdb::SpellModifierRecord*>;
+using StockPrototypeVector = std::vector<itemdb::ItemRecordHead*>;
+using StockSpellVector = std::vector<itemdb::SpellRecord*>;
+using StockModifierVector = std::vector<itemdb::SpellModifierRecord*>;
 
 // A material entry: the material record, the count range of a material stack, and the units left for weapons
 // and armors (their generation takes the prototype's materialUnits from it).
@@ -32,17 +34,17 @@ struct StockMaterial {
 };
 static_assert(sizeof(StockMaterial) == 0x10);
 
-using StockMaterialVector = stlp::vector<StockMaterial>;
+using StockMaterialVector = std::vector<StockMaterial>;
 
 // The generated items (counted once) and the generated spells (GenerateSpells; counted while held). The recipe
 // map's lists hold recipe pointers.
-using StockList = stlp::list<CItem*>;
-using StockListNode = StockList::Node;
+using StockList = std::list<CItem*>;
+using StockListNode = StockList::iterator;
 using StockSpellList = stlp::list<CSpell*>;
 using StockSpellListNode = StockSpellList::Node;
-using StockRecipeList = stlp::list<void*>;
+using StockRecipeList = std::list<void*>;
 
-using StockStringVector = stlp::vector<std::string>;
+using StockStringVector = std::vector<std::string>;
 
 // A spell recipe: the spell database's list record.
 using SpellRecipe = itemdb::SpellListRecord;
@@ -60,7 +62,7 @@ using RecordNameMap = stlp::NameMap;
 namespace stock {
 // Scratch vectors: the prototypes taken, the candidate materials of one prototype (pointers into
 // the stock's material entries), the material entries taken, the spells and modifiers taken.
-using CandidateVector = stlp::vector<StockMaterial*>;
+using CandidateVector = std::vector<StockMaterial*>;
 extern StockPrototypeVector g_takenPrototypes;
 extern CandidateVector g_candidates;
 extern StockMaterialVector g_takenMaterials;

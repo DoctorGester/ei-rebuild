@@ -20,6 +20,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <vector>
 
 
 namespace net {
@@ -272,7 +273,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     if (file->name_.size() == noneLength && std::memcmp(file->name_.data(), none, noneLength) == 0)
         return;
 
-    stlp::vector<FileChunkMessage*> chunks;
+    std::vector<FileChunkMessage*> chunks;
     int count = 0;
     for (RefNode* node = self->chunks_.First(); node != self->chunks_.End(); node = node->next) {
         auto* chunk = self->chunks_.At(node);
@@ -286,10 +287,10 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         if (chunks.begin() != chunks.end()) {
             int depth = 0;
             for (int n = static_cast<int>(chunks.size()); n != 1; n >>= 1) ++depth;
-            stl_sorts::ChunkIntroSort(chunks.begin(), chunks.end(), nullptr, depth * 2, 0);
-            stl_sorts::ChunkFinalSort(chunks.begin(), chunks.end(), 0);
+            stl_sorts::ChunkIntroSort(chunks.data(), chunks.data() + chunks.size(), nullptr, depth * 2, 0);
+            stl_sorts::ChunkFinalSort(chunks.data(), chunks.data() + chunks.size(), 0);
         }
-        for (FileChunkMessage** chunk = chunks.begin(); chunk != chunks.end(); ++chunk) {
+        for (FileChunkMessage** chunk = chunks.data(); chunk != chunks.data() + chunks.size(); ++chunk) {
             const std::uint8_t* data = (*chunk)->data_;
             if (buffer.cur + FileChunkMessage::kDataSize <= buffer.end) {
                 buffer.flags |= 1;
@@ -307,7 +308,6 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
         WriteMapFile(file->name_.data(), &buffer);
         DropRequestsFor(self, file);
     }
-    chunks.FreeStorage();
 }
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(self->chunks_, message); }
 // The awards (applied by the tick).
