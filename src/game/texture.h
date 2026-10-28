@@ -10,6 +10,8 @@
 #include "raster_target.h"
 #include "renderer_base.h"
 
+#include <string>
+#include <vector>
 #include <windows.h>
 
 struct IDirect3D7;
@@ -420,7 +422,7 @@ public:
     void FreeCache();
     // Each layer a `width` x `width` .mmp from the archives; a missing one is skipped, one of another size is
     // a fatal error (its result returned). Returns the layers drawn.
-    int DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width);
+    int DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width);
     // The skin composed into the cached texture `name` (or `fallback`), the name used into `out`: 1 when
     // cached or written, 0 when nothing was drawn.
     int Compose(mfc::CString* out, const SkinRequest* request, const mfc::CString* name,

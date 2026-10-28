@@ -5,7 +5,6 @@
 #include "game_strings.h"
 #include "spell.h"
 
-#include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/str.h"
@@ -65,8 +64,8 @@ mfc::CString ModelNameOf(const NamedRecordTable<Record>& table, const char* cons
 template <typename Record>
 mfc::CString FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t id) {
     const Record* prototype = table.At(PrototypeIndex(id));
-    const console::CStringArray* list = &prototype->list20;
-    if (prototype && list->GetSize() != 0) return mfc::CString((*list)[0]);
+    const std::vector<std::string>* list = &prototype->list20;
+    if (prototype && !list->empty()) return mfc::CString((*list)[0]);
     return mfc::CString(game::EmptyText());   // ""
 }
 

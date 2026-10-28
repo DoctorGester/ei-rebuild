@@ -50,7 +50,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     CopyBytes(this, source, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
     buildable = source->buildable;
-    list20.Copy(source->list20);
+    list20 = source->list20;
     return this;
 }
 EI_REWRITTEN(0x006A8F20, ItemRecordHead::Assign);

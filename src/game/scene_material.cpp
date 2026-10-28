@@ -10,15 +10,13 @@
 #include <cstdint>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace scene {
 namespace {
 
 
-bool Is(const mfc::CString& s, const char* text) {
-    return gamecrt::mbscmp(s.GetString(),
-                           text) == 0;
-}
+bool Is(const std::string& s, const char* text) { return gamecrt::mbscmp(s.c_str(), text) == 0; }
 
 struct Entry {
     const char* text;
@@ -39,49 +37,46 @@ constexpr Entry kMaterials[] = {{"le", 0x11}, {"wo", 0x12}, {"me", 0x13},
 // unknown texture type 1, an unknown material 0x15 (after the error).
 int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     std::string rest = name;
-    mfc::CStringArray parts;
-    parts.Construct();
+    std::vector<std::string> parts;
     rest += '.';
     for (int dot = str::Find(rest, '.'); dot != -1; dot = str::Find(rest, '.')) {
         {
-            std::string part = str::Left(rest, dot);
-            parts.SetAtGrow(parts.size, part);
+            parts.push_back(str::Left(rest, dot));
         }
         std::string tail = str::Right(rest, static_cast<int>(rest.size()) - dot - 1);
         rest = tail;
     }
-    if (parts.size != 3) {
+    if (parts.size() != 3) {
         *texture = 1;
         *material = 0x15;
     } else {
-        parts.data[1].MakeLower();
+        str::MakeLower(parts[1]);
         bool found = false;
         for (const Entry& e : kTextures) {
-            if (Is(parts.data[1], e.text)) {
+            if (Is(parts[1], e.text)) {
                 *texture = e.value;
                 found = true;
                 break;
             }
         }
         if (!found) {
-            game::FatalError("ParseMaterialName.\n Unknown texture type \"%s\" in material \"%s\"\n", parts.data[1].GetString(), name);   // unknown texture type
+            game::FatalError("ParseMaterialName.\n Unknown texture type \"%s\" in material \"%s\"\n", parts[1].c_str(), name);   // unknown texture type
             *texture = 1;
         }
-        parts.data[2].MakeLower();
+        str::MakeLower(parts[2]);
         found = false;
         for (const Entry& e : kMaterials) {
-            if (Is(parts.data[2], e.text)) {
+            if (Is(parts[2], e.text)) {
                 *material = e.value;
                 found = true;
                 break;
             }
         }
         if (!found) {
-            game::FatalError("ParseMaterialName.\n Unknown material type \"%s\" in material \"%s\"\n", parts.data[2].GetString(), name);   // unknown material
+            game::FatalError("ParseMaterialName.\n Unknown material type \"%s\" in material \"%s\"\n", parts[2].c_str(), name);   // unknown material
             *material = 0x15;
         }
     }
-    parts.Destruct();
     return 1;
 }
 EI_REWRITTEN(0x0044A2A0, ParseMaterial);

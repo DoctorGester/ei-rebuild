@@ -208,7 +208,6 @@ CWorldServer::~CWorldServer() {
     SecondScript()->Destruct();
     MainScript()->Destruct();
     Messages()->Destroy();
-    mobFiles_.Destruct();
     updateMap_.map.Destroy();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
 }

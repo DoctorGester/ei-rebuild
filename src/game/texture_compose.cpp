@@ -147,17 +147,17 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
 } // namespace
 
 
-int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width) {
+int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width) {
     CPixelConverter* converter = PixelConverter();
     int drawn = 0;
-    for (int i = 0; i < names->GetSize(); ++i) {
-        auto* data = GetFileData((*names)[i]);
+    for (const std::string& name : *names) {
+        auto* data = GetFileData(name.c_str());
         if (!data) {
-            game::DebugLog(kCantFindLayer, ((*names)[i]).GetString());
+            game::DebugLog(kCantFindLayer, name.c_str());
             continue;
         }
         if (data->width != static_cast<std::uint32_t>(width) || data->height != static_cast<std::uint32_t>(width))
-            return game::FatalError(kWrongLayerSize, ((*names)[i]).GetString());
+            return game::FatalError(kWrongLayerSize, name.c_str());
         const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
         converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
         ++drawn;
@@ -195,7 +195,7 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
         }
     }
 
-    if (request->textures.GetSize() == 0) {
+    if (request->textures.empty()) {
         gameapi::DeleteFileA(path.c_str());
         return 0;
     }

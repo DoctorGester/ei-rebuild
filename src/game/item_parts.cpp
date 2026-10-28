@@ -1,7 +1,6 @@
 // Weapon model parts: the names of the figure parts a weapon is drawn with.
 #include "item.h"
 
-#include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -73,11 +72,11 @@ template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
 
 } // namespace
 
-void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out) {
-    out->SetSize(0, -1);
+void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out) {
+    out->clear();
     const WeaponRecord* record = WeaponAt(index);
     if (!record) return;
-    ForEachPart(record, [out](const char* name) { out->SetAtGrow(out->GetSize(), name); });
+    ForEachPart(record, [out](const char* name) { out->push_back(name); });
 }
 EI_REWRITTEN(0x006A0FF0, WeaponModelParts);
 

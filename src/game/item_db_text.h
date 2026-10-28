@@ -7,6 +7,7 @@
 // description). Item keys are the record's name, spaces replaced by '_' and upper-cased, after a prefix that
 // depends on the item kind.
 
+#include "console.h"   // console::CStringArray
 #include "item.h"
 
 #include "lib/mfc.h"

@@ -27,6 +27,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <vector>
 
 class CAnimationNode;
 
@@ -265,7 +266,7 @@ struct SceneSkin {
     // An unused setter stores its float argument here as a double, then zeroes it.
     std::uint32_t clock[2];
     std::string name;
-    mfc::CStringArray names;
+    std::vector<std::string> names;
     std::uint32_t spare38;                      // nothing reads it
     lib::AlignedArray<void*> spareArray;        // only emptied and freed here
     std::uint32_t spare4C;                      // nothing reads it

@@ -13,6 +13,8 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <string>
+#include <vector>
 
 #undef GetClassName
 
@@ -440,9 +442,6 @@ static_assert(sizeof(CItemManager) == CItemManager::kSize);
 
 // --- Weapon model parts------------------------------------------------------
 
-namespace console {
-class CStringArray;
-} // namespace console
 namespace stlp {
 class string;
 template <typename T> class vector;
@@ -451,7 +450,7 @@ template <typename T> class vector;
 // The names of the figure parts a weapon prototype (by index) is drawn with, replacing
 // the contents of `out`: "rh3.sword07" for a sword with number 7, the bow and crossbow pieces plus
 // the quiver and arrows. Nothing for an index out of range or an unknown weapon type.
-void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out);
+void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
 
 // The same names for a packed item id, appended to an STLport vector of strings.
 void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out);
