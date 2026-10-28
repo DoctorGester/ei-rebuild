@@ -366,8 +366,8 @@ bool HeroCanUseSpell(UnitStats* stats, CSpell* spell) {
 void CCampPages::BestPartySkill(int school, int* skill, int* mana) {
     int bestSkill = 0;
     int bestMana = 0;
-    for (int i = 0; i < LocalPlayerData()->members_.size; ++i) {
-        UnitStats* stats = &LocalPlayerData()->members_.data[i].stats;
+    for (int i = 0; i < std::ssize(LocalPlayerData()->members_); ++i) {
+        UnitStats* stats = &LocalPlayerData()->members_[i].stats;
         int value = HeroSchoolSkill(stats, school);
         if (!(bestSkill > value)) bestSkill = value;
         int units = HeroManaUnits(stats);
@@ -491,7 +491,7 @@ bool CMpHeroScreen::CanEquip(CItem* item, int) {
 
 }
 
-PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data; }
+PartyUnitRecord* CMpHeroScreen::GetHero() { return LocalPlayerData()->members_.data(); }
 
 void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     CUiContainer::LeftUp(flags, x, y);

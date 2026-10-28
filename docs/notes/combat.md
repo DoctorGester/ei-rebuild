@@ -172,8 +172,12 @@ here is gone. What it covered, by file:
 - Steps and plans: BuildTransition, BuildOrderSteps, BuildCastSteps, BuildAttackSteps, BuildDeathAnimation, BuildIdle,
   BuildMoveSteps; `AnimationSteps::AddStep / AddEmote / SetStepFlags / Duration / SameAs / Save / Load` 00544CE0-00545110;
   `OrderPlan::TakeSteps` serves only a queued order of kind 10, whose one setter 005557E0 is dead (unreachable).
-- Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveStepList 00558420, SaveArmourSpell 00545430,
-  LoadStepList 005582A0, LoadArmourSpells 005585F0.
+- Save: SaveServer 005561C0 (slot 10) / LoadServer 00555D10 (9); `combat_save.cpp` SaveArmourSpell 00545430, LoadArmourSpells
+  005585F0; the step lists go through AnimationSteps::Save / Load (SaveStepList 00558420 / LoadStepList 005582A0 and the extra
+  dword after them).
+- AnimationSteps is a `std::vector<AnimationStep>` with `extra` (C14za); a default step is the blank step (0xFF, 0xFF, 0,
+  padding 0, duration -1, kind 0). The original's by-value lists, copy-construct-then-free locals and queues assigned twice
+  are plain copies and assignments.
 - Lifetime (`combat_lifetime.cpp`, every spawn): CUnitServer::Construct 00545580, AIBrain::Construct 00545990, AIMemory::Destruct
   00545CB0 (the brain's memory, + 0xD0), AIBrain::Destruct 005457E0 (only from unwind funclets), AIPath::Destruct 00546100 (from
   CPlayerServer::OnUseOrder); destructors through 00546230 run at zone changes. `combat_server_slots.cpp`: CUnitServer class name /

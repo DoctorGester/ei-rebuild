@@ -18,10 +18,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "lib/mfc_array.h"
-#include "lib/mfc_coll.h"
-#include "record_arrays.h"
-#include "lib/mfc_slots.h"
 #include "render/render.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -47,29 +43,6 @@ double Zero() { return 0.0 /*0073B858 f*/; }
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
-
-// Element helpers (DestroyRecords is in terrain_lights.cpp): the flag arrays' instantiation.
-
-} // namespace
-
-// The sector's CArray element policies. The records start zeroed (inlined) and release their lights when
-// dropped; the flag arrays and the tile lists are vectors, moved where the CArray relocates them.
-void RecordElements::Construct(SectorVertex* records, int count) {
-    std::memset(static_cast<void*>(records), 0, sizeof(SectorVertex) * count);
-}
-void RecordElements::Destruct(SectorVertex* records, int count) { DestroyRecords(records, count); }
-void FlagArrayElements::Construct(FlagArray* arrays, int count) {
-    for (; count--; ++arrays) std::construct_at(arrays);
-}
-void FlagArrayElements::Destruct(FlagArray* arrays, int count) { std::destroy_n(arrays, count); }
-void FlagArrayElements::Relocate(FlagArray* to, FlagArray* from, int count) { mfc::MoveElements(to, from, count); }
-void TileListElements::Construct(TileList* lists, int count) {
-    for (; count--; ++lists) std::construct_at(lists);
-}
-void TileListElements::Destruct(TileList* lists, int count) { std::destroy_n(lists, count); }
-void TileListElements::Relocate(TileList* to, TileList* from, int count) { mfc::MoveElements(to, from, count); }
-
-namespace {
 
 // Texture page of a tile texture: the first `pages` pages hold `perPage` textures each, the
 // last ones 8 each.
@@ -212,7 +185,7 @@ namespace {
 const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* tiles = s.data;
     const std::uint8_t* src = s.data;
-    SectorVertex* rec = s.records.data;
+    SectorVertex* rec = s.records.data();
     const SectorPosition* vin = s.vertices.data();
     std::memcpy(&s.minZ, "\xca\xf2\x49\x71", 4);    // 1e30
     s.maxZ = 0.0f;
@@ -337,8 +310,8 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                 src += 2;
 
                 int& count = counts[quarter * 256 + page];
-                TileVertex* entry = s.tiles[quarter].data[page].data() + count * 9;
-                SectorVertex* rec = s.records.data + vi;
+                TileVertex* entry = s.tiles[quarter][page].data() + count * 9;
+                SectorVertex* rec = s.records.data() + vi;
                 if (texture < owner->perPage * owner->pages) {
                     int frames = owner->textureFrames[texture];
                     if (frames != 0) {
@@ -360,7 +333,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         entry->v = static_cast<float>(VOne() - uv[r3 * 3 + c3 + 9]);
                     }
                 }
-                std::uint8_t& flags = s.tileFlags[quarter].data[page][count];
+                std::uint8_t& flags = s.tileFlags[quarter][page][count];
                 flags = row == 0 ? 1 : (row == 15 ? 2 : 0);
                 if (col == 0) flags |= 4;
                 else if (col == 15) flags |= 8;
@@ -414,7 +387,7 @@ void ComputeBounds(SectorData& s) {
 } // namespace
 
 void SectorData::Build() {
-    records.SetSize(hasWater ? 2 * kVertices : kVertices);
+    records.resize(hasWater ? 2 * kVertices : kVertices);
     const std::uint8_t* tileWords = BuildRecords(*this);
 
     int pageCount = pages * 2 + 4;
@@ -422,12 +395,12 @@ void SectorData::Build() {
     int counts[1024] = {};
     int animatedCount = CountTiles(*this, tileWords, counts);
     for (int q = 0; q < 4; ++q) {
-        tileFlags[q].SetSize(pageCount);
-        tiles[q].SetSize(pageCount);
+        tileFlags[q].resize(pageCount);
+        tiles[q].resize(pageCount);
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
-            tileFlags[q].data[k].resize(c);   // CByteArray::SetSize
-            tiles[q].data[k].resize(c * 9);
+            tileFlags[q][k].resize(c);
+            tiles[q][k].resize(c * 9);
         }
     }
     animated.resize(animatedCount);
@@ -442,7 +415,7 @@ void SectorData::Build() {
     if (hasWater) {
         // The water materials present in the sector, then their levels.
         for (int i = 0; i < kVertices; ++i) {
-            unsigned id = records.data[kVertices + i].waterMaterial;
+            unsigned id = records[kVertices + i].waterMaterial;
             if (id == 0xFFFF) continue;
             int k = 0;
             while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
@@ -450,10 +423,10 @@ void SectorData::Build() {
                 lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));   // CByteArray
         }
         if (hasWater) {
-            mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+            std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
             for (int k = 0; k < std::ssize(waterMaterials); ++k) {
                 int id = waterMaterials[k];
-                std::memcpy(&levels.data[id], &owner->materials[id].level, 4);
+                std::memcpy(&levels[id], &owner->materials[id].level, 4);
             }
             ApplyWaterLevels();
         }
@@ -462,18 +435,18 @@ void SectorData::Build() {
 }
 
 void SectorData::ApplyWaterLevels() {
-    mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+    std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
     for (;;) {
         int k = 0;
         for (; k < std::ssize(waterMaterials); ++k) {
-            float v = levels.data[waterMaterials[k]];
+            float v = levels[waterMaterials[k]];
             EI_NAN_AUDIT(v);
             if (v != Zero()) break;     // FCOMP; TEST AH,0x40
         }
         if (k == std::ssize(waterMaterials)) return;
         unsigned id = waterMaterials[k];
-        double level = levels.data[id];
-        SectorVertex* rec = records.data + kVertices;
+        double level = levels[id];
+        SectorVertex* rec = records.data() + kVertices;
         float* z = &vertices[kVertices].z;
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
@@ -481,7 +454,7 @@ void SectorData::ApplyWaterLevels() {
                 *z = static_cast<float>(level + *z);
             }
         }
-        std::memset(&levels.data[id], 0, 4);
+        std::memset(&levels[id], 0, 4);
         render::TerrainChanged(this, render::TerrainChange::WaterMoved);
     }
 }
@@ -591,11 +564,11 @@ SectorData* SectorData::Construct() {
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
     std::construct_at(&waterMaterials);
     std::construct_at(&vertices);
-    records.Construct(recordarrays::SectorVertexArrayClass::Vtable());
+    std::construct_at(&records);
     std::construct_at(&tileTextures);
     std::construct_at(&waterTiles);
-    for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
-    for (auto& lists : tiles) lists.Construct(recordarrays::TerrainTileListsClass::Vtable());
+    for (auto& flags : tileFlags) std::construct_at(&flags);
+    for (auto& lists : tiles) std::construct_at(&lists);
     std::construct_at(&animated);
     std::construct_at(&classCounts);
     detail = 0;
@@ -626,18 +599,11 @@ void SectorData::DestructBody() {
     Clear();
     lib::FreeStorage(classCounts);
     lib::FreeStorage(animated);
-    for (int q = 3; q >= 0; --q) {
-        tiles[q].vtable = recordarrays::TerrainTileListsClass::Vtable();
-        tiles[q].FreeData();
-    }
-    for (int q = 3; q >= 0; --q) {
-        tileFlags[q].vtable = mfc::impl::TerrainByteArraysClass::Vtable();
-        tileFlags[q].FreeData();
-    }
+    for (int q = 3; q >= 0; --q) std::destroy_at(&tiles[q]);
+    for (int q = 3; q >= 0; --q) std::destroy_at(&tileFlags[q]);
     lib::FreeStorage(waterTiles);
     lib::FreeStorage(tileTextures);
-    records.vtable = recordarrays::SectorVertexArrayClass::Vtable();
-    records.FreeData();   // each record's light list released
+    std::destroy_at(&records);   // each record's light list released
     std::destroy_at(&vertices);
     std::destroy_at(&waterMaterials);
 }
@@ -670,7 +636,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    SectorVertex& record = records.data[layer * kVertices + corner + row * kRow + column];
+                    SectorVertex& record = records[layer * kVertices + corner + row * kRow + column];
                     std::memcpy(&record.projected, out, sizeof(record.projected));
                     record.outcode = mode == kCrossing ? *outcode++ : 0;
                     ++out;

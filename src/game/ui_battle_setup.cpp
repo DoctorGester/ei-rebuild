@@ -78,10 +78,10 @@ void CBattleScreen::CreateScreen() {
         stream->Resize(0);
     } else {
         // A new game: the local player's first hero.
-        if (LocalPlayerData()->members_.size > 0) {
+        if (std::ssize(LocalPlayerData()->members_) > 0) {
             CParty* player = LocalPlayerData();
             int index = std::ssize(heroes_);
-            std::uint32_t hero = player->members_.data[0].unitId;
+            std::uint32_t hero = player->members_[0].unitId;
             heroes_.resize(index + 1);
             heroes_[index] = hero;
             hasHero_ = true;

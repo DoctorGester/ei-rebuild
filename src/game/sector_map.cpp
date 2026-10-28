@@ -3,12 +3,9 @@
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "game_data.h"
-#include "record_arrays.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <list>
@@ -65,37 +62,22 @@ Sector::Sector() {
     Clear();
 }
 
-void ConstructSectors(Sector* sectors, int count) {
-    std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
-    for (; count != 0; --count, ++sectors) new (sectors) Sector();
-}
-
-void SectorElements::Construct(Sector* sectors, int count) { ConstructSectors(sectors, count); }
-
 void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     width = cellsX / 32;
     height = cellsY / 32;
     added = 0;
-    sectors.SetSize(width * height, -1);
+    sectors.resize(width * height);
     aiMap = map;
 }
 
-void CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
-    sectors->vtable = mfc::impl::SectorArrayClass::Vtable();
-    if (!sectors->data) return;
-    SectorElements::Destruct(sectors->data, sectors->size);
-    gamecrt::operator_delete(sectors->data);
-}
-
 CSectorMap::CSectorMap() {
-    mfc::impl::ConstructArrayOf<mfc::impl::SectorArrayClass>(sectors);
     aiMap = nullptr;
     height = 0;
     added = 0;
     width = 0;
 }
 
-CSectorMap::~CSectorMap() { DestructSectors(&sectors); }
+CSectorMap::~CSectorMap() = default;
 
 bool CSectorMap::Add(CMapObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * object->localPosition_.x - 0.5f);

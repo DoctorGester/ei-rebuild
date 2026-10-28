@@ -7,7 +7,6 @@
 #include "spell.h"
 #include "unit.h"
 #include "unit_ai.h"
-#include "lib/mfc_array.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -42,46 +41,35 @@ static_assert(sizeof(UnitAction) == 0x24);
 // ticks, kind (1 holds the queue time, 2 lying, a fall; CUnit::SetMotionMode). A blank step is 0xFF, 0xFF, 0,
 // duration -1, kind 0. The padding byte is never set: the original's steps carried a stack byte there, ours
 // carry 0, and so does the original in harness runs (harness_save_leftovers.cpp).
-using AnimationStep = mfc::impl::AnimationStep12;
-AnimationStep* ConstructAnimationStep(AnimationStep* step);
+struct AnimationStep {
+    std::uint8_t animation = 0xFF;
+    std::uint8_t variant = 0xFF;
+    std::uint8_t flags = 0;
+    std::uint8_t padding = 0;
+    int duration = -1;
+    int kind = 0;
+};
+static_assert(sizeof(AnimationStep) == 0xC);   // saved as its 12 bytes
 
-// An MFC CArray of AnimationStep and a dword after it (extra, copied along with the steps).
-struct AnimationSteps : mfc::impl::AnimationStepListAbi {
-
-// Appends a blank step of `animation` (low byte) lasting `duration`.
+// A step list and a dword copied along with it (extra: the queue's start time, ...).
+struct AnimationSteps : std::vector<AnimationStep> {
+    // Appends a blank step of `animation` (low byte) lasting `duration`.
     void AddStep(int animation, int duration);
-// The last step becomes the open-ended emote `emote` (its variant; duration -1); a blank step is appended
-// first when the list is empty or its last step already carries an emote.
+    // The last step becomes the open-ended emote `emote` (its variant; duration -1); a blank step is appended
+    // first when the list is empty or its last step already carries an emote.
     void AddEmote(int emote);
     void SetStepFlags(int value);
     // The sum of the durations; -1 when one is negative (open-ended).
     int Duration() const;
-// Compares the count, then each step but its padding byte.
+    // Compares the count, then each step but its padding byte.
     bool SameAs(const AnimationSteps* other) const;
-// The count, each step's 12 bytes, extra. A failed count read leaves the stream pointer as the count (the
-// original read into the argument's stack slot).
+    // The count, each step's 12 bytes, extra. A count the stream did not deliver is 0 (the original's was its
+    // stack garbage).
     void Load(CStream* stream);
-    void Save(CStream* stream);
-    AnimationSteps* CopyConstruct(const AnimationSteps& source);
-    void Assign(const AnimationSteps& source);
-// The CArray part; extra is left alone. New steps are blank.
-    void SetSize(int newCount, int newGrowBy = -1);
-    int Add(const AnimationStep& step);
-    void SetAtGrow(int index, const AnimationStep& step);
-    void RemoveAt(int index, int count);
-    void CopySteps(const AnimationSteps& source);
-// Empty, with the base class's or the list's own vtable, or with a copy of `source`'s steps.
-    AnimationSteps* ConstructBase();
-    AnimationSteps* ConstructOwn();
-    AnimationSteps* CopyConstructSteps(const AnimationSteps& source);
-    void DestructSteps();
-};
-static_assert(sizeof(AnimationSteps) == 0x18);
+    void Save(CStream* stream) const;
 
-// A step list in a save: the count (Load: SetSize to it, growth step kept; a count the stream did not deliver
-// is the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not part of it.
-void LoadStepList(AnimationSteps* steps, CStream* stream);
-void SaveStepList(const AnimationSteps* steps, CStream* stream);
+    int extra = -1;
+};
 
 // The plan of an order: its animation, when it starts and ends, and what it aims at.
 struct OrderPlan {
@@ -99,15 +87,12 @@ struct OrderPlan {
                                 // spell prototype's school
     Vector3 direction;          // from the unit to the target
 
-// Takes `steps` (by value, freed here) as the animation from `start` for `duration` ticks; the other fields
-// are reset to OrderPlanReset's values.
+// Takes `steps` as the animation from `start` for `duration` ticks; the other fields are reset to
+// OrderPlanReset's values.
     void TakeSteps(AnimationSteps steps, int start, int duration);
 };
-static_assert(offsetof(OrderPlan, startTime) == 0x18);
-static_assert(offsetof(OrderPlan, direction) == 0x38);
 
 void OrderPlanReset(OrderPlan* plan);
-static_assert(sizeof(OrderPlan) == 0x44);
 
 class CWorldServer;
 // Whether the spell may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from
@@ -455,10 +440,10 @@ public:
 
     // False while an attack turns (state 2) and `ticks` from now would pass nextAttackTime.
     bool CanReactFor(int ticks);
-    // Play `steps` (taken by value and destroyed) as an animation order (state 3) / an emote (state 4): the
-    // queue takes it, the unit stops facing its direction.
-    void PlayAnimationOrder(AnimationSteps steps);
-    void PlayEmoteOrder(AnimationSteps steps);
+    // Play `steps` as an animation order (state 3) / an emote (state 4): the queue takes a copy, the unit stops
+    // facing its direction.
+    void PlayAnimationOrder(const AnimationSteps& steps);
+    void PlayEmoteOrder(const AnimationSteps& steps);
     // The emote 0xFE for a hero walking (mode 2 without flag4), else the idle entry of the weapon and movement
     // key (| 0x80580000), if any.
     void BuildIdle(AnimationSteps* steps);
@@ -616,5 +601,4 @@ static_assert(offsetof(CUnitServer, unit) == 0x1C);
 inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
 static_assert(offsetof(CUnitServer, frozen) == 0x20);
 static_assert(offsetof(CUnitServer, queue) == 0x24);
-static_assert(offsetof(CUnitServer, motion) == 0x3C);
 

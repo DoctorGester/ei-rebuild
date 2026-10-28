@@ -8,7 +8,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "lib/mfc.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -26,18 +25,6 @@ LockKey* LockKey::ConstructItemUseKey() {
     level = 0;
     return this;
 }
-
-// --- A global map place assigned ----------------------------------------------------------------------
-
-GlobalMapPlace* GlobalMapPlace::Assign(const GlobalMapPlace& from) {
-    zone = from.zone;
-    position = from.position;
-    name = from.name;
-    title = from.title;
-    return this;
-}
-
-GlobalMapPlace* GlobalMapPlace::AssignCopy(const GlobalMapPlace& from) { return Assign(from); }
 
 // --- Default answers of the windows' slots ---------------------------------------------------------------
 

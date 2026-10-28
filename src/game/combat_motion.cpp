@@ -21,12 +21,10 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_list.h"
 
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 #include "lib/vecmath.h"
 #include "logic_settings.h"
 
@@ -86,8 +84,8 @@ void StartQueueIfUnset(CUnitServer* self) {
 
 void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
-    if (queue.size == 0) return;
-    const AnimationStep& head = queue.data[0];
+    if (queue.empty()) return;
+    const AnimationStep& head = queue[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
         self->unit->SetAnimationEntries(head.animation, head.variant, QueueTime(self), head.flags);
 }
@@ -119,17 +117,8 @@ int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : s
 
 // A pause step for an emote (`value` as its variant byte, open-ended), reusing a trailing one.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
-    int count = steps->size;
-    if (count == 0 || steps->data[count - 1].variant != 0xFF) {
-        AnimationStep blank{};
-        blank.animation = 0xFF;
-        blank.variant = 0xFF;
-        blank.flags = 0;
-        blank.duration = -1;
-        blank.kind = 0;
-        steps->SetAtGrow(count, blank);
-    }
-    AnimationStep& last = steps->data[steps->size - 1];
+    if (steps->empty() || steps->back().variant != 0xFF) steps->emplace_back();
+    AnimationStep& last = steps->back();
     last.variant = value;
     last.duration = -1;
 }
@@ -142,8 +131,7 @@ std::uint32_t WeaponAndModeBits(CUnitServer* self) {
 // The idle animation into `steps`: a walking hero stands with the emote 0xFE, the others with their idle
 // animation for the key, if any.
 void FillIdle(CUnitServer* self, AnimationSteps* steps) {
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     if (self->moveMode.mode == kModeRun && self->moveMode.flag4 == 0) {
         AddEmote(steps, kEmoteStand);
         return;
@@ -182,15 +170,11 @@ bool CUnitServer::CanReactFor(int ticks) {
 
 namespace {
 // The two variants differ only in the state they set.
-void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
+void Play(CUnitServer* self, const AnimationSteps& steps, int newState) {
     self->state = newState;
     self->unit->UpdateSizeClass();
     DropEffectObject(self);
-    AnimationSteps& queue = Queue(self);
-    queue.CopySteps(steps);
-    QueueTime(self) = steps.extra;
-    queue.CopySteps(steps);
-    QueueTime(self) = steps.extra;
+    Queue(self) = steps;
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     ShowHead(self);
@@ -208,15 +192,12 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
         sectors->Add(self->unit);
         self->unit->MarkChanged(7);
     }
-    // The list was taken by value: it is destroyed here.
-    steps.vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (steps.data) gamecrt::operator_delete(steps.data);
 }
 } // namespace
 
-void CUnitServer::PlayAnimationOrder(AnimationSteps steps) { PlayByValue(this, steps, kStateAnimation); }
+void CUnitServer::PlayAnimationOrder(const AnimationSteps& steps) { Play(this, steps, kStateAnimation); }
 
-void CUnitServer::PlayEmoteOrder(AnimationSteps steps) { PlayByValue(this, steps, kStateEmote); }
+void CUnitServer::PlayEmoteOrder(const AnimationSteps& steps) { Play(this, steps, kStateEmote); }
 
 // --- Idle and movement animations --------------------------------------------------------------
 
@@ -242,19 +223,15 @@ void CUnitServer::PlayIdle() {
         IdleKey(this) = key;
         FillIdle(this, &IdleSteps(this));
     }
-    // The idle list into the queue (twice), started.
-    Queue(this).CopySteps(IdleSteps(this));
-    QueueTime(this) = IdleTime(this);
-    Queue(this).CopySteps(IdleSteps(this));
-    QueueTime(this) = IdleTime(this);
+    // The idle list into the queue, started.
+    Queue(this) = IdleSteps(this);
     StartQueueIfUnset(this);
     PopFinishedSteps();
     ShowHead(this);
 }
 
 void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
-    steps->SetSize(0, -1);
-    steps->extra = -1;
+    *steps = {};
     CUnit* self = unit;
     std::uint32_t bits;
     switch (static_cast<std::uint32_t>(moveMode.mode)) {
@@ -290,19 +267,12 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             AddEmote(steps, index);
         } else {
             int duration = AnimationDuration(index);
-            AnimationStep blank{};
-            blank.animation = 0xFF;
-            blank.variant = 0xFF;
-            blank.flags = 0;
-            blank.duration = -1;
-            blank.kind = 0;
-            steps->SetAtGrow(steps->size, blank);
-            AnimationStep& last = steps->data[steps->size - 1];
+            AnimationStep& last = steps->emplace_back();
             last.animation = index;
             last.duration = duration;
         }
     }
-    for (int i = 0; i < steps->size; ++i) steps->data[i].kind = 2;
+    for (AnimationStep& step : *steps) step.kind = 2;
 }
 
 AnimationSteps* CUnitServer::NextAnimation() {
@@ -327,29 +297,22 @@ AnimationSteps* CUnitServer::NextAnimation() {
     }
     // A hero: the start of the movement once, then the loop appended step by step.
     AnimationSteps loop;
-    std::memset(&loop, 0, sizeof(loop));
-    loop.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
     BuildMoveSteps(&loop, 0);
     AnimationSteps& steps = MoveSteps(this);
     BuildMoveSteps(&steps, 1);
-    for (int i = 0; i < loop.size; ++i) {
-        AnimationStep step = loop.data[i];
+    for (const AnimationStep& step : loop) {
         if (step.animation == 0xFF) {
             // A pause: an emote of its variant byte (the original passes a misaligned dword; AddEmote keeps its low byte
             // only).
             steps.AddEmote(step.variant);
         } else if (step.variant == 0xFF) {
-            AnimationStep blank{};   // padding 0, not a stack byte (the harness zeroes the original's)
-            steps.Add(*ConstructAnimationStep(&blank));
-            AnimationStep& last = steps.data[steps.size - 1];
+            AnimationStep& last = steps.emplace_back();   // padding 0, not a stack byte (the harness zeroes the original's)
             last.animation = step.animation;
             last.duration = step.duration;
         } else {
-            steps.SetAtGrow(steps.size, step);
+            steps.push_back(step);
         }
     }
-    loop.vtable = mfc::impl::AnimationStepsClass::Vtable();
-    if (loop.data) gamecrt::operator_delete(loop.data);
     return &steps;
 }
 
@@ -357,7 +320,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
 
 void CUnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = Plan(this);
-    for (int i = 0; i < plan.animation.size; ++i) plan.animation.data[i].flags = static_cast<std::uint8_t>(stepFlags);
+    for (AnimationStep& step : plan.animation) step.flags = static_cast<std::uint8_t>(stepFlags);
     if (state < 0 || (state > 1 && state != kStateTurning)) {
         std::uint32_t key = WeaponTypeMask() | MoveModeMask(&moveMode);
         if (IdleKey(this) == key) {
@@ -481,22 +444,10 @@ bool CUnitServer::ChangeMoveMode() {
     }
     if (action.kind != kOrderAttack) {
         AnimationSteps transition;
-        std::memset(&transition, 0, sizeof(transition));
-        transition.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
-            // The transition is played as an animation order (a by-value copy, built like the original: SetSize, then the
-            // steps one by one).
-            AnimationSteps copy;
-            copy.ConstructBase();
-            copy.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-            copy.SetSize(transition.size, -1);
-            for (int i = 0; i < transition.size; ++i) copy.data[i] = transition.data[i];
-            copy.extra = transition.extra;
-            PlayAnimationOrder(copy);
+            PlayAnimationOrder(transition);   // the transition played as an animation order
         }
-        transition.vtable = mfc::impl::AnimationStepsClass::Vtable();
-        if (transition.data) gamecrt::operator_delete(transition.data);
     }
     unit->UpdateSizeClass();
     if (action2.kind == kOrderNone) action2.Assign(&action);
@@ -536,27 +487,14 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     DropEffectObject(this);
     if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
-        AnimationSteps* next = NextAnimation();
-        AnimationSteps moving;
-        moving.CopyConstructSteps(*next);
-        moving.extra = next->extra;
-        AnimationSteps current;
-        current.ConstructBase();
-        current.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-        current.CopySteps(Queue(this));
-        current.extra = QueueTime(this);
-        if (current.size != 1 || moving.size != 1 || current.data[0].variant != moving.data[0].variant) {
-            Queue(this).CopySteps(moving);
-            QueueTime(this) = moving.extra;
-            Queue(this).Assign(moving);
+        const AnimationSteps& moving = *NextAnimation();
+        AnimationSteps& current = Queue(this);
+        if (current.size() != 1 || moving.size() != 1 || current[0].variant != moving[0].variant) {
+            current = moving;
             StartQueueIfUnset(this);
             PopFinishedSteps();
             ShowCurrentStep();
         }
-        current.vtable = mfc::impl::AnimationStepsClass::Vtable();
-        if (current.data) gamecrt::operator_delete(current.data);
-        moving.vtable = mfc::impl::AnimationStepsClass::Vtable();
-        if (moving.data) gamecrt::operator_delete(moving.data);
     }
     return true;
 }
@@ -692,10 +630,9 @@ void CUnitServer::ResyncWithUnit() {
     }
     if (!Queue(this).SameAs(&IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
-        if (Queue(this).size == 0 && QueueTime(this) == -1)
+        if (Queue(this).empty() && QueueTime(this) == -1)
             IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
-        Queue(this).Assign(IdleSteps(this));   // twice, like the original
-        Queue(this).Assign(IdleSteps(this));
+        Queue(this) = IdleSteps(this);
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -723,12 +660,10 @@ void CUnitServer::ResetController() {
     action2.modifier = 0;
     frozen = 0;
     animationHeld = 0;
-    Queue(this).SetSize(0, -1);
-    QueueTime(this) = -1;
+    Queue(this) = {};
     Motion(this)->Clear();
     OrderPlan& plan = Plan(this);
-    plan.animation.SetSize(0, -1);
-    plan.animation.extra = -1;
+    plan.animation = {};
     plan.targetId = -1;
     plan.endTime = 0;
     plan.startTime = 0;
@@ -739,8 +674,7 @@ void CUnitServer::ResetController() {
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
     pendingHit.multiplier = 1.0f;
-    savedQueue.SetSize(0, -1);
-    savedQueue.extra = -1;
+    savedQueue = {};
     state = kStateChasing;
     hitDirection = 0xFFFFFFFFu;
     keepHitDirection = 0;
@@ -783,11 +717,9 @@ void CUnitServer::ResetController() {
     claimedHostile = 0;
     sinkSpeed = 0.0f;
     MoveKey(this) = 0x666DEAD;
-    MoveSteps(this).SetSize(0, -1);
-    MoveSteps(this).extra = -1;
+    MoveSteps(this) = {};
     IdleKey(this) = 0x666DEAD;
-    IdleSteps(this).SetSize(0, -1);
-    IdleSteps(this).extra = -1;
+    IdleSteps(this) = {};
     boredTicks = 0;
     // The armour spell list emptied, each element's item released.
     for (auto node = armourSpells.begin(); node != armourSpells.end(); ++node)

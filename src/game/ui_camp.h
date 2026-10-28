@@ -9,8 +9,6 @@
 #include "ui_screens.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -66,50 +64,13 @@ struct GlobalMapZone {
     std::string name;
     std::string title;
 };
-struct GlobalMapZoneElements {
-    static void Construct(GlobalMapZone* zones, int count);
-    static void Destruct(GlobalMapZone* zones, int count);
-    static void Relocate(GlobalMapZone* to, GlobalMapZone* from, int count) { mfc::MoveElements(to, from, count); }
-};
-struct GlobalMapZoneTable : mfc::CArray<GlobalMapZone, GlobalMapZoneElements> {
-    void SetAtGrowZone(int index, const GlobalMapZone* zone);
-};
-using GlobalMapZoneArray = GlobalMapZoneTable;
-
 // A quest place or a link (an "edge" zone) on the map.
 struct GlobalMapPlace {
-    GlobalMapPlace* Assign(const GlobalMapPlace& from);
-    GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
-
     int zone;                        // index into the zones
     Vector3 position;                // on the map model
     std::string name;
     std::string title;
 };
-// The links' and the quests' elements: zero-filled, then both texts empty; destroyed title first.
-struct GlobalMapPlaceElements {
-    static void Construct(GlobalMapPlace* places, int count);
-    static void Destruct(GlobalMapPlace* places, int count);
-    static void Relocate(GlobalMapPlace* to, GlobalMapPlace* from, int count) { mfc::MoveElements(to, from, count); }
-};
-using GlobalMapPlaces = mfc::CArray<GlobalMapPlace, GlobalMapPlaceElements>;
-// Their element destructors (title, then name).
-void DestroyGlobalMapZone(GlobalMapZone* zone);
-void DestroyGlobalMapPlace(GlobalMapPlace* place);
-
-// The arrays' tables: the zones', the links' and the quests'.
-using GlobalMapZoneRecords = mfc::impl::ArrayAbi<GlobalMapZone, GlobalMapZoneElements>;
-using GlobalMapPlaceRecords = mfc::impl::ArrayAbi<GlobalMapPlace, GlobalMapPlaceElements>;
-struct GlobalMapZoneArrayClass final
-    : mfc::impl::CompiledCollection<GlobalMapZoneArrayClass, &GlobalMapZoneRecords::Destruct<GlobalMapZoneArrayClass>,
-                                    &GlobalMapZoneRecords::Serialize> {};
-struct GlobalMapPointArrayClass final
-    : mfc::impl::CompiledCollection<GlobalMapPointArrayClass, &GlobalMapPlaceRecords::Destruct<GlobalMapPointArrayClass>,
-                                    &GlobalMapPlaceRecords::Serialize> {};
-struct GlobalMapPathArrayClass final
-    : mfc::impl::CompiledCollection<GlobalMapPathArrayClass, &GlobalMapPlaceRecords::Destruct<GlobalMapPathArrayClass>,
-                                    &GlobalMapPlaceRecords::Serialize> {};
-
 // A zone on the way of the global map's way search and the exit taken.
 struct GlobalMapStep {
     MapRecord* zone;
@@ -194,9 +155,9 @@ public:
     float bobTime_;                  // seconds, for the arrow's bobbing and the layers' frames
     std::string allodTitle_;
     Vector3 position_;               // the current zone on the map model
-    GlobalMapZoneArray zones_;
-    GlobalMapPlaces links_;
-    GlobalMapPlaces quests_;
+    std::vector<GlobalMapZone> zones_;
+    std::vector<GlobalMapPlace> links_;
+    std::vector<GlobalMapPlace> quests_;
     // The way search from the current zone to target_: the zones on the way so far and their summed
     // "#passtime".
     std::vector<GlobalMapStep> path_;

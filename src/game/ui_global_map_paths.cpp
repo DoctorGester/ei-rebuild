@@ -14,7 +14,6 @@
 #include "world.h"
 
 #include "ei/rebirth.h"
-#include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -137,9 +136,9 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         // WideScreen takes the margin off its x (addon's code).
         const std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
-        if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
+        if (index < 0 || index >= zoneCount_ || zones_[index].state == 0) return;
         interface_->PlaySound(OkSound(), 0);
-        GlobalMapZone& zone = zones_.data[index];
+        GlobalMapZone& zone = zones_[index];
         link = zone.link;
         if (!gipat_ || link < 0) {
             // A zone: its objectives and the ways there, to choose from (found or not).
@@ -152,8 +151,8 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         }
     }
     // A link: the party goes there at once when there is a way.
-    SearchWays(this, links_.data[link].name);
+    SearchWays(this, links_[link].name);
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(arrivals_[0]);
-    ::RequestZone(links_.data[link].name.c_str(), 0);
+    ::RequestZone(links_[link].name.c_str(), 0);
 }

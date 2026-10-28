@@ -132,9 +132,9 @@ void CBattleScreen::ToggleMember(int index) {
     // members' selection, record i against member i.
     if (TheServerWorld()->gameResult_ == 1) {
         if (auto* player = TheServerWorld()->GetPlayer(0)) {
-            for (int i = 0; i < player->Party()->members_.size; ++i) {
+            for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
                 if (i >= std::ssize(*party)) continue;
-                PartyUnitRecord* record = &player->Party()->members_.data[i];
+                PartyUnitRecord* record = &player->Party()->members_[i];
                 CUnit* member = unitAt(i);
                 if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
                     record->selected = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);

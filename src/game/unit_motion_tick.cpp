@@ -17,7 +17,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/mfc.h"
 
 #include "game_data.h"
 #include "lib/vecmath.h"
@@ -118,10 +117,7 @@ void SetObstacle(CUnitServer* c, int obstacle) {
 }
 
 void QueueNextAnimation(CUnitServer* c) {
-    AnimationSteps* next = c->NextAnimation();
-    Queue(c)->CopySteps(*next);
-    QueueStart(c) = next->extra;
-    Queue(c)->Assign(*next);
+    *Queue(c) = *c->NextAnimation();
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();
@@ -132,26 +128,24 @@ void QueueNextAnimation(CUnitServer* c) {
 // it fits. Returns from the tick.
 void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
-    steps.ConstructOwn();
     if (c->moveMode.mode != 0 || c->state != 0) {
         c->BuildDeathAnimation(&steps, c->hitDirection, 0, 0);
         if (c->CanReactFor(steps.Duration())) {
             c->keepHitDirection = 1;
-            c->savedQueue.Assign(*Queue(c));
+            c->savedQueue = *Queue(c);
             c->PlaySteps(&steps);
             c->animationHeld = 1;
         }
     }
-    steps.DestructSteps();
 }
 
 // A hit while moving: unless the queue's first animation (an attack, flags 0x200000 under
 // 0x3C0000) is still running, the current animation followed by the fall of the last blow
 // replaces the queue.
 void HitWhileMoving(CUnitServer* c) {
-    if (Queue(c)->size > 0) {
-        std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->size) & 0xFFFFFF00u) |
-                            Queue(c)->data[0].animation;
+    if (!Queue(c)->empty()) {
+        std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->size()) & 0xFFFFFF00u) |
+                            (*Queue(c))[0].animation;
         const FigureAnimation* entry = UnitOf(c)->AnimationEntry(key);
         if (entry && (entry->key & 0x3C0000) == 0x200000) {
             std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
@@ -159,14 +153,10 @@ void HitWhileMoving(CUnitServer* c) {
         }
     }
     AnimationSteps current;
-    current.ConstructOwn();
     AnimationSteps fall;
-    fall.ConstructOwn();
     c->BuildMoveSteps(&current, 0);
     c->BuildDeathAnimation(&fall, c->hitDirection, 0, 1);
-    for (int i = 0; i < current.size; ++i) {
-        AnimationStep step;
-        step = current.data[i];   // GetAt by value
+    for (const AnimationStep& step : current) {
         // The dwords at step + 1 / step + 0 are passed; AddEmote / AddStep keep their low byte only (the
         // variant / the animation).
         if (step.animation == 0xFF) {
@@ -174,16 +164,13 @@ void HitWhileMoving(CUnitServer* c) {
         } else if (step.variant == 0xFF) {
             fall.AddStep(step.animation, step.duration);
         } else {
-            fall.SetAtGrow(fall.size, step);
+            fall.push_back(step);
         }
     }
-    Queue(c)->Assign(fall);   // twice, as the game does
-    Queue(c)->Assign(fall);
+    *Queue(c) = fall;
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     c->PopFinishedSteps();
     c->ShowCurrentStep();
-    fall.DestructSteps();
-    current.DestructSteps();
 }
 
 // The unit blocking the step: whether to wait for it (2), give way and replan around it (1), or

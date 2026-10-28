@@ -18,12 +18,10 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
 
 #include "ei/x87.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstring>
@@ -235,7 +233,7 @@ void LeaveMoveMode(CUnitServer* self) {
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = self->IdleAnimation();
     if (!self->queue.SameAs(idle)) {
-        if (self->queue.size == 0 && self->queue.extra == -1) {
+        if (self->queue.empty() && self->queue.extra == -1) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         }
@@ -353,48 +351,29 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         AnimationSteps steps;
-        std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-        steps.SetSize(0, -1);
-        steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.param);
         int duration = AnimationDuration(animation);
         steps.AddStep(animation, duration);
-        AnimationSteps copy;
-        copy.CopyConstruct(steps);
-        PlayAnimationOrder(copy);
-        steps.DestructSteps();
+        PlayAnimationOrder(steps);
         return true;
     }
 
     case kOrderEmote: {
         TakeQueuedOrder();
         AnimationSteps steps;
-        std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-        steps.SetSize(0, -1);
-        steps.extra = -1;
         steps.AddEmote(static_cast<std::uint8_t>(action.param));
-        AnimationSteps copy;
-        copy.CopyConstruct(steps);
-        PlayEmoteOrder(copy);
-        steps.DestructSteps();
+        PlayEmoteOrder(steps);
         return true;
     }
 
     case kOrderUse: {
         TakeQueuedOrder();
         AnimationSteps steps;
-        std::memset(&steps, 0, sizeof(steps));
-        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
         int duration;
         BuildOrderSteps(&steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
-        AnimationSteps copy;
-        copy.CopyConstruct(steps);
-        currentPlan.TakeSteps(copy, now, duration);
+        currentPlan.TakeSteps(std::move(steps), now, duration);
         StartAction(1, 0);
-        steps.DestructSteps();
         return true;
     }
 

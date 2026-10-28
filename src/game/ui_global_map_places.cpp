@@ -10,7 +10,6 @@
 #include "item_db_text.h"
 #include "text_reader.h"
 
-#include "lib/mfc.h"
 #include "game_singletons.h"
 #include "render/render_state.h"
 #include "lib/str.h"
@@ -109,14 +108,14 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
     int link = -1;
     if (!isLink) {
         zone = index;
-        if (gipat_ && index >= 0 && zones_.data[index].link >= 0) link = zones_.data[index].link;
+        if (gipat_ && index >= 0 && zones_[index].link >= 0) link = zones_[index].link;
     } else {
         link = index;
-        if (gipat_ && index >= 0 && links_.data[index].zone >= 0) zone = links_.data[index].zone;
+        if (gipat_ && index >= 0 && links_[index].zone >= 0) zone = links_[index].zone;
     }
     for (int i = 0; i < zoneCount_; ++i) {
         CUiMesh* marker = Marker(i);
-        int state = zones_.data[i].state;
+        int state = zones_[i].state;
         if (state == 0) {
             marker->texture_ = objects_[2];
         } else if (state == 1 || state == 2) {

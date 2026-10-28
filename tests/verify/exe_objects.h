@@ -787,7 +787,7 @@ static_assert(sizeof(PartyUnitRecord) == 0x784);
 // A party (party.h).
 struct CParty : CEngineObject {
     std::uint8_t unknown1C[0x10];
-    Array<PartyUnitRecord> members_;        // +0x2C
+    Vector<PartyUnitRecord> members_;       // +0x2C
     AlignedArray<CItem*> items_;            // +0x40
     int money_;                             // +0x50
     NamedFloatTable variables_;             // +0x54
@@ -949,7 +949,7 @@ struct SectorData {
     int hasWater;                           // +0x10
     std::uint8_t unknown14[0x168];
     Vector<SectorPosition> vertices;        // +0x17C
-    Array<SectorVertex> records;            // +0x190
+    Vector<SectorVertex> records;           // +0x190
     std::uint8_t unknown1A4[0x1F0];
 };
 static_assert(sizeof(SectorData) == 0x394);

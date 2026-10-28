@@ -176,25 +176,6 @@ void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
-// A unit's animation step (12 bytes; game/combat.h's AnimationStep): the blank step after the zero
-// fill ('s values): animation and variant 0xFF, flags 0, duration -1, kind 0.
-struct AnimationStep12 {
-    std::uint8_t animation;
-    std::uint8_t variant;
-    std::uint8_t flags;
-    std::uint8_t padding;
-    int duration;
-    int kind;
-};
-static_assert(sizeof(AnimationStep12) == 0xC);
-inline void InitAnimationStep12(AnimationStep12* p) {
-    p->variant = 0xFF;
-    p->animation = 0xFF;
-    p->duration = -1;
-    p->kind = 0;
-    p->flags = 0;
-}
-
 // The destructors of elements that hold an array header at `ArrayAt`: the vtable of `BaseClass`, the storage
 // freed, the fields left.
 template <typename E, std::size_t ArrayAt, typename BaseClass>
@@ -216,49 +197,11 @@ using Plain40 = ArrayAbi<Bytes<40>>;
 using Floats = ArrayAbi<float>;
 
 
-using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, InitAnimationStep12>>;
-
-// A unit's animation list (game/combat.h's AnimationSteps): the steps' array and a
-// dword copied along with them.
-struct AnimationStepList : AnimationSteps::Array {
-    int extra;
-};
-static_assert(sizeof(AnimationStepList) == 0x18);
-
-struct AnimationStepListAbi : AnimationStepList {
-    using Array = AnimationSteps::Array;
-    // The copy constructor: the steps (SetSize to the source's count, then each
-    // step), then extra. Returns this.
-    AnimationStepList* CopyConstruct(const AnimationStepList* source) {
-        CopyConstructSteps(source);
-        this->extra = source->extra;
-        return this;
-    }
-    // The same without extra (the steps' array alone). Defined in mfc_slots.h, after AnimationStepsCopyClass.
-    Array* CopyConstructSteps(const Array* source);
-    // Operator=: Copy, then extra. Returns this.
-    AnimationStepList* Assign(const AnimationStepList* source) {
-        this->Copy(*source);
-        this->extra = source->extra;
-        return this;
-    }
-};
-
 // Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
 // the base's destructor (ScriptAreaClass's vtable, the storage freed).
 using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
 using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
                                                             DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
-
-// Elements destroyed through their virtual destructor with flags 0 (MFC's `pElements->~TYPE()`): slot 1 for
-// CObject-derived elements (an array's DeletingDestructor). The call goes through the element's vtable.
-template <typename E>
-void DeleteThroughObject(E* p) { reinterpret_cast<CObjectVirtuals*>(p)->DeletingDestructor(0); }
-
-// The terrain's byte arrays (CByteArray's constructor on each).
-using ByteArrayElement = WithArray<0x14, 0, ByteArrayClass>;
-using ByteArrays = ArrayAbi<ByteArrayElement, EachElements<ByteArrayElement, InitWithArray<0x14, 0, ByteArrayClass>,
-                                                          DeleteThroughObject<ByteArrayElement>>>;
 
 // The script's string arrays (game.exe's CArray<CString>): std::string elements.
 using Strings = ArrayAbi<std::string>;

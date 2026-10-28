@@ -28,7 +28,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -74,9 +73,6 @@ MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 MapRecord* ZoneAt(int index) { return &TheMapDatabase()->maps[index]; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
-
-// The links' and the quests' SetSize and their elements' assignment (GlobalMapPlace::Assign / AssignCopy).
-void SetPlaceCount(GlobalMapPlaces& places, int size) { places.SetSize(size); }
 
 int SurfaceText(CUiSurface* surface, std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
     return surface->DrawTextIn(text, rect, font, colour, format, flag);
@@ -251,14 +247,14 @@ void CGlobalMap::CreateScreen() {
     for (int i = 0; i < std::ssize(allod->maps); ++i) {
         MapRecord* zone = ZoneAt(allod->maps[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure.c_str())) continue;
-        zones_.SetAtGrowZone(zones_.size, &zoneTemplate);
+        zones_.push_back(zoneTemplate);
         variable = str::Format("z.%s", zone->name.c_str());
-        zones_.data[zoneCount_].link = -1;
-        zones_.data[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
-        zones_.data[zoneCount_].name = zone->name;
+        zones_[zoneCount_].link = -1;
+        zones_[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
+        zones_[zoneCount_].name = zone->name;
         {
             std::string title;
-            zones_.data[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
+            zones_[zoneCount_].title = *ZoneTitle(&title, zone->name.c_str());
         }
         CUiMesh* sprite = AddFigure(this, zone->figure);
         sprite->Place(centreX_, centreY_, depth_);
@@ -268,7 +264,7 @@ void CGlobalMap::CreateScreen() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable = str::Format("q.%s", zones_.data[i].name.c_str());
+        variable = str::Format("q.%s", zones_[i].name.c_str());
         GameLocalPlayerVariables(variable.c_str(), vars.Table());
         const NamedFloatTable& table = *vars.Table();
         for (auto node = table.begin(); node != table.end(); ++node) {
@@ -278,22 +274,21 @@ void CGlobalMap::CreateScreen() {
                 text::Split(node->first.c_str(), &parts, '.');
                 if (parts.size() == 3) {
                     int n = questCount_;
-                    SetPlaceCount(quests_, quests_.size + 1);
-                    quests_.data[quests_.size - 1].AssignCopy(questTemplate);
-                    GlobalMapPlace& quest = quests_.data[n];
+                    quests_.push_back(questTemplate);
+                    GlobalMapPlace& quest = quests_[n];
                     quest.name = parts[2];
-                    quests_.data[n].zone = i;
+                    quests_[n].zone = i;
                     {
                         std::string title;
-                        quests_.data[n].title = *QuestTitle(&title, parts[2].c_str());
+                        quests_[n].title = *QuestTitle(&title, parts[2].c_str());
                     }
                     {
                         Vector3 position;
                         QuestPosition(&position, parts[2].c_str());
-                        std::memcpy(&quests_.data[n].position, &position, 12);
+                        std::memcpy(&quests_[n].position, &position, 12);
                     }
                     CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);
-                    Vector3 local = quests_.data[n].position;
+                    Vector3 local = quests_[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
                     sprite->SetScale(0.3f /*007420D0*/);
@@ -309,7 +304,7 @@ void CGlobalMap::CreateScreen() {
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapRecord* zone = FindZone(zones_.data[i].name);
+        MapRecord* zone = FindZone(zones_[i].name);
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
             MapRecord* way = FindZone(zone->exits[e].target);
             if (!way) continue;
@@ -320,23 +315,22 @@ void CGlobalMap::CreateScreen() {
             EI_NAN_AUDIT(state);
             if (state != two) continue;
             if (!NonEmpty(way->figure.c_str())) continue;
-            if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
+            if (zones_[i].state == 2) zones_[i].link = linkCount_;
             int n = linkCount_;
-            SetPlaceCount(links_, links_.size + 1);
-            links_.data[links_.size - 1].Assign(linkTemplate);
-            links_.data[n].zone = i;
-            links_.data[n].name = way->name;
+            links_.push_back(linkTemplate);
+            links_[n].zone = i;
+            links_[n].name = way->name;
             {
                 std::string title;
-                links_.data[n].title = *ZoneTitle(&title, way->name.c_str());
+                links_[n].title = *ZoneTitle(&title, way->name.c_str());
             }
             {
                 Vector3 position;
                 ZonePosition(&position, way->name.c_str());
-                std::memcpy(&links_.data[n].position, &position, 12);
+                std::memcpy(&links_[n].position, &position, 12);
             }
             CUiMesh* sprite = AddFigure(this, way->figure);
-            Vector3 local = links_.data[n].position;
+            Vector3 local = links_[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
             sprite->SetScale(0.3f /*007420D0*/);
@@ -541,7 +535,7 @@ void CGlobalMap::Update() {
         for (int i = 0; i < zoneCount_; ++i) builder.Turn(SceneMesh(3 + i));
         for (int i = 0; i < questCount_; ++i) {
             CUiMesh* sprite = SceneMesh(3 + zoneCount_ + i);
-            Vector3 local = quests_.data[i].position;
+            Vector3 local = quests_[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
@@ -549,7 +543,7 @@ void CGlobalMap::Update() {
         }
         for (int i = 0; i < linkCount_; ++i) {
             CUiMesh* sprite = SceneMesh(3 + questCount_ + zoneCount_ + i);
-            Vector3 local = links_.data[i].position;
+            Vector3 local = links_[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
@@ -590,87 +584,11 @@ void CGlobalMap::Update() {
     TheCursor()->ChangeShape(dragging_ ? 0x16 : 0);
 }
 
-namespace {
-
-template <typename Array>
-void EmptyArray(Array* array, void* vtable) {
-    array->vtable = vtable;
-    array->data = nullptr;
-    array->growBy = 0;
-    array->maxSize = 0;
-    array->size = 0;
-}
-} // namespace
-
 CGlobalMap::CGlobalMap(CInterface3D* ui) : CUiContainer(ui) {
-    EmptyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
-    EmptyArray(&links_, GlobalMapPointArrayClass::Vtable());
-    EmptyArray(&quests_, GlobalMapPathArrayClass::Vtable());
     turn_.w = 1.0f;   // the identity turn
     turn_.x = 0.0f;
     turn_.y = 0.0f;
     turn_.z = 0.0f;
 }
 
-namespace {
-template <typename Array>
-void DestroyArray(Array* array, void* vtable) {
-    array->vtable = vtable;
-    if (!array->data) return;
-    int size = array->size;
-    for (int i = 0; i < size; ++i) {
-        std::destroy_at(&array->data[i].title);
-        std::destroy_at(&array->data[i].name);
-    }
-    gamecrt::operator_delete(array->data);
-}
-} // namespace
-
-CGlobalMap::~CGlobalMap() {
-    DestroyArray(&quests_, GlobalMapPathArrayClass::Vtable());
-    DestroyArray(&links_, GlobalMapPointArrayClass::Vtable());
-    DestroyArray(&zones_, GlobalMapZoneArrayClass::Vtable());
-}
-
-void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
-    std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));
-    for (int i = 0; i < count; ++i) {
-        std::construct_at(&zones[i].name);
-        std::construct_at(&zones[i].title);
-    }
-}
-
-void DestroyGlobalMapZone(GlobalMapZone* zone) {
-    std::destroy_at(&zone->title);
-    std::destroy_at(&zone->name);
-}
-
-void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
-    for (int i = 0; i < count; ++i) DestroyGlobalMapZone(&zones[i]);
-}
-
-void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
-    std::memset(static_cast<void*>(places), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapPlace));
-    for (int i = 0; i < count; ++i) {
-        std::construct_at(&places[i].name);
-        std::construct_at(&places[i].title);
-    }
-}
-
-void DestroyGlobalMapPlace(GlobalMapPlace* place) {
-    std::destroy_at(&place->title);
-    std::destroy_at(&place->name);
-}
-
-void GlobalMapPlaceElements::Destruct(GlobalMapPlace* places, int count) {
-    for (int i = 0; i < count; ++i) DestroyGlobalMapPlace(&places[i]);
-}
-
-void GlobalMapZoneArray::SetAtGrowZone(int index, const GlobalMapZone* zone) {
-    if (index >= size) SetSize(index + 1);
-    GlobalMapZone& slot = data[index];
-    slot.state = zone->state;
-    slot.link = zone->link;
-    slot.name = zone->name;
-    slot.title = zone->title;
-}
+CGlobalMap::~CGlobalMap() = default;

@@ -141,8 +141,6 @@ protected:
     CompiledCollection& operator=(const CompiledCollection&) = delete;
 };
 
-using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
-
 // The container instantiations of mfc_array.h and mfc_list.h: their tags are declared there and defined
 // here, one class per vtable. A tag that is a base of another is not final (the base is defined first); the
 // derived tag's table calls the base's destructor.
@@ -177,23 +175,9 @@ struct ScriptIfThenArrayClass
 struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
     static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
 };
-// A unit's animation steps
-struct AnimationStepsClass
-    : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &AnimationSteps::Serialize> {};
-// The animation steps a motion copies
-struct AnimationStepsCopyClass final : AnimationStepsClass {
-    static void* Vtable() { return CompiledVtable<AnimationStepsCopyClass>(); }
-};
 // The script's string arrays (game.exe's CArray<CString>; std::string elements)
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
-
-// The animation list's copy constructor of the steps' array alone: the copy tag's table written first.
-inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
-    Array::Construct(AnimationStepsCopyClass::Vtable());
-    Array::Copy(*source);
-    return this;
-}
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
@@ -223,17 +207,8 @@ struct BindingsBaseClass
 struct CarriedArrayClass final
     : CompiledCollection<CarriedArrayClass, &ArrayHeader<CarriedArrayClass>::Destruct, &Plain4::Serialize> {};
 // A unit's skin layers (ComposeSkin).
-// A sector's occluders.
-struct SectorOccluderArrayClass final
-    : CompiledCollection<SectorOccluderArrayClass, &ArrayHeader<SectorOccluderArrayClass>::Destruct, &Plain8::Serialize> {};
-// The path smoother's 36-byte steps.
-struct SmoothStepArrayClass final
-    : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &Plain36::Serialize> {};
 
 // Arrays whose elements own something.
-// The terrain's CByteArray elements (Serialize).
-struct TerrainByteArraysClass final
-    : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
 // The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
 struct ScriptAreaArrayClass final
     : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};

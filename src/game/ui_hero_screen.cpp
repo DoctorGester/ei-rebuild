@@ -176,8 +176,8 @@ void CMpHeroScreen::Close() {
     MpHeroesObject()->SaveAll();
     RecordPtrArray records = {};
     auto* party = LocalPlayerData();
-    for (int i = 0; i < party->members_.size; ++i) {
-        PartyUnitRecord* record = &party->members_.data[i];
+    for (int i = 0; i < std::ssize(party->members_); ++i) {
+        PartyUnitRecord* record = &party->members_[i];
         int size = std::ssize(records);
         records.resize(size + 1);
         records[size] = record;
@@ -236,7 +236,7 @@ void CMpHeroScreen::DrawHeroList() {
             SelectionFrame(*this)->visible_ = 1;
             SelectionFrame(*this)->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
-        const char* name = MpHero(index)->members_.data[0].texts[0].c_str();
+        const char* name = MpHero(index)->members_[0].texts[0].c_str();
         surface->DrawTextIn(name, &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
@@ -280,16 +280,16 @@ void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;
     RecordPtrArray records = {};
     auto* player = LocalPlayerData();
-    if (player->members_.size == 0) {
+    if (std::ssize(player->members_) == 0) {
         player->Clear(1, 0);
         player->AddMember(kHeroName, kHumanHero, game::EmptyText());
     }
-    PartyUnitRecord* first = player->members_.data;
+    PartyUnitRecord* first = player->members_.data();
     int size = std::ssize(records);
     records.resize(size + 1);
     records[size] = first;
     GameCreatePartyUnits(&records, flag);
-    auto* unit = GameFindClientUnit(player->members_.data->unitId);
+    auto* unit = GameFindClientUnit(player->members_.data()->unitId);
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = unit;
     if (unit) {
@@ -305,7 +305,7 @@ void CMpHeroScreen::MakePreview(int flag) {
         controller->RefreshModel();
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(static_cast<float>(now - 1.0f));
-        unit->SetFromStats(&player->members_.data->stats);
+        unit->SetFromStats(&player->members_.data()->stats);
         unit->Controller()->RefreshWounds();
     }
 }
@@ -315,10 +315,10 @@ void CMpHeroScreen::MakePreview(int flag) {
 void CMpHeroScreen::ShowHero(int index) {
     RecordPtrArray records = {};
     auto* player = LocalPlayerData();
-    if (player->members_.size > 0) {
+    if (std::ssize(player->members_) > 0) {
         int size = std::ssize(records);
         records.resize(size + 1);
-        records[size] = player->members_.data;
+        records[size] = player->members_.data();
         GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;

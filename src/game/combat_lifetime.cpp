@@ -3,11 +3,9 @@
 #include "combat.h"
 #include "combat_plan.h"
 #include "core_refcount.h"
-#include "record_arrays.h"
 #include "unit_ai.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game/game_slots.h"
 
@@ -20,16 +18,6 @@
 namespace {
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
-
-// A step list's constructor (also with the derived vtable written after it): no steps; `extra` is left as it
-// was.
-void InitSteps(AnimationSteps& steps) {
-    steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-    steps.data = nullptr;
-    steps.size = 0;
-    steps.maxSize = 0;
-    steps.growBy = 0;
-}
 
 // An order's constructor (kind 9, no target, flag18 clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {
@@ -61,10 +49,7 @@ constexpr SpiralCache kEmptySightCache{0, -1.0f};
 // --- CUnitServer --------------------------------------------------------------------------------
 
 CUnitServer::CUnitServer() {
-    InitSteps(queue);
     motion.Construct();
-    InitSteps(currentPlan.animation);
-    InitSteps(savedQueue);
     effectObject = nullptr;
     InitAction(action);
     InitAction(action2);
@@ -72,13 +57,7 @@ CUnitServer::CUnitServer() {
     followsLeader = 0;
     armourSpells = {};
     moveAnimationKey = kNoAnimationKey;
-    InitSteps(moveAnimation);
-    moveAnimation.SetSize(0, -1);
-    moveAnimation.extra = -1;
-    // The idle key and list (its SetSize(0) inlined on the empty list).
     idleKey = kNoAnimationKey;
-    InitSteps(idleAnimation);
-    idleAnimation.extra = -1;
     brain.Construct();
     std::memset(&voice, 0, sizeof(voice));
     ResetController();
@@ -95,8 +74,6 @@ void AIPath::Destruct() {
 // --- OrderPlan ----------------------------------------------------------------------------------
 
 void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
-    animation.SetSize(0, -1);
-    animation.extra = -1;
     targetId = -1;
     startTime = start;
     hitLocation = 1;
@@ -105,11 +82,7 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     notSkill = 0;
     castKind = 8;
     endTime = start + duration;
-    animation.SetSize(steps.size, -1);
-    for (int i = 0; i < steps.size; ++i) animation.data[i] = steps.data[i];
-    animation.extra = steps.extra;
-    isCast = 0;
-    if (steps.data) gamecrt::operator_delete(steps.data);
+    animation = std::move(steps);
 }
 
 // --- AIBrain ------------------------------------------------------------------------------------

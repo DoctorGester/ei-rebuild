@@ -5,7 +5,6 @@
 #include "engine_object.h"
 #include "maths.h"
 
-#include "lib/mfc.h"
 #include "lib/static_object.h"
 
 #include <cstddef>
@@ -33,6 +32,8 @@ static_assert(sizeof(SectorOccluder) == 8);
 
 struct Sector {
     Sector();
+    Sector(Sector&&) = default;
+    Sector& operator=(Sector&&) = default;
     virtual ~Sector();
 
     // Clear: no free record, the records' storage freed, both lists
@@ -51,17 +52,7 @@ struct Sector {
     std::list<CMapObject*> objects;      // non-unit objects
     std::list<CUnit*> units;
     int freeOccluder;                            // head of the free records (-1 none)
-    std::vector<SectorOccluder> occluders;       // (mfc_slots.h's SectorOccluderArrayClass)
-};
-
-// CArray<Sector>'s element functions: the constructor (sector_map.cpp) constructs
-// (zeroed, then each sector's constructor), the destructor destroys.
-void ConstructSectors(Sector* sectors, int count);
-struct SectorElements {
-    static void Construct(Sector* sectors, int count);
-    static void Destruct(Sector* sectors, int count) {
-        for (; count != 0; --count, ++sectors) sectors->~Sector();
-    }
+    std::vector<SectorOccluder> occluders;
 };
 
 // The radii of the sector spiral (filled by its static initialiser): a complete
@@ -129,18 +120,12 @@ public:
     // width * height, then the AI map.
     void Init(int cellsX, int cellsY, CAIMap* map);
 
-    // The destructor's body (on `sectors`): the array's vtable back, every sector
-    // destroyed, the storage freed.
-    static void DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
-
     int width;              // in sectors
     int height;
     int added;              // successful Add calls (Remove does not decrement it)
-    mfc::CArray<Sector, SectorElements> sectors;   // width * height, row by row
+    std::vector<Sector> sectors;   // width * height, row by row
     CAIMap* aiMap;
 };
-static_assert(offsetof(CSectorMap, sectors) == 0x10);
-static_assert(offsetof(CSectorMap, aiMap) == 0x24);
 
 #include "ai_map.h"
 #include "game_data.h"

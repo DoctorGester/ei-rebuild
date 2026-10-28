@@ -136,7 +136,7 @@ void Execs(Arguments* args) {
 // listgvar: the global script variables (floats, strings, objects, groups).
 void ListGlobals(Arguments*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
-    auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
+    auto name = [](const auto& names, int i) { return names[i].c_str(); };
     for (int i = 0; i < globals.floats.values.size; ++i)
         SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values.data[i]));
     for (int i = 0; i < globals.strings.values.size; ++i)

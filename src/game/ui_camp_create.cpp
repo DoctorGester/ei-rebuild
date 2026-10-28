@@ -283,11 +283,11 @@ void CCampPages::BuildPages() {
     turning_ = 0;
     RecordPtrArray records = {};
     CParty* player = LocalParty();
-    const int count = player->members_.size;
+    const int count = std::ssize(player->members_);
     for (int i = 0; i < count; ++i) {
-        player->members_.data[i].unitId += kRecordBias;
-        if (PrototypeObjectClass(player->members_.data[i].texts[5].c_str()) != kHeroClass) continue;
-        PartyUnitRecord* record = &player->members_.data[i];
+        player->members_[i].unitId += kRecordBias;
+        if (PrototypeObjectClass(player->members_[i].texts[5].c_str()) != kHeroClass) continue;
+        PartyUnitRecord* record = &player->members_[i];
         int size = std::ssize(records);
         records.resize(size + 1);
         records[size] = record;
@@ -297,8 +297,8 @@ void CCampPages::BuildPages() {
     heroes_.resize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
-        if (PrototypeObjectClass(player->members_.data[i].texts[5].c_str()) != kHeroClass) continue;
-        auto* unit = GameFindClientUnit(player->members_.data[i].unitId);
+        if (PrototypeObjectClass(player->members_[i].texts[5].c_str()) != kHeroClass) continue;
+        auto* unit = GameFindClientUnit(player->members_[i].unitId);
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
@@ -311,7 +311,7 @@ void CCampPages::BuildPages() {
         unit->Controller()->RefreshModel();
         CUnitController* controller = unit->Controller();
         controller->RestartAnimation(static_cast<float>(FramesNow()));
-        PartyUnitRecord* record = &player->members_.data[i];
+        PartyUnitRecord* record = &player->members_[i];
         unit->SetFromStats(&record->stats);
         unit->Controller()->RefreshWounds();
         // The armour the record wears.
@@ -320,7 +320,7 @@ void CCampPages::BuildPages() {
         for (int piece = 0; piece < std::ssize(record->armor); ++piece)
             heroStats->AddArmourLayer(AsArmor(record->armor[piece]));
     }
-    for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;
+    for (int i = 0; i < count; ++i) player->members_[i].unitId -= kRecordBias;
 
     hero_ = -1;
     NextHero();
@@ -355,8 +355,8 @@ void CCampPages::BuildPages() {
         for (int school = 0; school < kSchools; ++school) {
             lowest[school] = 1e20f;
             highest[school] = -1e20f;
-            for (int i = 0; i < LocalParty()->members_.size; ++i) {
-                auto* memberStats = &LocalParty()->members_.data[i].stats;
+            for (int i = 0; i < std::ssize(LocalParty()->members_); ++i) {
+                auto* memberStats = &LocalParty()->members_[i].stats;
                 float skill = static_cast<float>(memberStats->SpellSchoolSkill(school));
                 if (skill < lowest[school]) lowest[school] = skill;
                 if (highest[school] < skill) highest[school] = skill;

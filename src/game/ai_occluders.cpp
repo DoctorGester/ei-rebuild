@@ -18,7 +18,7 @@ constexpr std::uint32_t kChained = 0x80;
 constexpr std::uint32_t kKeepAroundIndex = 0xE00001FF;
 
 Sector* SectorOf(CAIMap* map, int x, int y) {
-    return &map->sectorMap.sectors.data[(y / 32) * map->sectorMap.width + x / 32];
+    return &map->sectorMap.sectors[(y / 32) * map->sectorMap.width + x / 32];
 }
 std::uint32_t WithIndex(std::uint32_t word, int index) {
     return (static_cast<std::uint32_t>(index & 0xFFFFF) << 9) | (word & kKeepAroundIndex);

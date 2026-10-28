@@ -13,7 +13,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -127,14 +126,14 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             std::uint32_t pixel = backdrop_->PixelAt(x / 2 - widescreen::PickShift(), y / 2);
             index = static_cast<int>((pixel >> 4) & 0xF) - 1;
             if (index >= zoneCount_) index = -1;
-            if (gipat_ && index >= 0 && zones_.data[index].link >= 0) {
+            if (gipat_ && index >= 0 && zones_[index].link >= 0) {
                 isLink = true;
-                index = zones_.data[index].link;
+                index = zones_[index].link;
             }
         }
     }
     SelectZone(index, isLink);
-    if (index == -1 || (!isLink && zones_.data[index].state == 0)) {
+    if (index == -1 || (!isLink && zones_[index].state == 0)) {
         surfaces_[0]->Freeze(0, 0);
         SceneMesh(markerCount_ + kTipBack)->visible_ = 0;
         SceneMesh(markerCount_ + kTipFrame)->visible_ = 0;
@@ -142,10 +141,10 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         return;
     }
     std::string text;
-    text = isLink ? links_.data[index].name : zones_.data[index].name;
+    text = isLink ? links_[index].name : zones_[index].name;
     if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
     shownName_ = text;
-    text = isLink ? links_.data[index].title : zones_.data[index].title;
+    text = isLink ? links_[index].title : zones_[index].title;
     surfaces_[0]->Freeze(1, 0);
     UiSurfaceGetDC(surfaces_[0]);
     surfaces_[0]->Clear();
@@ -155,8 +154,8 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     int lines = 0;
     if (!isLink) {
         int bottom = 60;
-        for (int i = 0; i < quests_.size; ++i) {
-            GlobalMapPlace& quest = quests_.data[i];
+        for (int i = 0; i < std::ssize(quests_); ++i) {
+            GlobalMapPlace& quest = quests_[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
             surfaces_[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);

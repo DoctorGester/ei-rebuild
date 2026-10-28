@@ -56,7 +56,7 @@ struct UnitRecordBuilder {
         Party()->AddMember(text, prototype, name);
     }
     void Destruct() { Party()->CParty::~CParty(); }
-    PartyUnitRecord* Record() { return Party()->members_.data; }
+    PartyUnitRecord* Record() { return Party()->members_.data(); }
 };
 
 } // namespace

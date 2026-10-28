@@ -92,16 +92,6 @@ void FillArray(std::vector<T>& array, const std::uint8_t* bytes, std::uint32_t c
     array.resize(count);
     if (count) std::memcpy(array.data(), bytes, count * sizeof(T));
 }
-template <typename T>
-void FillArray(mfc::CArray<T>& array, const std::uint8_t* bytes, std::uint32_t count) {
-    array.data = nullptr;
-    array.size = array.maxSize = static_cast<int>(count);
-    array.growBy = 0;
-    if (count) {
-        array.data = static_cast<T*>(gamecrt::operator_new(count * sizeof(T)));
-        std::memcpy(array.data, bytes, count * sizeof(T));
-    }
-}
 
 const std::uint8_t* GetArray(Reader& r, std::uint32_t elementSize, std::uint32_t* count) {
     *count = r.Get<std::uint32_t>();

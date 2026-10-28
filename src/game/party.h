@@ -10,7 +10,6 @@
 #include "map_object_figures.h"
 #include "object_tables.h"
 
-#include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "game_data.h"
 
@@ -35,31 +34,6 @@ using PartyItemArray = std::vector<CItem*>;
 
 // The party whose records are being loaded (set by CParty::LoadParty around the records).
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
-
-// MFC ConstructElements for the records: each one value-initialised (zeroed, its texts and lists empty), then constructed.
-void ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
-
-// MFC DestructElements for the records: each record's Destruct (a count of 0 does nothing).
-void DestructPartyUnitRecords(PartyUnitRecord* records, int count);
-
-// ConstructElements / DestructElements of the records.
-struct PartyUnitRecordElements {
-    static void Construct(PartyUnitRecord* records, int count) { ConstructPartyUnitRecords(records, count); }
-    static void Destruct(PartyUnitRecord* records, int count);   // party_lifetime.cpp
-    // Moves records within or between storages (a record's texts are std::strings: moved, not copied as bytes).
-    static void Relocate(PartyUnitRecord* to, PartyUnitRecord* from, int count);   // party_lifetime.cpp
-};
-// A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable()). Its SetSize is
-// the template's (party_lifetime.cpp).
-struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
-    // The compiled table (party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
-    static void* Vtable();
-    // The array's destructor body: its vtable, the records destroyed and the storage freed.
-    void Destruct();
-    // Slot 0 (operator delete with flags bit 0; returns the array).
-    PartyMembers* DeletingDestruct(unsigned flags);
-};
-using PartyMemberArray = PartyMembers;
 
 class CParty : public CManagerContext {
 public:
@@ -121,7 +95,7 @@ public:
     // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied), else 1.
     BOOL EquipFromPrototype(PartyUnitRecord* record);
     // The record of the unit with id `unitId`, or null.
-    PartyUnitRecord* Find(int unitId) const;
+    PartyUnitRecord* Find(int unitId);
     // Destroys the first record whose key is `key` and closes the gap; 1 when there was one, else 0.
     BOOL RemoveMember(int key);
     // When the party's zone is an edge zone (map.txt kind 1), every exit's target zone of kind 0
@@ -154,7 +128,7 @@ public:
     CItemConstructor* itemConstructor_;
     CSpellManager* spellManager_;
     CSpellConstructor* spellConstructor_;
-    PartyMemberArray members_;
+    std::vector<PartyUnitRecord> members_;
     PartyItemArray items_;
     int money_;                 // the party's money (Money(); cleared by Clear, saved masked)
     NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)

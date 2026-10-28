@@ -252,8 +252,8 @@ Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F0
 `SetWeather` (S). `RefreshSelection` (00630670) draws the zone markers alone in colours 0xFF181818 + 0x101010 i through a
 frame step 00458010(0, 0) into the backdrop; the click reads the zone back from the pixel. `FindPaths` (006312C0, S, RET 4)
 is a recursive way search; `arrivals_` = stlp::map<int, float> exit -> shortest "#passtime" sum
-(`ui_global_map_paths.cpp`). `GlobalMapZonesSetAtGrow` is `CArray<GlobalMapZone, GlobalMapZoneElements>` (elements
-005FBF50 / 005FBD30). `OnRightDown` / `OnRightUp` (S) drag (motion 007C7C60), `OnKeyDown` (Esc menu inline, '5' / '6'
+(`ui_global_map_paths.cpp`). game.exe's `GlobalMapZonesSetAtGrow` is CArray<GlobalMapZone>'s (elements
+005FBF50 / 005FBD30); ours are std::vectors (push_back). `OnRightDown` / `OnRightUp` (S) drag (motion 007C7C60), `OnKeyDown` (Esc menu inline, '5' / '6'
 quick save / load "saveq"). `CBattleScreen::Create` (00635250) builds 11 panels and 2 input handlers.
 
 Camp pages (`ui_camp_*.cpp`): `OnLButtonDown` / `OnLButtonUp` / `OnKeyDown`, `OnMessageResult` (0x10001 takes the first

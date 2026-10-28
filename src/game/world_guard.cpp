@@ -18,7 +18,7 @@ namespace {
 std::int8_t g_guardPlain = /*0079026C*/ 1;   // 1: data in the clear
 std::uint32_t g_guardKey = /*007AFECC*/ {};
 CParty* GlobalParty() { return TheSavedParties().OutsideGame()->Party(); }
-int GlobalRecordCount() { return GlobalParty()->members_.size; }
+int GlobalRecordCount() { return std::ssize(GlobalParty()->members_); }
 int& GlobalGold() { return GlobalParty()->money_; }
 
 constexpr int kGuardedBytes = 0x704;   // a party record's stats (PartyUnitRecord::stats) or a unit's
@@ -37,7 +37,7 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
         player->Party()->Money() ^= static_cast<int>(key);   // gold
-        for (int i = 0; i < player->Party()->members_.size; ++i) XorRange(&player->Party()->members_.data[i].stats, key);
+        for (int i = 0; i < std::ssize(player->Party()->members_); ++i) XorRange(&player->Party()->members_[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
         // controllers' statistics.
@@ -56,6 +56,6 @@ void GuardPlayerData(char plain) {
     GuardPlayers(TheServerWorld()->players_, 1, g_guardKey);
     std::uint32_t key = g_guardKey;
     GlobalGold() ^= static_cast<int>(key);
-    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_.data[i].stats, key);
+    for (int i = 0; i < GlobalRecordCount(); ++i) XorRange(&GlobalParty()->members_[i].stats, key);
     g_guardPlain = plain;
 }

@@ -39,15 +39,6 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
-// The virtual slots every MFC 4.2 CObject has, for callers that dispatch through an object's vtable (the
-// inlined DestructElements calls slot 1 with 0; a CList or a CDib is deleted through slot 1 with 1).
-class __declspec(novtable) CObjectVirtuals {
-public:
-    virtual void GetRuntimeClass();
-    virtual void* DeletingDestructor(unsigned flags);
-    virtual void Serialize();
-};
-
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
 public:
@@ -102,14 +93,6 @@ struct PlainElements<CString> {
     static void Destruct(CString* elements, int count) {
         for (; count--; ++elements) elements->~CString();
     }
-};
-
-// No construction at all: the engine's own arrays and the instantiations the game compiled without
-// the zeroing (new slots keep the heap's bytes).
-template <typename T>
-struct RawElements {
-    static void Construct(T*, int) {}
-    static void Destruct(T*, int) {}
 };
 
 // An element policy's Relocate for elements that are not relocatable as bytes (a std::string member): each

@@ -83,12 +83,12 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
 
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
-    int count = player->members_.size;
+    int count = std::ssize(player->members_);
     if (count == 0) return;
     int place = 0;
     int record = 0;
     for (; record < count; ++record) {
-        int id = RecordUnitId(player->members_.data[record]);
+        int id = RecordUnitId(player->members_[record]);
         if (unit->id_ == id) break;
         if (place < std::ssize(party_) && party_[place]->id_ == id) ++place;
     }
@@ -109,7 +109,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         party_.resize(size + 1);
         party_[size] = unit;
     }
-    if (unit->id_ != RecordUnitId(player->members_.data[0])) return;
+    if (unit->id_ != RecordUnitId(player->members_[0])) return;
 
     leader_ = unit;
     TheClientWorld()->Select(unit);

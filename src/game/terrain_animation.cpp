@@ -90,10 +90,10 @@ void SectorData::ResetFields() {
 }
 
 void SectorData::Clear() {
-    records.SetSize(0, -1);
+    records.clear();
     for (int quarter = 0; quarter < 4; ++quarter) {
-        for (int page = 0; page < tileFlags[quarter].size; ++page) tileFlags[quarter][page].clear();
-        for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].clear();
+        for (FlagArray& flags : tileFlags[quarter]) flags.clear();
+        for (TileList& list : tiles[quarter]) list.clear();
     }
     ResetFields();
     render::TerrainChanged(this, render::TerrainChange::Rebuilt);

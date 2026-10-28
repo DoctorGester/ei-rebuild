@@ -140,8 +140,8 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     ReadItemIds(stream, items_, ItemManager());
     int records;
     stream->Read(&records, sizeof(records));
-    members_.SetSize(records, -1);
-    for (int i = 0; i < records; ++i) members_.data[i].Load(stream);
+    members_.resize(records);
+    for (int i = 0; i < records; ++i) members_[i].Load(stream);
     if (loadVariables != 0) variables_.Load(stream);
     g_loadingParty = nullptr;
     money_ = 0;
@@ -164,9 +164,9 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     itemManager_->SaveObjects(stream);
     spellManager_->SaveObjects(stream);
     WriteItemIds(stream, items_);
-    int records = members_.size;
+    int records = std::ssize(members_);
     WriteValue(stream, records);
-    for (int i = 0; i < records; ++i) members_.data[i].Save(stream);
+    for (int i = 0; i < records; ++i) members_[i].Save(stream);
     if (saveVariables != 0) variables_.Save(stream);
     std::uint32_t key = IsaacRandom::Global().Next();
     WriteValue(stream, money_ ^ key);

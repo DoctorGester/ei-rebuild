@@ -117,49 +117,25 @@ void EmptyAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-struct LocalSteps {
-    AnimationSteps steps;
-    LocalSteps() {
-        steps.ConstructBase();
-        steps.vtable = mfc::impl::AnimationStepsCopyClass::Vtable();
-    }
-    ~LocalSteps() { steps.DestructSteps(); }
-    LocalSteps(const LocalSteps&) = delete;
-    LocalSteps& operator=(const LocalSteps&) = delete;
-};
-
-// A copy of the plan's animation with its extra dword, destroyed at the end.
-struct PlanCopy {
-    AnimationSteps steps;
-    explicit PlanCopy(const AnimationSteps& from) {
-        steps.CopyConstructSteps(from);
-        steps.extra = from.extra;
-    }
-    ~PlanCopy() { steps.DestructSteps(); }
-    PlanCopy(const PlanCopy&) = delete;
-    PlanCopy& operator=(const PlanCopy&) = delete;
-};
-
-// The queue replaced by `steps`, twice like the original, then started.
+// The queue replaced by `steps`, then started.
 void TakeQueue(CUnitServer* self, const AnimationSteps* steps) {
-    Queue(self).Assign(*steps);
-    Queue(self).Assign(*steps);
+    Queue(self) = *steps;
     StartQueueIfUnset(self);
     self->PopFinishedSteps();
     self->ShowCurrentStep();
 }
 
 bool HasOpenStep(const AnimationSteps& steps) {
-    for (int i = 0; i < steps.size; ++i)
-        if (steps.data[i].duration < 0) return true;
+    for (const AnimationStep& step : steps)
+        if (step.duration < 0) return true;
     return false;
 }
 
 int TotalDuration(const AnimationSteps& steps) {
     int total = 0;
-    for (int i = 0; i < steps.size; ++i) {
-        if (steps.data[i].duration < 0) return -1;
-        total += steps.data[i].duration;
+    for (const AnimationStep& step : steps) {
+        if (step.duration < 0) return -1;
+        total += step.duration;
     }
     return total;
 }
@@ -231,7 +207,7 @@ int CUnitServer::RunTick() {
         unit->MarkChanged(2);
     }
     std::uint8_t& reported = deathReported;
-    if (reported == 0 && Queue(this).size == 0) {
+    if (reported == 0 && Queue(this).empty()) {
         reported = 1;
         world->TellPartiesGone(unit);
         CPlayer* player = unit->player;
@@ -262,15 +238,12 @@ void CUnitServer::UpdateState() {
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
-        if (Queue(this).size != 0) {
+        if (!Queue(this).empty()) {
             animationHeld = 1;
             hitDirection = 0xFFFFFFFFu;
             return;
         }
-        Queue(this).CopySteps(SavedQueue(this));
-        QueueTime(this) = SavedQueueTime(this);
-        Queue(this).CopySteps(SavedQueue(this));
-        QueueTime(this) = SavedQueueTime(this);
+        Queue(this) = SavedQueue(this);
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -294,7 +267,7 @@ void CUnitServer::UpdateState() {
         if (hitDirection != 0xFFFFFFFFu) PlayHitReaction();
         break;
     case kStateRecovering:
-        if (Queue(this).size == 0) {
+        if (Queue(this).empty()) {
             state = kStateChasing;
             unit->UpdateSizeClass();
             DropEffectObject(this);
@@ -337,22 +310,22 @@ void CUnitServer::AdvanceAnimation() {
     }
     unit->SetPathTimeShift(held ? 1 : 0);
     if (PopFinishedSteps()) {
-        if (queue.size == 0) {
+        if (queue.empty()) {
             unit->SetMotionMode(0);
             return;
         }
-        const AnimationStep& head = queue.data[0];
+        const AnimationStep& head = queue[0];
         if (head.animation != 0xFF || head.variant != 0xFF)
             unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
     }
-    if (queue.size == 0) {
+    if (queue.empty()) {
         unit->SetMotionMode(0);
         return;
     }
-    int kind = queue.data[0].kind;
+    int kind = queue[0].kind;
     if (kind == 1) {
         ++QueueTime(this);
-        if (queue.size != 0) --queue.data[0].duration;
+        if (!queue.empty()) --queue[0].duration;
     }
     unit->SetMotionMode(kind);
 }
@@ -360,19 +333,19 @@ void CUnitServer::AdvanceAnimation() {
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
     int now = WorldTime(this);
-    while (queue.size != 0) {
-        AnimationStep* steps = queue.data;
+    while (!queue.empty()) {
+        AnimationStep* steps = queue.data();
         int duration = steps[0].duration;
         if (duration == -1) break;
         int end = QueueTime(this) + duration;
         if (end > now) break;
         popped = true;
-        if (queue.size > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
+        if (std::ssize(queue) > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
             // The pause after it goes on with this step's animation, and lasts as long more.
             steps[1].animation = steps[0].animation;
-            queue.data[1].variant = queue.data[0].variant;
-            queue.data[1].duration += steps[0].duration;
-            if (queue.data[1].kind == 1) {
+            queue[1].variant = queue[0].variant;
+            queue[1].duration += steps[0].duration;
+            if (queue[1].kind == 1) {
                 int late = now - QueueTime(this) - steps[0].duration;
                 if (late > steps[0].duration) late = steps[0].duration;
                 if (late > 0) QueueTime(this) += late;
@@ -380,31 +353,24 @@ bool CUnitServer::PopFinishedSteps() {
         } else {
             QueueTime(this) = end;
         }
-        if (queue.size - 1 != 0)
-            std::memmove(queue.data, queue.data + 1, static_cast<std::size_t>(queue.size - 1) * sizeof(AnimationStep));
-        --queue.size;
+        queue.erase(queue.begin());
     }
     return popped;
 }
 
 void CUnitServer::ShowCurrentStep() {
-    if (queue.size == 0) return;
-    const AnimationStep& head = queue.data[0];
+    if (queue.empty()) return;
+    const AnimationStep& head = queue[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
-    // The steps are copied in twice (each time resized first), like the original.
-    for (int pass = 0; pass < 2; ++pass) {
-        queue.SetSize(steps->size, -1);
-        for (int i = 0; i < steps->size; ++i) queue.data[i] = steps->data[i];
-        QueueTime(this) = steps->extra;
-    }
+    queue = *steps;
     StartQueueIfUnset(this);
     PopFinishedSteps();
-    if (queue.size == 0) return;
-    const AnimationStep& head = queue.data[0];
+    if (queue.empty()) return;
+    const AnimationStep& head = queue[0];
     if (head.animation != 0xFF || head.variant != 0xFF)
         unit->SetAnimationEntries(head.animation, head.variant, QueueTime(this), head.flags);
 }
@@ -435,20 +401,16 @@ void CUnitServer::StandStill() {
 // --- Hit reactions ------------------------------------------------------------------------------
 
 void CUnitServer::PlayHitReaction() {
-    LocalSteps reaction;
+    AnimationSteps reaction;
     if (moveMode.mode == 0 && state == kStateIdle) return;
-    BuildDeathAnimation(&reaction.steps, hitDirection, 0, 0);
-    int duration = TotalDuration(reaction.steps);
+    BuildDeathAnimation(&reaction, hitDirection, 0, 0);
+    int duration = TotalDuration(reaction);
     if (action.kind == kOrderAttack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
-    SavedQueue(this).CopySteps(Queue(this));
-    SavedQueueTime(this) = QueueTime(this);
-    Queue(this).CopySteps(reaction.steps);
-    QueueTime(this) = reaction.steps.extra;
-    Queue(this).CopySteps(reaction.steps);
-    QueueTime(this) = reaction.steps.extra;
+    SavedQueue(this) = Queue(this);
+    Queue(this) = reaction;
     StartQueueIfUnset(this);
     PopFinishedSteps();
     ShowCurrentStep();
@@ -464,28 +426,26 @@ void CUnitServer::EndOrder(char abort) {
         SetState(kStateChasing);
     } else {
         // A three-step plan (step out, action, step back): what is left of it is played out.
-        if (Plan(this).animation.size == 3) {
-            if (Queue(this).size == 2) {
-                PlanCopy rest(Plan(this).animation);
-                AnimationStep* steps = rest.steps.data;
-                if (steps[1].kind == 1) {
-                    rest.steps.extra = now - steps[0].duration;
-                    steps[0].duration += steps[2].duration;
-                    rest.steps.SetSize(1, -1);
-                    TakeQueue(this, &rest.steps);
+        if (std::ssize(Plan(this).animation) == 3) {
+            if (Queue(this).size() == 2) {
+                AnimationSteps rest = Plan(this).animation;
+                if (rest[1].kind == 1) {
+                    rest.extra = now - rest[0].duration;
+                    rest[0].duration += rest[2].duration;
+                    rest.resize(1);
+                    TakeQueue(this, &rest);
                 }
-            } else if (Queue(this).size == 3) {
-                PlanCopy rest(Plan(this).animation);
-                AnimationStep* steps = rest.steps.data;
-                if (steps[1].kind == 1) {
-                    steps[0].duration += steps[2].duration;
-                    rest.steps.extra = QueueTime(this);
-                    rest.steps.SetSize(1, -1);
-                    TakeQueue(this, &rest.steps);
+            } else if (Queue(this).size() == 3) {
+                AnimationSteps rest = Plan(this).animation;
+                if (rest[1].kind == 1) {
+                    rest[0].duration += rest[2].duration;
+                    rest.extra = QueueTime(this);
+                    rest.resize(1);
+                    TakeQueue(this, &rest);
                 } else {
-                    rest.steps.extra = QueueTime(this);
-                    rest.steps.RemoveAt(1, 1);
-                    PlaySteps(&rest.steps);
+                    rest.extra = QueueTime(this);
+                    rest.erase(rest.begin() + 1);
+                    PlaySteps(&rest);
                 }
             }
         }
@@ -504,9 +464,7 @@ void CUnitServer::TickAction() {
     OrderPlan& plan = Plan(this);
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
-        Queue(this).CopySteps(plan.animation);
-        QueueTime(this) = plan.animation.extra;
-        Queue(this).Assign(plan.animation);
+        Queue(this) = plan.animation;
         StartQueueIfUnset(this);
         PopFinishedSteps();
         ShowCurrentStep();
@@ -541,8 +499,7 @@ void CUnitServer::TickAction() {
         return;
     }
     FinishAction(plan.hitLocation, plan.notSkill);
-    plan.animation.SetSize(0, -1);
-    plan.animation.extra = -1;
+    plan.animation = {};
     plan.targetId = -1;
     plan.endTime = 0;
     plan.startTime = 0;

@@ -247,7 +247,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
 void CWorldClient::SummonBird() {
     if (!bird_) bird_ = new CEffectMoshka();
     bird_->Reset();
-    auto* leader = session_->Party()->members_.data;
+    auto* leader = session_->Party()->members_.data();
     bird_->Follow(static_cast<int>(leader->unitId));
 }
 

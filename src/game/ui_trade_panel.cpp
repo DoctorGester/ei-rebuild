@@ -253,7 +253,7 @@ void CTradePanel::DrawLists() {
 namespace {
 void TradeSnapshotRecord(CTradePanel*);
 
-int PartyRecordCount() { return LocalPlayerData()->members_.size; }
+int PartyRecordCount() { return std::ssize(LocalPlayerData()->members_); }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
@@ -334,7 +334,7 @@ namespace {
 
 UnitStats* PartyMemberStats(int index) {
     CParty* party = LocalPlayerData();
-    return &party->members_.data[index].stats;
+    return &party->members_[index].stats;
 }
 } // namespace
 

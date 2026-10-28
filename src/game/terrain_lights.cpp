@@ -13,6 +13,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <utility>
 
 using terrain::LightRef;
 using terrain::LightRefBlock;
@@ -125,9 +126,11 @@ void SectorVertex::ReleaseLights() {
     }
 }
 
-void DestroyRecords(SectorVertex* records, int count) {
-    for (int i = 0; i < count; ++i) records[i].ReleaseLights();
-}
+SectorVertex::SectorVertex(SectorVertex&& from) noexcept
+    : projected(from.projected), outcode(from.outcode), colour(from.colour), specular(from.specular),
+      position(from.position), waterMaterial(from.waterMaterial), depth(from.depth), normal(from.normal),
+      lit(from.lit), materialColour(from.materialColour), materialByte(from.materialByte),
+      lights(std::exchange(from.lights, nullptr)) {}
 
 void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove) {
@@ -135,7 +138,7 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
     float rangeSquared = static_cast<float>(light->range_ * light->range_);
     for (int y = range.y0; y <= range.y1; ++y) {
         const SectorPosition* vertex = &sector->vertices[y * kRow + range.x0];
-        SectorVertex* record = &sector->records.data[y * kRow + range.x0];
+        SectorVertex* record = &sector->records[y * kRow + range.x0];
         for (int x = range.x0; x <= range.x1; ++x, ++vertex, ++record) {
             Vector3 offset = Vector3{vertex->x, vertex->y, vertex->z} - *position;
             LightRef* head = record->lights;

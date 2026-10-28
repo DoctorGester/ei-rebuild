@@ -51,7 +51,7 @@ struct Briefing {
 };
 
 CParty* PartyOf(CPlayer* player) { return player->Party(); }
-PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_.data[index]; }
+PartyUnitRecord& MercRecord(CPlayer* player, int index) { return player->Party()->members_[index]; }
 
 } // namespace
 
@@ -80,7 +80,7 @@ void CWorldServer::UpdateMercBriefings() {
             set(b.n11, 0.0f);
 
             bool inParty = false;
-            for (int i = 0; i < player->Party()->members_.size; ++i) {
+            for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
                 if (MercRecord(player, i).unitId == key) {
                     inParty = true;
                     break;
@@ -312,7 +312,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     if (world->PlayerList()->objects_.size() == 0) return;
     ShareList list{};
     auto soloUnit = [&](CPlayer* p) -> CUnit* {
-        if (!p->Server() || p->Party()->members_.size != 1) return nullptr;
+        if (!p->Server() || std::ssize(p->Party()->members_) != 1) return nullptr;
         return world->FindUnit(static_cast<int>(MercRecord(p, 0).unitId));
     };
 
@@ -382,7 +382,7 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
         for (int i = 0; i < std::ssize(heroes); ++i) {
             CUnit* unit = world->FindUnit(heroes[i]);
             unit->ServerController()->AddExperience(share);
-            for (int j = 0; j < player->Party()->members_.size; ++j) {
+            for (int j = 0; j < std::ssize(player->Party()->members_); ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
                 if (static_cast<int>(record.unitId) == heroes[i]) record.stats.AddScaledExperience(share);
             }
@@ -481,7 +481,7 @@ void CWorldServer::SyncPartyRecords(CPlayer* player) {
         node = next;
     }
     RecordPtrArray list{};
-    for (int i = 0; i < player->Party()->members_.size; ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
+    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) lib::SetAtGrow(list, std::ssize(list), &MercRecord(player, i));
     for (int i = 0; i < std::ssize(list); ++i) {
         auto* record = list[i];
         CUnit* unit = FindUnit(static_cast<int>(record->unitId));
@@ -570,16 +570,13 @@ void CWorldServer::CollectParty(CPlayer* player, PlacementArray* placements) {
 
     RecordPtrArray list{};
     // Records whose unit is gone (or dead, outside a network client game) are dropped.
-    for (int i = 0; i < player->Party()->members_.size; ++i) {
+    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
         CUnit* unit = FindUnit(static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!unit->IsDead() || IsMultiplayerClient())) continue;
-        int following = player->Party()->members_.size - i - 1;
-        MercRecord(player, i).Destruct();
-        PartyUnitRecordElements::Relocate(&MercRecord(player, i), &MercRecord(player, i + 1), following);
-        --player->Party()->members_.size;
+        player->Party()->members_.erase(player->Party()->members_.begin() + i);
         --i;
     }
-    for (int i = 0; i < player->Party()->members_.size; ++i) {
+    for (int i = 0; i < std::ssize(player->Party()->members_); ++i) {
         int index = std::ssize(list);
         list.resize(index + 1);
         list[index] = &MercRecord(player, i);

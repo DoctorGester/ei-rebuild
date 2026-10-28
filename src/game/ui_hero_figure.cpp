@@ -50,8 +50,8 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     float dexterity = kDefaultAttribute;
     float intelligence = kDefaultAttribute;
     float height = kDefaultHeight;
-    if (player->members_.size > 0) {
-        PartyUnitRecord* first = player->members_.data;
+    if (std::ssize(player->members_) > 0) {
+        PartyUnitRecord* first = player->members_.data();
         const auto* stats = &first->stats;
         strength = stats->stat10;
         dexterity = stats->stat18;
@@ -64,8 +64,8 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     }
     player->Clear(1, 0);
     player->AddMember(kHeroName, prototype, prototype);
-    player->EquipFromPrototype(player->members_.data);
-    PartyUnitRecord* hero = player->members_.data;
+    player->EquipFromPrototype(player->members_.data());
+    PartyUnitRecord* hero = player->members_.data();
     auto* stats = &hero->stats;
     if (mode_ == kModeList) {
         stats->stat10Base = stats->stat10 = kDefaultAttribute;

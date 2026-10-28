@@ -143,8 +143,8 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
     int place = 0;
     int record = 0;
     bool found = false;
-    for (; record < player->members_.size; ++record) {
-        int id = static_cast<int>(player->members_.data[record].unitId);
+    for (; record < std::ssize(player->members_); ++record) {
+        int id = static_cast<int>(player->members_[record].unitId);
         if (unit->id_ == id) {
             found = true;
             break;
@@ -161,7 +161,7 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
             std::memmove(&party[place + 1], &party[place], (count - place) * sizeof(party[0]));
         }
         party[place] = unit;
-        selected = player->members_.data[record].selected != 0;
+        selected = player->members_[record].selected != 0;
     } else {
         int count = std::ssize(party);
         party.resize(count + 1);

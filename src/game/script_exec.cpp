@@ -226,8 +226,8 @@ void RedeployParty(const SSCCmd* cmd) {
     ThePartyManager()->BeginRedeploy(party);
     ThePartyManager()->EndRedeploy(party);
     // One slot and one party unit: the slot gets the unit's id.
-    const PartyMemberArray& members = player->Party()->members_;
-    if (slots.size() == 1 && members.size == 1) slots[0].id = static_cast<int>(members.data[0].unitId);
+    const std::vector<PartyUnitRecord>& members = player->Party()->members_;
+    if (slots.size() == 1 && std::ssize(members) == 1) slots[0].id = static_cast<int>(members[0].unitId);
     state->SendParty();
     player->Server()->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);

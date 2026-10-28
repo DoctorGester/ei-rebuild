@@ -102,7 +102,7 @@ int CPlayerServer::OnPause() {
     if (IsMultiplayerClient() && server && !(server->flags7_ & CRefCounted::kDetached) && (pause || announceResume)) {
         if (announceResume) SetPauseTextDigit(pause);
         int leader = server->LeaderId();
-        const int own = static_cast<int>(Owner()->Party()->members_.data[0].unitId);
+        const int own = static_cast<int>(Owner()->Party()->members_[0].unitId);
         if (mode == 2)
             leader = own;
         else if (own != leader)
