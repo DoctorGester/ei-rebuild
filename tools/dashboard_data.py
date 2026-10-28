@@ -316,7 +316,13 @@ def generated_tables(tree):
     if pointer_cells:
         out['pointer_cells'] = len(CELL.findall(pointer_cells))
         out.setdefault('code_cells', 0)   # retired in C20: game.exe's data keeps no code pointer in the image
-    for key, path in (('named_ranges', 'config/named_data.csv'), ('retired_vtables', 'config/retired_vtables.csv')):
+    # The retired vtables: their own csv until C20 batch 6 folded it into config/vtables.csv (the rows with a class).
+    retired = tree.read('config/retired_vtables.csv')
+    if retired is None and 'class' in (tree.read('config/vtables.csv') or '').partition('\n')[0].split(','):
+        retired = tree.read('config/vtables.csv')
+    if retired is not None:
+        out['retired_vtables'] = sum(1 for r in csv.DictReader(io.StringIO(retired)) if r.get('class', '-') != '')
+    for key, path in (('named_ranges', 'config/named_data.csv'),):
         text = tree.read(path)
         if text is not None:
             out[key] = sum(1 for _ in csv.DictReader(io.StringIO(text)))

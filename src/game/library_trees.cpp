@@ -1,6 +1,5 @@
-// The exe's STLport map instantiations outside the connection, their members registered at the library
-// addresses (stlp_tree.h, stlp_tree_abi.h) so the standalone image has them. Several members exist more than
-// once (the same body compiled into different objects): one body serves each.
+// The exe's STLport map instantiations outside the connection (stlp_tree.h, stlp_tree_abi.h). Several members
+// exist more than once (the same body compiled into different objects): one body serves each.
 #include "library_trees.h"
 
 #include "ui_item_info.h"   // UiReleaseCachedModel

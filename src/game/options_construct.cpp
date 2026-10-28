@@ -142,7 +142,7 @@ GameOptions::GameOptions() {
 }
 
 // The static initialiser and the exit function it registers, defined on the name (g_options,
-// options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").
+// options_global.cpp; docs/notes/standalone.md, "The static initialisers' objects").
 namespace {
 void __cdecl DestroyGameOptions() { g_options.Destroy(); }
 } // namespace

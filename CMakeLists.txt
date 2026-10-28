@@ -99,7 +99,6 @@ add_library(ei_hook SHARED
     src/hook/rebirth_hook.cpp
     src/hook/standalone.cpp
     src/hook/standalone_main.cpp
-    src/standalone/image_code.cpp
     src/standalone/image_data.cpp
     src/standalone/image_imports.cpp
     src/standalone/static_exit.cpp
@@ -116,7 +115,7 @@ set(EI_IMAGE_DATA ${CMAKE_BINARY_DIR}/image/image_data_bytes.inc)
 add_custom_command(OUTPUT ${EI_IMAGE_DATA}
     COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py --bytes ${EI_IMAGE_DATA}
     DEPENDS ${CMAKE_SOURCE_DIR}/tools/gen_image_cells.py ${CMAKE_SOURCE_DIR}/config/named_data.csv
-            ${CMAKE_SOURCE_DIR}/config/retired_vtables.csv
+            ${CMAKE_SOURCE_DIR}/config/vtables.csv
             ${CMAKE_SOURCE_DIR}/src/standalone/image_cells.inc
     COMMENT "Writing the image's .rdata and .data bytes"
     VERBATIM)
@@ -148,7 +147,7 @@ target_include_directories(ei_standalone PRIVATE src)
 target_link_options(ei_standalone PRIVATE /DYNAMICBASE:NO /FIXED:NO /BASE:0x01000000)
 
 # Replays the recorded function vectors (tests/vectors/vectors.h) against our code without the game:
-# the families' sources, their checks, and a stub for the hook registrations. build.cmd runs it.
+# the families' sources, their checks, and a stub of ei::Standalone. build.cmd runs it.
 file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 add_executable(ei_vectors
     ${EI_REPLAY_SOURCES}

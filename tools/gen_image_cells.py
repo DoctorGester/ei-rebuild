@@ -33,8 +33,8 @@ global of ours (C18).
 
 usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
   (no option)  write src/standalone/image_cells.inc (reads game.exe: the scan and its reviews)
-  --check      exit 1 when the committed cells and the retired vtables disagree (config/retired_vtables.csv against
-               config/vtables.csv and the sources; every cell's target in the moved range); no game.exe
+  --check      exit 1 when the committed cells or the retired vtables are wrong (config/vtables.csv against the
+               sources; every cell's target in the moved range); no game.exe
                (build.cmd). That the cells are what game.exe has is the scan's, when it is rerun.
   --bytes OUT  write the moved range's initial bytes to OUT as a C++ initialiser (the build; no game.exe)
 """
@@ -47,7 +47,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'image_cells.inc')
 VTABLES = os.path.join(ROOT, 'config', 'vtables.csv')
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
-RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
 BASE = 0x00400000
 TIMESTAMP = 0x3ABF0DB3   # game.exe 1.06 (src/standalone/host.cpp's kExpectedTimestamp)
 
@@ -349,21 +348,19 @@ def render(cells, img):
 
 def named_ranges():
     """(address, size) of the ranges our named globals hold now (config/named_data.csv, tools/named_data.py) and of
-    the retired vtables (config/retired_vtables.csv, C19)."""
+    the retired vtables (config/vtables.csv, C19)."""
     with open(NAMED_DATA, newline='') as f:
         named = [(int(r['address'], 16), int(r['size'])) for r in csv.DictReader(f)]
     return named + [(v, 4 * n) for v, n, _, _ in retired_vtables()]
 
 
 def retired_vtables():
-    """(vtable, slots, class, file) of config/retired_vtables.csv: game.exe's vtables of classes whose vtable is the
-    compiler's now (C19; docs/notes/standalone.md "Compiler-made vtables"), or that only game.exe's own code stored
-    (file '-': base vtables its destructors stored, locals its functions made, dead code's; the note column names the
-    storing functions). Nothing installs them and the image holds their bytes zero;
-    tools/named_data.py --check proves nothing names or points into them."""
-    if not os.path.exists(RETIRED_VTABLES):
-        return []
-    with open(RETIRED_VTABLES, newline='') as f:
+    """(vtable, slots, class, file) of config/vtables.csv: game.exe's vtables, every one retired (C19): its class's
+    vtable is the compiler's now (docs/notes/standalone.md "Compiler-made vtables"), or only game.exe's own code
+    stored it (file '-': base vtables its destructors stored, locals its functions made, dead code's; the note column
+    names the storing functions). Nothing installs them and the image holds their bytes zero; tools/named_data.py
+    --check proves nothing names or points into them."""
+    with open(VTABLES, newline='', encoding='utf-8') as f:
         return [(int(r['vtable'], 16), int(r['slots']), r['class'], r['file']) for r in csv.DictReader(f)]
 
 
@@ -389,40 +386,28 @@ def stored_vtable(img, v):
 
 
 def check_retired(problems, img):
-    """Each retired vtable is a game vtable of config/vtables.csv with all its slots, listed once, the start of a
-    table (stored_vtable) or the tail of a retired one (the row it ends), and shares no slot with a vtable still in
-    use (its bytes are zero in the image). With no image (`img` None: --check) the stored-by-code proof is left out."""
-    with open(VTABLES, newline='') as f:
-        vtables = {int(r['vtable'], 16): (int(r['slots']), r['kind']) for r in csv.DictReader(f)}
-    listed = {v for v, _, _, _ in retired_vtables()}
-    live = {}
-    for v, (n, _) in vtables.items():
-        if v not in listed:
-            for i in range(n):
-                live.setdefault(v + 4 * i, v)
+    """Each vtable of config/vtables.csv is listed once, names its class (and the file declaring it, or '-'), and is
+    the start of a table (stored_vtable) or the tail of the row before it (the row it ends). With no image (`img`
+    None: --check) the stored-by-code proof is left out."""
     seen = set()
-    # A tail goes with its table: a retired row's end, when that row is stored or a tail itself.
+    # A tail goes with its table: a row's end, when that row is stored or a tail itself.
     ends = set()
     for v, n, _, _ in sorted(retired_vtables()):
         if img is not None and (stored_vtable(img, v) or v in ends):
             ends.add(v + 4 * n)
     for v, n, cls, path in retired_vtables():
-        where = f'config/retired_vtables.csv: {v:08X} ({cls})'
+        where = f'config/vtables.csv: {v:08X} ({cls})'
         if img is not None and not stored_vtable(img, v) and v not in ends:
             problems.append(f'gen_image_cells: {where}: no code of game.exe stores it: the tail of the vtable '
                             'before it (a slot call or a byte match split it off), not a vtable of its own; '
-                            'retire it with that vtable')
-        shared = sorted({live[v + 4 * i] for i in range(n) if v + 4 * i in live})
-        if shared:
-            problems.append(f'gen_image_cells: {where} shares slots with ' + ' '.join(f'{x:08X}' for x in shared) +
-                            ', still in use: retire them together')
+                            'list it with that vtable')
         if v in seen:
             problems.append(f'gen_image_cells: {where} is listed twice')
         seen.add(v)
-        if v not in vtables:
-            problems.append(f'gen_image_cells: {where} is not a vtable of config/vtables.csv')
-        elif vtables[v][0] != n:
-            problems.append(f'gen_image_cells: {where} has {n} slot(s), config/vtables.csv {vtables[v][0]}')
+        if not cls or not path:
+            problems.append(f'gen_image_cells: {where}: no class or file (the class whose vtable is the compiler\'s, '
+                            'or file - with a note naming the functions that store it)')
+            continue
         if path == '-':   # no class of ours: only game.exe's code stored it (the note says which)
             continue
         if not os.path.exists(os.path.join(ROOT, path)):

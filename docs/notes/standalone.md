@@ -13,7 +13,7 @@ and `tools/dashboard_data.py` (the dashboard's standalone panel). The game glue 
 
 **Finding game.exe (S18e3).** Every tool that reads game.exe (rdata_literals, exe_strings, gen_static_init,
 gen_short_functions, gen_image_cells, gen_iat, check_signatures, check_stolen, find_vtables,
-find_dead_code, standalone_gaps; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
+find_dead_code; the build reads none since C25c) goes through `tools/exe_path.py`: `--exe` (or `EI_EXE`), else
 `run_all.run_dir(root)`'s `vanilla\game.exe`, then `rebirth\game.exe` (a worktree without a run\ junction uses the main
 checkout's); nothing found is one error naming the paths looked for. Nothing reads F:\games any more.
 
@@ -63,29 +63,28 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   Then it loads ei_hook.dll, which keeps .rdata (with the import slots) and .data in its own storage
   and resolves game.exe's imports as it initialises (S18f; since S18k DDraw, mss32 and binkw32 from the working
   directory, the game folder, else System32, so Rebirth's dinput proxy and addon.dll stay out; "Own data" below);
-  then `InstallHooks` takes the registrations as the code for their addresses ("Code", below). Nothing runs in or
-  jumps through game.exe's code. `ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game args>]`, run from the game
-  folder; without `--run` it builds the image, checks the code table and the cells and exits.
+  then the start-up actions run (`RunStartupActions`: the Rebirth flags, WideScreen's resolution), the static
+  initialisers and WinMain (`app::GameMain`, called by name: "Code", below). Nothing runs in or jumps through
+  game.exe's code. `ei_standalone [--dll <ei_hook.dll>] [--run] [-- <game args>]`, run from the game folder; without
+  `--run` it builds the image, checks the routes and the imports and exits.
 - **What comes from game.exe at build time** (S18k: nothing at run time): the sections' bytes
   (`tools/gen_image_cells.py --bytes`, build/<cfg>/image/, which also checks the 1.06 timestamp; C25 measured which
-  of them the image reads: "The build without game.exe" below); the section places are constants (game_data.h, image_code.cpp, hook.cpp's `kCodeBegin`-`kCodeEnd`, the registrations'
-  bounds). InstallHooks reads game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
+  of them the image reads: "The build without game.exe" below); the section places are constants (game_data.h, hook.h's `kGameTextBegin`-`kGameTextEnd`). InstallHooks reads
+  game.exe's file only in game.exe itself (the recorders' stolen bytes). The 8
   dispatch-only functions (`MOV EAX,[ECX]; JMP [EAX+n]`) need no bytes since C25: the four with a port are
   EI_REWRITTEN (their callers call the virtual), `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
-- **Missing code.** Reaching an address without code (CodeAddress's stub, or a jump into the guarded .text) logs
-  `FAILED: standalone: no code at <address> (in the game function at <start> | library code), [esp] <caller>` and
-  ends the run; `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
-  (`... of game.exe's code at ...`). The handler goes in before InstallHooks
+- **Missing code.** Reaching an address without code (a jump into the guarded .text, a compiled table's
+  `ei::UnportedSlot`) logs `FAILED: standalone: no code at <address>, [esp] <caller>` and ends the run;
+  `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
+  (`... of game.exe's code at ...`). The handler goes in before the start-up actions
   (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's static constructors prints
   `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
-- **What the image could still reach without code**: `python tools/standalone_gaps.py` lists the code
-  addresses written in src/ without a registration (game.exe's data holds no code pointer in the image since C20).
-  `config/standalone_unreachable.csv` holds each decision with its reason (MFC's unported slots of classes never
-  made or never called virtually); `--listed` prints them, `--check` exits 1 on an open entry or a config line that
-  covers nothing. 0 open since S16d.
+- **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
+  holds no code pointer in the image since C20). The unported slots of compiled tables (`ei::UnportedSlot`, MFC's
+  classes never made or never called virtually) say why at the class (mfc_gdi.h, mfc_window.h, mfc_thread.h).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -178,24 +177,22 @@ each step green on the goldens and removing a measured tie:
   **Addresses read back from objects** (a vtable, a string pointer) are the storage's in the image: the harness
   prints them as the original's with `ei::OriginalAddress` (game_data.h; DescribeTopWindow, harness_digest's
   missile vtable, ui_census's window labels and its game-vtable test).
-- **Code** (S18i, src/standalone/image_code.cpp): `ei::CodeAddress(address)` (ei/hook.h; `ei::Code<F>`) is what
-  runs for game.exe's function at an address: in game.exe the address; in the image the registration (InstallHooks
-  hands its table over), else a stub (16 bytes, CALL NoCodeEntry plus the address) that reports `no code at`. The
-  harness changes nothing by address in the image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`,
-  `gamecrt::SetRandObserver`). Who asks: the static initialisers' calls (static_init.h), the code literals of src/ (handler tables, stats, callbacks, factories,
-  the WndProc and new handlers) and the CRT's takers of function pointers (atexit, at the registration; qsort, the eh vector
-  iterators, ostream's manipulators), which convert at the call. Never at namespace-scope static init: the table
-  is not in yet (the stub would stick). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
+- **Code** (C20 batch 6): nothing of ours stands at a game.exe code address. Our code calls every function by
+  name: the static initialisers (static_init.h), the handler tables, callbacks and factories (`&Fn`), WinMain
+  (`app::GameMain`); the CRT's takers of function pointers (atexit, qsort, the eh vector iterators, ostream's
+  manipulators) call what they are given. Until batch 6 `ei::CodeAddress` (src/standalone/image_code.cpp) gave the
+  registration for an address, else a stub reporting `no code at`. The harness changes nothing by address in the
+  image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
   in the image; every dword of .rdata / .data that pointed into its code section is zero there. Until then
-  `image_code_cells.inc` listed the ones the image fixed up to CodeAddress of their value after InstallHooks
+  `image_code_cells.inc` listed the ones the image fixed up to the registration of their value
   (21,636 at S18i; 825 at the end: the static initialiser list 748, MFC's message maps 35, the CRT's function
   pointers 35, ThrowInfo's destructors / copy constructors 7), and C20 batch 1 measured that nothing of ours read
   any of them: the static initialisers are generated code (static_init.cpp calls each one's body or its
   registration, never through the list), CWnd::GetMessageMap is an unported slot, the CRT tables' readers are
   game.exe's own CRT (the host CRT's in the image, C26), and no code throws with game.exe's ThrowInfo
   (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with C19, the EH
-  funclets with C20a. A stray call through one would be a call of null. The launch-free check: every registration is its address's code (`CheckCode`); `CheckGuard` logs what of game.exe's
-  range is open. Stack scans of the harness and the profiler skip the game's code range in the image.
+  funclets with C20a. A stray call through one would be a call of null. The launch-free check (no `--run`): `CheckGuard` logs what
+  of game.exe's range is open, the routes and imports are checked. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
   `kImportsBegin`-`kImportsEnd`, 0073B000-0073B820, .rdata's first 0x820 bytes) moves with .data at the same shift:
   the storage starts at 0073B000 (low 16 bits 0xB000; the .rdata between the table and .data has its place there,
@@ -413,7 +410,7 @@ kinds given.
   Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
   literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
   in .data); the name of another named range its address; the name of a function of ours (`&` optional) the
-  address in the function-to-original map (`EI_REPLACE*` or `EI_REWRITTEN`: the code game.exe's pointer called);
+  address in the function-to-original map (`EI_REWRITTEN`: the code game.exe's pointer called);
   nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
   offset is a pointer element: the only place a cell may sit inside the range. gen_image_cells leaves the cells inside
   named ranges out of image_cells.inc (the bytes are zero, nothing fixes them up) and its
@@ -854,7 +851,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
    a constructor default-initialises what it does not name. The explicit `Destruct` / deleting destructors can stay.
 4. The registrations stay (C20 retires them): virtual slots and constructors through `__fastcall` shims that call
    without dispatch (`self->GroundPrint::Tick()`, `new (self) GroundPrint(...)`; rewrite guide rule 4).
-5. List the family's game.exe vtables in config/retired_vtables.csv (vtable, slots, class, declaring file):
+5. Give the family's game.exe vtables their class and declaring file in config/vtables.csv (columns class, file,
+   note; until C20 batch 6 config/retired_vtables.csv):
    gen_image_cells.py moves their slots out of the code cells (group `vtable-retired`; the `vtable` group's count is
    7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves no address inside them is named (src/, tests/), and gen_image_cells.py --check that
    each row is a vtable of config/vtables.csv with its slot count and a class of the file it names. A vtable two
@@ -1504,7 +1502,9 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
   original's scalar deleting destructor is tagged with the destructor's name too: check_signatures accepts a
   destructor tag whose original pops 4 more (the flags argument).
-- game.exe's tables stay in config/retired_vtables.csv; their rows name the real class and its header.
+- game.exe's tables stay in config/vtables.csv; their rows name the real class and its header (every row: all are
+  retired; gen_image_cells.py --check fails on a row without one, so a find_vtables.py rerun's new row needs a
+  decision).
 
 The window base (C28l, ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
 `CUiWindow : CUiWindowBase, UiInputSide` (CUiWindowBase is CTransformObject plus the 0x40 bytes before +0x94, so
@@ -1540,7 +1540,7 @@ takes the code word (adjustment 0). The harness names a window by its class's
   a wrapper that passes the host's module. c_dfDIMouse (00745D00) points into game.exe's code section, so
   `CDirectInputMouse::MouseDataFormat` is our copy of the seven objects. Other dinput.lib data in .text would need
   the same.
-- **Rebirth**: InstallHooks calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
+- **Rebirth**: RunStartupActions calls `rebirth_hook::SettingsOnly`: flags from ei_rebirth.ini and EI_REBIRTH,
   EI_Plugin's player count from `[Rebirth] NPlayers` (default 7). Miles's LoadLibraryA import refuses EI_Plugin.asi
   (mp3dec.asi loads). `starter::RebirthInstall()` is true for addon.dll or the image with a Rebirth flag on (the
   digest's and census's install lines follow it). GameMain reads addon's registry key with `NivalRegistry`
@@ -1626,9 +1626,7 @@ the `--no-hooks` suite) keeps the registry.
 - **Short functions** (S2): the 200 game functions under five bytes are in src/game/short_functions.cpp, generated by
   `tools/gen_short_functions.py` from their bytes (12 kinds: `Ret`, `Ret4/8/12`, `ReturnZero`, `ReturnMinusOne`,
   `ReturnTrue`, `ReturnFalse`, `ReturnThis`, `LoadDword<n>`, `MemberAddress<n>`, `LoadFloat<n>`), each compiling to
-  the original's bytes. A function whose address something reads (registration_readers.py's run-time readers) is
-  registered with `EI_REPLACE_SHORT`; every other one is an `EI_REWRITTEN(0x..., Kind);` line (C20e: all 199 today),
-  so the generator takes the readers from registration_readers.read_addresses(). check_short_functions (removed in C25d) checked each
+  the original's bytes. Each is an `EI_REWRITTEN(0x..., Kind);` line (C20e). check_short_functions (removed in C25d) checked each
   kind against game.exe and our code. A few were added by hand (particle element callbacks 00485530,
   00492FB0-004965D0: `EI_REWRITTEN(Ret4)`).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
@@ -1637,8 +1635,8 @@ the `--no-hooks` suite) keeps the registry.
   once-only guard bit; a single-use decodable
   callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
   (static_init.h), with visitors `Run` (the image) and `Check` (the stores, compared with the original's memory).
-- **Calls by name** (C20 batch 2): a call or atexit of a function in the function-to-original map (a registration or
-  an EI_REWRITTEN line) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
+- **Calls by name** (C20 batch 2): a call or atexit of a function in the function-to-original map (an EI_REWRITTEN
+  line) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
   Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
   `name_calls`). Code::Call converts the decoded dwords to the declared parameters (`Argument`: a pointer from a
   dword, a lib::StaticObject's T for a named object) and returns the result as a dword (`Returned`). The name is the
@@ -1651,70 +1649,46 @@ the `--no-hooks` suite) keeps the registry.
   the last 29 (console_streams 18, mfc_string 4, mfc_coll 4, script_exec_helpers 2, string_map 1): nothing is
   called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
   AtExit by address went. The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
-  them unchanged; `d.Begin(0x...)` is a label (registration_readers skips it).
-  When a helper gets registered later the output changes: rerun the generator (check_static_init, removed in
+  them unchanged; `d.Begin(0x...)` is a label.
+  When a helper gets ported later the output changes: rerun the generator (check_static_init, removed in
   C25d, re-decoded game.exe and compared).
 - **Exit functions** (S3a, S16a): src/standalone/static_exit.cpp, same tool: 130 whole-function patterns
   (`EXIT_PATTERNS`: `mov ecx, obj; jmp dtor`, flag-guarded, operator delete of a counted buffer, a counted
   `Release`, DeleteCriticalSection, the eh vector destructor iterator, the WSACleanup wait, `ret`) plus 60 run-time
   atexit registrations of function-local statics (PUSH fn, CALL 006E727B within 14 instructions). Their sizes go
   into config/extra_function_sizes.csv and function_sizes.inc (the generator writes them, the check compares).
-- **Compiler jump thunks** (functions.csv kind "thunk") are registered with their target's replacement.
+- **Compiler jump thunks** (functions.csv kind "thunk"): our callers call the target by name.
 - **Dispatch-only functions** (`MOV EAX,[ECX]; JMP [EAX+n]`: 00675D40, 00469E00, 00469DE0, 00552F30 ported) are
-  `EI_REWRITTEN`: the callers call the virtual. A registration of one would be a virtual-call thunk, which
-  InstallHooks refuses (C25 dropped `EI_REPLACE_DISPATCH`, whose check compared game.exe's bytes).
+  `EI_REWRITTEN`: the callers call the virtual.
 
 ### Registration rules
 
-- `EI_REPLACE` / `_METHOD` / `_SHORT` / `_STANDALONE` all go in (the last name is historical: it was
-  "image only" while game.exe ran our code). `tools/check_registrations.py` (build.cmd) fails on two registrations
-  of one address; it reads the built DLL's `.eireg` section (every macro leaves a `RegRecord`).
-- A registration stays only while something reaches its address (C20c): `tools/registration_readers.py` prints the
-  split by reader (static init, code literals, the harness's image side, scenarios / goldens, the exit-function
-  generator), `--unread` / `--files` what nothing reads,
-  `--drop` writes `EI_REWRITTEN` in their place (with `--exclude` / `--exclude-name` for files another worker holds,
-  `--only FILE` for a list `--list` printed). Code literals include static_init.cpp's six-digit ones (0x5C4210). A
-  dropped function is called by name; one whose registration was the only instantiation of a template needs an
-  explicit instantiation (AckTable<ExtraAcks>::RecordAt). Counts (progress.py's "EI_REPLACE registrations"): 9,347
-  before C20c, 5,262 after it, 3,527 after C20d (1,735 that only check_fp_fold read became EI_REWRITTEN; 20 in
-  CSkyObject / CUnit left for C19 batch 5). C20c deleted its ~4,000 lines outright, so those functions are missing
-  from the map (C20d1). 809 before C20 batch 1, 559 after it (250 more EI_REWRITTEN), 434 after C20f (the code literals now take the function by name: the exit functions
-  `libcrt::AtExit(DestroyX)`, the player handler tables hold member pointers (`HandlerEntry<CPlayerClient>`), callbacks `&Fn`),
-  287 after C20 batch 2 (gen_static_init calls by name: static_exit.cpp's 26 became EI_REWRITTEN, 121 more dropped), 282
-  after C20h (the harness's image side calls by name), 72 after C20e (the 210 short functions EI_REWRITTEN: 63 EI_REPLACE,
-  9 EI_REPLACE_METHOD; 40 of them unread, in C14a's files), 1 after C20 batch 3 (GameMain).
-- **What still needs a game.exe code address** (C20 batch 1's measurement, 2026-10-27; `registration_readers.py`):
-  | reader | registrations | needs game.exe's code addresses? |
-  |---|---|---|
-  | code cells (gen_image_cells) | 0 (825 cells: static initialiser list 748, MFC message maps 35, CRT tables 35, ThrowInfo 7) | no: none was read at run time; retired, the bytes are zero |
-  | static init / exit (static_init.cpp's calls and d.AtExit by address) | 0 (178 before C20 batch 2; 29 after it; batch 3 moved those out of their anonymous namespaces) | no: every call and atexit names its port; the generator refuses one by address |
-  | exit functions of function-local statics (gen_static_init's runtime atexits) | 0 | no: our ports register them by name (libcrt::AtExit(DestroyX), EnsureStatic); the generator counts EI_REWRITTEN as ported |
-  | code literals in src/ (ei::Code<F>(0x...), handler tables, HasCode, CodeAddress) | 1 (was 129; C20f; batch 3) | yes: GameMain (the hook's entry, HasCode / kGameWinMain). DestroyScriptQuestName names itself now; cover.cpp / image_data.cpp take kGameTextBegin for the text section's first byte, so GameInfoRecord::Write (00401000) is no longer read by a false hit |
-  | the harness's image side (ei::Code / CodeAddress / HasCode in tests/verify) | 0 (was 5; C20h) | no: the five calls the harness's hooks end with (FrameStep, CCamera::Update, CWorldClient::Segment, CWorldServer::Update, CCursor::TakeLock) call ours by name in the image (tests/verify/image, image_side.h's ServerUpdate .. CursorLock) and game.exe's by address in its runs (OriginalCode) |
-  | the harness's game.exe side (OriginalCode, JumpTo / RedirectCall, address tables), tests/vectors' recorders | 0 | no: they patch / record game.exe's own code; replays call by name |
-  | named_data --check, gen_short_functions, check_signatures, coverage, progress, dashboard_data | 0 | no: they read the function-to-original map (EI_REWRITTEN does) |
-  | check_registrations, check_thunks, standalone_gaps | 0 | no: they check the registrations themselves; they shrink with them |
-  | EI_REPLACE_SHORT nothing reads | 0 (210 before C20e: gen_short_functions.py writes EI_REWRITTEN for them) | no |
-  Batch 3 dropped the 40 that C14a's files held back and the 29 moved initialisers, GameInfoRecord::Write included (72 -> 1:
-  only GameMain is registered). The check that the drops change no generator: gen_static_init.py and
-  gen_short_functions.py rerun with the same functions (static_init.cpp / static_exit.cpp byte-identical).
-- **The function-to-original map** (C20d): the registrations plus `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h).
-  EI_REWRITTEN registers nothing: it leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which nothing
-  reads at run time, so the compiler checks the name and the function's own copy stays in the image as with a
-  registration. check_registrations reads `.eiorg` (one EI_REWRITTEN per address, none also registered). The tools
-  read the map from the sources: check_signatures.registrations() (kind 'replace'; check_signatures), coverage.py, direct_calls.py, save_trace.py, ui_census_report.py, gen_originals.py,
-  progress.py's / dashboard_data.py's rewritten counts, check_cleanup (its address is no raw literal), and
+- **No registrations** (C20 batch 6): nothing of ours stands at a game.exe code address, and the image has no code
+  table. `EI_REPLACE` / `_METHOD` / `_SHORT` / `_STANDALONE`, the `.eireg` section, CodeAddress (its table, stubs and
+  SetCodeTable), HasCode, CheckCode, check_thunks, registration_readers and standalone_gaps are gone. How the
+  readers of game.exe's code addresses went (C20 batch 1's measurement, then one batch each): the code cells (825,
+  never read: zero since batch 1), the static initialisers' calls and atexits (by name since batches 2-3), the code
+  literals of src/ (handler tables, callbacks, factories: `&Fn`, C20f), the harness's image side (C20h), the short
+  functions (EI_REWRITTEN, C20e), WinMain (batch 6: EiStandaloneMain calls `app::GameMain`). Registrations: 9,347
+  before C20c, 3,527 after C20d, 809 before C20 batch 1, 72 after C20e, 1 after batch 3, 0 after batch 6.
+- **The function-to-original map** (C20d): `EI_REWRITTEN(0x..., Fn);` lines (include/ei/hook.h; `EI_REWRITTEN_SPECIAL`
+  for a constructor or destructor). A line leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which
+  nothing reads at run time, so the compiler checks the name and the function's own copy stays in the image.
+  check_registrations (build.cmd) reads `.eiorg`: one EI_REWRITTEN per address. The tools read the map from the
+  sources: check_signatures.registrations() (check_signatures), coverage.py, save_trace.py, ui_census_report.py,
+  named_data.py (a pointer element naming a function of ours), gen_static_init (MAP_LINE: calls by name),
   gen_short_functions.ported_elsewhere (a rewrite: no generated short function, and gen_static_init neither inlines
-  nor decodes it). standalone_gaps and registration_readers skip the lines (no reader, no reached literal).
-  Switching kept every map the same (C20d's comparison: same entries in all of them; check_fp_fold on main's DLL with
-  the new sources: the same counts). Converting the 1,735 changed some inlining (removing the registrars' static
-  constructors let MSVC inline a few converted functions into their callers): release check_fp_fold went from 1,260
-  functions with constants / 4,752 matched / 196 helpers / 40 unattached / 417 uncalled to 1,276 / 4,752 / 200 / 44 /
-  418, 0 problems in both.
-- standalone_gaps reads .rsrc too: dialog text can spell a function start (007D4030, " L" = 004C0020), listed in
-  config/standalone_unreachable.csv when the function's registration goes.
-- Library functions need a row in config/extra_function_sizes.csv even when Ghidra has a function (the installer
-  skips an unknown start); some Ghidra sizes run past the RET (0070CAD2, 006E6B7D: decoded sizes).
+  nor decodes it), progress.py's / dashboard_data.py's rewritten counts and check_cleanup (an address in the line is
+  no raw literal). Nothing at run time, in the harness or in tests/vectors reads it (the recorders name game.exe's
+  addresses in their EI_RECORD lines; the replays call by name).
+- **game.exe's side**: the vector recorders (`EI_RECORD`, tests/vectors/record_*.cpp) are the only hooks;
+  InstallHooks installs them in game.exe with EI_VECTORS=1, leaving out (and counting as unexpected) a second one at
+  an address or one whose stolen bytes differ from the file. check_stolen.py checks each against game.exe: a known
+  function start, one per address, whole instructions with no relative operand, no jump back into the stolen bytes.
+- **Function sizes** (src/hook/function_sizes.inc from Ghidra, config/extra_function_sizes.csv for what Ghidra lacks
+  or cuts short) are the tools' (check_stolen, check_signatures, coverage, progress, gen_short_functions,
+  gen_static_init, find_dead_code); the image has none since batch 6. Some Ghidra sizes run past the RET (0070CAD2,
+  006E6B7D: decoded sizes).
 - config/library.csv names are often wrong for STLport / MFC rows (destructors named clear, AddTail named a
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
@@ -2194,20 +2168,11 @@ exe: it neither reads game.exe nor lays out anything at game.exe's addresses. Th
 whose one resource is its version information (host.rc; the game's strings are literals in our code, no icon yet);
 ei_hook.dll keeps game.exe's .rdata and .data in its own storage with bytes from the build
 (src/standalone/image_data.cpp), resolves game.exe's imports into a table of its own as it initialises
-(image_imports.cpp), takes the registrations as game.exe's code (InstallHooks, image_code.cpp) and runs WinMain. The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
-free, with no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code
-that went around CodeAddress, a read of its data that missed the seam) faults and is named instead of reaching
+(image_imports.cpp), runs the start-up actions, the static initialisers and WinMain (app::GameMain). The guard: first thing, the host reserves what of game.exe's range (0x400000 up to its SizeOfImage) is
+free, with no access, so nothing is allocated there later and a stray game address (a jump into game.exe's code,
+a read of its data that missed the seam) faults and is named instead of reaching
 other memory. What the loader had already put there (this exe, a heap) stays as it is; ei_hook.dll logs how much is
 guarded.
-
-### image_code.cpp
-
-game.exe's code in the standalone image (docs/notes/standalone.md, "Own data"). Nothing of game.exe's code is at
-its addresses (the host keeps what of game.exe's range is free reserved with no access): nothing runs there and
-nothing jumps through it. What runs for an address of game.exe's code is CodeAddress's: the replacement registered
-for it (InstallHooks hands the table over: SetCodeTable), else a stub that reports there is no code at the address.
-The static initialisers, the code literals and the harness ask CodeAddress; game.exe's data holds no code pointer
-in the image (C20). In game.exe (the original's runs) every address is its own code.
 
 ### image_data.cpp
 

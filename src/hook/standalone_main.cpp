@@ -3,9 +3,10 @@
 // The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
 // access; the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
-// image_imports.cpp); here the registrations become game.exe's code (image_code.cpp) and WinMain runs.
+// image_imports.cpp); here the start-up actions run, then the static initialisers and WinMain (app::GameMain).
 #include "ei/hook.h"
 #include "log.h"
+#include "game/app.h"
 #include "standalone/static_init.h"
 #include "game/game_data.h"
 #include "game/settings_file.h"
@@ -21,14 +22,10 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include <utility>
-#include <vector>
 
 namespace ei {
 
-const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook.cpp
-std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
-int ImageImportsMissing();                                              // standalone/image_imports.cpp
+int ImageImportsMissing();   // standalone/image_imports.cpp
 
 
 // A code address as the log names it (standalone.cpp).
@@ -38,16 +35,13 @@ void DescribeCode(std::uintptr_t address, char* out, std::size_t size);
 // harness's handler (its report) before the process ends.
 void ReportImageFailure(const char* what);
 
-// Execution reached game.exe's code at `address` with no code of ours for it (a stub of image_code.cpp, or the
-// guarded code section): "no code at <address> (in the game function at <start> | library code), [esp] <caller>"
-// (tools/resolve_crash.py reads it), then the process ends.
+// Execution reached game.exe's code at `address` with no code of ours for it (the guarded code section, a compiled
+// table's unported slot): "no code at <address>, [esp] <caller>" (tools/resolve_crash.py reads it), then the process
+// ends.
 [[noreturn]] void ReportNoCode(std::uintptr_t address, std::uintptr_t caller) {
-    const std::uintptr_t function = FunctionContaining(address);
-    char where[64], from[160], what[256];
-    if (function) std::snprintf(where, sizeof(where), "in the game function at %08X", static_cast<unsigned>(function));
-    else strcpy_s(where, "library code");
+    char from[160], what[256];
     DescribeCode(caller, from, sizeof(from));
-    std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(address), where, from);
+    std::snprintf(what, sizeof(what), "no code at %08X, [esp] %s", static_cast<unsigned>(address), from);
     ReportImageFailure(what);
     TerminateProcess(GetCurrentProcess(), 3);
     for (;;) Sleep(INFINITE);
@@ -60,7 +54,7 @@ std::size_t g_argumentsAt = 0;  // where the arguments start in it (WinMain's co
 
 
 // An access to game.exe's guarded code section: execution there (a jump or call to an address of game.exe's
-// code that did not go through CodeAddress: its caller is the return address on the stack when it is a call) is
+// code: its caller is the return address on the stack when it is a call) is
 // reported as no code at the address; a read or write of its bytes as such.
 LONG CALLBACK OnOldCode(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
@@ -85,25 +79,6 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* e) {
     Log("standalone: unhandled exception %08lX at %p", e->ExceptionRecord->ExceptionCode, e->ExceptionRecord->ExceptionAddress);
     TerminateProcess(GetCurrentProcess(), 4);
     return EXCEPTION_CONTINUE_SEARCH;
-}
-
-// Every registration InstallHooks took is the code for its address, in this DLL. Returns the ones that are not.
-int CheckCode() {
-    HMODULE self = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCSTR>(&CheckCode), &self);
-    int bad = 0;
-    for (const auto& [address, registered] : InstalledHooks()) {
-        const std::uintptr_t code = CodeAddress(address);
-        HMODULE owner = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           reinterpret_cast<LPCSTR>(code), &owner);
-        if (owner != self || code != reinterpret_cast<std::uintptr_t>(registered)) {
-            Log("standalone: the code for %08X is not its registration", static_cast<unsigned>(address));
-            ++bad;
-        }
-    }
-    return bad;
 }
 
 // The image has nothing of game.exe at its addresses: no instruction of the original runs, none that calls
@@ -238,7 +213,8 @@ void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, 
 } // namespace ei
 
 // Called by the host once ei_hook.dll is loaded, with the game's arguments (what followed "--" on the host's
-// command line, as typed). `run` 0: take and check the registrations and route the image's calls, then return (0 when all of it is right and WinMain has code). `run` 1: then run WinMain.
+// command line, as typed). `run` 0: run the start-up actions and route the image's calls, then return (0 when all of
+// it is right). `run` 1: then run WinMain.
 extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const char* arguments) {
     using namespace ei;
     // GetCommandLineA's line: the program, as GetModuleFileNameA(NULL) names it (the host), then the arguments.
@@ -248,15 +224,11 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     g_commandLine = std::string("\"") + program + "\"" + (hasArguments ? " " : "") + (hasArguments ? arguments : "");
     g_argumentsAt = std::strlen(program) + 2 + (hasArguments ? 1 : 0);
     SetProcessDPIAware();
-    // The missing-code report first: InstallHooks runs the startup actions (WideScreen's parses its
-    // resolution there), so a jump into game.exe's code before WinMain is named too, not a silent end.
+    // The missing-code report first: the start-up actions run before WinMain (WideScreen's parses its resolution),
+    // so a jump into game.exe's code there is named too, not a silent end.
     AddVectoredExceptionHandler(1, OnOldCode);
     SetUnhandledExceptionFilter(OnUnhandled);
-    const int installed = InstallHooks();
-    const int bad = CheckCode();
-    const bool winMain = HasCode(kGameWinMain);
-    Log("standalone: %d registration(s) taken as game.exe's code, %d wrong, WinMain %s", installed, bad,
-        winMain ? "rewritten" : "missing");
+    RunStartupActions();
     // Informational: what the loader put in game.exe's range before the host ran is not ours to move.
     const std::size_t open = CheckGuard();
     const auto* taken = reinterpret_cast<const std::uint32_t*>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneRangeTaken"));
@@ -267,7 +239,7 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     Log("standalone: the game's command line%s routed; arguments: '%s'", routed ? "" : " not",
         g_commandLine.c_str() + g_argumentsAt);
     const int missingImports = ImageImportsMissing();
-    if (!run) return installed > 0 && bad == 0 && winMain && routed && missingImports == 0 ? 0 : 1;
+    if (!run) return routed && missingImports == 0 ? 0 : 1;
     if (missingImports != 0) {   // as the system loader: no start without every import (ei_hook.log names them)
         ReportImageFailure("game.exe's imports did not all resolve");
         return 1;
@@ -281,9 +253,8 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up
     static_init::RunStaticInitialisers();
-    using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
-    const int result = Code<WinMainFn>(kGameWinMain)(GetModuleHandleA(nullptr), nullptr,
-                                                  g_commandLine.data() + g_argumentsAt, SW_SHOWNORMAL);
+    const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_commandLine.data() + g_argumentsAt,
+                                     SW_SHOWNORMAL);
     libcrt::Exit(result);
     return result;
 }

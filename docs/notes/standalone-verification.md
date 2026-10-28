@@ -122,8 +122,7 @@ fixed-seed reservoir of `cap` distinct calls per bucket (so a rare path is kept)
 change of ours is never a reason to re-record; an intended difference needs its own check.
 
 **Replay** (`ei_vectors.exe`, every configuration, run by build.cmd): links the families' sources without the game
-(tests/vectors/hook_stub.cpp keeps the registrations: ei::Code / CodeAddress give the replacement registered at an
-address, one without stops the run naming it; ports no replay reaches are stubs in replay_unlinked.cpp). Each
+(tests/vectors/hook_stub.cpp has ei::Standalone; ports no replay reaches are stubs in replay_unlinked.cpp). Each
 record runs under its recorded control word and is compared bitwise. It fails on a differing record, a file without a
 check, another payload size, or no files.
 - Variable-size records: payload size 0 in the header; `Writer` / `Reader`, `Sampler::OfferBytes`,

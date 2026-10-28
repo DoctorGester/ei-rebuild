@@ -1,5 +1,5 @@
-// The CArray<T> instantiations that destroy game elements (game_arrays.h), registered at their
-// library addresses (ticket S6; the plain ones are in lib/mfc_array.cpp).
+// The CArray<T> instantiations that destroy game elements (game_arrays.h; the plain ones are in
+// lib/mfc_array.cpp).
 #include "lib/static_object.h"
 #include "game/game_arrays.h"
 #include "game/record_arrays.h"

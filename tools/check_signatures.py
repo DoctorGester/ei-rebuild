@@ -3,7 +3,7 @@ original pops (its RET n).
 
 Four bugs so far came from declaring a function with too few stack arguments or misreading them:
 the caller and callee then disagree on the stack and the game crashes later, far from the cause.
-For every EI_REPLACE / EI_REPLACE_METHOD / EI_ORIGINAL / EI_RECORD in src/ and tests/, this takes
+For every EI_REWRITTEN / EI_ORIGINAL / EI_RECORD in src/ and tests/, this takes
 the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
@@ -166,7 +166,7 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD, _DISPATCH, _STANDALONE) and EI_REWRITTEN
+    """(address, name, kind, file, line) of every EI_REWRITTEN
     ('replace': our function for the original at the address; EI_REWRITTEN, C20d, has no registration), EI_RECORD
     ('record') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/: the tools' function-to-original
     map."""
@@ -181,7 +181,7 @@ def registrations():
         text = re.sub(r'//[^\n]*', blank, text)
         text = re.sub(r'__declspec\(\s*\w+\s*\)', blank, text)
         rel = os.path.relpath(path, ROOT)
-        for m in re.finditer(r'(?:EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:~]+)(?![\w:~<])', text):   # not a template's name: short_functions.cpp's LoadDword<0x24> (C20e)
+        for m in re.finditer(r'EI_REWRITTEN(?:_SPECIAL)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:~]+)(?![\w:~<])', text):   # not a template's name: short_functions.cpp's LoadDword<0x24> (C20e)
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'EI_RECORD\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'record', rel, text.count('\n', 0, m.start()) + 1))

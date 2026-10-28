@@ -1,22 +1,9 @@
-"""Fails the build when one game address has two registrations that InstallHooks would both install.
+"""Fails the build when one game address has two EI_REWRITTEN lines (the function-to-original map).
 
-Every registration macro (include/ei/hook.h: EI_REPLACE, EI_REPLACE_METHOD,
-EI_REPLACE_STANDALONE, EI_REPLACE_SHORT, EI_RECORD) leaves a record of the
-address, its kind and the file and line of the expansion in the section .eireg of the module. This
-check reads those records from the built ei_hook.dll, so it sees what this build registers (macro
-generated registrations included, and registrations left out by #if are not there), and groups them
-per address into the two sets InstallHooks keeps one of:
-
-  - plain replacements: EI_REPLACE, _METHOD, _STANDALONE and _SHORT together (the standalone
-    image installs all of them; the second one at an address is skipped, or its jump wins, and the
-    rewrite never runs: SV6 saw this at run time),
-  - vector recorders: EI_RECORD (installed only in game.exe, with EI_VECTORS=1).
-
-A replacement together with a recorder at one address is the normal case, not a problem. Each problem names the address and every file:line registering it.
-
-EI_REWRITTEN (a rewrite without a registration, C20d) leaves {address, function, file, line} in the section .eiorg:
-the tools' function-to-original map. One address has at most one, and none where a plain replacement is registered
-(the registration already maps the function).
+EI_REWRITTEN / EI_REWRITTEN_SPECIAL (include/ei/hook.h; a rewrite, C20d) leave {address, function, file, line} in
+the section .eiorg of the module. This check reads those records from the built ei_hook.dll, so it sees what this
+build maps (lines left out by #if are not there): one address has at most one, or the tools' map would name two
+functions for one original.
 
 usage: python tools/check_registrations.py [--dll build/release/ei_hook.dll]
 exit code 1 on any problem
@@ -24,9 +11,6 @@ exit code 1 on any problem
 import argparse, os, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KINDS = ['EI_REPLACE', 'EI_REPLACE_STANDALONE', 'EI_REPLACE_SHORT', 'EI_RECORD']   # include/ei/hook.h RegKind
-SET_OF = ['plain replacement', 'plain replacement', 'plain replacement', 'recorder']
-RECORD = struct.Struct('<IIII')   # address, file (VA of the string), line, kind
 ORIGIN = struct.Struct('<IIII')   # EI_REWRITTEN: address, VA of a constant holding &fn (or of a name), file (VA of the string), line
 
 
@@ -62,25 +46,22 @@ class Image:
         return '?'
 
 
-def records(img, name='.eireg'):
-    """.eireg: (address, file, line, kind); .eiorg: (address, file, line, function VA). None without the section."""
-    sec = img.section(name)
+def records(img):
+    """.eiorg: (address, file, line, function VA). None without the section."""
+    sec = img.section('.eiorg')
     if sec is None:
         return None
     _, _, vsz, rptr, rsz = sec
     raw = img.data[rptr:rptr + min(vsz, rsz)]
     out = []
     off = 0
-    while off + RECORD.size <= len(raw):   # the linker pads between the modules' contributions with zeros
-        if name == '.eiorg':
-            address, code, file_va, line = ORIGIN.unpack_from(raw, off)
-        else:
-            address, file_va, line, code = RECORD.unpack_from(raw, off)
+    while off + ORIGIN.size <= len(raw):   # the linker pads between the modules' contributions with zeros
+        address, code, file_va, line = ORIGIN.unpack_from(raw, off)
         if address == 0:
             off += 4
             continue
         out.append((address, img.string_at(file_va), line, code))
-        off += RECORD.size
+        off += ORIGIN.size
     return out
 
 
@@ -95,39 +76,20 @@ def main(argv):
     ap.add_argument('--dll', default=os.path.join(ROOT, 'build', 'release', 'ei_hook.dll'))
     args = ap.parse_args(argv)
     img = Image(args.dll)
-    recs = records(img)
-    if not recs:
-        print(f'{args.dll}: no registration records (section .eireg missing or empty)')
+    origins = records(img)
+    if not origins:
+        print(f'{args.dll}: no EI_REWRITTEN records (section .eiorg missing or empty)')
         return 1
-    groups = {}
-    for address, file, line, kind in recs:
-        if not 0 <= kind < len(KINDS):
-            print(f'{short(file)}({line}): {address:08X} has the unknown registration kind {kind}')
-            return 1
-        groups.setdefault((address, SET_OF[kind]), []).append((short(file), line, KINDS[kind]))
-    problems = 0
-    for (address, which), sites in sorted(groups.items()):
-        if len(sites) > 1:
-            problems += 1
-            where = '; '.join(f'{k} at {f}:{l}' for f, l, k in sorted(sites))
-            print(f'{address:08X} has {len(sites)} {which} registrations: {where}')
-    print(f'{len(recs)} registrations at {len({a for a, _, _, _ in recs})} addresses, {problems} address(es) registered twice')
-    origins = records(img, '.eiorg') or []
     by_address = {}
     for address, file, line, code in origins:
         by_address.setdefault(address, []).append((short(file), line))
     twice = 0
     for address, sites in sorted(by_address.items()):
-        registered = groups.get((address, 'plain replacement'), [])
-        if len(sites) > 1 or registered:
+        if len(sites) > 1:
             twice += 1
-            where = '; '.join([f'EI_REWRITTEN at {f}:{l}' for f, l in sorted(sites)] +
-                              [f'{k} at {f}:{l}' for f, l, k in sorted(registered)])
-            print(f'{address:08X} has {len(sites)} EI_REWRITTEN' + (' and a registration' if registered else '') +
-                  f': {where}')
+            print(f'{address:08X} has {len(sites)} EI_REWRITTEN: ' + '; '.join(f'{f}:{l}' for f, l in sorted(sites)))
     print(f'{len(origins)} EI_REWRITTEN at {len(by_address)} addresses, {twice} address(es) mapped twice')
-    problems += twice
-    return 1 if problems else 0
+    return 1 if twice else 0
 
 
 if __name__ == '__main__':

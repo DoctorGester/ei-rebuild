@@ -370,7 +370,7 @@ Ostream* Ostream::Construct(Streambuf* buffer, int mostDerived) {
 EI_REWRITTEN(0x006FC42F, libcrt::Ostream::Construct);
 
 Ostream* Ostream::Apply(Ostream*(__cdecl* manipulator)(Ostream*)) {
-    ei::Code<Ostream*(__cdecl*)(Ostream*)>(reinterpret_cast<std::uintptr_t>(manipulator))(this);
+    manipulator(this);
     return this;
 }
 EI_REWRITTEN(0x00434FE0, libcrt::Ostream::Apply);

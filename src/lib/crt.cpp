@@ -285,7 +285,6 @@ void ShortSort(char* lo, char* hi, std::size_t width, Compare compare) {
 } // namespace
 
 void __cdecl Qsort(void* base, std::size_t count, std::size_t width, Compare compare) {
-    compare = ei::Code<Compare>(reinterpret_cast<std::uintptr_t>(compare));
     constexpr std::size_t kShortSort = 8;
     if (count < 2 || width == 0) return;
     char* loStack[30];
@@ -597,10 +596,9 @@ void __fastcall NodeDeallocate(void* p, std::size_t bytes) {
 EI_REWRITTEN(0x00404D70, libcrt::NodeDeallocate);
 
 // The onexit list is the host CRT's: _crt_atexit's table, which std::exit runs last-registered first
-// (functions registered while it runs, too) before the host's own terminators. A function registered at its
-// address in game.exe's code runs as CodeAddress's code for it (ei/hook.h).
+// (functions registered while it runs, too) before the host's own terminators.
 ExitFunction __cdecl OnExit(ExitFunction function) {
-    return _crt_atexit(ei::Code<ExitFunction>(reinterpret_cast<std::uintptr_t>(function))) == 0 ? function : nullptr;
+    return _crt_atexit(function) == 0 ? function : nullptr;
 }
 EI_REWRITTEN(0x006E71FD, libcrt::OnExit);
 
@@ -701,12 +699,8 @@ struct ArrayUnwind {
 };
 } // namespace
 
-ElementFunction ElementCode(ElementFunction f) { return ei::Code<ElementFunction>(reinterpret_cast<std::uintptr_t>(f)); }
-
 void __stdcall ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
                                  ElementFunction destroy) {
-    construct = ElementCode(construct);
-    destroy = ElementCode(destroy);
     char* p = static_cast<char*>(array);
     int constructed = 0;
     ArrayUnwind unwind{p, size, constructed, destroy};
@@ -719,7 +713,6 @@ void __stdcall ConstructElements(void* array, std::size_t size, int count, Eleme
 EI_REWRITTEN(0x006E8693, libcrt::ConstructElements);
 
 void __stdcall DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
-    destroy = ElementCode(destroy);
     char* p = static_cast<char*>(array) + size * count;
     ArrayUnwind unwind{p, size, count, destroy};
     while (--count >= 0) {
