@@ -57,7 +57,7 @@ static_assert(offsetof(AIViewer, facing) == 0x14);
 // The cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
 // sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
 // height; within hearing all around; within the peripheral range in the front half.
-void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
+void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
 
 // An AI event: filed in its map cell's list for its side and in the time wheel's slot of the tick it expires.
@@ -75,7 +75,7 @@ struct AIEvent {
 };
 static_assert(sizeof(AIEvent) == 0x30);
 // The pool's destructor (at exit): RemoveAll.
-void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool);
+void AIEventPoolDestruct(mfc::CList<AIEvent>* pool);
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {

@@ -86,7 +86,7 @@ void Remark(CUnit* unit, int code) {
 }
 } // namespace
 
-void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
+void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
     EI_NAN_AUDIT(amount);
     if (!item || !unit || amount <= kZero) return;
     float before = item->condition_;
@@ -108,7 +108,7 @@ void __fastcall WearItem(CItem* item, CUnit* unit, float amount, int brokenRemar
     if (condition < t) Remark(unit, wornRemark);
 }
 
-void __stdcall WearArmour(CUnit* unit, int location, int layer, float amount) {
+void WearArmour(CUnit* unit, int location, int layer, float amount) {
     if (!(IsTextKey(unit->id_) & 0xFF) || layer == 0) return;
     int outer = layer - 1;
     if (static_cast<std::uint32_t>(location) > 5) return;

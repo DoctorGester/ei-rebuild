@@ -68,7 +68,7 @@ Sector::Sector() {
     Clear();
 }
 
-void __stdcall ConstructSectors(Sector* sectors, int count) {
+void ConstructSectors(Sector* sectors, int count) {
     std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
     for (; count != 0; --count, ++sectors) new (sectors) Sector();
 }
@@ -83,7 +83,7 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     aiMap = map;
 }
 
-void __fastcall CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
+void CSectorMap::DestructSectors(mfc::CArray<Sector, SectorElements>* sectors) {
     sectors->vtable = mfc::impl::SectorArrayClass::Vtable();
     if (!sectors->data) return;
     SectorElements::Destruct(sectors->data, sectors->size);
@@ -214,7 +214,7 @@ struct SpiralCell {
 static_assert(sizeof(SpiralCell) == 8);
 
 // The sort's comparison: by distance, ascending.
-int __cdecl ByDistance(const void* a, const void* b) {
+int ByDistance(const void* a, const void* b) {
     const float da = static_cast<const SpiralCell*>(a)->distance;
     const float db = static_cast<const SpiralCell*>(b)->distance;
     if (da > db) return 1;
@@ -270,7 +270,7 @@ void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArra
 }
 
 // Builds the spiral in the tables (the static initialiser's object has no fields; returns it).
-void* __fastcall BuildSectorSpiral(void* self) {
+void* BuildSectorSpiral(void* self) {
     BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
     return self;
 }

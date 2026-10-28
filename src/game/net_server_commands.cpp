@@ -50,7 +50,7 @@ bool ServerSession::IsHostConnection(const Connection* connection) {
 
 // File requests: the request keeps its sender's connection and is listed on fileRequests_ (dropped again on
 // removal).
-void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
+void ServerOnObjectAdded(ServerSession* self, FileRequestMessage* message) {
     CRefObject* connection = CurrentConnectionObject();
     CRefObject* previous = message->ConnectionRef().ptr;
     message->ConnectionRef().ptr = connection;
@@ -71,7 +71,7 @@ void __fastcall ServerOnObjectAdded(ServerSession* self, FileRequestMessage* mes
 //      LeaveZone (_2) or CompleteZone (_3) with the name before it;
 //   2 / 3: every guest whose name starts with `text` is kicked / banned;
 //   4 / 5: the client with serial atoi(text) is kicked / banned.
-void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
+void ServerOnCommand(ServerSession* self, CommandMessage* message) {
     std::string* text = &message->text_;
     switch (message->kind_) {
     case kPreviewMap:

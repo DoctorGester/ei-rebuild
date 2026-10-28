@@ -40,7 +40,7 @@
 #include <string>
 
 namespace net {
-int __fastcall MasterLinkTick(net::MasterLink*);
+int MasterLinkTick(net::MasterLink*);
 }
 namespace {
 

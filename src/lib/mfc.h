@@ -32,7 +32,7 @@ public:
     const CString& operator=(const CString& s);
 
     // Printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
-    void __cdecl Format(const char* format, ...);
+    void Format(const char* format, ...);
 
     void Empty();
     char* GetBufferSetLength(int length);
@@ -211,8 +211,8 @@ struct CPlex {
     CPlex* next;
 };
 namespace impl {
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
-int __fastcall FreePlexChain(CPlex* head);
+CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
+int FreePlexChain(CPlex* head);
 } // namespace impl
 inline CPlex* PlexCreate(CPlex*& head, unsigned count, unsigned elementSize) {
     return impl::CreatePlex(head, count, elementSize);
@@ -700,11 +700,11 @@ template <typename T>
 using CTypedPtrList = CList<T*>;
 
 
-CString __stdcall operator+(const CString& a, const char* b);
-CString __stdcall operator+(const char* a, const CString& b);
-CString __stdcall operator+(const CString& a, const CString& b);
-CString __stdcall operator+(const CString& a, char b);
-CString __stdcall operator+(char a, const CString& b);
+CString operator+(const CString& a, const char* b);
+CString operator+(const char* a, const CString& b);
+CString operator+(const CString& a, const CString& b);
+CString operator+(const CString& a, char b);
+CString operator+(char a, const CString& b);
 // The same bridge: text joined with a std::string, as the std::string side's type.
 inline std::string operator+(const std::string& a, const CString& b) { return a + b.GetString(); }
 inline CString operator+(const CString& a, const std::string& b) { return a + b.c_str(); }

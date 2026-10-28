@@ -28,10 +28,10 @@ constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {}
 using spellfx::g_spellFootprint;
 
 namespace {
-void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
+void FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
 } // namespace
 
-void __cdecl ConstructSpellFootprint() {
+void ConstructSpellFootprint() {
     g_spellFootprint->Construct();
     libcrt::AtExit(FreeSpellFootprint);
 }

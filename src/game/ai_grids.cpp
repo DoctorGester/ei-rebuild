@@ -14,30 +14,30 @@
 
 #include <cstring>
 
-extern "C" int __cdecl _purecall();
+extern "C" int _purecall();
 
 // ---- Allocate / free ------------------------------------------------------------------------------
 
-void __fastcall AllocateNodeGrid(SearchGrid<SearchNode>* grid) { AllocateGrid(*grid); }
+void AllocateNodeGrid(SearchGrid<SearchNode>* grid) { AllocateGrid(*grid); }
 
-void __fastcall AllocateByteGrid(SearchGrid<std::uint8_t>* grid) { AllocateGrid(*grid); }
+void AllocateByteGrid(SearchGrid<std::uint8_t>* grid) { AllocateGrid(*grid); }
 
-void __fastcall AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
+void AllocateEdgeGrid(SearchGrid<std::int16_t>* grid) {
     constexpr int kEdges = 8;
     AllocateGrid(*grid, kEdges);
     int count = grid->width * grid->height * kEdges;
     for (int i = 0; i < count; ++i) grid->data[i] = -1;
 }
 
-void __fastcall AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid) {
+void AllocateZeroedByteGrid(SearchGrid<std::uint8_t>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) grid->data[i] = 0;
 }
 
-void __fastcall AllocateRegionGrid(SearchGrid<std::uint16_t>* grid) { AllocateGrid(*grid); }
+void AllocateRegionGrid(SearchGrid<std::uint16_t>* grid) { AllocateGrid(*grid); }
 
-void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
+void AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) {
@@ -49,7 +49,7 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid) {
     }
 }
 
-void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
+void AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid) {
     AllocateGrid(*grid);
     int count = grid->width * grid->height;
     for (int i = 0; i < count; ++i) grid->data[i] = (grid->data[i] & 0xFFFFFF60) | 0x100;
@@ -109,19 +109,19 @@ template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int 
     return this;
 }
 
-void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
+void ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
     grid->width = 1;
     grid->height = 1;
     AllocateEdgeGrid(grid);
 }
 
-void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid) {
+void ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid) {
     grid->width = 1;
     grid->height = 1;
     AllocateZeroedByteGrid(grid);
 }
 
-void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
+void ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
     grid->width = 1;
     grid->height = 1;
     AllocateGrid(*grid);

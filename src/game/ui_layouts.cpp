@@ -488,7 +488,7 @@ void CDifficultyBox::CreateScreen() {
 // --- Titles ----------------------------------------------------------------------------
 
 namespace {
-CSceneRenderer* __cdecl TitlesDisplay() { return SceneRenderer(); }
+CSceneRenderer* TitlesDisplay() { return SceneRenderer(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").

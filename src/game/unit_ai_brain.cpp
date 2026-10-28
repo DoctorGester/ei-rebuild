@@ -290,7 +290,7 @@ void RemoveAllOf(mfc::CTypedPtrList<CUnit>& list, CEngineObject* object) {
 }
 } // namespace
 
-float* __fastcall CopyPoint2(float* out, const float* point) {
+float* CopyPoint2(float* out, const float* point) {
     float x = point[0];
     float y = point[1];
     out[0] = x;
@@ -339,7 +339,7 @@ void AICallElements::Destruct(AICallRecord* calls, int count) {
     for (int i = 0; i < count; ++i) calls[i].Destruct();
 }
 
-void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
+void AIReportElements::Construct(AIReport* reports, int count) {
     std::memset(static_cast<void*>(reports), 0, sizeof(AIReport) * static_cast<unsigned>(count));
     for (int i = 0; i < count; ++i) reports[i].object = nullptr;
 }

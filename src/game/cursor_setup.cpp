@@ -10,7 +10,7 @@ namespace {
 // The cursor object and its methods (thiscall).
 // The device the cursor is drawn on.
 // The set-up function through its address (the verify build's wrapper sees the call from the reset).
-void __fastcall SetUpCursorsAt(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
+void SetUpCursorsAt(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
     SetUpCursors(modeTwo, context, smallCursors, flags);
 }
 
@@ -51,7 +51,7 @@ const CursorShape kShapes[] = {
 
 // Set-up (fastcall). `modeTwo` picks the cursor's mode 2 (else 1); `context` and
 // `smallCursors` (low byte tested) go to the cursor's Init, `flags` to every shape.
-void __fastcall SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
+void SetUpCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
     TheCursor()->Init(TheRenderDevice(), modeTwo ? 2 : 1,
                                                 context, smallCursors);
     bool useSmall = static_cast<std::uint8_t>(smallCursors) != 0;
@@ -60,7 +60,7 @@ void __fastcall SetUpCursors(bool modeTwo, CDirectInputMouse* context, int small
     TheCursor()->Start();
 }
 
-void __fastcall ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
+void ResetCursors(bool modeTwo, CDirectInputMouse* context, int smallCursors, int flags) {
     TheCursor()->Shutdown();   // the drawing thread stopped, the shapes released
     SetUpCursorsAt(modeTwo, context, smallCursors, flags);
 }

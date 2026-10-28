@@ -30,7 +30,7 @@ namespace {
 // to (its frame counter). The glow's static arrays: CArray constructor, its exit-time destructor, the points'
 // exit-time free, the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
 // The sprite records are zero filled.
-void __fastcall SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
+void SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
 
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
@@ -45,10 +45,10 @@ using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;
 static_assert(sizeof(SpriteArray) == 0x14);
 constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
-void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }
+void FreeGlowPoints() { g_glowPoints.FreeData(); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 void SizeSprites() { Sprites().SetSize(8); }

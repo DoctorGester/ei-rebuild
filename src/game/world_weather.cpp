@@ -156,7 +156,7 @@ float Half() { return 0.5f /*0073B86C*/; }
 
 } // namespace
 
-void __stdcall ShowBolt(Vector3 from, Vector3 to) {
+void ShowBolt(Vector3 from, Vector3 to) {
     std::string prefix;   // stays empty
     mfc::CString text;
     // The middle: x and y are summed into floats first, z is not.

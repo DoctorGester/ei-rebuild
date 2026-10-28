@@ -248,7 +248,7 @@ static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 // A grid of the map sized for it: reallocated (and filled as its element type's Allocate fills
 // it) unless it has that size already.
 template <typename T>
-void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* allocate)(SearchGrid<T>*)) {
+void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(*allocate)(SearchGrid<T>*)) {
     if (grid.width == width && grid.height == height) return;
     gamecrt::operator_delete(grid.data);
     gamecrt::operator_delete(grid.rows);
@@ -258,7 +258,7 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* all
 }
 
 // The grids of plain bytes (the marks; the water depths' is the same code inline) are left as allocated.
-void __fastcall AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
+void AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
 constexpr float kHalf = 0.5f;
 constexpr float kQuarter = 0.25f;

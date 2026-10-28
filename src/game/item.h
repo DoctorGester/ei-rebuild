@@ -291,34 +291,34 @@ public:
 
 // Weapon stats from a packed id. Each faults if the prototype index is out of range; an out-of-range
 // material reads the multiplier from address 0 likewise.
-int __fastcall WeaponType(std::uint32_t packedId);
-float __fastcall WeaponMinDamage(std::uint32_t packedId);
-float __fastcall WeaponMaxDamage(std::uint32_t packedId);
-float __fastcall WeaponAttack(std::uint32_t packedId);
-int __fastcall WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
-float __fastcall WeaponStat84(std::uint32_t packedId);
-float __fastcall WeaponStat88(std::uint32_t packedId);
+int WeaponType(std::uint32_t packedId);
+float WeaponMinDamage(std::uint32_t packedId);
+float WeaponMaxDamage(std::uint32_t packedId);
+float WeaponAttack(std::uint32_t packedId);
+int WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
+float WeaponStat84(std::uint32_t packedId);
+float WeaponStat88(std::uint32_t packedId);
 
 // The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
 // "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
     // appended, "basearrow00" / "basearrow01" for types 5 / 6, else "baser_hand3". False for index -1 or out of
     // range (only the low byte set).
-bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
+bool WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
 
 // The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in
 // material `materialIndex` into `out` (emptied first; left empty when either is out of range). The type
 // code is copied into the stack slot of `materialIndex`, so for a type without a code the index's own bytes
 // are the code.
-void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
+void ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
 // The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
-void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
+void WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
 // The same from the records themselves (no null checks, `out` not emptied first); for a type without a code
 // the code is the bytes of `out`'s address.
-void __fastcall WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
+void WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
                                       const itemdb::MaterialRecordHead* material);
 
 // The armour prototype's layer by prototype index; 0 if out of range.
-int __fastcall ArmorFieldB8(std::uint32_t index);
+int ArmorFieldB8(std::uint32_t index);
 
 // --- Item construction -------------------------------------------------
 
@@ -449,7 +449,7 @@ template <typename T> class vector;
 // The names of the figure parts a weapon prototype (by index) is drawn with, replacing
 // the contents of `out`: "rh3.sword07" for a sword with number 7, the bow and crossbow pieces plus
 // the quiver and arrows. Nothing for an index out of range or an unknown weapon type.
-void __fastcall WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
+void WeaponModelParts(std::uint32_t index, std::vector<std::string>* out);
 
 // The same names for a packed item id, appended to an STLport vector of strings.
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out);
+void AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out);

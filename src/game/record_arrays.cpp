@@ -20,7 +20,7 @@ void InitTheme(MusicTheme* p) {
     std::construct_at(&p->calm);
     std::construct_at(&p->combat);
 }
-void __fastcall DestroyTheme(MusicTheme* p) {
+void DestroyTheme(MusicTheme* p) {
     std::destroy_at(&p->combat);
     std::destroy_at(&p->calm);
     std::destroy_at(&p->constructor);

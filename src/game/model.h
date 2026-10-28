@@ -507,13 +507,13 @@ static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRend
 static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
               offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
 
-CSceneRenderer* __cdecl SceneRenderer();
+CSceneRenderer* SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect);
+Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect);
 // Perspective projection; `fov` in radians (full angle).
-Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
+Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
 // A triangle corner of a figure part: the vertex (position) index, a second index (the normal's; the interface
 // sprites write 0) and the texture coordinate index.
@@ -552,8 +552,8 @@ struct FigureModel {
     void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
-FigureModel* __fastcall ConstructFigureModel(FigureModel* model);
-void __fastcall DestroyFigureModel(FigureModel* model);
+FigureModel* ConstructFigureModel(FigureModel* model);
+void DestroyFigureModel(FigureModel* model);
 
 // Loads .lnk link files and the figures they name (created at startup with figures.res and menus.res). A
 // figure is a CLinkMesh of parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made
@@ -700,4 +700,4 @@ inline const PrintsDatabase& ThePrintsDatabase() { return *g_printsDatabase; }
 
 // A length-prefixed name (a four-byte length, then the characters) at *cursor into `out` (emptied for length
 // 0), the cursor moved past it.
-void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);
+void ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);

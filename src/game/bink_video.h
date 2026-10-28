@@ -12,10 +12,10 @@ struct CDXSurface;
 // Set while a .mob file loads: the loading screen's movie stays as it is.
 extern std::uint8_t g_loadingMovieOff;
 
-void __fastcall ShowLoadingMovie(int progress);
+void ShowLoadingMovie(int progress);
 // Plays a movie in a message loop of its own (name, the time per frame or 0, Esc / Space end it, Space skips
 // frames, the screen cleared first, a loading screen step first, unused). Returns 0 when Esc ended it.
-char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
+char PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int unused);
 // Closes the loading screen's movie once loading is over (game start and zone load): the handle and the holder
 // let go, the cursor shown again.

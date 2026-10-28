@@ -18,7 +18,7 @@ constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 const char* NoText() { return ""; }
 } // namespace
 
-int __fastcall ReadTextFile(const char* path, mfc::CString* text) {
+int ReadTextFile(const char* path, mfc::CString* text) {
     int result;
     mfc::ExceptionLink link;
     try {

@@ -608,7 +608,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
 namespace {
 
 
-inline void __fastcall GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
+inline void GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {

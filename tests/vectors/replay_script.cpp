@@ -215,7 +215,7 @@ EI_VECTOR_CHECK_BYTES("ApplyDefines", CheckApplyDefines);
 // The replay's CScript::Error (the game's is the original 004CF470, which Rebirth patches): the report
 // is kept for the check and set on the script as ScriptErrorV sets it (wvsprintfA's formats the
 // parser uses, %s and %i, are printf's).
-int __cdecl CScript::Error(CScript* script, int line, int code, const char* format, ...) {
+int CScript::Error(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
     std::vsnprintf(g_error.text, sizeof(g_error.text), format, args);
@@ -239,4 +239,4 @@ void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
 }
 
 // CScript::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
-int __fastcall scriptparse::ReadTextFile(const char*, mfc::CString*) { std::abort(); } // namespace scriptaddon
+int scriptparse::ReadTextFile(const char*, mfc::CString*) { std::abort(); } // namespace scriptaddon

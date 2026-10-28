@@ -24,7 +24,7 @@ inline double D(float f) { return f; }
 static_assert(sizeof(ParticleDepthArray) == 0x14);
 constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
 ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
-void __cdecl DestroyDrawOrder() {
+void DestroyDrawOrder() {
     mfc::impl::DestructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
 }
 // The camera's orientation.
@@ -123,13 +123,13 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 
 } // namespace
 
-void __cdecl ConstructDrawOrder() {
+void ConstructDrawOrder() {
     mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
     libcrt::AtExit(DestroyDrawOrder);
 }
 
 // STLport __make_heap (the tag arguments are unused).
-void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*, int, void*) {
+void MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*, int, void*) {
     if (last - first < 2) return;
     const int length = static_cast<int>(last - first);
     for (int parent = (length - 2) / 2;; --parent) {
@@ -139,7 +139,7 @@ void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*
 }
 
 // STLport __pop_heap: the top goes to `result`, `value` (the old *result) is re-sifted into [first, last).
-void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
+void PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
                                ParticleDepth value, int, void*) {
     *result = *first;
     AdjustHeap(first, 0, static_cast<int>(last - first), value);
@@ -147,7 +147,7 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
 
 // STLport __introsort_loop: partitions until the range is at most 16 entries; past the depth limit the rest
 // is heap sorted (make_heap, then pop_heap to the end).
-void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void*, int depthLimit, int compare) {
+void IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void*, int depthLimit, int compare) {
     while (last - first > kThreshold) {
         if (depthLimit == 0) {
             MakeHeapByDepth(first, last, nullptr, compare, nullptr);
@@ -166,7 +166,7 @@ void __fastcall IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void
 }
 
 // STLport __final_insertion_sort.
-void __fastcall FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int) {
+void FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int) {
     if (last - first > kThreshold) {
         InsertionSort(first, first + kThreshold);
         for (ParticleDepth* i = first + kThreshold; i != last; ++i) LinearInsert(i, *i);

@@ -16,7 +16,7 @@ int CUnitServer::GetClassId() { return kClassServer; }
 
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 
-AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step) {
+AnimationStep* ConstructAnimationStep(AnimationStep* step) {
     mfc::impl::InitAnimationStep12(step);
     step->padding = 0;   // the original leaves it (a stack byte); the harness zeroes it there too
     return step;

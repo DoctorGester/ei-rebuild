@@ -107,7 +107,7 @@ void AnimationSteps::Save(CStream* stream) {
     stream->Write(&last, sizeof(last));
 }
 
-void __fastcall OrderPlanReset(OrderPlan* plan) {
+void OrderPlanReset(OrderPlan* plan) {
     AnimationSteps& list = plan->animation;
     if (list.data) {
         gamecrt::operator_delete(list.data);

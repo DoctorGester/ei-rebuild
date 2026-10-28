@@ -44,7 +44,7 @@ constexpr int kLineHeight = 15;
 constexpr int kLevelDifferenceLimit = 25;
 
 // The world's night level, unrounded.
-double __fastcall WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
+double WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
 
 
 // The speed shown: (a constant * speed) * a constant unrounded, the speed of the mode (mode 3) for a

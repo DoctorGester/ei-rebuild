@@ -23,7 +23,7 @@
 
 #include <cstring>
 
-void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
+void DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
                                lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
                                lib::AlignedArray<CEngineObject*>* same);
 
@@ -70,10 +70,10 @@ StaticPtrArray& Added() { return g_added; }
 StaticPtrArray& Kept() { return g_kept; }
 StaticPtrArray& Removed() { return g_removed; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeCollected() { g_collected.FreeData(); }
-void __cdecl FreeAdded() { g_added.FreeData(); }
-void __cdecl FreeKept() { g_kept.FreeData(); }
-void __cdecl FreeRemoved() { g_removed.FreeData(); }
+void FreeCollected() { g_collected.FreeData(); }
+void FreeAdded() { g_added.FreeData(); }
+void FreeKept() { g_kept.FreeData(); }
+void FreeRemoved() { g_removed.FreeData(); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();

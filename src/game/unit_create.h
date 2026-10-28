@@ -53,10 +53,10 @@ static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
-int __stdcall BuildNpcStats(UnitStats* stats, const char* name);
+int BuildNpcStats(UnitStats* stats, const char* name);
 
 // The object class of prototype `name`'s model record; 0x33 without a prototype or model.
-int __stdcall PrototypeObjectClass(const char* name);
+int PrototypeObjectClass(const char* name);
 
 // The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {

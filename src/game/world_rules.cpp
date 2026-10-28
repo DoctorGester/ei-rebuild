@@ -74,11 +74,11 @@ float GameTime() {
 
 CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
-std::string __stdcall LocalPlayerZone() { return LocalPlayer()->Party()->zone_; }
+std::string LocalPlayerZone() { return LocalPlayer()->Party()->zone_; }
 
-float __stdcall LocalPlayerVariable(const char* name) { return Variable(LocalPlayer(), name); }
+float LocalPlayerVariable(const char* name) { return Variable(LocalPlayer(), name); }
 
-float __stdcall PlayerZeroVariable(const char* name) {
+float PlayerZeroVariable(const char* name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
     CPlayer* player = TheServerWorld()->GetPlayer(0);
     if (!player) return 0.0f;

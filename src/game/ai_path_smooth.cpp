@@ -207,7 +207,7 @@ namespace {
 
 // The step from the state `from` to the state `to` that starts where it ends: the move `to` makes, the turn
 // between the two moves less one eighth, the cost factor of that turn, and the way back along `to`.
-void __fastcall MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* to) {
+void MakeSmoothStep(SmoothStep* step, const SmoothEdge* from, const SmoothEdge* to) {
     const int fromDirection = DirectionSteps()[(from->y1 - from->y0) * 3 + from->x1 - from->x0];
     const int toDirection = DirectionSteps()[(to->y1 - to->y0) * 3 - to->x0 + to->x1];
     step->from = from->index;
@@ -333,7 +333,7 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 }
 
 // The static initialiser's second half, after the 81 tables have been constructed empty.
-void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
+void BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
 
 // ---- The pool and the tables ----------------------------------------------------------
 
@@ -348,19 +348,19 @@ using AtExitFunction = void(__cdecl*)();
 void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
 // The tables destroyed, the last one first (the `eh vector destructor iterator`).
-void __cdecl DestroySmoothTables() {
+void DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
-void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
+void DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
 } // namespace
 
-void __cdecl ConstructSmoothTables() {
+void ConstructSmoothTables() {
     for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
     RegisterExit(DestroySmoothTables);
 }
 
-void __cdecl ConstructSmoothPool() {
+void ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
     RegisterExit(DestroySmoothPool);
 }

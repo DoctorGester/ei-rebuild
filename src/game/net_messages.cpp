@@ -94,7 +94,7 @@ LoginMessage::LoginMessage(const LoginMessage& other)
 }
 LoginMessage::~LoginMessage() { ReleaseCounted(binding_); }
 
-Message* __fastcall LoginMessage::Create() { return NewCounted<LoginMessage>(); }
+Message* LoginMessage::Create() { return NewCounted<LoginMessage>(); }
 LoginMessage* LoginMessage::Clone() { return NewCounted<LoginMessage>(*this); }
 int LoginMessage::OnShutdown() {
     Rebuild(this);
@@ -124,7 +124,7 @@ void TextMessage::WriteText(BufferCursor* cursor) { PutString(cursor, text_); }
 void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
 
 SayMessage::SayMessage() {}
-Message* __fastcall SayMessage::Create() { return NewCounted<SayMessage>(); }
+Message* SayMessage::Create() { return NewCounted<SayMessage>(); }
 SayMessage* SayMessage::Clone() { return NewCounted<SayMessage>(*this); }
 int SayMessage::OnShutdown() {
     Rebuild(this);
@@ -134,7 +134,7 @@ void SayMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void SayMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
 ZoneMessage::ZoneMessage() {}
-Message* __fastcall ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
+Message* ZoneMessage::Create() { return NewCounted<ZoneMessage>(); }
 ZoneMessage* ZoneMessage::Clone() { return NewCounted<ZoneMessage>(*this); }
 int ZoneMessage::OnShutdown() {
     Rebuild(this);
@@ -143,7 +143,7 @@ int ZoneMessage::OnShutdown() {
 void ZoneMessage::Write(BufferCursor* cursor) { WriteText(cursor); }
 void ZoneMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 
-Message* __fastcall MapMessage::Create() { return NewCounted<MapMessage>(); }
+Message* MapMessage::Create() { return NewCounted<MapMessage>(); }
 MapMessage* MapMessage::Clone() { return NewCounted<MapMessage>(*this); }
 int MapMessage::OnShutdown() {
     Rebuild(this);
@@ -157,7 +157,7 @@ void MapMessage::Read(BufferCursor* cursor) { ReadText(cursor); }
 CommandMessage::CommandMessage() {}
 CommandMessage::CommandMessage(const CommandMessage& other) : Message(other), kind_(other.kind_), text_(other.text_) {}
 
-Message* __fastcall CommandMessage::Create() { return NewCounted<CommandMessage>(); }
+Message* CommandMessage::Create() { return NewCounted<CommandMessage>(); }
 CommandMessage* CommandMessage::Clone() { return NewCounted<CommandMessage>(*this); }
 int CommandMessage::OnShutdown() {
     Rebuild(this);
@@ -186,7 +186,7 @@ void PairMessage::WriteFirst(BufferCursor* cursor) { PutObject(cursor, first_); 
 void PairMessage::ReadFirst(BufferCursor* cursor) { TakeObject(cursor, first_); }
 
 BindingMessage::BindingMessage() {}
-Message* __fastcall BindingMessage::Create() { return NewCounted<BindingMessage>(); }
+Message* BindingMessage::Create() { return NewCounted<BindingMessage>(); }
 BindingMessage* BindingMessage::Clone() { return NewCounted<BindingMessage>(*this); }
 int BindingMessage::OnShutdown() {
     Rebuild(this);
@@ -196,7 +196,7 @@ void BindingMessage::Write(BufferCursor* cursor) { WriteFirst(cursor); }
 void BindingMessage::Read(BufferCursor* cursor) { ReadFirst(cursor); }
 
 FileRequestMessage::FileRequestMessage() {}
-Message* __fastcall FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
+Message* FileRequestMessage::Create() { return NewCounted<FileRequestMessage>(); }
 FileRequestMessage* FileRequestMessage::Clone() { return NewCounted<FileRequestMessage>(*this); }
 int FileRequestMessage::OnShutdown() {
     Rebuild(this);
@@ -212,7 +212,7 @@ PlayerMessage::PlayerMessage(const PlayerMessage& other)
     : Message(other), name_(other.name_), text_(other.text_), state_(other.state_), host_(other.host_),
       id_(other.id_), serial_(other.serial_), number_(other.number_), firstLine_(other.firstLine_) {}
 
-Message* __fastcall PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
+Message* PlayerMessage::Create() { return NewCounted<PlayerMessage>(); }
 PlayerMessage* PlayerMessage::Clone() { return NewCounted<PlayerMessage>(*this); }
 int PlayerMessage::OnShutdown() {
     Rebuild(this);
@@ -243,7 +243,7 @@ LineMessage::LineMessage(const LineMessage& other) : Message(other), number_(oth
 }
 LineMessage::~LineMessage() { ReleaseCounted(connection_); }
 
-Message* __fastcall LineMessage::Create() { return NewCounted<LineMessage>(); }
+Message* LineMessage::Create() { return NewCounted<LineMessage>(); }
 LineMessage* LineMessage::Clone() { return NewCounted<LineMessage>(*this); }
 int LineMessage::OnShutdown() {
     Rebuild(this);
@@ -263,7 +263,7 @@ void LineMessage::Read(BufferCursor* cursor) {
 HostMessage::HostMessage() {}
 HostMessage::HostMessage(const HostMessage& other) : Message(other), address_(other.address_), zone_(other.zone_) {}
 
-Message* __fastcall HostMessage::Create() { return NewCounted<HostMessage>(); }
+Message* HostMessage::Create() { return NewCounted<HostMessage>(); }
 HostMessage* HostMessage::Clone() { return NewCounted<HostMessage>(*this); }
 int HostMessage::OnShutdown() {
     Rebuild(this);
@@ -286,7 +286,7 @@ VariableMessage::VariableMessage(const VariableMessage& other) : Message(other),
     serial_ = other.serial_;
 }
 
-Message* __fastcall VariableMessage::Create() { return NewCounted<VariableMessage>(); }
+Message* VariableMessage::Create() { return NewCounted<VariableMessage>(); }
 VariableMessage* VariableMessage::Clone() { return NewCounted<VariableMessage>(*this); }
 int VariableMessage::OnShutdown() {
     Rebuild(this);
@@ -324,7 +324,7 @@ FileMessage::~FileMessage() {
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
 }
 
-Message* __fastcall FileMessage::Create() { return NewCounted<FileMessage>(); }
+Message* FileMessage::Create() { return NewCounted<FileMessage>(); }
 FileMessage* FileMessage::Clone() { return NewCounted<FileMessage>(*this); }
 int FileMessage::OnShutdown() {
     Rebuild(this);
@@ -350,7 +350,7 @@ FileChunkMessage::FileChunkMessage(const FileChunkMessage& other) : Message(othe
 }
 FileChunkMessage::~FileChunkMessage() { ReleaseCounted(file_); }
 
-Message* __fastcall FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
+Message* FileChunkMessage::Create() { return NewCounted<FileChunkMessage>(); }
 FileChunkMessage* FileChunkMessage::Clone() { return NewCounted<FileChunkMessage>(*this); }
 int FileChunkMessage::OnShutdown() {
     Rebuild(this);
@@ -377,7 +377,7 @@ AwardMessage::AwardMessage(const AwardMessage& other) : Message(other), kind_(ot
 // The original frees the text before it releases the receiver; ours after (the text is a member).
 AwardMessage::~AwardMessage() { ReleaseCounted(connection_); }
 
-Message* __fastcall AwardMessage::Create() { return NewCounted<AwardMessage>(); }
+Message* AwardMessage::Create() { return NewCounted<AwardMessage>(); }
 AwardMessage* AwardMessage::Clone() { return NewCounted<AwardMessage>(*this); }
 int AwardMessage::OnShutdown() {
     Rebuild(this);
@@ -410,7 +410,7 @@ TradeMessage::~TradeMessage() {
     ReleaseCounted(player_);
 }
 
-Message* __fastcall TradeMessage::Create() { return NewCounted<TradeMessage>(); }
+Message* TradeMessage::Create() { return NewCounted<TradeMessage>(); }
 TradeMessage* TradeMessage::Clone() { return NewCounted<TradeMessage>(*this); }
 int TradeMessage::OnShutdown() {
     Rebuild(this);
@@ -441,7 +441,7 @@ PartyMemberMessage::PartyMemberMessage(const PartyMemberMessage& other) : Messag
     copy->Read(other.stream_.data_, stream_.size_);
 }
 
-Message* __fastcall PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
+Message* PartyMemberMessage::Create() { return NewCounted<PartyMemberMessage>(); }
 PartyMemberMessage* PartyMemberMessage::Clone() {
     return NewCounted<PartyMemberMessage>(*this);
 }
@@ -480,7 +480,7 @@ PartyMessage::~PartyMessage() {
     stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * sizeof(RefPtr));
 }
 
-Message* __fastcall PartyMessage::Create() { return NewCounted<PartyMessage>(); }
+Message* PartyMessage::Create() { return NewCounted<PartyMessage>(); }
 PartyMessage* PartyMessage::Clone() { return NewCounted<PartyMessage>(*this); }
 int PartyMessage::OnShutdown() {
     Rebuild(this);

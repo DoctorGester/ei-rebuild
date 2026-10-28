@@ -117,26 +117,26 @@ WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(
 MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
 } // namespace
 
-int __fastcall WeaponType(std::uint32_t packedId) {
+int WeaponType(std::uint32_t packedId) {
     return WeaponOf(packedId)->type;
 }
 
-float __fastcall WeaponMinDamage(std::uint32_t packedId) {
+float WeaponMinDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return weapon->damage * MaterialOf(packedId)->damageFactor;
 }
 
-float __fastcall WeaponMaxDamage(std::uint32_t packedId) {
+float WeaponMaxDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return (weapon->damageSpread + weapon->damage) * MaterialOf(packedId)->damageFactor;
 }
 
-float __fastcall WeaponAttack(std::uint32_t packedId) {
+float WeaponAttack(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     return weapon->value38 * MaterialOf(packedId)->factor38;
 }
 
-int __fastcall WeaponDamageType(std::uint32_t packedId) {
+int WeaponDamageType(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
     for (int i = 0; i < 7; ++i) {
         // FCOMP; TEST AH,0x40; JZ: stop at the first weight not equal to zero.
@@ -146,15 +146,15 @@ int __fastcall WeaponDamageType(std::uint32_t packedId) {
     return 6;
 }
 
-float __fastcall WeaponStat84(std::uint32_t packedId) {
+float WeaponStat84(std::uint32_t packedId) {
     return WeaponOf(packedId)->attackBonus;
 }
 
-float __fastcall WeaponStat88(std::uint32_t packedId) {
+float WeaponStat88(std::uint32_t packedId) {
     return WeaponOf(packedId)->defenceBonus;
 }
 
-int __fastcall ArmorFieldB8(std::uint32_t index) {
+int ArmorFieldB8(std::uint32_t index) {
     ArmorRecord* armor = ArmorAt(index);
     return armor ? static_cast<int>(armor->layer) : 0;
 }

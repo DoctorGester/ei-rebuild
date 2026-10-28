@@ -84,7 +84,7 @@ int CSceneRenderer::Polyline(const ScreenPoints* points, std::uint32_t colour) {
 
 // Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.
-long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
+long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour) {
     LineBuffer& buffer = LineVertices();
     int count = points->count;
     if (!buffer.data) {
@@ -133,16 +133,16 @@ constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
 namespace {
-void __cdecl DestroyLineOutcodes() {   // (CByteArray's destructor)
+void DestroyLineOutcodes() {   // (CByteArray's destructor)
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
 }
 } // namespace
 
-void __cdecl FreeLineVertices() {
+void FreeLineVertices() {
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
-void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }
-void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
+void FreeLineProjected() { g_lineProjected.FreeData(); }
+void ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
     libcrt::AtExit(DestroyLineOutcodes);
 }

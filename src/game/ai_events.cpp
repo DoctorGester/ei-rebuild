@@ -40,17 +40,17 @@ void PushFree(AIEvent* event) {
 
 } // namespace
 
-void __fastcall AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
+void AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
     pool->vtable = mfc::impl::StaticListClass::Vtable();
     pool->RemoveAll();
 }
 
 namespace {
 // The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
-void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
+void DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
 } // namespace
 
-void __cdecl ConstructEventPool() {
+void ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
     libcrt::AtExit(DestroyEventPool);
 }

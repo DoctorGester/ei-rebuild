@@ -176,7 +176,7 @@ constexpr const char* kUnrecognized = "Unrecognized error value.\n";
 
 } // namespace
 
-const char* __fastcall DirectXErrorText(long result) {
+const char* DirectXErrorText(long result) {
     const std::uint32_t key = static_cast<std::uint32_t>(result);
     const ErrorText* found = std::lower_bound(std::begin(kErrorTexts), std::end(kErrorTexts), key,
                                               [](const ErrorText& e, std::uint32_t k) { return e.result < k; });

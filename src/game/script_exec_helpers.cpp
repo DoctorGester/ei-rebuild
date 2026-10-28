@@ -211,7 +211,7 @@ int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
 mfc::CString& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // operator+(const CString&, const CString&), constructing the result in `out`.
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
+mfc::CString* ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
 // operator+'s result, destroyed with the holder.
 class Sum {
@@ -235,7 +235,7 @@ private:
 //   WorldScript( Su0() )
 // The conditions by objective (%f of the float, %s of the string): QObjArea, QObjSeeObject,
 // QObjSeeUnit, QObjKillUnit, QObjKillGroup, QObjUse, QObjGetItem; another id leaves it empty.
-void __fastcall ScriptQuestFinish(CScript* script) {
+void ScriptQuestFinish(CScript* script) {
     mfc::CString text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
         std::string line;
@@ -308,18 +308,18 @@ constinit lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObje
 constinit lib::StaticObject<mfc::CString> g_scriptQuestName = /*007AA61C*/ {};
 
 namespace {
-void __cdecl DestroyScriptQuestObjectives() {
+void DestroyScriptQuestObjectives() {
     gamearrays::Objectives::Destruct<gamearrays::ObjectiveArrayClass>(
         reinterpret_cast<gamearrays::Objectives::Array*>(&*g_scriptQuestObjectives));
 }
-void __cdecl DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
+void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
 } // namespace
 
-void __cdecl ConstructScriptQuestObjectives() {
+void ConstructScriptQuestObjectives() {
     mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
     libcrt::AtExit(DestroyScriptQuestObjectives);
 }
-void __cdecl ConstructScriptQuestName() {
+void ConstructScriptQuestName() {
     g_scriptQuestName.Construct();
     libcrt::AtExit(DestroyScriptQuestName);
 }

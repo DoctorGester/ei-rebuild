@@ -26,7 +26,7 @@ DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the 
 DecalBuilder& Builder() { return g_builder; }
 constinit lib::AlignedArray<Vector4> g_partPoints = /*007AF478*/ {};
 lib::AlignedArray<Vector4>& PartPoints() { return g_partPoints; }
-void __cdecl FreePartPoints() { g_partPoints.FreeData(); }
+void FreePartPoints() { g_partPoints.FreeData(); }
 std::uint8_t g_guards = /*007AF504*/ {};
 std::uint8_t& Guards() { return g_guards; }
 

@@ -36,10 +36,10 @@ using PartyItemArray = lib::AlignedArray<CItem*>;
 inline CParty* g_loadingParty = /*007C8344*/ {nullptr};
 
 // MFC ConstructElements for the records: the memory zeroed, then each record constructed.
-void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
+void ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
 
 // MFC DestructElements for the records: each record's Destruct (a count of 0 does nothing).
-void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count);
+void DestructPartyUnitRecords(PartyUnitRecord* records, int count);
 
 // ConstructElements / DestructElements of the records.
 struct PartyUnitRecordElements {

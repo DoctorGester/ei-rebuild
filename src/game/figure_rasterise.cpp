@@ -22,7 +22,7 @@ using IntPoint = RasterTriangle::Point;
 using PointArray = lib::AlignedArray<IntPoint>;
 constinit lib::AlignedArray<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
 lib::AlignedArray<RasterTriangle::Point>& TexturePoints() { return g_texturePoints; }
-void __cdecl FreeTexturePoints() { g_texturePoints.FreeData(); }
+void FreeTexturePoints() { g_texturePoints.FreeData(); }
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 

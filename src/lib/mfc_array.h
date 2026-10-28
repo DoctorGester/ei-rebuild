@@ -97,12 +97,12 @@ struct ArrayAbi : CArray<T, E> {
     // (mfc.h), reached through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
     void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
-    static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
-    static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
+    static void ConstructElements(T* elements, int count) { E::Construct(elements, count); }
+    static void DestructElements(T* elements, int count) { E::Destruct(elements, count); }
 
     // The destructor (the vtable of `Class` written first): the elements destroyed, the storage freed.
     template <typename Class>
-    static void __fastcall Destruct(Array* self) {
+    static void Destruct(Array* self) {
         self->vtable = Class::Vtable();
         self->FreeData();
     }
@@ -112,11 +112,11 @@ struct ArrayAbi : CArray<T, E> {
 template <typename Class>
 struct ArrayHeader {
     using Array = CArray<Bytes<1>>;
-    static Array* __fastcall Construct(Array* self) {
+    static Array* Construct(Array* self) {
         return self->Construct(Class::Vtable());
     }
     // The destructor of an instantiation whose elements need nothing: the storage freed.
-    static void __fastcall Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }
+    static void Destruct(Array* self) { ArrayAbi<Bytes<1>>::Destruct<Class>(self); }
 };
 
 // An array declared with the default element policy seen as the instantiation `Abi` of the same
@@ -130,11 +130,11 @@ typename Abi::Array& ArrayAs(CArray<T, E>& a) {
 // An instantiation's ConstructElements / DestructElements (__stdcall) over elements declared
 // as another type of the same size, or untyped.
 template <typename Abi>
-void __stdcall ConstructElementsAt(void* elements, int count) {
+void ConstructElementsAt(void* elements, int count) {
     Abi::ConstructElements(static_cast<typename Abi::Element*>(elements), count);
 }
 template <typename Abi>
-void __stdcall DestructElementsAt(void* elements, int count) {
+void DestructElementsAt(void* elements, int count) {
     Abi::DestructElements(static_cast<typename Abi::Element*>(elements), count);
 }
 
@@ -293,13 +293,13 @@ inline void InitParticle16(Particle16* p) {
 // The destructors of elements that hold an array header at `ArrayAt`: the vtable of `BaseClass`, the storage
 // freed, the fields left. With `Strings` CStrings from +0: those destroyed afterwards, the last first.
 template <typename E, std::size_t ArrayAt, typename BaseClass>
-void __fastcall DestroyArrayAt(E* p) {
+void DestroyArrayAt(E* p) {
     auto* header = reinterpret_cast<CArray<Bytes<1>>*>(reinterpret_cast<std::uint8_t*>(p) + ArrayAt);
     header->vtable = BaseClass::Vtable();
     if (header->data) gamecrt::operator_delete(header->data);
 }
 template <typename E, int Strings, std::size_t ArrayAt, typename BaseClass>
-void __fastcall DestroyStringsAndArray(E* p) {
+void DestroyStringsAndArray(E* p) {
     DestroyArrayAt<E, ArrayAt, BaseClass>(p);
     for (int i = Strings; i-- > 0;) reinterpret_cast<CString*>(reinterpret_cast<std::uint8_t*>(p) + 4 * i)->~CString();
 }

@@ -59,7 +59,7 @@ struct LocalBuffer {
 
 } // namespace
 
-void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
+void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* data) {
     LocalCoder coder;
     // A view over the data (flags 2).
     std::uint8_t* begin = data->data_;
@@ -104,7 +104,7 @@ void __fastcall SaveFileWrite(CStream* file, unsigned magic, int version, CMemor
     }
 }
 
-bool __fastcall SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {
+bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, CStream* file) {
     // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
     // newest version accepted (LoadMission passes kSaveVersion, then kSaveOldestVersion).
     if (!file->ReadHeader(magic, minimum, maximum)) return false;

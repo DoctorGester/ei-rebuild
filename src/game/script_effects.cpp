@@ -143,7 +143,7 @@ void ScriptFxSource::ScriptFxSourceDestruct() {
 }
 
 // DestructElements<ScriptLightning>.
-void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
+void ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
     for (; count != 0; --count, ++first) DropEffect(&first->object);
 }
 

@@ -13,7 +13,7 @@
 
 namespace libcontainers {
 
-void __fastcall ConstructRefPtr(RefPtr* p, const RefPtr* value) {
+void ConstructRefPtr(RefPtr* p, const RefPtr* value) {
     if (p) p->FromRawCounted(value->ptr);
 }
 
@@ -36,7 +36,7 @@ void SpeakerElement::Construct(BriefingSpeaker* to, const BriefingSpeaker& from)
     to->spareFlag = from.spareFlag;
 }
 
-void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value) {
+void ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value) {
     if (p) SpeakerElement::Construct(p, *value);
 }
 

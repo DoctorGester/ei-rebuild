@@ -140,15 +140,15 @@ static_assert(sizeof(CFileFind) == 0x1C);
 // AfxFullPath: `path` made absolute into `out` (_MAX_PATH bytes); the case of the last part as on
 // disk on a file system that does not store Unicode, upper case where case is not preserved.
 // FALSE when the path cannot be resolved (then copied as given) or the volume cannot be queried.
-BOOL __stdcall FullPath(char* out, const char* path);
+BOOL FullPath(char* out, const char* path);
 // AfxGetRoot: the root of `path` ("x:\" or "\\server\share\") into `root`.
-void __stdcall GetRoot(const char* path, CString& root);
+void GetRoot(const char* path, CString& root);
 
 // AfxGetFileName: the part of `path` after its last backslash, '/' or ':' into `name` (at most `max` bytes,
 // lstrcpyn); with a null `name` the size it needs (with the terminator), else 0.
-unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max);
+unsigned AfxGetFileName(const char* path, char* name, unsigned max);
 // AfxGetFileTitle: comdlg32's GetFileTitle (through the exe's import slot), AfxGetFileName's answer when
 // that fails; with a null `title` the size it needs, else 0.
-unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max);
+unsigned AfxGetFileTitle(const char* path, char* title, unsigned max);
 
 } // namespace mfc::impl

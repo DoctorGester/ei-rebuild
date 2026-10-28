@@ -38,7 +38,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::string name_;
     std::string text_;
@@ -74,7 +74,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 };
 
 // Type 7: a command for the server (ClientSession::SendCommand).
@@ -89,7 +89,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::uint32_t kind_;
     std::string text_;
@@ -123,7 +123,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefPtr& FileRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
@@ -141,7 +141,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefVector members_;              // PartyMemberMessages
     std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
@@ -167,7 +167,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     CMemoryStream stream_;
 };
@@ -186,7 +186,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::string name_;
     std::string text_;
@@ -211,7 +211,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::uint32_t number_;
     std::string text_;
@@ -230,7 +230,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::string address_;           // "host:port"
     std::string zone_;
@@ -248,7 +248,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefPtr& PlayerRef() { return first_; }
     RefPtrTo<Connection>& ConnectionRef() { return second_; }
@@ -267,7 +267,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 };
 
 // Type 9: the map being played.
@@ -282,7 +282,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 };
 
 // Type 10: a script variable.
@@ -297,7 +297,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::string name_;
     float value_;
@@ -316,7 +316,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     std::uint16_t chunkCount_;
     std::uint16_t unused_0E;
@@ -339,7 +339,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefPtrTo<FileMessage> file_{};
     std::uint16_t index_;
@@ -359,7 +359,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefPtr connection_{};        // the receiver (not sent)
     std::uint32_t kind_;         // 0 experience, 1 gold, 2 item, 3 remove item, 4 quest reset
@@ -379,7 +379,7 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    static Message* __fastcall Create();
+    static Message* Create();
 
     RefPtrTo<PlayerMessage> player_{};       // the first offer's player (not sent)
     RefPtrTo<PlayerMessage> partner_{};      // its partner (not sent)

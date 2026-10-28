@@ -141,7 +141,7 @@ void camera::NoteTargetTick(const CCamera* camera) {
     if (ticks.count < 2) ++ticks.count;
 }
 
-void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
+void SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
     double centre = TheClientWorld()->RawSurfaceHeightAt(p->x, p->y);
     *minimum = static_cast<float>(centre);

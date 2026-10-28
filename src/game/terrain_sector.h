@@ -48,7 +48,7 @@ static_assert(sizeof(LightRefBlock) == 0x3E90);
 // A node from the pool; its next / prev / light are the caller's to set.
 LightRef* AllocLightRef();
 // Returns `ref` to its block.
-void __stdcall FreeLightRef(LightRef* ref);
+void FreeLightRef(LightRef* ref);
 
 #pragma pack(push, 1)
 // Per-vertex record (packed).
@@ -105,11 +105,11 @@ constexpr int kCulled = 2;
 struct SectorPosition : Vector3 {};
 static_assert(sizeof(SectorPosition) == 12);
 
-void __stdcall DestroyRecords(SectorVertex* records, int count);
+void DestroyRecords(SectorVertex* records, int count);
 
 // `light` is removed from a vertex's list when `remove` is set or the vertex is not nearer than its range to
 // `position`; otherwise it is added at the list's head when missing.
-void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
+void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove);
 
 struct RecordElements {

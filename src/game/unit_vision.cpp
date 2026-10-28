@@ -24,7 +24,7 @@ constexpr float kOne = 1.0f;
 // The skill bonus byte of the weapon prototype `itemId >> 16`: skillBonus[0] for weapon types 0-4 and 8,
 // skillBonus[1] for 5 and 6; unrounded. An unknown prototype reads its type from address 0x0C (it faults),
 // other types index 0x7FFFFFFF bytes on (kept).
-double __stdcall WeaponPrototypeSkillBonus(std::uint32_t itemId) {
+double WeaponPrototypeSkillBonus(std::uint32_t itemId) {
     const auto* weapon =
         itemdb::WeaponAt(itemId >> 16);
     int type = weapon ? weapon->type : *reinterpret_cast<const volatile int*>(std::uintptr_t{0x0C});   // faults like the game

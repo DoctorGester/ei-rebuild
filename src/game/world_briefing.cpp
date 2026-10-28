@@ -44,7 +44,7 @@ bool IsEmpty(const std::string& s) {
 
 } // namespace
 
-mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* briefing) {
+mfc::CString* BriefingSpeakerInto(mfc::CString* out, const char* briefing) {
     CTextManager* texts = TheTextManager();
     bool missing;
     {
@@ -65,7 +65,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     return std::construct_at(out, game::EmptyText());
 }
 
-mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* briefing) {
+mfc::CString* BriefingVariableInto(mfc::CString* out, const char* briefing) {
     mfc::CString speaker(mfc::CString::kUnset);   // BriefingSpeakerInto constructs it
     BriefingSpeakerInto(&speaker, briefing);
     if (!IsEmpty(speaker.GetString())) {
@@ -119,8 +119,8 @@ namespace {
 using QuestStrings = stlp::VectorAbi<std::string, stlp::ObjectElement<std::string>>;
 } // namespace
 
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
+void DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
+void DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
@@ -182,7 +182,7 @@ std::string MapFilePath(const std::string& file) {
 
 } // namespace
 
-bool __stdcall LoadZoneQuests(const char* zone) {
+bool LoadZoneQuests(const char* zone) {
     auto* texts = TheTextManager();
     if (!texts) return false;
     std::string file = (mfc::CString(zone) + kQuestFileSuffix).GetString();
@@ -211,7 +211,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
 
 // ---- Quest variables ------------------------------------------------------------------------------
 
-void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
+void GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node) {
     const net::VariableMessage* record = stlp::CountedRefListOf<net::VariableMessage>::At(node);
     std::string name = record->name_.data();
     const float value = record->value_;
@@ -278,7 +278,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
 }
 
-mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
+mfc::CString* SessionMapNameInto(mfc::CString* out) {
     std::string name;
     // The peer's map message: the client's, else the server's (the map's name its text).
     const net::MapMessage* peer = nullptr;

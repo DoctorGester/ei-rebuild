@@ -118,8 +118,8 @@ struct Behaviour {
 };
 static_assert(offsetof(Behaviour, guard) == 0x18);
 static_assert(sizeof(Behaviour) == 0x4C);
-Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
-void __fastcall BehaviourDestruct(Behaviour* self);
+Behaviour* BehaviourConstruct(Behaviour* self);
+void BehaviourDestruct(Behaviour* self);
 
 // The base record. The records are read and written chunk by chunk (no record is a block of file bytes).
 class Spec : public Chunk {

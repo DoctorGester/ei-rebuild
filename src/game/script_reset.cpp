@@ -24,7 +24,7 @@ namespace {
 // ---- Original code ------------------------------------------------------------------------------
 
 // Element destructors: ScriptDefinition, ScriptVars, ScriptDecl, group.
-inline void __fastcall GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
+inline void GroupDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 // The world: timed objects.
 
@@ -43,7 +43,7 @@ void RemoveAll(List& list, Destroy destroy) {
 
 } // namespace
 
-void __fastcall ScriptReset(CScript* script) {
+void ScriptReset(CScript* script) {
     script->LoadedFlag() = 0;
     script->FileCount() = 0;
     script->ErrorText() = "Unknown error";
@@ -117,7 +117,7 @@ void __fastcall ScriptReset(CScript* script) {
 // pairs freed inline (no element destructor), each variable array through its instantiation's
 // SetSize(0, -1) in member order, then index 0 and the parameters and name assigned the empty
 // string constant (in that order).
-void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
+void ScriptDefinitionReset(ScriptDefinition* definition) {
     if (definition->ifThen.data) {
         gamecrt::operator_delete(definition->ifThen.data);
         definition->ifThen.data = nullptr;

@@ -48,9 +48,9 @@ constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
-void __fastcall BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
-void __fastcall BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
-void __fastcall Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
+void BrainObject8CDestroy(void* a0) { static_cast<CRefObject*>(a0)->Release(); }
+void BrainArrayDestroy(void* a0) { static_cast<AIRef*>(a0)->Reset(); }
+void Brain14Destroy(void* a0) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(a0); }
 
 // The engine object fields every constructor here sets (the base constructor inlined).
 void InitEngineObject(CEngineObject* object) {

@@ -110,15 +110,15 @@ public:
 
     // A ported function by its name, with the arguments as its parameters.
     template <class R, class... P, class... A>
-    static Result Call(R(__cdecl* fn)(P...), A... args) {
+    static Result Call(R(*fn)(P...), A... args) {
         return Returned([&] { return fn(Argument<P>(args)...); });
     }
     template <class R, class... P, class... A>
-    static Result Call(R(__stdcall* fn)(P...), A... args) {
+    static Result Call(R(*fn)(P...), A... args) {
         return Returned([&] { return fn(Argument<P>(args)...); });
     }
     template <class R, class... P, class... A>
-    static Result Call(R(__fastcall* fn)(P...), A... args) {
+    static Result Call(R(*fn)(P...), A... args) {
         return Returned([&] { return fn(Argument<P>(args)...); });
     }
     // A method by its name, on the object the original passed in ECX.

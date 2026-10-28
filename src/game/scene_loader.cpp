@@ -557,7 +557,7 @@ void FreeArray(A& array, void* vtable) {
 
 } // namespace
 
-void __stdcall FaceGroup::ConstructElements(FaceGroup* groups, int count) {
+void FaceGroup::ConstructElements(FaceGroup* groups, int count) {
     std::memset(static_cast<void*>(groups), 0, static_cast<std::size_t>(count) * sizeof(FaceGroup));
     for (; count > 0; --count, ++groups) {
         std::construct_at(&groups->name);
@@ -572,7 +572,7 @@ void FaceGroup::Destruct() {
     std::destroy_at(&name);
 }
 
-void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups) {
+void FaceGroupArrayDestruct(FaceGroupArray* groups) {
     groups->vtable = recordarrays::FaceGroupArrayClass::Vtable();
     if (!groups->data) return;
     for (int i = 0; i < groups->size; ++i) groups->data[i].Destruct();
@@ -643,8 +643,8 @@ void SceneMesh::LoadTransform(mfc::CFileVirtuals*) {}
 
 // --- Building a CFakeUnit's figure from its scene ---------------------------------------
 
-void __fastcall ComputeMeshNormals(MeshArray*);
-void __fastcall IndexMeshCorners(MeshArray*);
+void ComputeMeshNormals(MeshArray*);
+void IndexMeshCorners(MeshArray*);
 namespace {
 
 // The loader's locals that need cleaning up, as small owners. Declared in the construction order, so C++ destroys
@@ -701,7 +701,7 @@ struct SceneLoad {
 // .reg file (`registryName`, or "Ini's\\<name>.reg" for a scene under "scenes\\"), the figures, skeleton
 // and textures. Returns 0 if the file cannot be opened or the scene has more than one top-level node (a
 // fatal error).
-mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
+mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
     FakeUnitScene* u = fakeUnit;
     MeshArray* meshes = &u->meshes;
     HelperArray* helpers = &u->helpers;

@@ -60,19 +60,19 @@ const CRuntimeClass* CDC::GetRuntimeClass() const { return &kClassCDC; }
 
 // ---- The maps (image only)------------------------------------------------------------------------
 
-CHandleMap* __stdcall MapHDC(BOOL create) {
+CHandleMap* MapHDC(BOOL create) {
     static thread_local CHandleMap* map = nullptr;
     return MakeMap(map, create, &kClassCTempDC, offsetof(CDC, hdc), 2);
 }
 
-CHandleMap* __stdcall MapHGDIOBJ(BOOL create) {
+CHandleMap* MapHGDIOBJ(BOOL create) {
     static thread_local CHandleMap* map = nullptr;
     return MakeMap(map, create, &kClassCTempGdiObject, offsetof(CGdiObject, handle), 1);
 }
 
 // ---- CGdiObject, CPen, CFont ----------------------------------------------------------------------
 
-CGdiObject* __stdcall CGdiObject::FromHandle(HGDIOBJ object) {
+CGdiObject* CGdiObject::FromHandle(HGDIOBJ object) {
     return static_cast<CGdiObject*>(mfc::impl::MapHGDIOBJ(TRUE)->FromHandle(object));
 }
 
@@ -152,7 +152,7 @@ void CDC::SetOutputDC(HDC dc) { hdc = dc; }
 void CDC::ReleaseAttribDC() { attribDC = nullptr; }
 void CDC::ReleaseOutputDC() { hdc = nullptr; }
 
-CDC* __stdcall CDC::FromHandle(HDC dc) {
+CDC* CDC::FromHandle(HDC dc) {
     return static_cast<CDC*>(mfc::impl::MapHDC(TRUE)->FromHandle(dc));
 }
 

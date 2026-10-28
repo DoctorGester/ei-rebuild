@@ -80,7 +80,7 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-void __fastcall LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
+void LooksDestroyAt(AILookArray* looks) { mfc::impl::DestructHeader<mfc::impl::AiLookArrayClass>(looks); }
 
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
 void AIBrain::ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b) {

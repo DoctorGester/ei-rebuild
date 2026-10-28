@@ -281,7 +281,7 @@ public:
     mfc::CTypedPtrList<FigureAnimation> queue;
     float time;                     // the frame reached
     // Called each time an animation's end is passed, or null.
-    void(__fastcall* onEnd)(CObject3D* owner);
+    void(*onEnd)(CObject3D* owner);
     float morphS;                   // the figure's morph coefficients (Rescale; bones copy them)
     float morphT;
     float morphU;

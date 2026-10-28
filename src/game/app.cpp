@@ -135,7 +135,7 @@ int TypedCharacter(WPARAM unit) {
 }
 
 
-void __fastcall MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
+void MenuOpen(void* flow) { static_cast<GameFlow*>(flow)->ProcessRequest(); }
 
 
 } // namespace
@@ -166,7 +166,7 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
     return gameapi::DefWindowProcA(window, message, wParam, lParam);
 }
 
-LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
     // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
     lParam = present_window::MouseToGame(message, lParam);
@@ -236,13 +236,13 @@ LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     return WindowProc(g_mainWindow, message, wParam, lParam);
 }
 
-void __cdecl PumpMessages() {
+void PumpMessages() {
     MSG msg;
     while (gameapi::PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
         WindowProc(g_mainWindow, msg.message, msg.wParam, msg.lParam);
 }
 
-int __cdecl StartFirstMap() {
+int StartFirstMap() {
     const auto& cmdMap = CommandLineMap();    // map on the command line
     const auto& cmdMode = CommandLineMob();   // empty: main menu
     const auto& cmdScript = CommandLineScript();
@@ -283,7 +283,7 @@ namespace {
 const char* FlipFailedText() { return "Can't flip to GDI surface.\n"; }
 } // namespace
 
-int __fastcall ShowMessageBox(const char* text, int flags) {
+int ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
     CTextureDevice* device = TheRenderDevice();
     if (device && (device->flags_ & 1)) {
@@ -311,7 +311,7 @@ int g_fatalErrorCount = /*007A9B9C*/ {};
 // with a line in addon.log (not reproduced) and removes the exit, so the game carries on. Returns 0.
 } // namespace app
 
-int __cdecl game::FatalError(const char* format, ...) {
+int game::FatalError(const char* format, ...) {
     char text[0x400];
     va_list args;
     va_start(args, format);
@@ -343,7 +343,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     return 0;
 }
 
-int __cdecl FatalErrorCode(long result, const char* format, ...) {
+int FatalErrorCode(long result, const char* format, ...) {
     va_list args;
     va_start(args, format);
     int value = FatalErrorCodeV(result, format, args);
@@ -357,7 +357,7 @@ namespace {
 const char* MemoryDepletedText() { return "Memory depleted"; }
 } // namespace
 
-int __cdecl OutOfMemory(std::size_t) {
+int OutOfMemory(std::size_t) {
     ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
     return 0;
 }

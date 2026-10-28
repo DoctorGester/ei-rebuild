@@ -21,8 +21,8 @@
 namespace scene {
 
 // The qsort comparators (defined at the end).
-int __cdecl CompareCornerRecords(const void* a, const void* b);
-int __cdecl CompareWordPairs(const void* a, const void* b);
+int CompareCornerRecords(const void* a, const void* b);
+int CompareWordPairs(const void* a, const void* b);
 
 namespace {
 
@@ -54,7 +54,7 @@ using RecordArray = mfc::CArray<CornerRecord>;
 
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.
-void __cdecl GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
+void GameQsort(void* a0, unsigned a1, unsigned a2, int(__cdecl* a3)(const void*, const void*)) { libcrt::Qsort(a0, a1, a2, a3); }
 
 template <typename MapT>
 MapT NewMap(void* vtable) { return MapT{vtable, nullptr, 17, 0, nullptr, nullptr, 10}; }
@@ -185,7 +185,7 @@ void BuildPairs(SceneMesh* mesh) {
 } // namespace
 
 // The record list is shared by all meshes and freed at the end.
-void __fastcall IndexMeshCorners(MeshArray* meshes) {
+void IndexMeshCorners(MeshArray* meshes) {
     RecordArray records{mfc::impl::MeshCornerArrayClass::Vtable(), nullptr, 0, 0, 0};
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(mfc::impl::CornerMapAClass::Vtable());
@@ -213,14 +213,14 @@ int CompareFields(const T* a, const T* b, int count) {
     return 0;
 }
 } // namespace
-int __cdecl CompareCornerRecords(const void* a, const void* b) {
+int CompareCornerRecords(const void* a, const void* b) {
     const auto* x = static_cast<const CornerRecord*>(a);
     const auto* y = static_cast<const CornerRecord*>(b);
     const std::int32_t first[3] = {x->vertex, x->position, x->texture};
     const std::int32_t second[3] = {y->vertex, y->position, y->texture};
     return CompareFields(first, second, 3);
 }
-int __cdecl CompareWordPairs(const void* a, const void* b) {
+int CompareWordPairs(const void* a, const void* b) {
     return CompareFields(static_cast<const std::uint16_t*>(a), static_cast<const std::uint16_t*>(b), 2);
 }
 

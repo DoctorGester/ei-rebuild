@@ -210,8 +210,8 @@ constinit lib::AlignedArray<unsigned> g_sleepingIds = /*007AFEE0*/ {};   // leav
 IdArray& RemovedIds() { return g_removedIds; }
 IdArray& SleepingIds() { return g_sleepingIds; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeRemovedIds() { g_removedIds.FreeData(); }
-void __cdecl FreeSleepingIds() { g_sleepingIds.FreeData(); }
+void FreeRemovedIds() { g_removedIds.FreeData(); }
+void FreeSleepingIds() { g_sleepingIds.FreeData(); }
 std::uint8_t g_updateListGuards = /*007AFF00*/ {};
 std::uint8_t& UpdateListGuards() { return g_updateListGuards; }
 } // namespace

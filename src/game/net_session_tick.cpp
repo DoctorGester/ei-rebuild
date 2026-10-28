@@ -32,7 +32,7 @@ void LogAddress(const char* text, const char* address) { g_netLog->Put(text)->Pu
 } // namespace
 
 // The buffer's highest written position follows the current one upwards.
-void __fastcall BufferUpdateHigh(GameBuffer* buffer) {
+void BufferUpdateHigh(GameBuffer* buffer) {
     if (buffer->cur > buffer->high) buffer->high = buffer->cur;
 }
 

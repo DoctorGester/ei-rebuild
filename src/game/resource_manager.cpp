@@ -48,8 +48,8 @@ void CResourceManager::Destroy() {
 
 namespace {
 // CMappedResource's constructor and CMMIOResource's on the archive's memory.
-CMappedResource* __fastcall ConstructMappedResource(void* memory) { return new (memory) CMappedResource(); }
-CMappedResource* __fastcall ConstructMmioResource(void* memory) { return new (memory) CMMIOResource(); }
+CMappedResource* ConstructMappedResource(void* memory) { return new (memory) CMappedResource(); }
+CMappedResource* ConstructMmioResource(void* memory) { return new (memory) CMMIOResource(); }
 } // namespace
 
 BOOL CResourceManager::AddArchive(const char* path) {
@@ -60,7 +60,7 @@ BOOL CResourceManager::AddMmioArchive(const char* path) {
     return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
 }
 
-BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(__fastcall* construct)(void*)) {
+BOOL CResourceManager::AddArchiveOf(const char* path, std::size_t size, CMappedResource*(*construct)(void*)) {
     for (const ArchiveEntry& e : archives_)
         if (SameName(e.name, path)) return 1;
 

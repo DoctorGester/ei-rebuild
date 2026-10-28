@@ -143,7 +143,7 @@ private:
 
 // ---- Paths ----------------------------------------------------------------------------------------
 
-void __stdcall GetRoot(const char* path, CString& root) {
+void GetRoot(const char* path, CString& root) {
     char* start = root.GetBuffer(MAX_PATH);
     std::memset(start, 0, MAX_PATH);
     gameapi::lstrcpynA(start, path, MAX_PATH);
@@ -163,7 +163,7 @@ void __stdcall GetRoot(const char* path, CString& root) {
     root.ReleaseBuffer(-1);
 }
 
-BOOL __stdcall FullPath(char* out, const char* path) {
+BOOL FullPath(char* out, const char* path) {
     char* filePart;
     if (!gameapi::GetFullPathNameA(path, MAX_PATH, out, &filePart)) {
         gameapi::lstrcpynA(out, path, MAX_PATH);
@@ -185,7 +185,7 @@ BOOL __stdcall FullPath(char* out, const char* path) {
     return TRUE;
 }
 
-unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max) {
+unsigned AfxGetFileName(const char* path, char* name, unsigned max) {
     const char* last = path;
     for (const char* at = path; *at != '\0'; at = Next(at)) {
         if (*at == '\\' || *at == '/' || *at == ':') last = Next(at);
@@ -195,7 +195,7 @@ unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max) {
     return 0;
 }
 
-unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) {
+unsigned AfxGetFileTitle(const char* path, char* title, unsigned max) {
     char scratch[MAX_PATH];
     char* into = title;
     if (!into) {

@@ -29,7 +29,7 @@ void CutAt(std::string& s, const char* last) {
 
 } // namespace
 
-std::string __cdecl Format(const char* format, ...) {
+std::string Format(const char* format, ...) {
     va_list arguments;
     va_start(arguments, format);
     std::string text = FormatV(format, arguments);

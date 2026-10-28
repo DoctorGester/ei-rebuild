@@ -557,7 +557,7 @@ std::uint8_t& Freed() { return g_freed; }
 static_assert(sizeof(FlagArray) == 0x14);
 constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
 FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
-void __cdecl DestroyProjectionOutcodes() {
+void DestroyProjectionOutcodes() {
     if (Freed() & 4) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 4);
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
@@ -572,17 +572,17 @@ constexpr int kRow = 33;
 
 } // namespace
 
-void __cdecl FreeProjectionInput() {
+void FreeProjectionInput() {
     if (Freed() & 1) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 1);
     g_projectionInput.FreeData();
 }
-void __cdecl FreeProjectionOutput() {
+void FreeProjectionOutput() {
     if (Freed() & 2) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 2);
     g_projectionOutput.FreeData();
 }
-void __cdecl ConstructProjectionOutcodes() {
+void ConstructProjectionOutcodes() {
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
     libcrt::AtExit(DestroyProjectionOutcodes);
 }

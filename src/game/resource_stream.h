@@ -33,4 +33,4 @@ static_assert(sizeof(CResourceStream) == 0x34);
 // Matches `name` against `pattern` (* ends the match successfully, ? matches any
 // character, other characters compare through toupper). An empty pattern matches an empty name,
 // and a non-empty name gives `emptyPatternResult`.
-int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPatternResult);
+int WildcardMatch(const char* name, const char* pattern, int emptyPatternResult);

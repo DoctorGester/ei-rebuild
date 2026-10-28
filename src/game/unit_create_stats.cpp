@@ -281,7 +281,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     return 1;
 }
 
-int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
+int BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
     const Model* model = ModelOf(prototype);   // reads the prototype before the null test
     const Npc* npc = FindNpc(name);
@@ -336,7 +336,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     return 1;
 }
 
-int __stdcall PrototypeObjectClass(const char* name) {
+int PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
     const Prototype* prototype = FindPrototype(name);
     if (!prototype) return kDefaultClass;
@@ -582,7 +582,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
 // --- The factory ------------------------------------------------------------------------------
 
 namespace {
-using Constructor = void*(__fastcall*)(void* block);
+using Constructor = void*(*)(void* block);
 struct FactoryEntry {
     int classId;
     std::size_t size;

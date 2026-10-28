@@ -743,7 +743,7 @@ using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
+void DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -752,7 +752,7 @@ int ReadDword(BitStream* in) {
 
 } // namespace
 
-void __cdecl ConstructPartyIdSet() {
+void ConstructPartyIdSet() {
     g_partyIdSet->Construct(100, 0, 0, 0);
     libcrt::AtExit(DestroyPartyIdSet);
 }

@@ -655,7 +655,7 @@ void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
     }
 }
 
-void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone) {
+void DestroyGlobalMapZone(GlobalMapZone* zone) {
     std::destroy_at(&zone->title);
     std::destroy_at(&zone->name);
 }
@@ -672,7 +672,7 @@ void GlobalMapPlaceElements::Construct(GlobalMapPlace* places, int count) {
     }
 }
 
-void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place) {
+void DestroyGlobalMapPlace(GlobalMapPlace* place) {
     std::destroy_at(&place->title);
     std::destroy_at(&place->name);
 }

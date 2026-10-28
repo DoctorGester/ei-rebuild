@@ -23,9 +23,9 @@ struct TextTokenizer {
 };
 
 // Removes every carriage return from `text` (CString::Remove); returns the count.
-int __fastcall RemoveCarriageReturns(mfc::CString* text);
+int RemoveCarriageReturns(mfc::CString* text);
 
 // (`name` is passed by value and destroyed here). Constructs `out` as the entry of
 // `names` that equals `name` ignoring case (_mbsicmp), or as `name` itself when there is none.
 // Returns `out`.
-mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name);
+mfc::CString* FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name);

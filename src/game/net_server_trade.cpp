@@ -70,7 +70,7 @@ TradeMessage* ServerSession::FindTrade(const PartyMessage* offer, const PartyMes
 }
 
 // Removed file request: drops `message`.
-void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
+void ServerOnObjectRemoved(ServerSession* self, Message* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);
     RefNode* sentinel = self->fileRequests_.End();
@@ -83,7 +83,7 @@ void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message) {
 
 // Offer created: lists the offer; when the partner's offer is listed, a trade of the two
 // is made (both marked paired), else the partner is told of the offer.
-void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
+void ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);
     self->offers_.Insert(self->offers_.End(), *value);
@@ -107,7 +107,7 @@ void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message) {
 
 // Offer updated: the offer's version moves on; when both offers of its trade are live, accepted and agree
 // crosswise (each one accepted the other's current revision), the trade is done with the two revisions.
-void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
+void ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) {
     ++message->version_;
     PartyMessage* other = FindPartnerOffer(self->offers_, message);
     TradeMessage* trade = self->FindTrade(message, other);
@@ -126,7 +126,7 @@ void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message) 
 
 // Offer removed: drops the offer; an unpaired offer's partner is told it was withdrawn.
 // Its trade, when live, is dropped, a done one first kept on finishedTrades_ for 60 seconds.
-void __fastcall ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
+void ServerOnTradeCancel(ServerSession* self, PartyMessage* message) {
     RefPtr ref;
     const RefPtr* value = RefPtrFromRaw(&ref, message);
     RefNode* sentinel = self->offers_.End();

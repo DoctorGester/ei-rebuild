@@ -38,7 +38,7 @@ void LockCursorAtCallSite() {
 }
 
 // The movie list's .ini path: CString concatenation (AFXAPI).
-mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
+mfc::CString* ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
 
 // Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
 // render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
@@ -55,7 +55,7 @@ std::uint32_t g_movieFrame = /*0079BC58*/ {};   // the number of the next frame 
 } // namespace
 
 // Nothing while the application is inactive (a 50 ms sleep when no window of the interface is active).
-void __fastcall FrameStep(bool draw, bool cursor) {
+void FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
     if (!TheInterface()->GetActiveWindow()) {
         gameapi::Sleep(50);
@@ -102,7 +102,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
 
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.
-void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
+void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
     std::vector<std::string> list;
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();

@@ -871,7 +871,7 @@ CParticleSource::CParticleSource(int type) {
     type_ = type;
 }
 
-CParticleSource* __stdcall NewParticleSource(int type) { return new CParticleSource(type); }
+CParticleSource* NewParticleSource(int type) { return new CParticleSource(type); }
 
 CEngineObject* CParticleManager::NewObject(int type) {
     return NewParticleSource(type);

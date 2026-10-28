@@ -13,10 +13,10 @@ constinit lib::AlignedArray<std::uint8_t> g_cornerOutcodes = /*007AEE20*/ {};
 constinit lib::AlignedArray<std::uint8_t> g_outcodes = /*007AEE30*/ {};
 
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeOutcodes() { g_outcodes.FreeData(); }
-void __cdecl FreeCornerOutcodes() { g_cornerOutcodes.FreeData(); }
-void __cdecl FreeProjected() { g_projected.FreeData(); }
-void __cdecl FreeVertices() { g_vertices.FreeData(); }
-void __cdecl FreeClipIndices() { g_clipIndices.FreeData(); }
+void FreeOutcodes() { g_outcodes.FreeData(); }
+void FreeCornerOutcodes() { g_cornerOutcodes.FreeData(); }
+void FreeProjected() { g_projected.FreeData(); }
+void FreeVertices() { g_vertices.FreeData(); }
+void FreeClipIndices() { g_clipIndices.FreeData(); }
 
 } // namespace devicebuffers

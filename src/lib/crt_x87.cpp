@@ -189,13 +189,13 @@ double PowerOfInfinity(double x, double y) {
 
 } // namespace
 
-double __cdecl CiAcos(double x) { return ArcCosineOrSine(x, false); }
-double __cdecl CiAsin(double x) { return ArcCosineOrSine(x, true); }
+double CiAcos(double x) { return ArcCosineOrSine(x, false); }
+double CiAsin(double x) { return ArcCosineOrSine(x, true); }
 
 // x^y: y log2(x) by FYL2X, then 2 to that as 2^n times the rounded 1 + (2^f - 1), f = t - n, n
 // the nearest integer (F2XM1, FSCALE). A negative x needs an integer y (the result negated for an odd
 // one), a zero x gives 1, a zero or an infinity; NaNs propagate, infinities as C has them.
-double __cdecl CiPow(double x, double y) {
+double CiPow(double x, double y) {
     const std::uint64_t xBits = Bits(x);
     const std::uint64_t yBits = Bits(y);
     if (IsNan(xBits) || IsNan(yBits)) return x + y;
@@ -242,7 +242,7 @@ double __cdecl CiPow(double x, double y) {
 namespace {
 
 // x + y of two doubles on the x87 (FLD, FADD: a NaN's propagation as the CRT's _handle_qnan2 has it).
-__declspec(naked) double __cdecl AddOnX87(double /*x*/, double /*y*/) {
+__declspec(naked) double AddOnX87(double /*x*/, double /*y*/) {
     __asm {
         fld qword ptr [esp + 4]
         fadd qword ptr [esp + 12]
@@ -257,7 +257,7 @@ __declspec(naked) double __cdecl AddOnX87(double /*x*/, double /*y*/) {
 // sum of their squares, its root, then the root's and the larger's mantissas (_decomp: [0.5, 1))
 // multiplied and given the exponents' sum (_set_exp, exact while the result is a normal double; below
 // that, the masked underflow's denormalised result, cut off).
-double __cdecl Hypot(double x, double y) {
+double Hypot(double x, double y) {
     const std::uint64_t xBits = Bits(x);
     const std::uint64_t yBits = Bits(y);
     if (Exponent(xBits) == 0x7FF || Exponent(yBits) == 0x7FF) {

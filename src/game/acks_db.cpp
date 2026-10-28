@@ -89,7 +89,7 @@ const SpeechRecord* EnvironmentSpeeches::Pick(std::uint32_t environment, int rol
 // speeches, only while the unit's animation is of kind 0x100000 / 0x140000 / 0x180000), 0x2A..0x2D
 // from table 2, 0x2E..0x32 from table 1 by the prototype's name, else by its model's name; others
 // say nothing. The speech is picked at random among those whose chance reaches a roll of 0..99.
-const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
+const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     if (!unit) return nullptr;
     auto kind = static_cast<std::uint32_t>(kindArg);
     if (kind == 0xFF) {
@@ -151,7 +151,7 @@ const SpeechRecord* __fastcall SayAck(CUnit* unit, int kindArg) {
     return speech;
 }
 
-const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool alternate) {
+const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
     auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;

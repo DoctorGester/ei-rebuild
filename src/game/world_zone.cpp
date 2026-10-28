@@ -211,7 +211,7 @@ bool SameName(std::string_view a, std::string_view b) {
 constexpr const char* kProgres5 = "progres5.bik";
 } // namespace
 
-void __stdcall SelectLoadingMovie(const char* zone) {
+void SelectLoadingMovie(const char* zone) {
     std::string allod;
     if (zone) {
         MapRecord* map = TheMapDatabase()->FindMap(zone);

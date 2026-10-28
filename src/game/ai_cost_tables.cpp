@@ -12,7 +12,7 @@ constexpr int kStepCosts[16] = {-1,    0x200, 0x266, 0x2CC, 0x266, 0x2CC, 0x333,
                                 0x333, 0x399, 0x400, 0x333, 0x399, 0x400, 0x400, 0x4CC};
 } // namespace
 
-void __fastcall InitCostTables(CAIMap* map) {
+void InitCostTables(CAIMap* map) {
     int* costs = map->passCosts;
     int* flat = map->passCostsAlt;
     int* steps = map->stepCosts;

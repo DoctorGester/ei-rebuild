@@ -8,7 +8,7 @@
 
 // The result's message: every known code's message (each ending in a newline), "No error.\n" for 0,
 // "Unrecognized error value.\n" for any other. Returns its own copies of the exe's strings.
-const char* __fastcall DirectXErrorText(long result);
+const char* DirectXErrorText(long result);
 
 // The error object the device layer throws (0xC bytes on the game's heap), by pointer: this compiler's `throw` of a
 // CDXException* makes the game's throw information (the pointer to CDXException, to CGameException and to void), a

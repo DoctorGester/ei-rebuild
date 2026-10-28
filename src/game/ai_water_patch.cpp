@@ -20,7 +20,7 @@ namespace {
 // The patch (a counted pointer, a function-local static of StampWaterPatch), released at exit.
 CUnitShape* g_patch = /*007C2F64*/ {nullptr};
 CUnitShape*& Patch() { return g_patch; }
-void __cdecl ReleasePatch() {
+void ReleasePatch() {
     if (g_patch) g_patch->Release();
 }
 std::uint8_t g_guard = /*007C2F68*/ {};

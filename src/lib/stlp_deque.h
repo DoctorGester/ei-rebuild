@@ -183,7 +183,7 @@ struct DequeAbi : deque<T> {
     // _M_create_nodes(nstart, nfinish): the deque itself is not read.
     void CreateNodes(T** nstart, T** nfinish) { Deque::CreateNodes(nstart, nfinish); }
     // ~deque().
-    static void __fastcall Destruct(Deque* self) { self->Destroy(); }
+    static void Destruct(Deque* self) { self->Destroy(); }
 };
 
 } // namespace stlp

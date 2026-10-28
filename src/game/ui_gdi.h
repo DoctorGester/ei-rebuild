@@ -10,5 +10,5 @@
 
 class CUiSurface;
 // Declared in ui.h too): a surface's CDC and its release.
-mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
-void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface);
+void UiSurfaceReleaseDC(CUiSurface* surface);

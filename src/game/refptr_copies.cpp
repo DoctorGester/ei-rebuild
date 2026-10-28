@@ -11,25 +11,25 @@
 // The plain release of a RefPtr (the destructor of the instantiations without the owner's detach):
 // drops one reference of the object, destroying it at zero. The pointer is left as it is.
 // A __fastcall function standing for a thiscall without stack arguments. 21 copies.
-void __fastcall RefPtrRelease(RefPtr* self) {
+void RefPtrRelease(RefPtr* self) {
     CRefObject* object = self->ptr;
     if (!object) return;
     if (--object->refs_ == 0) delete object;   // slot 0 (the deleting destructor) with 1
 }
 
 // The holder cleared without a release (MOV [ECX],0). 17 copies.
-void __fastcall RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
+void RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
 
 // The default constructor (null), returning the holder. 10 copies (one is the loopback link's
 // peer, net_link.cpp).
-RefPtr* __fastcall RefPtrNull(RefPtr* self) {
+RefPtr* RefPtrNull(RefPtr* self) {
     self->ptr = nullptr;
     return self;
 }
 
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
 // the holder (the game also zeroes a dead stack slot). 16 copies.
-RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object) {
+RefPtr* RefPtrFromRaw(RefPtr* self, CRefObject* object) {
     self->ptr = object;
     return self;
 }
@@ -64,6 +64,6 @@ RefPtr* RefPtr::AssignObject(CRefObject* object) {
 
 // Holders of engine objects (a dword reference count at +4, released through slot 4).
 // Release (a tail call of slot 4 when set).
-void __fastcall ObjectHolderRelease(CEngineObject** self) {
+void ObjectHolderRelease(CEngineObject** self) {
     if (CEngineObject* object = *self) object->Release();
 }

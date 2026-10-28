@@ -202,12 +202,12 @@ void MpVoiceEntry::Destroy() {
 // --- The caches' objects released ----------------------------------------------------------
 
 template <typename Object>
-void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
+void ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
     for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node))
         node->second.object->Release();
 }
-template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
-template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
+template void ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
+template void ReleaseCachedObjects<CTexture>(ItemTextureCache*);
 
 // --- The destructor body -------------------------------------------------------------
 

@@ -47,7 +47,7 @@ bool g_applyGui = false;               // the battle screen applies g_guiShown
 
 // addon's console output: the text, "\n" (as a string), flush.
 void Say(const char* text) { (Out() << text << "\n").Apply(libcrt::FlushManipulator); }
-void __cdecl SayFormat(const char* format, ...) {
+void SayFormat(const char* format, ...) {
     std::string text;
     va_list args;
     va_start(args, format);
@@ -79,7 +79,7 @@ std::string GroupText(const ScriptGroup& group) {
 
 // ---- The commands (the arguments, lower case) ----------------------------------------------
 
-void __fastcall Help(Arguments* args) {
+void Help(Arguments* args) {
     g_gameHelp(args);
     Say("ADDON [command]");
     Say("addon-specific commands");
@@ -109,7 +109,7 @@ void AddonDebug(Arguments* args) {
     }
 }
 
-void __fastcall Addon(Arguments* args) {
+void Addon(Arguments* args) {
     if (args->empty() || std::strcmp((*args)[0].c_str(), "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
@@ -125,7 +125,7 @@ void __fastcall Addon(Arguments* args) {
 }
 
 // execs file: loads a script file into the script loader and runs it.
-void __fastcall Execs(Arguments* args) {
+void Execs(Arguments* args) {
     if (TheMissionScript()->LoadFile((*args)[0].c_str())) {
         ScriptTick(TheMissionScript());
         return;
@@ -134,7 +134,7 @@ void __fastcall Execs(Arguments* args) {
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
-void __fastcall ListGlobals(Arguments*) {
+void ListGlobals(Arguments*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
     auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
     for (int i = 0; i < globals.floats.values.size; ++i)
@@ -152,13 +152,13 @@ void __fastcall ListGlobals(Arguments*) {
 }
 
 // drawall n: the draw-all flag becomes (n == 0).
-void __fastcall DrawAll(Arguments* args) {
+void DrawAll(Arguments* args) {
     if (args->size() < 1) return;
     *kSpectator = std::atoi((*args)[0].c_str()) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
-void __fastcall NoGui(Arguments* args) {
+void NoGui(Arguments* args) {
     int mode = args->size() == 1 ? std::atoi((*args)[0].c_str()) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"

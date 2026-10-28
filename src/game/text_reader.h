@@ -11,10 +11,10 @@
 #include "console.h"
 
 // Clears the current text. Returns 1.
-BOOL __fastcall TextClose(CTextManager* self);
+BOOL TextClose(CTextManager* self);
 // The code of the character at `p`.
-int __fastcall TextCharCode(const char* p);
+int TextCharCode(const char* p);
 // Moves the cursor past the next LF. 0 (cursor left at the end) when there is none.
-BOOL __fastcall TextSkipLine(CTextManager* self);
+BOOL TextSkipLine(CTextManager* self);
 // Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.
-BOOL __fastcall TextNextLine(CTextManager* self);
+BOOL TextNextLine(CTextManager* self);

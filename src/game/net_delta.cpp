@@ -98,7 +98,7 @@ void CMemoryStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream
 
 namespace delta {
 
-void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     const std::uint8_t* p = data;
     std::uint32_t rest = size;
     out->PutBit(false);
@@ -114,7 +114,7 @@ void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream
     out->Write(p, rest);
 }
 
-void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     if (std::memcmp(old, data, size) == 0) {
         out->PutBit(true);
         return;
@@ -143,7 +143,7 @@ void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std
 // appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
 // word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
 // `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
-void __fastcall WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+void WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
                                   BitStream* out) {
     const auto* bytes = static_cast<const std::uint8_t*>(data);
     std::uint32_t end = snapshot->Position() + size;
@@ -282,7 +282,7 @@ int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream
 
 namespace delta {
 
-bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
     if (reader->GetBit()) {
         std::memcpy(data, old, size);
         return false;

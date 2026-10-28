@@ -84,4 +84,4 @@ extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 
 // Draws the points as a connected line strip in `colour`.
-long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);
+long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

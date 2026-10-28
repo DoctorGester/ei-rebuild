@@ -54,7 +54,7 @@
 using options::GameOptions;
 
 namespace app {
-std::uint32_t __cdecl GetDxVersion();
+std::uint32_t GetDxVersion();
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
@@ -76,37 +76,37 @@ CDirectInputMouse*& Mouse() { return g_mouse; }
 
 namespace {
 
-void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
-void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
-void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
-void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
-void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
+void DestroyCameraFile() { g_cameraFile.Destroy(); }
+void DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
+void DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
+void DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
+void DestroyMovieFolder() { g_movieFolder.Destroy(); }
 } // namespace
 
 // The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
-void __cdecl ConstructCameraFile() {
+void ConstructCameraFile() {
     g_cameraFile.Construct();
     libcrt::AtExit(DestroyCameraFile);
 }
-void __cdecl ConstructCommandLineScript() {
+void ConstructCommandLineScript() {
     g_commandLineScript.Construct();
     libcrt::AtExit(DestroyCommandLineScript);
 }
-void __cdecl ConstructCommandLineMob() {
+void ConstructCommandLineMob() {
     g_commandLineMob.Construct();
     libcrt::AtExit(DestroyCommandLineMob);
 }
-void __cdecl ConstructCommandLineMap() {
+void ConstructCommandLineMap() {
     g_commandLineMap.Construct();
     libcrt::AtExit(DestroyCommandLineMap);
 }
-void __cdecl ConstructMovieFolder() {
+void ConstructMovieFolder() {
     g_movieFolder.Construct(".\\capture\\");
     libcrt::AtExit(DestroyMovieFolder);
 }
 
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
-void __cdecl ReleaseMouseAtExit() {
+void ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
         if (--mouse->references_ == 0) delete mouse;
 }
@@ -473,8 +473,8 @@ void FrameCameraUpdate(CCamera* camera, float seconds) {
     else camera->Update(seconds);
 }
 using WorldUpdate = ei::mainloop::HarnessHooks::WorldUpdate;
-int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
-int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
+int UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
+int RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
 WorldUpdate ServerUpdate() {
     if (auto hook = ei::mainloop::g_harnessHooks.serverUpdate) return hook;
     return &UpdateServer;
@@ -696,7 +696,7 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
 
 } // namespace
 
-int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
+int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     std::vector<std::string> messages;
     LoadSystemMessages(messages);
     if (GetDxVersion() < 0x700) {

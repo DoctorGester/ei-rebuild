@@ -80,9 +80,9 @@ static_assert(offsetof(DecalBuilder, vertexCount_) == 0x74 && offsetof(DecalBuil
 namespace decal {
 
 // Where the edge p -> q crosses distance 0, given its ends' distances: (dq * p - dp * q) / (dq - dp).
-void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq);
+void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq);
 // Clips the triangle `tri` (corner distances a, b, c; a corner is inside when its distance's sign bit is
 // clear) and returns how many triangles are left: 0, 1 (in `tri`) or 2 (`tri` and `out`).
-int __fastcall ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c);
+int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c);
 
 } // namespace decal

@@ -33,10 +33,10 @@ struct FogSprite {
 // free the records and the points.
 constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
 lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
-void __cdecl FreePoints() { g_points.FreeData(); }
+void FreePoints() { g_points.FreeData(); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
 mfc::CArray<FogSprite>& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 std::uint8_t g_workArrayGuards = /*007ABA54*/ {};
 constexpr std::uint8_t kSpritesConstructed = 1;
 constexpr std::uint8_t kPointsConstructed = 2;

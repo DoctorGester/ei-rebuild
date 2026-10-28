@@ -94,8 +94,8 @@ struct GlobalMapPlaceElements {
 };
 using GlobalMapPlaces = mfc::CArray<GlobalMapPlace, GlobalMapPlaceElements>;
 // Their element destructors (title, then name).
-void __fastcall DestroyGlobalMapZone(GlobalMapZone* zone);
-void __fastcall DestroyGlobalMapPlace(GlobalMapPlace* place);
+void DestroyGlobalMapZone(GlobalMapZone* zone);
+void DestroyGlobalMapPlace(GlobalMapPlace* place);
 
 // The arrays' tables: the zones', the links' and the quests'.
 using GlobalMapZoneRecords = mfc::impl::ArrayAbi<GlobalMapZone, GlobalMapZoneElements>;

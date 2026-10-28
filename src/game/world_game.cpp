@@ -153,10 +153,10 @@ constinit lib::StaticObject<CMemoryStream> g_saveStream = /*007AFDF8*/ {};
 CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
 namespace {
-void __cdecl DestroySaveStream() { g_saveStream->~CMemoryStream(); }
+void DestroySaveStream() { g_saveStream->~CMemoryStream(); }
 } // namespace
 
-void __cdecl ConstructSaveStream() {
+void ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
     libcrt::AtExit(DestroySaveStream);
 }
@@ -293,7 +293,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
 // Enters the party's zone: plays the pending "movie", restores the zone from saves\current when it was
 // visited (zs.<zone>), otherwise loads it fresh (NewZone; gz6g picks its frozen or thawed map), then the
 // zone's scripts and its exits. Returns 0 on failure, else the restore's result (1 for a fresh zone).
-int __stdcall EnterZone(CParty* records) {
+int EnterZone(CParty* records) {
     FileStream file;
     int result = 1;
     mfc::CString folder;
@@ -397,7 +397,7 @@ void AnnounceHost(const char* zone) {
 // saves\current\<zone>.sav when there is one (else loads the zone fresh at time 4), copies its exits with
 // every target set to "MPGame1", applies its two settings, marks the game a network one and, on a running
 // game server, announces the host and loads the zone's .mob. Returns 1, 0 on failure.
-int __stdcall StartNetworkZone(const char* zone) {
+int StartNetworkZone(const char* zone) {
     ToMainMenu() = 1;
     MapRecord* zoneRecord = FindZone(zone);
     if (!zoneRecord || zoneRecord->kind != 0) return 0;
@@ -478,7 +478,7 @@ mfc::CString* CWorldServer::ZoneNameInto(mfc::CString* out) {
 // The counterpart of the zone load: saves the current zone into saves\current\<zone>.sav (SaveWorld, header
 // 0x102) and records in the party's variables that it was visited (zs.<zone> = 1) and when it was left
 // (zt.<zone> = gtime). Returns 1, 0 when the file cannot be written (after FatalError).
-int __stdcall LeaveZone(CParty* records) {
+int LeaveZone(CParty* records) {
     FileStream file;
     std::string path;
     mfc::CString zone(mfc::CString::kUnset);
@@ -641,7 +641,7 @@ namespace {
 
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
 
-int __stdcall RequestZone(const char* zone, int entrance) {
+int RequestZone(const char* zone, int entrance) {
     TheInterface()->closeAll_ = true;
     // The local view asks to go to a zone (name, entrance).
     return TheClientWorld()->LocalView()->RequestZone(zone, entrance);
@@ -996,9 +996,9 @@ struct EntryPicks {
 
 } // namespace
 
-void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
+void DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
 
-void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exclude) {
+void PickZones(stlp::vector<std::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
@@ -1041,7 +1041,7 @@ constexpr int kVersionInputInMission = 0x47;     // below: the input state too
 
 } // namespace
 
-int __stdcall LoadMission(CStream* file) {
+int LoadMission(CStream* file) {
     TheSoundManager()->StopAll(1);
     CMemoryStream mission;
     if (!SaveFileRead(&mission, kMagicMissionFile, kSaveVersion,
@@ -1064,7 +1064,7 @@ namespace {
 
 } // namespace
 
-void __fastcall ClearSaveFolder(const char* path) {
+void ClearSaveFolder(const char* path) {
     gameapi::CreateDirectoryA(path, nullptr);
     mfc::CFileFind finder;
     int found;
@@ -1081,7 +1081,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     finder.Close();
 }
 
-bool __fastcall NameInList(const char* const* list, const char* name) {
+bool NameInList(const char* const* list, const char* name) {
     for (; *list[0] != 0; ++list)
         if (libcrt::Stricmp(*list, name) == 0) return true;
     return false;
@@ -1212,7 +1212,7 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 // destroyed at exit.
 constinit lib::StaticObject<mfc::CString> g_lastResources = /*007AFDEC*/ {};
 mfc::CString& LastResources() { return *g_lastResources; }
-void __cdecl DestroyLastResources() { g_lastResources.Destroy(); }
+void DestroyLastResources() { g_lastResources.Destroy(); }
 std::uint8_t g_lastResourcesGuard = /*007AFDF0*/ {};
 std::uint8_t& LastResourcesGuard() { return g_lastResourcesGuard; }
 int& SavedSpectator() { return options::TheOptions()->difficultyStored_; }
@@ -1225,7 +1225,7 @@ itemdb::ItemDatabase* ItemDatabaseObject() { return &itemdb::TheItemDatabase(); 
 
 } // namespace
 
-void __fastcall SwitchResourceDatabases(const char* name) {
+void SwitchResourceDatabases(const char* name) {
     UnitDatabase* units = UnitDatabaseObject();
     units->Reset();
     units->Load(ResourcesPath(), name);
@@ -1345,7 +1345,7 @@ namespace {
 
 constexpr int kScenarioScriptsVersion = 0x47;      // scenario.sav from this version holds the input and scripts
 constexpr int kScenarioGlobalsVersion = 0x52;      // and from this one the globals
-void __fastcall StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
+void StreamLoadScripts(CMemoryStream* a0, void*, CStream* a2) { a0->ReadSized(a2); }
 
 } // namespace
 
@@ -1471,10 +1471,10 @@ constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
 GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
 namespace {
-void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }
+void DestroyGameFlow() { g_gameFlow->Destruct(); }
 } // namespace
 
-void __cdecl ConstructGameFlow() {
+void ConstructGameFlow() {
     g_gameFlow->Construct();
     libcrt::AtExit(DestroyGameFlow);
 }

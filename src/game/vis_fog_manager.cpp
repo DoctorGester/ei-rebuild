@@ -35,7 +35,7 @@ constexpr float kFogTileSize = 0.25f;
 CEngineObject* ClientArrayManager::NewObject(int) { return new CVisibilityFog(); }
 
 // The texture, the tile table, then the manager's own Create (its result).
-int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
+int VisFogManagerCreate(ClientArrayManager* self) {
     self->texture.Load(kFogTextureKind, FogTextureName());
     FogTile* tiles = g_fogTiles;
     for (int i = 0; i < kFogTiles; ++i) {
@@ -49,7 +49,7 @@ int __fastcall VisFogManagerCreate(ClientArrayManager* self) {
 }
 
 // The texture dropped (null, then released), every fog released, the list emptied.
-void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
+void VisFogManagerDestroy(ClientArrayManager* self) {
     CTexture* texture = self->texture;
     self->texture = nullptr;
     if (texture) texture->Release();
@@ -62,7 +62,7 @@ void __fastcall VisFogManagerDestroy(ClientArrayManager* self) {
 }
 
 // Every fog's tick; one that returns 0 (no cells left) leaves the list and is released. Returns 0.
-int __fastcall VisFogManagerTick(ClientArrayManager* self) {
+int VisFogManagerTick(ClientArrayManager* self) {
     for (FogNode* node = self->list.head; node;) {
         FogNode* current = node;
         node = node->next;
@@ -79,7 +79,7 @@ void ClientArrayManager::Destroy() { VisFogManagerDestroy(this); }
 int ClientArrayManager::RunTick() { return VisFogManagerTick(this); }
 
 // A new fog (CreateObject(0, -1): registered and created), counted, at the list's end.
-CEngineObject* __fastcall VisFogManagerAdd(ClientArrayManager* self) {
+CEngineObject* VisFogManagerAdd(ClientArrayManager* self) {
     CEngineObject* fog = self->CreateObject(0, -1);
     ++fog->refCount_;
     self->list.AddTail(fog);

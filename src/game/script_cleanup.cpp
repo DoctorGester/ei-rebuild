@@ -42,7 +42,7 @@ void DestroyGroupVariables(ScriptVars& vars) {
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
-void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
+void ScriptPurgeDeletedObjects(CScript* script) {
     for (auto* node = script->runs_.head; node;) {
         auto* next = node->next;
         node->data.vars.RemoveDeletedObjects();
@@ -58,7 +58,7 @@ void __fastcall ScriptPurgeDeletedObjects(CScript* script) {
 }
 
 // Every instance and every run removed from the head of its list and destroyed.
-void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
+void ScriptDropInstancesAndRuns(CScript* script) {
     while (script->instances_.count != 0) {
         lib::InPlace<ScriptDefinition> element;
         script->instances_.PopHead(element.Get());
@@ -94,7 +94,7 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
 // When the party enters a zone: instances and runs dropped, the For depth and the
 // temporaries reset, every effect removed (point light slots zeroed; FX source, particle source and
 // lightning lists emptied), the global values reset, and every WorldScript block run again.
-void __fastcall ScriptResetZone(CScript* script) {
+void ScriptResetZone(CScript* script) {
     ScriptDropInstancesAndRuns(script);
     script->forDepth_ = 0;
     ScriptFreeTemporaries(script);

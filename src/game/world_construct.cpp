@@ -137,15 +137,15 @@ CWorldServer* TheServerWorld() { return &*g_serverWorld; }
 CWorldClient* TheClientWorld() { return &*g_clientWorld; }
 
 namespace {
-void __cdecl DestroyServerWorld() { g_serverWorld.Destroy(); }
-void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }
+void DestroyServerWorld() { g_serverWorld.Destroy(); }
+void DestroyClientWorld() { g_clientWorld.Destroy(); }
 } // namespace
 
-void __cdecl ConstructServerWorld() {
+void ConstructServerWorld() {
     g_serverWorld.Construct();
     libcrt::AtExit(DestroyServerWorld);
 }
-void __cdecl ConstructClientWorld() {
+void ConstructClientWorld() {
     g_clientWorld.Construct();
     libcrt::AtExit(DestroyClientWorld);
 }

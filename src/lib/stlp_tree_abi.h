@@ -51,7 +51,7 @@ struct TreeAbi : Map {
 
     // map: a header from the pool, no elements, empty. The compare byte is the
     // original's uninitialised less<> temporary; ours writes 0.
-    static Map* __fastcall Construct(Map* self) {
+    static Map* Construct(Map* self) {
         self->Header() = allocate_as<Node>();
         self->Count() = 0;
         self->Compare() = 0;
@@ -75,12 +75,12 @@ struct TreeAbi : Map {
         Map::template CopyFrom<E>(*from);
         return this;
     }
-    static void __fastcall EmptyInitialize(Map* self) { self->EmptyInitialize(); }
-    static void __fastcall Clear(Map* self) { self->template Clear<E>(); }
+    static void EmptyInitialize(Map* self) { self->EmptyInitialize(); }
+    static void Clear(Map* self) { self->template Clear<E>(); }
     // ~_Rb_tree: clear, then the header back to the pool.
-    static void __fastcall Destroy(Map* self) { self->template Destroy<E>(); }
+    static void Destroy(Map* self) { self->template Destroy<E>(); }
     // ~_Rb_tree_base: the header back to the pool when there is one.
-    static void __fastcall FreeHeader(Map* self) {
+    static void FreeHeader(Map* self) {
         if (self->Header()) deallocate(self->Header(), sizeof(Node));
     }
     // _STLP_alloc_proxy<Node>::deallocate(p, n).
@@ -91,7 +91,7 @@ struct TreeAbi : Map {
     // pool (operator new above 128), null for none.
     Node* AllocateNodes(std::size_t n, const void* /*hint*/) { return allocate_as<Node>(n); }
     // The same as a static member, p in ECX and n in EDX.
-    static void __fastcall DeallocateNodesFast(Node* p, std::size_t n) {
+    static void DeallocateNodesFast(Node* p, std::size_t n) {
         if (p) deallocate(p, n * sizeof(Node));
     }
 

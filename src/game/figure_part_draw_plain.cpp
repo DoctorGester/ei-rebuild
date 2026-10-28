@@ -23,7 +23,7 @@ using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
+void FreeMovedPositions() { g_movedPositions.FreeData(); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }

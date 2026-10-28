@@ -280,11 +280,11 @@ double UnitStats::RateValue() {
     return (level * kPercentB + kOne) * arms * base;
 }
 
-float __stdcall ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
+float ScaleDamageByEffects(CUnit* unit, float value) { return ScaledAtLeastOne(unit, kDamageEffect, value); }
 
-double __stdcall HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
+double HitPointEffectScale(CUnit* unit) { return EffectScale(unit, kHitPointEffect); }
 
-float __stdcall ScaleHitPointsByEffects(CUnit* unit, float value) {
+float ScaleHitPointsByEffects(CUnit* unit, float value) {
     return ScaledAtLeastOne(unit, kHitPointEffect, value);
 }
 

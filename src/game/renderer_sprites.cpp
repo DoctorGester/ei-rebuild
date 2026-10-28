@@ -32,9 +32,9 @@ struct SpriteSortRecord {
 };
 static_assert(sizeof(SpriteSortRecord) == 16);
 
-void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
+void SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending);
-void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
+void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
 
 namespace {
 
@@ -57,31 +57,31 @@ using SpriteArray = mfc::CArray<Sprite>;
 using devicebuffers::ProjectedVertex;
 constinit lib::AlignedArray<ProjectedVertex> g_unused = /*007AEFA0*/ {};
 lib::AlignedArray<ProjectedVertex>& Unused() { return g_unused; }  // sized only
-void __cdecl FreeUnused() { g_unused.FreeData(); }
+void FreeUnused() { g_unused.FreeData(); }
 constinit lib::AlignedArray<TLVertex> g_corners = /*007AEF90*/ {};
 lib::AlignedArray<TLVertex>& Corners() { return g_corners; }     // 4 per sprite
-void __cdecl FreeCorners() { g_corners.FreeData(); }
+void FreeCorners() { g_corners.FreeData(); }
 // A CByteArray of a byte per corner and a CWordArray of indices: constructed on the first draw, destroyed by the exit
 // functions it registers (docs/notes/standalone.md, "The static initialisers' objects").
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_outcodes = /*007AEF78*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint16_t>> g_indices = /*007AEF60*/ {};
 mfc::CArray<std::uint8_t>& Outcodes() { return *g_outcodes; }
 mfc::CArray<std::uint16_t>& Indices() { return *g_indices; }
-void __cdecl DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }
-void __cdecl DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }
+void DestroyOutcodes() { mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_outcodes); }
+void DestroyIndices() { mfc::impl::DestructArrayOf<mfc::impl::WordArrayClass>(*g_indices); }
 std::uint8_t g_guards = /*007AEFB0*/ {};   // the draw's statics constructed (bits 1, 2, 4, 8)
 constinit lib::AlignedArray<TLVertex> g_cornersCopy = /*007AEFE8*/ {};
 lib::AlignedArray<TLVertex>& CornersCopy() { return g_cornersCopy; } // the records point here
-void __cdecl FreeCornersCopy() { g_cornersCopy.FreeData(); }
+void FreeCornersCopy() { g_cornersCopy.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord> g_records = /*007AEFD8*/ {};
 lib::AlignedArray<SpriteSortRecord>& Records() { return g_records; }
-void __cdecl FreeRecords() { g_records.FreeData(); }
+void FreeRecords() { g_records.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord*> g_order = /*007AEFC8*/ {};
 lib::AlignedArray<SpriteSortRecord*>& Order() { return g_order; }
-void __cdecl FreeOrder() { g_order.FreeData(); }
+void FreeOrder() { g_order.FreeData(); }
 constinit lib::AlignedArray<SpriteSortRecord*> g_spare = /*007AEFB8*/ {};
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return g_spare; }
-void __cdecl FreeSpare() { g_spare.FreeData(); }
+void FreeSpare() { g_spare.FreeData(); }
 std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
 // First use: the two aligned arrays are zeroed, the MFC arrays constructed; each gets its exit handler.
@@ -306,7 +306,7 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
 // One radix sort pass: the records of `src` go to 256 buckets by the key's byte at
 // `shift` (each bucket a list through the records' link, the last one first), then the buckets go
 // to `dst` in ascending order (`ascending` set) or descending.
-void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
+void SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending) {
     SpriteSortRecord* buckets[256] = {};
     for (int i = 0; i < count; ++i) {
@@ -324,7 +324,7 @@ void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteS
 // sorted runs src[j], src[j + 2w], ... and src[j + w], src[j + 3w], ... merge, larger key first
 // (the first run's on ties), into dst[j], dst[j + w], ...; when 2w > count the last `width`
 // pointers are first copied as they are (the columns without a second run).
-void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count) {
+void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count) {
     int step = width * 2;
     if (step > count) {
         std::memcpy(dst + (count - width), src + (count - width), static_cast<std::size_t>(width) * sizeof(*src));

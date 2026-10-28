@@ -23,85 +23,85 @@ void Ret();   // src/game/short_functions.cpp
 namespace ei::static_init {
 
 // guarded destructor, 27 byte(s); atexit by 0070C093
-void __cdecl Exit0070C0B8() {
+void Exit0070C0B8() {
     Code d;
     if (d.Once(mfc::impl::g_gdiAllocExitGuards, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempDCAlloc);
 }
 
 // guarded destructor, 27 byte(s); atexit by 0070C0D3
-void __cdecl Exit0070C0F8() {
+void Exit0070C0F8() {
     Code d;
     if (d.Once(mfc::impl::g_gdiAllocExitGuards, 2)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempGdiObjectAlloc);
 }
 
 // destructor, 10 byte(s); atexit by 0070CC0C
-void __cdecl Exit0070CC23() {
+void Exit0070CC23() {
     Code d;
     d.Call(&mfc::impl::CThreadLocalObject::Destruct, &mfc::impl::g_threadStateLocal);
 }
 
 // destructor, 10 byte(s); atexit by 0070CE56
-void __cdecl Exit0070CE6D() {
+void Exit0070CE6D() {
     Code d;
     d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_baseModuleStateLocal);
 }
 
 // guarded destructor, 27 byte(s); atexit by 0070D3CE
-void __cdecl Exit0070D3F3() {
+void Exit0070D3F3() {
     Code d;
     if (d.Once(mfc::impl::g_tempWndAllocExitGuard, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempWndAlloc);
 }
 
 // guarded destructor, 27 byte(s); atexit by 0070DD0B
-void __cdecl Exit0070DD30() {
+void Exit0070DD30() {
     Code d;
     if (d.Once(mfc::impl::g_tempMenuAllocExitGuard, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempMenuAlloc);
 }
 
 // destructor, 10 byte(s); atexit by 0070D5D8
-void __cdecl Exit0070D5EF() {
+void Exit0070D5EF() {
     Code d;
     d.Call(&mfc::impl::CThreadLocalObject::Destruct, &mfc::impl::g_ctl3dThreadLocal);
 }
 
 // destructor, 10 byte(s); atexit by 0070D5FE
-void __cdecl Exit0070D615() {
+void Exit0070D615() {
     Code d;
     d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_ctl3dStateLocal);
 }
 
 // destructor, 10 byte(s); atexit by 0070DC27
-void __cdecl Exit0070DC3E() {
+void Exit0070DC3E() {
     Code d;
     d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_winStateLocal);
 }
 
 // destructor, 10 byte(s); atexit by 0070BF32
-void __cdecl Exit0070BF5A() {
+void Exit0070BF5A() {
     Code d;
     d.Call(mfc::impl::DestroyUserException, &mfc::impl::g_simpleUserException);
 }
 
 // guarded destructor, 27 byte(s); atexit by 00704410
-void __cdecl Exit00704433() {
+void Exit00704433() {
     Code d;
     if (d.Once(mfc::impl::g_staticWindowsExitGuards, 1)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndTop);
 }
 
 // guarded destructor, 27 byte(s); atexit by 0070444E
-void __cdecl Exit00704471() {
+void Exit00704471() {
     Code d;
     if (d.Once(mfc::impl::g_staticWindowsExitGuards, 2)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndBottom);
 }
 
 // guarded destructor, 27 byte(s); atexit by 0070448C
-void __cdecl Exit007044AF() {
+void Exit007044AF() {
     Code d;
     if (d.Once(mfc::impl::g_staticWindowsExitGuards, 4)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndTopMost);
 }
 
 // guarded destructor, 27 byte(s); atexit by 007044CA
-void __cdecl Exit007044ED() {
+void Exit007044ED() {
     Code d;
     if (d.Once(mfc::impl::g_staticWindowsExitGuards, 8)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndNoTopMost);
 }

@@ -31,17 +31,17 @@ double Unsigned(std::uint32_t value) {
 
 constinit lib::AlignedArray<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 lib::AlignedArray<ParticleVertex>& Vertices() { return g_vertices; }
-void __cdecl FreeVertices() { g_vertices.FreeData(); }
+void FreeVertices() { g_vertices.FreeData(); }
 static_assert(sizeof(ParticleSpriteArray) == 0x14);
 constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
 ParticleSpriteArray& Sprites() { return *g_sprites; }
-void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};
 
 constexpr int kReserve = 0x1000;
 
-void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
+void ConstructSpriteArray(ParticleSpriteArray* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>((void*)a0); }
 // The arrays are function-local statics in the original (guard bits 1 and 2 of g_arraysConstructed, their
 // destructors registered with atexit).
 void ConstructArrays() {

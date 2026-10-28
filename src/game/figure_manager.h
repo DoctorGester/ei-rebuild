@@ -15,7 +15,7 @@
 #undef GetClassName
 
 
-void* __stdcall CreateFigureObject(int classId);
+void* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,
 // multiplayer), then the Esc menu's five (save, load, resume, exit to the main menu, options).

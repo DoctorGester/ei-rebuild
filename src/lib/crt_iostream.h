@@ -129,7 +129,7 @@ static_assert(sizeof(Ios) == 0x50);
 // inline operator<<(float): six digits at most instead of fifteen). Each inserter takes the locks, flushes
 // the tie, writes padded to the width (writepad) and clears the width; all return the stream.
 // A manipulator (ostream& f(ostream&)), as operator<< takes it.
-using Manipulator = Ostream*(__cdecl*)(Ostream*);
+using Manipulator = Ostream*(*)(Ostream*);
 
 struct Ostream {
     // ostream(streambuf*): with `mostDerived`, the virtual base table {0, 8} and the
@@ -152,8 +152,8 @@ struct Ostream {
 static_assert(sizeof(Ostream) == 8);   // the ios follows (Ios::DestructOstream)
 
 // The flush manipulator: stream->Flush().
-Ostream* __cdecl FlushManipulator(Ostream* stream);
+Ostream* FlushManipulator(Ostream* stream);
 // The game's endl (no Ghidra function; the console's lines): '\n', then Flush.
-Ostream* __cdecl EndlManipulator(Ostream* stream);
+Ostream* EndlManipulator(Ostream* stream);
 
 } // namespace libcrt

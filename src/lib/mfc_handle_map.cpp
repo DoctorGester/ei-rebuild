@@ -30,13 +30,13 @@ void* CRuntimeClass::CreateObject() const {
 
 constinit gamecrt::NewHandler g_afxNewHandler = /*00796E14*/ {DefaultNewHandler};
 
-gamecrt::NewHandler __stdcall SetAfxNewHandler(gamecrt::NewHandler handler) {
+gamecrt::NewHandler SetAfxNewHandler(gamecrt::NewHandler handler) {
     const gamecrt::NewHandler old = g_afxNewHandler;
     g_afxNewHandler = handler;
     return old;
 }
 
-int __cdecl CriticalNewHandler(std::size_t) {
+int CriticalNewHandler(std::size_t) {
     ThrowMemoryException();
 }
 

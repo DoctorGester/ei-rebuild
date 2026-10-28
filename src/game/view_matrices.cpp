@@ -10,7 +10,7 @@
 
 namespace view {
 
-void __stdcall CameraViewMatrix(float* out, const CTransformObject* camera) {
+void CameraViewMatrix(float* out, const CTransformObject* camera) {
     const Quaternion& q = camera->localRotation_;
     Vector3 axisX;
     q.AxisX(&axisX);
@@ -36,7 +36,7 @@ void __stdcall CameraViewMatrix(float* out, const CTransformObject* camera) {
     std::memcpy(&out[15], &one, 4);
 }
 
-void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
+void LightRotation(const Vector3* direction, Quaternion* out) {
     double x = direction->x;
     float y = direction->y;
     double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
@@ -51,7 +51,7 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
     out->FromAxisAngle(axis, angle);
 }
 
-void __stdcall LightShearMatrix(float* out, const Vector3* direction) {
+void LightShearMatrix(float* out, const Vector3* direction) {
     Quaternion q = {1.0f, 0.0f, 0.0f, 0.0f};
     LightRotation(direction, &q);
     const Vector3 u = {q.x, q.y, q.z};

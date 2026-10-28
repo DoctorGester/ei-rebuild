@@ -16,7 +16,7 @@ namespace mfc::impl {
 template <typename F>
 struct DestructTarget;
 template <typename T>
-struct DestructTarget<void(__fastcall*)(T*)> {
+struct DestructTarget<void(*)(T*)> {
     using Type = T;
 };
 

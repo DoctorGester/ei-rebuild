@@ -52,7 +52,7 @@ std::uint32_t PackColour(const float* rgb) {
 // The cached object for `name` (its use time refreshed), or a new one put in the cache, which then drops its
 // least recently used entries beyond its limit. Null when it cannot be made. `make` is the object's maker.
 template <typename Object>
-Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (__fastcall* make)(const char*)) {
+Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (*make)(const char*)) {
     typename ItemObjectCache<Object>::Node* node;
     {
         std::string key(name);
@@ -342,7 +342,7 @@ BOOL CItemInfoPanel::Draw(CSceneRenderer* pass) {
 
 // --- A hero's face -----------------------------------------------------------------------------
 
-Quaternion* __fastcall MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
+Quaternion* MultiplyQuaternions(Quaternion*, const Quaternion*, const Quaternion*);
 namespace {
 
 
@@ -422,7 +422,7 @@ long LockTexture(CDXSurface* holder, SurfacePixels* pixels) {
 
 } // namespace
 
-CTexture* __fastcall ItemFigureTexture(const char* name) {
+CTexture* ItemFigureTexture(const char* name) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;

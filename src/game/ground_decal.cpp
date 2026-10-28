@@ -64,7 +64,7 @@ double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>
 
 namespace decal {
 
-void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq) {
+void Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq) {
     double scale = 1.0f / (dq - dp);
     out->position.x = static_cast<float>((dq * p->position.x - dp * q->position.x) * scale);
     out->position.y = static_cast<float>((dq * p->position.y - dp * q->position.y) * scale);
@@ -73,7 +73,7 @@ void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVer
     out->v = static_cast<float>((dq * p->v - dp * q->v) * scale);
 }
 
-int __fastcall ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) {
+int ClipTriangle(DecalVertex* tri, DecalVertex* out, float a, float b, float c) {
     DecalVertex* v0 = &tri[0];
     DecalVertex* v1 = &tri[1];
     DecalVertex* v2 = &tri[2];

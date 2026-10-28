@@ -239,4 +239,4 @@ static_assert(sizeof(*CLinkMesh::words_.data) == 4 && sizeof(*CLinkMesh::indices
 // A length-prefixed string of a .lnk file (a four-byte length, then the characters) at *cursor; `out` gets
 // the characters up to the first zero byte (copied through a static buffer) and keeps its old text for length
 // 0. The cursor moves past the record.
-void __fastcall ReadLinkString(std::string* out, const char** cursor);
+void ReadLinkString(std::string* out, const char** cursor);

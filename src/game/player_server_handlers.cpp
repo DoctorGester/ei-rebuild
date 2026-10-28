@@ -80,7 +80,7 @@ CMemoryStream& ReceivedMessages() { return *g_receivedMessages; }
 
 namespace {
 std::uint8_t g_receivedMessagesDestroyed = /*007C83C8*/ {};
-void __cdecl DestroyReceivedMessages() {
+void DestroyReceivedMessages() {
     std::uint8_t flags = g_receivedMessagesDestroyed;
     if (flags & 1) return;
     g_receivedMessagesDestroyed = static_cast<std::uint8_t>(flags | 1);
@@ -88,7 +88,7 @@ void __cdecl DestroyReceivedMessages() {
 }
 } // namespace
 
-void __cdecl ConstructReceivedMessages() {
+void ConstructReceivedMessages() {
     new (&*g_receivedMessages) CMemoryStream();
     libcrt::AtExit(DestroyReceivedMessages);
 }
@@ -159,7 +159,7 @@ void CPlayerServer::OnLeaderDied() {
 
 // --- Message 0x36, a use order --------------------------------------------------------
 
-double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
+double UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
     double dx = a->x - b->x;
     double dy = a->y - b->y;
     double dz = a->z - b->z;
@@ -354,7 +354,7 @@ int MoveUnits(MoveCommand command) {
 
 } // namespace
 
-void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
+void FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
     int count = units->size;
     if (count < 1) return;
     if (count == 1) {
@@ -553,7 +553,7 @@ constexpr std::uint8_t kMessageLogin = 0x00;
 constexpr std::uint8_t kMessageError = 0x11;
 } // namespace
 
-BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) {
+BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
     if constexpr (text::kUtf8) {
         // EI_UTF8: by character, each a valid UTF-8 sequence of a printable code point, within
         // `maxLength` bytes; `minLength` counts characters. (The original's isprint of each signed byte

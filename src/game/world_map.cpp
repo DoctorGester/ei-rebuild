@@ -124,7 +124,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 namespace {
 
 // Releases a range of counted object pointers.
-void __stdcall CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
+void CountedRangeRelease(void* a0, int a1) { gamearrays::ObjectPtrs::DestructElements(static_cast<CEngineObject**>(a0), a1); }
 
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;

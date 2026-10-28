@@ -24,7 +24,7 @@
 
 namespace net {
 
-RefPtr* __fastcall HolderInit(RefPtr*, CRefObject*);
+RefPtr* HolderInit(RefPtr*, CRefObject*);
 namespace {
 
 // The nodes of the servers list, the waiting addresses and the server's pending joins.
@@ -119,7 +119,7 @@ ServerEntryBase::ServerEntryBase() {
 Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 
 // A buffer's length (its highest position brought up to date first).
-std::int32_t __fastcall BufferLength(GameBuffer* b) {
+std::int32_t BufferLength(GameBuffer* b) {
     if (b->cur > b->high) b->high = b->cur;
     return b->PositionOf(b->high);
 }
@@ -130,7 +130,7 @@ Query::Query(const Query& from) : address(from.address), reply(from.reply) {}
 
 // The temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
-RefPtr* __fastcall HolderInit(RefPtr* self, CRefObject* raw) {
+RefPtr* HolderInit(RefPtr* self, CRefObject* raw) {
     self->ptr = raw;
     return self;
 }

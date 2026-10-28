@@ -203,7 +203,7 @@ unsigned long CArchive::ReadCount() {
     return dword;
 }
 
-unsigned __stdcall ReadStringLength(CArchive& ar) {
+unsigned ReadStringLength(CArchive& ar) {
     unsigned char byte;
     ar.LoadByte(byte);
     if (byte < 0xFF) return byte;
@@ -218,7 +218,7 @@ unsigned __stdcall ReadStringLength(CArchive& ar) {
     return word;
 }
 
-CArchive& __stdcall StoreText(CArchive& ar, const CString& text) {
+CArchive& StoreText(CArchive& ar, const CString& text) {
     const int length = text.GetLength();
     if (length < 0xFF) {
         ar.StoreByte(static_cast<unsigned char>(length));
@@ -235,7 +235,7 @@ CArchive& __stdcall StoreText(CArchive& ar, const CString& text) {
 }
 
 // A wide string is read as its bytes, terminated, then converted into a fresh buffer.
-CArchive& __stdcall LoadText(CArchive& ar, CString& text) {
+CArchive& LoadText(CArchive& ar, CString& text) {
     int wide = 0;
     int length = static_cast<int>(ReadStringLength(ar));
     if (length == -1) {
@@ -270,7 +270,7 @@ CString* CString::AssignWide(const wchar_t* text) {
     return this;
 }
 
-int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
+int WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
     if (count == 0 && to) return 0;
     const int written = gameapi::WideCharToMultiByte(CP_ACP, 0, from, -1, to, static_cast<int>(count), nullptr, nullptr);
     if (written > 0) to[written - 1] = '\0';

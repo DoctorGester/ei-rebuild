@@ -36,13 +36,13 @@ struct TextureNameRecord;
 } // namespace scene
 
 namespace figure {
-void __fastcall NamedRecordDestruct(scene::TextureNameRecord* self);
+void NamedRecordDestruct(scene::TextureNameRecord* self);
 } // namespace figure
 
 namespace scene {
 
 // `Unmake` null: nothing is destroyed.
-template <typename T, void(__stdcall* Make)(void*, int), void(__stdcall* Unmake)(void*, int) = nullptr>
+template <typename T, void(*Make)(void*, int), void(*Unmake)(void*, int) = nullptr>
 struct OriginalElements {
     static void Construct(T* elements, int count) { Make(elements, count); }
     static void Destruct(T* elements, int count) {
@@ -101,7 +101,7 @@ using FaceBuffer = lib::AlignedArray<MeshFace>;
 // A material group: its name and the faces it uses.
 struct FaceGroup {
     void Assign(const FaceGroup* from);
-    static void __stdcall ConstructElements(FaceGroup* groups, int count);
+    static void ConstructElements(FaceGroup* groups, int count);
     void Destruct();
 
     std::string name;
@@ -114,7 +114,7 @@ struct FaceGroupElements {
     }
 };
 using FaceGroupArray = mfc::CArray<FaceGroup, FaceGroupElements>;
-void __fastcall FaceGroupArrayDestruct(FaceGroupArray* groups);
+void FaceGroupArrayDestruct(FaceGroupArray* groups);
 
 // The node's key records (the frame is read as a signed short).
 struct NodeRotationKey {
@@ -151,7 +151,7 @@ struct NodeFrame {
 };
 static_assert(sizeof(NodeFrame) == 40);
 // Each rotation the identity. The array is never destroyed element by element.
-void __stdcall ConstructNodeFrames(void* records, int count);
+void ConstructNodeFrames(void* records, int count);
 using NodeFrameArray = mfc::CArray<NodeFrame, OriginalElements<NodeFrame, ConstructNodeFrames>>;
 
 // A node. The loader fills the key arrays; BuildSkeleton the rest.
@@ -276,7 +276,7 @@ static_assert(offsetof(SceneSkin, root) == 0x14);
 static_assert(offsetof(SceneSkin, name) == 0x20);
 
 // Also `bone`'s children; the low word of `frames` is the animation's frame count.
-void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);
+void BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);
 
 inline const char* FirstKeyNotAtZeroText() { return "ResolveNodesAMF.\n This version requires start from position 0 !\n"; }
 inline const char* NoRootNodeText() { return "Can't find top-level object in hierarchy\n"; }
@@ -370,17 +370,17 @@ public:
     std::uint16_t flags_;
 };
 
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+int LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
                                   TextureNameArray* names);
 // 0 without a root node.
-int __fastcall BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin);
+int BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneSkin* skin);
 // Welds the meshes' vertices to the registry's nodes.
-void __fastcall WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes);
-void __fastcall PackMeshPositions(FakeUnitScene* unit);
-void __fastcall ComputeMeshBounds(SceneMesh* mesh);
+void WeldMeshVertices(FakeUnitScene* unit, NodeArray* nodes);
+void PackMeshPositions(FakeUnitScene* unit);
+void ComputeMeshBounds(SceneMesh* mesh);
 
 // Also builds the unit's figures from the scene.
-mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit);
+mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit);
 
 // The loader's messages and the vtable of the map it constructs inline.
 namespace scenedata {

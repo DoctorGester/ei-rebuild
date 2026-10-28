@@ -27,7 +27,7 @@
 #include <string>
 
 namespace scene {
-int __fastcall ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/);
+int ParseMaterial(const char* /*name*/, int* /*type*/, int* /*value*/);
 namespace {
 
 // The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
@@ -228,7 +228,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
 
 // `links` collects (type, value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when
 // the file has no sections, or what FatalError returns when it cannot be opened.
-int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
+int LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, TextureLinkArray* links,
                                   TextureNameArray* names) {
     mfc::CString groupName;
     mfc::CString mapping;

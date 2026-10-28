@@ -22,37 +22,37 @@ namespace stl_sorts {
 
 // The client's file chunks (net_client_handlers.cpp), by their index (+0x10, unsigned 16 bits).
 // __introsort_loop, __final_insertion_sort.
-void __fastcall ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void* tag, int depth, int comp);
-void __fastcall ChunkFinalSort(net::FileChunkMessage** first, net::FileChunkMessage** last, int comp);
+void ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void* tag, int depth, int comp);
+void ChunkFinalSort(net::FileChunkMessage** first, net::FileChunkMessage** last, int comp);
 
 // CollectChanges's {object, priority} pairs (net_connection.cpp), by the object's address.
 // __introsort_loop, __final_insertion_sort.
-void __fastcall ReplicatedIntroSort(net::Replicated* first, net::Replicated* last, void* tag, int depth, void* comp);
-void __fastcall ReplicatedFinalSort(net::Replicated* first, net::Replicated* last, void* comp);
+void ReplicatedIntroSort(net::Replicated* first, net::Replicated* last, void* tag, int depth, void* comp);
+void ReplicatedFinalSort(net::Replicated* first, net::Replicated* last, void* comp);
 
 // The picking hits (world_client_maps.cpp), front to back with DepthLess {plane, manager} (by
 // value: two dwords). __introsort_loop, __insertion_sort,
 // __unguarded_insertion_sort. The game inlines the comparison in some
 // scans; its depth sums are the same (only the first two terms trade places).
-void __fastcall ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void* tag, int depth, const float* plane,
+void ScreenIntroSort(ScreenEntry* first, ScreenEntry* last, void* tag, int depth, const float* plane,
                                 CMapObjectManager* manager);
-void __fastcall ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CMapObjectManager* manager);
-void __fastcall ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void* tag, const float* plane,
+void ScreenInsertionSort(ScreenEntry* first, ScreenEntry* last, const float* plane, CMapObjectManager* manager);
+void ScreenUnguardedInsertionSort(ScreenEntry* first, ScreenEntry* last, void* tag, const float* plane,
                                              CMapObjectManager* manager);
 
 // The battle screen's party ids (ui_battle_update.cpp), less<int>. __introsort_loop
 // (no comparison object), __final_insertion_sort.
-void __fastcall IdIntroSort(int* first, int* last, const int* tag, int depth);
-void __fastcall IdFinalSort(int* first, int* last);
+void IdIntroSort(int* first, int* last, const int* tag, int depth);
+void IdFinalSort(int* first, int* last);
 
 // The connection screen's server list (ui_connect_screen.cpp) by the sort key (CMpConnectScreen's
 // sortKey_, by value): 1 / 2 the name ascending / descending (_mbscmp), 3 / 4 the players, 5 / 6 the
 // game type, 7 / 8 the ping, anything else the state, ascending.
 // __introsort_loop, __insertion_sort, __unguarded_insertion_sort.
 // The copies only share the strings (no allocation).
-void __fastcall ServerIntroSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int depth, int key);
-void __fastcall ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last, int key);
-void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int key);
+void ServerIntroSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int depth, int key);
+void ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last, int key);
+void ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int key);
 
 // The objectives window's quests (ui_objectives.cpp, the names of the shown zone's "q.<zone>.<quest>"
 // variables) by their quest record's order, the highest first and a name without a record
@@ -62,9 +62,9 @@ void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEnt
 // key, a {key, null} pair, find_or_insert, the pair and the key freed), every copy allocating
 // alike. Copies of the CStrings only share them. __introsort_loop, __insertion_sort,
 // __unguarded_insertion_sort.
-void __fastcall QuestIntroSort(mfc::CString* first, mfc::CString* last, void* tag, int depth, int comp);
-void __fastcall QuestInsertionSort(mfc::CString* first, mfc::CString* last, int comp);
-void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void* tag, int comp);
+void QuestIntroSort(mfc::CString* first, mfc::CString* last, void* tag, int depth, int comp);
+void QuestInsertionSort(mfc::CString* first, mfc::CString* last, int comp);
+void QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void* tag, int comp);
 
 // The save / load list (ui_saveload.cpp) by the saved time (+0x08, signed), the newest first: the
 // comparison is !(a < b) (a.savedAt < b.savedAt is the less), so equal times compare true both ways (not a strict
@@ -74,9 +74,9 @@ void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* l
 // (inlined in the helpers, the same calls) and the destructor. __introsort_loop,
 // __final_insertion_sort; copy_backward
 // (first, last, result end), returning the first element written.
-void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp);
-void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
-SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result);
+void SaveIntroSort(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp);
+void SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
+SaveEntry* SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result);
 
 // A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
 // texts. A copy allocates (string's copy constructor, the swap's string(first, last)), so
@@ -84,14 +84,14 @@ SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEn
 // (stlp::ObjectElement<std::string>); the partition takes the pivot by value and frees it before it
 // returns. The comparison object is empty (the caller passes the person's id in its slot).
 // __introsort_loop, __final_insertion_sort.
-void __fastcall TopicIntroSort(std::string* first, std::string* last, int tag, int depth, int comp);
-void __fastcall TopicFinalSort(std::string* first, std::string* last, int comp);
+void TopicIntroSort(std::string* first, std::string* last, int tag, int depth, int comp);
+void TopicFinalSort(std::string* first, std::string* last, int comp);
 
 // The multiplayer hero screen's figure names (ui_hero_screen_create.cpp, a vector<CString>) by
 // CString's operator< (_mbscmp). Copies only share the strings.
 // __introsort_loop (first, last, the null value-type tag, the depth limit; no comparison object),
 // __final_insertion_sort.
-void __fastcall NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString* tag, int depth);
-void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last);
+void NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString* tag, int depth);
+void NameFinalSort(mfc::CString* first, mfc::CString* last);
 
 } // namespace stl_sorts

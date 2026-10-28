@@ -264,6 +264,6 @@ constexpr std::uint32_t kFig8Magic = 0x38474946;   // "FIG8"
 // The figure loader's bounding volume of a FIG figure part: `data` holds the centre, box minimum, box maximum
 // and radius, 8 versions each for FIG8 (morphed as in CFigureMesh::LoadBounds, except that the radius keeps
 // its lower blend on the FPU) or one otherwise. The loader argument is not used.
-void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic);
+void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic);
 // The same for figure parts without a FIG header: 6 corner versions of each value, blended as the bones are.
-void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u);
+void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u);

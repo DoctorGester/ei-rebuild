@@ -80,7 +80,7 @@ public:
 
 // CException::Delete (called as fastcall): an auto-delete exception is deleted. The flag
 // is read before the pointer is tested.
-void __fastcall DeleteException(CException* exception);
+void DeleteException(CException* exception);
 
 // CFileException (0x14 bytes). The causes are MFC's CFileException::none ... endOfFile.
 class CFileException final : public CException {
@@ -122,31 +122,31 @@ public:
 static_assert(sizeof(CArchiveException) == 0x10);
 
 // _simpleUserException's destructor (reached by the generated exit function).
-void __fastcall DestroyUserException(CUserException* self);
+void DestroyUserException(CUserException* self);
 
 // CFileException::OsErrorToException: a Win32 error code as a cause (generic for the rest).
-int __stdcall OsErrorToException(long osError);
+int OsErrorToException(long osError);
 // AfxThrowFileException: a new CFileException thrown as a pointer.
-void __stdcall ThrowFileException(int cause, long osError, const char* fileName);
+void ThrowFileException(int cause, long osError, const char* fileName);
 // CFileException::ThrowOsError: nothing for 0, else the error's cause thrown.
-void __stdcall ThrowOsError(long osError, const char* fileName);
+void ThrowOsError(long osError, const char* fileName);
 // AfxThrowArchiveException.
-void __stdcall ThrowArchiveException(int cause, const char* fileName);
+void ThrowArchiveException(int cause, const char* fileName);
 // AfxThrowNotSupportedException: MFC's one static CNotSupportedException (not auto-deleted).
-void __stdcall ThrowNotSupported();
+void ThrowNotSupported();
 // AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
-__declspec(noreturn) void __stdcall ThrowMemoryException();
+__declspec(noreturn) void ThrowMemoryException();
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
-__declspec(noreturn) void __stdcall ThrowResourceException();
+__declspec(noreturn) void ThrowResourceException();
 
 } // namespace mfc::impl
 
 namespace mfc {
 
 // AFX_EXCEPTION_LINK's two library functions (the link is mfc_try.h's ExceptionLink).
-ExceptionLink* __fastcall ConstructExceptionLink(ExceptionLink* link);
-void __cdecl TryCleanup();
+ExceptionLink* ConstructExceptionLink(ExceptionLink* link);
+void TryCleanup();
 // The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop).
-ExceptionLink** __cdecl ExceptionLinkTop();
+ExceptionLink** ExceptionLinkTop();
 
 } // namespace mfc

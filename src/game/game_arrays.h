@@ -14,12 +14,12 @@
 #include <memory>
 
 namespace aligned {
-std::uint32_t* __fastcall AllocateDwords(int count);
-void __fastcall ArrayAt8Free(void* self);
+std::uint32_t* AllocateDwords(int count);
+void ArrayAt8Free(void* self);
 } // namespace aligned
 
 namespace zone {
-void __fastcall ZoneRecordDestruct(MapRecord* self);
+void ZoneRecordDestruct(MapRecord* self);
 } // namespace zone
 
 namespace gamearrays {
@@ -34,7 +34,7 @@ inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 inline void DestroyZoneRecord(MapRecord* p) { zone::ZoneRecordDestruct(p); }
 
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
-inline void __fastcall DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
+inline void DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
 inline void DestroyGroup(ScriptGroup* p) { p->DestructBody(); }
 
 inline void InitObjective(ScriptQuestObjective* p) { std::construct_at(&p->text); }

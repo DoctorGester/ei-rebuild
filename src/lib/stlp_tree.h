@@ -37,15 +37,15 @@ namespace rb {
 // _Rb_global<bool> (the node-only algorithms), with their calling conventions: the node in ECX, the root (a
 // reference to the header's parent) in EDX. _Rb_tree_base_iterator::_M_increment / _M_decrement on the
 // iterator (one node pointer) in ECX.
-void __fastcall Increment(RbNodeBase** it);
-void __fastcall Decrement(RbNodeBase** it);
-void __fastcall RotateLeft(RbNodeBase* x, RbNodeBase*& root);
-void __fastcall RotateRight(RbNodeBase* x, RbNodeBase*& root);
+void Increment(RbNodeBase** it);
+void Decrement(RbNodeBase** it);
+void RotateLeft(RbNodeBase* x, RbNodeBase*& root);
+void RotateRight(RbNodeBase* x, RbNodeBase*& root);
 // X (just linked in) red, then recoloured and rotated up to the root, which ends black.
-void __fastcall Rebalance(RbNodeBase* x, RbNodeBase*& root);
+void Rebalance(RbNodeBase* x, RbNodeBase*& root);
 // Z unlinked (its successor takes its place and colour when it has two
 // children), leftmost / rightmost kept, the tree recoloured and rotated; returns the node to free.
-RbNodeBase* __fastcall RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& leftmost,
+RbNodeBase* RebalanceForErase(RbNodeBase* z, RbNodeBase*& root, RbNodeBase*& leftmost,
                                          RbNodeBase*& rightmost);
 
 inline RbNodeBase* Next(RbNodeBase* n) {

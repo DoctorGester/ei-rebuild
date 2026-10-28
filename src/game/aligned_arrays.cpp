@@ -21,7 +21,7 @@ static_assert(sizeof(Blob<6>) == 6 && sizeof(Blob<12>) == 12 && sizeof(Blob<64>)
 using Dwords = lib::AlignedArray<std::uint32_t>;
 
 // ---- Allocate(count) (the aligned data pointer) -------------------------------------------------
-std::uint32_t* __fastcall AllocateDwords(int count) { return Dwords::Allocate(count); }
+std::uint32_t* AllocateDwords(int count) { return Dwords::Allocate(count); }
 
 // ---- Destructors: the block freed (the pointer is left as it was) -------------------------------
 namespace {
@@ -31,6 +31,6 @@ void FreeAt(void* self, std::size_t offset) {
 }
 } // namespace
 // A record holding such an array at +8.
-void __fastcall ArrayAt8Free(void* self) { FreeAt(self, 8); }
+void ArrayAt8Free(void* self) { FreeAt(self, 8); }
 
 } // namespace aligned

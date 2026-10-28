@@ -31,7 +31,7 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
 // without the scratch array.
-void __fastcall ObjectSetSortUnique(ObjectSet* self) {
+void ObjectSetSortUnique(ObjectSet* self) {
     if (self->size < 2) return;
     std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
     // Each element compared with the one before it in place.
@@ -47,7 +47,7 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
 // `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
-void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
+void DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
     ObjectSetSortUnique(current);
     int most = current->size > sent->size ? current->size : sent->size;
     added->SetSize(most);

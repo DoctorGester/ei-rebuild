@@ -47,7 +47,7 @@ bool IsZero(float value) {
 // ---- Original code ------------------------------------------------------------------------------
 
 // CArray<ScriptObjectRef> DestructElements (releases each reference).
-void __stdcall DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
+void DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
 // ScriptVars constructor / destructor and the value arrays' Copy.
 // The run list's NewNode(prev, next): a node from the free list, its ScriptRun
 // constructed.
@@ -297,7 +297,7 @@ void CScript::RunWorldScript(ScriptDecl* block) {
     ScriptVarsDestruct(&run->vars);
 }
 
-void __fastcall ScriptFreeTemporaries(CScript* script) {
+void ScriptFreeTemporaries(CScript* script) {
     if (script->forDepth_ > 0) return;
     // Temporary groups: all but one freed, the last one emptied.
     ScriptTempGroups& groups = script->tempGroups_;
@@ -324,7 +324,7 @@ void __fastcall ScriptFreeTemporaries(CScript* script) {
     last->object = nullptr;
 }
 
-void __fastcall ScriptTick(CScript* script) {
+void ScriptTick(CScript* script) {
     if (!script->loaded_) return;
 
     // Waiting runs: continue each; a run that had already ended is removed.

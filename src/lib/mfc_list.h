@@ -19,11 +19,11 @@ namespace mfc::impl {
 
 // CPlex::Create (__stdcall): a block of `count` elements of `elementSize` bytes
 // after the CPlex header (operator new), linked in front of `head`. Returns the block.
-CPlex* __stdcall CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
+CPlex* CreatePlex(CPlex*& head, unsigned count, unsigned elementSize);
 // CPlex::FreeDataChain (__thiscall, `this` may be null): every block of the chain freed.
 // Returns 0: a null chain leaves EAX as the caller had it, and AIPath::Reset
 // returns that EAX (0 there; its checks run on empty lists).
-int __fastcall FreePlexChain(CPlex* head);
+int FreePlexChain(CPlex* head);
 
 
 template <typename T, typename E = PlainElements<T>>
@@ -46,11 +46,11 @@ struct ListAbi : CList<T, E> {
     // AddTail / AddHead with ARG_TYPE by value: the new node (POSITION).
     Node* AddTailByValue(T value) { return List::AddTail(value); }
     // RemoveHead: the head's element.
-    static T __fastcall RemoveHeadByValue(List* self) { return self->RemoveHead(); }
+    static T RemoveHeadByValue(List* self) { return self->RemoveHead(); }
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
     template <typename Class>
-    static void __fastcall Destruct(List* self) {
+    static void Destruct(List* self) {
         self->vtable = Class::Vtable();
         self->RemoveAll();
     }
@@ -142,7 +142,7 @@ struct MapAbi : CMap<K, V> {
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
     template <typename Class>
-    static void __fastcall Destruct(Map* self) {
+    static void Destruct(Map* self) {
         self->vtable = Class::Vtable();
         self->RemoveAll();
     }

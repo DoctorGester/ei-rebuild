@@ -33,7 +33,7 @@ int GrownCapacity(int size, int max, int growBy, int wanted) {
 }
 } // namespace
 
-AILookArray* __fastcall LooksInit(AILookArray* looks) {
+AILookArray* LooksInit(AILookArray* looks) {
     looks->vtable = mfc::impl::AiLookArrayClass::Vtable();
     looks->data = nullptr;
     looks->growBy = 0;

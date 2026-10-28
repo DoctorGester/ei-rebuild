@@ -16,7 +16,7 @@ const NamedPartyRecords* RecordList() { return &ThePartyManager()->records; }
 
 } // namespace
 
-CParty* __fastcall PartyForScript(CPlayer* player, std::string* name) {
+CParty* PartyForScript(CPlayer* player, std::string* name) {
     if (!player) return nullptr;
     std::string owner;
     int split = str::Find(*name, "::");

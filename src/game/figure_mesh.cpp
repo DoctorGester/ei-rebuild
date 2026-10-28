@@ -198,7 +198,7 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     box_.bounds.SetBox(&boxMin_.x, &boxMax_.x);
 }
 
-void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
+void MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
     Vector3 boxMin, boxMax;
     if (magic == kFig8Magic) {
         Vector3 c = MorphVector(data, s, t, u, true);
@@ -222,7 +222,7 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
     out->SetBox(&boxMin.x, &boxMax.x);
 }
 
-void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
+void MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
     Vector3 c = MorphVector6(data, s, t, u, true);
     Vector3 mn = MorphVector6(data + 0x12, s, t, u, false);
     Vector3 mx = MorphVector6(data + 0x24, s, t, u, false);
@@ -605,7 +605,7 @@ constinit lib::AlignedArray<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
 lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
 } // namespace
 
-void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
+void FreeOffsetVertices() { g_offsetVertices.FreeData(); }
 
 void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);

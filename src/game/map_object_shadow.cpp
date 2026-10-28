@@ -194,13 +194,13 @@ float CornerY(const float* m, float a, float b) {
 }
 } // namespace
 
-void __cdecl FreeQuads() { g_quads.FreeData(); }
-void __cdecl FreePoints() {
+void FreeQuads() { g_quads.FreeData(); }
+void FreePoints() {
     if (g_freed & 1) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 1);
     g_points.FreeData();
 }
-void __cdecl FreePixels() {
+void FreePixels() {
     if (g_freed & 2) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 2);
     g_pixels.FreeData();

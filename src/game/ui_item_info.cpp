@@ -95,7 +95,7 @@ const itemdb::SpellRecord* SpellPrototypeOf(CSpell* spell) {
 
 } // namespace
 
-void __fastcall ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
+void ItemDamageLists(const float* values, std::vector<std::string>* out, char integer) {
     CTextManager* texts = TextManager();
     out->clear();
     std::string value, above, below, key, text;

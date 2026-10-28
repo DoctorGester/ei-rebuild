@@ -434,8 +434,8 @@ static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 // The surface's CDC (a temporary MFC wrapper; null without a DirectDraw surface) and the matching release.
-mfc::impl::CDC* __fastcall UiSurfaceGetDC(CUiSurface* surface);
-void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
+mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface);
+void UiSurfaceReleaseDC(CUiSurface* surface);
 inline mfc::impl::CDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
@@ -1075,7 +1075,7 @@ struct UiPointF {
 };
 using UiPointArray = lib::AlignedArray<UiPointF>;
 // `growBy` -1 keeps the growth step.
-void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
+void UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
@@ -1779,9 +1779,9 @@ struct SaveEntry {
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
 // the disc lacks the space a save needs (0 free space: not checked). Writes info.sav (the "gtime" variable,
 // the zone's map, the zone, the time, an empty title) and shot.sav (the screen as 256x192 5:6:5 pixels).
-void __fastcall QuickSave(const char* slot, char stepFrame);
+void QuickSave(const char* slot, char stepFrame);
 // Not for a multiplayer client; only when saves\<slot>\ exists.
-void __fastcall QuickLoad(const char* slot);
+void QuickLoad(const char* slot);
 
 // The save/load window (opened from the Esc menu). Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible rows.
 class CSaveLoadWindow : public CUiContainer {
@@ -2313,6 +2313,6 @@ inline int& GameDifficulty() { return options::TheOptions()->difficulty_; }
 
 // config\keyboard.ini.
 namespace keybind {
-void __cdecl LoadKeyBindings();
-void __cdecl SaveKeyBindings();
+void LoadKeyBindings();
+void SaveKeyBindings();
 }

@@ -95,7 +95,7 @@ ScriptObjectRef* CScript::NewTempObject() {
 
 // SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
 // their SetSize(0, -1).
-void __fastcall ScriptCmdClear(SSCCmd* cmd) {
+void ScriptCmdClear(SSCCmd* cmd) {
     cmd->id = 0;
     if (cmd->floatArgs.data) {
         gamecrt::operator_delete(cmd->floatArgs.data);

@@ -58,7 +58,7 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 // Out = conj(b) * a (b copied first, its vector part negated through float
 // temporaries); a is read completely before out is written. Dead: only MakeFrameRelative
 // calls it, in the fake unit scene loader; its vector check was removed.
-Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
+Quaternion* MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
     Quaternion c = Conjugate(b);
     double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
     double aw = a.w, ax = a.x, ay = a.y, az = a.z;

@@ -19,7 +19,7 @@
 
 namespace mapspec {
 
-void __stdcall EffectNotify(mfc::CString kind, mfc::CString family);
+void EffectNotify(mfc::CString kind, mfc::CString family);
 namespace {
 
 CBaseManager* Effects() { return TheServerWorld()->manager48_; }
@@ -81,7 +81,7 @@ void EffectSpec::Move(float dx, float dy, float dz) {
 }
 
 // Takes the two strings by value and only destroys them (the callee destroys its by-value parameters).
-void __stdcall EffectNotify(mfc::CString, mfc::CString) {}
+void EffectNotify(mfc::CString, mfc::CString) {}
 
 // ---- Particle sources ------------------------------------------------------------------
 

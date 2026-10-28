@@ -101,7 +101,7 @@ void GetIds(CStream* stream, UnitIdList& list) {
 
 } // namespace
 
-void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
+void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
                               stlp::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);

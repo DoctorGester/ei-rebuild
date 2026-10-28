@@ -120,25 +120,25 @@ constinit lib::StaticObject<CFixedAlloc> g_stringAlloc64 = /*007C8B80*/ {};
 
 namespace {
 constexpr unsigned kStringAllocBlock = 64;
-void __cdecl DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }
-void __cdecl DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }
-void __cdecl DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }
-void __cdecl DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }
+void DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }
+void DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }
+void DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }
+void DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }
 } // namespace
 
-void __cdecl ConstructStringAlloc64() {
+void ConstructStringAlloc64() {
     g_stringAlloc64->Construct(0x50, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc64);
 }
-void __cdecl ConstructStringAlloc128() {
+void ConstructStringAlloc128() {
     g_stringAlloc128->Construct(0x90, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc128);
 }
-void __cdecl ConstructStringAlloc256() {
+void ConstructStringAlloc256() {
     g_stringAlloc256->Construct(0x110, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc256);
 }
-void __cdecl ConstructStringAlloc512() {
+void ConstructStringAlloc512() {
     g_stringAlloc512->Construct(0x210, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc512);
 }
@@ -219,7 +219,7 @@ void CString::AllocBuffer(int length) {
     data_ = data->data();
 }
 
-void __fastcall CString::FreeData(CStringData* data) {
+void CString::FreeData(CStringData* data) {
 #ifdef EI_VECTORS_REPLAY
     gamecrt::operator_delete(data);   // AllocBuffer's
 #else
@@ -239,7 +239,7 @@ void CString::Release() {
     Init();
 }
 
-void __stdcall CString::Release(CStringData* data) {
+void CString::Release(CStringData* data) {
     if (data != DataNil() && Decrement(&data->refs) <= 0) FreeData(data);
 }
 
@@ -335,31 +335,31 @@ void CString::ConcatCopy(int length1, const char* text1, int length2, const char
     std::memcpy(data_ + length1, text2, static_cast<std::size_t>(length2));
 }
 
-CString __stdcall operator+(const CString& a, const CString& b) {
+CString operator+(const CString& a, const CString& b) {
     CString s;
     s.ConcatCopy(a.GetData()->dataLength, a, b.GetData()->dataLength, b);
     return s;
 }
 
-CString __stdcall operator+(const CString& a, const char* b) {
+CString operator+(const CString& a, const char* b) {
     CString s;
     s.ConcatCopy(a.GetData()->dataLength, a, SafeLength(b), b);
     return s;
 }
 
-CString __stdcall operator+(const char* a, const CString& b) {
+CString operator+(const char* a, const CString& b) {
     CString s;
     s.ConcatCopy(SafeLength(a), a, b.GetData()->dataLength, b);
     return s;
 }
 
-CString __stdcall operator+(const CString& a, char b) {
+CString operator+(const CString& a, char b) {
     CString s;
     s.ConcatCopy(a.GetData()->dataLength, a, 1, &b);
     return s;
 }
 
-CString __stdcall operator+(char a, const CString& b) {
+CString operator+(char a, const CString& b) {
     CString s;
     s.ConcatCopy(1, &a, b.GetData()->dataLength, b);
     return s;
@@ -727,7 +727,7 @@ void CString::FormatV(const char* format, va_list arguments) {
     ReleaseBuffer(-1);
 }
 
-void __cdecl CString::Format(const char* format, ...) {
+void CString::Format(const char* format, ...) {
     va_list arguments;
     va_start(arguments, format);
     FormatV(format, arguments);
@@ -736,11 +736,11 @@ void __cdecl CString::Format(const char* format, ...) {
 
 // ---- Elements -----------------------------------------------------------------------------------
 
-void __stdcall ConstructStrings(CString* elements, int count) {
+void ConstructStrings(CString* elements, int count) {
     for (; count--; ++elements) ::new (elements) CString;
 }
 
-void __stdcall DestructStrings(CString* elements, int count) {
+void DestructStrings(CString* elements, int count) {
     for (; count--; ++elements) elements->~CString();
 }
 
@@ -750,7 +750,7 @@ void __stdcall DestructStrings(CString* elements, int count) {
 CString* CString::ConstructText(const char* text) { return ::new (this) CString(text); }
 
 namespace shim {
-void __fastcall Destruct(CString* self) { self->~CString(); }
+void Destruct(CString* self) { self->~CString(); }
 } // namespace shim
 
 } // namespace mfc::impl

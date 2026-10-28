@@ -136,10 +136,10 @@ inline ServerSession*& GameServer() { return g_gameServer; }
 inline ClientSession*& GameClient() { return g_gameClient; }
 // The game client's trade offer: publish ours, find the partner's offer that pairs with ours (a
 // PartyMessage, or null), take the acceptance back, drop the offer.
-void __fastcall ClientPublishParty(ClientSession* self);
-PartyMessage* __fastcall ClientFindParty(ClientSession* self);
-void __fastcall ClientCommitParty(ClientSession* self);
-void __fastcall ClientDropParty(ClientSession* self);
+void ClientPublishParty(ClientSession* self);
+PartyMessage* ClientFindParty(ClientSession* self);
+void ClientCommitParty(ClientSession* self);
+void ClientDropParty(ClientSession* self);
 
 // ---- The message base ---------------------------------------------------------------------------
 
@@ -159,7 +159,7 @@ protected:
 
 };
 
-using MessageFactory = Message* (__fastcall*)();
+using MessageFactory = Message* (*)();
 
 // ---- The server entries of the lobby ------------------------------------------------------------
 
@@ -234,7 +234,7 @@ struct ClientQueries {
     Query* QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
-ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
+ClientQueries* ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
 
@@ -243,9 +243,9 @@ constexpr int kMessageTypes = 0x100;
 
 // A message handler as the session keeps it: its session and the message. The handlers themselves take their
 // own session class and message class (net_handlers.h); AsHandler is the one place they become this.
-using MessageHandler = void(__fastcall*)(SessionBase*, CRefObject*);
+using MessageHandler = void(*)(SessionBase*, CRefObject*);
 template <typename Session, typename MessageType>
-MessageHandler AsHandler(void(__fastcall* handler)(Session*, MessageType*)) {
+MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
     return reinterpret_cast<MessageHandler>(handler);
 }
 
@@ -710,8 +710,8 @@ struct GameInfoRecord {
 };
 
 // The byte buffer's read helpers.
-GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
-unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
-void __fastcall BufferUpdateHigh(GameBuffer* buffer);
+GameBuffer* BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
+unsigned BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
+void BufferUpdateHigh(GameBuffer* buffer);
 
 } // namespace net

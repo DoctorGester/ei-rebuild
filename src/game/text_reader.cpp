@@ -16,7 +16,7 @@
 namespace {
 
 // MBCS CRT: _ismbblead, isleadbyte, _mbsinc, _mbscmp.
-int __cdecl MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
+int MbsCmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
 
 // Split (__fastcall, separator on the stack): splits `text` at `separator` into `out`.
 
@@ -112,13 +112,13 @@ BOOL CTextManager::OpenData(const char* key) {
     return data && length_ != 0;
 }
 
-BOOL __fastcall TextClose(CTextManager* self) {
+BOOL TextClose(CTextManager* self) {
     self->text_ = nullptr;
     self->cursor_ = nullptr;
     return 1;
 }
 
-int __fastcall TextCharCode(const char* p) { return CharCode(p); }
+int TextCharCode(const char* p) { return CharCode(p); }
 
 BOOL CTextManager::PeekWord(std::string* out) {
     const char* p = cursor_;
@@ -139,7 +139,7 @@ BOOL CTextManager::PeekWord(std::string* out) {
     return 1;
 }
 
-BOOL __fastcall TextSkipLine(CTextManager* self) {
+BOOL TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;
     if (!Inside(self, p)) return 0;
     while (Inside(self, p) && CharCode(p) != 10) p = gamecrt::mbsinc(p);
@@ -151,7 +151,7 @@ BOOL __fastcall TextSkipLine(CTextManager* self) {
     return 1;
 }
 
-BOOL __fastcall TextNextLine(CTextManager* self) {
+BOOL TextNextLine(CTextManager* self) {
     std::string word;
     Advance(self, kInline);
     while (self->PeekWord(&word)) {

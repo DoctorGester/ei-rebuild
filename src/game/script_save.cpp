@@ -98,7 +98,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) cons
     }
 }
 
-void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream) {
+void ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream) {
     WriteInt(stream, areas->size);
     for (int i = 0; i < areas->size; ++i) {
         const ScriptArea& area = areas->data[i];

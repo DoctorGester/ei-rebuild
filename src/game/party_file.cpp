@@ -100,10 +100,10 @@ void SavedParties::Destruct() {
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 namespace {
-void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }
+void DestroySavedParties() { g_savedParties->Destruct(); }
 } // namespace
 
-void __cdecl ConstructSavedParties() {
+void ConstructSavedParties() {
     g_savedParties->Construct();
     libcrt::AtExit(DestroySavedParties);
 }

@@ -21,31 +21,31 @@ constinit std::uint8_t g_driversDestroyed = /*007AEE60*/ 0;   // the driver list
 
 namespace static_lists {
 
-void __stdcall ConstructDirectDrawDrivers() { g_directDrawDrivers->Construct(); }
+void ConstructDirectDrawDrivers() { g_directDrawDrivers->Construct(); }
 
-void __stdcall ConstructDeferredUnits() { g_deferredUnits->Construct(); }
+void ConstructDeferredUnits() { g_deferredUnits->Construct(); }
 
 namespace {
-void __cdecl DestroyProtectionChecks() {
+void DestroyProtectionChecks() {
     stlp::ListAbi<std::uint8_t>::Destruct(&g_protectionChecks.Get());
 }
-void __cdecl DestroyDrivers() {
+void DestroyDrivers() {
     if (g_driversDestroyed & 1) return;
     g_driversDestroyed = static_cast<std::uint8_t>(g_driversDestroyed | 1);
     stlp::ListAbi<DirectDrawDriver>::Destruct(&g_directDrawDrivers.Get());
 }
-void __cdecl DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
+void DestroyDeferredUnits() { SectorListDestruct(&g_deferredUnits.Get()); }
 } // namespace
 
-void __cdecl ConstructProtectionChecksList() {
+void ConstructProtectionChecksList() {
     app::ConstructProtectionChecks();
     libcrt::AtExit(DestroyProtectionChecks);
 }
-void __cdecl ConstructDriversList() {
+void ConstructDriversList() {
     ConstructDirectDrawDrivers();
     libcrt::AtExit(DestroyDrivers);
 }
-void __cdecl ConstructDeferredUnitsList() {
+void ConstructDeferredUnitsList() {
     ConstructDeferredUnits();
     libcrt::AtExit(DestroyDeferredUnits);
 }

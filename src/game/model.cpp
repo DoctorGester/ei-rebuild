@@ -127,7 +127,7 @@ int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, vo
     return 2;
 }
 
-Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect) {
+Matrix4* ViewportMatrix(Matrix4* out, const tagRECT* rect) {
     float halfWidth = static_cast<float>((rect->right - rect->left) >> 1);
     float halfHeight = static_cast<float>((rect->bottom - rect->top) >> 1);
     std::memset(out, 0, sizeof(Matrix4));
@@ -140,7 +140,7 @@ Matrix4* __stdcall ViewportMatrix(Matrix4* out, const tagRECT* rect) {
     return out;
 }
 
-Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
+Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     double half = fov * 0.5;
     float c = static_cast<float>(x87::fcos(half));
     double s = x87::fsin(half);

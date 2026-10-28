@@ -35,7 +35,7 @@ constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib,
 
 } // namespace
 
-void __cdecl LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
+void LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 

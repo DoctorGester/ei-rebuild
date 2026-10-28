@@ -110,7 +110,7 @@ std::uint32_t BufferCursor::End() {
 // The startup initialiser of the code tables: for match
 // lengths 1..0x22 the code and its bit count (g_lengthCodes / g_lengthBits, at length - 1), for distance
 // buckets 0..0x21 (every 16 bytes from -0x5C) the code and bit count (g_offsetCodes / g_offsetBits).
-void __cdecl InitCodeTables() {
+void InitCodeTables() {
     for (int length = 1; length <= 0x22; ++length) {
         int j = length - 1;
         std::uint32_t& code = g_lengthCodes[j];

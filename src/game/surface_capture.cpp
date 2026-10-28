@@ -37,7 +37,7 @@ int BytesPerPixel(int bits) {
 // The bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
 // channel masks the surface would have had (device::ScreenFormat), rows bottom-up, the part of the
 // rectangle outside the frame black. Null (logged) when the new renderer has no frame.
-CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
+CDib* CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     int frameWidth = 0, frameHeight = 0;
     std::vector<std::uint8_t> frame;
     if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
@@ -74,7 +74,7 @@ CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     return dib;
 }
 
-CDib* __fastcall CaptureSurface(CDXSurface* self) {
+CDib* CaptureSurface(CDXSurface* self) {
     const RECT whole = {0, 0, self->width, self->height};
     return CaptureSurfaceRect(self, &whole);
 }

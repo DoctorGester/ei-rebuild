@@ -48,10 +48,10 @@ struct LightArea {
 };
 
 // The first vertex truncated, the last rounded.
-void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
+void LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
                                     LightArea* area);
 // (x0, y0) is clamped to the map; a first vertex on a sector edge counts as vertex 32 of the sector before.
-void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
+void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
 
 // A point light registered with the landscape (held).
 struct LandscapeLight {
@@ -250,6 +250,6 @@ static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMa
 static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
 
 // The average of the three heights when the triangle is degenerate.
-float __fastcall PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
+float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);
 
 static_assert(sizeof(void*) == 4, "game.exe is 32-bit");

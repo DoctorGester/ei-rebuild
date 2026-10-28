@@ -69,10 +69,10 @@ void UnitShapeCache::Destruct() {
 }
 
 namespace {
-void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }
+void DestroyUnitShapes() { g_unitShapes->Destruct(); }
 } // namespace
 
-void __cdecl ConstructUnitShapes() {
+void ConstructUnitShapes() {
     g_unitShapes->Construct();
     libcrt::AtExit(DestroyUnitShapes);
 }
