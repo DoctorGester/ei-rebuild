@@ -64,19 +64,11 @@ EI_REWRITTEN(0x006B5BC0, Themes::ConstructElements);
 EI_REWRITTEN(0x006B4D90, DestroyTheme);
 EI_REWRITTEN(0x006B56C0, Themes::Destruct<ThemeArrayClass>);
 
-void __fastcall DestroyWave(WaveRecord* p) { gamelists::DestroyWave(p); }
 EI_REWRITTEN(0x006BE240, Waves::ConstructElements);
 EI_REWRITTEN(0x006BE210, Waves::DestructElements);
-EI_REWRITTEN(0x006B90C0, DestroyWave);
 
 EI_REWRITTEN(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REWRITTEN(0x00558E10, Behaviours::ConstructElements);
-mfc::CString* PartNames::CopyAt(mfc::CString* result, int index) const {
-    std::construct_at(result, data[index]);
-    return result;
-}
-EI_REWRITTEN(0x004698A0, PartNames::CopyAt);
-EI_REWRITTEN(0x004698C0, PartNames::CopyAt);
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -185,10 +177,6 @@ EI_REWRITTEN(0x005993A0, Sectors::Serialize);
 
 // The water levels' element helpers.
 EI_REWRITTEN(0x00575690, WaterLevels::ConstructElements);
-void __fastcall DestroyWaterLevel(WaterLevelElement* p) {
-    mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>(p);
-}
-EI_REWRITTEN(0x005755C0, DestroyWaterLevel);
 EI_REWRITTEN(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 } // namespace recordarrays

@@ -228,13 +228,6 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
 }
 EI_REWRITTEN(0x004E13E0, CTextManager::FormatItemName);
 
-void TextSources::Begin(Node** out) { *out = head->next; }
-EI_REWRITTEN(0x004E1530, TextSources::Begin);
-EI_REWRITTEN(0x00560030, TextSources::Begin);
-EI_REWRITTEN(0x00560040, TextSources::Begin);
-EI_REWRITTEN(0x0056DF90, TextSources::Begin);
-EI_REWRITTEN(0x0056DFE0, TextSources::Begin);
-
 TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* next = pos->next;
     Node* prev = pos->prev;
@@ -263,19 +256,3 @@ TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource*
 }
 EI_REWRITTEN(0x004E1590, TextSources::Insert);
 
-CTextManager::SourceNode** TextSourceIterator::CopyTo(CTextManager::SourceNode** out) {
-    *out = node;
-    return out;
-}
-EI_REWRITTEN(0x004E1540, TextSourceIterator::CopyTo);
-// Byte-identical copies (other list iterators' copy in the interface; A-I15).
-EI_REWRITTEN(0x005E2470, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x005F97D0, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x00609A30, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x00609A70, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x0062C080, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x00539210, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x00560050, TextSourceIterator::CopyTo);   // A-W12
-EI_REWRITTEN(0x0056DEC0, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x0056DFA0, TextSourceIterator::CopyTo);
-EI_REWRITTEN(0x0056DFF0, TextSourceIterator::CopyTo);

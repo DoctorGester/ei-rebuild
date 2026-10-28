@@ -205,19 +205,6 @@ BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
 }
 EI_REWRITTEN(0x00525900, UnitStats::Heal);
 
-BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
-    for (UnitStatSlot& slot : slots) {
-        if (slot.kind != 3) continue;
-        float limit = slot.maximum;
-        float raised = static_cast<float>(vitals->hitPointRegen * limit + slot.current);
-        float r = raised;
-        slot.current = SelectLess(r, limit, r, limit);
-    }
-    vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
-    return 1;
-}
-EI_REWRITTEN(0x00525930, UnitStats::RegenerateSlots);
-
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
     float ratio = maxHitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {

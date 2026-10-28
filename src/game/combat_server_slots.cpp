@@ -17,22 +17,8 @@ EI_REWRITTEN(0x005460C0, CUnitServer::GetClassName);
 int CUnitServer::GetClassId() { return kClassServer; }
 EI_REWRITTEN(0x005460D0, CUnitServer::GetClassId);
 
-AIPath* CUnitServer::MotionSlot() { return MotionPath(); }
-EI_REWRITTEN(0x00546090, CUnitServer::MotionSlot);
-
-void CUnitServer::EmptySlot17() {}
-EI_REWRITTEN(0x005460B0, CUnitServer::EmptySlot17);
-
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 EI_REWRITTEN(0x00552F30, CUnitServer::MoveFactorsChanged);
-
-UnitAction* UnitAction::Construct() {
-    target = nullptr;
-    kind = kOrderNone;
-    flag18 = 0;
-    return this;
-}
-EI_REWRITTEN(0x00545F70, UnitAction::Construct);
 
 AnimationStep* __fastcall ConstructAnimationStep(AnimationStep* step) {
     mfc::impl::InitAnimationStep12(step);

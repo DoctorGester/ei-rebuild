@@ -24,37 +24,10 @@
 
 // ---- Scene loader ---------------------------------------------------------------------------------
 
-// A Vector3 from its three parts (a second copy of an earlier function); returns it.
-Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
-    x = x_;
-    y = y_;
-    z = z_;
-    return this;
-}
-EI_REWRITTEN(0x00471A90, Vector3::ConstructScene);
-
-// Three functions (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
-// specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
-// of the file); the alphas stay.
-void CMaterial::SetDiffuse(const Vector3* value) {
-    std::memcpy(&colors.diffuse, value, sizeof(Vector3));
-}
-EI_REWRITTEN(0x00471AB0, CMaterial::SetDiffuse);
-
-void CMaterial::SetAmbient(const Vector3* value) {
-    std::memcpy(&colors.ambient, value, sizeof(Vector3));
-}
-EI_REWRITTEN(0x00471AD0, CMaterial::SetAmbient);
-
 std::uint32_t CMaterial::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;
     return static_cast<std::uint32_t>(x87::fistp(alpha)) << 24 | 0x00FFFFFFu;
 }
-
-void CMaterial::SetSpecular(const Vector3* value) {
-    std::memcpy(&colors.specular, value, sizeof(Vector3));
-}
-EI_REWRITTEN(0x00471AF0, CMaterial::SetSpecular);
 
 
 // The particle manager's own part of its constructor (the client world's manager set-up
@@ -65,27 +38,5 @@ void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
 EI_REWRITTEN(0x004981A0, ParticleManagerClearQuietStart);
 
 // ---- Script commands' accessors -------------------------------------------------------------------
-
-// Bits of the object's flags set / cleared (the commands pass 0x10000).
-void CEngineObject::SetFlagBits(std::uint32_t bits) {
-    flags_ |= bits;
-}
-EI_REWRITTEN(0x004B9F50, CEngineObject::SetFlagBits);
-
-void CEngineObject::ClearFlagBits(std::uint32_t bits) {
-    flags_ &= ~bits;
-}
-EI_REWRITTEN(0x004B9F60, CEngineObject::ClearFlagBits);
-
-// The map object's position.
-void CMapObject::SetScriptPosition(const Vector3* point) {
-    localPosition_ = *point;
-}
-EI_REWRITTEN(0x004B9F90, CMapObject::SetScriptPosition);
-
-CItem* CUnit::CarriedItem(int index) const {
-    return carried[index];
-}
-EI_REWRITTEN(0x004BA080, CUnit::CarriedItem);
 
 EI_REWRITTEN(0x004BAA20, ObjectListIterator::First);

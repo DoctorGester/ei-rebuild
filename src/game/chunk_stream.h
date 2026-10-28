@@ -37,7 +37,6 @@ public:
     int ReadInt();
     std::uint8_t ReadByte();
     Vector3* ReadVector3(Vector3* out);
-    float* ReadQuad(float* out);            // four values stored as 1, 3, 0, 2; returns out
     float* ReadQuaternion(float* out);      // 16 bytes (default 1, 0, 0, 0); returns out
     void ReadBytes(void* data, int size);
     // Whole chunks holding one value. Floats are taken as their bits (stack arguments), so the

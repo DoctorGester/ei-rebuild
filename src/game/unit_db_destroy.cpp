@@ -20,9 +20,6 @@ namespace unitdb {
 
 UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self);
 void __fastcall DestroyUnitDatabase(UnitDatabase* self);
-void __fastcall DestroyPrototypeTable(UnitPrototypeTable* self);
-void __fastcall DestroyNpcTable(NpcPrototypeTable* self);
-void __fastcall DestroyModelTable(UnitModelTable* self);
 void __fastcall DestroySkillDatabase(SkillDatabase* self);
 
 namespace {
@@ -73,21 +70,6 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     prototypes.byName.Destroy();
     for (UnitPrototypeRecord *p = prototypes.begin, *end = prototypes.end; p != end; ++p) p->DeleteScalar(0);
     FreeRecords(prototypes.begin, prototypes.endOfStorage);
-}
-
-// The NPC table: the name map's clear inlined (each chain's values destroyed and nodes freed, each bucket
-// emptied, the bucket count read again every pass; then the count 0), the buckets freed, then each record
-// destroyed in reverse member order and the storage freed.
-void __fastcall DestroyNpcTable(NpcPrototypeTable* self) {
-    self->byName.Destroy();
-    for (UnitNpcRecord *record = self->begin, *end = self->end; record != end; ++record) {
-        DestroyStringVector(&record->startSpells);
-        DestroyStringVector(&record->startQuickItems);
-        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::Destruct(&record->startWeapons);
-        stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>::Destruct(&record->skillNames);
-        DestroyString(&record->name);
-    }
-    FreeRecords(self->begin, self->endOfStorage);
 }
 
 // The skill level records (their CStrings in reverse order), their storage, then the skills (the string
@@ -170,19 +152,6 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
     DestroyString(&record->name);
 }
 
-// The prototype / model table as the reload destroys it (the same steps as DestroyNpcTable): the name map
-// cleared and its buckets freed, every record destroyed (the record destructors inlined), the storage freed.
-void __fastcall DestroyPrototypeTable(UnitPrototypeTable* self) {
-    self->byName.Destroy();
-    for (UnitPrototypeRecord *p = self->begin, *end = self->end; p != end; ++p) DestroyPrototypeRecord(p);
-    FreeRecords(self->begin, self->endOfStorage);
-}
-void __fastcall DestroyModelTable(UnitModelTable* self) {
-    self->byName.Destroy();
-    for (UnitModelRecord *p = self->begin, *end = self->end; p != end; ++p) DestroyModelRecord(p);
-    FreeRecords(self->begin, self->endOfStorage);
-}
-
 namespace {
 // A table as the database constructor builds it: no records, a name map with 100 buckets asked for.
 template <typename Table>
@@ -210,12 +179,9 @@ UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
 EI_REWRITTEN(0x0053EE70, unitdb::DestroyModelRecord);
 EI_REWRITTEN(0x0053F010, unitdb::DestroyModelSlot);
 EI_REWRITTEN(0x0053A050, unitdb::DestroyUnitDatabase);
-EI_REWRITTEN(0x00539CE0, unitdb::DestroyNpcTable);
 EI_REWRITTEN(0x0051FB50, unitdb::DestroySkillDatabase);
 EI_REWRITTEN(0x0053EBC0, unitdb::DestroyPrototypeRecord);
 EI_REWRITTEN(0x0053ED30, unitdb::DestroyNpcRecord);
-EI_REWRITTEN(0x00539B20, unitdb::DestroyPrototypeTable);
-EI_REWRITTEN(0x00539E70, unitdb::DestroyModelTable);
 EI_REWRITTEN(0x00539A10, unitdb::ConstructUnitDatabase);
 EI_REWRITTEN(0x0053EFF0, unitdb::DestroyLevelRecord);
 EI_REWRITTEN(0x00540840, UnitLevelRecord::DeleteScalar);
