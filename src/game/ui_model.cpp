@@ -53,26 +53,26 @@ CUiModel::~CUiModel() {
 
 // Skill animation `animation` + 1 of the object played.
 void CUiModel::Play(int animation) {
-    CObject3D* object = Figure();
+    CObject3D* object = object_;
     object->PlayAnimation(object->FindSkillAnimation(animation + 1), 1);
 }
 
 // The rest pose: the object named like the figure of kind 0x80590000 from the object manager, played.
 void CUiModel::Stop() {
-    CObject3D* object = Figure();
+    CObject3D* object = object_;
     std::string name(object->name);
     object->PlayAnimation(TheObjectManager()->FindAnimation(&name, kRestPoseKind), 1);
 }
 
 // The part named `name` shown or hidden (`show`'s low byte).
 void CUiModel::ShowPart(const char* name, int show) {
-    if (CFigureMesh* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
+    if (CFigureMesh* part = object_->FindPart(name)) ShowFigurePart(part, show);
 }
 
 // Every part shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
-    for (int i = 0; i < std::ssize(Figure()->parts); ++i)
-        if (auto* part = Figure()->parts[i]) ShowFigurePart(part, show);
+    for (int i = 0; i < std::ssize(object_->parts); ++i)
+        if (auto* part = object_->parts[i]) ShowFigurePart(part, show);
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,
@@ -80,11 +80,11 @@ void CUiModel::ShowAllParts(int show) {
 void CUiModel::Draw(CSceneRenderer* pass) {
     std::uint32_t saved = pass->colour_;
     pass->SetColour(0xFFFFFFFF);
-    CObject3D* object = Figure();
+    CObject3D* object = object_;
     object->flags_ |= kPreviewDraw;
     object->AdvanceTime(InterfaceClock());
     object->DrawCollectDirty(pass);
-    Figure()->flags_ &= ~kPreviewDraw;
+    object_->flags_ &= ~kPreviewDraw;
     pass->SetColour(saved);
 }
 

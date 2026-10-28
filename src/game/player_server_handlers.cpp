@@ -99,7 +99,7 @@ void ConstructReceivedMessages() {
 // --- The leader died ----------------------------------------------------------------------
 
 void CPlayerServer::OnLeaderDied() {
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CParty* party = player->Party();
     if (!IsMultiplayerClient()) {
         std::uint8_t type = kMessageGameOver;
@@ -114,8 +114,8 @@ void CPlayerServer::OnLeaderDied() {
     int oldId = kNoId;
     int newId = kNoId;
     if (std::ssize(party->members_) == 1) {
-        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->Money()) * MoneyPenalty()));
-        party->Money() -= lost;
+        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money_) * MoneyPenalty()));
+        party->money_ -= lost;
         oldId = static_cast<int>(party->members_[0].unitId);
         CUnit* hero = FindUnit(oldId);
         if (hero) SendObject0B(hero, kLeaderDiedValue);
@@ -373,7 +373,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
 
 void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     if (state_ != 1) return;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     CParty* party = player->Party();
     int campaign = TheServerWorld()->sessionKind_;
     if (campaign == 1 || campaign == 3) {
@@ -407,7 +407,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
         if (flag70_) {
-            TheServerWorld()->CollectParty(Owner(), nullptr);
+            TheServerWorld()->CollectParty(player_, nullptr);
             flag70_ = 0;
         }
         if (GameMode() == 2) SendParty();
@@ -421,7 +421,7 @@ void CPlayerServer::LeaveAndFlush() {
 }
 
 int CPlayerServer::OnRefreshParty() {
-    Owner()->ForgetKnownObjects();
+    player_->ForgetKnownObjects();
     SendParty();
     return 1;
 }
@@ -439,7 +439,7 @@ int CPlayerServer::OnTakeExit() {
 int CPlayerServer::OnJoined() {
     if (state_ != 2) return 0;
     state_ = 1;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     player->sessionKind100_ = player->ServerWorld()->sessionKind_;
     TheServerWorld()->Redeploy(player, &placements_, 1);
     player->dirty_ |= kJoinedFlag;
@@ -466,7 +466,7 @@ int CPlayerServer::OnBriefingDone() {
         std::string* read = ReceivedMessages().ReadString(&text);
         name = *read;
     }
-    TheServerWorld()->CompleteBriefing(Owner()->playerId_, name.c_str());
+    TheServerWorld()->CompleteBriefing(player_->playerId_, name.c_str());
     return 1;
 }
 
@@ -475,7 +475,7 @@ int CPlayerServer::OnNewParty() {
     CParty* party = &local;
     party->LoadParty(&ReceivedMessages(), 1);
     if (std::ssize(party->members_) != 1) return 0;
-    int* key = &Owner()->partyId_;
+    int* key = &player_->partyId_;
     PartyNextId(key);
     int& next = g_nextRecordObjectId;
     while (TheServerWorld()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
@@ -489,7 +489,7 @@ int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
     if (!flag70_) {
-        TheServerWorld()->Redeploy(Owner(), nullptr, 1);
+        TheServerWorld()->Redeploy(player_, nullptr, 1);
         flag70_ = 1;
     }
     return 1;
@@ -521,7 +521,7 @@ int CPlayerServer::OnPartyUpdate() {
     CMemoryStream& in = ReceivedMessages();
     in.ReadSized(&block);
     block.CMemoryStream::Seek(0);
-    if (in.ok_) Owner()->Party()->LoadParty(&block, 0);
+    if (in.ok_) player_->Party()->LoadParty(&block, 0);
     return 1;
 }
 
@@ -553,7 +553,7 @@ int CPlayerServer::OnLogin() {
     login.partyId = 0;
     ReceivedMessages().Read(&login, sizeof(login));
     if (state_ != 0) return 0;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     if (login.version != kClientVersion) {
         int length = 0x100;
         char format[0x100];
@@ -607,7 +607,7 @@ const char* const kResendingParty = "Resending party of player ";
 
 void CPlayerServer::SendPartyUpdate() {
     CMemoryStream block;
-    Owner()->Party()->SaveParty(&block, 0);
+    player_->Party()->SaveParty(&block, 0);
     std::uint8_t type = kMessagePartyUpdate;
     out_.Write(&type, 1);
     out_.WriteSized(&block);
@@ -615,7 +615,7 @@ void CPlayerServer::SendPartyUpdate() {
 
 void CPlayerServer::ResendParty() {
     if (state_ != 1 || !flag70_) return;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     console::EndLine(console::g_netLogOut << kResendingParty << player->playerId_);
     TheServerWorld()->SyncPartyRecords(player);
     SendParty();

@@ -531,8 +531,8 @@ void CCampPages::UpdateAction() {
     if (page_ == 1) {
         amount = trade_->Experience();
     } else {
-        amount = PlayerParty()->Money();
-        if (PlayerParty()->Money() < cost_) actionEnabled_ = false;
+        amount = PlayerParty()->money_;
+        if (PlayerParty()->money_ < cost_) actionEnabled_ = false;
     }
 
     std::string text;

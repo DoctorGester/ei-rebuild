@@ -76,14 +76,13 @@ struct Part {
     bool coloursWritten = false;   // this draw filled or lit the colour arrays (render::MeshSource)
     const render::MeshLighting* lighting = nullptr;   // lit on the GPU (not a flat mesh)
 
-    CFigureMesh* Mesh() const { return node->mesh_; }
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
     render::MeshSource Source(bool throughFigure) const {
-        return render::MeshSource{Mesh(), throughFigure ? figure : nullptr, !Mesh()->offsets_.empty(), coloursWritten,
+        return render::MeshSource{node->mesh_, throughFigure ? figure : nullptr, !node->mesh_->offsets_.empty(), coloursWritten,
                                   lighting};
     }
-    ColourArray& Colours() const { return Mesh()->colorsA_; }
-    ColourArray& Speculars() const { return Mesh()->colorsB_; }
+    ColourArray& Colours() const { return node->mesh_->colorsA_; }
+    ColourArray& Speculars() const { return node->mesh_->colorsB_; }
     bool Textured() const { return textureA && textureB; }
 };
 
@@ -94,16 +93,16 @@ std::uint32_t OffsetBits(float offset) { return std::bit_cast<std::uint32_t>(off
 void FlatColours(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
-        const char* name = MeshName(part.Mesh());
+        const char* name = MeshName(part.node->mesh_);
         std::string s(name);
-        CFigureMesh* mesh = part.Mesh();
+        CFigureMesh* mesh = part.node->mesh_;
         part.figure->FlatColours(&s, mesh->flatColour_, mesh->flatSpecular_, &part.Colours(), &part.Speculars());
         return;
     }
-    part.Colours().resize(part.Mesh()->buffers_.normalCount * 4);
-    part.Speculars().resize(part.Mesh()->buffers_.normalCount * 4);
-    Fill(part.Colours(), part.Mesh()->flatColour_);
-    Fill(part.Speculars(), part.Mesh()->flatSpecular_);
+    part.Colours().resize(part.node->mesh_->buffers_.normalCount * 4);
+    part.Speculars().resize(part.node->mesh_->buffers_.normalCount * 4);
+    Fill(part.Colours(), part.node->mesh_->flatColour_);
+    Fill(part.Speculars(), part.node->mesh_->flatSpecular_);
 }
 
 // The part's light for the GPU, every draw of a mesh that is not flat: the model matrix, the scene's sun, the
@@ -140,7 +139,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
     l.coefficient = LightingCoefficient();
-    l.crown = CrownOption() != 0 && text::CompareIgnoringCase(MeshName(part.Mesh()), "crown") == 0;
+    l.crown = CrownOption() != 0 && text::CompareIgnoringCase(MeshName(part.node->mesh_), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const CLight* light = (*part.lights)[i];
@@ -158,7 +157,7 @@ void Light(Part& part) {
     part.coloursWritten = true;
     if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
     if (part.figure) {
-        const char* name = MeshName(part.Mesh());
+        const char* name = MeshName(part.node->mesh_);
         std::string s(name);
         part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
@@ -167,7 +166,7 @@ void Light(Part& part) {
     if (!(part.material->flags_ & 0x10)) {
         Fill(part.Speculars(), (static_cast<std::uint32_t>(part.alpha) & 0xFF) << 24);
     }
-    part.Mesh()->flags_ |= 0x10;
+    part.node->mesh_->flags_ |= 0x10;
 }
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added.
@@ -187,11 +186,11 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 
 // The mesh through the device. The drawn flag (0x40) is only set when a rectangle was asked for.
 void DrawThroughDevice(Part& part) {
-    CFigureMesh* mesh = part.Mesh();
+    CFigureMesh* mesh = part.node->mesh_;
     const VertexPacket* positions = mesh->buffers_.vertices;
     int blocks = mesh->buffers_.vertexCount;
     if (!mesh->offsets_.empty()) positions = MovedPositionsOf(mesh);
-    mesh = part.Mesh();
+    mesh = part.node->mesh_;
     const MeshBuffers& b = mesh->buffers_;
     const render::MeshSource source = part.Source(false);
     render::SetMeshSource(&source);
@@ -218,17 +217,17 @@ void DrawThroughDevice(Part& part) {
     }
     gameapi::CopyRect(own, &part.device->drawnRect_);
     *part.rect = *own;
-    part.Mesh()->flags_ |= 0x40;
+    part.node->mesh_->flags_ |= 0x40;
 }
 
 // The mesh through the owner's figure: DrawPartMoved(Textured) with the offsets, DrawPart(Textured)
 // without; the rectangle from the figure's part header of that name.
 void DrawThroughFigure(Part& part) {
-    CFigureMesh* mesh = part.Mesh();
+    CFigureMesh* mesh = part.node->mesh_;
     bool moved = !mesh->offsets_.empty();
     const char* name = MeshName(mesh);
     std::string s(name);
-    mesh = part.Mesh();
+    mesh = part.node->mesh_;
     std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
     std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
     ColourArray* colours = &part.Colours();
@@ -251,13 +250,13 @@ void DrawThroughFigure(Part& part) {
     render::SetMeshSource(nullptr);
 
     if (part.rect) {
-        std::string key(MeshName(part.Mesh()));
+        std::string key(MeshName(part.node->mesh_));
         auto node = part.figure->headers_.find(key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);
         *part.rect = *own;
     }
-    if (result != 2) part.Mesh()->flags_ |= 0x40;
+    if (result != 2) part.node->mesh_->flags_ |= 0x40;
 }
 
 } // namespace
@@ -279,9 +278,9 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
         std::atexit(FreeMovedPositions);
     }
 
-    int visibility = device->pipeline_->ClipTest(&part.Mesh()->box_.bounds);
+    int visibility = device->pipeline_->ClipTest(&part.node->mesh_->box_.bounds);
     if (visibility == 2) return 1;
-    int type = static_cast<int>(part.Mesh()->meshType_);
+    int type = static_cast<int>(part.node->mesh_->meshType_);
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
@@ -289,7 +288,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
         Animate(time);
     }
 
-    std::uint32_t meshFlags = part.Mesh()->flags_;
+    std::uint32_t meshFlags = part.node->mesh_->flags_;
     if (meshFlags & 0x100) {
         FlatColours(part);
     } else {

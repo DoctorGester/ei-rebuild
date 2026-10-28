@@ -974,8 +974,6 @@ public:
     // "nask0sky.fig". Without the file the object is referenced and released again.
     void LoadSky();
 
-    CPlayer* Session() const { return session_; }
-
     int nextClientObjectId_;              // -100000 after Setup; NextClientObjectId counts it down
     std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
     ZoneExits exits_;

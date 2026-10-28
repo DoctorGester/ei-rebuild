@@ -32,18 +32,6 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// A vector<string> of the topics, freed.
-class TopicList {
-public:
-    TopicList() = default;
-    TopicList(const TopicList&) = delete;
-    TopicList& operator=(const TopicList&) = delete;
-    std::vector<std::string>& Get() { return list_; }
-
-private:
-    std::vector<std::string> list_;
-};
-
 } // namespace
 
 
@@ -52,7 +40,7 @@ void CBriefingScreen::FindTopics(int personId) {
     std::vector<std::string> parts;
     std::string name;
     std::string constructor;
-    TopicList found;
+    std::vector<std::string> found;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         if (Bits(node->second) != kOneBits) continue;
         text::Split(node->first, &parts, '.');
@@ -69,9 +57,9 @@ void CBriefingScreen::FindTopics(int personId) {
             continue;
         }
         const char* text = name.c_str();
-        found.Get().push_back(std::string(text, text + std::strlen(text)));
+        found.push_back(std::string(text, text + std::strlen(text)));
     }
-    std::vector<std::string>& list = found.Get();
+    std::vector<std::string>& list = found;
     if (IsMultiplayerClient()) {
         // By the text ignoring case: topics that differ only in case (or reached through two spellings of the
         // person's name) keep the game's sort's order.

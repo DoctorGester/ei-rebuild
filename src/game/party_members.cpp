@@ -162,7 +162,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
         lib::SetAtGrow(record->weapons, std::ssize(record->weapons), copy);
         Drop(item);
     }
-    Money() += npc->startMoney;
+    money_ += npc->startMoney;
     record->stats.AddExperience(npc->experienceFloor);
     record->texts[6] = record->texts[5];
     return 1;

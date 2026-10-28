@@ -69,8 +69,6 @@ public:
     virtual void ItemUsed(CEngineObject*) {}    // server (message 0x14); client empty
     virtual int Receive() = 0;              // server and client versions
 
-    CPlayer* Owner() const { return player_; }
-
     CPlayer* player_;   // the owner (set by CPlayer::SetConnection)
     int state_;         // both classes' state (1: joined / logged in; see each class); the harness reads it
 

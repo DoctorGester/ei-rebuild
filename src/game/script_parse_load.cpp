@@ -437,7 +437,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, ScriptPos* pos, const 
                 QualifyName(&name, text.c_str());
                 qualified = name;
             }
-            std::vector<ScriptDefinition>& scripts = Scripts();
+            std::vector<ScriptDefinition>& scripts = definitions_;
             std::size_t index = 0;
             for (; index < scripts.size(); ++index)
                 if (Mbscmp(scripts[index].name, text) == 0 || Mbscmp(scripts[index].name, qualified) == 0) break;
@@ -473,9 +473,9 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     ScriptDefinition* decl = &definition;
     ScriptDecl* worldScript = nullptr;
 
-    ErrorLine() = 0;
-    ErrorCode() = 0;
-    ErrorText() = "No errors found";
+    errorLine_ = 0;
+    errorCode_ = 0;
+    errorText_ = "No errors found";
 
     // Preprocess line by line: "#define name value" lines are collected (and become empty), the
     // other lines get the defines substituted. The text is replaced by the result.
@@ -552,9 +552,9 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
                 if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
                 if (!LoadScriptBody(decl, &pos, &tokens)) return 0;
-                Scripts().push_back(*decl);
+                definitions_.push_back(*decl);
             } else {
-                ScriptDefinition* declared = &Scripts()[static_cast<std::size_t>(index)];
+                ScriptDefinition* declared = &definitions_[static_cast<std::size_t>(index)];
                 if (!declared->ifThen.empty())
                     return Error(this, token.line, 16, "Multiple declaration of script %s", declared->name.c_str());
                 if (!LoadScriptBody(declared, &pos, &tokens)) return 0;
@@ -573,7 +573,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             if (FindScript(decl->name.c_str()) != -1) return Error(this, token.line, 15, "Duplicate script %s", word.c_str());
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
-            Scripts().push_back(*decl);
+            definitions_.push_back(*decl);
             break;
         }
         case kLexGlobalVars: {
@@ -601,8 +601,8 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     }
 
     if (worldScript && runWorldScript) RunWorldScript(worldScript);
-    LoadedFlag() = 1;
-    ++FileCount();
+    loaded_ = 1;
+    ++fileCount_;
     return 1;
 }
 

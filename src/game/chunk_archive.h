@@ -94,7 +94,6 @@ public:
     // The current chunk's parent.
     Ref* Parent() { return &*std::prev(stack_.end(), 2); }
     void PushChunk() { stack_.emplace_back().Reset(); }
-    std::uint8_t* Data() { return dataStream_.data_; }
     // Drops the current chunk, as LeaveChunk does after a load.
     void PopChunk();
 

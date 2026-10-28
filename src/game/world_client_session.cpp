@@ -64,6 +64,6 @@ int CWorldClient::PumpIncomingCount() {
 }
 
 void CWorldClient::DisconnectLocalPlayer() {
-    CPlayerConnection* view = session_ ? Session()->connection_ : nullptr;
+    CPlayerConnection* view = session_ ? session_->connection_ : nullptr;
     view->player_->Disconnect();
 }

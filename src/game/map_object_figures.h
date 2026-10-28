@@ -86,7 +86,7 @@ struct AnimationDatabase {
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
-// The side-specific half of a 3D object (CObject3D::Specific()): CObject3DClientSpecific (class id 0x37) on
+// The side-specific half of a 3D object (CObject3D::attached): CObject3DClientSpecific (class id 0x37) on
 // the client, CObject3DServer (0x38, stubs) on the server.
 class CObject3DSpecific;
 class CObject3DClientSpecific;
@@ -441,7 +441,6 @@ public:
     void SetUpObject3D();
     void TearDownObject3D();
 
-    CObject3DSpecific* Specific() const { return attached; }
     // The same half on the client (defined in map_object_shadow.h).
     CObject3DClientSpecific* ClientSpecific() const;
 

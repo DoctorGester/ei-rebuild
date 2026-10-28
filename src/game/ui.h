@@ -418,7 +418,6 @@ public:
     void Play(int animation);
     // Plays the figure's rest pose (the object manager's object named like the figure).
     void Stop();
-    CObject3D* Figure() const { return object_; }
 
     CObject3D* object_ = nullptr;
 };

@@ -58,7 +58,7 @@ constexpr std::int16_t kFrameMarked = 3;    // marked objects
 // The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
 // and, in multiplayer, of the other players' units (otherUnitIds_).
 CPlayerClient* LocalView() { return TheClientWorld()->LocalView(); }
-int LocalSide() { return LocalView()->Owner()->playerId_; }
+int LocalSide() { return LocalView()->player_->playerId_; }
 
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
 // records and its indices: three for a unit (one triangle), six for the other markers.

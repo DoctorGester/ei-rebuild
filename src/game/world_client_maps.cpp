@@ -109,7 +109,7 @@ HitCollector* CollectHits(HitCollector* out, ScreenEntryNode first, ScreenEntryN
         CMapObject* object = manager->FindMapObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
-        CObject3DSpecific* half = object->Object3D()->Specific();
+        CObject3DSpecific* half = object->Object3D()->attached;
         if (!(half->*test)(point)) continue;
         hits->push_back(*entry);
     }
@@ -183,7 +183,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         }
     }
     CUnit* unit = UnitOrNull(object);
-    if (unit && Session()->sessionKind100_ == 1) {
+    if (unit && session_->sessionKind100_ == 1) {
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
@@ -315,7 +315,7 @@ void CWorldClient::RemoveObject(int id) {
     CMapObject* object = *filed;
     if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
         RemoveHeld(heroes_, object);
-        if (Session()->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
+        if (session_->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
     if (SectorList* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     objects_.erase(filed);
@@ -347,7 +347,7 @@ void CWorldClient::ClearMaps() {
         object->Release();
         return true;
     });
-    SessionPlayerClear(Session());
+    SessionPlayerClear(session_);
     if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
     manager3C_->FreeSpares();
     manager40_->FreeSpares();
@@ -415,7 +415,7 @@ void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) 
     for (ScreenEntryNode node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
         CMapObject* object = manager40_->FindMapObject(node->objectId);
         if (!object) continue;
-        if (!object->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
+        if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
         out->push_back(object);
     }
 }
@@ -662,7 +662,7 @@ void CWorldClient::Destroy() {
     for (CMapObject* object : objects_)
         if (object) object->Release();
     objects_.clear();
-    if (CPlayer* session = Session()) {
+    if (CPlayer* session = session_) {
         session->Release();
         session_ = nullptr;
     }
@@ -1069,7 +1069,7 @@ int CWorldClient::LoadZone(CStream* block) {
     ClearMaps();
     ReleaseItemsAndSpells();
     ClientParticleManager()->ReleaseUnheld();
-    Session()->sessionKind100_ = 0;
+    session_->sessionKind100_ = 0;
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {

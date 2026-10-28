@@ -45,7 +45,7 @@ NamedFloatTable* Variables(CPlayer* player) { return &player->Party()->variables
 // --- Variables and state -------------------------------------------------------------------------
 
 void CPlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
-    VariableSet(Variables(Owner()), name, value);
+    VariableSet(Variables(player_), name, value);
     WriteByte(&out_, 0x81);
     out_.WriteString(name);
     WriteDword(&out_, value);
@@ -53,7 +53,7 @@ void CPlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
 
 void CPlayerServer::SetVariableMax(std::string_view name, float value) {
     // Rounded to float (FST) before any comparison.
-    float stored = static_cast<float>(VariableGet(Variables(Owner()), name));
+    float stored = static_cast<float>(VariableGet(Variables(player_), name));
     float current = stored;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
@@ -65,35 +65,35 @@ void CPlayerServer::SetVariableMax(std::string_view name, float value) {
     // Nothing to do when it compares equal.
     EI_NAN_AUDIT(result, current);
     if (result == current) return;
-    VariableSet(Variables(Owner()), name, resultBits);
+    VariableSet(Variables(player_), name, resultBits);
     WriteByte(&out_, 0x81);
     out_.WriteString(name);
     WriteDword(&out_, resultBits);
 }
 
 void CPlayerServer::DeleteVariable(const char* name) {
-    Variables(Owner())->Remove(name);
+    Variables(player_)->Remove(name);
     WriteByte(&out_, 0x82);
     out_.WriteString(name);
 }
 
 void CPlayerServer::SendGameTime() {
-    std::uint32_t value = static_cast<std::uint32_t>(Owner()->sessionKind100_);
+    std::uint32_t value = static_cast<std::uint32_t>(player_->sessionKind100_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
     WriteDword(&out_, static_cast<std::uint32_t>(CurrentWorldTick()));
-    Owner()->dirty_ &= ~0x10;
+    player_->dirty_ &= ~0x10;
 }
 
 int CPlayerServer::SendState02(CMemoryStream* zone) {
-    Owner()->dirty_ &= ~0x1;
+    player_->dirty_ &= ~0x1;
     WriteByte(&out_, 0x02);
     out_.WriteStream(zone);
     return 1;
 }
 
 int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
-    Owner()->dirty_ &= ~0x2;
+    player_->dirty_ &= ~0x2;
     std::uint8_t payload[3] = {a, static_cast<std::uint8_t>(b), static_cast<std::uint8_t>(b >> 8)};
     WriteByte(&out_, 0x70);
     Write(&out_, payload, 3);
@@ -101,7 +101,7 @@ int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
 }
 
 int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
-    Owner()->dirty_ &= ~0x4;
+    player_->dirty_ &= ~0x4;
     std::uint32_t payload[2] = {a, b};
     WriteByte(&out_, 0x71);
     Write(&out_, payload, 8);
@@ -109,7 +109,7 @@ int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
 }
 
 int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
-    Owner()->dirty_ &= ~0x8;
+    player_->dirty_ &= ~0x8;
     WriteByte(&out_, 0x72);
     std::uint32_t xyz[3] = {x, y, z};
     Write(&out_, xyz, 12);
@@ -120,7 +120,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 void CPlayerServer::SendState73(const WaterTweens* source) {
     WriteByte(&out_, 0x73);
     source->Save(&out_);
-    Owner()->dirty_ &= ~0x20;
+    player_->dirty_ &= ~0x20;
 }
 
 int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b) {

@@ -54,7 +54,7 @@ void CExchangeScreen::Update() {
     bool changed = moneyField_->changed_;
     moneyField_->changed_ = false;
     if (!changed) return;
-    ownOffer_->Money() = str::ToInt(moneyField_->text_);
+    ownOffer_->money_ = str::ToInt(moneyField_->text_);
     net::ClientPublishParty(net::g_gameClient);
 }
 
@@ -65,7 +65,7 @@ void CExchangeScreen::OnLButtonDown(int buttons, int x, int y) {
     switch (RegionAt(x, y)) {
     case kAcceptRegion: {
         net::PartyMessage* offer = LiveOffer();
-        if (offer && !offer->accepted_ && ownOffer_->Money() <= LocalParty()->Money()) {
+        if (offer && !offer->accepted_ && ownOffer_->money_ <= LocalParty()->money_) {
             uiorig::PlayUiSound(interface_, kBuySound, 0);
             net::g_gameClient->RecordTrade(LocalParty());
             return;
@@ -97,8 +97,8 @@ void CExchangeScreen::OnExchangeDone(CParty* partyB, CParty* partyA, CParty* par
     auto* local = LocalPlayerData();
     ReturnAll(local, partyC);
     ReturnAll(LocalPlayerData(), partyB);
-    int money = partyB->Money() - partyA->Money() + partyC->Money();
-    LocalPlayerData()->Money() = money;
+    int money = partyB->money_ - partyA->money_ + partyC->money_;
+    LocalPlayerData()->money_ = money;
     GameRejoin();
 }
 
@@ -231,7 +231,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line = str::Format("%s %d", text.c_str(), LocalParty()->Money());
+    line = str::Format("%s %d", text.c_str(), LocalParty()->money_);
     RECT rect{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);
@@ -257,7 +257,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
         texts->GetString("xch_money_remote", &text);
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        line = str::Format("%d", partnerOffer_->Money());
+        line = str::Format("%d", partnerOffer_->money_);
         rect = RECT{0, 0x28, 200, 0x3C};
         surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     }

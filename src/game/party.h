@@ -119,7 +119,6 @@ public:
     void ArchiveParty(ChunkArchive* ar);
     // Clear(1, 0), then `source` saved into a memory stream and loaded back (variables included).
     CParty* Assign(CParty* source);
-    int& Money() { return money_; }
 
     CItemManager* itemManager_;
     CItemConstructor* itemConstructor_;
@@ -127,7 +126,7 @@ public:
     CSpellConstructor* spellConstructor_;
     std::vector<PartyUnitRecord> members_;
     PartyItemArray items_;
-    int money_;                 // the party's money (Money(); cleared by Clear, saved masked)
+    int money_;                 // the party's money (money_; cleared by Clear, saved masked)
     NamedFloatTable variables_;   // named variables (the script's "gtime" and the like)
     std::string zone_;           // the zone name ("gz1g" after a new game)
     std::uint32_t entrance_;      // the zone exit the party arrives by (cleared by Clear)

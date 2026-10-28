@@ -12,7 +12,7 @@ CFigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[i
 
 void CObject3D::SetSpecific(CObject3DSpecific* half) {
     if (attached) {
-        Specific()->object = nullptr;
+        attached->object = nullptr;
         attached->Release();
     }
     attached = half;

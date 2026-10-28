@@ -206,7 +206,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         ++part->refCount_;
         part->SetObject(this);
         if (animation) animation->AttachMesh(part);
-        if (attached) Specific()->OnPartAdded(part);
+        if (attached) attached->OnPartAdded(part);
     }
     part->box_.pivot.x = part->localPosition_.x;
     part->box_.pivot.y = part->localPosition_.y;

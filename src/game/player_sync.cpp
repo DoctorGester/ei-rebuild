@@ -123,7 +123,7 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
     WriteByte(&out_, kMessageItemStates);
     out_.WriteStream(&states);
     WriteByte(&out_, kMessageItemsGiven);
-    WriteDword(&out_, static_cast<std::uint32_t>(Owner()->Party()->Money()));
+    WriteDword(&out_, static_cast<std::uint32_t>(player_->Party()->money_));
     WriteByte(&out_, static_cast<std::uint8_t>(flag));
     for (auto node = items->begin(); node != items->end(); ++node)
         WriteDword(&out_, static_cast<std::uint32_t>((*node)->id_));
@@ -133,11 +133,11 @@ void CPlayerServer::SendItemsGiven(const GivenList* items, int flag) {
 }
 
 int CPlayerServer::Flush() {
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 0;
     CMemoryStream packed;
     out_.CompressTo(&compressor_, &packed);
-    if (Owner()->logTraffic_ != 0) {
+    if (player_->logTraffic_ != 0) {
         std::uint32_t packedSize = packed.size_;
         std::uint32_t size = out_.Size();
         console::EndLine(console::g_netLogOut << TextServerToClient() << size << TextSqueezedTo() << packedSize);
@@ -177,7 +177,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         WriteDword(&out_, prototype);
         if (object->flags_ & kFlagDeltaPending) object->WriteChangedState();
         WriteStateStream(&out_, &object->NetState()->header_[0]);
-        CPlayer* player = Owner();
+        CPlayer* player = player_;
         Keep(player->knownObjects_, player->maxObjectId_, object);
     }
     return 1;
@@ -185,7 +185,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
 
 int CPlayerServer::SendObjectsChanged(const PlayerObjectArray* objects) {
     CEngineObject* const* next = objects->data();
-    int stamp = WorldUpdateCount(Owner());
+    int stamp = WorldUpdateCount(player_);
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
         if (object->changeStamp != stamp) continue;
@@ -202,7 +202,7 @@ int CPlayerServer::SendObjectsRemoved(const PlayerObjectArray* objects) {
     for (int i = 0; i < std::ssize(*objects); ++i) {
         CEngineObject* object = *next++;
         int id = object->id_;
-        Forget(Owner()->knownObjects_, id);
+        Forget(player_->knownObjects_, id);
         object->Release();
         WriteByte(&out_, kMessageObjectRemoved);
         WriteDword(&out_, static_cast<std::uint32_t>(id));
@@ -221,7 +221,7 @@ int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
         WriteByte(&out_, kMessageTimedAdded);
         out_.Write(header, sizeof(header));
         WriteStateStream(&out_, &effect->state_.out[0]);
-        CPlayer* player = Owner();
+        CPlayer* player = player_;
         Keep(player->knownTimed_, player->maxTimedId_, effect);
     }
     return 1;
@@ -229,7 +229,7 @@ int CPlayerServer::SendTimedAdded(const PlayerObjectArray* objects) {
 
 int CPlayerServer::SendTimedChanged(const PlayerObjectArray* objects) {
     CEngineObject* const* next = objects->data();
-    int stamp = WorldUpdateCount(Owner());
+    int stamp = WorldUpdateCount(player_);
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* effect = NextAs<CEffect>(next);
         if (effect->changeStamp_ != stamp) continue;
@@ -247,7 +247,7 @@ int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
         CEngineObject* object = *next++;
         WriteByte(&out_, kMessageTimedRemoved);
         WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
-        Forget(Owner()->knownTimed_, object->id_);
+        Forget(player_->knownTimed_, object->id_);
         object->Release();
     }
     return 1;
@@ -255,19 +255,19 @@ int CPlayerServer::SendTimedRemoved(const PlayerObjectArray* objects) {
 
 // The original calls SendObject14 of this object for each item.
 void CPlayerServer::SendItems() {
-    auto node = Owner()->recharging_.begin();
-    while (node != Owner()->recharging_.end()) {
+    auto node = player_->recharging_.begin();
+    while (node != player_->recharging_.end()) {
         auto current = node;
         ++node;
         unsigned id = *current;
-        CResourceManager* items = Owner()->Party()->ItemManager();
+        CResourceManager* items = player_->Party()->ItemManager();
         if (CEngineObject* item = items->FindObject(id)) SendObject14(item);
     }
 }
 
 int CPlayerServer::SendPartyState() {
     refreshPending_ = 0;
-    CPlayer* player = Owner();
+    CPlayer* player = player_;
     const float low = LowLevel();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
         const float* levels = node->second->levels4C8;
@@ -308,7 +308,7 @@ int CPlayerServer::SendPartyState() {
 }
 
 int CPlayerServer::ForgetObject(CEngineObject* object) {
-    CPlayer::MapObjectMap& known = Owner()->knownObjects_;
+    CPlayer::MapObjectMap& known = player_->knownObjects_;
     if (known.contains(object->id_)) {
         Forget(known, object->id_);
         object->Release();
@@ -330,7 +330,7 @@ BOOL CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Cont
 
 void CPlayerServer::SendParty() {
     CMemoryStream party;
-    Owner()->Party()->SaveParty(&party, 1);
+    player_->Party()->SaveParty(&party, 1);
     WriteByte(&out_, kMessageParty);
     out_.WriteSized(&party);
     refreshTimer_ = static_cast<int>(g_random.Next() % kRefreshSpread + kRefreshMinimum);
@@ -338,7 +338,7 @@ void CPlayerServer::SendParty() {
 
 int CPlayerServer::ReceiveMessages() {
     if (state_ == kStateLeaving) return 0;
-    netlink::NetLink* link = Owner()->link_;
+    netlink::NetLink* link = player_->link_;
     if (link == nullptr) return 0;
     CMemoryStream& in = ReceivedMessages();
     while (link->HasIncoming()) {
@@ -367,7 +367,7 @@ int CPlayerServer::ReceiveMessages() {
 void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
     ScriptGroup party = group50F8_;
-    CPlayer::UnitMap& units = Owner()->units_;
+    CPlayer::UnitMap& units = player_->units_;
     if (possessedId_ == kNoPartyCopy) {
         for (auto node = units.begin(); node != units.end() && node->second; ++node) {
             CUnit* unit = node->second;

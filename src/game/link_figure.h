@@ -205,8 +205,6 @@ public:
 
     // Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
-    // A copy of the name (link_loader.cpp).
-    std::string CopyName() const;
 
     // Appends a part: false when `name` is already a part; otherwise each array grows by its count and
     // gets the elements, and the part's ranges are recorded; true.

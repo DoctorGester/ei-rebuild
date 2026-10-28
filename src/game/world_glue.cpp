@@ -51,7 +51,7 @@ int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error) {
     int loaded = script->Load(&source, 1);
     if (loaded && run) ScriptTick(script);
     if (error) {
-        ScriptErrorInfo last{script->ErrorText(), script->ErrorCode(), script->ErrorLine()};
+        ScriptErrorInfo last{script->errorText_, script->errorCode_, script->errorLine_};
         error->text = last.text;
         error->code = last.code;
         error->line = last.line;

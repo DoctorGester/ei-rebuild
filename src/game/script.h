@@ -503,13 +503,6 @@ public:
     // It first executes on the next tick.
     void RunWorldScript(ScriptDecl* block);
 
-    std::vector<ScriptDefinition>& Scripts() { return definitions_; }
-    int& LoadedFlag() { return loaded_; }
-    int& FileCount() { return fileCount_; }
-    std::string& ErrorText() { return errorText_; }
-    int& ErrorCode() { return errorCode_; }
-    int& ErrorLine() { return errorLine_; }
-
     std::vector<ScriptPointLight> pointLights_;     // 256 slots
     std::list<ScriptParticleSource> particles_;
     std::list<ScriptFxSource> fxSources_;

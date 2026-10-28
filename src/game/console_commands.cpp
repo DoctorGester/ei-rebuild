@@ -278,7 +278,7 @@ void Give(Arguments* args) {
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->size() > 2) {
         int amount = str::ToInt((*args)[2]);
-        player->Party()->Money() += amount;
+        player->Party()->money_ += amount;
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {

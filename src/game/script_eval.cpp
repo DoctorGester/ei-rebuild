@@ -228,7 +228,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xE2: { // GetMoney
         StoreBits(result, kZero);
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = static_cast<float>(id == 0xE1 ? std::ssize(player->items_) : player->Party()->Money());
+        if (player) *result = static_cast<float>(id == 0xE1 ? std::ssize(player->items_) : player->Party()->money_);
         return;
     }
     case 0xE3: { // WasLooted

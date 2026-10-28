@@ -31,8 +31,6 @@ struct Call {
         };
     };
 
-    float* FloatResult() const { return result.number; }
-    std::string* StringResult() const { return result.text; }
     ScriptObjectRef* ObjectResult() const { return *result.object; }
     ScriptGroup* GroupResult() const { return *result.group; }
 

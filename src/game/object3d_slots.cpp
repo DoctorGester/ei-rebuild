@@ -31,11 +31,11 @@ void CObject3D::CopyFigure(const CObject3D* other) {
 void CObject3D::AttachSpecific(CEngineObject* half) {
     if (!half || half->type_ != kSpecificType) return;
     if (attached) {
-        Specific()->object = nullptr;
+        attached->object = nullptr;
         attached->Release();
     }
     attached = static_cast<CObject3DSpecific*>(half);
-    Specific()->object = this;
+    attached->object = this;
     ++attached->refCount_;
 }
 
@@ -53,14 +53,14 @@ void CObject3D::RemoveAllEffectSources() {
     }
 }
 
-int CObject3D::DrawFigure(CSceneRenderer* context) { return attached ? Specific()->DrawParts(context, nullptr) : 1; }
+int CObject3D::DrawFigure(CSceneRenderer* context) { return attached ? attached->DrawParts(context, nullptr) : 1; }
 
 int CObject3D::DrawCollectDirty(CSceneRenderer* context) {
     gameapi::SetRectEmpty(DirtyRect());
-    return attached ? Specific()->DrawParts(context, &dirtyRect) : 1;
+    return attached ? attached->DrawParts(context, &dirtyRect) : 1;
 }
 
-int CObject3D::DrawFigureShadow(CSceneRenderer* context) { return attached ? Specific()->DrawPartsShadow(context) : 1; }
+int CObject3D::DrawFigureShadow(CSceneRenderer* context) { return attached ? attached->DrawPartsShadow(context) : 1; }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 

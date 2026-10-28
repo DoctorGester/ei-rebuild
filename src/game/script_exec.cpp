@@ -228,8 +228,8 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
     }
     for (int i = 0; i < std::ssize(from->items_); ++i)
         to->AddItem(from->items_[i], 1, 1);
-    if (replace) to->Money() = from->Money();
-    else to->Money() += from->Money();
+    if (replace) to->money_ = from->money_;
+    else to->money_ += from->money_;
 }
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
@@ -346,7 +346,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
-            ScriptDefinition* instance = &script->instances_.emplace_front(script->Scripts()[static_cast<std::size_t>(which)]);
+            ScriptDefinition* instance = &script->instances_.emplace_front(script->definitions_[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
             break;
@@ -1012,7 +1012,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
             std::list<CItem*> items;
-            player->Party()->Money() += Ftol(f[1]);
+            player->Party()->money_ += Ftol(f[1]);
             player->GiveItems(&items, 0);
             break;
         }

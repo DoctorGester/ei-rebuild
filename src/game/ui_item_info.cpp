@@ -125,23 +125,22 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(panel->surfaces_[0]), rect_{15, 10, 185, 25} {}
+        : draw(panel->surfaces_[0]), panel_(panel), rect_{15, 10, 185, 25} {}
 
-    CUiSurface* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
     const std::string& T(int index) const { return panel_->itemTexts_[index]; }
     const std::string& Skill(int index) const { return panel_->skillTexts_[index]; }
 
     void Down() { gameapi::OffsetRect(&rect_, 0, 15); }
-    void Text(std::string_view text) { draw_->DrawLine(text, &rect_, 0, kText, 0, 1); }
+    void Text(std::string_view text) { draw->DrawLine(text, &rect_, 0, kText, 0, 1); }
     void Value(std::string_view text) {
         RECT shifted = rect_;
         gameapi::OffsetRect(&shifted, -10, 0);
-        draw_->DrawLine(text, &shifted, 0, kText, 2, 1);
+        draw->DrawLine(text, &shifted, 0, kText, 2, 1);
     }
-    void Title(std::string_view text) { draw_->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
+    void Title(std::string_view text) { draw->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
     void Wrapped(std::string_view text, int maxLines) {
-        draw_->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1);
+        draw->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1);
     }
 
     void Head(const std::string& name, const std::string& kind) {
@@ -182,9 +181,10 @@ public:
 
     std::string line;
 
+    CUiSurface* draw;   // the panel's first surface
+
 private:
     CItemInfoPanel* panel_;
-    CUiSurface* draw_;
     RECT rect_;
 };
 
@@ -281,7 +281,7 @@ void CItemInfoPanel::DescribeItem() {
     texts->GetItemTexts(item, &name, &description, &kindText);
 
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     std::string text;
     w.Head(name, kindText);
 
@@ -384,7 +384,7 @@ tail:
             w.Text(w.T(6));
         }
     }
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeMaterial() {
@@ -395,7 +395,7 @@ void CItemInfoPanel::DescribeMaterial() {
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     w.Head(name, kindText);
     std::string text = material->soundName;
     str::MakeLower(text);
@@ -421,7 +421,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.DamageLines(values, 4);
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeBlueprint() {
@@ -442,7 +442,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record) and the count. (The weapon and armour views
     // are read only for their own sort.)
@@ -493,7 +493,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     }
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeSpellRecord() {
@@ -503,7 +503,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
@@ -535,7 +535,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(13, static_cast<int>(record->targetCount));
     w.Down();
     w.Wrapped(description, 4);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeModifierRecord() {
@@ -545,13 +545,13 @@ void CItemInfoPanel::DescribeModifierRecord() {
     texts->GetItemTexts(item, &name, &description, &kindText);
     const itemdb::SpellModifierRecord* record = itemdb::SpellModifierAt(LootOf(item)->index_);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     w.Head(name, kindText);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.Down();
     w.Wrapped(description, 8);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeQuickItem() {
@@ -560,7 +560,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     std::string name, description, kindText;
     texts->GetItemTexts(item, &name, &description, &kindText);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     w.Head(name, kindText);
     if (CSpell* spell = SpellOf(item)) {
         bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
@@ -569,7 +569,7 @@ void CItemInfoPanel::DescribeQuickItem() {
         w.Down();
     }
     w.Wrapped(description, 8);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::DescribeCarriedSpell() {
@@ -591,7 +591,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     }
     texts->GetString("item_spell", &kindText);
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     std::string text;
     w.Head(title, kindText);
     w.Number(7, FtolOf(spell->manaCost_));
@@ -651,9 +651,9 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         }
         str::TrimRight(w.line, ",");
         w.line += ".";
-        w.Draw()->DrawWrappedText(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
+        w.draw->DrawWrappedText(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
     }
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 // --- The statistic under the mouse ----------------------------------------------------------
@@ -701,7 +701,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
         key += level->name;
         if (texts->Open(key.c_str())) texts->ReadLine(&title, 1);
         w.Text(title);
-        if (info->index > i) w.Draw()->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
+        if (info->index > i) w.draw->DrawLine(w.Skill(21), w.Rect(), 0, kText, 2, 1);   // learned
         w.Down();
         int value = static_cast<int>(level->values[7]);
         const char* percent = "     %s %d%%";
@@ -796,7 +796,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     if (info->kind < 0) return;
     CTextManager* texts = TextManager();
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     std::string text, title, description;
     if (info->kind <= 3) {
         std::string key("perk ");
@@ -907,7 +907,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
     default:
         break;
     }
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::ShowHelp(int topic) {
@@ -915,7 +915,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     DescribeItem();
     CTextManager* texts = TextManager();
     Writer w(this);
-    w.Draw()->GetDC();
+    w.draw->GetDC();
     std::string title, description, key;
     key = str::Format("camphelp %d", topic);
     if (texts->Open(key.c_str())) {
@@ -926,7 +926,7 @@ void CItemInfoPanel::ShowHelp(int topic) {
     w.Down();
     w.Down();
     w.Wrapped(description, 16);
-    w.Draw()->ReleaseDC();
+    w.draw->ReleaseDC();
 }
 
 void CItemInfoPanel::Describe(CItem* item) {

@@ -34,7 +34,7 @@ void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key) {
     if (!players) return;
     PlayerIterator it;
     for (CPlayer* player = it.First(players); player; player = it.Next()) {
-        player->Party()->Money() ^= static_cast<int>(key);   // gold
+        player->Party()->money_ ^= static_cast<int>(key);   // gold
         for (int i = 0; i < std::ssize(player->Party()->members_); ++i) XorRange(&player->Party()->members_[i].stats, key);
         if (!units) continue;
         // The player's units (the walk stops at an empty entry): the 0x704 bytes of their

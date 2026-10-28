@@ -6,10 +6,10 @@
 #include "game_strings.h"
 
 void ScriptReset(CScript* script) {
-    script->LoadedFlag() = 0;
-    script->FileCount() = 0;
-    script->ErrorText() = "Unknown error";
-    script->ErrorLine() = 0;
+    script->loaded_ = 0;
+    script->fileCount_ = 0;
+    script->errorText_ = "Unknown error";
+    script->errorLine_ = 0;
 
     script->instances_.clear();
     script->runs_.clear();
