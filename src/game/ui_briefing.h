@@ -72,7 +72,7 @@ public:
     ~CChatWindow() override;
     // Every fourth face first makes a 256 x 256 texture; `texture` is copied into the newest texture's quarter
     // (count % 4) and a sprite of `model` shows it, or without the model a plain rectangle.
-    void AddPortrait(const char* model, const char* texture);
+    void AddPortrait(const std::string& model, std::string_view texture);
     // The client's players (only while its binding is live; its own player first), each with a face from its
     // unit prototype ("infa<model>me<hair+1>face", "face<m|f><skin, 2 digits>") and its name as the region's
     // tip. The sex letter carries over from the previous player when the model is neither "unhuma" nor
@@ -183,7 +183,7 @@ public:
     void ViewPreset(int preset);
     // "#hide <name>": the server hears event 2; its server unit gets flag 0x40000000 back. The third speaker
     // walks to thirdPlace_ and is forgotten. A name that is no unit removes the shown item of that name.
-    void HideSpeaker(const char* name, int immediate, int time);
+    void HideSpeaker(std::string_view name, int immediate, int time);
 
     // "goodbye" (or no leader) back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N
     // when that class template exists. See docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -198,7 +198,7 @@ public:
                     int run);
     // "#show <name>": a person joins the speakers (the leader's server unit gets flag 0x40000000). Anything
     // else with `index` >= 0 is a loot item. See docs/notes/ui.md, "Behaviour moved out of header comments".
-    void ShowItem(const char* name, int index, int unused);
+    void ShowItem(std::string_view name, int index, int unused);
     void ClearShownItems();
     ~CBriefingScreen() override;
     void SetChatActive(int mode);

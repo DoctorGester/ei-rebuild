@@ -79,7 +79,7 @@ struct ExtraAcks {
 template <typename Record>
 struct AckTable {
     // The index's operator[], so a missing name is added with a null record (and null is returned).
-    Record* Find(const char* name);
+    Record* Find(std::string_view name);
     // Null past the end (the extras' table only, used by the loader).
     Record* RecordAt(std::uint32_t index);
 
@@ -93,7 +93,7 @@ struct AckDatabase {
     // (units: kinds 0..0x15, 0x1C..0x24, 0x27, 0x28 and the named speeches as 0x2A, with 0x16..0x1B entered as
     // null; models: 0x2E..0x32; extras: 0x2C, 0x2D). 1; FatalError's result when the archive (reported as
     // "databases.res") or the file cannot be opened.
-    int Load(const char* folder);
+    int Load(const std::string& folder);
     // Every table empty. Returns this.
     AckDatabase* Construct();
     void Destruct();

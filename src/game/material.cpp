@@ -74,7 +74,7 @@ int CMaterialManager::Create() {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::LoadModArchives();
     if (!CBaseManager::Create()) return 0;
     const std::string folder = *g_textFolder;
-    AddArchive((folder + "materials.res").c_str());
+    AddArchive((folder + "materials.res"));
 
     for (const MaterialKindFile& kind : kMaterialKindFiles) {
         MaterialColors colors;

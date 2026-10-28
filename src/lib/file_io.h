@@ -83,7 +83,7 @@ public:
     bool ReadLine(std::string& line);
     // fgets: a line with its '\n' into `buffer` (at most size - 1 characters); null at the end of the file.
     char* ReadString(char* buffer, unsigned size);
-    void WriteString(const char* text);
+    void WriteString(std::string_view text);
 
 private:
     std::FILE* stream_ = nullptr;

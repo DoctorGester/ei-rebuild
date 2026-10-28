@@ -14,19 +14,19 @@
 
 #include <cstdio>
 
-int CResourceBase::FindEntry(const char* name) const {
+int CResourceBase::FindEntry(std::string_view name) const {
     std::uint32_t count = header_.count;
     if (count == 0) return -1;
 
     std::uint32_t hash = 0;
     std::uint32_t length = 0;
-    for (; name[length] != '\0'; ++length)
+    for (; length < name.size(); ++length)
         hash += text::ToLower(static_cast<unsigned char>(name[length]));
 
     std::uint32_t index = hash % count;
     for (;;) {
         const ResEntry& e = entries_[index];
-        if (length == e.nameLength && text::CompareIgnoringCase(name, names_ + e.nameOffset, length) == 0)
+        if (length == e.nameLength && text::CompareIgnoringCase(name.data(), names_ + e.nameOffset, length) == 0)
             return static_cast<int>(index);
         index = static_cast<std::uint32_t>(entries_[index].next);
         if (index == 0xFFFFFFFF) return -1;
@@ -80,21 +80,21 @@ void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
 void CMappedResource::Flush() {}   // 4
 
-BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
+BOOL CMappedResource::OpenResource(const std::string& path, BOOL writable) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
     // which archive this is.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) modfolders::OnOpenResource(this, path);
     CloseResource();
     writable_ = writable;
-    handle_ = gameapi::CreateFileA(path, writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ,
+    handle_ = gameapi::CreateFileA(path.c_str(), writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ,
                                    FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING,
                                    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, nullptr);
     if (handle_ == INVALID_HANDLE_VALUE)
-        return game::FatalError(("CMappedResource::OpenResource()\nUnable to open file \"" + std::string(path) + "\"").c_str());
+        return game::FatalError(("CMappedResource::OpenResource()\nUnable to open file \"" + path + "\"").c_str());
 
     if (ReadAt(handle_, 0, &header_, sizeof(header_))) {
         if (header_.magic != kResMagic) {
-            game::FatalError(("Wrong format resource file \"" + std::string(path) + "\"").c_str());
+            game::FatalError(("Wrong format resource file \"" + path + "\"").c_str());
             CloseResource();
             return 0;
         }
@@ -106,7 +106,7 @@ BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
             return 1;
     }
     CloseResource();
-    return game::FatalError(("CMappedResource::OpenResource()\nUnable to read file \"" + std::string(path) + "\"").c_str());
+    return game::FatalError(("CMappedResource::OpenResource()\nUnable to read file \"" + path + "\"").c_str());
 }
 
 BOOL CMappedResource::OpenFromMemory(const void* image) {
@@ -143,12 +143,12 @@ void CMappedResource::CloseResource() {
 }
 
 // Rebirth's ResOverride sends every call to addon.
-void* CMappedResource::GetFile(const char* name, std::uint32_t* size) {
+void* CMappedResource::GetFile(std::string_view name, std::uint32_t* size) {
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) return modfolders::GetFile(this, name, size);
     return GetFilePlain(name, size);
 }
 
-void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
+void* CMappedResource::GetFilePlain(std::string_view name, std::uint32_t* size) {
     if (!entries_ || !names_) return nullptr;
 
     // Already loaded: share it.
@@ -258,14 +258,14 @@ void CMappedFile::Close() {
     size_ = 0;
 }
 
-BOOL CMappedFile::Open(const char* path, BOOL writable) {
-    if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
+BOOL CMappedFile::Open(const std::string& path, BOOL writable) {
+    if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path.c_str());
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
     char root[4];
     DWORD bytesPerSector = 0xFFFFFFFF, sectorsPerCluster, freeClusters, totalClusters;
     #pragma warning(suppress : 4996)   // strncpy: the copy padded with zeros
-    std::strncpy(root, path, 3);
+    std::strncpy(root, path.c_str(), 3);
     root[3] = '\0';
     const char* rootPath = root;
     if (!text::IsAlpha(root[0]) || root[1] != ':' || root[2] != '\\') rootPath = nullptr;
@@ -276,12 +276,12 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
                       ? FILE_FLAG_RANDOM_ACCESS | FILE_ATTRIBUTE_NORMAL
                       : FILE_FLAG_NO_BUFFERING | FILE_ATTRIBUTE_NORMAL;
 
-    file_ = gameapi::CreateFileA(path, writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
+    file_ = gameapi::CreateFileA(path.c_str(), writable ? GENERIC_READ | GENERIC_WRITE : GENERIC_READ, FILE_SHARE_READ,
                                  nullptr, OPEN_EXISTING, flags, nullptr);
     if (file_ == INVALID_HANDLE_VALUE) {
         gameapi::GetLastError();
         char message[256];
-        std::snprintf(message, sizeof(message), "CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
+        std::snprintf(message, sizeof(message), "CMappedFile::Open().\nUnable to open file \"%s\".\n", path.c_str());
         game::DebugLog(message);
         return false;
     }
@@ -298,7 +298,7 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
         } else {
             view_ = gameapi::MapViewOfFile(mapping_, writable ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
             if (view_) return true;
-            game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path,
+            game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path.c_str(),
                              gameapi::GetLastError());
         }
     }
@@ -319,7 +319,7 @@ void CMappedFile::Flush() {
 }
 
 
-BOOL CMMIOResource::OpenResource(const char* path, BOOL writable) {
+BOOL CMMIOResource::OpenResource(const std::string& path, BOOL writable) {
     if (!file_.Open(path, writable)) return false;
     if (OpenFromMemory(file_.view_)) return true;
     CloseResource();
@@ -351,7 +351,7 @@ void CMMIOResource::CloseResource() {
 
 void CMMIOResource::Flush() { file_.Flush(); }
 
-void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) {
+void* CMMIOResource::GetFile(std::string_view name, std::uint32_t* size) {
     if (!entries_ || !names_) return nullptr;
     int index = FindEntry(name);
     if (index == -1) return nullptr;

@@ -70,7 +70,7 @@ void ScriptVars::Clear() {
     groups.names.clear();
 }
 
-BOOL ScriptVars::HasVariable(const char* name) const {
+BOOL ScriptVars::HasVariable(std::string_view name) const {
     if (::FindName(floats.names, name) >= 0) return 1;
     if (::FindName(strings.names, name) >= 0) return 1;
     if (::FindName(objects.names, name) >= 0) return 1;

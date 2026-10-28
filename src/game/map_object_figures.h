@@ -185,19 +185,6 @@ struct FigureBone : CEngineObject {
     void InterpolatePrism(const float** stream);
 };
 
-// A part of a figure model (the model the figure manager finds: mesh, bones, ...; the animations part comes
-// from FigureModel::FindAnimation). Only the virtual the animation state calls is named.
-class __declspec(novtable) CFigureModelPart {
-public:
-    virtual void Unused0();
-    virtual void Unused1();
-    virtual void Unused2();
-    virtual void Unused3();
-    virtual void Unused4();
-    // The data of entry `name` (its size to *size when not null), or null.
-    virtual void* ReadEntry(const char* name, int* size);
-};
-
 // The figure's animation state (CObject3D's animation member): the skeleton's bones, the animation playing
 // and the queue behind it, the frame reached.
 class CFigureAnimationState : public CEngineObject {
@@ -244,7 +231,7 @@ public:
     // The root becomes the first bone without a parent name. 1, or 0 when none.
     int FindRoot();
     // The figure manager links the skeleton of `model` into this state; `changed` set. Returns its result.
-    int SetModel(const char* model);
+    int SetModel(std::string_view model);
     // The first bone carrying `part` lets it go (released). 1, or 0 when none.
     int DetachMesh(CEngineObject* part);
     // Every bone lets its mesh go (released). `changed` set. Returns 1.
@@ -265,7 +252,7 @@ public:
     // The figure manager's SetAnimation with an animation. Every bone's placing track loads the entry of `part`
     // named as the bone (LoadKeyFrames), or without one is cleared as above, and takes `animation`. `changed` set.
     // Returns 1.
-    int LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation);
+    int LoadBoneTracks(CMappedResource* part, const FigureAnimation* animation);
 
     CObject3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
@@ -373,21 +360,21 @@ public:
     // Sets the figure up for the animated model `model`: one part box and part name per animated part (the
     // figure manager's bounds of the part, its pivot, flags 4 | 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" by
     // name prefix); the bounds span the boxes (heroes, type_ 0x32: x and y -0.5..0.5).
-    void SetUpAnimatedFigure(const char* model);
+    void SetUpAnimatedFigure(std::string_view model);
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
     // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as LoadFigures' new parts do.
-    CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
+    CFigureMesh* LoadPart(std::string_view partName, FigureModel* model, std::uint32_t arg);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.
-    int LoadParts(const char* model, const std::vector<std::string>* partList, std::uint32_t arg);
+    int LoadParts(std::string_view model, const std::vector<std::string>* partList, std::uint32_t arg);
     // When a unit becomes the controlled one (world client): with the figure loaded (flags_ 0x80) the parts'
     // world transforms are updated and the bounds recomputed from their world boxes.
     void UpdatePartBounds();
     // Builds the figure of the model for the part names `partList` (none: the animation
     // state's parts and the whole figure), then LoadParts and the bounds; flags_ 0x80 set unless both `arg`
     // and the figure are 0. Returns 1.
-    int MakeFigure(const char* model, std::vector<std::string>* partList, std::uint32_t arg);
+    int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.

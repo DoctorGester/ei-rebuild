@@ -13,7 +13,7 @@
 class CIniFile {
 public:
     CIniFile* Construct();                                  // empty path
-    BOOL SetPath(const char* path);                          // returns 1
+    BOOL SetPath(std::string_view path);                          // returns 1
     void Destruct();                                         // the path's destructor
 
     // The key names of `section` (the part before '=', trimmed) into `out` (emptied

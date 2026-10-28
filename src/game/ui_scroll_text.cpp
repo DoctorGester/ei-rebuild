@@ -275,7 +275,7 @@ void CUiScrollText::AddText(std::string_view text) {
     SetPosition(Maximum() - before + position);
 }
 
-void CUiScrollText::SetText(const char* text) {
+void CUiScrollText::SetText(std::string_view text) {
     Clear();
     TokenizeText(this, text);
     LayOut(this);

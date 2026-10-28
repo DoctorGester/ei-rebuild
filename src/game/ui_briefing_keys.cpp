@@ -48,7 +48,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
-        window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 1);
+        window->Setup(LocalPlayerZone(), nullptr, 0, 1);
         ui->PushWindow(window, 1, 1);
         break;
     }

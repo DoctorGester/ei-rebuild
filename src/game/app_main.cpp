@@ -354,18 +354,18 @@ std::uintptr_t OpenSound() {
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
-        TheSoundManager()->SetPath(folder.c_str(), registry.c_str());
+        TheSoundManager()->SetPath(folder, registry);
     }
     {
         std::string effects = textFolder + "sfx.res";
         CSoundManager* sound = TheSoundManager();
         sound->ClearWaveSources();
-        sound->AddWaveSource(effects.c_str());
+        sound->AddWaveSource(effects);
     }
     {
         std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
         std::string speech = discFolder + "res\\speech.res";
-        TheSoundManager()->AddWaveSource(speech.c_str());
+        TheSoundManager()->AddWaveSource(speech);
     }
     TheSoundManager()->SetEffectsVolume(options->audioSfx_);
     TheSoundManager()->SetSpeechVolume(options->audioSpeech_);
@@ -375,16 +375,16 @@ std::uintptr_t OpenSound() {
 }
 
 void LoadDatabases() {
-    const char* archive = "database.res";
+    const std::string archive = "database.res";
     GameOptions* options = &options::g_options.Get();
-    SkillDatabaseObject()->Load(options->resourcesPath_.c_str(), archive);
-    g_questDatabase->Load(options->resourcesPath_.c_str());
-    g_unitDatabase->Load(options->resourcesPath_.c_str(), archive);
-    g_spellDatabase->Load(options->resourcesPath_.c_str(), archive);
-    g_itemDatabase->Load(options->resourcesPath_.c_str(), archive);
-    g_leverTable->Load(options->resourcesPath_.c_str());
-    g_ackDatabase->Load(options->resourcesPath_.c_str());
-    g_printsDatabase->Load(options->resourcesPath_.c_str());
+    SkillDatabaseObject()->Load(options->resourcesPath_, archive);
+    g_questDatabase->Load(options->resourcesPath_);
+    g_unitDatabase->Load(options->resourcesPath_, archive);
+    g_spellDatabase->Load(options->resourcesPath_, archive);
+    g_itemDatabase->Load(options->resourcesPath_, archive);
+    g_leverTable->Load(options->resourcesPath_);
+    g_ackDatabase->Load(options->resourcesPath_);
+    g_printsDatabase->Load(options->resourcesPath_);
 }
 
 // ---- The main loop ---------------------------------------------------------------------------------
@@ -690,7 +690,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     StoreStartFolder();
     {
         std::string settings = *g_startFolder + "config\\ai.reg";
-        g_logicSettings.Load(settings.c_str());
+        g_logicSettings.Load(settings);
     }
     options->LoadFromRegistry(g_registryRoot->c_str());
     g_clientWorld->Create();

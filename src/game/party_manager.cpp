@@ -183,7 +183,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
 }
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
-    if (CParty* found = Find(currentName.c_str())) CopyParty(found, party);
+    if (CParty* found = Find(currentName)) CopyParty(found, party);
     NamedFloatTable variables(party->variables_);
     std::string zone = party->zone_;
     for (PartyRecord* record : records) {
@@ -195,7 +195,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
 }
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {
-    if (CParty* found = Find(requestedName.c_str())) CopyParty(party, found);
+    if (CParty* found = Find(requestedName)) CopyParty(party, found);
     else party->Clear(1, 0);
     currentName = requestedName;
 }

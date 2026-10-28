@@ -41,7 +41,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, 
     (archive.*serialize)(id, &table.records, levels);
     archive.Close(stream);
     for (Record& record : table.records) {
-        std::string key(record.name.c_str());
+        std::string key(record.name);
         table.byName[key] = &record;
     }
 }
@@ -68,8 +68,8 @@ UnitLevelRecord* UnitLevelTable::FindByName(std::string_view name) {
 
 // --- The unit database ----------------------------------------------------------------------------
 
-int UnitDatabase::Load(const char* folder, const char* archive) {
-    std::string path = std::string(folder) + archive;
+int UnitDatabase::Load(const std::string& folder, const std::string& archive) {
+    std::string path = folder + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
@@ -109,8 +109,8 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
 
 // --- The skill database ---------------------------------------------------------------------------
 
-int SkillDatabase::Load(const char* folder, const char* archive) {
-    std::string path = std::string(folder) + archive;
+int SkillDatabase::Load(const std::string& folder, const std::string& archive) {
+    std::string path = folder + archive;
     LocalResource resource;
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());

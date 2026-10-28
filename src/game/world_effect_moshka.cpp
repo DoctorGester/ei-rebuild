@@ -244,7 +244,7 @@ void CEffectMoshka::Follow(int objectId) {
     FindPerch(&perch, &PositionOf(followed));
     std::memcpy(&bird->localPosition_, &perch, sizeof(bird->localPosition_));
     std::vector<std::string> parts;
-    bird->MakeFigure(model.c_str(), &parts, 1);
+    bird->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();
     bird->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     bird->RestartPose();

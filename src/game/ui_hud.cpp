@@ -223,7 +223,7 @@ void CHudQuickItems::Update() {
         if (!unit_->GetQuickItem(i)) continue;
         if (!regions_[i]->HasActiveTip()) continue;
         ItemTip(i, &text);
-        regions_[i]->SetTipText(text.c_str());
+        regions_[i]->SetTipText(text);
     }
 }
 
@@ -495,7 +495,7 @@ void CHudClock::OpenObjectives() {
     highlight_ = false;
     interface_->PlaySound(kSoundClick, 0);
     auto* window = new CObjectivesWindow(interface_);
-    window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 0);
+    window->Setup(LocalPlayerZone(), nullptr, 0, 0);
     interface_->PushWindow(window, 1, 1);
 }
 

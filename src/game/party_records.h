@@ -34,7 +34,7 @@ CRefCounted* CreatePartyRecord();
 // The named records: counted pointers, then two strings.
 struct NamedPartyRecords {
     // The party of the first record named `name` (_mbscmp), else of the last unnamed record, else null.
-    CParty* Find(const char* name) const;
+    CParty* Find(std::string_view name) const;
     // Appends a new record named `name`.
     void Add(const char* name);
     // Removes the records named `name`; after a removal the record moved into

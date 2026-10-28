@@ -16,19 +16,19 @@ constexpr std::uint32_t kFigMagic = 0x474946;   // "FIG"
 
 } // namespace
 
-int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
+int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
     std::uint8_t* data;
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
     } else {
         // The inlined strcpy / strcat into a 0x200-byte buffer (no bounds check, like the original).
         char path[0x200];
-        std::size_t length = std::strlen(directory);
-        std::memcpy(path, directory, length);
-        std::size_t nameLength = std::strlen(name);
-        std::memcpy(path + length, name, nameLength);
+        std::size_t length = directory.size();
+        std::memcpy(path, directory.data(), length);
+        std::size_t nameLength = name.size();
+        std::memcpy(path + length, name.data(), nameLength);
         std::memcpy(path + length + nameLength, ".fig", 5);
-        data = static_cast<std::uint8_t*>(GetFile(path, nullptr));
+        data = static_cast<std::uint8_t*>(GetFile(std::string_view(path, length + nameLength + 4), nullptr));
     }
     if (!data) return 0;
     std::uint32_t magic;

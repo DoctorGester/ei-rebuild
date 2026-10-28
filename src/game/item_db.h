@@ -301,7 +301,7 @@ struct NamedRecordTable {
                static_cast<int>(sizeof(Record));
     }
     // Null when there is none (a null record is filed under a new name).
-    Record* Named(const char* name) { return names[std::string(name)]; }
+    Record* Named(std::string_view name) { return names[std::string(name)]; }
 
     std::vector<Record> records;
     // The materials are filed under their key.
@@ -320,7 +320,7 @@ template <typename Record>
 struct CodeIndexedTable {
     // The record filed under `code`: the index's operator[] with a copy of the key, so an unknown code is
     // filed with null.
-    Record* FindByCode(const char* code);
+    Record* FindByCode(std::string_view code);
     void Construct();
     // The index, then the records.
     void Destruct() {
@@ -335,7 +335,7 @@ struct CodeIndexedTable {
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.data()) : -1; }
     // Null when there is none (a null record is filed under a new code).
-    Record* Named(const char* code) { return byCode[std::string(code)]; }
+    Record* Named(std::string_view code) { return byCode[std::string(code)]; }
 
     std::vector<Record> records;
     std::unordered_map<std::string, Record*> byCode;
@@ -349,7 +349,7 @@ struct SpellDatabase {
     // Rebirth-patched. "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the modifiers
     // (chunk 2), each read through an archive of its own and filed under its code, then the three lists through
     // a third. 1; FatalError's result when the archive or the file cannot be opened.
-    int Load(const char* folder, const char* archive);
+    int Load(const std::string& folder, const std::string& archive);
     // Run by the static initialiser, the resource switch and the reload.
     SpellDatabase* Construct();
     // Destruction and construction in place (the resource switch).
@@ -367,7 +367,7 @@ struct ItemDatabase {
     // their key), the weapons (2) and the armour (3), each through an archive of its own and filed under its
     // name, then the quick items, quest items and loot (chunks 4-6, their loads). 1; FatalError's result when
     // the archive or the file cannot be opened.
-    int Load(const char* folder, const char* archive);
+    int Load(const std::string& folder, const std::string& archive);
     // The tables from the last to the first.
     void DestructBody();
     // Run by the static initialiser, the resource switch and the reload.

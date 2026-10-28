@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class CMappedResource;
@@ -27,14 +28,14 @@ const std::string& ModPath();
 
 // OpenResource's entry (+8), before the archive opens: the first call loads the mod's
 // archives; then `res` is recorded as opened from `path` (an archive the mod overrides or ignores).
-void OnOpenResource(CMappedResource* res, const char* path);
+void OnOpenResource(CMappedResource* res, const std::string& path);
 // The destructor's entry (+2): `res` is forgotten.
 void OnDestroyResource(const CMappedResource* res);
 // CMaterialManager::Create's entry (+8): loads the mod's archives (once).
 void LoadModArchives();
 // CMappedResource::GetFile through addon: the mod's archives for this archive first, then the
 // archive itself unless the mod ignores it, then "t\" / "s\" names once more without the prefix.
-void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size);
+void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size);
 // CMappedResource::ListFiles through addon: appends the mod's archives' names and the archive's own
 // (unless ignored) to `out`.
 void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const char* pattern);

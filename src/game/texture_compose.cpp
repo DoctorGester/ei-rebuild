@@ -125,7 +125,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
     CPixelConverter* converter = PixelConverter();
     int drawn = 0;
     for (const std::string& name : *names) {
-        auto* data = GetFileData(name.c_str());
+        auto* data = GetFileData(name);
         if (!data) {
             game::DebugLog(kCantFindLayer, name.c_str());
             continue;
@@ -149,7 +149,7 @@ int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::str
 int CTextureManager::Compose(std::string* out, const SkinRequest* request, const std::string* name,
                              const std::string* fallback, unsigned mipCount, std::uint32_t fill,
                              std::uint32_t format) {
-    std::string path = CachePath((*name).c_str());
+    std::string path = CachePath((*name));
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     lib::File file;
@@ -159,11 +159,11 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     } else if (std::strcmp(name->c_str(),
                                fallback->c_str()) != 0) {
         *out = *fallback;
-        path = CachePath((*fallback).c_str());
+        path = CachePath((*fallback));
         if (file.Open(path, lib::File::modeRead)) {
             if (CacheMatches(file, header, request)) return 1;
             *out = *name;
-            path = CachePath((*name).c_str());
+            path = CachePath((*name));
         }
     }
 

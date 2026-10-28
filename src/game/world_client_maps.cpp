@@ -522,7 +522,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
             const char* name = worlddata::HeroPartText(n);
             if (SameText(name, worlddata::HairPartText())) {
-                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(std::string(record->texts[5].c_str()));
+                UnitPrototypeRecord* prototype = unitdb::PrototypeNamed(std::string(record->texts[5]));
                 int number = prototype->hair;
                 if (number != -1) {
                     hair = str::Format(worlddata::HairFormat(), number);
@@ -539,7 +539,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);
         unit->SetPrototype23CByName(record->texts[6].c_str());
         unit->flags_ |= 0x4000000;
-        if (!unit->MakeFigure(record->texts[2].c_str(), &parts, 1)) return;
+        if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
         figure->RegisterPartMaterials();
         unit->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
@@ -565,7 +565,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
             unit->AddQuickItem(record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
-        slots->SetScriptName(record->texts[0].c_str());
+        slots->SetScriptName(record->texts[0]);
         AddObject(unit);
     }
 }

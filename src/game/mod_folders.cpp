@@ -117,7 +117,7 @@ ResConfig ReadResConfig() {
     CFileRegistry registry;
     registry.Construct();
     const std::string file = mod + "config.reg";
-    if (!registry.Open(file.c_str()) || (registry.data_[4] | (registry.data_[5] << 8)) == 0) {
+    if (!registry.Open(file) || (registry.data_[4] | (registry.data_[5] << 8)) == 0) {
         registry.Destroy();
         return config;
     }
@@ -173,7 +173,7 @@ ResTables& Tables() {
 }
 
 // One lookup of 1002005E: the mod's archives for `res`, then `res` itself unless ignored.
-void* FindFile(CMappedResource* res, const char* name, std::uint32_t* size) {
+void* FindFile(CMappedResource* res, std::string_view name, std::uint32_t* size) {
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
     if (overridden != tables.overridden.end()) {
@@ -256,17 +256,17 @@ void LoadModArchives() {
             std::memset(memory, 0, sizeof(CMappedResource));
             CMappedResource* res = new (memory) CMappedResource();
             tables.modArchives[key].push_back(res);
-            res->CMappedResource::OpenResource(path.c_str(), 0);
+            res->CMappedResource::OpenResource(path, 0);
         }
     }
 }
 
-void OnOpenResource(CMappedResource* res, const char* path) {
+void OnOpenResource(CMappedResource* res, const std::string& path) {
     Lock lock;
     LoadModArchives();
     // 100203F0: the path as CharLowerA makes it (addon copies it into 0x104 bytes).
     char lower[MAX_PATH];
-    strncpy_s(lower, path, _TRUNCATE);
+    strncpy_s(lower, path.c_str(), _TRUNCATE);
     text::utf8::CharLowerA(lower);
     const ResConfig& config = Config();
     ResTables& tables = Tables();
@@ -281,11 +281,11 @@ void OnDestroyResource(const CMappedResource* res) {
     tables.ignored.erase(res);
 }
 
-void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size) {
+void* GetFile(CMappedResource* res, std::string_view name, std::uint32_t* size) {
     Lock lock;
     void* data = FindFile(res, name, size);
     // 1002012F: a "t\" or "s\" name not found is looked up once more without the prefix.
-    if (!data && name && (name[0] == 't' || name[0] == 's') && name[1] == '\\') data = FindFile(res, name + 2, size);
+    if (!data && name.size() >= 2 && (name[0] == 't' || name[0] == 's') && name[1] == '\\') data = FindFile(res, name.substr(2), size);
     return data;
 }
 
@@ -334,7 +334,7 @@ void SelectMaps(const char* name, MapsSite site) {
 }
 
 const std::string& MapsRoot(const std::string& dataFolder) {
-    static const std::string* modRoot = new std::string(ModPath().c_str());
+    static const std::string* modRoot = new std::string(ModPath());
     return g_mapsInMod ? *modRoot : dataFolder;
 }
 
@@ -355,7 +355,7 @@ bool StreamInMod(const char* name) {
 }
 
 const std::string& StreamFolder() {
-    static const std::string* folder = new std::string((ModPath() + "Stream\\").c_str());
+    static const std::string* folder = new std::string((ModPath() + "Stream\\"));
     return *folder;
 }
 

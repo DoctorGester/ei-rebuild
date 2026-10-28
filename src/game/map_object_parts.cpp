@@ -105,7 +105,7 @@ AnimationDatabase* CObject3D::Animations() {
     if (!animations && owner_) {
         std::string file = name;
         file += ".adb";
-        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file.c_str(), nullptr));
+        animations = static_cast<AnimationDatabase*>(owner_->GetFile(file, nullptr));
     }
     return animations;
 }

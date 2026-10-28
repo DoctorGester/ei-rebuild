@@ -182,10 +182,10 @@ void BufferedFile::Close() {
     file = nullptr;
 }
 
-void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
+void BufferedFile::Open(const std::string& path, const char* mode, std::uint32_t newFlags) {
     Close();
     flags = newFlags;
-    file = lib::OpenFile(path, mode);
+    file = lib::OpenFile(path.c_str(), mode);
     if (!file) {
         flags |= kFlagError;
         return;

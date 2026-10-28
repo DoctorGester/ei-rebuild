@@ -382,7 +382,7 @@ int Terrain::SetupPages(int count) {
             name = str::Format("%s%3.3i", mapName.c_str(), i);
         } else {
             name = str::Format("%sL%2.2i", mapName.c_str(), i - count);
-            if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
+            if (!TheTextureManager()->HasFile((name + ".mmp"))) return 1;
             ++extraPages;
             pageTextures.push_back(nullptr);
             pageMaterials.push_back(nullptr);
@@ -412,7 +412,7 @@ int Terrain::SetupPages(int count) {
 int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     ClearMap();
     std::string name = path;
-    if (!archive.OpenResource(name.c_str(), 0)) return 0;
+    if (!archive.OpenResource(name, 0)) return 0;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
     int dot = str::ReverseFind(name, '.');
@@ -424,7 +424,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     // The messages are passed to FatalError as its format string.
     std::uint32_t size = 0;
-    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension).c_str(), &size));
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile((mapName + kMapDataExtension), &size));
     if (!file) {
         ClearMap();
         return game::FatalError(("Unable to open file \"" + name + "\"").c_str());

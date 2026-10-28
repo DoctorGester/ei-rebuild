@@ -16,7 +16,7 @@ void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
 }
 } // namespace
 
-void LogicSettings::Load(const char* path) {
+void LogicSettings::Load(const std::string& path) {
     if (loaded) return;
     CFileRegistry reg;
     reg.Construct();

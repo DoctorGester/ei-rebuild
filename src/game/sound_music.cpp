@@ -78,7 +78,7 @@ int CMusicSystem::LoadThemes() {
     {
         std::string folder = *g_textFolder;
         std::string path = folder + kMusicReg;
-        opened = reg.Open(path.c_str());
+        opened = reg.Open(path);
     }
     if (!opened) {
         int result;

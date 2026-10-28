@@ -148,8 +148,8 @@ char* TextFile::ReadString(char* buffer, unsigned size) {
     return result;
 }
 
-void TextFile::WriteString(const char* text) {
-    if (std::fputs(text, stream_) == EOF) ThrowCrtError(path_);
+void TextFile::WriteString(std::string_view text) {
+    if (std::fwrite(text.data(), 1, text.size(), stream_) != text.size()) ThrowCrtError(path_);
 }
 
 // ---- FileFind -------------------------------------------------------------------------------------

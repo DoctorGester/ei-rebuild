@@ -26,10 +26,10 @@ int CFigureManager::SetFigureAnimation(CFigureAnimationState* figure, const char
         return 0;
     }
     std::string name(animation->name);
-    void* found = model->FindAnimation(&name);
+    CMappedResource* found = model->FindAnimation(&name);
     if (!found) {
         game::DebugLog("Can't open animation \"%s\" for model \"%s\"\n", animation->name, modelName);
         return 0;
     }
-    return figure->LoadBoneTracks(static_cast<CFigureModelPart*>(found), animation);
+    return figure->LoadBoneTracks(found, animation);
 }

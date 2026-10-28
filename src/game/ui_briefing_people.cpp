@@ -84,14 +84,14 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     controller->brain.Walk(&target, run, 0);
 }
 
-void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
+void CBriefingScreen::ShowItem(std::string_view name, int index, int unused) {
     (void)unused;
     auto* unit = GameFindClientUnit(TextKeyFromName(name));
     if (unit) {
         // A person joins the speakers (at the end, once).
         auto entry = std::find_if(speakers_.begin(), speakers_.end(), [unit](const BriefingSpeaker& s) { return s.unit == unit; });
         if (entry != speakers_.end()) speakers_.erase(entry);
-        speakers_.push_back(BriefingSpeaker{unit, name});
+        speakers_.push_back(BriefingSpeaker{unit, std::string(name)});
         auto* player = g_serverWorld->GetPlayer(0);
         if (player->Server()) player->Server()->SendPair19(kEventJoins, unit->id_);
         if (auto* serverUnit = g_serverWorld->FindUnit(unit->id_)) {
@@ -108,13 +108,13 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
         HideSpeaker(name, 0, 0);
         break;
     }
-    std::string key = name;
+    std::string key(name);
     text::ReplaceChar(&key, '_', ' ');
     str::MakeLower(key);
     const itemdb::ItemRecordHead* record;
     // The quest item table's (this window calls it the loot table) name index's
     // operator[] (an unknown name gets a null entry).
-    record = g_itemDatabase->questItems.Named(key.c_str());
+    record = g_itemDatabase->questItems.Named(key);
     if (!record) return;
 
     float x = static_cast<float>(kSlotXs[index % kSlots]);
@@ -153,5 +153,5 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, TurnedOver());
     item->localRotation_ = turn;
 
-    shown_.push_front(BriefingShownItem{name, item, back, frame});
+    shown_.push_front(BriefingShownItem{std::string(name), item, back, frame});
 }

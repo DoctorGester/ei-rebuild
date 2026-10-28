@@ -373,7 +373,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
     }
 }
 
-void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
+void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     if (state_ != 1) return;
     CPlayer* player = player_;
     CParty* party = player->Party();
@@ -434,7 +434,7 @@ int CPlayerServer::OnTakeExit() {
     int entrance = 0;
     g_receivedMessages->Read(&exit, 4);
     if (!g_serverWorld->GetZoneExit(exit, &zone, &entrance)) return 0;
-    LeaveToZone(zone.c_str(), entrance);
+    LeaveToZone(zone, entrance);
     return 1;
 }
 
@@ -457,7 +457,7 @@ int CPlayerServer::OnLeaveToZone() {
     }
     int entrance = 0;
     g_receivedMessages->Read(&entrance, 4);
-    LeaveToZone(zone.c_str(), entrance);
+    LeaveToZone(zone, entrance);
     return 1;
 }
 
@@ -468,7 +468,7 @@ int CPlayerServer::OnBriefingDone() {
         std::string* read = g_receivedMessages->ReadString(&text);
         name = *read;
     }
-    g_serverWorld->CompleteBriefing(player_->playerId_, name.c_str());
+    g_serverWorld->CompleteBriefing(player_->playerId_, name);
     return 1;
 }
 

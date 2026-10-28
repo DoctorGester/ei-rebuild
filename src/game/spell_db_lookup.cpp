@@ -3,8 +3,8 @@
 
 // operator[]: an unknown code is filed with null.
 template <typename Record>
-Record* itemdb::CodeIndexedTable<Record>::FindByCode(const char* code) {
+Record* itemdb::CodeIndexedTable<Record>::FindByCode(std::string_view code) {
     return byCode[std::string(code)];
 }
-template itemdb::SpellRecord* itemdb::SpellTable::FindByCode(const char*);
-template itemdb::SpellModifierRecord* itemdb::SpellModifierTable::FindByCode(const char*);
+template itemdb::SpellRecord* itemdb::SpellTable::FindByCode(std::string_view);
+template itemdb::SpellModifierRecord* itemdb::SpellModifierTable::FindByCode(std::string_view);

@@ -361,7 +361,7 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
     }
     UnitModelRecord* figure;
     {
-        std::string key(unit->modelName.c_str());
+        std::string key(unit->modelName);
         figure = unitdb::ModelNamed(key);
     }
     std::string sex;
@@ -417,7 +417,7 @@ CTexture* ItemFigureTexture(const char* name) {
     {
         std::string base(name);
         std::string file = base + ".mmp";
-        image = manager->GetFileData(file.c_str());
+        image = manager->GetFileData(file);
     }
     int width, height;
     if (!image) {
@@ -476,7 +476,7 @@ int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidt
     {
         std::string base(name);
         std::string file = base + ".mmp";
-        image = TheTextureManager()->GetFileData(file.c_str());
+        image = TheTextureManager()->GetFileData(file);
     }
     std::uint32_t* pixels = nullptr;
     if (image) {

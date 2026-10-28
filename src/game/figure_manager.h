@@ -31,13 +31,13 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
     CEngineObject* NewObject(int type) override;
-    BOOL AddArchive(const char* path) override { return AddMmioArchive(path); }
+    BOOL AddArchive(const std::string& path) override { return AddMmioArchive(path); }
     CEngineObject* CreateObject(int type, int id) override { return CreateFigureObject(type, id); }
     const char* GetFolderName() override;
 
-    int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
+    int LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
-    int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
+    int LoadFigureBounds(ClipBounds* out, FigureModel* model, std::string_view directory, std::string_view name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
     FigureModel* FindModel(const std::string* name);
     // Sets the animation found by name in model `modelName` on `figure`; 0 when it cannot.
     int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
@@ -60,7 +60,7 @@ public:
     int LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u);
     // CObject3D::LoadPart. A new figure part (class 0x42 when `attached`, else 0x41) named `partName`. The model,
     // the scale and `arg` are not read; a null part faults, as in the original.
-    CFigureMesh* NewPart(const char* modelName, const char* partName, FigureModel* model, std::uint32_t scaleX,
+    CFigureMesh* NewPart(const std::string& modelName, std::string_view partName, FigureModel* model, std::uint32_t scaleX,
                          std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
     // The bone's animation from "<model><bone><animation>.ast" into `animator`; 0 without an animation or the
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.

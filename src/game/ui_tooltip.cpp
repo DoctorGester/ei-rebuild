@@ -54,12 +54,12 @@ SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
 } // namespace
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
-CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) : CUiWindow(ui) {
+CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int flag, int extra) : CUiWindow(ui) {
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
-    if (!text || !*text) return;
+    if (text.empty()) return;
     text::Split(text, &lines_, kLineSeparator);
     width_ = 0;
     height_ = 0;
@@ -91,8 +91,8 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
 
 CUiTooltip::~CUiTooltip() = default;
 
-void CUiTooltip::SetText(const char* text) {
-    if (!text || !*text) return;
+void CUiTooltip::SetText(std::string_view text) {
+    if (text.empty()) return;
     text::Split(text, &lines_, kLineSeparator);
     DrawLines();
 }

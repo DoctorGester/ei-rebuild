@@ -80,7 +80,7 @@ std::string MapFilePath(const std::string& file) {
     modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
     std::string full = folder + file;
-    return std::string(full.c_str());
+    return std::string(full);
 }
 
 } // namespace

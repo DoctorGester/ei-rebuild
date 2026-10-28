@@ -960,7 +960,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
-                    records->AddMember(name.c_str(), Text(cmd, 1), game::kEmptyText);
+                    records->AddMember(name, Text(cmd, 1), game::kEmptyText);
                 else
                     records->RemoveMember(static_cast<unsigned>(TextKeyFromName(name)));
             }

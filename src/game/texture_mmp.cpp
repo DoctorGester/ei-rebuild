@@ -144,7 +144,7 @@ int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* o
         return 1;
     }
     path = str::Format("%s%s", name, ".mmp");   // "%s%s", ".mmp"
-    auto* fileHeader = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr));
+    auto* fileHeader = static_cast<MmpHeader*>(GetFile(path, nullptr));
     if (!fileHeader) {
         out->clear();
         return 0;

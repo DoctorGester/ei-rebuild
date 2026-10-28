@@ -35,9 +35,9 @@ bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
 // EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
-void SexOf(const char* figure, std::string& sex) {
+void SexOf(const std::string& figure, std::string& sex) {
     const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
+    if (fixes ? !pluginfixes::ModelIsFemale(figure.c_str()) : SameText(figure, "unhuma"))
         sex = "m";
     else if (fixes || SameText(figure, "unhufe"))
         sex = "f";
@@ -69,7 +69,7 @@ void CHudPortraits::ShowFace(int index, int state) {
         CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 }
 
-void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {
+void CHudPortraits::AddPortrait(const std::string& model, std::string_view picture, int wide, int hasPlayer) {
     const bool player = static_cast<char>(hasPlayer) != 0;
     // EI_Plugin's NPlayers: max(players, 7) portraits to a row instead of 6.
     const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
@@ -88,7 +88,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
     slots_.emplace_back();   // identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
-    CUiMesh* face = AddSprite(model);
+    CUiMesh* face = AddSprite(model.c_str());
 
     int x;
     int width;
@@ -176,7 +176,7 @@ void CHudPortraits::Rebuild(int wide) {
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
         const int skin = unit->GetPrototype()->skin;
-        SexOf(unit->name.c_str(), sex);
+        SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
         build = "me";
         EI_NAN_AUDIT(figureBuild);
@@ -188,7 +188,7 @@ void CHudPortraits::Rebuild(int wide) {
         model = str::Format("infa%s%s%dface", figure, build.c_str(),
                      unit->GetPrototype()->hair + 1);
         picture = str::Format("face%s%02d", sex.c_str(), skin);
-        AddPortrait(model.c_str(), picture.c_str(), wide, 0);
+        AddPortrait(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
             Sprite(sceneObjects_[i * 5 + 4])->visible_ = 1;
@@ -206,7 +206,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].playerId_ = -1;
         owner_->UnitName(owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
-        regions_[i]->SetTipString(tip.c_str(), 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions_[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
@@ -223,12 +223,12 @@ void CHudPortraits::Rebuild(int wide) {
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
-        const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName.c_str()));
-        SexOf(figure->figureName.c_str(), sex);
+        const UnitModelRecord* figure = unitdb::ModelNamed(std::string(prototype->modelName));
+        SexOf(figure->figureName, sex);
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
         picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
-        AddPortrait(model.c_str(), picture.c_str(), wide, 1);
+        AddPortrait(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;
         slot.lastHitPoints_ = 0;

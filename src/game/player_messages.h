@@ -179,7 +179,7 @@ public:
     // The player leaves for zone `zone` at `entrance` (joined players only): in campaign modes 1 and 3 a dead
     // or missing leader first dies (outside a network game nothing more); the party is collected, handed to
     // the party manager (single player) or sent (multiplayer); then message 0x08 and a flush.
-    void LeaveToZone(const char* zone, int entrance);
+    void LeaveToZone(std::string_view zone, int entrance);
     int OnRefreshParty();      // Message 0x02: ForgetKnownObjects, SendParty
     int OnTakeExit();          // Message 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
     int OnJoined();            // Message 0x05: state 2 -> 1, the session kind, Redeploy with the placements, dirty_ bit 4

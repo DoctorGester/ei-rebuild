@@ -37,9 +37,9 @@ struct LeverRecordTable {
     // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and files
     // every record in the index under its name. Returns 1, or the fatal error's result when the archive
     // or the file does not open.
-    int Load(const char* folder);
+    int Load(const std::string& folder);
     // The record filed under `name`, or null; like the index's operator[], an unknown name gets a null entry.
-    LeverRecord* Named(const char* name) { return byName[std::string(name)]; }
+    LeverRecord* Named(std::string_view name) { return byName[std::string(name)]; }
 
     std::vector<LeverRecord> records;
     std::unordered_map<std::string, LeverRecord*> byName;

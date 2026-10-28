@@ -24,5 +24,5 @@ CParty* PartyForScript(CPlayer* player, std::string* name) {
         *name = str::Mid(*name, split + 2, static_cast<int>(name->size()) - split - 2);
     }
     if (str::Compare(owner, RecordList()->currentName) == 0) return player->Party();
-    return (RecordList())->Find(owner.c_str());
+    return (RecordList())->Find(owner);
 }

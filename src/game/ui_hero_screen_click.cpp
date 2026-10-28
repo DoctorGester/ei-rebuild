@@ -149,7 +149,7 @@ void CMpHeroScreen::BackToNewHero() {
     surfaces_[0]->ReleaseDC();
     tradePanel_->Settle(0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    nameEdit_->SetText(HeroRecord()->texts[0].c_str());
+    nameEdit_->SetText(HeroRecord()->texts[0]);
 }
 
 void CMpHeroScreen::FinishRename() {
@@ -272,7 +272,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, the speed factor 0.7.
             uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
-            ChooseFigure(defaults_[0].c_str());
+            ChooseFigure(defaults_[0]);
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
             stats->strengthBase = 25.0f;
@@ -346,7 +346,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, game::SelectSoundText(), 0);
-        ChooseFigure(defaults_[0].c_str());
+        ChooseFigure(defaults_[0]);
         statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
         surfaces_[0]->GetDC();
         surfaces_[0]->Clear();
@@ -397,7 +397,7 @@ void CMpHeroScreen::Rename() {
     } else {
         std::string typed = str::Mid(name, bar + 1);
         str::TrimLeft(typed);
-        renameEdit_->SetText(typed.c_str());
+        renameEdit_->SetText(typed);
         name = str::Left(name, bar);
         str::TrimRight(name);
     }
@@ -418,13 +418,13 @@ void CMpHeroScreen::PlayVoice() {
     auto* hero = HeroRecord();
     UnitPrototypeRecord* prototype;
     {
-        std::string key(hero->texts[6].c_str());
+        std::string key(hero->texts[6]);
         prototype = g_unitDatabase->prototypes.byName[key];
     }
     if (!prototype) return;
     acks::UnitAcks* set;
     {
-        std::string key(prototype->name.c_str());
+        std::string key(prototype->name);
         // The sound sets (the units' acks) by name: operator[] inserts a null entry for an unknown name.
         set = g_ackDatabase->units.byName[key];
     }

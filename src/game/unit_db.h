@@ -206,7 +206,7 @@ struct UnitDatabase {
     // into its table's name index; then every prototype's modelIndex and every model slot's levelIndex are resolved
     // by name (-1 when there is none). Returns 1, or what the fatal error report returns when the archive or the file
     // cannot be opened.
-    int Load(const char* folder, const char* archive);
+    int Load(const std::string& folder, const std::string& archive);
     // Destruction and construction in place, which the resource switch runs: every table emptied (index and
     // records freed), then the four constructed empty.
     void Reset();
@@ -275,13 +275,13 @@ struct SkillLevelRecord {
 };
 
 struct SkillDatabase {
-    SkillLevelRecord* FindLevel(const char* levelName);
-    int IndexOf(const char* levelName) const;
+    SkillLevelRecord* FindLevel(std::string_view levelName);
+    int IndexOf(std::string_view levelName) const;
     int IndexOfLevel(const SkillLevelRecord* record);
     // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
     // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
     // the fatal error report returns when the archive or the file cannot be opened.
-    int Load(const char* folder, const char* archive);
+    int Load(const std::string& folder, const std::string& archive);
     // Destruction and construction in place, which the resource switch runs: both vectors emptied.
     void Reset();
     SkillDatabase* Construct();

@@ -117,4 +117,4 @@ void CMapObject::UpdateMoveFactors() {}
 void CMapObject::RefreshWounds() {}
 double CMapObject::MoveSpeed() { return kNoSpeed; }
 float CMapObject::Radius() { return kPlainRadius; }
-void CMapObject::SetScriptName(const char*) {}
+void CMapObject::SetScriptName(std::string_view) {}

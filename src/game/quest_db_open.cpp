@@ -22,7 +22,7 @@ constexpr int kBriefingsChunk = 2;
 
 } // namespace
 
-int QuestDatabase::Load(const char* folder) {
+int QuestDatabase::Load(const std::string& folder) {
     std::string base = folder;
     LocalResource resource;
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);

@@ -452,7 +452,7 @@ public:
     // the session magic. EI_Plugin's NewMaster patches the send; this is the version without it.
     void AnnounceToMaster();
     // Keeps a chat or system line for the clients (`player` null for the server's own; at most 50 lines).
-    void Announce(const char* text, CRefObject* player);
+    void Announce(std::string_view text, CRefObject* player);
     // Announce with text `kind` of the text table formatted with `text`.
     void AnnounceText(int kind, const char* text, CRefObject* player);
     // The trade between two offers (either order), or null.

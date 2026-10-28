@@ -184,7 +184,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
             // The folder is empty here: the original plays the bare suffix.
             std::string name;
             name += suffix;
-            TheSoundManager()->Play3D(name.c_str(), 0, position, SoundNear(), SoundFar(), 0, 0);
+            TheSoundManager()->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
         } else {
             sounds->RemoveSequence(record->handle);
             record->handle = -1;
@@ -196,7 +196,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
     if (*folder == '\0' || !play) return;
     std::string name = folder;
     name += suffix;
-    sounds->Play3D(name.c_str(), 0, position, SoundNear(), SoundFar(), 0, 0);
+    sounds->Play3D(name, 0, position, SoundNear(), SoundFar(), 0, 0);
 }
 
 void CMapObjectClientSpecific::EffectsChanged(bool first) {

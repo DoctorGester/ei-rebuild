@@ -43,7 +43,7 @@ int CUnit::ForgetObject(CEngineObject* object) {
     return 0;
 }
 
-void CUnit::SetScriptName(const char* newName) { scriptName = newName; }
+void CUnit::SetScriptName(std::string_view newName) { scriptName = newName; }
 
 // Of the unit and nine other map object classes: the visibility mode is handed to the companion
 // (the client's shows or hides the object's light); whatever it returns is passed on.

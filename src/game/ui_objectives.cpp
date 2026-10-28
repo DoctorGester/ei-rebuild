@@ -61,8 +61,7 @@ float AbsBits(float f) {
 // A zone of the map database: its picture (picture2, the texture shown here), its size in map
 // cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
 // leads nowhere).
-MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
-MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
+MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 
 int FindText(const char* key) { return TheTextManager()->Open(key); }
 
@@ -100,8 +99,8 @@ void PushBack(std::vector<std::string>* v, const std::string& x) {
 // game's sort's order.
 void SortQuests(std::string* first, std::string* last) {
     lib::IntroSort(first, last, [](const std::string& a, const std::string& b) {
-        const QuestRecord* quest = g_questDatabase->FindQuest(a.c_str());
-        const QuestRecord* other = g_questDatabase->FindQuest(b.c_str());
+        const QuestRecord* quest = g_questDatabase->FindQuest(a);
+        const QuestRecord* other = g_questDatabase->FindQuest(b);
         return !quest || (other && static_cast<unsigned>(quest->order) > static_cast<unsigned>(other->order));
     });
 }
@@ -441,7 +440,7 @@ void CObjectivesWindow::ShowQuest() {
         text += "\n \n ";
     }
     TextClose(texts);
-    static_cast<CUiScrollText*>(children_[0])->SetText(text.c_str());
+    static_cast<CUiScrollText*>(children_[0])->SetText(text);
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
@@ -669,7 +668,7 @@ void CObjectivesWindow::DrawQuestList() {
 
 // --- What the window is opened for, and its help topic --------------------
 
-void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
+void CObjectivesWindow::Setup(std::string_view zone, void* exitDistances, int twoButtons, int listZones) {
     zoneName_ = zone;
     twoButtons_ = twoButtons;
     exitDistances_ = static_cast<std::map<int, float>*>(exitDistances);

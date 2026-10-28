@@ -72,7 +72,7 @@ struct QuestDatabase {
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the file cannot
     // be opened.
-    int Load(const char* folder);
+    int Load(const std::string& folder);
     // The constructor (database_construct.cpp; run by the static initialiser). Both vectors and both indexes
     // empty. Returns this.
     QuestDatabase* Construct();
@@ -85,7 +85,7 @@ struct QuestDatabase {
     // script_quest.cpp (and a copy of it; the script commands' quest lookup, QuestComplete awards the
     // record's +0x0C). The record of quest `name`, null if none. The index's operator[] (the game's
     // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
-    QuestRecord* FindQuest(const char* name);
+    QuestRecord* FindQuest(std::string_view name);
 
     std::vector<QuestRecord> quests;
     std::unordered_map<std::string, QuestRecord*> questsByName;

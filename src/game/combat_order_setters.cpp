@@ -181,7 +181,7 @@ FigureAnimation* CBaseManager::FindFigureAnimation(const std::string& figure, co
     {
         std::string file = figure;
         file += ".adb";
-        database = static_cast<AnimationDatabase*>(GetFile(file.c_str(), nullptr));
+        database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
     }
     if (!database) {
         game::DebugLog("Can't find animation database file for \"%s\".\n", figure.c_str());

@@ -121,7 +121,7 @@ BOOL CSpellContainer::Build() {
     spell->effectPower_ = 0x10;
 
     itemdb::SpellTable& spells = g_spellDatabase->spells;
-    int index = spells.IndexOf(spells.FindByCode(proto->code.c_str()));
+    int index = spells.IndexOf(spells.FindByCode(proto->code));
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
     spell->damage_ = proto->damage;

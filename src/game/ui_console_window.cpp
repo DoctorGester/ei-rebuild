@@ -335,9 +335,9 @@ void ConsoleWindow::DrawInput() {
     HDC dc = surface->GetDC();
     HGDIOBJ oldFont = gameapi::SelectObject(dc, font_.get());
     gdi::FillSolidRect(dc, 0, height_ - kInputHeight, width_, kInputHeight, kBackground);
-    int caretX = PromptWidth(dc, input_.c_str(), caret_);
+    int caretX = PromptWidth(dc, input_, caret_);
     if (anchor_ != caret_) {
-        int anchorX = PromptWidth(dc, input_.c_str(), anchor_);
+        int anchorX = PromptWidth(dc, input_, anchor_);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
         if (high > width_ - 0x10) high = width_ - 0x10;

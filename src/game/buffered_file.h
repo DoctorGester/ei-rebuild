@@ -5,6 +5,7 @@
 // registration. See docs/notes/script.md, "Buffered file streams".
 
 #include "net_coder.h"
+#include <string>
 
 #include "lib/crt.h"
 
@@ -79,7 +80,7 @@ public:
     void Close();
     // Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
-    void Open(const char* path, const char* mode, std::uint32_t newFlags);
+    void Open(const std::string& path, const char* mode, std::uint32_t newFlags);
 
     std::FILE* file;
 };

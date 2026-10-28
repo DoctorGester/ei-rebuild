@@ -302,11 +302,11 @@ public:
     ~CUiRegion();
     CUiRegion(const CUiRegion&) = delete;
     CUiRegion& operator=(const CUiRegion&) = delete;
-    void SetTipText(const char* text);
+    void SetTipText(std::string_view text);
     // Replaces the tooltip by one with the text "tip <id>" (up to a '#'; the key itself when there is no
     // such text) and (a, b); id 0 gives an empty tooltip with (1, 0).
     void SetTip(int textId, int a, int b);
-    void SetTipString(const char* text, int a, int b);
+    void SetTipString(std::string_view text, int a, int b);
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;
@@ -582,10 +582,10 @@ extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* w
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
-    CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
+    CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view text, int flag, int extra);
     ~CUiTooltip() override;
-    // Null or empty: nothing. The size is not measured again.
-    void SetText(const char* text);
+    // Empty: nothing. The size is not measured again.
+    void SetText(std::string_view text);
     // The first flag_ lines in the title colour, the first line followed by "  ( <key> )" with keyName_.
     void DrawLines();
     // Rebirth-patched (WideScreen behind its flag). One step of the showing, mouse in layout coordinates;
@@ -879,7 +879,7 @@ public:
     void Rebuild(int wide);
     // 56 wide (multiplayer: 40, or 56 with the low byte of `wide` for the first). The low byte of
     // `hasPlayer` marks a player's portrait (half tint, no bars).
-    void AddPortrait(const char* model, const char* picture, int wide, int hasPlayer);
+    void AddPortrait(const std::string& model, std::string_view picture, int wide, int hasPlayer);
 
     CHudPortraits(CInterface3D* ui, CBattleScreen* owner);
     ~CHudPortraits() override;
@@ -1540,7 +1540,7 @@ public:
     // Scrolled to the end first, then kept that far from the end.
     void AddText(std::string_view text);
     // Scrolls to the top.
-    void SetText(const char* text);
+    void SetText(std::string_view text);
     void SetRect(const RECT* rect) override;
     // Draws the lines again when the position moved; returns 1.
     BOOL Draw(CSceneRenderer* pass) override;
@@ -1826,7 +1826,7 @@ public:
     void Update() override;
     // `exitDistances` may be null. The help topic is "quest_global_map" with two buttons, else
     // "quest_mission".
-    void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
+    void Setup(std::string_view zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() override;
 
     std::vector<std::string> zones_;   // the zones listed
@@ -1945,7 +1945,7 @@ public:
     void OnChar(int key, int repeat, int flags);
     // SetText: not editing, changed, the caret at its end.
     void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour, COLORREF caretColour);
-    void SetText(const char* text);
+    void SetText(std::string_view text);
     void SetFocused(bool focused);
 
     RECT area_;                      // the surface's layout rectangle

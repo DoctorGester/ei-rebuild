@@ -81,7 +81,7 @@ void PartyUnitRecord::CopyItemsFrom(const PartyUnitRecord* source, CParty* party
     CopyList(spells, source->spells, party);
 }
 
-PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, const char* extra) {
+PartyUnitRecord* CParty::AddMember(std::string_view name, std::string_view prototype, std::string_view extra) {
     if (!itemManager_) Create();
     // The game assigned a constructed stack record to the new entry. Ours is value-initialised: the record's
     // defaults leave the statistics, and BuildNpcStats' reset leaves some of theirs (the layers' spare values, ...),
@@ -89,7 +89,7 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
     // game's too, harness_leftovers.h).
     PartyUnitRecord* record = &members_.emplace_back();
     record->texts[1] = name;
-    record->unitId = *name == '\0' ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
+    record->unitId = name.empty() ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
     record->texts[5] = prototype;
     record->texts[0] = extra;
     FillFromPrototype(record);
@@ -123,7 +123,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
         CItem* copy = CountedClone(spell);
         std::vector<CItem*>& list = record->spells;
         int index = std::ssize(list);
@@ -143,13 +143,13 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
             list->erase(list->begin() + 0, list->begin() + (0 + 1));
         }
     }
-    auto* npc = g_unitDatabase->npcs.byName[std::string(record->texts[5].c_str())];
+    auto* npc = g_unitDatabase->npcs.byName[std::string(record->texts[5])];
     if (!npc) return 0;
 
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);
     }

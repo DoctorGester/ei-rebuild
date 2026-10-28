@@ -117,7 +117,7 @@ int CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            TheSoundManager()->Play3D(name.c_str(), 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
             TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }

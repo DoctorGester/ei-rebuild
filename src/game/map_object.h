@@ -156,7 +156,7 @@ public:
     virtual double MoveSpeed();
     virtual float Radius();                         // 0.75; units their own
     // Units keep `name` as their script name; empty here.
-    virtual void SetScriptName(const char* name);
+    virtual void SetScriptName(std::string_view name);
 
     // Records that part `part` (0..15; negative: none) of the object changed, marks it dirty (flags_ bit 1) and
     // stamps it with the world's change counter.

@@ -5,11 +5,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 struct LogicSettings {
     // Reads the keys from the registry at `path` unless `loaded` is set; a key that is missing keeps the
     // current value. The difficulty arrays start at 1.0 and take up to three values each.
-    void Load(const char* path);
+    void Load(const std::string& path);
     // The static initialiser (Ghidra has no function there). The defaults Load
     // keeps for a missing key, not loaded.
     LogicSettings* Construct();

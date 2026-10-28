@@ -18,4 +18,4 @@ void ScriptQuestAddObjective(int type, const std::string& text, float value) {
 }
 
 // operator[]: an unknown name is filed with null.
-QuestRecord* QuestDatabase::FindQuest(const char* name) { return questsByName[std::string(name)]; }
+QuestRecord* QuestDatabase::FindQuest(std::string_view name) { return questsByName[std::string(name)]; }

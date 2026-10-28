@@ -12,13 +12,13 @@
 #include <string>
 
 
-int LeverRecordTable::Load(const char* folder) {
+int LeverRecordTable::Load(const std::string& folder) {
     std::string dir = folder;
     LocalResource resource;
     bool opened;
     {
         std::string path = dir + "database.res";
-        opened = resource.Get()->OpenResource(path.c_str(), 0) != 0;
+        opened = resource.Get()->OpenResource(path, 0) != 0;
     }
     if (!opened) {
         // The message names "databases.res", not the file it tried: as in the game.
@@ -40,7 +40,7 @@ int LeverRecordTable::Load(const char* folder) {
     archive.SerializeLevers(1, &records, static_cast<int>(size));
     archive.Close(&local);
     for (LeverRecord& record : records) {
-        std::string key(record.name.c_str());
+        std::string key(record.name);
         byName[key] = &record;
     }
 

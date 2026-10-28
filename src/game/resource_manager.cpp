@@ -9,10 +9,7 @@
 
 namespace {
 
-bool SameName(const std::string& a, const char* b) {
-    std::size_t n = std::strlen(b);
-    return a.size() == n && std::memcmp(a.data(), b, n) == 0;
-}
+bool SameName(const std::string& a, const std::string& b) { return a == b; }
 
 // Closes and deletes every archive (its slot 3, then its scalar deleting destructor) and empties
 // the list.
@@ -44,30 +41,28 @@ void CResourceManager::Destroy() {
 }
 
 
-BOOL CResourceManager::AddArchive(const char* path) {
+BOOL CResourceManager::AddArchive(const std::string& path) {
     return AddArchiveOf(path, NewMappedResource);
 }
 
-BOOL CResourceManager::AddMmioArchive(const char* path) {
+BOOL CResourceManager::AddMmioArchive(const std::string& path) {
     return AddArchiveOf(path, NewMmioResource);
 }
 
-BOOL CResourceManager::AddArchiveOf(const char* path, CMappedResource* (*create)()) {
+BOOL CResourceManager::AddArchiveOf(const std::string& path, CMappedResource* (*create)()) {
     for (const ArchiveEntry& e : archives_)
         if (SameName(e.name, path)) return 1;
 
     CMappedResource* resource = create();
     {
-        std::string name(path);
-        std::string copy(name);
-        archives_.push_back(ArchiveEntry(copy, resource));
+        archives_.push_back(ArchiveEntry(path, resource));
     }
     // The result is ignored: a missing archive stays in the list, empty.
     archives_.back().resource->OpenResource(path, 0);
     return 1;
 }
 
-BOOL CResourceManager::RemoveArchive(const char* path) {
+BOOL CResourceManager::RemoveArchive(const std::string& path) {
     for (auto e = archives_.begin(); e != archives_.end(); ++e) {
         if (!SameName(e->name, path)) continue;
         e->resource->CloseResource();
@@ -83,7 +78,7 @@ BOOL CResourceManager::RemoveAllArchives() {
     return 1;
 }
 
-void* CResourceManager::GetFile(const char* name, std::uint32_t* size) {
+void* CResourceManager::GetFile(std::string_view name, std::uint32_t* size) {
     for (ArchiveEntry& e : archives_)
         if (void* data = e.resource->GetFile(name, size)) return data;
     return nullptr;
@@ -95,7 +90,7 @@ bool CResourceManager::CloseFile(void* data) {
     return false;
 }
 
-BOOL CResourceManager::HasFile(const char* name) {
+BOOL CResourceManager::HasFile(std::string_view name) {
     for (ArchiveEntry& e : archives_)
         if (e.resource->FindEntry(name) != -1) return 1;
     return 0;

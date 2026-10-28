@@ -86,7 +86,7 @@ bool Passed(std::uint32_t frame, float last, float now) {
 
 // "<prototype name><texture>.mmp" into `texture`.
 void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
-    std::string named = unit->name.c_str() + std::string(texture.c_str());
+    std::string named = unit->name.c_str() + std::string(texture);
     std::string withExtension = named + ".mmp";
     texture = withExtension;
 }
@@ -98,7 +98,7 @@ void AddTexture(SkinRequest& request, const std::string& texture) {
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, std::string& texture, std::uint32_t id) {
     ArmorModelName(&texture, id >> 16, id & 0xFFFF);
     AddPrototypePrefix(unit, texture);
-    AddTexture(request, texture.c_str());
+    AddTexture(request, texture);
 }
 
 // The layer texture names and the two keys of a skin.
@@ -115,7 +115,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (hand < 4 && self->weaponIds[hand] != kNone) {
             WeaponModelName(&texture, self->weaponIds[hand] >> 16, self->weaponIds[hand] & 0xFFFF);
             AddPrototypePrefix(unit, texture);
-            AddTexture(request, texture.c_str());
+            AddTexture(request, texture);
         }
         return;
     }
@@ -127,7 +127,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
     else
         texture = str::Format("%sskin_00.mmp", unit->name.c_str());
-    AddTexture(request, texture.c_str());
+    AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
     // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
@@ -186,19 +186,19 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         }
         CFigureMesh* current = unit->FindPartByPrefix(part.c_str());
         armourPart = str::Format("%s.armor%.2d", part.c_str(), armour->number);
-        if (model->mesh->FindEntry(armourPart.c_str()) != -1) {
-            unit->LoadPart(armourPart.c_str(), model, FiguresFlag(unit));
+        if (model->mesh->FindEntry(armourPart) != -1) {
+            unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
             } else if (str::Compare(part,
                                        current->GetName()) != 0) {
-                unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
+                unit->LoadPart(part, model, FiguresFlag(unit));
                 unit->RemovePart(current);
             }
         } else {
-            unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
+            unit->LoadPart(part, model, FiguresFlag(unit));
         }
     }
     return true;
@@ -235,11 +235,11 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             // One part of that name: replaced only when it is not the plain part already.
             if (str::Compare(part, parts[0]->GetName()) != 0) {
                 unit->RemovePart(parts[0]);
-                unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
+                unit->LoadPart(part, model, FiguresFlag(unit));
             }
         } else {
             for (int k = 0; k < std::ssize(parts); ++k) unit->RemovePart(parts[k]);
-            unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
+            unit->LoadPart(part, model, FiguresFlag(unit));
         }
         lib::FreeStorage(parts);
     }
@@ -264,7 +264,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     if (next != kNone) {
         WeaponModelParts(next >> 16, &names);
         for (const std::string& name : names) {
-            CEngineObject* part = unit->LoadPart(name.c_str(), model, FiguresFlag(unit));
+            CEngineObject* part = unit->LoadPart(name, model, FiguresFlag(unit));
             if (part) unit->AttachPartMesh(part);
         }
         arrowHidden = 0;

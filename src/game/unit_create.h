@@ -50,7 +50,7 @@ struct NpcPrototypeTable {
 int BuildNpcStats(UnitStats* stats, const char* name);
 
 // The object class of prototype `name`'s model record; 0x33 without a prototype or model.
-int PrototypeObjectClass(const char* name);
+int PrototypeObjectClass(std::string_view name);
 
 // The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {

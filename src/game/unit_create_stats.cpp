@@ -65,7 +65,7 @@ void FpuCopy2(float* a, float* b, const float* src) {
 
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
-const UnitPrototypeRecord* FindPrototype(const char* name) { return g_unitDatabase->prototypes.FindByName(name); }
+const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase->prototypes.FindByName(name); }
 const UnitNpcRecord* FindNpc(const char* name) { return g_unitDatabase->npcs.FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (that faults).
@@ -418,7 +418,7 @@ int BuildNpcStats(UnitStats* stats, const char* name) {
     return 1;
 }
 
-int PrototypeObjectClass(const char* name) {
+int PrototypeObjectClass(std::string_view name) {
     constexpr int kDefaultClass = 0x33;
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) return kDefaultClass;
@@ -528,7 +528,7 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
     if (NamesRequirement(record->requiredLevelName)) {
-        int required = database->IndexOf(record->requiredLevelName.c_str());
+        int required = database->IndexOf(record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     int group = const_cast<SkillDatabase*>(database)->IndexOfLevel(record) / 3;
@@ -539,7 +539,7 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
         if (!known || known->exclusionGroup != record->exclusionGroup) continue;
         if (const_cast<SkillDatabase*>(database)->IndexOfLevel(known) / 3 != group) return 0;
     }
-    int own = database->IndexOf(record->name.c_str());
+    int own = database->IndexOf(record->name);
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 

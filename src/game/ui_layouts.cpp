@@ -205,7 +205,7 @@ void COptionsWindow::CreateScreen() {
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = str::Format("tip option_group_%s", OptionGroupName(k));
         if (TheTextManager()->Open(text.c_str()) != 0) TheTextManager()->ReadToHash(&text, 1);
-        region->SetTipString(text.c_str(), 1, 0);
+        region->SetTipString(text, 1, 0);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
@@ -498,7 +498,7 @@ void CCreditsScreen::CreateScreen() {
     gameapi::SystemParametersInfoA(0x4B, 0, nullptr, 0);   // SPI_SETFONTSMOOTHING
 
     CMappedResource* archive = archive_.Get();
-    archive->OpenResource((options::g_options->resourcesPath_ + "outro.res").c_str(), 0);
+    archive->OpenResource((options::g_options->resourcesPath_ + "outro.res"), 0);
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {

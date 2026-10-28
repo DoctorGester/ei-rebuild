@@ -176,7 +176,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         clock->highlight_ = false;
         clock->interface_->PlaySound(ClickSound(), 0);
         auto* window = new CObjectivesWindow(clock->interface_);
-        window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 0);
+        window->Setup(LocalPlayerZone(), nullptr, 0, 0);
         clock->interface_->PushWindow(window, 1, 1);
         handled_ = true;
         return;

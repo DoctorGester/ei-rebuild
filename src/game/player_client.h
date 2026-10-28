@@ -63,7 +63,7 @@ public:
     // 0x03: take exit `exit`.
     int TakeExit(int exit);
     // 0x06: go to `zone` (the text with its zero) at `entrance`.
-    int RequestZone(const char* zone, int entrance);
+    int RequestZone(std::string_view zone, int entrance);
     // Only the state 3 part (0x05 joined); nothing otherwise.
     void Rejoin();
     // 0x04 and `value`; state 3. Returns the stream position.

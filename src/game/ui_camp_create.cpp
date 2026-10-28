@@ -283,7 +283,7 @@ void CCampPages::BuildPages() {
     const int count = std::ssize(player->members_);
     for (int i = 0; i < count; ++i) {
         player->members_[i].unitId += kRecordBias;
-        if (PrototypeObjectClass(player->members_[i].texts[5].c_str()) != kHeroClass) continue;
+        if (PrototypeObjectClass(player->members_[i].texts[5]) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_[i];
         int size = std::ssize(records);
         records.resize(size + 1);
@@ -294,7 +294,7 @@ void CCampPages::BuildPages() {
     heroes_.resize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
-        if (PrototypeObjectClass(player->members_[i].texts[5].c_str()) != kHeroClass) continue;
+        if (PrototypeObjectClass(player->members_[i].texts[5]) != kHeroClass) continue;
         auto* unit = GameFindClientUnit(player->members_[i].unitId);
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).

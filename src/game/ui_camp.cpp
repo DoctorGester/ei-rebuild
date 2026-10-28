@@ -188,7 +188,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members_[i];
-        if (PrototypeObjectClass(record->texts[5].c_str()) == kHeroClass) break;
+        if (PrototypeObjectClass(record->texts[5]) == kHeroClass) break;
     }
     return i;
 }
@@ -589,13 +589,13 @@ void CCampPages::UpdateAction() {
     if (action.size() != 0) {
         texts->GetString(action.c_str(), &text);
         RECT name = {0, 30, 200, 50};
-        DrawLine(draw, text.c_str(), &name);
+        DrawLine(draw, text, &name);
         if (cost_ != 0)
             text = str::Format("%+d", -cost_);
         else
             text = "0";
         RECT value = {0, 50, 200, 70};
-        DrawLine(draw, text.c_str(), &value);
+        DrawLine(draw, text, &value);
     }
     texts->GetString(label.c_str(), &text);
     line = str::Format("%s %d", text.c_str(), amount);

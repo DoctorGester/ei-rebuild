@@ -185,7 +185,7 @@ void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::Na
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         str::MakeLower(name);
-        itemdb::ItemRecordHead* record = table.Named(name.c_str());
+        itemdb::ItemRecordHead* record = table.Named(name);
         if (record) AddUnique(list, record);
     }
 }
@@ -198,7 +198,7 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
         ReadName(stream, name);
         Record* record;
         {
-            std::string key(name.c_str());
+            std::string key(name);
             record = map[key];
         }
         if (record) AddUnique(list, record);
@@ -498,7 +498,7 @@ void ItemStock::LoadLists(CStream* stream) {
         str::MakeLower(name);
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
-        entry.record = items.materials.Named(name.c_str());
+        entry.record = items.materials.Named(name);
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];

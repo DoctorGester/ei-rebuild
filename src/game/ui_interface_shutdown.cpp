@@ -59,7 +59,7 @@ void CInterface3D::Shutdown() {
         std::string line;
         for (const auto& [topic, page] : helpTopics_) {
             line = str::Format(game::TutorialLineFormat(), topic.c_str(), page);
-            file.WriteString(line.c_str());
+            file.WriteString(line);
         }
         file.Close();
     }
