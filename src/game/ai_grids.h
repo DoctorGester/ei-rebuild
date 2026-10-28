@@ -39,7 +39,6 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // bits are left as allocated.
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
-void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
 // The event table's cells (Rebirth patches the resize that calls it).
 // The edge and representative-cell grids' default constructors (1 x 1, then the allocator; the region map's
 // constructor hands them to the vector constructor iterator).

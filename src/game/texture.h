@@ -196,8 +196,6 @@ static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDri
 static_assert(sizeof(DirectDrawDriver) == 0x30);
 extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;
 inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
-// Past the last: a fatal error and null.
-DirectDrawDriver* __fastcall DriverAt(int index);
 
 // A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
 // (dx_surface.h).
@@ -434,8 +432,6 @@ public:
     CTexture* FindOrCreate(int type, const char* name);
     // FindTexture(name) as it is; else FindOrCreate's texture, loaded.
     CTexture* FindOrLoad(int type, const char* name);
-    // After a lost device; false when any LoadTexture fails.
-    bool ReloadAll();
     // Deletes the oldest cached textures while the cache holds more than videoMemoryTenth_ (signed).
     void TrimCache();
 

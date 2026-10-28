@@ -138,13 +138,6 @@ int CCamera::Init(options::GameOptions* settings, std::uint32_t nearBits, std::u
 }
 EI_REWRITTEN(0x0040D0A0, CCamera::Init);
 
-void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const {
-    std::memcpy(a, &nearDistance_, 4);
-    std::memcpy(b, &farDistance_, 4);
-    std::memcpy(c, &fieldOfView_, 4);
-}
-EI_REWRITTEN(0x0040D380, CCamera::GetRange);
-
 // The point the camera is placed by: its own position when playing a file or placed freely, else the focus.
 const Vector3* __fastcall CameraAnchor(const CCamera* self) {
     return (self->flags_ & CCamera::kPlaced) ? &self->localPosition_ : &self->focus_;

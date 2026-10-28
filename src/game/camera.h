@@ -60,7 +60,6 @@ static_assert(sizeof(CameraKey) == 0x24);
 // A cubic curve in 3D: polynomial coefficients c0..c3 for x, then y, then z (as CubicSegment).
 struct CubicCurve3 {
     float c[12];
-    Vector3* Evaluate(Vector3* out, float t) const;
 };
 
 // The camera's saved view stack (0x24-byte elements, 14 per node; its _Destroy does nothing).
@@ -89,7 +88,6 @@ public:
     const char* GetClassName() override;
     int GetClassId() override;
 
-    void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
     // Starts recording into ".\camera\" + `name` (1 when the file
     // can be made). The other stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);

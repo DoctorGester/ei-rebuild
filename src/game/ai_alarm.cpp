@@ -91,12 +91,6 @@ void AIAlarm::Reset() {
 }
 EI_REWRITTEN(0x005AEA40, AIAlarm::Reset);
 
-AIAlarm* AIAlarm::Construct() {
-    Reset();
-    return this;
-}
-EI_REWRITTEN(0x005AEA50, AIAlarm::Construct);
-
 void AIAlarm::Raise(int newLevel) { pending = newLevel > pending ? newLevel : pending; }
 EI_REWRITTEN(0x005AEA60, AIAlarm::Raise);
 

@@ -38,42 +38,6 @@ bool CStream::FindTagged(std::uint32_t id, CStream* out) {
 }
 EI_REWRITTEN(0x004A4A90, CStream::FindTagged);
 
-namespace {
-
-// One tagged block: the tag, the size including these eight bytes, then all of `content` (sought
-// to 0 and read through a buffer from operator new).
-void WriteTagged(CStream* out, std::uint32_t tag, CStream* content) {
-    out->Write(&tag, 4);
-    std::uint32_t size = content->Size() + 8;
-    out->Write(&size, 4);
-    std::uint32_t bytes = size - 8;
-    void* buffer = gamecrt::operator_new(bytes);
-    content->Seek(0);
-    content->reading_ = 1;
-    content->Read(buffer, bytes);
-    out->Write(buffer, bytes);
-    gamecrt::operator_delete(buffer);
-}
-
-} // namespace
-
-void CStream::ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out) {
-    out->reading_ = 0;
-    bool replaced = false;
-    CMemoryStream block;
-    std::uint32_t tag;
-    while (ReadTagged(&tag, &block)) {
-        if (tag == id) {
-            replaced = true;
-            WriteTagged(out, tag, replacement);
-        } else {
-            WriteTagged(out, tag, &block);
-        }
-    }
-    if (!replaced) WriteTagged(out, id, replacement);
-}
-EI_REWRITTEN(0x004A4AF0, CStream::ReplaceTagged);
-
 void CStream::ReadText(char* buffer, int capacity) {
     char* at = buffer;
     // Each byte is read into the low byte of one dword: a failed read of a stream that does not zero-fill

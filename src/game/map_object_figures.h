@@ -92,8 +92,6 @@ static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 // the client, CObject3DServer (0x38, stubs) on the server.
 class CObject3DSpecific;
 class CObject3DClientSpecific;
-// The base half's LoadFigures-done virtual: nothing.
-void __fastcall SpecificBaseNothing(CObject3DSpecific* self);
 class CObject3DSpecific : public CEngineObject {
 public:
     CObject3DSpecific() {
@@ -101,7 +99,6 @@ public:
         object = nullptr;
     }
     ~CObject3DSpecific() override;
-    void IgnoreArgument(int);
 
     virtual int OnPartAdded(CFigureMesh* part) = 0;   // server: 0
     // (name): the client takes the part named (FindPart) out of the drawn part sets and releases it; returns it
@@ -262,8 +259,6 @@ public:
     void PlaceIfChanged();
     // When `changed`: each bone's placing animator is evaluated at the frame reached then PlaceIfChanged.
     void UpdatePose();
-    // The queue emptied, Play(null), `changed` set.
-    void Stop();
     // The morph becomes (s, t, u) on every bone, whose manager reloads its key frames from the owner's model,
     // and on the state (`changed` cleared); then the root places the skeleton as PlaceIfChanged does.
     void Rescale(float s, float t, float u);

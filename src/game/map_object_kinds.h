@@ -27,12 +27,3 @@ using CStone = PlainMapObject<0x53>;
 using CBuilding = PlainMapObject<0x54>;
 using CStuffObject = PlainMapObject<0x56>;
 
-// Slots 11 / 12's registrations: "CTree" 0x52, "CBuilding" 0x54, "CStone" 0x53, "CStuffObject" 0x56.
-const char* __fastcall TreeClassName(CTree* self);
-int __fastcall TreeClassId(CTree* self);
-const char* __fastcall BuildingClassName(CBuilding* self);
-int __fastcall BuildingClassId(CBuilding* self);
-const char* __fastcall StoneClassName(CStone* self);
-int __fastcall StoneClassId(CStone* self);
-const char* __fastcall StuffClassName(CStuffObject* self);
-int __fastcall StuffClassId(CStuffObject* self);

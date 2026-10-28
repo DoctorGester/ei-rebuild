@@ -54,16 +54,10 @@ public:
 static_assert(sizeof(CRefObject) == 8);
 
 struct RefPtr {
-    RefPtr* DeleteScalar(unsigned flags);
-    RefPtr* AssignCounted(const RefPtr* other);
     RefPtr* CopyPlain(const RefPtr* other);
     RefPtr* CopyShared(const RefPtr* other);
     RefPtr* DeleteReleased(unsigned flags);
-    RefPtr* DeleteDestroyed(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
-    // counted_ptr<T>'s copy constructor.
-    RefPtr* CopyCounted(const RefPtr* from);
-    RefPtr* AssignHolder(const RefPtr* other);
     RefPtr* AssignObject(CRefObject* object);
     CRefObject* ptr;
 
