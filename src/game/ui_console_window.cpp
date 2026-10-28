@@ -112,7 +112,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         break;
     case VK_LEFT:
     case VK_RIGHT:   // by character
-        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_.c_str(), caret_) : ::text::NextCharacter(input_.c_str(), caret_);
+        caret_ = key == VK_LEFT ? ::text::PreviousCharacter(input_, caret_) : ::text::NextCharacter(input_, caret_);
         if (!shift_) anchor_ = caret_;
         DrawInput();
         return;
@@ -134,15 +134,15 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_DELETE:
         if (anchor_ == caret_) {
             if (caret_ < static_cast<int>(input_.size())) {
-                std::string rest = str::Mid(input_, ::text::NextCharacter(input_.c_str(), caret_));
-                input_ = Left(input_.c_str(), caret_) + rest;
+                std::string rest = str::Mid(input_, ::text::NextCharacter(input_, caret_));
+                input_ = Left(input_, caret_) + rest;
                 DrawInput();
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
             int high = anchor_ > caret_ ? anchor_ : caret_;
             std::string rest = str::Mid(input_, high);
-            input_ = Left(input_.c_str(), low) + rest;
+            input_ = Left(input_, low) + rest;
             caret_ = low;
             anchor_ = low;
             DrawInput();
@@ -235,15 +235,15 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (anchor_ != caret_) {
             int first = anchor_ < caret_ ? anchor_ : caret_;
             int last = anchor_ > caret_ ? anchor_ : caret_;
-            std::string rest = MidOf(input_.c_str(), last).GetString();
-            input_ = Left(input_.c_str(), first) + rest;
+            std::string rest = MidOf(input_, last).GetString();
+            input_ = Left(input_, first) + rest;
             caret_ = first;
             anchor_ = first;
         } else {
             if (caret_ == 0) return;
-            const int previous = ::text::PreviousCharacter(input_.c_str(), caret_);
-            std::string rest = MidOf(input_.c_str(), caret_).GetString();
-            input_ = Left(input_.c_str(), previous) + rest;
+            const int previous = ::text::PreviousCharacter(input_, caret_);
+            std::string rest = MidOf(input_, caret_).GetString();
+            input_ = Left(input_, previous) + rest;
             caret_ = previous;
             anchor_ = caret_;
         }
@@ -287,8 +287,8 @@ void ConsoleWindow::OnChar(int key, int, int) {
             const char* text = input_.c_str();
             CopyToClipboard(text + low, text + high);
             if (letter == 'x') {
-                std::string rest = MidOf(input_.c_str(), high).GetString();
-                std::string head = Left(input_.c_str(), low).GetString();
+                std::string rest = MidOf(input_, high).GetString();
+                std::string head = Left(input_, low).GetString();
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
@@ -298,19 +298,19 @@ void ConsoleWindow::OnChar(int key, int, int) {
             std::string clip = ClipboardText().c_str();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
-            std::string rest = MidOf(input_.c_str(), high).GetString();
-            std::string head = Left(input_.c_str(), low).GetString();
+            std::string rest = MidOf(input_, high).GetString();
+            std::string head = Left(input_, low).GetString();
             input_ = (head + clip) + rest;
             int position = static_cast<int>(clip.size()) - (anchor_ != caret_ ? 1 : 0) + high;
-            position = ::text::CharacterStart(input_.c_str(), position);   // EI_UTF8: never inside a character
+            position = ::text::CharacterStart(input_, position);   // EI_UTF8: never inside a character
             caret_ = position;
             anchor_ = position;
             DrawInput();
         }
     }
     if (ctrl_) return;
-    std::string rest = MidOf(input_.c_str(), high).GetString();
-    std::string head = Left(input_.c_str(), low).GetString();
+    std::string rest = MidOf(input_, high).GetString();
+    std::string head = Left(input_, low).GetString();
     input_ = ::text::Typed(head, key) + rest;
     caret_ = low + ::text::TypedLength(key);
     anchor_ = caret_;

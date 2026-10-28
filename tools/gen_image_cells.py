@@ -22,27 +22,19 @@ of tables nothing reads (UNREAD: dead code's tables, header constant copies; C25
 the cells are and how many there are: a new cell (another exe, a scan change) or a changed count fails until someone
 has looked at it. Every game.exe 1.06 has the same .rdata and .data (vanilla's and Rebirth's differ in one code byte).
 
-The code cells (S18i, src/standalone/image_code_cells.inc; image_code.cpp points each at our code once the
-registrations are in, or at a stub that reports there is no code at its address): the aligned dwords of the same data
-whose value lies in game.exe's code section and that are code pointers: the cells of the structures the tool walks
-(CODE_STRUCTURES: vtable slots from config/vtables.csv less the retired vtables' (config/retired_vtables.csv, C19:
-classes whose vtable is the compiler's; their bytes are zero in the image), the C++ exception tables' (ThrowInfo) destructors and copy
-constructors, MFC's CreateObject, the static initialiser list) and the CODE_REVIEWED groups (MFC's message maps, the
-CRT's function pointers). The C++ exception tables' unwind actions and catch handlers (funclets, C20a) are walked and
-counted but are no code cells: only __CxxFrameHandler on game.exe's own frames reads them (LEFT_KINDS). The rest of
-the dwords in that range are left as they are: NOT_CODE groups (text, the
-import names' hints, the CRT's SEH scope tables, which only game.exe's own frames read) and text by the filters above
-whose value is no function start (config/functions.csv). A dword that is neither fails until it is reviewed.
+Dwords whose value lies in game.exe's code section (vtable slots, the C++ exception tables' and ThrowInfo's
+functions, the static initialiser list, MFC's message maps, the CRT's function pointers) are no cells (C20): the image
+runs none of game.exe's code and nothing of ours reads a code pointer out of game.exe's data (our code calls by name,
+our vtables are the compiler's, the static initialisers are generated code), so their bytes are zero like the rest.
 
 The initial bytes (C25c: the build reads no game.exe): every byte of the moved range is zero except the cells, their
-values from the committed image_cells.inc / image_code_cells.inc (image_data.cpp and image_code.cpp move them as
-usual); the import table and the named ranges are zero. Everything else the image reads of the range is a named
+values from the committed image_cells.inc (image_data.cpp moves them as usual); the import table and the named ranges are zero. Everything else the image reads of the range is a named
 global of ours (C18).
 
 usage: python tools/gen_image_cells.py [--check] [--exe game.exe] [--bytes OUT]
-  (no option)  write src/standalone/image_cells.inc and image_code_cells.inc (reads game.exe: the scan and its reviews)
+  (no option)  write src/standalone/image_cells.inc (reads game.exe: the scan and its reviews)
   --check      exit 1 when the committed cells and the retired vtables disagree (config/retired_vtables.csv against
-               config/vtables.csv and the sources; every cell's target in the moved range or the code); no game.exe
+               config/vtables.csv and the sources; every cell's target in the moved range); no game.exe
                (build.cmd). That the cells are what game.exe has is the scan's, when it is rerun.
   --bytes OUT  write the moved range's initial bytes to OUT as a C++ initialiser (the build; no game.exe)
 """
@@ -53,10 +45,7 @@ import exe_path  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'image_cells.inc')
-CODE_OUT = os.path.join(ROOT, 'src', 'standalone', 'image_code_cells.inc')
 VTABLES = os.path.join(ROOT, 'config', 'vtables.csv')
-FUNCTIONS = os.path.join(ROOT, 'config', 'functions.csv')
-LIBRARY = os.path.join(ROOT, 'config', 'library.csv')
 NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 RETIRED_VTABLES = os.path.join(ROOT, 'config', 'retired_vtables.csv')
 BASE = 0x00400000
@@ -67,7 +56,6 @@ MOVED = (0x0073B000, 0x007CD000)
 IMPORTS = (0x0073B000, 0x0073B820)
 TEXT_SECTION = (0x00401000, 0x0073B000)
 CODE = (0x00401000, 0x0073A670)   # .text's bytes (include/ei/hook.h's kGameTextBegin / kGameTextEnd)
-STATIC_INIT_LIST = (0x00783004, 0x00783BB0)   # inclusive (tools/gen_static_init.py's LIST_BEGIN / LIST_END)
 # The targets by section, and the data that can hold cells (as the file holds it: .data's raw bytes end at 0079C000;
 # the import table's file bytes are not the image's: ei_hook.dll fills its own slots).
 SECTIONS = {'rdata': (0x0073B000, 0x00783000), 'data': (0x00783000, 0x007CD000)}
@@ -115,11 +103,10 @@ UNREAD = [
     (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands", read by the dead 00602190 only'),
 ]
 
-# Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc), as C20a did for
-# the code cells (LEFT_KINDS): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets
+# Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets
 # the FuncInfo (unwind map, try block map, handler arrays, the caught types of the handlers) from the function's
-# prologue. No such frame runs in the image (our code's FuncInfos are the compiler's, and none of game.exe's
-# functions has a registration that reaches one: C20a), and nothing in src/ or tests/ names the tables; the
+# prologue. No such frame runs in the image (our code's FuncInfos are the compiler's: C20a), and nothing in src/ or
+# tests/ names the tables; the
 # harness's crash report (tests/verify/harness_crash.cpp) reads ThrowInfo only, as CxxThrowException and our frame
 # handler do. The cells keep game.exe's values, unshifted. The ThrowInfo kinds (eh-throw, eh-catchable) stay
 # cells, with the catchable types' type descriptor cells (the group at 00753F04 below).
@@ -154,79 +141,6 @@ REVIEWED_RDATA = [
     (0x0079847C, 0x007988FC, 54, 'the CRT\'s locale info table (00798470, 27 rows of 0x2C) of 006F5231, getqloc\'s '
                                  'GetLocaleInfoA stand-in off NT (ours calls GetLocaleInfoA): language and country names'),
     (0x0079AC34, 0x0079ACBC, 17, 'the CRT\'s run-time error messages (number, text)'),
-]
-
-# Code cells of the structures the tool walks (code_structures()): kind, the number of cells, what. The vtables'
-# 7252 are game.exe's (7258 until C19 batch 23 dropped six false rows: five EH unwind entries and the "ime" text);
-# the retired ones' (config/retired_vtables.csv, C19: classes whose vtable is the compiler's now) are not code
-# cells: nothing installs those vtables, and the image holds their bytes zero (write_bytes).
-VTABLE_SLOT_CELLS = 7252
-CODE_STRUCTURES = [
-    ('vtable', None, "a vtable's slots (config/vtables.csv)"),
-    ('vtable-retired', None, "a retired vtable's slots (config/retired_vtables.csv): not code cells"),
-    ('eh-unwind', 13134, "C++ EH: FuncInfo -> its unwind map: each state's unwind action (a funclet): not code cells"),
-    ('eh-handler', 382, 'C++ EH: try block -> its catch handlers: the handler (a funclet): not code cells'),
-    ('eh-throw', 2, "C++ EH: ThrowInfo: the thrown object's destructor"),
-    ('eh-copy', 5, "C++ EH: ThrowInfo -> catchable type: the thrown object's copy constructor"),
-    ('static-init', 748, 'the C++ initialiser list (00783004-00783BB0, __xc_a..__xc_z): the static initialisers'),
-]
-
-# Kinds of CODE_STRUCTURES that are walked and counted but left out of the code cells. The C++ EH funclets (C20a):
-# __CxxFrameHandler reads a FuncInfo's unwind map and try blocks only for the frame whose prologue hands it that
-# FuncInfo, i.e. game.exe's own functions, and none run in the image (our code's FuncInfo is the compiler's); no
-# funclet has a registration (all were at stubs, which end the run, and no golden reached one), and nothing in src/
-# or tests/ names their tables. Their bytes stay game.exe's, as the NOT_CODE groups' (a stray call through one lands
-# in the guarded code section and is reported as no code there). The ThrowInfo cells (eh-throw, eh-copy) stay code
-# cells: our frame handler reads them for a throw of game.exe's throw information (CxxThrowException).
-LEFT_KINDS = ('vtable-retired', 'eh-unwind', 'eh-handler')
-
-# Code cells outside those structures, as looked at in game.exe: (first cell, last cell, the number of dwords in the
-# code section, what). Every dword of the range whose value lies in the code section is a code cell.
-CODE_REVIEWED = [
-    (0x00746A14, 0x00746E5C, 30, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
-    (0x00746E64, 0x00747064, 5, "MFC message map entries (CWnd's, CWinApp's; AFX_MSGMAP_ENTRY): their handlers"),
-    (0x00783BBC, 0x00783BE4, 6, "the CRT's C initialisers and terminators (__xi_a..__xi_z 00783BB4-00783BCC, __xp, "
-                                   "__xt): __initmbctable and the CRT's own"),
-    (0x007975A0, 0x007975C8, 4, "the CRT's floating-point hooks (_FPinit 007975A0, read by _cinit 006E8D7A) and "
-                                   "__pInconsistency"),
-    (0x00797640, 0x0079768C, 16, "the CRT's math error handling: fmod's dispatch table (into its code)"),
-    (0x007978E0, 0x007978E0, 1, "the CRT's next hook after the locale categories (00797888)"),
-    (0x00797B10, 0x00797B24, 6, 'the CRT\'s table of six handlers (006F9696, read by 006E72E4)'),
-    (0x00797B60, 0x00797B74, 2, "the CRT's exception action table's default handlers"),
-]
-
-# Dwords in the code section's range that are no code pointer, or one the image never needs moved: (first cell,
-# last cell, the number of dwords in the code section, why).
-NOT_CODE = [
-    (0x0073DDE8, 0x0073DE3C, 22, 'slots 5-26 of the retired 0073DDD4 (CObject3D\'s, a real class since C28p: map_object_figures.h), '
-                                   'past its five-slot row (006E0437 reads 0073DDE8): nothing stores the table'),
-    (0x00745D14, 0x00745D14, 1, "c_dfDIMouse's object array (dinput.lib's data inside game.exe's code section; "
-                                   "CDirectInputMouse::MouseDataFormat is our copy)"),
-    (0x00746E60, 0x00746E60, 1, '"ime": text of MFC (00704BE6 hands it lstrcmpiA; once a false one-slot row of '
-                                   'config/vtables.csv)'),
-    (0x007472B8, 0x007472E0, 4, "the CRT's SEH scope tables ({enclosing level, filter, handler}): read by "
-                                   "_except_handler3 for frames of game.exe's own code only"),
-    (0x00747324, 0x00747390, 10, "the CRT's SEH scope tables"),
-    (0x007474B8, 0x007474B8, 1, '"a/p": __lc_time_c\'s text'),
-    (0x007474E0, 0x007474F4, 2, "the CRT's SEH scope tables"),
-    (0x00747580, 0x00747614, 17, "the CRT's SEH scope tables"),
-    (0x00747748, 0x007477A4, 5, "the CRT's SEH scope tables"),
-    (0x00748190, 0x00748244, 13, "the CRT's SEH scope tables"),
-    (0x00780000, 0x007828B0, 88, "the import directory's names and hints (text: \"ime\" of timeGetTime, hint "
-                                   "words)"),
-    (0x00783E1C, 0x00783E1C, 1, 'a table of random dwords read by 004310D9'),
-    (0x00783D90, 0x00783D90, 1, '" %s": text'),
-    (0x00787EFC, 0x00787EFC, 1, '" %s": text'),
-    (0x0078BC28, 0x0078BC28, 1, '" %s": text'),
-    (0x0078CF18, 0x0078CF18, 1, '"her": text (UMCorpseWatcher)'),
-    (0x0078D73C, 0x0078D73C, 1, '" %s": text'),
-    (0x0078FC44, 0x0078FC44, 1, '"her": text (leather)'),
-    (0x00792EF8, 0x00792EF8, 1, '" %s": text'),
-    (0x00792F84, 0x00792F84, 1, '" %s": text'),
-    (0x00797890, 0x007978CC, 6, "__lc_category's table builders (__init_dummy, __init_collate, __init_ctype, "
-                                   "__init_monetary, __init_numeric, __init_time): unread, setlocale is the host "
-                                   "CRT's (C26)"),
-    (0x00797724, 0x00797724, 1, "__rgcode_page_info's ulInfo of code page 950 (_setmbcp's table; the host CRT's, C26)"),
 ]
 
 # Candidates the text filters keep that are text: short words whose bytes read as an address in .rdata.
@@ -374,157 +288,6 @@ def structures(img):
     return kinds
 
 
-def function_starts():
-    """config/functions.csv's starts, less library.csv's "not a function" rows."""
-    with open(FUNCTIONS, newline='') as f:
-        starts = {int(r['address'], 16) for r in csv.DictReader(f)}
-    with open(LIBRARY, newline='') as f:
-        starts -= {int(r['address'], 16) for r in csv.DictReader(f) if r['name'].startswith('not a function')}
-    return starts
-
-
-def in_code(v):
-    return CODE[0] <= v < CODE[1]
-
-
-def code_structures(img):
-    """{cell: kind} for the code cells of the structures the tool walks (CODE_STRUCTURES)."""
-    def dw(a):
-        return struct.unpack_from('<I', img, a - BASE)[0]
-
-    def rdata(v):
-        return section_of(v) == 'rdata'
-
-    def type_descriptor(v):
-        return section_of(v) == 'data' and img[v + 8 - BASE] == ord('.')
-
-    kinds = {}
-
-    def mark(cell, kind):
-        if in_code(dw(cell)):
-            kinds.setdefault(cell, kind)
-
-    retired = retired_cells()
-    with open(VTABLES, newline='') as f:
-        for row in csv.DictReader(f):
-            vtable = int(row['vtable'], 16)
-            for i in range(int(row['slots'])):
-                cell = vtable + 4 * i
-                mark(cell, 'vtable-retired' if cell in retired else 'vtable')
-    lo, hi = SCANNED[0][1], SCANNED[0][2]
-    for a in range(lo, hi - 20, 4):
-        if dw(a) == 0x19930520:   # FuncInfo: magic, maxState, pUnwindMap ({toState, action}), nTryBlocks, pTryBlockMap
-            if rdata(dw(a + 8)):
-                for i in range(dw(a + 4)):
-                    mark(dw(a + 8) + 8 * i + 4, 'eh-unwind')
-            if rdata(dw(a + 16)):
-                for i in range(dw(a + 12)):   # try block: ..., nCatches, pHandlerArray ({adjectives, pType, disp, handler})
-                    block = dw(a + 16) + 20 * i
-                    if rdata(dw(block + 16)):
-                        for j in range(dw(block + 12)):
-                            mark(dw(block + 16) + 16 * j + 12, 'eh-handler')
-        # ThrowInfo (as structures()): pmfnUnwind; a catchable type: properties, pType, PMD (12 bytes), size, copy.
-        unwind = dw(a + 4)
-        if dw(a) <= 3 and (unwind == 0 or TEXT_SECTION[0] <= unwind < TEXT_SECTION[1]) and dw(a + 8) == 0 \
-                and rdata(dw(a + 12)):
-            array = dw(a + 12)
-            n = dw(array)
-            if 1 <= n <= 16 and all(rdata(dw(array + 4 + 4 * i)) and type_descriptor(dw(dw(array + 4 + 4 * i) + 4))
-                                    for i in range(n)):
-                mark(a + 4, 'eh-throw')
-                for i in range(n):
-                    mark(dw(array + 4 + 4 * i) + 24, 'eh-copy')
-    for a in range(STATIC_INIT_LIST[0], STATIC_INIT_LIST[1] + 4, 4):
-        mark(a, 'static-init')
-    return kinds
-
-
-def code_group_of(cell, value, kinds, starts, img):
-    """('structure' | 'code' | 'not', index) for a dword whose value lies in the code section, ('text', None) for
-    text the filters keep whose value is no function start, or None (no review)."""
-    if cell in kinds:
-        return ('structure', [k for k, _, _ in CODE_STRUCTURES].index(kinds[cell]))
-    for name, groups in (('code', CODE_REVIEWED), ('not', NOT_CODE)):
-        for i, g in enumerate(groups):
-            if g[0] <= cell <= g[1]:
-                return (name, i)
-    o = cell - BASE
-    if value not in starts and (string_tail(img, o) or text_word(img, o)):
-        return ('text', None)
-    return None
-
-
-def code_scan(img):
-    cells = []
-    wanted = outside_named()
-    for _, begin, end in SCANNED:
-        for a in range(begin, end, 4):
-            v = struct.unpack_from('<I', img, a - BASE)[0]
-            if in_code(v) and wanted(a):
-                cells.append((a, v))
-    return cells
-
-
-def code_check(img, problems):
-    """The code cells (S18i) with their groups; problems appended. Returns (cells, groups, counts)."""
-    kinds = code_structures(img)
-    starts = function_starts()
-    counts = {}
-    code = []
-    for c, v in code_scan(img):
-        g = code_group_of(c, v, kinds, starts, img)
-        if g is None:
-            problems.append(f'gen_image_cells: {c:08X} -> {v:08X} (the code section) has no review: a code pointer '
-                            '(CODE_REVIEWED) or not (NOT_CODE)? (tools/gen_image_cells.py)')
-            continue
-        counts[g] = counts.get(g, 0) + 1
-        if g[0] == 'code' or g[0] == 'structure' and CODE_STRUCTURES[g[1]][0] not in LEFT_KINDS:
-            code.append((c, v, g))
-    retired = sum(in_code(struct.unpack_from('<I', img, c - BASE)[0]) for c in retired_cells())
-    check_retired(problems, img)
-    for name, groups in (('structure', CODE_STRUCTURES), ('code', CODE_REVIEWED), ('not', NOT_CODE)):
-        for i, g in enumerate(groups):
-            n = g[1] if name == 'structure' else g[2]
-            if name == 'structure' and g[0] == 'vtable':
-                n = VTABLE_SLOT_CELLS - retired
-            elif name == 'structure' and g[0] == 'vtable-retired':
-                n = retired
-            have = counts.get((name, i), 0)
-            what = g[2] if name == 'structure' else f'{g[0]:08X}-{g[1]:08X} ({g[3]})'
-            if have != n:
-                problems.append(f'gen_image_cells: the code group {what[:70]} has {have} cell(s), reviewed {n}')
-    return code, counts
-
-
-def code_describe(group):
-    kind, i = group
-    if kind == 'structure':
-        return CODE_STRUCTURES[i][2]
-    return CODE_REVIEWED[i][3]
-
-
-def code_render(code):
-    lines = [
-        '// Generated by tools/gen_image_cells.py from game.exe. Do not edit.',
-        '//',
-        "// The code cells of game.exe's .rdata and .data (S18i): dwords that point into game.exe's code section.",
-        "// image_code.cpp points each at the code registered for its address once the registrations are in, or at",
-        "// a stub that reports there is no code there. {cell, the code address it holds}, by group; each group's",
-        '// review is in the tool.',
-    ]
-    order = [('structure', i) for i in range(len(CODE_STRUCTURES))] + [('code', i) for i in range(len(CODE_REVIEWED))]
-    by_group = {}
-    for c, v, g in code:
-        by_group.setdefault(g, []).append((c, v))
-    for g in order:
-        if g not in by_group:
-            continue
-        lines.append(f'// {code_describe(g)}')
-        for c, v in by_group[g]:
-            lines.append(f'{{DataId(0x{c:08X}), 0x{v:08X}}},')
-    return '\n'.join(lines) + '\n'
-
-
 def group_of(cell, value, kinds):
     """('text' | 'structure' | 'data' | 'rdata', index) or None."""
     for i, (first, last, _) in enumerate(TEXT):
@@ -596,18 +359,12 @@ def retired_vtables():
     """(vtable, slots, class, file) of config/retired_vtables.csv: game.exe's vtables of classes whose vtable is the
     compiler's now (C19; docs/notes/standalone.md "Compiler-made vtables"), or that only game.exe's own code stored
     (file '-': base vtables its destructors stored, locals its functions made, dead code's; the note column names the
-    storing functions). Nothing installs them: their slots are no code cells and the image holds their bytes zero;
+    storing functions). Nothing installs them and the image holds their bytes zero;
     tools/named_data.py --check proves nothing names or points into them."""
     if not os.path.exists(RETIRED_VTABLES):
         return []
     with open(RETIRED_VTABLES, newline='') as f:
         return [(int(r['vtable'], 16), int(r['slots']), r['class'], r['file']) for r in csv.DictReader(f)]
-
-
-def retired_cells():
-    """The slots of the retired vtables (config/vtables.csv's vtables overlap: a run of slots that ends another
-    table, 0073CA08 / 0073CA0C / 0073CA10; a cell counts once)."""
-    return {v + 4 * i for v, n, _, _ in retired_vtables() for i in range(n)}
 
 
 def stored_vtable(img, v):
@@ -676,13 +433,12 @@ def check_retired(problems, img):
 
 
 def committed_cells():
-    """{cell: value} of the committed src/standalone/image_cells.inc (pointer cells, {DataId(cell), DataId(target)})
-    and image_code_cells.inc (code cells, {DataId(cell), target}): game.exe's dwords there, without reading it."""
+    """{cell: value} of the committed src/standalone/image_cells.inc (pointer cells, {DataId(cell), DataId(target)}):
+    game.exe's dwords there, without reading it."""
     cells = {}
-    for path in (OUT, CODE_OUT):
-        for m in re.finditer(r'^\{DataId\(0x([0-9A-F]{8})\), (?:DataId\()?0x([0-9A-F]{8})\)?\},$',
-                             open(path, encoding='utf-8').read(), re.M):
-            cells[int(m.group(1), 16)] = int(m.group(2), 16)
+    for m in re.finditer(r'^\{DataId\(0x([0-9A-F]{8})\), DataId\(0x([0-9A-F]{8})\)\},$',
+                         open(OUT, encoding='utf-8').read(), re.M):
+        cells[int(m.group(1), 16)] = int(m.group(2), 16)
     return cells
 
 
@@ -695,7 +451,7 @@ def write_bytes(path):
     cells = committed_cells()
     for cell, value in cells.items():
         struct.pack_into('<I', data, cell - lo, value)
-    what = f'zero but the {len(cells)} cells of image_cells.inc / image_code_cells.inc'
+    what = f'zero but the {len(cells)} cells of image_cells.inc'
     data[:IMPORTS[1] - IMPORTS[0]] = bytes(IMPORTS[1] - IMPORTS[0])   # our slots, filled by ei_hook.dll
     for a, n in named:   # named globals of ours now (C18): nothing reads these bytes
         b, e = a - lo, min(a - lo + n, len(data))   # a range in the zero-filled tail past the file's bytes: nothing
@@ -732,8 +488,8 @@ def main():
         check_retired(problems, None)
         cells = committed_cells()
         for c, v in cells.items():
-            if section_of(v) is None and not in_code(v):
-                problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is neither in the moved range nor in the code')
+            if section_of(v) is None:
+                problems.append(f'gen_image_cells: {c:08X} -> {v:08X} is not in the moved range')
         for p in problems:
             print(p)
         print(f'gen_image_cells: {len(cells)} committed cell(s), {len(retired_vtables())} retired vtable(s), '
@@ -770,11 +526,9 @@ def main():
             n = (TEXT[g[1]][1] - TEXT[g[1]][0]) // 4 + 1
         if have != n:
             problems.append(f'gen_image_cells: the group {what[:70]} has {have} cell(s), reviewed {n}')
-    code, code_counts = code_check(img, problems)
-    left = sum(n for g, n in code_counts.items() if g[0] in ('not', 'text'))
-    outputs = [(OUT, render(cells, img)), (CODE_OUT, code_render(code))]
-    summary = (f'{moved} cell(s) into .rdata and .data, {len(code)} code cell(s) ({left} dword(s) in the code '
-               f'section\'s range left: text, SEH tables, data)')
+    check_retired(problems, img)
+    outputs = [(OUT, render(cells, img))]
+    summary = f'{moved} cell(s) into .rdata and .data'
     if a.check:
         for path, text in outputs:
             current = open(path, encoding='utf-8').read() if os.path.exists(path) else ''

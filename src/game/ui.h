@@ -385,11 +385,11 @@ public:
     // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
     // The DC must be held. Returns the drawn height in layout units, 0 without a surface.
-    int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
+    int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
     mfc::impl::CDC* GetDC();
     void ReleaseDC();
     // DrawTextIn's line of text (Rebirth-patched).
-    int DrawLine(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
+    int DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
     // Sets (`frozen` nonzero) or clears the shown flag: setting it puts kept contents back into a surface;
     // clearing it with `restore` keeps the contents in memory and releases the surface.
     void Freeze(int frozen, int restore);

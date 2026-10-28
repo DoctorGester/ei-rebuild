@@ -81,7 +81,7 @@ constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -387,7 +387,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     CParty* party = LocalPlayerData();
     if (!exitPending_ || party->members_.size <= 0) return;
     std::string zone = GameExitTarget(exit_);
-    if (Compare(zone.c_str(), NoZone()) == 0) return;
+    if (Compare(zone, NoZone()) == 0) return;
     std::string variable = ZoneVariablePrefix();
     variable += zone;
     float visited = PlayerZeroVariable(variable.c_str());

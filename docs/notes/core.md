@@ -417,6 +417,9 @@ to which template:
   EI_VECTORS, so the plain original suite only replays its cache. Batch 8 did it for stats and script (14
   scenarios: 0 problems); the path family's raw recording does not replay without `tools/path_vectors.py prune`
   (its @AIMap records are sampled: searches on maps not kept crash), so check it only through that procedure.
+  Replay a recorded script family together with tests/vectors/data/crt (the game CRT's character classes the
+  lexer reads): without that folder ei_vectors loops forever at full CPU (batch 10). Replay a scratch folder
+  with a timeout.
 - `mfc::CArray` moves elements with `Relocate`: bytes, or the element policy's `Relocate` when it has one. An element
   holding a std::string needs one (PartyUnitRecordElements: move-construct, destroy, in the direction the overlap
   needs; `mfc::MoveElements` does it for any element type): bytes are fine for MSVC's std::string at

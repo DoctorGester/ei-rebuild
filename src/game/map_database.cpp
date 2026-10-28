@@ -98,7 +98,7 @@ void Loader::AddMap() {
     const char* allodName = words_[2];
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
-        if (gamecrt::mbsicmp(allod.name.c_str(), allodName) != 0) continue;
+        if (gamecrt::mbsicmp(allod.name, allodName) != 0) continue;
         allod.maps.SetAtGrow(allod.maps.size, map_);
         break;
     }
@@ -260,11 +260,12 @@ CMapDatabase* TheMapDatabase() { return &*g_mapDatabase; }
 
 namespace {
 void __cdecl DestroyMapDatabase() { g_mapDatabase->Destruct(); }
+} // namespace
+
 void __cdecl ConstructMapDatabase() {
     g_mapDatabase->Construct();
     libcrt::AtExit(DestroyMapDatabase);
 }
-} // namespace
 
-EI_REPLACE(0x0045E6C0, ConstructMapDatabase);
-EI_REPLACE(0x0045E6E0, DestroyMapDatabase);
+EI_REWRITTEN(0x0045E6C0, ConstructMapDatabase);
+EI_REWRITTEN(0x0045E6E0, DestroyMapDatabase);

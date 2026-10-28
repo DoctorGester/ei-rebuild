@@ -124,7 +124,7 @@ void CUiTooltip::DrawLines() {
         COLORREF colour = i >= flag_ ? kTextColour : kTitleColour;
         if (i == 0 && keyName_) {
             std::string text = (lines_[0] + KeyOpen() + keyName_ + KeyClose()).GetString();
-            surface->DrawTextIn(text.c_str(), &row, kFont, colour, 0, 0);
+            surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
         } else {
             surface->DrawTextIn(lines_[i], &row, kFont, colour, 0, 0);
         }

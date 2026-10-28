@@ -102,8 +102,8 @@ EI_REWRITTEN(0x006CDA20, ArrayHeader<TerrainArrayCClass>::Destruct);
 // The exception classes' own destructors (a jump to std::exception's; their throw information's).
 EI_REWRITTEN(0x0040C4A0, ExceptionDestruct);
 EI_REWRITTEN(0x0040C4D0, ExceptionDestruct);
-EI_REPLACE(0x0040C500, ExceptionDestruct);
-EI_REPLACE(0x0041F760, ExceptionDestruct);
+EI_REWRITTEN(0x0040C500, ExceptionDestruct);
+EI_REWRITTEN(0x0041F760, ExceptionDestruct);
 
 // ---- Scalar deleting destructors (vtable slot 1; the exception classes' slot 0) --------------------
 

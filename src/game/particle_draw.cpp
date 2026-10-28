@@ -28,11 +28,6 @@ ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
 void __cdecl DestroyDrawOrder() {
     mfc::impl::DestructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
 }
-void __cdecl ConstructDrawOrder() {
-    mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
-    libcrt::AtExit(DestroyDrawOrder);
-}
-
 // The camera's orientation.
 const Quaternion& CameraRotation() { return TheCamera()->localRotation_; }
 
@@ -128,6 +123,11 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 }
 
 } // namespace
+
+void __cdecl ConstructDrawOrder() {
+    mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
+    libcrt::AtExit(DestroyDrawOrder);
+}
 
 // STLport __make_heap (the tag arguments are unused).
 void __fastcall MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void*, int, void*) {
@@ -268,5 +268,5 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
 }
 EI_REWRITTEN(0x00498940, CParticleManager::DrawAll);
 
-EI_REPLACE(0x00498910, ConstructDrawOrder);
-EI_REPLACE(0x00498930, DestroyDrawOrder);
+EI_REWRITTEN(0x00498910, ConstructDrawOrder);
+EI_REWRITTEN(0x00498930, DestroyDrawOrder);

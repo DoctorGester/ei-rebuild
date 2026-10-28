@@ -57,7 +57,7 @@ int RowOfSlot(int slot) {
 }
 
 // strcmp (bytes compared unsigned): zero when equal.
-bool SameName(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
+bool SameName(std::string_view a, std::string_view b) { return a == b; }
 
 const itemdb::ArmorRecord* ArmourRecord(std::uint32_t type) { return itemdb::ArmorAt(type); }
 
@@ -92,7 +92,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         std::string part = plain;
-        if (gamecrt::mbscmp(part.c_str(),
+        if (gamecrt::mbscmp(part,
                             kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
@@ -107,7 +107,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
         } else if (current) {
             if (SameName(plain, kHair)) {
                 unit->RemovePart(current);
-            } else if (gamecrt::mbscmp(part.c_str(),
+            } else if (gamecrt::mbscmp(part,
                                        current->GetName()) != 0) {
                 unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
                 unit->RemovePart(current);
@@ -125,7 +125,7 @@ namespace {
 // data[-1]), as SkinRequest's layers.
 using PartArray = FigurePartArray;
 
-int CompareNames(const char* a, const char* b) {
+int CompareNames(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
 } // namespace
@@ -149,7 +149,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
         const char* plain = kArmourPartNames[row][i];
         if (!plain[0]) break;
         std::string part = plain;
-        if (CompareNames(part.c_str(), kHair) == 0) {
+        if (CompareNames(part, kHair) == 0) {
             const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
             int hair = prototype->hair;
             if (hair == -1) continue;
@@ -159,7 +159,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
         unit->CollectPartsByPrefix(part.c_str(), &parts);
         if (parts.size == 1) {
             // One part of that name: replaced only when it is not the plain part already.
-            if (CompareNames(part.c_str(), parts.data[0]->GetName()) != 0) {
+            if (CompareNames(part, parts.data[0]->GetName()) != 0) {
                 unit->RemovePart(parts.data[0]);
                 unit->LoadPart(part.c_str(), model, FiguresFlag(unit));
             }

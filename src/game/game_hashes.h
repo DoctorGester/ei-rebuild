@@ -10,8 +10,6 @@
 #include "unit_looks.h"
 #include "world.h"
 
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/stlp_hash.h"
 
 #include <cstdint>
@@ -43,28 +41,7 @@ struct FiguredGroupPair : FiguredGroupsTable::Value {
     FiguredGroupPair* Construct(const std::uint32_t* from, const FiguredTable* table);
 };
 
-// The unit shapes' cache (UnitShapeCache::Map, ai_shape_cache.h): pair<const handle, RefPtr>, 0x18-byte
-// nodes. A key lands in bucket handle.key % count; two handles are equal when their heights compare equal
-// or unordered (FCOMP, then TEST AH, 0x40). The pair is copied and destroyed by its compiler-written
-// members (ai_movement.cpp).
-using ::ShapePair;
-struct ShapeTraits {
-    using Value = ShapePair;
-    using Key = ShapeCacheHandle;
-    static const Key& KeyOf(const Value& v) { return v.key; }
-    static std::uint32_t Hash(const Key& k) { return k.key; }
-    static bool Equal(const Key& a, const Key& b) {
-        EI_NAN_AUDIT(a.height, b.height);
-        return a.height == b.height;
-    }
-    static void Construct(Value* to, const Value& from) { to->Construct(&from.key, &from.value); }
-    static void Destroy(Value* p) { DestroyShapePair(p); }
-};
-// The shape cache's operator[]: a pair of a copy of the handle and a null
-// RefPtr, find_or_insert of it, the pair destroyed. The node's RefPtr.
-struct ShapeTable : stlp::hashtable<ShapeTraits> {
-    RefPtr* At(const ShapeCacheHandle* handle);
-};
+// The unit shapes' cache's table (ShapeTable, ai_shape_cache.h).
 using ShapeAbi = stlp::HashtableAbi<ShapeTraits>;
 
 // A handle that has resolved nothing: no reference, no cache, key -1 (the height is left as it is).
@@ -74,8 +51,5 @@ inline ShapeCacheHandle* __fastcall InitShapeHandle(ShapeCacheHandle* self) {
     self->key = 0xFFFFFFFFu;
     return self;
 }
-
-// The cache's map as the table the instantiations above run on (the same 0x14 bytes).
-inline ShapeTable* ShapesOf(UnitShapeCache* cache) { return reinterpret_cast<ShapeTable*>(&cache->shapes); }
 
 } // namespace gamehash

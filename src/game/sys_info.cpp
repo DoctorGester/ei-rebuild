@@ -196,7 +196,7 @@ EI_REWRITTEN(0x004DE8A0, CSysInfo::GetClassId);
 
 // The global's destructor (cdecl; registered with atexit by the static initialiser).
 void __cdecl SysInfoAtExit() { g_sysInfo.Destroy(); }
-EI_REPLACE(0x004DDD60, SysInfoAtExit);
+EI_REWRITTEN(0x004DDD60, SysInfoAtExit);
 
 // ---- The static initialisers (each table entry is a stub that calls the function after it) --------
 
@@ -213,13 +213,13 @@ EI_REWRITTEN(0x004DDD19, SysInfoInitInversePi);
 
 // The table's entries for them.
 void __cdecl SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }
-EI_REPLACE(0x004DDCB0, SysInfoStaticTwoPi);
+EI_REWRITTEN(0x004DDCB0, SysInfoStaticTwoPi);
 void __cdecl SysInfoStaticHalfPi() { SysInfoInitHalfPi(); }
-EI_REPLACE(0x004DDCCD, SysInfoStaticHalfPi);
+EI_REWRITTEN(0x004DDCCD, SysInfoStaticHalfPi);
 void __cdecl SysInfoStaticQuarterPi() { SysInfoInitQuarterPi(); }
-EI_REPLACE(0x004DDCEE, SysInfoStaticQuarterPi);
+EI_REWRITTEN(0x004DDCEE, SysInfoStaticQuarterPi);
 void __cdecl SysInfoStaticInversePi() { SysInfoInitInversePi(); }
-EI_REPLACE(0x004DDD0F, SysInfoStaticInversePi);
+EI_REWRITTEN(0x004DDD0F, SysInfoStaticInversePi);
 
 // The global constructed, then its destructor registered with atexit: the
 // table's entry covers both.
@@ -231,7 +231,7 @@ void __cdecl SysInfoStaticInit() {
     SysInfoStaticConstruct();
     SysInfoStaticRegisterExit();
 }
-EI_REPLACE(0x004DDD30, SysInfoStaticInit);
+EI_REWRITTEN(0x004DDD30, SysInfoStaticInit);
 
 // An empty destructor (a bare RET) registered with atexit. The
 // table's entry: the static's guard bit set when it is clear, then the registration either way.
@@ -241,4 +241,4 @@ void __cdecl SysInfoStaticGuard() {
     if (!(lib::g_emptyStaticGuard & 1)) lib::g_emptyStaticGuard |= 1;
     SysInfoStaticRegisterEmptyExit();
 }
-EI_REPLACE(0x004DE855, SysInfoStaticGuard);
+EI_REWRITTEN(0x004DE855, SysInfoStaticGuard);

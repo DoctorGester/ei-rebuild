@@ -60,18 +60,6 @@ lib::AlignedArray<VertexPacket>& Quads() { return g_quads; }
 // The exit functions their static initialisers register: each frees its array's block. The points' and the
 // pixels' are guarded by a guard bit each, so a second run frees nothing.
 constinit std::uint8_t g_freed = /*007AF1F0*/ 0;
-void __cdecl FreeQuads() { g_quads.FreeData(); }
-void __cdecl FreePoints() {
-    if (g_freed & 1) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 1);
-    g_points.FreeData();
-}
-void __cdecl FreePixels() {
-    if (g_freed & 2) return;
-    g_freed = static_cast<std::uint8_t>(g_freed | 2);
-    g_pixels.FreeData();
-}
-
 constexpr int kTypePointLight = 0x31;
 constexpr std::uint32_t kFlagRefresh = 8;           // this->flags_: render the texture again
 constexpr std::uint32_t kObjectHidden = 0x48;       // object->flags_
@@ -207,6 +195,18 @@ float CornerY(const float* m, float a, float b) {
 }
 } // namespace
 
+void __cdecl FreeQuads() { g_quads.FreeData(); }
+void __cdecl FreePoints() {
+    if (g_freed & 1) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 1);
+    g_points.FreeData();
+}
+void __cdecl FreePixels() {
+    if (g_freed & 2) return;
+    g_freed = static_cast<std::uint8_t>(g_freed | 2);
+    g_pixels.FreeData();
+}
+
 // --- The shadow -------------------------------------------------------------------------------
 
 namespace {
@@ -217,7 +217,7 @@ int KeyedParts(const CObject3D* object) {
     for (int i = 0; i < object->parts.size; ++i) {
         const CFigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (part->bounds_.flags >> 10) & 1;
+        keyedParts |= (part->box_.bounds.flags >> 10) & 1;
     }
     return keyedParts;
 }
@@ -440,14 +440,14 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     // The point the shadow falls from: the object's offset point through its matrix.
     // Each row of the world matrix times the bounds' centre: (y + z) + x, unrounded.
     const float* w = self->object->worldMatrix.m;
-    const Vector3& c = self->object->center;
+    const Vector3& c = self->object->bounds.center;
     auto product = [](float a, float b) { return static_cast<double>(a) * b; };
     double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
     float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
                      static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
-    TheClientWorld()->ProjectDecal(&direction, &point, self->object->radius, &Quads().data,
+    TheClientWorld()->ProjectDecal(&direction, &point, self->object->bounds.radius, &Quads().data,
                                &self->vertices, &self->texCoords, &self->indices, static_cast<unsigned char>(0), static_cast<unsigned char>(keyedParts == 0));
 
     if (self->vertices.size != 0) {
@@ -521,6 +521,6 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     return 1;
 }
 EI_REWRITTEN(0x0051CE60, CObject3DClientSpecific::DrawShadow);
-EI_REPLACE(0x0051CC00, FreeQuads);
-EI_REPLACE(0x0051CDD0, FreePoints);
-EI_REPLACE(0x0051CE30, FreePixels);
+EI_REWRITTEN(0x0051CC00, FreeQuads);
+EI_REWRITTEN(0x0051CDD0, FreePoints);
+EI_REWRITTEN(0x0051CE30, FreePixels);

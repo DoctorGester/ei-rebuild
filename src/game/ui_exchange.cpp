@@ -45,7 +45,7 @@ void CExchangeScreen::Close() {
 EI_REWRITTEN(0x0062C8F0, CExchangeScreen::Close);
 
 void CExchangeScreen::OnMessageResult(int) {}
-EI_REPLACE_METHOD(0x0062C920, CExchangeScreen::OnMessageResult);
+EI_REWRITTEN(0x0062C920, CExchangeScreen::OnMessageResult);
 
 // --- the update ----------------------------------------------------------------------------------
 

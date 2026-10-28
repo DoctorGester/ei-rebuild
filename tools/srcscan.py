@@ -41,3 +41,60 @@ def load_sources():
                     sources.append(Source(os.path.relpath(full, ROOT).replace(os.sep, '/'), f.read()))
     return sorted(sources, key=lambda s: s.path)
 
+
+
+def blank_literals(code):
+    """`code` (comments already blanked) with string and character literals blanked too (same offsets)."""
+    def blank(match):
+        token = match.group(0)
+        return token if token.startswith('/') else re.sub(r'[^\n]', ' ', token)
+    return _TOKEN.sub(blank, code)
+
+
+_OPENER = re.compile(r'(?:^|[;{}])([^;{}]*)\Z')
+_NAMESPACE = re.compile(r'\bnamespace\s*([\w:]*)\s*\Z')
+_CLASS = re.compile(r'(?<!enum\s)\b(?:class|struct|union)\s+(?:__declspec\(\w+\)\s+)?(\w+)\b[^()]*\Z')
+
+
+class Scopes:
+    """The brace blocks of one file (comments and literals blanked): each a namespace (its name, '' for an anonymous
+    one), a class (struct, union: its name), `extern "C"` (transparent) or another block (a function body, an
+    initialiser, an enum). `at(offset)` is the list of the blocks around an offset, outermost first."""
+
+    def __init__(self, code):
+        code = blank_literals(code)
+        self.blocks = []   # (begin, end, kind, name)
+        stack = []
+        last = 0
+        for m in re.finditer(r'[{}]', code):
+            if m.group(0) == '{':
+                head = code[last:m.start()]
+                tail = head[max(head.rfind(';'), head.rfind('}'), head.rfind('{')) + 1:].strip()
+                ns, cls = _NAMESPACE.search(tail), _CLASS.search(tail)
+                if ns:
+                    kind, name = 'namespace', ns.group(1)
+                elif re.search(r'\bextern\s*\Z', tail) or tail.endswith('extern'):
+                    kind, name = 'extern', ''
+                elif cls and '=' not in tail:
+                    kind, name = 'class', cls.group(1)
+                else:
+                    kind, name = 'block', ''
+                stack.append((m.start(), kind, name))
+            elif stack:
+                begin, kind, name = stack.pop()
+                self.blocks.append((begin, m.start(), kind, name))
+            last = m.start() + 1
+        self.blocks.sort()
+
+    def at(self, offset):
+        return [b for b in self.blocks if b[0] < offset < b[1]]
+
+    def namespace_at(self, offset):
+        """The namespaces around `offset` ('' for an anonymous one), or None inside a class or another block."""
+        out = []
+        for _, _, kind, name in self.at(offset):
+            if kind == 'namespace':
+                out += name.split('::') if name else ['']
+            elif kind != 'extern':
+                return None
+        return out

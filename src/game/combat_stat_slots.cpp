@@ -29,11 +29,11 @@ AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     int now = WorldContext()->tick_;
-    float oldRate = Combat().rate;
+    float oldRate = stats.rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
-        float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / Combat().rate);
+        float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / stats.rate);
         nextAttackTime = x87::RoundToInt(scaled) + now;
     }
     unit->MarkChanged(0);
@@ -42,14 +42,14 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
 EI_REWRITTEN(0x005533B0, CUnitServer::RefreshVitals);
 
 void CUnitServer::UpdateProtection() {
-    stats.PackBodyProtection(unit, &VitalsOf(unit), protection);
+    stats.PackBodyProtection(unit, &VitalsOf(unit), &protection);
     float factor = unit->player ? 1.0f : DefenceFactors()[GameDifficulty()];
     CItemWeapon* weapon = unit->GetWeapon(unit->activeWeapon);
     if (unit->player && weapon) {
         double bonus = stats.WeaponSkillBonus(weapon->GetType(), unit);
-        protection[0] = static_cast<std::int16_t>(static_cast<int>(bonus * factor));
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(bonus * factor));
     } else {
-        protection[0] = static_cast<std::int16_t>(static_cast<int>(static_cast<double>(factor) * Combat().defence));
+        protection.words[0] = static_cast<std::uint16_t>(static_cast<int>(static_cast<double>(factor) * stats.combat[UnitStats::kDefence]));
     }
 }
 EI_REWRITTEN(0x00553450, CUnitServer::UpdateProtection);

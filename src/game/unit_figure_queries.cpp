@@ -95,7 +95,7 @@ double CUnit::BodyExtent() {
     }
     float extentScale = kExtentScale;
     if (type_ == kTypeOtherUnit && std::strcmp(name.c_str(), kMosquito) == 0) extentScale = kMosquitoExtentScale;
-    const Vector3& corner = partBoxes[part].boxMax;
+    const Vector3& corner = partBoxes[part].bounds.boxMax;
     double y = corner.y;
     double x = corner.x;
     return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
@@ -126,9 +126,9 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
                 return out;
             }
         } else if (!ClientController()->WeaponPoint(&local)) {
-            out->x = localPosition_.x + center.x;
-            out->y = localPosition_.y + center.y;
-            out->z = localPosition_.z + center.z;
+            out->x = localPosition_.x + bounds.center.x;
+            out->y = localPosition_.y + bounds.center.y;
+            out->z = localPosition_.z + bounds.center.z;
             return out;
         }
     }

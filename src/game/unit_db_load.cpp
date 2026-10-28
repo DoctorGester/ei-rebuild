@@ -84,7 +84,7 @@ EI_REWRITTEN(0x0053D650, UnitLevelTable::FindByName);
 int UnitDatabase::Load(const char* folder, const char* archive) {
     std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path.c_str()))
+    if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
@@ -127,7 +127,7 @@ EI_REWRITTEN(0x0053A200, UnitDatabase::Load);
 int SkillDatabase::Load(const char* folder, const char* archive) {
     std::string path = (mfc::CString(folder) + archive).GetString();
     LocalResource resource;
-    if (!resource.Open(path.c_str()))
+    if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);

@@ -47,8 +47,8 @@ int __cdecl DefaultNewHandler(std::size_t) {
 
 EI_REWRITTEN(0x0070061B, CRuntimeClass::CreateObject);
 EI_REWRITTEN(0x0070059D, SetAfxNewHandler);
-EI_REPLACE_STANDALONE(0x0070AB1A, CriticalNewHandler);
-EI_REPLACE_STANDALONE(0x0070058F, DefaultNewHandler);
+EI_REWRITTEN(0x0070AB1A, CriticalNewHandler);
+EI_REWRITTEN(0x0070058F, DefaultNewHandler);
 
 
 CMapPtrToPtr::CMapPtrToPtr(int size) : blockSize(size) {}
@@ -215,7 +215,7 @@ void* CHandleMap::FromHandle(HANDLE handle) {
         SetHandles(object, handle);
         return object;
     }
-    const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
+    const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
     void* object;
     try {
         object = objectClass->CreateObject();
@@ -234,6 +234,6 @@ EI_REWRITTEN_SPECIAL(0x00703617, CHandleMap::CHandleMap);
 EI_REWRITTEN_SPECIAL(0x006E6D08, CHandleMap::~CHandleMap);
 EI_REWRITTEN_SPECIAL(0x006E6CEC, CHandleMap::~CHandleMap);   // deleting
 EI_REWRITTEN(0x0070373B, CHandleMap::DeleteTemp);
-EI_REPLACE_METHOD(0x0070367C, CHandleMap::FromHandle);
+EI_REWRITTEN(0x0070367C, CHandleMap::FromHandle);
 
 } // namespace mfc::impl

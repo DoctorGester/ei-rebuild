@@ -28,7 +28,7 @@ constexpr int kSoundManagerClassId = 0xE;
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";
 const char* const kBackslash = "\\";
 
-int CompareText(const char* a, const char* b) {
+int CompareText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
 
@@ -107,7 +107,7 @@ int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     bool missing;
     {
         std::string last = str::Right(soundPath, 1);
-        missing = CompareText(last.c_str(), kBackslash) != 0;
+        missing = CompareText(last, kBackslash) != 0;
     }
     if (missing) soundPath += kBackslash;
     return soundRegistry.Open(registryPath) != 0 ? 1 : 0;
@@ -135,7 +135,7 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
     manager->streamReadPosition += size;
     return size;
 }
-EI_REPLACE(0x006BA950, SoundStreamRead);
+EI_REWRITTEN(0x006BA950, SoundStreamRead);
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
@@ -296,9 +296,6 @@ constexpr unsigned kPrefUseWaveOut = 0xF;
 // The sound option (0 off: startup does not open sound; 2 the wave mapper).
 int SoundOption() { return options::TheOptions()->audio_; }
 
-// The address of the DirectSoundEnumerateA callback that appends each device's GUID pointer to an aligned array.
-constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
-
 constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
 constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
@@ -408,14 +405,12 @@ int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedA
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
     return 1;
 }
-EI_REPLACE(0x006B68A0, AddSoundDevice);
+EI_REWRITTEN(0x006B68A0, AddSoundDevice);
 
 // --- The stream's reader -----------------------------------------------------------------
 
 namespace {
 
-// The decoder's read callback (SoundStreamRead).
-constexpr std::uintptr_t kStreamReadCallback = std::uintptr_t(0x006BA950);
 constexpr std::uint32_t kSwitchHoldMs = 4000;
 constexpr int kNoLoop = 0x7FFFFFFF;
 constexpr int kNeverSwitch = -1;
@@ -456,7 +451,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
     const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
     std::string path = ((modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName).GetString();
-    if (CompareText(m->nextName.c_str(), game::EmptyText()) == 0 ||
+    if (CompareText(m->nextName, game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path.c_str(), &m->streamFileSize) == 0) {
         Silence(m, to, bytes);
         m->streamState = 0;
@@ -475,7 +470,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
-    m->streamFile = m->streamCodec->open(m, ei::Code<void*>(kStreamReadCallback), 0);
+    m->streamFile = m->streamCodec->open(m, reinterpret_cast<void*>(SoundStreamRead), 0);
     int rate = CodecAttribute(m, &AsiStage::outputSampleRate);
     int channels = CodecAttribute(m, &AsiStage::outputChannels);
     int bits = CodecAttribute(m, &AsiStage::outputBits);
@@ -568,7 +563,7 @@ void __stdcall SoundEndOfSample(miles::Sample* sample) {
     gameapi::AIL_sample_user_data(sample, 0);
     reinterpret_cast<SoundSlot*>(gameapi::AIL_sample_user_data(sample, 1))->finished = 1;
 }
-EI_REPLACE(0x006B75E0, SoundEndOfSample);
+EI_REWRITTEN(0x006B75E0, SoundEndOfSample);
 
 EI_REWRITTEN(0x006BAAC0, CSoundManager::OpenStream);
 EI_REWRITTEN(0x006BAC90, CSoundManager::CloseStream);
@@ -580,7 +575,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     if (deviceIndex >= 0) {
         lib::AlignedArray<int> devices;
         devices.Construct();
-        if (gameapi::DirectSoundEnumerateA(ei::Code<void*>(kDeviceCallback), &devices) == 0 && deviceIndex < devices.size)
+        if (gameapi::DirectSoundEnumerateA(reinterpret_cast<void*>(AddSoundDevice), &devices) == 0 && deviceIndex < devices.size)
             device = devices[deviceIndex];
         devices.FreeData();
     }

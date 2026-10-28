@@ -28,6 +28,8 @@ void Place(CString& result, impl::CString&& s) {
 }
 } // namespace
 
+impl::CString& ImplOf(CString& s) { return *Impl(&s); }
+
 // ei_vectors (EI_VECTORS_REPLAY) has its own CString and CPlex core (tests/vectors/replay_mfc.cpp): the
 // functions in the #ifndef blocks below. The other members must not be called there unless their
 // implementation links into it (mfc_string.cpp, mfc_archive.cpp).
@@ -108,9 +110,10 @@ const impl::CStringArray* Impl(const CStringArray* array) { return reinterpret_c
 } // namespace
 
 CFile::CFile() { Impl(this)->Construct(); }
+CFile::CFile(const char* path, unsigned flags) { Impl(this)->ConstructOpen(path, flags); }
 CFile::~CFile() { Impl(this)->Destruct(); }
-BOOL CFile::Open(const char* path, unsigned flags, void* error) {
-    return Impl(this)->Open(path, flags, static_cast<impl::CFileException*>(error));
+BOOL CFile::Open(std::string_view path, unsigned flags, void* error) {
+    return Impl(this)->Open(std::string(path).c_str(), flags, static_cast<impl::CFileException*>(error));
 }
 unsigned CFile::GetLength() { return Impl(this)->GetLength(); }
 unsigned CFile::Read(void* buffer, unsigned count) { return Impl(this)->Read(buffer, count); }
@@ -131,7 +134,9 @@ CString CTime::Format(const char* format) const {
 
 CFileFind::CFileFind() { Impl(this)->Construct(); }
 CFileFind::~CFileFind() { Impl(this)->Destruct(); }
-BOOL CFileFind::FindFile(const char* pattern, unsigned long flags) { return Impl(this)->FindFile(pattern, flags); }
+BOOL CFileFind::FindFile(std::string_view pattern, unsigned long flags) {
+    return Impl(this)->FindFile(std::string(pattern).c_str(), flags);
+}
 CString CFileFind::GetFilePath() const {
     CString result(CString::kUnset);
     Place(result, Impl(this)->GetFilePath());
@@ -149,6 +154,7 @@ CString CFileFind::GetTitle() const {
     return result;
 }
 BOOL CFileFind::FindNext() { return Impl(this)->FindNextFile(); }
+BOOL CFileFind::MatchesMask(unsigned long mask) const { return Impl(this)->MatchesMask(mask); }
 BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }
 void CFileFind::Close() { Impl(this)->Close(); }
 

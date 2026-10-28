@@ -51,10 +51,10 @@ using stock::TakenPrototypes;
 CParty* PartyOf(const ItemStock* stock) { return stock->context; }
 CItemConstructor* ConstructorOf(const ItemStock* stock) { return PartyOf(stock)->ItemConstructor(); }
 
-int Compare(const char* a, const char* b) {
+int Compare(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b);
 }
-int CompareNoCase(const char* a, const char* b) {
+int CompareNoCase(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -191,7 +191,7 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         candidates.Finish() = candidates.begin();   // erase(begin, end)
         if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
             for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
-                if (Compare(MaterialClass(prototype), e->record->soundName.c_str()) != 0) continue;
+                if (Compare(MaterialClass(prototype), e->record->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
                 candidates.PushBack<CandidateElement>(e);
             }
@@ -550,13 +550,14 @@ EI_REWRITTEN(0x0069B5B0, ItemStock::LoadLists);
 namespace {
 
 void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
-void WriteText(CStream* stream, const char* text) {
-    stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+void WriteText(CStream* stream, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
 }
 
 void SaveItemRecords(CStream* stream, const StockPrototypeVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04.c_str());
+    for (itemdb::ItemRecordHead** p = list.begin(); p != list.end(); ++p) WriteText(stream, (*p)->text04);
 }
 
 } // namespace
@@ -568,14 +569,14 @@ void ItemStock::SaveLists(CStream* out) {
 
     WriteInt(out, static_cast<std::uint32_t>(materials.size()));
     for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
-        WriteText(out, e->record->key.c_str());
+        WriteText(out, e->record->key);
         WriteInt(out, static_cast<std::uint32_t>(e->minCount));
         WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
         WriteInt(out, static_cast<std::uint32_t>(e->left));
     }
 
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
-    for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code.c_str());
+    for (itemdb::SpellRecord** p = spells.begin(); p != spells.end(); ++p) WriteText(out, (*p)->code);
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes (the game's
     // fifth byte is an uninitialised stack byte, its sixth a zero; here the string stops after the four).
@@ -584,7 +585,7 @@ void ItemStock::SaveLists(CStream* out) {
         char code[5] = {};
         std::memcpy(code, (*p)->code, 4);
         std::string text = code;
-        WriteText(out, text.c_str());
+        WriteText(out, text);
     }
 }
 EI_REWRITTEN(0x0069BAC0, ItemStock::SaveLists);
@@ -746,16 +747,14 @@ constinit stlp::vector<itemdb::SpellRecord*> g_takenSpells = /*007C8670*/ {};
 constinit stlp::vector<itemdb::SpellModifierRecord*> g_takenModifiers = /*007C8660*/ {};
 } // namespace stock
 
-namespace {
 void __cdecl FreeTakenPrototypes() { stock::g_takenPrototypes.FreeStorage(); }
 void __cdecl FreeTakenSpells() { stock::g_takenSpells.FreeStorage(); }
 void __cdecl FreeTakenModifiers() { stock::g_takenModifiers.FreeStorage(); }
 void __cdecl FreeCandidates() { stock::g_candidates.FreeStorage(); }
 void __cdecl FreeTakenMaterials() { stock::g_takenMaterials.FreeStorage(); }
-} // namespace
 
-EI_REPLACE(0x00698E90, FreeTakenPrototypes);
-EI_REPLACE(0x00698EE0, FreeTakenSpells);
-EI_REPLACE(0x00698F30, FreeTakenModifiers);
-EI_REPLACE(0x00698F80, FreeCandidates);
-EI_REPLACE(0x00698FD0, FreeTakenMaterials);
+EI_REWRITTEN(0x00698E90, FreeTakenPrototypes);
+EI_REWRITTEN(0x00698EE0, FreeTakenSpells);
+EI_REWRITTEN(0x00698F30, FreeTakenModifiers);
+EI_REWRITTEN(0x00698F80, FreeCandidates);
+EI_REWRITTEN(0x00698FD0, FreeTakenMaterials);

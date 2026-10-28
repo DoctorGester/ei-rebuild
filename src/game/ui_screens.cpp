@@ -89,7 +89,7 @@ bool __stdcall UiItemKinds::IsBuildable(const CItem* item) {
     if (type != kTypeArmor) return false;
     prototype = object->GetPrototype();
     return prototype &&
-           gamecrt::mbsicmp(prototype->materialClass.c_str(), game::NoneText()) != 0;
+           gamecrt::mbsicmp(prototype->materialClass, game::NoneText()) != 0;
 }
 EI_REWRITTEN(0x005EE130, UiItemKinds::IsBuildable);
 

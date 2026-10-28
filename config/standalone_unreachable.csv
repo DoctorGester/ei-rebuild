@@ -1,35 +1,15 @@
 address,what,reason
 # What tools/standalone_gaps.py lists that the standalone image can never run (ticket S16d,
-# docs/notes/standalone.md). The image runs none of game.exe's code: every unregistered address holds
-# INT3, so a table entry or vtable slot is reached only when our code calls through it. what:
-#   vtable   every slot of the vtable at `address` (its length from config/vtables.csv)
-#   data     the data words at `address` (several separated by spaces, or a range START-END, END excluded)
-#   address  the function at `address` (several separated by spaces) wherever it is listed: forwarder,
-#            code literal, data reference
+# docs/notes/standalone.md): code addresses written in src/ without a registration. The image runs none of
+# game.exe's code and keeps none of its code pointers in data (C20), so only our code literals can reach an
+# address. what:
+#   address  the function at `address` (several separated by spaces)
 # Lines starting with # are comments. The tool warns about a line that no longer covers anything.
 #
 # --- Hook-build-only forwarders and code reads (behind ei::Standalone()) ---
 007051A1,address,"CWnd::DestroyWindow (mfc_window.cpp, ei::UnportedSlot): CWnd::Destruct reaches it for a window with a handle that is not one of MFC's four static windows; the image makes no other CWnd and those four have no handle"
 #
-# --- Slots in game classes' vtables ---
-#
 # --- MFC classes the image makes, with slots nothing of ours calls ---
-#
-# --- A retired table's slots past its row ---
-0073DDE8-0073DE40,data,"slots 5-26 of CObject3D's retired 0073DDD4 past its five-slot row (gen_image_cells.py's NOT_CODE): nothing stores the table (map_object_tables.cpp compiles it)"
-#
-# --- Tables of the exe's CRT and MFC ---
-00746A00-00746C98,data,"CWnd's message map entries: dispatched only by CWnd::OnWndMsg (no MFC window procedure in the image)"
-007472C0 007472E0 00747338 00747344 00747350,data,"SEH scope tables of the exe's CRT functions: read by _except_handler3 only while their own function's frame is live"
-007975A0 007975A4 007975A8,data,"_FPinit, _FPmtinit / _FPmtterm: called by the exe's CRT start-up and thread set-up (_cinit, _mtinit); the host owns both"
-007978E0,data,"_aexit_rtn (_exit): called by the exe's _amsg_exit only"
-00783BC0,data,"the __xi table's __initmbctable: the image runs none of the C initialiser table; the multibyte code page is the host CRT's, set at its own start-up (C26)"
-007975C8 00797B60 00797B74,data,"the exe CRT's unhandled-exception filter, unexpected and terminate handlers: read only by its own EH code; the image's C++ exceptions are the host's"
-00797B10-00797B28,data,"_cfltcvt_tab (_fptrap until the float code is linked in): read only by the exe's printf; ours formats floats itself (crt_format.cpp)"
-00780E08,data,"the import name table's text (bytes 00 00 57 00 after ""...CurrentDirectoryA""), not a pointer: it reads as CArray::SetSize 00570000, whose registration nothing else needed (C20c)"
-007D4030,data,"a dialog resource's UTF-16 text in .rsrc (20 00 4C 00: the "" L"" of ""Save Log and Abort""), not a pointer: it reads as ScriptVarsClear 004C0020, whose registration only check_fp_fold needed (C20d)"
-007CD000-007D62C8,data,"the .rsrc section (dialogs, strings, icons): its words are UTF-16 text and RVAs, never code pointers; a few read as function starts by chance (UTF-16 text such as ""N"" 00 ""e"" 00 gives CTextManager::IsPastEnd 004E0000 at 007D48D4, and CCampScreen::BestPartySkill 00610020 at a score of words from 007D4038 on), and our code calls both by name (EI_REWRITTEN)"
-007978A8,data,"__lc_category's init cell for the third category (6 x {name, locale, init}: 007978A8 holds FUN_006f47fb, getqloc's per-category initialiser): read only by the exe's setlocale, which is the host CRT's since C26 (the other five cells point at addresses outside functions.csv)"
 "00708E98 00708EC9 00708F1E 00709093 007091A9 007091D7 00709223 0070926F 007092BB 007093AB 007093F7 0070944F 006E697F 006E6993 006E69A3 006E69BF 006E69E4 006E6A38 006E6A68",address,"CDC's unported slots 7-9, 11, 13-25, 27, 28 (mfc_gdi.cpp DCTable, C19): a plain CDC is made only inside CreateTempDC, which stores CTempDC's table at once; the interface calls slots 10 12 26 of its CTempDCs, CHandleMap::DeleteTemp slot 1, CDC::Detach slot 5 (all ported)"
 "00703FFA 00704109 0070410F 00704114 00704117 0070411A 007041C4 00704167 007041B4 00704173 0070416D 007041AB 007041AF 007041BF 007041BA",address,"CCmdTarget's unported slots 3, 5-9, 11-19 (mfc_window.h CmdTargetTable, C19): command routing and OLE automation, called only by MFC's message routing and IDispatch; the image's CWnds are MFC's four static windows, its CWinThreads run their procedure only"
 "00705190 0070588F 007049D5 00704F97 00704F77 0070674E 007052AF 007062F0 007057AD 007074D8 007074DF 00705ED3 00705F5F 00705235 006E7128 006E712B 006E7137 00705239 007037E1 007058EA 0070592E 007051EE 0070518F 0070694E 0070711E 00707877 00707503",address,"CWnd's and CTempWnd's unported slots 4, 10, 20, 21, 23-45 (mfc_window.cpp WndTable, C19; 22 DestroyWindow is listed with CWnd::Destruct): only MFC's four static windows are made, with no handle, and destroyed without a virtual call; CTempWnd is never made (CWnd::FromHandle has no code in the image)"

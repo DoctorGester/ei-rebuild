@@ -135,15 +135,16 @@ long& MouseDragX() { return g_cursor->motion_.x; }
 long& MouseDragY() { return g_cursor->motion_.y; }
 
 namespace {
-void __cdecl ConstructGameCursor() {
-    g_cursor->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005E4DF0));
-}
 void __cdecl DestroyGameCursor() { g_cursor->DestroyBody(); }
 } // namespace
 
-EI_REPLACE(0x005E4DD0, ConstructGameCursor);
-EI_REPLACE(0x005E4DF0, DestroyGameCursor);
+void __cdecl ConstructGameCursor() {
+    g_cursor->Construct();
+    libcrt::AtExit(DestroyGameCursor);
+}
+
+EI_REWRITTEN(0x005E4DD0, ConstructGameCursor);
+EI_REWRITTEN(0x005E4DF0, DestroyGameCursor);
 
 namespace {
 // The current image's current frame as the part shown.
@@ -187,7 +188,7 @@ EI_REWRITTEN(0x005E67B0, CCursor::SetHeld);
 void CCursor::TakeLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::EnterCriticalSection(&lock_);
 }
-EI_REPLACE_METHOD(0x005E65F0, CCursor::TakeLock);
+EI_REWRITTEN(0x005E65F0, CCursor::TakeLock);
 
 void CCursor::ReleaseLock() {
     if (enabled_ && mode_ == kModeLocked) gameapi::LeaveCriticalSection(&lock_);

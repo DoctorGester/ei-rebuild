@@ -146,21 +146,22 @@ _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }
 
 namespace {
 void __cdecl DestroySceneRenderer() { g_sceneRenderer.Destroy(); }
+void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
+} // namespace
+
 void __cdecl ConstructSceneRenderer() {
     g_sceneRenderer.Construct();
     libcrt::AtExit(DestroySceneRenderer);
 }
-void __cdecl DestroyDeviceLock() { gameapi::DeleteCriticalSection(&g_deviceLock); }
 void __cdecl ConstructDeviceLock() {
     gameapi::InitializeCriticalSection(&g_deviceLock);
     libcrt::AtExit(DestroyDeviceLock);
 }
-} // namespace
 
-EI_REPLACE(0x00500930, ConstructSceneRenderer);
-EI_REPLACE(0x00500950, DestroySceneRenderer);
-EI_REPLACE(0x004F0B10, ConstructDeviceLock);
-EI_REPLACE(0x004F0B30, DestroyDeviceLock);
+EI_REWRITTEN(0x00500930, ConstructSceneRenderer);
+EI_REWRITTEN(0x00500950, DestroySceneRenderer);
+EI_REWRITTEN(0x004F0B10, ConstructDeviceLock);
+EI_REWRITTEN(0x004F0B30, DestroyDeviceLock);
 
 EI_REWRITTEN_SPECIAL(0x00500AA0, CSceneRenderer::~CSceneRenderer);   // deleting
 

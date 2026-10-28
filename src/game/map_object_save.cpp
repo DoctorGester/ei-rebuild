@@ -22,8 +22,9 @@ struct ReadText {
     mfc::CString* text;
 };
 
-void WriteText(CStream* stream, const char* text) {
-    stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+void WriteText(CStream* stream, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
 }
 } // namespace
 
@@ -58,14 +59,14 @@ void CMapObject::SaveMapObject(CStream* stream) {
     stream->Write(&speed, sizeof(speed));
     stream->Write(&localPosition_.x, 3 * sizeof(float));
     stream->Write(&localRotation_, sizeof(localRotation_));
-    WriteText(stream, name.c_str());
+    WriteText(stream, name);
     stream->Write(&scale, sizeof(scale));
     int count = effects.size;
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < effects.size; ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
-    WriteText(stream, name2.c_str());
+    WriteText(stream, name2);
     stream->Write(&baseScale, sizeof(baseScale));
 }
 EI_REWRITTEN(0x0050F900, CMapObject::SaveMapObject);
@@ -91,8 +92,8 @@ EI_REWRITTEN(0x005159D0, CMapObjectServer::Load);
 
 void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
-    WriteText(stream, name78.c_str());
-    WriteText(stream, name7C.c_str());
+    WriteText(stream, name78);
+    WriteText(stream, name7C);
     int count = strings.size;
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < strings.size; ++i) WriteText(stream, strings[i]);

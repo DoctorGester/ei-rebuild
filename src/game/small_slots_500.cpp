@@ -30,7 +30,7 @@ int AnimationTrack::GetClassId() { return kTrackClassId; }
 // A figure bone's slots 7 / 11 / 12: its name (the
 // piece's), class name and id. The first is 4 bytes (too short to hook).
 const char* __fastcall FigureBoneName(FigureBone* self) { return self->name.c_str(); }
-EI_REPLACE(0x0050B180, FigureBoneName);
+EI_REWRITTEN(0x0050B180, FigureBoneName);
 const char* __fastcall FigureBoneClassName(FigureBone*) { return kBoneClassName; }
 EI_REWRITTEN(0x0050B190, FigureBoneClassName);
 int __fastcall FigureBoneClassId(FigureBone*) { return kBoneClassId; }
@@ -50,7 +50,7 @@ int CFigureAnimationState::GetClassId() { return kStateClassId; }
 // The scene renderer's slot 6: the last frame's time in milliseconds. 4 bytes (too short
 // to hook).
 std::uint32_t __fastcall RendererFrameTime(CSceneRenderer* self) { return self->frameTime_; }
-EI_REPLACE(0x00500A90, RendererFrameTime);
+EI_REWRITTEN(0x00500A90, RendererFrameTime);
 
 // A vector copied (the selection marker's corners).
 void Vector3::Assign(const Vector3* other) {

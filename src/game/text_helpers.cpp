@@ -37,7 +37,7 @@ EI_REWRITTEN(0x004461E0, RemoveCarriageReturns);
 
 mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name) {
     for (int i = 0; i < names->size; ++i) {
-        if (gamecrt::mbsicmp(names->data[i], name) == 0) {
+        if (gamecrt::mbsicmp(names->data[i].GetString(), name.GetString()) == 0) {
             std::construct_at(out, names->data[i]);
             return out;
         }

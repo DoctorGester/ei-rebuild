@@ -166,7 +166,7 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
     if (message != 0 && message == autoPlay) return 1;
     return gameapi::DefWindowProcA(window, message, wParam, lParam);
 }
-EI_REPLACE(0x00457D40, WindowProc);
+EI_REWRITTEN(0x00457D40, WindowProc);
 
 LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
     // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
@@ -369,6 +369,6 @@ int __cdecl OutOfMemory(std::size_t) {
     ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
     return 0;
 }
-EI_REPLACE(0x00455A30, OutOfMemory);
+EI_REWRITTEN(0x00455A30, OutOfMemory);
 
 } // namespace app

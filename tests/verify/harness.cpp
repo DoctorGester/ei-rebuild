@@ -834,8 +834,8 @@ int __stdcall MutedWaveOutOpen(void** driver, void* waveOut, int deviceId, void*
     return result;
 }
 
-// A vtable slot of game.exe, through the data seam (an import slot: PatchImport, harness_imports.h): game data the
-// harness changes (harness_addon.h checks them).
+// A vtable slot of game.exe (its runs only: the image's vtables are the compiler's), through the data seam (an import
+// slot: PatchImport, harness_imports.h): game data the harness changes (harness_addon.h checks them).
 template <class T>
 void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     T* slot = ei::GamePointer<T>(address);
@@ -845,8 +845,6 @@ void PatchSlot(std::uintptr_t address, T replacement, T& original) {
     original = *slot;
     *slot = replacement;
     VirtualProtect(slot, sizeof(*slot), old, &old);
-    // Its original is game.exe's code address: in the image it goes with the code cells (S18i).
-    if (ei::Standalone()) ei::FixUpCodePointer(reinterpret_cast<std::uintptr_t*>(&original));
 }
 
 // Saves. The game keeps them under <game root>saves\ and rewrites saves\current\ whenever it
@@ -1183,7 +1181,7 @@ int __fastcall HeldServerUpdate(void* server, void*) {
     int result;
     {
         timing::Scope scope(timing::Server);
-        result = GameCode<WorldUpdate>(kServerUpdate)(server, nullptr);
+        result = ei::Standalone() ? image::ServerUpdate(server) : OriginalCode<WorldUpdate>(kServerUpdate)(server, nullptr);
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     {
@@ -1198,7 +1196,7 @@ int __fastcall HeldClientSegment(void* client, void*) {
     int result;
     {
         timing::Scope scope(timing::Client);
-        result = GameCode<WorldUpdate>(kClientSegment)(client, nullptr);
+        result = ei::Standalone() ? image::ClientSegment(client) : OriginalCode<WorldUpdate>(kClientSegment)(client, nullptr);
     }
     if (g_heldTickLength) TickLength() = g_heldTickLength;
     return result;
@@ -1369,7 +1367,8 @@ constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
     if (clock::Frozen()) return;
-    GameCode<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
+    if (ei::Standalone()) image::CameraUpdate(camera, dt);
+    else OriginalCode<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
     camera_trace::Frame(camera, dt);
 }
 
@@ -1380,7 +1379,8 @@ constexpr std::uintptr_t kFrameStepCall = 0x004575FD;
 constexpr std::uintptr_t kFrameStep = 0x00458010;
 void __fastcall HandOffThenFrameStep(bool draw, bool cursor) {
     pair::HandOff();
-    GameCode<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
+    if (ei::Standalone()) image::FrameStep(draw, cursor);
+    else OriginalCode<void(__fastcall*)(bool, bool)>(kFrameStep)(draw, cursor);
 }
 
 // Points the rel32 of the CALL at `site` (which must call `expected`) at `to`.

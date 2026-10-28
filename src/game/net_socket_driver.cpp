@@ -327,6 +327,6 @@ EI_REWRITTEN(0x00440DE0, MasterLinkTick);
 // threads are gone. The original waits while their count is non-zero; only the thread procedure
 // counts them, and nothing starts it (config/dead_code.csv), so there is never one to wait for.
 void __cdecl CleanUpWinsock() { libcrt::imports::WsaCleanup(); }
-EI_REPLACE(0x0047C330, CleanUpWinsock);
+EI_REWRITTEN(0x0047C330, CleanUpWinsock);
 
 } // namespace net

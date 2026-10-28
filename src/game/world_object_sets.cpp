@@ -32,7 +32,7 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
 EI_REWRITTEN(0x0047B770, ObjectSet::SetSize);
 // The sort's SetSize(n, growBy): no special case for 0 (an empty block is
 // allocated), and growing does not keep the elements.
-EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
+EI_REWRITTEN(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
@@ -49,7 +49,7 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
     }
     self->SetSizeDiscardStep(static_cast<int>(out - self->data), -1);
 }
-EI_REPLACE(0x0047ADF0, ObjectSetSortUnique);
+EI_REWRITTEN(0x0047ADF0, ObjectSetSortUnique);
 
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
 // `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a

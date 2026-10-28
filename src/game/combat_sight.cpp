@@ -199,7 +199,7 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
     CItemWeapon* weapon = ActiveWeapon(self->unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = ActiveWeapon(self->unit);
-    float reach = weapon ? weapon->reach_ : self->Combat().reach;
+    float reach = weapon ? weapon->reach_ : self->stats.combat[UnitStats::kReach];
     EI_NAN_AUDIT(reach);
     return reach < kMeleeReach;
 }

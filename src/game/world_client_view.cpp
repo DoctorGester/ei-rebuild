@@ -130,7 +130,7 @@ int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* v
                 std::memcpy(&matrix[12], &zero, 4);
                 std::memcpy(&matrix[15], &one, 4);
                 PushStackMatrix(device, CTransformPipeline::kClipStack, matrix);
-                int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->boundsFlags));
+                int where = Device()->ClipTest(reinterpret_cast<const ClipBounds*>(&o3d->bounds.flags));
                 device->PopMatrix(CTransformPipeline::kClipStack);
 
                 CMapObject* const& entry = object;
@@ -341,7 +341,6 @@ constinit stlp::vector<CMapObject*> g_visible5D = /*007AF588*/ {};
 constinit stlp::vector<CMapObject*> g_visibleOther = /*007AF598*/ {};
 constinit stlp::vector<CMapObject*> g_visible54 = /*007AF5A8*/ {};
 
-namespace {
 void __cdecl FreeTouchedModels() { g_touchedModels.FreeStorage(); }
 void __cdecl FreeShadow52() { g_shadow52.FreeStorage(); }
 void __cdecl FreeShadowUnits() { g_shadowUnits.FreeStorage(); }
@@ -353,25 +352,24 @@ void __cdecl FreeVisibleUnits() { g_visibleUnits.FreeStorage(); }
 void __cdecl FreeVisible5D() { g_visible5D.FreeStorage(); }
 void __cdecl FreeVisibleOther() { g_visibleOther.FreeStorage(); }
 void __cdecl FreeVisible54() { g_visible54.FreeStorage(); }
-} // namespace
 
-EI_REPLACE(0x0056A830, FreeTouchedModels);
-EI_REPLACE(0x0056A7E0, FreeShadow52);
-EI_REPLACE(0x0056A790, FreeShadowUnits);
-EI_REPLACE(0x0056A740, FreeShadow5D);
-EI_REPLACE(0x0056A6F0, FreeShadowOther);
-EI_REPLACE(0x0056A6A0, FreeShadow54);
-EI_REPLACE(0x0056A650, FreeVisible52);
-EI_REPLACE(0x0056A600, FreeVisibleUnits);
-EI_REPLACE(0x0056A5B0, FreeVisible5D);
-EI_REPLACE(0x0056A560, FreeVisibleOther);
-EI_REPLACE(0x0056A510, FreeVisible54);
+EI_REWRITTEN(0x0056A830, FreeTouchedModels);
+EI_REWRITTEN(0x0056A7E0, FreeShadow52);
+EI_REWRITTEN(0x0056A790, FreeShadowUnits);
+EI_REWRITTEN(0x0056A740, FreeShadow5D);
+EI_REWRITTEN(0x0056A6F0, FreeShadowOther);
+EI_REWRITTEN(0x0056A6A0, FreeShadow54);
+EI_REWRITTEN(0x0056A650, FreeVisible52);
+EI_REWRITTEN(0x0056A600, FreeVisibleUnits);
+EI_REWRITTEN(0x0056A5B0, FreeVisible5D);
+EI_REWRITTEN(0x0056A560, FreeVisibleOther);
+EI_REWRITTEN(0x0056A510, FreeVisible54);
 
 EI_REWRITTEN(0x0056A990, CWorldClient::CollectVisible);
 EI_REWRITTEN(0x0056BF30, CWorldClient::PickGround);
 EI_REWRITTEN(0x0056C350, CWorldClient::PickSurface);
-EI_REPLACE(0x005740D0, IntroSortByModel);
-EI_REPLACE(0x00574390, FinalSortByModel);
+EI_REWRITTEN(0x005740D0, IntroSortByModel);
+EI_REWRITTEN(0x00574390, FinalSortByModel);
 EI_REWRITTEN(0x00573D50, IntroSortByModelUse);
 EI_REWRITTEN(0x00573F10, FinalSortByModelUse);
 EI_REWRITTEN(0x00573EE0, ModelUseLess::Less);

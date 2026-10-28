@@ -55,7 +55,7 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
     }
     out->x = object->localPosition_.x;
     out->y = object->localPosition_.y;
-    out->z = object->localPosition_.z + object->above.z;
+    out->z = object->localPosition_.z + object->bounds.boxMax.z;
     return out;
 }
 EI_REWRITTEN(0x00484B40, CParticleSource::PartPoint);
@@ -78,8 +78,8 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, CObject3D* object) {
         if (point == 2) out->z = out->z + 1.0f;
         return out;
     }
-    float rise = (object->boundsFlags & kBoundsSphere) ? object->radius * 1.6f
-                                                         : object->above.z - object->below.z;
+    float rise = (object->bounds.flags & kBoundsSphere) ? object->bounds.radius * 1.6f
+                                                         : object->bounds.boxMax.z - object->bounds.boxMin.z;
     out->x = object->localPosition_.x;
     out->y = object->localPosition_.y;
     out->z = rise + object->localPosition_.z;
@@ -97,17 +97,17 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
         return out;
     }
     object->ComputeBounds();
-    if (object->boundsFlags & kBoundsSphere) {
-        *radius = object->radius;
+    if (object->bounds.flags & kBoundsSphere) {
+        *radius = object->bounds.radius;
     } else {
-        double dz = object->above.z - object->below.z;
-        double dx = object->above.x - object->below.x;
-        double dy = object->above.y - object->below.y;
+        double dz = object->bounds.boxMax.z - object->bounds.boxMin.z;
+        double dx = object->bounds.boxMax.x - object->bounds.boxMin.x;
+        double dy = object->bounds.boxMax.y - object->bounds.boxMin.y;
         *radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5);
     }
     out->x = 0.0f;
     out->y = 0.0f;
-    out->z = object->center.z;
+    out->z = object->bounds.center.z;
     return out;
 }
 EI_REWRITTEN(0x00485280, CParticleSource::AttachmentOffset);

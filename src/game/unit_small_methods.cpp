@@ -17,7 +17,7 @@ EI_REWRITTEN(0x0052E290, UnitClassId);
 
 // The constructor of the motion's segment part (nothing to construct). Returns it.
 void* __fastcall MotionSegmentConstruct(void* self) { return self; }
-EI_REPLACE(0x0052E230, MotionSegmentConstruct);
+EI_REWRITTEN(0x0052E230, MotionSegmentConstruct);
 
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();
@@ -33,7 +33,7 @@ EI_REWRITTEN(0x0052EA40, CUnit::SetMotionSpeeds);
 int CUnit::HasPlayer() const { return player != nullptr; }
 EI_REWRITTEN(0x005301A0, CUnit::HasPlayer);
 
-double CUnit::DoubleHeight() const { return above.z + above.z; }
+double CUnit::DoubleHeight() const { return bounds.boxMax.z + bounds.boxMax.z; }
 EI_REWRITTEN(0x00530560, CUnit::DoubleHeight);
 
 CItemArmor* CUnit::WornItem(int slot) const { return armor[slot]; }

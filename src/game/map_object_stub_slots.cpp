@@ -24,24 +24,24 @@ constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has
 
 // Nothing: ClearState, EffectsChanged, UpdateSizeClasses, UpdateMoveFactors, RefreshWounds.
 void __fastcall MapObjectNothing(CMapObject*) {}
-EI_REPLACE(0x0050E760, MapObjectNothing);
-EI_REPLACE(0x0050E420, MapObjectNothing);
-EI_REPLACE(0x0050E490, MapObjectNothing);
-EI_REPLACE(0x0050E520, MapObjectNothing);
-EI_REPLACE(0x0050E530, MapObjectNothing);
+EI_REWRITTEN(0x0050E760, MapObjectNothing);
+EI_REWRITTEN(0x0050E420, MapObjectNothing);
+EI_REWRITTEN(0x0050E490, MapObjectNothing);
+EI_REWRITTEN(0x0050E520, MapObjectNothing);
+EI_REWRITTEN(0x0050E530, MapObjectNothing);
 
 // Nothing with one argument (RET 4): AdvanceTime, SetStats, SetStunned, ForgetObject.
 void CMapObject::IgnoreArgument(int) {}
-EI_REPLACE_METHOD(0x0050E410, CMapObject::IgnoreArgument);
-EI_REPLACE_METHOD(0x0050E480, CMapObject::IgnoreArgument);
-EI_REPLACE_METHOD(0x0050E4A0, CMapObject::IgnoreArgument);
-EI_REPLACE_METHOD(0x0050E510, CMapObject::IgnoreArgument);
+EI_REWRITTEN(0x0050E410, CMapObject::IgnoreArgument);
+EI_REWRITTEN(0x0050E480, CMapObject::IgnoreArgument);
+EI_REWRITTEN(0x0050E4A0, CMapObject::IgnoreArgument);
+EI_REWRITTEN(0x0050E510, CMapObject::IgnoreArgument);
 
 // 0: IsUsable, IsDirectUseBlocked, IsLargeUnit.
 int __fastcall MapObjectZero(CMapObject*) { return 0; }
-EI_REPLACE(0x0050F0C0, MapObjectZero);
-EI_REPLACE(0x0050F0D0, MapObjectZero);
-EI_REPLACE(0x0050E4F0, MapObjectZero);
+EI_REWRITTEN(0x0050F0C0, MapObjectZero);
+EI_REWRITTEN(0x0050F0D0, MapObjectZero);
+EI_REWRITTEN(0x0050E4F0, MapObjectZero);
 
 // No key is accepted.
 int CMapObject::AcceptsNoKey(const void* /*key*/) { return 0; }

@@ -35,6 +35,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -177,7 +178,7 @@ int CPlayerClient::DispatchMessages() {
         if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
         if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
-        if (!handler(this, nullptr)) return PlayerMessageError(TextHandlerFailed(), previous, type);
+        if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);
     }
 }
 
@@ -303,18 +304,18 @@ int CPlayerClient::OnExperience() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00669350, CPlayerClient::OnQuestItemsChanged);
-EI_REPLACE_METHOD(0x0066A480, CPlayerClient::OnExperienceAll);
-EI_REPLACE_METHOD(0x0066A5A0, CPlayerClient::OnExperience);
-EI_REPLACE_METHOD(0x00669010, CPlayerClient::OnZone);
-EI_REPLACE_METHOD(0x006690F0, CPlayerClient::OnWorldBlock3);
-EI_REPLACE_METHOD(0x006691C0, CPlayerClient::OnWorldBlock5);
-EI_REPLACE_METHOD(0x00669290, CPlayerClient::OnItemRemoved);
+EI_REWRITTEN(0x00669350, CPlayerClient::OnQuestItemsChanged);
+EI_REWRITTEN(0x0066A480, CPlayerClient::OnExperienceAll);
+EI_REWRITTEN(0x0066A5A0, CPlayerClient::OnExperience);
+EI_REWRITTEN(0x00669010, CPlayerClient::OnZone);
+EI_REWRITTEN(0x006690F0, CPlayerClient::OnWorldBlock3);
+EI_REWRITTEN(0x006691C0, CPlayerClient::OnWorldBlock5);
+EI_REWRITTEN(0x00669290, CPlayerClient::OnItemRemoved);
 EI_REWRITTEN(0x00667D80, CPlayerClient::ReadText);
-EI_REPLACE_METHOD(0x00669850, CPlayerClient::OnSetVariable);
-EI_REPLACE_METHOD(0x00669960, CPlayerClient::OnDeleteVariable);
-EI_REPLACE_METHOD(0x00669EB0, CPlayerClient::OnZoneChange);
-EI_REPLACE_METHOD(0x00669F40, CPlayerClient::OnJingle);
+EI_REWRITTEN(0x00669850, CPlayerClient::OnSetVariable);
+EI_REWRITTEN(0x00669960, CPlayerClient::OnDeleteVariable);
+EI_REWRITTEN(0x00669EB0, CPlayerClient::OnZoneChange);
+EI_REWRITTEN(0x00669F40, CPlayerClient::OnJingle);
 EI_REWRITTEN(0x00667680, CPlayerClient::Pump);
 EI_REWRITTEN(0x00667810, CPlayerClient::SendToServer);
 EI_REWRITTEN(0x00667970, CPlayerClient::DispatchMessages);
@@ -475,11 +476,11 @@ void CPlayerClient::StopRecording() {
     if (link != nullptr) link->CloseRecording();
 }
 
-EI_REPLACE_METHOD(0x00669490, CPlayerClient::OnItemsReceived);
-EI_REPLACE_METHOD(0x00669A30, CPlayerClient::OnParty);
-EI_REPLACE_METHOD(0x00669C90, CPlayerClient::OnPartyUpdate);
-EI_REPLACE_METHOD(0x00669FA0, CPlayerClient::OnPathMarker);
-EI_REPLACE_METHOD(0x00667E60, CPlayerClient::OnStringEvent);
+EI_REWRITTEN(0x00669490, CPlayerClient::OnItemsReceived);
+EI_REWRITTEN(0x00669A30, CPlayerClient::OnParty);
+EI_REWRITTEN(0x00669C90, CPlayerClient::OnPartyUpdate);
+EI_REWRITTEN(0x00669FA0, CPlayerClient::OnPathMarker);
+EI_REWRITTEN(0x00667E60, CPlayerClient::OnStringEvent);
 EI_REWRITTEN(0x00669710, CPlayerClient::StartRecording);
 EI_REWRITTEN(0x00669750, CPlayerClient::StopRecording);
 
@@ -664,7 +665,7 @@ int CPlayerClient::OnNewObject() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00667EC0, CPlayerClient::OnNewObject);
+EI_REWRITTEN(0x00667EC0, CPlayerClient::OnNewObject);
 
 // --- Clearing the connection ---------------------------------------------------------------
 
@@ -678,21 +679,21 @@ namespace {
 constexpr int kClientHandlerCount = 0x100;
 
 // The client's message handlers by type.
-constexpr HandlerEntry kClientHandlers[] = {
-    {0x00, std::uintptr_t(0x00667DA0)}, {0x01, std::uintptr_t(0x00667DE0)}, {0x02, std::uintptr_t(0x00669010)},
-    {0x03, std::uintptr_t(0x006690F0)}, {0x04, std::uintptr_t(0x00667C20)}, {0x05, std::uintptr_t(0x006691C0)},
-    {0x06, std::uintptr_t(0x00669490)}, {0x07, std::uintptr_t(0x00669D50)}, {0x08, std::uintptr_t(0x00669EB0)},
-    {0x09, std::uintptr_t(0x00669F30)}, {0x0A, std::uintptr_t(0x00669290)}, {0x0B, std::uintptr_t(0x00667DF0)},
-    {0x0C, std::uintptr_t(0x006696A0)}, {0x0D, std::uintptr_t(0x00669F40)}, {0x0E, std::uintptr_t(0x00669FA0)},
-    {0x0F, std::uintptr_t(0x00667D10)}, {0x12, std::uintptr_t(0x00667E20)}, {0x13, std::uintptr_t(0x00667E60)},
-    {0x14, std::uintptr_t(0x0066A420)}, {0x15, std::uintptr_t(0x0066A480)}, {0x16, std::uintptr_t(0x00669400)},
-    {0x17, std::uintptr_t(0x00669350)}, {0x18, std::uintptr_t(0x0066A5A0)}, {0x19, std::uintptr_t(0x0066A620)},
-    {0x40, std::uintptr_t(0x00667EC0)}, {0x41, std::uintptr_t(0x006687B0)}, {0x42, std::uintptr_t(0x00668850)},
-    {0x43, std::uintptr_t(0x0066A3B0)}, {0x50, std::uintptr_t(0x00668940)}, {0x51, std::uintptr_t(0x00668A30)},
-    {0x52, std::uintptr_t(0x00668AA0)}, {0x60, std::uintptr_t(0x00668C50)}, {0x70, std::uintptr_t(0x00669760)},
-    {0x71, std::uintptr_t(0x006697B0)}, {0x72, std::uintptr_t(0x00669800)}, {0x73, std::uintptr_t(0x0066A400)},
-    {0x80, std::uintptr_t(0x00669A30)}, {0x81, std::uintptr_t(0x00669850)}, {0x82, std::uintptr_t(0x00669960)},
-    {0x83, std::uintptr_t(0x00669C90)},
+constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
+    {0x00, &CPlayerClient::OnLoginAccepted}, {0x01, &CPlayerClient::OnDisconnect}, {0x02, &CPlayerClient::OnZone},
+    {0x03, &CPlayerClient::OnWorldBlock3}, {0x04, &CPlayerClient::OnCameraPlacement}, {0x05, &CPlayerClient::OnWorldBlock5},
+    {0x06, &CPlayerClient::OnItemsReceived}, {0x07, &CPlayerClient::OnGameState}, {0x08, &CPlayerClient::OnZoneChange},
+    {0x09, &CPlayerClient::OnGameLost}, {0x0A, &CPlayerClient::OnItemRemoved}, {0x0B, &CPlayerClient::OnUnitSpeech},
+    {0x0C, &CPlayerClient::OnObjectValues}, {0x0D, &CPlayerClient::OnJingle}, {0x0E, &CPlayerClient::OnPathMarker},
+    {0x0F, &CPlayerClient::OnFreeCamera}, {0x12, &CPlayerClient::OnWorldValue}, {0x13, &CPlayerClient::OnStringEvent},
+    {0x14, &CPlayerClient::OnItemValue}, {0x15, &CPlayerClient::OnExperienceAll}, {0x16, &CPlayerClient::OnWeaponRemoved},
+    {0x17, &CPlayerClient::OnQuestItemsChanged}, {0x18, &CPlayerClient::OnExperience}, {0x19, &CPlayerClient::OnUnitControl},
+    {0x40, &CPlayerClient::OnNewObject}, {0x41, &CPlayerClient::OnObjectChanged}, {0x42, &CPlayerClient::OnObjectRemoved},
+    {0x43, &CPlayerClient::OnUnitDied}, {0x50, &CPlayerClient::OnTimedObjectAdded}, {0x51, &CPlayerClient::OnTimedObjectChanged},
+    {0x52, &CPlayerClient::OnTimedObjectRemoved}, {0x60, &CPlayerClient::OnPartyState}, {0x70, &CPlayerClient::OnWeather},
+    {0x71, &CPlayerClient::OnWorldTime}, {0x72, &CPlayerClient::OnWorldPoint}, {0x73, &CPlayerClient::OnWorldStream},
+    {0x80, &CPlayerClient::OnParty}, {0x81, &CPlayerClient::OnSetVariable}, {0x82, &CPlayerClient::OnDeleteVariable},
+    {0x83, &CPlayerClient::OnPartyUpdate},
 };
 
 } // namespace
@@ -707,9 +708,9 @@ BOOL CPlayerClient::CreateClient() {
     compressor_.Reset();
     decompressor_.Reset();
     handlers_.SetSize(kClientHandlerCount);
-    std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
-    for (const HandlerEntry& entry : kClientHandlers)
-        handlers_[entry.type] = ei::Code<Handler>(entry.address);
+    std::fill_n(handlers_.data, handlers_.size, Handler{});
+    for (const auto& entry : kClientHandlers)
+        handlers_[entry.type] = entry.handler;
     return 1;
 }
 EI_REWRITTEN(0x00667230, CPlayerClient::CreateClient);
@@ -780,12 +781,7 @@ using IntSet = stlp::hashtable<stlp::DwordKeyTraits<4>>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
 constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
 IntSet& PartyIdSet() { return *g_partyIdSet; }
-void __cdecl ConstructPartyIdSet() {
-    g_partyIdSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x00668B60));
-}
 void __cdecl DestroyPartyIdSet() { g_partyIdSet->Destroy(); }
-
 int ReadDword(BitStream* in) {
     int value;
     in->Read(&value, 4);
@@ -794,8 +790,13 @@ int ReadDword(BitStream* in) {
 
 } // namespace
 
-EI_REPLACE(0x00668B40, ConstructPartyIdSet);
-EI_REPLACE(0x00668B60, DestroyPartyIdSet);
+void __cdecl ConstructPartyIdSet() {
+    g_partyIdSet->Construct(100, 0, 0, 0);
+    libcrt::AtExit(DestroyPartyIdSet);
+}
+
+EI_REWRITTEN(0x00668B40, ConstructPartyIdSet);
+EI_REWRITTEN(0x00668B60, DestroyPartyIdSet);
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
@@ -831,7 +832,7 @@ int CPlayerClient::OnPartyState() {
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);
     return 1;
 }
-EI_REPLACE_METHOD(0x00668C50, CPlayerClient::OnPartyState);
+EI_REWRITTEN(0x00668C50, CPlayerClient::OnPartyState);
 
 // --- Messages appended to the received stream -----------------------------------------------
 

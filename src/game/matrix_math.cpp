@@ -38,7 +38,7 @@ void Multiply(float* out, const float* a, const float* b, const SumOrder& order)
 } // namespace
 
 void Matrix4::Multiply(const float* a, const float* b) { ::Multiply(m, a, b, kProductOrder); }
-EI_REPLACE_METHOD(0x004D9880, Matrix4::Multiply);
+EI_REWRITTEN(0x004D9880, Matrix4::Multiply);
 
 void Quaternion::ToMatrix(float* out) const {
     // Twice the vector part; the products the game stores as floats are rounded to float.
@@ -64,7 +64,7 @@ void Quaternion::ToMatrix(float* out) const {
     out[9] = yz + wx;
     out[10] = 1.0f - static_cast<float>(yy + xx);
 }
-EI_REPLACE_METHOD(0x004D9AA0, Quaternion::ToMatrix);
+EI_REWRITTEN(0x004D9AA0, Quaternion::ToMatrix);
 
 void CTransformPipeline::PushMatrix(const float* m, int index) {
     MatrixStack& stack = stacks_[index];
@@ -76,4 +76,4 @@ void CTransformPipeline::PushMatrix(const float* m, int index) {
     ++stack.count;
     Multiply(stack.matrices[stack.count - 1].m, stack.matrices[stack.count - 2].m, m, kPushOrder);
 }
-EI_REPLACE_METHOD(0x004D9B80, CTransformPipeline::PushMatrix);
+EI_REWRITTEN(0x004D9B80, CTransformPipeline::PushMatrix);

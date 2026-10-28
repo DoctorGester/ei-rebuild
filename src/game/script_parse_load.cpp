@@ -614,12 +614,12 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
             mfc::CArray<ScriptDefinition>& scripts = Scripts();
             int index = 0;
             for (; index < scripts.size; ++index)
-                if (Mbscmp(scripts.data[index].name.c_str(), text) == 0 || Mbscmp(scripts.data[index].name.c_str(), qualified) == 0) break;
+                if (Mbscmp(scripts.data[index].name, text) == 0 || Mbscmp(scripts.data[index].name, qualified) == 0) break;
             if (index < scripts.size) {
                 // A call to a declared script: command 8, float 0 = script index, string 0 = name.
                 if (!LoadFunction(cmd, pos, tokens, kCmdCallScript, locals, scripts.data[index].params.c_str(), 0, 1))
                     return 0;
-                cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name.c_str(), text) == 0 ? text : qualified;
+                cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs.data[0], index);
                 commands->Add(*cmd);
                 continue;

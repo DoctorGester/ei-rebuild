@@ -49,17 +49,17 @@ bool Numbered(const std::string& name) {
 } // namespace
 
 void MpHeroRecord::WriteFile(const char* folder) {
-    if (!Numbered(file.c_str())) {
-        gameapi::DeleteFileA(InFolder(folder, file.c_str()));
+    if (!Numbered(file)) {
+        gameapi::DeleteFileA(InFolder(folder, file));
         return;
     }
     {
         std::string temp = TempFile(folder).GetString();
-        gameapi::MoveFileA(InFolder(folder, file.c_str()), temp.c_str());
+        gameapi::MoveFileA(InFolder(folder, file), temp.c_str());
     }
     {
         LocalStreams streams;
-        streams.file.Open(InFolder(folder, file.c_str()), netlink::FileStream::kOpenWrite, 0);
+        streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenWrite, 0);
         Party()->SaveParty(&streams.data, 1);
         SaveFileWrite(&streams.file, kPartyFileMagic, kSaveVersion, &streams.data);
     }
@@ -69,7 +69,7 @@ EI_REWRITTEN(0x00662AC0, MpHeroRecord::WriteFile);
 
 bool MpHeroRecord::ReadFile(const char* folder) {
     LocalStreams streams;
-    streams.file.Open(InFolder(folder, file.c_str()), netlink::FileStream::kOpenRead, 1);
+    streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, kSaveVersion, kSaveOldestVersion, &streams.file)) return false;
     Party()->LoadParty(&streams.data, 1);
     return streams.data.ok_ != 0;
@@ -77,7 +77,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 EI_REWRITTEN(0x00662DD0, MpHeroRecord::ReadFile);
 
 void SavedParties::SaveAll() {
-    if (gamecrt::mbscmp(folder_.c_str(), game::EmptyText()) == 0)
+    if (gamecrt::mbscmp(folder_, game::EmptyText()) == 0)
         return;
     ClearSaveFolder(folder_.c_str());
     // The count is read again after each write.
@@ -106,12 +106,13 @@ EI_REWRITTEN(0x0065F2D0, SavedParties::Destruct);
 constinit lib::StaticObject<SavedParties> g_savedParties = /*007C82A0*/ {};
 
 namespace {
-void __cdecl ConstructSavedParties() {
-    g_savedParties->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0065F2C0));
-}
 void __cdecl DestroySavedParties() { g_savedParties->Destruct(); }
 } // namespace
 
-EI_REPLACE(0x0065F2A0, ConstructSavedParties);
-EI_REPLACE(0x0065F2C0, DestroySavedParties);
+void __cdecl ConstructSavedParties() {
+    g_savedParties->Construct();
+    libcrt::AtExit(DestroySavedParties);
+}
+
+EI_REWRITTEN(0x0065F2A0, ConstructSavedParties);
+EI_REWRITTEN(0x0065F2C0, DestroySavedParties);

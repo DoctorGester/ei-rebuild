@@ -25,7 +25,7 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     std::string alphaPath;
     console::CStringArray pieces;
     if ((flags_ & kTextureLoaded) &&
-        gamecrt::mbscmp(name_.c_str(), path) == 0) {
+        gamecrt::mbscmp(name_, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }

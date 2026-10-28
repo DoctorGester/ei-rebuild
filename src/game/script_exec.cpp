@@ -186,7 +186,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // they cannot stay in, and put back.
     PtrList units;
     mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, 10);
-    float radius = object->radius + object->radius;
+    float radius = object->bounds.radius + object->bounds.radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (PtrList::Node* pos = units.head; pos;) {
         CUnit* unit = pos->data;

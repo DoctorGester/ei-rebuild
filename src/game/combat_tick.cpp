@@ -534,13 +534,13 @@ namespace {
 // The unit's attack interval: the weapon's (or the stats' truncated) scaled by 15 / the combat rate (unscaled
 // when that is 0), rounded.
 int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
-    float factor = self->Combat().rate;
+    float factor = self->stats.rate;
     if (factor != 0.0f) factor = kFifteen / factor;   // a NaN stays the same NaN
     int base;
     if (weapon) {
         base = static_cast<int>(weapon->GetPrototype()->category);
     } else {
-        double value = self->Combat().attackCategory;
+        double value = self->stats.attackCategory;
         // _ftol, as the original truncates it.
         base = static_cast<int>(gamecrt::Ftol(value));
     }

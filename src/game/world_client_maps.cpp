@@ -280,7 +280,7 @@ int CWorldClient::AddObject(CMapObject* object) {
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
         CObject3D* figure = object->Object3D();
         for (int i = 0; i < figure->parts.size; ++i) {
-            if ((figure->PartBox(i)->flags >> 10) & 1) {
+            if ((figure->PartBox(i)->bounds.flags >> 10) & 1) {
                 int id = object->id_;
                 platforms_.AddBox(id, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
             }
@@ -332,7 +332,7 @@ void CWorldClient::RefreshPlatforms(CMapObject* object) {
     if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
     CObject3D* figure = object->Object3D();
     for (int i = 0; i < figure->parts.size; ++i) {
-        if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
+        if (!((figure->PartBox(i)->bounds.flags >> 10) & 1)) continue;
         platforms_.AddBox(object->id_, figure->PartBox(i), &object->localPosition_, &object->localRotation_);
     }
 }
@@ -619,12 +619,7 @@ void CWorldClient::UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out)
 
 namespace {
 
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
-}
+bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 } // namespace
 
@@ -725,9 +720,9 @@ void CWorldClient::ObjectsInRange(const Vector3* point, float radius, stlp::list
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = node->data;
             float pz = point->z;
-            float ox = object->localPosition_.x + object->center.x;
-            float oy = object->localPosition_.y + object->center.y;
-            double reach = libcrt::Hypot(object->above.x, object->above.y) + radius;
+            float ox = object->localPosition_.x + object->bounds.center.x;
+            float oy = object->localPosition_.y + object->bounds.center.y;
+            double reach = libcrt::Hypot(object->bounds.boxMax.x, object->bounds.boxMax.y) + radius;
             float dx = ox - point->x;
             float dy = oy - point->y;
             float dz = pz - point->z;
@@ -782,9 +777,9 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
 }
 
 void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation) {
-    const Vector3& offset = item->offset;
-    const Vector3& low = item->boxMin;
-    const Vector3& high = item->boxMax;
+    const Vector3& offset = item->bounds.center;
+    const Vector3& low = item->bounds.boxMin;
+    const Vector3& high = item->bounds.boxMax;
     const Vector3& pivot = item->pivot;
 
     float q0 = rotation->w, q1 = rotation->x, q2 = rotation->y, q3 = rotation->z;
@@ -821,7 +816,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         record->x = rotated.x + position->x;
         record->y = rotated.y + position->y;
         record->z = rotated.z + position->z;
-        std::memcpy(&record->radius, &item->radius, 4);   // a dword move
+        std::memcpy(&record->radius, &item->bounds.radius, 4);   // a dword move
     }
 }
 
@@ -1303,22 +1298,30 @@ EI_REWRITTEN_SPECIAL(0x00561AE0, PlatformSet::~PlatformSet);
 
 // What LoadManagerObjects reads back: per object a 1, its id, type and a field, then its own Save; a 0
 // ends the list.
+void SaveListedObject(CEngineObject* object, CStream* stream) {
+    std::uint8_t more = 1;
+    stream->Write(&more, 1);
+    int id = object->id_;
+    stream->Write(&id, 4);
+    int type = object->type_;
+    stream->Write(&type, 4);
+    std::uint32_t extra = object->prototypeId_;
+    stream->Write(&extra, 4);
+    object->Save(stream);
+}
+
+void SaveListedObjectsEnd(CStream* stream) {
+    std::uint8_t more = 0;
+    stream->Write(&more, 1);
+}
+
 void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
     for (auto* node = list->head; node;) {
         CEngineObject* object = node->data;
         node = node->next;
-        std::uint8_t more = 1;
-        stream->Write(&more, 1);
-        int id = object->id_;
-        stream->Write(&id, 4);
-        int type = object->type_;
-        stream->Write(&type, 4);
-        std::uint32_t extra = object->prototypeId_;
-        stream->Write(&extra, 4);
-        object->Save(stream);
+        SaveListedObject(object, stream);
     }
-    std::uint8_t more = 0;
-    stream->Write(&more, 1);
+    SaveListedObjectsEnd(stream);
 }
 EI_REWRITTEN(0x0055E8A0, SaveListedObjects);
 

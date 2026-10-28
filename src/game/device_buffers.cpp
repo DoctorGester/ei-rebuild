@@ -23,8 +23,8 @@ void __cdecl FreeClipIndices() { g_clipIndices.FreeData(); }
 
 } // namespace devicebuffers
 
-EI_REPLACE(0x004E5C70, devicebuffers::FreeOutcodes);
-EI_REPLACE(0x004E5CC0, devicebuffers::FreeCornerOutcodes);
-EI_REPLACE(0x004E5D10, devicebuffers::FreeProjected);
-EI_REPLACE(0x004E5D60, devicebuffers::FreeVertices);
-EI_REPLACE(0x004E5E00, devicebuffers::FreeClipIndices);
+EI_REWRITTEN(0x004E5C70, devicebuffers::FreeOutcodes);
+EI_REWRITTEN(0x004E5CC0, devicebuffers::FreeCornerOutcodes);
+EI_REWRITTEN(0x004E5D10, devicebuffers::FreeProjected);
+EI_REWRITTEN(0x004E5D60, devicebuffers::FreeVertices);
+EI_REWRITTEN(0x004E5E00, devicebuffers::FreeClipIndices);

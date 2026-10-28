@@ -131,4 +131,4 @@ EI_REWRITTEN(0x005CDFC0, LogicSettings::Construct);
 
 // A static initialiser (cdecl): the defaults.
 void ConstructLogicSettings() { g_logicSettings.Construct(); }
-EI_REPLACE(0x005CDFB0, ConstructLogicSettings);
+EI_REWRITTEN(0x005CDFB0, ConstructLogicSettings);

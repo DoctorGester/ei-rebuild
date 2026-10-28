@@ -225,7 +225,7 @@ int __cdecl CompareCornerRecords(const void* a, const void* b) {
 int __cdecl CompareWordPairs(const void* a, const void* b) {
     return CompareFields(static_cast<const std::uint16_t*>(a), static_cast<const std::uint16_t*>(b), 2);
 }
-EI_REPLACE(0x0044CF00, CompareCornerRecords);
-EI_REPLACE(0x0044CF60, CompareWordPairs);
+EI_REWRITTEN(0x0044CF00, CompareCornerRecords);
+EI_REWRITTEN(0x0044CF60, CompareWordPairs);
 
 } // namespace scene

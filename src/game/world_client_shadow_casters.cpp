@@ -80,23 +80,23 @@ double LargestScale(const Vector3& s) {
 // The object's bounding sphere in the world (its bounds' centre through its placement and extra
 // scale, the radius by the largest scale); false without valid bounds.
 bool WorldSphere(const CObject3D* object, const Matrix& world, const Vector3& scale, render::ShadowCasterSphere* sphere) {
-    if ((object->boundsFlags & kBoundsValid) != kBoundsValid) return false;
-    const double c[3] = {static_cast<double>(object->center.x) * scale.x, static_cast<double>(object->center.y) * scale.y,
-                         static_cast<double>(object->center.z) * scale.z};
+    if ((object->bounds.flags & kBoundsValid) != kBoundsValid) return false;
+    const double c[3] = {static_cast<double>(object->bounds.center.x) * scale.x, static_cast<double>(object->bounds.center.y) * scale.y,
+                         static_cast<double>(object->bounds.center.z) * scale.z};
     double out[3];
     for (int i = 0; i < 3; ++i) {
         const double* row = world.m + i * 4;
         out[i] = DotUnrounded<Sum3::XYZ, double>(row[0], row[1], row[2], c[0], c[1], c[2]) + row[3];
     }
-    *sphere = {out[0], out[1], out[2], object->radius * LargestScale(scale)};
+    *sphere = {out[0], out[1], out[2], object->bounds.radius * LargestScale(scale)};
     return std::isfinite(sphere->x) && std::isfinite(sphere->y) && std::isfinite(sphere->z) && std::isfinite(sphere->radius);
 }
 
 // The top of an object's sphere, without its rotation: a bound for the ground rectangle's sweep.
 double TopOf(const CObject3D* object, const Vector3& scale) {
-    const double cx = static_cast<double>(object->center.x) * scale.x, cy = static_cast<double>(object->center.y) * scale.y,
-                 cz = static_cast<double>(object->center.z) * scale.z;
-    return object->localPosition_.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->radius * LargestScale(scale);
+    const double cx = static_cast<double>(object->bounds.center.x) * scale.x, cy = static_cast<double>(object->bounds.center.y) * scale.y,
+                 cz = static_cast<double>(object->bounds.center.z) * scale.z;
+    return object->localPosition_.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
 }
 
 // Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges_), found without the game's
@@ -212,10 +212,10 @@ const HighestObject& Highest(const CWorldClient* world) {
             const SectorList& cell = grid.rows_[y][x];
             for (auto* node = cell.head->next; node != cell.head; node = node->next) {
                 const auto* object = node->data;
-                if (!object || !object->attached || (object->boundsFlags & kBoundsValid) != kBoundsValid) continue;
+                if (!object || !object->attached || (object->bounds.flags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
                 top = (std::max)(top, TopOf(object, scale));
-                widest = (std::max)(widest, object->radius * LargestScale(scale));
+                widest = (std::max)(widest, object->bounds.radius * LargestScale(scale));
             }
         }
     g_highest.top = top;

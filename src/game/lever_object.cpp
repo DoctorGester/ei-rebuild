@@ -206,7 +206,7 @@ void Lever::SetLock(const LockKey* key) {
 EI_REWRITTEN(0x0052BB20, Lever::SetLock);
 
 bool Lever::Slot29True() { return true; }
-EI_REPLACE_METHOD(0x0052B2B0, Lever::Slot29True);
+EI_REWRITTEN(0x0052B2B0, Lever::Slot29True);
 
 int Lever::Flag260Slot() { return flag260; }
 EI_REWRITTEN(0x0052B2D0, Lever::Flag260Slot);
@@ -235,7 +235,7 @@ EI_REWRITTEN(0x0052BB50, Lever::ApplyKey);
 BOOL Lever::KeyOpens(const LockKey* key) { return key->Opens(&lock); }
 EI_REWRITTEN(0x0052BBA0, Lever::KeyOpens);
 
-double Lever::RadiusSlot() { return radius; }
+double Lever::RadiusSlot() { return bounds.radius; }
 EI_REWRITTEN(0x0052B3E0, Lever::RadiusSlot);
 
 const char* Lever::GetClassName() { return kLeverClassName; }

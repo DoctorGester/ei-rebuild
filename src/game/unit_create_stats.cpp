@@ -257,7 +257,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
         SetBits(stats->rateBase, kRate15);
         CopyDword(stats->speedBase, prototype->speed);
     }
-    CopyDword(stats->prototypeField12, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
@@ -284,7 +284,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     LearnNpcSkills(stats, npc);
     return 1;
 }
-EI_REPLACE_METHOD(0x005136D0, CMapObjectManager::BuildFromPrototype);
+EI_REWRITTEN(0x005136D0, CMapObjectManager::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const Prototype* prototype = FindPrototype(name);
@@ -316,7 +316,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
         SetBits(stats->rateBase, kRate15);
         SetBits(stats->rate, kRate15);
     }
-    CopyDword(stats->prototypeField12, prototype->field12);
+    CopyDword(stats->attackCategory, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);
@@ -512,7 +512,7 @@ namespace {
 
 bool NamesRequirement(const std::string& text) {
     if (text.size() == 0) return false;
-    return gamecrt::mbscmp(text.c_str(),
+    return gamecrt::mbscmp(text,
                            "none") != 0;
 }
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
@@ -524,12 +524,12 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     if (stat10 < record->RequiredStat(0)) return 0;
     if (stat18 < record->RequiredStat(1)) return 0;
     if (stat20 < record->RequiredStat(2)) return 0;
-    if (NamesRequirement(record->requiredSkillName.c_str())) {
+    if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record->requiredLevelName.c_str())) {
+    if (NamesRequirement(record->requiredLevelName)) {
         int required = database->IndexOf(record->requiredLevelName.c_str());
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }

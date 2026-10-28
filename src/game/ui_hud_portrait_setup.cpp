@@ -36,12 +36,7 @@ float Thin() { return 0.2f /*0073BAD4*/; }
 float Fat() { return 0.8f /*0073CCA8*/; }
 
 // The inlined strcmp(a, b) == 0.
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
-}
+bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
 // EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".

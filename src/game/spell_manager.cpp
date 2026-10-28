@@ -138,9 +138,7 @@ CSpellContainer::CSpellContainer() {
     ClearFields();
     modifiers_.Construct();
     // The code string: empty, with room for 8 bytes.
-    codes_ = codesEnd_ = stlp::allocate_as<char>(8);
-    codesCapacity_ = codes_ + 8;
-    *codesEnd_ = '\0';
+    stlp::string::Reserve(codes_, 8);
     CSpellContainer::Create();
 }
 EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);
@@ -150,7 +148,6 @@ CSpellContainer::~CSpellContainer() {
     prototype_ = nullptr;
     FreeModifierNodes(modifiers_.head);
     Spell()->Destroy();
-    if (codes_) stlp::deallocate(codes_, static_cast<std::size_t>(codesCapacity_ - codes_));
     // The list's destructor: its (empty) clear, then the sentinel.
     FreeModifierNodes(modifiers_.head);
     stlp::deallocate(modifiers_.head, sizeof(SpellModifierNode));

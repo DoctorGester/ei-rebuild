@@ -68,7 +68,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     }
     int drawFlags = 0;
     mesh_->flags_ &= ~0x40u;
-    int visibility = device->pipeline_->ClipTest(&mesh_->bounds_);
+    int visibility = device->pipeline_->ClipTest(&mesh_->box_.bounds);
     if (visibility == 2) return 1;
     int type = static_cast<int>(mesh_->meshType_);
     if (type >= 13 && type <= 16) {
@@ -116,4 +116,4 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     return 1;
 }
 EI_REWRITTEN(0x005A7640, FigureMeshDrawer::DrawPlain);
-EI_REPLACE(0x005A7A50, FreeMovedPositions);
+EI_REWRITTEN(0x005A7A50, FreeMovedPositions);

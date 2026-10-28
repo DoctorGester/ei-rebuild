@@ -1027,7 +1027,6 @@ src/game/zone_records.cpp
 src/standalone/host.cpp
 src/standalone/image_cells.inc
 src/standalone/image_code.cpp
-src/standalone/image_code_cells.inc
 src/standalone/image_data.cpp
 src/standalone/image_imports.cpp
 src/standalone/image_imports.inc

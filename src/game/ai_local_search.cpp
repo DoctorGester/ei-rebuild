@@ -262,7 +262,7 @@ void LocalSearch::PathTo(int x, int y, PathCellList* out) {
     }
     AddHead(out, cellAt(wx, wy));
 }
-EI_REPLACE_METHOD(0x005C3200, LocalSearch::PathTo);
+EI_REWRITTEN(0x005C3200, LocalSearch::PathTo);
 
 bool LocalSearch::PlaceWindow(int x0, int y0, int x1, int y1) {
     if (CdqAbs(x0 - x1) >= 32 || CdqAbs(y0 - y1) >= 32) return false;

@@ -77,17 +77,17 @@ public:
     };
     using Stack = stlp::list<Ref>;
     static_assert(sizeof(Stack::Node) == 0x18);
-    using SavedList = stlp::list<CRefObject*>;
+    using SavedList = stlp::list<CRefCounted*>;
 
     // While loading: key -> the object the index names (by the key its record is stored under).
-    using LoadedObjects = stlp::hash_map<std::uint32_t, CRefObject*, stlp::IntHash>;
+    using LoadedObjects = stlp::hash_map<std::uint32_t, CRefCounted*, stlp::IntHash>;
     // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
     // instead of the object's address.
-    using SavedNumbers = stlp::hash_map<const CRefObject*, std::uint32_t, stlp::PointerHash>;
+    using SavedNumbers = stlp::hash_map<const CRefCounted*, std::uint32_t, stlp::PointerHash>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
-    using Factory = CRefObject*(__cdecl*)();
+    using Factory = CRefCounted*(__cdecl*)();
     struct ClassRegistry {
         using ClassIdMap = stlp::hash_map<std::uint32_t, std::int32_t, stlp::IntHash>;
         ClassIdMap classIds;     // vtable -> class id
@@ -119,8 +119,8 @@ public:
     void CStringField(int id, Text* s);
     void StringField(int id, stlp::string* s);
     void StreamField(int id, CMemoryStream* s);       // chunk `id` {1: size, 2: bytes}
-    void SaveObjectRef(int id, CRefObject* object);   // object's number, object kept for Close
-    CRefObject* ObjectRef(int id);                    // the object a saved key stands for
+    void SaveObjectRef(int id, CRefCounted* object);   // object's number, object kept for Close
+    CRefCounted* ObjectRef(int id);                    // the object a saved key stands for
 
     // Starts a load (`loading`, a byte: reads the index chunk 0, data chunk 2 and the
     // object records from `stream`) or a save (`version` kept for Close).

@@ -9,7 +9,7 @@ Vector3* Vector3::Construct(float x_, float y_, float z_) {
     z = z_;
     return this;
 }
-EI_REPLACE_METHOD(0x00401DE0, Vector3::Construct);
+EI_REWRITTEN(0x00401DE0, Vector3::Construct);
 
 // Dot, Length and the squared length in FromAxisAngle use the unrounded forms: the game keeps the
 // sum unrounded in ST0, and DotZYX / LengthXYZ / LengthSquaredXYZ (the same groupings) round it to
@@ -17,12 +17,12 @@ EI_REPLACE_METHOD(0x00401DE0, Vector3::Construct);
 float __fastcall Dot(const Vector3& a, const Vector3& b) {
     return DotUnrounded<Sum3::ZYX>(a, b);
 }
-EI_REPLACE(0x00401E00, Dot);
+EI_REWRITTEN(0x00401E00, Dot);
 
 float Vector3::Length() const {
     return static_cast<float>(std::sqrt(static_cast<double>(LengthSquaredUnrounded<Sum3::XYZ>(*this))));
 }
-EI_REPLACE_METHOD(0x00401E20, Vector3::Length);
+EI_REWRITTEN(0x00401E20, Vector3::Length);
 
 void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
     double half = angle * 0.5f;
@@ -33,4 +33,4 @@ void Quaternion::FromAxisAngle(const Vector3& axis, float angle) {
     y = s * axis.y;
     z = s * axis.z;
 }
-EI_REPLACE_METHOD(0x0049ECC0, Quaternion::FromAxisAngle);
+EI_REWRITTEN(0x0049ECC0, Quaternion::FromAxisAngle);

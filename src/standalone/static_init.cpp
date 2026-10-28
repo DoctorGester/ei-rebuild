@@ -5,17 +5,175 @@
 // Stores, float folds and fills into game.exe's data that a named global of ours holds (config/named_data.csv: its
 // definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
 // out"; docs/notes/standalone.md, "Named data (C18)").
-// The standalone image runs them before WinMain (Run in static_init.h); the verify build compares the
-// stores and float folds with what the original's initialisers left in memory (Check). Calls go to the
-// callee's address in the image: our rewrite through its jump, or a library port.
+// The standalone image runs them before WinMain (Run in static_init.h). A call or atexit of a ported function names
+// it (d.Call, d.AtExit); one by address goes to CodeAddress's code for it (a registration, or the stub of a function
+// with no port yet).
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
+#include "lib/crt.h"
+#include "lib/mfc_exception.h"
 #include "lib/mfc_gdi.h"
+#include "lib/mfc_state.h"
 #include "lib/mfc_static_objects.h"
+#include "lib/mfc_string.h"
 #include "lib/mfc_window.h"
 #include "lib/static_object.h"
 
+void __cdecl BuildSectorSpiralStatic();
+void __cdecl BuildSmoothTables();
+void __cdecl BuildWeatherNoise();
+void __cdecl ConstructAckDatabase();
+void __cdecl ConstructCamera();
+void __cdecl ConstructClassRegistry();
+void __cdecl ConstructClientWorld();
+void __cdecl ConstructDataFolder();
+void __cdecl ConstructDeviceLock();
+void __cdecl ConstructDiscFolder();
+void __cdecl ConstructDrawOrder();
+void __cdecl ConstructEventPool();
+void __cdecl ConstructGameCursor();
+void __cdecl ConstructGameFlow();
+void __cdecl ConstructInterface();
+void __cdecl ConstructItemDatabase();
+void __cdecl ConstructLastQuest();
+void __cdecl ConstructLeverTable();
+void __cdecl ConstructLineOutcodes();
+void __cdecl ConstructLogicSettings();
+void __cdecl ConstructMapDatabase();
+void __cdecl ConstructPartyIdSet();
+void __cdecl ConstructPartyManager();
+void __cdecl ConstructPrintsDatabase();
+void __cdecl ConstructQuestDatabase();
+void __cdecl ConstructReceiveBuffer();
+void __cdecl ConstructReceivedMessages();
+void __cdecl ConstructRegistryRoot();
+void __cdecl ConstructSaveStream();
+void __cdecl ConstructSavedParties();
+void __cdecl ConstructSceneRenderer();
+void __cdecl ConstructSendBuffer();
+void __cdecl ConstructServerWorld();
+void __cdecl ConstructSmoothPool();
+void __cdecl ConstructSmoothTables();
+void __cdecl ConstructSpellDatabase();
+void __cdecl ConstructSpellFootprint();
+void __cdecl ConstructSpiralLengths();
+void __cdecl ConstructSpiralOffsets();
+void __cdecl ConstructSpiralRadii();
+void __cdecl ConstructStartFolder();
+void __cdecl ConstructTextFolder();
+void __cdecl ConstructUnitShapes();
+void __cdecl ConstructUnreadSet();
+void __cdecl ConstructWorkWords();
+void __cdecl DestroyQuestFiles();
+void __cdecl DestroyQuestFolders();
+void __cdecl DestroyZoneTable();
+void __cdecl FreeCandidates();
+void __cdecl FreeLineProjected();
+void __cdecl FreeLineVertices();
+void __cdecl FreeMovedPackets();
+void __cdecl FreeOffsetVertices();
+void __cdecl FreePixels();
+void __cdecl FreePoints();
+void __cdecl FreeQuads();
+void __cdecl FreeShadow52();
+void __cdecl FreeShadow54();
+void __cdecl FreeShadow5D();
+void __cdecl FreeShadowOther();
+void __cdecl FreeShadowUnits();
+void __cdecl FreeTakenMaterials();
+void __cdecl FreeTakenModifiers();
+void __cdecl FreeTakenPrototypes();
+void __cdecl FreeTakenSpells();
+void __cdecl FreeTouchedModels();
+void __cdecl FreeVisible52();
+void __cdecl FreeVisible54();
+void __cdecl FreeVisible5D();
+void __cdecl FreeVisibleOther();
+void __cdecl FreeVisibleUnits();
+void __cdecl InitCodeTables();
+void __cdecl InitDampScale();
+void __cdecl InitGameClientPointer();
+void __cdecl InitGameServerPointer();
+void __cdecl LinkDibClass();
+void __cdecl ReleaseLoadingHolder();
+void __cdecl SysInfoStaticGuard();
+void __cdecl SysInfoStaticHalfPi();
+void __cdecl SysInfoStaticInit();
+void __cdecl SysInfoStaticInversePi();
+void __cdecl SysInfoStaticQuarterPi();
+void __cdecl SysInfoStaticTwoPi();
+
+namespace app {
+void __cdecl ConstructCameraFile();
+void __cdecl ConstructCommandLineMap();
+void __cdecl ConstructCommandLineMob();
+void __cdecl ConstructCommandLineScript();
+void __cdecl ConstructMovieFolder();
+void __cdecl ReleaseMouseAtExit();
+} // namespace app
+
+namespace devicebuffers {
+void __cdecl FreeClipIndices();
+void __cdecl FreeCornerOutcodes();
+void __cdecl FreeOutcodes();
+void __cdecl FreeProjected();
+void __cdecl FreeVertices();
+} // namespace devicebuffers
+
+namespace ei::short_functions {
+void Ret();
+} // namespace ei::short_functions
+
+namespace ei::static_init {
+void __cdecl Exit00704433();
+void __cdecl Exit00704471();
+void __cdecl Exit007044AF();
+void __cdecl Exit007044ED();
+void __cdecl Exit0070BF5A();
+void __cdecl Exit0070C0B8();
+void __cdecl Exit0070C0F8();
+void __cdecl Exit0070CC23();
+void __cdecl Exit0070CE6D();
+void __cdecl Exit0070D3F3();
+void __cdecl Exit0070D5EF();
+void __cdecl Exit0070D615();
+void __cdecl Exit0070DC3E();
+void __cdecl Exit0070DD30();
+} // namespace ei::static_init
+
+namespace mfc::impl {
+void __cdecl ConstructAfxData();
+void __cdecl ConstructSimpleMemoryException();
+void __cdecl ConstructSimpleNotSupportedException();
+void __cdecl ConstructSimpleResourceException();
+void __cdecl RegisterDragListMessage();
+} // namespace mfc::impl
+
+namespace net {
+void __cdecl CleanUpWinsock();
+} // namespace net
+
+namespace options {
+void __cdecl ConstructGameOptions();
+} // namespace options
+
+namespace static_lists {
+void __cdecl ConstructDeferredUnitsList();
+void __cdecl ConstructDriversList();
+void __cdecl ConstructProtectionChecksList();
+} // namespace static_lists
+
+namespace terrain {
+void __cdecl ConstructProjectionOutcodes();
+void __cdecl FreeProjectionInput();
+void __cdecl FreeProjectionOutput();
+} // namespace terrain
+
+namespace unitdb {
+void __cdecl ConstructSkillDatabaseGlobal();
+void __cdecl ConstructUnitDatabaseGlobal();
+} // namespace unitdb
 namespace ei::static_init {
 
 template <class Do>
@@ -34,47 +192,47 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x007007AB);
     // 0070C093: constructor + atexit (inlined 0070C09D, 0070C0AC)
     d.Begin(0x0070C093);
-    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempDCAlloc, 0x10, 0x40);
-    d.AtExit(0x0070C0B8);
+    d.Call(&mfc::impl::CFixedAlloc::Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40);
+    d.AtExit(Exit0070C0B8);
     // 0070C0D3: constructor + atexit (inlined 0070C0DD, 0070C0EC)
     d.Begin(0x0070C0D3);
-    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempGdiObjectAlloc, 8, 0x40);
-    d.AtExit(0x0070C0F8);
+    d.Call(&mfc::impl::CFixedAlloc::Construct, &mfc::impl::g_tempGdiObjectAlloc, 8, 0x40);
+    d.AtExit(Exit0070C0F8);
     // 0070CC0C: atexit (inlined 0070CC16, 0070CC17)
     d.Begin(0x0070CC0C);
-    d.AtExit(0x0070CC23);
+    d.AtExit(Exit0070CC23);
     // 0070CE56: atexit (inlined 0070CE60, 0070CE61)
     d.Begin(0x0070CE56);
-    d.AtExit(0x0070CE6D);
+    d.AtExit(Exit0070CE6D);
     // 0070D3CE: constructor + atexit (inlined 0070D3D8, 0070D3E7)
     d.Begin(0x0070D3CE);
-    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempWndAlloc, 0x3C, 0x40);
-    d.AtExit(0x0070D3F3);
+    d.Call(&mfc::impl::CFixedAlloc::Construct, &mfc::impl::g_tempWndAlloc, 0x3C, 0x40);
+    d.AtExit(Exit0070D3F3);
     // 0070DD0B: constructor + atexit (inlined 0070DD15, 0070DD24)
     d.Begin(0x0070DD0B);
-    d.Thiscall(0x006E6BCD, &mfc::impl::g_tempMenuAlloc, 8, 0x40);
-    d.AtExit(0x0070DD30);
+    d.Call(&mfc::impl::CFixedAlloc::Construct, &mfc::impl::g_tempMenuAlloc, 8, 0x40);
+    d.AtExit(Exit0070DD30);
     // 0070D5D8: atexit (inlined 0070D5E2, 0070D5E3)
     d.Begin(0x0070D5D8);
-    d.AtExit(0x0070D5EF);
+    d.AtExit(Exit0070D5EF);
     // 0070D5FE: atexit (inlined 0070D608, 0070D609)
     d.Begin(0x0070D5FE);
-    d.AtExit(0x0070D615);
+    d.AtExit(Exit0070D615);
     // 0070DC27: atexit (inlined 0070DC31, 0070DC32)
     d.Begin(0x0070DC27);
-    d.AtExit(0x0070DC3E);
+    d.AtExit(Exit0070DC3E);
     // 004013B0: guarded atexit
     d.Begin(0x004013B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004013E0: stores; 3 left out
     d.Begin(0x004013E0);
     // 00401420: guarded atexit
     d.Begin(0x00401420);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004022B0: float fold; 1 left out
     d.Begin(0x004022B0);
     // 00401440: stores; 3 left out
@@ -85,20 +243,20 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00402290);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00407400: guarded atexit
     d.Begin(0x00407400);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00408D30: registered
     d.Begin(0x00408D30);
-    d.Cdecl(0x00408D30);
+    d.Call(ConstructClassRegistry);
     // 0040BDF0: guarded atexit
     d.Begin(0x0040BDF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0040C830: float fold; 1 left out
     d.Begin(0x0040C830);
     // 0040C840: float fold; 1 left out
@@ -111,12 +269,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0040C860);
     // 0040C880: registered
     d.Begin(0x0040C880);
-    d.Cdecl(0x0040C880);
+    d.Call(ConstructCamera);
     // 00412170: guarded atexit
     d.Begin(0x00412170);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004121C0: stores; 3 left out
     d.Begin(0x004121C0);
     // 004121E0: stores; 4 left out
@@ -125,15 +283,15 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00412210);
     // 00412230: registered
     d.Begin(0x00412230);
-    d.Cdecl(0x00412230);
+    d.Call(InitGameServerPointer);
     // 00412280: registered
     d.Begin(0x00412280);
-    d.Cdecl(0x00412280);
+    d.Call(InitGameClientPointer);
     // 0042A5B0: guarded atexit
     d.Begin(0x0042A5B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0042BE70: stores; 3 left out
     d.Begin(0x0042BE70);
     // 0042BE90: stores; 4 left out
@@ -142,7 +300,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0042D600);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0042D620: stores; 3 left out
     d.Begin(0x0042D620);
     // 0042D640: stores; 4 left out
@@ -153,50 +311,50 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0042D8A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0042D8C0: stores; 3 left out
     d.Begin(0x0042D8C0);
     // 0042D8E0: registered
     d.Begin(0x0042D8E0);
-    d.Cdecl(0x0042D8E0);
+    d.Call(ConstructWorkWords);
     // 0042E6B0: stores; 3 left out
     d.Begin(0x0042E6B0);
     // 0042E6D0: stores; 4 left out
     d.Begin(0x0042E6D0);
     // 0042FAE0: registered
     d.Begin(0x0042FAE0);
-    d.Cdecl(0x0042FAE0);
+    d.Call(InitCodeTables);
     // 00431070: guarded atexit
     d.Begin(0x00431070);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00432CA0: registered
     d.Begin(0x00432CA0);
-    d.Cdecl(0x00432CA0);
+    d.Call(ConstructSendBuffer);
     // 00432CE0: registered
     d.Begin(0x00432CE0);
-    d.Cdecl(0x00432CE0);
+    d.Call(ConstructReceiveBuffer);
     // 0043FCE0: guarded atexit
     d.Begin(0x0043FCE0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00441320: guarded atexit
     d.Begin(0x00441320);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00444070: guarded atexit
     d.Begin(0x00444070);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004445F0: guarded atexit
     d.Begin(0x004445F0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00444610: stores; 3 left out
     d.Begin(0x00444610);
     // 00444630: stores; 4 left out
@@ -208,7 +366,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00445BB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004461F0: stores; 3 left out
     d.Begin(0x004461F0);
     // 00446210: stores; 4 left out
@@ -219,7 +377,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00454320);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00455440: stores; 3 left out
     d.Begin(0x00455440);
     // 00455460: stores; 4 left out
@@ -230,14 +388,14 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004558F0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00455910: stores; 3 left out
     d.Begin(0x00455910);
     // 004559A0: guarded atexit
     d.Begin(0x004559A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004559C0: stores; 3 left out
     d.Begin(0x004559C0);
     // 004559E0: stores; 4 left out
@@ -246,33 +404,33 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00455A10);
     // 00455CE0: registered
     d.Begin(0x00455CE0);
-    d.Cdecl(0x00455CE0);
+    d.Call(app::ConstructCameraFile);
     // 00455D10: registered
     d.Begin(0x00455D10);
-    d.Cdecl(0x00455D10);
+    d.Call(app::ConstructCommandLineScript);
     // 00455D40: registered
     d.Begin(0x00455D40);
-    d.Cdecl(0x00455D40);
+    d.Call(app::ConstructCommandLineMob);
     // 00455D70: registered
     d.Begin(0x00455D70);
-    d.Cdecl(0x00455D70);
+    d.Call(app::ConstructCommandLineMap);
     // 00455DA0: registered
     d.Begin(0x00455DA0);
-    d.Cdecl(0x00455DA0);
+    d.Call(app::ConstructMovieFolder);
     // 00455DD0: stores + atexit; 1 left out
     d.Begin(0x00455DD0);
-    d.AtExit(0x00455DF0);
+    d.AtExit(app::ReleaseMouseAtExit);
     // 00455E30: registered
     d.Begin(0x00455E30);
-    d.Cdecl(0x00455E30);
+    d.Call(static_lists::ConstructProtectionChecksList);
     // 004586C0: guarded atexit
     d.Begin(0x004586C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00458700: registered
     d.Begin(0x00458700);
-    d.Cdecl(0x00458700);
+    d.Call(options::ConstructGameOptions);
     // 0045D3B0: stores; 3 left out
     d.Begin(0x0045D3B0);
     // 0045E2A0: float fold; 1 left out
@@ -289,17 +447,17 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0045E690);
     // 0045E6C0: registered
     d.Begin(0x0045E6C0);
-    d.Cdecl(0x0045E6C0);
+    d.Call(ConstructMapDatabase);
     // 00460890: guarded atexit
     d.Begin(0x00460890);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004618D0: guarded atexit
     d.Begin(0x004618D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00461BA0: stores; 3 left out
     d.Begin(0x00461BA0);
     // 00461BC0: stores; 4 left out
@@ -310,12 +468,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00462210);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00462940: guarded atexit
     d.Begin(0x00462940);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00462BC0: stores; 3 left out
     d.Begin(0x00462BC0);
     // 00462BE0: stores; 4 left out
@@ -324,24 +482,24 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00462FB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00462FD0: stores; 3 left out
     d.Begin(0x00462FD0);
     // 004630B0: guarded atexit
     d.Begin(0x004630B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004630D0: stores; 3 left out
     d.Begin(0x004630D0);
     // 004630F0: registered
     d.Begin(0x004630F0);
-    d.Cdecl(0x004630F0);
+    d.Call(ConstructLeverTable);
     // 00464DD0: guarded atexit
     d.Begin(0x00464DD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00465E90: stores; 3 left out
     d.Begin(0x00465E90);
     // 00465EB0: stores; 4 left out
@@ -350,7 +508,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00468FC0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00469020: stores; 3 left out
     d.Begin(0x00469020);
     // 00469040: stores; 4 left out
@@ -361,7 +519,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0046F140);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0046F180: stores; 3 left out
     d.Begin(0x0046F180);
     // 0046F1A0: stores; 4 left out
@@ -372,7 +530,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00477560);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00477580: stores; 3 left out
     d.Begin(0x00477580);
     // 004775A0: stores; 4 left out
@@ -383,7 +541,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00477E40);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00479660: stores; 3 left out
     d.Begin(0x00479660);
     // 00479680: stores; 4 left out
@@ -392,7 +550,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0047A6B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0047AD50: stores; 3 left out
     d.Begin(0x0047AD50);
     // 0047AD70: stores; 4 left out
@@ -401,23 +559,23 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0047B960);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0047C300: constructor + atexit
     d.Begin(0x0047C300);
-    d.Stdcall(0x006E6106, 0x101, d.Local(0));
-    d.AtExit(0x0047C330);
+    d.Call(libcrt::imports::WsaStartup, 0x101, d.Local(0));
+    d.AtExit(net::CleanUpWinsock);
     // 0047D7D0: stores; 3 left out
     d.Begin(0x0047D7D0);
     // 00480020: guarded atexit
     d.Begin(0x00480020);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00481540: guarded atexit
     d.Begin(0x00481540);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004815F0: stores; 3 left out
     d.Begin(0x004815F0);
     // 00481610: stores; 4 left out
@@ -428,7 +586,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00483D20);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004846E0: float fold; 1 left out
     d.Begin(0x004846E0);
     // 00484690: stores; 3 left out
@@ -441,7 +599,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00497F30);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00497F50: stores; 3 left out
     d.Begin(0x00497F50);
     // 00497F70: stores; 4 left out
@@ -450,12 +608,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00497FA0);
     // 00498910: registered
     d.Begin(0x00498910);
-    d.Cdecl(0x00498910);
+    d.Call(ConstructDrawOrder);
     // 00499750: guarded atexit
     d.Begin(0x00499750);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0049AC80: stores; 3 left out
     d.Begin(0x0049AC80);
     // 0049ACA0: stores; 3 left out
@@ -466,27 +624,27 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0049B110);
     // 0049B460: stores + atexit; 4 left out
     d.Begin(0x0049B460);
-    d.AtExit(0x0049B490);
+    d.AtExit(FreeLineVertices);
     // 0049B6B0: registered
     d.Begin(0x0049B6B0);
-    d.Cdecl(0x0049B6B0);
+    d.Call(ConstructLineOutcodes);
     // 0049B6E0: stores + atexit; 4 left out
     d.Begin(0x0049B6E0);
-    d.AtExit(0x0049B710);
+    d.AtExit(FreeLineProjected);
     // 0049B730: stores + atexit; 5 left out
     d.Begin(0x0049B730);
     // 0049BB30: guarded atexit
     d.Begin(0x0049BB30);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0049BB50: stores; 3 left out
     d.Begin(0x0049BB50);
     // 0049DE50: guarded atexit
     d.Begin(0x0049DE50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0049E740: stores; 3 left out
     d.Begin(0x0049E740);
     // 0049E760: stores; 4 left out
@@ -503,7 +661,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004A2990);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004A4880: stores; 3 left out
     d.Begin(0x004A4880);
     // 004A48A0: stores; 4 left out
@@ -512,19 +670,19 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004A48D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004A5680: stores; 3 left out
     d.Begin(0x004A5680);
     // 004A56A0: stores; 4 left out
     d.Begin(0x004A56A0);
     // 004A56D0: registered
     d.Begin(0x004A56D0);
-    d.Cdecl(0x004A56D0);
+    d.Call(ConstructPartyManager);
     // 004AD4E0: guarded atexit
     d.Begin(0x004AD4E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004B1720: stores; 3 left out
     d.Begin(0x004B1720);
     // 004B1740: stores; 4 left out
@@ -541,7 +699,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004CE1C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004CF420: stores; 3 left out
     d.Begin(0x004CF420);
     // 004CF440: stores; 4 left out
@@ -550,7 +708,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D6820);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004D6890: stores; 3 left out
     d.Begin(0x004D6890);
     // 004D68B0: stores; 4 left out
@@ -561,7 +719,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D6C00);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004D6C20: stores; 3 left out
     d.Begin(0x004D6C20);
     // 004D6C40: empty
@@ -570,7 +728,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D90A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004D90C0: stores; 3 left out
     d.Begin(0x004D90C0);
     // 004D90E0: stores; 4 left out
@@ -579,7 +737,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004D9EF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004D9F10: stores; 3 left out
     d.Begin(0x004D9F10);
     // 004DA100: float fold; 1 left out
@@ -594,33 +752,33 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004DB850);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004DB870: registered
     d.Begin(0x004DB870);
-    d.Cdecl(0x004DB870);
+    d.Call(ConstructUnreadSet);
     // 004DD860: guarded atexit
     d.Begin(0x004DD860);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004DDCB0: registered
     d.Begin(0x004DDCB0);
-    d.Cdecl(0x004DDCB0);
+    d.Call(SysInfoStaticTwoPi);
     // 004DDCCD: registered
     d.Begin(0x004DDCCD);
-    d.Cdecl(0x004DDCCD);
+    d.Call(SysInfoStaticHalfPi);
     // 004DDCEE: registered
     d.Begin(0x004DDCEE);
-    d.Cdecl(0x004DDCEE);
+    d.Call(SysInfoStaticQuarterPi);
     // 004DDD0F: registered
     d.Begin(0x004DDD0F);
-    d.Cdecl(0x004DDD0F);
+    d.Call(SysInfoStaticInversePi);
     // 004DDD30: registered
     d.Begin(0x004DDD30);
-    d.Cdecl(0x004DDD30);
+    d.Call(SysInfoStaticInit);
     // 004DE855: registered
     d.Begin(0x004DE855);
-    d.Cdecl(0x004DE855);
+    d.Call(SysInfoStaticGuard);
     // 004DE8E0: stores; 3 left out
     d.Begin(0x004DE8E0);
     // 004DE900: stores; 4 left out
@@ -629,7 +787,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004E16E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004E1700: stores; 3 left out
     d.Begin(0x004E1700);
     // 004E1720: stores; 4 left out
@@ -640,7 +798,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004E35F0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004E3850: stores; 3 left out
     d.Begin(0x004E3850);
     // 004E3870: stores; 4 left out
@@ -659,51 +817,51 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004E3AD0);
     // 004E3B20: registered
     d.Begin(0x004E3B20);
-    d.Cdecl(0x004E3B20);
+    d.Call(BuildWeatherNoise);
     // 004E5730: guarded atexit
     d.Begin(0x004E5730);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004E5BF0: stores; 3 left out
     d.Begin(0x004E5BF0);
     // 004E5C10: stores; 4 left out
     d.Begin(0x004E5C10);
     // 004E5C40: stores + atexit; 4 left out
     d.Begin(0x004E5C40);
-    d.AtExit(0x004E5C70);
+    d.AtExit(devicebuffers::FreeOutcodes);
     // 004E5C90: stores + atexit; 4 left out
     d.Begin(0x004E5C90);
-    d.AtExit(0x004E5CC0);
+    d.AtExit(devicebuffers::FreeCornerOutcodes);
     // 004E5CE0: stores + atexit; 4 left out
     d.Begin(0x004E5CE0);
-    d.AtExit(0x004E5D10);
+    d.AtExit(devicebuffers::FreeProjected);
     // 004E5D30: stores + atexit; 4 left out
     d.Begin(0x004E5D30);
-    d.AtExit(0x004E5D60);
+    d.AtExit(devicebuffers::FreeVertices);
     // 004E5D80: stores + atexit; 5 left out
     d.Begin(0x004E5D80);
     // 004E5DD0: stores + atexit; 4 left out
     d.Begin(0x004E5DD0);
-    d.AtExit(0x004E5E00);
+    d.AtExit(devicebuffers::FreeClipIndices);
     // 004ECEA0: guarded atexit
     d.Begin(0x004ECEA0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004ED500: stores; 3 left out
     d.Begin(0x004ED500);
     // 004ED520: registered
     d.Begin(0x004ED520);
-    d.Cdecl(0x004ED520);
+    d.Call(static_lists::ConstructDriversList);
     // 004F0AC0: guarded atexit
     d.Begin(0x004F0AC0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004F0B10: registered
     d.Begin(0x004F0B10);
-    d.Cdecl(0x004F0B10);
+    d.Call(ConstructDeviceLock);
     // 004F0B40: stores; 3 left out
     d.Begin(0x004F0B40);
     // 004F0B60: stores; 4 left out
@@ -712,19 +870,19 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004F2A80);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004F2AA0: stores; 3 left out
     d.Begin(0x004F2AA0);
     // 004F2AC0: stores; 4 left out
     d.Begin(0x004F2AC0);
     // 004F2AF0: stores + atexit; 4 left out
     d.Begin(0x004F2AF0);
-    d.AtExit(0x004F2B20);
+    d.AtExit(FreeMovedPackets);
     // 004F65D0: guarded atexit
     d.Begin(0x004F65D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004F6870: stores; 3 left out
     d.Begin(0x004F6870);
     // 004F6890: stores; 4 left out
@@ -733,7 +891,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x004FC680);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 004FCA10: stores; 3 left out
     d.Begin(0x004FCA10);
     // 004FCA30: stores; 4 left out
@@ -742,7 +900,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00500070);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005003F0: stores; 3 left out
     d.Begin(0x005003F0);
     // 00500410: stores; 4 left out
@@ -751,7 +909,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005008A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005008C0: stores; 3 left out
     d.Begin(0x005008C0);
     // 005008E0: stores; 4 left out
@@ -760,12 +918,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00500910);
     // 00500930: registered
     d.Begin(0x00500930);
-    d.Cdecl(0x00500930);
+    d.Call(ConstructSceneRenderer);
     // 005053A0: guarded atexit
     d.Begin(0x005053A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005053C0: stores; 3 left out
     d.Begin(0x005053C0);
     // 005053E0: stores; 4 left out
@@ -774,7 +932,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0050A560);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0050A580: stores; 3 left out
     d.Begin(0x0050A580);
     // 0050A5A0: stores; 4 left out
@@ -783,7 +941,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0050E190);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0050E1D0: stores; 3 left out
     d.Begin(0x0050E1D0);
     // 0050E1F0: stores; 4 left out
@@ -792,7 +950,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00510320);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005103C0: stores; 3 left out
     d.Begin(0x005103C0);
     // 005103E0: stores; 4 left out
@@ -805,7 +963,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00512470);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00512570: stores; 3 left out
     d.Begin(0x00512570);
     // 00512590: stores; 4 left out
@@ -816,7 +974,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00514AD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005155A0: stores; 3 left out
     d.Begin(0x005155A0);
     // 005155C0: stores; 4 left out
@@ -827,7 +985,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00515B60);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00515B80: stores; 3 left out
     d.Begin(0x00515B80);
     // 00515BA0: stores; 4 left out
@@ -836,7 +994,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0051A150);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0051A2A0: stores; 3 left out
     d.Begin(0x0051A2A0);
     // 0051A2C0: stores; 4 left out
@@ -845,18 +1003,18 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0051A2F0);
     // 0051CBD0: stores + atexit; 4 left out
     d.Begin(0x0051CBD0);
-    d.AtExit(0x0051CC00);
+    d.AtExit(FreeQuads);
     // 0051CDA0: stores + atexit; 4 left out
     d.Begin(0x0051CDA0);
-    d.AtExit(0x0051CDD0);
+    d.AtExit(FreePoints);
     // 0051CE00: stores + atexit; 4 left out
     d.Begin(0x0051CE00);
-    d.AtExit(0x0051CE30);
+    d.AtExit(FreePixels);
     // 0051EFB0: guarded atexit
     d.Begin(0x0051EFB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0051F1D0: stores; 3 left out
     d.Begin(0x0051F1D0);
     // 0051F1F0: stores; 4 left out
@@ -867,20 +1025,20 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0051F340);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0051F590: guarded atexit
     d.Begin(0x0051F590);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0051FAF0: registered
     d.Begin(0x0051FAF0);
-    d.Cdecl(0x0051FAF0);
+    d.Call(unitdb::ConstructSkillDatabaseGlobal);
     // 005209B0: guarded atexit
     d.Begin(0x005209B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00522950: stores; 3 left out
     d.Begin(0x00522950);
     // 00522970: stores; 4 left out
@@ -895,7 +1053,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00529650);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00529670: stores; 3 left out
     d.Begin(0x00529670);
     // 00529690: stores; 4 left out
@@ -906,7 +1064,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0052D010);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0052D060: stores; 3 left out
     d.Begin(0x0052D060);
     // 0052D080: stores; 4 left out
@@ -917,12 +1075,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0052D680);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0052DFF0: guarded atexit
     d.Begin(0x0052DFF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0052E060: stores; 3 left out
     d.Begin(0x0052E060);
     // 0052E080: stores; 4 left out
@@ -933,7 +1091,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00533880);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00533970: float fold; 1 left out
     d.Begin(0x00533970);
     // 00533900: stores; 3 left out
@@ -946,17 +1104,17 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00539960);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005399D0: stores; 3 left out
     d.Begin(0x005399D0);
     // 005399F0: registered
     d.Begin(0x005399F0);
-    d.Cdecl(0x005399F0);
+    d.Call(unitdb::ConstructUnitDatabaseGlobal);
     // 0053D950: guarded atexit
     d.Begin(0x0053D950);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00544A00: stores; 3 left out
     d.Begin(0x00544A00);
     // 00544A20: stores; 4 left out
@@ -969,7 +1127,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00558C80);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00558F30: stores; 3 left out
     d.Begin(0x00558F30);
     // 00558F50: stores; 4 left out
@@ -980,7 +1138,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0055D9D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0055E6F0: stores; 3 left out
     d.Begin(0x0055E6F0);
     // 0055E710: stores; 4 left out
@@ -989,24 +1147,24 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0055E740);
     // 0055E760: registered
     d.Begin(0x0055E760);
-    d.Cdecl(0x0055E760);
+    d.Call(ConstructRegistryRoot);
     // 0055E7A0: registered
     d.Begin(0x0055E7A0);
-    d.Cdecl(0x0055E7A0);
+    d.Call(ConstructStartFolder);
     // 0055E7E0: registered
     d.Begin(0x0055E7E0);
-    d.Cdecl(0x0055E7E0);
+    d.Call(ConstructDataFolder);
     // 0055E820: registered
     d.Begin(0x0055E820);
-    d.Cdecl(0x0055E820);
+    d.Call(ConstructTextFolder);
     // 0055E860: registered
     d.Begin(0x0055E860);
-    d.Cdecl(0x0055E860);
+    d.Call(ConstructDiscFolder);
     // 00560570: guarded atexit
     d.Begin(0x00560570);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005605B0: stores; 3 left out
     d.Begin(0x005605B0);
     // 005605D0: stores; 4 left out
@@ -1015,48 +1173,48 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00560600);
     // 00560620: registered
     d.Begin(0x00560620);
-    d.Cdecl(0x00560620);
+    d.Call(ConstructClientWorld);
     // 0056A3F0: registered
     d.Begin(0x0056A3F0);
-    d.Cdecl(0x0056A3F0);
+    d.Call(static_lists::ConstructDeferredUnitsList);
     // 0056A4D0: stores + atexit (inlined 0056A4F0); 3 left out
     d.Begin(0x0056A4D0);
-    d.AtExit(0x0056A510);
+    d.AtExit(FreeVisible54);
     // 0056A520: stores + atexit (inlined 0056A540); 3 left out
     d.Begin(0x0056A520);
-    d.AtExit(0x0056A560);
+    d.AtExit(FreeVisibleOther);
     // 0056A570: stores + atexit (inlined 0056A590); 3 left out
     d.Begin(0x0056A570);
-    d.AtExit(0x0056A5B0);
+    d.AtExit(FreeVisible5D);
     // 0056A5C0: stores + atexit (inlined 0056A5E0); 3 left out
     d.Begin(0x0056A5C0);
-    d.AtExit(0x0056A600);
+    d.AtExit(FreeVisibleUnits);
     // 0056A610: stores + atexit (inlined 0056A630); 3 left out
     d.Begin(0x0056A610);
-    d.AtExit(0x0056A650);
+    d.AtExit(FreeVisible52);
     // 0056A660: stores + atexit (inlined 0056A680); 3 left out
     d.Begin(0x0056A660);
-    d.AtExit(0x0056A6A0);
+    d.AtExit(FreeShadow54);
     // 0056A6B0: stores + atexit (inlined 0056A6D0); 3 left out
     d.Begin(0x0056A6B0);
-    d.AtExit(0x0056A6F0);
+    d.AtExit(FreeShadowOther);
     // 0056A700: stores + atexit (inlined 0056A720); 3 left out
     d.Begin(0x0056A700);
-    d.AtExit(0x0056A740);
+    d.AtExit(FreeShadow5D);
     // 0056A750: stores + atexit (inlined 0056A770); 3 left out
     d.Begin(0x0056A750);
-    d.AtExit(0x0056A790);
+    d.AtExit(FreeShadowUnits);
     // 0056A7A0: stores + atexit (inlined 0056A7C0); 3 left out
     d.Begin(0x0056A7A0);
-    d.AtExit(0x0056A7E0);
+    d.AtExit(FreeShadow52);
     // 0056A7F0: stores + atexit (inlined 0056A810); 3 left out
     d.Begin(0x0056A7F0);
-    d.AtExit(0x0056A830);
+    d.AtExit(FreeTouchedModels);
     // 005754C0: guarded atexit
     d.Begin(0x005754C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005783D0: stores; 3 left out
     d.Begin(0x005783D0);
     // 005783F0: stores; 4 left out
@@ -1065,24 +1223,24 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00578420);
     // 00578440: registered
     d.Begin(0x00578440);
-    d.Cdecl(0x00578440);
+    d.Call(ConstructGameFlow);
     // 00578530: registered
     d.Begin(0x00578530);
-    d.Cdecl(0x00578530);
+    d.Call(ConstructSaveStream);
     // 0057F460: stores + atexit (inlined 0057F480); 3 left out
     d.Begin(0x0057F460);
-    d.AtExit(0x0057F4A0);
+    d.AtExit(DestroyZoneTable);
     // 00580980: stores + atexit (inlined 005809A0); 3 left out
     d.Begin(0x00580980);
-    d.AtExit(0x005809C0);
+    d.AtExit(DestroyQuestFiles);
     // 00581050: stores + atexit (inlined 00581070); 3 left out
     d.Begin(0x00581050);
-    d.AtExit(0x00581090);
+    d.AtExit(DestroyQuestFolders);
     // 00589310: guarded atexit
     d.Begin(0x00589310);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00589BA0: float fold; 1 left out
     d.Begin(0x00589BA0);
     // 00589B50: stores; 3 left out
@@ -1093,24 +1251,24 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00589BC0);
     // 00589BE0: registered
     d.Begin(0x00589BE0);
-    d.Cdecl(0x00589BE0);
+    d.Call(ConstructServerWorld);
     // 0059DD50: guarded atexit
     d.Begin(0x0059DD50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0059EFE0: stores; 3 left out
     d.Begin(0x0059EFE0);
     // 0059F000: stores; 4 left out
     d.Begin(0x0059F000);
     // 005A0C80: stores + atexit; 4 left out
     d.Begin(0x005A0C80);
-    d.AtExit(0x005A0CB0);
+    d.AtExit(FreeOffsetVertices);
     // 005A6FA0: guarded atexit
     d.Begin(0x005A6FA0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005A6FC0: stores; 3 left out
     d.Begin(0x005A6FC0);
     // 005A6FE0: stores; 4 left out
@@ -1119,7 +1277,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005A99E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005A9A00: stores; 3 left out
     d.Begin(0x005A9A00);
     // 005A9A20: stores; 4 left out
@@ -1128,7 +1286,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005AE590);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005AE9B0: stores; 3 left out
     d.Begin(0x005AE9B0);
     // 005AE9D0: stores; 4 left out
@@ -1141,7 +1299,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005AECD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005AECF0: float fold; 1 left out
     d.Begin(0x005AECF0);
     // 005AED10: stores; 3 left out
@@ -1152,7 +1310,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005B1C50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005B1CD0: stores; 3 left out
     d.Begin(0x005B1CD0);
     // 005B1CF0: float fold; 1 left out
@@ -1161,15 +1319,15 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005B1D10);
     // 005B2FB0: registered
     d.Begin(0x005B2FB0);
-    d.Cdecl(0x005B2FB0);
+    d.Call(InitDampScale);
     // 005B31C0: registered
     d.Begin(0x005B31C0);
-    d.Cdecl(0x005B31C0);
+    d.Call(ConstructUnitShapes);
     // 005BEE20: guarded atexit
     d.Begin(0x005BEE20);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005BF580: stores; 3 left out
     d.Begin(0x005BF580);
     // 005BF5A0: float fold; 1 left out
@@ -1178,21 +1336,21 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005BF5C0);
     // 005BF810: registered
     d.Begin(0x005BF810);
-    d.Cdecl(0x005BF810);
+    d.Call(ConstructSpiralOffsets);
     // 005BF840: registered
     d.Begin(0x005BF840);
-    d.Cdecl(0x005BF840);
+    d.Call(ConstructSpiralRadii);
     // 005BF8B0: registered
     d.Begin(0x005BF8B0);
-    d.Cdecl(0x005BF8B0);
+    d.Call(ConstructSpiralLengths);
     // 005BF8E0: registered
     d.Begin(0x005BF8E0);
-    d.Cdecl(0x005BF8E0);
+    d.Call(BuildSectorSpiralStatic);
     // 005C1CC0: guarded atexit
     d.Begin(0x005C1CC0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005C1CE0: float fold; 1 left out
     d.Begin(0x005C1CE0);
     // 005C1D00: stores; 3 left out
@@ -1201,18 +1359,18 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005C1D20);
     // 005C41C0: registered
     d.Begin(0x005C41C0);
-    d.Cdecl(0x005C41C0);
+    d.Call(ConstructSmoothTables);
     // 005C42A0: call
     d.Begin(0x005C42A0);
-    d.Cdecl(0x005C42B0);
+    d.Call(BuildSmoothTables);
     // 005C4460: registered
     d.Begin(0x005C4460);
-    d.Cdecl(0x005C4460);
+    d.Call(ConstructSmoothPool);
     // 005C5C20: guarded atexit
     d.Begin(0x005C5C20);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005C5CB0: float fold; 1 left out
     d.Begin(0x005C5CB0);
     // 005C5C40: stores; 3 left out
@@ -1225,7 +1383,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005C8AC0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005C8AE0: stores; 3 left out
     d.Begin(0x005C8AE0);
     // 005C8B00: float fold; 1 left out
@@ -1236,15 +1394,15 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005C8B50);
     // 005C8F90: registered
     d.Begin(0x005C8F90);
-    d.Cdecl(0x005C8F90);
+    d.Call(ConstructEventPool);
     // 005CDF60: guarded atexit
     d.Begin(0x005CDF60);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005CDFB0: registered
     d.Begin(0x005CDFB0);
-    d.Cdecl(0x005CDFB0);
+    d.Call(ConstructLogicSettings);
     // 005CE720: stores; 3 left out
     d.Begin(0x005CE720);
     // 005CE740: float fold; 1 left out
@@ -1257,7 +1415,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DA230);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005DA300: stores; 3 left out
     d.Begin(0x005DA300);
     // 005DA320: stores; 4 left out
@@ -1266,12 +1424,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DA350);
     // 005DA360: stores + atexit; 1 left out
     d.Begin(0x005DA360);
-    d.AtExit(0x005DA380);
+    d.AtExit(ReleaseLoadingHolder);
     // 005DAE00: guarded atexit
     d.Begin(0x005DAE00);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005DAE20: stores; 3 left out
     d.Begin(0x005DAE20);
     // 005DAE40: stores; 4 left out
@@ -1280,7 +1438,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DB2D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005DB2F0: stores; 3 left out
     d.Begin(0x005DB2F0);
     // 005DB310: stores; 4 left out
@@ -1289,7 +1447,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005DBFC0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005DBFE0: stores; 3 left out
     d.Begin(0x005DBFE0);
     // 005DC000: stores; 4 left out
@@ -1354,7 +1512,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E1540);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E16A0: stores; 3 left out
     d.Begin(0x005E16A0);
     // 005E16C0: stores; 4 left out
@@ -1365,7 +1523,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E25E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E2600: stores; 3 left out
     d.Begin(0x005E2600);
     // 005E2620: stores; 4 left out
@@ -1374,7 +1532,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E3C60);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E3C90: stores; 3 left out
     d.Begin(0x005E3C90);
     // 005E3CB0: stores; 4 left out
@@ -1383,7 +1541,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E4D50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E4D70: stores; 3 left out
     d.Begin(0x005E4D70);
     // 005E4D90: stores; 4 left out
@@ -1392,12 +1550,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E4DC0);
     // 005E4DD0: registered
     d.Begin(0x005E4DD0);
-    d.Cdecl(0x005E4DD0);
+    d.Call(ConstructGameCursor);
     // 005E6920: guarded atexit
     d.Begin(0x005E6920);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E6940: stores; 3 left out
     d.Begin(0x005E6940);
     // 005E6960: stores; 4 left out
@@ -1406,7 +1564,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005E6BF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005E6C10: stores; 3 left out
     d.Begin(0x005E6C10);
     // 005E6C30: stores; 4 left out
@@ -1415,7 +1573,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005EA750);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005EA770: stores; 3 left out
     d.Begin(0x005EA770);
     // 005EA790: stores; 4 left out
@@ -1426,7 +1584,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005EBEF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005EBF60: float fold; 1 left out
     d.Begin(0x005EBF60);
     // 005EBF70: float fold; 1 left out
@@ -1441,7 +1599,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005F3CB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005F4610: stores; 3 left out
     d.Begin(0x005F4610);
     // 005F4630: stores; 4 left out
@@ -1450,12 +1608,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005F4660);
     // 005F4680: registered
     d.Begin(0x005F4680);
-    d.Cdecl(0x005F4680);
+    d.Call(ConstructInterface);
     // 005FBC90: guarded atexit
     d.Begin(0x005FBC90);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005FC150: stores; 3 left out
     d.Begin(0x005FC150);
     // 005FC170: stores; 4 left out
@@ -1466,7 +1624,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x005FC540);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 005FC560: stores; 3 left out
     d.Begin(0x005FC560);
     // 005FC580: stores; 4 left out
@@ -1477,7 +1635,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00600A60);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00600AD0: stores; 3 left out
     d.Begin(0x00600AD0);
     // 00600AF0: stores; 4 left out
@@ -1486,7 +1644,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00601E10);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00601E80: stores; 3 left out
     d.Begin(0x00601E80);
     // 00601EA0: stores; 4 left out
@@ -1495,7 +1653,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00602360);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00602380: stores; 3 left out
     d.Begin(0x00602380);
     // 006023A0: stores; 4 left out
@@ -1506,7 +1664,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0060B4E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0060C840: float fold; 1 left out
     d.Begin(0x0060C840);
     // 0060C7F0: stores; 3 left out
@@ -1519,7 +1677,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00613CD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00613E50: float fold; 1 left out
     d.Begin(0x00613E50);
     // 00613E60: float fold; 1 left out
@@ -1534,7 +1692,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0061A330);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0061B280: float fold; 1 left out
     d.Begin(0x0061B280);
     // 0061B230: stores; 3 left out
@@ -1547,7 +1705,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0061F0A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00620310: stores; 3 left out
     d.Begin(0x00620310);
     // 00620330: stores; 4 left out
@@ -1558,7 +1716,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062A560);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0062A7E0: stores; 3 left out
     d.Begin(0x0062A7E0);
     // 0062A800: stores; 4 left out
@@ -1567,7 +1725,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062AA70);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0062AAE0: float fold; 1 left out
     d.Begin(0x0062AAE0);
     // 0062AA90: stores; 3 left out
@@ -1580,7 +1738,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062B650);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0062B780: stores; 3 left out
     d.Begin(0x0062B780);
     // 0062B7A0: stores; 4 left out
@@ -1589,7 +1747,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062C1C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0062C1E0: stores; 3 left out
     d.Begin(0x0062C1E0);
     // 0062C200: stores; 4 left out
@@ -1600,7 +1758,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0062D290);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0062D300: float fold; 1 left out
     d.Begin(0x0062D300);
     // 0062D2B0: stores; 3 left out
@@ -1613,7 +1771,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00632470);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00632640: stores; 3 left out
     d.Begin(0x00632640);
     // 00632660: stores; 4 left out
@@ -1624,7 +1782,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006345C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00634600: stores; 3 left out
     d.Begin(0x00634600);
     // 00634620: stores; 4 left out
@@ -1633,7 +1791,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00634FB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00635030: float fold; 1 left out
     d.Begin(0x00635030);
     // 00635040: float fold; 1 left out
@@ -1648,7 +1806,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0064B870);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0064BDE0: float fold; 1 left out
     d.Begin(0x0064BDE0);
     // 0064BD90: stores; 3 left out
@@ -1657,12 +1815,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0064BDB0);
     // 0064BE00: registered
     d.Begin(0x0064BE00);
-    d.Cdecl(0x0064BE00);
+    d.Call(ConstructLastQuest);
     // 0064F3E0: guarded atexit
     d.Begin(0x0064F3E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006502F0: float fold; 1 left out
     d.Begin(0x006502F0);
     // 006502A0: stores; 3 left out
@@ -1675,7 +1833,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00653180);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006538A0: float fold; 1 left out
     d.Begin(0x006538A0);
     // 00653850: stores; 3 left out
@@ -1688,7 +1846,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00657F70);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00658DC0: stores; 3 left out
     d.Begin(0x00658DC0);
     // 00658DE0: stores; 4 left out
@@ -1697,7 +1855,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065AE10);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0065AE80: float fold; 1 left out
     d.Begin(0x0065AE80);
     // 0065AE30: stores; 3 left out
@@ -1708,7 +1866,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065CB50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0065CBB0: stores; 3 left out
     d.Begin(0x0065CBB0);
     // 0065CBD0: stores; 4 left out
@@ -1717,7 +1875,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065E290);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0065E2C0: stores; 3 left out
     d.Begin(0x0065E2C0);
     // 0065E2E0: stores; 4 left out
@@ -1728,7 +1886,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065EAA0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0065ECE0: stores; 3 left out
     d.Begin(0x0065ECE0);
     // 0065ED00: stores; 4 left out
@@ -1737,19 +1895,19 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0065F230);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0065F250: stores; 3 left out
     d.Begin(0x0065F250);
     // 0065F270: stores; 4 left out
     d.Begin(0x0065F270);
     // 0065F2A0: registered
     d.Begin(0x0065F2A0);
-    d.Cdecl(0x0065F2A0);
+    d.Call(ConstructSavedParties);
     // 00664930: guarded atexit
     d.Begin(0x00664930);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00664B00: stores; 3 left out
     d.Begin(0x00664B00);
     // 00664B20: stores; 4 left out
@@ -1760,7 +1918,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006665A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00666CA0: stores; 3 left out
     d.Begin(0x00666CA0);
     // 00666CC0: stores; 4 left out
@@ -1769,12 +1927,12 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00666CF0);
     // 00668B40: registered
     d.Begin(0x00668B40);
-    d.Cdecl(0x00668B40);
+    d.Call(ConstructPartyIdSet);
     // 0066C080: guarded atexit
     d.Begin(0x0066C080);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0066C0A0: stores; 3 left out
     d.Begin(0x0066C0A0);
     // 0066C0C0: stores; 4 left out
@@ -1783,7 +1941,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0066C440);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0066C460: stores; 3 left out
     d.Begin(0x0066C460);
     // 0066C480: stores; 4 left out
@@ -1792,24 +1950,24 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0066C4B0);
     // 0066C4D0: registered
     d.Begin(0x0066C4D0);
-    d.Cdecl(0x0066C4D0);
+    d.Call(ConstructReceivedMessages);
     // 00671260: guarded atexit
     d.Begin(0x00671260);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00673DE0: guarded atexit
     d.Begin(0x00673DE0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00674D70: stores; 3 left out
     d.Begin(0x00674D70);
     // 00675660: guarded atexit
     d.Begin(0x00675660);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00675B00: float fold; 1 left out
     d.Begin(0x00675B00);
     // 00675AB0: stores; 3 left out
@@ -1822,7 +1980,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0067E0E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0067E100: stores; 3 left out
     d.Begin(0x0067E100);
     // 0067E120: stores; 4 left out
@@ -1831,7 +1989,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0067E430);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0067E450: stores; 3 left out
     d.Begin(0x0067E450);
     // 0067E470: stores; 4 left out
@@ -1840,17 +1998,17 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0067E4A0);
     // 0067E4C0: registered
     d.Begin(0x0067E4C0);
-    d.Cdecl(0x0067E4C0);
+    d.Call(ConstructSpellFootprint);
     // 00683AD0: guarded atexit
     d.Begin(0x00683AD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00683F80: guarded atexit
     d.Begin(0x00683F80);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00683FA0: stores; 3 left out
     d.Begin(0x00683FA0);
     // 00683FC0: stores; 4 left out
@@ -1859,27 +2017,27 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x00684340);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00684360: registered
     d.Begin(0x00684360);
-    d.Cdecl(0x00684360);
+    d.Call(ConstructSpellDatabase);
     // 00684D40: guarded atexit
     d.Begin(0x00684D40);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00688620: guarded atexit
     d.Begin(0x00688620);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00688640: stores; 3 left out
     d.Begin(0x00688640);
     // 0068A4C0: guarded atexit
     d.Begin(0x0068A4C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068B180: stores; 3 left out
     d.Begin(0x0068B180);
     // 0068B1A0: stores; 4 left out
@@ -1890,7 +2048,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068CB10);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068CE80: stores; 3 left out
     d.Begin(0x0068CE80);
     // 0068CEA0: stores; 4 left out
@@ -1899,7 +2057,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068D7E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068D800: stores; 3 left out
     d.Begin(0x0068D800);
     // 0068D820: stores; 4 left out
@@ -1908,19 +2066,19 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x0068DBA0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068E3B0: guarded atexit
     d.Begin(0x0068E3B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068E3D0: stores; 3 left out
     d.Begin(0x0068E3D0);
     // 0068F410: guarded atexit
     d.Begin(0x0068F410);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0068F670: stores; 3 left out
     d.Begin(0x0068F670);
     // 0068F690: stores; 4 left out
@@ -1929,7 +2087,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006910D0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006910F0: stores; 3 left out
     d.Begin(0x006910F0);
     // 00691110: stores; 4 left out
@@ -1938,34 +2096,34 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006944C0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 00698E30: stores; 3 left out
     d.Begin(0x00698E30);
     // 00698E50: stores + atexit (inlined 00698E70); 3 left out
     d.Begin(0x00698E50);
-    d.AtExit(0x00698E90);
+    d.AtExit(FreeTakenPrototypes);
     // 00698EA0: stores + atexit (inlined 00698EC0); 3 left out
     d.Begin(0x00698EA0);
-    d.AtExit(0x00698EE0);
+    d.AtExit(FreeTakenSpells);
     // 00698EF0: stores + atexit (inlined 00698F10); 3 left out
     d.Begin(0x00698EF0);
-    d.AtExit(0x00698F30);
+    d.AtExit(FreeTakenModifiers);
     // 00698F40: stores + atexit (inlined 00698F60); 3 left out
     d.Begin(0x00698F40);
-    d.AtExit(0x00698F80);
+    d.AtExit(FreeCandidates);
     // 00698F90: stores + atexit (inlined 00698FB0); 3 left out
     d.Begin(0x00698F90);
-    d.AtExit(0x00698FD0);
+    d.AtExit(FreeTakenMaterials);
     // 0069E520: guarded atexit
     d.Begin(0x0069E520);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0069FAD0: guarded atexit
     d.Begin(0x0069FAD0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0069FAF0: stores; 3 left out
     d.Begin(0x0069FAF0);
     // 0069FB10: stores; 4 left out
@@ -1976,42 +2134,42 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006A5A50);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006A5A90: stores; 3 left out
     d.Begin(0x006A5A90);
     // 006A6520: guarded atexit
     d.Begin(0x006A6520);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006A6540: registered
     d.Begin(0x006A6540);
-    d.Cdecl(0x006A6540);
+    d.Call(ConstructItemDatabase);
     // 006A7920: guarded atexit
     d.Begin(0x006A7920);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006AC760: stores; 3 left out
     d.Begin(0x006AC760);
     // 006AD7B0: guarded atexit
     d.Begin(0x006AD7B0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006ADBB0: guarded atexit
     d.Begin(0x006ADBB0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006ADF10: registered
     d.Begin(0x006ADF10);
-    d.Cdecl(0x006ADF10);
+    d.Call(ConstructQuestDatabase);
     // 006B1B00: guarded atexit
     d.Begin(0x006B1B00);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006B4300: stores; 3 left out
     d.Begin(0x006B4300);
     // 006B4320: stores; 4 left out
@@ -2020,7 +2178,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006B5B80);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006BE310: float fold; 1 left out
     d.Begin(0x006BE310);
     // 006B5C80: stores; 3 left out
@@ -2029,7 +2187,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BDD70);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006BE330: float fold; 1 left out
     d.Begin(0x006BE330);
     // 006BE350: stores; 3 left out
@@ -2040,7 +2198,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BF3F0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006BF410: stores; 3 left out
     d.Begin(0x006BF410);
     // 006BF430: stores; 4 left out
@@ -2051,18 +2209,18 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006BF480);
     // 006BFA00: stores + atexit; 4 left out
     d.Begin(0x006BFA00);
-    d.AtExit(0x006BFA30);
+    d.AtExit(terrain::FreeProjectionInput);
     // 006BFA60: stores + atexit; 4 left out
     d.Begin(0x006BFA60);
-    d.AtExit(0x006BFA90);
+    d.AtExit(terrain::FreeProjectionOutput);
     // 006BFAC0: registered
     d.Begin(0x006BFAC0);
-    d.Cdecl(0x006BFAC0);
+    d.Call(terrain::ConstructProjectionOutcodes);
     // 006C50E0: guarded atexit
     d.Begin(0x006C50E0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006C5340: float fold; 1 left out
     d.Begin(0x006C5340);
     // 006C52D0: stores; 3 left out
@@ -2083,7 +2241,7 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006CE650);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006CEC80: float fold; 1 left out
     d.Begin(0x006CEC80);
     // 006CEC90: float fold; 1 left out
@@ -2098,20 +2256,20 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006D0090);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006D00B0: registered
     d.Begin(0x006D00B0);
-    d.Cdecl(0x006D00B0);
+    d.Call(ConstructPrintsDatabase);
     // 006D1FA0: guarded atexit
     d.Begin(0x006D1FA0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006D4350: guarded atexit
     d.Begin(0x006D4350);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006D4370: stores; 3 left out
     d.Begin(0x006D4370);
     // 006D4390: stores; 4 left out
@@ -2122,17 +2280,17 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006D49A0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006D4A70: registered
     d.Begin(0x006D4A70);
-    d.Cdecl(0x006D4A70);
+    d.Call(LinkDibClass);
     // 006D6D20: stores; 3 left out
     d.Begin(0x006D6D20);
     // 006D6FF0: guarded atexit
     d.Begin(0x006D6FF0);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006D7010: stores; 3 left out
     d.Begin(0x006D7010);
     // 006D7030: stores; 4 left out
@@ -2141,17 +2299,17 @@ void StaticInitialisers(Do& d) {
     d.Begin(0x006D7060);
     // 006D7080: registered
     d.Begin(0x006D7080);
-    d.Cdecl(0x006D7080);
+    d.Call(ConstructAckDatabase);
     // 006DAF00: guarded atexit
     d.Begin(0x006DAF00);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 006E4540: guarded atexit
     d.Begin(0x006E4540);
     if (d.Once(lib::g_emptyStaticGuard, 1)) {
     }
-    d.AtExit(0x004013D0);
+    d.AtExit(ei::short_functions::Ret);
     // 0070BE81: registered
     d.Begin(0x0070BE81);
     d.Cdecl(0x0070BE81);
@@ -2160,14 +2318,14 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0070BEC9);
     // 0070BEFA: registered
     d.Begin(0x0070BEFA);
-    d.Cdecl(0x0070BEFA);
+    d.Call(mfc::impl::ConstructSimpleResourceException);
     // 0070BF32: constructor + atexit (inlined 0070BF3C, 0070BF4E)
     d.Begin(0x0070BF32);
-    d.Thiscall(0x006E6916, &mfc::impl::g_simpleUserException, 0, 0xF024);
-    d.AtExit(0x0070BF5A);
+    d.Call(&mfc::impl::CUserException::Construct, &mfc::impl::g_simpleUserException, 0, 0xF024);
+    d.AtExit(Exit0070BF5A);
     // 0070B5FB: call
     d.Begin(0x0070B5FB);
-    d.Cdecl(0x0070B600);
+    d.Call(mfc::impl::AfxWingdixTermInit);
     // 0070C130: registered
     d.Begin(0x0070C130);
     d.Cdecl(0x0070C130);
@@ -2176,35 +2334,35 @@ void StaticInitialisers(Do& d) {
     d.Cdecl(0x0070C17E);
     // 0070C1B5: registered
     d.Begin(0x0070C1B5);
-    d.Cdecl(0x0070C1B5);
+    d.Call(mfc::impl::ConstructSimpleMemoryException);
     // 0070C1ED: registered
     d.Begin(0x0070C1ED);
-    d.Cdecl(0x0070C1ED);
+    d.Call(mfc::impl::ConstructSimpleNotSupportedException);
     // 0070D12E: registered
     d.Begin(0x0070D12E);
-    d.Cdecl(0x0070D12E);
+    d.Call(mfc::impl::ConstructAfxData);
     // 007043FA: registered
     d.Begin(0x007043FA);
-    d.Cdecl(0x007043FA);
+    d.Call(mfc::impl::RegisterDragListMessage);
     // 00704410: constructor + atexit (inlined 0070441A, 00704427)
     d.Begin(0x00704410);
-    d.Thiscall(0x00704546, &mfc::impl::g_wndTop, 0);
-    d.AtExit(0x00704433);
+    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndTop, 0);
+    d.AtExit(Exit00704433);
     // 0070444E: constructor + atexit (inlined 00704458, 00704465)
     d.Begin(0x0070444E);
-    d.Thiscall(0x00704546, &mfc::impl::g_wndBottom, 1);
-    d.AtExit(0x00704471);
+    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndBottom, 1);
+    d.AtExit(Exit00704471);
     // 0070448C: constructor + atexit (inlined 00704496, 007044A3)
     d.Begin(0x0070448C);
-    d.Thiscall(0x00704546, &mfc::impl::g_wndTopMost, 0xFFFFFFFF);
-    d.AtExit(0x007044AF);
+    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndTopMost, 0xFFFFFFFF);
+    d.AtExit(Exit007044AF);
     // 007044CA: constructor + atexit (inlined 007044D4, 007044E1)
     d.Begin(0x007044CA);
-    d.Thiscall(0x00704546, &mfc::impl::g_wndNoTopMost, 0xFFFFFFFE);
-    d.AtExit(0x007044ED);
+    d.Call(&mfc::impl::CWnd::Construct, &mfc::impl::g_wndNoTopMost, 0xFFFFFFFE);
+    d.AtExit(Exit007044ED);
     // 0070DC70: other (inlined 0070DC75)
     d.Begin(0x0070DC70);
-    d.Store(mfc::impl::g_afxDbcs, d.Stdcall(0x0070DC4D));
+    d.Store(mfc::impl::g_afxDbcs, d.Call(mfc::impl::AfxInitDbcs));
 }
 
 template void StaticInitialisers<Run>(Run&);

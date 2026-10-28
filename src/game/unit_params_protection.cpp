@@ -34,4 +34,4 @@ void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std
     for (int k = 0; k < kDamageTypes; ++k)
         out[k] = static_cast<float>((scale * out[k] + static_cast<std::uint16_t>(vitals->protection[k])) * factor);
 }
-EI_REPLACE_METHOD(0x005270E0, UnitParams::ProtectionBlock);
+EI_REWRITTEN(0x005270E0, UnitParams::ProtectionBlock);

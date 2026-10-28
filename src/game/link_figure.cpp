@@ -179,7 +179,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
         }
         SetW(packet);
     }
-    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
 
     const char* normals = *cursor;
     const char* texCoords = normals + fig.normalCount * static_cast<int>(sizeof(NormalPacket));
@@ -204,7 +204,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
 
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
     // coordinates and the corners is skipped.
@@ -243,7 +243,7 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name
     int count = fig.vertexCount;
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
     mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
@@ -256,7 +256,7 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name
     int count = Read<int>(cursor);
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
     mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }

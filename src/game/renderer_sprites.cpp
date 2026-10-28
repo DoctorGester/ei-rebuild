@@ -85,19 +85,17 @@ lib::AlignedArray<SpriteSortRecord*>& Spare() { return g_spare; }
 void __cdecl FreeSpare() { g_spare.FreeData(); }
 std::uint8_t g_sortGuards = /*007AEFF8*/ {};   // the sort's statics constructed (bits 1, 2, 4, 8)
 
-void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
-
 // First use: the two aligned arrays are zeroed, the MFC arrays constructed; each gets its exit handler.
 void EnsureStatics() {
     if (!(g_guards & 1)) {
         g_guards |= 1;
         Unused() = lib::AlignedArray<ProjectedVertex>{};
-        libcrt::AtExit(AtExit(0x00503A20));
+        libcrt::AtExit(FreeUnused);
     }
     if (!(g_guards & 2)) {
         g_guards |= 2;
         Corners() = lib::AlignedArray<TLVertex>{};
-        libcrt::AtExit(AtExit(0x00503A00));
+        libcrt::AtExit(FreeCorners);
     }
     if (!(g_guards & 4)) {
         g_guards |= 4;
@@ -113,17 +111,17 @@ void EnsureStatics() {
 
 // One of the sort's statics, constructed (zeroed) on the first batch.
 template <typename T>
-void EnsureSortStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintptr_t onExit) {
+void EnsureSortStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
     if (g_sortGuards & bit) return;
     g_sortGuards |= bit;
     array = lib::AlignedArray<T>{};
-    libcrt::AtExit(AtExit(onExit));
+    libcrt::AtExit(onExit);
 }
 void EnsureSortStatics() {
-    EnsureSortStatic(1, CornersCopy(), 0x005039C0);
-    EnsureSortStatic(2, Records(), 0x005039A0);
-    EnsureSortStatic(4, Order(), 0x00503980);
-    EnsureSortStatic(8, Spare(), 0x00503960);
+    EnsureSortStatic(1, CornersCopy(), FreeCornersCopy);
+    EnsureSortStatic(2, Records(), FreeRecords);
+    EnsureSortStatic(4, Order(), FreeOrder);
+    EnsureSortStatic(8, Spare(), FreeSpare);
 }
 
 TLVertex* CornerData() { return Corners().data; }
@@ -442,11 +440,11 @@ EI_REWRITTEN(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
 EI_REWRITTEN(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);
 EI_REWRITTEN(0x00505150, lib::AlignedArray<SpriteSortRecord>::SetSize);
 EI_REWRITTEN(0x00505270, lib::AlignedArray<SpriteSortRecord*>::SetSize);
-EI_REPLACE(0x00503A20, FreeUnused);
-EI_REPLACE(0x00503A00, FreeCorners);
-EI_REPLACE(0x005039C0, FreeCornersCopy);
-EI_REPLACE(0x005039A0, FreeRecords);
-EI_REPLACE(0x00503980, FreeOrder);
-EI_REPLACE(0x00503960, FreeSpare);
-EI_REPLACE(0x005039F0, DestroyOutcodes);
-EI_REPLACE(0x005039E0, DestroyIndices);
+EI_REWRITTEN(0x00503A20, FreeUnused);
+EI_REWRITTEN(0x00503A00, FreeCorners);
+EI_REWRITTEN(0x005039C0, FreeCornersCopy);
+EI_REWRITTEN(0x005039A0, FreeRecords);
+EI_REWRITTEN(0x00503980, FreeOrder);
+EI_REWRITTEN(0x00503960, FreeSpare);
+EI_REWRITTEN(0x005039F0, DestroyOutcodes);
+EI_REWRITTEN(0x005039E0, DestroyIndices);

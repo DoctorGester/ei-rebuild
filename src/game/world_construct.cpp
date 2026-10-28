@@ -145,18 +145,19 @@ CWorldClient* TheClientWorld() { return &*g_clientWorld; }
 
 namespace {
 void __cdecl DestroyServerWorld() { g_serverWorld.Destroy(); }
+void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }
+} // namespace
+
 void __cdecl ConstructServerWorld() {
     g_serverWorld.Construct();
     libcrt::AtExit(DestroyServerWorld);
 }
-void __cdecl DestroyClientWorld() { g_clientWorld.Destroy(); }
 void __cdecl ConstructClientWorld() {
     g_clientWorld.Construct();
     libcrt::AtExit(DestroyClientWorld);
 }
-} // namespace
 
-EI_REPLACE(0x00589BE0, ConstructServerWorld);
-EI_REPLACE(0x00589C00, DestroyServerWorld);
-EI_REPLACE(0x00560620, ConstructClientWorld);
-EI_REPLACE(0x00560640, DestroyClientWorld);
+EI_REWRITTEN(0x00589BE0, ConstructServerWorld);
+EI_REWRITTEN(0x00589C00, DestroyServerWorld);
+EI_REWRITTEN(0x00560620, ConstructClientWorld);
+EI_REWRITTEN(0x00560640, DestroyClientWorld);

@@ -231,7 +231,7 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     // Placed by the sprite's own Place (Rebirth-patched), scaled through the sprite's scale.
     Place(x, y, depth);
     float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
-    ei::Code<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
+    SetScale(s);
     NudgeAndCommit(this);
 }
 EI_REWRITTEN(0x005E8C60, CUiMesh::Disc);

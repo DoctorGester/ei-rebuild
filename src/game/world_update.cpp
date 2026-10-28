@@ -152,4 +152,4 @@ int CWorldServer::Update() {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x0058DFF0, CWorldServer::Update);
+EI_REWRITTEN(0x0058DFF0, CWorldServer::Update);

@@ -70,7 +70,7 @@ float SortArrowX(int column) {
     return 0.0f;   // (not reached with keys 1-8)
 }
 
-void DrawLabel(CUiSurface* surface, const char* text, RECT* rect, int format) {
+void DrawLabel(CUiSurface* surface, std::string_view text, RECT* rect, int format) {
     surface->DrawTextIn(text, rect, kFont, TextColour(), format, 1);
 }
 // addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
@@ -165,27 +165,27 @@ void CMpConnectScreen::DrawListVanilla() {
             if (extended)
                 DrawEllipsis(surface, text.c_str(), &row, kFormatNoPrefix);
             else
-                DrawLabel(surface, text.c_str(), &row, kFormatNoPrefix);
+                DrawLabel(surface, text, &row, kFormatNoPrefix);
         } else {
             if (extended) {
                 RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
                 nameRect.right = kExtendedNameRight;
                 DrawEllipsis(surface, entry.name.c_str(), &nameRect, kFormatNoPrefix);
             } else {
-                DrawLabel(surface, entry.name.c_str(), &row, kFormatNoPrefix);
+                DrawLabel(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
             text = str::Format("%d/%d", entry.players, entry.maxPlayers);
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
                 text = "?";
             else
                 text = str::Format("%s", allod(entry.gameType));
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             row.left = layout.rowLeftPing;
             text = str::Format("%d", entry.ping);
-            DrawLabel(surface, text.c_str(), &row, kFormatRight);
+            DrawLabel(surface, text, &row, kFormatRight);
             row.left = 12;
         }
         Down(&row);
@@ -203,7 +203,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             Down(&row);
             text = str::Format("%s %d", label(2), maxPlayers_);
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             Down(&row);
             DrawLabel(surface, label(3), &row, 0);
@@ -226,27 +226,27 @@ void CMpConnectScreen::DrawListVanilla() {
                 row.top += lines * kRowHeight - kRowHeight;
                 row.bottom += lines * kRowHeight - kRowHeight;
             } else {
-                DrawLabel(surface, text.c_str(), &row, 0);
+                DrawLabel(surface, text, &row, 0);
             }
             Down(&row);
             text = str::Format("%s %d / %d", label(1), entry.players, entry.maxPlayers);
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
                 text = texts_[3] + " ?";
             else
                 text = str::Format("%s %s", label(3), allod(entry.gameType));
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             text = str::Format("%s %s", label(4), entry.description.c_str());
             int lines = surface->DrawWrappedText(text.c_str(), &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             stlp::string address;
             text = str::Format("%s %s", label(5), entry.address.ToString(&address)->data());
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             text = str::Format("%s %d", label(6), entry.ping);
-            DrawLabel(surface, text.c_str(), &row, 0);
+            DrawLabel(surface, text, &row, 0);
             Down(&row);
             if (entry.password) {
                 DrawLabel(surface, label(21), &row, 0);

@@ -45,7 +45,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         // By character (a UTF-8 character's bytes with EI_UTF8, else one byte).
         if (key == kKeyBackspace) {
             if (caret_ > 0) {
-                const int previous = text::PreviousCharacter(text.c_str(), caret_);
+                const int previous = text::PreviousCharacter(text, caret_);
                 std::string tail = str::Mid(text, caret_);
                 std::string head = str::Left(text, previous);
                 text = head + tail;
@@ -53,7 +53,7 @@ void CUiEditField::OnKeyDown(int key, int, int) {
                 changed_ = true;
             }
         } else if (caret_ < static_cast<int>(text.size())) {
-            std::string tail = str::Mid(text, text::NextCharacter(text.c_str(), caret_));
+            std::string tail = str::Mid(text, text::NextCharacter(text, caret_));
             std::string head = str::Left(text, caret_);
             text = head + tail;
             changed_ = true;
@@ -73,9 +73,9 @@ void CUiEditField::OnKeyDown(int key, int, int) {
         else if (key == kKeyHome)
             caret_ = 0;
         else if (key == kKeyLeft)
-            caret_ = text::PreviousCharacter(text.c_str(), caret_);
+            caret_ = text::PreviousCharacter(text, caret_);
         else
-            caret_ = text::NextCharacter(text.c_str(), caret_);
+            caret_ = text::NextCharacter(text, caret_);
         break;
     default:
         return;
@@ -199,7 +199,7 @@ void CUiEditField::DrawContentsVanilla() {
     const int width = area_.right - area_.left;
     const int height = area_.bottom - area_.top;
     RECT box{0, 0, width, height};
-    surface->DrawTextIn(text.c_str(), &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
     int caretX = TextWidth(interface_, str::Left(text, caret_).c_str(), font_);

@@ -220,7 +220,7 @@ public:
     void NotifyUnitChanged(CUnit* unit);
 
     // The base's state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
-    using Handler = int(__fastcall*)(CPlayerClient*, void*);
+    using Handler = int (CPlayerClient::*)();
     lib::AlignedArray<Handler> handlers_;   // by message type (null: refused; 256 of them)
     BitStream in_;                  // the server's messages being run
     BitStream out_;                 // requests for the server

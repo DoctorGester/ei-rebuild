@@ -22,6 +22,7 @@
 #include "game_data.h"
 #include "game_arrays.h"
 
+#include <algorithm>
 #include <bit>
 #include <cstring>
 
@@ -34,8 +35,9 @@ double VariableGet(NamedFloatTable* table, const char* name) { return table->Get
 void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { Write(out, &value, 4); }
-void WriteText(BitStream* out, const char* text) {
-    Write(out, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+void WriteText(BitStream* out, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    Write(out, terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
 }
 
 std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }
@@ -276,16 +278,16 @@ namespace {
 constexpr int kServerHandlerCount = 0x100;
 
 // The server's message handlers by type.
-constexpr HandlerEntry kServerHandlers[] = {
-    {0x00, std::uintptr_t(0x0066F890)}, {0x01, std::uintptr_t(0x0066FA90)}, {0x02, std::uintptr_t(0x0066FAA0)},
-    {0x03, std::uintptr_t(0x00670C20)}, {0x04, std::uintptr_t(0x00670CE0)}, {0x05, std::uintptr_t(0x00670DA0)},
-    {0x06, std::uintptr_t(0x00670E00)}, {0x07, std::uintptr_t(0x00670EB0)}, {0x08, std::uintptr_t(0x00670F50)},
-    {0x09, std::uintptr_t(0x00671060)}, {0x10, std::uintptr_t(0x0066FAC0)}, {0x30, std::uintptr_t(0x0066FFF0)},
-    {0x31, std::uintptr_t(0x00670190)}, {0x32, std::uintptr_t(0x006708D0)}, {0x33, std::uintptr_t(0x00670820)},
-    {0x34, std::uintptr_t(0x00670960)}, {0x35, std::uintptr_t(0x006709D0)}, {0x36, std::uintptr_t(0x00670310)},
-    {0x37, std::uintptr_t(0x00670810)}, {0x38, std::uintptr_t(0x00670A40)}, {0x39, std::uintptr_t(0x00670A90)},
-    {0x3A, std::uintptr_t(0x0066FBD0)}, {0x3B, std::uintptr_t(0x0066FB70)}, {0x40, std::uintptr_t(0x00670B20)},
-    {0x50, std::uintptr_t(0x00670B60)},
+constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
+    {0x00, &CPlayerServer::OnLogin}, {0x01, &CPlayerServer::OnLeave}, {0x02, &CPlayerServer::OnRefreshParty},
+    {0x03, &CPlayerServer::OnTakeExit}, {0x04, &CPlayerServer::OnGameStateRequest}, {0x05, &CPlayerServer::OnJoined},
+    {0x06, &CPlayerServer::OnLeaveToZone}, {0x07, &CPlayerServer::OnBriefingDone}, {0x08, &CPlayerServer::OnNewParty},
+    {0x09, &CPlayerServer::OnResume}, {0x10, &CPlayerServer::OnPause}, {0x30, &CPlayerServer::OnWalk},
+    {0x31, &CPlayerServer::OnAttack}, {0x32, &CPlayerServer::OnCastAtPoint}, {0x33, &CPlayerServer::OnCastAtObject},
+    {0x34, &CPlayerServer::OnWantedWeapon}, {0x35, &CPlayerServer::OnMoveStyle}, {0x36, &CPlayerServer::OnUseOrder},
+    {0x37, &CPlayerServer::OnMessage37}, {0x38, &CPlayerServer::OnUnitLookup}, {0x39, &CPlayerServer::OnFollow},
+    {0x3A, &CPlayerServer::OnGoTo}, {0x3B, &CPlayerServer::OnUnitFlag438}, {0x40, &CPlayerServer::OnLastPosition},
+    {0x50, &CPlayerServer::OnPartyUpdate},
 };
 
 // The sent-object arrays emptied: every object released, the block freed.
@@ -321,11 +323,14 @@ void CPlayerServer::ClearServerState() {
 BOOL CPlayerServer::CreateServer() {
     ClearServerState();
     handlers_.SetSize(kServerHandlerCount);
-    std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
-    for (const HandlerEntry& entry : kServerHandlers)
-        handlers_[entry.type] = ei::Code<Handler>(entry.address);
+    std::fill_n(handlers_.data, handlers_.size, Handler{});
+    for (const auto& entry : kServerHandlers)
+        handlers_[entry.type] = entry.handler;
     return 1;
 }
+
+int CPlayerServer::OnMessage37() { return 0; }
+EI_REWRITTEN(0x00670810, CPlayerServer::OnMessage37);
 
 // --- The server's lifetime and virtuals ------------------------------------------------------
 

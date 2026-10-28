@@ -1,6 +1,7 @@
 // The game server session. See
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "net_handlers.h"
 #include "net_messages.h"
 #include "net_connection.h"
 
@@ -15,7 +16,6 @@ namespace net {
 
 namespace {
 
-void* Handler(std::uintptr_t address) { return ei::Code<void*>(address); }
 
 
 } // namespace
@@ -46,19 +46,19 @@ ServerSession::ServerSession(std::uint32_t kind) {
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 
-    AddHandlerFor<LoginMessage>(0, Handler(0x0041ADB0));
-    AddHandlerFor<LoginMessage>(1, Handler(0x0041AD80));
-    AddHandlerFor<LoginMessage>(2, Handler(0x0041B0C0));
-    AddHandlerFor<SayMessage>(0, Handler(0x0041B1C0));
-    AddHandlerFor<CommandMessage>(0, Handler(0x0041B2A0));
-    AddHandlerFor<FileRequestMessage>(0, Handler(0x0041B690));
+    AddHandlerFor<LoginMessage>(0, AsHandler(ServerOnJoin));
+    AddHandlerFor<LoginMessage>(1, AsHandler(ServerOnPlayerChanged));
+    AddHandlerFor<LoginMessage>(2, AsHandler(ServerOnPlayerGone));
+    AddHandlerFor<SayMessage>(0, AsHandler(ServerOnSay));
+    AddHandlerFor<CommandMessage>(0, AsHandler(ServerOnCommand));
+    AddHandlerFor<FileRequestMessage>(0, AsHandler(ServerOnObjectAdded));
 
-    RegisterRequestHandler(2, Handler(0x0041B720));
-    RegisterPartyHandler(0, Handler(0x0041B7A0));
-    RegisterPartyHandler(1, Handler(0x0041B970));
-    RegisterPartyHandler(2, Handler(0x0041BA30));
-    RegisterMemberHandler(0, Handler(0x0041BA20));
-    RegisterMemberHandler(1, Handler(0x0041BA20));
+    RegisterRequestHandler(2, AsHandler(ServerOnObjectRemoved));
+    RegisterPartyHandler(0, AsHandler(ServerOnTradeOffer));
+    RegisterPartyHandler(1, AsHandler(ServerOnTradeUpdate));
+    RegisterPartyHandler(2, AsHandler(ServerOnTradeCancel));
+    RegisterMemberHandler(0, AsHandler(ServerOnMemberChanged));
+    RegisterMemberHandler(1, AsHandler(ServerOnMemberChanged));
 
     nextLine_ = 0;
     kind_ = kind;

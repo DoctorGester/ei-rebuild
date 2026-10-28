@@ -87,16 +87,6 @@ static_assert(sizeof(Quaternion) == 16);
 // row vectors (v * M, translation in m[12..14]: CTransformObject::WorldMatrix, figures) and column
 // vectors (M * v, translation in m[3], m[7], m[11]: the transform pipeline, clip codes, decals).
 // The product is Matrix4::Multiply, which sums each element in its own order.
-struct Matrix4 {
-    float m[16];
-
-    // This = a * b (row-major: rows of `a` times columns of `b`). The
-    // elements are written one after the other, each from the inputs as they are then, so `this` may be one of the
-    // inputs. Not the plain sum: each element adds its four terms in a fixed order.
-    void Multiply(const float* a, const float* b);
-};
-static_assert(sizeof(Matrix4) == 64);
-
 // The first three rows of a row-major 4x4 matrix (row stride 16 bytes).
 struct MatrixRows {
     float m[12];
@@ -105,6 +95,19 @@ struct MatrixRows {
     Vector3* Transform(Vector3* out, const Vector3* v) const;
 };
 static_assert(sizeof(MatrixRows) == 48);
+
+struct Matrix4 {
+    union {
+        float m[16];
+        MatrixRows rows;   // the first three rows
+    };
+
+    // This = a * b (row-major: rows of `a` times columns of `b`). The
+    // elements are written one after the other, each from the inputs as they are then, so `this` may be one of the
+    // inputs. Not the plain sum: each element adds its four terms in a fixed order.
+    void Multiply(const float* a, const float* b);
+};
+static_assert(sizeof(Matrix4) == 64);
 
 // The grouping of a 3-term sum (see the top of this file).
 enum class Sum3 { XYZ, ZYX, ZXY };

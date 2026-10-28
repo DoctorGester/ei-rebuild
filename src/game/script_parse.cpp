@@ -28,7 +28,7 @@ namespace scriptparse {
 
 int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
 int __cdecl IsSpace(int c) { return gamecrt::isspace(c); }
-int __cdecl Mbscmp(const char* a0, const char* a1) { return gamecrt::mbscmp(a0, a1); }
+int __cdecl Mbscmp(std::string_view a0, std::string_view a1) { return gamecrt::mbscmp(a0, a1); }
 
 StringOps* StringOps::InitN(const char* text, int length) {
     new (this) mfc::CString(text, length);
@@ -527,7 +527,7 @@ int CScript::FindScript(const char* name) {
     for (;;) {
         const mfc::CArray<ScriptDefinition>& scripts = Scripts();
         for (int i = 0; i < scripts.size; ++i)
-            if (Mbscmp(scripts.data[i].name.c_str(), name) == 0) return i;
+            if (Mbscmp(scripts.data[i].name, name) == 0) return i;
         // Not found: retry without the leading "!<file>!" qualification.
         if (*name != '!') return -1;
         do {

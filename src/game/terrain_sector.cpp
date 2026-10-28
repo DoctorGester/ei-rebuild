@@ -561,16 +561,6 @@ ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 // g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
 std::uint8_t& Freed() { return g_freed; }
-void __cdecl FreeProjectionInput() {
-    if (Freed() & 1) return;
-    Freed() = static_cast<std::uint8_t>(Freed() | 1);
-    g_projectionInput.FreeData();
-}
-void __cdecl FreeProjectionOutput() {
-    if (Freed() & 2) return;
-    Freed() = static_cast<std::uint8_t>(Freed() | 2);
-    g_projectionOutput.FreeData();
-}
 // The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
 // exit.
 static_assert(sizeof(FlagArray) == 0x14);
@@ -581,10 +571,6 @@ void __cdecl DestroyProjectionOutcodes() {
     Freed() = static_cast<std::uint8_t>(Freed() | 4);
     mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
 }
-void __cdecl ConstructProjectionOutcodes() {
-    mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
-    libcrt::AtExit(DestroyProjectionOutcodes);
-}
 constexpr int kProjectionVertices = 0x330;
 
 
@@ -594,6 +580,21 @@ constexpr int kRow = 33;
 
 
 } // namespace
+
+void __cdecl FreeProjectionInput() {
+    if (Freed() & 1) return;
+    Freed() = static_cast<std::uint8_t>(Freed() | 1);
+    g_projectionInput.FreeData();
+}
+void __cdecl FreeProjectionOutput() {
+    if (Freed() & 2) return;
+    Freed() = static_cast<std::uint8_t>(Freed() | 2);
+    g_projectionOutput.FreeData();
+}
+void __cdecl ConstructProjectionOutcodes() {
+    mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
+    libcrt::AtExit(DestroyProjectionOutcodes);
+}
 
 SectorData* SectorData::Construct() {
     box = SectorBox{};
@@ -695,7 +696,7 @@ EI_REWRITTEN(0x006BFC80, SectorData::Project);
 
 } // namespace terrain
 
-EI_REPLACE(0x006BFA30, terrain::FreeProjectionInput);
-EI_REPLACE(0x006BFAC0, terrain::ConstructProjectionOutcodes);
-EI_REPLACE(0x006BFAE0, terrain::DestroyProjectionOutcodes);
-EI_REPLACE(0x006BFA90, terrain::FreeProjectionOutput);
+EI_REWRITTEN(0x006BFA30, terrain::FreeProjectionInput);
+EI_REWRITTEN(0x006BFAC0, terrain::ConstructProjectionOutcodes);
+EI_REWRITTEN(0x006BFAE0, terrain::DestroyProjectionOutcodes);
+EI_REWRITTEN(0x006BFA90, terrain::FreeProjectionOutput);

@@ -28,8 +28,11 @@ struct ScreenPoints {
 };
 
 // The projected points: x, y, z, rhw each (the transform pipeline's output).
+struct ProjectedPoint {
+    float x, y, z, rhw;
+};
 struct ProjectedPoints {
-    const float (*xyzw)[4];
+    const ProjectedPoint* points;
     int count;
 };
 
@@ -75,9 +78,6 @@ static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 
 // The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
 // their clip outcodes (an MFC CByteArray built by a static initialiser).
-struct ProjectedPoint {
-    float x, y, z, rhw;
-};
 extern lib::AlignedArray<ProjectedPoint> g_lineProjected;
 inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProjected; }
 extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;

@@ -109,7 +109,7 @@ struct Archive {
     ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }
-    bool Open(const char* path) { return Get()->CMappedResource::OpenResource(path, 0) != 0; }
+    bool Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path).c_str(), 0) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFile(name, size); }
     void Close(void* file) { Get()->CMappedResource::CloseFile(file); }
 
@@ -195,7 +195,7 @@ int ReadTerrainTypes(CAIMap& map) {
     bool opened;
     {
         std::string folder = TheTextFolder().GetString();
-        opened = archive.Open((folder + "aiinfo.res").c_str());
+        opened = archive.Open((folder + "aiinfo.res"));
     }
     if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.File("tileDesc.reg", nullptr);
@@ -423,7 +423,7 @@ int CAIMap::LoadTerrain(const char* path) {
     Archive archive;
     std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
-    if (!archive.Open(full.c_str())) return 0;
+    if (!archive.Open(full)) return 0;
     console::CStringArray maps;
     archive.Get()->ListFiles(&maps, "*.mp");
     std::string name = maps[0].Left(maps[0].Find('.')).GetString();

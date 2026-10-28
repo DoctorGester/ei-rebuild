@@ -44,7 +44,7 @@ int CTorchObject::UpdateTorch() { return 1; }
 EI_REWRITTEN(0x0052BF10, CTorchObject::UpdateTorch);
 
 bool CTorchObject::Slot29True() { return true; }
-EI_REPLACE_METHOD(0x0052BF00, CTorchObject::Slot29True);
+EI_REWRITTEN(0x0052BF00, CTorchObject::Slot29True);
 
 void CTorchObject::LoadTorch(CStream* stream) {
     LoadMapObject(stream);

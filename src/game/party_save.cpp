@@ -20,8 +20,9 @@
 
 namespace {
 
-void WriteText(CStream* stream, const char* text) {
-    stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+void WriteText(CStream* stream, std::string_view text) {
+    const gamecrt::TerminatedText terminated(text);
+    stream->Write(terminated.c_str(), static_cast<std::uint32_t>(terminated.size() + 1));
 }
 
 template <typename T>
@@ -113,11 +114,11 @@ void PartyUnitRecord::Load(CStream* stream) {
 EI_REWRITTEN(0x0065F9B0, PartyUnitRecord::Load);
 
 void PartyUnitRecord::Save(CStream* stream) {
-    WriteText(stream, texts[0].c_str());
-    WriteText(stream, texts[2].c_str());
-    WriteText(stream, texts[3].c_str());
-    WriteText(stream, texts[4].c_str());
-    WriteText(stream, texts[5].c_str());
+    WriteText(stream, texts[0]);
+    WriteText(stream, texts[2]);
+    WriteText(stream, texts[3]);
+    WriteText(stream, texts[4]);
+    WriteText(stream, texts[5]);
     WriteValue(stream, unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
@@ -125,13 +126,13 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteItemIds(stream, quickItems);
     WriteItemIds(stream, armor);
     WriteItemIds(stream, spells);
-    WriteText(stream, texts[1].c_str());
+    WriteText(stream, texts[1]);
     stream->Write(&moveMode2, 4);
     WriteValue(stream, weaponIndex);
     WriteValue(stream, selected);
     WriteValue(stream, leaderId);
     stream->Write(&fightAtWill, 4);
-    WriteText(stream, texts[6].c_str());
+    WriteText(stream, texts[6]);
 }
 EI_REWRITTEN(0x0065FDE0, PartyUnitRecord::Save);
 
@@ -167,7 +168,7 @@ EI_REWRITTEN(0x006618C0, CParty::LoadParty);
 
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
-    WriteText(stream, zone_.c_str());
+    WriteText(stream, zone_);
     WriteValue(stream, entrance_);
     itemManager_->Save(stream);
     spellManager_->Save(stream);

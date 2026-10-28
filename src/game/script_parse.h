@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace scriptparse {
 
@@ -20,7 +21,7 @@ inline constexpr const char* kLineComment = /*0078BC94*/ "//";
 // Game CRT (locale-dependent ctype functions).
 int __cdecl IsDigit(int c);
 int __cdecl IsSpace(int c);
-int __cdecl Mbscmp(const char* a, const char* b);
+int __cdecl Mbscmp(std::string_view a, std::string_view b);
 
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {

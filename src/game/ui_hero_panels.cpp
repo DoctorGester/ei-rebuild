@@ -106,7 +106,7 @@ void CHeroStatsPanel::DrawStats() {
     draw->GetDC();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
-    draw->DrawLine(title_.c_str(), &title, 1, 0xFFFFFF, 1, 1);
+    draw->DrawLine(title_, &title, 1, 0xFFFFFF, 1, 1);
 
     auto hero = [this]() { return owner_->HeroRecord(); };
     UnitStats* stats = &hero()->stats;
@@ -187,25 +187,25 @@ void CHeroStatsPanel::DrawStats() {
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
             line = str::Format("     %s", texts_[0].GetString());
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.attack);
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             line = str::Format("     %s", texts_[1].GetString());
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.defence);
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             if (static_cast<std::uint32_t>(info.damageType) < 7) {
                 line = str::Format("damage_%d", info.damageType);
                 texts->GetString(line.c_str(), &text);
             }
             line = str::Format("     %s %s", texts_[2].GetString(), text.c_str());
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 0, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
             line = str::Format("%d-%d", low, high);
-            draw->DrawLine(line.c_str(), &rect, 0, kBright, 2, 1);
+            draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
         }

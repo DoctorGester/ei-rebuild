@@ -19,17 +19,6 @@ std::uint32_t g_lastPumpTime = /*0079B604*/ {};
 void __cdecl ReleaseGameServer() { ReleaseCounted(net::g_gameServer); }
 void __cdecl ReleaseGameClient() { ReleaseCounted(net::g_gameClient); }
 
-// Their static initialisers (in the list's order): the counted pointer's constructor
-// clears it, then the exit function is registered.
-void __cdecl InitGameServerPointer() {
-    net::g_gameServer = nullptr;
-    libcrt::AtExit(ReleaseGameServer);
-}
-void __cdecl InitGameClientPointer() {
-    net::g_gameClient = nullptr;
-    libcrt::AtExit(ReleaseGameClient);
-}
-
 // The two growing buffers' exit functions: each destroys its buffer once (bit 0 / bit 1 of their flags).
 std::uint8_t g_bufferFlags = /*0079B8FC*/ {};
 void __cdecl DestroySendBuffer() {
@@ -44,16 +33,6 @@ void __cdecl DestroyReceiveBuffer() {
     g_bufferFlags = static_cast<std::uint8_t>(flags | 2);
     net::g_receiveBuffer.Destroy();
 }
-// Their static initialisers (in the list's order).
-void __cdecl ConstructSendBuffer() {
-    net::g_sendBuffer.Construct();
-    libcrt::AtExit(DestroySendBuffer);
-}
-void __cdecl ConstructReceiveBuffer() {
-    net::g_receiveBuffer.Construct();
-    libcrt::AtExit(DestroyReceiveBuffer);
-}
-
 // Milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
 
@@ -67,6 +46,27 @@ void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
 }
 
 } // namespace
+
+// Their static initialisers (in the list's order): the counted pointer's constructor
+// clears it, then the exit function is registered.
+void __cdecl InitGameServerPointer() {
+    net::g_gameServer = nullptr;
+    libcrt::AtExit(ReleaseGameServer);
+}
+void __cdecl InitGameClientPointer() {
+    net::g_gameClient = nullptr;
+    libcrt::AtExit(ReleaseGameClient);
+}
+
+// Their static initialisers (in the list's order).
+void __cdecl ConstructSendBuffer() {
+    net::g_sendBuffer.Construct();
+    libcrt::AtExit(DestroySendBuffer);
+}
+void __cdecl ConstructReceiveBuffer() {
+    net::g_receiveBuffer.Construct();
+    libcrt::AtExit(DestroyReceiveBuffer);
+}
 
 namespace net {
 
@@ -88,11 +88,11 @@ EI_REWRITTEN(0x004122D0, Pump);
 
 } // namespace net
 
-EI_REPLACE(0x00412230, InitGameServerPointer);
-EI_REPLACE(0x00412250, ReleaseGameServer);
-EI_REPLACE(0x00412280, InitGameClientPointer);
-EI_REPLACE(0x004122A0, ReleaseGameClient);
-EI_REPLACE(0x00432CA0, ConstructSendBuffer);
-EI_REPLACE(0x00432CC0, DestroySendBuffer);
-EI_REPLACE(0x00432CE0, ConstructReceiveBuffer);
-EI_REPLACE(0x00432D00, DestroyReceiveBuffer);
+EI_REWRITTEN(0x00412230, InitGameServerPointer);
+EI_REWRITTEN(0x00412250, ReleaseGameServer);
+EI_REWRITTEN(0x00412280, InitGameClientPointer);
+EI_REWRITTEN(0x004122A0, ReleaseGameClient);
+EI_REWRITTEN(0x00432CA0, ConstructSendBuffer);
+EI_REWRITTEN(0x00432CC0, DestroySendBuffer);
+EI_REWRITTEN(0x00432CE0, ConstructReceiveBuffer);
+EI_REWRITTEN(0x00432D00, DestroyReceiveBuffer);

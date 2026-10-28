@@ -31,7 +31,10 @@ int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     LineOutcodes().SetSize(packets.size * 4, -1);
     int visibility = pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), packets.data,
                                                          projected.data, LineOutcodes().data, packets.size);
-    if (visibility == 0) DeviceDrawLineStrip(device, reinterpret_cast<const ProjectedPoints*>(&projected), colour);
+    if (visibility == 0) {
+        const ProjectedPoints points{projected.data, projected.size};
+        DeviceDrawLineStrip(device, &points, colour);
+    }
     return 1;
 }
 EI_REWRITTEN(0x0049B780, LineBatch::Draw);

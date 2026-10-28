@@ -387,7 +387,7 @@ EI_REWRITTEN(0x005DF9B0, Net);
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 namespace {
-void WriteSpeech(CStdioFileVirtuals* file, mfc::CString& line, const SpeechRecord& speech) {
+void WriteSpeech(CStdioFile* file, mfc::CString& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
     line.Format("#say %s\n", speech.name.data());
     file->WriteString(line);
@@ -396,14 +396,14 @@ void WriteSpeech(CStdioFileVirtuals* file, mfc::CString& line, const SpeechRecor
 }
 } // namespace
 
-void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::SpeechList* list) {
+void __fastcall WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
     if (!list) return;
     mfc::CString line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
 EI_REWRITTEN(0x005DFC20, WriteSpeechLines);
 
-void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file, const acks::EnvironmentSpeeches* list) {
+void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     mfc::CString line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
@@ -417,9 +417,9 @@ void __fastcall GenerateAcks(CStringArray*) {
     CStdioFile file;
     {
         std::string path = (*GameDataPathString() + "scenack.txt").GetString();
-        if (!file.Open(path.c_str(), CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
     }
-    CStdioFileVirtuals* out = file.Virtuals();
+    CStdioFile* out = &file;
     acks::AckDatabase& database = acks::Database();
     for (acks::UnitAcks& record : database.units.records) {
         record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });

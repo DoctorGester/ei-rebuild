@@ -50,13 +50,15 @@ EI_REWRITTEN(0x005CDBA0, AIEventPoolDestruct);
 namespace {
 // The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
 void __cdecl DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
+} // namespace
+
 void __cdecl ConstructEventPool() {
     mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
     libcrt::AtExit(DestroyEventPool);
 }
-} // namespace
-EI_REPLACE(0x005C8F90, ConstructEventPool);
-EI_REPLACE(0x005C8FB0, DestroyEventPool);
+
+EI_REWRITTEN(0x005C8F90, ConstructEventPool);
+EI_REWRITTEN(0x005C8FB0, DestroyEventPool);
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
     // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).

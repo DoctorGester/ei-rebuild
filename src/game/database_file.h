@@ -24,7 +24,7 @@ struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }
     CMappedResource* Get() { return storage.Get(); }
-    int Open(const char* path) { return Get()->CMappedResource::OpenResource(path, 0); }
+    int Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path).c_str(), 0); }
     lib::InPlace<CMappedResource> storage;
 };
 
@@ -39,7 +39,7 @@ inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t si
 // The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false
 // when it cannot be opened.
 inline bool OpenDatabase(LocalResource& resource, const std::string& folder) {
-    return resource.Open((folder + "database.res").c_str()) != 0;
+    return resource.Open((folder + "database.res")) != 0;
 }
 // Their report of a failed open. The game names "databases.res" here.
 inline int ReportNoDatabase(const std::string& folder) {

@@ -44,7 +44,7 @@ public:
 // handler). The thread state's destructor frees MFC's; the image's live until the process ends.
 CHandleMap* MakeMap(CHandleMap*& map, BOOL create, const CRuntimeClass* objectClass, unsigned handleOffset, int handleCount) {
     if (!map && create) {
-        const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandlerAt());
+        const gamecrt::NewHandler old = SetAfxNewHandler(CriticalNewHandler);
         map = new CHandleMap(objectClass, handleOffset, handleCount);
         SetAfxNewHandler(old);
     }
@@ -149,8 +149,8 @@ EI_REWRITTEN(0x0070A060, CGdiObject::FromHandle);
 EI_REWRITTEN(0x0070A075, CGdiObject::Attach);
 EI_REWRITTEN(0x0070A0A2, CGdiObject::Detach);
 EI_REWRITTEN(0x0070A0CC, CGdiObject::DeleteObject);
-EI_REPLACE(0x0070C028, CreateTempGdiObject);
-EI_REPLACE(0x0070BF93, CreateCGdiObject);
+EI_REWRITTEN(0x0070C028, CreateTempGdiObject);
+EI_REWRITTEN(0x0070BF93, CreateCGdiObject);
 EI_REWRITTEN_SPECIAL(0x0070A0E2, CPen::CPen);
 EI_REWRITTEN(0x0070BBE5, CFont::CreatePointFont);
 EI_REWRITTEN(0x0070BC2A, CFont::CreatePointFontIndirect);
@@ -247,8 +247,8 @@ EI_REWRITTEN(0x00708E4C, CDC::SetOutputDC);
 EI_REWRITTEN(0x00708E56, CDC::ReleaseAttribDC);
 EI_REWRITTEN(0x00708E5B, CDC::ReleaseOutputDC);
 EI_REWRITTEN(0x00708D79, CDC::FromHandle);
-EI_REPLACE(0x0070BFD7, CreateTempDC);
-EI_REPLACE(0x0070BF64, CreateCDC);
+EI_REWRITTEN(0x0070BFD7, CreateTempDC);
+EI_REWRITTEN(0x0070BF64, CreateCDC);
 EI_REWRITTEN(0x00708F5A, CDC::SelectObject);
 EI_REWRITTEN(0x00708FE6, CDC::SelectFont);
 EI_REWRITTEN(0x0070917A, CDC::SetTextColor);

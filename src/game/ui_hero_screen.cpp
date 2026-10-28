@@ -99,7 +99,7 @@ void CMpHeroScreen::DrawExperience() {
     TheTextManager()->CTextManager::GetString(kCurrentExpKey, &text);
     line = str::Format(kLabelFormat, text.c_str(), tradePanel_->Experience());
     RECT current = {0, 110, 200, 130};
-    surface->DrawTextIn(line.c_str(), &current, kTextFormat, kWhite, 1, 1);
+    surface->DrawTextIn(line, &current, kTextFormat, kWhite, 1, 1);
     UiSurfaceReleaseDC(surface);
 }
 
@@ -211,12 +211,15 @@ EI_REWRITTEN(0x00615800, VoiceEntryDestroy);
 
 // --- The caches' objects released ----------------------------------------------------------
 
-void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
-    for (ItemObjectCache::Node* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache::Map::Next(node))
+template <typename Object>
+void __fastcall ReleaseCachedObjects(ItemObjectCache<Object>* cache) {
+    for (auto* node = cache->map.begin(); node != cache->map.end(); node = ItemObjectCache<Object>::Map::Next(node))
         node->second.object->Release();
 }
-EI_REWRITTEN(0x00634500, ReleaseCachedObjects);
-EI_REWRITTEN(0x00634560, ReleaseCachedObjects);
+template void __fastcall ReleaseCachedObjects<CUiMesh>(ItemModelCache*);
+template void __fastcall ReleaseCachedObjects<CTexture>(ItemTextureCache*);
+EI_REWRITTEN(0x00634500, ReleaseCachedObjects<CUiMesh>);
+EI_REWRITTEN(0x00634560, ReleaseCachedObjects<CTexture>);
 
 // --- The destructor body -------------------------------------------------------------
 
@@ -314,7 +317,7 @@ void CMpHeroScreen::DrawVoices() {
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
             SelectionFrame(*this)->Place(97.5f, y, kFrameDepth);
         }
-        surface->DrawTextIn(voices.begin()[index].name.c_str(), &rect, 0, kListColour, kListFormat, 1);
+        surface->DrawTextIn(voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
     UiSurfaceReleaseDC(surface);

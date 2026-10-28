@@ -66,4 +66,4 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
 
 EI_REWRITTEN(0x005B7EF0, CAIMap::StampWaterPatch);
 
-EI_REPLACE(0x005B80C0, ReleasePatch);
+EI_REWRITTEN(0x005B80C0, ReleasePatch);

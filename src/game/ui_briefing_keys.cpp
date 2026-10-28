@@ -36,7 +36,7 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-int CompareNames(const char* a, const char* b) {
+int CompareNames(std::string_view a, std::string_view b) {
     return gamecrt::mbsicmp(a, b);
 }
 
@@ -52,7 +52,7 @@ void OpenObjectives(CInterface3D* ui) {
         if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
         MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
-        if (!IsMultiplayerClient() && CompareNames(questZone->allod.c_str(), zone->allod.c_str()) != 0) continue;
+        if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);
         window->Setup(LocalPlayerZone().c_str(), nullptr, 0, 1);
         ui->PushWindow(window, 1, 1);

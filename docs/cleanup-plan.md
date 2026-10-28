@@ -52,7 +52,7 @@ them per file).
 | `offsetof` / `sizeof` asserts | dropped, except where bytes leave the process or come from the data image | C28 |
 | data addresses in code | named globals (the build reads no game.exe since C25c) | C18, C18r, C18t |
 | import table cells, `gameapi::` | typed imports; direct Win32 calls except the routed ones | C18p |
-| `EI_REPLACE` registrations, code cells of the data image | `EI_REWRITTEN` only (the tools' function-to-original map); no address map of game.exe's code | C20, C20e-g |
+| `EI_REPLACE` registrations (the code cells went in C20 batch 1) | `EI_REWRITTEN` only (the tools' function-to-original map); no address map of game.exe's code | C20, C20e-g |
 | `mfc::` / `stlp::` containers and strings, `CFile` / `CArchive` | `std::` types (scripted rewrites; iteration order kept where it feeds game logic) | C14a-d |
 | `gamecrt::` | the host CRT, except the families a golden proves differ | C26 |
 | `reinterpret_cast`, pointer `static_cast` | typed fields, parameters and objects | C15, C21 |
@@ -68,7 +68,7 @@ them per file).
    the host CRT and keeps a port only where goldens differ; C18p the imports. STLport's `hash_map`
    iteration follows pointer values: audit each use whose order is observable before swapping
    (docs/standalone-cleanup.md, "Behaviour the replacements must keep").
-3. **Addresses out**: C20 drops the registrations and the code cells once nothing reaches game
+3. **Addresses out**: C20 drops the registrations (the code cells are gone) once nothing reaches game
    addresses; the image then needs no address map of game.exe's code, and the build reads no game.exe.
 4. **Platform**: the sokol renderer becomes the only renderer (the old Direct3D 7 path behind it goes,
    `docs/notes/renderer.md`); SDL3 for the window, input (replacing DirectInput and window messages) and

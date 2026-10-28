@@ -3,8 +3,7 @@
 // The host is an ordinary exe that reads no game.exe and keeps what of game.exe's range is free reserved with no
 // access; the DLL's static
 // initialisation has put .rdata, .data and the import slots in its own storage (image_data.cpp,
-// image_imports.cpp); here the registrations become game.exe's code (image_code.cpp), the code cells of
-// its data are pointed at them, and WinMain runs.
+// image_imports.cpp); here the registrations become game.exe's code (image_code.cpp) and WinMain runs.
 #include "ei/hook.h"
 #include "log.h"
 #include "standalone/static_init.h"
@@ -30,7 +29,6 @@ namespace ei {
 const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks();   // hook.cpp
 std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.cpp
 int ImageImportsMissing();                                              // standalone/image_imports.cpp
-int FixCodeCells();                                                     // standalone/image_code.cpp
 
 
 // A code address as the log names it (standalone.cpp).
@@ -240,8 +238,7 @@ void RedirectSettingsReads(void (*filter)(const char* name, unsigned long type, 
 } // namespace ei
 
 // Called by the host once ei_hook.dll is loaded, with the game's arguments (what followed "--" on the host's
-// command line, as typed). `run` 0: take and check the registrations, point the code cells at them and
-// route the image's calls, then return (0 when all of it is right and WinMain has code). `run` 1: then run WinMain.
+// command line, as typed). `run` 0: take and check the registrations and route the image's calls, then return (0 when all of it is right and WinMain has code). `run` 1: then run WinMain.
 extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const char* arguments) {
     using namespace ei;
     // GetCommandLineA's line: the program, as GetModuleFileNameA(NULL) names it (the host), then the arguments.
@@ -260,7 +257,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     const bool winMain = HasCode(kGameWinMain);
     Log("standalone: %d registration(s) taken as game.exe's code, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
-    FixCodeCells();
     // Informational: what the loader put in game.exe's range before the host ran is not ours to move.
     const std::size_t open = CheckGuard();
     const auto* taken = reinterpret_cast<const std::uint32_t*>(GetProcAddress(GetModuleHandleA(nullptr), "EiStandaloneRangeTaken"));

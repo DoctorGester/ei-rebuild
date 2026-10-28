@@ -63,6 +63,7 @@ public:
     int Find(char c, int start) const;
 
     operator const char*() const { return data_; }
+    operator std::string_view() const { return std::string_view(data_, static_cast<std::size_t>(GetLength())); }
     // The characters (LPCTSTR), for printf-style arguments and other places the conversion is not
     // implicit (MFC 7's name).
     const char* GetString() const { return data_; }
@@ -76,6 +77,11 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
+namespace impl { class CString; }
+// The implementation's view of `s` (the two share the layout; mfc.cpp), for the implementation's members that
+// take a string.
+impl::CString& ImplOf(CString& s);
+
 class CFileVirtuals;
 
 // CFile: vtable, OS handle, close-on-delete flag, file name. The game calls these methods non-virtually, so
@@ -85,8 +91,10 @@ public:
     enum OpenFlags { modeRead = 0 };
 
     CFile();
+    // CFile(path, flags): opens the file, throwing a CFileException* when it cannot.
+    CFile(const char* path, unsigned flags);
     ~CFile();
-    BOOL Open(const char* path, unsigned flags, void* error);
+    BOOL Open(std::string_view path, unsigned flags, void* error);
     unsigned GetLength();
     unsigned Read(void* buffer, unsigned count);
     void Write(const void* buffer, unsigned count);
@@ -145,7 +153,7 @@ class CFileFind {
 public:
     CFileFind();
     ~CFileFind();
-    BOOL FindFile(const char* pattern, unsigned long flags);
+    BOOL FindFile(std::string_view pattern, unsigned long flags);
     unsigned long GetLength() const;                                // (the found file's size, low dword)
     CString GetFilePath() const;
     CString GetFileName() const;
@@ -153,6 +161,8 @@ public:
     CString GetTitle() const;
     BOOL FindNext();
     BOOL IsDots() const;
+    // Whether the found file has one of the attribute bits `mask`.
+    BOOL MatchesMask(unsigned long mask) const;
     void Close();
 
 private:
@@ -367,8 +377,9 @@ struct CArray {
     void RemoveAll() { SetSize(0, -1); }
 
     // Serialize (CObject::Serialize is empty): the count (ReadCount then SetSize when loading), then the
-    // elements as raw bytes (MFC's default SerializeElements).
-    void Serialize(CArchive* ar) {
+    // elements as raw bytes (MFC's default SerializeElements). `Archive` is the facade's CArchive or mfc::impl's.
+    template <typename Archive>
+    void Serialize(Archive* ar) {
         if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(size));
         else SetSize(static_cast<int>(ar->ReadCount()), -1);
         unsigned bytes = static_cast<unsigned>(size) * static_cast<unsigned>(sizeof(T));

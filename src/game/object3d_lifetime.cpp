@@ -54,7 +54,7 @@ int CObject3D::Create3D() {
     figure = nullptr;
     DropReference(old);
     defaultScale = kDefaultFigureScale;
-    std::memset(&boundsFlags, 0, reinterpret_cast<char*>(&partBoxArrayVtable) - reinterpret_cast<char*>(&boundsFlags));
+    ClearBounds();
     if (partBoxes) {
         gamecrt::operator_delete(partBoxes);
         partBoxes = nullptr;

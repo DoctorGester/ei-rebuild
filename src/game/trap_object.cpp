@@ -102,7 +102,7 @@ void CTrapObject::Save(CStream* stream) { SaveTrapObject(stream); }
 bool CTrapObject::ApplyScience(const LockKey* key, CEngineObject*) { return Disarm(key, 0); }
 
 bool CTrapObject::Slot29True() { return true; }
-EI_REPLACE_METHOD(0x00529AE0, CTrapObject::Slot29True);
+EI_REWRITTEN(0x00529AE0, CTrapObject::Slot29True);
 
 int CTrapObject::Slot38One() { return 1; }
 EI_REWRITTEN(0x00529AF0, CTrapObject::Slot38One);

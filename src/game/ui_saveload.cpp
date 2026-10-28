@@ -55,10 +55,8 @@ constexpr int kVisibleRows = 16;
 
 // An entry copy-constructed in place (the list's STLport vector).
 void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
-// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable as the original calls it.
-BOOL IsDirectory(const mfc::CFileFind& find) {
-    return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
-}
+// CFileFind's MatchesMask(FILE_ATTRIBUTE_DIRECTORY).
+BOOL IsDirectory(const mfc::CFileFind& find) { return find.MatchesMask(0x10ul); }
 mfc::CString FilePath(const mfc::CFileFind& find) { return find.GetFilePath(); }
 mfc::CString FileName(const mfc::CFileFind& find) { return find.GetFileName(); }
 
@@ -67,13 +65,16 @@ struct LocalFileStream {
     netlink::FileStream s;
 
     // The stream's direction byte, then the CFile's virtual Open.
-    void Open(const char* path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
+    void Open(std::string_view path, unsigned flags, std::uint8_t reading) { s.Open(path, flags, reading); }
     void Close() { s.Close(); }
     unsigned Read(void* buffer, unsigned size) { return Stream()->Read(buffer, size); }
     void Write(const void* buffer, unsigned size) { Stream()->Write(buffer, size); }
     CStream* Stream() { return &s; }
     // A string with its terminating zero.
-    void WriteText(const char* text) { Write(text, static_cast<unsigned>(std::strlen(text) + 1)); }
+    void WriteText(std::string_view text) {
+        const gamecrt::TerminatedText terminated(text);
+        Write(terminated.c_str(), static_cast<unsigned>(terminated.size() + 1));
+    }
 };
 
 // An entry being built (the original's stack temporaries): empty strings and string arrays; the other fields
@@ -136,7 +137,7 @@ void CSaveLoadWindow::ShowPicture() {
     BOOL found;
     {
         std::string path = folder + game::savewords::ShotFile();
-        found = find.FindFile(path.c_str(), 0);
+        found = find.FindFile(path, 0);
     }
     if (!found) return;
     CDXSurface* holder = HolderOf(objects_.data[1]);
@@ -146,7 +147,7 @@ void CSaveLoadWindow::ShowPicture() {
     mfc::CFile file;
     {
         std::string path = folder + game::savewords::ShotFile();
-        file.Open(path.c_str(), 0, nullptr);
+        file.Open(path, 0, nullptr);
     }
     file.Read(pixels.Bits(), kShotBytes);
     file.Close();
@@ -166,7 +167,7 @@ constexpr const char* kAutoEnterTitle = "save_auto_enter";
 constexpr const char* kAutoExitTitle = "save_auto_exit";
 constexpr const char* kPlainFormat = "%s";
 
-bool SameFolder(const char* folder, const char* name) {
+bool SameFolder(std::string_view folder, std::string_view name) {
     return gamecrt::mbsicmp(folder, name) == 0;
 }
 } // namespace
@@ -179,11 +180,11 @@ void SaveEntry::MakeTitle(int) {
     TheTextManager()->GetString(kAutoEnterTitle, &autoEnter);
     TheTextManager()->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
-    if (SameFolder(folder_.c_str(), kQuickFolder)) {
+    if (SameFolder(folder_, kQuickFolder)) {
         title = str::Format(kPlainFormat, quick.c_str());
-    } else if (SameFolder(folder_.c_str(), kAutoFolderA)) {
+    } else if (SameFolder(folder_, kAutoFolderA)) {
         title = str::Format(kPlainFormat, autoEnter.c_str());
-    } else if (SameFolder(folder_.c_str(), kAutoFolderB)) {
+    } else if (SameFolder(folder_, kAutoFolderB)) {
         title = str::Format(kPlainFormat, autoExit.c_str());
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
@@ -221,7 +222,7 @@ void CSaveLoadWindow::SaveGame() {
     LocalFileStream info;
     {
         std::string path = folder + game::savewords::InfoFile();
-        info.Open(path.c_str(), kOpenWrite, 0);
+        info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
         entries_.begin()->title_ = name_;
@@ -235,11 +236,11 @@ void CSaveLoadWindow::SaveGame() {
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
-    info.WriteText(first->map_.c_str());
-    info.WriteText(first->zone_.c_str());
+    info.WriteText(first->map_);
+    info.WriteText(first->zone_);
     std::int32_t savedAt = first->savedAt_;
     info.Write(&savedAt, 4);
-    info.WriteText(first->title_.c_str());
+    info.WriteText(first->title_);
     info.Close();
 
     // shot.sav: the game's picture.
@@ -255,7 +256,7 @@ void CSaveLoadWindow::SaveGame() {
         mfc::CFile shot;
         {
             std::string path = folder + game::savewords::ShotFile();
-            shot.Open(path.c_str(), kOpenWrite, nullptr);
+            shot.Open(path, kOpenWrite, nullptr);
         }
         shot.Write(pixels.Bits(), kShotBytes);
         shot.Close();
@@ -274,7 +275,7 @@ void CSaveLoadWindow::FillEntries() {
     entries_.EraseRange<recordvec::SaveEntryElement>(entries_.begin(), entries_.end());
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
-    BOOL more = find.FindFile(pattern.c_str(), 0);
+    BOOL more = find.FindFile(pattern, 0);
     while (more) {
         found = find.FindNext();
         more = found;
@@ -293,7 +294,7 @@ void CSaveLoadWindow::FillEntries() {
         {
             std::string folderPath = FilePath(find).GetString();
             std::string path = folderPath + game::savewords::InfoInFolder();
-            hasInfo = infoFind.FindFile(path.c_str(), 0);
+            hasInfo = infoFind.FindFile(path, 0);
         }
         if (!hasInfo) {
             entry->broken_ = true;
@@ -440,11 +441,11 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         map = record->allod;
     std::string folder = SlotFolder(slot).GetString();
     LocalFileStream info;
-    info.Open((folder + game::savewords::InfoFile()).c_str(), kOpenWrite, 0);
+    info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
-    info.WriteText(map.c_str());
-    info.WriteText(zone.c_str());
+    info.WriteText(map);
+    info.WriteText(zone);
     info.Write(&savedAt, 4);
     info.WriteText(title.c_str());
     info.Close();
@@ -452,7 +453,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
-    shot.Open((folder + game::savewords::ShotFile()).c_str(), kOpenWrite, nullptr);
+    shot.Open((folder + game::savewords::ShotFile()), kOpenWrite, nullptr);
     shot.Write(pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
@@ -503,14 +504,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    std::string title = FirstLineOf("zone ", zone_.c_str()).GetString();   // the key has a space
+    std::string title = FirstLineOf("zone ", zone_).GetString();   // the key has a space
     if (title.size() == 0) TheTextManager()->GetString("save_camp", &title);
     return title;
 }
 EI_REWRITTEN(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    std::string title = FirstLineOf("allod ", map_.c_str()).GetString();  // the key has a space
+    std::string title = FirstLineOf("allod ", map_).GetString();  // the key has a space
     if (title.size() == 0) title = "Unknown";
     return title;
 }
@@ -592,7 +593,7 @@ void CSaveLoadWindow::DeleteSave() {
     std::string folder;
     folder = str::Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.c_str());
     mfc::CFileFind find;
-    BOOL more = find.FindFile((folder + kEveryFile).c_str(), 0);
+    BOOL more = find.FindFile((folder + kEveryFile), 0);
     while (more) {
         more = find.FindNext();
         gameapi::DeleteFileA(FilePath(find));

@@ -58,4 +58,4 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
 }
 
 EI_REWRITTEN(0x005A0E80, CFigureMesh::Rasterise);
-EI_REPLACE(0x005A1170, FreeTexturePoints);
+EI_REWRITTEN(0x005A1170, FreeTexturePoints);

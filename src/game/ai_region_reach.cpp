@@ -653,6 +653,6 @@ EI_REWRITTEN(0x005B0F70, CRegionMap::ClampEdgeCosts);
 EI_REWRITTEN(0x005B0370, CRegionMap::NearbyBlocks);
 EI_REWRITTEN(0x005B0050, CRegionMap::LabelRegions);
 
-EI_REPLACE(0x005B0AE0, DestroyBlocks);
-EI_REPLACE(0x005B0360, DestroyFloodQueue);
-EI_REPLACE(0x005B0350, DestroyFloodSecond);
+EI_REWRITTEN(0x005B0AE0, DestroyBlocks);
+EI_REWRITTEN(0x005B0360, DestroyFloodQueue);
+EI_REWRITTEN(0x005B0350, DestroyFloodSecond);

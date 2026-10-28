@@ -358,7 +358,7 @@ void CCamera::Update(float dt) {
             // Behind the target, looking along its heading.
             const CTransformObject* t = target;
             const CObject3D* body = target;
-            double lift = D(body->above.z) + body->center.z;
+            double lift = D(body->bounds.boxMax.z) + body->bounds.center.z;
             std::memcpy(&localPosition_.x, &targetAt.x, sizeof(float));
             std::memcpy(&localPosition_.y, &targetAt.y, sizeof(float));
             localPosition_.z = static_cast<float>(lift + targetAt.z);
@@ -515,7 +515,7 @@ void CCamera::Update(float dt) {
     }
     localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }
-EI_REPLACE_METHOD(0x0040FB30, CCamera::Update);
+EI_REWRITTEN(0x0040FB30, CCamera::Update);
 
 void CCamera::ZoomBy(float steps) {
     double d = libcrt::CiPow(CAM_ZOOM_STEP, steps) * distance_;

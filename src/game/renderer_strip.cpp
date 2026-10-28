@@ -301,8 +301,8 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
 EI_REWRITTEN(0x00501D90, CSceneRenderer::DrawStrip);
 
 EI_REWRITTEN(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);
-EI_REPLACE(0x00502C00, FreeStrip);
-EI_REPLACE(0x00502C20, FreeRibbon);
-EI_REPLACE(0x00502C40, FreeProjected);
-EI_REPLACE(0x00502C60, FreeIndices);
-EI_REPLACE(0x00502C80, FreeClipped);
+EI_REWRITTEN(0x00502C00, FreeStrip);
+EI_REWRITTEN(0x00502C20, FreeRibbon);
+EI_REWRITTEN(0x00502C40, FreeProjected);
+EI_REWRITTEN(0x00502C60, FreeIndices);
+EI_REWRITTEN(0x00502C80, FreeClipped);

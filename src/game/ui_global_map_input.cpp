@@ -44,7 +44,7 @@ constexpr int kTipFrame = 7;
 constexpr int kTipLine = 20;
 const char* ZoneSound() { return "buttons\\globalmap\\zone.wav"; }
 
-bool SameText(const char* a, const char* b) {
+bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
@@ -144,14 +144,14 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     }
     std::string text;
     text = isLink ? links_.data[index].name : zones_.data[index].name;
-    if (!SameText(shownName_.c_str(), text.c_str())) interface_->PlaySound(ZoneSound(), 0);
+    if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
     shownName_ = text;
     text = isLink ? links_.data[index].title : zones_.data[index].title;
     surfaces_.data[0]->Freeze(1, 0);
     UiSurfaceGetDC(surfaces_.data[0]);
     surfaces_.data[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
-    surfaces_.data[0]->DrawTextIn(text.c_str(), &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surfaces_.data[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
     if (!isLink) {
@@ -160,7 +160,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             GlobalMapPlace& quest = quests_.data[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
-            surfaces_.data[0]->DrawTextIn(quest.title.c_str(), &rect, kTipFont, kTipColour, kTipFormat, 1);
+            surfaces_.data[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;
         }

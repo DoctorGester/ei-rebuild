@@ -88,6 +88,7 @@ libcrt::Ostream* const kConsole = &console::g_consoleOut;
 MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
 int ZoneRecordCount() { return TheMapDatabase()->maps.size; }
 MapRecord* FindZone(const char* name) { return TheMapDatabase()->FindMap(name); }
+MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
 
 using netlink::FileStream;
 
@@ -122,10 +123,10 @@ void CopyVisitedZones(const std::string& slotFolder, const std::string& currentF
         }
         bool keep = false;
         if (visited) {
-            keep = gamecrt::mbscmp(record->name.c_str(),
+            keep = gamecrt::mbscmp(record->name,
                                    kAlwaysCopied) == 0 ||
-                   gamecrt::mbscmp(record->allod.c_str(),
-                                   currentMap.c_str()) == 0;
+                   gamecrt::mbscmp(record->allod,
+                                   currentMap) == 0;
         }
         if (keep) {
             zone = record->name;
@@ -154,14 +155,15 @@ CMemoryStream* GameSaveStream() { return &*g_saveStream; }
 
 namespace {
 void __cdecl DestroySaveStream() { g_saveStream->~CMemoryStream(); }
+} // namespace
+
 void __cdecl ConstructSaveStream() {
     new (&*g_saveStream) CMemoryStream();
     libcrt::AtExit(DestroySaveStream);
 }
-} // namespace
 
-EI_REPLACE(0x00578530, ConstructSaveStream);
-EI_REPLACE(0x00578550, DestroySaveStream);
+EI_REWRITTEN(0x00578530, ConstructSaveStream);
+EI_REWRITTEN(0x00578550, DestroySaveStream);
 
 int GameFlow::SaveGame(const char* slot) {
     FileStream file;
@@ -181,7 +183,7 @@ int GameFlow::SaveGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_.c_str())->allod;
+    currentMap = FindZone(records.Party()->zone_)->allod;
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.Party()->variables_);
     ThePartyManager()->BeginRedeploy(records.Party());
@@ -189,7 +191,7 @@ int GameFlow::SaveGame(const char* slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path.c_str(), kOpenWrite, 0);
+        opened = file.Open(path, kOpenWrite, 0);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -211,11 +213,11 @@ int GameFlow::SaveGame(const char* slot) {
     file.Close();
 
     // mission.sav: the world, except in zones without one (kind 1: cutscenes).
-    int kind = FindZone(records.Party()->zone_.c_str())->kind;
+    int kind = FindZone(records.Party()->zone_)->kind;
     if (kind == 0 || kind == 2) {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path.c_str(), kOpenWrite, 0);
+            opened = file.Open(path, kOpenWrite, 0);
         }
         if (!opened) return 0;
         CMemoryStream mission;
@@ -249,7 +251,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
     bool opened;
     {
         std::string path = (folder + fileName).GetString();
-        opened = file.Open(path.c_str(), kOpenRead, 1);
+        opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
         failed = true;
@@ -317,7 +319,7 @@ int __stdcall EnterZone(CParty* records) {
         variables->Remove(kMovieVariable);
     }
 
-    if (gamecrt::mbscmp(zoneRecord->map.c_str(),
+    if (gamecrt::mbscmp(zoneRecord->map,
                         game::EmptyText()) != 0) {
         const char* mapOverride = nullptr;
         if (gamecrt::mbsicmp(zone.GetString(),
@@ -414,7 +416,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     {
         std::string path = (folder + zone).GetString();
         std::string fileName = path + kSaveExtension;
-        opened = file.Open(fileName.c_str(), kOpenRead, 1);
+        opened = file.Open(fileName, kOpenRead, 1);
     }
     if (opened) {
         CMemoryStream data;
@@ -496,7 +498,7 @@ int __stdcall LeaveZone(CParty* records) {
         std::string fileName = (zone + kSaveExtension).GetString();
         path += fileName;
     }
-    if (!file.Open(path.c_str(), kOpenWrite, 0)) {
+    if (!file.Open(path, kOpenWrite, 0)) {
         game::FatalError(kCantWrite, path.c_str());
         return 0;
     }
@@ -744,7 +746,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
         bool opened;
         {
             std::string path = (base + kGraphExtension).GetString();
-            opened = graph.Open(path.c_str(), kOpenRead, 1);
+            opened = graph.Open(path, kOpenRead, 1);
         }
         if (opened) {
             out->CopyFrom(&graph);
@@ -980,9 +982,7 @@ namespace {
 using ZoneEntry = recordvec::ZoneTableEntry;
 using ZoneTable = stlp::vector<ZoneEntry>;
 constinit stlp::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
-void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
-
-bool SameText(const char* a, const char* b) {
+bool SameText(std::string_view a, std::string_view b) {
     return gamecrt::mbscmp(a, b) == 0;
 }
 
@@ -1004,6 +1004,8 @@ struct EntryPicks {
 
 } // namespace
 
+void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
+
 void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
@@ -1016,7 +1018,7 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
         const char* key = pending.items[0]->second.c_str();
         group.count = 0;
         for (int i = 0; i < pending.count;) {
-            if (SameText(pending.items[i]->second.c_str(), key)) {
+            if (SameText(pending.items[i]->second, key)) {
                 group.items[group.count++] = pending.items[i];
                 pending.RemoveAt(i);
             } else {
@@ -1026,7 +1028,7 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
         // With a choice, never the excluded first name.
         if (group.count > 1)
             for (int i = 0; i < group.count;)
-                if (SameText(group.items[i]->first.c_str(), exclude)) group.RemoveAt(i);
+                if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
         unsigned pick = ((&IsaacRandom::Global()))->Next() % static_cast<unsigned>(group.count);
         stlp::string name(group.items[pick]->first.c_str());
@@ -1077,7 +1079,7 @@ void __fastcall ClearSaveFolder(const char* path) {
     {
         mfc::CString folder(path);
         std::string pattern = (folder + kAllFiles).GetString();
-        found = finder.FindFile(pattern.c_str(), 0);
+        found = finder.FindFile(pattern, 0);
     }
     while (found) {
         found = finder.FindNext();
@@ -1252,7 +1254,7 @@ void GameFlow::UseResources(bool network) {
         libcrt::AtExit(DestroyLastResources);
     }
     std::string wanted = network ? kResourcesNetwork : kResourcesSingle;
-    if (gamecrt::mbscmp(wanted.c_str(),
+    if (gamecrt::mbscmp(wanted,
                         LastResources().GetString()) == 0)
         return;
     LastResources() = wanted;
@@ -1374,7 +1376,7 @@ int GameFlow::LoadGame(const char* slot) {
     bool opened;
     {
         std::string path = slotFolder + kScenarioFile;
-        opened = file.Open(path.c_str(), kOpenRead, 1);
+        opened = file.Open(path, kOpenRead, 1);
     }
     if (!opened) {
         ToMainMenu() = 1;
@@ -1406,7 +1408,7 @@ int GameFlow::LoadGame(const char* slot) {
     LocalRecords records;
     ThePartyManager()->EndRedeploy(records.Party());
     std::string currentMap;
-    currentMap = FindZone(records.Party()->zone_.c_str())->allod;
+    currentMap = FindZone(records.Party()->zone_)->allod;
     NamedFloatTable* variables = &records.Party()->variables_;
     for (int i = 0; i < ZoneRecordCount(); ++i) {
         MapRecord* record = ZoneRecords() + i;
@@ -1420,10 +1422,10 @@ int GameFlow::LoadGame(const char* slot) {
         }
         bool restored = false;
         if (visited) {
-            bool keep = gamecrt::mbscmp(record->name.c_str(),
+            bool keep = gamecrt::mbscmp(record->name,
                                         kAlwaysCopied) == 0 ||
-                        gamecrt::mbscmp(record->allod.c_str(),
-                                        currentMap.c_str()) == 0;
+                        gamecrt::mbscmp(record->allod,
+                                        currentMap) == 0;
             if (keep) {
                 zone = record->name;
                 std::string currentPath = currentFolder + zone;
@@ -1441,14 +1443,14 @@ int GameFlow::LoadGame(const char* slot) {
     ThePartyManager()->BeginRedeploy(records.Party());
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
-    MapRecord* zoneRecord = FindZone(records.Party()->zone_.c_str());
+    MapRecord* zoneRecord = FindZone(records.Party()->zone_);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
         StartZone(records.Party()->zone_.c_str(), 0);
     } else {
         {
             std::string path = slotFolder + kMissionFile;
-            opened = file.Open(path.c_str(), kOpenRead, 1);
+            opened = file.Open(path, kOpenRead, 1);
         }
         if (!opened) return 0;
         LoadMission(&file);
@@ -1481,15 +1483,16 @@ constinit lib::StaticObject<GameFlow> g_gameFlow = /*007AFE20*/ {};
 GameFlow* TheGameFlow() { return &*g_gameFlow; }
 
 namespace {
-void __cdecl ConstructGameFlow() {
-    g_gameFlow->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x005784C0));
-}
 void __cdecl DestroyGameFlow() { g_gameFlow->Destruct(); }
 } // namespace
 
-EI_REPLACE(0x00578440, ConstructGameFlow);
-EI_REPLACE(0x005784C0, DestroyGameFlow);
+void __cdecl ConstructGameFlow() {
+    g_gameFlow->Construct();
+    libcrt::AtExit(DestroyGameFlow);
+}
+
+EI_REWRITTEN(0x00578440, ConstructGameFlow);
+EI_REWRITTEN(0x005784C0, DestroyGameFlow);
 
 void GameFlow::SetNetworkZone(const char* zone) {
     mfc::CString folder;
@@ -1505,7 +1508,7 @@ int CurrentSaveSize() {
     std::string pattern;
     pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern.c_str(), 0)) {
+    if (find.FindFile(pattern, 0)) {
         int more;
         do {
             more = find.FindNext();
@@ -1629,7 +1632,7 @@ void GameFlow::UpdateFromServer() {
         bool quest;
         {
             std::string prefix = str::Left(name, 2);
-            quest = gamecrt::mbscmp(prefix.c_str(),
+            quest = gamecrt::mbscmp(prefix,
                                     kQuestVariablePrefix) == 0;
         }
         if (!quest) continue;
@@ -1796,7 +1799,7 @@ void GameFlow::BuildZoneTable() {
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolder(&folder);
         std::string pattern = (folder + kQuestFilePattern).GetString();
-        more = find.FindFile(pattern.c_str(), 0);
+        more = find.FindFile(pattern, 0);
     }
     while (more) {
         more = find.FindNext();
@@ -1805,7 +1808,7 @@ void GameFlow::BuildZoneTable() {
         RegisterQuests(name.c_str());
         UnloadQuestTexts();
         std::string map;
-        if (MapRecord* record = FindZone(name.c_str())) {
+        if (MapRecord* record = FindZone(name)) {
             map = record->map;
             const int allod = AllodOfMap(map.c_str());
             AppendEmptyEntry(table);
@@ -1818,7 +1821,7 @@ void GameFlow::BuildZoneTable() {
     find.Close();
 }
 EI_REWRITTEN(0x0057F560, GameFlow::BuildZoneTable);
-EI_REPLACE(0x0057F4A0, DestroyZoneTable);
+EI_REWRITTEN(0x0057F4A0, DestroyZoneTable);
 
 EI_REWRITTEN(0x0057B3B0, GameFlow::SaveGame);
 EI_REWRITTEN(0x0057F0F0, GameFlow::ReturnLocalParty);
@@ -1860,4 +1863,4 @@ EI_REWRITTEN(0x0057EB10, GameFlow::AfterServerStart);
 EI_REWRITTEN(0x005800C0, GameFlow::UpdateFromServer);
 EI_REWRITTEN(0x00662FB0, SavedParties::Reload);
 
-EI_REPLACE(0x0057E6A0, DestroyLastResources);
+EI_REWRITTEN(0x0057E6A0, DestroyLastResources);

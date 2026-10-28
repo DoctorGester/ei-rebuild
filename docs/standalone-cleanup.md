@@ -9,10 +9,9 @@ shim, stub or workaround lands.
 
 - `src/hook/` and `include/ei/hook.h`: `InstallHooks` takes the registrations (`EI_REPLACE`,
   `EI_REPLACE_METHOD`, `_SHORT`, `_STANDALONE`) as the code for their game.exe addresses, `CodeAddress`
-  answers what runs at an address, `src/standalone/` holds the code cells of game.exe's data that name
-  them. A registration stays only while something reaches its address (`tools/registration_readers.py`);
-  the rest are `EI_REWRITTEN` lines, the tools' function-to-original map. C20 / C20e-g drop the rest and
-  the code cells.
+  answers what runs at an address (game.exe's data holds no code pointer in the image since C20 batch 1). A
+  registration stays only while something reaches its address (`tools/registration_readers.py`); the rest are
+  `EI_REWRITTEN` lines, the tools' function-to-original map. C20 / C20e-g drop the rest.
 - Our code calls game functions by name; src has no `EI_ORIGINAL` forwarders (C29). The harness changes
   the image's behaviour through named seams (the fixed ISAAC seed, the traced draws), not addresses; its
   patches of game.exe by address stay: that is the original's side.

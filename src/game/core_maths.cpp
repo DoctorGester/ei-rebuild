@@ -11,31 +11,31 @@ Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b)
     *out = a + b;
     return out;
 }
-EI_REPLACE(0x0040CDC0, AddVectors);
+EI_REWRITTEN(0x0040CDC0, AddVectors);
 
 Vector3* __fastcall NegateVector(Vector3* out, const Vector3& v) {
     *out = -v;
     return out;
 }
-EI_REPLACE(0x00402200, NegateVector);
+EI_REWRITTEN(0x00402200, NegateVector);
 
 Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s) {
     *out = s * v;
     return out;
 }
-EI_REPLACE(0x00410770, ScaleVector);
+EI_REWRITTEN(0x00410770, ScaleVector);
 
 const Vector3* Vector3::AddInPlace(const Vector3& v) {
     *this += v;   // v.x + x in the game's code: the same sum
     return &v;
 }
-EI_REPLACE_METHOD(0x00410750, Vector3::AddInPlace);
+EI_REWRITTEN(0x00410750, Vector3::AddInPlace);
 
 float __stdcall ClampUnit(float v) {
     if (v > 1.0f) return 1.0f;
     return v >= -1.0f ? v : -1.0f;   // -1 also for NaN
 }
-EI_REPLACE(0x004022D0, ClampUnit);
+EI_REWRITTEN(0x004022D0, ClampUnit);
 
 Quaternion* Quaternion::SetIdentity() {
     w = 1.0f;
@@ -44,7 +44,7 @@ Quaternion* Quaternion::SetIdentity() {
     z = 0.0f;
     return this;
 }
-EI_REPLACE_METHOD(0x0040CB00, Quaternion::SetIdentity);
+EI_REWRITTEN(0x0040CB00, Quaternion::SetIdentity);
 
 void Quaternion::PreMultiply(const Quaternion& r) {
     float nx = ((z * r.y - r.z * y) + r.w * x) + r.x * w;
@@ -56,26 +56,26 @@ void Quaternion::PreMultiply(const Quaternion& r) {
     y = ny;
     z = nz;
 }
-EI_REPLACE_METHOD(0x004018A0, Quaternion::PreMultiply);
+EI_REWRITTEN(0x004018A0, Quaternion::PreMultiply);
 
 // The rotated axes: vecmath.h's RotatedAxisX / Y / Z hold these functions' orders.
 Vector3* Quaternion::AxisX(Vector3* out) const {
     *out = RotatedAxisX(*this);
     return out;
 }
-EI_REPLACE_METHOD(0x0040D940, Quaternion::AxisX);
+EI_REWRITTEN(0x0040D940, Quaternion::AxisX);
 
 Vector3* Quaternion::AxisY(Vector3* out) const {
     *out = RotatedAxisY(*this);
     return out;
 }
-EI_REPLACE_METHOD(0x0040F560, Quaternion::AxisY);
+EI_REWRITTEN(0x0040F560, Quaternion::AxisY);
 
 Vector3* Quaternion::AxisZ(Vector3* out) const {
     *out = RotatedAxisZ(*this);
     return out;
 }
-EI_REPLACE_METHOD(0x0040D6B0, Quaternion::AxisZ);
+EI_REWRITTEN(0x0040D6B0, Quaternion::AxisZ);
 
 void CubicSegment::SetBSpline(float p0, float p1, float p2, float p3) {
     c[0] = ((p1 * 4.0f + p0) + p2) * 0.16666667f;
@@ -83,9 +83,9 @@ void CubicSegment::SetBSpline(float p0, float p1, float p2, float p3) {
     c[2] = ((p0 - p1 * 2.0f) + p2) * 0.5f;
     c[3] = (((p1 - p2) * 3.0f - p0) + p3) * 0.16666667f;
 }
-EI_REPLACE_METHOD(0x0040E3D0, CubicSegment::SetBSpline);
+EI_REWRITTEN(0x0040E3D0, CubicSegment::SetBSpline);
 
 float CubicSegment::Evaluate(float t) const {
     return ((t * c[3] + c[2]) * t + c[1]) * t + c[0];
 }
-EI_REPLACE_METHOD(0x0040E440, CubicSegment::Evaluate);
+EI_REWRITTEN(0x0040E440, CubicSegment::Evaluate);

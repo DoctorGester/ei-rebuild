@@ -339,9 +339,11 @@ public:
     virtual void LoadFigures();
 
     // The bounding box of the parts (only those within 1e9 squared of the object) and of the pending parts (whose
-    // positions are reset to 0) into the bounds: centre, half extents below and above it, radius; sets two flag
+    // positions are reset to 0) into the bounds: centre, box corners relative to it, radius; sets two flag
     // bits. Nothing changes without parts.
     void ComputeBounds();
+    // The bounds, the bytes after them and the eye height zeroed.
+    void ClearBounds();
 
     // Sets the scale and, when it changed, rebuilds the figure at that scale through the figure manager, copies
     // each part's piece record from it, rescales the animation and recomputes the bounds.
@@ -477,11 +479,7 @@ public:
     Vector3 defaultScale;           // kDefaultFigureScale (constructor, Create3D)
     tagRECT dirtyRect;              // the screen area the last DrawCollectDirty covered
     mfc::CStringArray partNames;    // the figure's part names, in the order of the part boxes
-    std::uint32_t boundsFlags;      // 1 and 2: the bounds are valid
-    Vector3 center;
-    float radius;
-    Vector3 below;                  // box minimum - centre
-    Vector3 above;                  // box maximum - centre
+    ClipBounds bounds;              // flags 1 and 2: the sphere and the box are valid; the box is relative to the centre
     std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // Cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a unit's eye height.
     float eyeHeight;

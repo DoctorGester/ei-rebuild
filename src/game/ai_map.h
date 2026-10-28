@@ -74,20 +74,6 @@ static_assert(offsetof(FootprintCellSet, buckets) == 0x10);
 static_assert(offsetof(FootprintCellSet, hashed) == 0x50);
 static_assert(sizeof(FootprintCellSet) == 0x54);
 
-// A box of an object's model that blocks the AI map.
-struct FootprintPart {
-    std::uint32_t flags;    // bits 3-5 kind, 6-9 transparency, 0x400 bridge, 0x800 ignored
-    Vector3 offset;
-    std::uint32_t radius;               // float bits: the occluder record's radius
-    Vector3 boxMin;
-    Vector3 boxMax;
-    Vector3 pivot;
-
-    // Marked ignored (0x800) or not (the "EMPTY" pieces, CObject3D::LoadPart).
-    void SetIgnored(bool ignored);
-};
-static_assert(sizeof(FootprintPart) == 0x38);
-
 // The passability cost tables of one size class, filled by CAIMap::CostContext.
 struct PassCostContext {
     const int* costs;       // cost per passability nibble

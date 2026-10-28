@@ -120,7 +120,7 @@ void __fastcall ServerOnCommand(ServerSession* self, CommandMessage* message) {
 }
 
 EI_REWRITTEN(0x00419F90, ServerSession::IsHostConnection);
-EI_REPLACE(0x0041B690, ServerOnObjectAdded);
-EI_REPLACE(0x0041B2A0, ServerOnCommand);
+EI_REWRITTEN(0x0041B690, ServerOnObjectAdded);
+EI_REWRITTEN(0x0041B2A0, ServerOnCommand);
 
 } // namespace net

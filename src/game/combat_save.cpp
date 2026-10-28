@@ -219,7 +219,7 @@ void CUnitServer::Load(CStream* stream) {
     if (stream->version_ < kVersion18E) return;
     stream->Read(&searchingTarget, 1);
     if (stream->version_ < kVersion8E4) return;
-    stream->Read(protection, 0x10);
+    stream->Read(&protection, sizeof(protection));
     if (stream->version_ < kVersion938) return;
     stream->Read(&boredTicks, 4);
     if (stream->version_ < kVersionPendingHit) return;
@@ -276,7 +276,7 @@ void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, actingCheckTime);
     WriteCopy(stream, kSavedConstant);
     WriteCopy(stream, searchingTarget);
-    stream->Write(protection, 0x10);
+    stream->Write(&protection, sizeof(protection));
     WriteCopy(stream, boredTicks);
     stream->Write(&pendingHit, 0x3C);
     WriteCopy(stream, waitFrame);

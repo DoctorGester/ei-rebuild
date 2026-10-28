@@ -3,16 +3,18 @@
 // The 26 exit functions game.exe registers with atexit that no rewrite ports, the static
 // initialisers' ("atexit by" the initialiser; docs/notes/standalone.md, S3a; by hand next to
 // their objects) and the function-local statics' ("atexit at" the call; S16a): 12 nothing, 8 guarded destructor, 6 destructor.
-// Each is decoded from its instructions as a whole-function pattern; ExitFunction states its body over
-// static_init.h's operations. The replacements, registered with EI_REPLACE, run it through Code at exit.
-// A library type's destructor is called at its address in the image (a library
-// port, S4-S12; the standalone check logs the callees with no code yet).
+// Each is decoded from its instructions as a whole-function pattern and written over static_init.h's operations,
+// calling the destructors by name; static_init.cpp registers them by name. Those that do nothing are
+// ei::short_functions::Ret.
 // tools/gen_static_init.py writes this file from game.exe's exit functions.
 #include "static_init.h"
 
 #include "ei/hook.h"
+#include "lib/mfc_exception.h"
 #include "lib/mfc_gdi.h"
+#include "lib/mfc_state.h"
 #include "lib/mfc_static_objects.h"
+#include "lib/mfc_string.h"
 #include "lib/mfc_window.h"
 
 namespace ei::short_functions {
@@ -21,131 +23,128 @@ void Ret();   // src/game/short_functions.cpp
 
 namespace ei::static_init {
 
-template <class Do>
-bool ExitFunction(Do& d, std::uintptr_t fn) {
-    switch (fn) {
-    case 0x0070C0B8:   // guarded destructor, 27 byte(s); atexit by 0070C093
-        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempDCAlloc);
-        return true;
-    case 0x0070C0F8:   // guarded destructor, 27 byte(s); atexit by 0070C0D3
-        if (d.Once(mfc::impl::g_gdiAllocExitGuards, 2)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempGdiObjectAlloc);
-        return true;
-    case 0x0070CC23:   // destructor, 10 byte(s); atexit by 0070CC0C
-        d.Thiscall(0x0070CC2D, &mfc::impl::g_threadStateLocal);
-        return true;
-    case 0x0070CE6D:   // destructor, 10 byte(s); atexit by 0070CE56
-        d.Thiscall(0x0070CE77, &mfc::impl::g_baseModuleStateLocal);
-        return true;
-    case 0x0070D3F3:   // guarded destructor, 27 byte(s); atexit by 0070D3CE
-        if (d.Once(mfc::impl::g_tempWndAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempWndAlloc);
-        return true;
-    case 0x0070DD30:   // guarded destructor, 27 byte(s); atexit by 0070DD0B
-        if (d.Once(mfc::impl::g_tempMenuAllocExitGuard, 1)) d.Thiscall(0x006E6BF5, &mfc::impl::g_tempMenuAlloc);
-        return true;
-    case 0x0070D5EF:   // destructor, 10 byte(s); atexit by 0070D5D8
-        d.Thiscall(0x0070D5F9, &mfc::impl::g_ctl3dThreadLocal);
-        return true;
-    case 0x0070D615:   // destructor, 10 byte(s); atexit by 0070D5FE
-        d.Thiscall(0x0070D61F, &mfc::impl::g_ctl3dStateLocal);
-        return true;
-    case 0x0070DC3E:   // destructor, 10 byte(s); atexit by 0070DC27
-        d.Thiscall(0x0070DC48, &mfc::impl::g_winStateLocal);
-        return true;
-    case 0x004013D0:   // nothing, 1 byte(s); atexit by 004013B0, 00401420, 00402290 and 172 more
-        return true;
-    case 0x0070BF5A:   // destructor, 10 byte(s); atexit by 0070BF32
-        d.Thiscall(0x006E695C, &mfc::impl::g_simpleUserException);
-        return true;
-    case 0x00704433:   // guarded destructor, 27 byte(s); atexit by 00704410
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 1)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndTop);
-        return true;
-    case 0x00704471:   // guarded destructor, 27 byte(s); atexit by 0070444E
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 2)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndBottom);
-        return true;
-    case 0x007044AF:   // guarded destructor, 27 byte(s); atexit by 0070448C
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 4)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndTopMost);
-        return true;
-    case 0x007044ED:   // guarded destructor, 27 byte(s); atexit by 007044CA
-        if (d.Once(mfc::impl::g_staticWindowsExitGuards, 8)) d.Thiscall(0x00704FE3, &mfc::impl::g_wndNoTopMost);
-        return true;
-    case 0x004D71C0:   // nothing, 1 byte(s); atexit at 004D6D7D, 004D7254, 004D737C and 4 more
-        return true;
-    case 0x004D74A0:   // nothing, 1 byte(s); atexit at 004D71EE, 004D7518, 004D76AA and 4 more
-        return true;
-    case 0x004D7850:   // nothing, 1 byte(s); atexit at 004D74CE, 004D78C8, 004D7A3F and 3 more
-        return true;
-    case 0x004D7BC0:   // nothing, 1 byte(s); atexit at 004D787E, 004D7C92, 004D7DC8
-        return true;
-    case 0x004D7E90:   // nothing, 1 byte(s); atexit at 004D7BF2
-        return true;
-    case 0x004D85E0:   // nothing, 1 byte(s); atexit at 004D84AE
-        return true;
-    case 0x004D8770:   // nothing, 1 byte(s); atexit at 004D860E
-        return true;
-    case 0x0056CE30:   // nothing, 1 byte(s); atexit at 0056C795
-        return true;
-    case 0x0058D5C0:   // nothing, 1 byte(s); atexit at 0058D408
-        return true;
-    case 0x005BA3F0:   // nothing, 1 byte(s); atexit at 005B9CEF
-        return true;
-    case 0x005BAC00:   // nothing, 1 byte(s); atexit at 005BAA08
-        return true;
-    }
-    return false;
-}
-
-template bool ExitFunction<Code>(Code&, std::uintptr_t);
-template bool ExitFunction<Targets>(Targets&, std::uintptr_t);
-
-namespace {
-void RunExitFunction(std::uintptr_t fn) {
+// guarded destructor, 27 byte(s); atexit by 0070C093
+void __cdecl Exit0070C0B8() {
     Code d;
-    ExitFunction(d, fn);
+    if (d.Once(mfc::impl::g_gdiAllocExitGuards, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempDCAlloc);
 }
-} // namespace
 
-void __cdecl Exit0070C0B8() { RunExitFunction(0x0070C0B8); }
-void __cdecl Exit0070C0F8() { RunExitFunction(0x0070C0F8); }
-void __cdecl Exit0070CC23() { RunExitFunction(0x0070CC23); }
-void __cdecl Exit0070CE6D() { RunExitFunction(0x0070CE6D); }
-void __cdecl Exit0070D3F3() { RunExitFunction(0x0070D3F3); }
-void __cdecl Exit0070DD30() { RunExitFunction(0x0070DD30); }
-void __cdecl Exit0070D5EF() { RunExitFunction(0x0070D5EF); }
-void __cdecl Exit0070D615() { RunExitFunction(0x0070D615); }
-void __cdecl Exit0070DC3E() { RunExitFunction(0x0070DC3E); }
-void __cdecl Exit0070BF5A() { RunExitFunction(0x0070BF5A); }
-void __cdecl Exit00704433() { RunExitFunction(0x00704433); }
-void __cdecl Exit00704471() { RunExitFunction(0x00704471); }
-void __cdecl Exit007044AF() { RunExitFunction(0x007044AF); }
-void __cdecl Exit007044ED() { RunExitFunction(0x007044ED); }
+// guarded destructor, 27 byte(s); atexit by 0070C0D3
+void __cdecl Exit0070C0F8() {
+    Code d;
+    if (d.Once(mfc::impl::g_gdiAllocExitGuards, 2)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempGdiObjectAlloc);
+}
+
+// destructor, 10 byte(s); atexit by 0070CC0C
+void __cdecl Exit0070CC23() {
+    Code d;
+    d.Call(&mfc::impl::CThreadLocalObject::Destruct, &mfc::impl::g_threadStateLocal);
+}
+
+// destructor, 10 byte(s); atexit by 0070CE56
+void __cdecl Exit0070CE6D() {
+    Code d;
+    d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_baseModuleStateLocal);
+}
+
+// guarded destructor, 27 byte(s); atexit by 0070D3CE
+void __cdecl Exit0070D3F3() {
+    Code d;
+    if (d.Once(mfc::impl::g_tempWndAllocExitGuard, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempWndAlloc);
+}
+
+// guarded destructor, 27 byte(s); atexit by 0070DD0B
+void __cdecl Exit0070DD30() {
+    Code d;
+    if (d.Once(mfc::impl::g_tempMenuAllocExitGuard, 1)) d.Call(&mfc::impl::CFixedAlloc::Destruct, &mfc::impl::g_tempMenuAlloc);
+}
+
+// destructor, 10 byte(s); atexit by 0070D5D8
+void __cdecl Exit0070D5EF() {
+    Code d;
+    d.Call(&mfc::impl::CThreadLocalObject::Destruct, &mfc::impl::g_ctl3dThreadLocal);
+}
+
+// destructor, 10 byte(s); atexit by 0070D5FE
+void __cdecl Exit0070D615() {
+    Code d;
+    d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_ctl3dStateLocal);
+}
+
+// destructor, 10 byte(s); atexit by 0070DC27
+void __cdecl Exit0070DC3E() {
+    Code d;
+    d.Call(&mfc::impl::CProcessLocalObject::Destruct, &mfc::impl::g_winStateLocal);
+}
+
+// destructor, 10 byte(s); atexit by 0070BF32
+void __cdecl Exit0070BF5A() {
+    Code d;
+    d.Call(mfc::impl::DestroyUserException, &mfc::impl::g_simpleUserException);
+}
+
+// guarded destructor, 27 byte(s); atexit by 00704410
+void __cdecl Exit00704433() {
+    Code d;
+    if (d.Once(mfc::impl::g_staticWindowsExitGuards, 1)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndTop);
+}
+
+// guarded destructor, 27 byte(s); atexit by 0070444E
+void __cdecl Exit00704471() {
+    Code d;
+    if (d.Once(mfc::impl::g_staticWindowsExitGuards, 2)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndBottom);
+}
+
+// guarded destructor, 27 byte(s); atexit by 0070448C
+void __cdecl Exit007044AF() {
+    Code d;
+    if (d.Once(mfc::impl::g_staticWindowsExitGuards, 4)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndTopMost);
+}
+
+// guarded destructor, 27 byte(s); atexit by 007044CA
+void __cdecl Exit007044ED() {
+    Code d;
+    if (d.Once(mfc::impl::g_staticWindowsExitGuards, 8)) d.Call(mfc::impl::DestroyStaticWindow, &mfc::impl::g_wndNoTopMost);
+}
 
 } // namespace ei::static_init
 
-using ei::short_functions::Ret;
+EI_REWRITTEN(0x0070C0B8, ei::static_init::Exit0070C0B8);
+EI_REWRITTEN(0x0070C0F8, ei::static_init::Exit0070C0F8);
+EI_REWRITTEN(0x0070CC23, ei::static_init::Exit0070CC23);
+EI_REWRITTEN(0x0070CE6D, ei::static_init::Exit0070CE6D);
+EI_REWRITTEN(0x0070D3F3, ei::static_init::Exit0070D3F3);
+EI_REWRITTEN(0x0070DD30, ei::static_init::Exit0070DD30);
+EI_REWRITTEN(0x0070D5EF, ei::static_init::Exit0070D5EF);
+EI_REWRITTEN(0x0070D615, ei::static_init::Exit0070D615);
+EI_REWRITTEN(0x0070DC3E, ei::static_init::Exit0070DC3E);
+EI_REWRITTEN(0x0070BF5A, ei::static_init::Exit0070BF5A);
+EI_REWRITTEN(0x00704433, ei::static_init::Exit00704433);
+EI_REWRITTEN(0x00704471, ei::static_init::Exit00704471);
+EI_REWRITTEN(0x007044AF, ei::static_init::Exit007044AF);
+EI_REWRITTEN(0x007044ED, ei::static_init::Exit007044ED);
 
-EI_REPLACE(0x0070C0B8, ei::static_init::Exit0070C0B8);
-EI_REPLACE(0x0070C0F8, ei::static_init::Exit0070C0F8);
-EI_REPLACE(0x0070CC23, ei::static_init::Exit0070CC23);
-EI_REPLACE(0x0070CE6D, ei::static_init::Exit0070CE6D);
-EI_REPLACE(0x0070D3F3, ei::static_init::Exit0070D3F3);
-EI_REPLACE(0x0070DD30, ei::static_init::Exit0070DD30);
-EI_REPLACE(0x0070D5EF, ei::static_init::Exit0070D5EF);
-EI_REPLACE(0x0070D615, ei::static_init::Exit0070D615);
-EI_REPLACE(0x0070DC3E, ei::static_init::Exit0070DC3E);
-EI_REPLACE_SHORT(0x004013D0, Ret);
-EI_REPLACE(0x0070BF5A, ei::static_init::Exit0070BF5A);
-EI_REPLACE(0x00704433, ei::static_init::Exit00704433);
-EI_REPLACE(0x00704471, ei::static_init::Exit00704471);
-EI_REPLACE(0x007044AF, ei::static_init::Exit007044AF);
-EI_REPLACE(0x007044ED, ei::static_init::Exit007044ED);
-EI_REPLACE_SHORT(0x004D71C0, Ret);
-EI_REPLACE_SHORT(0x004D74A0, Ret);
-EI_REPLACE_SHORT(0x004D7850, Ret);
-EI_REPLACE_SHORT(0x004D7BC0, Ret);
-EI_REPLACE_SHORT(0x004D7E90, Ret);
-EI_REPLACE_SHORT(0x004D85E0, Ret);
-EI_REPLACE_SHORT(0x004D8770, Ret);
-EI_REPLACE_SHORT(0x0056CE30, Ret);
-EI_REPLACE_SHORT(0x0058D5C0, Ret);
-EI_REPLACE_SHORT(0x005BA3F0, Ret);
-EI_REPLACE_SHORT(0x005BAC00, Ret);
+// nothing, 1 byte(s); atexit by 004013B0, 00401420, 00402290 and 172 more
+EI_REWRITTEN(0x004013D0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D6D7D, 004D7254, 004D737C and 4 more
+EI_REWRITTEN(0x004D71C0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D71EE, 004D7518, 004D76AA and 4 more
+EI_REWRITTEN(0x004D74A0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D74CE, 004D78C8, 004D7A3F and 3 more
+EI_REWRITTEN(0x004D7850, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D787E, 004D7C92, 004D7DC8
+EI_REWRITTEN(0x004D7BC0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D7BF2
+EI_REWRITTEN(0x004D7E90, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D84AE
+EI_REWRITTEN(0x004D85E0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 004D860E
+EI_REWRITTEN(0x004D8770, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 0056C795
+EI_REWRITTEN(0x0056CE30, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 0058D408
+EI_REWRITTEN(0x0058D5C0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 005B9CEF
+EI_REWRITTEN(0x005BA3F0, ei::short_functions::Ret);
+// nothing, 1 byte(s); atexit at 005BAA08
+EI_REWRITTEN(0x005BAC00, ei::short_functions::Ret);

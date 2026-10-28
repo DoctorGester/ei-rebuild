@@ -87,14 +87,15 @@ CCamera* TheCamera() { return &*g_camera; }
 
 namespace {
 void __cdecl DestroyCamera() { g_camera.Destroy(); }
+} // namespace
+
 void __cdecl ConstructCamera() {
     g_camera.Construct();
     libcrt::AtExit(DestroyCamera);
 }
-} // namespace
 
-EI_REPLACE(0x0040C880, ConstructCamera);
-EI_REPLACE(0x0040C8A0, DestroyCamera);
+EI_REWRITTEN(0x0040C880, ConstructCamera);
+EI_REWRITTEN(0x0040C8A0, DestroyCamera);
 
 const char* CCamera::GetClassName() { return "CCamera"; }
 EI_REWRITTEN(0x0040CDF0, CCamera::GetClassName);
@@ -191,7 +192,7 @@ int CCamera::OpenFile(const char* name) {
     {
         std::string folder = kRecordFolder;
         std::string full = folder + name;
-        failed = file.Open(full.c_str(), 0x1001, nullptr) == 0;   // modeCreate | modeWrite
+        failed = file.Open(full, 0x1001, nullptr) == 0;   // modeCreate | modeWrite
     }
     if (failed) return 0;
     {
@@ -211,7 +212,7 @@ int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     mfc::CFile file;
     if (!(flags_ & CCamera::kRecording)) return 0;
-    if (!file.Open(fileName_.c_str(), 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
+    if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
     file.Virtuals()->Seek(0, 2);   // Seek(0, end)
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;

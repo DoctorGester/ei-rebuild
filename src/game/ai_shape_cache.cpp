@@ -19,7 +19,7 @@
 namespace {
 
 using CacheHandle = ShapeCacheHandle;
-using CacheNode = UnitShapeCache::Map::Node;
+using CacheNode = ShapeTable::Node;
 
 constexpr std::size_t kFirstBuckets = 100;
 
@@ -36,10 +36,10 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     if (handle->cache == this && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
 
     auto count = static_cast<std::uint32_t>(shapes.BucketCount());
-    CacheNode* node = shapes.Bucket(handle->key % count);
-    while (node && !SameHeight(node->key.height, handle->height)) node = node->next;
+    CacheNode* node = shapes.BucketVector()[handle->key % count];
+    while (node && !SameHeight(node->value.key.height, handle->height)) node = node->next;
     if (node) {
-        CRefObject* value = node->value.ptr;
+        CRefObject* value = node->value.value.ptr;
         handle->cache = this;
         handle->counted.Assign(value);
         return value;
@@ -47,7 +47,7 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
 
     CRefObject* created = CreateShape(handle);
     // The map's value slot for a handle, inserted (empty) when missing.
-    RefPtr* slot = gamehash::ShapesOf(this)->At(handle);
+    RefPtr* slot = shapes.At(handle);
     if (created != slot->ptr) {
         slot->Destroy();
         slot->Share(created);
@@ -62,28 +62,24 @@ CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return
 
 UnitShapeCache* UnitShapeCache::Construct() {
     new (this) UnitShapeCache;   // the vtable (the map's default constructor only nulls its bucket vector)
-    shapes.InitBuckets(kFirstBuckets);
+    shapes.InitZeroedBuckets(kFirstBuckets);
     return this;
 }
 EI_REWRITTEN(0x005B32E0, UnitShapeCache::Construct);
 
 void UnitShapeCache::Destruct() {
-    shapes.ClearWith([](Map::Node* node) {
-        node->value.Destroy();
-        if (CRefObject* ref = node->key.ref) ref->Release();
-        stlp::deallocate(node, sizeof(Map::Node));
-    });
     shapes.Destroy();
 }
 EI_REWRITTEN(0x005B31F0, UnitShapeCache::Destruct);
 
 namespace {
 void __cdecl DestroyUnitShapes() { g_unitShapes->Destruct(); }
+} // namespace
+
 void __cdecl ConstructUnitShapes() {
     g_unitShapes->Construct();
     libcrt::AtExit(DestroyUnitShapes);
 }
-} // namespace
 
-EI_REPLACE(0x005B31C0, ConstructUnitShapes);
-EI_REPLACE(0x005B31E0, DestroyUnitShapes);
+EI_REWRITTEN(0x005B31C0, ConstructUnitShapes);
+EI_REWRITTEN(0x005B31E0, DestroyUnitShapes);

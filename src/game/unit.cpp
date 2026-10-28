@@ -366,8 +366,8 @@ double CUnit::ScaledValue(float value) {
 EI_REWRITTEN(0x0052FBC0, CUnit::ScaledValue);
 
 double CUnit::BaseSpeed() {
-    if (boundsFlags & 2) return above.z * kFastSpeedScale;
-    return radius * kWalkSpeedScale + center.z;
+    if (bounds.flags & 2) return bounds.boxMax.z * kFastSpeedScale;
+    return bounds.radius * kWalkSpeedScale + bounds.center.z;
 }
 EI_REWRITTEN(0x00530370, CUnit::BaseSpeed);
 

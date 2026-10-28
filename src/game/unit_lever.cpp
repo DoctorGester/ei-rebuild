@@ -51,7 +51,7 @@ void Lever::SetState(int wanted, float duration) {
     if (!world->IsServer()) return;
     mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CSectorMap* sectors = world->Sectors();
-    float reach = radius + 0.5f;
+    float reach = bounds.radius + 0.5f;
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;

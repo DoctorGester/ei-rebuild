@@ -63,7 +63,7 @@ struct Panel {
 
     // Draws `text` and moves down a line.
     void DrawLine() { DrawLine(text); }
-    void DrawLine(const char* line) {
+    void DrawLine(std::string_view line) {
         surface->DrawTextIn(line, &rect, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&rect, 0, kLineHeight);
     }

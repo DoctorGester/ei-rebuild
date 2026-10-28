@@ -38,10 +38,6 @@ namespace {
 const char* BriefingSection() { return "briefing "; }
 const char* HumanPrototype() { return "unhuma"; }
 
-// What a speaker's controller calls when its dialogue animation has finished.
-using ActionDone = void(__fastcall*)(CUnit*);
-ActionDone SpeakerActionDone() { return ei::Code<ActionDone>(0x006023F0); }
-
 CPlayer* LocalServerPlayer() { return TheServerWorld()->GetPlayer(0); }
 
 constexpr int kEventPhrases = 3;
@@ -100,7 +96,7 @@ EI_REWRITTEN(0x00608210, CBriefingScreen::StartPhrases);
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The name is compared through a CString copy.)
-    bool human = gamecrt::mbscmp(unit->name.c_str(), HumanPrototype()) == 0;
+    bool human = gamecrt::mbscmp(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)
@@ -114,14 +110,14 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
     if (!serverUnit) return;
     auto* controller = serverUnit->ServerController();
     controller->StopAction();
-    controller->actionDone = SpeakerActionDone();
+    controller->actionDone = SpeakerAnimationDone;
     if (FigureAnimation* animation = unit->Object3D()->FindSkillAnimation(number))
         controller->PlayAnimation(animation->name);
 }
 EI_REWRITTEN(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
 
-// SpeakerActionDone, the speakers' controllers' actionDone. When
+// SpeakerAnimationDone, the speakers' controllers' actionDone. When
 // a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
 // speakers, plays a listening animation again (once per entry). The active window is taken to be the
 // briefing screen unchecked; the count is read again after each call.
@@ -133,7 +129,7 @@ void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
     for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
         if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
 }
-EI_REPLACE(0x006023F0, SpeakerAnimationDone);
+EI_REWRITTEN(0x006023F0, SpeakerAnimationDone);
 
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
@@ -288,7 +284,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
-            if (gamecrt::mbsicmp(node->name.c_str(),
+            if (gamecrt::mbsicmp(node->name,
                                 name) != 0)
                 continue;
             if (node->item) {

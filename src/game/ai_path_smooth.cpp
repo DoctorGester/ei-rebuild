@@ -170,7 +170,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         }
     }
 }
-EI_REPLACE_METHOD(0x005C46C0, PathSmoother::Smooth);
+EI_REWRITTEN(0x005C46C0, PathSmoother::Smooth);
 
 // ---- The transition tables ----------------------------------------------------------------------
 
@@ -346,7 +346,7 @@ void BuildSmoothTablesAt(SmoothTable* tables) {
 
 // The static initialiser's second half, after the 81 tables have been constructed empty.
 void __cdecl BuildSmoothTables() { BuildSmoothTablesAt(g_smoothTables.Get()); }
-EI_REPLACE(0x005C42B0, BuildSmoothTables);
+EI_REWRITTEN(0x005C42B0, BuildSmoothTables);
 
 // ---- The pool and the tables ----------------------------------------------------------
 
@@ -358,27 +358,27 @@ constinit lib::StaticObject<SmoothTable[81]> g_smoothTables = /*007C3058*/ {};
 namespace {
 
 using AtExitFunction = void(__cdecl*)();
-void RegisterExit(std::uintptr_t exitFunction) { libcrt::AtExit(ei::Code<AtExitFunction>(exitFunction)); }
+void RegisterExit(AtExitFunction exitFunction) { libcrt::AtExit(exitFunction); }
 
-void __cdecl ConstructSmoothTables() {
-    for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
-    RegisterExit(0x005C41F0);
-}
 // The tables destroyed, the last one first (the `eh vector destructor iterator`).
 void __cdecl DestroySmoothTables() {
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = kStates * kStates; i-- > 0;) tables[i].Destruct();
 }
+void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
+} // namespace
+
+void __cdecl ConstructSmoothTables() {
+    for (SmoothTable& table : g_smoothTables.Get()) table.Construct();
+    RegisterExit(DestroySmoothTables);
+}
 
 void __cdecl ConstructSmoothPool() {
     mfc::impl::ConstructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes);
-    RegisterExit(0x005C4480);
+    RegisterExit(DestroySmoothPool);
 }
-void __cdecl DestroySmoothPool() { mfc::impl::DestructArrayOf<gamearrays::SmoothNodeArrayClass>(g_smoothPool->nodes); }
 
-} // namespace
-
-EI_REPLACE(0x005C41C0, ConstructSmoothTables);
-EI_REPLACE(0x005C41F0, DestroySmoothTables);
-EI_REPLACE(0x005C4460, ConstructSmoothPool);
-EI_REPLACE(0x005C4480, DestroySmoothPool);
+EI_REWRITTEN(0x005C41C0, ConstructSmoothTables);
+EI_REWRITTEN(0x005C41F0, DestroySmoothTables);
+EI_REWRITTEN(0x005C4460, ConstructSmoothPool);
+EI_REWRITTEN(0x005C4480, DestroySmoothPool);

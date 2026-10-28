@@ -140,7 +140,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     std::string path;
     mfc::CFile file;
     path = str::Format("%stextures\\%s.mmp", DataFolderText(), name);
-    if (file.Open(path.c_str(), mfc::CFile::modeRead, nullptr)) {
+    if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
         out->SetSizeDiscard(size);

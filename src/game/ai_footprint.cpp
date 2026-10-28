@@ -29,15 +29,16 @@ constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {}
 using spellfx::g_spellFootprint;
 
 namespace {
-void __cdecl ConstructSpellFootprint() {
-    g_spellFootprint->Construct();
-    libcrt::AtExit(ei::Code<void(__cdecl*)()>(0x0067E500));
-}
 void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
 } // namespace
 
-EI_REPLACE(0x0067E4C0, ConstructSpellFootprint);
-EI_REPLACE(0x0067E500, FreeSpellFootprint);
+void __cdecl ConstructSpellFootprint() {
+    g_spellFootprint->Construct();
+    libcrt::AtExit(FreeSpellFootprint);
+}
+
+EI_REWRITTEN(0x0067E4C0, ConstructSpellFootprint);
+EI_REWRITTEN(0x0067E500, FreeSpellFootprint);
 
 void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
 EI_REWRITTEN(0x005BD350, FootprintCellSet::SetSize);
@@ -150,7 +151,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             continue;
         }
         const FootprintPart* part = &object->partBoxes[index];
-        std::uint32_t flags = part->flags;
+        std::uint32_t flags = part->bounds.flags;
         if (flags & 0x800) continue;
         std::int8_t kind = static_cast<std::int8_t>((flags >> 3) & 7);
         std::int8_t transparency = static_cast<std::int8_t>((flags >> 6) & 0xF);
@@ -162,7 +163,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
 
         // The box as a strip of 8 corners: faces (k, k+1, k+2) for k = 0..5 cover its 6 sides,
         // each with an outward normal.
-        const Vector3 &lo = part->boxMin, &hi = part->boxMax;
+        const Vector3 &lo = part->bounds.boxMin, &hi = part->bounds.boxMax;
         Vector3 corner[8] = {{hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}, {lo.x, hi.y, lo.z}, {lo.x, hi.y, hi.z},
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
@@ -185,12 +186,12 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
             const FootprintPart* placed = &object->partBoxes[index];
             float y = placed->pivot.y + p.y;
             float z = placed->pivot.z + p.z;
-            float x = p.x + placed->pivot.x + placed->offset.x;
+            float x = p.x + placed->pivot.x + placed->bounds.center.x;
             p.x = x;
-            p.y = y + placed->offset.y;
-            p.z = z + placed->offset.z;
+            p.y = y + placed->bounds.center.y;
+            p.z = z + placed->bounds.center.z;
             Vector3 world;
-            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &p);
+            object->worldMatrix.rows.Transform(&world, &p);
             std::memcpy(&p, &world, sizeof(p));
             p.x = position.x + p.x;
             p.y = position.y + p.y;
@@ -198,7 +199,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
         }
         for (Vector3& v : normal) {
             Vector3 world;
-            reinterpret_cast<const MatrixRows*>(matrix)->Transform(&world, &v);
+            object->worldMatrix.rows.Transform(&world, &v);
             std::memcpy(&v, &world, sizeof(v));
         }
 

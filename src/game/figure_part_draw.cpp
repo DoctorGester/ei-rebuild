@@ -282,7 +282,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
         libcrt::AtExit(FreeMovedPositions);
     }
 
-    int visibility = device->pipeline_->ClipTest(&part.Mesh()->bounds_);
+    int visibility = device->pipeline_->ClipTest(&part.Mesh()->box_.bounds);
     if (visibility == 2) return 1;
     int type = static_cast<int>(part.Mesh()->meshType_);
     if (type >= 13 && type <= 16) {
@@ -312,4 +312,4 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     return 1;
 }
 EI_REWRITTEN(0x005A7A70, FigureMeshDrawer::DrawLit);
-EI_REPLACE(0x005A8AE0, FreeMovedPositions);
+EI_REWRITTEN(0x005A8AE0, FreeMovedPositions);

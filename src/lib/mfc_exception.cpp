@@ -205,7 +205,7 @@ void __stdcall ThrowResourceException() {
 EI_REWRITTEN_SPECIAL(0x00702053, CException::CException);
 EI_REWRITTEN_SPECIAL(0x0070205D, CException::CException);
 EI_REWRITTEN_SPECIAL(0x006E68C9, CResourceException::CResourceException);
-EI_REPLACE_METHOD(0x006E6916, CUserException::Construct);
+EI_REWRITTEN(0x006E6916, CUserException::Construct);
 EI_REWRITTEN_SPECIAL(0x006E6AEA, CMemoryException::CMemoryException);
 EI_REWRITTEN_SPECIAL(0x006E6B37, CNotSupportedException::CNotSupportedException);
 EI_REWRITTEN(0x00702069, DeleteException);
@@ -219,7 +219,7 @@ EI_REWRITTEN_SPECIAL(0x006E6319, CFileException::~CFileException);   // deleting
 EI_REWRITTEN_SPECIAL(0x006E6BA1, CArchiveException::~CArchiveException);
 EI_REWRITTEN_SPECIAL(0x006E6B85, CArchiveException::~CArchiveException);   // deleting
 EI_REWRITTEN_SPECIAL(0x006E690F, CResourceException::~CResourceException);
-EI_REPLACE(0x006E695C, DestroyUserException);
+EI_REWRITTEN(0x006E695C, DestroyUserException);
 EI_REWRITTEN_SPECIAL(0x006E6B30, CMemoryException::~CMemoryException);
 EI_REWRITTEN_SPECIAL(0x006E6B7D, CNotSupportedException::~CNotSupportedException);
 EI_REWRITTEN(0x00703296, OsErrorToException);
@@ -236,6 +236,8 @@ namespace {
 void __cdecl DestroySimpleResourceException() { g_simpleResourceException.Destroy(); }
 void __cdecl DestroySimpleMemoryException() { g_simpleMemoryException.Destroy(); }
 void __cdecl DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destroy(); }
+} // namespace
+
 void __cdecl ConstructSimpleResourceException() {
     g_simpleResourceException.Construct(FALSE, kIdsResourceException);
     libcrt::AtExit(DestroySimpleResourceException);
@@ -248,14 +250,13 @@ void __cdecl ConstructSimpleNotSupportedException() {
     g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
     libcrt::AtExit(DestroySimpleNotSupportedException);
 }
-} // namespace
 
-EI_REPLACE(0x0070BEFA, ConstructSimpleResourceException);
-EI_REPLACE(0x0070C1B5, ConstructSimpleMemoryException);
-EI_REPLACE(0x0070C1ED, ConstructSimpleNotSupportedException);
-EI_REPLACE(0x0070BF22, DestroySimpleResourceException);
-EI_REPLACE(0x0070C1DD, DestroySimpleMemoryException);
-EI_REPLACE(0x0070C215, DestroySimpleNotSupportedException);
+EI_REWRITTEN(0x0070BEFA, ConstructSimpleResourceException);
+EI_REWRITTEN(0x0070C1B5, ConstructSimpleMemoryException);
+EI_REWRITTEN(0x0070C1ED, ConstructSimpleNotSupportedException);
+EI_REWRITTEN(0x0070BF22, DestroySimpleResourceException);
+EI_REWRITTEN(0x0070C1DD, DestroySimpleMemoryException);
+EI_REWRITTEN(0x0070C215, DestroySimpleNotSupportedException);
 
 } // namespace mfc::impl
 

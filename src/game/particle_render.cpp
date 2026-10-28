@@ -94,7 +94,7 @@ EI_REWRITTEN(0x00497CE0, CSceneRenderer::BindHeldTexture);
 
 // CArray::SetSize for the 8-byte sprites: new elements are zeroed.
 EI_REWRITTEN(0x00497D50, ParticleSpriteArray::SetSize);
-EI_REPLACE(0x00497D30, DestroySprites);
+EI_REWRITTEN(0x00497D30, DestroySprites);
 
 // Off screen (the renderer's clip test on the bounds says 2) only counts the hidden
 // ticks. Otherwise the arrays are reserved for 0x1000 particles, sized to this source's, filled,
@@ -144,4 +144,4 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
     return renderer->DrawSprites(blend != 0, &Vertices(), &Sprites());
 }
 EI_REWRITTEN(0x004976B0, CParticleSource::Draw);
-EI_REPLACE(0x00497D10, FreeVertices);
+EI_REWRITTEN(0x00497D10, FreeVertices);

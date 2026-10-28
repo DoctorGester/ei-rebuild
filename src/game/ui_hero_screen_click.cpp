@@ -362,7 +362,7 @@ void CMpHeroScreen::Rename() {
     surface->GetDC();
     surface->Clear();
     RECT rect = kRenameTitle;
-    surface->DrawTextIn((name + RenameSeparator()).c_str(), &rect, 1, kBright, 2, 1);
+    surface->DrawTextIn((name + RenameSeparator()), &rect, 1, kBright, 2, 1);
     surface->ReleaseDC();
 }
 namespace {
@@ -605,7 +605,7 @@ union BlankHeroRecord {
 };
 
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
-int HighestFileNumber(const char* pattern) {
+int HighestFileNumber(std::string_view pattern) {
     int highest = 0;
     mfc::CFileFind find;
     if (find.FindFile(pattern, 0)) {
@@ -661,7 +661,7 @@ void CMpHeroScreen::AddNewHero() {
 
     std::string pattern;
     pattern = str::Format(HeroFilePattern(), MpHeroesFolder().c_str());
-    int highest = HighestFileNumber(pattern.c_str());
+    int highest = HighestFileNumber(pattern);
     record->file = str::Format(HeroFileFormat(), highest + 1);
     record->Party()->Assign(LocalPlayerData());
     record->WriteFile(HeroesFolder());

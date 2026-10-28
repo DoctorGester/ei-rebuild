@@ -38,7 +38,7 @@ using Packets = stlp::list<SentPacket>;
 constinit stlp::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
 void __cdecl FreeReplicated() { g_replicated.FreeStorage(); }
-EI_REPLACE(0x00434980, FreeReplicated);
+EI_REWRITTEN(0x00434980, FreeReplicated);
 
 
 
@@ -66,10 +66,9 @@ void Increment(Node*& it) {
 
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
 // is read again after each call.
-using Handler = void(__fastcall*)(SessionBase*, CRefObject*);
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     HandlerVector& v = session->handlers_[channel][type & 0xFF];
-    for (void** h = v.begin(); h != v.end(); ++h) reinterpret_cast<Handler>(*h)(session, message);
+    for (MessageHandler* h = v.begin(); h != v.end(); ++h) (*h)(session, message);
 }
 
 // A message's virtual Write and Read over a byte cursor.

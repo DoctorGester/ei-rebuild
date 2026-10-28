@@ -77,4 +77,4 @@ void BuildWeatherNoise() {
     g_swayYByPlace.Build(kAmplitude);
     g_swayZByHeight.Build(kAmplitude);
 }
-EI_REPLACE(0x004E3B20, BuildWeatherNoise);
+EI_REWRITTEN(0x004E3B20, BuildWeatherNoise);

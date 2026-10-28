@@ -7,6 +7,7 @@
 #include "acks_db.h"
 #include "app_helpers.h"
 #include "camera.h"
+#include "class_templates.h"
 #include "console.h"
 #include "item_db.h"
 #include "lever.h"
@@ -15,6 +16,7 @@
 #include "net_session.h"
 #include "object_tables.h"
 #include "options.h"
+#include "party_records.h"
 #include "quest_records.h"
 #include "sound.h"
 #include "texture.h"
@@ -75,54 +77,52 @@ CDirectInputMouse*& Mouse() { return g_mouse; }
 
 namespace {
 
-using AtExitFunction = void(__cdecl*)();
-
-// The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
-void __cdecl ConstructCameraFile() {
-    g_cameraFile.Construct();
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D00));
-}
-void __cdecl ConstructCommandLineScript() {
-    g_commandLineScript.Construct();
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D30));
-}
-void __cdecl ConstructCommandLineMob() {
-    g_commandLineMob.Construct();
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D60));
-}
-void __cdecl ConstructCommandLineMap() {
-    g_commandLineMap.Construct();
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455D90));
-}
-void __cdecl ConstructMovieFolder() {
-    g_movieFolder.Construct(".\\capture\\");
-    libcrt::AtExit(ei::Code<AtExitFunction>(0x00455DC0));
-}
-
 void __cdecl DestroyCameraFile() { g_cameraFile.Destroy(); }
 void __cdecl DestroyCommandLineScript() { g_commandLineScript.Destroy(); }
 void __cdecl DestroyCommandLineMob() { g_commandLineMob.Destroy(); }
 void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
 void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
+} // namespace
+
+// The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
+void __cdecl ConstructCameraFile() {
+    g_cameraFile.Construct();
+    libcrt::AtExit(DestroyCameraFile);
+}
+void __cdecl ConstructCommandLineScript() {
+    g_commandLineScript.Construct();
+    libcrt::AtExit(DestroyCommandLineScript);
+}
+void __cdecl ConstructCommandLineMob() {
+    g_commandLineMob.Construct();
+    libcrt::AtExit(DestroyCommandLineMob);
+}
+void __cdecl ConstructCommandLineMap() {
+    g_commandLineMap.Construct();
+    libcrt::AtExit(DestroyCommandLineMap);
+}
+void __cdecl ConstructMovieFolder() {
+    g_movieFolder.Construct(".\\capture\\");
+    libcrt::AtExit(DestroyMovieFolder);
+}
+
 // The mouse's reference dropped (ShutDown has already taken it: null at exit).
 void __cdecl ReleaseMouseAtExit() {
     if (CDirectInputMouse* mouse = g_mouse)
         if (--mouse->references_ == 0) delete mouse;
 }
 
-} // namespace
-
-EI_REPLACE(0x00455CE0, ConstructCameraFile);
-EI_REPLACE(0x00455D10, ConstructCommandLineScript);
-EI_REPLACE(0x00455D40, ConstructCommandLineMob);
-EI_REPLACE(0x00455D70, ConstructCommandLineMap);
-EI_REPLACE(0x00455DA0, ConstructMovieFolder);
-EI_REPLACE(0x00455D00, DestroyCameraFile);
-EI_REPLACE(0x00455D30, DestroyCommandLineScript);
-EI_REPLACE(0x00455D60, DestroyCommandLineMob);
-EI_REPLACE(0x00455D90, DestroyCommandLineMap);
-EI_REPLACE(0x00455DC0, DestroyMovieFolder);
-EI_REPLACE(0x00455DF0, ReleaseMouseAtExit);
+EI_REWRITTEN(0x00455CE0, ConstructCameraFile);
+EI_REWRITTEN(0x00455D10, ConstructCommandLineScript);
+EI_REWRITTEN(0x00455D40, ConstructCommandLineMob);
+EI_REWRITTEN(0x00455D70, ConstructCommandLineMap);
+EI_REWRITTEN(0x00455DA0, ConstructMovieFolder);
+EI_REWRITTEN(0x00455D00, DestroyCameraFile);
+EI_REWRITTEN(0x00455D30, DestroyCommandLineScript);
+EI_REWRITTEN(0x00455D60, DestroyCommandLineMob);
+EI_REWRITTEN(0x00455D90, DestroyCommandLineMap);
+EI_REWRITTEN(0x00455DC0, DestroyMovieFolder);
+EI_REWRITTEN(0x00455DF0, ReleaseMouseAtExit);
 
 char g_windowTitle[256] = /*0079BB24*/ {""};
 HINSTANCE g_instance = /*0079BC24*/ {};
@@ -190,14 +190,6 @@ UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
 console::GameOStream& SpeedLog() { return console::g_netLogOut; }
-
-// ---- The callees -----------------------------------------------------------------------------------
-
-// app::TypeRegistryRegister: a class the chunk archives can hold, by id and factory. The two factories: class 1
-// and class 2 (the party record).
-using ClassFactory = ChunkArchive::Factory;
-ClassFactory ClassTemplateFactory() { return ei::Code<ClassFactory>(0x00457850); }
-ClassFactory PartyRecordFactory() { return ei::Code<ClassFactory>(0x00457740); }
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -292,7 +284,7 @@ void RegisterWindowClass(HINSTANCE instance) {
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(windowClass);
     windowClass.style = CS_DBLCLKS;
-    windowClass.lpfnWndProc = ei::Code<WNDPROC>(0x00457D40);
+    windowClass.lpfnWndProc = WindowProc;
     windowClass.cbClsExtra = 0;
     windowClass.cbWndExtra = 0;
     windowClass.hInstance = instance;
@@ -365,12 +357,12 @@ bool CheckDrives(const console::CStringArray& messages) {
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
     }
-    if (gamecrt::mbscmp(dataFolder.c_str(), discFolder.c_str()) != 0) {
+    if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
         PathParts parts;
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
-        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1].c_str(), volume) != 0) {
+        while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
             if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
@@ -724,8 +716,9 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
         gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], "CRITICAL ERROR", kCriticalBox);
         return kExitDeclined;
     }
-    app::TypeRegistryRegister(ClassRegistry(), nullptr, 1, ClassTemplateFactory());
-    app::TypeRegistryRegister(ClassRegistry(), nullptr, 2, PartyRecordFactory());
+    // The classes the chunk archives can hold: 1 the class template, 2 the party record.
+    app::TypeRegistryRegister(ClassRegistry(), nullptr, 1, CreateClassTemplate);
+    app::TypeRegistryRegister(ClassRegistry(), nullptr, 2, CreatePartyRecord);
     ReadCommandLine(commandLine);
     RegisterWindowClass(instance);
 
@@ -741,7 +734,7 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     }
     options->LoadFromRegistry(RegistryRoot());
     const gamecrt::NewHandler previousHandler =
-        libcrt::SetNewHandler(ei::Code<gamecrt::NewHandler>(0x00455A30));
+        libcrt::SetNewHandler(app::OutOfMemory);
     TheClientWorld()->Create();
     TheServerWorld()->Create();
     // The field of view: pi * 2 / 7 (51.4 degrees).

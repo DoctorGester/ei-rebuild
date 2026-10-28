@@ -15,6 +15,7 @@
 #include "../lib/crt.h"
 #include "ei/hook.h"
 #include "lib/mfc_list.h"
+#include "lib/mfc_window.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"
@@ -155,7 +156,7 @@ void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& s
             message = str::Format("CorrectMappings.\n Incorrect mapping values\n Material \"%s\"\n Texture \"%s\"\n", s.groupName.GetString(), s.section.GetString());
             game::DebugLog(message.c_str());
             if (TheClientWorld()->flags_ & 0x10000) {
-                ei::Code<int(__stdcall*)(const char*, unsigned, unsigned)>(0x0070AC94)(message.c_str(), 0x30, 0);
+                mfc::impl::MessageBoxText(message.c_str(), 0x30, 0);
             }
             m.h = 0.0f;
             m.w = 0.0f;
@@ -210,7 +211,7 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
     int j = 0;
     for (; j < names->size; ++j) {
         const TextureNameRecord& n = (*names)[j];
-        if (gamecrt::mbscmp(n.name.c_str(), texture.c_str()) == 0 &&
+        if (gamecrt::mbscmp(n.name, texture) == 0 &&
             n.id == textureId) {
             break;
         }
@@ -253,7 +254,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
                 const CMaterial& helperRecord = unit->helpers.data[h];
-                if (gamecrt::mbscmp(helperRecord.name.c_str(),
+                if (gamecrt::mbscmp(helperRecord.name,
                                     groupName.GetString()) != 0) {
                     continue;
                 }

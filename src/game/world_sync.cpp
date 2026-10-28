@@ -311,7 +311,7 @@ int CWorldServer::SendZone(CPlayer* player) {
 
 EI_REWRITTEN(0x0058B750, CWorldServer::SyncPlayer);
 EI_REWRITTEN(0x0058C890, CWorldServer::SendZone);
-EI_REPLACE(0x0058C4D0, FreeCollected);
-EI_REPLACE(0x0058C4B0, FreeAdded);
-EI_REPLACE(0x0058C490, FreeKept);
-EI_REPLACE(0x0058C470, FreeRemoved);
+EI_REWRITTEN(0x0058C4D0, FreeCollected);
+EI_REWRITTEN(0x0058C4B0, FreeAdded);
+EI_REWRITTEN(0x0058C490, FreeKept);
+EI_REWRITTEN(0x0058C470, FreeRemoved);

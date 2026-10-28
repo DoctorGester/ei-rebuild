@@ -39,7 +39,7 @@ namespace {
 
 
 bool IsEmpty(const std::string& s) {
-    return gamecrt::mbscmp(s.c_str(),
+    return gamecrt::mbscmp(s,
                            game::EmptyText()) == 0;
 }
 
@@ -118,12 +118,13 @@ constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
 using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
-void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
-void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 } // namespace
 
-EI_REPLACE(0x005809C0, DestroyQuestFiles);
-EI_REPLACE(0x00581090, DestroyQuestFolders);
+void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
+void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
+
+EI_REWRITTEN(0x005809C0, DestroyQuestFiles);
+EI_REWRITTEN(0x00581090, DestroyQuestFolders);
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
@@ -196,7 +197,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
         std::string pattern = folder.GetString() + file;
-        found = find.FindFile(pattern.c_str(), 0) != 0;
+        found = find.FindFile(pattern, 0) != 0;
     }
     if (!found) return false;
     stlp::string path = MapFilePath(file);
@@ -222,7 +223,7 @@ void __stdcall GameFlow::OnVariableChanged(const stlp::list<RefPtr>::Node* node)
     bool quest;
     {
         std::string prefix = str::Left(name, 2);
-        quest = gamecrt::mbscmp(prefix.c_str(),
+        quest = gamecrt::mbscmp(prefix,
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
