@@ -5110,3 +5110,11 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C20p"]
 note = "Found by C20p. ~41 functions in src keep an unused scalar parameter (LookFrom(from, to, int unused), GetPosition(out, int unused), Disarm(key, int unused), MayTravel(int unused), UpdateRegionTips(CSceneRenderer* unused), bink PlayVideo(..., int unused), ...). Drop each with its call-site arguments, unless it is a virtual override, a function-pointer table type, an EI_RECORD signature or the harness's game.exe side (list those). Skip the R27 files. Goldens must stay the same."
+
+[[ticket]]
+id = "C44a"
+title = "Float-bits fields to float: attackRoll, unit_db fields; forwarders WriteInt / PutByte / PutWord; world_save's local ReadValue"
+group = "cleanup"
+model = "sonnet"
+depends = ["C44"]
+note = "Left by C43/C44. attackRoll (uint32 of float bits: set in combat.cpp, spell.cpp, literal 0x42C80000u in script_exec.cpp, masked & 0x7FFFFFFF, compared as float) and the unit_db float-bits fields become float with the FLT_MAX / sign cases checked (x87::CopyBits where bits must survive; the harness digest reader compiles against these headers, so a harness-key change may follow). Inline item_stock / script_save / script_effects / core_stream_diff / world_unit_set's WriteInt, PutByte, PutWord where the width is clear; rename world_save.cpp's local T ReadValue<T>(CStream*). Goldens must stay the same."
