@@ -157,7 +157,6 @@ EI_REWRITTEN_SPECIAL(0x005FC0C0, CItemScreen::~CItemScreen);
 
 // The page titles, the heroes CArray, then the item screen's.
 CCampPages::~CCampPages() {
-    pageTitles_.Destruct();
     heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
     if (heroes_.data) gamecrt::operator_delete(heroes_.data);
 }

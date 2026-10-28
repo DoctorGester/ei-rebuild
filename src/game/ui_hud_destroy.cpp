@@ -50,11 +50,7 @@ EI_REWRITTEN_SPECIAL(0x00635CA0, CHudMap::~CHudMap);
 EI_REWRITTEN_SPECIAL(0x00635C80, CHudMap::~CHudMap);
 EI_REWRITTEN_SPECIAL(0x0064BD50, CHudMap::~CHudMap);
 
-// The two strings go after the body (strings_[1] first).
-CHudUnitPanel::~CHudUnitPanel() {
-    partLabels_.Destruct();
-    texts_.Destruct();
-}
+CHudUnitPanel::~CHudUnitPanel() = default;
 EI_REWRITTEN_SPECIAL(0x00635D00, CHudUnitPanel::~CHudUnitPanel);
 EI_REWRITTEN_SPECIAL(0x00635CE0, CHudUnitPanel::~CHudUnitPanel);
 EI_REWRITTEN_SPECIAL(0x0064BD40, CHudUnitPanel::~CHudUnitPanel);

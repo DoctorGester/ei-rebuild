@@ -7,16 +7,23 @@
 #include "lib/str.h"
 
 #include <string>
+#include <vector>
 
 namespace text {
 
 namespace {
 
+void Clear(mfc::CStringArray* array) { array->SetSize(0, -1); }
+void Clear(std::vector<std::string>* array) { array->clear(); }
+void Add(mfc::CStringArray* array, const std::string& piece) { array->SetAtGrow(array->GetSize(), piece); }
+void Add(std::vector<std::string>* array, const std::string& piece) { array->push_back(piece); }
+
 // The two splitters: the text plus a final separator, cut at each separator.
-int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool skipAdjacent) {
+template <typename Array>
+int SplitAt(const char* text, Array* array, char separator, bool skipAdjacent) {
     std::string piece;
     std::string work = text;
-    array->SetSize(0, -1);
+    Clear(array);
     work += separator;
     int start = 0;
     int at = str::Find(work, separator);
@@ -25,7 +32,7 @@ int SplitAt(const char* text, mfc::CStringArray* array, char separator, bool ski
             piece = str::Mid(work, start, at - start);
             str::TrimLeft(piece);
             str::TrimRight(piece);
-            array->SetAtGrow(array->GetSize(), piece);
+            Add(array, piece);
         }
         start = at + 1;
         at = str::Find(work, separator, start);
@@ -39,6 +46,10 @@ int __fastcall Split(const char* text, mfc::CStringArray* array, char separator)
     return SplitAt(text, array, separator, false);
 }
 EI_REWRITTEN(0x004DBE40, Split);
+
+int SplitStrings(const char* text, std::vector<std::string>* array, char separator) {
+    return SplitAt(text, array, separator, false);
+}
 
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator) {
     return SplitAt(text, array, separator, true);

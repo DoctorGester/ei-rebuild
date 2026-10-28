@@ -209,12 +209,12 @@ BOOL CSpellMakerPage::DrawSpellMaker(CSceneRenderer* pass) {
     surface->Clear();
     if (hasSpell) {
         std::string text;
-        text = str::Format(CostFormat(), texts_[0].GetString(), skill, needed);
+        text = str::Format(CostFormat(), texts_[0].c_str(), skill, needed);
         RECT first{10, 0, 200, 20};
         surface->DrawLine(text, &first, 1, kTextColour, 0, 1);
         // The larger of the two (the last spell's when the sum is smaller or unordered).
         float shown = manaSum >= lastMana ? manaSum : lastMana;
-        text = str::Format(CostFormat(), texts_[1].GetString(), mana, static_cast<int>(shown));
+        text = str::Format(CostFormat(), texts_[1].c_str(), mana, static_cast<int>(shown));
         RECT second{10, 20, 200, 40};
         surface->DrawLine(text, &second, 1, kTextColour, 0, 1);
     } else {

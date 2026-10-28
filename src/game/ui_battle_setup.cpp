@@ -44,10 +44,7 @@ bool LoadingGame() { return GameSaveStream()->size_ != 0; }
 } // namespace
 
 // The panels Create builds inline (they have no constructors of their own).
-CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    texts_.Construct();
-    partLabels_.Construct();
-}
+CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {}
 
 CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     for (UiPointArray* points : {&viewPolygon_, &visibleArea_}) {

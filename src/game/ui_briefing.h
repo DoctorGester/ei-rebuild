@@ -103,12 +103,11 @@ public:
     int listed_;
     int portraits_;
     stlp::vector<CRefObject*> players_;       // counted PlayerMessage records
-    mfc::CStringArray texts_;
+    std::vector<std::string> texts_;
 };
 static_assert(offsetof(CChatWindow, listed_) == 0x148);
 static_assert(offsetof(CChatWindow, players_) == 0x150);
 static_assert(offsetof(CChatWindow, texts_) == 0x15C);
-static_assert(sizeof(CChatWindow) == 0x170);
 
 class CBriefingScreen : public CUiContainer {
 public:

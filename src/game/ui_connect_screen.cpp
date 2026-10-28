@@ -351,7 +351,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionPassword:
         if (hostPassword_.size() == 0) {
             CopyText(boxText_, hostPassword_.c_str());
-            OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
+            OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxPassword, kBoxFlagsEdit);
         } else {
             hostPassword_.clear();
             SceneMesh(kSpritePassword)->textureOffsetU_ = 0.0f;
@@ -468,7 +468,7 @@ void CMpConnectScreen::Connect() {
     SaveAddressBook();
     if (entries_[selected_].password) {
         boxText_[0] = '\0';
-        OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
+        OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
     TheGameFlow()->JoinServer(&entries_[selected_].address, EmptyText());
     net::GameClient()->gameType_ = entries_[selected_].gameType;
@@ -489,7 +489,7 @@ void CMpConnectScreen::EditAddress() {
         stlp::string text;
         CopyText(boxText_, entry.address.ToString(&text)->data());
     }
-    OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
+    OpenBox(interface_, texts_[kTextAddress].c_str(), boxText_, kBoxAddress, kBoxFlagsEdit);
 }
 EI_REWRITTEN(0x0061CF50, CMpConnectScreen::EditAddress);
 
@@ -503,7 +503,7 @@ void CMpConnectScreen::MasterRequest() {
         master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::GameClient();
     std::uint32_t extra = client ? client->queries_.extra : 0;
-    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), 1,
+    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster].c_str(), boxText_, kBoxMaster, &master, extra), 1,
                            1);
 }
 EI_REWRITTEN(0x0061D0D0, CMpConnectScreen::MasterRequest);
@@ -652,7 +652,7 @@ void CMpConnectScreen::CreateScreen() {
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text = str::Format(AllodNameFormat(), i);
         texts->CTextManager::GetString(text.c_str(), &text);
-        allodNames_.SetAtGrow(allodNames_.GetSize(), text);
+        allodNames_.push_back(text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
         region(460, top, 670, bottom, 0);
@@ -717,7 +717,7 @@ void CMpConnectScreen::CreateScreen() {
     for (int i = 0; i < kTextCount; ++i) {
         text = str::Format(ConnectionTextFormat(), i);
         texts->CTextManager::GetString(text.c_str(), &text);
-        texts_.SetAtGrow(texts_.GetSize(), text);
+        texts_.push_back(text);
     }
 
     TheGameFlow()->StartClient();
@@ -753,7 +753,7 @@ void CMpConnectScreen::CreateScreen() {
     UiSurfaceGetDC(note);
     note->Clear();
     RECT rect{0, 0, 300, 20};
-    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
+    note->DrawTextIn(texts_[kTextConnecting].c_str(), &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
 EI_REWRITTEN(0x0061B2C0, CMpConnectScreen::CreateScreen);

@@ -361,11 +361,11 @@ void CTradePanel::Build() {
     {
         std::string text;
         table->CTextManager::GetString("skills", &text);
-        texts_.SetAtGrow(texts_.size, text);
+        texts_.push_back(text);
         table->CTextManager::GetString("perks", &text);
-        texts_.SetAtGrow(texts_.size, text);
+        texts_.push_back(text);
         table->CTextManager::GetString("perks_av", &text);
-        texts_.SetAtGrow(texts_.size, text);
+        texts_.push_back(text);
 
         ResetRecords();
         heldRegion_ = -1;

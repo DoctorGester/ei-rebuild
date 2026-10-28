@@ -52,8 +52,6 @@ CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
     exits_.growBy = 0;
     exits_.maxSize = 0;
     exits_.size = 0;
-    quests_.Construct();
-    objectiveTexts_.Construct();
 }
 EI_REWRITTEN_SPECIAL(0x0063B5D0, CObjectivesWindow::CObjectivesWindow);
 

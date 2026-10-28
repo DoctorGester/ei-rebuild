@@ -316,18 +316,16 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     CTextManager* texts = TheTextManager();
     std::string text;
     std::string key;
-    mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
         key = str::Format(kInfoTextFormat, i);
         text.clear();
         texts->GetString(key.c_str(), &text);
-        infoTexts->SetAtGrow(infoTexts->size, text);
+        texts_.push_back(text);
     }
     // A missing label keeps the text before it.
-    mfc::CStringArray* labels = &partLabels_;
     for (const char* labelKey : kPartLabelKeys) {
         texts->GetString(labelKey, &text);
-        labels->SetAtGrow(labels->size, text);
+        partLabels_.push_back(text);
     }
     for (int& icon : effectIcons_) icon = -1;
     widescreen::LeavePanel();        // addon's 100230E2

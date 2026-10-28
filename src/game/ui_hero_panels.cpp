@@ -130,10 +130,10 @@ void CHeroStatsPanel::DrawStats() {
         DrawRow(&rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5], static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5].c_str(), static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, texts_[6], points_, -1);
+        DrawRow(&rect, texts_[6].c_str(), points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
@@ -186,12 +186,12 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             AttackParams info;
             unit->Controller()->GetAttackParams(&info);
-            line = str::Format("     %s", texts_[0].GetString());
+            line = str::Format("     %s", texts_[0].c_str());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.attack);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line = str::Format("     %s", texts_[1].GetString());
+            line = str::Format("     %s", texts_[1].c_str());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             line = str::Format("%d", info.defence);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
@@ -200,7 +200,7 @@ void CHeroStatsPanel::DrawStats() {
                 line = str::Format("damage_%d", info.damageType);
                 texts->GetString(line.c_str(), &text);
             }
-            line = str::Format("     %s %s", texts_[2].GetString(), text.c_str());
+            line = str::Format("     %s %s", texts_[2].c_str(), text.c_str());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
             int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
             int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
@@ -355,11 +355,10 @@ void CHeroStatsPanel::Build() {
     for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     CTextManager* texts = TheTextManager();
     std::string text;
-    mfc::CStringArray* array = &texts_;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
                             "lmp_pers_tall", "magic_skills"}) {
         texts->GetString(key, &text);
-        array->SetAtGrow(array->GetSize(), text);
+        texts_.push_back(text);
     }
     heldRegion_ = -1;
     holdTime_ = 0.0f;
@@ -497,12 +496,11 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     AddSurface(new CUiSurface(interface_, 200, 450, 400, 490, 5, 1));
     pulse_ = 0.0f;
     CTextManager* texts = TheTextManager();
-    mfc::CStringArray* array = &texts_;
     std::string text;
     for (int key : {0x23, 0x24}) {
         text = str::Format("infoitem_%d", key);
         texts->GetString(text.c_str(), &text);
-        array->SetAtGrow(array->GetSize(), text);
+        texts_.push_back(text);
     }
 }
 EI_REWRITTEN(0x006280C0, CSpellMakerPage::BuildSpellMaker);

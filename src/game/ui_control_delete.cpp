@@ -21,7 +21,7 @@ EI_REWRITTEN_SPECIAL(0x0065BC90, CUiScrollbar::~CUiScrollbar);   // the slider's
 EI_REWRITTEN_SPECIAL(0x0065CB70, CUiScrollbar::~CUiScrollbar);
 EI_REWRITTEN_SPECIAL(0x0065CB80, CUiScrollbar::~CUiScrollbar);   // the slider's input side
 
-CUiSpin::~CUiSpin() { texts_.Destruct(); }
+CUiSpin::~CUiSpin() = default;
 EI_REWRITTEN_SPECIAL(0x0065BE10, CUiSpin::~CUiSpin);
 EI_REWRITTEN_SPECIAL(0x0065BDF0, CUiSpin::~CUiSpin);
 EI_REWRITTEN_SPECIAL(0x0065CB90, CUiSpin::~CUiSpin);

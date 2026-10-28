@@ -298,8 +298,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         regions_.data[0]->SetTip(0, 1, 0);
     }
 
-    mfc::CStringArray* quests = &quests_;
-    quests->SetSize(0, -1);
+    std::vector<std::string>& quests = quests_;
+    quests.clear();
     {
         std::string prefix;
         CStringArray parts;
@@ -322,16 +322,16 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         } else {
             SortStrings(found.begin(), found.end());
             for (mfc::CString* s = found.begin(); s != found.end(); ++s) {
-                quests->SetAtGrow(quests->GetSize(), *s);
+                quests.push_back(s->GetString());
                 const char* current = listZones_ == 0 ? LastQuest().GetString()
                                                       : interface_->savedText_.c_str();
                 if (gamecrt::mbsicmp(current,
                                     s->GetString()) == 0)
-                    selectedQuest_ = quests->GetSize() - 1;
+                    selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
-            LastQuest() = (*quests)[selectedQuest_];
+            LastQuest() = quests[selectedQuest_];
         }
-        int rows = quests->GetSize();
+        int rows = static_cast<int>(quests.size());
         bar_->SetMaximum(rows > 5 ? rows - 5 : 0);
         bar_->SetPosition(0);
         firstRow_ = 0;
@@ -393,9 +393,9 @@ void CObjectivesWindow::ShowQuest() {
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
     static_cast<CUiScrollText*>(children_.data[0])->Clear();
-    mfc::CStringArray* quests = &quests_;
-    if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
-    LastQuest() = (*quests)[selectedQuest_];
+    std::vector<std::string>& quests = quests_;
+    if (selectedQuest_ < 0 || selectedQuest_ >= static_cast<int>(quests.size())) return;
+    LastQuest() = quests[selectedQuest_];
 
     std::string completed;
     std::string failed;
@@ -408,7 +408,7 @@ void CObjectivesWindow::ShowQuest() {
     bool found;
     {
         std::string questWord("quest ");
-        std::string key = questWord + (*quests)[selectedQuest_];
+        std::string key = questWord + quests[selectedQuest_];
         found = FindText(key.c_str()) != 0;
     }
     if (!found) return;
@@ -422,7 +422,7 @@ void CObjectivesWindow::ShowQuest() {
         text = colour + text;
     }
     text += "\n ";
-    if (QuestRecord* record = FindQuestRecord((*quests)[selectedQuest_])) {
+    if (QuestRecord* record = FindQuestRecord(quests[selectedQuest_].c_str())) {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
@@ -440,7 +440,7 @@ void CObjectivesWindow::ShowQuest() {
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), ((*quests)[selectedQuest_]).GetString(),
+        variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
                         fields[1].GetString());
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         if (state == 0) continue;
@@ -465,7 +465,7 @@ void CObjectivesWindow::ShowQuest() {
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
-    LoadQuestPlaces((*quests)[selectedQuest_]);
+    LoadQuestPlaces(quests[selectedQuest_].c_str());
     while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
     while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
@@ -503,11 +503,10 @@ void CObjectivesWindow::CreateScreen() {
 
     std::string text;
     std::string key;
-    mfc::CStringArray* objectiveTexts = &objectiveTexts_;
     for (int k = 0; k < 3; ++k) {
         key = str::Format("obj_%d", k);
         TheTextManager()->GetString(key.c_str(), &text);
-        objectiveTexts->SetAtGrow(objectiveTexts->GetSize(), text);
+        objectiveTexts_.push_back(text);
     }
 
     AddChild(new CUiScrollText(interface_, game::EmptyText(), RECT{60, 190, 384, 510}, 10.0f));
@@ -659,21 +658,21 @@ void CObjectivesWindow::DrawQuestList() {
     UiSurfaceGetDC(surface);
     surface->Clear();
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
-    mfc::CStringArray* quests = &quests_;
+    std::vector<std::string>& quests = quests_;
     int row = firstRow_;
     int y = 13;
-    for (int i = 16; i < 21 && row < quests->GetSize(); ++i, ++row, y += 24) {
+    for (int i = 16; i < 21 && row < static_cast<int>(quests.size()); ++i, ++row, y += 24) {
         CUiMesh* mark = mesh(i);
         mark->visible_ = 1;
         bool found;
         {
             std::string questWord("quest ");
-            std::string key = questWord + (*quests)[row];
+            std::string key = questWord + quests[row];
             found = FindText(key.c_str()) != 0;
         }
         if (found) texts->ReadLine(&title, 1);
-        else title = (*quests)[row];
-        variable = str::Format("q.%s.%s", shownZone_.c_str(), ((*quests)[row]).GetString());
+        else title = quests[row];
+        variable = str::Format("q.%s.%s", shownZone_.c_str(), quests[row].c_str());
         int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

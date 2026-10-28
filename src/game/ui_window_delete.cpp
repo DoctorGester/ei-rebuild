@@ -72,8 +72,6 @@ EI_REWRITTEN_SPECIAL(0x00602BA0, UiInertInput::~UiInertInput);
 EI_REWRITTEN_SPECIAL(0x00602B80, UiInertInput::~UiInertInput);
 
 CItemInfoPanel::~CItemInfoPanel() {
-    skillTexts_.Destruct();
-    itemTexts_.Destruct();
     ItemParty()->CParty::~CParty();
 }
 EI_REWRITTEN_SPECIAL(0x005EE380, CItemInfoPanel::~CItemInfoPanel);
@@ -81,7 +79,6 @@ EI_REWRITTEN_SPECIAL(0x005EE420, CItemInfoPanel::~CItemInfoPanel);
 EI_REWRITTEN_SPECIAL(0x005F4600, CItemInfoPanel::~CItemInfoPanel);
 
 CChatWindow::~CChatWindow() {
-    texts_.Destruct();
     for (CRefObject* player : players_)
         if (player) player->Release();
     players_.FreeStorage();
@@ -98,13 +95,12 @@ EI_REWRITTEN_SPECIAL(0x0060E2B0, CForwardingStrip::~CForwardingStrip);
 EI_REWRITTEN_SPECIAL(0x0060E290, CForwardingStrip::~CForwardingStrip);
 EI_REWRITTEN_SPECIAL(0x00613DC0, CForwardingStrip::~CForwardingStrip);
 
-CSpellMakerPage::~CSpellMakerPage() { texts_.Destruct(); }
+CSpellMakerPage::~CSpellMakerPage() = default;
 EI_REWRITTEN_SPECIAL(0x0060E600, CSpellMakerPage::~CSpellMakerPage);
 EI_REWRITTEN_SPECIAL(0x0060E5E0, CSpellMakerPage::~CSpellMakerPage);
 EI_REWRITTEN_SPECIAL(0x00613DF0, CSpellMakerPage::~CSpellMakerPage);
 
-// The texts, then the title (a member).
-CHeroStatsPanel::~CHeroStatsPanel() { texts_.Destruct(); }
+CHeroStatsPanel::~CHeroStatsPanel() = default;
 EI_REWRITTEN_SPECIAL(0x0060E360, CHeroStatsPanel::~CHeroStatsPanel);
 EI_REWRITTEN_SPECIAL(0x0060E340, CHeroStatsPanel::~CHeroStatsPanel);
 EI_REWRITTEN_SPECIAL(0x00613DD0, CHeroStatsPanel::~CHeroStatsPanel);
@@ -184,8 +180,6 @@ EI_REWRITTEN_SPECIAL(0x005F6B80, CBriefingScreen::~CBriefingScreen);
 EI_REWRITTEN_SPECIAL(0x005FC0B0, CBriefingScreen::~CBriefingScreen);
 
 CMpConnectScreen::~CMpConnectScreen() {
-    texts_.Destruct();
-    allodNames_.Destruct();
     for (MpAddressEntry& entry : entries_) {
         std::destroy_at(&entry.description);
         std::destroy_at(&entry.name);
@@ -199,16 +193,13 @@ EI_REWRITTEN_SPECIAL(0x0061B220, CMpConnectScreen::~CMpConnectScreen);
 CHelpWindow::~CHelpWindow() {
     DestroyList(pictures_, [](CUiMesh**) {});
     DestroyList(pulsing_, [](CUiMesh**) {});
-    lines_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x005F8970, CHelpWindow::~CHelpWindow);
 EI_REWRITTEN_SPECIAL(0x005F8950, CHelpWindow::~CHelpWindow);
 EI_REWRITTEN_SPECIAL(0x005FC0D0, CHelpWindow::~CHelpWindow);
 
 CObjectivesWindow::~CObjectivesWindow() {
-    objectiveTexts_.Destruct();
     FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
-    quests_.Destruct();
     exits_.vtable = ObjectiveExitsVtable();
     if (exits_.data) gamecrt::operator_delete(exits_.data);
     for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) std::destroy_at(zone);
@@ -220,8 +211,8 @@ EI_REWRITTEN_SPECIAL(0x0060C7C0, CObjectivesWindow::~CObjectivesWindow);
 
 CSaveLoadWindow::~CSaveLoadWindow() {
     for (SaveEntry* entry = entries_.begin(); entry != entries_.end(); ++entry) {
-        entry->stringArrays_[1].Destruct();
-        entry->stringArrays_[0].Destruct();
+        std::destroy_at(&entry->stringArrays_[1]);
+        std::destroy_at(&entry->stringArrays_[0]);
         std::destroy_at(&entry->zone_);
         std::destroy_at(&entry->map_);
         std::destroy_at(&entry->folder_);

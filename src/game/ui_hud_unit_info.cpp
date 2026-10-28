@@ -57,7 +57,7 @@ double ShownSpeed(CUnit* unit, int outsideGroup) {
 
 struct Panel {
     CUiSurface* surface;
-    const mfc::CString* labels;
+    const std::string* labels;
     RECT rect;
     mfc::CString text;
 
@@ -95,15 +95,15 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     std::string suffix;
     Panel panel;
     panel.surface = *surfaces_.data;
-    panel.labels = texts_.data;
+    panel.labels = texts_.data();
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
     std::int16_t health = unitIn->packedVitals.hitPoints;
-    panel.text.Format(kValuePair, panel.labels[0].GetString(), health > 0 ? static_cast<int>(health) : 0,
+    panel.text.Format(kValuePair, panel.labels[0].c_str(), health > 0 ? static_cast<int>(health) : 0,
                       static_cast<int>(unitIn->packedVitals.maxHitPoints));
     panel.DrawLine();
     bool outside = OutsideGroup(this, unitIn);
-    panel.text.Format(kValuePair, panel.labels[1].GetString(), static_cast<int>(unitIn->packedVitals.mana),
+    panel.text.Format(kValuePair, panel.labels[1].c_str(), static_cast<int>(unitIn->packedVitals.mana),
                       static_cast<int>(unitIn->packedVitals.maxMana));
     panel.DrawLine();
 
@@ -115,21 +115,21 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         suffix.clear();
     }
     double speed = ShownSpeed(unitIn, outside);
-    panel.text.Format(kSpeedLine, panel.labels[2].GetString(), speed, suffix.c_str());
+    panel.text.Format(kSpeedLine, panel.labels[2].c_str(), speed, suffix.c_str());
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(TheClientWorld()));
     int vision = x87::fistp(static_cast<float>(params->VisionRange(dayTime)));
-    panel.text.Format(kValueUnit, panel.labels[6].GetString(), vision, panel.labels[13].GetString());
+    panel.text.Format(kValueUnit, panel.labels[6].c_str(), vision, panel.labels[13].c_str());
     panel.DrawLine();
 
     // The controller's attack parameters: attack, defence, the damage type (below 7 unsigned: "dmg_<n>" names
     // it) and range.
     AttackParams combat;
     unitIn->Controller()->GetAttackParams(&combat);
-    panel.text.Format(kValue, panel.labels[3].GetString(), combat.attack);
+    panel.text.Format(kValue, panel.labels[3].c_str(), combat.attack);
     panel.DrawLine();
-    panel.text.Format(kValue, panel.labels[4].GetString(), combat.defence);
+    panel.text.Format(kValue, panel.labels[4].c_str(), combat.defence);
     panel.DrawLine();
     if (static_cast<std::uint32_t>(combat.damageType) < 7) {
         panel.text.Format(kDamageKey, combat.damageType);
@@ -137,10 +137,10 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
     }
     int damageMax = static_cast<int>(combat.damageMax);
     int damageMin = static_cast<int>(combat.damageMin);
-    panel.text.Format(kDamageLine, panel.labels[9].GetString(), damageMin, damageMax,
+    panel.text.Format(kDamageLine, panel.labels[9].c_str(), damageMin, damageMax,
                       suffix.c_str());
     panel.DrawLine();
-    panel.text.Format(kValue, panel.labels[15].GetString(), static_cast<int>(params->rate));
+    panel.text.Format(kValue, panel.labels[15].c_str(), static_cast<int>(params->rate));
     panel.DrawLine();
 
     float description[7];
@@ -166,7 +166,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
                 suffix = str::Format(kWeaker, -difference);
             }
             texts->CTextManager::GetString(suffix.c_str(), &suffix);
-            panel.text.Format(kTwoTexts, panel.labels[16].GetString(), suffix.c_str());
+            panel.text.Format(kTwoTexts, panel.labels[16].c_str(), suffix.c_str());
             panel.DrawLine();
         }
     } else if (lines[2].GetLength() != 0) {
