@@ -304,7 +304,7 @@ public:
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
     int SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
-    // Drops the sun, the pipeline, 2DintMMX.dll, the helper and the device object.
+    // Drops the sun, the pipeline, the helper and the device object (which frees 2DintMMX.dll).
     void DestroyRenderer();
     // 0 unless flags_ bit 0 is set. Updates the frame statistics, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
@@ -365,8 +365,6 @@ public:
 
     std::uint32_t flags_ = 0;                  // bit 0: the software cursor option; bit 1 set by the creation
     CTransformPipeline* pipeline_ = nullptr;   // counted
-    CPixelConverter* graphicsProcessor_ = nullptr;   // 2DintMMX.dll's GetGraphicsProcessor()
-    void* graphicsLibrary_ = nullptr;          // the HMODULE of 2DintMMX.dll
     std::uint32_t fogColour_ = 0;              // also the colour the frame is cleared with
     std::uint32_t colour_ = 0;                 // the draw colour
     // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
@@ -390,11 +388,10 @@ public:
     std::uint32_t windowFrames_ = 0;
 
 private:
-    // The creation's first step: a new transform pipeline, then 2DintMMX.dll loaded and its GetGraphicsProcessor()
-    // kept (fatal when missing, or without MMX).
-    void LoadPipelineAndConverter(const options::GameOptions* settings);
-    // Drops the sun (telling the transform object), the pipeline and 2DintMMX.dll.
-    void ReleasePipelineAndConverter();
+    // The creation's first step: a new transform pipeline.
+    void CreatePipeline(const options::GameOptions* settings);
+    // Drops the sun (telling the transform object) and the pipeline.
+    void ReleasePipeline();
 };
 
 

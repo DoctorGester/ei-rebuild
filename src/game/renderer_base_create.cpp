@@ -1,56 +1,15 @@
 // The first step of the scene renderer's creation (CVisualizator::Create in the game's messages): makes
-// the transform pipeline, checks the processor for MMX and loads the 2D graphics library.
+// the transform pipeline. (The MMX check and 2DintMMX.dll are the device object's: device_object.cpp.)
 #include "model.h"
-#include "game_strings.h"
 
 #include "options.h"
-#include "sys_info.h"
 
-#include "lib/crt.h"
-#include "lib/gameapi.h"
 #include <string>
 
-#include <cstdlib>
-
-namespace {
-
-constexpr const char* kNoMmxText = "MMX required in this version !!!.\n";
-constexpr const char* kLibraryLoadedText = "MMX graphics release library loaded.\n";
-constexpr const char* kAcquiringText = "Acquiring graphics processor from graphics library.\n";
-constexpr const char* kNoLibraryText = "CVisualizator::Create.\n Can't load 2D graphics library.\n";
-constexpr const char* kNoFunctionText = "CVisualizator::Create.\n Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n";
-
-
-} // namespace
-
-void CSceneRenderer::LoadPipelineAndConverter(const options::GameOptions* settings) {
-    const std::string& workPath = settings->workPath_;
-
-    CTransformPipeline* pipeline = new CTransformPipeline(workPath.c_str());   // 0x94 bytes
+void CSceneRenderer::CreatePipeline(const options::GameOptions* settings) {
+    CTransformPipeline* pipeline = new CTransformPipeline(settings->workPath_.c_str());   // 0x94 bytes
     CTransformPipeline* old = pipeline_;
     pipeline_ = pipeline;
     if (pipeline) ++pipeline->refs_;
     if (old) old->Release();
-
-    ReadProcessorInfo();
-    if (!(g_processorInfo.features & kProcessorMmx)) {
-        game::FatalError(kNoMmxText);
-        std::exit(-1);
-    }
-
-    graphicsLibrary_ = gameapi::LoadLibraryA((workPath + "2DintMMX.dll").c_str());
-    game::DebugLog(kLibraryLoadedText);
-    if (!graphicsLibrary_) {
-        game::FatalError(kNoLibraryText);
-        std::exit(-1);
-    }
-    using GetGraphicsProcessor = CPixelConverter*(*)();
-    auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
-        gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));
-    if (!getProcessor) {
-        game::FatalError(kNoFunctionText);
-        std::exit(-1);
-    }
-    game::DebugLog(kAcquiringText);
-    graphicsProcessor_ = getProcessor();
 }

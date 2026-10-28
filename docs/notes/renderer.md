@@ -404,7 +404,7 @@ no stand-in for any of them (R27c):
 - `CTextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
   object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
   depth, 2DintMMX's converter, the transform pipeline, the stages' bound holders and the draws' state. Its constructor
-  reads CPUID (MMX required), loads 2DintMMX, starts the new renderer (`render::StartPresenting`: the Direct3D 11
+  reads CPUID (MMX required), loads the work path's 2DintMMX (R27g: the only load and the only converter pointer; the scene renderer reads `device_->converter_`), starts the new renderer (`render::StartPresenting`: the Direct3D 11
   device) and sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passed DDSCL_FPUSETUP). The
   options' driver, refresh rate and depth / stencil bits choose nothing. No display mode list (nothing read it), no
   video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7). Where the game read the primary's

@@ -63,9 +63,10 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // Needs MMX (else a fatal error and exit); loads 2DintMMX.dll and starts the new renderer (its failure ends the
-    // game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on `window`.
-    CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
+    // Needs MMX (else a fatal error and exit); loads `workPath`'s 2DintMMX.dll (fatal when missing; the game's only
+    // load, freed with the device) and starts the new renderer (its failure ends the game). `width` x `height`
+    // pixels of `bitsPerPixel` (16 or 32) on `window`.
+    CTextureDevice(const std::string& workPath, HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
     bool fullScreen_ = false;   // the window covers the monitor
@@ -73,7 +74,7 @@ public:
     HWND window_ = nullptr;
     int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     HMODULE converterLibrary_ = nullptr;     // 2DintMMX.dll
-    CPixelConverter* converter_ = nullptr;   // 2DintMMX's graphics processor (pixel conversions)
+    CPixelConverter* converter_ = nullptr;   // 2DintMMX's graphics processor (pixel conversions): the only pointer to it
     CTransformPipeline* pipeline_ = nullptr;
     Surface* stageSurfaces_[8] = {};   // the holder bound to each texture stage
     CDeviceMaterial* material_ = nullptr;

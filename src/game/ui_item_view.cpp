@@ -427,7 +427,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
         pixels = new std::uint32_t[count];
         std::memset(pixels, 0, count * 4);
-        g_sceneRenderer->graphicsProcessor_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
+        g_sceneRenderer->device_->converter_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels target;
