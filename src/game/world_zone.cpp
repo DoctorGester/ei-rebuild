@@ -11,7 +11,6 @@
 #include "chunk_stream.h"
 #include "object_tables.h"
 #include "game_arrays.h"
-#include "world_deleting_destructors.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -146,7 +145,7 @@ void CWorldServer::ClearMapObjects() {
     projectiles_.clear();
 
     for (auto node = counted_.begin(); node != counted_.end(); ++node)
-        ObjectHolderRelease(&*node);
+        if (*node) (*node)->Release();
     counted_.clear();
 
     countdowns_.clear();

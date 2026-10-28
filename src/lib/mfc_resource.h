@@ -14,7 +14,6 @@ constexpr unsigned kIdsUnnamedFile = 0xF006;         // AFX_IDS_UNNAMED_FILE
 constexpr unsigned kIdpNoErrorAvailable = 0xF020;    // AFX_IDP_NO_ERROR_AVAILABLE
 constexpr unsigned kIdsResourceException = 0xF022;   // AFX_IDS_RESOURCE_EXCEPTION
 constexpr unsigned kIdsMemoryException = 0xF023;     // AFX_IDS_MEMORY_EXCEPTION
-constexpr unsigned kIdpFileNone = 0xF1A0;            // AFX_IDP_FILE_NONE (+ a CFileException cause)
 constexpr unsigned kIdpArchiveNone = 0xF1B0;         // AFX_IDP_ARCH_NONE (+ a CArchiveException cause)
 
 // AfxLoadString: string `id` into `buffer` (`size` bytes); its length, 0 with an empty

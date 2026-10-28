@@ -674,9 +674,7 @@ struct GameInfoRecord {
     int Read(GameBuffer* buffer);           // 1 unless the buffer ran short
 };
 
-// The byte buffer's read helpers.
-GameBuffer* BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);
-unsigned BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);
+// The byte buffer's read helper.
 void BufferUpdateHigh(GameBuffer* buffer);
 
 } // namespace net

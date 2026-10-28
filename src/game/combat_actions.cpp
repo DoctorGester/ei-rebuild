@@ -60,7 +60,6 @@ float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t
 
 // An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
 using UnitList = std::list<CUnit*>;
-using UnitListNode = UnitList::iterator;
 
 bool ListContains(const UnitList* list, const CUnit* unit) {
     for (auto node = list->begin(); node != list->end(); ++node)

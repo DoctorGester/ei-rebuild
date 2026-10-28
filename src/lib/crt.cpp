@@ -237,7 +237,7 @@ void OperatorDelete(void* p) { Free(p); }
 
 namespace libcrt {
 
-// ---- eh vector constructor / destructor iterator (ei_vectors too) ----
+// ---- eh vector destructor iterator (ei_vectors too) ----
 
 namespace {
 // Destroys `left` elements below `end`, last first, when the loop it guards is left by an exception
@@ -258,18 +258,6 @@ struct ArrayUnwind {
     }
 };
 } // namespace
-
-void ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
-                                 ElementFunction destroy) {
-    char* p = static_cast<char*>(array);
-    int constructed = 0;
-    ArrayUnwind unwind{p, size, constructed, destroy};
-    for (; constructed < count; ++constructed) {
-        construct(p, nullptr);
-        p += size;
-    }
-    unwind.done = true;
-}
 
 void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy) {
     char* p = static_cast<char*>(array) + size * count;

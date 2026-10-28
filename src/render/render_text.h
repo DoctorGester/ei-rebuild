@@ -77,7 +77,6 @@ public:
     int Height() const { return height_; }
     const std::uint8_t* Pixels() const { return pixels_.data(); }
     unsigned Generation() const { return generation_; }
-    bool Smoothing() const { return smoothing_; }
 
 private:
     void Place(AtlasGlyph& glyph, char32_t ch);

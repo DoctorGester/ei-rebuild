@@ -26,7 +26,6 @@ namespace {
 constexpr const char* kFolderName = "map objects";
 constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
-constexpr const char* kNoPrototypeText = "Can't find prototype \"%s\".\n";
 constexpr int kManagerClassId = 0x2D;
 constexpr int kNoId = -1;
 

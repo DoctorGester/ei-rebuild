@@ -40,7 +40,6 @@ using StockMaterialVector = std::vector<StockMaterial>;
 // The generated items (counted once) and the generated spells (GenerateSpells; counted while held). The recipe
 // map's lists hold recipe pointers.
 using StockList = std::list<CItem*>;
-using StockListNode = StockList::iterator;
 using StockSpellList = std::list<HeldPtr<CSpell>>;
 using StockRecipeList = std::list<void*>;
 

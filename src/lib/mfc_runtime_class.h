@@ -18,27 +18,18 @@ inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {"CObject", 0x4, 0xF
 inline constexpr CRuntimeClass kClassCException = /*007465D0*/ {"CException", 0x8, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCArchiveException = /*007467D8*/ {"CArchiveException", 0x10, 0xFFFF, nullptr, &kClassCException, nullptr};
 inline constexpr CRuntimeClass kClassCGdiObject = /*00746098*/ {"CGdiObject", 0x8, 0xFFFF, &CreateCGdiObject, &kClassCObject, nullptr};
-inline constexpr CRuntimeClass kClassCBitmap = /*00746018*/ {"CBitmap", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCBrush = /*00746058*/ {"CBrush", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCDC = /*00746138*/ {"CDC", 0x10, 0xFFFF, &CreateCDC, &kClassCObject, nullptr};
-inline constexpr CRuntimeClass kClassCClientDC = /*00746110*/ {"CClientDC", 0x14, 0xFFFF, nullptr, &kClassCDC, nullptr};
 inline constexpr CRuntimeClass kClassCCmdTarget = /*007468A8*/ {"CCmdTarget", 0x1c, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCFont = /*00746038*/ {"CFont", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCMapPtrToPtr = /*00746870*/ {"CMapPtrToPtr", 0x1c, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCMemoryException = /*007465A0*/ {"CMemoryException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
-inline constexpr CRuntimeClass kClassCPaintDC = /*007460C0*/ {"CPaintDC", 0x54, 0xFFFF, nullptr, &kClassCDC, nullptr};
-inline constexpr CRuntimeClass kClassCPalette = /*00745FF0*/ {"CPalette", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCPen = /*00746078*/ {"CPen", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
-inline constexpr CRuntimeClass kClassCPtrArray = /*00746F88*/ {"CPtrArray", 0x14, 0xFFFF, nullptr, &kClassCObject, nullptr};
-inline constexpr CRuntimeClass kClassCPtrList = /*00746FC0*/ {"CPtrList", 0x1c, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCResourceException = /*00746180*/ {"CResourceException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
-inline constexpr CRuntimeClass kClassCRgn = /*00745FD0*/ {"CRgn", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCTempDC = /*00745FB0*/ {"CTempDC", 0x10, 0xFFFF, &CreateTempDC, &kClassCDC, nullptr};
 inline constexpr CRuntimeClass kClassCTempGdiObject = /*00745F88*/ {"CTempGdiObject", 0x8, 0xFFFF, &CreateTempGdiObject, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCWnd = /*007469D8*/ {"CWnd", 0x3c, 0xFFFF, &CreateCWnd, &kClassCCmdTarget, nullptr};
 inline constexpr CRuntimeClass kClassCUserException = /*00746158*/ {"CUserException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
 inline constexpr CRuntimeClass kClassCWinThread = /*007466B8*/ {"CWinThread", 0x68, 0xFFFF, nullptr, &kClassCCmdTarget, nullptr};
-inline constexpr CRuntimeClass kClassCWinApp = /*00746FF8*/ {"CWinApp", 0xc0, 0xFFFF, nullptr, &kClassCWinThread, nullptr};
-inline constexpr CRuntimeClass kClassCWindowDC = /*007460E8*/ {"CWindowDC", 0x14, 0xFFFF, nullptr, &kClassCDC, nullptr};
 
 } // namespace mfc::impl

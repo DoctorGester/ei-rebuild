@@ -157,17 +157,6 @@ void CObject3D::SetFigureScale(const float* newScale) {
     ComputeBounds();
 }
 
-int CObject3D::AddPart(CFigureMesh* part) {
-    for (int k = 0; k < std::ssize(parts); ++k)
-        if (parts[k] == part) return 1;
-    lib::SetAtGrow(parts, std::ssize(parts), part);
-    ++part->refCount_;
-    part->SetObject(this);
-    if (animation) AnimationAddPart(animation, nullptr, part);
-    if (!attached) return 1;
-    return Specific()->OnPartAdded(part);
-}
-
 void CObject3D::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return;
     CFigureManager* manager = FigureManagerOf(this);

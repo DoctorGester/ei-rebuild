@@ -11,7 +11,6 @@
 namespace {
 constexpr int kNone = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
-constexpr int kStepBlockSize = 0x80;
 
 // Takes the face texture and releases it.
 void ReleaseFace(CUnitClientSpecific* self) {

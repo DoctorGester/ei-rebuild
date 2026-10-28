@@ -26,7 +26,6 @@
 namespace {
 
 using PtrList = std::list<CItem*>;
-using PtrListNode = PtrList::iterator;
 
 // CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 

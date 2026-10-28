@@ -161,7 +161,6 @@ public:
         b.y()[3] = static_cast<float>(D(y) + kArrowWing);
     }
 
-    int indexPos() const { return indexPos_; }
 
 private:
     void Next() {

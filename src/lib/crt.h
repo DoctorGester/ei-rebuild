@@ -24,7 +24,6 @@ inline void* operator_new_zeroed(std::size_t size) {
 }
 // operator_new for one T, typed as T: the caller runs the constructor body on it (null when it fails).
 template <class T> T* operator_new_as() { return static_cast<T*>(operator_new(sizeof(T))); }
-template <class T> T* operator_new_zeroed_as() { return static_cast<T*>(operator_new_zeroed(sizeof(T))); }
 // operator_new of `bytes` typed as T, for objects allocated shorter than the class (a figure strip stops
 // before CUiItemStrip's item list) or with data after it (a CString's header and characters).
 template <class T> T* operator_new_bytes_as(std::size_t bytes) { return static_cast<T*>(operator_new(bytes)); }
@@ -69,13 +68,10 @@ unsigned& RandState();
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
 unsigned Controlfp(unsigned value, unsigned mask);
 
-// The compiler's array helpers, `eh vector constructor / destructor iterator`: the element's constructor
-// or destructor on each of `count` elements of `size` bytes, construction from the first, destruction from
-// the last; when one throws, the elements done so far (construction) or still left (destruction) are
-// destroyed and the exception goes on.
+// The compiler's array helper `eh vector destructor iterator`: the element's destructor on each of `count`
+// elements of `size` bytes from the last; when one throws, the elements still left are destroyed and the
+// exception goes on.
 using ElementFunction = void(*)(void* element, void* unused);
-void ConstructElements(void* array, std::size_t size, int count, ElementFunction construct,
-                                 ElementFunction destroy);
 void DestroyElements(void* array, std::size_t size, int count, ElementFunction destroy);
 // A constructor or destructor of T as an ElementFunction: libcrt::Element<&Destruct>.
 template <typename F>

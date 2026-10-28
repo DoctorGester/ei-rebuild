@@ -32,11 +32,9 @@ bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
 // The units inside: an MFC CList whose elements are counted references.
 using VictimList = std::list<CUnit*>;
-using VictimNode = VictimList::iterator;
 
 // MFC CPtrList (blocks of 10) as the game keeps it on the stack.
 using PtrList = std::list<CUnit*>;
-using PtrNode = PtrList::iterator;
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).

@@ -590,7 +590,6 @@ struct Platform {
 static_assert(sizeof(Platform) == 0x4C);
 
 using PlatformList = std::list<Platform>;
-using PlatformNode = PlatformList::iterator;
 
 // The client world's platform set: the engine's CBridgeManager (class 0x34) with the CList of the platform faces
 // (AddFace adds at the head).
@@ -681,10 +680,6 @@ struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::
     int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
 };
 using PendingMap = PendingIndex;
-template <std::size_t N>
-struct OpaqueRecord {
-    std::uint8_t bytes[N];
-};
 
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (TakeNew).

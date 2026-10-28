@@ -298,7 +298,6 @@ struct Share {
     float share;
 };
 using ShareList = std::list<Share>;
-using ShareNode = ShareList::iterator;
 
 using IdArray = std::vector<int>;
 

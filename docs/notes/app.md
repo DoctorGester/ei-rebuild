@@ -143,8 +143,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
 - The operator new handler WinMain installs (00455A30, "Memory depleted", returns 0) is gone with `_set_new_handler`
   (C35e): the host's malloc never called it (the game leaves `_newmode` 0).
-- Static initialisers (they run before the hooks, so each port is compared at WinMain's entry with what the
-  original built: `verify_static_initialisers.cpp`): the debug panel 00444740, the options 00458870
+- Static initialisers (they run before WinMain): the debug panel 00444740, the options 00458870
   (`options_construct.cpp`; the layout is named in options.h), `CSysInfo`'s unit 004DDCB0-004DE87C
   (`sys_info.cpp`) and the weather's noise curves 004E3980 (`weather_noise.cpp`: rebuilt from `rand` seeded
   with 1, bit for bit).

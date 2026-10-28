@@ -271,11 +271,6 @@ protected:
     CMapObject();
 };
 
-// The virtual the verify wrapper of RecomputeScale reads to tell plain objects from units.
-namespace mapslot {
-constexpr int kResetScale = 30;
-} // namespace mapslot
-
 // CMapObjectVirtuals is the name callers outside the map object files reach the virtuals by (CUnit derives
 // from CMapObject).
 using CMapObjectVirtuals = CMapObject;

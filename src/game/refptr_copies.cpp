@@ -8,15 +8,6 @@
 
 #include "lib/crt.h"
 
-// The plain release of a RefPtr (the destructor of the instantiations without the owner's detach):
-// drops one reference of the object, destroying it at zero. The pointer is left as it is.
-// A __fastcall function standing for a thiscall without stack arguments. 21 copies.
-void RefPtrRelease(RefPtr* self) {
-    CRefObject* object = self->ptr;
-    if (!object) return;
-    if (--object->refs_ == 0) delete object;   // slot 0 (the deleting destructor) with 1
-}
-
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
     ptr = object;
@@ -35,10 +26,4 @@ RefPtr* RefPtr::AssignObject(CRefObject* object) {
     Destroy();
     Share(object);
     return this;
-}
-
-// Holders of engine objects (a dword reference count at +4, released through slot 4).
-// Release (a tail call of slot 4 when set).
-void ObjectHolderRelease(CEngineObject** self) {
-    if (CEngineObject* object = *self) object->Release();
 }

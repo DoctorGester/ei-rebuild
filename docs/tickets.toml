@@ -3703,6 +3703,46 @@ model = "opus"
 note = "Left by C14t: stlp::Sort (stl_sorts.cpp, world_client_view.cpp, tests/verify/harness_address_order.cpp) is the last stlp in the game code. C35h moved the sorts with unique keys to std::sort; for each remaining one show whether equal keys can occur (and whether their order is visible). Unique keys: std::sort. Ties that matter: keep the original's order with our own small sort in src/lib under a plain name (not stlp), shared with libcrt's Qsort if that fits. Then delete stlp_algo.h and the word stlp from src (tests' game.exe views may keep the name)."
 
 [[ticket]]
+id = "C14zd"
+title = "Delete CWnd: only the static initialisers make MFC's four static windows, nothing reads them"
+group = "cleanup"
+model = "sonnet"
+files = ["src/lib/mfc_window.h src/lib/mfc_window.cpp src/lib/mfc_runtime_class.h tools/gen_static_init.py"]
+note = "C20q (2026-10-28): CWnd / CCmdTarget (mfc_window) are made only by the static initialisers of g_wndTop / g_wndBottom / g_wndTopMost / g_wndNoTopMost (static_init.cpp's CWnd::Construct calls) and destroyed by their exit functions (static_exit.cpp DestroyStaticWindow, g_staticWindowsExitGuards); no code of ours reads them. List the initialisers in gen_static_init.py's UNUSED_INITIALISERS (as C20o did for the temporary windows' allocators), then delete CWnd, CCmdTarget, IsStaticWindow, CreateCWnd, kClassCWnd / kClassCCmdTarget (named_data.csv rows), the four g_wnd* rows and the exit guards, the vtables.csv row 00746DA8 to file -, and the 43 UnportedSlot stubs; MessageBoxText / MessageBoxId (dib_file.cpp, world_units.cpp) move to a plain helper. Check: named_data / gen_image_cells --check, image suite --golden."
+
+[[ticket]]
+id = "C14ze"
+title = "CTime (mfc_time, mfc.h's mfc::CTime) to a small time helper of our own"
+group = "cleanup"
+model = "sonnet"
+files = ["src/lib/mfc_time.h src/lib/mfc_time.cpp src/game/ui_saveload.cpp src/game/ui_saveload_list.cpp src/game/console_commands.cpp"]
+note = "C20q (2026-10-28): CTime's users are ui_saveload.cpp's two CurrentTime calls (the save's time stamp), ui_saveload_list.cpp's Format of the stamp and console_commands.cpp's two (birth / now). A helper over the game's import slots (GetLocalTime as VC6's time() takes it, so the harness's fixed date applies; mktime / localtime / strftime 32-bit as now) makes mfc_time.h/.cpp, mfc.h's CTime and mfc.cpp dead (and replay_unlinked.cpp's include). Check: the saveload scenarios' goldens (the date text is drawn), image suite --golden."
+
+[[ticket]]
+id = "C14zf"
+title = "AfxBeginThread / WinThread (mfc_thread) to CreateThread for the stream, MIDI and cursor threads"
+group = "cleanup"
+model = "opus"
+files = ["src/lib/mfc_thread.h src/lib/mfc_thread.cpp src/lib/mfc_state.h src/lib/mfc_state.cpp src/game/sound_manager_lifetime.cpp src/game/ui_cursor_setup.cpp src/game/sound.h src/game/ui_cursor.h"]
+note = "C20q (2026-10-28): the only users of mfc_thread are sound_manager_lifetime.cpp (the MP3 stream and MIDI threads: AfxBeginThread, AfxEndThread, WaitForThread on WinThread::thread) and ui_cursor_setup.cpp (the cursor thread). A thread handle of our own (gameapi::CreateThread with the same priority, ExitThread for AfxEndThread) makes WinThread, its 12 UnportedSlot virtuals, kClassCWinThread (named_data row), the thread-state parts of mfc_state and the vtables.csv row 007466E0's file dead. Mind the harness: thread creation order / ids may be read by the clock trace (harness_clock FindMainThread) and the virtual clock (SV5d6). Check: image suite --golden (music, cursor scenarios)."
+
+[[ticket]]
+id = "C14zg"
+title = "CDC / CGdiObject / CFont / CPen / CBrush (mfc_gdi, mfc_handle_map) to plain HDC / HGDIOBJ holders"
+group = "cleanup"
+model = "opus"
+files = ["src/lib/mfc_gdi.h src/lib/mfc_gdi.cpp src/lib/mfc_handle_map.h src/lib/mfc_handle_map.cpp src/game/ui_gdi.h src/game/ui_surface_dc.cpp src/game/ui_surface_frame.cpp src/game/ui_text_draw.cpp"]
+note = "C20q (2026-10-28): mfc_gdi's classes are used by four files (ui_gdi.h, ui_surface_dc.cpp, ui_surface_frame.cpp, ui_text_draw.cpp: the interface's DC drawing and fonts, the debug panel). Small RAII holders of our own over the game's GDI import slots make CDC, CGdiObject and its four subclasses, CTempDC / CTempGdiObject with their handle maps (mfc_handle_map, the temporary maps' fixed allocators and static initialisers), the 19 UnportedSlot virtuals, their kClass records and create functions (extra_function_sizes.csv rows) dead; mfc_runtime_class.h then keeps only the exception and collection records (C14r). Check: the ui scenarios' goldens, ui_check, image suite --golden."
+
+[[ticket]]
+id = "C20q1"
+title = "static_init: one visitor left (Run): StaticInitialisers(Do&) as plain code"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/gen_static_init.py src/standalone/static_init.h src/standalone/static_init.cpp src/standalone/static_exit.cpp"]
+note = "C20q (2026-10-28) deleted static_init.h's Check visitor (verify_static_init.cpp, its only user, was gone; nothing instantiated it but the generated line). With Run alone the Do& template, Code's static members and the d. prefix of every generated statement are scaffolding: let gen_static_init.py write plain calls and stores (Run's Local frame and AtExit as functions) and drop the template; static_exit.cpp likewise. Needs game.exe to regenerate (the tool reads it); check: gen_static_init output unchanged in effect, image suite --golden."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

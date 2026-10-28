@@ -516,8 +516,6 @@ constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
-constexpr int kSkillSize = 0x18;
-constexpr int kSkillLevelSize = 0x44;
 UnitPrototypeRecord* PrototypeRecord(std::uint32_t index);
 UnitModelRecord* ModelRecord(std::uint32_t index);
 // The weight of a body slot's protection by slot type (head 10, body 30, ...): UnitParams::ProtectionBlock.

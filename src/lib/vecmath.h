@@ -130,7 +130,6 @@ __forceinline float Dot2D(const Vector2& a, const Vector2& b) { return a.x * b.x
 __forceinline float LengthSquared2D(const Vector2& v) { return v.x * v.x + v.y * v.y; }
 __forceinline float Length2D(const Vector2& v) { return static_cast<float>(std::sqrt(static_cast<double>(LengthSquared2D(v)))); }
 __forceinline float DistanceSquared2D(const Vector2& a, const Vector2& b) { return LengthSquared2D(a - b); }
-__forceinline float Distance2D(const Vector2& a, const Vector2& b) { return Length2D(a - b); }
 
 // Vector3: per component; each component is one operation (`/ s` divides, no reciprocal).
 __forceinline Vector3 operator+(const Vector3& a, const Vector3& b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
@@ -156,10 +155,9 @@ __forceinline Vector3 Cross(const Vector3& a, const Vector3& b) {
     return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
-// Linear interpolation: (b - a) * t + a, and the weighted form (1 - t) * a + t * b.
+// Linear interpolation: (b - a) * t + a.
 __forceinline float Lerp(float a, float b, float t) { return (b - a) * t + a; }
 __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
-__forceinline float LerpWeighted(float a, float b, float t) { return (1.0f - t) * a + t * b; }
 
 // A product of float operands left to right, ((a * b) * c) * ..., as a chain of FMULs:
 // /fp:fast regroups a product with a repeated factor (`a * b * d * d` became
@@ -273,10 +271,7 @@ __forceinline float LengthSquaredZXY(const Vector3& v) { return LengthSquared<Su
 __forceinline float LengthXYZ(const Vector3& v) { return Length<Sum3::XYZ>(v); }
 __forceinline float LengthZYX(const Vector3& v) { return Length<Sum3::ZYX>(v); }
 __forceinline float LengthZXY(const Vector3& v) { return Length<Sum3::ZXY>(v); }
-__forceinline float DistanceSquaredXYZ(const Vector3& a, const Vector3& b) { return DistanceSquared<Sum3::XYZ>(a, b); }
 __forceinline float DistanceSquaredZYX(const Vector3& a, const Vector3& b) { return DistanceSquared<Sum3::ZYX>(a, b); }
-__forceinline float DistanceSquaredZXY(const Vector3& a, const Vector3& b) { return DistanceSquared<Sum3::ZXY>(a, b); }
-__forceinline float DistanceXYZ(const Vector3& a, const Vector3& b) { return Distance<Sum3::XYZ>(a, b); }
 __forceinline float DistanceZYX(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZYX>(a, b); }
 __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
 

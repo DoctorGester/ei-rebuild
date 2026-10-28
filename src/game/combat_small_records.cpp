@@ -39,4 +39,3 @@ ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {
     return this;
 }
 
-// The counted reference's and the call record's deleting destructors are in world_deleting_destructors.cpp.

@@ -149,9 +149,6 @@ struct ArmourSpell {
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = std::list<ArmourSpell>;
 
-bool SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
-                                 CUnit* toUnit, const Vector3* to);
-
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
 // each entry from the head takes its item (the item manager's object of the id read, referenced) and countdown.
 void LoadArmourSpells(ArmourSpellList* list, CStream* stream);

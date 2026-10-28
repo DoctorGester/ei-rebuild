@@ -197,7 +197,7 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         part->box_.bounds.flags |= kBoxEmptyMark;
         part->box_.bounds.flags |= kBoxCrown;
     }
-    // AddPart, inlined (appending).
+    // Joins the parts unless it is there (appended).
     bool present = false;
     for (int i = 0; i < std::ssize(parts) && !present; ++i) present = parts[i] == part;
     if (!present) {

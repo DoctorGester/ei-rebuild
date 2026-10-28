@@ -35,9 +35,9 @@ void CountedRef<T>::Assign(T* value) {
     if (value) ++CountOf(value);
     DropReference(old);
 }
-template struct CountedRef<CLinkMesh>;
-template struct CountedRef<WoundsMaterial>;
-template struct CountedRef<CRenderPreset>;
+template void CountedRef<CLinkMesh>::Assign(CLinkMesh*);
+template void CountedRef<WoundsMaterial>::Assign(WoundsMaterial*);
+template void CountedRef<CRenderPreset>::Assign(CRenderPreset*);
 
 int CObject3D::Create3D() {
     std::memset(&localPosition_, 0, sizeof(localPosition_));

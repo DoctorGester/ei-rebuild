@@ -2199,6 +2199,5 @@ void StaticInitialisers(Do& d) {
 }
 
 template void StaticInitialisers<Run>(Run&);
-template void StaticInitialisers<Check>(Check&);
 
 } // namespace ei::static_init

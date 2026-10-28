@@ -41,7 +41,6 @@
 #include <cstdint>
 #include <cstring>
 #include "ui.h"
-#include "world_deleting_destructors.h"
 #include "world_effect.h"
 #include "world_client_shadow_casters.h"
 #include "game_data.h"

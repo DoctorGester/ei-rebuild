@@ -455,7 +455,6 @@ void UnitStats::LearnSkill(const SkillDatabase* database, const ::SkillLevelReco
 
 namespace {
 constexpr float kStatBase = 25.0f;
-constexpr int kSkillRecordSize = 0x18;
 
 // The level value of skill `index` stored to a float; 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {

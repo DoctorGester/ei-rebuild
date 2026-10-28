@@ -14,7 +14,6 @@
 #include "terrain.h"
 #include "world.h"
 #include "world_data.h"
-#include "world_deleting_destructors.h"
 
 #include "lib/crt.h"
 #include "game_data.h"
@@ -23,8 +22,6 @@
 #include "game/game_slots.h"
 
 #include <memory>
-
-void RefPtrRelease(RefPtr* self);
 
 namespace {
 
@@ -37,12 +34,6 @@ void DestroyScriptList(Container& list) {
 template <typename Abi, typename Class, typename Container>
 void DestroyScriptArray(Container& array) {
     Abi::template Destruct<Class>(reinterpret_cast<typename Abi::Array*>(&array));
-}
-
-template <typename T>
-T* DeleteIf(T* self, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
 }
 
 } // namespace
