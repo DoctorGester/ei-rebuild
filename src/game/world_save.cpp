@@ -67,7 +67,7 @@ void ReadStringInto(CStream* stream, std::string& target) {
 }
 
 template <typename T>
-T ReadValue(CStream* stream) {
+T ReadAs(CStream* stream) {
     T value;
     stream->ReadValue(value);
     return value;
@@ -113,7 +113,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
         stream->ReadValue(player->sessionKind_);
         CBaseManager* items = world->ItemFactory();
         for (;;) {
-            int id = ReadValue<int>(stream);
+            int id = ReadAs<int>(stream);
             if (id == -1) break;
             CItem* object = FindItem(items, id);
             if (!object) continue;
@@ -123,7 +123,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
         stream->ReadValue(player->godMode_);
         if (stream->version_ >= kVersionPlayerLists) {
             std::list<std::uint32_t>& ids = player->recharging_;
-            int count = ReadValue<int>(stream);
+            int count = ReadAs<int>(stream);
             for (int i = 0; i < count; ++i) ids.push_back(0);
             for (auto node = ids.begin(); node != ids.end();) {
                 auto next = std::next(node);
@@ -131,7 +131,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
                 node = next;
             }
         }
-        if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
+        if (stream->version_ < kVersionPlayerByte) ReadAs<std::uint8_t>(stream);
         if (stream->version_ < kVersionPlayerGroup) {
             ScriptGroup group;
             group.Load(stream);
@@ -201,7 +201,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
 
 void CWorldServer::LoadSavedMapObjects(CStream* stream) {
     for (;;) {
-        int id = ReadValue<int>(stream);
+        int id = ReadAs<int>(stream);
         if (id == -1) return;
         CMapObject* object = objectManager_->FindMapObject(id);
         if (stream->version_ >= kVersionMapObjectName) {
@@ -211,7 +211,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         }
         object->WriteFullState();
         object->Load(stream);
-        int changed = ReadValue<int>(stream);
+        int changed = ReadAs<int>(stream);
         if (!object) continue;   // (the object was already used above)
 
         ++object->refCount_;
@@ -289,13 +289,13 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     stream->ReadValue(tick_);
     stream->ReadValue(weather_);
     stream->ReadValue(weatherStrength_);
-    float time = ReadValue<float>(stream);
+    float time = ReadAs<float>(stream);
     float speed;
     if (stream->version_ >= kVersionTimeSpeedFloat) {
         stream->ReadValue(speed);
         if (stream->version_ >= kVersionRainBoltTick) stream->ReadValue(lastRainBoltTick_);
     } else {
-        speed = static_cast<float>(ReadValue<int>(stream));
+        speed = static_cast<float>(ReadAs<int>(stream));
     }
     stream->ReadValue(sessionKind_);
 
@@ -310,10 +310,10 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
         } else {
             // The map objects' identities: id, type and prototype id.
             for (;;) {
-                int id = ReadValue<int>(stream);
+                int id = ReadAs<int>(stream);
                 if (id == -1) break;
-                int type = ReadValue<int>(stream);
-                std::uint32_t value18 = ReadValue<std::uint32_t>(stream);
+                int type = ReadAs<int>(stream);
+                std::uint32_t value18 = ReadAs<std::uint32_t>(stream);
                 CEngineObject* object = objectManager_->CreateObject(type, id);
                 object->prototypeId_ = value18;
             }
@@ -329,7 +329,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
 
             // Timed objects (spells, effects) by id.
             for (;;) {
-                int id = ReadValue<int>(stream);
+                int id = ReadAs<int>(stream);
                 if (id == -1) break;
                 CEngineObject* object = timedObjectManager_->FindObject(id);
                 ++object->refCount_;
@@ -341,7 +341,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             // they load.
             g_loadingProjectileWorld = this;
             for (;;) {
-                std::uint8_t more = ReadValue<std::uint8_t>(stream);
+                std::uint8_t more = ReadAs<std::uint8_t>(stream);
                 if (!more) break;
                 auto* missile = new CSpellEffect();
                 missile->refs_ = 0;   // the count and flags are cleared before the null test
@@ -361,7 +361,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
 
             // Counted references to items (added at the head of the list).
             for (;;) {
-                int id = ReadValue<int>(stream);
+                int id = ReadAs<int>(stream);
                 if (id < 0) break;
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
@@ -378,7 +378,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                     int id = -1;
                     stream->ReadValue(id);
                     if (id == -1) break;
-                    std::uint32_t value = ReadValue<std::uint32_t>(stream);
+                    std::uint32_t value = ReadAs<std::uint32_t>(stream);
                     CItem* object = FindItem(ItemFactory(), id);
                     if (!object) continue;
                     auto* record = new CItemLink();
@@ -401,7 +401,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             RelocateStrandedUnits(this);
 
             if (stream->version_ >= kVersionMobFiles) {
-                int count = ReadValue<int>(stream);
+                int count = ReadAs<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     std::string storage;
                     std::string* name = stream->ReadString(&storage);
@@ -413,7 +413,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
 
             if (stream->version_ >= kVersionSharedObjects) {
                 std::list<SharedObject>& shared = sharedObjects_;
-                int count = ReadValue<int>(stream);
+                int count = ReadAs<int>(stream);
                 for (int i = 0; i < count; ++i) shared.emplace_back();
                 for (SharedObject& entry : shared) entry.Load(stream);
             }
@@ -542,9 +542,9 @@ void SharedObject::Load(CStream* stream) {
     stream->ReadValue(entry->objectId);
     stream->ReadValue(entry->player);
     stream->ReadValue(entry->money);
-    int count = ReadValue<int>(stream);
+    int count = ReadAs<int>(stream);
     for (int i = 0; i < count; ++i) {
-        int id = ReadValue<int>(stream);
+        int id = ReadAs<int>(stream);
         CItem* object = FindItem(g_serverWorld->itemManager_, id);
         if (object) entry->objects.emplace_back(object);
     }

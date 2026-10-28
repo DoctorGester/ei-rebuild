@@ -616,7 +616,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             DamageInfo damage = {};
             damage.typeWeights[5] = 1.0f;
             damage.weaponValue = 0;
-            damage.attackRoll = 0x42C80000u;   // 100.0
+            damage.attackRoll = 100.0f;
             damage.amount = f[0];
             damage.multiplier = 1.0f;
             damage.location = 1;

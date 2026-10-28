@@ -6,6 +6,7 @@
 #include "lib/nan_audit.h"
 #include "lib/text_case.h"
 
+#include <cfloat>
 #include <cstring>
 
 using namespace itemdb;
@@ -16,7 +17,6 @@ constexpr float kLumaRed = 0.3f;
 constexpr float kLumaGreen = 0.6f;
 constexpr float kLumaBlue = 0.1f;
 constexpr float kSplitDamage = 4.0f;
-constexpr std::uint32_t kFltMaxBits = 0x7F7FFFFF;
 
 // Prototype names of the races the target flags exclude (bits 2..5 of CSpell::targetFlags_).
 constexpr const char* kHumanMale = "unhuma";
@@ -141,7 +141,7 @@ BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
     out->location = 6;
     out->multiplier = 1.0f;
-    out->attackRoll = kFltMaxBits;
+    out->attackRoll = FLT_MAX;
     out->backstabFactor = 1.0f;
     out->calledShot = 0;
 

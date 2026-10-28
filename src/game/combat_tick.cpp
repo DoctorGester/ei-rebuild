@@ -80,7 +80,7 @@ bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCastA
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
 int IsMoving(CMapObject* object) { return object->IsLargeUnit(); }
 int WorldTick(const CEngineObject* object) { return ObjectWorld(object)->tick_; }
-float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(unit->GetPrototype()->height); }
+float PrototypeHeight(CUnit* unit) { return unit->GetPrototype()->height; }
 CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }

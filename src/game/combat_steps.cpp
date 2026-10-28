@@ -477,7 +477,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         CMapObject* other = order.target;
         float span = static_cast<float>(static_cast<double>(other->Radius()) + myRadius);
         if (CUnit* otherUnit = UnitOrNull(other)) {
-            double scale = (static_cast<double>(std::bit_cast<float>(stats.reachHeightScale)) + 1.0f) * myRadius;
+            double scale = (static_cast<double>(stats.reachHeightScale) + 1.0f) * myRadius;
             span = static_cast<float>(static_cast<double>(otherUnit->standingHeight) + scale);
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;

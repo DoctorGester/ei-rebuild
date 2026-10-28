@@ -62,7 +62,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
             auto* model = owner->GetPrototypeModel();
             // The first damage type whose weight is not zero; left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
-                float weight = std::bit_cast<float>(model->damageWeights[i]);
+                float weight = model->damageWeights[i];
                 EI_NAN_AUDIT(weight);
                 if (weight != 0.0f) {
                     out->damageType = i;

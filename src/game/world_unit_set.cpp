@@ -4,7 +4,6 @@
 #include "core_streams.h"
 #include "world.h"
 
-#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -12,8 +11,6 @@
 namespace {
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
-
-void PutWord(CStream* stream, std::uint32_t value) { stream->WriteValue(value); }
 
 // vector<int>::resize(n, value), vector<string>::resize, the stream's string reader.
 
@@ -33,37 +30,37 @@ void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
 void DressedUnitRecord::Write(CStream* stream) {
     std::int16_t word = static_cast<std::int16_t>(prototype);
     stream->WriteValue(word);
-    PutWord(stream, static_cast<std::uint32_t>(items.size()));
+    stream->WriteValue(static_cast<std::uint32_t>(items.size()));
     Put(stream, items.data(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
-    PutWord(stream, static_cast<std::uint32_t>(extraWeapons.size()));
+    stream->WriteValue(static_cast<std::uint32_t>(extraWeapons.size()));
     Put(stream, extraWeapons.data(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
     std::uint8_t byte = static_cast<std::uint8_t>(extraWeapon);
     stream->WriteValue(byte);
-    PutWord(stream, static_cast<std::uint32_t>(modelNumber));
+    stream->WriteValue(static_cast<std::uint32_t>(modelNumber));
 }
 
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.
     std::uint32_t count = 0;
     for (const auto& [prototype, group] : figured) count += static_cast<std::uint32_t>(group.size());
-    PutWord(stream, count);
+    stream->WriteValue(count);
 
     for (auto& [prototype, group] : figured) {
         for (auto& [scaleKey, record] : group) {
             record.Write(stream);
-            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphS));
-            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphT));
-            PutWord(stream, std::bit_cast<std::uint32_t>(record.morphU));
+            stream->WriteValue(record.morphS);
+            stream->WriteValue(record.morphT);
+            stream->WriteValue(record.morphU);
             auto names = [&record](std::uint32_t i) -> const char* { return record.names[i].c_str(); };
             auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
-            PutWord(stream, nameCount());
+            stream->WriteValue(nameCount());
             for (std::uint32_t i = 0; i < nameCount(); ++i) {
                 const char* text = names(i);
                 Put(stream, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
             }
         }
     }
-    PutWord(stream, static_cast<std::uint32_t>(dressed.size()));
+    stream->WriteValue(static_cast<std::uint32_t>(dressed.size()));
 
     for (auto& [prototype, looks] : dressed) {
         DressedUnitRecord* record = &looks;
@@ -71,7 +68,7 @@ void UnitSet::Write(CStream* stream) {
         Put(stream, &key, 2);
         auto counted = [stream](const std::vector<std::uint32_t>& list) {
             std::uint32_t n = static_cast<std::uint32_t>(list.size());
-            PutWord(stream, n);
+            stream->WriteValue(n);
             n = static_cast<std::uint32_t>(list.size());
             Put(stream, list.data(), n << 2);
         };
@@ -79,7 +76,7 @@ void UnitSet::Write(CStream* stream) {
         counted(record->extraWeapons);
         std::uint32_t flag = static_cast<std::uint8_t>(record->extraWeapon);
         Put(stream, &flag, 1);
-        PutWord(stream, static_cast<std::uint32_t>(record->modelNumber));
+        stream->WriteValue(static_cast<std::uint32_t>(record->modelNumber));
     }
 }
 

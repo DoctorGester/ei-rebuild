@@ -47,8 +47,8 @@ struct UnitPrototypeRecord {
     int skin;                       // 3
     int hair;                       // 4 (-1: none)
     Vector3 scale;                  // 5, 6, 7
-    std::uint32_t panelViewSize;        // 0x22 the unit panel's model view size
-    std::uint32_t height;               // 0x23 (float bits) its height: the panel view, reach and small-unit checks
+    float panelViewSize;            // 0x22 the unit panel's model view size
+    float height;                   // 0x23 its height: the panel view, reach and small-unit checks
     float viewDistance;             // 0x25 how far before the unit a dialogue's camera may stand
     float viewHeight;               // 0x26 the height of its eyes for a dialogue's camera
     float shake;                    // 0x28 the camera shake of its steps and attacks
@@ -56,9 +56,9 @@ struct UnitPrototypeRecord {
     float hitPoints;                // 9
     float mana;                     // 10
     std::uint32_t level;            // 0x29 (CUnit::Level of a unit without a text key)
-    std::uint32_t experienceValue;      // 0x2B the experience its death awards
+    float experienceValue;          // 0x2B the experience its death awards
     float protectionScale;          // 11
-    std::uint32_t attackCategory;       // 12 (float bits; UnitStats::attackCategory)
+    float attackCategory;           // 12 (UnitStats::attackCategory)
     float speed;                    // 13
     float combat[5];                // 14, 15, 0x24, 16, 17
     std::uint32_t naturalWeapon;    // 0x12
@@ -68,7 +68,7 @@ struct UnitPrototypeRecord {
     float skillLevel;               // 0x15 every skill and attribute byte starts here (rounded)
     float attributes01;             // 0x16 attributes 0 and 1
     float attribute2;               // 0x17 attribute 2
-    std::uint32_t peripheralRange;      // 0x18 its peripheral sight range
+    float peripheralRange;          // 0x18 its peripheral sight range
     float perception[6];              // 0x19
     float conspicuity[6];              // 0x1A
     UnitGoldRoll gold;              // chunk 0x1B, fields 0..3 (the loot)
@@ -124,12 +124,12 @@ struct UnitModelRecord {
     std::uint32_t unreadField;          // 4 (4 bytes); nothing reads it
     std::uint32_t movementKind;         // 5 (UnitStats::movementKind)
     float angle;                    // 6 (degrees)
-    std::uint32_t modeSpeeds[4];    // 7
-    std::uint32_t actionSpeeds[6];  // 0x24 (float bits; copied to CUnit::actionSpeeds)
-    std::uint32_t reachHeightScale;     // 8 (float bits; UnitStats::reachHeightScale)
+    float modeSpeeds[4];            // 7
+    float actionSpeeds[6];          // 0x24 (copied to CUnit::actionSpeeds)
+    float reachHeightScale;          // 8 (UnitStats::reachHeightScale)
     std::uint32_t sizeClass;        // 9
     std::uint32_t sizeClassSmall;   // 10
-    std::uint32_t damageWeights[7]; // 11
+    float damageWeights[7];         // 11 (UnitStats::damageWeights)
     float protection[7];            // 0x27
     UnitModelSlot slots[6];         // chunks 0x0C..0x11
     std::string figureName;            // 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
@@ -141,7 +141,7 @@ struct UnitModelRecord {
     std::uint32_t castEffect;           // 0x29 nonzero: its casts show an effect
     std::string hitMaterial;       // 0x2C the material its hit sounds use ("stone", "leather", ...)
     std::uint8_t swapFeet;          // 0x2D (one byte) the first step is the right foot
-    std::uint32_t sizeScale;            // 0x2E (float bits) multiplies the unit's size for its size classes
+    float sizeScale;                 // 0x2E multiplies the unit's size for its size classes
     std::string soundFolder;       // 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
     std::vector<std::string> soundNames;       // 0x23 (the .wav files of each are counted)
     // The number of sound files of each soundNames entry (counted at startup; not serialised).

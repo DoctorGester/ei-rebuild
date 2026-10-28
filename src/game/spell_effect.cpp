@@ -26,7 +26,7 @@ CSectorMap* SectorMapOf(const CSpellEffect* effect) { return &effect->world->aiM
 // The test of IsSpellTarget, inlined in the area loops.
 bool AcceptsAreaSpells(CUnit* unit) {
     if (unit->sizeClass != 0) return true;
-    float value = std::bit_cast<float>(unit->GetPrototype()->height);
+    float value = unit->GetPrototype()->height;
     EI_NAN_AUDIT(value);
     return value < kTargetThreshold;
 }

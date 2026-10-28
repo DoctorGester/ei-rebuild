@@ -45,7 +45,7 @@ const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // The prototype's height (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
-    return std::bit_cast<float>(unit->GetPrototype()->height);
+    return unit->GetPrototype()->height;
 }
 
 bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }

@@ -50,5 +50,5 @@ void CUnit::UpdateSizeClass() {
     // The prototype by prototypeId_; out of range it reads address 0x24 (kept).
     auto* prototype = unitdb::PrototypeRecord(prototypeId_);
     // Only for a value above 1.5 (NaN not).
-    if (std::bit_cast<float>(prototype->height) > kDeepPrototype) standingHeight = kShallowHeight;
+    if (prototype->height > kDeepPrototype) standingHeight = kShallowHeight;
 }

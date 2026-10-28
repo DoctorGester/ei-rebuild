@@ -75,7 +75,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit_) {
             panel->hoverUnit_ = unit;
-            panel->viewSize_[1] = std::bit_cast<float>(HoverPrototype(unit)->panelViewSize);
+            panel->viewSize_[1] = HoverPrototype(unit)->panelViewSize;
             panel->viewHeight_[1] = std::bit_cast<float>(HoverPrototype(panel->hoverUnit_)->height);
             panel->owner_->UnitName(panel->hoverUnit_, &panel->strings_[1]);
         }

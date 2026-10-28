@@ -8,8 +8,6 @@
 
 namespace {
 
-void WriteInt(CStream* stream, int value) { stream->WriteValue(value); }
-
 // Variable i's name, or a single zero byte when the name array is shorter.
 void WriteName(CStream* stream, const std::vector<std::string>& names, std::size_t i) {
     if (i < names.size()) {
@@ -31,7 +29,7 @@ void WriteVars(CStream* stream, const ScriptVars* vars) {
 // A list's count, then each element's Save.
 template <typename Container>
 void WriteList(CStream* stream, const Container& list) {
-    WriteInt(stream, static_cast<int>(list.size()));
+    stream->WriteValue(static_cast<int>(list.size()));
     for (const auto& element : list) element.Save(stream);
 }
 
@@ -43,7 +41,7 @@ void ScriptDecl::Save(CStream* stream) const {
 }
 
 template <> void ScriptNamedValues<float>::Save(CStream* stream) const {
-    WriteInt(stream, static_cast<int>(values.size()));
+    stream->WriteValue(static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         stream->WriteValue(values[i]);
         WriteName(stream, names, i);
@@ -51,7 +49,7 @@ template <> void ScriptNamedValues<float>::Save(CStream* stream) const {
 }
 
 template <> void ScriptNamedValues<std::string>::Save(CStream* stream) const {
-    WriteInt(stream, static_cast<int>(values.size()));
+    stream->WriteValue(static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         stream->WriteString(values[i]);
         WriteName(stream, names, i);
@@ -59,7 +57,7 @@ template <> void ScriptNamedValues<std::string>::Save(CStream* stream) const {
 }
 
 template <> void ScriptNamedValues<ScriptObjectRef>::Save(CStream* stream) const {
-    WriteInt(stream, static_cast<int>(values.size()));
+    stream->WriteValue(static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         values[i].Save(stream);
         WriteName(stream, names, i);
@@ -67,10 +65,10 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Save(CStream* stream) const
 }
 
 template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const {
-    WriteInt(stream, static_cast<int>(values.size()));
+    stream->WriteValue(static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         const ScriptGroup& group = values[i];
-        WriteInt(stream, static_cast<int>(group.size()));
+        stream->WriteValue(static_cast<int>(group.size()));
         for (const ScriptObjectRef& member : group) member.Save(stream);
         WriteName(stream, names, i);
     }
@@ -81,10 +79,10 @@ void ScriptDefinition::Save(CStream* stream) const {
     stream->WriteValue(index);
     stream->WriteString(name);
     stream->WriteString(params);
-    WriteInt(stream, static_cast<int>(ifThen.size()));
+    stream->WriteValue(static_cast<int>(ifThen.size()));
     for (const ScriptIfThen& pair : ifThen) {
-        WriteInt(stream, pair.conditions->id);
-        WriteInt(stream, pair.commands->id);
+        stream->WriteValue(pair.conditions->id);
+        stream->WriteValue(pair.commands->id);
     }
     WriteVars(stream, &vars);
 }
@@ -92,7 +90,7 @@ void ScriptDefinition::Save(CStream* stream) const {
 // A run (CScript::runs_). Its instance is found by the address of the killed flag (the instance's
 // index) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
 void ScriptRun::Save(CStream* stream) const {
-    WriteInt(stream, block->id);
+    stream->WriteValue(block->id);
     stream->WriteValue(index);
     stream->WriteValue(ticks);
     stream->WriteValue(sleepStart);
@@ -105,7 +103,7 @@ void ScriptRun::Save(CStream* stream) const {
         }
         ++instance;
     }
-    WriteInt(stream, found ? instance : -1);
+    stream->WriteValue(found ? instance : -1);
     WriteVars(stream, &vars);
 }
 
@@ -133,10 +131,10 @@ void CScript::SaveState(CStream* stream) {
     g_streamedScript = nullptr;
 
     // The areas: count, then per area its id, part count and parts.
-    WriteInt(stream, static_cast<int>(areas_.size()));
+    stream->WriteValue(static_cast<int>(areas_.size()));
     for (const ScriptArea& area : areas_) {
-        WriteInt(stream, area.id);
-        WriteInt(stream, static_cast<int>(area.parts.size()));
+        stream->WriteValue(area.id);
+        stream->WriteValue(static_cast<int>(area.parts.size()));
         for (const ScriptAreaPart& part : area.parts) stream->WriteValue(part);
     }
 }

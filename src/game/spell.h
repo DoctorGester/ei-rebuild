@@ -98,7 +98,7 @@ public:
 struct DamageInfo {
     float typeWeights[7];       // one weight per damage type
     std::uint32_t weaponValue;  // 0 unarmed; not read here
-    std::uint32_t attackRoll;   // float bits against the defence; FLT_MAX for spells
+    float attackRoll;           // against the defence; FLT_MAX for spells
     float amount;
     float multiplier;
     int location;               // the body part aimed at; 6 (all) for spells
