@@ -8,10 +8,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <map>
 #include <vector>
 #include <unordered_map>
 
-#include "lib/hash_map.h"
 #include "lib/static_object.h"
 #include "unit_client_models.h"
 
@@ -40,7 +40,9 @@ struct EnvironmentSpeeches : std::vector<EnvironmentSpeech> {
 // into the source record's lists, as in the game.
 struct AckRecordHead {
     std::string name;
-    lib::HashMap<int, SpeechList*> speeches;   // by ack kind (the acks dump lists them in STLport's order)
+    // By ack kind. The kinds are below 0x33, so STLport's 193 buckets walked them ascending, as this does (the
+    // acks dump, GenerateAcks, lists them so).
+    std::map<int, SpeechList*> speeches;
 };
 
 // Table 0: per unit prototype name.

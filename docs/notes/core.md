@@ -340,13 +340,17 @@ instantiations were, for reading game.exe (config/library.csv names them):
   bucket counts (100 asks for 193), a new key at the head of its chain, resize before each insert with the chains
   moved head first (keys that share a new bucket come out reversed), erase giving the next entry in walk order. A
   std::string key hashes `h = 5 * h + c` over signed chars up to its zero byte. tests/vectors/replay_hash_map.cpp
-  checks those cases. lib::HashMap holds: the world's id maps and line lists, the player's objects / timed objects /
-  units, the base manager's objects and spares, the archive's loaded objects, the held particles, the fog cells, the
-  .mob reader's records, the deferred sounds, the spell sequences and their containers, the terrain lights, the named
-  floats (party and player variables: saved, listed and walked in it), the item stock's recipes (the walk feeds its
-  random rolls), the unit prototypes by name (EI_Plugin's fallback reads bucket heads) and the acks' speeches by kind
-  (the acks dump lists them), the party manager's parties (`HashMap<int, CParty>`, saved chunk by chunk), UnitSet's
-  tables (Write's walk is the zone message's bytes).
+  checks those cases. lib::HashMap holds (each declaration says what its order feeds; C14zj audit): the world's id
+  maps and line lists, the player's objects / timed objects / units, the base manager's objects and spares, the
+  archive's loaded objects, the held particles, the fog cells, the .mob reader's records, the deferred sounds, the
+  terrain lights, the named floats (party and player variables: saved, listed and walked in it), the item stock's
+  recipes (the walk feeds its random rolls), the unit prototypes by name (EI_Plugin's fallback reads bucket heads),
+  the party manager's parties (`HashMap<int, CParty>`, saved chunk by chunk), UnitSet's tables (Write's walk is the
+  zone message's bytes). Release / delete walks of counted objects stay too: a destructor releases counted members
+  (a particle source's texture) into other managers' spare lists, which later creations reuse in order.
+- An int-keyed lib::HashMap whose keys all stay below its bucket count (193) and that never grows past it walks
+  ascending: the acks' speeches by kind (kinds < 0x33) are a std::map, the acks dump's order unchanged. The spell
+  sequences and their containers (only ever null entries) are std::unordered_map.
 - The rest (looked up only, or walked to free or log) are `std::unordered_map` / `std::unordered_set`: the record
   tables' name and code indexes, the quests, the class and message registries, the saved numbers, the positions and
   spare counts, the bridge cells, the material colours, the pixel formats, the loaded files, the figure models and

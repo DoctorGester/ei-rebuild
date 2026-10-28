@@ -90,7 +90,8 @@ void ReleaseEach(Map& map) {
     map.clear();
 }
 
-// The world's object maps (walked in STLport's order) plus the highest key ever inserted.
+// The world's object maps plus the highest key ever inserted; walked in STLport's order (the timed objects are ticked
+// and saved in it, the map objects saved by SaveMapObjects and collected for the clients' sync).
 struct ObjectIdMap {
     lib::HashMap<unsigned, CEngineObject*> map;
     int maxId = 0;

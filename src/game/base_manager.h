@@ -25,11 +25,13 @@ public:
     // object manager), or null; a missing database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const std::string& figure, const char* name);
 
-    // The objects and the spares are walked in STLport's order (which object is destroyed, released or freed
-    // first); the positions and spare counts are only looked up.
+    // The objects and the spares are walked in STLport's order; the positions and spare counts are only looked up.
+    // Kept order: Destroy / DestroyAll destroy and release the objects in it (each Destroy changes game state).
     using ObjectMap = lib::HashMap<unsigned, CEngineObject*>;
     using ObjectList = std::list<CEngineObject*>;
     using PositionMap = std::unordered_map<int, ObjectList::iterator>;
+    // Kept order: FreeSpares deletes the spares in it, and their destructors release counted members (a particle
+    // source's texture) into other managers' spare lists, which later creations reuse in order.
     using SpareMap = lib::HashMap<int, ObjectList*>;
     using SpareCountMap = std::unordered_map<int, int>;
 

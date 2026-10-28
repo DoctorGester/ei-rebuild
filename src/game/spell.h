@@ -11,11 +11,11 @@
 #include "item_db.h"
 #include "maths.h"
 #include "lib/static_object.h"
-#include "lib/hash_map.h"
 #include "game_singletons.h"
 
 #include <list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #undef GetClassName
@@ -252,7 +252,7 @@ struct SpellSequence {
     // The containers released; the walk stops at the first entry without one.
     ~SpellSequence();
 
-    lib::HashMap<std::uint32_t, CSpellContainer*> containers;
+    std::unordered_map<std::uint32_t, CSpellContainer*> containers;   // only empty entries ever: no order to keep
     std::uint32_t maxLow;
 };
 // One step of a walk over a sequence's containers: the container there, or null at the end.
@@ -291,8 +291,9 @@ public:
     void ListSpellNames(std::vector<std::string>* names);
     void ListModifierNames(std::vector<std::string>* names);
 
-    // By the high half of a packed id.
-    lib::HashMap<std::uint32_t, SpellSequence*> sequences_;
+    // By the high half of a packed id. Its entries are only the null ones CreateSpellObject's lookup adds, so the
+    // destructor's walk (which stops at a null entry) deletes nothing in any order.
+    std::unordered_map<std::uint32_t, SpellSequence*> sequences_;
     std::uint32_t maxSequenceKey_;   // the largest key asked for
 };
 

@@ -863,6 +863,12 @@ model = "opus"
 depends = ["N4"]
 note = "N4's gallery and ui.md section 5 leave these unreached: the repair grid's draw, the trade panel's click, CanMakeSpell / CanMakeItem, the constructor / grid Builds, DeconstructItem (needs a made item), FindPaths (a zone / link click), CGlobalMap::Close, and the hero list's arrow tooltip that never showed. Reach what the original reaches with menus, keys and clicks; add frames to ui_gallery_camp or a new ui_gallery_* file; goldens from 3 agreeing original runs; record in ui-native.md and ui.md what is still out of reach and why."
 
+[[ticket]]
+id = "C14zj1"
+title = "ui_gallery_deals fails on standalone-rebirth (--all-rebirth): the map zone click opens no objectives window"
+group = "native-ui"
+note = "Found by C14zj 2026-10-28; fails the same on main (cec35b3d4), so not C14zj's. waitwindow objectives timed out (top window map), then waitwindow map timed out (escmenu). The zone point (140, 277) is gz2g's area on the vanilla global map; Rebirth's map likely draws it elsewhere, or its zones differ. Either mark the scenario vanilla-only or give the Rebirth data its own point."
+
 # ---------------------------------------------------------------- widescreen
 
 [[ticket]]
