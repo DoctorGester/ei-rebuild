@@ -3396,6 +3396,14 @@ group = "cleanup"
 note = "From C20 batch 6: a rerun of tools/gen_short_functions.py adds 59 EI_REWRITTEN short functions (0050E410 Ret4 in vtable 0073DAA0's slots, 00500A90 LoadDword<0x34>, ...) whose lines C20g deleted as dead (9f96fba58): the generator takes every short game function minus library.csv / dead_code.csv / EI_REWRITTEN. Decide per function: list the dead ones in config/dead_code.csv (or have the generator skip functions only retired vtables point at), so a rerun writes the committed file again. Mechanical; Sonnet."
 
 [[ticket]]
+id = "C20j"
+title = "check_signatures only where game.exe code meets ours"
+group = "cleanup"
+model = "sonnet"
+files = ["tools/check_signatures.py"]
+note = "User 2026-10-28: since C20 nothing of ours calls or is called by game.exe code at run time, so the RET n check over the 8,297 EI_REWRITTEN functions only blocks signature changes (string_view in C14f). Narrow check_signatures to EI_RECORD recorders (in game.exe when recording vectors) and the functions tests/vectors' replays call with arguments recorded from the original; drop EI_REWRITTEN. Update the docs that name the rule (rewrite-guide, standalone.md, core.md's 'registered functions keep const char*'). Mechanical; Sonnet."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
