@@ -80,8 +80,6 @@ void SectorData::ResetFields() {
     lastUsed = 0;
     relightCountdown = 0;
     clipMode = 2;
-    spare38C = 0;
-    spare390 = 0;
     hasSpecular = 0;
 }
 

@@ -126,7 +126,7 @@ void BehaviourChunk::OnChunk() {
     case 0xBBBC0009:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 2) b->alarm = 2;
         break;
-    case 0xBBBC000A: b->field0A = c.ReadFloat(); break;
+    case 0xBBBC000A: b->unreadChunk = c.ReadFloat(); break;
     case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
         float f = c.ReadFloat();
@@ -162,7 +162,7 @@ void BehaviourChunk::Write() {
     c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));
     c.WriteInt(0xBBBC0003, b->type);
     c.WriteFloat(0xBBBC0004, Bits(b->guardRadius));
-    c.WriteFloat(0xBBBC000A, Bits(b->field0A));
+    c.WriteFloat(0xBBBC000A, Bits(b->unreadChunk));
     WriteVector(c, 0xBBBC0005, b->guard);
     c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
@@ -289,7 +289,7 @@ void WaypointsWrite(const std::vector<Waypoint>* a, CStream* stream) {
 }
 
 // The record from a stream. Files before version 0x53 have no alarm level: it follows
-// from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). field0A is not stored.
+// from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). unreadChunk is not stored.
 void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &type, 4);
     int n;

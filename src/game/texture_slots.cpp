@@ -66,14 +66,12 @@ int CTexture::Create() {
     uploadResult_ = 0;
     std::memset(&format_, 0, sizeof(format_));
     format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
-    spare64_ = 0;
     extra_.clear();
     return 1;
 }
 
 void CTexture::Destroy() {
     DropSurface(this);
-    spare64_ = 0;
     flags_ = 0;
 }
 
@@ -87,14 +85,12 @@ CTexture::CTexture() {
     uploadResult_ = 0;
     std::memset(&format_, 0, sizeof(format_));
     format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
-    spare64_ = 0;
     extra_.clear();
 }
 
 // The name goes after the body (its destructor), then CEngineObject's.
 CTexture::~CTexture() {
     DropSurface(this);
-    spare64_ = 0;
     flags_ = 0;
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
 }

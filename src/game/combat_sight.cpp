@@ -38,7 +38,7 @@ constexpr float kPi = std::bit_cast<float>(0x40490FDBu);
 constexpr float kPercent = std::bit_cast<float>(0x3C23D70Au);       // 0.01
 constexpr float kNearSq = 10.0f;
 constexpr double kFrontCosine = 0.5;
-constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with flag18
+constexpr std::uint32_t kNoRangeBits = 0x501502F9u;                 // 1e10: point orders with pointIsUseSpot
 constexpr std::uint32_t kFarBits = 0x7E967699u;                     // 1e38: the plan's initial range
 constexpr std::uint32_t kBestStartBits = 0x7149F2CAu;               // 1e30
 
@@ -94,7 +94,7 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
 // --- What must be seen -----------------------------------------------------------------------
 
 bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
-    if (order->flag18) return false;
+    if (order->pointIsUseSpot) return false;
     CWorldServer* world = ServerWorld();
     CMapObject* target = order->target;
 
@@ -200,7 +200,7 @@ bool NeedsClearWay(CUnitServer* self, const AIOrder* order) {
 
 bool CUnitServer::CanActFrom(const AIOrder* order, const float* point, int time) {
     if (order->target == unit) return true;
-    if (order->flag18) return true;
+    if (order->pointIsUseSpot) return true;
     if (!unit->player && order->target && OutOfSightRange(this, point)) return false;
 
     if (order->kind == kOrderCast || order->kind == kOrderCastAt) {
@@ -267,7 +267,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     int now = ObjectWorld(this)->tick_;
     CSpell* spell = nullptr;
 
-    if (order->flag18) {
+    if (order->pointIsUseSpot) {
         double distance = ActionDistance(order);
         double limitSq = distance * distance;
         double apartSq = DistanceSquaredXYUnrounded<double>(order->point, unit->localPosition_);
@@ -301,7 +301,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
     if (duration <= 0) duration = 1;
 
     float range = static_cast<float>(ActionDistance(order));
-    if (order->flag18) range = std::bit_cast<float>(kNoRangeBits);
+    if (order->pointIsUseSpot) range = std::bit_cast<float>(kNoRangeBits);
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
@@ -356,7 +356,7 @@ bool CUnitServer::PlanAction(const AIOrder* order, OrderPlan* plan) {
             outerSq = static_cast<float>(outer * outer);
             if (targetUnit->IsLargeUnit()) predict = true;   // the planner's "moving"
         }
-        if ((kind == kOrderCast || kind == kOrderCastAt) && !order->flag18 &&
+        if ((kind == kOrderCast || kind == kOrderCastAt) && !order->pointIsUseSpot &&
             targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;

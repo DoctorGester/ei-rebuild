@@ -40,7 +40,6 @@ int CObject3D::Create3D() {
     localRotation_ = kIdentityOrientation;
     attached = nullptr;
     flags_ = 0;
-    spare09C = 0;
     animations = nullptr;
     std::memset(&scale, 0, sizeof(scale));
     CLinkMesh* old = figure;
@@ -81,7 +80,6 @@ void CObject3D::Destroy3D() {
     lib::FreeStorage(pendingParts);
     if (attached) attached->Release();
     attached = nullptr;
-    spare09C = 0;
     animations = nullptr;
     flags_ = 0;
 }

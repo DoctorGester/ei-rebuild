@@ -87,7 +87,7 @@ void CUnitServer::DropQueuedOrder() {
     action2.kind = 9;
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
-    action2.flag18 = 0;
+    action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = 0;
@@ -131,7 +131,7 @@ void CUnitServer::FinishAction(int location, char) {
         action.kind = 9;
         if (action.target) action.target->Release();
         action.target = nullptr;
-        action.flag18 = 0;
+        action.pointIsUseSpot = 0;
         action.param = 0;
         action.modifier = 0;
         if (action2.kind == 9 && action.kind != 0) DropQueuedOrder();

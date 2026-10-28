@@ -186,10 +186,10 @@ void CSceneRenderer::SetColour(std::uint32_t colour) {
 
 void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
 
-int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
+int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* rotation, const void* position, CMaterial* material, int alpha,
                                tagRECT* screen) {
     if (mesh->flags_ & kFigureHidden) return 1;
-    return mesh->drawer_->DrawPlain(device_, unknownA, unknownB, material, alpha, screen);
+    return mesh->drawer_->DrawPlain(device_, rotation, position, material, alpha, screen);
 }
 
 int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,

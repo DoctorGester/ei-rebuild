@@ -111,7 +111,7 @@ void AIMode::Enter(AIBrain* brain) {
     std::uint32_t roll = g_random.Next();
     volatile std::int64_t wide = roll;             // the zero-extended value
     brain->decay = static_cast<float>(static_cast<double>(wide) * kDecayRandomScale + kDecayBase);
-    brain->owner->SetBusy(0);
+    brain->owner->moveMode2.onGuard = 0;
 }
 
 void AIActionMode::Enter(AIBrain* brain) {
@@ -376,7 +376,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
 }
 
 void SuspectionMode::Enter(AIBrain* brain) {
-    brain->owner->SetBusy(1);
+    brain->owner->moveMode2.onGuard = 1;
     AIMoveOrder order;
     order.point = Vector3{0.0f, 0.0f, 0.0f};
     order.looks.clear();
@@ -388,7 +388,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
 }
 
 void SuspectionMode::Leave(AIBrain* brain) {
-    brain->owner->SetBusy(0);
+    brain->owner->moveMode2.onGuard = 0;
     brain->owner->voice.Raise(3);
 }
 
@@ -485,7 +485,7 @@ void SuspectionMode::Save(CStream* stream) {
 // --- Aggression ----------------------------------------------------------------------------------
 
 void AggressionMode::Enter(AIBrain* brain) {
-    brain->owner->SetBusy(1);
+    brain->owner->moveMode2.onGuard = 1;
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
     brain->owner->voice.Raise(6);
@@ -497,7 +497,7 @@ void AggressionMode::Leave(AIBrain* brain) {
         brain->memory.noticedKind = 0;
     }
     enemy.Reset();
-    brain->owner->SetBusy(0);
+    brain->owner->moveMode2.onGuard = 0;
     brain->owner->voice.Raise(4);
 }
 
@@ -526,12 +526,12 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
 // --- Fear ----------------------------------------------------------------------------------------
 
 void FearMode::Enter(AIBrain* brain) {
-    brain->owner->SetBusy(1);
+    brain->owner->moveMode2.onGuard = 1;
     brain->target.Reset();
     brain->action = AIBrain::kActionNone;
 }
 
-void FearMode::Leave(AIBrain* brain) { brain->owner->SetBusy(0); }
+void FearMode::Leave(AIBrain* brain) { brain->owner->moveMode2.onGuard = 0; }
 
 void FearMode::Load(CStream* stream) {
     ReadField(stream, &distance);

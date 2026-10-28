@@ -145,7 +145,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
         if (best == kNoSpot) {
             result = false;
         } else {
-            order->flag18 = 1;
+            order->pointIsUseSpot = 1;
             std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
@@ -264,7 +264,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             unit->localPosition_.z = z;
             return can;
         };
-        if (order->flag18 == 0) {
+        if (order->pointIsUseSpot == 0) {
             LocalPath path;
             CMapObject* target = order->target;
             std::uint8_t savedFlag = 0;
@@ -274,11 +274,11 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 ServerSectors()->Remove(target);
             }
             CWorldServer* world = ServerWorld();
-            path.Path()->flag6E = unit->player == nullptr;
-            std::uint32_t saved43C = unit->altPassCosts;
+            path.Path()->mayExcludeRegions = unit->player == nullptr;
+            std::uint32_t savedAltPassCosts = unit->altPassCosts;
             unit->altPassCosts = 1;
             bool found = MapOf(world)->FindPath(unit, &point, path.Path(), kFar, 0.0f);
-            unit->altPassCosts = saved43C;
+            unit->altPassCosts = savedAltPassCosts;
             if (!found) path.Path()->StandStill(unit);
             if (target) {
                 ServerSectors()->Add(target);
@@ -321,11 +321,11 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
     }
     std::uint32_t flag = map->CellFlag80At(&unit->localPosition_);
     CWorldServer* world2 = ServerWorld();
-    path.Path()->flag6E = unit->player == nullptr;
-    std::uint32_t saved43C = unit->altPassCosts;
+    path.Path()->mayExcludeRegions = unit->player == nullptr;
+    std::uint32_t savedAltPassCosts = unit->altPassCosts;
     unit->altPassCosts = flag & 0xFF;
     bool found = MapOf(world2)->FindPath(unit, point, path.Path(), range, 0.0f);
-    unit->altPassCosts = saved43C;
+    unit->altPassCosts = savedAltPassCosts;
     if (running) {
         sectors->Remove(unit);
         unit->moveMode = mode;

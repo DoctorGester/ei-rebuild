@@ -259,8 +259,8 @@ void PutPath(Writer& w, const Path& path) {
     w.Put(path.goal);
     w.Put(path.reached);
     w.Put(path.failed);
-    w.Put(path.flag6E);
-    w.Put(path.flag6F);
+    w.Put(path.mayExcludeRegions);
+    w.Put(path.firstSearch);
     w.Put(static_cast<std::uint32_t>(path.excludedBlocks.size()));
     for (const BlockPoint& block : path.excludedBlocks) w.Put(block);
     w.Put(path.smoothing);

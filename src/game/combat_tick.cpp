@@ -124,7 +124,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
         target = from->target;
     }
     std::memcpy(&point, &from->point, sizeof(point));
-    flag18 = from->flag18;
+    pointIsUseSpot = from->pointIsUseSpot;
     param = from->param;
     param = from->param;   // copied twice, like the original
     modifier = from->modifier;
@@ -135,7 +135,7 @@ void UnitAction::Reset() {
     kind = kOrderEmpty;
     if (target) target->Release();
     target = nullptr;
-    flag18 = 0;
+    pointIsUseSpot = 0;
     param = 0;
     modifier = 0;
 }
@@ -147,8 +147,8 @@ void CUnitServer::SetUnitMoveMode2(int mode) {
 }
 
 void CUnitServer::SyncMoveModes() {
-    if (action.kind == kOrderAttack) moveMode2.flag4 = 1;
-    else if (unit->player) moveMode2.flag4 = 0;
+    if (action.kind == kOrderAttack) moveMode2.onGuard = 1;
+    else if (unit->player) moveMode2.onGuard = 0;
     moveMode.wasMode3 = 0;
     moveMode.mode = unit->moveMode;
     if (unit->moveMode == 3) {
@@ -162,7 +162,7 @@ void CUnitServer::SyncMoveModes() {
         moveMode2.wasMode3 = 1;
     }
     if (action.modifier && moveMode.mode == kModeRun) moveMode2.wasMode3 |= 2;
-    if (!unit->player && moveMode2.flag4) moveMode2.wasMode3 |= 1;
+    if (!unit->player && moveMode2.onGuard) moveMode2.wasMode3 |= 1;
 }
 
 namespace {
@@ -193,14 +193,14 @@ void CUnitServer::TakeQueuedOrder() {
         action.target = target;
     }
     std::memcpy(&action.point, &action2.point, sizeof(action.point));
-    action.flag18 = action2.flag18;
+    action.pointIsUseSpot = action2.pointIsUseSpot;
     action.param = action2.param;
     action.param = action2.param;
     action.modifier = action2.modifier;
     action2.kind = kOrderEmpty;
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
-    action2.flag18 = 0;
+    action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
     if (action.modifier && moveMode.mode != kModeRun) {
@@ -476,7 +476,7 @@ void CUnitServer::ContinueAction() {
     action.kind = kOrderEmpty;
     if (action.target) action.target->Release();
     action.target = nullptr;
-    action.flag18 = 0;
+    action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
     if (action2.kind == kOrderEmpty && action.kind != kOrderNone) DropQueuedOrder();
@@ -609,7 +609,7 @@ void CUnitServer::ExecuteOrder() {
                 auto* defender = victim->ServerController();
                 ManagerContext();
                 int backstab = unit->IsBehind(victim) & 0xFF;
-                if (victim->GetClassId() == kClassUnit && defender->NoBackstab()) backstab = 0;
+                if (victim->GetClassId() == kClassUnit && defender->moveMode2.onGuard) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);
@@ -636,7 +636,7 @@ void CUnitServer::ApproachTarget() {
     unit->altPassCosts = 1;
     CMapObject* target = action.target;
 
-    if (action.flag18 || !target) {
+    if (action.pointIsUseSpot || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
         Vector3 goal;
         std::memcpy(&goal, &action.point, sizeof(goal));

@@ -573,8 +573,6 @@ SectorData::SectorData() {
     lastUsed = 0;
     relightCountdown = 0;
     clipMode = kCulled;
-    spare38C = 0;
-    spare390 = 0;
     hasSpecular = 0;
     g_projectionInput.resize(kProjectionVertices);
     g_projectionOutput.resize(kProjectionVertices);

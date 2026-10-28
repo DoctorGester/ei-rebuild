@@ -268,7 +268,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     float range = MotionPathOf(c)->goal.z;
     std::uint32_t saved = UnitOf(c)->altPassCosts;
     CWorldServer* context = ServerOf(c);
-    MotionPathOf(c)->flag6E = UnitOf(c)->player ? 0 : 1;
+    MotionPathOf(c)->mayExcludeRegions = UnitOf(c)->player ? 0 : 1;
     std::uint32_t current = UnitOf(c)->altPassCosts;
     UnitOf(c)->altPassCosts = saved;
     bool found = context->AIMap()->FindPath(UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
@@ -384,10 +384,10 @@ void UpdateMotion(CUnitServer* c) {
     }
 
     // An idle unit standing in a kind-3 occluder (while its motion order started before the AI map's
-    // footprintTick and moveMode2's flag4 is clear) replans.
+    // footprintTick and moveMode2's onGuard is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && world->AIMap()->HasKind3OccluderAt(&position) &&
-        OrderOf(MotionPathOf(c))->startTime < world->AIMap()->footprintTick && c->moveMode2.flag4 == 0) {
+        OrderOf(MotionPathOf(c))->startTime < world->AIMap()->footprintTick && c->moveMode2.onGuard == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }

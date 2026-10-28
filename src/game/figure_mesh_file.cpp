@@ -108,7 +108,6 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     buffers_.texCoordCount = other->buffers_.texCoordCount;
     textureOffsetU_ = 0;
     textureOffsetV_ = 0;
-    spareDC_ = other->spareDC_;
     center_ = other->center_;
     boxMin_ = other->boxMin_;
     boxMax_ = other->boxMax_;

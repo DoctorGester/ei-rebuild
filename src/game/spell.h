@@ -169,7 +169,7 @@ public:
     void ReleaseLight();
 
     void Init(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* position, CMapObject* target,
-              const Vector3* targetPoint, std::uint8_t flagA4);
+              const Vector3* targetPoint, std::uint8_t newSilentEnd);
     // 0 when `object` is the target (the world then drops the effect).
     BOOL Forget(CEngineObject* object);
 

@@ -42,12 +42,12 @@ const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
     return unit->GetPrototype();
 }
 
-// The inlined reset of an order: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
+// The inlined reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
     order->kind = 9;
     if (order->target) order->target->Release();
     order->target = nullptr;
-    order->flag18 = 0;
+    order->pointIsUseSpot = 0;
     order->param = 0;
     order->modifier = 0;
 }
@@ -178,7 +178,7 @@ void CUnitServer::OrderAttack(CMapObject* target, int location, int calledShot, 
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
                     ReleaseTarget(&action2);
-                    action2.flag18 = 0;
+                    action2.pointIsUseSpot = 0;
                     action2.param = 0;
                     action2.modifier = 0;
                     return;
@@ -236,7 +236,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     }
     action2.kind = 9;
     ReleaseTarget(&action2);
-    action2.flag18 = 0;
+    action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
     action2.kind = 4;

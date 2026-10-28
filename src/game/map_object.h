@@ -47,8 +47,7 @@ struct MapEffect {
 struct UnitVitalsPacked {
     int Reset();
 
-    std::uint8_t spare00;           // 0 after Reset; nothing reads it
-    std::uint8_t unused_01;
+    std::uint8_t unused_00[2];      // sent with the record; Reset zeroes the first
     std::int16_t hitPoints;
     std::int16_t maxHitPoints;
     std::uint16_t mana;             // (read unsigned)
@@ -118,7 +117,7 @@ public:
     // Empty; units: the controller's size-class virtual.
     virtual void UpdateSizeClasses();
     virtual int IsUsable();            // 0; traps 1, levers NeedsKey
-    virtual int IsDirectUseBlocked();  // 0; levers a flag of theirs (a best guess)
+    virtual int IsDirectUseBlocked();  // 0; levers their directUseBlocked
     virtual std::uint32_t KeyId();     // the key it asks for: -123; levers override
     // A skill used on the object (traps Disarm, levers ApplyKey); here logs "Science is applied on wrong object"
     // and returns false.
@@ -240,8 +239,6 @@ public:
 
     UnitVitalsPacked* PackedVitals() { return &packedVitals; }
     DeltaState* NetState() { return &netState_; }
-    // The parts changed since the last send (bit per part: MarkChanged): the network state's mask.
-    std::uint16_t& ChangedParts() { return netState_.mask_; }
 
     // The world the object lives in (via its owner), or null.
     CWorld* World();
@@ -262,7 +259,8 @@ public:
     int sectorCellX;
     int sectorCellY;
     int changeStamp;                // the world's change counter when last changed
-    DeltaState netState_;           // the network state; its mask is the changed parts (ChangedParts())
+    DeltaState netState_;           // the network state; its mask_ is the parts changed since the last send (bit
+                                    // per part: MarkChanged)
 
 protected:
     CMapObject();

@@ -1027,7 +1027,7 @@ base; two surfaces; seven item lists; the panels (description, statistics, help,
 quick items, trade, and each offered constructor's strip and pages); the party's heroes handed to the client
 world as units (records of class 0x32, ids raised by 100000000 meanwhile), each idling, armed from its record
 and wearing its armour; the first hero shown the page titles; the first page (4 item constructor, 2 spell
-constructor, else 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
+constructor, else 0); a constructor's stock made on its first visit (restockDue) from the party's lowest and
 highest skill per spell school; the allod's constructor music; antialiasing (render state 2 = 2) when the
 device sorts independently.
 

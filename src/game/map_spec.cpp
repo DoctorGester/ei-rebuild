@@ -323,7 +323,7 @@ LeverSpec::LeverSpec() {
     lever.lock.level = 0;
     lever.state = 0;
     lever.stateCount = 2;
-    lever.flag260 = 0;
+    lever.directUseBlocked = 0;
     lever.keepsMapFlag = 0;
     lever.cycling = 0;
     kind = 8;
@@ -337,7 +337,7 @@ void LeverSpec::Save() {
     WriteByte(0xBBAC0002, static_cast<std::uint8_t>(lever.state));
     WriteByte(0xBBAC0003, static_cast<std::uint8_t>(lever.stateCount));
     WriteByte(0xBBAC0004, lever.cycling);
-    WriteByte(0xBBAC0007, lever.flag260);
+    WriteByte(0xBBAC0007, lever.directUseBlocked);
     WriteByte(0xBBAC0008, lever.keepsMapFlag);
     ObjectSpec::WriteFields();
     EndWrite();
@@ -350,7 +350,7 @@ void LeverSpec::OnChunk() {
     case 0xBBAC0003: lever.stateCount = c.ReadByte(); break;
     case 0xBBAC0004: lever.cycling = ReadFlag(c); break;
     case 0xBBAC0006: c.ReadBytes(&lever.lock, 12); break;
-    case 0xBBAC0007: lever.flag260 = ReadFlag(c); break;
+    case 0xBBAC0007: lever.directUseBlocked = ReadFlag(c); break;
     case 0xBBAC0008: lever.keepsMapFlag = ReadFlag(c); break;
     default: ObjectSpec::OnChunk(); break;
     }

@@ -52,7 +52,7 @@ void CMapObject::WriteFullState() {
 }
 
 void CMapObject::WriteChangedState() {
-    if (ChangedParts() & kVitalParts) StatsChanged();
+    if (netState_.mask_ & kVitalParts) StatsChanged();
     DeltaState* state = NetState();
     state->SetWriteMode(1);
     WriteNetState();

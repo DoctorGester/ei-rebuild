@@ -105,8 +105,8 @@ void CCampPages::BuildPages() {
             GameRejoin();
             return;
         }
-        spellConstructor_ = constructor_->flag0D != 0;
-        itemConstructor_ = constructor_->flag0C != 0;
+        spellConstructor_ = constructor_->sellsSpells != 0;
+        itemConstructor_ = constructor_->sellsItems != 0;
         std::memcpy(priceWeights_, constructor_->weights, kPriceWeights * sizeof(float));   // the dwords as they are
         spellParts_[0] = constructor_->SpellsParty();
         itemParts_[0] = constructor_->ItemsParty();
@@ -346,7 +346,7 @@ void CCampPages::BuildPages() {
 
     // A constructor's stock on the first visit: from the party's lowest and highest skill in each
     // spell school.
-    if (constructor_ && constructor_->flag38) {
+    if (constructor_ && constructor_->restockDue) {
         float lowest[kSchools];
         float highest[kSchools];
         for (int school = 0; school < kSchools; ++school) {
@@ -362,7 +362,7 @@ void CCampPages::BuildPages() {
         constructor_->SetLevels(lowest, highest);
         ClassTemplateGenerateMagic(constructor_);
         ClassTemplateGenerateItems(constructor_);
-        constructor_->flag38 = 0;
+        constructor_->restockDue = 0;
     }
 
     // The music of the allod the party's zone is on.

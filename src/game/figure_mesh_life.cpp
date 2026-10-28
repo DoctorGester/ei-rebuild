@@ -55,7 +55,6 @@ int CFigureMesh::CreateMesh() {
     std::memset(&buffers_, 0, sizeof(buffers_));
     textureOffsetU_ = 0;
     textureOffsetV_ = 0;
-    spareDC_ = 0;
     flatColour_ = 0xFFFFFFFF;
     flatSpecular_ = 0xFFFFFFFF;
     std::memset(&box_.bounds, 0, sizeof(box_.bounds));

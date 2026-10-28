@@ -185,7 +185,7 @@ void CWorldServer::UpdateUnits() {
             if (!unit) continue;
             if (--unit->updateCountdown > 0) continue;   // updates left before it may sleep
             const CUnitServer* controller = unit->ServerController();
-            if (controller->moveMode2.flag4 == 0 && controller->brain.alwaysUpdated == 0 &&
+            if (controller->moveMode2.onGuard == 0 && controller->brain.alwaysUpdated == 0 &&
                 controller->brain.memory.seesEnemy == 0)
                 g_sleepingIds.push_back(static_cast<unsigned>(object->id_));
             else

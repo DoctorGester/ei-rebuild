@@ -516,9 +516,15 @@ static_assert(sizeof(AIBrain) == 0x190);
 struct CUnitServer : CEngineObject {
     std::uint8_t unknown1C[0x148];
     int state;                              // +0x164
-    std::uint8_t unknown168[0xC];
-    std::uint8_t busy;                      // +0x174
-    std::uint8_t unknown175[0x17];
+    // A movement record (combat.h's MoveModeState).
+    struct MoveMode {
+        int mode;
+        std::uint8_t onGuard;
+        std::uint8_t wasMode3;
+    };
+    MoveMode moveMode;                      // +0x168
+    MoveMode moveMode2;                     // +0x170
+    std::uint8_t unknown178[0x14];
     std::uint8_t orderStopped;              // +0x18C
     std::uint8_t unknown18D[0x3];
     UnitAction action;                      // +0x190
@@ -530,9 +536,9 @@ struct CUnitServer : CEngineObject {
     std::uint8_t unknown908[0x78];
     AIBrain brain;                          // +0x980
     std::uint8_t unknownB10[0x10];
-    std::uint8_t Busy() const { return busy; }
 };
 static_assert(sizeof(CUnitServer) == 0xB20);
+static_assert(offsetof(CUnitServer, moveMode2) == 0x170 && offsetof(CUnitServer, orderStopped) == 0x18C);
 
 // A timed effect (world_effect.h).
 struct CEffect : CTransformObject {

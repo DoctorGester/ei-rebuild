@@ -67,7 +67,7 @@ public:
     int GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return NeedsKey(); }
-    int IsDirectUseBlocked() override { return flag260; }
+    int IsDirectUseBlocked() override { return directUseBlocked; }
     // ApplyKey.
     bool ApplyScience(const LockKey* key, CEngineObject* user) override;
     int AcceptsKey(const LockKey* key) override { return KeyOpens(key); }
@@ -131,7 +131,7 @@ public:
     float to;                       // the state's position
     float endTick;                  // the world tick at which the move ends
     float rate;                     // 1 / duration (0: no move)
-    std::uint8_t flag260;
+    std::uint8_t directUseBlocked;  // the player cannot use it by clicking (IsDirectUseBlocked; chunk BBAC0007)
     std::uint8_t keepsMapFlag;      // the AI map flag kept while it moves
 };
 

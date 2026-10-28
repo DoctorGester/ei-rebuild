@@ -179,7 +179,7 @@ struct PathOrder {
     // The order (kind byte, the steps' count as two bytes, start x / y, the angle within the
     // order angle range, the time and three arguments) on the field's delta channels, then each step as a 16-bit
     // header (x and y codes: one less, the same, one more than the previous step, or written out after it;
-    // unknown_6 & 3; the flags up to 0x3FF) on both outputs. ReadState empties the steps and reads them back.
+    // terrainBits & 3; the flags up to 0x3FF) on both outputs. ReadState empties the steps and reads them back.
     void WriteState(DeltaField* field);
     void ReadState(DeltaField* field);
     // The order and its steps in the save stream: kind, x / y, angle, start time and the three
@@ -215,7 +215,10 @@ struct AIPath : PathOrder {
     Vector3 goal;               // world position asked for
     bool reached;               // no cells left
     std::uint8_t failed;        // 1: the last search failed; search again
-    bool flag6E, flag6F;
+    // FindPath lets the long-range plan exclude a region it failed in and plan again (PlanLongPath's `retry`)
+    // when either is set: mayExcludeRegions for units without a player (set by their planners), firstSearch
+    // from Clear until the first search ends.
+    bool mayExcludeRegions, firstSearch;
     // the blocks the long-range plan avoids (PlanLongPath adds the region it failed in).
     BlockPointArray excludedBlocks;
     int smoothing;              // set by the smoother (how much longer the path is than the way)

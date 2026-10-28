@@ -113,7 +113,7 @@ CSpellEffect::~CSpellEffect() {
 // object already; else the held one released, the new one counted).
 
 void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster, const Vector3* newPosition,
-                        CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
+                        CMapObject* newTarget, const Vector3* newTargetPoint, std::uint8_t newSilentEnd) {
     spell->CopyTo(Spell());
     world = newWorld;
     position = *newPosition;
@@ -121,7 +121,7 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CUnit* newCaster,
     target.Assign(newTarget);
     targetPoint = *newTargetPoint;
     state = 0;
-    silentEnd = flagA4;
+    silentEnd = newSilentEnd;
 }
 
 BOOL CSpellEffect::Forget(CEngineObject* object) {

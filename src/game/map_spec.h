@@ -60,7 +60,7 @@ struct LeverSetup {
     LockKey lock;                   // ({1, 0, 0}; chunk BBAC0006, a 12-byte blob)
     std::int32_t state;             // (chunk BBAC0002, a byte)
     std::int32_t stateCount;        // (2; chunk BBAC0003, a byte)
-    std::uint8_t flag260;           // (chunk BBAC0007)
+    std::uint8_t directUseBlocked;  // (chunk BBAC0007)
     std::uint8_t keepsMapFlag;      // (chunk BBAC0008)
     std::uint8_t cycling;           // (chunk BBAC0004)
 };
@@ -96,7 +96,7 @@ struct Behaviour {
     std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
     std::uint32_t flags = 0;     // bit 3: the unit is always updated
     float guardRadius = 10.0f;
-    float field0A = -1.0f;       // chunk BBBC000A, only read and written with the record
+    float unreadChunk = -1.0f;   // chunk BBBC000A; only read and written with the record
     std::uint32_t alarmKind = 0; // the alarm raised when the countdown ends (low byte)
     std::uint32_t enabled = 0;   // (1 for the first record) HearAlarm applies a record other than the
                                  // first only when set
@@ -303,7 +303,7 @@ public:
     std::int32_t unused_7C;
     std::int32_t unused_80;
     std::uint8_t ambient;        // (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
-    std::uint8_t field0E;        // chunk CC0E, only read and written with the record
+    std::uint8_t unreadChunk;    // chunk CC0E; only read and written with the record
     std::uint8_t unused_86[2];
 };
 

@@ -129,7 +129,7 @@ std::uint32_t WeaponAndModeBits(CUnitServer* self) {
 // animation for the key, if any.
 void FillIdle(CUnitServer* self, AnimationSteps* steps) {
     *steps = {};
-    if (self->moveMode.mode == kModeRun && self->moveMode.flag4 == 0) {
+    if (self->moveMode.mode == kModeRun && self->moveMode.onGuard == 0) {
         AddEmote(steps, kEmoteStand);
         return;
     }
@@ -236,7 +236,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     case 1: bits = 0x20000; break;
     case 4: bits = 0x8000; break;
     case 2:
-        if (moveMode.flag4 || self->type_ != kUnitTypeHero) {
+        if (moveMode.onGuard || self->type_ != kUnitTypeHero) {
             bits = 0x10000;
             break;
         }
@@ -402,7 +402,7 @@ void CUnitServer::UpdateSneak() {
 }
 
 bool CUnitServer::ChangeMoveMode() {
-    if (moveMode.mode == moveMode2.mode && moveMode.flag4 == moveMode2.flag4) return false;
+    if (moveMode.mode == moveMode2.mode && moveMode.onGuard == moveMode2.onGuard) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
     ServerSectors()->Remove(unit);
@@ -461,7 +461,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
     Motion(this)->Clear();
     std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
-    Motion(this)->flag6E = unit->player ? 0 : 1;
+    Motion(this)->mayExcludeRegions = unit->player ? 0 : 1;
     std::uint32_t before = unit->altPassCosts;
     unit->altPassCosts = keep;
     bool found = world->AIMap()->FindPath(unit, point, Motion(this), range, 0.0f);
@@ -589,13 +589,13 @@ void CUnitServer::ResyncWithUnit() {
     action.kind = kOrderNone;
     if (action.target) action.target->Release();
     action.target = nullptr;
-    action.flag18 = 0;
+    action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {   // the first is always true
         action2.kind = kOrderNone;
         action2.target.Reset();
-        action2.flag18 = 0;
+        action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
         action2.kind = 0;
@@ -647,12 +647,12 @@ void CUnitServer::ResetController() {
     };
     action.kind = kOrderNone;
     releaseRef(action.target);
-    action.flag18 = 0;
+    action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
     action2.kind = kOrderNone;
     releaseRef(action2.target);
-    action2.flag18 = 0;
+    action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
     frozen = 0;
@@ -679,10 +679,10 @@ void CUnitServer::ResetController() {
     motionChanged = 0;
     movingAnimation = 0;
     moveMode.mode = 2;
-    moveMode.flag4 = 0;
+    moveMode.onGuard = 0;
     moveMode.wasMode3 = 0;
     moveMode2.mode = 2;
-    moveMode2.flag4 = 0;
+    moveMode2.onGuard = 0;
     moveMode2.wasMode3 = 0;
     CEngineObject* effect = effectObject;
     effectObject = nullptr;

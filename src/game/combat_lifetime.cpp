@@ -15,11 +15,11 @@ namespace {
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
 
-// An order's constructor (kind 9, no target, flag18 clear), then its Clear and the rest of its fields.
+// An order's constructor (kind 9, no target, pointIsUseSpot clear), then its Clear and the rest of its fields.
 void InitAction(UnitAction& action) {
     action.target = nullptr;
     action.kind = 9;
-    action.flag18 = 0;
+    action.pointIsUseSpot = 0;
     action.Clear();
     action.param = 0;
     action.modifier = 0;

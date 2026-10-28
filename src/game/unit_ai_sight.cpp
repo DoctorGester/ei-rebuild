@@ -207,7 +207,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
             CUnitServer* theirs = other->ServerController();
             AIBrain* theirBrain = theirs->Brain();
-            if (theirs->Busy() && theirBrain->target == self) continue;
+            if (theirs->moveMode2.onGuard && theirBrain->target == self) continue;
             double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
                            owner->stats.valuesB0[0].current * reachFactor;
             if (sight > distance) continue;

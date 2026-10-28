@@ -399,7 +399,6 @@ CUiWindow::CUiWindow(CInterface3D* ui) : UiInputSide(ui) {
     ClearFields();
     localRotation_.SetIdentity();   // two identity rotations
     worldRotation_.SetIdentity();
-    std::memset(spareA0_, 0, sizeof(spareA0_));
     ClearArray(objects_);
     ClearArray(sceneObjects_);
     ClearArray(surfaces_);

@@ -31,7 +31,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text08 = source->text08;
     type = source->type;
     materialClass = source->materialClass;
-    CopyBytes(this, source, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20));
+    CopyBytes(this, source, offsetof(ItemRecordHead, unreadHeadField), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
     buildable = source->buildable;
     list20 = source->list20;
@@ -58,7 +58,7 @@ QuestItemRecord::~QuestItemRecord() {
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;
-    CopyBytes(this, source, offsetof(QuickItemRecord, attributeBonus), offsetof(QuickItemRecord, unused_8B));
+    std::memcpy(attributeBonus, source->attributeBonus, sizeof(attributeBonus));
 }
 
 void QuestItemRecord::CopyOwn(const QuestItemRecord* source) {
@@ -70,8 +70,8 @@ void LootItemRecord::CopyOwn(const LootItemRecord* source) {
 }
 
 // The kinds' default and copy constructors (the extra members constructed between the head and the Assign).
-WeaponRecord::WeaponRecord() { std::memset(field1B, 0, offsetof(WeaponRecord, attackBonus) - 1 - offsetof(WeaponRecord, field1B)); }
-QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, offsetof(QuickItemRecord, unused_8B) - offsetof(QuickItemRecord, attributeBonus)); }
+WeaponRecord::WeaponRecord() { std::memset(skillBonus, 0, offsetof(WeaponRecord, attackBonus) - 1 - offsetof(WeaponRecord, skillBonus)); }
+QuickItemRecord::QuickItemRecord() { std::memset(attributeBonus, 0, sizeof(attributeBonus)); }
 
 WeaponRecord::WeaponRecord(const WeaponRecord& from) {
     Assign(&from);

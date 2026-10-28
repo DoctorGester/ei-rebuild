@@ -89,7 +89,7 @@ constexpr std::uint32_t kDefaultWeights[9] = {kOne, kHalf, kFifth, kTenth, kOne,
 constexpr std::uint32_t kZeroWeights[9] = {};
 
 // One template, appended to the vector through a temporary counted pointer.
-void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
+void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t sellsItems, std::uint8_t sellsSpells,
                  const std::uint32_t (&weights)[9]) {
     // The count dword is cleared before the allocation is tested; ours tests first.
     auto* t = new ClassTemplate();
@@ -97,8 +97,8 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     t->flags6_ = 0;
     t->flags7_ = 0;
     t->type = type;
-    t->flag0C = flag0C;
-    t->flag0D = flag0D;
+    t->sellsItems = sellsItems;
+    t->sellsSpells = sellsSpells;
     std::memcpy(t->weights, weights, sizeof(t->weights));
     ClassTemplateFill(t);
 
@@ -138,7 +138,7 @@ unsigned ClassTemplatesQuestCompleted(PartyManager* manager) {
     unsigned i = 0;
     while (i < static_cast<unsigned>(v->size())) {
         ++i;
-        (*v)[i - 1]->flag38 = 1;
+        (*v)[i - 1]->restockDue = 1;
     }
     return i;
 }

@@ -29,12 +29,12 @@ std::uint8_t ScaledByte(float value, float scale, float divisor) {
     return static_cast<std::uint8_t>(rounded);
 }
 
-void ResetLayerExceptUnknown20(UnitStatLayer& layer) {
+void ResetLayerKeepingSpareAbsorb(UnitStatLayer& layer) {
     layer.layerMask = 0;
     for (float& a : layer.absorb) a = kZero;
     layer.state = 0;
-    layer.spareA = 0;
-    layer.spareB = 0;
+    layer.reserved[0] = 0;
+    layer.reserved[1] = 0;
 }
 } // namespace
 
@@ -63,7 +63,7 @@ void UnitVitals::Pack(UnitVitalsPacked* out) {
 }
 
 int UnitVitalsPacked::Reset() {
-    spare00 = 0;
+    unused_00[0] = 0;
     hitPoints = 0;
     maxHitPoints = 0;
     mana = 0;
@@ -147,7 +147,7 @@ int UnitStats::Reset() {
         slot.maximum = kZero;
         slot.current = kZero;
         slot.type = kResetSlotType;
-        for (UnitStatLayer& layer : slot.layers) ResetLayerExceptUnknown20(layer);
+        for (UnitStatLayer& layer : slot.layers) ResetLayerKeepingSpareAbsorb(layer);
     }
     std::memset(attributes, 0, sizeof(attributes));
     std::memset(skills, 0, sizeof(skills));

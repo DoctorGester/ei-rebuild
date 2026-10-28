@@ -777,9 +777,9 @@ void ReferenceEveryObject(CBaseManager* manager) {
 } // namespace
 
 void SectorGrid::Allocate() {
-    cells_ = std::make_unique<SectorList[]>(static_cast<std::size_t>(unknown08_) * unknown0C_);
-    rows_ = std::make_unique<SectorList*[]>(static_cast<std::size_t>(unknown0C_));
-    for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_.get() + y * unknown08_;
+    cells_ = std::make_unique<SectorList[]>(static_cast<std::size_t>(allocatedWidth_) * allocatedHeight_);
+    rows_ = std::make_unique<SectorList*[]>(static_cast<std::size_t>(allocatedHeight_));
+    for (int y = 0; y < allocatedHeight_; ++y) rows_[y] = cells_.get() + y * allocatedWidth_;
 }
 
 void SectorGrid::Free() {
@@ -788,10 +788,10 @@ void SectorGrid::Free() {
 }
 
 void SectorGrid::Resize(int width, int height) {
-    if (unknown08_ == width && unknown0C_ == height) return;
+    if (allocatedWidth_ == width && allocatedHeight_ == height) return;
     Free();
-    unknown08_ = width;
-    unknown0C_ = height;
+    allocatedWidth_ = width;
+    allocatedHeight_ = height;
     Allocate();
 }
 

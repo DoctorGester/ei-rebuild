@@ -23,8 +23,8 @@ void AIPath::LoadPath(CStream* stream) {
     stream->Read(&goal, 0xC);
     stream->Read(&reached, 1);
     stream->Read(&failed, 1);
-    stream->Read(&flag6E, 1);
-    stream->Read(&flag6F, 1);
+    stream->Read(&mayExcludeRegions, 1);
+    stream->Read(&firstSearch, 1);
     BlockPointArray* excluded = &excludedBlocks;
     stream->Read(&count, 4);
     excluded->resize(count);
@@ -44,8 +44,8 @@ void AIPath::SavePath(CStream* stream) {
     stream->Write(&goal, 0xC);
     stream->Write(&reached, 1);
     stream->Write(&failed, 1);
-    stream->Write(&flag6E, 1);
-    stream->Write(&flag6F, 1);
+    stream->Write(&mayExcludeRegions, 1);
+    stream->Write(&firstSearch, 1);
     const BlockPointArray* excluded = &excludedBlocks;
     count = std::ssize(*excluded);
     stream->Write(&count, 4);

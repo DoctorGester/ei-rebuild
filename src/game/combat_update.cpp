@@ -109,7 +109,7 @@ void EmptyAction(UnitAction* order) {
     order->kind = kOrderNone;
     if (order->target) order->target->Release();
     order->target = nullptr;
-    order->flag18 = 0;
+    order->pointIsUseSpot = 0;
     order->param = 0;
     order->modifier = 0;
 }
