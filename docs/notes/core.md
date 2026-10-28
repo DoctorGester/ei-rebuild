@@ -406,7 +406,10 @@ to which template:
   `OriginalSSCCmd` / `OriginalScriptSubCall`, `OriginalScriptDecl` (`OriginalBlocks`, `OriginalGlobals`);
   script_load_vectors.h's PutVars / PutCmd / PutCmds / PutBlocksAfter are templates over either side's types. The
   harness digest reads the strings through `Text()`. Also: text::Join fills a std::string, Split cuts a std::string,
-  `CWorldClient::ObjectVariableName` returns the name.
+  `CWorldClient::ObjectVariableName` returns the name. The first CStringArray members are
+  `std::vector<std::string>`: the HUD tooltips' `labels_` (CHudWeaponBar, CHudQuickItems, CHudSpellColumn,
+  CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
+  (the layout asserts after them went).
 - Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
   (mfc::CStringArray and console::CStringArray: the console's history and lines, every command's arguments, Split /
   SplitWords / Join, the ui's label and text arrays, the map specs' name lists).
