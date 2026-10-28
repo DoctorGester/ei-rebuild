@@ -403,7 +403,7 @@ void CSpellEffect::UpdateMissile(int type) {
 }
 
 void CSpellEffect::UpdateLasting(int type) {
-    std::list<CUnit*> units;   // the inline CPtrList the fireworks and clairvoyance fill
+    std::list<CUnit*> units;   // the list the fireworks and clairvoyance fill
 
     switch (type) {
     case 0x00:

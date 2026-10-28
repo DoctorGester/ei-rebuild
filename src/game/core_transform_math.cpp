@@ -17,13 +17,13 @@ namespace {
 inline double D(float f) { return f; }
 
 // Constants the game reads from memory at run time.
-#define EI_ONE 1.0f /*0073B84C*/
-#define EI_MINUS_ONE (-1.0f /*0073B854*/)
-#define EI_ZERO 0.0f /*0073B858*/
-#define EI_TILT_STEP 0.1f /*0073B850*/    // TiltTowards turns a tenth of the way
-#define EI_HALF_TURN 0.4f /*0073B868*/    // TurnUpTowards' reduced step
-#define EI_MIN_AXIS 0.00001 /*0073B860*/    // shorter rotation axes count as none
-#define EI_PI 3.141592653589793 /*0073B840*/
+#define EI_ONE 1.0f
+#define EI_MINUS_ONE (-1.0f)
+#define EI_ZERO 0.0f
+#define EI_TILT_STEP 0.1f   // TiltTowards turns a tenth of the way
+#define EI_HALF_TURN 0.4f   // TurnUpTowards' reduced step
+#define EI_MIN_AXIS 0.00001   // shorter rotation axes count as none
+#define EI_PI 3.141592653589793
 constexpr float kHeadingOffset = /*0079B1B8*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
 // The rotation's Y axis (up) and Z axis (forward) as these functions expand them; the operand

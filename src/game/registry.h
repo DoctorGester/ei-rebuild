@@ -40,7 +40,7 @@ public:
     // Identical copies. An int value, a float one truncated (_ftol), or `defaultValue`.
     int GetInt(const char* section, const char* key, int defaultValue);
     int GetInt2(const char* section, const char* key, int defaultValue);
-    // A float value, an int one (exact, FILD), or `defaultValue`, in ST0 (declared
+    // A float value, an int one (exact), or `defaultValue`, unrounded (declared
     // double so an int value is not rounded to float on return).
     double GetFloat(const char* section, const char* key, float defaultValue);
     // A string value, or `defaultValue`.

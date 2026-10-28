@@ -445,7 +445,7 @@ void DeltaField::WriteFloat16(std::uint32_t floatBits) {
     WriteDelta(&h, 2);
 }
 
-// The result is never a NaN (the exponent is at most 0xBF), so its FLD/FSTP store is a copy.
+// The result is never a NaN (the exponent is at most 0xBF), so storing it is a plain copy.
 void DeltaField::ReadFloat16(float* value) { StoreBits(value, delta::UnpackFloat16(ReadWord())); }
 
 void DeltaField::WriteFloat16x3(const float* values) {

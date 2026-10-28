@@ -45,10 +45,10 @@ int FindName(const std::vector<std::string>& names, std::string_view name) {
     return -1;
 }
 
-// *dst = (float)atof(text): the CRT's result in ST0 stored with FSTP.
+// *dst = (float)atof(text): the CRT's result stored as a float.
 void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(std::atof(text)); }
 
-// FILD / FSTP of an int.
+// An int stored as a float.
 void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }
 
 void StoreBits(float* dst, std::uint32_t bits) { std::memcpy(dst, &bits, 4); }

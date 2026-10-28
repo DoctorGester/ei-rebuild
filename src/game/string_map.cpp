@@ -1,6 +1,6 @@
 // The debug information panel (on an abstract base): a map<string, string> at +4 with a setter and a
 // remover, drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the interface at most
-// twice a second. The map's algorithms and the MFC CFont members are library code. The constructor runs from a
+// twice a second. The map's algorithms and the CFont members are library code. The constructor runs from a
 // static initialiser. See docs/notes/app.md.
 #include "debug_panel.h"
 

@@ -120,8 +120,8 @@ public:
     // Closes and deletes every window, then opens `window` as PushWindow does.
     void Activate(CUiWindow* window);
     // Reads the interface's saved state from `stream`: flags and two values; from save version 0x47 one
-    // more; from 0x56 an obsolete list (count, then name and value pairs, discarded) and a CString; from
-    // 0x5D one more value; from 0x5F a CString.
+    // more; from 0x56 an obsolete list (count, then name and value pairs, discarded) and a string; from
+    // 0x5D one more value; from 0x5F a string.
     void LoadState(CStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
     // the text table, formatted with `value` unless 0, into `out`.
@@ -578,7 +578,7 @@ public:
 // surface: AddSurface (`added`), RemoveSurfaceAt, ClearSurfaces and the destructor. Null otherwise.
 extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added);
 // ... and when a whole-surface pixel helper runs on a surface (CaptureScreen, Rgb565Copy, Greyscale,
-// PixelAt, SwapContents); `writes` for the ones that change the pixels; `caller` the stack slot of the
+// PixelAt, SwapContents); `writes` for the ones that change the pixels; `caller` the stack memory of the
 // helper's return address. Null otherwise.
 extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
 

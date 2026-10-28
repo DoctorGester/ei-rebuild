@@ -51,7 +51,7 @@ constexpr int kPanelTexture = 0, kItemTexture = 2, kSaveLoadTexture = 3, kFirstQ
 constexpr int kSurfaceCommands = 1, kSurfaceRename = 3;
 
 // The menu model's turn about x: pi / 2 times 1.2.
-float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
+float MenuTurn() { return kMenuTilt * 1.2f; }
 
 // The saved heroes' reload (Rebirth-patched).
 

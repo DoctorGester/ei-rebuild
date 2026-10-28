@@ -1,4 +1,4 @@
-// The briefing / base screen's key handler (CBriefingScreen::OnKeyDown, input slot 9). See
+// The briefing / base screen's key handler (CBriefingScreen::OnKeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "game_strings.h"
 #include "ui.h"

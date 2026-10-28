@@ -1,4 +1,4 @@
-// Small virtual slots of the 3D object base (CObject3D; shared by every map
+// Small virtuals of the 3D object base (CObject3D; shared by every map
 // object's vtable): the world rotation, copying a figure, the side half, the effect sources and
 // the drawing slots. See map_object_figures.h and docs/notes/map_objects.md.
 #include "effects.h"

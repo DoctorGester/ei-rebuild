@@ -73,7 +73,7 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, con
 
 // --- The corpse list ---------------------------------------------------------------
 
-// RemoveHead of the corpse list returning the element as a counted reference. It copies the head's object
+// Takes the head off the corpse list, returning the element as a counted reference. It copies the head's object
 // into a counted local, releases the list's reference and removes the head, then copies the local into `out`
 // and drops the local.
 AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
@@ -164,7 +164,7 @@ void AIBrain::Think() {
     }
     seen.Reset();
 
-    // The corpses seen this tick are forgotten (RemoveAll with element destruction).
+    // The corpses seen this tick are forgotten (the list emptied, elements destroyed).
     for (auto node = memory.corpses.begin(); node != memory.corpses.end(); ++node) DestructRef(&*node);
     memory.corpses.clear();
 

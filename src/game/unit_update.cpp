@@ -1,4 +1,4 @@
-// CUnit's own virtual slots: the per-tick update and the slots that pass map object
+// CUnit's own virtuals: the per-tick update and the virtuals that pass map object
 // events on to the unit's controller, plus standing on the ground. See unit.h and docs/notes/units.md.
 #include "combat.h"
 #include "unit.h"

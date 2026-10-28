@@ -49,7 +49,7 @@ std::uint32_t Bits(float value) {
     return bits;
 }
 
-// FUCOMPP of 1 (or 0) against the argument (TEST AH,0x45: an ordered equal).
+// 1 (or 0) against the argument: an ordered equal.
 bool Equals(float constant, float value) { return constant == value; }
 
 // The server-side object of player 0 (game over), or null.
@@ -256,8 +256,8 @@ bool GiveUnitWeapon(Call* call) {
     return true;
 }
 
-// Override: per value c (7), 0.05 * the head slot's + 0.3 * (the slots 1 and 3) + 0.3 * (the slots
-// 1, 3 and 6 second block) + 0.3 * (the slots 2, 4, 5), each plus the prototype's protection
+// Override: per value c (7), 0.05 * the head slot's + 0.3 * (armour slots 1 and 3) + 0.3 * (the armour slots
+// 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
     CEngineObject* object = ObjectArg(call, 0);
@@ -339,7 +339,7 @@ bool SetWeather(Call* call) {
 }
 
 // AddMobEx(file, [keep ids]): loads a .mob file's objects with the loading movie off meanwhile.
-// addon pushes its byte flag as a dword whose upper bytes are left over on its stack; here it is
+// addon pushes its byte flag as a 4-byte value whose upper bytes are left over on its stack; here it is
 // 0 or 1.
 bool AddMobEx(Call* call) {
     std::string file;

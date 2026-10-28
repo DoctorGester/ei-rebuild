@@ -5,7 +5,7 @@
 #include <string>
 
 
-// Splits a CString at a separator string. The credits screen is the only user: it walks
+// Splits a string at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.
 struct TextTokenizer {
     int position;                    // where the next word starts; -1 at the end
@@ -20,5 +20,5 @@ struct TextTokenizer {
     const char* Next();
 };
 
-// Removes every carriage return from `text` (CString::Remove); returns the count.
+// Removes every carriage return from `text`; returns the count.
 int RemoveCarriageReturns(std::string* text);

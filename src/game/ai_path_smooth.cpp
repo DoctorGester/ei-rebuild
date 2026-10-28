@@ -72,7 +72,7 @@ void DestroySmoothPool() { g_smoothPool.Destroy(); }
 
 } // namespace
 
-// CArray<SmoothNode>::SetSize (new nodes zeroed, nothing destroyed).
+// Resizes the SmoothNode array (new nodes zeroed, nothing destroyed).
 void SmoothPool::SetSize(int size) { nodes.resize(size); }
 
 void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {
@@ -182,7 +182,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCells* path, int start
         if (best >= previousBest) return best;
         previousBest = best;
         // Rebuild the cells from the tail back along the chain. The original gives their speed words and terrain bits
-        // two stack slots it never writes (the tail what the path's builder left: the join's open cost or the
+        // two stack values it never writes (the tail what the path's builder left: the join's open cost or the
         // planner's list vtable); ours get the plain words.
         path->clear();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), kPlainStepSpeed, 0};

@@ -25,12 +25,12 @@ void InitAction(UnitAction& action) {
     action.modifier = 0;
 }
 
-// The empty CList of counted object references the memory keeps (blocks of 10).
+// The empty list of counted object references the memory keeps (blocks of 10).
 void InitObjectList(std::list<CUnit*>& list) {
     list = {};
 }
 
-// Its destructor: the vtable, each element released and cleared, then RemoveAll.
+// Its destructor: the vtable, each element released and cleared, then the list is emptied.
 void DestroyObjectList(std::list<CUnit*>& list) {
     for (auto node = list.begin(); node != list.end(); ++node) {
         if (*node) (*node)->Release();

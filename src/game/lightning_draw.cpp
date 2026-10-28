@@ -43,7 +43,7 @@ void SizePoints() { g_glowPoints.resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
-    return static_cast<float>(static_cast<int>(g_random.Next() & 3)) * 0.25f /*0073C3B0*/;
+    return static_cast<float>(static_cast<int>(g_random.Next() & 3)) * 0.25f;
 }
 
 } // namespace
@@ -67,10 +67,10 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
-    const float quarter = 0.25f /*0073C3B0*/;
+    const float quarter = 0.25f;
     for (int i = 0; i < 15; ++i) {
         frames[i][0] = static_cast<float>(i & 3) * quarter;
-        frames[i][1] = 0.75f /*0073C524*/ - static_cast<float>((i >> 2) & 3) * quarter;
+        frames[i][1] = 0.75f - static_cast<float>((i >> 2) & 3) * quarter;
         frames[i][2] = frames[i][0] + quarter;
         frames[i][3] = frames[i][1] + quarter;
     }
@@ -83,11 +83,11 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     float length = LengthZYX(towards);
     EI_NAN_AUDIT(length);
     if (length != 0.0f) towards /= length;
-    float scaled = position->x * 15.0f /*0073C518*/;
+    float scaled = position->x * 15.0f;
     int shift = x87::fistp(scaled);
     int frame = (ObjectWorld(this)->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
-        float t = static_cast<float>(j) * 0.125f /*0073C520*/;   // 1/8
+        float t = static_cast<float>(j) * 0.125f;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
         LightningPoint& p = g_glowPoints[j];
         p.x = position->x + along.x;
@@ -109,20 +109,20 @@ int CLightning::Draw(CSceneRenderer* device) {
     if (!renderer->SetTexture(0, texture_)) return 0;
     int visibility = renderer->pipeline_->ClipTest(&bounds_);
     if (visibility == 2) return 1;
-    const float zero = 0.0f /*0073B858*/;
+    const float zero = 0.0f;
     if (power_ >= zero) Animate();
-    const float slant = 0.25f /*0073C3B0*/;
+    const float slant = 0.25f;
     EI_NAN_AUDIT(power_);
     if (power_ < zero) {   // negative: untextured lengthwise
         renderer->DrawStrip(&main_.points, main_.width, visibility, 0.0f, 0.0f, slant);
         for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main_.step) * static_cast<float>(std::ssize(main_.points)) * 0.6f /*0073C4FC*/;
+        float span = LengthZXY(main_.step) * static_cast<float>(std::ssize(main_.points)) * 0.6f;
         renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches_) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * static_cast<float>(std::ssize(b.points)) * 0.6f /*0073C4FC*/;
+            span = LengthZXY(b.step) * static_cast<float>(std::ssize(b.points)) * 0.6f;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
@@ -133,7 +133,7 @@ int CLightning::Draw(CSceneRenderer* device) {
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     int frameCounter = ObjectWorld(this)->tick_;
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f /*0073C528*/);
+    float size = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * 0.11f);
     int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with selects (NaN keeps the size).

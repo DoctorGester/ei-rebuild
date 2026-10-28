@@ -31,8 +31,8 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     const double dx = static_cast<double>(target[0]) - position[0];
     const float dy = static_cast<float>(static_cast<double>(target[1]) - position[1]);
     const float dz = static_cast<float>(static_cast<double>(target[2]) - position[2]);
-    // FILD steps; FDIVR 1.0f, rounded to float.
-    const float inverse = static_cast<float>(static_cast<double>(1.0f /*0073B84C*/) / light->steps);
+    // 1 / steps, rounded to float.
+    const float inverse = static_cast<float>(static_cast<double>(1.0f) / light->steps);
     light->step.x = static_cast<float>(dx * inverse);
     light->step.y = static_cast<float>(static_cast<double>(dy) * inverse);
     light->step.z = static_cast<float>(static_cast<double>(dz) * inverse);
@@ -41,7 +41,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 ScriptQuestObjective* QuestObjectives() { return g_scriptQuestObjectives->data(); }
 int QuestObjectiveCount() { return static_cast<int>(g_scriptQuestObjectives->size()); }
 
-// operator+(const CString&, const CString&), constructing the result in `out`.
+// string + string, constructing the result in `out`.
 std::string* ConcatString(std::string* a0, const std::string* a1, const std::string* a2) { *a0 = *a1 + *a2; return a0; }
 
 // operator+'s result, destroyed with the holder.
@@ -106,7 +106,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     slot->removeWhenDone = 0;
     slot->object = ScriptEffect<CEffectPointLight>(g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectPointLight>(0x4B, -1));
     CEffectPointLight* object = slot->object.get();
-    const float scale = 0.003921569f /*0073C36C*/;   // 1 / 255
+    const float scale = 0.003921569f;   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;

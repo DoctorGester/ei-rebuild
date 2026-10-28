@@ -333,7 +333,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     // The reachable blocks around the cell (NearbyBlocks, through its address).
     std::list<BlockCost> blocks{};
     NearbyBlocks(sizeClass, false, x, y, &blocks);
-    // Count the blocks per region, in first-seen order (the original keeps a CList of {region, count}; at most
+    // Count the blocks per region, in first-seen order (the original keeps a list of {region, count}; at most
     // nine entries).
     std::uint16_t seen[9];
     int counts[9];
@@ -405,7 +405,7 @@ static void BlockSearchPathToOf(BlockSearch* searchIn, int x, int y, PathCells* 
     int columns = search.records.width;
     int rows = search.records.height;
     if (x < 0 || x >= columns || y < 0 || y >= rows) return;
-    // The original builds each cell's second dword (flags) from a stack slot it never writes; ours writes 0.
+    // The original builds each cell's second dword (flags) from stack memory it never writes; ours writes 0.
     auto cellAt = [](int cx, int cy) {
         PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), 0, 0};
         return c;

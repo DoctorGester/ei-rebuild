@@ -55,7 +55,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
         float types[7];
         weapon->GetDamageTypes(types);
-        const float zero = 0.0f /*0073B858*/;
+        const float zero = 0.0f;
         unsigned type = 0;
         EI_NAN_AUDIT(types[0], types[1], types[2], types[3], types[4], types[5], types[6]);
         while (type < 7 && types[type] == zero) ++type;
@@ -99,9 +99,9 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
     g_clientWorld->texts_->GetItemTexts(item, text, &line, &line);
     CSpell* data = item->spell_;
     if (!data) return;
-    const float one = 1.0f /*0073B84C*/;
-    const float pi = 3.1415927f /*007423F8*/;
-    const float perTick = 0.06666667f /*00740544*/;   // 1/15
+    const float one = 1.0f;
+    const float pi = 3.1415927f;
+    const float perTick = 0.06666667f;   // 1/15
 
     if (item->GetCategory() == 5) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.

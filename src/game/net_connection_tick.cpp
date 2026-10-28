@@ -31,8 +31,8 @@ std::int32_t ReliableSize(GameBuffer* b) {
     return b->PositionOf(b->high);
 }
 
-float RttKeep() { return 0.93f /*0073BF30*/; }   // the share of the old average kept per sample
-float One() { return 1.0f /*0073B84C*/; }
+float RttKeep() { return 0.93f; }   // the share of the old average kept per sample
+float One() { return 1.0f; }
 
 } // namespace
 
@@ -51,7 +51,7 @@ bool Connection::Tick(double dt) {
     std::memcpy(&bits, &spread, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&spread, &bits, 4);
-    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f /*0073BAA4*/) + D(roundTrip_));
+    float loss = static_cast<float>(std::sqrt(spread) * D(3.0f) + D(roundTrip_));
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);

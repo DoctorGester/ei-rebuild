@@ -1,5 +1,5 @@
 // An interface sprite (CUiMesh, ui.h): its Create, its draw (called by the window base's draw and the panels
-// that draw single sprites), its constructor, destructor and virtual slots. docs/notes/ui.md, section 9.
+// that draw single sprites), its constructor, destructor and virtuals. docs/notes/ui.md, section 9.
 #include "ui.h"
 
 #include "material.h"
@@ -43,8 +43,8 @@ void Pop(MatrixStack& stack) {
 } // namespace
 
 void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
-    *x = (localPosition_.x / localPosition_.z / 0.48157462f /*00740158*/ + 1.0f /*0073B84C*/) * 400.0f /*00740160*/;
-    *y = localPosition_.y / localPosition_.z / 0.48157462f /*00740158*/ * 400.0f /*00740160*/ + 300.0f /*0073FA98*/;
+    *x = (localPosition_.x / localPosition_.z / 0.48157462f + 1.0f) * 400.0f;
+    *y = localPosition_.y / localPosition_.z / 0.48157462f * 400.0f + 300.0f;
     std::memcpy(depth, &localPosition_.z, sizeof(float));
 }
 
@@ -53,8 +53,8 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
 // ui_widescreen.h).
 void CUiMesh::PlaceBody(float x, float y, float depth) {
     if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
-    float placedX = (x * 0.0025f /*0074015C*/ - 1.0f /*0073B84C*/) * 0.48157462f /*00740158*/ * depth;
-    float placedY = (y * 0.0025f /*0074015C*/ - 0.75f /*0073C524*/) * 0.48157462f /*00740158*/ * depth;
+    float placedX = (x * 0.0025f - 1.0f) * 0.48157462f * depth;
+    float placedY = (y * 0.0025f - 0.75f) * 0.48157462f * depth;
     localPosition_.x = placedX;
     localPosition_.y = placedY;
     std::memcpy(&localPosition_.z, &depth, sizeof(float));

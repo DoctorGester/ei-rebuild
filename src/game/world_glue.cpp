@@ -98,7 +98,7 @@ double GameServerTimeOfDay() {
 }
 
 void GamePassTime(float offset) {
-    // FCOMP 0 with TEST AH,1: nothing for a negative offset or a NaN.
+    // Nothing for a negative offset or a NaN.
     if (offset >= 0.0f) g_serverWorld->UpdatePlayerTimes(offset);
 }
 

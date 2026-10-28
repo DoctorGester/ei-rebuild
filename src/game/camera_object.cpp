@@ -1,4 +1,4 @@
-// The camera object itself: construction and destruction, its small virtual slots, Init, and saving / loading
+// The camera object itself: construction and destruction, its small virtuals, Init, and saving / loading
 // its state with the world. See camera.h and docs/notes/core.md.
 #include "camera.h"
 

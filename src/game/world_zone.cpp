@@ -130,7 +130,7 @@ int CWorldServer::LoadMobFile(const char* file) {
 // ---- Clearing and saving the map objects ----------------------------------------------------
 
 void CWorldServer::ClearMapObjects() {
-    // The objects are collected first (an MFC list, block size 10), then removed one by one.
+    // The objects are collected first (a list, block size 10), then removed one by one.
     std::list<CEngineObject*> pending;
     for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
         CEngineObject* object = node->second;

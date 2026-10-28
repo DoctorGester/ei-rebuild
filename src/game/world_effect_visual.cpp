@@ -54,7 +54,7 @@ int StepFraction(const Vector3* velocity, const Vector3* dxdy, float* t) {
     const double dist = std::sqrt(LengthSquared2DUnrounded<double>(dxdy->y, dxdy->x));
     // On only when above.
     EI_NAN_AUDIT(dist);
-    if (dist <= 0.0f /*0073B858*/) return 0;
+    if (dist <= 0.0f) return 0;
     // The speed when the distance is below it or they are unordered.
     const double divisor = dist >= speed ? dist : speed;
     *t = static_cast<float>(speed / divisor);
@@ -77,7 +77,7 @@ bool IsOneShotType(int type) {
 
 // The scorch mark's angle: a random value (exact) times a constant in double, rounded to float.
 float RandomAngle(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * 1.4668330997698233e-9 /*0073FFD0*/);
+    return static_cast<float>(x87::FromUnsigned(random) * 1.4668330997698233e-9);
 }
 
 // The ISAAC Next the 0x2030 scorch inlines.
@@ -96,7 +96,7 @@ std::uint32_t InlineRandom() {
 void WallScorchShape(const Vector3* direction, const float* half, float* angleAndOuter) {
     angleAndOuter[0] = static_cast<float>(x87::fpatan(direction->y, direction->x));
     const double outer = std::sqrt(LengthSquared2DUnrounded<double>(direction->x, direction->y));
-    angleAndOuter[1] = static_cast<float>((outer + *half) + 0.3f /*0073C54C*/);
+    angleAndOuter[1] = static_cast<float>((outer + *half) + 0.3f);
 }
 
 } // namespace

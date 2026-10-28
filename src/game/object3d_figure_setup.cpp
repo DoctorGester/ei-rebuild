@@ -185,7 +185,7 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName, FigureModel* model, 
         return nullptr;
     }
     if (CLinkMesh* current = figure) {
-        // The figure gets the piece (its slot 4 loads it unless it has it).
+        // The figure gets the piece (it loads it unless it has it).
         bool loaded;
         {
             std::string key(partName);
@@ -250,7 +250,7 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
     } else {
-        // The piece names as the loader's slot 3 (LoadFigure) reads them.
+        // The piece names as the loader's LoadFigure reads them.
         std::vector<std::string> pieces = *names;
         {
             std::string key(model);

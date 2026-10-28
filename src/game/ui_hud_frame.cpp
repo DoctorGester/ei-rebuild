@@ -32,23 +32,23 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float Pi() { return 3.1415927f /*007423F8*/; }
+float Pi() { return 3.1415927f; }
 // The constants are read from memory at run time; Rebirth rewrites one of them (the clock's x,
 // widescreen::g_layoutWidth, for its widescreen layout).
-float PausedHand() { return 0.9166667f /*00742B18*/; }   // hand angle while paused, in pi
-float FastHand() { return 0.5833333f /*00742B14*/; }   // at fast speed
-float NormalHand() { return 0.75f /*0073C524*/; }   // at normal speed
-float Half() { return 0.5f /*0073B86C*/; }
-float DialStep() { return 0.16666667f /*0073CE40*/; }   // dial notches, in pi
-float FaceStep() { return 0.083333336f /*00741438*/; }   // one hour of the face, in pi
-float FaceOffset() { return 15.0f /*0073C518*/; }   // 15 hours
-float HandRadius() { return 73.0f /*00742B10*/; }
-float DialRadius() { return 30.0f /*0073BAF0*/; }
-float CentreY() { return 600.0f /*00742B0C*/; }
-float BlinkBase() { return 1.4f /*0073CDF8*/; }
-float PulseAmplitude() { return 0.3f /*0073C54C*/; }
-float PulseMiddle() { return 0.7f /*0073C538*/; }
-float SlideTime() { return 0.3f /*00742428*/; }   // 0.3 seconds for a full slide
+float PausedHand() { return 0.9166667f; }   // hand angle while paused, in pi
+float FastHand() { return 0.5833333f; }   // at fast speed
+float NormalHand() { return 0.75f; }   // at normal speed
+float Half() { return 0.5f; }
+float DialStep() { return 0.16666667f; }   // dial notches, in pi
+float FaceStep() { return 0.083333336f; }   // one hour of the face, in pi
+float FaceOffset() { return 15.0f; }   // 15 hours
+float HandRadius() { return 73.0f; }
+float DialRadius() { return 30.0f; }
+float CentreY() { return 600.0f; }
+float BlinkBase() { return 1.4f; }
+float PulseAmplitude() { return 0.3f; }
+float PulseMiddle() { return 0.7f; }
+float SlideTime() { return 0.3f; }   // 0.3 seconds for a full slide
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
 constexpr std::uint32_t kHandDepth = 0x41000000;   // 8.0f

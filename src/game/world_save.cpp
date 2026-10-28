@@ -64,7 +64,7 @@ constexpr int kProgressDone = 7;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// A dword written through a stack copy, as most scalars are.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;
@@ -469,7 +469,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     std::uint32_t e8;
     std::memcpy(&e8, &weatherStrength_, 4);
     WriteCopy(stream, e8);
-    // Stored by the callee with FSTP; written on as their bytes (WriteCopy takes a reference).
+    // Stored by the callee as floats; written on as their bytes (WriteCopy takes a reference).
     float time;
     float speed;
     GetTime(&time, &speed);
@@ -574,7 +574,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     if (session && !(session->flags7_ & CRefCounted::kDetached))
         if (net::PlayerMessage* record = session->FindPlayer(id)) player = record->serial_;
 
-    // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
+    // Pushing SharedObject() at the head: the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
     SharedObject& entry = sharedObjects_.emplace_front();
     entry.objectId = id;

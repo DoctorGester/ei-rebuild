@@ -11,7 +11,7 @@ namespace net {
 namespace {
 
 // A read the way the buffer helpers inline it: past the end through the overflow handler, beyond `end`
-// through slot 3, else from memory.
+// through the buffer's virtual read, else from memory.
 void ReadBytes(GameBuffer* buffer, void* to, unsigned size) {
     if (buffer->cur + size > buffer->high) buffer->ReadPastEnd(to, size);
     else if (buffer->cur + size > buffer->end) buffer->ReadMore(to, size);

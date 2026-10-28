@@ -45,7 +45,7 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (spell->targetFlags_ & kSpellAreaFlag) target = nullptr;
-    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f /*0073C54C*/);
+    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + 0.3f);
     if (caster) std::memcpy(&from, &caster->localPosition_, sizeof(from));
 
     auto* missile = new CSpellEffect();

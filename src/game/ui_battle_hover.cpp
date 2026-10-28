@@ -67,7 +67,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return at;
     };
 
-    // The unit panel's hover block (hoverUnit_, viewSize_[1] / viewHeight_[1] copied as dwords from
+    // The unit panel's hover block (hoverUnit_, viewSize_[1] / viewHeight_[1] copied bit for bit from
     // its prototype's +0x20 / +0x24, strings_[1]). A unit without flag 0x400000 counts as none
     // below; a dead one is kept.
     CHudUnitPanel* panel = unitPanel_;
@@ -143,8 +143,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                                 game::NoneText()) != 0) {
                 name = std::string("z.") + name;
                 double value = LocalPlayerVariable(name);
-                const float one = 1.0f /*0073B84C*/;
-                // FCOMP; TEST AH,0x40; JNZ: equal skips.
+                const float one = 1.0f;
+                // equal skips.
                 EI_NAN_AUDIT(value);
                 if (value != one) SetCursor(kCursorExit);
             }

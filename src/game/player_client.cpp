@@ -75,7 +75,7 @@ void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); 
 
 const char* QuestPrefix() { return "q."; }
 
-// The quest log refreshed with an empty CPtrList built and destroyed on the stack.
+// The quest log refreshed with an empty list built and destroyed on the stack.
 void RefreshQuestLog() {
     std::list<void*> none;
     g_interface->OnItemsPicked(&none, 0, 0);
@@ -86,8 +86,8 @@ constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`, rounded to the nearest integer through a float.
 int ScaledExperience(const CUnit* unit, float amount) {
-    double base = 1.04 /*0073E128*/;
-    float offset = 25.0f /*0073E124*/;
+    double base = 1.04;
+    float offset = 25.0f;
     float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->params.intelligence) - offset) * amount);
     return x87::RoundToInt(scaled);
 }
@@ -379,7 +379,7 @@ int CPlayerClient::OnItemsReceived() {
     int& money = player_->Party()->money_;
     int before = money;
     in_.Read(&money, 4);
-    std::uint8_t flag = 0;   // the original passes this byte with three bytes of the stack slot above it
+    std::uint8_t flag = 0;   // the original passes this byte with three bytes of stack memory above it
     in_.Read(&flag, 1);
     int result = 1;
     for (;;) {
@@ -397,7 +397,7 @@ int CPlayerClient::OnItemsReceived() {
         player_->GiveItems(&items, flag);
         g_interface->OnItemsPicked(&items, money - before, flag);
     }
-    items.clear();   // the list's inlined destructor
+    items.clear();
     return result;
 }
 
@@ -417,7 +417,7 @@ int CPlayerClient::OnParty() {
                 if (item->chargeMax_ > item->charge_)
                     recharging.push_back(static_cast<std::uint32_t>(item->id_));
             }
-            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
+            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's destructor
         }
         if (IsMultiplayerClient()) {
             // A multiplayer client keeps its variables.

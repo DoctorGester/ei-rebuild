@@ -47,7 +47,7 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
 CAIMap* MapOf(CWorldServer* world) { return &world->aiMap_; }
-float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
+float HalfCell() { return 1.0f * 0.5f; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
@@ -86,7 +86,7 @@ struct LocalUnitMotion {
         motion.curveY = {};
         motion.segment = -1;
         motion.Clear();
-        motion.speedScale = 0.5f /*0073EF20*/;
+        motion.speedScale = 0.5f;
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10
     }
@@ -126,7 +126,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             float half = HalfCell();
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
-            float limitSquared = static_cast<float>(0.2f /*0073EF28*/ * 0.2f /*0073EF28*/);   // rounded to 24 bits
+            float limitSquared = static_cast<float>(0.2f * 0.2f);   // rounded to 24 bits
             EI_NAN_AUDIT(ex, ey);
             if (LengthSquared2DUnrounded(ex, ey) >= limitSquared) continue;
             if (path.Cost() >= best) continue;
@@ -198,7 +198,7 @@ double CUnitServer::TimeUntilAction(const AIOrder* order, PathOrder* motionOrder
         from.z = static_cast<float>(unit->GroundHeight(position.x, position.y) + sight.eyeHeight);
         double visible = MapOf(ServerWorld())->LineOfSight(&from, &sight.point);
         EI_NAN_AUDIT(visible);
-        if (visible >= 0.1f /*0073EEC0*/) break;
+        if (visible >= 0.1f) break;
         t += 5.0f;
     }
     return t;

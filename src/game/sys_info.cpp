@@ -4,7 +4,7 @@
 // registers its destructor with atexit; the constructor calls Create, which collects
 // everything. All of that runs before the hooks install, so the game never reaches the
 // rewrites of the initialisers, the constructor, the collector and its helpers.
-// The destructor (at exit) and the virtual slots
+// The destructor (at exit) and the virtuals
 // can run later. The game is compiled without optimisation (every function keeps a frame and
 // spills ECX). See docs/notes/script.md.
 #include "sys_info.h"
@@ -41,7 +41,7 @@ constexpr std::uint32_t kEflagsId = 0x00200000;   // EFLAGS.ID: can be flipped w
 constexpr unsigned kFirstWindows98Build = 1998;
 
 // The translation unit's constants and what they are made of (the exe's pi, 2, 4 and 1).
-float Pi() { return 3.1415927f /*0073D640*/; }
+float Pi() { return 3.1415927f; }
 
 } // namespace
 
@@ -187,9 +187,9 @@ void SysInfoAtExit() { g_sysInfo.Destroy(); }
 // The four constants, each one operation on the exe's
 // pi rounded to a float by the store.
 void SysInfoInitTwoPi() { g_twoPi = static_cast<float>(Pi() + Pi()); }
-void SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f /*0073CDB8*/); }
-void SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f /*0073BAA0*/); }
-void SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f /*0073B84C*/ / Pi()); }
+void SysInfoInitHalfPi() { g_halfPi = static_cast<float>(Pi() / 2.0f); }
+void SysInfoInitQuarterPi() { g_quarterPi = static_cast<float>(Pi() / 4.0f); }
+void SysInfoInitInversePi() { g_inversePi = static_cast<float>(1.0f / Pi()); }
 
 // The table's entries for them.
 void SysInfoStaticTwoPi() { SysInfoInitTwoPi(); }

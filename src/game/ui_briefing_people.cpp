@@ -28,7 +28,7 @@
 
 namespace {
 
-float TurnedOver() { return 3.1415927f /*007410D0*/; }   // pi
+float TurnedOver() { return 3.1415927f; }   // pi
 const char* ItemFigureFormat() { return "initqu%ditem"; }
 const char* ItemImageFormat() { return "quitem%04d"; }
 // The seven speakers' places (800 x 600 layout).
@@ -47,7 +47,7 @@ constexpr std::uint32_t kTintedItem = 0x82FFFFFF;
 constexpr int kTintFrom = 8;             // items from index 8 on are tinted
 constexpr std::uint32_t kUnitBlocked = 0x800000;
 
-// A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
+// A copy of `v`, normalised unless its length is zero.
 Vector3 Normalised(float x, float y, float z) {
     Vector3 out{x, y, z};
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));

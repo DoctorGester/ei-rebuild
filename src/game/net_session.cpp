@@ -39,7 +39,7 @@ constexpr float kMillisecondsToSeconds = 0.0009765625f;
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
     if (!session) return;
     if (session->flags7_ & CRefCounted::kDetached) return;
-    // FILD of the zero-extended 64-bit value, FMUL by the float constant, passed as a double.
+    // The zero-extended 64-bit value times the float constant, passed as a double.
     double seconds = x87::FromUnsigned(elapsed) * kMillisecondsToSeconds;
     session->Tick(seconds);
 }

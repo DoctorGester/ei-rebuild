@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 
-// The data folder CString / the base folder CString.
+// The data folder string / the base folder string.
 
 // The scripts' QuestComplete in a network game. With a live game server: its FinishMap for the map named
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
@@ -32,7 +32,7 @@ int RunScriptText(const std::string& text, char run, ScriptErrorInfo* error);
 // the server's player 0; `out` is emptied when there is no such player.
 void PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
 
-// Called at the application's start-up. The start folder CString set to the current directory with a
+// Called at the application's start-up. The start folder string set to the current directory with a
 // backslash appended.
 void StoreStartFolder();
 

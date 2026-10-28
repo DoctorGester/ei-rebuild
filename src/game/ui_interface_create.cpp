@@ -79,7 +79,7 @@ void ChooseKeyboardLayout() {
 
 void CInterface3D::Create(CTextureDevice* device) {
     renderer_ = device;
-    // (Without a primary surface the original game stores an uninitialised stack slot in both.)
+    // (Without a primary surface the original game stores uninitialised stack memory in both.)
     int width = 0;
     int height = 0;
     if (device->primary_) {
@@ -97,7 +97,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01
     fonts_[0].reset();
     for (int i = 0; i < 3; ++i) {
-        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f /*00740164*/;   // 1 / 800
+        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f;   // 1 / 800
         if (!CreateFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 

@@ -58,7 +58,7 @@ struct AIViewer {
 void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid);
 
 // An AI event: filed in its map cell's list for its side and in the time wheel's slot of the tick it expires.
-// Records come from the pool CList (AIEventPool) and go back to the free list (chained through `next`).
+// Records come from the pool list (AIEventPool) and go back to the free list (chained through `next`).
 struct AIEvent {
     float x, y;                     // where; its cell is (x / 8, y / 8) rounded
     std::uint32_t origin[2];            // x and y again (sets them; saved)
@@ -70,7 +70,7 @@ struct AIEvent {
     AIEvent* prev;                  // null for the cell's first
     AIEvent* nextInSlot;            // the wheel slot's list
 };
-// The pool's destructor (at exit): RemoveAll.
+// The pool's destructor (at exit): empties the list.
 
 // A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
 struct AIEventCell {

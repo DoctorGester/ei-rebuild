@@ -1,4 +1,4 @@
-// The client controller's per-tick update (CUnitClientSpecific slot 6) and the client half's walk
+// The client controller's per-tick update (CUnitClientSpecific's Update) and the client half's walk
 // over its drawn parts. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
@@ -145,8 +145,8 @@ int CUnitClientSpecific::RestartFadeIn() {
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->params.experience));
     double ratio = x87::flog(experience / g_logicSettings.considerModifier) / x87::flog(static_cast<double>(g_logicSettings.considerLogBase));
-    float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
-    // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
+    float level = static_cast<float>(ratio);   // stored as a float, then rounded to nearest
+    // The rounding gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value (the
     // CRT's lrint gives 0). Experience 0 reaches it: ln 0 = -inf.
     return x87::RoundToInt(level);
 }

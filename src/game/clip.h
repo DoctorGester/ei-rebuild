@@ -18,7 +18,7 @@ static_assert(offsetof(TLVertex, color) == 0x10);
 
 namespace clip {
 
-// The work buffer: an MFC CWordArray (g_workWords, clip.cpp), the number of indices in it and the last
+// The work buffer: a word array (g_workWords, clip.cpp), the number of indices in it and the last
 // intersection parameter.
 std::uint16_t* Buffer();
 inline int g_bufferCount = /*0079B68C*/ {};

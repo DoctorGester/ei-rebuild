@@ -46,7 +46,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
     std::string s(text, text + std::strlen(text));
-    const std::size_t npos = 0xFFFFFFFFu /*0073BDE8*/;
+    const std::size_t npos = 0xFFFFFFFFu;
     int number = defaultPort;
     std::size_t colon = npos;
     if (s.size() != 0) {
@@ -184,7 +184,7 @@ bool SocketDriver::SendTo(const NetAddress* address, GameBuffer* buffer) {
     return gameapi::sendto(socket, buffer->begin, length, 0, address, 0x10) == length;
 }
 
-// The buffer is first sought (its slot 6) to room for 0x800 bytes.
+// The buffer is first sought (a virtual call) to room for 0x800 bytes.
 bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
     buffer->Seek(0x800);
     int fromLength = 0x10;

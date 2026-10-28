@@ -28,7 +28,7 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
-// distance is outside (FCOMPP; TEST AH,0x41).
+// distance is outside.
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     int count = std::ssize(trap->area);
     const TrapCircle* circle = trap->area.data();
@@ -52,7 +52,7 @@ constexpr float kFar = 1e30f;                        // a squared distance
 
 CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager(); }
 
-// The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
+// The units inside: the list emptied, as SetUp, the constructor and the destructor all do it (each
 // element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
     std::list<CUnit*>& inside = trap->inside;
@@ -89,7 +89,7 @@ void MagicTrap::UpdateVictims() {
     for (auto node = victims->begin(); node != victims->end();) {
         auto next = std::next(node);
         if (!StaysInside(this, *node)) {
-            // CList::RemoveAt, inlined: the reference released.
+            // The reference released.
             if (*node) (*node)->Release();
             victims->erase(node);
         }
@@ -186,7 +186,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
-    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // copied as dwords
+    std::memcpy(&localPosition_.x, &record->position, sizeof(record->position));   // bit for bit
 
     area = record->area;
     points = record->points;
@@ -220,8 +220,8 @@ MagicTrap::~MagicTrap() {
     SetSpell(this, nullptr);
     area.clear();
     points.clear();
-    ClearVictims(this);        // RemoveAll (each element released)
-    // CList's destructor: its vtable, then RemoveAll again.
+    ClearVictims(this);        // the list emptied (each element released)
+    // The list's destructor: its vtable, then emptied again.
     ClearVictims(this);
     if (spell) spell->Release();
 }
@@ -319,7 +319,7 @@ int MagicTrap::ForgetObject(CEngineObject* object) {
     for (auto node = inside.begin(); node != inside.end();) {
         auto next = std::next(node);
         if (*node == object) {
-            // CList::RemoveAt, inlined: the reference released, the node removed.
+            // The reference released, the node removed.
             if (*node) (*node)->Release();
             inside.erase(node);
         }

@@ -7,5 +7,5 @@
 
 #include "lib/vecmath.h"
 
-// (z * z' + y * y') + x * x' (DotZYX), returned unrounded in ST0.
+// (z * z' + y * y') + x * x' (DotZYX), returned unrounded.
 float Dot(const Vector3& a, const Vector3& b);

@@ -11,8 +11,8 @@ namespace {
 constexpr int kTextureKind = 3;
 
 // The thumb sits slightly in front of the track (0.1) and 5 to the right of the track's left edge.
-float ThumbLift() { return 0.1f /*0073B850*/; }
-float ThumbInset() { return 5.0f /*0073BF34*/; }
+float ThumbLift() { return 0.1f; }
+float ThumbInset() { return 5.0f; }
 
 enum Sprite { kTrack, kThumb, kUpArrow, kDownArrow };
 enum Region { kUpRegion, kDownRegion, kTrackRegion };
@@ -28,7 +28,7 @@ constexpr int kSliderThumbHeight = 10;
 // to int gives 0x80000000).
 int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
 // The wheel's step per unit of delta: 1/120.
-float WheelStep() { return 0.008333334f /*00742C84*/; }
+float WheelStep() { return 0.008333334f; }
 
 } // namespace
 
@@ -56,7 +56,7 @@ void CUiScrollbar::SetPosition(int position) {
     moved_ = true;
     if (position_ == position) return;
     position_ = position;
-    // FILD, FIDIV, _ftol: truncated. A zero maximum divides 0 by 0 (the position is clamped to 0);
+    // Truncated by _ftol. A zero maximum divides 0 by 0 (the position is clamped to 0);
     // the game's _ftol stores the NaN as a 64-bit integer (0x8000000000000000) and returns its low
     // half, 0, where a C++ cast would give 0x80000000.
     int offset = maximum == 0 ? 0
@@ -125,7 +125,7 @@ void CUiSlider::SetPosition(int position) {
     moved_ = true;
     if (position_ == position) return;
     position_ = position;
-    // FILD, FIDIV, _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
+    // Truncated by _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
     int offset = Truncate(static_cast<double>((track_.right - track_.left) * position) / maximum);
     Sprite(this, kThumb)->Place(static_cast<float>(track_.left + offset),
                                 static_cast<float>(track_.top + static_cast<double>(ThumbInset())), depth_ - ThumbLift());

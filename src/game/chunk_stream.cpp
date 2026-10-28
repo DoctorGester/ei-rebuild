@@ -257,7 +257,7 @@ void Chunk::ReadStringArray(std::vector<std::string>* array) {
     array->clear();
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
-        std::string text;   // reuses a stack slot
+        std::string text;
         array->push_back(child.ReadString(&text)->c_str());
     }
 }

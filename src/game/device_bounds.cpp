@@ -29,7 +29,7 @@ struct ScreenBounds {
         maxY = maxY < y ? y : maxY;
     }
 
-    // The bounds rounded (FISTP) into the device's rectangle; SetRect's result.
+    // The bounds rounded to nearest into the device's rectangle; SetRect's result.
     int Store(CTextureDevice* device) const {
         const int bottom = x87::fistp(maxY);
         const int right = x87::fistp(maxX);

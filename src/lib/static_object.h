@@ -58,7 +58,7 @@ union InPlace {
     T object;
 };
 
-// As InPlace for an abstract T (pure virtual slots: neither a member nor a union member can have its
+// As InPlace for an abstract T (pure virtuals: neither a member nor a union member can have its
 // type): the object's bytes inside its owner, built and destroyed by the owner's code through the
 // class's constructor and destructor bodies; Get is the one typed view of them.
 template <class T>

@@ -27,7 +27,7 @@ std::uint32_t Bits(float value) {
 }
 bool SignSet(float value) { return (Bits(value) & 0x80000000u) != 0; }
 
-// Select idiom (FLD 0; FCOMP v; C0 picks 0): 0 for a positive or unordered value.
+// Select idiom: 0 for a positive or unordered value.
 float AtMostZero(float value) { return 0.0f >= value ? value : 0.0f; }
 
 } // namespace

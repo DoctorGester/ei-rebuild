@@ -28,29 +28,29 @@
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
-float InitialCallRadius() { return 10.0f /*0073FED8*/; }
-// A new fear mode's distance (copied as a dword).
-std::uint32_t FearDistanceBits() { return 0x41200000u /*0073FF00*/; }
+float InitialCallRadius() { return 10.0f; }
+// A new fear mode's distance (copied bit for bit).
+std::uint32_t FearDistanceBits() { return 0x41200000u; }
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The mode list's elements are owning pointers: released with DestroyOwned, added with ShareOwned
 // (which may hand out a clone).
 
-// The inlined CList RemoveAll of the mode list, each element released first.
+// Empties the mode list, each element released first.
 void ReleaseAllModes(std::list<AIMode*>& modes) {
     for (auto node = modes.begin(); node != modes.end(); ++node) DestroyOwned(*node);
     modes.clear();
 }
 
-// The inlined RemoveAt: unlink, release the element, return the node to the free list (the last
+// Removes one node: unlink, release the element, return the node to the free list (the last
 // node frees the blocks).
 void RemoveModeNode(std::list<AIMode*>& modes, std::list<AIMode*>::iterator  node) {
     DestroyOwned(*node);
     modes.erase(node);
 }
 
-// The inlined release of a counted object pointer of the memory lists, then RemoveAll.
+// Releases a counted object pointer of the memory lists, then empties the list.
 void ReleaseAllObjects(std::list<CUnit*>& list) {
     for (auto node = list.begin(); node != list.end(); ++node) {
         if (*node) (*node)->Release();
@@ -59,7 +59,7 @@ void ReleaseAllObjects(std::list<CUnit*>& list) {
     list.clear();
 }
 
-// The mode in charge loses its reference (RefPtr::Assign(nullptr) / the inlined release).
+// The mode in charge loses its reference (RefPtr::Assign(nullptr) / the release).
 void DropCurrent(AIMode*& current) {
     AIMode* was = current;
     current = nullptr;
@@ -79,7 +79,7 @@ void AddAlertModes(AIBrain* brain) {
     brain->action = AIBrain::kActionNone;
 }
 
-// The inlined RemoveAt of a memory list: unlink, release the element, free the node.
+// Removes one node of a memory list: unlink, release the element, free the node.
 void RemoveObjectNode(std::list<CUnit*>& list, std::list<CUnit*>::iterator  node) {
     if (*node) (*node)->Release();
     *node = nullptr;
@@ -92,7 +92,7 @@ void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
         RemoveObjectNode(list, node);
 }
 
-// Each scalar is copied into a stack slot before it is written.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;
@@ -289,7 +289,7 @@ void AIBrain::CallAllies(const Vector3* point) {
         }
         ally->memory.HearCall(point, 0x1A, message.c_str());
     }
-    // The list's RemoveAll: no element destruction.
+    // The list emptied, no element destruction.
     units.clear();
 }
 
@@ -343,7 +343,7 @@ void AIHeardCalls::Update(CUnit* unit, AIMemory* memory) {
             console::EndLine(*kAiLog << "Unit " << unit->id_ << " hear delayed sound: " << call->text.c_str());
             unit->ServerController()->AddHostileMask(static_cast<std::uint32_t>(call->hostileMask));
         } else if (memory->noticedLevel < 900) {
-            // The inlined Notice of level 900: logged when the level rises by more than 100 or the point is
+            // Notice of level 900: logged when the level rises by more than 100 or the point is
             // more than sqrt(10) away (NaN is near).
             bool changed = true;
             if (900 - memory->noticedLevel <= 100) {
@@ -426,7 +426,7 @@ void AIBrain::Load(CStream* stream) {
         AIMode* mode = NewModeOfType(type);
         if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
         mode->Load(stream);
-        // The inlined AddTail: a node holding the mode (RefPtr::ShareAssign).
+        // Appends a node holding the mode (RefPtr::ShareAssign).
         auto node = modes.emplace(modes.end());
         ShareAssignOwned(*node, mode);
         if (i == currentIndex) AssignCurrent(current, modes.back());

@@ -14,7 +14,7 @@
 namespace {
 constexpr int kStopFlagVersion = 0x44;      // looks carry their stop flag from this file version on
 
-// Each scalar is copied into a stack slot before it is written.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value) {
     T copy = value;

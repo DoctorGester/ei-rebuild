@@ -205,7 +205,7 @@ void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vecto
     int filled = 0;
     for (int y = -kSpiralReach; y <= kSpiralReach; ++y) {
         for (int x = -kSpiralReach; x <= kSpiralReach; ++x) {
-            // The squares are summed as integers (FILD, FSQRT, stored as a float); the gaps
+            // The squares are summed as integers (rooted, stored as a float); the gaps
             // are 9 at most, so the float sum is the same number.
             const Vector2 gap{static_cast<float>(Gap(x)), static_cast<float>(Gap(y))};
             SpiralCell& cell = cells[filled++];

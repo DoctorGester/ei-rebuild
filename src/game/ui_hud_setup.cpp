@@ -16,16 +16,16 @@
 namespace {
 
 // The constants the original reads from the exe's data.
-float Pi() { return 3.1415927f /*007423F8*/; }
-float Sixth() { return 0.16666667f /*0073CE40*/; }             // the clock's sectors: pi / 6
-float Eighth() { return 0.125f /*0073C520*/; }            // the movement panel's: pi / 8
-double MiddleRadius() { return 34.0 /*00742AF8*/; }
-double InnerRadius() { return 35.0 /*00742B00*/; }
-double OuterRadius() { return 80.0 /*00742A90*/; }
-float SectorRadius() { return 80.0f /*00741F1C*/; }
-float TexelBottom() { return 254.0f /*0073D03C*/; }
-float TexelLeft() { return 2.0f /*0073CDB8*/; }
-float LayoutBottom() { return 600.0f /*00742B0C*/; }
+float Pi() { return 3.1415927f; }
+float Sixth() { return 0.16666667f; }             // the clock's sectors: pi / 6
+float Eighth() { return 0.125f; }            // the movement panel's: pi / 8
+double MiddleRadius() { return 34.0; }
+double InnerRadius() { return 35.0; }
+double OuterRadius() { return 80.0; }
+float SectorRadius() { return 80.0f; }
+float TexelBottom() { return 254.0f; }
+float TexelLeft() { return 2.0f; }
+float LayoutBottom() { return 600.0f; }
 const char* ArrowSprite() { return "in25arrow"; }
 
 constexpr int kLayoutRight = 800;

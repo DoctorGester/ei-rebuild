@@ -26,7 +26,7 @@ constexpr const char* kSecondPrimarySetText = "Adding new primary texture set wi
 constexpr int kTypeBuildingLike = 0x35;             // CObject3D::type_: its textures get flag 0x2000
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
-// *slot = value with counted references; the old one released (its slot 4).
+// *slot = value with counted references; the old one released.
 template <typename T>
 void AssignCounted(T** slot, T* value) {
     T* old = *slot;
@@ -47,7 +47,7 @@ bool IsPrimaryKind(int kind) {
 }
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
-// when no group of either set holds it (slots 14 / 15 share the loop).
+// when no group of either set holds it.
 bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = self->partSets[k];

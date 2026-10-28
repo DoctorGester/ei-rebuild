@@ -331,7 +331,7 @@ BOOL CUiItemStrip::OnWheel(int, short delta, int x, int y) {
 
 void CForwardingStrip::OnLButtonDownForward(int flags, int x, int y) {
     OnLButtonDown(flags, x, y);
-    // The original passes its own first argument's stack slot as the cursor output.
+    // The original passes its own first argument's stack memory as the cursor output.
     CItem* item = ItemAt(x, y, &flags);
     if (item) OwnerTakeItem(item);
 }

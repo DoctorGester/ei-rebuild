@@ -81,7 +81,7 @@ void CPlayerServer::SetVariable(std::string_view name, std::uint32_t value) {
 }
 
 void CPlayerServer::SetVariableMax(std::string_view name, float value) {
-    // Rounded to float (FST) before any comparison.
+    // Rounded to float before any comparison.
     float stored = static_cast<float>(VariableGet(Variables(player_), name));
     float current = stored;
     std::uint32_t currentBits, valueBits;

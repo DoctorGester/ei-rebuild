@@ -138,7 +138,7 @@ void DropLink(netlink::NetLink*& link) {
 // The data word every item class keeps (a quest item's id).
 std::uint32_t ItemWord4C(CItem* item) { return AsQuest(item)->questItemId_; }
 
-// The first given item `match` accepts: the connection's slot 19, its node removed, the item
+// The first given item `match` accepts: the connection's lookup, its node removed, the item
 // released. 1, or 0 when there is none.
 template <typename Match>
 BOOL TakeFirst(CPlayer* player, Match match) {

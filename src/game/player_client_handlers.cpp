@@ -1,4 +1,4 @@
-// CPlayerClient's remaining message handlers and its slot 14. See player_client.h and
+// CPlayerClient's remaining message handlers and one virtual. See player_client.h and
 // docs/notes/objects.md ("Players").
 #include "effects.h"
 #include "player_client.h"
@@ -74,7 +74,7 @@ int CPlayerClient::OnCameraPlacement() {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;
-        view.pitch = static_cast<float>(ei::kRadiansPerDegree * 30.0 /*0073DF70*/);
+        view.pitch = static_cast<float>(ei::kRadiansPerDegree * 30.0);
         camera->SetDistancePitch(&view);
     } else {
         camera->RestoreView(mode == 3 ? 6 : 7);

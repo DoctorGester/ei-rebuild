@@ -1,4 +1,4 @@
-// Small virtual slots of the early classes: the lightning manager, the CUnit slots and the item bases. See docs/notes/objects.md.
+// Small virtuals of the early classes: the lightning manager, the CUnit virtuals and the item bases. See docs/notes/objects.md.
 #include "game_strings.h"
 #include "item.h"
 #include "lightning.h"

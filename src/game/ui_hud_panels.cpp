@@ -263,7 +263,7 @@ void CHudTopPanel::ShowPage() {
 
 void CHudTopPanel::ShowItems() {
     CTextManager* texts = g_clientWorld->texts_;
-    // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
+    // A local list of the world's copies.
     std::list<CItem*> merged{};
     CPlayer* player = g_clientWorld->LocalView()->player_;
     std::string line;

@@ -427,7 +427,7 @@ public:
     int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length, float offset,
                   float slant) override;
     // Draws sprites facing the view with the bound texture: `points` an aligned array of centres and sizes
-    // (x, y, z, size), `sprites` a CArray of their colours and texture rectangles. The first argument is 0
+    // (x, y, z, size), `sprites` an array of their colours and texture rectangles. The first argument is 0
     // at every call known.
     int DrawSprites(int unknown, void* points, void* sprites) override;
     // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent

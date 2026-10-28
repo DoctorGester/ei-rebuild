@@ -33,23 +33,23 @@ inline const char* HeroPartText(int index) {
     return kParts[index];
 }
 
-inline float HeroStartX() { return 54.0f /*0073FA9C*/; }        // the hero's start on zone1
-inline float HeroStartY() { return 138.0f /*0073FAA0*/; }
-inline float HeroStartRadius2() { return 300.0f /*0073FA98*/; }
-inline float AxisEpsilon() { return 1e-8f /*0073BAE0*/; }
-inline float One() { return 1.0f /*0073B84C*/; }
-inline float Zero() { return 0.0f /*0073B858*/; }
-inline float Half() { return 0.5f /*0073B86C*/; }
-inline float LineAngleOffset() { return 3.1415927f /*0073F8EC*/; }
-inline float LineSpacing() { return 1.2f /*0073CDF4*/; }
+inline float HeroStartX() { return 54.0f; }        // the hero's start on zone1
+inline float HeroStartY() { return 138.0f; }
+inline float HeroStartRadius2() { return 300.0f; }
+inline float AxisEpsilon() { return 1e-8f; }
+inline float One() { return 1.0f; }
+inline float Zero() { return 0.0f; }
+inline float Half() { return 0.5f; }
+inline float LineAngleOffset() { return 3.1415927f; }
+inline float LineSpacing() { return 1.2f; }
 
 inline const char* QuickEffectPrototype() { return "st.tr.130"; }
 inline const char* QuickEffectModel() { return "unhuma"; }
 
 inline const char* CampfireText() { return "campfire"; }
 inline const char* NoWaveNameText() { return "Adding sound without wave name"; }
-inline float CampfireHeight() { return 0.7f /*0073C538*/; }
-inline float TorchLightScale() { return 10.0f /*0073BAAC*/; }  // the flame's radius factor (10)
+inline float CampfireHeight() { return 0.7f; }
+inline float TorchLightScale() { return 10.0f; }  // the flame's radius factor (10)
 
 // The textures' folder under the text folder (TheTextFolder) and the lights table.
 inline const char* TexturesFolderText() { return "textures\\"; }
@@ -97,7 +97,7 @@ inline int g_updatePeriod = /*0078FF34*/ 55;
 // view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
 const Matrix4* SceneCamera();
 inline constexpr Vector3 kOrigin = /*007AFDB0*/ {0.0f, 0.0f, 0.0f};
-inline float ColourScale() { return 255.0f /*0073C370*/; }
+inline float ColourScale() { return 255.0f; }
 
 // ---- The world server's quests (world_quests.cpp) -----------------------------------------------
 
@@ -124,52 +124,52 @@ inline const char* HumanHeroText() { return "Human Hero"; }
 std::unordered_map<std::string, QuestBriefingRecord*>& QuestBriefings();
 inline const char* DisconnectingPlayerText() { return "Disconnecting player "; }
 inline const char* HeroesGroupText() { return "Heroes"; }
-inline float HearingScale() { return 2.0f /*0073F910*/; }   // the units' perception scale (SyncPlayer too)
-inline float WakeMargin() { return 20.0f /*0073CCF8*/; }     // added to it when units wake others
+inline float HearingScale() { return 2.0f; }   // the units' perception scale (SyncPlayer too)
+inline float WakeMargin() { return 20.0f; }     // added to it when units wake others
 
 // ---- Effect constants (spell_effect_*.cpp, world_effect_*.cpp) -----------------------------------
 // References, so the effects read them through a volatile (ConstAt) or pass their address (ConstPtr),
 // one object per value (no Rebirth patch writes these cells).
 template <float V>
 inline constexpr float kFloatConstant = V;
-inline const float& OneRef() { return kFloatConstant<1.0f /*0073B84C*/>; }
-inline const float& ZeroRef() { return kFloatConstant<0.0f /*0073B858*/>; }
-inline const float& HalfRef() { return kFloatConstant<0.5f /*0073B86C*/>; }
-inline const float& AcidRayScale() { return kFloatConstant<0.4f /*0073B868*/>; }
-inline const float& FireballScale() { return kFloatConstant<0.3f /*0073C54C*/>; }
-inline const float& FireballNear() { return kFloatConstant<1.25f /*0073CF50*/>; }
-inline const float& StrikeDepth() { return kFloatConstant<3.0f /*0073BAA4*/>; }
-inline const float& StrikeHeight() { return kFloatConstant<30.0f /*0073BAF0*/>; }
-inline const float& StrikeWidth() { return kFloatConstant<-7.0f /*007439B0*/>; }
-inline const float& LightAbove() { return kFloatConstant<5.0f /*0073BF34*/>; }
-inline const float& BoltWidthScale() { return kFloatConstant<5.0f /*0073BF34*/>; }   // 5.0 (the same constant)
-inline const float& ImpactWakeMargin() { return kFloatConstant<5.0f /*0073BF34*/>; }   // 5.0 (the same constant)
-inline const float& TeleportDepth() { return kFloatConstant<0.2f /*0073BAD4*/>; }
-inline const float& BuffScale() { return kFloatConstant<16.0f /*0073CA98*/>; }
-inline const float& TargetHeight() { return kFloatConstant<1.2f /*0073CDF4*/>; }
-inline const float& RangeEpsilon() { return kFloatConstant<0.001f /*0073CCF4*/>; }
-inline const float& ScorchAlpha() { return kFloatConstant<0.6f /*0073CDE0*/>; }
-inline const float& ScorchMargin() { return kFloatConstant<0.3f /*0073C54C*/>; }   // 0.3 (the same constant as FireballScale)
-inline const float& DefaultRadius() { return kFloatConstant<100.0f /*007433AC*/>; }
-inline const float& SplashScale() { return kFloatConstant<0.7f /*0073C538*/>; }   // 0.7: the impact particle's size per power
-inline const float& RiseScale() { return kFloatConstant<1.5f /*00743998*/>; }   // 1.5: impact lights rise faster and reach further
-inline const float& NoiseKind() { return kFloatConstant<4.0f /*0074396C*/>; }   // 4.0, truncated by _ftol
-inline const float& PossessWake() { return kFloatConstant<2.0f /*00743970*/>; }
-inline const float& PossessWakeBase() { return kFloatConstant<20.0f /*0073CCF8*/>; }
+inline const float& OneRef() { return kFloatConstant<1.0f>; }
+inline const float& ZeroRef() { return kFloatConstant<0.0f>; }
+inline const float& HalfRef() { return kFloatConstant<0.5f>; }
+inline const float& AcidRayScale() { return kFloatConstant<0.4f>; }
+inline const float& FireballScale() { return kFloatConstant<0.3f>; }
+inline const float& FireballNear() { return kFloatConstant<1.25f>; }
+inline const float& StrikeDepth() { return kFloatConstant<3.0f>; }
+inline const float& StrikeHeight() { return kFloatConstant<30.0f>; }
+inline const float& StrikeWidth() { return kFloatConstant<-7.0f>; }
+inline const float& LightAbove() { return kFloatConstant<5.0f>; }
+inline const float& BoltWidthScale() { return kFloatConstant<5.0f>; }   // 5.0 (the same constant)
+inline const float& ImpactWakeMargin() { return kFloatConstant<5.0f>; }   // 5.0 (the same constant)
+inline const float& TeleportDepth() { return kFloatConstant<0.2f>; }
+inline const float& BuffScale() { return kFloatConstant<16.0f>; }
+inline const float& TargetHeight() { return kFloatConstant<1.2f>; }
+inline const float& RangeEpsilon() { return kFloatConstant<0.001f>; }
+inline const float& ScorchAlpha() { return kFloatConstant<0.6f>; }
+inline const float& ScorchMargin() { return kFloatConstant<0.3f>; }   // 0.3 (the same constant as FireballScale)
+inline const float& DefaultRadius() { return kFloatConstant<100.0f>; }
+inline const float& SplashScale() { return kFloatConstant<0.7f>; }   // 0.7: the impact particle's size per power
+inline const float& RiseScale() { return kFloatConstant<1.5f>; }   // 1.5: impact lights rise faster and reach further
+inline const float& NoiseKind() { return kFloatConstant<4.0f>; }   // 4.0, truncated by _ftol
+inline const float& PossessWake() { return kFloatConstant<2.0f>; }
+inline const float& PossessWakeBase() { return kFloatConstant<20.0f>; }
 
 // ---- AI, interface mesh and server constants ----------------------------------------------------
-inline float CellSize() { return 1.0f /*0073FD18*/; }   // 1.0: the AI grid cell
-inline float FixedPoint() { return 65536.0f /*0073FDC0*/; }
-inline float OutsideDistance() { return 100.0f /*0073BAB0*/; }
-inline float Texel() { return 0.00390625f /*0073EEB8*/; }   // 1 / 256
-inline float HalfTexel() { return 0.001953125f /*0073CC90*/; }   // 1 / 512
-inline float LayoutX() { return 0.00125f /*00740164*/; }   // 2 / 1600
-inline float LayoutY() { return 0.0025f /*0074015C*/; }   // 1 / 400
-inline float ThreeQuarters() { return 0.75f /*0073C524*/; }
-inline float InterfaceView() { return 0.48157462f /*00740158*/; }   // 0.48157 (the interface camera's half view)
+inline float CellSize() { return 1.0f; }   // 1.0: the AI grid cell
+inline float FixedPoint() { return 65536.0f; }
+inline float OutsideDistance() { return 100.0f; }
+inline float Texel() { return 0.00390625f; }   // 1 / 256
+inline float HalfTexel() { return 0.001953125f; }   // 1 / 512
+inline float LayoutX() { return 0.00125f; }   // 2 / 1600
+inline float LayoutY() { return 0.0025f; }   // 1 / 400
+inline float ThreeQuarters() { return 0.75f; }
+inline float InterfaceView() { return 0.48157462f; }   // 0.48157 (the interface camera's half view)
 // By reference, where the game copies the bits or passes the address on.
-inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f /*0073BB20*/>; }   // seconds between announcements to the master
-inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f /*0073F090*/>; }   // squared distance a blocking ally may be away
+inline const float& AnnouncePeriodRef() { return kFloatConstant<20.0f>; }   // seconds between announcements to the master
+inline const float& QueueWaitLimitRef() { return kFloatConstant<60.0f>; }   // squared distance a blocking ally may be away
 // Tables of the AI (ai_refresh.cpp; the height of each of 8 levels is ai_map.h's kLevelHeights): per occluder type
 // the cost added by full cover and the damping exponent; 5 rows x 16 dwords of cell marks.
 inline constexpr int kOccluderCosts[3] = /*007912A4*/ {290, 20};

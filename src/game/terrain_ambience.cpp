@@ -79,11 +79,11 @@ constexpr float kPercent = 100.0f;
 constexpr float kPi = 3.14159274f;
 constexpr double kTwoToMinus32 = 2.3283064370807974e-10;
 
-float CellSize() { return 1.0f /*007441D0*/; }
+float CellSize() { return 1.0f; }
 // pi / 2 (a static initialiser: the constant * 0.5).
 constexpr float kHalfPi = /*007C8930*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-// The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
+// The sector containing `v` (v / cell rounded to nearest, then / 32 towards zero).
 int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
 
 // By weight, highest first (an unordered pair sorts "after").

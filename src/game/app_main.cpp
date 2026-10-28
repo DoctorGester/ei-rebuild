@@ -277,7 +277,7 @@ bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = *g_discFolder;
     std::string dataFolder = *g_dataFolder;
     double freeBytes;
-    if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
+    if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 && freeBytes < 314572800.0) {
         if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
     }
     if (str::Compare(dataFolder, discFolder) != 0) {
@@ -397,7 +397,7 @@ constexpr int kLongestPassTicks = 5;
 // The world tick's length in milliseconds and the factor from milliseconds to the camera's time (1 / 55).
 std::uint32_t TickLength() { return static_cast<std::uint32_t>(worlddata::g_updatePeriod); }
 float CameraSeconds(std::uint32_t milliseconds) {
-    return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f /*0073C348*/);
+    return static_cast<float>(x87::FromUnsigned(milliseconds) * 0.018181818f);
 }
 
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
@@ -502,12 +502,12 @@ bool RunWorlds() {
 // (x87 order of operations: the goldens depend on it). Kept within 0.1 .. 10.
 float SpeedForBalance(double balance, float rounded) {
     double speed;
-    if (balance < 0.0f /*0073B858*/) {
-        speed = x87::fexp(Step(rounded * 0.1f /*0073B850*/));
-    } else if (rounded > 1.0f /*0073B84C*/) {
-        speed = Step(Step(std::sqrt(rounded) * 0.1f /*0073B850*/) + 1.0f /*0073B84C*/) - 0.1f /*0073B850*/;
+    if (balance < 0.0f) {
+        speed = x87::fexp(Step(rounded * 0.1f));
+    } else if (rounded > 1.0f) {
+        speed = Step(Step(std::sqrt(rounded) * 0.1f) + 1.0f) - 0.1f;
     } else {
-        speed = 1.0f /*0073B84C*/;   // also NaN
+        speed = 1.0f;   // also NaN
     }
     float result = static_cast<float>(speed);
     result = result >= kSlowest ? result : kSlowest;
@@ -539,7 +539,7 @@ bool RunPass() {
     if (elapsed > TickLength() * kLongestPassTicks) elapsed = TickLength() * kLongestPassTicks;
     if (g_recordingFrames) {
         // A recorded frame lasts 1000 / the movie's frames a second, rounded up.
-        const double frame = Step(1000.0f /*0073C34C*/ / static_cast<double>(options::g_options->movieCapturingFps_));
+        const double frame = Step(1000.0f / static_cast<double>(options::g_options->movieCapturingFps_));
         elapsed = libcrt::Ftol(std::ceil(frame));
     }
     g_serverBacklog += elapsed;
@@ -697,7 +697,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     // The field of view: pi * 2 / 7 (51.4 degrees).
     g_camera->Init(options, std::bit_cast<std::uint32_t>(options->nearClipDistance_),
                    std::bit_cast<std::uint32_t>(options->farClipDistance_),
-                   std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 /*0073C308*/ * 0.2857142857142857 /*0073B9D8*/)));
+                   std::bit_cast<std::uint32_t>(static_cast<float>(3.141592653589793 * 0.2857142857142857)));
     g_clientWorld->SetCamera(&g_camera.Get());
     if (!CheckDrives(messages)) return kExitDeclined;
     CreateMouse();
@@ -713,7 +713,7 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     gameapi::SetCursor(nullptr);
 
     // "The interface takes the input" is carried in one byte and set after every pass. Before
-    // the first pass it holds the top byte of a stack slot that start-up used last for the disc
+    // the first pass it holds the top byte of stack memory that start-up used last for the disc
     // folder's text (with sound) or for the free non-local video memory (without): a message that
     // waits before the first pass goes to the interface when that byte is not zero.
     std::uintptr_t reusedSlot = CreateRenderer();

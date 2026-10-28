@@ -20,7 +20,7 @@ class CMapObjectClientSpecific;
 class CMapObjectCompanion;
 struct DeltaState;
 
-// An active effect (CArray).
+// An active effect (an array).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
 // 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.
@@ -124,7 +124,7 @@ public:
     // True; levers a flag of theirs (a best guess). The AI map's MarkFootprint refreshes units' passage around
     // the object only when it is true.
     virtual bool KeepsMapFlag();
-    // The spots a user of radius `userRadius` may use the object from, into the CArray<Vector3> `out`: FreeArray
+    // The spots a user of radius `userRadius` may use the object from, into the array `out`: FreeArray
     // (none); levers Lever::CollectUseSpots.
     virtual void UseSpots(std::vector<Vector3>* out, float userRadius);
     // Appends a copy of `effect`, marks part 3 changed and the object dirty, then calls the vitals virtual

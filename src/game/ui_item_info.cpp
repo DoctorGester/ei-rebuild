@@ -193,7 +193,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
         w.line = str::Format("%s %s", w.T(12).c_str(), w.T(21).c_str());
     else
         w.line = str::Format("%s %.1f%s", w.T(12).c_str(),
-                      x87::FromUnsigned(ticks) * D(0.06666667f /*00740544*/), w.T(27).c_str());
+                      x87::FromUnsigned(ticks) * D(0.06666667f), w.T(27).c_str());
     w.Text(w.line);
     w.Down();
 }
@@ -598,8 +598,8 @@ void CItemInfoPanel::DescribeBlueprint() {
             w.line = str::Format("damage_%d", first);
             texts->GetString(w.line.c_str(), &text);
         }
-        int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f /*0073BAAC*/);
-        int low = ScaledFtol(weapon->damage, 10.0f /*0073BAAC*/);
+        int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 10.0f);
+        int low = ScaledFtol(weapon->damage, 10.0f);
         w.line = str::Format("%s %d-%d %s", w.T(15).c_str(), low, high,
                       text.c_str());
         w.Text(w.line);
@@ -613,7 +613,7 @@ void CItemInfoPanel::DescribeBlueprint() {
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
         float values[7];
-        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->FirstFactor(), 10.0f /*0073BAAC*/);
+        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(armor->absorbFirst[i], armor->FirstFactor(), 10.0f);
         w.DamageLines(values, 4);
     }
     w.Down();
@@ -741,7 +741,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     } else {
         // The area: pi * r * r in that order.
         double radius = D(spell->radius_);
-        double area = D(3.1415927f /*007402C0*/) * radius * radius;
+        double area = D(3.1415927f) * radius * radius;
         w.line = str::Format("%s %.1f%s", w.T(11).c_str(), area, w.T(26).c_str());
     }
     w.Text(w.line);

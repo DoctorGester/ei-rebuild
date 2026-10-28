@@ -106,7 +106,7 @@ int AckDatabase::Load(const std::string& folder) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    // The serialisers' unused third argument: an unwritten stack slot for the
+    // The serialisers' unused third argument: unwritten stack memory for the
     // first table, the model table's address for the other two.
     const auto name = [](auto& record) -> const std::string& { return record.head.name; };
     LoadTable(stream, kUnitAcksChunk, &ChunkArchive::SerializeAcks, &units.records, nullptr,

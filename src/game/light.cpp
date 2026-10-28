@@ -41,7 +41,7 @@ CLight::CLight() {
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
     std::memset(&kind_, 0, offsetof(CLight, rangeSquared_) - offsetof(CLight, kind_));
-    // FSQRT of the double FLT_MAX; the main thread's 24-bit precision rounds the root to
+    // The root of the double FLT_MAX: the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
     const float root = static_cast<float>(std::sqrt(static_cast<double>(FLT_MAX)));
     const double squared = static_cast<double>(root) * root;

@@ -25,7 +25,7 @@ constexpr float kNoWander = -1.0f;          // pushed as 0xBF800000
 enum BehaviourType { kGuard = 1, kPatrol = 2, kSentry = 3, kParty = 4, kGuardAlarm = 5 };
 enum Reaction { kFight = 0, kRevenge = 1, kWatch = 2, kWatchFearful = 3 };
 
-// FCOMP; TEST AH,0x40: equal.
+// Equal.
 bool Same(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;

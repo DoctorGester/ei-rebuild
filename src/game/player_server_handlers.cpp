@@ -58,13 +58,13 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 // The shares a revived hero loses: of the party's money and of its experience above the
 // NPC record's floor. Set at startup.
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
-float CellScaleA() { return 1.0f /*0074326C*/; }
-float CellScaleB() { return 0.5f /*0073B86C*/; }
+float CellScaleA() { return 1.0f; }
+float CellScaleB() { return 0.5f; }
 
 CUnit* FindUnit(int id) { return g_serverWorld->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).
+// Appends `object` to `list` with a counted reference (as the brain's lists do).
 void AddCounted(std::list<CUnit*>& list, CUnit* object) {
     list.push_back(object);
     ++object->refCount_;
@@ -361,7 +361,7 @@ void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* of
         float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
         float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
         double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
-        if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
+        if (length > 0.0) {   // the original skips zero and NaN
             double inverse = 1.0 / length;
             dx = static_cast<float>(dx * inverse);
             dy = static_cast<float>(dy * inverse);

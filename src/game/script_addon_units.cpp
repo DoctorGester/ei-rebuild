@@ -149,7 +149,7 @@ bool NearestUnit(Call* call) {
         if (!PassesFilter(object, units, others, living)) return;
         const Vector3& at = ObjectSlots(object)->localPosition_;
         float distance = Distance(at.x, at.y, x, y);
-        if (distance < radius) {   // TEST AH,0x41 on FCOMP radius, distance: ordered greater
+        if (distance < radius) {   // ordered: a NaN distance never wins
             best = object;
             radius = distance;
         }

@@ -20,7 +20,7 @@ IsaacRandom::DrawObserver g_drawObserver;
 // The 2^-32 scale of Range; its last bit is set (sic).
 constexpr double kRangeScale = std::bit_cast<double>(0x3DF0000000100000ull);
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
@@ -139,7 +139,7 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
         if (Matches(finder, kAttributeDirectory)) {
             int found;
             {
-                // MFC's result-slot calls (GetFilePath, operator+) construct these.
+                // The game's string result calls (GetFilePath, operator+) construct these.
                 std::string path = finder.GetFilePath();
                 std::string sub = path + SubdirectoryPattern();
                 found = FindSeedFile(out, sub.c_str(), target, counter);

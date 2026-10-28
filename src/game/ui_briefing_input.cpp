@@ -1,5 +1,5 @@
 // The briefing / base screen's mouse input and its topic list (CBriefingScreen, ui_briefing.h):
-// the click and double click (input slots 2 and 7), the person's topics and their drawing. See
+// the click and double click (the input virtuals), the person's topics and their drawing. See
 // docs/notes/ui.md, "Briefing / base screen".
 #include "ui.h"
 #include "world_glue.h"

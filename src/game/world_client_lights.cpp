@@ -37,7 +37,7 @@ constexpr float kHalf = 0.5f;
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;
 constexpr double kPi = 3.141592653589793;
 constexpr double kPerDegree = 1.0 / 180.0;
-// pi * (1 / 180) as FLD / FMUL leaves it at 24-bit precision (not the folded double).
+// pi * (1 / 180) as the original's arithmetic leaves it at 24-bit precision (not the folded double).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
 const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).
@@ -109,7 +109,7 @@ double HourOfDay(const CWorld* world) {
     return std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, kHoursPerDay);
 }
 
-// The game's _ftol: truncation, the low half of a 64-bit FISTP (NaN and overflow give 0).
+// The game's _ftol: truncation, the low half of the 64-bit conversion (NaN and overflow give 0).
 int GameFtol(double value) {
     if (!(value > -9223372036854775808.0 && value < 9223372036854775808.0)) return 0;
     return static_cast<int>(static_cast<long long>(value));

@@ -20,11 +20,11 @@
 
 namespace {
 
-float Pi() { return 3.1415927f /*007423F8*/; }
+float Pi() { return 3.1415927f; }
 // A texel as a texture offset: 1 / 256.
-float TexelStep() { return 0.00390625f /*0073EEB8*/; }
+float TexelStep() { return 0.00390625f; }
 // The layout y the columns' bottom button sits at (490).
-float ColumnBottom() { return 490.0f /*00742948*/; }
+float ColumnBottom() { return 490.0f; }
 
 constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
@@ -120,7 +120,7 @@ void CHudWeaponBar::Highlight(int index, int on) {
     const int left = (index * 5 + 10) * 8;
     const int right = (index * 5 + 15) * 8;
     if (on) {
-        float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;
+        float x = static_cast<float>(index) * 40.0f + 100.0f;
         sprite->Place(x, 540.0f, 12.0f);
         sprite->SetScale(0.65f);
         sprite->flatSpecular_ = kColourOn;
@@ -129,10 +129,10 @@ void CHudWeaponBar::Highlight(int index, int on) {
         return;
     }
     // The more weapons, the larger each: 1.2 per slot in use, 24 deep at scale 1.
-    float scale = 1.0f /*0073B84C*/;
-    for (int i = count_; i > 0; --i) scale *= 1.2f /*0073CDF4*/;
-    float depth = scale * 24.0f /*0073CE28*/;
-    float x = static_cast<float>(index) * 40.0f /*0073D72C*/ + 100.0f /*0073BAB0*/;
+    float scale = 1.0f;
+    for (int i = count_; i > 0; --i) scale *= 1.2f;
+    float depth = scale * 24.0f;
+    float x = static_cast<float>(index) * 40.0f + 100.0f;
     sprite->Place(x, 560.0f, depth);
     sprite->SetScale(scale);
     sprite->flatSpecular_ = kColourOff;
@@ -150,10 +150,10 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
     if (sprite) {
         // Turned about z, then y, then z again: pi * -0.05, pi * -1/3 and pi * 0.75.
         Quaternion first, second, third;
-        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f /*00742804*/));
-        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f /*00742800*/));
+        first.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * (-0.05f));
+        second.SetAxisAngle(Vector3{0.0f, 1.0f, 0.0f}, Pi() * (-0.33333334f));
         Quaternion both = ProductFirst(first, second);
-        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * 0.75f /*0073C524*/);
+        third.SetAxisAngle(Vector3{0.0f, 0.0f, 1.0f}, Pi() * 0.75f);
         sprite->localRotation_ = ProductSecond(both, third);
     } else {
         sprite = AddBlankSprite();
@@ -161,8 +161,8 @@ void CHudWeaponBar::AddWeapon(std::string_view model, std::string_view image) {
         // written over).
         float offset = static_cast<float>(count_ * kStep);
         const float shift = static_cast<float>(widescreen::EdgeShift());
-        sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f /*00741F1C*/ - shift), 520.0f,
-                             offset + (120.0f /*00740094*/ - shift), 600.0f, 0, 0, kWeaponWidth, kWeaponHeight);
+        sprite->SetRectangle(12.0f, 40.0f, offset + (80.0f - shift), 520.0f,
+                             offset + (120.0f - shift), 600.0f, 0, 0, kWeaponWidth, kWeaponHeight);
     }
     SetOffsets(sprite, x, y + kWeaponHeight);
     MakePlain(sprite);

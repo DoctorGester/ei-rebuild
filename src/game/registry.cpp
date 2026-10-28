@@ -16,7 +16,7 @@ namespace {
 const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registry file.\n";   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
-// _ftol of a float: FLD, then the game's _ftol (truncates).
+// _ftol of a float: the game's _ftol (truncates).
 int FloatToInt(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
@@ -44,7 +44,7 @@ std::uint32_t HomeSlot(const char* name, std::uint16_t slots) {
     return sum % slots;
 }
 
-// GetIntArray / GetFloatArray: the values are copied as dwords.
+// GetIntArray / GetFloatArray: the values are copied bit for bit.
 template <typename T>
 BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, std::vector<T>* out) {
     int isScalar;

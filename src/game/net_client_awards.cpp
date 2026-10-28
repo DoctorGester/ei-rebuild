@@ -111,7 +111,7 @@ void ClientSession::Tick(double dt) {
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
             EI_NAN_AUDIT(left);
-            if (left < 0.0f /*0073B858*/) self->timers_.erase(current);
+            if (left < 0.0f) self->timers_.erase(current);
         } while (node != sentinel);
     }
     if (self->awards_.begin() == self->awards_.end() || g_serverWorld->sessionKind_ != 3) return;

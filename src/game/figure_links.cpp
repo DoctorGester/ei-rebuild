@@ -1,7 +1,7 @@
 // Links a figure's pieces from the skeleton file of the model `name`. With the model cached, its mesh archive
 // reads the links (GetFile, freed by CloseFile); without it the manager opens "<name>.lnk" (its GetFile /
 // CloseFile); with neither the fatal error "Can't load skeleton file" is returned. The data is a count and
-// that many (child, parent) length-prefixed names (read into CStrings), each passed to the animation state's
+// that many (child, parent) length-prefixed names (read into strings), each passed to the animation state's
 // LinkPiece with the model; FindRoot finishes it. Returns 1. See docs/notes/models.md.
 #include "figure_manager.h"       // CFigureManager, FigureModel
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone

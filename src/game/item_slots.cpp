@@ -1,5 +1,5 @@
-// The item classes' virtual slots 13 (values from the prototype record) and 14 (the same item as
-// another). See item.h and docs/notes/items_spells.md ("Item rules").
+// The item classes' virtuals that take values from the prototype record and that test for the same item as
+// another. See item.h and docs/notes/items_spells.md ("Item rules").
 #include "item.h"
 #include "spell.h"
 
@@ -19,11 +19,11 @@ float FloatOf(std::uint32_t bits) {
 
 } // namespace
 
-// --- Slot 21 -----------------------------------------------------------------------------------
+// --- GetUse -----------------------------------------------------------------------------------
 
 LockKey CItemQuest::GetUse() { return LockKey{8, questItemId_, 0}; }
 
-// --- Slot 14 -----------------------------------------------------------------------------------
+// --- IsSameAs -----------------------------------------------------------------------------------
 
 BOOL CItem::IsSameAs(CItem* other) {
     if (other == this) return 1;
@@ -46,7 +46,7 @@ BOOL CItem::IsSameAs(CItem* other) {
 BOOL CItemArmor::IsSameAs(CItem* item) {
     if (!CItem::IsSameAs(item)) return 0;
     auto* other = AsArmor(item);
-    // Both absorption rows and the layer masks, compared as dwords.
+    // Both absorption rows and the layer masks, compared by their bits.
     static_assert(offsetof(CItemArmor, layerMask_) + sizeof(layerMask_) - offsetof(CItemArmor, absorb_) == 0x40);
     return std::memcmp(absorb_, other->absorb_, 0x40) == 0 ? 1 : 0;
 }
@@ -68,7 +68,7 @@ BOOL CItemLoot::IsSameAs(CItem* item) {
     return other->index_ == index_ ? 1 : 0;
 }
 
-// --- Slot 13 (each inlines CItem's body first) ---------------------------------------------------
+// --- InitFromRecord (each calls CItem's first) ---------------------------------------------------
 
 void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);

@@ -276,7 +276,7 @@ public:
     // The base's, then kind_, recordType_ and index_.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
     BOOL IsSameAs(CItem* other) override;
-    // CItem's, then kind_, recordType_ and index_. Load reads the first two through the stack slot of
+    // CItem's, then kind_, recordType_ and index_. Load reads the first two through the storage of
     // `stream` (a read that writes nothing leaves the pointer's value, then the previous value).
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
@@ -304,7 +304,7 @@ bool WeaponBaseFigure(std::uint32_t index, std::string* out);
 
 // The armour model name "<type>_<number>.<material name>.<variant>" of armour prototype `armorIndex` in
 // material `materialIndex` into `out` (emptied first; left empty when either is out of range). The type
-// code is copied into the stack slot of `materialIndex`, so for a type without a code the index's own bytes
+// code is copied into the storage of `materialIndex`, so for a type without a code the index's own bytes
 // are the code.
 void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
 // The same for weapon prototype `weaponIndex` ("sw", "ax", ...).

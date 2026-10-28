@@ -53,7 +53,7 @@ void DropSurface(CTexture* texture) {
     if (held) held->Release();
 }
 
-// The virtual slots' entry points (rewrite-guide rule 4).
+// The virtuals' entry points (rewrite-guide rule 4).
 
 } // namespace
 

@@ -92,7 +92,7 @@ int MaxStep(const std::vector<int>& table) {
 
 } // namespace
 
-void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6 /*0073FD50*/)); }
+void InitDampScale() { g_dampScale = static_cast<float>(x87::flog(0.6)); }
 
 void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
@@ -155,13 +155,13 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
     std::list<CUnit*> objects{};
-    double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
-    double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
-    float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
+    double halfW = static_cast<double>(ox1 - ox0) * 0.5f + 1.0f;
+    double halfH = static_cast<double>(oy1 - oy0) * 0.5f + 1.0f;
+    float scale = static_cast<float>(static_cast<double>(1.0f) * 0.5f);
     float radius = static_cast<float>(std::sqrt(halfW * halfW + halfH * halfH) * scale);
     Vector3 centre;   // x and y (FindUnitsInRadius reads no more)
-    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * 0.5f /*0073B86C*/);
-    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f /*0073B86C*/);
+    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * 0.5f);
+    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * 0.5f);
     centre.x = cx;
     centre.y = cy;
     CSectorMap* sectors = &sectorMap;

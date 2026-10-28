@@ -34,7 +34,7 @@ float FloatFromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FloatFromBits(T) = delete;
 
-float Pi() { return 3.1415927f /*007423F8*/; }
+float Pi() { return 3.1415927f; }
 bool GamePaused() { return g_clientWorld->paused_ != 0; }
 
 // Bar texture coordinate for a fill fraction: ((f * 64 + 9) / 256 + 1/512), stored.
@@ -55,9 +55,9 @@ constexpr float kThin = 0.2f;
 constexpr float kFat = 0.8f;
 // Doubles the original multiplies random numbers with (about 2^-32, -0.3 * 2^-32 and 2^-31; not
 // exact powers of two), read from the exe.
-double RandomScale32() { return 2.3283064370807974e-10 /*0073C468*/; }
-double RandomDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
-double RandomScale31() { return 4.656612874161595e-10 /*0073C508*/; }
+double RandomScale32() { return 2.3283064370807974e-10; }
+double RandomDelayScale() { return (-6.984919588798148e-11); }
+double RandomScale31() { return 4.656612874161595e-10; }
 constexpr float kWobbleRate = 0.33333334f;    // wobbles per second
 constexpr float kTwelfth = 0.083333336f;
 constexpr float kWobbleSpan = 0.2f;

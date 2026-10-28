@@ -64,7 +64,7 @@ extern lib::StaticObject<FootprintCellSet> g_spellFootprint;
 // The spell's power curve after the ratio: pow(min(max(ratio, 1), 8), 0.33) - 0.2, written by the
 // original as FYL2X / F2XM1 / FSCALE (x87::flog, x87::fexp; the logarithm is used unrounded). The
 // two clamps select the float bits on C0 (1 < r or unordered; r < 8 or unordered), the first one
-// stored and reloaded (FLD / FSTP; the reload is a plain copy here).
+// stored and reloaded (the reload is a plain copy here).
 inline double ClampPow(float ratio) {
     std::uint32_t bits;
     std::memcpy(&bits, &ratio, sizeof(bits));
@@ -72,21 +72,21 @@ inline double ClampPow(float ratio) {
     float low;
     std::memcpy(&low, &lowBits, sizeof(low));
     const float clamped = low >= 8.0f ? 8.0f : low;
-    return x87::fexp(x87::flog(clamped) * 0.33000001311302185 /*007439A8*/) - 0.20000000298023224 /*0073CCD0*/;
+    return x87::fexp(x87::flog(clamped) * 0.33000001311302185) - 0.20000000298023224;
 }
 
 // The spell's power factor(repeated inline about twenty times in the game): 1 when the prototype's effect
 // compares equal to 0, else ClampPow of damage / effect rounded to float.
 inline double PowerFactor(const float* damage, const float* effect) {
     EI_NAN_AUDIT(*effect);
-    if (*effect == 0.0f /*0073B858*/) return 1.0f /*0073B84C*/;
+    if (*effect == 0.0f) return 1.0f;
     return ClampPow(static_cast<float>(static_cast<double>(*damage) / *effect));
 }
 
 // The fireball explosion's size curve: pow(clamp((r * r * pi) / area, 1, 8), 0.33) - 0.2 with the
 // ratio rounded to float, the result rounded to float into *out.
 inline void AreaCurve(const float* radius, const float* area, float* out) {
-    const float ratio = static_cast<float>(static_cast<double>(*radius) * *radius * 3.1415927f /*00743964*/ / *area);
+    const float ratio = static_cast<float>(static_cast<double>(*radius) * *radius * 3.1415927f / *area);
     *out = static_cast<float>(ClampPow(ratio));
 }
 
@@ -95,10 +95,10 @@ inline void DivideMultiply(const float* a, const float* b, const float* c, float
     *out = static_cast<float>(static_cast<double>(*a) / *b * *c);
 }
 
-// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50) with FILD / FIDIV,
+// The fireworks' fright level: _ftol(((float)timer / duration) * 250 + 50),
 // unrounded until the game's _ftol truncates it.
 inline int FrightLevel(const int* timer, const int* duration) {
-    return static_cast<int>(libcrt::Ftol(static_cast<double>(*timer) / *duration * 250.0f /*0073BF48*/ + 50.0f /*0074023C*/));
+    return static_cast<int>(libcrt::Ftol(static_cast<double>(*timer) / *duration * 250.0f + 50.0f));
 }
 
 // *out = (float)(*a * *b + *c), unrounded in between.
@@ -124,7 +124,7 @@ inline int PowerScaledToInt(const float* damage, const float* effect, const floa
     return static_cast<int>(libcrt::Ftol(PowerFactor(damage, effect) * *scale));
 }
 
-// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height left unrounded in ST0.
+// A world virtual `height` (kGridHeight, kRawSurfaceHeight) at (x, y): a ground height left unrounded.
 inline double WorldHeight(CWorld* world, double (CWorld::*height)(float, float), float x, float y) {
     return (world->*height)(x, y);
 }
@@ -134,7 +134,7 @@ inline void HeightPlus(CWorld* world, double (CWorld::*height)(float, float), fl
     *out = static_cast<float>(WorldHeight(world, height, x, y) + *add);
 }
 
-// The same with height - *sub (FSUB).
+// The same with height - *sub.
 inline void HeightMinus(CWorld* world, double (CWorld::*height)(float, float), float x, float y, const float* sub, float* out) {
     *out = static_cast<float>(WorldHeight(world, height, x, y) - *sub);
 }
@@ -154,15 +154,15 @@ inline void PlanarLength(const Vector3* v, float* out) {
 // each component rounded to float.
 inline void ScaleToSpeed(Vector3* v, const float* speed) {
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*v));
-    const double k = static_cast<double>(*speed) * 0.06666667f /*00740544*/ / length;
+    const double k = static_cast<double>(*speed) * 0.06666667f / length;
     v->x = static_cast<float>(k * v->x);
     v->y = static_cast<float>(k * v->y);
     v->z = static_cast<float>(k * v->z);
 }
 
-// FISTP((float)((distance / speed) * 15)): the missile's flight time in ticks.
+// (float)((distance / speed) * 15) rounded to nearest: the missile's flight time in ticks.
 inline int FlightTicks(const float* distance, const float* speed) {
-    return x87::fistp(static_cast<float>(static_cast<double>(*distance) / *speed * 15.0f /*0073C518*/));
+    return x87::fistp(static_cast<float>(static_cast<double>(*distance) / *speed * 15.0f));
 }
 
 // The walls' extent: the normal (-d.y, d.x, 0) in the ground plane scaled to length `radius`: k =
@@ -183,7 +183,7 @@ inline void WallSpan(const Vector3* direction, const float* radius, Vector3* out
 // The light wall's half extent from its lightning's ends: x keeps the difference unrounded before
 // halving, y and z are rounded first.
 inline void HalfSpan(const CEffectLightning* bolt, Vector3* out) {
-    const double half = 0.5f /*0073B86C*/;
+    const double half = 0.5f;
     const double dx = static_cast<double>(bolt->to_.x) - bolt->from_.x;
     out->y = static_cast<float>(static_cast<double>(bolt->to_.y) - bolt->from_.y);
     out->z = static_cast<float>(static_cast<double>(bolt->to_.z) - bolt->from_.z);
@@ -274,7 +274,7 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 }
 
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
-// effect's damage (a CPtrList of blocks of 10 on the stack, walked node by node).
+// effect's damage (a list on the stack, walked node by node).
 inline void HitAreaTargets(CSpellEffect* e) {
     std::list<CUnit*> units;
     DamageInfo hit;

@@ -7,7 +7,7 @@
 #include <cstdint>
 
 // The start of the target the pixel converter's triangle rasterisers read: a shadow
-// triangle's three corners, each a screen and a texture point (moved as qwords), and the keyed
+// triangle's three corners, each a screen and a texture point, and the keyed
 // texture's texels; the surface follows (RasterTarget).
 struct RasterTriangle {
     struct Point {

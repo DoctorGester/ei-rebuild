@@ -1,4 +1,4 @@
-// The network state writers of map objects and units: the virtual slot that writes an object's dirty fields
+// The network state writers of map objects and units: the virtual that writes an object's dirty fields
 // into its DeltaState for the clients. See docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
@@ -27,7 +27,7 @@ constexpr int kClassServerController = 0x3E;
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
 
-// Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
+// Whether the stream read against (delta::g_readSnapshot) is consumed: Position() == Size().
 std::uint32_t SnapshotConsumed() {
     CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
@@ -43,7 +43,7 @@ float StatFraction(CUnit* unit, int k) {
     return static_cast<float>(static_cast<double>(part.current) / part.maximum);
 }
 
-// fabs(v) > epsilon (FCOMP + TEST AH,0x41).
+// fabs(v) > epsilon (false for a NaN).
 bool Exceeds(float v) {
     float a = v < 0 ? -v : v;
     return a > kStatEpsilon;
@@ -218,7 +218,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         float before[6];
         for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
         field->ReadDelta(&unit->params, 0x108);
-        // Slot 55 (IsDead): a dead unit skips the stat reactions.
+        // IsDead: a dead unit skips the stat reactions.
         if (!unit->IsDead() && first == 1) {
             bool any = false;
             for (int k = 0; k < 6; ++k) {
@@ -235,7 +235,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         }
         float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
         float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
-        // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
+        // A drop (before > now, ordered), or flag 0x10 otherwise.
         bool dropped = hpBefore > hpNow;
         if ((dropped || (unit->params.flags & 0x10)) && first != 0) {
             std::uint8_t flags = unit->params.flags;

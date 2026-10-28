@@ -101,7 +101,7 @@ void SessionBase::Tick(double dt) {
 
 } // namespace net
 
-// ---- Session vtable slots ---------------------------------------------------------------
+// ---- Session virtuals ---------------------------------------------------------------
 
 namespace net {
 
@@ -255,7 +255,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
     added->address_ = *address;
     if (rate <= 500) rate = 500;
     else if (rate >= 50000) rate = 50000;
-    added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f /*0073BF48*/) / static_cast<double>(rate));
+    added->sendInterval_ = static_cast<float>(static_cast<double>(250.0f) / static_cast<double>(rate));
 }
 
 } // namespace net

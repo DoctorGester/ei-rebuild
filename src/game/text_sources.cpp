@@ -70,7 +70,7 @@ bool SameName(const TextSource& archive, const char* path) {
 void CloseAndDelete(CMappedResource* source) {
     ForgetConvertedTexts(source);
     source->CloseResource();
-    delete source;   // the scalar deleting destructor (slot 0, flag 1); a null source is skipped
+    delete source;   // the scalar deleting destructor (flag 1); a null source is skipped
 }
 
 } // namespace

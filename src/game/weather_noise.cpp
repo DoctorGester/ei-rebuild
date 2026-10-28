@@ -13,11 +13,11 @@
 
 namespace {
 
-float One() { return 1.0f /*0073B84C*/; }
-float Half() { return 0.5f /*0073B86C*/; }
-float SmoothingWeight() { return 0.3f /*0073D724*/; }   // 0.3: the share of the sample's own value
-float SampleShare() { return 0.0078125f /*0073D730*/; }       // 1 / 128
-float Zero() { return 0.0f /*0073B858*/; }
+float One() { return 1.0f; }
+float Half() { return 0.5f; }
+float SmoothingWeight() { return 0.3f; }   // 0.3: the share of the sample's own value
+float SampleShare() { return 0.0078125f; }       // 1 / 128
+float Zero() { return 0.0f; }
 
 constexpr int kRandCentre = 0x3FFF;   // rand() gives 0..0x7FFF
 constexpr int kShift = 20;            // the samples dropped from the front after smoothing
@@ -67,7 +67,7 @@ void WeatherNoiseCurve::Build(float amplitude) {
 
 // A static initialiser: the five curves built one after another with the amplitude 0.5.
 void BuildWeatherNoise() {
-    constexpr float kAmplitude = 0.5f /*0073D728*/;
+    constexpr float kAmplitude = 0.5f;
     g_swayXByHeight.Build(kAmplitude);
     g_swayYByHeight.Build(kAmplitude);
     g_swayXByPlace.Build(kAmplitude);

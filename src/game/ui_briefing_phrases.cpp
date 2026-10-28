@@ -74,7 +74,7 @@ constexpr int kSoundVolume = 100;
 constexpr float kSecondsPerCharacter = 0.05f;
 constexpr double kPi = 3.141592653589793;
 constexpr double kDegree = 1.0 / 180.0;
-// pi * (1 / 180) as FLD / FMUL leaves it, at 24-bit precision (the folded double constant has 29 more bits).
+// pi * (1 / 180) as the original's arithmetic leaves it, at 24-bit precision (the folded double constant has 29 more bits).
 constexpr float kRadiansPerDegree = static_cast<float>(kPi * kDegree);
 // Camera presets (ViewPreset) and the speakers they view.
 constexpr int kViewBoth = 1;

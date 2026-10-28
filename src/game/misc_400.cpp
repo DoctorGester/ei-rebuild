@@ -1,5 +1,5 @@
 // Small pieces of the early code without a better home: the CBaseManager subclass
-// (its deleting destructor and slot 14, the object factory, differ), a
+// (its deleting destructor and the object factory differ), a
 // cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
 #include "torch_client_spec.h"   // before windows.h (GetClassName)
 #include "base_manager.h"

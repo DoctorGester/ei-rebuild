@@ -112,14 +112,14 @@ float LandscapeDrawRadius() {
 void VectorClear(std::vector<CMapObject*>* v) { v->clear(); }
 
 // The object margin around the camera when collecting what to draw (100.0).
-float ObjectsDrawMargin() { return 100.0f /*0073BAB0*/; }
+float ObjectsDrawMargin() { return 100.0f; }
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
     return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
-float MapEdgeMargin() { return 1.0f /*0073B84C*/; }
+float MapEdgeMargin() { return 1.0f; }
 // The length of the shadows' projection along the camera's Z axis.
-float ShadowLength() { return (-0.02f /*0073F750*/); }
+float ShadowLength() { return (-0.02f); }
 // The light effect settings (the blood print, footprint and scorch mark lists) and the game mode (1
 // single player).
 int LightEffectsSetting(const int& setting) { return setting; }
@@ -130,7 +130,7 @@ const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
 float SubRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }
-// a < b, or unordered (FCOMP's C0 is set then too).
+// a < b, or unordered.
 bool Less(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a < b;
@@ -138,10 +138,10 @@ bool Less(float a, float b) {
 float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 // t when 0 < t or unordered, else 0.
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
-// A float copied through the FPU (FLD / FSTP) in the original; here the value as it is.
+// A float copied through the FPU in the original; here the value as it is.
 float Reload(float v) { return v; }
 int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
-// The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
+// The client world's time: (float)(int)tick + the tick's fraction, rounded once.
 float AnimationTime() {
     const CWorldClient* world = &g_clientWorld.Get();
     return static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);

@@ -28,7 +28,7 @@ const char* const kWrongGroupCount = "Wrong number of script %s group parameters
 // Class id of the sound object an FX source places (CBaseManager::CreateObject).
 constexpr int kClassSound = 0x48;   // CEffectSound
 
-// FCOMP against 0.0.
+// Compared with 0.0 (a NaN counts as zero).
 bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;

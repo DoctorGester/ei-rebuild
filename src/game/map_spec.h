@@ -107,7 +107,7 @@ public:
     // The world object with the record's id.
     virtual void* WorldObject();
     virtual void Nothing(int) {}
-    // The type name in `out` (a CString returned by value): "error".
+    // The type name in `out` (a string returned by value): "error".
     virtual std::string* TypeName(std::string* out);
     // Moves the record, then Apply.
     virtual void Move(float dx, float dy, float dz);

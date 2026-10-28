@@ -38,7 +38,7 @@ void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     }
 }
 
-// The queue's RemoveHead (inlined by the original).
+// Takes the head off the queue.
 FigureAnimation* PopQueued(CFigureAnimationState* state) {
     FigureAnimation* animation = state->queue.front();
     state->queue.pop_front();
@@ -74,7 +74,7 @@ void CFigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(
 
 void CFigureAnimationState::SetTime(float frame) {
     EI_NAN_AUDIT(time, frame);
-    if (time != frame) changed = 1;   // FCOMP; TEST AH,0x40
+    if (time != frame) changed = 1;
     const FigureAnimation* before = current;
     time = frame;
     if (!current && !queue.empty()) {
@@ -82,7 +82,7 @@ void CFigureAnimationState::SetTime(float frame) {
         time = 0.0f;
     }
     while (current) {
-        double frames = x87::FromUnsigned(current->frameCount);   // FILD of the zero-extended count
+        double frames = x87::FromUnsigned(current->frameCount);   // the zero-extended count
         if (frames >= time) break;             // on while below the frame reached, or NaN
         time = static_cast<float>(time - frames);
         if (onEnd) onEnd(owner);

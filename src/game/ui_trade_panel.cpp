@@ -337,7 +337,7 @@ void CTradePanel::SnapshotRecord() {
     for (int i = 0; i < 6; ++i) record.schools[i] = stats->skills[i];
     record.science = stats->attributes[0];
     for (int i = 0; i < 36; ++i) record.perks[i] = stats->skillLevels[i];
-    // Copied as dwords, as the original does.
+    // Copied bit for bit, as the original does.
     std::memcpy(&record.experience, &stats->experience, sizeof(float));
     std::memcpy(&record.pendingExperience, &stats->pendingExperience, sizeof(float));
     std::memcpy(&record.spentExperience, &stats->spentExperience, sizeof(float));

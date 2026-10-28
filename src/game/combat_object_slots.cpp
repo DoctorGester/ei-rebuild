@@ -29,7 +29,7 @@ constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 
 AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
-// The weapon's condition (CItem +0x20, a float) rounded to nearest (FISTP) is above 0.
+// The weapon's condition (CItem +0x20, a float) rounded to nearest is above 0.
 bool Usable(const CItem* weapon) { return weapon && x87::RoundToInt(weapon->condition_) > 0; }
 } // namespace
 

@@ -333,7 +333,7 @@ int CCampPages::Price(CItem* item, int kind) {
         }
     }
     if (type == 0x3004 || type == 0x3005) {
-        // Rebirth's FixRepairPrice also JMPs over this FMUL (written without an addon.log
+        // Rebirth's FixRepairPrice also jumps over this multiplication (written without an addon.log
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
         if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
@@ -1082,7 +1082,7 @@ void CCampPages::Update() {
     int turning = turning_;
     float turn;
     std::memcpy(&turn, &heroTurn_, 4);
-    // The frame time in seconds (ST0, unrounded).
+    // The frame time in seconds (unrounded).
     if (turning == 1) {
         float turned = TurnedBy(FrameTime(), turn, false);
         std::memcpy(&heroTurn_, &turned, 4);

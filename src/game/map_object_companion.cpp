@@ -129,7 +129,7 @@ int CMapObjectClientSpecific::RunTick() {
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
         Vector3 lightPosition;
         std::memcpy(&lightPosition, PositionOf(lamp), sizeof(lightPosition));
-        float lightZ = lightPosition.z - kLightHeight;   // FSTP to the copy
+        float lightZ = lightPosition.z - kLightHeight;   // stored as a float
         CMapObject* followed = OwnerOf(this);
         double dx = static_cast<double>(lightPosition.x) - followed->localPosition_.x;
         double dy = static_cast<double>(lightPosition.y) - followed->localPosition_.y;

@@ -86,7 +86,7 @@ CPlayer* LocalViewPlayer() {
 
 CUnit* ServerUnit(int id) { return g_serverWorld->FindUnit(id); }
 
-// A copy of `v`, normalised unless its length is zero (FCOM, TEST AH,0x40).
+// A copy of `v`, normalised unless its length is zero.
 Vector3 NormalisedUnlessZero(const Vector3& v) {
     Vector3 out{v.x, v.y, v.z};
     float length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));

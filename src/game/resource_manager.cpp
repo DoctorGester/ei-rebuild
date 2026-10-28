@@ -11,7 +11,7 @@ namespace {
 
 bool SameName(const std::string& a, const std::string& b) { return a == b; }
 
-// Closes and deletes every archive (its slot 3, then its scalar deleting destructor) and empties
+// Closes and deletes every archive (closed, then its scalar deleting destructor) and empties
 // the list.
 void CloseAll(std::vector<ArchiveEntry>& archives) {
     for (ArchiveEntry& e : archives) {

@@ -213,7 +213,7 @@ bool CCampPages::DeconstructItem() {
     // A material per one the prototype needs; a material index out of range reads its key through null.
     for (std::uint32_t i = 0; i < copy->GetPrototype()->materialUnits; ++i) {
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(MaterialIndex(copy->prototypeId_));
-        // The text is CString("material") + '.' + key (operator+ twice).
+        // The text is "material" + '.' + key (two concatenations).
         std::string name = MaterialText();
         name += ".";
         name += material->key;

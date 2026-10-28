@@ -1,4 +1,4 @@
-// CDib (MFC class "CDib"): a device independent bitmap as a .bmp file holds one. The game reads loose
+// CDib (the game's class "CDib"): a device independent bitmap as a .bmp file holds one. The game reads loose
 // textures\<name>.bmp overrides with it and writes the screenshots and movie frames a surface capture fills. See
 // docs/notes/models.md ("CDib").
 #pragma once

@@ -359,7 +359,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         int id = object->id_;
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
-        // |ground height + z| below 0.7 (FCOMP with C0: a NaN counts as below).
+        // |ground height + z| below 0.7 (a NaN counts as below).
         float height = flame->offset.z + base.position.z;
         float sum = height;
         std::uint32_t bits;

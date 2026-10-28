@@ -1,4 +1,4 @@
-// Saving and loading a spell (CSpell slots 9 / 10) and an active effect record (MapEffect, which
+// Saving and loading a spell (CSpell's Load / Save) and an active effect record (MapEffect, which
 // the map objects' Load / Save call for each of their effects).
 #include "spell.h"
 

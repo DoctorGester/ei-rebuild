@@ -32,17 +32,17 @@ public:
     std::uint32_t ReadNetState(int first) override { return ReadTorchNetState(first); }
     void WriteNetState() override { WriteTorchNetState(); }
 
-    // map_object_create.cpp. Slot 2 (Create): the map object's Create,
+    // map_object_create.cpp. Create: the map object's Create,
     // the spec released and cleared, 5 network fields (SetSize inlined), then
     // DeltaState::Reset. Returns 1.
     int CreateTorch();
-    // Slot 3 (Destroy). The spec released and cleared, the network state reset
+    // Destroy. The spec released and cleared, the network state reset
     // then the map object's Destroy.
     void DestroyTorch();
     // Returns 1 (no map object update).
     int UpdateTorch();
-    // Slots 9 / 10. The map object part, then the spec's Load / Save
-    // (its slots 9 / 10; the spec must exist).
+    // Load / Save. The map object part, then the spec's Load / Save
+    // (its Load / Save; the spec must exist).
     void LoadTorch(CStream* stream);
     void SaveTorch(CStream* stream);
     // A type 0x4B object (its type_ read before any null test) becomes

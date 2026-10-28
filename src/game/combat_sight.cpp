@@ -20,7 +20,7 @@
 #include <bit>
 #include <cstring>
 
-// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory) are float
+// Values the original keeps unrounded are double locals, values it stores (to memory) are float
 // locals.
 
 namespace {

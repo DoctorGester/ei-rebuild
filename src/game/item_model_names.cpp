@@ -15,7 +15,7 @@ void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t ma
     const ArmorRecord* armor = ArmorAt(armorIndex);
     out->clear();
     if (!material || !armor) return;
-    // The code goes into the stack slot of `materialIndex` (4 bytes): another type keeps the
+    // The code goes into the storage of `materialIndex` (4 bytes): another type keeps the
     // index's bytes there.
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
@@ -28,7 +28,7 @@ void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t 
     const WeaponRecord* weapon = WeaponAt(weaponIndex);
     out->clear();
     if (!weapon || !material) return;
-    // As the armour's: the code goes into the stack slot of `materialIndex`.
+    // As the armour's: the code goes into the storage of `materialIndex`.
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
@@ -36,7 +36,7 @@ void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t 
 }
 
 void WeaponRecordModelName(std::string* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
-    // The code's four bytes are the stack slot `out` was saved in.
+    // The code's four bytes are the stack memory `out` was saved in.
     char code[4];
     std::memcpy(code, &out, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);

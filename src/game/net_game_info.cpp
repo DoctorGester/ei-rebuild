@@ -11,7 +11,7 @@ namespace net {
 namespace {
 
 // A value written the way the record writer inlines it: in place (marking the buffer written)
-// when it fits before `end`, otherwise through slot 4.
+// when it fits before `end`, otherwise through the buffer's virtual call.
 void Put(GameBuffer* buffer, const void* value, unsigned size) {
     if (buffer->cur + size <= buffer->end) {
         buffer->flags |= 1;
@@ -41,7 +41,7 @@ GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
 }
 
 // Reads `size` bytes: past the highest written position through the overflow handler, from memory
-// when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
+// when they lie before `end`, otherwise through the buffer's virtual call. Returns `size` or what the callee left.
 unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
     std::uint8_t* next = cur + size;
     if (next > high) return ReadPastEnd(to, size);

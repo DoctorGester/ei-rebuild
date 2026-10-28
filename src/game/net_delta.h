@@ -75,7 +75,7 @@ struct DeltaField {
     // BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
     int ReadStream(CMemoryStream* to);
     // Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
-    // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float and FISTP.
+    // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float, then to nearest.
     void WritePosition(const Vector3* position);
     // Reads what WritePosition wrote: x, y = q * 0.0083009 - 16; z = q * 0.0029297 - 32.
     // A changed value is also stored in snapshot[1].
@@ -84,7 +84,7 @@ struct DeltaField {
     void WritePosition2D(const float* position);
     void ReadPosition2D(float* position);
     // A value in [min, max] as 16 bits: (v - min) * (65535 / (max - min)),
-    // rounded through a float and FISTP; read back as q * float((max - min) / 65535) + min.
+    // rounded through a float, then to nearest; read back as q * float((max - min) / 65535) + min.
     void WriteRanged(float value, float min, float max);
     void ReadRanged(float* value, float min, float max);
     // A float packed into 16 bits (sign, 7-bit exponent, 8-bit mantissa; see

@@ -69,7 +69,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         }
         brain->memory.calls.Hear(&unit->localPosition_, kind, text.c_str());
     }
-    // The list's RemoveAll: no element destruction.
+    // The list emptied, no element destruction.
     units.clear();
 }
 

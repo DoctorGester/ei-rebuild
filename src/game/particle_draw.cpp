@@ -89,7 +89,7 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
         source = node != objectList_.end() ? sourceOf(*node) : nullptr;
     }
 
-    // Far (greater depth) first; false for NaN (x87 FCOMP / TEST AH,0x41).
+    // Far (greater depth) first; false for NaN.
     lib::IntroSort(order.data(), order.data() + order.size(),
                    [](const ParticleDepth& a, const ParticleDepth& b) { return a.depth > b.depth; });
 

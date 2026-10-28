@@ -15,7 +15,7 @@ void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(
 
 void PutWord(CStream* stream, std::uint32_t value) { Put(stream, &value, 4); }
 
-// vector<int>::resize(n, value), vector<CString>::resize, the stream's CString reader.
+// vector<int>::resize(n, value), vector<string>::resize, the stream's string reader.
 
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 

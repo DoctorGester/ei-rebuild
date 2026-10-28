@@ -41,7 +41,7 @@ void ForEachObject(ObjectMap& objects, F f) {
     }
 }
 
-// CPtrList::AddTail: the new node.
+// Appends to the list: the new node.
 std::list<CEngineObject*>::iterator AddTail(std::list<CEngineObject*>* list, CEngineObject* object) {
     list->push_back(object);
     return std::prev(list->end());

@@ -27,7 +27,7 @@ int ReadCount(lib::File* file) {
 
 // The original's out-of-line Vector3 helpers (the out pointer first).
 
-float One() { return 1.0f /*0073B84C*/; }
+float One() { return 1.0f; }
 
 } // namespace
 

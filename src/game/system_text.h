@@ -89,9 +89,9 @@ int WINAPI MessageBoxA(HWND owner, LPCSTR text, LPCSTR caption, UINT type);
 int WINAPI GetKeyNameTextA(LONG key, LPSTR buffer, int size);
 int WINAPI LoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int size);
 
-// The interface's text draw and extent (MFC's CDC::DrawText, CInterface3D::TextExtent, the
+// The interface's text draw and extent (CDC::DrawText, CInterface3D::TextExtent, the
 // console's prompt width) and its fonts: the wide calls, so text past the assets' code page draws as itself.
-// The lengths are in bytes, as the ANSI calls take them. The fonts keep their LOGFONT, DEFAULT_CHARSET (MFC's
+// The lengths are in bytes, as the ANSI calls take them. The fonts keep their LOGFONT, DEFAULT_CHARSET (as
 // CreatePointFont): with the wide calls a font's charset no longer decides which glyph a byte is.
 int WINAPI DrawTextA(HDC dc, LPCSTR text, int length, LPRECT rect, UINT format);
 BOOL WINAPI GetTextExtentPoint32A(HDC dc, LPCSTR text, int length, LPSIZE size);

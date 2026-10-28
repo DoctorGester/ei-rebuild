@@ -46,7 +46,7 @@ DamageInfo TornadoHit() {
     return hit;
 }
 
-// The snapshot read against was consumed to its end (stream slots 5 and 4, in that order).
+// The snapshot read against was consumed to its end (Position and Size of the stream, in that order).
 bool SnapshotReadToEnd() {
     CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
@@ -88,7 +88,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
         way.y = static_cast<float>(way.y * scale);
         way.z = static_cast<float>(way.z * scale);
         float ticks = static_cast<float>(length / speed);
-        long rounded = x87::RoundToInt(ticks);   // FISTP
+        long rounded = x87::RoundToInt(ticks);
         framesLeft_ = rounded < 0 ? 0 : static_cast<int>(rounded);
     }
     velocity_ = way;

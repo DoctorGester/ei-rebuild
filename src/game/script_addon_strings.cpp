@@ -1,5 +1,5 @@
 // AddNewScriptCommands: addon's string functions and its two text commands. String results are
-// assigned to the string addon gets (its c_str(), as CString::operator=(const char*) took it) from a
+// assigned to the string addon gets (its c_str(), as the game's string assignment took it) from a
 // std::string addon builds first.
 // FloatToStr formats with the C runtime's "%.<n>f" and StrToFloat parses with atof.
 #include "net_classes.h"

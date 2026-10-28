@@ -26,7 +26,7 @@ constexpr float kWaterFalloff = /*007C8908*/ 0.06666667f;   // a static initiali
 // A point light's shading of a colour (r, g, b, a) for a vertex normal is CLight::AddPoint (at `distance` along
 // the unit `direction`): each channel clamped to 1, the alpha copied through.
 
-// Select idiom (FLD a; FCOMP b; FNSTSW; SHL 0x17; SAR 0x1F: C0, "a < b or unordered", picks b).
+// Select idiom: `b` when a < b or unordered.
 float Max(float a, float b) { return a >= b ? a : b; }
 float AtLeastZero(float v) { return v >= 0.0f ? v : 0.0f; }
 
@@ -127,7 +127,7 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
 
 void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
-    // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's FISTP truncates), the word restored at
+    // The game's _controlfp(_RC_CHOP, _MCW_RC): chop rounding (Channel's rounding truncates), the word restored at
     // the end; loaded only when it changes.
     const std::uint32_t control = x87::ControlWord();
     const std::uint32_t chop = (control & ~x87::kRoundingBits) | x87::kRoundChop;

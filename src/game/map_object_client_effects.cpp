@@ -49,8 +49,8 @@ constexpr int kScaleRingSource = 0x201B;   // strengthen / weaken
 constexpr int kFallbackSource = 0x2013;
 
 // The sound distances (10 and 50), read from the exe.
-float SoundNear() { return 10.0f /*0073DBE0*/; }
-float SoundFar() { return 50.0f /*0073DBE4*/; }
+float SoundNear() { return 10.0f; }
+float SoundFar() { return 50.0f; }
 
 // The effect types whose several entries share one particle source (the strongest power wins).
 bool MergesParticles(int type) {

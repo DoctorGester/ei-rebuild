@@ -190,7 +190,7 @@ int CPlayerServer::OnFightAtWill() {
 }
 
 int CPlayerServer::OnLastPosition() {
-    std::uint32_t xy[2];   // copied as dwords
+    std::uint32_t xy[2];   // bit for bit
     g_receivedMessages->Read(xy, 8);
     std::memcpy(&lastPosition_.x, &xy[0], 4);
     std::memcpy(&lastPosition_.y, &xy[1], 4);

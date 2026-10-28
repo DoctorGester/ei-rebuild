@@ -139,7 +139,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     }
     if (!entry) return;
     action2.Reset();
-    // The entry's index byte is read as a dword together with the three bytes after it.
+    // The entry's index byte is read together with the three bytes after it (one 4-byte read).
     int index;
     std::memcpy(&index, &entry->index, sizeof(index));
     action2.param = index;

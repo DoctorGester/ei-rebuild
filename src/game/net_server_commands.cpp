@@ -26,7 +26,7 @@ enum CommandKind : std::uint32_t {
     kBanBySerial = 5,
 };
 
-std::size_t StringNpos() { return 0xFFFFFFFFu /*0073BDE8*/; }
+std::size_t StringNpos() { return 0xFFFFFFFFu; }
 
 bool Is(const std::string& s, const char* t) {
     std::size_t length = std::strlen(t);

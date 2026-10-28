@@ -69,7 +69,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
     target->Destroy();
     target->prototypeId_ = prototypeId_;
-    // +0x20..+0x40 copied as dwords.
+    // +0x20..+0x40 copied bit for bit.
     std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
     CSpell* previous = target->spell_;
     if (spell_) {

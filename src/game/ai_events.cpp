@@ -28,7 +28,7 @@ constexpr int kSides = 16;
 constexpr int kSideMask = kSides - 1;
 constexpr int kWheelMask = kWheelTicks - 1;
 
-// The records' pool (a CList<AIEvent> whose nodes hold them) and the free list (chained through
+// The records' pool (a list whose nodes hold them) and the free list (chained through
 // AIEvent::next).
 constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
 
@@ -55,7 +55,7 @@ void ConstructEventPool() {
 }
 
 AIEventCell* AIEventTable::CellOf(const AIEvent* event) const {
-    // Each coordinate is scaled, stored to a float and rounded to nearest (FISTP).
+    // Each coordinate is scaled, stored to a float and rounded to nearest.
     const int x = x87::fistp(event->x * kCellScale);
     const int y = x87::fistp(event->y * kCellScale);
     if (x < 0 || y < 0 || x >= width || y >= height) return nullptr;
@@ -168,7 +168,7 @@ void AIEventTable::Save(CStream* stream) {
 int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     Clear();
     map = aiMap;
-    const float scale = (-0.125f /*0073FEB0*/);
+    const float scale = (-0.125f);
     const int newWidth = 1 - static_cast<int>(libcrt::Ftol(sizeX * scale));
     const int newHeight = 1 - static_cast<int>(libcrt::Ftol(sizeY * scale));
     if (width != newWidth || height != newHeight) {

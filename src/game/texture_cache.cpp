@@ -23,7 +23,7 @@ constexpr std::uint32_t kCacheable = 0x38;
 const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
 const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 
-// The virtual slot's entry point (rewrite-guide rule 4).
+// The virtual's entry point (rewrite-guide rule 4).
 
 } // namespace
 

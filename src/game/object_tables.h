@@ -27,7 +27,7 @@ BOOL IsTextKey(int id);
 struct AllodRecord {
     std::string name;           // the "#allod" line's second word
     std::string otherNames[5];  // one word on each of the next five lines
-    std::vector<int> maps;    // CDWordArray: the indices of its maps
+    std::vector<int> maps;    // the indices of its maps
 };
 // One "#exit" of a map entry (map_database.cpp loads it): the map database's
 // record, which the world server copies (SetZoneExits) and sends to the client world.
@@ -90,14 +90,14 @@ struct CMapDatabase {
     std::vector<MapRecord> maps;
 };
 
-// The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies) with std::string
+// The game's hash_map<string, float> (the party's and players' variables, the briefing's copies) with std::string
 // keys, in game.exe's hash and bucket order (lib::HashMap: the variables are saved and listed in it), with the
 // named-variable members the game adds.
 struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
 
     // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
     float Get(std::string_view name);
-    // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
+    // Stores `value` under `name`; a zero value (or NaN: the game's equality
     // test) removes the entry instead. Nothing for an empty name.
     void Set(std::string_view name, float value);
     // Removes the entry stored under `name`.

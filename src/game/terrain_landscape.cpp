@@ -25,7 +25,7 @@ using terrain::SectorData;
 
 namespace {
 
-// A sector bound: FISTP of the value stored as a float (stored, then loaded back), divided by 32 towards
+// A sector bound: The value stored as a float and rounded to nearest, divided by 32 towards
 // zero, clamped to 0..count - 1 in this order (a map without sectors gives -1).
 int SectorBound(float value, int count) {
     int sector = x87::fistp(value) / 32;
@@ -111,7 +111,7 @@ constexpr std::uint32_t kLowFlags = 0xFFFF;
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
-// 1 is kept when FCOMP finds 1 below the value, or the two unordered.
+// 1 is kept when 1 is below the value, or the two are unordered.
 float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
 
 } // namespace

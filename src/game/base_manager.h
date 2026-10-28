@@ -107,7 +107,7 @@ public:
 };
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
-// owner drops it afterwards with `--manager->refCount_` (the inlined destructor).
+// owner drops it afterwards with `--manager->refCount_` (the destructor).
 struct ObjectListIterator {
     CBaseManager* manager;
     std::list<CEngineObject*>::iterator position;   // the node Next returns (the list's end: none)

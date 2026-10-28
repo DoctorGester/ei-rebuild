@@ -16,6 +16,6 @@ struct MobScriptDecoder {
     std::vector<char> input;   // coded: the seed, then the bytes
 
     // `text` = the input after the seed, unscrambled; `out` = the text up to its
-    // first zero byte (CString ReleaseBuffer(-1)).
+    // first zero byte (ReleaseBuffer(-1)).
     void Decode(std::string* out);
 };

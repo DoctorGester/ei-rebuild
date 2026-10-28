@@ -40,7 +40,7 @@ int GuardMode::OnShutdown() {
     return 0;
 }
 
-// Floats are copied as dwords (memcpy).
+// Floats are copied bit for bit (memcpy).
 GuardMode* GuardMode::Clone() {
     auto* copy = new GuardMode();
     if (!copy) return nullptr;

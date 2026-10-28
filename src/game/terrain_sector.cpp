@@ -29,16 +29,16 @@ namespace {
 constexpr const char* kSectorExtension = /*00744164*/ ".SEC";
 
 // The constants of this code (all floats in .rdata).
-double One() { return 1.0 /*00744160 f*/; }          // 1: vertex spacing
-double SectorCells() { return 32.0 /*0073CA90 f*/; }
-double Half() { return 0.5 /*0073B86C f*/; }
-double MinusHalf() { return (-0.5 /*0073CDC8 f*/); }
-double OffsetScale() { return 0.007936508394777775 /*00744190 f*/; }  // 1/126: vertex displacement per unit
-double HeightUnit() { return 0.000015259254723787308 /*0073FD84 f*/; }   // 1/65534 (37800100)
-double NormalScale() { return 0.0010000000474974513 /*0074040C f*/; }  // 0.001
-double NormalBias() { return 1000.0 /*0073C34C f*/; }
-double VOne() { return 1.0 /*0073B84C f*/; }         // 1: v = 1 - v
-double Zero() { return 0.0 /*0073B858 f*/; }
+double One() { return 1.0; }          // 1: vertex spacing
+double SectorCells() { return 32.0; }
+double Half() { return 0.5; }
+double MinusHalf() { return (-0.5); }
+double OffsetScale() { return 0.007936508394777775; }  // 1/126: vertex displacement per unit
+double HeightUnit() { return 0.000015259254723787308; }   // 1/65534 (37800100)
+double NormalScale() { return 0.0010000000474974513; }  // 0.001
+double NormalBias() { return 1000.0; }
+double VOne() { return 1.0; }         // 1: v = 1 - v
+double Zero() { return 0.0; }
 
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
@@ -80,7 +80,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;
         for (int vi = 0; vi < kVertices; ++vi, ++rec, ++vin, src += 8) {
-            // Branch-free selects on the FCOMP status (C0): the minimum keeps its value when it is
+            // Branch-free selects on the comparison: the minimum keeps its value when it is
             // below z, the maximum when z is below it (and both when z is NaN).
             float z = vin->z;
             if (z <= s.minZ) s.minZ = z;
@@ -273,7 +273,7 @@ void ComputeBounds(SectorData& s) {
 }
 
 double RawHeight(Terrain* terrain, float x, float y, int layer) {
-    return terrain->HeightAt(x, y, layer);   // ST0 used unrounded
+    return terrain->HeightAt(x, y, layer);   // used unrounded
 }
 
 static_assert(sizeof(Vector4) == 16);
@@ -283,7 +283,7 @@ constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
 // The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
 // g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
-// The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
+// The projected vertices' outcodes (a byte array): built empty by its static initialiser, destroyed once at
 // exit.
 constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
 void DestroyProjectionOutcodes() {
@@ -352,7 +352,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
         waterTiles.clear();
     }
 
-    // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
+    // Vertex positions: one or two layers of 33x33 (resized, zeroing new ones).
     vertices.resize(hasWater ? 2 * kVertices : kVertices);
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
@@ -437,7 +437,7 @@ void SectorData::Build() {
             int k = 0;
             while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
             if (k == std::ssize(waterMaterials))
-                lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));   // CByteArray
+                lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));
         }
         if (hasWater) {
             std::vector<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
@@ -458,7 +458,7 @@ void SectorData::ApplyWaterLevels() {
         for (; k < std::ssize(waterMaterials); ++k) {
             float v = levels[waterMaterials[k]];
             EI_NAN_AUDIT(v);
-            if (v != Zero()) break;     // FCOMP; TEST AH,0x40
+            if (v != Zero()) break;
         }
         if (k == std::ssize(waterMaterials)) return;
         unsigned id = waterMaterials[k];
@@ -487,7 +487,7 @@ const float* Terrain::TileUv(int rotation, int index, int page) {
 }
 
 int Terrain::SurfaceClass(float x, float y) {
-    double unit = 1.0 /*007441D0 f*/;
+    double unit = 1.0;
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;

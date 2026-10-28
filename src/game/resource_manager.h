@@ -20,7 +20,7 @@ struct ArchiveEntry {
 // name. Name provisional. resource_manager.cpp.
 class CResourceManager : public CBaseManager {
 public:
-    // Slot 0 is the scalar deleting destructor.
+    // The scalar deleting destructor.
     // Closes and deletes every archive, then CBaseManager::Destroy.
     void Destroy() override;
     BOOL AddArchive(const std::string& path) override;
@@ -35,7 +35,7 @@ public:
     // figure and material managers' too).
     virtual const char* GetFolderName() = 0;
 
-    // CFigureManager's slot 16, AddArchive with memory-mapped archives.
+    // CFigureManager's AddArchive virtual with memory-mapped archives.
     BOOL AddMmioArchive(const std::string& path);
 
     ~CResourceManager() override;

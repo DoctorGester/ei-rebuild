@@ -182,7 +182,7 @@ void ServerSession::ReportDeparture(Connection* connection, int text) {
     }
 }
 
-// Slots 11 (a client lost: text 4) and 12 (a client left: text 1).
+// A client lost (text 4) and a client left (text 1).
 void ServerSession::OnClientLost(Connection* connection) { ReportDeparture(connection, 4); }
 void ServerSession::OnClientLeft(Connection* connection) { ReportDeparture(connection, 1); }
 

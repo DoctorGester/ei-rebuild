@@ -14,18 +14,18 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// Rounds to double, as FST qword does.
+// Rounds to double.
 double StoreDouble(double v) {
     volatile double r = v;
     return r;
 }
 
 // Constants the game reads from memory at run time.
-#define EI_HALF_F 0.5f /*0073B86C*/
-#define EI_ONE_F 1.0f /*0073B84C*/
-#define EI_ZERO_D 0.0 /*0073C340*/
-#define EI_ONE_D 1.0 /*0073BAC8*/
-#define EI_SLERP_LINEAR 0.0001 /*0073D078*/ // 1e-4: below this 1 - cos interpolates linearly
+#define EI_HALF_F 0.5f
+#define EI_ONE_F 1.0f
+#define EI_ZERO_D 0.0
+#define EI_ONE_D 1.0
+#define EI_SLERP_LINEAR 0.0001   // 1e-4: below this 1 - cos interpolates linearly
 
 // The shared body of the two angle/axis setters: w = cos(angle / 2), (x, y, z) = axis * sin(angle
 // / 2) / |axis|, the factor rounded to float.

@@ -41,8 +41,8 @@ void StandAt(AIPath* path, const int* time, const CMapObject* object) {
     path->excludedBlocks.clear();
     path->smoothing = 0;
     path->reached = true;
-    double scale = static_cast<double>(1.0f /*0073B84C*/) /
-                   (static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
+    double scale = static_cast<double>(1.0f) /
+                   (static_cast<double>(1.0f) * 0.5f);
     path->targetX = static_cast<float>(scale * object->localPosition_.x);
     path->targetY = static_cast<float>(scale * object->localPosition_.y);
     Vector3 facing;

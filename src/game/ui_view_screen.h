@@ -33,7 +33,7 @@ struct UnitPickInput final : UiInputSide {
     // Ctrl released: cursor 0.
     void OnKeyUp(int key, int repeat, int flags);
 
-    std::vector<std::uint32_t> picked_;            // ids of the picked units (CDWordArray)
+    std::vector<std::uint32_t> picked_;            // ids of the picked units
 };
 
 // Screen 7 (0x168 bytes: a container; CreateScreen constructs it inline). Its virtuals but draw, create and

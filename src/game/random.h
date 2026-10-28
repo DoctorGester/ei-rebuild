@@ -20,7 +20,7 @@ public:
     // Generates the next 256 results (reference isaac()).
     void Refill();
 
-    // Next() * (max - min) * ~2^-32 + min, left unrounded in ST0 (random.cpp).
+    // Next() * (max - min) * ~2^-32 + min, left unrounded (random.cpp).
     float Range(float min, float max);
 
     // Once (while seeded_ is 0): seeds results_ (1 KB of a random file on C:\,

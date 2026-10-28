@@ -57,6 +57,6 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
             }
         }
     }
-    // The list's RemoveAll: no element destruction.
+    // The list emptied, no element destruction.
     candidates.clear();
 }

@@ -70,7 +70,7 @@ void BuildCellGrid(CUiWindow* window) {
             AddRect(window, RECT{left, top, right, bottom});
             u = 0x9C - u;
         }
-        depth = static_cast<float>(D(depth) * D(0.5f /*0073B86C*/));   // * 0.5
+        depth = static_cast<float>(D(depth) * D(0.5f));   // * 0.5
         v = 0x9C - v;
     }
     window->AddSurface(new CUiSurface(window->interface_, 200, 100, 600, 500, 5, 1));
@@ -189,20 +189,20 @@ void CHeroStatsPanel::DrawStats() {
         DrawRow(&rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5], static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5], static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
         DrawRow(&rect, texts_[6], points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
-        double minimum = D(15.0f /*00741EFC*/);
+        double minimum = D(15.0f);
         int values[3] = {strength, dexterity, intelligence};
         float storedStats[3];
         for (int i = 0; i < 3; ++i) {
             double value = static_cast<double>(values[i]);
             storedStats[i] = static_cast<float>(value);
-            std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
+            std::uint32_t colour = value > minimum ? kBright : kGrey;
             draw->DrawLine("-", &rect, 0, colour, 1, 1);
             Down(&rect);
         }
@@ -211,9 +211,9 @@ void CHeroStatsPanel::DrawStats() {
         draw->DrawLine("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
-        int left = static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF)));
+        int left = static_cast<int>(libcrt::Ftol(D(75.0f) - D(sumF)));
         rect = RECT{0xA0, 0x41, 0xB4, 0x50};
-        double maximum = D(35.0f /*00741F00*/);
+        double maximum = D(35.0f);
         for (int i = 0; i < 3; ++i) {
             EI_NAN_AUDIT(storedStats[i]);
             bool below = D(storedStats[i]) < maximum;
@@ -325,7 +325,7 @@ void CHeroEquipPanel::Build(bool body) {
         frame->visible_ = 0;
     }
     // The slots' frames: four on the left half, four on the right, each half with its strip.
-    float cell = 100.0f /*0073BAB0*/;
+    float cell = 100.0f;
     for (int i = 0; i < 4; ++i)
         AddBlankSprite()->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);

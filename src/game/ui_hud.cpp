@@ -71,10 +71,10 @@ constexpr int kNormalPeriod = 55;
 constexpr int kFastPeriod = 27;
 
 // The constants the movement panel's marker is placed with, read where the game reads them.
-float Pi() { return 3.1415927f /*007423F8*/; }
-float Sixteenth() { return 0.0625f /*0073D040*/; }
-float MarkerRadius() { return 73.0f /*00742B10*/; }
-float MarkerCentreY() { return 600.0f /*00742B0C*/; }
+float Pi() { return 3.1415927f; }
+float Sixteenth() { return 0.0625f; }
+float MarkerRadius() { return 73.0f; }
+float MarkerCentreY() { return 600.0f; }
 constexpr float kMarkerDepth = 8.0f;
 
 // The map's centre in the layout, and the camera flag a click on the map clears.
@@ -118,7 +118,7 @@ void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int qui
 
 constexpr int kCategoryWand = 8;
 // The factor turning a random dword into the portraits' negative start delay.
-double PortraitDelayScale() { return (-6.984919588798148e-11 /*00742760*/); }
+double PortraitDelayScale() { return (-6.984919588798148e-11); }
 // A random value times ~-2^-34 * 0.3, stored the way the original does.
 float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
@@ -137,7 +137,7 @@ bool IsZero(float value) {
 }
 
 // The constant 1.0f the zone variable is compared with.
-float GameOne() { return 1.0f /*0073B84C*/; }
+float GameOne() { return 1.0f; }
 
 } // namespace
 

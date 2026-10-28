@@ -32,7 +32,7 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
     return record ? static_cast<int>(record - g_unitDatabase->prototypes.records.data()) : -1;
 }
 
-// Writes `value` from a stack copy, as for most scalars.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
@@ -180,7 +180,7 @@ void CUnit::SaveUnit(CStream* stream) {
     WriteCopy(stream, standingHeight);
     stream->Write(&fightAtWill, 4);
 
-    // The prototype's name (the record's first field is a CString; a record out of range is copied from
+    // The prototype's name (the record's first field is a string; a record out of range is copied from
     // address 0), then the second prototype's or "".
     std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name;
     stream->WriteString(prototypeName);

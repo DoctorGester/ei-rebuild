@@ -20,7 +20,7 @@ public:
 };
 
 // Kept: the map object kinds are the class names (one instance of PlainMapObject per class id).
-// Constructor, destructor, deleting destructor; slots 11 / 12.
+// Constructor, destructor, deleting destructorand two more virtuals.
 using CTree = PlainMapObject<0x52>;
 using CStone = PlainMapObject<0x53>;
 using CBuilding = PlainMapObject<0x54>;

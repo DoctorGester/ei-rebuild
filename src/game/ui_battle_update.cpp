@@ -112,7 +112,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
             AddItem(model, image);
         }
         finish(item, false);
-        // The same CString serves as the second and third texts.
+        // The same string serves as the second and third texts.
         g_clientWorld->texts_->GetItemTexts(item, &tip, &unused, &unused);
         regions_[slot]->SetTipString(tip, 1, 0);
         place(slot);
@@ -128,7 +128,7 @@ namespace {
 static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
     return unit->GetPrototype();
 }
-// The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
+// The unit panel's model view for the unit it now shows, copied from the prototype bit for bit: the
 // size from `first`'s, the height from the shown unit's (+0x24; the same unit).
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
@@ -183,7 +183,7 @@ void RebuildClientParty(CBattleScreen* screen) {
             if (!unit) continue;
             if (unitId == ids.camera) {
                 g_clientWorld->Select(unit);
-                // Insert at the front (InsertAt).
+                // Insert at the front.
                 int n = std::ssize(*party);
                 if (n <= 0) {
                     party->resize(1);
@@ -216,7 +216,7 @@ bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
     return true;
 }
 
-// FCOMP; TEST AH,0x40: equal.
+// Equal.
 bool Equal(float a, float b) {
     EI_NAN_AUDIT(a, b);
     return a == b;
@@ -272,7 +272,7 @@ void CBattleScreen::Update() {
         }
     }
 
-    // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
+    // The selection box: party units inside it are marked (flag 0x100 and their figure's select virtual
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         std::list<CMapObject*> units;
@@ -375,7 +375,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = kHudQuarterTurn *
-                                    0.14285715f /*0073CDCC*/;   // 1/7
+                                    0.14285715f;   // 1/7
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
@@ -397,8 +397,8 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
     std::string text;
     std::string title;
     text::Split(name, &parts, '.');
-    const float complete = 2.0f /*0073CDB8*/;
-    const float failed = 3.0f /*0073BAA4*/;
+    const float complete = 2.0f;
+    const float failed = 3.0f;
     if (parts.size() == 3) {
         const char* key;
         if (Equal(value, complete)) {
@@ -426,9 +426,9 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
             const char* dot = ".";
             std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable);
-            // FCOMP of the unrounded result with 0; TEST AH,0x40.
+            // The unrounded result compared with 0.
             EI_NAN_AUDIT(current);
-            if (current == static_cast<double>(0.0f /*0073B858*/)) return;
+            if (current == static_cast<double>(0.0f)) return;
         }
         const char* key;
         if (Equal(value, complete)) {

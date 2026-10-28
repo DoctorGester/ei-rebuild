@@ -104,7 +104,7 @@ void CBriefingScreen::StartPhrases() {
 }
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
-    // (The name is compared through a CString copy.)
+    // (The name is compared through a copy.)
     bool human = str::Compare(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
@@ -180,7 +180,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         y = facing.y;
     }
     double length = std::sqrt(LengthSquared2DUnrounded(y, x));
-    // FCOM with zero, TEST AH,0x40.
+    // Compared with zero.
     EI_NAN_AUDIT(length);
     if (length != 0.0) {
         double inverse = 1.0 / length;

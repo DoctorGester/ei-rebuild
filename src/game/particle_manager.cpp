@@ -11,7 +11,7 @@ constexpr int kStoppedTypeA = 0x2001;
 constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
 
-// The inlined iterator destructor: the manager's count drops without a release.
+// The iterator destructor: the manager's count drops without a release.
 void EndWalk(ObjectListIterator& it) {
     if (it.manager) --it.manager->refCount_;
 }
@@ -42,7 +42,7 @@ int CParticleManager::Create() {
 }
 
 // The held sources are released walking the table (a null value ends the walk, as in the original's
-// for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (RemoveHead,
+// for_each); the table is cleared (count and highest id 0); every pooled particle is deleted (taken off the list one by one,
 // which frees the list's blocks with the last node).
 void CParticleManager::Destroy() {
     for (auto node = held_.begin(); node != held_.end() && node->second; ++node)

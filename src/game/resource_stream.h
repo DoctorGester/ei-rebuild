@@ -11,7 +11,7 @@
 
 // Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
 // entry of an archive opened with mmio (the archive part is never opened: its Open, has no
-// callers). ResourceStreamClass (slot 0 the deleting destructor). 0x34 bytes. A real virtual class:
+// callers). ResourceStreamClass (virtual deleting destructor). 0x34 bytes. A real virtual class:
 // the compiler makes its vtable.
 struct CResourceStream : CResourceBase {
     CResourceStream();                              // no file, no archive

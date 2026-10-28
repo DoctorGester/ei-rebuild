@@ -1,5 +1,5 @@
 // The animation track's lifetime (AnimationTrack, class 0x300B, 0x78 bytes;
-// map_object_animation.h): constructor, reset (slots 2 / 3), destructor and deleting destructor.
+// map_object_animation.h): constructor, reset, destructor and deleting destructor.
 // A bone's manager makes the tracks; the bones hold them counted.
 // See docs/notes/map_objects.md.
 #include "map_object_animation.h"

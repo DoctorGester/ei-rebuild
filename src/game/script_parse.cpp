@@ -18,7 +18,7 @@
 #include <new>
 #include <string>
 
-// ---- Game CRT and MFC helpers (local to the loader) ---------------------------------------------
+// ---- Game CRT and library helpers (local to the loader) ---------------------------------------------
 
 namespace scriptparse {
 

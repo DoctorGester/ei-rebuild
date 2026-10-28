@@ -82,7 +82,7 @@ constexpr int kSourceAlpha = 5;          // D3DBLEND_SRCALPHA
 constexpr int kInverseSourceAlpha = 6;   // D3DBLEND_INVSRCALPHA
 constexpr const char* kNoWoundsTexture = "Can't create wounds texture for object \"%s\" ID = %d\n";
 
-// *slot = texture with counted references; the old one released (its slot 4).
+// *slot = texture with counted references; the old one released.
 void AssignTexture(CTexture** slot, CTexture* value) {
     CTexture* old = *slot;
     *slot = value;

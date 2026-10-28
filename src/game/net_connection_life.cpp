@@ -36,7 +36,7 @@ void DestroyForReset(Connection* c) {
     FreeReceived(c);
 }
 
-// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
+// The entry's counted object pointer released as the original inlines it (16-bit count; the virtual destructor
 // deletes at zero).
 void ReleaseEntryObject(ReplicaEntry* e) {
     CRefObject* object = e->object_.ptr;
@@ -58,7 +58,7 @@ Connection::Connection(std::uint32_t id) {
     if (session) {
         roundTrip_ = static_cast<float>(static_cast<double>(session->maxRoundTrip_));
     } else {
-        roundTrip_ = 5.0f /*0073BF34*/;
+        roundTrip_ = 5.0f;
     }
     double old = roundTripSquare_;   // never written before: whatever the allocation held
     sendSequence_ = static_cast<std::uint16_t>(tick);
@@ -110,7 +110,7 @@ Connection::Connection(const Connection& other)
     lastReceived_ = other.lastReceived_;
     sequenceHigh_ = other.sequenceHigh_;
     received_ = other.received_;
-    // id, round trips; timers, clock, budget: copied as dwords.
+    // id, round trips; timers, clock, budget: copied bit for bit.
     std::memcpy(&id_, &other.id_, offsetof(Connection, address_) - offsetof(Connection, id_));
     address_ = other.address_;
     std::memcpy(&sendInterval_, &other.sendInterval_, offsetof(Connection, idPools_) - offsetof(Connection, sendInterval_));

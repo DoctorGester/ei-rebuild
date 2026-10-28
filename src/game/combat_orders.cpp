@@ -42,7 +42,7 @@ const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
     return unit->GetPrototype();
 }
 
-// The inlined reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
+// The reset of an order: kind 9, target released, pointIsUseSpot / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
     order->kind = 9;
     if (order->target) order->target->Release();

@@ -48,7 +48,7 @@ int IsGone(CMapObject* object) { return object->IsDead(); }
 template <typename T>
 void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
 
-// Each scalar is copied into a stack slot before it is written.
+// Writes `value`'s bytes.
 template <typename T>
 void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     T copy = value;
@@ -92,7 +92,7 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a CPtrList built on
+// The static candidate list of Aggression::Evaluate (guard bit 0 of g_candidatesGuard): a list built on
 // first use and destroyed at exit.
 constinit lib::StaticObject<CountedUnits> g_candidates = /*007C54C8*/ {};
 std::uint8_t g_candidatesGuard = /*007C54E4*/ {};
@@ -274,7 +274,7 @@ void PatrolMode::Save(CStream* stream) {
         WriteCopy(stream, std::ssize(point.looks));
         for (int j = 0; j < std::ssize(point.looks); ++j) {
             const AILook& look = point.looks[j];
-            // Each float goes through a stack copy as a dword (integer moves).
+            // Each float is written as its bits.
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
             WriteCopy(stream, std::bit_cast<std::uint32_t>(look.wait));

@@ -58,7 +58,7 @@ void Lever::SetState(int wanted, float duration) {
     float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
     if (duration > 0.0f) {
         to = travel;
-        std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
+        std::memcpy(&from, &scale.y, sizeof(from));   // bit for bit
         endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
         rate = 1.0f / duration;
     } else {
@@ -91,7 +91,7 @@ void Lever::SetState(int wanted, float duration) {
 }
 
 void Lever::CollectUseSpots(std::vector<Vector3>* out, float userRadius) {
-    // out->RemoveAll().
+    // the array emptied.
     lib::FreeStorage(*out);
     const LeverRecord* record = g_leverTable->Named(name);
     if (!record || record->spotCount == 0) return;

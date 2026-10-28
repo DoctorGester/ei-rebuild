@@ -30,9 +30,9 @@ void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject
 namespace {
 
 // Distance limits, read from the exe's memory (rule 9).
-float ViewRange() { return 100.0f /*0073F91C*/; }        // objects seen around the camera
-float HearingScale() { return 2.0f /*0073F910*/; }     // unit perception scale
-float HearingMargin() { return 5.0f /*0073BF34*/; }    // added to it
+float ViewRange() { return 100.0f; }        // objects seen around the camera
+float HearingScale() { return 2.0f; }     // unit perception scale
+float HearingMargin() { return 5.0f; }    // added to it
 // Non-zero in a multiplayer game seen from a spectator (no camera-range test for map objects).
 
 constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent

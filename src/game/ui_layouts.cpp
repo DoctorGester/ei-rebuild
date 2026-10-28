@@ -106,7 +106,7 @@ SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
 
 
 struct TitlesTokenizer : TextTokenizer {
-    // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
+    // The current word, or "" past the last one (the original assigned null to a string, which keeps "").
     const char* WordOrEmpty() const { return position != -1 ? word.c_str() : ""; }
 };
 

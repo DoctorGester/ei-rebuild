@@ -30,10 +30,10 @@ namespace {
 // --- Float helpers -------------------------------------------------------------------------------
 
 // The exe's constants: the cell size, 0.5, 1.0, the stamina drain step (double).
-float CellSize() { return 1.0f /*0073EEE4*/; }
-float Half() { return 0.5f /*0073B86C*/; }
-float One() { return 1.0f /*0073B84C*/; }
-double DrainStep() { return 0.006666666666666666 /*0073F088*/; }
+float CellSize() { return 1.0f; }
+float Half() { return 0.5f; }
+float One() { return 1.0f; }
+double DrainStep() { return 0.006666666666666666; }
 
 void ToHalfCells(float* xy) {
     const double factor = One() / (static_cast<double>(CellSize()) * Half());

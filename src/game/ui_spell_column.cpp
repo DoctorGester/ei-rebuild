@@ -77,7 +77,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             else
                 line = str::Format("%s %d  ", labels[2].c_str(), Truncate(Get<float>(data, 0x24)));
             tip += line;
-            const float one = 1.0f /*0073B84C*/;
+            const float one = 1.0f;
             float duration = Get<float>(data, 0x30);
             EI_NAN_AUDIT(duration);
             if (duration < one)
@@ -92,7 +92,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             } else {
                 // The area: radius squared times pi (a float).
                 float radius = Get<float>(data, 0x28);
-                double area = static_cast<double>(radius) * radius * 3.1415927f /*007423F8*/;
+                double area = static_cast<double>(radius) * radius * 3.1415927f;
                 line = str::Format("%s %.1f%s \n", labels[5].c_str(), area, labels[10].c_str());   // "%s %.1f%s \n"
             }
             tip += line;
@@ -101,7 +101,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
                 line = str::Format("%s %s  ", labels[6].c_str(), labels[8].c_str());
             } else {
                 // Ticks to seconds (1/15).
-                double seconds = x87::FromUnsigned(ticks) * 0.06666667f /*00740544*/;
+                double seconds = x87::FromUnsigned(ticks) * 0.06666667f;
                 line = str::Format("%s %.1f%s  ", labels[6].c_str(), seconds, labels[11].c_str());
             }
             tip += line;

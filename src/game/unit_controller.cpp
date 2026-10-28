@@ -53,7 +53,7 @@ void CUnit::SetPlayer(CPlayer* newPlayer) {
 }
 
 void CUnit::ReleaseUnit() {
-    // The map object's slot 5 is empty.
+    // The map object's virtual here is empty.
     SetPlayer(nullptr);
     if (controller) controller->ClearState();
     ReleaseSlots(quickItems, 4);

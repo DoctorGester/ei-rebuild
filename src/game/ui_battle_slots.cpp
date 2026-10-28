@@ -34,7 +34,7 @@ constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a se
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
-    return kHudQuarterTurn * 0.14285715f /*0073CDCC*/;
+    return kHudQuarterTurn * 0.14285715f;
 }
 
 constexpr std::uint32_t kLeaveZoneYes = 0x10001;
@@ -102,7 +102,7 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
 void CBattleScreen::SaveState() {
     CStream* stream = &g_saveStream.Get();
     auto& party = party_;
-    // The ids go through a CDWordArray first; the bytes written are the same.
+    // The ids go through an array first; the bytes written are the same.
     int count = 0;
     for (int i = 0; i < std::ssize(party); ++i)
         if (party[i]->flags_ & kUnitSelected) ++count;

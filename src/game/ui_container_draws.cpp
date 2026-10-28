@@ -75,7 +75,7 @@ int CHeroEquipPanel::Draw(CSceneRenderer* pass) {
     std::uint32_t quick = hero->weaponIndex;
     if (quick < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
         frame(0)->visible_ = 1;
-        // The unsigned slot * 100 + 50 is converted through a 64-bit FILD.
+        // The unsigned slot * 100 + 50 is converted as a 64-bit integer.
         frame(0)->Place(static_cast<float>(x87::FromUnsigned(quick * 100u + 50u)), 50.0f, 3.0f);
     } else {
         frame(0)->visible_ = 0;

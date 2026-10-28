@@ -17,7 +17,7 @@ void CEngineObject::Load(CStream*) {}
 void CEngineObject::Save(CStream*) {}
 
 // When the last reference goes, the owning manager releases the object (its
-// slot 24, CBaseManager::ReleaseObject). EAX holds `this`, or what the manager's slot 24
+// CBaseManager::ReleaseObject). The result is `this`, or what the manager's call
 // leaves there; no caller reads it.
 void CEngineObject::Release() {
     if (--refCount_ == 0) owner_->ReleaseObject(this);

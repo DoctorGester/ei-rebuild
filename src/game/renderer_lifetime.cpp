@@ -1,7 +1,7 @@
 // The scene renderer's lifetime and small slots (the renderer; its base class, owns +0x04.. +0x1C):
 // constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
-// figure draws (slots 13 / 14), the line list draw (15), the gamma getter (23), the surfaces' restore after a
-// switch back (24), and the device object's counted holder. The old Direct3D 7 path, kept as it is
+// figure draws, the line list draw, the gamma getter, the surfaces' restore after a
+// switch back, and the device object's counted holder. The old Direct3D 7 path, kept as it is
 // (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
@@ -75,7 +75,7 @@ CVisualizator::~CVisualizator() { DestroyBase(); }
 void CVisualizator::SetBaseColour(std::uint32_t colour) {
     colour_ = colour;
     ITransformPipeline* transform = pipeline_->transform_;
-    // Each byte (FILD of a 64-bit integer) times the float constant, stored as the float argument.
+    // Each byte (as a 64-bit integer) times the float constant, stored as the float argument.
     const int red = static_cast<int>((colour >> 16) & 0xFF);
     const int green = static_cast<int>((colour >> 8) & 0xFF);
     const int blue = static_cast<int>(colour & 0xFF);
@@ -97,7 +97,7 @@ void CVisualizator::SetSun(CLight* light) {
 
 void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
-    // Each product is stored as a float, then FISTP rounds it to the nearest integer.
+    // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
     const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));

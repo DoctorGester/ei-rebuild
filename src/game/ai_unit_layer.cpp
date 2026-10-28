@@ -9,7 +9,7 @@
 namespace {
 
 // A node from the free list, or a new one appended to the layer's list. The original copies an
-// uninitialised stack element into a new node's data (MFC AddTail of a default element); the
+// uninitialised stack element into a new node's data (a default element appended to the list); the
 // fields are written before the node is used, so ours leaves NewNode's zeros.
 UnitLayerNode* TakeNode(CUnitLayer* layer) {
     if (UnitLayerNode* node = layer->freeNodes) {

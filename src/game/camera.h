@@ -201,20 +201,20 @@ inline constexpr float kHalfPi = /*0079B2A4*/ 1.5707964f;
 inline constexpr Vector3 kZeroVector = /*0079B5C8*/ {0.0f, 0.0f, 0.0f};
 inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 0.0f};
 
-#define CAM_PI 3.141592653589793 /*0073B9A0*/
-#define CAM_NINETY 90.0 /*0073BAB8*/
-#define CAM_FORTY_FIVE 45.0 /*0073BA28*/
-#define CAM_TWO_SEVENTHS 0.2857142857142857 /*0073B9D8*/
-#define CAM_ONE_D 1.0 /*0073BAC8*/
-#define CAM_ZOOM_STEP 1.0499999523162842 /*0073BAD8*/
-#define CAM_LOOK_EPSILON 1e-18 /*0073BAE8*/            // squared length
-#define CAM_ALIGN_EPSILON 0.1 /*0073BA90*/
-#define CAM_ONE 1.0f /*0073B84C*/
-#define CAM_MINUS_ONE (-1.0f /*0073B854*/)
-#define CAM_ZERO 0.0f /*0073B858*/
-#define CAM_TENTH 0.1f /*0073BA80*/
-#define CAM_OBJECT_EXTENT_LIMIT 100.0f /*0073BAB0*/
-#define CAM_OBJECT_FADE 10.0f /*0073BAAC*/
+#define CAM_PI 3.141592653589793
+#define CAM_NINETY 90.0
+#define CAM_FORTY_FIVE 45.0
+#define CAM_TWO_SEVENTHS 0.2857142857142857
+#define CAM_ONE_D 1.0
+#define CAM_ZOOM_STEP 1.0499999523162842
+#define CAM_LOOK_EPSILON 1e-18   // squared length
+#define CAM_ALIGN_EPSILON 0.1
+#define CAM_ONE 1.0f
+#define CAM_MINUS_ONE (-1.0f)
+#define CAM_ZERO 0.0f
+#define CAM_TENTH 0.1f
+#define CAM_OBJECT_EXTENT_LIMIT 100.0f
+#define CAM_OBJECT_FADE 10.0f
 #define CAM_DEGREE ei::kRadiansPerDegree                             // one degree in radians (pi * 1/180 at 24 bits)
 #define CAM_RIGHT_ANGLE static_cast<float>(CAM_DEGREE * CAM_NINETY)
 

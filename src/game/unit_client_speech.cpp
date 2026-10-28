@@ -1,4 +1,4 @@
-// What a unit says on the client: the speech queue of CUnitClientSpecific (slots 51 / 52) and
+// What a unit says on the client: the speech queue of CUnitClientSpecific and
 // playing a speech. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 

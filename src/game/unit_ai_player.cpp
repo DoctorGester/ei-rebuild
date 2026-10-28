@@ -29,7 +29,7 @@ constexpr float kNoRadius = -1.0f;
 
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
-// A list on the stack (CPtrList, blocks of 10).
+// A list on the stack.
 void InitList(CountedUnits& list) {
     list = {};
 }

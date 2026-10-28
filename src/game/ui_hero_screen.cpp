@@ -39,7 +39,7 @@ const char* const kLabelFormat = "%s %d";
 const char* const kSelectVoiceKey = "lmp_select_voice";
 
 // The points a new hero's three attributes must add up to before it can be created.
-float NewHeroPoints() { return 75.0f /*00741C98*/; }
+float NewHeroPoints() { return 75.0f; }
 // The preview's full turn (2 pi), the modulus of its angle.
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 // The multiplayer heroes (their vector of SavedHero).
@@ -60,7 +60,7 @@ UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
 
 const char* const kVoicesKey = "lmp_voices";
 // The voice rows' first y offset of the selection frame.
-float VoiceFrameTop() { return 332.5f /*00741C94*/; }
+float VoiceFrameTop() { return 332.5f; }
 constexpr int kSelectionFrame = 2;           // scene object
 constexpr std::uint32_t kListColour = 0xA7D7E4;
 constexpr int kListFormat = 0x800;

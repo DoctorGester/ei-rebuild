@@ -25,7 +25,7 @@
 
 namespace {
 
-// CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
+// A list's NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
 void Append(std::list<CItem*>* list, CItem* object) {
     ++object->refCount_;
@@ -46,7 +46,7 @@ void RollGold(const UnitGoldRoll& roll, int* gold) {
     int amount = x87::fistp(low);
     if (high > low) {
         double random = x87::FromUnsigned(g_random.Next());
-        const double scale = 2.3283064370807974e-10 /*0073C468*/;   // 1 / 0xFFFFFFFF
+        const double scale = 2.3283064370807974e-10;   // 1 / 0xFFFFFFFF
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }
     int percent = libcrt::Rand() * 100 / 0x7FFF % 100 + 1;

@@ -93,8 +93,8 @@ const std::uint8_t* PicturePixels(const MmpHeader* picture) {
 }
 
 // The picture's pixels into the holder's memory `pixels`. The device's pixel converter (2DintMMX's graphics
-// processor): slot 1 takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another) and its alpha, red, green
-// and blue masks; slot 2 converts one row of 8888 pixels (out, in, format, count).
+// processor): the first call takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another) and its alpha, red, green
+// and blue masks; the second converts one row of 8888 pixels (out, in, format, count).
 void FillPicture(CDXSurface* holder, const MmpHeader* picture, const SurfacePixels& pixels) {
     const std::uint8_t* source = PicturePixels(picture);
     std::uint8_t* out = pixels.bits;

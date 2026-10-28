@@ -82,13 +82,13 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
         field->ReadString(&read);
         name_ = read;
     }
-    // The count is read into the stack slot of `field` (ReadDelta always stores it).
+    // The count is read into the storage of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
     field->ReadDelta(&count, 4);
     std::vector<std::string>& others = names_;
     others.resize(static_cast<std::size_t>(count));
     for (std::string& other : others) {
-        std::string read;   // reuses the name's stack slot, like the original
+        std::string read;   // reuses the name's storage, like the original
         field->ReadString(&read);
         other = read.c_str();
     }

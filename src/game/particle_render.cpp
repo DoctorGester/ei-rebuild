@@ -22,13 +22,13 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// A zero-extended dword loaded with FILD qword (exact).
+// A zero-extended dword as a double (exact).
 double Unsigned(std::uint32_t value) {
     volatile std::int64_t wide = value;
     return static_cast<double>(wide);
 }
 
-#define EI_ONE 1.0f /*0073B84C*/
+#define EI_ONE 1.0f
 
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 void FreeVertices() { lib::FreeStorage(g_vertices); }
