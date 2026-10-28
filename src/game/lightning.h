@@ -7,15 +7,15 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
-#include "lib/containers.h"
-#include <cstdint>
 #include "maths.h"
 #include "model.h"   // ClipBounds
 
+#include "lib/containers.h"
+
 #include <cstddef>
+#include <cstdint>
 #include <list>
 #include <vector>
-
 
 // One polyline point (16 bytes: the fourth float is never written here).
 struct LightningPoint {

@@ -9,6 +9,7 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "options.h"
+#include "render/render.h"
 #include "spell.h"
 #include "terrain.h"
 #include "terrain_sector.h"
@@ -16,8 +17,6 @@
 #include "world.h"
 
 #include "lib/vecmath.h"
-
-#include "render/render.h"
 
 #include <algorithm>
 #include <bit>

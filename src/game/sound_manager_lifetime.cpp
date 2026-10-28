@@ -1,23 +1,21 @@
 // The sound manager's engine object slots, its wave sources and sound folder, and the music stream's file
 // reading; the constructor / destructor bodies; the Miles setup Open / Close / Reset.
-#include "sound.h"
-#include "options.h"
+#include "game_data.h"
 #include "game_strings.h"
 #include "mod_folders.h"
+#include "options.h"
+#include "sound.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-
-#include "lib/thread.h"
-#include "game_data.h"
 #include "lib/str.h"
+#include "lib/thread.h"
 
 #include <cstring>
 #include <memory>
 #include <new>
 #include <string>
 #include <vector>
-
 
 namespace {
 constexpr const char* kSoundManagerClassNameAddress = "CSoundManager";

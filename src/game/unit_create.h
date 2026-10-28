@@ -5,14 +5,13 @@
 
 #include "resource_manager.h"
 
+#include "lib/hash_map.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "lib/hash_map.h"
-
-#include <vector>
 #include <unordered_map>
-
+#include <vector>
 
 struct FigureAnimation;
 class CUnit;

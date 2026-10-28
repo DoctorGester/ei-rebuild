@@ -8,7 +8,6 @@
 
 #include <cstdint>
 
-
 class CPlayer;
 
 class CPlayerManager : public CBaseManager {

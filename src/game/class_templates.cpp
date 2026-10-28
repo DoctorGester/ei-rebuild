@@ -10,11 +10,11 @@
 #include "item_stock.h"
 #include "party.h"
 #include "party_manager.h"
+#include "spell.h"
+
 #include "lib/crt.h"
 
-
 #include <cstring>
-#include "spell.h"
 
 namespace {
 

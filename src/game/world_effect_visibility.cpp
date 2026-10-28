@@ -1,17 +1,15 @@
 // CEffectShowVisibility: a unit's sight shown in the fog of war (clairvoyance). See world_effect.h
 // and docs/notes/effects.md ("Missiles and visibility").
-#include "world_effect.h"
-
 #include "ai_grids.h"
 #include "map_object.h"
-#include "world.h"
 #include "unit.h"
 #include "unit_ai.h"
+#include "world.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
 
 #include <cstring>
-
 
 namespace {
 

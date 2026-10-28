@@ -1,21 +1,20 @@
 // The game client's tick and its award handling: timers count down,
 // and received awards are applied to the local player. See net_classes.h and docs/notes/network.md.
 
-#include "net_messages.h"
 #include "core_refcount.h"
+#include "game_singletons.h"
 #include "item.h"
+#include "net_messages.h"
 #include "party.h"
 #include "player_messages.h"
+#include "world.h"
 
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
+
 #include <bit>
 #include <cstdint>
 #include <cstring>
-
-#include "world.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
-
 #include <list>
 
 namespace net {

@@ -6,9 +6,6 @@
 // GetClassId gives the recorded class (CUnit::GetMoveSpeeds is defined here and gives the recorded
 // speeds). The sector map's Add and Remove, which FindPath calls around its search, change nothing
 // here: FindPath's map was recorded with the unit already taken out.
-#include "path_vectors.h"
-#include "vectors.h"
-
 #include "../../src/game/ai_grids.h"
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
@@ -18,8 +15,8 @@
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"
 #include "game/game_data.h"
-
-#include <windows.h>
+#include "path_vectors.h"
+#include "vectors.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 namespace {
 
@@ -551,8 +549,7 @@ bool CheckSmooth(Reader& r, char* d, std::size_t n) {
     }
     // Rebuilt cells carry the plain words (SV7d2); a path left alone keeps its own.
     if (actual != 0 && std::ssize(list) != before)
-        for (auto& node : list)
-            plain = plain && node.flags == kPlainStepSpeed && node.terrainBits == 0;
+        for (auto& node : list) plain = plain && node.flags == kPlainStepSpeed && node.terrainBits == 0;
     if (actual != expected || ours != cells) {
         std::snprintf(d, n, "%d cells, direction %d, fraction %g: ours %d with %d cells, original %d with %u cells", before,
                       startDirection, fraction, actual, std::ssize(list), expected, count);

@@ -1,11 +1,10 @@
 // A creature's starting vitals and statistics from its prototype records, the prototype applied
 // to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md ("Creation,
 // databases, save").
-#include "unit_create.h"
-
 #include "base_manager.h"
 #include "item.h"
 #include "lever.h"
+#include "logic_settings.h"
 #include "magic_trap.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -14,14 +13,14 @@
 #include "torch.h"
 #include "trap_object.h"
 #include "unit.h"
+#include "unit_create.h"
 #include "unit_db.h"
 
 #include "lib/crt.h"
-
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-#include "logic_settings.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>

@@ -5,7 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-
 namespace {
 
 bool SameName(const std::string& a, const std::string& b) { return a == b; }

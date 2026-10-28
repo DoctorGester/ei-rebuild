@@ -10,19 +10,17 @@
 #include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
-#include "model.h"              // FootprintPart (the part boxes)
+#include "model.h"   // FootprintPart (the part boxes)
 
 #include "lib/containers.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
 #include "lib/nan_audit.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <string>
 #include <vector>
-
 #include <windows.h>   // RECT (dirtyRect)
-
 
 class CObject3D;
 class CParticleSource;

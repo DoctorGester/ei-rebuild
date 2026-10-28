@@ -1,30 +1,30 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
-#include "figure_manager.h"
-#include "item.h"
-#include "resource.h"
-#include "texture.h"
 #include "unit_client_models.h"
 
+#include "figure_manager.h"
+#include "game_singletons.h"
+#include "item.h"
 #include "item_db.h"
 #include "map_object_figures.h"
+#include "resource.h"
+#include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include "ei/x87.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include "ei/x87.h"
+
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <new>
+#include <string>
 #include <vector>
 
 namespace {

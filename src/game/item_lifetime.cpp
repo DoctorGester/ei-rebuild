@@ -1,13 +1,11 @@
 // The items' constructors and destructors, their Create / Destroy slots (2 / 3) and class names
 // (11 / 12). See item.h and docs/notes/items_spells.md ("Item rules").
-#include "item.h"
-
 #include "core_refcount.h"
+#include "item.h"
 #include "spell.h"
 
 #include <bit>
 #include <cstring>
-
 
 namespace {
 

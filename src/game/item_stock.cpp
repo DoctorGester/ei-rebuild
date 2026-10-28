@@ -9,24 +9,24 @@
 #include "random.h"
 #include "spell.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/static_object.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
+
+#include "ei/x87.h"
+
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include "lib/text_case.h"
-#include "ei/x87.h"
-#include "lib/crt.h"
-#include "lib/containers.h"
-#include "lib/static_object.h"
-#include "lib/nan_audit.h"
-#include "lib/str.h"
-#include "lib/float_select.h"
-
-#include <algorithm>
 #include <iterator>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace {

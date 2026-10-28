@@ -3,14 +3,14 @@
 // game's x87 code: `double` for values the game keeps on the FPU stack, static_cast<float> where it stores to
 // a float.
 #include "camera.h"
-
+#include "game_singletons.h"
 #include "map_object_figures.h"
 #include "world.h"
 
-#include "ei/x87.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
+#include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>

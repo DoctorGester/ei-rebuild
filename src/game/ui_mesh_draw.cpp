@@ -1,19 +1,18 @@
 // An interface sprite (CUiMesh, ui.h): its Create, its draw (called by the window base's draw and the panels
 // that draw single sprites), its constructor, destructor and virtuals. docs/notes/ui.md, section 9.
-#include "ui.h"
-
 #include "material.h"
 #include "model.h"
-
-#include "ei/x87.h"
-#include "lib/crt.h"
 #include "render/render.h"   // SetInterfaceDraw
+#include "ui.h"
 #include "ui_widescreen.h"
 #include "world_class_slots.h"   // I3DFigureClassName / Id
 
+#include "lib/crt.h"
+
+#include "ei/x87.h"
+
 #include <cstdint>
 #include <cstring>
-
 
 namespace {
 

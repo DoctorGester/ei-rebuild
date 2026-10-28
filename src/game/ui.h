@@ -7,27 +7,26 @@
 
 #include "app.h"   // app::g_interfaceHasScreen
 #include "core_transform.h"
-#include "options.h"
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
 #include "game_strings.h"   // game::kEmptyText
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions
+#include "options.h"
 #include "unit.h"   // LockKey
 
 #include "lib/containers.h"
 #include "lib/gdi.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
 #include "lib/static_object.h"
 #include "lib/str.h"
 
-
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 #include <windows.h>
 

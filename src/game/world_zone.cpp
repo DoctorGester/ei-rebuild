@@ -2,34 +2,33 @@
 // script's AddUnitToServer, and writing the map objects into a save. See world.h and docs/notes/world.md.
 #include "app.h"
 #include "bink_video.h"   // g_loadingMovieOff
-#include "core_refcount.h"
-#include "map_spec.h"
-#include "world.h"
-#include "model.h"   // TweenArray (countdowns_)
-#include "game_strings.h"
-
 #include "chunk_stream.h"
-#include "object_tables.h"
-#include "world_map_files.h"
-
-#include "lib/crt.h"
-#include <cstdint>
-#include <cstring>
-#include <new>
-#include <string>
-#include "lib/text_case.h"
-
-#include "ei/rebirth.h"
+#include "core_refcount.h"
+#include "game_data.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "map_object.h"
+#include "map_spec.h"
+#include "model.h"   // TweenArray (countdowns_)
 #include "net_delta.h"
+#include "object_tables.h"
 #include "party.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world.h"
+#include "world_map_files.h"
 
-#include <list>
-#include "game_data.h"
-#include "game_singletons.h"
+#include "lib/crt.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
+
+#include "ei/rebirth.h"
+
+#include <cstdint>
+#include <cstring>
+#include <list>
+#include <new>
+#include <string>
 
 namespace {
 

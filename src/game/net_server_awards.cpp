@@ -1,19 +1,20 @@
 // The game server's awards: the zone completion command ("<zone>_3"), the host's item awards and the queued
 // award message, plus the counted pointer copy they use. See net_classes.h and docs/notes/network.md.
 
-#include "ei/x87.h"
-#include "net_messages.h"
-#include "quest_records.h"
-#include "game_strings.h"
-#include "net_connection.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-
-#include "lib/crt.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "net_connection.h"
+#include "net_messages.h"
+#include "quest_records.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
-#include "game_singletons.h"
+
+#include "lib/crt.h"
+
+#include "ei/x87.h"
 
 #include <cstring>
 #include <string>

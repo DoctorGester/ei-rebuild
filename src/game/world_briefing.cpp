@@ -1,38 +1,36 @@
 // The briefing variables of the client: which mercenary speaks a
 // briefing (its "#show" lines in the briefing text) and the variable that marks the briefing as
 // seen ("b.<speaker>.<briefing>" or "b.elder.<briefing>"). See world.h and docs/notes/world.md.
-#include "object_tables.h"
-#include "player_client.h"
-#include "ui.h"
-#include "party.h"
-#include "world.h"
-#include "game_strings.h"
-
 #include "buffered_file.h"
-#include "lib/file_io.h"
-#include "lib/containers.h"
 #include "console.h"
+#include "game_flow_data.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "item_db_text.h"
-#include "lib/text_case.h"
+#include "mod_folders.h"
 #include "net_classes.h"
 #include "net_messages.h"   // MapMessage
+#include "object_tables.h"
+#include "party.h"
+#include "player_client.h"
 #include "quest_records.h"
-#include "mod_folders.h"
+#include "ui.h"
+#include "world.h"
 #include "world_map_files.h"
 
+#include "lib/containers.h"
+#include "lib/file_io.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
+
+#include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-
-#include "game_flow_data.h"
-#include "game_singletons.h"
-#include "lib/str.h"
-
-#include <algorithm>
 #include <memory>
 #include <new>
-#include <bit>
+#include <string>
 #include <vector>
 
 namespace {

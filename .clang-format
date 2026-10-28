@@ -1,0 +1,46 @@
+# The style the code is already written in (docs/rewrite-guide.md, "Clean code"). Run it on the files you touch
+# (clang-format -i, or --lines=a:b for the part you changed). Comments are never reflowed; trailing comments keep
+# three spaces before them and align in a block, so a whole-file run also rewrites the aligned comments next to the
+# ones you touched: run it on the lines you changed (tools/format_changed.py).
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 120
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+NamespaceIndentation: None
+IndentCaseLabels: false
+PointerAlignment: Left
+DerivePointerAlignment: false
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+BreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+AlignAfterOpenBracket: Align
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 0
+SpacesBeforeTrailingComments: 3
+ReflowComments: false
+FixNamespaceComments: false
+SpaceAfterTemplateKeyword: true
+# Include groups, each sorted: the file's own header first, then the game's headers, lib/, ei/, the standard library.
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"ei/'
+    Priority: 4
+  - Regex: '^"lib/'
+    Priority: 3
+  - Regex: '^"'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 5

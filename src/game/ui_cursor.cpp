@@ -4,17 +4,18 @@
 // background through Locks of the holders' surfaces, has no caller of ours since: the new renderer draws the
 // cursor, ui_cursor_frame.cpp.)
 #include "ui_cursor.h"
+
+#include "game_singletons.h"
+#include "model.h"
 #include "surface.h"
 #include "texture.h"
+#include "world.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
 #include <cstdint>
 #include <cstring>
-#include "game_singletons.h"
-#include "model.h"
-#include "world.h"
 
 // --- a cursor image ------------------------------------------------------------------------------
 

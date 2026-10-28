@@ -1,18 +1,18 @@
 // CWorldServer::UpdateWeather (every 64 ticks from Tick): the day-time value, rain starting and stopping,
 // lightning strikes and the lightning bolts during a storm. See world.h and docs/notes/world.md.
 #include "ai_map.h"
-#include "world.h"
-
 #include "base_manager.h"
 #include "core_maths.h"
 #include "game_strings.h"
 #include "map_object.h"
 #include "random.h"
 #include "script.h"
+#include "world.h"
 #include "world_effect.h"
 
-#include "ei/x87.h"
 #include "lib/str.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>
@@ -141,8 +141,7 @@ void CWorldServer::UpdateWeather() {
     }
     weatherFactor_ = std::bit_cast<std::uint32_t>(weather_ == 0 ? kDayFactorDry : kDayFactorRain);
 
-    for (auto& node : objects_.map)
-        node.second->UpdateMoveFactors();   // the weather changed
+    for (auto& node : objects_.map) node.second->UpdateMoveFactors();   // the weather changed
     if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimes(0.0f);
 }
 

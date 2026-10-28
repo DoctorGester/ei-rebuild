@@ -1,16 +1,15 @@
 // The game server's command messages (CommandMessage) and the file requests a client
 // hands in, with the host check they use. See net_messages.h and docs/notes/network.md.
-#include "net_messages.h"
-#include "net_connection.h"
 #include "core_refcount.h"
+#include "game_strings.h"
+#include "net_connection.h"
+#include "net_messages.h"
+#include "world.h"
 
 #include "lib/crt.h"
-#include "world.h"
-#include "game_strings.h"
 
 #include <cstdlib>
 #include <cstring>
-
 
 namespace net {
 

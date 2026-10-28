@@ -13,13 +13,11 @@
 #include "party_records.h"
 #include "ui_cursor.h"
 
+#include <cstdlib>
+#include <cstring>
+#include <dinput.h>
 #include <memory>
 #include <new>
-
-#include <cstdlib>
-#include <dinput.h>
-
-#include <cstring>
 
 namespace {
 

@@ -2,8 +2,9 @@
 // Suspection, Aggression / Revenge, CorpseWatcher) and of a patrol point's look entry; the layouts
 // are in unit_ai.h. Then the modes' own small virtuals (clone, reset, destructors, types).
 // See docs/notes/script.md.
-#include "ei/x87.h"
 #include "unit_ai.h"
+
+#include "ei/x87.h"
 
 #include <cstdint>
 #include <cstring>

@@ -1,24 +1,23 @@
 // What the client shows when a unit is hit, struck by sparks or dies (CUnitClientSpecific's StatChanged,
 // Wound and Died) and the party light of PlayerChanged. See unit_client_models.h and docs/notes/units.md.
-#include "unit_client_models.h"
-
 #include "effects.h"
+#include "game_singletons.h"
 #include "item_db.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
+#include "options.h"
 #include "sound.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include "ei/x87.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
-#include "options.h"
-#include "lib/str.h"
 
 #include <cstring>
 #include <string>

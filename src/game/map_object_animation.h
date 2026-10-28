@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <vector>
 
-
 struct FigureAnimation;
 
 // The animation tracks' defaults without key frames (static initialisers: the origin and the identity).

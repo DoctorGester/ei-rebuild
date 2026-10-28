@@ -1,12 +1,10 @@
 // The effects' constructor and destructor bodies, their deleting destructors and the state field's
 // constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
-#include "world_effect.h"
-
 #include "console.h"
 #include "net_link.h"
+#include "world_effect.h"
 
 #include <new>
-
 
 namespace {
 

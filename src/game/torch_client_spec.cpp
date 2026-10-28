@@ -1,22 +1,20 @@
 // The torch's client half (CTorchObjectClientSpecific; torch_client_spec.h):
 // lifetime, its effects shown / hidden, and the setters that rebuild the particles, the light and
 // the sound.
-#include "terrain.h"
 #include "torch_client_spec.h"
 
 #include "core_maths.h"
-#include "effects.h"       // CParticleSource, CParticleManager
-#include "map_object.h"    // CMapObject::position
-#include "sound.h"         // CSoundManager
-#include "spell.h"         // CLight, CLightFactory
-
+#include "effects.h"   // CParticleSource, CParticleManager
 #include "game_singletons.h"
+#include "map_object.h"   // CMapObject::position
+#include "sound.h"        // CSoundManager
+#include "spell.h"        // CLight, CLightFactory
+#include "terrain.h"
 #include "world.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
-
 
 namespace {
 

@@ -1,11 +1,10 @@
 // Small virtuals of a unit's controllers: the abstract base (the server's CUnitServer and the client's
 // CUnitClientSpecific keep most of its empty slots), its lifetime and the client controller's small methods.
 // Slot names: see CUnitController in unit.h.
-#include "unit.h"
-#include "unit_client_models.h"
-
 #include "effects.h"   // CParticleSource
 #include "texture.h"   // CTexture
+#include "unit.h"
+#include "unit_client_models.h"
 
 #include <cstdint>
 

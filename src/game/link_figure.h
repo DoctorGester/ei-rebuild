@@ -9,13 +9,11 @@
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
 #include "texture.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <vector>
 #include <windows.h>
-
-
-#include <cstddef>
-#include <cstdint>
 
 // The figure mesh drawer's base (an engine object with the mesh it draws).
 // No object of the base alone exists.

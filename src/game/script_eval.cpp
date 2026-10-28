@@ -3,13 +3,10 @@
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
 // old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
 // computations keep their intermediates unrounded (double locals), as x87 registers would.
-#include "script.h"
-#include "world_glue.h"
-#include "script_addon.h"
-
 #include "ai_map.h"
 #include "base_manager.h"
 #include "combat.h"
+#include "game_singletons.h"
 #include "lever.h"
 #include "map_object.h"
 #include "net_classes.h"
@@ -18,17 +15,20 @@
 #include "object_tables.h"
 #include "party.h"
 #include "player_messages.h"
+#include "random.h"
+#include "script.h"
+#include "script_addon.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "world_glue.h"
+
+#include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/crt.h"
-#include "lib/str.h"
-#include "lib/nan_audit.h"
-#include "random.h"
-#include "game_singletons.h"
 
 #include <bit>
 #include <cmath>

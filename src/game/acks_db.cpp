@@ -4,6 +4,7 @@
 #include "acks_db.h"
 
 #include "chunk_archive.h"
+#include "game_singletons.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
 #include "sound.h"
@@ -11,9 +12,7 @@
 #include "unit_db.h"
 #include "world.h"
 
-
 #include "lib/crt.h"
-#include "game_singletons.h"
 
 #include <cstring>
 

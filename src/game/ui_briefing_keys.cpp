@@ -1,15 +1,14 @@
 // The briefing / base screen's key handler (CBriefingScreen::OnKeyDown). See
 // docs/notes/ui.md, "Briefing / base screen".
+#include "camera.h"
+#include "game_singletons.h"
 #include "game_strings.h"
+#include "text_split.h"
 #include "ui.h"
 #include "ui_briefing.h"
-
-#include "camera.h"
 #include "world.h"
 
 #include "lib/text_case.h"
-#include "text_split.h"
-#include "game_singletons.h"
 
 #include <bit>
 #include <cstring>

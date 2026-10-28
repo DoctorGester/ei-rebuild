@@ -3,13 +3,13 @@
 // The game's statically linked C runtime (config/library.csv): rand, the formatting and the maths as the game's CRT
 // has them. The heap is the host's new / delete.
 
+#include "printf_args.h"
+
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
-
-#include "printf_args.h"
 
 // The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).

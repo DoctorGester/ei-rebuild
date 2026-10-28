@@ -12,7 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 
-
 struct LockKey;
 
 class CTrapObject : public CMapObject {
@@ -23,7 +22,7 @@ public:
     int RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;                      // LoadTrapObject
     void Save(CStream* stream) override;                      // SaveTrapObject
-    const char* ClassName() override;                   // "CTrapObject"
+    const char* ClassName() override;                         // "CTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return Slot29True(); }
     int IsUsable() override { return Slot38One(); }

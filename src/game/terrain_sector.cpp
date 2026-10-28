@@ -3,25 +3,27 @@
 // Floating point: values kept on the FPU stack are `double` here; every store to a float is a
 // static_cast<float>. Constants multiplied at run time are read from the exe (rule 9: Rebirth may patch
 // data).
-#include "terrain.h"
 #include "terrain_sector.h"
+
 #include "model.h"
-
-#include "ei/x87.h"
 #include "random.h"
-#include "lib/crt.h"
-#include <cstdint>
-#include <cstring>
-#include <string>
-
-#include <cstdio>
-#include <cstdlib>
-#include <memory>
-#include <vector>
 #include "render/render.h"
+#include "terrain.h"
+
 #include "lib/bytes.h"
+#include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "lib/static_object.h"
+
+#include "ei/x87.h"
+
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace terrain {
 namespace {

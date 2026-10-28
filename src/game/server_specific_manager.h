@@ -8,11 +8,10 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
-
 
 class CStream;
 class CMapObject;

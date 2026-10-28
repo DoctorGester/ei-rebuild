@@ -1,38 +1,39 @@
 // CPlayerClient: the client's per-tick link traffic (sending the queued requests, receiving and
 // running the server's messages) and its login. See player_client.h and docs/notes/objects.md.
 
-#include "ai_map.h"
-#include "options.h"
-#include "map_object_shadow.h"
-#include "object_tables.h"
 #include "player_client.h"
 
+#include "ai_map.h"
 #include "app_helpers.h"
+#include "base_manager.h"
 #include "camera.h"
+#include "console.h"
+#include "effects.h"
+#include "game_singletons.h"
+#include "item.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "net_link.h"
-#include "lib/static_object.h"
+#include "object_tables.h"
+#include "options.h"
 #include "party.h"
 #include "player_messages.h"
+#include "resource_manager.h"
 #include "sound.h"
 #include "ui.h"
 #include "unit.h"
-#include "world.h"
-#include "base_manager.h"
-#include "effects.h"
-#include "item.h"
-#include "resource_manager.h"
 #include "unit_client_models.h"
 #include "unit_db.h"
-#include "console.h"
-#include "map_object.h"
-#include "map_object_figures.h"
+#include "world.h"
+
+#include "lib/static_object.h"
 #include "lib/str.h"
 
 #include "ei/x87.h"
-#include "game_singletons.h"
 
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>

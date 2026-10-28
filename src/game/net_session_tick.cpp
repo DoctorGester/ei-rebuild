@@ -1,16 +1,16 @@
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "console.h"
-#include "net_classes.h"
+#include "core_streams.h"
+#include "game_data.h"
 #include "game_strings.h"
+#include "net_classes.h"
 #include "net_coder.h"
 #include "net_connection.h"
 
-#include "core_streams.h"
 #include "lib/bytes.h"
-#include "lib/static_object.h"
 #include "lib/crt.h"
-#include "game_data.h"
+#include "lib/static_object.h"
 
 #include <cstring>
 

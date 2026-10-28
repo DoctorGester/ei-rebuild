@@ -1,11 +1,12 @@
 // Connections of the network sessions: object replication. See net_connection.h.
-#include "console.h"
-#include "net_coder.h"
 #include "net_connection.h"
-#include "game_strings.h"
 
+#include "console.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_strings.h"
+#include "net_coder.h"
+
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

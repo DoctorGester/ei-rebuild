@@ -2,7 +2,6 @@
 // read back (ReadState). Units' state messages (net_state.cpp), the player's path message (0x0E) and the
 // client's prediction (player_client.cpp) use them.
 #include "ai_motion.h"
-
 #include "net_delta.h"
 
 #include <cstdint>

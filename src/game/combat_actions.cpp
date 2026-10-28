@@ -2,13 +2,13 @@
 // missiles, casts, skills, quick items), the spells items cast on hit, item charges, healing, death and the
 // AI's reactions to it (witnesses, hostility claims). See combat.h and docs/notes/combat.md.
 #include "ai_alarm.h"
+#include "base_manager.h"
 #include "combat.h"
-#include "map_object.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
-
-#include "base_manager.h"
+#include "game_singletons.h"
 #include "item.h"
+#include "map_object.h"
 #include "maths.h"
 #include "object_diplomacy.h"
 #include "party.h"
@@ -18,11 +18,11 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "world.h"
+#include "world_effect.h"
+
+#include "lib/float_select.h"
 
 #include "ei/x87.h"
-#include "world_effect.h"
-#include "game_singletons.h"
-#include "lib/float_select.h"
 
 #include <bit>
 #include <cstring>

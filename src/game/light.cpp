@@ -1,8 +1,7 @@
 // Lights and the light manager: CLight's lifetime and setters, CLightFactory ("CLightManager")
 // lifetime and object creation. See spell.h and docs/notes/items_spells.md.
-#include "spell.h"
-
 #include "core_transform.h"
+#include "spell.h"
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"
@@ -12,7 +11,6 @@
 #include <cstring>
 #include <list>
 #include <new>
-
 
 namespace {
 

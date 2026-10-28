@@ -2,20 +2,19 @@
 // lifetime, the bones the skeleton file links (LinkPiece per link, then FindRoot), the meshes the bones
 // carry, and placing the skeleton when the animation or the figure's morph changes. See
 // docs/notes/map_objects.md.
-#include "figure_manager.h"
-#include "map_object_animation.h"
-#include "map_object_figures.h"
-
 #include "base_manager.h"
 #include "core_maths.h"
+#include "figure_manager.h"
 #include "figure_mesh.h"
+#include "map_object_animation.h"
+#include "map_object_figures.h"
 #include "world.h"
+
+#include "lib/str.h"
 
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "lib/str.h"
-
 #include <vector>
 
 namespace {

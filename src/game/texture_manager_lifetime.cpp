@@ -1,16 +1,13 @@
 // CTextureManager's lifetime, Destroy and CreateObject. See texture.h and
 // docs/notes/items_spells.md ("Textures").
-#include "texture.h"
-
-#include "mod_folders.h"
-#include "world_data.h"   // the text resources' folder
-
 #include "game_data.h"
+#include "mod_folders.h"
+#include "texture.h"
+#include "world_data.h"   // the text resources' folder
 
 #include <list>
 #include <new>
 #include <string>
-
 
 namespace {
 

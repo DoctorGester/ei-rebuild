@@ -2,55 +2,55 @@
 // behind their flags. See world.h and docs/notes/world.md. Both set the renderer's render state
 // (render/render_state.h) and the scene pipeline's matrix stacks (g_sceneRenderer->pipeline_) in the original's
 // order.
-#include "ground_print.h"
-#include "lightning.h"
-#include "options.h"
-#include "renderer_lines.h"
-#include "net_session.h"
-#include "sky_object.h"
-#include "spell.h"   // CLight
-#include "ui_flying_hit_points.h"
-#include "view_matrices.h"
-#include "world.h"
-#include "figure_manager.h"
-#include "world_data.h"
-
 #include "address_order.h"
 #include "camera.h"
 #include "effects.h"
+#include "figure_manager.h"
+#include "game_data.h"
+#include "game_singletons.h"
+#include "ground_print.h"
+#include "lightning.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "model.h"
+#include "net_session.h"
+#include "options.h"
+#include "render/render.h"
+#include "render/render_state.h"
+#include "renderer_lines.h"
+#include "settings_file.h"
+#include "sky_object.h"
+#include "spell.h"   // CLight
+#include "system_text.h"
 #include "terrain.h"
 #include "texture.h"
+#include "ui.h"
+#include "ui_flying_hit_points.h"
+#include "view_matrices.h"
+#include "world.h"
+#include "world_client_shadow_casters.h"
+#include "world_data.h"
+#include "world_effect.h"
+
 #include "lib/bytes.h"
-#include "lib/vecmath.h"
-#include "render/render_state.h"
-#include "ei/rebirth.h"
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
-#include "render/render.h"
+#include "lib/nan_audit.h"
+#include "lib/vecmath.h"
 
-#include <iterator>
-#include <list>
-#include <vector>
-#include <windows.h>
+#include "ei/rebirth.h"
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstdint>
 #include <cstring>
-#include "ui.h"
-#include "world_effect.h"
-#include "world_client_shadow_casters.h"
-#include "game_data.h"
-#include "game_singletons.h"
-#include "settings_file.h"
-#include "system_text.h"
-#include "lib/float_select.h"
+#include <iterator>
+#include <list>
+#include <vector>
+#include <windows.h>
 
 namespace {
 
@@ -295,8 +295,7 @@ int CWorldClient::Render() {
 }
 
 int CWorldClient::DrawLineLists() {
-    for (auto& node : lineLists_)
-        node.second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
+    for (auto& node : lineLists_) node.second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
     return 1;
 }
 

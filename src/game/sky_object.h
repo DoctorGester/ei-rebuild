@@ -11,10 +11,8 @@
 #include "model.h"         // Matrix4, CSceneRenderer
 
 #include <cstddef>
-
 #include <cstdint>
 #include <vector>
-
 
 // A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
 struct SkyColour {

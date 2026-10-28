@@ -12,10 +12,10 @@
 #include "script.h"
 
 #include "lib/containers.h"
-#include <cstddef>
-#include <cstdint>
 #include "lib/hash_map.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <vector>
 

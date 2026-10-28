@@ -1,25 +1,24 @@
 // The sound names the client controller picks for a unit's footsteps and actions. See
 // unit_client_models.h and docs/notes/units.md.
-#include "unit_client_models.h"
-#include "options.h"
-
 #include "camera.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "map_object_figures.h"
+#include "options.h"
 #include "player_client.h"
 #include "sound.h"
 #include "terrain_sector.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "lib/crt.h"
-
-#include "ei/x87.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
+
+#include "ei/x87.h"
 
 #include <cmath>
 #include <cstdio>

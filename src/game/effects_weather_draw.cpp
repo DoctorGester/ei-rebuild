@@ -1,21 +1,21 @@
 // The visibility fog's draw (its cells as sprites through the scene renderer) and the rain / snow layer's work
 // arrays. See docs/notes/renderer.md (section 12).
+#include "clip.h"   // TLVertex
+#include "core_maths.h"
 #include "effects.h"
 #include "figure_mesh.h"   // VertexPacket
+#include "model.h"         // CSceneRenderer, CTransformPipeline
 
-#include "clip.h"         // TLVertex
-#include "core_maths.h"
-#include "model.h"        // CSceneRenderer, CTransformPipeline
-
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
-#include <cstdint>
-#include <cstring>
-#include <memory>
 #include "lib/static_object.h"
 
+#include "ei/x87.h"
+
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <memory>
 #include <vector>
 
 // ---- The visibility fog ---------------------------------------------------------------------------------

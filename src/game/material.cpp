@@ -14,7 +14,6 @@
 #include <new>
 #include <string>
 
-
 namespace {
 
 constexpr const char* kMaterialClassName = "CMaterial";

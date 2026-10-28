@@ -3,19 +3,18 @@
 // "Console AutoExec" registry lines, then 2utoexec.cfg, before each of three console executions). The texts are
 // addon's; its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
-#include "options.h"
-#include "ui.h"
-#include "script.h"
-
-#include "lib/crt.h"
-
-#include "ei/hook.h"
-#include "ui.h"
 #include "game_singletons.h"
+#include "options.h"
+#include "script.h"
 #include "settings_file.h"
 #include "system_text.h"
+#include "ui.h"
 #include "ui_cursor.h"
+
+#include "lib/crt.h"
 #include "lib/str.h"
+
+#include "ei/hook.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -24,7 +23,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-
 #include <windows.h>
 
 namespace console {

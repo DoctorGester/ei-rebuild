@@ -1,19 +1,19 @@
 #pragma once
 
 #include "engine_object.h"
+#include "render/render_state.h"
+#include "renderer_base.h"
 #include "resource_manager.h"
+#include "surface.h"
+
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
-#include "renderer_base.h"
-#include "surface.h"
-#include "render/render_state.h"
 
 #include <list>
 #include <string>
 #include <vector>
 #include <windows.h>
-
 
 class CTexture;
 class CTextureManager;

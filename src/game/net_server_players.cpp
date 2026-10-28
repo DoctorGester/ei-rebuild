@@ -1,9 +1,9 @@
 // The game server's players and their connections: lookups ( ), admission and the password, kicking and
 // banning the departure reports and the lines to every guest. See net_classes.h and docs/notes/network.md.
 // Players (players_) are PlayerMessages, bindings (bindings_) BindingMessages (net_server_join.cpp).
-#include "net_messages.h"
-#include "net_connection.h"
 #include "core_refcount.h"
+#include "net_connection.h"
+#include "net_messages.h"
 
 #include "lib/text_case.h"
 

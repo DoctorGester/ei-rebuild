@@ -2,23 +2,24 @@
 // is built on the stack, copied into its list (sharing the empty geometry arrays) and destroyed; its prints.db
 // entry (by the ground's surface class) gives the alpha and the life. See docs/notes/models.md ("Ground prints").
 #include "ground_print.h"
-#include "options.h"
 
 #include "camera.h"
 #include "core_streams.h"
 #include "effects.h"
 #include "figure_mesh.h"
+#include "game_singletons.h"
 #include "ground_decal.h"
 #include "model.h"
+#include "options.h"
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"
 
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "game_singletons.h"
+#include "lib/nan_audit.h"
 #include "lib/vecmath.h"
+
+#include "ei/x87.h"
 
 #include <cstdio>
 #include <cstring>

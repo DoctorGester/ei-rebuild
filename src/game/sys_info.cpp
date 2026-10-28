@@ -15,9 +15,8 @@
 #include "lib/vecmath.h"
 
 #include <cstdlib>
-#include <intrin.h>
-
 #include <cstring>
+#include <intrin.h>
 #include <new>
 #include <string>
 

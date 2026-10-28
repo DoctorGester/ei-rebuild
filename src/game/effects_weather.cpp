@@ -1,15 +1,15 @@
-#include "effects.h"
-#include "texture.h"
-
 #include "core_maths.h"
+#include "effects.h"
+#include "game_singletons.h"
 #include "random.h"
 #include "sound.h"
+#include "texture.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/containers.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <array>
 #include <bit>

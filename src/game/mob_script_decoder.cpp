@@ -1,5 +1,6 @@
 // The .mob script text decoder. See mob_script_decoder.h.
 #include "mob_script_decoder.h"
+
 #include "lib/bytes.h"
 #include "lib/str.h"
 

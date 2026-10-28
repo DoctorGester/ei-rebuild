@@ -1,9 +1,8 @@
 // The spell manager's own code and the spell container's lifetime: CreateSpellObject, the factory, Create /
 // Destroy, the destructor, and the "sequences" it keeps (spell.h, SpellSequence). See
 // docs/notes/items_spells.md.
-#include "spell.h"
-
 #include "item_db.h"
+#include "spell.h"
 
 #include "lib/crt.h"
 
@@ -11,7 +10,6 @@
 #include <memory>
 #include <new>
 #include <vector>
-
 
 namespace {
 

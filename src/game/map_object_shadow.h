@@ -4,24 +4,21 @@
 // projects the figure from the strongest light direction onto the ground under the object (the decal's sphere
 // decides the shadow's visibility out of view). See docs/notes/map_objects.md ("Shadows").
 
-#include "core_refcount.h"   // CountedRef
+#include "core_refcount.h"     // CountedRef
+#include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "engine_object.h"
+#include "ground_decal.h"         // DecalTexCoord
 #include "map_object_figures.h"   // CObject3D, CObject3DSpecific (the base half)
+#include "material.h"             // CMaterial
 #include "maths.h"
+#include "model.h"   // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
-
 #include <vector>
-
 #include <windows.h>   // RECT
-
-#include "device_material.h"   // CDeviceMaterial, MaterialStage
-#include "ground_decal.h"      // DecalTexCoord
-#include "material.h"   // CMaterial
-#include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
 // The world matrix of a 3D object or a figure part as the draws build it: the rotation of `orientation`,
 // `position` as column 3, the last row (0, 0, 0, 1).

@@ -12,7 +12,6 @@
 #include <memory>
 #include <new>
 
-
 namespace {
 
 constexpr int kFirstFigureClass = 0x41;

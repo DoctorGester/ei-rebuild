@@ -3,21 +3,23 @@
 // follows the original's x87 code: `double` for values the original keeps on the FPU stack,
 // static_cast<float> where it stores to a float.
 #include "ai_motion.h"
-#include "core_streams.h"
 
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "lib/crt.h"
-#include <bit>
-#include <cstdint>
-#include <cstring>
+#include "ai_map.h"
+#include "core_streams.h"
 #include "map_object.h"
 #include "world.h"
-#include "ai_map.h"
-#include "lib/vecmath.h"
-#include "lib/float_select.h"
 
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
+#include "lib/vecmath.h"
+
+#include "ei/x87.h"
+
+#include <bit>
 #include <concepts>
+#include <cstdint>
+#include <cstring>
 
 namespace {
 

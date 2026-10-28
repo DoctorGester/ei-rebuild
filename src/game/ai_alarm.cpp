@@ -3,9 +3,9 @@
 // Then, while a level is active and its timer runs, every group member on a side the owner's side is allied
 // with gets its controller's alarm raised to the level. See docs/notes/ai.md.
 #include "ai_alarm.h"
-#include "console.h"
 
 #include "combat.h"
+#include "console.h"
 #include "object_diplomacy.h"
 #include "unit_ai.h"
 #include "world.h"

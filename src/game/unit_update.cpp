@@ -1,17 +1,15 @@
 // CUnit's own virtuals: the per-tick update and the virtuals that pass map object
 // events on to the unit's controller, plus standing on the ground. See unit.h and docs/notes/units.md.
 #include "combat.h"
-#include "unit.h"
-
 #include "map_object.h"
 #include "object_tables.h"
+#include "unit.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "lib/crt.h"
 
 #include <cstring>
-
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";

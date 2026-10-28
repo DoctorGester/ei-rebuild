@@ -1,40 +1,39 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
-#include "core_refcount.h"
-#include "core_streams.h"
-#include "object_tables.h"
-#include "script.h"
-#include "unit_ai.h"
-#include "world.h"
-#include "world_data.h"
-#include "game_strings.h"
-
 #include "combat.h"
 #include "console.h"
+#include "core_refcount.h"
+#include "core_streams.h"
+#include "game_data.h"
+#include "game_strings.h"
 #include "item.h"
 #include "map_object.h"
+#include "object_tables.h"
 #include "party.h"
 #include "player_messages.h"
 #include "quest_records.h"
+#include "script.h"
+#include "text_split.h"
 #include "ui_briefing.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "unit_db.h"
+#include "world.h"
+#include "world_data.h"
 
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
 #include "lib/text_case.h"
-#include "text_split.h"
-#include <bit>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "game_data.h"
-#include "lib/str.h"
 
+#include <bit>
+#include <cstdint>
+#include <cstring>
 #include <list>
+#include <string>
 #include <vector>
 
 namespace {
@@ -160,8 +159,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (CPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CPlayerServer* state = p->Server();
         if (!state) continue;
-        for (auto& node : list)
-            state->SendPair18(node.controller->unit->id_, std::bit_cast<std::uint32_t>(node.share));
+        for (auto& node : list) state->SendPair18(node.controller->unit->id_, std::bit_cast<std::uint32_t>(node.share));
     }
     if (it.manager) {
         --it.manager->refCount_;

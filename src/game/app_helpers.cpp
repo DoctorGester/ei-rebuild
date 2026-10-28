@@ -1,22 +1,23 @@
 // Small application helpers: the free disk space, the quit flag, the movie mode byte, the copy
 // protection's delayed check and two CEngineObject helpers. See docs/notes/app.md.
-#include "app.h"
 #include "app_helpers.h"
 
+#include "app.h"
 #include "base_manager.h"
 #include "camera.h"
 #include "engine_object.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "unit_create.h"   // CMapObjectManager
 #include "options.h"
-#include "game_singletons.h"
+#include "unit_create.h"   // CMapObjectManager
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+
+#include "ei/x87.h"
 
 #include <cstdint>
 #include <memory>

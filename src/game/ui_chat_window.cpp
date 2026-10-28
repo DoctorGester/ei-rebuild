@@ -1,22 +1,22 @@
 // A network client's player list on the base screen (CChatWindow). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
-#include "ui_briefing.h"
-#include "world_glue.h"
-#include "plugin_fixes.h"
-
+#include "game_data.h"
+#include "game_singletons.h"
 #include "item_db_text.h"
 #include "net_classes.h"
 #include "net_messages.h"
+#include "plugin_fixes.h"
 #include "ui.h"
+#include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ui_screens.h"
 #include "unit_db.h"
+#include "world_glue.h"
 
-#include "ei/rebirth.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
-#include "game_singletons.h"
+
+#include "ei/rebirth.h"
 
 #include <cstdint>
 #include <cstdio>

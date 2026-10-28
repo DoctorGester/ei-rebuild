@@ -1,8 +1,7 @@
 // Random animations of a 3D object's figure (CObject3D::RandomAnimation and RandomAnimationOfKind; units'
 // FindAnimation picks idle, attack and death animations with them). See map_object_figures.h.
-#include "map_object_figures.h"
-
 #include "map_object.h"
+#include "map_object_figures.h"
 
 #include "lib/crt.h"
 

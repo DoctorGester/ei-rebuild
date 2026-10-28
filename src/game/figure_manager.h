@@ -7,11 +7,9 @@
 #include "resource_manager.h"
 #include "world.h"
 
-
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
-
 
 void* CreateFigureObject(int classId);
 

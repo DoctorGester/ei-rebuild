@@ -2,19 +2,19 @@
 #include "trap_object.h"
 
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "magic_trap.h"
 #include "sector_map.h"
 #include "unit.h"
 #include "world.h"
 
+#include "lib/crt.h"
+#include "lib/str.h"
+
+#include <cstdint>
 #include <list>
 #include <new>
 #include <string>
-#include "lib/crt.h"
-#include <cstdint>
-#include "game_singletons.h"
-#include "lib/str.h"
-
 
 namespace {
 const char* const kTrapName = "CTrapObject";

@@ -4,22 +4,21 @@
 // MIDI threads, and the music state machine. See docs/notes/sound.md.
 
 #include "engine_object.h"
-
-#include "lib/containers.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include "lib/hash_map.h"
-#include "lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
-#include "lib/import_prototypes.h"
 
+#include "lib/containers.h"
+#include "lib/hash_map.h"
+#include "lib/import_prototypes.h"
+#include "lib/vecmath.h"
+
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>
-
 
 // A volume envelope: the music stream's and the MIDI sequence's.
 struct SoundFader {

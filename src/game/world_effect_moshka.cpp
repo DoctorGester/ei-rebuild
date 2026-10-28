@@ -1,24 +1,24 @@
 // CEffectMoshka: the bird that perches near the followed hero, circles it when it comes close and
 // flies off to another perch. See world_effect.h and docs/notes/effects.md ("Moshka").
-#include "effects.h"
-#include "map_object_shadow.h"
-#include "unit_ai.h"
-#include "world_effect.h"
-#include "map_object.h"
-
 #include "ai_map.h"
 #include "base_manager.h"
 #include "camera.h"
-#include "game_strings.h"
-#include "map_object_figures.h"
-#include "random.h"
-#include "world.h"
-#include "world_effect_internal.h"
+#include "effects.h"
 #include "game_singletons.h"
+#include "game_strings.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "map_object_shadow.h"
+#include "random.h"
+#include "unit_ai.h"
+#include "world.h"
+#include "world_effect.h"
+#include "world_effect_internal.h"
 
 #include "lib/crt.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <cmath>
 #include <cstring>

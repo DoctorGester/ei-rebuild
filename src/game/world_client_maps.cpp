@@ -2,68 +2,67 @@
 // docs/notes/world.md ("Client maps"). The client files every object in a sector grid (STLport lists of
 // counted pointers, one per 16x16 cell) and a second grid; most of the helpers are the STLport and library
 // instantiations behind those maps (config/library.csv).
-#include "ground_print.h"
-#include "item_db_text.h"
-#include "hash_tables_400.h"
-#include "item.h"
-#include "lightning.h"
-#include "map_object_shadow.h"
-#include "player_manager.h"
-#include "player_messages.h"
-#include "world.h"
-#include "figure_manager.h"
-#include "world_data.h"
-
-#include "sky_object.h"
-
 #include "ai_map.h"
 #include "base_manager.h"
+#include "bink_video.h"
 #include "camera.h"
 #include "core_streams.h"
 #include "effects.h"
+#include "figure_manager.h"
+#include "game_singletons.h"
 #include "game_strings.h"
+#include "ground_print.h"
+#include "hash_tables_400.h"
+#include "item.h"
+#include "item_db_text.h"
+#include "lightning.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "material.h"
+#include "mod_folders.h"
 #include "model.h"
+#include "object_tables.h"
+#include "player_client.h"
+#include "player_manager.h"
+#include "player_messages.h"
+#include "sky_object.h"
 #include "sound.h"
 #include "spell.h"
+#include "system_text.h"
 #include "terrain.h"
 #include "texture.h"
-#include "unit.h"
-#include "unit_db.h"
-#include "world_effect.h"
-#include "mod_folders.h"
-#include "world_map_files.h"
-#include "world_glue.h"
-#include "unit_looks.h"
-#include "bink_video.h"
-#include "object_tables.h"
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "lib/intro_sort.h"
-#include "player_client.h"
 #include "ui_flying_hit_points.h"
+#include "unit.h"
 #include "unit_client_models.h"
 #include "unit_create.h"
-#include "game_singletons.h"
-#include "system_text.h"
-#include "lib/str.h"
+#include "unit_db.h"
+#include "unit_looks.h"
+#include "world.h"
+#include "world_data.h"
+#include "world_effect.h"
+#include "world_glue.h"
+#include "world_map_files.h"
+
+#include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/float_select.h"
+#include "lib/intro_sort.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
+
+#include "ei/x87.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <iterator>
 #include <list>
 #include <new>
 #include <string>
 #include <vector>
 #include <windows.h>
-
-#include <cmath>
-#include <cstdint>
-#include <cstring>
 
 namespace {
 

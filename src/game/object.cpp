@@ -3,7 +3,6 @@
 #include "figure_mesh.h"
 #include "unit.h"
 
-
 namespace {
 const char* const kHooverName = "CHoover";
 } // namespace

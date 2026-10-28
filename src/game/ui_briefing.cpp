@@ -1,21 +1,21 @@
 // The briefing / base screen's main virtuals (CBriefingScreen, ui_briefing.h): close, message
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
-#include "ui.h"
-#include "options.h"
 #include "ui_briefing.h"
 
 #include "camera.h"
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "object_tables.h"
-#include "unit.h"
-
-#include "lib/crt.h"
-#include "text_split.h"
+#include "options.h"
 #include "party.h"
+#include "text_split.h"
+#include "ui.h"
+#include "unit.h"
 #include "world.h"
 #include "world_glue.h"
-#include "game_singletons.h"
+
+#include "lib/crt.h"
 #include "lib/str.h"
 
 #include <bit>

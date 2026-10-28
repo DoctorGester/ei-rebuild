@@ -86,8 +86,7 @@ void ReadPlayer(CPlayer* p, Builder& b) {
     for (int i = 0; i < std::ssize(party->members_); ++i) b.Unsigned("member#.unit", party->members_[i].unitId, i);
     b.Unsigned("entrance", party->entrance_);
     std::vector<std::pair<std::string, float>> variables;
-    for (auto& n : party->variables_)
-        variables.emplace_back(Text(n.first), n.second);
+    for (auto& n : party->variables_) variables.emplace_back(Text(n.first), n.second);
     std::sort(variables.begin(), variables.end());
     for (const auto& v : variables) b.Float(Intern("var." + v.first), v.second);
 }

@@ -3,13 +3,12 @@
 // an object into sight and the counted lists' AddTail.
 #include "ai_map.h"
 #include "combat.h"
-#include "unit_ai.h"
-
 #include "console.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
+#include "unit_ai.h"
 #include "world.h"
-#include "game_singletons.h"
 
 #include "lib/nan_audit.h"
 

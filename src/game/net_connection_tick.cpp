@@ -3,9 +3,10 @@
 // `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
+#include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cstring>

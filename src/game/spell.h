@@ -7,17 +7,17 @@
 #include "core_refcount.h"
 #include "core_transform.h"
 #include "engine_object.h"
-#include "resource_manager.h"
+#include "game_singletons.h"
 #include "item_db.h"
 #include "maths.h"
+#include "resource_manager.h"
+
 #include "lib/static_object.h"
-#include "game_singletons.h"
 
 #include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
 
 class CStream;
 class CWorldServer;

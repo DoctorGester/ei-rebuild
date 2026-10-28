@@ -3,12 +3,12 @@
 // CSpellConstructor: SetManager, BeginConstruct (a new CSpellContainer for the prototype), AddModifier per
 // modifier (each rebuilds the container's spell), EndConstruct, CSpell::Clone into a new spell object,
 // SetManager(null).
+#include "item.h"
 #include "item_db.h"
 #include "spell.h"
 
-#include "item.h"
-
 #include "lib/crt.h"
+
 #include "ei/x87.h"
 
 #include <cstring>

@@ -1,18 +1,18 @@
 // CParticleSource set-up: Create, Reset and Clear.
 // More: docs/notes/comments-c22i.md, "particle_create.cpp".
+#include "core_transform.h"
 #include "effects.h"
 #include "map_object_figures.h"
-#include "texture.h"
-
 #include "random.h"
 #include "spell.h"
+#include "texture.h"
 #include "world_data.h"
 
-#include "ei/x87.h"
 #include "lib/bytes.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "core_transform.h"
+
+#include "ei/x87.h"
 
 #include <cstring>
 

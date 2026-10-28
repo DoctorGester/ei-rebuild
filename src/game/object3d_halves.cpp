@@ -2,15 +2,14 @@
 // half's empty slots, the server half (CObject3DServer, class id 0x38), the wounds material's destructor and
 // the copies of a named texture and a material stage. Layouts: map_object_shadow.h, map_object_figures.h.
 #include "core_refcount.h"
-#include "map_object_shadow.h"
-#include "options.h"
-
-#include "figure_mesh.h"        // VertexPacket
-#include "ground_decal.h"       // DecalTexCoord
-#include "ground_print.h"       // NamedTexture
+#include "figure_mesh.h"    // VertexPacket
+#include "ground_decal.h"   // DecalTexCoord
+#include "ground_print.h"   // NamedTexture
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "model.h"
 #include "object.h"
+#include "options.h"
 #include "texture.h"
 #include "world_data.h"
 

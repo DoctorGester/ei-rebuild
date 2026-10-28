@@ -2,25 +2,25 @@
 // BeginCreateItem (the manager creates the empty item object), SetPrototype / SetMaterial / SetSpellObject, then
 // EndCreateItem, whose Build fills the item from a temporary database record: the prototype's values combined with
 // the material's.
+#include "console.h"
+#include "game_data.h"
 #include "item.h"
 #include "spell.h"
+#include "text_split.h"
 
-#include "console.h"
+#include "lib/crt.h"
+#include "lib/str.h"
+
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/crt.h"
-#include "text_split.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include "lib/str.h"
-#include "game_data.h"
 
 #include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <new>
-
+#include <string>
 
 using namespace itemdb;
 

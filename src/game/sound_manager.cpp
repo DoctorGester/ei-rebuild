@@ -2,25 +2,25 @@
 // ambient emitters, 3D sound sequences, the per-frame tick and the music stream requests, and Play2D /
 // Play3D. Floating point follows the x87 order (the goldens depend on it): `double` for values kept on the
 // FPU stack, static_cast<float> where it stores to a float.
-#include "sound.h"
 #include "game_strings.h"
-
-#include "lib/crt.h"
-#include "lib/gameapi.h"
-#include "lib/vecmath.h"
 #include "random.h"
+#include "sound.h"
+
+#include "lib/bytes.h"
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/gameapi.h"
+#include "lib/nan_audit.h"
+#include "lib/str.h"
+#include "lib/vecmath.h"
 
 #include "ei/x87.h"
 
-#include <concepts>
 #include <bit>
+#include <concepts>
 #include <cstring>
 #include <memory>
 #include <new>
-#include "lib/bytes.h"
-#include "lib/nan_audit.h"
-#include "lib/str.h"
-#include "lib/float_select.h"
 
 namespace {
 

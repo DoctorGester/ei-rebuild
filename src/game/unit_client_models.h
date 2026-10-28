@@ -10,9 +10,8 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
-
 #include <list>
+#include <string>
 #include <vector>
 
 class CParticleSource;

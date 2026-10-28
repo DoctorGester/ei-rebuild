@@ -1,17 +1,16 @@
 // AddNewScriptCommands: addon's functions about units, objects and players (handlers 10010E4F-
 // 10010F81, 10011308-100115AB, 10011AD3, 10011D8A, 10011F44-100124B8, 100126E0-100127CD,
 // 10012C7C-10012CC6). A unit's data object is its +0x240 (addon's 10010E2D).
-#include "script_addon_handlers.h"
-
 #include "combat.h"
+#include "game_singletons.h"
 #include "map_object.h"
+#include "random.h"
+#include "script_addon_handlers.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
-#include "random.h"
-#include "game_singletons.h"
 
 #include <cstdint>
 #include <list>

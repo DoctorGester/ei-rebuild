@@ -3,26 +3,23 @@
 // party fights (combat state == 2) and otherwise, after a random pause of 120..180 s, a calm track; the
 // briefing, constructor, main menu and credits states each play one file. The themes come from music.reg
 // (LoadThemes).
-#include "sound.h"
-#include "game_strings.h"
-
 #include "console.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "random.h"
 #include "registry.h"
+#include "sound.h"
+#include "world.h"
+#include "world_data.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/text_case.h"
-#include "random.h"
-
-#include "game_singletons.h"
 #include "lib/str.h"
-#include "world_data.h"
-#include "world.h"
+#include "lib/text_case.h"
 
 #include <cstring>
 #include <new>
 #include <string>
-
 
 namespace {
 

@@ -2,15 +2,14 @@
 // docs/notes/world.md.
 #include "world_class_slots.h"
 
-#include "world.h"
-#include "figure_manager.h"
-#include "spell.h"   // CLightFactory
 #include "effects.h"
+#include "figure_manager.h"
 #include "item.h"
 #include "item_db_text.h"
 #include "lightning.h"
+#include "spell.h"   // CLightFactory
 #include "terrain.h"
-
+#include "world.h"
 
 namespace {
 

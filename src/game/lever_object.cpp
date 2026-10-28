@@ -1,20 +1,18 @@
 // The lever map object's own functions: lifetime, update, save / load, network state, the zone record set-up
 // and the small slots. SetState and UseSpots are in See docs/notes/units.md ("Levers").
-#include "lever.h"
-
 #include "core_maths.h"
 #include "core_streams.h"
+#include "game_singletons.h"
+#include "lever.h"
 #include "map_object_figures.h"
 #include "net_delta.h"
 #include "sound.h"
 #include "world.h"
 
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <initializer_list>
 #include <new>
-
 
 namespace {
 constexpr int kLeverNetFields = 6;

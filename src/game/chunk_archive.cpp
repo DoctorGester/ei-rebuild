@@ -1,18 +1,18 @@
 // The tagged-chunk archive: the chunk primitives, entering and leaving chunks,
 // fields, whole archives over a stream. See docs/notes/core.md.
 #include "chunk_archive.h"
-#include "game_strings.h"
 
 #include "core_refcount.h"
-
+#include "game_strings.h"
 #include "hash_tables_400.h"
+
 #include "lib/bytes.h"
 #include "lib/static_object.h"
+
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <string>
-
-#include <cstdlib>
 #include <string_view>
 #include <type_traits>
 

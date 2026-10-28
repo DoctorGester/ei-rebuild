@@ -1,20 +1,19 @@
 // The client controller's per-tick update (CUnitClientSpecific's Update) and the client half's walk
 // over its drawn parts. See unit_client_models.h and docs/notes/units.md.
-#include "unit_client_models.h"
-
 #include "ai_map.h"
+#include "game_singletons.h"
+#include "logic_settings.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "sound.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "game_singletons.h"
-#include "lib/nan_audit.h"
-#include "logic_settings.h"
 
 #include <cmath>
 #include <cstdio>

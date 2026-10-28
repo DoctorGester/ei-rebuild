@@ -1,19 +1,19 @@
 // The named party records of the party manager: reset at new game, and the script commands' helpers to
 // find, add and remove a record by name. See party_records.h and docs/notes/world.md ("Party records and
 // class templates").
-#include "object_tables.h"
 #include "party_records.h"
-#include "party_manager.h"
+
+#include "class_templates.h"
 #include "core_refcount.h"
 #include "game_strings.h"
-#include "class_templates.h"
+#include "object_tables.h"
 #include "party.h"
-
-#include <cstdint>
+#include "party_manager.h"
 
 #include "lib/str.h"
 
 #include <bit>
+#include <cstdint>
 
 namespace {
 

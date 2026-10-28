@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <cstdint>
 
-
 class CTorchObjectSpec;
 
 class CTorchObject : public CMapObject {
@@ -24,7 +23,7 @@ public:
     int RunTick() override { return UpdateTorch(); }
     void Load(CStream* stream) override;                      // LoadTorch
     void Save(CStream* stream) override;                      // SaveTorch
-    const char* ClassName() override;                   // "CTorchObject"
+    const char* ClassName() override;                         // "CTorchObject"
     ClassId GetClassId() override;
     void AttachObject(CEngineObject* object) override { AttachTorchObject(object); }
     bool IsSynchronised() override { return Slot29True(); }

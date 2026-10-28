@@ -1,9 +1,9 @@
 // The world's player manager.
 #include "player_manager.h"
 
+#include "game_singletons.h"
 #include "player_messages.h"
 #include "world.h"
-#include "game_singletons.h"
 
 #include "ei/rebirth.h"
 

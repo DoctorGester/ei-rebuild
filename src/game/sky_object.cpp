@@ -1,12 +1,12 @@
 // CSkyObject and CSky's lighting. See sky_object.h.
 #include "sky_object.h"
+
+#include "render/render.h"   // MeshChanged
 #include "texture.h"
 #include "world.h"
 
-#include "render/render.h"   // MeshChanged
-
-#include "lib/nan_audit.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>

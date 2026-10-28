@@ -5,18 +5,17 @@
 
 #include "core_refcount.h"
 #include "engine_object.h"
-#include "manager_context.h"
 #include "item_db.h"
 #include "lock_key.h"
+#include "manager_context.h"
 #include "resource_manager.h"
+
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
-
 #include <vector>
-
 
 class CSpell;
 class CSpellManager;

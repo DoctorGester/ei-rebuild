@@ -2,10 +2,9 @@
 // the Patrol and Fear destructors, their
 // GetType slots, the abstract base's Execute and the abstract bases'
 // constructors.
-#include "unit_ai.h"
 #include "combat.h"
-
 #include "random.h"
+#include "unit_ai.h"
 
 #include <cstring>
 

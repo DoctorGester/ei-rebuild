@@ -3,11 +3,13 @@
 // that is missing keeps the field's current value, which is passed as the default.
 #include "options.h"
 
+#include "win_registry.h"
+
 #include "lib/crt.h"
+#include "lib/str.h"
+
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "win_registry.h"
-#include "lib/str.h"
 
 #include <bit>
 #include <cstdio>

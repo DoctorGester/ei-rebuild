@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-
 class CLight;
 class CParticleSource;
 
@@ -29,7 +28,7 @@ public:
     int Create() override { return CreateClient(); }
     void Destroy() override { DestroyClient(); }
     int RunTick() override;                             // returns 1
-    const char* ClassName() override;                // "CTorchObjectClientSpecific"
+    const char* ClassName() override;                   // "CTorchObjectClientSpecific"
     ClassId GetClassId() override;
     void ShowEffectsSlot() override { ShowEffects(); }
     void HideEffectsSlot() override { HideEffects(); }

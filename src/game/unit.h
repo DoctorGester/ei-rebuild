@@ -14,13 +14,12 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+
 #include <cstddef>
 #include <cstdint>
-#include <string>
-
 #include <list>
+#include <string>
 #include <vector>
-
 
 class CLight;
 class CParty;

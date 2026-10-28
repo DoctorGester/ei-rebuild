@@ -10,11 +10,12 @@
 #include "lightning.h"
 #include "net_delta.h"
 #include "spell.h"
-#include <cstdint>
-#include <string>
+
 #include "lib/static_object.h"
 
 #include <cstddef>
+#include <cstdint>
+#include <string>
 #include <vector>
 
 struct ScriptGroup;

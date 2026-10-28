@@ -4,42 +4,41 @@
 // Floating point follows the x87 code: `double` for values kept on the FPU stack, static_cast<float> where it
 // stores to a float.
 #include "app.h"
-#include "options.h"
-#include "global_map_clouds.h"
-#include "player_client.h"
-#include "ui.h"
-#include "world_glue.h"
-#include "sound.h"
-#include "ui_camp.h"
-#include "game_strings.h"
-
 #include "console.h"
 #include "core_maths.h"
-#include "surface.h"
+#include "game_singletons.h"
+#include "game_strings.h"
+#include "global_map_clouds.h"
 #include "item_db_text.h"
 #include "maths.h"
 #include "model.h"
 #include "object_tables.h"
+#include "options.h"
+#include "player_client.h"
+#include "sound.h"
+#include "surface.h"
+#include "text_split.h"
 #include "texture.h"
+#include "ui.h"
+#include "ui_camp.h"
 #include "ui_cursor.h"
 #include "world.h"
+#include "world_glue.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
-#include "text_split.h"
 #include "lib/gameapi.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include "ei/x87.h"
+
+#include <bit>
 #include <cmath>
 #include <concepts>
-
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <new>
-#include <bit>
 #include <string>
 #include <vector>
 

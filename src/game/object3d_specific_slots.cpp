@@ -1,13 +1,11 @@
 // Small slots of a 3D object's side half (CObject3D + 0x94): the client half's extra scale and
 // part materials (CObject3DClientSpecific) and the server half's scale
 // (CObject3DServer). See map_object_shadow.h and map_object_figures.h.
-#include "map_object_shadow.h"
-
+#include "link_figure.h"   // CLinkMesh::screenRect_
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "material.h"
 #include "world.h"
-
-#include "link_figure.h"   // CLinkMesh::screenRect_
 
 #include "lib/gameapi.h"
 

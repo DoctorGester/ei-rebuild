@@ -1,19 +1,17 @@
 // The world's managers released (the base world's Destroy). Their creation is world_create.cpp. See world.h
 // and docs/notes/combat.md.
-#include "world.h"
-#include "figure_manager.h"
-
 #include "base_manager.h"
 #include "core_refcount.h"
+#include "figure_manager.h"
 #include "item.h"
 #include "model.h"
 #include "player_manager.h"
 #include "resource_manager.h"
 #include "spell.h"
+#include "world.h"
 
 #include <cstdint>
 #include <new>
-
 
 namespace {
 // The world's reference is dropped and the manager deleted without testing the count.

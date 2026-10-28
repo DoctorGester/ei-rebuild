@@ -8,22 +8,22 @@
 #include "model.h"
 #include "texture.h"
 #include "unit.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
+#include "unit_looks.h"
 #include "world.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "unit_client_models.h"
+#include "lib/static_object.h"
+#include "lib/str.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
-#include "lib/static_object.h"
-#include "unit_looks.h"
-#include "lib/str.h"
-
 #include <memory>
 #include <new>
+#include <string>
 #include <vector>
 
 namespace {

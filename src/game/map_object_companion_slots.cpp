@@ -1,10 +1,9 @@
 // Small virtuals of a map object's companions: the base companion (what the server's CMapObjectServer mostly
 // keeps) and the client's CMapObjectClientSpecific. Virtual names: CMapObjectCompanion (map_object.h).
+#include "effects.h"   // CParticleSource
 #include "map_object.h"
-#include "effects.h"       // CParticleSource
 #include "net_delta.h"
 #include "unit.h"
-
 #include "world.h"
 
 namespace {

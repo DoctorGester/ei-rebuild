@@ -12,16 +12,17 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/nan_audit.h"
 
+#include "ei/x87.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <list>
-#include <vector>
-#include <cstddef>
 #include <string>
-#include "lib/nan_audit.h"
+#include <vector>
 
 namespace {
 

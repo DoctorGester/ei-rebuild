@@ -1,23 +1,22 @@
 // The unit AI brain's mode list and state resets, and its save-game
 // Load / Save.
-#include "map_spec.h"
-#include "unit_ai.h"
-
 #include "combat.h"
 #include "console.h"
 #include "core_refcount.h"
+#include "game_singletons.h"
 #include "logic_settings.h"
+#include "map_spec.h"
 #include "object_diplomacy.h"
+#include "save_versions.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "lib/crt.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
-#include "save_versions.h"
 
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

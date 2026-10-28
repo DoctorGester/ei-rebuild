@@ -1,7 +1,6 @@
 // The member-less map object classes (map_object_kinds.h, A-U6): CTree, CBuilding, CStone and CStuffObject.
 #include "map_object_kinds.h"
 
-
 namespace {
 template <ClassId Id> constexpr const char* kName = nullptr;
 template <> constexpr const char* kName<kClassTree> = "CTree";

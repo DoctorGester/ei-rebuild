@@ -4,9 +4,8 @@
 #include "texture.h"
 
 #include "lib/crt.h"
+
 #include <cstring>
-
-
 
 void MmpHeader::SetNoFormat() {
     alphaMask = alphaKind = alphaShift = 0;

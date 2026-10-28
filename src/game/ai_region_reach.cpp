@@ -1,16 +1,16 @@
 // CRegionMap::ReachesRegion and LabelRegions, and the region map's block grids. See ai_map.h and
 // docs/notes/ai.md ("Regions").
-#include "ai_map.h"
 #include "ai_grids.h"
+#include "ai_map.h"
 #include "core_streams.h"
 
 #include "lib/crt.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include "lib/static_object.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <initializer_list>
 
 namespace {

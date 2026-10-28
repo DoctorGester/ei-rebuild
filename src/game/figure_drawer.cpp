@@ -1,16 +1,13 @@
 // FigureMeshDrawer::Animate: an animated figure mesh's texture offset per frame. The drawer's lifetime: its
 // constructor, destructor bodies and the create / destroy virtuals. See link_figure.h.
-#include "link_figure.h"
-
 #include "engine_object.h"
-
+#include "link_figure.h"
 #include "world_class_slots.h"   // FigureClientSpecificClassName / ClassId
 
 #include "lib/crt.h"
 
 #include <cstdint>
 #include <new>
-
 
 namespace {
 

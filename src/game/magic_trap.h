@@ -3,13 +3,12 @@
 // Magic traps (map objects of class id 0x3B; the zone file's "MagicTrap" records). flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
 
-#include <cstdint>
 #include "map_object.h"
 #include "map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
 
 #include <cstddef>
+#include <cstdint>
 #include <list>
-
 
 class CSpell;
 
@@ -24,7 +23,7 @@ public:
     int RunTick() override { return UpdateTrap(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    const char* ClassName() override;                   // "CMagicTrapObject"
+    const char* ClassName() override;   // "CMagicTrapObject"
     ClassId GetClassId() override;
     bool IsSynchronised() override { return true; }
 

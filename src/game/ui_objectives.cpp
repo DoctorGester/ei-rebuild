@@ -3,39 +3,39 @@
 // zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
-#include "world_glue.h"
-#include "text_reader.h"
-#include "ui.h"
-#include "game_strings.h"
-
 #include "console.h"
+#include "game_singletons.h"
+#include "game_strings.h"
 #include "item_db_text.h"
 #include "maths.h"
 #include "object_tables.h"
 #include "quest_records.h"
-#include "world.h"
-
-#include "lib/text_case.h"
 #include "render/render_state.h"
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "lib/crt.h"
+#include "text_reader.h"
 #include "text_split.h"
+#include "ui.h"
+#include "world.h"
+#include "world_glue.h"
+
+#include "lib/crt.h"
+#include "lib/float_select.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
+#include "lib/nan_audit.h"
+#include "lib/static_object.h"
+#include "lib/str.h"
+#include "lib/text_case.h"
+
+#include "ei/x87.h"
+
 #include <bit>
+#include <concepts>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
-#include "lib/static_object.h"
-#include "game_singletons.h"
-#include "lib/str.h"
-#include "lib/float_select.h"
-
-#include <concepts>
-#include <cstdlib>
-#include <memory>
 #include <vector>
 
 namespace {
@@ -307,8 +307,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             for (auto& s : found) {
                 quests.push_back(s);
                 const std::string& current = listZones_ == 0 ? *g_lastQuest : interface_->savedText_;
-                if (text::CompareIgnoringCase(current, s) == 0)
-                    selectedQuest_ = static_cast<int>(quests.size()) - 1;
+                if (text::CompareIgnoringCase(current, s) == 0) selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
             *g_lastQuest = quests[selectedQuest_];
         }

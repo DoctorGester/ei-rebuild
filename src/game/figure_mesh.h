@@ -9,12 +9,11 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
-
 #include <vector>
-
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the loaders set w to
 // 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2. Also the moved positions the part drawers

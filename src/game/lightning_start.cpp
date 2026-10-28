@@ -1,21 +1,21 @@
 // CLightning's initialiser (called by the lightning client object's setter). Plain float maths (rule 7);
 // random words converted with x87::FromUnsigned. See docs/notes/objects.md ("Rewritten").
+#include "game_singletons.h"
 #include "lightning.h"
-#include "texture.h"
-
 #include "random.h"
+#include "texture.h"
+#include "world.h"
+
+#include "lib/crt.h"
+#include "lib/float_select.h"
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 
 #include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include "game_singletons.h"
-#include "world.h"
-#include "lib/nan_audit.h"
-#include "lib/float_select.h"
 
 namespace {
 

@@ -1,31 +1,30 @@
 // The briefing / base screen's phrases (CBriefingScreen::NextPhrase, ui_briefing.h): a dialogue
 // text's commands and phrases, the rewards after the last one, the camera and the speakers'
 // animations. See docs/notes/ui.md, "Briefing / base screen".
-#include "ui.h"
-#include "world_glue.h"
-#include "combat.h"
-#include "ui_briefing.h"
-#include "quest_records.h"
 #include "asset_text.h"
-
+#include "combat.h"
 #include "console.h"
+#include "game_singletons.h"
 #include "item.h"
 #include "item_db_text.h"
 #include "map_object_figures.h"
 #include "object_tables.h"
+#include "quest_records.h"
 #include "sound.h"
 #include "text_reader.h"
+#include "text_split.h"
+#include "ui.h"
+#include "ui_briefing.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_client_models.h"
-#include "world_data.h"
 #include "world.h"
+#include "world_data.h"
+#include "world_glue.h"
 
 #include "lib/crt.h"
-#include "lib/text_case.h"
-#include "text_split.h"
-#include "game_singletons.h"
 #include "lib/str.h"
+#include "lib/text_case.h"
 #include "lib/vecmath.h"
 
 #include <cstdlib>

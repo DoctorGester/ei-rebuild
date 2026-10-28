@@ -1,13 +1,13 @@
 // The game server's description of itself: a server entry like those the
 // client reads from the server list (net_server_list.cpp). See net_classes.h and docs/notes/network.md.
+#include "core_refcount.h"
+#include "game_strings.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "options.h"
-#include "game_strings.h"
-#include "core_refcount.h"
+#include "world.h"
 
 #include "lib/crt.h"
-#include "world.h"
 
 #include <cstring>
 #include <string>

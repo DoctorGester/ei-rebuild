@@ -1,12 +1,11 @@
 // CServerSpecificManager and CTorchObjectSpec. See server_specific_manager.h.
-#include "combat.h"
 #include "server_specific_manager.h"
 
-#include "unit.h"   // CMapObjectServer
+#include "combat.h"
 #include "player_messages.h"
+#include "unit.h"   // CMapObjectServer
 
 #include <new>
-
 
 namespace {
 

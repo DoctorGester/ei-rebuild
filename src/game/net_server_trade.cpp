@@ -1,12 +1,11 @@
 // The game server's trades between players: offers arrive as replicated objects (created, updated, removed),
 // two matching offers make a trade (a TradeMessage, finds it), and a removed file request is dropped a
 // removed file request. The offers are PartyMessages (net_messages.h). See docs/notes/network.md.
-#include "net_messages.h"
 #include "core_refcount.h"
-
+#include "game_singletons.h"
+#include "net_messages.h"
 #include "ui.h"
 #include "world_data.h"
-#include "game_singletons.h"
 
 #include <cstring>
 #include <string>
@@ -22,8 +21,7 @@ constexpr std::uint32_t kFinishedDelay = 0x42700000;   // 60.0f
 PartyMessage* FindPartnerOffer(const std::list<CountedRefTo<PartyMessage>>& list, PartyMessage* offer) {
     for (auto& node : list) {
         auto* other = node.Get();
-        if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr)
-            return node.Get();
+        if (other->player_.ptr == offer->partner_.ptr && other->partner_.ptr == offer->player_.ptr) return node.Get();
     }
     return nullptr;
 }

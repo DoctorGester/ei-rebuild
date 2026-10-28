@@ -1,24 +1,24 @@
 // The game client's message handlers (registered by the constructor) and the three party-screen entry points
 // around them. Each keeps the replicated objects the server sends in one of the client's lists and tells the
 // interface or the game flow. The messages are declared in net_messages.h. See docs/notes/network.md.
-#include "net_messages.h"
-#include "party.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_singletons.h"
 #include "game_strings.h"
-
-#include "ei/rebirth.h"
-#include "lib/crt.h"
+#include "net_messages.h"
+#include "party.h"
 #include "ui.h"
 #include "world.h"
 #include "world_data.h"
 #include "world_map_files.h"
-#include "game_singletons.h"
+
+#include "lib/crt.h"
+
+#include "ei/rebirth.h"
 
 #include <algorithm>
 #include <cstring>
 #include <vector>
-
 
 namespace net {
 

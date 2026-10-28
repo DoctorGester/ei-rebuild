@@ -1,25 +1,25 @@
 // The unit AI's target choice: scoring an attack option against a unit, whether an
 // option may be used, choosing the best target, and the orders it checks
 // and whether the unit can get at a target.
-#include "sector_map.h"
-#include "unit_ai.h"
-#include "combat.h"
-
 #include "ai_map.h"
 #include "ai_scoped_path.h"
+#include "combat.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
+#include "sector_map.h"
 #include "spell.h"
+#include "unit_ai.h"
 #include "unit_db.h"
 #include "world.h"
-#include "game_singletons.h"
+
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include <cstdint>
-#include "lib/nan_audit.h"
 
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 namespace {

@@ -1,8 +1,7 @@
 // CEffectTornado: a tornado crossing the map in a straight line, hurting the units it passes.
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
-#include "world_effect.h"
-
+#include "game_singletons.h"
 #include "game_strings.h"
 #include "map_object.h"
 #include "random.h"
@@ -10,10 +9,11 @@
 #include "sound.h"
 #include "unit.h"
 #include "world.h"
+#include "world_effect.h"
 #include "world_effect_internal.h"
-#include "game_singletons.h"
 
 #include "lib/crt.h"
+
 #include "ei/x87.h"
 
 #include <cmath>

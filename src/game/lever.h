@@ -1,19 +1,18 @@
 #pragma once
 
-#include "maths.h"
-#include "map_object.h"
-
 #include "lock_key.h"
+#include "map_object.h"
 #include "map_spec.h"   // LeverSetup
+#include "maths.h"
 #include "unit.h"
 
-#include <cstdint>
-#include <string>
 #include "lib/static_object.h"
 
 #include <cstddef>
-#include <vector>
+#include <cstdint>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 // A model's record in the lever table, read from Levers.ldb by field id. The spot offsets are in the
 // lever's own frame (along its facing's X and Y axes).

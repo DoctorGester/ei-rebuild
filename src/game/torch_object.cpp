@@ -1,14 +1,12 @@
 // The torch map object: lifetime, update, save / load, its spec and the
 // network state. See torch.h and docs/notes/units.md.
-#include "torch.h"
-
 #include "core_streams.h"
 #include "net_delta.h"
 #include "server_specific_manager.h"
+#include "torch.h"
 
 #include <initializer_list>
 #include <new>
-
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";

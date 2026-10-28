@@ -1,24 +1,24 @@
 // Interface windows, their regions and the aligned pointer arrays they keep. See ui.h.
 #include "figure_manager.h"
 #include "figure_mesh.h"
+#include "game_singletons.h"
+#include "material.h"
 #include "texture.h"
 #include "ui.h"
+#include "ui_widescreen.h"
 #include "world_class_slots.h"
 
-#include "material.h"
-
-#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "ui_widescreen.h"
-#include "ei/x87.h"
-#include "game_singletons.h"
 
-#include <cstring>
-#include <memory>
-#include <initializer_list>
+#include "ei/rebirth.h"
+#include "ei/x87.h"
+
 #include <bit>
+#include <cstring>
+#include <initializer_list>
+#include <memory>
 
 namespace {
 // 32-bit wrapping multiply.

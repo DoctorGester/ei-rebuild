@@ -1,14 +1,13 @@
 // The map object manager ("map objects", class id 0x2D): its lifetime, the objects it makes complete with
 // their halves, the animation database lookup and the defaults of an object without a prototype. The object
 // factory is unit_create_object.cpp's.
-#include "unit_create.h"
-#include "game_strings.h"
-
 #include "base_manager.h"
+#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "resource_manager.h"
 #include "unit.h"
+#include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
 #include "world_data.h"
@@ -17,8 +16,6 @@
 
 #include <new>
 #include <string>
-
-
 
 namespace {
 

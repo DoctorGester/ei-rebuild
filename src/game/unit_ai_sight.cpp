@@ -2,20 +2,20 @@
 // nearby units, seeing new ones and the eye's height and facing.
 #include "ai_map.h"
 #include "combat.h"
-#include "effects.h"
-#include "unit_ai.h"
-
 #include "console.h"
+#include "effects.h"
+#include "game_singletons.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "sector_map.h"
+#include "unit_ai.h"
 #include "world.h"
-#include "game_singletons.h"
 
 #include "lib/crt.h"
-#include "ei/x87.h"
-#include "lib/nan_audit.h"
 #include "lib/float_select.h"
+#include "lib/nan_audit.h"
+
+#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>

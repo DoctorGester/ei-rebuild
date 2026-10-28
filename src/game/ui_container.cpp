@@ -1,8 +1,8 @@
 // Containers (CUiContainer, ui.h): the default input handlers of their input side, which pass an
 // event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
+#include "game_singletons.h"
 #include "model.h"
 #include "ui.h"
-#include "game_singletons.h"
 
 #include "ei/x87.h"
 

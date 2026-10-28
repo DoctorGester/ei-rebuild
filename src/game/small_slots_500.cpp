@@ -6,7 +6,6 @@
 
 #include "ei/hook.h"
 
-
 namespace {
 constexpr const char* kTrackClassName = "CAnimationTrack";
 constexpr const char* kBoneClassName = "CAnimationNode";

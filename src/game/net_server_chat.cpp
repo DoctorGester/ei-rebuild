@@ -1,12 +1,11 @@
 // The game server's chat and system lines: kept on lines_ for the clients, at most 50. See net_classes.h and
 // docs/notes/network.md.
-#include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-
+#include "game_singletons.h"
+#include "net_messages.h"
 #include "ui.h"
 #include "world_data.h"
-#include "game_singletons.h"
 
 #include <cstring>
 #include <string>

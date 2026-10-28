@@ -1,12 +1,11 @@
 // The game client session. See
 // net_classes.h and docs/notes/network.md.
+#include "core_refcount.h"
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_handlers.h"
 #include "net_messages.h"
 #include "party.h"
-
-#include "core_refcount.h"
 
 #include <cstring>
 

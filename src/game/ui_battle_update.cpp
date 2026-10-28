@@ -2,38 +2,39 @@
 // its quest variable notice, the selection's refresh and the quick
 // item panel's unit. See docs/notes/ui.md ("Battle screen").
 #include "camera.h"
+#include "game_singletons.h"
 #include "item.h"
-#include "player_client.h"
-#include "player_messages.h"
 #include "item_db_text.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
+#include "party.h"
+#include "player_client.h"
+#include "player_messages.h"
 #include "text_reader.h"
+#include "text_split.h"
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_widescreen.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world.h"
+#include "world_glue.h"
+
+#include "lib/nan_audit.h"
 
 #include "ei/x87.h"
-#include "lib/nan_audit.h"
-#include "text_split.h"
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 #include <algorithm>
 #include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <list>
 #include <memory>
+#include <string>
 #include <vector>
-#include "party.h"
-#include "world.h"
-#include "world_glue.h"
-#include "game_singletons.h"
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 

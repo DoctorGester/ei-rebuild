@@ -1,18 +1,17 @@
 // Small pieces of the early code without a better home: the CBaseManager subclass
 // (its deleting destructor and the object factory differ), a
 // cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
-#include "torch_client_spec.h"
 #include "base_manager.h"
 #include "link_figure.h"
 #include "map_object_shadow.h"
 #include "player_client.h"
+#include "torch_client_spec.h"
 #include "unit.h"
 #include "unit_client_models.h"
 
 #include <cstdint>
 #include <cstring>
 #include <new>
-
 
 CClientSpecificManager::CClientSpecificManager() {}
 CClientSpecificManager::~CClientSpecificManager() {}

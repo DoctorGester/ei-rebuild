@@ -6,16 +6,16 @@
 #include "angles.h"
 #include "core_streams.h"
 #include "core_transform.h"
-#include "maths.h"
-
-#include "ei/hook.h"
-#include <cstddef>
-#include <cstdint>
-#include <string>
 #include "game_singletons.h"
+#include "maths.h"
 #include "options.h"
 
+#include "ei/hook.h"
+
+#include <cstddef>
+#include <cstdint>
 #include <list>
+#include <string>
 #include <vector>
 
 class CObject3D;

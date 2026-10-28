@@ -10,12 +10,10 @@
 #include "item.h"
 
 #include <cstdint>
+#include <list>
 #include <string>
 #include <string_view>
-
-#include <list>
 #include <vector>
-
 
 // An archive the texts are looked up in.
 struct TextSource {
