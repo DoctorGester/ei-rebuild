@@ -3696,6 +3696,13 @@ model = "opus"
 note = "Found at the C14x merge: camera.h keeps unused_1E0[0x2E0-0x1E0] where the dead view stack was, so its offsetof asserts still hold. The layout rule ended with S21 (normal-cpp-classes). Keep an assert or a pad only where bytes leave the process or come from a fixed format: save files, network packets, resource files, GPU vertex/constant layouts, D3D/DirectDraw structs. tests/verify reads the image through its headers, not offsets, so check before keeping one for the harness. Drop the rest, and the fields nothing reads. Delete what becomes dead. Scripted pass; image suite --golden must stay 121 the same; original suite if tests/verify changes."
 
 [[ticket]]
+id = "C14zc"
+title = "The last stlp: stlp_algo.h's 11 stlp::Sort uses to std::sort where keys are unique, the rest on our own named sort; delete stlp_algo.h"
+group = "cleanup"
+model = "opus"
+note = "Left by C14t: stlp::Sort (stl_sorts.cpp, world_client_view.cpp, tests/verify/harness_address_order.cpp) is the last stlp in the game code. C35h moved the sorts with unique keys to std::sort; for each remaining one show whether equal keys can occur (and whether their order is visible). Unique keys: std::sort. Ties that matter: keep the original's order with our own small sort in src/lib under a plain name (not stlp), shared with libcrt's Qsort if that fits. Then delete stlp_algo.h and the word stlp from src (tests' game.exe views may keep the name)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
