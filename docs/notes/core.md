@@ -235,7 +235,7 @@ to which template:
   destruction; SetSize(0) destroys and frees; RemoveAt memmoves the tail down. `Elements` is the instantiation's
   ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default, `RawElements`
   (nothing), or its own pair (terrain records 006C4F10 / 006C4EE0, flag arrays 006C4F90 / 006C4F60, tile lists 006C5050 /
-  006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
+  006C5010; the bone's morph frames 00452E20 / 00452DF0). The
   vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray share
   the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA,
   006FF29A via originals_library.h). CUIntArray went in C20o (only an unused ini_file helper made one), `mfc::impl::CStringArray` in C14i
@@ -285,9 +285,6 @@ to which template:
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
   the original's reserve / push_back (party_records' `NamedPartyRecords`). The device's mesh buffers
   (007AEDE0-007AEE3C): `src/game/device_buffers.h`.
-- Scene loader: `scene::VtArray` is `CArray<char, RawElements<char>>`, an untyped view of the caller's record arrays
-  (meshes, nodes, helpers, figures, bone links), resized only through `Typed<...>` (the CArray of the same layout with the
-  original's element pair). Owners `SceneNodes` / `TextureLinks` / `TextureNames` are RAII wrappers over VtArray.
 - Left off the templates: map_database.cpp's own `ArrayBody` + generic `SetSize` (allods, maps, zone exits; untyped, not
   counted by the checker); the trap's areas array (`PlainArray`, 12-byte records) forwards to its SetSize 0046EAD0.
 

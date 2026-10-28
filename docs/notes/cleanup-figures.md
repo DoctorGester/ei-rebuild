@@ -51,8 +51,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 - `FigureAnimation` +0x24 `stride` (float): the distance one play of the animation moves the unit; the client path code divides the movement
   by it for the animation speed. `CObject3D` +0x158 `eyeHeight` (the AI adds it to the eye), +0x11C / +0x120 the part names' CStringArray
   capacity and grow step. `CMapObject` +0x174 `updateCountdown`; `MapEffect` +0x0C `strength` (saved; Rebirth compares it).
-- `CCamera` +0xD0 `zoomTarget_`, +0x2F8 / +0x2FC the keys' capacity and grow step; `CameraKey` +0x04 `reserved`. `SceneSkin` +0x00 `owner`
-  (the fake unit; `SetOwner`).
+- `CCamera` +0xD0 `zoomTarget_`, +0x2F8 / +0x2FC the keys' capacity and grow step; `CameraKey` +0x04 `reserved`.
 - Terrain: `SectorData` +0x60 `clipMode`, +0x170 `detail`, +0x174 / +0x178 `seamBefore` / `seamAfter`. The map file's material +0x1C
   (`warpSpeed`, the name modding notes use) is copied to TerrainMaterial +0x30 and never read.
 - `ChannelLayout` +0x00 `bitCount` is read by the texture upload's size but never written, so that size is always 0 (the original's

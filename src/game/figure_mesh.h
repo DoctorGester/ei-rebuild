@@ -173,12 +173,12 @@ public:
     std::uint32_t spareDC_;             // cleared by Create, copied by CopyFrom; nothing reads it
     // the pose matrix (row-major): UpdateWorld's rotation, its translation row the moved position.
     Matrix4 poseMatrix_;
-    std::string name_;                  // (the scene loader names it after its mesh)
+    std::string name_;
     std::string directory_;             // where its .fig file is (NewFigure empties it)
     std::vector<Vector3> offsets_;     // per-vertex offsets added when drawing
     std::vector<std::uint32_t> colorsA_;   // one per normal (lit colours)
     std::vector<std::uint32_t> colorsB_;   // one per normal
-    // from the file header (before meshType_): the material value of the scene's mesh (the number in its
+    // from the file header (before meshType_): the material value of the mesh (the number in its
     // material group's name). An object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
     std::uint32_t materialValue_;
     std::uint32_t meshType_;            // from the file header; 13..16: animated
@@ -215,8 +215,7 @@ public:
     void LoadOld(char** cursor, float s, float t, float u) override;
 };
 
-// Class 0x42: a mesh that owns all its arrays (the figure manager's attached parts, the scene's figure
-// records). CUiMesh (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
+// Class 0x42: a mesh that owns all its arrays (the figure manager's attached parts). CUiMesh (class 0x43, ui.h) and CSkyObject (0x44, sky_object.h) derive from it.
 class CPlainFigureMesh : public CFigureMesh {
 public:
     CPlainFigureMesh();

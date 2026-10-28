@@ -10,6 +10,3 @@
 // A free __fastcall function (both pointers in registers), not a method.
 // (z * z' + y * y') + x * x' (DotZYX), returned unrounded in ST0.
 float __fastcall Dot(const Vector3& a, const Vector3& b);
-
-// Out = conj(b) * a. __fastcall (out in ECX, a in EDX); returns out.
-Quaternion* MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b);

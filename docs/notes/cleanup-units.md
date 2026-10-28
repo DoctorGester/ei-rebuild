@@ -67,7 +67,7 @@ fake_unit, class_templates (and class_template_stock), hoover_loot, zone_records
   `ItemRecordHead::classMask`, `MaterialRecordHead::classMask`.
 - `ClassTemplate::ItemsParty()` / `SpellsParty()` (the parties are `PartyStorage`, party_storage.h: the template's Construct / Destruct build them).
 - `mfc::CObjectVirtuals` (GetRuntimeClass, the deleting destructor, Serialize) for MFC objects called through their
-  vtable; `scene::FakeUnitScene` views the fake unit's scene arrays.
+  vtable.
 - `DiplomacyConstruct` takes `ZoneDiplomacy*`.
 - unit_skins' `TextureSet` (the texture cache's composition request, not an STL set) is `SkinComposition`.
 - New members shadowed locals named `damage` / `combat` in UnitStats methods (C4458): unit_hits' DamageSlot and

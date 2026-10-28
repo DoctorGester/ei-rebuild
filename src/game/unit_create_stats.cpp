@@ -11,7 +11,6 @@
 #include "map_object_figures.h"
 #include "map_object_kinds.h"
 #include "object_tables.h"
-#include "scene_loader.h"
 #include "torch.h"
 #include "trap_object.h"
 #include "unit.h"
@@ -602,7 +601,6 @@ constexpr FactoryEntry kFactory[] = {
     Make<CBuilding>(0x36),
     Make<CStone>(0x37),
     Make<CStuffObject>(0x38),
-    Make<scene::FakeUnitScene>(0x39),
     Make<CTorchObject>(0x3A),
     Make<MagicTrap>(0x3B),
     Make<Lever>(0x3C),

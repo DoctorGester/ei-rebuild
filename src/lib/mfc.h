@@ -233,8 +233,6 @@ struct CArray {
         return index;
     }
 
-    T& ElementAt(int index) { return data[index]; }
-
     // InsertAt: grows by `count`, moves the tail up (Relocate; the slots it vacates are
     // destroyed and constructed again), then assigns `value` to each new slot.
     void InsertAt(int index, const T& value, int count = 1) {
@@ -396,111 +394,5 @@ struct CList {
 
 };
 static_assert(sizeof(CList<int>) == 0x1C);
-
-// CMap<K, ARG_K, V, ARG_V> (0x1C bytes): vtable, hash table, table size, count, free associations, CPlex
-// blocks, block size. An association is next, hash, key, value (dword packed, so a 64-bit key sits at +8).
-// Hashing and the association pool stay with each instantiation's own GetAssocAt / InitHashTable /
-// NewAssoc; the walk and RemoveAll, which the game inlines, are written here.
-#pragma pack(push, 4)
-template <typename K, typename V>
-struct CMapAssoc {
-    CMapAssoc* next;
-    std::uint32_t hash;
-    K key;
-    V value;
-};
-#pragma pack(pop)
-
-template <typename K, typename V>
-struct CMap {
-    using Assoc = CMapAssoc<K, V>;
-
-    void* vtable;
-    Assoc** table;
-    std::uint32_t hashSize; // (17 until InitHashTable)
-    int count;
-    Assoc* freeList;
-    CPlex* blocks;
-    int blockSize;
-
-    // GetNextAssoc as inlined: the association after `assoc` (the next in its chain, else the head
-    // of a later bucket), or null; null starts at the first bucket.
-    Assoc* Next(const Assoc* assoc) const {
-        if (assoc && assoc->next) return assoc->next;
-        for (std::uint32_t b = assoc ? assoc->hash + 1 : 0; b < hashSize; ++b)
-            if (table[b]) return table[b];
-        return nullptr;
-    }
-
-    // InitHashTable(nHashSize, bAllocNow): the old table deleted; a zeroed one of
-    // `newHashSize` buckets when `allocNow`; the size kept either way.
-    void InitHashTable(std::uint32_t newHashSize, int allocNow) {
-        if (table) {
-            gamecrt::operator_delete(table);
-            table = nullptr;
-        }
-        if (allocNow) {
-            table = gamecrt::operator_new_array<Assoc*>(newHashSize);
-            std::memset(table, 0, newHashSize * sizeof(Assoc*));
-        }
-        hashSize = newHashSize;
-    }
-
-    // GetAssocAt(key, nHash&): the key's bucket (the key, its low dword for a 64-bit one,
-    // shifted right by 4) into `hashOut`; its association, or null (also when there is no table).
-    Assoc* GetAssocAt(const K& key, std::uint32_t& hashOut) const {
-        hashOut = (static_cast<std::uint32_t>(key) >> 4) % hashSize;
-        if (!table) return nullptr;
-        for (Assoc* assoc = table[hashOut]; assoc; assoc = assoc->next)
-            if (assoc->key == key) return assoc;
-        return nullptr;
-    }
-
-    // NewAssoc: an association from the free list (a new block of `blockSize` when it is empty), the count
-    // raised, key and value zeroed. `next` and `hash` are the caller's.
-    Assoc* NewAssoc() {
-        if (!freeList) {
-            CPlex* block = PlexCreate(blocks, static_cast<unsigned>(blockSize), sizeof(Assoc));
-            Assoc* fresh = reinterpret_cast<Assoc*>(block + 1) + (blockSize - 1);
-            for (int i = blockSize - 1; i >= 0; --i, --fresh) {
-                fresh->next = freeList;
-                freeList = fresh;
-            }
-        }
-        Assoc* assoc = freeList;
-        freeList = assoc->next;
-        ++count;
-        std::memset(static_cast<void*>(&assoc->key), 0, sizeof(K));
-        std::memset(static_cast<void*>(&assoc->value), 0, sizeof(V));
-        return assoc;
-    }
-
-    // operator[](key): the value of `key`, a new association (value zero) put at the head of
-    // its bucket when missing (the table allocated first if there is none).
-    V& ElementAt(const K& key) {
-        std::uint32_t hash;
-        Assoc* assoc = GetAssocAt(key, hash);
-        if (!assoc) {
-            if (!table) InitHashTable(hashSize, 1);
-            assoc = NewAssoc();
-            assoc->hash = hash;
-            assoc->key = key;
-            assoc->next = table[hash];
-            table[hash] = assoc;
-        }
-        return assoc->value;
-    }
-
-    void RemoveAll() {
-        gamecrt::operator_delete(table);
-        table = nullptr;
-        count = 0;
-        freeList = nullptr;
-        PlexFreeDataChain(blocks);
-        blocks = nullptr;
-    }
-};
-static_assert(sizeof(CMap<int, int>) == 0x1C);
-static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 
 } // namespace mfc

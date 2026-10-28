@@ -10,7 +10,7 @@
 #include "engine_object.h"
 #include "item.h"
 #include "map_object.h"
-#include "scene_loader.h"
+#include "material.h"
 #include "script.h"
 #include "unit.h"
 
@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <cstring>
 
-// ---- Scene loader ---------------------------------------------------------------------------------
+// ---- Materials ------------------------------------------------------------------------------------
 
 std::uint32_t CMaterial::GpuLitColour() const {
     const float alpha = colors.diffuse.w * 255.0f;

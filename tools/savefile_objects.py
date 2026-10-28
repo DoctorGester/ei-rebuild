@@ -1,6 +1,6 @@
 """The map objects' part of a decoded save (tools/savefile.py): SaveMapObjects (00596730) calls each object's
 Save (virtual slot 10) by its class. Types are the map object manager's factory's (00512730):
-  0x32-0x34 CUnit, 0x39 the fake unit (CUnit's Save too)       savefile_unit.read_unit
+  0x32-0x34 CUnit                                               savefile_unit.read_unit
   0x35 tree, 0x36 building, 0x37 stone, 0x38 stuff              CMapObject::SaveMapObject 0050F900
   0x3A torch (0052C2A0), 0x3B magic trap (0052B070), 0x3C lever (0052BE40), 0x3010 trap object (00529DA0)
 """
@@ -8,7 +8,7 @@ Save (virtual slot 10) by its class. Types are the map object manager's factory'
 END_OF_OBJECTS = -0x521   # CBaseManager::SaveObjects' end mark (base_manager.cpp kEndOfObjects)
 
 PLAIN = {0x35: 'tree', 0x36: 'building', 0x37: 'stone', 0x38: 'stuff'}
-UNITS = (0x32, 0x33, 0x34, 0x39)
+UNITS = (0x32, 0x33, 0x34)
 
 
 def read_vitals(r, name):

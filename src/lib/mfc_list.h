@@ -1,10 +1,9 @@
 #pragma once
 
-// MFC 4.2's CList<TYPE, ARG_TYPE>, CMap<KEY, ARG_KEY, VALUE, ARG_VALUE> (afxtempl.h) and CPlex (afxplex_.h) as
-// game.exe instantiates them (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the
-// map bodies are written here over mfc::CMap's layout; the instantiations differ in the element: its size (read
-// from each NewNode's CPlex::Create) and the element policy (mfc_array.h). ListAbi / MapAbi turn the members
-// into the instantiations' calling conventions; mfc_list.cpp has the library-only instantiations,
+// MFC 4.2's CList<TYPE, ARG_TYPE> (afxtempl.h) and CPlex (afxplex_.h) as game.exe instantiates them
+// (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h); the instantiations differ in
+// the element: its size (read from each NewNode's CPlex::Create) and the element policy (mfc_array.h). ListAbi
+// turns the members into the instantiations' calling conventions; mfc_list.cpp has the library-only instantiations,
 // src/game/game_lists.cpp the ones whose elements are game types.
 
 #include "mfc_array.h"
@@ -120,47 +119,6 @@ void RemoveAtAs(CList<T, E>* list, typename CList<T, E>::Node* node) {
     ListAs<Abi>(list)->RemoveAt(NodeAs<Abi>(node));
 }
 
-// ---- CMap -----------------------------------------------------------------------------------------
-
-// MFC's HashKey for DWORD-sized keys: the key (its low dword for a 64-bit one) shifted right by 4.
-template <typename K>
-std::uint32_t HashKey(const K& key) {
-    return static_cast<std::uint32_t>(key) >> 4;
-}
-
-template <typename K, typename V>
-struct MapAbi : CMap<K, V> {
-    using Map = CMap<K, V>;
-    using Assoc = typename Map::Assoc;
-
-    // Serialize (vtable slot 2; defined in mfc_slots.h): the count, then (when there are any)
-    // key and value of each association, bucket by bucket. Loading reads each pair and sets it.
-    void Serialize(CArchive* ar);
-
-    // The instantiations' InitHashTable, GetAssocAt, NewAssoc, operator[] (ElementAt) and RemoveAll
-    // (elements without destructors) are CMap's own members (mfc.h), reached through this type.
-
-    // The destructor (the vtable of `Class` written first): RemoveAll.
-    template <typename Class>
-    static void Destruct(Map* self) {
-        self->vtable = Class::Vtable();
-        self->RemoveAll();
-    }
-};
-
-// A map as an element (the constructor inlined by ConstructElements after its memset): the vtable of
-// `Class`, no table, 17 buckets, blocks of 10.
-template <typename Class>
-void InitMap(CMap<std::uint32_t, std::uint32_t>* p) {
-    p->vtable = Class::Vtable();
-    p->table = nullptr;
-    p->hashSize = 17;
-    p->count = 0;
-    p->freeList = nullptr;
-    p->blocks = nullptr;
-    p->blockSize = 10;
-}
-
 // ---- The instantiations' vtables (game data) ------------------------------------------------------
 
 // ---- Elements ------------------------------------------------------------------------------------
@@ -188,8 +146,5 @@ using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 
 
-using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
-using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;
-using Map64x64 = MapAbi<std::uint64_t, std::uint64_t>;
 
 } // namespace mfc::impl

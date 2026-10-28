@@ -4665,9 +4665,9 @@ address,name,library,signature,notes
 004991C0,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
 004991E0,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
 00482790,stlp node deallocate guard (one 0x20-byte node),STLport,,"A-E1: a non-null node pushed on the node pool's list 0079B230; called only from unwind funclets (Unwind@007163A6, Unwind@007163F0)"
-004763C0,"CArray<TYPE,ARG_TYPE> destructor (vtable 0073C80C; 0x1C-byte elements)",MFC,,"A-E1: array template instantiation of the scene loader: each element destroyed through its slot 1 with 0, the block freed; scene_loader.cpp forwards to it (DestroyMapArray); also 00476D70 and two unwind funclets"
+004763C0,"CArray<TYPE,ARG_TYPE> destructor (vtable 0073C80C; 0x1C-byte elements)",MFC,,"A-E1: array template instantiation of the scene loader: each element destroyed through its slot 1 with 0, the block freed; also 00476D70 and two unwind funclets"
 00476D70,"CArray<TYPE,ARG_TYPE> scalar deleting destructor (004763C0)",MFC,,"A-E1: 004763C0, then operator delete with flags bit 0 (RET 4); slot 1 of 0073C80C"
-004553F0,"ConstructElements ({dword, CString} elements)",MFC,"void __stdcall(void*,int)","A-E1: MFC template instantiation: zero fill, then each CString set to the empty string (RET 8); scene_registry.cpp forwards to it (ConstructNamed)"
+004553F0,"ConstructElements ({dword, CString} elements)",MFC,"void __stdcall(void*,int)","A-E1: MFC template instantiation: zero fill, then each CString set to the empty string (RET 8)"
 00462230,"ConstructElements (4-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by 00461CB0 and 00621570"
 00477190,"ConstructElements (0x1C-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
 00477220,"ConstructElements (8-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
@@ -4680,7 +4680,7 @@ address,name,library,signature,notes
 00476F50,"DestructElements (0x18C-byte elements, each through its slot 0 with 0)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
 00477100,"DestructElements (0x120-byte elements, destructor 004543E0)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
 00476F20,"DestructElements (0x18-byte elements, destructor 00454C50)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
-00477340,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::GetAssocAt (4-byte keys, HashKey = key >> 4)",MFC,,"A-E1: MFC template instantiation (CMap::GetAssocAt), as 00453C60; scene_loader.cpp forwards to it (DwordMap::GetAssocAt)"
+00477340,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::GetAssocAt (4-byte keys, HashKey = key >> 4)",MFC,,"A-E1: MFC template instantiation (CMap::GetAssocAt), as 00453C60"
 00476EF0,aligned array allocate (0x34-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*0x34+0x24), aligned to 32, raw pointer stored before the data; called by the scene loader"
 00477250,aligned array allocate (12-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*12+0x24), aligned to 32, raw pointer stored before the data; called by the scene loader"
 0049BB10,aligned array allocate (24-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*24+0x24), aligned to 32, raw pointer stored before the data; called by the line strip draws 0049B4B0 and 005045D0"

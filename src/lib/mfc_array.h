@@ -163,26 +163,12 @@ void DestructArrayOf(CArray<T, E>& a) {
 struct IntArrayClass;
 struct ScriptAreaClass;
 struct AiLookArrayClass;
-struct BoneLinkArrayClass;
 struct WaypointArrayClass;
 struct ScriptAreaPartsClass;
 struct ArrayBaseClass;
 struct AiLookRecordArrayClass;
 
 // ---- Elements ------------------------------------------------------------------------------------
-
-// 40-byte key frames: a quaternion at +0x18, identity (w first) after the zero fill.
-struct KeyFrame40 {
-    std::uint8_t head[0x18];
-    float w, x, y, z;
-};
-static_assert(sizeof(KeyFrame40) == 0x28);
-inline void InitKeyFrame40(KeyFrame40* p) {
-    p->w = 1.0f;
-    p->x = 0.0f;
-    p->y = 0.0f;
-    p->z = 0.0f;
-}
 
 // Elements that hold an array header of `Class` at `ArrayAt` (the 20-byte element is the
 // array; 32-byte patrols with the array at +0xC).
@@ -295,7 +281,6 @@ using Plain28 = ArrayAbi<Bytes<28>>;
 using Plain40 = ArrayAbi<Bytes<40>>;
 using Floats = ArrayAbi<float>;
 
-using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 
@@ -345,23 +330,12 @@ using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
 using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
                                                             DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
 
-// Elements destroyed through their virtual destructor with flags 0 (MFC's `pElements->~TYPE()`):
-// slot 1 for CObject-derived elements (an array's DeletingDestructor), slot 0 for the C++ classes
-// whose virtual destructor comes first. Declared only: the call goes through the element's vtable.
-class __declspec(novtable) DeletingFirst {
-public:
-    virtual void* DeletingDestructor(unsigned flags);
-};
+// Elements destroyed through their virtual destructor with flags 0 (MFC's `pElements->~TYPE()`): slot 1 for
+// CObject-derived elements (an array's DeletingDestructor). The call goes through the element's vtable.
 template <typename E>
 void DeleteThroughObject(E* p) { reinterpret_cast<CObjectVirtuals*>(p)->DeletingDestructor(0); }
-template <typename E>
-void DeleteThroughFirst(E* p) { reinterpret_cast<DeletingFirst*>(p)->DeletingDestructor(0); }
 
-// The figure's bone link arrays (20-byte elements that are arrays) and the terrain's byte
-// arrays (CByteArray's constructor on each).
-using BoneLinkElement = WithArray<0x14, 0, BoneLinkArrayClass>;
-using OwnedBoneLinkArrays = ArrayAbi<BoneLinkElement, EachElements<BoneLinkElement, InitWithArray<0x14, 0, BoneLinkArrayClass>,
-                                                                  DeleteThroughObject<BoneLinkElement>>>;
+// The terrain's byte arrays (CByteArray's constructor on each).
 using ByteArrayElement = WithArray<0x14, 0, ByteArrayClass>;
 using ByteArrays = ArrayAbi<ByteArrayElement, EachElements<ByteArrayElement, InitWithArray<0x14, 0, ByteArrayClass>,
                                                           DeleteThroughObject<ByteArrayElement>>>;

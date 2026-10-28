@@ -533,8 +533,6 @@ src/game/combat_steps.cpp
 src/game/combat_taming.cpp
 src/game/combat_tick.cpp
 src/game/combat_update.cpp
-src/game/figure.cpp
-src/game/figure.h
 src/game/figure_animation.cpp
 src/game/figure_bone_lifetime.cpp
 src/game/figure_bones.cpp
@@ -554,7 +552,6 @@ src/game/figure_part_bounds.cpp
 src/game/figure_part_draw.cpp
 src/game/figure_part_draw_plain.cpp
 src/game/figure_rasterise.cpp
-src/game/figure_slots.cpp
 src/game/hash_tables_400.cpp
 src/game/hash_tables_400.h
 src/game/map_database.cpp
@@ -721,18 +718,7 @@ src/game/party_records.h
 src/game/party_save.cpp
 src/game/party_script.cpp
 src/game/party_storage.h
-src/game/scene_bone_frames.cpp
-src/game/scene_bones.cpp
-src/game/scene_loader.cpp
-src/game/scene_loader.h
-src/game/scene_material.cpp
-src/game/scene_meshes.cpp
-src/game/scene_normals.cpp
-src/game/scene_registry.cpp
 src/game/scene_renderer.cpp
-src/game/scene_skeleton.cpp
-src/game/scene_skin_lifetime.cpp
-src/game/scene_weld.cpp
 src/game/sound.h
 src/game/sound_manager.cpp
 src/game/sound_manager_lifetime.cpp
@@ -839,7 +825,6 @@ src/game/address_order.cpp
 src/game/address_order.h
 src/game/aligned_arrays.cpp
 src/game/angles.h
-src/game/animation_node_lifetime.cpp
 src/game/animation_track_lifetime.cpp
 src/game/asset_text.cpp
 src/game/asset_text.h
@@ -891,8 +876,6 @@ src/game/directdraw_holder.cpp
 src/game/engine_object.cpp
 src/game/engine_object.h
 src/game/exit_area.cpp
-src/game/face_normal.cpp
-src/game/fake_unit.cpp
 src/game/global_map_clouds.cpp
 src/game/global_map_clouds.h
 src/game/ground_decal.cpp
@@ -984,7 +967,6 @@ src/game/settings_document.cpp
 src/game/settings_file.cpp
 src/game/settings_file.h
 src/game/skin_quaternion.cpp
-src/game/skin_rewind.cpp
 src/game/sky_object.cpp
 src/game/sky_object.h
 src/game/small_accessors.cpp
@@ -1081,7 +1063,6 @@ src/game/ai_unit_shape.cpp
 src/game/ai_water_patch.cpp
 src/game/aligned_arrays.cpp
 src/game/angles.h
-src/game/animation_node_lifetime.cpp
 src/game/animation_track_lifetime.cpp
 src/game/app.cpp
 src/game/app.h
@@ -1198,10 +1179,6 @@ src/game/effects_weather_draw.cpp
 src/game/engine_object.cpp
 src/game/engine_object.h
 src/game/exit_area.cpp
-src/game/face_normal.cpp
-src/game/fake_unit.cpp
-src/game/figure.cpp
-src/game/figure.h
 src/game/figure_animation.cpp
 src/game/figure_bone_lifetime.cpp
 src/game/figure_bones.cpp
@@ -1221,7 +1198,6 @@ src/game/figure_part_bounds.cpp
 src/game/figure_part_draw.cpp
 src/game/figure_part_draw_plain.cpp
 src/game/figure_rasterise.cpp
-src/game/figure_slots.cpp
 src/game/game_arrays.cpp
 src/game/game_arrays.h
 src/game/game_buffer.cpp
@@ -1500,18 +1476,7 @@ src/game/resource_manager.cpp
 src/game/resource_manager.h
 src/game/resource_stream.cpp
 src/game/resource_stream.h
-src/game/scene_bone_frames.cpp
-src/game/scene_bones.cpp
-src/game/scene_loader.cpp
-src/game/scene_loader.h
-src/game/scene_material.cpp
-src/game/scene_meshes.cpp
-src/game/scene_normals.cpp
-src/game/scene_registry.cpp
 src/game/scene_renderer.cpp
-src/game/scene_skeleton.cpp
-src/game/scene_skin_lifetime.cpp
-src/game/scene_weld.cpp
 src/game/script.h
 src/game/script_addon.cpp
 src/game/script_addon.h
@@ -1556,7 +1521,6 @@ src/game/settings_document.cpp
 src/game/settings_file.cpp
 src/game/settings_file.h
 src/game/skin_quaternion.cpp
-src/game/skin_rewind.cpp
 src/game/sky_object.cpp
 src/game/sky_object.h
 src/game/small_accessors.cpp
