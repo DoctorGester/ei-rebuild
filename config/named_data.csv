@@ -47,7 +47,6 @@ address,size,name,file
 00784750,1,g_interfaceHasScreen,src/game/app_main.cpp
 00784751,1,g_quitAllowed,src/game/app_main.cpp
 00784752,1,g_movieMode,src/game/app_helpers.cpp
-00784756,1,g_deviceNamed,src/game/app_main.cpp
 00784758,4,g_clientSpeed,src/game/app_main.cpp
 007857B0,6336,g_keyNames,src/game/key_bindings.cpp
 00787070,960,kActionDefinitions,src/game/ui.h

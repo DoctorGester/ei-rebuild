@@ -48,8 +48,6 @@ int CItemScreen::Price(CItem*, int) { return 0; }
 
 CItem* CFigureStrip::ItemAt(int, int, int*) { return nullptr; }
 
-bool CGlobalMap::MayTravel() { return true; }
-
 const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? "global_map_nocamp" : "global_map"; }
 
 // --- One-line setters and readers ------------------------------------------------------------------------
