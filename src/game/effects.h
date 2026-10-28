@@ -599,8 +599,8 @@ public:
     int DrawRain(CSceneRenderer* renderer);
     int DrawSnow(CSceneRenderer* renderer);
     // Their two halves: the vertices of the particles on screen built (returns their count, three per
-    // particle), and those drawn (the distance fog when the device has it on, DrawIndexedPrimitive under the
-    // device lock, the frame's counts).
+    // particle), and those drawn (the distance fog when the device has it on, the triangles to the new
+    // renderer, the frame's counts).
     int BuildRain(CSceneRenderer* renderer);
     int BuildSnow(CSceneRenderer* renderer);
     void DrawParticles(CSceneRenderer* renderer, int vertexCount);

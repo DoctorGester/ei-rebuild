@@ -8,11 +8,9 @@
 #include "texture.h"
 
 #include "lib/containers.h"
-#include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
 #include "device_buffers.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
 
 #include <bit>
@@ -158,20 +156,12 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
     return out;
 }
 
-// Draws an indexed triangle list of TL vertices under the device's critical section; with distanceFog_ set
+// Draws an indexed triangle list of TL vertices (the new renderer, src/render, takes it); with distanceFog_ set
 // the transform object fogs the vertices first. Counts vertices, triangles and calls. Returns 1.
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
-    // The new renderer (src/render) takes the draw (after the fog above); with the old path's
-    // objects off it is skipped.
-    if (render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
-            D3DPT_TRIANGLELIST, kFvfTlVertex, vertices, static_cast<DWORD>(vertexCount), indices,
-            static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList);
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
     drawCount_ += 1;

@@ -464,10 +464,6 @@ HRESULT DeleteStateBlock(IDirect3DDevice7*, DWORD handle) { return g_switchOver.
 HRESULT SetTexture(IDirect3DDevice7*, DWORD stage, IDirectDrawSurface7* texture) {
     return g_switchOver.SetTexture(stage, texture);
 }
-HRESULT DrawPrimitive(IDirect3DDevice7*, D3DPRIMITIVETYPE, DWORD, void*, DWORD, DWORD) { return D3D_OK; }
-HRESULT DrawIndexedPrimitive(IDirect3DDevice7*, D3DPRIMITIVETYPE, DWORD, void*, DWORD, WORD*, DWORD, DWORD) {
-    return D3D_OK;
-}
 
 HRESULT GetCaps(IDirectDraw7*, DDCAPS* driver, DDCAPS* emulated) { return FillDirectDrawCaps(driver, emulated); }
 HRESULT GetDisplayMode(IDirectDraw7*, DDSURFACEDESC2* desc) {

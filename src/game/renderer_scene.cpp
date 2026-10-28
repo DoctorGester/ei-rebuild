@@ -1,12 +1,11 @@
-// The renderer's scene bracket and texture draw: BeginScene with the frame statistics, EndScene with the
-// debug panel's FPS and counts, DrawTexture. The main loop brackets each frame's drawing with the first two.
+// The renderer's scene bracket: BeginScene with the frame statistics, EndScene with the debug panel's FPS and
+// counts. The main loop brackets each frame's drawing with them.
 // The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
 #include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CTexture
 
 #include "app.h"       // app::FatalErrorCode
-#include "clip.h"      // TLVertex
 #include "core_maths.h"
 #include "ui.h"        // GameDeviceLock, strmap::g_debugPanel
 #include "game_singletons.h"
@@ -24,10 +23,6 @@ namespace {
 
 constexpr std::uint32_t kLongestCounted = 1000;   // longer frames are not the longest
 constexpr std::uint32_t kAverageWindow = 999;     // the average is taken past this many ms
-constexpr DWORD kTlVertexFormat = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1;   // 0x1C4
-constexpr float kTextureDepth = 0.9f;             // 0x3F666666
-constexpr std::uint32_t kWhite = 0xFFFFFFFF;
-constexpr std::uint32_t kNoSpecular = 0xFF000000;
 
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 
@@ -98,28 +93,5 @@ int CSceneRenderer::EndScene() {
     text = str::Format("%d", device_->primitiveCount_);
     panel->Set("num trias", text);
     lastFrameStart_ = frameStart_;
-    return 1;
-}
-
-int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale) {
-    if (!texture) return 0;
-    // The width's product is stored to a float before x is added; the height's is not.
-    float scaledWidth = static_cast<float>(x87::FromUnsigned(texture->width_) * scale);
-    float bottom = static_cast<float>(x87::FromUnsigned(texture->height_) * scale + y);
-    float right = scaledWidth + x;
-    TLVertex strip[4] = {
-        {x, y, kTextureDepth, 1.0f, kWhite, kNoSpecular, 0.0f, 0.0f},
-        {x, bottom, kTextureDepth, 1.0f, kWhite, kNoSpecular, 0.0f, 1.0f},
-        {right, y, kTextureDepth, 1.0f, kWhite, kNoSpecular, 1.0f, 0.0f},
-        {right, bottom, kTextureDepth, 1.0f, kWhite, kNoSpecular, 1.0f, 1.0f},
-    };
-    SetTexture(0, texture);
-    CTextureDevice* device = device_;
-    Locked(device, [&](IDirect3DDevice7* d3d) {
-        return device::DrawPrimitive(d3d, D3DPT_TRIANGLESTRIP, kTlVertexFormat, strip, 4, 0);
-    });
-    device->vertexCount_ += 4;
-    device->primitiveCount_ += 1;
-    device->drawCount_ += 1;
     return 1;
 }

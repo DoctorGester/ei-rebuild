@@ -1,18 +1,15 @@
 // The old renderer's two line-strip draws, so the new renderer's state mirror (src/render/render_state.h) gets
-// the states they set and the new renderer gets the lines (render::TlDraw; with the old path's meshes off the
-// old draw is skipped).
+// the states they set and the new renderer gets the lines (render::TlDraw).
 // More: docs/notes/comments-c22i.md, "renderer_lines.cpp".
 #include "renderer_lines.h"
 
 #include "device.h"
 #include "model.h"
 #include "texture.h"
-#include "game_singletons.h"
 
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
 
@@ -30,14 +27,9 @@ constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS
 constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
 constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
-// The draw itself, under the device lock, after the new renderer has taken it.
+// The draw itself, to the new renderer, and the device's counters.
 void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
-    if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        device->lastLoadResult_ =
-            device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, vertices, static_cast<DWORD>(count), 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP);
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<unsigned>(count) / 3;
     device->drawCount_ += 1;

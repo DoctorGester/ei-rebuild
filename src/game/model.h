@@ -313,7 +313,6 @@ public:
                                     const Vector3* axisY) = 0;
     virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;
     virtual int Polyline(const ScreenPoints* points, std::uint32_t colour) = 0;
-    virtual int DrawTexture(CTexture* texture, float x, float y, float scale) = 0;
     virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;
     virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
     virtual bool RestoreSurfaces() = 0;
@@ -439,9 +438,6 @@ public:
     // with `outline` a white frame. Returns 1.
     int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
     int Polyline(const ScreenPoints* points, std::uint32_t colour) override;
-    // Draws `texture` at (x, y) scaled by `scale` as a pre-transformed quad (z 0.9) through stage 0; 0
-    // without a texture, else 1.
-    int DrawTexture(CTexture* texture, float x, float y, float scale) override;
     // The primary surface's gamma ramp from the options' brightness, contrast and gamma (kept for GetGamma);
     // false without a device or DDCAPS2_PRIMARYGAMMA, else whether SetGammaRamp succeeded.
     bool SetGamma(float brightness, float contrast, float gamma) override;

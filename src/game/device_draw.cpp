@@ -11,7 +11,6 @@
 #include "model.h"   // CRenderPreset
 #include "texture.h"
 
-#include "lib/gameapi.h"
 #include "render/render_state.h"
 #include "render/render.h"
 #include "game_singletons.h"
@@ -47,17 +46,10 @@ struct DrawArgs {
     int flags;
 };
 
-// DrawIndexedPrimitive under the device lock, the result in lastLoadResult_, and the vertex, triangle and
-// call counters. A mesh handed over to the new renderer (src/render, device_mesh.cpp) gets this pass with the
-// device's current state; the old draw is skipped when the old path no longer draws meshes.
+// One pass: the mesh handed over to the renderer (src/render, device_mesh.cpp) gets it with the device's
+// current state; the vertex, triangle and call counters.
 void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
-    if (render::MeshPass(device)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
-            static_cast<D3DPRIMITIVETYPE>(a.primitive), static_cast<DWORD>(a.fvf), a.vertices,
-            static_cast<DWORD>(a.vertexCount), const_cast<WORD*>(a.indices), a.indexCount, static_cast<DWORD>(a.flags));
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::MeshPass(device);
     device->vertexCount_ += a.vertexCount;
     device->primitiveCount_ += static_cast<int>(triangles);
     device->drawCount_ += 1;

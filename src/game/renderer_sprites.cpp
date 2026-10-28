@@ -10,14 +10,12 @@
 #include "ei/x87.h"
 #include "device_buffers.h"
 #include "lib/containers.h"
-#include "lib/gameapi.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <utility>
 #include "lib/vecmath.h"
 #include "lib/static_object.h"
-#include "game_singletons.h"
 
 #include <cstdlib>
 #include <vector>
@@ -229,7 +227,7 @@ bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
     TLVertex* vertices = CornerData();
     std::uint16_t* indices = IndexData();
     if (holder->distanceFog_) holder->pipeline_->transform_->FogVertices(vertices, vertexCount);
-    return holder->DrawIndexedDirect(kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) != 0;
+    return holder->DrawIndexedDirect(kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
@@ -345,19 +343,11 @@ void SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord**
     }
 }
 
-// DrawIndexedPrimitive under the device's
-// critical section; the result goes to lastLoadResult_; counts vertices, triangles
+// DrawIndexedPrimitive's arguments to the new renderer (src/render); counts vertices, triangles
 // (indices / 3) and calls. Returns 1.
 int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount,
-                           std::uint16_t* indices, int indexCount, int flags) {
-    // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
-    if (render::TlDraw(this, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
-            static_cast<D3DPRIMITIVETYPE>(primitive), static_cast<DWORD>(fvf), vertices, static_cast<DWORD>(vertexCount),
-            indices, static_cast<DWORD>(indexCount), static_cast<DWORD>(flags));
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+                           std::uint16_t* indices, int indexCount) {
+    render::TlDraw(this, vertices, fvf, vertexCount, indices, indexCount, primitive);
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
     drawCount_ += 1;

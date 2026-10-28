@@ -20,9 +20,8 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
-#include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "render/render.h"
 
 #include <bit>
 #include <cmath>
@@ -303,10 +302,7 @@ void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
     TLVertex* data = vertices.data();
     const int count = std::ssize(vertices);
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
-        D3DPT_TRIANGLELIST, D3DFVF_TLVERTEX, data, static_cast<DWORD>(count), indices.data(), static_cast<DWORD>(vertexCount), 0);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
+    render::TlDraw(device, data, D3DFVF_TLVERTEX, count, indices.data(), vertexCount, D3DPT_TRIANGLELIST);
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(vertexCount) / 3u);
     device->drawCount_ += 1;

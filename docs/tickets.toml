@@ -699,6 +699,13 @@ group = "renderer"
 depends = ["R26"]
 note = "Found by R26. renderer_lines.cpp, renderer_rect.cpp (2), renderer_sprites.cpp, renderer_strip.cpp, renderer_triangles.cpp and device_draw.cpp call device::DrawPrimitive / DrawIndexedPrimitive (device_null.cpp: D3D_OK, draws nothing) when render::TlDraw / ScreenDraw / MeshPass return true (the renderer did not take the draw: bad arguments, another FVF, no target size, the vertex limit, Build failed). That is the shape of a fallback to the classic draw, though it draws nothing: make the three void, drop the blocks (lastLoadResult_ is not read after them), log what the renderer refuses. Also check CRainSnow::DrawParticles (weather_particles.cpp) and CSceneRenderer::DrawTexture (renderer_scene.cpp), which draw only through the null device: whether the renderer gets those draws some other way (weather_draw.cpp's TlDraw) or they are dead."
 
+[[ticket]]
+id = "R26c"
+title = "Device mesh draws: the vertex and index arguments nothing reads after R26b"
+group = "renderer"
+depends = ["R26b"]
+note = "Found by R26b. device_draw.cpp's DrawArgs keeps primitive, fvf, vertices, indices and flags that nothing reads now that Draw only hands the pass to render::MeshPass and counts (vertexCount, indexCount). DrawIndexed / DrawTwoTextures (texture.h) take them from device_mesh.cpp's Submit and device_shadow.cpp's DrawFlat; the TL vertices those fill (FillCorners, Fill, Scale, the fog) are read only by the meshcorners full A/B switch (render::MeshCornersSkipped, EI_RENDER_VALIDATION). Trim the arguments and the work only they needed, keeping the counts and the clipper's verdict. Also CSceneRenderer::Polyline (slot 20, renderer_lines.cpp) has no caller (renderer.md section 5): check and delete. Goldens must stay the same."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

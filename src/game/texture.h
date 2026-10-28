@@ -100,7 +100,7 @@ public:
     int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
     int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
-                          int indexCount, int flags);
+                          int indexCount);
     // The format the header's id names; for a DXT id the device does not have, the one its channel bit counts
     // name (anything else looks id 0 up). 1 with `format` filled, 0 with it untouched.
     int ParseMmpHeader(const MmpHeader* header, PixelFormat* format);

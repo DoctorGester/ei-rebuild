@@ -60,6 +60,11 @@ DisableExitOnCrashReport (which makes `game::FatalError` carry on; the renderer'
 - no swap chain on a working device (render_window.cpp `NoChain`): "The renderer cannot present on the game window:
   no swap chain / the swap chain cannot be resized / the swap chain cannot be made again (<w>x<h>)." A swap chain that
   fails on a lost device waits for the new device instead.
+A draw the renderer does not take is lost, not drawn another way: `render::MeshPass`, `TlDraw` and `ScreenDraw`
+return nothing (R26b), and render_mesh.cpp's `Refuse` logs each reason the first time ("render: <reason>; the draw is
+lost": a mesh or pre-transformed draw with no render target size, a mesh corner past its positions, a pre-transformed
+draw in another vertex format than 0x1C4 / 0xC4, too many pre-transformed vertices in one frame). An empty draw (no
+vertices) is nothing to draw, not a refusal. The device layer has no DrawPrimitive / DrawIndexedPrimitive.
 A lost device that is made again (R9c1) is recovery, not a fallback, and stays. There is no `render::Active()` query:
 every entry point draws. Only the image runs it: in game.exe (the harness and the vector recorders run inside the
 original's process) nothing of ours draws, and the harness asks `ei::Standalone()` first (HarnessRenderActive; its
@@ -130,7 +135,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i; their code deleted in R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
-| Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs, into the stand-in |
+| Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
 | Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; the cursor thread (005E5690) presents between frames (section 9, R9c2) |
@@ -394,7 +399,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   texture / mipmap capabilities and no gamma or FourCC; GetAvailableVidMem 256 MB.
 - `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the code uses (GetCaps,
   EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
-  GetTextureStageState, state block calls, SetTexture, DrawPrimitive, DrawIndexedPrimitive, AddRef / Release;
+  GetTextureStageState, state block calls, SetTexture, AddRef / Release (no draws: R26b);
   IDirectDraw7 GetCaps, GetDisplayMode, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
   GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank, Release). Each answers from
   `SwitchOverDevice` (R9b3: no branch to another interface any more; the interface argument is not read): draws,
@@ -771,7 +776,7 @@ File map of the device layer (all in `src/game`; the files' headers name the add
 - Weather: 81 x 81 cells around the point the wind carries a particle to the camera from; a cell's hash and the
   world's time give the particle's cycle, fall and texture frame; corners in packets through `ProjectClipped` (stack
   2), the ones on screen through the transform object's slot 32 (`ToScreen`) and, with the device's fog flag, slot 35
-  (`FogVertices`), then DrawIndexedPrimitive. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built by the
+  (`FogVertices`), then `render::TlDraw`. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built by the
   static initialiser 004E3B20 through 004E3980; evaluated with 004E5660).
 
 Verification: the goldens (the weather draws' scenes: rain in many scenarios, snow in rebirth_flags via `SetWeather`)
@@ -1348,8 +1353,8 @@ across runs; the goldens check the game state.
     result draws no pass) and hand every pass to the device with the same counts (DrawIndexed / DrawTwoTextures:
     the pass state the new renderer reads, the counters). Skipped: the TL vertices of a mesh on screen (FillCorners),
     the fog of every mesh (FogVertices) and, without flag 1, a clipped mesh's projection to the screen
-    (ToScreenClipped). Nothing reads them: the image has no Direct3D 7 device (its DrawIndexedPrimitive ignores the
-    vertices) and the new renderer draws from the model-space hand-over. Kept for a crossing mesh: its TL vertices
+    (ToScreenClipped). Nothing reads them: the image has no Direct3D 7 device (DrawIndexed / DrawTwoTextures hand
+    over only the pass) and the new renderer draws from the model-space hand-over. Kept for a crossing mesh: its TL vertices
     (the clipper's input). The harness's `meshcorners full|read` switches back to all the old work (A/B).
     Measured (render_stats, vanilla 4K, harness build, two runs; ms a frame; "device mesh draws" read / full in the
     same run, the full stretch between two read ones): zone1 0.094-0.104 / 0.111-0.115, fight 0.23-0.26 / 0.27-0.29,

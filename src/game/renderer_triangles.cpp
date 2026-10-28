@@ -2,14 +2,11 @@
 // pre-transformed vertices (FVF 0x1C4) as an indexed triangle
 // list with the current state, fogged first by distance when the device's distanceFog_ is set (the
 // transform object's FogVertices). Used by the flying hit points. The new renderer
-// (src/render) takes the draw; with the old path's objects off it is skipped. See
-// docs/notes/renderer.md.
+// (src/render) takes the draw. See docs/notes/renderer.md.
 #include "clip.h"     // TLVertex
 #include "device.h"
 #include "model.h"    // CSceneRenderer, ITransformPipeline
-#include "game_singletons.h"
 
-#include "lib/gameapi.h"
 #include "render/render.h"
 
 #include <cstdint>
@@ -22,14 +19,8 @@ int CSceneRenderer::DrawTriangles(const void* vertexData, int vertexCount, const
     void* vertices = const_cast<void*>(vertexData);
     CTextureDevice* device = device_;
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(static_cast<TLVertex*>(vertices), vertexCount);
-    if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
-                       static_cast<int>(D3DPT_TRIANGLELIST))) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
-            D3DPT_TRIANGLELIST, kFvf, vertices, static_cast<DWORD>(vertexCount), const_cast<WORD*>(indices),
-            static_cast<DWORD>(indexCount), 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
+                   static_cast<int>(D3DPT_TRIANGLELIST));
     device->vertexCount_ += vertexCount;
     device->primitiveCount_ += static_cast<int>(indexCount / 3);
     device->drawCount_ += 1;

@@ -76,10 +76,6 @@ HRESULT EndStateBlock(IDirect3DDevice7* d3d, DWORD* handle);
 HRESULT ApplyStateBlock(IDirect3DDevice7* d3d, DWORD handle);
 HRESULT DeleteStateBlock(IDirect3DDevice7* d3d, DWORD handle);
 HRESULT SetTexture(IDirect3DDevice7* d3d, DWORD stage, IDirectDrawSurface7* texture);
-HRESULT DrawPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
-                      DWORD flags);
-HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
-                             WORD* indices, DWORD indexCount, DWORD flags);
 HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated);
 HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc);
 HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,

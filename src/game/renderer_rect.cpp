@@ -1,15 +1,12 @@
 // The renderer's rectangle draw: a black rectangle with the given alpha, filled as two
 // pre-transformed triangles over the current blend state, and with `outline` a white one-pixel frame drawn as
 // a line strip around it (the fill then stays a pixel inside). Used for the rubber-band selection and the
-// interface's fades. The new renderer (src/render) takes both draws; with "nointerface" the old path skips
-// them. See docs/notes/renderer.md.
+// interface's fades. The new renderer (src/render) takes both draws. See docs/notes/renderer.md.
 #include "device.h"
 #include "model.h"
 #include "texture.h"
-#include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "game_singletons.h"
 
 #include <cstdint>
 
@@ -20,7 +17,6 @@ constexpr D3DRENDERSTATETYPE kShadeMode = D3DRENDERSTATE_SHADEMODE, kZBias = D3D
 constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS_ALPHAOP;
 constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
 constexpr DWORD kShadeFlat = D3DSHADE_FLAT, kShadeGouraud = D3DSHADE_GOURAUD;
-constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
 void Count(CTextureDevice* device, int vertices, int primitives) {
     device->vertexCount_ += vertices;
@@ -57,12 +53,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     }
     device::SetRenderState(device::D3D(device), kZBias, 0);
     render::state::Render(kZBias, 0);
-    if (render::ScreenDraw(device, v, 4, indices, 6)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
-            D3DPT_TRIANGLELIST, kFvf, v, 4, const_cast<std::uint16_t*>(indices), 6, 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::ScreenDraw(device, v, 4, indices, 6);
     Count(device, 4, 2);
     if (!outline) return 1;
 
@@ -81,11 +72,7 @@ int CSceneRenderer::DrawRectangle(int left, int top, int right, int bottom, int 
     render::state::Stage(0, kColourOp, kOpDisable);
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpDisable);
     render::state::Stage(0, kAlphaOp, kOpDisable);
-    if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        device->lastLoadResult_ = device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, v, 5, 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-    }
+    render::ScreenDraw(device, v, 5, nullptr, 0);
     Count(device, 5, 1);
     device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpModulate);
     render::state::Stage(0, kColourOp, kOpModulate);

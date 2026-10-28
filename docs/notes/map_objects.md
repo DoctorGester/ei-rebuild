@@ -115,8 +115,8 @@ here is gone. Facts a worker needs:
   .mmp extra block is unchanged; the material WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds
   texture), picking slots 22-24 (0051C130, 0051C160, 0051C1D0: dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect +
   IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending).
-- CSceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene / DrawTexture 00503F40 / 005040A0 /
-  00504860 (slots 4 / 5 / 21; renderer_scene.cpp: frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel
+- CSceneRenderer: DrawShadow 0051CE60 and Draw 0051B7E0 (client half), BeginScene / EndScene 00503F40 / 005040A0
+  (slots 4 / 5; DrawTexture 00504860, slot 21, had no caller and is deleted (R26b); renderer_scene.cpp: frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel
   "FPS" / "num verts" / "num trias"), DrawSelectionMarker 00503A40 (the green arrow under selected units; renderer_marker.cpp),
   SetGamma 00504A60 (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp),
   lifetime and small slots (renderer_lifetime.cpp: base class vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase,

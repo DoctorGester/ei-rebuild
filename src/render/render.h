@@ -249,7 +249,7 @@ void SetVsync(bool on);
 
 // An old-path mesh draw the game decided is visible, colours set: the mesh in model space and the matrix the
 // old path projects it with. Every pass the old path draws between BeginMesh and EndMesh calls MeshPass,
-// which takes the old device's state and returns whether the old path still draws it.
+// which takes the old device's state. A mesh the renderer refuses is lost (logged).
 struct MeshDraw {
     const float* positions;            // blocks of four vertices: x[4], y[4], z[4], 4 unused
     int positionCount;
@@ -288,21 +288,20 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]);
 
 void BeginMesh(void* device, const MeshDraw& mesh);
-bool MeshPass(void* device);
+void MeshPass(void* device);
 void EndMesh();
 
 // Pre-transformed vertices (FVF 0xC4, rhw taken as 1): the rectangle fill and outline. A triangle list over
-// `indices`, or a line strip when `indices` is null. Returns whether the old path still draws it.
+// `indices`, or a line strip when `indices` is null. A draw it refuses is lost (logged).
 struct ScreenVertex {
     float x, y, z, rhw;
     std::uint32_t colour, specular;
 };
-bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
+void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
 // A Direct3D 7 draw of pre-transformed vertices, fog already applied: `fvf` 0x1C4 or 0xC4 (no texture
-// coordinates), `primitive` a D3DPRIMITIVETYPE, indexed when `indices`. Returns whether the old path still
-// draws it.
-bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+// coordinates), `primitive` a D3DPRIMITIVETYPE, indexed when `indices`. A draw it refuses is lost (logged).
+void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive);
 
 // A window surface's blit onto the frame; `source` null: the whole surface, stretched; `key` in the

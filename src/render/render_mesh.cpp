@@ -38,6 +38,16 @@ struct Pending {
 Pending g_pending;
 int g_dropped = 0;
 
+// A draw the renderer does not take is lost (there is no other way to draw): each reason logged the first time.
+enum Refusal { NoTargetSize, BadCorner, OtherFvf, VertexLimit, RefusalCount };
+bool g_refused[RefusalCount] = {};
+
+void Refuse(Refusal reason, const char* what) {
+    if (g_refused[reason]) return;
+    g_refused[reason] = true;
+    ei::Log("render: %s; the draw is lost", what);
+}
+
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
 Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
@@ -539,7 +549,10 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     Matrix4 clip;
     if (mesh.screenMatrix) {
         int width = 0, height = 0;
-        if (!GameTargetSize(&width, &height)) return;
+        if (!GameTargetSize(&width, &height)) {
+            Refuse(NoTargetSize, "a mesh draw with no render target size");
+            return;
+        }
         clip = ScreenToClip(*mesh.matrix, width, height);
     } else {
         clip = *mesh.matrix;
@@ -576,8 +589,9 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
 }
 
-bool MeshPass(void* device) {
-    if (!g_pending.active || device != g_pending.device) return true;
+void MeshPass(void* device) {
+    // Not handed over (BeginMesh logged why) or given up after a failed Build.
+    if (!g_pending.active || device != g_pending.device) return;
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = g_frame;
     if (!g_pending.built) {
@@ -592,8 +606,9 @@ bool MeshPass(void* device) {
         } else {
             std::size_t first = f.meshVertices.size();
             if (!Build(f, g_pending)) {
+                Refuse(BadCorner, "a mesh corner past its positions");
                 g_pending.active = false;
-                return true;
+                return;
             }
             CountReuse(false, g_pending.mesh.positions, 0, f.meshVertices.data() + first, f.meshVertices.size() - first);
             if (!g_pending.mesh.corners) {
@@ -630,22 +645,30 @@ bool MeshPass(void* device) {
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
-    return false;   // taken: the old path draws nothing
 }
 
 void EndMesh() { g_pending = Pending{}; }
 
-bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
+void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive) {
-    if (!device || !vertices || vertexCount <= 0) return true;
+    if (!device || !vertices || vertexCount <= 0) return;   // nothing to draw
     Start();
-    if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
+    if (fvf != 0x1C4 && fvf != 0xC4) {   // not a layout the game uses for these
+        Refuse(OtherFvf, "a pre-transformed draw in another vertex format");
+        return;
+    }
     StatsTimer timer(&FrameStats::handOverMs);
     ++g_stats.transformedDraws;
     int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) return true;
+    if (!GameTargetSize(&width, &height)) {
+        Refuse(NoTargetSize, "a pre-transformed draw with no render target size");
+        return;
+    }
     Frame& f = g_frame;
-    if (f.meshVertices.size() > 4'000'000) return true;
+    if (f.meshVertices.size() > 4'000'000) {   // no present for a long time
+        Refuse(VertexLimit, "too many pre-transformed vertices in one frame");
+        return;
+    }
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
     int stride = fvf == 0x1C4 ? 32 : 24;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
@@ -708,16 +731,18 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     } else {
         f.meshVertices.resize(base);
     }
-    return false;   // taken: the old path draws nothing
 }
 
-bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
-    if (!device || !vertices || count <= 0) return true;
+void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
+    if (!device || !vertices || count <= 0) return;   // nothing to draw
     Start();
     StatsTimer timer(&FrameStats::handOverMs);
     ++g_stats.transformedDraws;
     int width = 0, height = 0;
-    if (!GameTargetSize(&width, &height)) return true;
+    if (!GameTargetSize(&width, &height)) {
+        Refuse(NoTargetSize, "a screen draw with no render target size");
+        return;
+    }
     Frame& f = g_frame;
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
@@ -752,7 +777,6 @@ bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
         f.meshBatches.push_back(batch);
         f.commands.push_back(Command{Command::Mesh, static_cast<int>(f.meshBatches.size()) - 1});
     }
-    return false;   // taken: the old path draws nothing
 }
 
 } // namespace render
