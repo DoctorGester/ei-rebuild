@@ -29,7 +29,6 @@
 
 namespace {
 constexpr int kBodyParts = 6;
-constexpr int kTypeHero = 0x32;
 constexpr float kFull = 1.0f;
 constexpr float kMedium = 0.33f;
 constexpr float kLight = 0.75f;
@@ -101,7 +100,7 @@ bool CUnitClientSpecific::WoundLevels(std::uint8_t** levels) {
         if (level) wounded = true;
     }
     std::uint8_t* out = *levels;
-    if (unit->type_ == kTypeHero) {
+    if (unit->MapType() == MapObjectType::Hero) {
         if (armourIds[kTrousersSlot] != kNoArmour && !ShowsWounds(armourIds[kTrousersSlot])) {
             out[kLegsRight] = 0;
             out[kLegsLeft] = 0;
@@ -131,12 +130,12 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         request.layers.resize(kBodyParts);
         std::uint8_t* levels = request.layers.data();
         if (WoundLevels(&levels)) {
-            bool hero = unit->type_ == kTypeHero;
+            bool hero = unit->MapType() == MapObjectType::Hero;
             request.flags = hero ? kHeroTextureSize : kTextureSize;
             for (int i = 0; i < kBodyParts; ++i) {
                 std::uint8_t level = request.layers[i];
                 if (!level) continue;
-                name = str::Format(kWoundTexture, unit->name, unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
+                name = str::Format(kWoundTexture, unit->name, unit->MapType() == MapObjectType::Hero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
                 request.textures.push_back(name);
             }
@@ -204,7 +203,7 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
-    if (unit->type_ == kTypeHero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
+    if (unit->MapType() == MapObjectType::Hero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
     CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;

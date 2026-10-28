@@ -45,7 +45,6 @@ constexpr std::uint32_t kMinClosingBits = 0x3DCCCCCDu;              // 0.1: the 
 constexpr float kFarBits = 1000000.0f;                     // 1e6: no limit for a path
 
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
-constexpr std::uint32_t kFlagNoCasting = 0x10000000;    // CUnit flags_
 constexpr std::uint32_t kSpellNoTarget = 0x20000000;    // CSpell::targetFlags_
 constexpr int kStateIdle = 0;
 constexpr int kStateTurning = 2;
@@ -451,7 +450,7 @@ void CUnitServer::ContinueAction() {
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;
-    if (!(cast && (unit->flags_ & kFlagNoCasting))) {
+    if (!(cast && (unit->flags_ & MapObjectFlag::NoCasting))) {
         if (!action.target) {
             if (cast) {
                 CSpell* spell = SpellOfSource(action.source);
@@ -530,7 +529,7 @@ void CUnitServer::ExecuteOrder() {
         clear = true;
     } else {
         if (action.kind != kOrderUse) {
-            if (IsCastKind(action.kind) && unit->type_ == kUnitTypeHero) {
+            if (IsCastKind(action.kind) && unit->MapType() == MapObjectType::Hero) {
                 if (moveMode.mode == 0) {
                     SetModeInline(unit, kModeWalk);
                     stop = true;

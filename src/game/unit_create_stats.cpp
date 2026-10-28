@@ -202,27 +202,27 @@ bool NamesRequirement(const std::string& text) {
 const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) { return unitdb::SkillLevelAt(index); }
 
 struct FactoryEntry {
-    int type;
+    MapObjectType type;
     CEngineObject* (*create)();
 };
 // The class's entry: its id and a new object of it.
 template <class T>
-constexpr FactoryEntry Make(int type) {
+constexpr FactoryEntry Make(MapObjectType type) {
     return {type, [] () -> CEngineObject* { return new (kZeroed) T(); }};
 }
 constexpr FactoryEntry kFactory[] = {
-    Make<CUnit>(0x32),
-    Make<CUnit>(0x33),
-    Make<CUnit>(0x34),
-    Make<CTree>(0x35),
-    Make<CBuilding>(0x36),
-    Make<CStone>(0x37),
-    Make<CStuffObject>(0x38),
-    Make<CTorchObject>(0x3A),
-    Make<MagicTrap>(0x3B),
-    Make<Lever>(0x3C),
-    Make<CFigureAnimationState>(0x300D),
-    Make<CTrapObject>(0x3010),
+    Make<CUnit>(MapObjectType::Hero),
+    Make<CUnit>(MapObjectType::Creature),
+    Make<CUnit>(MapObjectType::UnitSpare),
+    Make<CTree>(MapObjectType::Tree),
+    Make<CBuilding>(MapObjectType::Building),
+    Make<CStone>(MapObjectType::Stone),
+    Make<CStuffObject>(MapObjectType::StuffObject),
+    Make<CTorchObject>(MapObjectType::Torch),
+    Make<MagicTrap>(MapObjectType::MagicTrap),
+    Make<Lever>(MapObjectType::Lever),
+    Make<CFigureAnimationState>(MapObjectType::AnimationState),
+    Make<CTrapObject>(MapObjectType::Trap),
 };
 
 } // namespace
@@ -422,13 +422,13 @@ int BuildNpcStats(UnitStats* stats, const std::string& name) {
     return 1;
 }
 
-int PrototypeObjectClass(std::string_view name) {
-    constexpr int kDefaultClass = 0x33;
+MapObjectType PrototypeObjectClass(std::string_view name) {
+    constexpr MapObjectType kDefaultClass = MapObjectType::Creature;
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) return kDefaultClass;
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model) return kDefaultClass;
-    return model->objectClass;
+    return static_cast<MapObjectType>(model->objectClass);
 }
 
 // --- Statistics from their bases -----------------------------------------------------------------
@@ -597,7 +597,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
 // motion's turn fields, which the saves write.
 CEngineObject* CMapObjectManager::NewObject(int type) {
     for (const FactoryEntry& entry : kFactory) {
-        if (entry.type != type) continue;
+        if (entry.type != static_cast<MapObjectType>(type)) continue;
         return entry.create();
     }
     return nullptr;

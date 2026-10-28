@@ -23,7 +23,6 @@ namespace {
 constexpr const char* kNoneText = "none";
 // "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n"
 constexpr const char* kSecondPrimarySetText = "Adding new primary texture set with one exist\nFor object \"%s\" with ID=%d!\n";
-constexpr int kTypeBuildingLike = 0x35;             // CObject3D::type_: its textures get flag 0x2000
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
 // *slot = value with counted references; the old one released.
@@ -175,7 +174,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         partSets[k]->texture->type_ = kind;
         set = partSets[k];
     }
-    if (object->type_ == kTypeBuildingLike) set->texture->flags_ |= kTextureFlag2000;
+    if (object->MapType() == MapObjectType::Tree) set->texture->flags_ |= kTextureFlag2000;
     return set->texture;
 }
 

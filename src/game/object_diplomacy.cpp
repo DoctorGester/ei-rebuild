@@ -76,7 +76,7 @@ void CDiplomacy::OnAttack(CUnit* attacker, CUnit* victim) {
     if (!attacker || !victim) return;
     if (IsAllied(victim->side, attacker->side)) return;
     victim->AddHostileMask(victim->relationsA | Bit(attacker->side));
-    victim->flags_ |= 0x80000;
+    victim->flags_ |= MapObjectFlag::RelationsChanged;
     // The victim's party: the player's units, walked in iterator order.
     const CPlayer* party = victim->player;
     if (!party) return;

@@ -11,6 +11,7 @@
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 #include "model.h"   // FootprintPart (the part boxes)
+#include "unit_create.h"   // MapObjectType
 
 #include "lib/containers.h"
 #include "lib/nan_audit.h"
@@ -274,6 +275,8 @@ inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedR
 class CObject3D : public CTransformObject {
 public:
     ~CObject3D() override;
+    // type_ as the map object factory's type.
+    MapObjectType MapType() const { return static_cast<MapObjectType>(type_); }
     int Create() override { return Create3D(); }
     void Destroy() override { Destroy3D(); }
     void ClearState() override { RemoveAllEffectSources(); }
@@ -354,7 +357,7 @@ public:
     double AnimationFactor(float time);
     // Sets the figure up for the animated model `model`: one part box and part name per animated part (the
     // figure manager's bounds of the part, its pivot, flags 4 | 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" by
-    // name prefix); the bounds span the boxes (heroes, type_ 0x32: x and y -0.5..0.5).
+    // name prefix); the bounds span the boxes (heroes, Hero: x and y -0.5..0.5).
     void SetUpAnimatedFigure(std::string_view model);
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
@@ -386,7 +389,7 @@ public:
     // Takes `source` out of the effect sources, detaches it and releases it. Nothing when not there.
     void RemoveEffectSource(CParticleSource* source);
 
-    // A side half (type 0x46) replaces the attached one as SetSpecific does; other objects (and null) are
+    // A side half (SideObjectType::Object3D) replaces the attached one as SetSpecific does; other objects (and null) are
     // ignored.
     void AttachSpecific(CEngineObject* half);
     // The release-effects virtual: every effect source is taken out of the list, detached and released.
@@ -421,7 +424,7 @@ public:
     CObject3DClientSpecific* ClientSpecific() const;
 
     Matrix4 worldMatrix;            // object -> world: the rotation, the position as column 3
-    CObject3DSpecific* attached;    // the side half: AttachSpecific accepts (type 0x46)
+    CObject3DSpecific* attached;    // the side half: AttachSpecific accepts (SideObjectType::Object3D)
     CFigureAnimationState* animation;   // the figure's animation state
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name

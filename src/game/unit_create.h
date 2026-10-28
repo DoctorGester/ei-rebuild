@@ -21,6 +21,29 @@ struct UnitVitals;
 struct UnitPrototypeRecord;
 struct UnitNpcRecord;
 
+// The types the map object manager's factory (NewObject) makes, as CEngineObject::type_ holds them (saved and sent
+// as the number). Units are 0x32..0x34 (Hero: the player's own units, "mo%d" skins; 0x33 is what a prototype
+// without a model gets), 0x39 is the retired fake unit (none made). The animation state is the figure manager's.
+enum class MapObjectType : int {
+    Hero = 0x32,
+    Creature = 0x33,
+    UnitSpare = 0x34,
+    Tree = 0x35,
+    Building = 0x36,
+    Stone = 0x37,
+    StuffObject = 0x38,
+    Torch = 0x3A,
+    MagicTrap = 0x3B,
+    Lever = 0x3C,
+    AnimationState = 0x300D,
+    Trap = 0x3010,
+};
+
+// The type of a unit (Hero, Creature or UnitSpare).
+constexpr bool IsUnitType(MapObjectType type) {
+    return type >= MapObjectType::Hero && type <= MapObjectType::UnitSpare;
+}
+
 // The unit prototype table: the records and an index by prototype name.
 struct UnitPrototypeTable {
     UnitPrototypeRecord* At(std::uint32_t index);
@@ -47,8 +70,8 @@ struct NpcPrototypeTable {
 // record), then recomputed around a refill of the slots. Returns 1.
 int BuildNpcStats(UnitStats* stats, const std::string& name);
 
-// The object class of prototype `name`'s model record; 0x33 without a prototype or model.
-int PrototypeObjectClass(std::string_view name);
+// The object class of prototype `name`'s model record; Creature without a prototype or model.
+MapObjectType PrototypeObjectClass(std::string_view name);
 
 // The map object manager ("map objects", class id 0x2D).
 struct CMapObjectManager : CResourceManager {
@@ -57,18 +80,18 @@ struct CMapObjectManager : CResourceManager {
     int Create() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
+    // A new object of the factory's type `type` (a MapObjectType), constructed; null for other ids.
     CEngineObject* NewObject(int type) override;
     CEngineObject* CreateObject(int type, int id) override;
     const char* GetFolderName() override;                   // "map objects"
 
-    // A new object of type `type` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
-    // for other ids. The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
+    // The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
     int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
     int CreateManager();
-    // The base manager's CreateObject; a new object gets an animation state (the figure manager's type
-    // 0x300D) and its side halves from the world's specific manager: types 0x46 and 0x47, then 0x48 for the
-    // three unit types (0x32-0x34) and 0x4B for the torch (0x3A). Returns the object or null.
+    // The base manager's CreateObject; a new object gets an animation state (the figure manager's) and its side
+    // halves from the world's specific manager: Object3D and MapObject, then Unit for the three unit types and
+    // Torch for the torch. Returns the object or null.
     CEngineObject* CreateMapObject(int type, int id);
     // The object registered under `id` (null for none); the manager holds only map objects.
     CMapObject* FindMapObject(unsigned id) const;

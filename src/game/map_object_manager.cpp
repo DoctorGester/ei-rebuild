@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 
 #include <new>
+#include <optional>
 #include <string>
 
 namespace {
@@ -24,29 +25,15 @@ constexpr const char* kClassName = "CMapObjectManager";
 constexpr const char* kNoDatabaseText = "Can't find animation database file for \"%s\".\n";
 constexpr int kNoId = -1;
 
-// Types the managers make: the animation state (the figure manager) and the side halves (the
-// world's specific manager; the client's are the 3D object's, the map object's and the unit's
-// client halves, the server's theirs).
-constexpr int kAnimationStateClass = 0x300D;
-constexpr int kObject3DHalf = 0x46;
-constexpr int kMapObjectHalf = 0x47;
-constexpr int kUnitHalf = 0x48;
-constexpr int kTorchHalf = 0x4B;
-
 constexpr std::uint32_t kKeyVariantBits = 0x7FFF;      // an entry must have every one the key asks for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 
-// The third half an object of type `type` gets (a switch over a table for types 0x32-0x3A), or 0 for
-// none.
-int ThirdHalfOf(int type) {
-    switch (type) {
-    case 0x32: case 0x33: case 0x34:
-        return kUnitHalf;
-    case 0x3A:
-        return kTorchHalf;
-    default:
-        return 0;
-    }
+// The third half an object of type `type` gets (the world's specific manager makes the client's halves: the 3D
+// object's, the map object's and the unit's; the server's theirs), or null for none.
+std::optional<SideObjectType> ThirdHalfOf(MapObjectType type) {
+    if (IsUnitType(type)) return SideObjectType::Unit;
+    if (type == MapObjectType::Torch) return SideObjectType::Torch;
+    return std::nullopt;
 }
 
 } // namespace
@@ -74,15 +61,17 @@ CMapObject* CMapObjectManager::FindMapObject(unsigned id) const { return FindObj
 
 CEngineObject* CMapObjectManager::CreateMapObject(int type, int id) {
     CResourceManager* manager = this;
+    const auto kind = static_cast<MapObjectType>(type);
     // The base's CreateObject, not the virtual (that one is this function's caller).
     auto* object = static_cast<CMapObject*>(CBaseManager::CreateObject(type, id));
     if (!object) return nullptr;
     auto* figures = manager->ContextAsWorld()->FigureManager();
-    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(kAnimationStateClass, kNoId));
-    object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kObject3DHalf, kNoId));
-    object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(kMapObjectHalf, kNoId));
-    if (int half = ThirdHalfOf(type))
-        object->AttachObject(manager->ContextAsWorld()->SpecificManager()->CreateObject(half, kNoId));
+    // The animation state is the figure manager's, which numbers it 0x300D as the factory does.
+    object->SetAnimationState(figures->CreateObjectAs<CFigureAnimationState>(MapObjectType::AnimationState, kNoId));
+    CBaseManager* halves = manager->ContextAsWorld()->SpecificManager();
+    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::Object3D, kNoId));
+    object->AttachObject(halves->CreateObjectAs<CEngineObject>(SideObjectType::MapObject, kNoId));
+    if (auto half = ThirdHalfOf(kind)) object->AttachObject(halves->CreateObjectAs<CEngineObject>(*half, kNoId));
     return object;
 }
 

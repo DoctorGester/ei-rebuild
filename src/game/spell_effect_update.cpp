@@ -302,7 +302,7 @@ void Possession(CSpellEffect* e) {
         group->InsertAll(&server->brain.memory.visible);
         group->InsertAll(&server->brain.memory.seenCorpses);
         ServerOf(player)->possessedId_ = target->id_;
-        target->flags_ |= 0x2000000;
+        target->flags_ |= MapObjectFlag::SeeAll;
         float sight = server->moveFactors[3] * server->stats.perception[0].current;
         float floor = server->stats.perception[2].current;
         float reach = sight >= floor ? sight : floor;

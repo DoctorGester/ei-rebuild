@@ -12,7 +12,6 @@
 #include <cstring>
 
 namespace {
-constexpr int kSpecificType = 0x46;   // the side halves' type_
 } // namespace
 
 // The same body as the base's.
@@ -29,7 +28,7 @@ void CObject3D::CopyFigure(const CObject3D* other) {
 }
 
 void CObject3D::AttachSpecific(CEngineObject* half) {
-    if (!half || half->type_ != kSpecificType) return;
+    if (!half || SideTypeOf(half) != SideObjectType::Object3D) return;
     if (attached) {
         attached->object = nullptr;
         attached->Release();

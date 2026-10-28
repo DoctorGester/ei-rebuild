@@ -18,7 +18,6 @@ namespace {
 constexpr int kLeverNetFields = 6;
 constexpr int kLeverField = 5;            // the network field and the MarkChanged part
 constexpr int kPartScale = 1;
-constexpr std::uint32_t kDisabled = 0x80000;   // flags_
 constexpr std::uint32_t kKeyById = 8;           // lock mask bit: the id names the key
 constexpr float kNextStateDuration = -10.0f;   // SetState(-1, -10): the model's default
 constexpr float kSoundNear = 8.0f;
@@ -127,7 +126,7 @@ void Lever::WriteLeverNetState() {
     }
     field->WriteDelta(&lock, sizeof(LockKey));
     for (float value : {from, to, endTick, rate}) field->WriteDelta(&value, 4);
-    std::uint8_t disabled = static_cast<std::uint8_t>((flags_ >> 19) & 1);
+    std::uint8_t disabled = lib::Has(flags_, MapObjectFlag::Disabled);
     field->WriteDelta(&disabled, 1);
     field->EndField();
 }
@@ -148,8 +147,8 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint32_t size = delta::g_readSnapshot->Size();
     complete &= readTo == size ? 1u : 0u;
     field->EndField();
-    if (disabled) flags_ |= kDisabled;
-    else flags_ &= ~kDisabled;
+    if (disabled) flags_ |= MapObjectFlag::Disabled;
+    else flags_ &= ~MapObjectFlag::Disabled;
     g_clientWorld->QueueSynchronised(this);
     if (first == 1) {
         const LeverRecord* record = g_leverTable->Named(name);
@@ -173,8 +172,8 @@ void Lever::SetUp(const LeverSetup* setup) {
 }
 
 void Lever::Enable(bool on) {
-    if (on) flags_ &= ~kDisabled;
-    else flags_ |= kDisabled;
+    if (on) flags_ &= ~MapObjectFlag::Disabled;
+    else flags_ |= MapObjectFlag::Disabled;
     MarkChanged(kLeverField);
 }
 
@@ -188,7 +187,7 @@ bool Lever::Slot29True() { return true; }
 bool Lever::KeepsMapFlagSlot() { return keepsMapFlag != 0; }
 
 int Lever::NeedsKey() {
-    if (flags_ & kDisabled) return 0;
+    if (flags_ & MapObjectFlag::Disabled) return 0;
     return lock.mask != 0 ? 1 : 0;
 }
 
@@ -197,7 +196,7 @@ std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
 bool Lever::ApplyKey(const LockKey* key) {
     if (!key->Opens(&lock)) return false;
     SetState(-1, kNextStateDuration);
-    flags_ |= kDisabled;
+    flags_ |= MapObjectFlag::Disabled;
     MarkChanged(kLeverField);
     return true;
 }

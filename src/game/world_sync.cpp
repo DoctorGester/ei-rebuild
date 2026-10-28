@@ -35,8 +35,7 @@ constexpr float kViewRange = 100.0f;        // objects seen around the camera
 constexpr float kHearingScale = 2.0f;     // unit perception scale
 constexpr float kHearingMargin = 5.0f;    // added to it
 
-constexpr int kTypeNoSync = 0x3B;            // CEngineObject::type_ of objects never sent
-constexpr std::uint32_t kFlagHidden = 0x10000;   // flags_: invisible (HideObject)
+constexpr MapObjectType kTypeNoSync = MapObjectType::MagicTrap;   // never sent
 
 // Dirty bits (CPlayer::dirty_) SyncPlayer sends.
 constexpr std::uint32_t kDirtyZone = 0x01;
@@ -101,7 +100,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto node = world->mapObjects_.map.begin(); node != world->mapObjects_.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->type_ == kTypeNoSync) continue;
+            if (object->MapType() == kTypeNoSync) continue;
             if (!OutOfView(&object->localPosition_.x, state)) {
                 *out++ = object;
                 continue;
@@ -114,13 +113,13 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     MapObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
     if (world->sessionKind_ == kKindNoRangeTest) {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
-            CEngineObject* object = node->second;
-            if (object->type_ != kTypeNoSync && !(object->flags_ & kFlagHidden)) *out++ = object;
+            CMapObject* object = node->second;
+            if (object->MapType() != kTypeNoSync && !(object->flags_ & MapObjectFlag::Invisible)) *out++ = object;
         }
     } else {
         for (auto node = source.map.begin(); node != source.map.end() && node->second; ++node) {
             CMapObject* object = node->second;
-            if (object->type_ != kTypeNoSync && !OutOfView(&object->localPosition_.x, state)) *out++ = object;
+            if (object->MapType() != kTypeNoSync && !OutOfView(&object->localPosition_.x, state)) *out++ = object;
         }
     }
     if (world->sessionKind_ != kKindSinglePlayer) return out;

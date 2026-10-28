@@ -37,7 +37,6 @@ float InterfaceClock() {
 }
 
 // The preview's map object: class 0x33 under a fixed id; flag 0x4000000 on it.
-constexpr int kPreviewClass = 0x33;
 constexpr int kPreviewId = static_cast<int>(0x88CA6C00u);
 constexpr std::uint32_t kPreviewObject = 0x4000000;
 
@@ -90,7 +89,7 @@ void CUiModel::Draw(CSceneRenderer* pass) {
 
 void CUiModel::Load(const char* name, const char* from, const char* to) {
     auto* manager = g_clientWorld->MapObjectManager();
-    auto* object = manager->CreateObjectAs<CObject3D>(kPreviewClass, kPreviewId);
+    auto* object = manager->CreateObjectAs<CObject3D>(MapObjectType::Creature, kPreviewId);
     object_ = object;
     ++object->refCount_;
     object->flags_ |= kPreviewObject;

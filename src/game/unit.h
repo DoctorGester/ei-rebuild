@@ -33,9 +33,6 @@ struct SkillLevelRecord;
 struct SkillDatabase;
 struct DamageInfo;
 
-// CEngineObject::type_ of the player's own units (other kinds: 0x33 ...).
-constexpr int kUnitTypeHero = 0x32;
-
 // Eight damage or protection words (an AI attack option's damage, a combat controller's
 // protection): word 0 apart, words 1..7 per damage type.
 struct DamageWords {
@@ -317,7 +314,7 @@ public:
     void ApplyBaseScale() override;
     // Loads the figures (unless flags_ has 0x80) and tells the controller.
     void LoadFigures() override;
-    // A companion of type 0x48 becomes the controller (the old one is detached and released); others go to the map object's AttachObject.
+    // A companion of type SideObjectType::Unit becomes the controller (the old one is detached and released); others go to the map object's AttachObject.
     void AttachObject(CEngineObject* object) override;
     // Statistics changed: the map object's (packs the server object's vitals), then the controller's.
     int StatsChanged() override;
@@ -409,7 +406,7 @@ public:
     // stub) when there is none.
     FigureAnimation* AnimationEntry(std::uint32_t key);
     // The horizontal extent of the body: the box maximum's (x, y) length of the figure part "bd" (else
-    // "chest"), doubled for the mosquito (type_ 0x33, prototype "unmosp"); 0 when the figure has neither
+    // "chest"), doubled for the mosquito (MapObjectType::Creature, prototype "unmosp"); 0 when the figure has neither
     // part. Unrounded.
     double BodyExtent();
     // The ground height at (x, y); for units moving on the water surface (movementKind 2) the surface height

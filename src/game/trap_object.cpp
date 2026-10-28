@@ -21,9 +21,6 @@ const char* const kTrapName = "CTrapObject";
 const char* const kMagicTrapName = "CMagicTrapObject";
 // The script the trap runs when set off (x, y, z).
 const char* const kTrapScript = "Worldscript( CreateParticleSource( 100, %g, %g, %g, 1, \"Mushroom\"))";
-constexpr std::uint32_t kFlag40 = 0x40;
-constexpr std::uint32_t kArmed = 0x80000;
-constexpr std::uint32_t kArmedFresh = 0x100000;
 constexpr float kTriggerRadius = 1.0f;
 } // namespace
 
@@ -31,24 +28,24 @@ bool LockKey::AcceptedByTrap() const { return true; }
 
 CTrapObject::CTrapObject() {
     CreateMapObject();
-    flags_ &= ~kFlag40;
+    flags_ &= ~MapObjectFlag::NotDrawn;
 }
 
 int CTrapObject::CreateTrap() {
     int result = CreateMapObject();
-    flags_ &= ~kFlag40;
+    flags_ &= ~MapObjectFlag::NotDrawn;
     return result;
 }
 
 int CTrapObject::UpdateTrap() {
     Update();
-    if (!(flags_ & kArmed)) return 0;
+    if (!(flags_ & MapObjectFlag::Armed)) return 0;
     if (!WorldContext()->IsServer()) return 0;
     std::list<CUnit*> units{};
     auto* world = ServerWorld();
     world->aiMap_.sectorMap.FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
-    if ((flags_ & kArmedFresh) && units.empty()) {
-        flags_ &= ~kArmedFresh;
+    if ((flags_ & MapObjectFlag::ArmedFresh) && units.empty()) {
+        flags_ &= ~MapObjectFlag::ArmedFresh;
     } else if (!units.empty()) {
         std::string line;
         float x = localPosition_.x;
@@ -56,15 +53,15 @@ int CTrapObject::UpdateTrap() {
         double z = world->RawSurfaceHeightAt(x, y);
         line = str::Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         TheMissionScript()->Load(&line, 1);
-        flags_ &= ~kArmed;
+        flags_ &= ~MapObjectFlag::Armed;
     }
     units.clear();
     return 0;
 }
 
 bool CTrapObject::Disarm(const LockKey* key) {
-    if (!(flags_ & kArmed) || !key->AcceptedByTrap()) return false;
-    flags_ &= ~kArmed;
+    if (!(flags_ & MapObjectFlag::Armed) || !key->AcceptedByTrap()) return false;
+    flags_ &= ~MapObjectFlag::Armed;
     return true;
 }
 

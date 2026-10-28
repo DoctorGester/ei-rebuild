@@ -9,6 +9,7 @@
 #include <list>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 
 using BOOL = int;
@@ -57,6 +58,10 @@ public:
     // the manager becomes its owner and it is created. Null when NewObject fails.
     virtual CEngineObject* CreateObject(int type, int id);
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
+    // The same for a manager whose types are an enum class (MapObjectType, SideObjectType): converted once here.
+    template <class T, class Type>
+        requires std::is_enum_v<Type>
+    T* CreateObjectAs(Type type, int id) { return static_cast<T*>(CreateObject(static_cast<int>(type), id)); }
     // An object without references leaves the manager: unregistered, destroyed, without owner, then kept as a
     // spare. Returns RemoveObject's 0 (nothing meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);
@@ -123,13 +128,27 @@ struct ObjectListIteratorOf : ObjectListIterator {
     T* Next() { return static_cast<T*>(ObjectListIterator::Next()); }
 };
 
+// The types of the side-specific manager's objects (CEngineObject::type_; the client's factory spells them 'E'..'K').
+// The server's manager makes no Drawer (0x45); nothing has 0x4A.
+enum class SideObjectType : int {
+    Drawer = 0x45,       // FigureMeshDrawer
+    Object3D = 0x46,     // CObject3DClientSpecific / CObject3DServer
+    MapObject = 0x47,    // CMapObjectClientSpecific / CMapObjectServer
+    Unit = 0x48,         // CUnitClientSpecific / CUnitServer
+    Player = 0x49,       // CPlayerClient / CPlayerServer
+    Torch = 0x4B,        // CTorchObjectClientSpec / CTorchObjectSpec
+};
+
+// type_ of a side-specific half.
+inline SideObjectType SideTypeOf(const CEngineObject* object) { return static_cast<SideObjectType>(object->type_); }
+
 class CClientSpecificManager : public CBaseManager {
 public:
     CClientSpecificManager();
     ~CClientSpecificManager() override;
     const char* ClassName() override;
     ClassId GetClassId() override;
-    // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation.
+    // A new object of a SideObjectType `type`, or null for any other type or a failed allocation.
     CEngineObject* NewObject(int type) override;
 };
 class CEffectManager : public CBaseManager {

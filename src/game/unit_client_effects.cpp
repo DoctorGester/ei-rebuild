@@ -32,7 +32,6 @@ constexpr std::uint16_t kFirstPrototypeWeapon = 0x10; // UnitParams: kinds below
 constexpr int kSoundPriority = 1000;
 constexpr float kSoundNear = 8.0f;
 constexpr float kSoundFar = 40.0f;
-constexpr std::uint32_t kFiguresLoaded = 0x80;        // the unit's flags_
 constexpr float kBloodScale = 2.5f;
 constexpr float kBloodHeight = 0.1f;
 constexpr float kBloodMinAlpha = 0.1f;
@@ -134,7 +133,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
     std::string material = ModelOf(unit)->hitMaterial;
-    if (unit->type_ == kUnitTypeHero) {
+    if (unit->MapType() == MapObjectType::Hero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;
@@ -154,7 +153,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (location < 0 || location > 5) return;
     const HitPart& hit = kHitParts[location];
     auto* part = unit->FindPartByPrefix(hit.name);
-    if (!part || !(unit->flags_ & kFiguresLoaded)) return;
+    if (!part || !(unit->flags_ & MapObjectFlag::FiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = g_clientWorld->particleManager_->CreateSource(kBloodParticles[blood - 1]);

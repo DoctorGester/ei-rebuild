@@ -36,7 +36,6 @@ constexpr int kCorpseLevel = 800;
 constexpr int kCorpseKind = -3;
 constexpr int kLostLevel = 1000;
 constexpr int kLostKind = -2;
-constexpr std::uint32_t kFlagSeeAll = 0x2000000;    // CUnit::flags_: sees every unit once
 constexpr std::uint32_t kFlagNearbyListed = 0x80000;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
@@ -106,8 +105,8 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
 
 void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = self->ServerController();
-    bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
-    self->flags_ &= ~kFlagSeeAll;
+    bool seesAll = self->player != nullptr || (self->flags_ & MapObjectFlag::SeeAll) != 0;
+    self->flags_ &= ~MapObjectFlag::SeeAll;
     for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
         auto* other = *node;
         ++node;

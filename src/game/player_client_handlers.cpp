@@ -29,7 +29,6 @@ namespace {
 
 constexpr int kStateLoggedIn = 2;
 constexpr int kGameStateBetweenZones = 3;
-constexpr std::uint32_t kFlagGone = 1;              // a removed object's flags_
 constexpr std::uint32_t kUnitFlagHidden = 0x10;
 constexpr std::uint32_t kUnitFlagLit = 0x100;
 constexpr int kKeyEnter = 0xD;
@@ -226,7 +225,7 @@ int CPlayerClient::OnObjectRemoved() {
     if (node == player->knownObjects_.end()) return 0;
     CMapObject* object = node->second;
     player->knownObjects_.erase(id);
-    object->flags_ |= kFlagGone;
+    object->flags_ |= MapObjectFlag::Removed;
     object->Release();
     g_clientWorld->RemoveObject(object->id_);
     return 1;
@@ -272,7 +271,7 @@ int CPlayerClient::OnTimedObjectRemoved() {
     if (node == player->knownTimed_.end()) return 0;
     CEffect* object = node->second;
     player->knownTimed_.erase(id);
-    object->flags_ |= kFlagGone;
+    object->flags_ |= MapObjectFlag::Removed;
     object->Release();
     return 1;
 }

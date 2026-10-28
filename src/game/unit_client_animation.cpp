@@ -136,7 +136,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
     } else if (unit->params.naturalWeapon < kNaturalWeapons) {
         key = 1u << unit->params.naturalWeapon;
     }
-    if (unit->type_ != kUnitTypeHero) key |= kKeyNotHero;
+    if (unit->MapType() != MapObjectType::Hero) key |= kKeyNotHero;
     if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
     FigureAnimation* animation = unit->FindAnimation(key, 1);
     if (!animation) return;

@@ -32,7 +32,6 @@ constexpr float kOverkill = -5.0f;
 
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
-constexpr std::uint32_t kFlagSideChanged = 0x80000;
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
@@ -91,7 +90,7 @@ void CUnit::AddHostileMask(std::uint32_t mask) {
     std::uint32_t merged = relationsA | mask;
     if (relationsA == merged) return;
     relationsA = merged;
-    flags_ |= kFlagSideChanged;
+    flags_ |= MapObjectFlag::RelationsChanged;
     MarkChanged(kPartRelations);
 }
 
@@ -102,7 +101,7 @@ void CUnit::SetRelationsB(std::uint32_t mask) {
 
 void CUnit::SetSide(int value) {
     side = value;
-    flags_ |= kFlagSideChanged;
+    flags_ |= MapObjectFlag::RelationsChanged;
     if (controller) MarkChanged(kPartRelations);
 }
 
@@ -154,9 +153,9 @@ void CUnit::SetFlag40000000Off(bool on) {
 
 std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
-        flags_ |= 0x1000000u;
+        flags_ |= MapObjectFlag::Frozen;
     } else {
-        flags_ &= ~0x1000000u;
+        flags_ &= ~MapObjectFlag::Frozen;
     }
     return flags_;
 }
@@ -358,14 +357,14 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     case 0xC0000: return actionSpeeds[1];
     case 0x200000: return actionSpeeds[2];
     case 0x1C0000: return actionSpeeds[3];
-    case 0x240000: return type_ == kUnitTypeHero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
+    case 0x240000: return MapType() == MapObjectType::Hero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
     case 0x40000: return actionSpeeds[5];
     default: return 1.0f;
     }
 }
 
 bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
-    if (type_ != kUnitTypeHero) return true;
+    if (MapType() != MapObjectType::Hero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
     if (Controller()->HasMainArmour()) required |= 0x20;

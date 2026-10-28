@@ -158,7 +158,7 @@ void CWorldServer::RemoveTimedObject(unsigned id) {
     auto node = timedObjects_.map.find(id);
     if (node == timedObjects_.map.end()) return;
     CEngineObject* object = node->second;
-    object->flags_ |= 1;
+    object->flags_ |= MapObjectFlag::Removed;
     object->Release();
     // Looked up again: releasing may have changed the map.
     if (auto again = timedObjects_.map.find(id); again != timedObjects_.map.end()) timedObjects_.map.erase(again);
@@ -199,7 +199,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     CUnit* unit = UnitOrNull(object);
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
     if (unit) unit->SetPlayer(nullptr);
-    object->flags_ |= 1;
+    object->flags_ |= MapObjectFlag::Removed;
     ScriptPurgeDeletedObjects(MainScript());     // what refers to removed objects dropped
     ScriptPurgeDeletedObjects(SecondScript());
 

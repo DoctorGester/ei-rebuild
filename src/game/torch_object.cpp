@@ -10,7 +10,6 @@
 
 namespace {
 const char* const kTorchClassName = "CTorchObject";
-constexpr int kTypeTorchSpec = 0x4B;
 constexpr int kTorchField = 4;
 } // namespace
 
@@ -46,7 +45,7 @@ void CTorchObject::Load(CStream* stream) { LoadTorch(stream); }
 void CTorchObject::Save(CStream* stream) { SaveTorch(stream); }
 
 void CTorchObject::AttachTorchObject(CEngineObject* object) {
-    if (object->type_ != kTypeTorchSpec) {
+    if (SideTypeOf(object) != SideObjectType::Torch) {
         CMapObject::AttachObject(object);
         return;
     }

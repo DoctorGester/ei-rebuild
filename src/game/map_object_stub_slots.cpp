@@ -14,7 +14,6 @@ constexpr int kNoKey = -123;                    // the object asks for no key
 constexpr float kNoSpeed = 0.0f;
 constexpr float kPlainRadius = 0.75f;
 constexpr std::uint16_t kVitalParts = 0x11;     // changed parts 0 and 4: the statistics are repacked
-constexpr std::uint32_t kStateUnsent = 2;       // flags_: the network state has not been written
 } // namespace
 
 // --- Empty slots -------------------------------------------------------------------------------------
@@ -48,7 +47,7 @@ void CMapObject::WriteFullState() {
     state->SetWriteMode(0);
     WriteNetState();
     state->Finish();
-    flags_ &= ~kStateUnsent;
+    flags_ &= ~MapObjectFlag::Changed;
 }
 
 void CMapObject::WriteChangedState() {
@@ -57,7 +56,7 @@ void CMapObject::WriteChangedState() {
     state->SetWriteMode(1);
     WriteNetState();
     state->Finish();
-    flags_ &= ~kStateUnsent;
+    flags_ &= ~MapObjectFlag::Changed;
 }
 
 std::uint32_t CMapObject::ReadState(int first, CMemoryStream* reader) {
