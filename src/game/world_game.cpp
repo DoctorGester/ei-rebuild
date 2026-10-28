@@ -1689,7 +1689,10 @@ void SavedParties::Reload() {
             } else {
                 variables->Clear();
             }
-            if (entry->Party()->members_.size == 1) entries_.push_back(read);
+            if (entry->Party()->members_.size == 1) {
+                ReserveOne();
+                entries_.push_back(read);
+            }
         }
     } while (gameapi::FindNextFileA(search, &found));
     gameapi::FindClose(search);

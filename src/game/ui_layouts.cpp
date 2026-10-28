@@ -517,7 +517,7 @@ void CCreditsScreen::CreateScreen() {
     std::uint32_t size = 0;
     void* data = archive->GetFile("credits.scr", &size);
     if (!data) {
-        currentLine_ = lines_.End();
+        currentLine_ = lines_.end();
     } else {
         std::string script;
         std::memmove(str::SetLength(script, static_cast<int>(size)), data, size);
@@ -543,10 +543,10 @@ void CCreditsScreen::CreateScreen() {
             record.style = words.WordOrEmpty();
             words.Next();
             record.text = words.WordOrEmpty();
-            stlp::list<TitleLine>::Insert<recordlist::TitleLineElement>(lines_.End(), record);
+            lines_.push_back(record);
             lines.Next();
         }
-        currentLine_ = lines_.First();
+        currentLine_ = lines_.begin();
         archive->CloseFile(data);
     }
 

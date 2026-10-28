@@ -88,6 +88,10 @@ SavedParties* SavedParties::Construct() {
     return this;
 }
 
+void SavedParties::ReserveOne() {
+    if (entries_.size() == entries_.capacity()) entries_.reserve(entries_.empty() ? 1 : 2 * entries_.size());
+}
+
 void SavedParties::Destruct() {
     std::destroy_at(&outsideGame_);
     std::destroy_at(&entries_);

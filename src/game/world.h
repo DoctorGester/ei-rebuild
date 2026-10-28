@@ -1373,6 +1373,9 @@ struct SavedParties {
     void Destruct();
     SavedParties* Construct();
     void Select(const MpHeroRecord* hero);
+    // Room for one more record the way the original's vector grew: doubled, the old records copied before the
+    // new one is made. A record's copy loads its party again, which draws object ids and random numbers.
+    void ReserveOne();
 
     std::string folder_;
     std::vector<MpHeroRecord> entries_;

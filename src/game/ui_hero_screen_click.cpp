@@ -598,8 +598,17 @@ void CMpHeroScreen::AddNewHero() {
         }
     }
 
-    MpHeroRecord* record = &MpHeroes().emplace_back();
-    heroIndex_ = static_cast<int>(MpHeroes().size()) - 1;
+    // A new record; at capacity the original copies a blank one into the grown storage (a party copy draws ids).
+    std::vector<MpHeroRecord>& heroes = MpHeroes();
+    if (heroes.size() == heroes.capacity()) {
+        MpHeroRecord blank;
+        TheSavedParties().ReserveOne();
+        heroes.push_back(blank);
+    } else {
+        heroes.emplace_back();
+    }
+    MpHeroRecord* record = &heroes.back();
+    heroIndex_ = static_cast<int>(heroes.size()) - 1;
 
     std::string pattern;
     pattern = str::Format(HeroFilePattern(), MpHeroesFolder().c_str());

@@ -261,30 +261,14 @@ CExchangeScreen::CExchangeScreen(CInterface3D* ui) : CItemScreen(ui) {
     textures_.limit = 50;
 }
 
-// Screen 8's constructor: lines_ gets its header node (its allocator byte, the flag's low byte, is
-// overwritten).
 CCreditsScreen::CCreditsScreen(CInterface3D* ui, bool fromGame, const char* name) : CUiContainer(ui) {
     new (archive_.Get()) CMappedResource();
-    lines_.Construct();   // the header from the node pool, linked to itself
     name_ = name;
     player_.Construct();
     fromGame_ = fromGame;
 }
 
-// Screen 8's destructor body: its members, the list (each line's two CStrings, style
-// then text) back to the node allocator, then the container base.
 CCreditsScreen::~CCreditsScreen() {
     player_.Destruct();
-    using Node = stlp::list<TitleLine>::Node;
-    for (Node* node = lines_.head->next; node != lines_.head;) {
-        Node* next = node->next;
-        std::destroy_at(&node->data.style);
-        std::destroy_at(&node->data.text);
-        stlp::deallocate(node, sizeof(Node));
-        node = next;
-    }
-    lines_.head->next = lines_.head;
-    lines_.head->prev = lines_.head;
-    stlp::deallocate(lines_.head, sizeof(Node));
     archive_.Get()->CMappedResource::Destroy();
 }

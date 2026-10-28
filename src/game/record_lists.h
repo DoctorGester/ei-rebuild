@@ -90,15 +90,4 @@ struct ScorchMarkElement {
     static void Copy(GroundPrint* to, const GroundPrint& from) { new (to) GroundPrint(from); }
 };
 
-// The titles' script lines (CCreditsScreen::lines_, 24-byte nodes): the flag byte, the
-// speed and both CStrings copied.
-struct TitleLineElement {
-    static void Copy(TitleLine* to, const TitleLine& from) {
-        to->scroll = from.scroll;
-        to->speed = from.speed;
-        std::construct_at(&to->text, from.text);
-        std::construct_at(&to->style, from.style);
-    }
-};
-
 } // namespace recordlist

@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -521,8 +522,6 @@ static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 // --- Credits ------------------------------------------------------------------------------------
 // The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
-    void Destroy();
-
     bool scroll;                // the first word is "#scroll"
     std::uint8_t unused_1[3];
     float speed;                // the second word (atof): the scroll speed, or the seconds shown
@@ -601,9 +600,9 @@ public:
     CUiSurface* headerSurface_;
     int fontSmoothing_;         // passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
     lib::InPlace<CMappedResource> archive_;   // "outro.res" (built and destroyed by hand)
-    stlp::list<TitleLine> lines_;
+    std::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
-    stlp::list<TitleLine>::Node* currentLine_;   // the next line (the sentinel at the end)
+    std::list<TitleLine>::iterator currentLine_;   // the next line (end() at the end)
     std::string name_;         // ("Titles")
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
