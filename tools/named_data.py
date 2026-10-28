@@ -192,7 +192,7 @@ STATIC_OBJECT_BYTES = {
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
     'CFixedAlloc': 0x28, 'CSimpleException': 0x98, 'CResourceException': 0x98, 'CUserException': 0x98,
-    'CMemoryException': 0x98, 'CNotSupportedException': 0x98, 'AuxData': 0x6C, 'CWnd': 0x3C,   # lib/mfc_gdi.h, mfc_exception.h, mfc_state.h, mfc_window.h
+    'CMemoryException': 0x98, 'AuxData': 0x6C, 'CWnd': 0x3C,   # lib/mfc_gdi.h, mfc_exception.h, mfc_state.h, mfc_window.h
 }
 
 

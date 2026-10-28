@@ -559,9 +559,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744264,1,,game,006D26E0 006D2E40 006D3430 006D38C0 006D3CB0 006D3DE0 006D3F10 006D4050,006D41D0,PrintRecord,src/game/model.h,a prints.db record
 00744268,1,,game,006D2830 006D3120 006D3680 006D3F10 006D4050,006D4270,PrintRecord2,src/game/model.h,prints.db's second record type
 00744288,3,,game,006D49E0 006D4AA0 006D4B30 006D4CD0,006D4A60,CDib,src/game/dib.h,CDib
-00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,PlainFileTable,src/lib/mfc_file.cpp,CFile
-00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,src/lib/mfc_exception.h,CFileException
-00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,FileFindTable,src/lib/mfc_file.cpp,CFileFind
+00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,CFile,-,"stored only by game.exe's constructors / destructor 00701036 / 0070106C / 0070108B / 0070112B, which no code of ours calls (the game's files are lib::File since C14d)"
+00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,-,"stored only by game.exe's 006E6335 / 0070108B / 00701BD4 / 007031D5, which no code of ours calls (a failed file call throws lib::FileError since C14d)"
+00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,CFileFind,-,"stored only by game.exe's constructor / destructor 006E6370 / 006E63AD, which no code of ours calls (lib::FileFind since C14d)"
 00745F78,3,.?AVCWordArray@@,lib,006FEE9A 006FEECD,0070BEC3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
 007461B0,29,.?AVCDC@@,lib,00708CD7 00708E0C,0070BF7B,CDC,src/lib/mfc_gdi.h,CDC
 0074624C,29,.?AVCClientDC@@,lib,00709DCD 00709E3F,0070BF81,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
@@ -576,10 +576,10 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00746484,5,.?AVCUserException@@,lib,006E6916 006E695C,0070BF2C,CUserException,src/lib/mfc_exception.h,CUserException (_simpleUserException)
 0074649C,3,.?AVCRgn@@,lib,0070B7D6,0070BFD1,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
 007464B8,3,.?AVCDWordArray@@,lib,006FF23A 006FF26D,0070C12A,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
-007464F0,24,.?AVCStdioFile@@,lib,00701B79 00701BAB 00701BD4 00701C6D,0070C15B,StdioFileTable,src/lib/mfc_file.cpp,CStdioFile
+007464F0,24,.?AVCStdioFile@@,lib,00701B79 00701BAB 00701BD4 00701C6D,0070C15B,CStdioFile,-,"stored only by game.exe's constructors / destructor 00701B79 / 00701BAB / 00701BD4 / 00701C6D, which no code of ours calls (lib::TextFile since C14d)"
 00746560,3,.?AVCByteArray@@,lib,006FF5EA 006FF61D,0070C178,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
 007465F8,5,.?AVCMemoryException@@,lib,006E6AEA 006E6B30,0070C1AF,CMemoryException,src/lib/mfc_exception.h,CMemoryException (_simpleMemoryException)
-00746610,5,.?AVCNotSupportedException@@,lib,006E6B37 006E6B7D,0070C1E7,CNotSupportedException,src/lib/mfc_exception.h,CNotSupportedException (_simpleNotSupportedException)
+00746610,5,.?AVCNotSupportedException@@,lib,006E6B37 006E6B7D,0070C1E7,CNotSupportedException,-,"stored only by game.exe's constructor / destructor 006E6B37 / 006E6B7D, which no code of ours calls (_simpleNotSupportedException's initialiser 0070C1ED is gen_static_init.py's UNUSED_INITIALISERS: only CStdioFile threw it)"
 00746650,26,.?AVCMemFile@@,lib,0070ADD9 0070AE25 0070AE9E,0070C253,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"
 007466E0,31,.?AVCWinThread@@,lib,0070C259 0070C2B9 0070E132,0070C328,WinThread,src/lib/mfc_thread.h,"CWinThread (the sound stream's, the MIDI player's and the cursor's threads)"
 00746760,1,.?AV_AFX_CTL3D_STATE@@,lib,0070C328 0070D43F,0070C389,_AFX_CTL3D_STATE,-,"an MFC state object: stored only by game.exe's MFC state code, which no code of ours calls (mfc_state.cpp makes no state objects)"

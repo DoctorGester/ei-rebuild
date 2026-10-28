@@ -7,7 +7,7 @@
 #include "game_strings.h"
 #include "ui.h"
 
-#include "lib/mfc_file.h"
+#include "lib/file_io.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -22,20 +22,6 @@
 #include <vector>
 
 namespace console {
-
-// ---- Helpers ------------------------------------------------------------------------------------
-
-CStdioFile::CStdioFile() = default;
-CStdioFile::CStdioFile(const char* name, unsigned flags) : file_(name, flags) {}
-CStdioFile::~CStdioFile() = default;
-mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
-    return file_.Open(std::string(name).c_str(), flags, error);
-}
-// MFC's CStdioFile::ReadString(CString&), into a string.
-mfc::BOOL CStdioFile::ReadString(std::string& line) { return file_.ReadLine(line); }
-char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
-void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
-void CStdioFile::Close() { file_.Close(); }
 
 // ---- Streams ------------------------------------------------------------------------------------
 
@@ -78,6 +64,8 @@ Stream& Stream::Flush() {
     buffer_->Sync();
     return *this;
 }
+
+// ---- Helpers ------------------------------------------------------------------------------------
 
 CommandHandler& Command(CommandMap* map, const std::string& name) { return (*map)[name]; }
 

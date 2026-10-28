@@ -10,6 +10,7 @@
 #include "texture.h"
 #include "game_strings.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -133,9 +134,9 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     std::string path;
-    mfc::CFile file;
+    lib::File file;
     path = str::Format("%stextures\\%s.mmp", DataFolderText(), name);
-    if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (file.Open(path, lib::File::modeRead)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
         out->resize(size);

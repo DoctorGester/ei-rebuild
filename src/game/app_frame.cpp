@@ -8,6 +8,7 @@
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/main_loop.h"
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -74,8 +75,8 @@ void FrameStep(bool draw, bool cursor) {
     if (!app::g_recordingFrames) return;
     char path[256];
     gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().c_str(), g_movieFrame);
-    mfc::CFile file;
-    if (!file.Open(path, 0x1001, nullptr)) {
+    lib::File file;
+    if (!file.Open(path, lib::File::modeCreate | lib::File::modeWrite)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"
         app::g_recordingFrames = 0;
         return;

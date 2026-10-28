@@ -6,6 +6,7 @@
 // so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -30,9 +31,9 @@ const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
 } // namespace
 
 void DeleteComposedTextures() {
-    mfc::CFileFind find;
+    lib::FileFind find;
     std::string pattern = std::string(TheDataFolder()) + ComposedTexturePattern();
-    if (!find.FindFile(pattern, 0)) return;
+    if (!find.FindFile(pattern)) return;
     int more;
     do {
         more = find.FindNext();

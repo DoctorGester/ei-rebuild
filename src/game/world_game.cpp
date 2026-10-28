@@ -39,6 +39,7 @@
 #include "mod_folders.h"
 #include "world_map_files.h"
 
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
@@ -1040,12 +1041,12 @@ int LoadMission(CStream* file) {
 
 void ClearSaveFolder(const char* path) {
     gameapi::CreateDirectoryA(path, nullptr);
-    mfc::CFileFind finder;
+    lib::FileFind finder;
     int found;
     {
         std::string folder(path);
         std::string pattern = folder + kAllFiles;
-        found = finder.FindFile(pattern, 0);
+        found = finder.FindFile(pattern);
     }
     while (found) {
         found = finder.FindNext();
@@ -1458,11 +1459,11 @@ void GameFlow::SetNetworkZone(const char* zone) {
 }
 
 int CurrentSaveSize() {
-    mfc::CFileFind find;
+    lib::FileFind find;
     std::string pattern;
     pattern = str::Format(kCurrentFiles, DataFolderText());
     int total = 1000000;
-    if (find.FindFile(pattern, 0)) {
+    if (find.FindFile(pattern)) {
         int more;
         do {
             more = find.FindNext();
@@ -1714,14 +1715,14 @@ int AllodOfMap(const char* map) {
 void GameFlow::BuildZoneTable() {
     ZoneTable& table = g_zoneTable;
     if (table.end() != table.begin()) return;
-    mfc::CFileFind find;
+    lib::FileFind find;
     int more;
     {
         std::string folder;
         modfolders::SelectMaps(kQuestFilePattern, modfolders::MapsSite::ZoneTable);
         MapsFolder(&folder);
         std::string pattern = folder + kQuestFilePattern;
-        more = find.FindFile(pattern, 0);
+        more = find.FindFile(pattern);
     }
     while (more) {
         more = find.FindNext();

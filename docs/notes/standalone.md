@@ -510,10 +510,11 @@ kinds given.
     committed file; add the rows by hand in order.
     config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
     ranges.
-    **The throws**: mfc_exception's file / archive / not supported / memory / resource exceptions and the device
+    **The throws**: mfc_exception's archive / memory / resource exceptions and the device
     layer's GameError are this compiler's `throw` of a pointer to a class of the game's name (lib/mfc_try.h:
-    CObject, CException, CSimpleException, CFileException, CArchiveException, CNotSupportedException,
-    CMemoryException, CResourceException; dx_errors.h: CGameException, CDXException), cast from the game's object.
+    CObject, CException, CSimpleException, CArchiveException, CMemoryException, CResourceException; dx_errors.h:
+    CGameException, CDXException), cast from the game's object. A failed file call throws `lib::FileError` (a
+    std::runtime_error, by value) where MFC threw a CFileException*.
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
     types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
@@ -1352,8 +1353,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
-    out_of_range tables 0073B994 / 0073BE8C (batch 21), the CFile family (CFile 00745DF4, CFileException 00745E4C, CStdioFile 007464F0, CMemFile 00746650,
-    CFileFind 00745EE8), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
+    out_of_range tables 0073B994 / 0073BE8C (batch 21), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
     CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
     and the module / thread state records (mfc_thread, mfc_window, mfc_state), CCmdUI / CTestCmdUI,
@@ -1380,10 +1380,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
     (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
     _AFX_BASE_MODULE_STATE).
-  - **The CFile family** (mfc_file.cpp): FileTable (CFile; CStdioFile's StdioFileTable over it with 16 = its
-    LockRange body and 21-23 its own), FileFindTable and mfc_exception.cpp's FileExceptionTable; every slot was
-    registered already. CMemFile retired with no class of ours. Overloaded slots (CFileFind's CTime / FILETIME
-    getters, CStdioFile's two ReadStrings) get distinct names: MSVC groups a name's overloads in the table.
+  - **The CFile family**: CFile 00745DF4, CFileException 00745E4C, CFileFind 00745EE8, CStdioFile 007464F0 and
+    CMemFile 00746650 are retired with no class of ours (file `-`): the game's files are lib::File, lib::TextFile and
+    lib::FileFind (src/lib/file_io.h), a failed call throws lib::FileError. Their runtime class records are
+    gen_image_cells.py's UNREAD.
   - **stlp's out_of_range**: retired with file `-` (C14a removed stlp::string and the one unreachable throw); game.exe's
     ThrowInfo 0074C640 and its records are dead data.
   - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
@@ -1730,7 +1730,11 @@ the `--no-hooks` suite) keeps the registry.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
   install redirection and a mod's hooks apply. `lib::OpenFile` (src/lib/file_io.h; fopen's r / w / a, +, b / t) opens
   with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
-  the callers (sysmsg.txt, BufferedFile, CStdioFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on it.
+  the callers (sysmsg.txt, BufferedFile, lib::TextFile) use std::fread / fseek / ftell / fwrite / fclose / fgets on
+  it. The game's CFile, CStdioFile and CFileFind uses are file_io.h's `lib::File` (a Win32 handle from CreateFileA,
+  MFC's open flags), `lib::TextFile` (OpenFile's "r" / "w", MFC's ReadString line pieces) and `lib::FileFind`
+  (FindFirstFileA / FindNextFileA, MFC's read-ahead: FindNext is false on the last entry; the paths are the
+  pattern's folder through GetFullPathNameA, as CFileFind's root).
   The res archives (CMappedResource) keep a Win32 handle: CreateFileA, SetFilePointer, ReadFile, WriteFile through
   the slots, the calls VC6's _sopen / _lseek / _read / _write made on its binary descriptor. _access is
   `lib::FileExists` (GetFileAttributesA; every caller asked mode 0 or 4), _findfirst the resource stream's own
@@ -1798,13 +1802,11 @@ the `--no-hooks` suite) keeps the registry.
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (CFile's and the
-  exceptions' file names, CFileFind's root, the archive's string operators, CTime::Format, the resource strings:
+- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (the
+  archive exception's file name, the archive's string operators, CTime::Format, the resource strings:
   mfc_resource.h `LoadResourceString` / `AfxFormatString1`); the static initialisers of CString's four fixed
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
-  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). CFile, CStdioFile and
-  CFileFind have real constructors and destructors (the vtable stays a field); mfc.h's facades build them in place
-  over a mirror of their members. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
+  is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
 - **Collections**: mfc_coll (one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
   the instantiation's ConstructElements does after MFC's memset (nothing, an inlined constructor, or
@@ -1817,11 +1819,10 @@ The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's cons
   element policy must be the one the instantiation's inlined SetSize / NewNode uses, which is not always its
   destructor's (00450570). Quirks kept: a loaded list's elements borrow the source's references; a wave record's
   load frees the source's name buffer; the token and wave loads leak each element's temporary block.
-- **Files, archives, exceptions** (S8, S8b): mfc_exception (the four throws through 006E7819; the exception link is a
-  thread_local at 00702107; the four static exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage),
-  mfc_file (CFile, CStdioFile on the host CRT, CFileFind, the name getters via comdlg32's GetFileTitleA), mfc_time
-  (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive and the
-  CString operators), mfc_resource (AfxLoadString through LoadStringA on the module state's null resource handle,
+- **Archives, exceptions** (S8, S8b): mfc_exception (the archive, memory and resource throws; the four static
+  exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time
+  (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive over a
+  lib::File and the CString operators; only the collections' Serialize slots take one, and nothing builds one), mfc_resource (AfxLoadString through LoadStringA on the module state's null resource handle,
   AfxFormatStrings: "%0" reads the pointer before the array, as the original).
 - **Windows, GDI, state**: AfxMessageBox has no owner and the module's file name as title (the image shows
   ei_standalone.exe). CDC (0x10 bytes), CPen, CFont, CGdiObject; handle maps (mfc_handle_map: CMapPtrToPtr, whose
@@ -2203,14 +2204,14 @@ trap until the run ends (OnTrap; the launch-free check fails on it). Runs from i
 other static constructor of ei_hook.dll: the harness takes import slots in its own. In game.exe (the original's
 runs) nothing happens: the loader filled its table.
 
-### lib/mfc_file.h
+### lib/file_io.h
 
-MFC 4.2's CFile, CStdioFile and CFileFind (filecore.cpp, filetxt.cpp, filefind.cpp) and the path helpers they use,
-written out for the standalone exe (docs/notes/standalone.md section 2). Same layout as the copy linked into
-game.exe; the tables are compiled (mfc_file.cpp's FileTable, StdioFileTable and FileFindTable) in place, with the
-slots in game.exe's order. Every body is registered at its library address (mfc_file.cpp). CFile works on Win32
-handles through the game's import table. CStdioFile's stream is the host CRT's FILE (crt.h: the game's FILE* is the
-host's).
+The game's files through its import slots (CreateFileA, FindFirstFileA, GetFileAttributesA), so the harness's
+redirection and a mod's hooks apply: `File` (binary, a Win32 handle; MFC's CFile open flags), `TextFile` (lines on a
+host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and absolute paths), `OpenFile` (fopen) and
+`FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
+the game's MFC threw a CFileException*: what the game caught (CDib's reads and writes, the script reader) catches it,
+the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).
 
 ### lib/mfc_handle_map.h
 

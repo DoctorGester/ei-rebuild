@@ -12,7 +12,6 @@ namespace mfc::impl {
 // MFC's resource ids the library code loads (afxres.h).
 constexpr unsigned kIdsUnnamedFile = 0xF006;         // AFX_IDS_UNNAMED_FILE
 constexpr unsigned kIdpNoErrorAvailable = 0xF020;    // AFX_IDP_NO_ERROR_AVAILABLE
-constexpr unsigned kIdsNotSupportedException = 0xF021;   // AFX_IDS_NOT_SUPPORTED_EXCEPTION
 constexpr unsigned kIdsResourceException = 0xF022;   // AFX_IDS_RESOURCE_EXCEPTION
 constexpr unsigned kIdsMemoryException = 0xF023;     // AFX_IDS_MEMORY_EXCEPTION
 constexpr unsigned kIdpFileNone = 0xF1A0;            // AFX_IDP_FILE_NONE (+ a CFileException cause)

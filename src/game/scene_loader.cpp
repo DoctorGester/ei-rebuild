@@ -11,6 +11,7 @@
 #include "texture.h"
 #include "world.h"
 
+#include "lib/file_io.h"
 #include "../lib/crt.h"
 #include "../lib/mfc_coll.h"
 #include "../lib/text_case.h"
@@ -31,7 +32,7 @@
 namespace scene {
 namespace {
 
-void Read(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { file->Read(data, size); }
+void Read(lib::File* file, void* data, std::uint32_t size) { file->Read(data, size); }
 
 void SetBits(float& to, std::uint32_t bits) { std::memcpy(&to, &bits, 4); }
 
@@ -198,7 +199,7 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
 
 class Loader {
 public:
-    Loader(mfc::CFileVirtuals* file, std::uint32_t version) : file_(file), version_(version) {}
+    Loader(lib::File* file, std::uint32_t version) : file_(file), version_(version) {}
 
     void LoadRecord(int i, MeshArray* meshes, NodeArray* nodes);
     void SkipRecord();
@@ -211,7 +212,7 @@ private:
     void LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node);
     void BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node);
 
-    mfc::CFileVirtuals* file_;
+    lib::File* file_;
     std::uint32_t version_;
 };
 
@@ -516,7 +517,7 @@ void Loader::LoadHelper(CMaterial* helper) {
 
 } // namespace
 
-mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes) {
+mfc::BOOL SceneInfo::Load(lib::File* file, MeshArray* meshes, HelperArray* helpers, NodeArray* nodes) {
     struct FileHeader {
         std::uint32_t version;
         int recordCount;
@@ -639,8 +640,8 @@ void SceneMesh::Destroy() {}
 const char* SceneMesh::GetName() { return name.c_str(); }
 const char* SceneMesh::GetClassName() { return "CFakeFigure"; }
 int SceneMesh::GetClassId() { return 0x47; }
-void SceneMesh::SaveTransform(mfc::CFileVirtuals*) {}
-void SceneMesh::LoadTransform(mfc::CFileVirtuals*) {}
+void SceneMesh::SaveTransform(lib::File*) {}
+void SceneMesh::LoadTransform(lib::File*) {}
 
 // --- Building a CFakeUnit's figure from its scene ---------------------------------------
 
@@ -682,7 +683,7 @@ struct SceneLoad {
     std::string path;
     SceneNodes nodes;
     Registry registry;
-    mfc::CFile file;
+    lib::File file;
     TextureLinks textureLinks;
     TextureNames textureNames;
     std::vector<std::string> roots;   // the nodes without parent
@@ -714,13 +715,13 @@ mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, Fake
     helpers->SetSize(0, -1);
     figures->SetSize(0, -1);
 
-    if (!s.file.Open(fileName, 0x8000, nullptr)) {
+    if (!s.file.Open(fileName, lib::File::modeRead)) {
         std::string message;
         message = str::Format(scenedata::CantOpenText(), fileName);
         mfc::impl::MessageBoxText(message.c_str(), 0x10, 0);
         return 0;
     }
-    s.info.Load(s.file.Virtuals(), meshes, helpers, &s.nodes);
+    s.info.Load(&s.file, meshes, helpers, &s.nodes);
     s.file.Close();
 
     // Exactly one node may have no parent.
