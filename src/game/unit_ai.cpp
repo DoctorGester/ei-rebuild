@@ -343,12 +343,12 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (move.looks.front().stopFirst) o->StopQueued();
-        float end = static_cast<float>(CurrentWorldTick()) + move.looks.front().wait;
+        float end = static_cast<float>(g_serverWorld->tick_) + move.looks.front().wait;
         actionTime = x87::fistp(end);
         move.looks.erase(move.looks.begin());
         return;
     }
-    if (CurrentWorldTick() > actionTime) actionTime = kNoTime;
+    if (g_serverWorld->tick_ > actionTime) actionTime = kNoTime;
 }
 
 void AIBrain::UpdateAttack() {

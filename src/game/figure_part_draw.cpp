@@ -117,7 +117,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
     } else {
         l.model = *part.device->pipeline_->Top(3);
     }
-    if (const CLight* sun = worlddata::SceneSun()) {
+    if (const CLight* sun = g_sceneRenderer->sun_) {
         l.sun = true;
         l.sunDirection = sun->direction_;
         for (int k = 0; k < 3; ++k) l.sunColour[k] = sun->color_[k];
@@ -149,7 +149,7 @@ const render::MeshLighting* PartLighting(const Part& part) {
 // diffuse alpha (white otherwise), the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
     part.coloursWritten = true;
-    if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
+    if (CLight* sun = g_sceneRenderer->sun_) part.device->pipeline_->transform_->AddSun(sun);
     if (part.figure) {
         const char* name = MeshName(part.node->mesh_);
         std::string s(name);

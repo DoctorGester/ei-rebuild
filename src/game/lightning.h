@@ -109,7 +109,6 @@ public:
 constexpr int kLightningNoiseRows = 32;
 constexpr int kLightningNoiseRowLength = 400;
 inline float g_lightningNoise[kLightningNoiseRows][kLightningNoiseRowLength] = /*0079CE78*/ {};
-inline float* LightningNoiseTable() { return g_lightningNoise[0]; }
 // (lightning_load.cpp; Rebirth-patched: callers use LoadLightningNoiseOriginal).
 // Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
 int LoadLightningNoise();

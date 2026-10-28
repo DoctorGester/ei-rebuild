@@ -286,7 +286,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     if (item->type_ == kItemSpell && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
-        float scale = model->GetScaleX();
+        float scale = model->scaleMatrix_.m[0];
         CUiMesh* mark = AddBlankSprite();
         mark->SetRectangle(static_cast<float>(D(pz) * D(0.9f /*0073CD70*/)), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                            0x20, 0x20);

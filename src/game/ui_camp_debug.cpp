@@ -45,7 +45,7 @@ void AddCounted(CParty* list, CItem* item) {
 // An item named `name` from the list's item manager (not checked for null) with
 // record index `index` and count `count`, added.
 void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
-    auto* item = AsLoot(list->ItemManager()->CreateItem(name));
+    auto* item = AsLoot(list->ItemFactory()->CreateItem(name));
     item->index_ = index;
     item->count_ = count;
     AddCounted(list, item);
@@ -89,7 +89,7 @@ void CCampPages::DebugFill() {
         g_clientWorld->itemManager_->ListWeaponNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
-            CResourceManager* manager = items->ItemManager();
+            CResourceManager* manager = items->ItemFactory();
             CItemConstructor* maker = items->ItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
             AddInMaterials(items, manager, maker, weapon, kWeaponClass, materialCount);
@@ -97,7 +97,7 @@ void CCampPages::DebugFill() {
 
         g_clientWorld->itemManager_->ListArmorNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
-            CResourceManager* manager = items->ItemManager();
+            CResourceManager* manager = items->ItemFactory();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
             if (NameHas(armor, PrototypeWord())) continue;
             AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
@@ -119,7 +119,7 @@ void CCampPages::DebugFill() {
             std::string name = MaterialWord();
             name += Dot();
             name += names[i];
-            auto* item = items->ItemManager()->CreateItem(name);
+            auto* item = items->ItemFactory()->CreateItem(name);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }

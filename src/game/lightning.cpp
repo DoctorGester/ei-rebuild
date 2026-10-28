@@ -26,7 +26,6 @@ double Unsigned(std::uint32_t value) {
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
 // for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
-const float* NoiseTable() { return LightningNoiseTable(); }
 constexpr int kNoiseRowLength = 400;
 
 // Scratch curves written by LightningSegment::Animate (one float per point, at most 400).
@@ -86,7 +85,7 @@ void SampleCurve(LightningSegment* segment, const NoiseKey* keys, const float* b
     rows[6] = fresh.index[0] + 16;
     for (int j = 0; j < 8; ++j) weights[j] = static_cast<float>(static_cast<double>(blend[j]) * weights[j]);
     int count = std::ssize(segment->points);
-    const float* table = NoiseTable();
+    const float* table = g_lightningNoise[0];
     for (int p = 0; p < count; ++p) {
         double sum = 0.0;
         for (int j = 0; j < 8; ++j) sum = sum + static_cast<double>(table[rows[j] * kNoiseRowLength + p]) * weights[j];

@@ -110,7 +110,6 @@ void SavePlanFields(CStream* stream, OrderPlan* plan) {
 }
 
 // The item manager (the world server's), which resolves the armour spells' item ids.
-CItemManager* ItemManager() { return g_serverWorld->itemManager_; }
 
 } // namespace
 
@@ -136,7 +135,7 @@ void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     for (auto node = list->begin(); node != list->end();) {
         auto current = node;
         ++node;
-        AssignCounted(current->item, ReadItem(stream, ItemManager()));
+        AssignCounted(current->item, ReadItem(stream, g_serverWorld->itemManager_));
         stream->Read(&current->countdown, 4);
     }
 }

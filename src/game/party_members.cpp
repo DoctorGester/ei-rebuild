@@ -43,7 +43,7 @@ void Drop(CItem* item) {
 }
 
 CItem* MakeItem(CParty* party, std::string_view name) {
-    return party->ItemManager()->CreateItem(name);
+    return party->ItemFactory()->CreateItem(name);
 }
 
 // A weapon name that gives a weapon: not empty and not "none" (_mbsicmp).
@@ -123,7 +123,7 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     const std::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
         CItem* copy = CountedClone(spell);
         std::vector<CItem*>& list = record->spells;
         int index = std::ssize(list);
@@ -149,7 +149,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     const std::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemFactory()->CreateSpellItem(spellNames.begin()[i], owner);
         record->spells.push_back(CountedClone(spell));
         Drop(spell);
     }

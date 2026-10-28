@@ -88,10 +88,10 @@ void PartyUnitRecord::Load(CStream* stream) {
     stream->Read(&unitId, sizeof(unitId));
     stats.LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
-    ReadItemIds(stream, weapons, g_loadingParty->ItemManager());
-    ReadItemIds(stream, quickItems, g_loadingParty->ItemManager());
-    ReadItemIds(stream, armor, g_loadingParty->ItemManager());
-    ReadItemIds(stream, spells, g_loadingParty->ItemManager());
+    ReadItemIds(stream, weapons, g_loadingParty->ItemFactory());
+    ReadItemIds(stream, quickItems, g_loadingParty->ItemFactory());
+    ReadItemIds(stream, armor, g_loadingParty->ItemFactory());
+    ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
     ReadText(stream, texts[1]);
     if (Version(stream) < kVersionRecordFlags) return;
     stream->Read(&moveMode2, 4);
@@ -137,7 +137,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     spellManager_->Load(stream);
     itemManager_->LoadObjects(stream);
     spellManager_->LoadObjects(stream);
-    ReadItemIds(stream, items_, ItemManager());
+    ReadItemIds(stream, items_, ItemFactory());
     int records;
     stream->Read(&records, sizeof(records));
     members_.resize(records);

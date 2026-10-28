@@ -194,7 +194,7 @@ int CMusicSystem::UpdateMusic() {
         inCombat = 0;
         calmDue = CalmDelay();
     }
-    int fighting = worlddata::FightState() == 2 ? 1 : 0;
+    int fighting = g_clientWorld->partyDanger_ == 2 ? 1 : 0;
     if (inCombat != 0) {
         if (fighting == 0) {
             snd->StopStream(2);

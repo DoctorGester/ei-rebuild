@@ -411,8 +411,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         if (mode != 1 && mode != 3) return mode == 7;
         if (IsPart(item) || IsBlueprint(item)) return CountOf(itemResults_) <= 0;
         if (IsKindOne(item)) {
-            // The answers are not used.
-            itemResults_->ItemManager();
+            // The answer is not used.
             itemResults_->SpellManager();
             std::uint32_t kindOnes = 0;
             const itemdb::ItemRecordHead* part = nullptr;
@@ -675,7 +674,7 @@ BOOL CCampPages::Draw(CSceneRenderer* pass) {
 
 bool CCampPages::CanMakeSpell() {
     CSpellConstructor* constructor = spellResults_->SpellConstructor();
-    CItemManager* factory = spellResults_->ItemManager();
+    CItemManager* factory = spellResults_->ItemFactory();
     CSpellManager* manager = spellResults_->SpellManager();
     const itemdb::SpellRecord* spell = nullptr;
     // The modifiers are kept in an 8-entry stack array (more would overwrite its
@@ -723,7 +722,7 @@ bool CCampPages::CanMakeSpell() {
 
 bool CCampPages::CanMakeItem() {
     CItemConstructor* constructor = itemResults_->ItemConstructor();
-    CResourceManager* factory = itemResults_->ItemManager();
+    CResourceManager* factory = itemResults_->ItemFactory();
     CSpellManager* manager = itemResults_->SpellManager();
     itemdb::ItemRecordHead* part = nullptr;
     HeldObject<CSpell> spell{nullptr};   // a counted pointer, released on the way out

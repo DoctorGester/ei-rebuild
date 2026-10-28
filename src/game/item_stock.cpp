@@ -123,7 +123,7 @@ void GenerateInstructions(ItemStock* stock, const std::vector<itemdb::ItemRecord
                           const itemdb::NamedRecordTable<Record>& table, const char* skip, int minCount, int maxCount,
                           std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
-    CItemManager* manager = PartyOf(stock)->ItemManager();
+    CItemManager* manager = PartyOf(stock)->ItemFactory();
     std::vector<itemdb::ItemRecordHead*>& taken = g_takenPrototypes;
     taken.clear();   // erase(begin, end)
     if (&source != &taken) taken = source;
@@ -231,7 +231,7 @@ void GenerateMagicInstructions(ItemStock* stock, const std::vector<Record*>& sou
                                const char* prototypeName, int (*indexOf)(const Record*), int minCount, int maxCount,
                                std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(stock);
-    CItemManager* manager = PartyOf(stock)->ItemManager();
+    CItemManager* manager = PartyOf(stock)->ItemFactory();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.clear();
     if (&source != &taken) taken = source;
@@ -265,7 +265,7 @@ void AddUnlessPresent(std::vector<T*>& list, T* record) {
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateItems(std::vector<itemdb::ItemRecordHead*>* prototypes, int minCount, int maxCount, std::list<CItem*>* out, int kind) {
     CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemFactory();
     if (kind == 0 || kind == 3)
         FillSpellMaps(stock::WeaponSpellRecipes());
     else if (kind == 1)
@@ -338,7 +338,7 @@ void ItemStock::GenerateQuickItems(int minCount, int maxCount, std::list<CItem*>
 
 void ItemStock::GenerateMaterials(int minCount, int maxCount, std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemFactory();
     int count = RandomCount(minCount, maxCount);
     std::vector<StockMaterial>& taken = g_takenMaterials;
     taken.clear();   // erase(begin, end)
@@ -482,8 +482,7 @@ void ItemStock::GenerateSpells(std::list<HeldPtr<CSpell>>* out, const float* lev
 // Original behaviour kept: a material entry is pushed even when its material is not found (null
 // record), and the two map lookups insert null entries for unknown names.
 void ItemStock::LoadLists(CStream* stream) {
-    PartyOf(this)->SpellManager();   // (the spell and item managers, fetched and not used)
-    PartyOf(this)->ItemManager();
+    PartyOf(this)->SpellManager();   // (the spell manager, fetched and not used)
     std::string name;
     unsigned count = 0;
     itemdb::ItemDatabase& items = *g_itemDatabase;
@@ -559,7 +558,7 @@ void ItemStock::GenerateModifierInstructions(int minCount, int maxCount, std::li
 // Original bug kept: a failed build (EndCreateItem null) is dereferenced.
 void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, std::list<CItem*>* out) {
     CItemConstructor* ctor = ConstructorOf(this);
-    CItemManager* manager = PartyOf(this)->ItemManager();
+    CItemManager* manager = PartyOf(this)->ItemFactory();
     PartyOf(this)->SpellManager();   // (fetched and not used)
     FillSpellMaps(stock::ScrollSpellRecipes());
     std::list<HeldPtr<CSpell>> list;

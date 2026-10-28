@@ -179,7 +179,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     CPlayer* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        blocker->ServerController()->brain.LeaderOrFollowed() == self && CurrentWorldTick() < c->waitFrame + 2) {
+        blocker->ServerController()->brain.LeaderOrFollowed() == self && g_serverWorld->tick_ < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;

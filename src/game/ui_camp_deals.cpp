@@ -88,7 +88,7 @@ void ReturnResults(CCampPages* camp, CParty* results, CParty* constructorList, C
 
 // A new item named `name` from the results' item manager, counted.
 CItemLoot* NewLoot(CParty* party, const char* name) {
-    auto* item = AsLoot(party->ItemManager()->CreateItem(name));
+    auto* item = AsLoot(party->ItemFactory()->CreateItem(name));
     ++item->refCount_;
     return item;
 }
@@ -113,7 +113,7 @@ constexpr int kSpellContainerClass = 0x3008;
 
 // A new item named `name` from the results' item manager added to them (when one is made).
 void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, bool setIndex) {
-    auto* item = AsLoot(results->ItemManager()->CreateItem(name));
+    auto* item = AsLoot(results->ItemFactory()->CreateItem(name));
     if (!item) return;
     ++item->refCount_;
     if (setIndex) item->index_ = prototypeIndex;
@@ -220,7 +220,7 @@ bool CCampPages::DeconstructItem() {
         AddNamed(results, name.c_str(), 0, false);
     }
     if (copy->spell_) {
-        CItemManager* manager = results->ItemManager();
+        CItemManager* manager = results->ItemFactory();
         itemdb::QuickItemTable& quickItems = g_itemDatabase->quickItems;
         int index = quickItems.IndexOf(quickItems.Named(SpellContainerText()));
         auto* container = manager->MakeItem(kSpellContainerClass, index, 0, -1);
@@ -266,7 +266,6 @@ void CCampPages::DoAction() {
         }
         break;
     case kItemTrade:
-        constructor_->ItemsParty()->ItemManager();
         StockItems(this, itemParts_[2]);
         ReturnToStrip(this, itemParts_[0], itemParts_[2], partStrip_);
         ReturnToStrip(this, PlayerParty(), itemParts_[1], itemStrip_);

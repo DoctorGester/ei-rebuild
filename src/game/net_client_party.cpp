@@ -148,7 +148,7 @@ void ClientApplyParty(ClientSession* self) {
         }
         stream->Read(&type, 4u);
         stream->Read(&packedId, 4u);
-        CEngineObject* item = party->ItemManager()->CreateObject(static_cast<int>(type), -1);
+        CEngineObject* item = party->ItemFactory()->CreateObject(static_cast<int>(type), -1);
         item->prototypeId_ = packedId;
         item->Load(stream);
         if (item) ++item->refCount_;

@@ -53,7 +53,6 @@ public:
     CItemManager* ItemFactory() override;
     CSpellManager* SpellManager() override;
     // The item factory under the party's name.
-    CItemManager* ItemManager() { return ItemFactory(); }
     // A new item made like `item` (DuplicateItem: MakeCopyOf).
     CItem* CopyItem(CItem* item) { return DuplicateItem(item); }
 

@@ -9,6 +9,7 @@
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 #include "sector_map.h"
+#include "world.h"
 
 
 // --- Helpers -------------------------------------------------------------------------------------
@@ -137,7 +138,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
 
 void CAIMap::AdvancePath(CUnit* unit, AIPath* path) {
     path->Reset();
-    int count = CurrentWorldTick();
+    int count = g_serverWorld->tick_;
     Vector3 facing;
     unit->localRotation_.AxisY(&facing);
     Vector3 backwards = {-facing.x, -facing.y, -facing.z};

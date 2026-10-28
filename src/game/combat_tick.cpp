@@ -600,7 +600,6 @@ void CUnitServer::ExecuteOrder() {
                 char calledShot = static_cast<char>(plan->notSkill);
                 int location = plan->hitLocation;
                 auto* defender = victim->ServerController();
-                ManagerContext();
                 int backstab = unit->IsBehind(victim) & 0xFF;
                 if (victim->GetClassId() == kClassUnit && defender->moveMode2.onGuard) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);

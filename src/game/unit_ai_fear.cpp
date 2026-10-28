@@ -62,7 +62,6 @@ bool IsUnset(const Vector3& point) { return std::bit_cast<std::uint32_t>(point.x
 
 const Vector3* PositionOf(CMapObject* object) { return &object->localPosition_; }
 
-CAIMap* Map() { return &g_serverWorld->aiMap_; }
 
 // The prototype's height (units below 0.5 count as small).
 float PrototypeSize(CUnit* unit) {
@@ -95,7 +94,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double way = DistanceZXY(dest, me);
     float wayRounded = static_cast<float>(way);
     float range = static_cast<float>(way * kThree + kRangeBase);
-    if (!Map()->FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
+    if (!g_serverWorld->aiMap_.FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
     double scale = static_cast<double>(kOne) * kHalf;
     double limit = kOne / scale * wayRounded * kSmoothingScale;
     EI_NAN_AUDIT(limit);
@@ -163,11 +162,11 @@ int FearMode::Evaluate(AIBrain* brain) {
     if (brain->memory.seesEnemy) return kSeesEnemy;
     const Vector3* here = PositionOf(self);
     EI_NAN_AUDIT(PrototypeSize(self));
-    if (Map()->HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < kHalf)) {
+    if (g_serverWorld->aiMap_.HasKind3OccluderAt(here) && (self->sizeClass != 0 || PrototypeSize(self) < kHalf)) {
         shelter = *here;
         return kShelter;
     }
-    if (!IsUnset(shelter) && Map()->HasKind3OccluderAt(&shelter)) return kShelter;
+    if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasKind3OccluderAt(&shelter)) return kShelter;
 
     if (flag) {
         // The nearest player unit in sight (2D).
@@ -217,9 +216,9 @@ void FearMode::Execute(AIBrain* brain) {
             from = *PositionOf(enemy);
             brain->CallAllies(PositionOf(enemy));
         }
-    } else if (Map()->HasKind3OccluderAt(here)) {
+    } else if (g_serverWorld->aiMap_.HasKind3OccluderAt(here)) {
         from = *here;
-    } else if (!IsUnset(shelter) && Map()->HasKind3OccluderAt(&shelter)) {
+    } else if (!IsUnset(shelter) && g_serverWorld->aiMap_.HasKind3OccluderAt(&shelter)) {
         from = shelter;
     } else if (!flag || brain->memory.noticedLevel <= kKeepLevel) {
         brain->memory.noticedLevel = 0;
@@ -264,7 +263,7 @@ void FearMode::Execute(AIBrain* brain) {
         ScopedPath local;
         double way = DistanceZYX(dest, *here);
         float range = static_cast<float>(way * kThree + kRangeBase);
-        if (Map()->FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
+        if (g_serverWorld->aiMap_.FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->OrderMove(&dest, 0, 0, kMoveTime);
         }

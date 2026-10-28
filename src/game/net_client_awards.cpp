@@ -23,9 +23,8 @@ namespace {
 
 constexpr int kClassQuestItem = 0x14;
 
-CWorldServer* World() { return &g_serverWorld.Get(); }
 // Player 0 of the world (the local player), or null.
-CPlayer* LocalPlayer() { return World()->GetPlayer(0); }
+CPlayer* LocalPlayer() { return g_serverWorld->GetPlayer(0); }
 
 } // namespace
 
@@ -44,7 +43,7 @@ void ClientSession::ApplyAwards() {
         case 0: {
             std::uint32_t bits;
             std::memcpy(&bits, &award->value_, 4);
-            World()->AwardExperience(nullptr, std::bit_cast<float>(bits));
+            g_serverWorld->AwardExperience(nullptr, std::bit_cast<float>(bits));
             break;
         }
         case 1: {
@@ -56,14 +55,14 @@ void ClientSession::ApplyAwards() {
         }
         case 2: {
             std::list<CItem*> items;
-            CItem* item = player->Party()->ItemManager()->CreateItem(name);
+            CItem* item = player->Party()->ItemFactory()->CreateItem(name);
             HeldObject<CItem>::Of(&items.emplace_back())->Assign(item);
             player->GiveItems(&items, 0);
             ReleaseAndClear(items);
             break;
         }
         case 3: {
-            auto* item = player->Party()->ItemManager()->CreateItem(name);
+            auto* item = player->Party()->ItemFactory()->CreateItem(name);
             if (item) ++item->refCount_;
             for (auto position = player->items_.begin(); position != player->items_.end();) {
                 std::list<CItem*>::iterator  current = position;
@@ -117,7 +116,7 @@ void ClientSession::Tick(double dt) {
     }
     if (self->awards_.begin() == self->awards_.end() || g_serverWorld->sessionKind_ != 3) return;
     CPlayer* player = LocalPlayer();
-    if (!player || player->connection_->state_ != 1 || !World()->zoneLoaded_) return;
+    if (!player || player->connection_->state_ != 1 || !g_serverWorld->zoneLoaded_) return;
     ApplyAwards();
 }
 

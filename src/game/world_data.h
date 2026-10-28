@@ -73,7 +73,7 @@ inline const char* FinalZoneText() { return "gz20g"; }
 inline const char* FinalMusicText() { return "final"; }
 // Options (options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
 // LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
-// DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
+// DefaultWindForce. AudioStreaming / AudioSFX (the sound manager takes them on the client's tenth tick) are read from the options.
 inline int AudioOption() { return static_cast<const volatile int&>(options::g_options->audio_); }
 inline int WaterWavesOption() { return static_cast<const volatile int&>(options::g_options->enableWaterWaves_); }
 inline int SelfShadowingOption() { return static_cast<const volatile int&>(options::g_options->enableSelfShadowing_); }
@@ -90,21 +90,9 @@ inline const char* ConfiguredBasePath() { return options::g_options->cdRomPath_.
 
 inline const char* AutosaveEventText() { return "autosave"; }
 inline const char* SegmentDisconnectedText() { return "CWorldClient::Segment().\nDisconnecting client due to packet parsing error.\n"; }
-// The volume settings the sound manager takes on the client's tenth tick; the movies' is bink_video.cpp's.
-inline int VolumeSettingA() { return options::g_options->audioSfx_; }
-inline int VolumeSettingB() { return options::g_options->audioSpeech_; }
-inline int MovieVolumeSetting() { return options::g_options->audioStreaming_; }
-// The party's fight state the client world keeps (2: fighting; sound_music.cpp, world_client.cpp).
-int FightState();
-// The light effects' grey levels: on when its setting is set; the countdown takes the world update
-// period per tick and restarts at its start value.
-inline int LightLevelsSetting() { return options::g_options->enableBloodprintsRelight_; }
 // The milliseconds of real time one world update takes (55; the speed-up key sets 27, the main loop reads it).
 inline int g_updatePeriod = /*0078FF34*/ 55;
-inline int LightLevelsPeriod() { return options::g_options->shadowLightingFreq_; }
-// The scene renderer's sun light (figure_part_draw.cpp; world_singletons.cpp) and the point the grey levels start
-// from (its distance to the sun), the origin; the picking returns it without a view matrix.
-CLight* SceneSun();
+// The point the light effects' grey levels start from (its distance to the sun), the origin; the picking returns it without a view matrix.
 // The scene's camera while the world's draw runs (the scene stack's top it pushes first: projection x
 // view; world_client_draw.cpp), else null. The figure parts lit on the GPU take their model matrix from it.
 const Matrix4* SceneCamera();

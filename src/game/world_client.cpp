@@ -337,10 +337,10 @@ int CWorldClient::Segment() {
     int frames = ++ticksRun_;
     if (frames == 10) {
         g_interface->OnStringEvent(worlddata::AutosaveEventText());
-        sounds_->SetEffectsVolume(worlddata::VolumeSettingA());
-        sounds_->SetSpeechVolume(worlddata::VolumeSettingB());
-        sounds_->SetMusicVolume(worlddata::MovieVolumeSetting());
-    } else if (frames == 90 || (frames < 90 && worlddata::FightState() == 2)) {
+        sounds_->SetEffectsVolume(options::g_options->audioSfx_);
+        sounds_->SetSpeechVolume(options::g_options->audioSpeech_);
+        sounds_->SetMusicVolume(options::g_options->audioStreaming_);
+    } else if (frames == 90 || (frames < 90 && g_clientWorld->partyDanger_ == 2)) {
         music_->holding = 0;
     }
     if (terrain_) terrain_->RunTick();
@@ -402,13 +402,13 @@ int CWorldClient::Segment() {
         RunEffects(bloodPrints_);
         RunEffects(footprints_);
         RunEffects(scorchMarks_);
-        if (!paused_ && worlddata::LightLevelsSetting() != 0) {
+        if (!paused_ && options::g_options->enableBloodprintsRelight_ != 0) {
             lightLevelsCountdown_ -= worlddata::g_updatePeriod;
             if (lightLevelsCountdown_ <= 0) {
-                lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
+                lightLevelsCountdown_ = options::g_options->shadowLightingFreq_;
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
-                CLight* sun = worlddata::SceneSun();
+                CLight* sun = g_sceneRenderer->sun_;
                 for (BloodPrint& effect : bloodPrints_) {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
