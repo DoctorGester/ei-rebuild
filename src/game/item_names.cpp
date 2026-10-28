@@ -5,10 +5,10 @@
 #include "game_strings.h"
 #include "spell.h"
 
-#include "lib/crt.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -107,7 +107,7 @@ std::string CItemArmor::PictureName() {
     return PictureNameOf(TheItemDatabase().armors, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
-// The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 would overrun it
+// The number is formatted into a 4-byte buffer just before the name buffer; a number above 999 runs into it
 // (none in the database; the overlapping strcat that would follow is not reproduced).
 bool WeaponBaseFigure(std::uint32_t index, std::string* out) {
     out->clear();
@@ -117,7 +117,7 @@ bool WeaponBaseFigure(std::uint32_t index, std::string* out) {
     char block[0x24];
     char* number = block;
     char* name = block + 4;
-    gamecrt::sprintf(number, "%.2d", prototype->number);
+    std::snprintf(number, sizeof(block), "%.2d", prototype->number);
     static const char* const kBases[5] = {
         "basesword",
         "baseaxe",

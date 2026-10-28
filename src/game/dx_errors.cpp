@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <iterator>
 
@@ -190,8 +191,8 @@ namespace {
 // "%s (0x%.8X) %s".
 const char* ResultFormat() { return "%s (0x%.8X) %s"; }
 
-// The stack buffers (wvsprintf writes at most 1024 characters; the sprintf can run past its 1024 bytes, as the
-// game's does).
+// The stack buffers (wvsprintf writes at most 1024 characters; the report is cut at 1023, where the game's sprintf
+// ran past its 1024 bytes).
 constexpr std::size_t kBuffer = 0x400;
 
 // The message: an operator new copy of `text`.
@@ -222,7 +223,7 @@ CDXException::CDXException(long resultIn, const char* format, va_list args) {
     char full[kBuffer];
     gameapi::wvsprintfA(text, format, args);
     result = resultIn;
-    gamecrt::sprintf(full, ResultFormat(), text, resultIn, DirectXErrorText(resultIn));
+    std::snprintf(full, sizeof(full), ResultFormat(), text, resultIn, DirectXErrorText(resultIn));
     message = CopyMessage(full);
 }
 

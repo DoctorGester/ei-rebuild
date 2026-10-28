@@ -22,6 +22,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
+#include <cstdio>
 #include <cstring>
 #include <new>
 #include <string>
@@ -207,8 +208,8 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     const auto* prototype = unit->GetPrototype();
     if (!prototype) return false;
     char name[0x400];
-    if (unit->type_ == kTypeHero) gamecrt::sprintf(name, kHeroFace, unit->name.c_str(), prototype->skin);
-    else gamecrt::sprintf(name, kFace, unit->name.c_str());
+    if (unit->type_ == kTypeHero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
+    else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
     CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;
     faceTexture = texture;

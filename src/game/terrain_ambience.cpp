@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <new>
 #include <string>
@@ -228,7 +229,7 @@ void Terrain::PlayAmbience() {
         {
             std::string time;   // the empty string, replaced (raw stack storage in the game)
             TheClientWorld()->AmbienceTimeOfDay(&time);
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.c_str(),
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.c_str(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
@@ -250,7 +251,7 @@ void Terrain::PlayAmbience() {
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
             char name[256];
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\circle.wav", textAE0.c_str(), classes[vote.soundClass].name);
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\circle.wav", textAE0.c_str(), classes[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }
@@ -283,7 +284,7 @@ void terrain::CountAmbientVariants(const char* set) {
         kind.variants = 0;
         for (;;) {
             char name[260];
-            gamecrt::sprintf(name, "ambient\\%s\\%s\\day\\%i.wav", set, kind.name, kind.variants + 1);
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", set, kind.name, kind.variants + 1);
             if (TheSoundManager()->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
             ++kind.variants;
         }

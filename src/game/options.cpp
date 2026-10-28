@@ -11,6 +11,7 @@
 #include "lib/str.h"
 
 #include <bit>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -272,7 +273,7 @@ public:
         char name[0x400];
         for (unsigned i = 0; i < 4; ++i) {
             for (const auto& v : kShortcutValues) {
-                gamecrt::sprintf(name, v.format, i);
+                std::snprintf(name, sizeof(name), v.format, i);
                 ReadFloat(&GameOptions::keyCamera_, name, options_->cameraShortcuts_[i].*v.field);
             }
         }
@@ -332,7 +333,7 @@ public:
         char name[0x400];
         for (unsigned i = 0; i < 4; ++i) {
             for (const auto& v : kShortcutValues) {
-                gamecrt::sprintf(name, v.format, i);
+                std::snprintf(name, sizeof(name), v.format, i);
                 key_.SetFloat(Key(&GameOptions::keyCamera_), name, Bits(options_->cameraShortcuts_[i].*v.field));
             }
         }

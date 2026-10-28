@@ -16,7 +16,7 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   ostreams `005DC420`-`005DC5E0`). Ours are named (`console_streams.cpp`, C18s): `g_consoleBuf` / `g_aiLogBuf` ... and
   `g_consoleOut` / `g_aiLogOut` ..., with their initialisers ported on the names. Since C35d a stream is
   `console::Stream` (console.h: the inserters for text, char, int / long ("%d"), unsigned ("%u") and double ("%.6g"
-  through the game's sprintf, VC6's digits), Flush the streambuf's sync; `console::EndLine` is "'\n' and flush") and
+  through str::Format, VC6's digits), Flush the streambuf's sync; `console::EndLine` is "'\n' and flush") and
   `ConsoleStreambuf` a plain class with MSVC 6's put area behaviour: the put area exists after the first overflow while
   the category is shown, a hidden category's characters fill it (up to 0x400) and show with the next line once the
   category is shown again; a sync of a hidden category hands an empty line to the window (the harness drops empty

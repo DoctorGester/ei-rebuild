@@ -1,4 +1,4 @@
-// Replays the game CRT's formatted text (crt_format_vectors.h) against libcrt::Vsprintf (src/lib/crt_format.cpp) and
+// Replays the game CRT's formatted text (crt_format_vectors.h) against libcrt::Format (src/lib/crt_format.cpp) and
 // the host CRT's atof (C26): the count and every byte written, the bits of atof's result.
 #include "crt_format_vectors.h"
 
@@ -75,14 +75,11 @@ bool CheckVsprintf(Reader& r, char* detail, std::size_t detailSize) {
     const unsigned char* text = r.Bytes(expected > 0 ? static_cast<std::size_t>(expected) : 0);
     if (!r.ok()) return true;   // RunBytes reports the short payload
     stack.resize(stack.size() + 16);   // room past the last argument
-    std::vector<char> out(kMaxOutput * 16, '\x7F');
-    const int actual = libcrt::Vsprintf(out.data(), format.c_str(), reinterpret_cast<va_list>(stack.data()));
-    if (actual == expected && std::memcmp(out.data(), text, static_cast<std::size_t>(expected)) == 0 &&
-        out[static_cast<std::size_t>(expected)] == '\0')
-        return true;
+    const std::string out = libcrt::Format(format.c_str(), reinterpret_cast<va_list>(stack.data()));
+    const int actual = static_cast<int>(out.size());
+    if (actual == expected && std::memcmp(out.data(), text, out.size()) == 0) return true;
     std::snprintf(detail, detailSize, "\"%.60s\": %d \"%.*s\", ours %d \"%.80s\"", format.c_str(), expected,
-                  expected < 80 ? expected : 80, reinterpret_cast<const char*>(text), actual,
-                  actual >= 0 ? out.data() : "");
+                  expected < 80 ? expected : 80, reinterpret_cast<const char*>(text), actual, out.c_str());
     return false;
 }
 EI_VECTOR_CHECK_BYTES("vsprintf", CheckVsprintf);

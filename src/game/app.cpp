@@ -24,6 +24,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ddraw.h>
@@ -332,7 +333,7 @@ int FatalErrorCodeV(long result, const char* format, va_list args) {
     char text[0x400];
     char report[0x400];
     gameapi::wvsprintfA(text, format, args);
-    gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
+    std::snprintf(report, sizeof(report), CodeReportFormat(), text, result, DirectXErrorText(result));
     ShowMessageBox(report, kErrorBoxFlags);
     if (auto hook = reinterpret_cast<ErrorHook>(g_fatalErrorHook)) hook(report);
     if (++g_fatalErrorCount >= 1) std::exit(-1);

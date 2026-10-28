@@ -9,10 +9,12 @@
 #include "console.h"
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "random.h"
 #include "game_data.h"
 #include "system_text.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <windows.h>
 
@@ -56,7 +58,7 @@ bool GetObjectStringID(Call* call) {
     CEngineObject* object = call->cmd->objectArgs.data[0]->object;
     if (!object) return InvalidArguments("GetObjectStringID");
     char text[64];
-    gamecrt::sprintf(text, "%d", object->id_);
+    std::snprintf(text, sizeof(text), "%d", object->id_);
     Assign(call, text);
     return true;
 }
@@ -69,16 +71,13 @@ bool FloatToStr(Call* call) {
     int digits = call->cmd->floatArgs.size >= 2 ? Ftol(call->cmd->floatArgs.data[1]) : 3;
     if (digits > 8) digits = 8;
     else if (digits < 0) digits = 0;
-    char format[16];
-    gamecrt::sprintf(format, "%%.%df", digits);
-    char text[100];
-    int i = gamecrt::sprintf(text, format, static_cast<double>(value));
+    std::string text = str::Format("%.*f", digits, static_cast<double>(value));
+    int i = static_cast<int>(text.size());
     for (;;) {
         --i;
         if (i <= 0 || text[i] != '0') break;
     }
-    if (text[i] == '.') text[i] = 0;
-    else text[i + 1] = 0;
+    text.resize(static_cast<std::size_t>(text[i] == '.' ? i : i + 1));
     *call->StringResult() = text;
     return true;
 }

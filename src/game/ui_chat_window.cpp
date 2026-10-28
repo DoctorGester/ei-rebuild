@@ -14,7 +14,6 @@
 #include "unit_db.h"
 
 #include "ei/rebirth.h"
-#include "lib/crt.h"
 #include "lib/stlp.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
@@ -22,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <string>
 
 namespace {
@@ -228,7 +228,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     int pick = ActiveBriefing(interface_)->chatActive_;
     if (pick != 0) {
         char text[0x80];
-        gamecrt::sprintf(text, "%d", PlayerOf(players_[index])->serial_);
+        std::snprintf(text, sizeof(text), "%d", PlayerOf(players_[index])->serial_);
         if (pick == 1)
             net::GameClient()->SendCommand(kPickCommandA, text);
         else if (pick == 2)

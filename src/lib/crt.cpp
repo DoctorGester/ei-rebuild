@@ -36,13 +36,6 @@ int rand() {
     return value;
 }
 void srand(unsigned seed) { libcrt::Srand(seed); }
-int sprintf(char* buffer, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    const int length = libcrt::Vsprintf(buffer, format, args);
-    va_end(args);
-    return length;
-}
 
 double acos(double c) { return libcrt::CiAcos(c); }
 

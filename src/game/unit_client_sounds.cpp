@@ -22,6 +22,7 @@
 #include "lib/str.h"
 
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 namespace {
@@ -263,7 +264,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         std::uint8_t left = static_cast<std::uint8_t>(~step & 1);
         if (model->swapFeet) left = left == 0;
         char partName[16];
-        gamecrt::sprintf(partName, left ? "ll%d" : "rl%d", part);
+        std::snprintf(partName, sizeof(partName), left ? "ll%d" : "rl%d", part);
         CFigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
         if (!foot) break;
         Vector3 footAt;

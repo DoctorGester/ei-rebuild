@@ -12,6 +12,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -111,7 +112,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     perPage = textures;
 
     char name[0x100];
-    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
+    std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
     using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(
