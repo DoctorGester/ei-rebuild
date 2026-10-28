@@ -10,7 +10,7 @@
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
-#include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc_exception.h"
 #include "lib/mfc_gdi.h"
 #include "lib/mfc_state.h"
@@ -587,7 +587,7 @@ void StaticInitialisers(Do& d) {
     d.AtExit(ei::short_functions::Ret);
     // 0047C300: constructor + atexit
     d.Begin(0x0047C300);
-    d.Call(libcrt::imports::WsaStartup, 0x101, d.Local(0));
+    d.Call(gameapi::WSAStartup, 0x101, d.Local(0));
     d.AtExit(net::CleanUpWinsock);
     // 0047D7D0: stores; 3 left out
     d.Begin(0x0047D7D0);

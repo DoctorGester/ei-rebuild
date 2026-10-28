@@ -237,33 +237,6 @@ inline const char* mbsinc(const char* p) {
 }
 } // namespace gamecrt
 
-// The import thunks of WSOCK32 (by ordinal) and DINPUT (defined in crt.cpp): the same call through the same
-// import slot.
-namespace libcrt::imports {
-
-std::uint16_t Htons(std::uint16_t v);
-void* GetHostByName(const char* name);
-std::uint32_t InetAddr(const char* text);
-std::uint16_t Ntohs(std::uint16_t v);
-void* GetHostByAddr(const void* address, int length, int type);
-int GetHostName(char* name, int length);
-int WsaStartup(std::uint16_t version, void* data);
-int WsaCleanup();
-int CloseSocket(std::uint32_t s);
-int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length);
-int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument);
-int Bind(std::uint32_t s, const void* address, int length);
-std::uint32_t Socket(int family, int type, int protocol);
-int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength);
-int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength);
-int Connect(std::uint32_t s, const void* address, int length);
-int Recv(std::uint32_t s, void* data, int length, int flags);
-int Send(std::uint32_t s, const void* data, int length, int flags);
-int Select(int count, void* read, void* write, void* except, const void* timeout);
-long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer);
-
-} // namespace libcrt::imports
-
 namespace game {
 
 // Reports a fatal error (printf-style) and normally exits the game.

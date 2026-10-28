@@ -376,7 +376,7 @@ bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CR
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
     char host[100];
-    if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
+    if (gameapi::gethostname(host, sizeof(host)) != 0) return;
     net::NetAddress address{};
     address.Parse(host, kHostPort);
     std::string formatted = address.ToString();

@@ -505,46 +505,6 @@ void Exit(int code) { std::exit(code); }
 
 } // namespace libcrt
 
-// The import thunks (JMP [slot]) of WSOCK32, imported by ordinal, and DINPUT: the same call through the
-// same import slot, so a mod's hook in the import table still applies.
-namespace libcrt::imports {
-
-std::uint16_t Htons(std::uint16_t v) { return gameapi::htons(v); }                 // ord 9
-void* GetHostByName(const char* name) { return gameapi::gethostbyname(name); }       // ord 52
-std::uint32_t InetAddr(const char* text) { return gameapi::inet_addr(text); }       // ord 10
-std::uint16_t Ntohs(std::uint16_t v) { return gameapi::ntohs(v); }                   // ord 15
-void* GetHostByAddr(const void* address, int length, int type) {                             // ord 51
-    return gameapi::gethostbyaddr(address, length, type);
-}
-int GetHostName(char* name, int length) { return gameapi::gethostname(name, length); } // ord 57
-int WsaStartup(std::uint16_t version, void* data) { return gameapi::WSAStartup(version, data); } // ord 115
-int WsaCleanup() { return gameapi::WSACleanup(); }                                  // ord 116
-int CloseSocket(std::uint32_t s) { return gameapi::closesocket(s); }                 // ord 3
-int SetSockOpt(std::uint32_t s, int level, int option, const void* value, int length) {     // ord 21
-    return gameapi::setsockopt(s, level, option, value, length);
-}
-int IoctlSocket(std::uint32_t s, long command, std::uint32_t* argument) {                    // ord 12
-    return gameapi::ioctlsocket(s, command, argument);
-}
-int Bind(std::uint32_t s, const void* address, int length) { return gameapi::bind(s, address, length); } // ord 2
-std::uint32_t Socket(int family, int type, int protocol) { return gameapi::socket(family, type, protocol); } // ord 23
-int SendTo(std::uint32_t s, const void* data, int length, int flags, const void* to, int toLength) { // ord 20
-    return gameapi::sendto(s, data, length, flags, to, toLength);
-}
-int RecvFrom(std::uint32_t s, void* data, int length, int flags, void* from, int* fromLength) { // ord 17
-    return gameapi::recvfrom(s, data, length, flags, from, fromLength);
-}
-int Connect(std::uint32_t s, const void* address, int length) { return gameapi::connect(s, address, length); } // ord 4
-int Recv(std::uint32_t s, void* data, int length, int flags) { return gameapi::recv(s, data, length, flags); } // ord 16
-int Send(std::uint32_t s, const void* data, int length, int flags) { return gameapi::send(s, data, length, flags); } // ord 19
-int Select(int count, void* read, void* write, void* except, const void* timeout) {         // ord 18
-    return gameapi::select(count, read, write, except, timeout);
-}
-long DirectInputCreateEx(void* instance, unsigned long version, const void* iid, void** out, void* outer) {
-    return gameapi::DirectInputCreateEx(instance, version, iid, out, outer);
-}
-
-} // namespace libcrt::imports
 #endif
 
 namespace libcrt {
