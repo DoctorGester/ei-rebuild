@@ -4846,3 +4846,19 @@ group = "cleanup"
 model = "opus"
 files = ["src/lib/hash_map.h", "src/lib/hash_map.cpp"]
 note = "User 2026-10-28 asked whether hash_map.h is still needed. It is lib::HashMap / HashMultimap (290 lines), STLport hash_map's walk order kept for maps whose iteration decides behaviour; ~26 declarations in 16 game headers (acks_db, base_manager, chunk_archive, effects, item_stock, map_spec, object_tables, party_manager, player_messages, player_sync, sound, spell, terrain, unit_create, world, world_unit_set). For each: find every walk (for loops, begin/end, ForEach, erase-while-walking, save writes in walk order). Only looked up, or walked where the order cannot reach game state, saves, packets, logs the goldens compare, or draw order: std::unordered_map (or std::map / vector where that reads better). Keep lib::HashMap where order matters and say why in a one-line comment at the declaration. Goldens and vectors are the check; a walk that feeds a golden must keep its order. Report how many stay; if none, delete hash_map.h/.cpp and replay_hash_map.cpp."
+
+[[ticket]]
+id = "C37"
+title = "Container aliases that only rename a std type (or another alias) inlined at their users"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game", "src/lib", "src/render"]
+note = "User 2026-10-28: a ton of useless using aliases, e.g. `using PartyItemArray = std::vector<CItem*>;`, `using PointArray = BlockPointArray;` (an alias of an alias). ~270 `using X = Y;` in src, ~177 of them naming a std container. Script it (tools/ or scratchpad): for each alias whose target is a std / lib type or another alias, replace the alias name at every use with the spelled-out type (std::vector<CItem*>) and delete the declaration; chains collapse to the final type. Keep an alias only where it is a real abstraction: a long nested type used many times (say 5+ uses and longer than ~40 characters), a template parameter pack, or a name a fixed format documents; give each kept one a reason in its comment. Spelling only, no behaviour change; build verify / release / debug, check_signatures, both builds' goldens."
+
+[[ticket]]
+id = "C38"
+title = "One-line getters that only return a field or a global: callers use the field / global"
+group = "cleanup"
+model = "opus"
+files = ["src/game", "src/lib", "src/render"]
+note = "User 2026-10-28: a ton of one-liner getters that just repeat their name. ~370 `X() { return y; }` bodies in src: member getters (`Party() { return party_; }`) and port-era accessors returning a reference to a global (`AIEvent*& FreeEvents() { return g_freeEvents; }`). Global accessors: callers use the global directly (or a static member / function-local static where order of construction needs it), the accessor goes. Member getters with no invariant (no setter logic, nothing virtual, the field freely written elsewhere or returned by non-const reference): make the field public with the getter's name style (party, not party_) and drop the getter; keep getters that are virtual, part of an interface (render device, IDirect* wrappers), compute something, or guard a const-only view, and smart-pointer get()/operator->. Script the rename per class; spelling only, no behaviour change. Builds verify / release / debug, check_signatures 0, both suites' goldens."
