@@ -1,7 +1,7 @@
 // The interface surfaces' pixel work (CUiSurface): copying the screen into a surface, a 16-bit 5:6:5 copy of a surface at
-// a given size (the save game's picture) and greying a surface in place (the escape menu's background), on the surfaces'
-// memory directly (DirectPixels). A native surface (ui_native.h) gets the screen copy and the greying on its canvas too.
-// See docs/notes/ui.md, "Surface pixel work".
+// a given size (the save game's picture) and greying a surface in place (the escape menu's background), all three on the
+// GPU (the surface's canvas, ui_native.h); keeping a surface's pixels aside and reading one pixel. See docs/notes/ui.md,
+// "Surface pixel work".
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"
@@ -32,41 +32,14 @@ ChannelLayout LayoutOf(const SurfacePixels& pixels) {
     return layout;
 }
 
-// SHL / SHR by CL (the count taken mod 32).
+// SHL by CL (the count taken mod 32).
 std::uint32_t Shl(std::uint32_t v, int count) { return v << (count & 31); }
-std::uint32_t Shr(std::uint32_t v, int count) { return v >> (count & 31); }
 
 // A pixel of `bytes` bytes, little-endian.
 std::uint32_t ReadPixel(const std::uint8_t* at, int bytes) {
     std::uint32_t value = 0;
     for (int i = 0; i < bytes; ++i) value |= Shl(at[i], i * 8);
     return value;
-}
-
-// `from` stretched into `to` (the same pixel format), nearest texel:
-// destination pixel x takes the source pixel under its centre, (2 x + 1) * source width / (2 width).
-// Windows' DirectDraw does exactly that at whole-number ratios (checked offline: 800x600 and
-// 1280x720 to 160x120, 1920x1080 to 128x96); at other ratios it picks a neighbour now and then.
-void StretchCopy(const SurfacePixels& to, const SurfacePixels& from) {
-    int bytes = to.format.bitsPerPixel >> 3;
-    std::uint32_t dw = static_cast<std::uint32_t>(to.width), dh = static_cast<std::uint32_t>(to.height);
-    std::uint32_t sw = static_cast<std::uint32_t>(from.width), sh = static_cast<std::uint32_t>(from.height);
-    if (dw == 0 || dh == 0 || from.format.bitsPerPixel != to.format.bitsPerPixel) return;
-    for (std::uint32_t y = 0; y < dh; ++y) {
-        const std::uint8_t* src = from.bits +
-                                  static_cast<std::size_t>((2 * static_cast<std::uint64_t>(y) + 1) * sh / (2 * dh)) * from.pitch;
-        std::uint8_t* out = to.bits + static_cast<std::size_t>(y) * to.pitch;
-        for (std::uint32_t x = 0; x < dw; ++x)
-            std::memcpy(out + static_cast<std::size_t>(x) * bytes,
-                        src + static_cast<std::size_t>((2 * static_cast<std::uint64_t>(x) + 1) * sw / (2 * dw)) * bytes,
-                        static_cast<std::size_t>(bytes));
-    }
-}
-
-// The grey of 0x00RRGGBB: (2 r + 4 g + b) / 16 in every channel (each weight on the 8-bit value).
-std::uint32_t Grey32(std::uint32_t pixel) {
-    std::uint32_t grey = (((pixel >> 6) & 0x3FC) + ((pixel >> 15) & 0x1FE) + (pixel & 0xFF)) >> 4;
-    return ((grey << 8 | grey) << 8) | grey;
 }
 
 // `caller`: the observed helper's _AddressOfReturnAddress().
@@ -83,113 +56,27 @@ void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bo
 
 void CUiSurface::CaptureScreen() {
     ObservePixels(this, "CaptureScreen", true, _AddressOfReturnAddress());
-    Surface* holder = HolderOf(this);
-    if (!holder) return;
-    if (!ui_native::Capture(this, rect_)) return;
-    // The copy is taken from the new renderer's frame (the original's Blt from the render target is
-    // gone with the DirectDraw fallback).
-    render::CopyFrameTo(holder, render::Rect{rect_.left, rect_.top, rect_.right, rect_.bottom});
+    if (!HolderOf(this)) return;
+    // The copy is drawn from the new renderer's frame into the surface's canvas, which keeps the surface's
+    // pixels from now on (the original's Blt from the render target).
+    ui_native::Capture(this, rect_);
 }
 
+// The original stretched the surface into a new surface of the wanted size, then packed it pixel by pixel;
+// the GPU does both and only the picture is read back.
 std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     ObservePixels(this, "Rgb565Copy", false, _AddressOfReturnAddress());
     if (!HolderOf(this)) return nullptr;
-    ui_native::Sync(this);
-    // A surface of the wanted size in this one's format, and this one stretched into it.
-    const int format = static_cast<int>(flags_);   // the format, as the constructors store it
-    CUiSurface* copy = new CUiSurface(interface_, 0, 0, width, height, format, 0);
-    Surface* from = HolderOf(this);
-    Surface* to = HolderOf(copy);
-    SurfacePixels fromPixels, toPixels;
-    if (DirectPixels(from, &fromPixels, true) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
-
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
-    auto* pixels = new std::uint16_t[static_cast<std::size_t>(count)];
-    Surface* holder = HolderOf(copy);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    SurfacePixels copied;
-    bool direct = DirectPixels(holder, &copied, true);
-    int bytes = copied.format.bitsPerPixel >> 3;
-    const ChannelLayout converter = LayoutOf(copied);
-    const std::uint8_t* source = copied.bits;
-    std::uint16_t* out = pixels;
-    if (direct && count != 0) {
-        std::uint32_t left = static_cast<std::uint32_t>(count);
-        do {
-            std::uint32_t rgb = converter.FromNative(ReadPixel(source, bytes));
-            std::uint32_t packed = ((((rgb >> 3) & 0x1F0000) | (rgb & 0xFC00)) >> 2 | (rgb & 0xF8)) >> 3;
-            *out++ = static_cast<std::uint16_t>(packed);
-            source += bytes;
-        } while (--left != 0);
-    }
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    if (copy) {
-        delete copy;
-    }
+    auto* pixels = new std::uint16_t[static_cast<std::size_t>(count)]();
+    ui_native::ReadRgb565(this, width, height, pixels);
     return pixels;
 }
 
 void CUiSurface::Greyscale() {
     ObservePixels(this, "Greyscale", true, _AddressOfReturnAddress());
     if (!HolderOf(this)) return;
-    if (!ui_native::Greyscale(this)) return;
-    Surface* holder = HolderOf(this);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    SurfacePixels desc;
-    if (!DirectPixels(holder, &desc)) {
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-        return;
-    }
-    std::uint32_t count = static_cast<std::uint32_t>(desc.width) * static_cast<std::uint32_t>(desc.height);
-    std::uint32_t bits = static_cast<std::uint32_t>(desc.format.bitsPerPixel);
-    std::uint32_t red = desc.format.redMask, green = desc.format.greenMask, blue = desc.format.blueMask;
-    bool done = false;
-    if (bits == 16 && red == 0xF800 && green == 0x7E0 && blue == 0x1F) {
-        // 5:6:5: (2 r + 2 g6 + b) / 16 in every channel.
-        auto* p = reinterpret_cast<std::uint16_t*>(desc.bits);
-        if (count != 0) {
-            do {
-                std::uint32_t pixel = *p;
-                std::uint32_t grey = (((pixel >> 4) & 0x7E) + ((pixel >> 10) & 0x3E) + (pixel & 0x1F)) >> 4;
-                *p++ = static_cast<std::uint16_t>(((grey << 5 | grey) << 6) | grey);
-            } while (--count != 0);
-        }
-        done = true;
-    } else if (bits == 16 && red == 0x7C00 && green == 0x3E0 && blue == 0x1F) {
-        // 5:5:5: (2 r + 4 g + b) / 16.
-        auto* p = reinterpret_cast<std::uint16_t*>(desc.bits);
-        if (count != 0) {
-            do {
-                std::uint32_t pixel = *p;
-                std::uint32_t grey = (((pixel >> 3) & 0x7C) + ((pixel >> 9) & 0x3E) + (pixel & 0x1F)) >> 4;
-                *p++ = static_cast<std::uint16_t>(((grey << 5 | grey) << 5) | grey);
-            } while (--count != 0);
-        }
-        done = true;
-    } else if (bits == 32 && red == 0xFF0000 && green == 0xFF00 && blue == 0xFF) {
-        auto* p = reinterpret_cast<std::uint32_t*>(desc.bits);
-        if (count != 0) {
-            do {
-                *p = Grey32(*p);
-                ++p;
-            } while (--count != 0);
-        }
-        done = true;
-    }
-    if (!done) {
-        // Any other format through the converter, a pixel of bits / 8 bytes at a time.
-        std::uint8_t* p = desc.bits;
-        const ChannelLayout converter = LayoutOf(desc);
-        int bytes = static_cast<int>(bits >> 3);
-        if (count != 0) {
-            do {
-                std::uint32_t native = converter.ToNative(Grey32(converter.FromNative(ReadPixel(p, bytes))));
-                for (int i = 0; i < bytes; ++i) p[i] = static_cast<std::uint8_t>(Shr(native, i * 8));
-                p += bytes;
-            } while (--count != 0);
-        }
-    }
-    gameapi::LeaveCriticalSection(&g_deviceLock);
+    ui_native::Greyscale(this);
 }
 
 void CUiSurface::SwapContents(int restore) {
@@ -207,6 +94,7 @@ void CUiSurface::SwapContents(int restore) {
             DirectPixels(holder_, &desc, true);   // (no memory: the description stays empty)
             g_uiSurfaceBytes += static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
         }
+        if (ui_native::TakeBack(this)) return;   // the pixels were kept on the GPU (PutAside)
         if (!kept_) {
             ui_native::Restored(this);
             return;
@@ -224,6 +112,14 @@ void CUiSurface::SwapContents(int restore) {
     }
     Surface* holder = holder_;
     if (!holder) return;
+    if (ui_native::PutAside(this)) {
+        // The pixels are kept on the GPU (a screen copy's canvas): only the holder goes.
+        DirectPixels(holder, &desc, true);   // (no memory: the description stays empty)
+        g_uiSurfaceBytes -= static_cast<std::uint32_t>(desc.height) * static_cast<std::uint32_t>(desc.pitch);
+        holder_ = nullptr;
+        holder->Release();
+        return;
+    }
     ui_native::Sync(this);
     gameapi::EnterCriticalSection(&g_deviceLock);
     bool direct = DirectPixels(holder, &desc, true);   // (no memory: an empty copy)
@@ -246,7 +142,10 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     Surface* holder = HolderOf(this);
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= width_ || y >= height_) return 0;
-    ui_native::Sync(this);
+    // A screen copy's pixel comes from the GPU (the global map's pick picture), anything else from the memory.
+    std::uint32_t gpuPixel = 0;
+    const bool onGpu = ui_native::PixelOnGpu(this, x, y, &gpuPixel);
+    if (!onGpu) ui_native::Sync(this);
     gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels desc;
     if (!DirectPixels(holder, &desc, true)) {
@@ -256,7 +155,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
     int bytes = desc.format.bitsPerPixel >> 3;
     const std::uint8_t* at = desc.bits + static_cast<std::size_t>(desc.pitch) * static_cast<std::uint32_t>(y) +
                              static_cast<std::size_t>(bytes) * static_cast<std::uint32_t>(x);
-    std::uint32_t value = bytes > 0 ? ReadPixel(at, bytes) : 0;
+    std::uint32_t value = onGpu ? gpuPixel : bytes > 0 ? ReadPixel(at, bytes) : 0;
     std::uint32_t rgb = LayoutOf(desc).FromNative(value);
     gameapi::LeaveCriticalSection(&g_deviceLock);
     return rgb;

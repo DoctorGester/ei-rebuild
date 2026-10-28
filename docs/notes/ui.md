@@ -905,11 +905,12 @@ allocation throws (freeing the holder's memory) is not reproduced: that throw en
 The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface, a 16-bit 5:6:5
 copy of a surface at a given size (the save game's picture) and greying a surface in place (the escape
 menu's background). The escape menu's drawing (Rebirth-patched) runs all three when the menu opens. See
-docs/notes/ui.md, "Item descriptions, item view". These work on the surfaces' memory (the new renderer's;
-the holders have no DirectDraw surface) directly (DirectPixels): no Lock, the screen copy from the new
-renderer's frame, the stretched copy on the CPU. A holder without that memory (none is made) is left alone.
-A native surface (ui_native.h) gets the screen copy and the greying on its canvas too (under uinative
-instead of in its memory), and its canvas is read back before its memory is read or kept.
+docs/notes/ui.md, "Item descriptions, item view". All three run on the GPU (R28a): the copy makes the
+surface's interface canvas its only copy (ui_native.h), the greying is a pass on it, and the 5:6:5 copy is
+drawn at its size and read back (docs/notes/renderer.md section 6, "Screen copies on the GPU"). PixelAt
+reads such a surface's pixel from the GPU and SwapContents puts its canvas aside on the GPU; for other
+surfaces they work on the memory (DirectPixels, no Lock), a native surface's canvas read back first. A holder
+without memory (none is made) is left alone.
 
 ## 12. Behaviour moved out of header comments
 

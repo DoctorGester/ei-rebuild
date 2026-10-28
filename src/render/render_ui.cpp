@@ -66,6 +66,7 @@ struct CanvasState {
     std::uint32_t greyMode = 2;          // ps_grey: 0 5:6:5, 1 5:5:5, 2 on 8-bit channels
     CanvasImage gpu;                     // made by RunCanvasCommands
     bool blitPending = false;            // blitted in the frame, the blit not drawn yet
+    bool only = false;                   // ui::CanvasOnly
     unsigned version = 0;                // g_version when a command for it was last queued
     std::vector<Rect> text;              // ui::CanvasInfo::text
 };
@@ -175,8 +176,8 @@ struct FsParams {
 static_assert(sizeof(FsParams) == 96);
 
 bool g_pipelinesTried = false, g_pipelinesMade = false;
-sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_blitShader{};
-sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{};
+sg_shader g_solidShader{}, g_glyphShader{}, g_composeShader{}, g_greyShader{}, g_copyShader{}, g_rgb565Shader{}, g_blitShader{};
+sg_pipeline g_solid{}, g_glyph{}, g_compose{}, g_grey{}, g_copy{}, g_rgb565{};
 // The frame blit per sample count of the pass (1, or the smooth option's multisampled one).
 struct BlitPipeline {
     int samples;
@@ -185,13 +186,14 @@ struct BlitPipeline {
 std::vector<BlitPipeline> g_blits;
 sg_sampler g_nearest{};
 
-// Scratch targets as large as the largest canvas so far: a glyph run's coverage, a copy of a canvas.
+// Scratch targets as large as the largest canvas so far: a glyph run's coverage, a copy of a canvas; and
+// the 5:6:5 picture ReadRgb565 reads back.
 struct Scratch {
     sg_image image{};
     sg_view attachment{}, texture{};
     int width = 0, height = 0;
 };
-Scratch g_coverage, g_under;
+Scratch g_coverage, g_under, g_picture;
 
 struct AtlasTexture {
     unsigned generation = 0;
@@ -244,13 +246,15 @@ sg_shader MakeShader(const ShaderBytecode& code, int textures, bool glyphVertex,
     return sg_make_shader(&s);
 }
 
-// A pipeline drawing into a canvas (RGBA8) or the coverage scratch (MAX blending), no depth.
-sg_pipeline MakeCanvasPipeline(sg_shader shader, bool coverage, const char* label) {
+// A pipeline drawing into a canvas (RGBA8), the coverage scratch (R8, MAX blending) or the 5:6:5 picture
+// (R16UI), no depth.
+sg_pipeline MakeCanvasPipeline(sg_shader shader, sg_pixel_format format, const char* label) {
+    const bool coverage = format == SG_PIXELFORMAT_R8;
     sg_pipeline_desc p{};
     p.shader = shader;
     p.primitive_type = SG_PRIMITIVETYPE_TRIANGLES;
     p.depth.pixel_format = SG_PIXELFORMAT_NONE;
-    p.colors[0].pixel_format = coverage ? SG_PIXELFORMAT_R8 : SG_PIXELFORMAT_RGBA8;
+    p.colors[0].pixel_format = format;
     if (coverage) {
         p.layout.attrs[0].format = SG_VERTEXFORMAT_FLOAT4;
         p.colors[0].blend.enabled = true;
@@ -274,12 +278,14 @@ bool EnsurePipelines() {
     g_composeShader = MakeShader(kUiComposeShader, 2, false, "ei-canvas-compose");
     g_greyShader = MakeShader(kUiGreyShader, 1, false, "ei-canvas-grey");
     g_copyShader = MakeShader(kUiCopyShader, 1, false, "ei-canvas-copy");
+    g_rgb565Shader = MakeShader(kUiRgb565Shader, 1, false, "ei-canvas-rgb565");
     g_blitShader = MakeShader(kUiBlitShader, 1, false, "ei-canvas-blit");
-    g_solid = MakeCanvasPipeline(g_solidShader, false, "ei-canvas-solid");
-    g_glyph = MakeCanvasPipeline(g_glyphShader, true, "ei-canvas-glyph");
-    g_compose = MakeCanvasPipeline(g_composeShader, false, "ei-canvas-compose");
-    g_grey = MakeCanvasPipeline(g_greyShader, false, "ei-canvas-grey");
-    g_copy = MakeCanvasPipeline(g_copyShader, false, "ei-canvas-copy");
+    g_solid = MakeCanvasPipeline(g_solidShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-solid");
+    g_glyph = MakeCanvasPipeline(g_glyphShader, SG_PIXELFORMAT_R8, "ei-canvas-glyph");
+    g_compose = MakeCanvasPipeline(g_composeShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-compose");
+    g_grey = MakeCanvasPipeline(g_greyShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-grey");
+    g_copy = MakeCanvasPipeline(g_copyShader, SG_PIXELFORMAT_RGBA8, "ei-canvas-copy");
+    g_rgb565 = MakeCanvasPipeline(g_rgb565Shader, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565");
     sg_sampler_desc sd{};
     sd.min_filter = SG_FILTER_NEAREST;
     sd.mag_filter = SG_FILTER_NEAREST;
@@ -288,7 +294,7 @@ bool EnsurePipelines() {
     sd.label = "ei-canvas";
     g_nearest = sg_make_sampler(&sd);
     g_pipelinesMade = true;
-    for (sg_pipeline p : {g_solid, g_glyph, g_compose, g_grey, g_copy})
+    for (sg_pipeline p : {g_solid, g_glyph, g_compose, g_grey, g_copy, g_rgb565})
         g_pipelinesMade = g_pipelinesMade && sg_query_pipeline_state(p) == SG_RESOURCESTATE_VALID;
     if (!g_pipelinesMade) ei::Log("render: the canvas pipelines could not be created (see the sokol messages above)");
     return g_pipelinesMade;
@@ -570,14 +576,47 @@ CanvasState* Find(const void* holder, unsigned id) {
     return it != g_canvases.end() && it->second.id == id ? &it->second : nullptr;
 }
 
-// D3D11 staging texture for read-backs, kept and grown.
-ID3D11Texture2D* g_staging = nullptr;
-UINT g_stagingWidth = 0, g_stagingHeight = 0;
+// D3D11 staging textures for read-backs, kept and grown: the canvases' (RGBA8) and the 5:6:5 picture's.
+struct Staging {
+    ID3D11Texture2D* texture = nullptr;
+    UINT width = 0, height = 0;
+};
+Staging g_staging, g_pictureStaging;
 
-void ReleaseStaging() {
-    if (g_staging) g_staging->Release();
-    g_staging = nullptr;
-    g_stagingWidth = g_stagingHeight = 0;
+void ReleaseStaging(Staging& s) {
+    if (s.texture) s.texture->Release();
+    s = Staging{};
+}
+
+// `width` x `height` texels of `texture` from (left, top) copied into `s` (made or grown in the texture's
+// format) and mapped; UnmapRegion after reading. Under the present's lock (GpuWorkAlone).
+bool MapRegion(Staging& s, ID3D11Texture2D* texture, UINT left, UINT top, UINT width, UINT height, D3D11_MAPPED_SUBRESOURCE* mapped) {
+    if (!s.texture || s.width < width || s.height < height) {
+        ReleaseStaging(s);
+        D3D11_TEXTURE2D_DESC desc{};
+        texture->GetDesc(&desc);
+        desc.Width = width;
+        desc.Height = height;
+        desc.MipLevels = 1;
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.BindFlags = 0;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.MiscFlags = 0;
+        if (FAILED(Device()->CreateTexture2D(&desc, nullptr, &s.texture))) {
+            s = Staging{};
+            return false;
+        }
+        s.width = width;
+        s.height = height;
+    }
+    D3D11_BOX box{left, top, 0, left + width, top + height, 1};
+    Context()->CopySubresourceRegion(s.texture, 0, 0, 0, 0, texture, 0, &box);
+    return SUCCEEDED(Context()->Map(s.texture, 0, D3D11_MAP_READ, 0, mapped));
+}
+
+void UnmapRegion(Staging& s) {
+    Context()->Unmap(s.texture, 0);
+    sg_reset_state_cache();
 }
 
 } // namespace
@@ -650,6 +689,23 @@ void DropCanvas(const void* holder) {
     if (it == g_canvases.end()) return;
     g_retired.push_back(it->second.gpu);
     g_canvases.erase(it);
+}
+
+void CanvasOnly(const void* holder) {
+    auto it = g_canvases.find(holder);
+    if (it != g_canvases.end()) it->second.only = true;
+}
+
+void MoveCanvas(const void* from, const void* to) {
+    if (from == to || !Target(from)) return;   // (Target: a blit of it not drawn yet is drawn first)
+    DropCanvas(to);
+    auto it = g_canvases.find(from);
+    if (it == g_canvases.end()) return;
+    CanvasState canvas = std::move(it->second);
+    g_canvases.erase(it);
+    for (Op& op : g_queue)
+        if (op.holder == from && op.canvas == canvas.id) op.holder = to;
+    g_canvases.emplace(to, std::move(canvas));
 }
 
 void Fill(const void* holder, const Rect& rect, std::uint32_t colour) {
@@ -789,32 +845,11 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
     if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
     const CanvasState& canvas = it->second;
     FpuGuard fpu;
+    GpuWorkAlone alone;
     ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
-    if (!texture) return false;
     UINT w = static_cast<UINT>(canvas.width), h = static_cast<UINT>(canvas.height);
-    if (!g_staging || g_stagingWidth < w || g_stagingHeight < h) {
-        ReleaseStaging();
-        D3D11_TEXTURE2D_DESC desc{};
-        texture->GetDesc(&desc);
-        desc.Width = w;
-        desc.Height = h;
-        desc.MipLevels = 1;
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-        desc.MiscFlags = 0;
-        if (FAILED(Device()->CreateTexture2D(&desc, nullptr, &g_staging))) {
-            g_staging = nullptr;
-            return false;
-        }
-        g_stagingWidth = w;
-        g_stagingHeight = h;
-    }
-    D3D11_BOX box{0, 0, 0, w, h, 1};
-    ID3D11DeviceContext* context = Context();
-    context->CopySubresourceRegion(g_staging, 0, 0, 0, 0, texture, 0, &box);
     D3D11_MAPPED_SUBRESOURCE mapped{};
-    if (FAILED(context->Map(g_staging, 0, D3D11_MAP_READ, 0, &mapped))) return false;
+    if (!texture || !MapRegion(g_staging, texture, 0, 0, w, h, &mapped)) return false;
     rgb->resize(static_cast<std::size_t>(w) * h);
     for (UINT y = 0; y < h; ++y) {
         const auto* row = static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch;
@@ -822,10 +857,64 @@ bool ReadPixels(const void* holder, std::vector<std::uint32_t>* rgb, int* width,
         for (UINT x = 0; x < w; ++x)   // RGBA8
             out[x] = (static_cast<std::uint32_t>(row[x * 4]) << 16) | (static_cast<std::uint32_t>(row[x * 4 + 1]) << 8) | row[x * 4 + 2];
     }
-    context->Unmap(g_staging, 0);
-    sg_reset_state_cache();
+    UnmapRegion(g_staging);
     if (width) *width = canvas.width;
     if (height) *height = canvas.height;
+    return true;
+}
+
+bool ReadPixel(const void* holder, int x, int y, std::uint32_t* rgb) {
+    if (!HasCanvas(holder)) return false;
+    RunCanvasesNow();
+    auto it = g_canvases.find(holder);
+    if (it == g_canvases.end() || !it->second.gpu.image.id) return false;
+    const CanvasState& canvas = it->second;
+    if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return false;
+    FpuGuard fpu;
+    GpuWorkAlone alone;
+    ID3D11Texture2D* texture = TextureOf(canvas.gpu.image);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    if (!texture || !MapRegion(g_staging, texture, static_cast<UINT>(x), static_cast<UINT>(y), 1, 1, &mapped)) return false;
+    const auto* p = static_cast<const std::uint8_t*>(mapped.pData);   // RGBA8
+    *rgb = (static_cast<std::uint32_t>(p[0]) << 16) | (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
+    UnmapRegion(g_staging);
+    return true;
+}
+
+bool ReadRgb565(const void* holder, int width, int height, std::uint16_t* out) {
+    if (!out || !HasCanvas(holder) || width < 1 || height < 1 || width > kMaxCanvas || height > kMaxCanvas) return false;
+    RunCanvasesNow();
+    auto it = g_canvases.find(holder);
+    if (it == g_canvases.end() || !it->second.gpu.texture.id || !EnsurePipelines()) return false;
+    const CanvasState& canvas = it->second;
+    FpuGuard fpu;
+    GpuWorkAlone alone;
+    if (!EnsureScratch(g_picture, width, height, SG_PIXELFORMAT_R16UI, "ei-canvas-rgb565")) return false;
+    BeginCanvasPass(g_picture.attachment, false, "ei-canvas-rgb565");
+    sg_apply_viewport(0, 0, width, height, true);
+    sg_apply_pipeline(g_rgb565);
+    sg_bindings b{};
+    b.views[0] = canvas.gpu.texture;
+    b.samplers[0] = g_nearest;
+    sg_apply_bindings(&b);
+    ApplyRect(Rect{0, 0, width, height}, width, height);
+    FsParams fs{};
+    fs.source[2] = canvas.width;
+    fs.source[3] = canvas.height;
+    fs.dest[0] = width;
+    fs.dest[1] = height;
+    ApplyFs(fs);
+    sg_draw(0, 6, 1);
+    sg_end_pass();
+    ID3D11Texture2D* texture = TextureOf(g_picture.image);
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    if (!texture || !MapRegion(g_pictureStaging, texture, 0, 0, static_cast<UINT>(width), static_cast<UINT>(height), &mapped))
+        return false;
+    for (int y = 0; y < height; ++y)
+        std::memcpy(out + static_cast<std::size_t>(y) * static_cast<std::size_t>(width),
+                    static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
+                    static_cast<std::size_t>(width) * sizeof(std::uint16_t));
+    UnmapRegion(g_pictureStaging);
     return true;
 }
 
@@ -914,7 +1003,9 @@ bool Listed(const char* name) {
 void SetPath(Path path) { g_path = path; }
 
 bool DrawsCanvas(const void* holder) {
-    return HasCanvas(holder) && (g_mode == Mode::Native || (g_mode == Mode::Both && g_path == Path::Native));
+    auto it = g_canvases.find(holder);
+    if (it == g_canvases.end()) return false;
+    return it->second.only || g_mode == Mode::Native || (g_mode == Mode::Both && g_path == Path::Native);
 }
 
 void Canvases(std::vector<CanvasInfo>* out) {
@@ -926,6 +1017,7 @@ void Canvases(std::vector<CanvasInfo>* out) {
         info.width = canvas.width;
         info.height = canvas.height;
         info.format = canvas.format;
+        info.only = canvas.only;
         info.version = canvas.version;
         info.text = canvas.text;
         out->push_back(std::move(info));
@@ -1024,7 +1116,7 @@ void DropCanvases() {
         if (entry.second.image.id) sg_destroy_image(entry.second.image);
     }
     g_atlases.clear();
-    for (Scratch* s : {&g_coverage, &g_under}) {
+    for (Scratch* s : {&g_coverage, &g_under, &g_picture}) {
         if (s->attachment.id) sg_destroy_view(s->attachment);
         if (s->texture.id) sg_destroy_view(s->texture);
         if (s->image.id) sg_destroy_image(s->image);
@@ -1035,18 +1127,20 @@ void DropCanvases() {
     g_vertexCapacity = 0;
     for (const BlitPipeline& b : g_blits) sg_destroy_pipeline(b.pipeline);
     g_blits.clear();
-    for (sg_pipeline* p : {&g_solid, &g_glyph, &g_compose, &g_grey, &g_copy}) {
+    for (sg_pipeline* p : {&g_solid, &g_glyph, &g_compose, &g_grey, &g_copy, &g_rgb565}) {
         if (p->id) sg_destroy_pipeline(*p);
         *p = sg_pipeline{};
     }
-    for (sg_shader* s : {&g_solidShader, &g_glyphShader, &g_composeShader, &g_greyShader, &g_copyShader, &g_blitShader}) {
+    for (sg_shader* s : {&g_solidShader, &g_glyphShader, &g_composeShader, &g_greyShader, &g_copyShader, &g_rgb565Shader,
+                         &g_blitShader}) {
         if (s->id) sg_destroy_shader(*s);
         *s = sg_shader{};
     }
     if (g_nearest.id) sg_destroy_sampler(g_nearest);
     g_nearest = sg_sampler{};
     g_pipelinesTried = g_pipelinesMade = false;
-    ReleaseStaging();
+    ReleaseStaging(g_staging);
+    ReleaseStaging(g_pictureStaging);
 }
 
 } // namespace detail

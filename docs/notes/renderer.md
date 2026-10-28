@@ -120,7 +120,8 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
   006BFF40); the water layer is what height queries read. DrawSectorPage applies them before handing over (the
   game's own draw of the page is gone, R11a).
 - **Pixels:** the escape menu's background and the save game's 256x192 picture are copied from the render target
-  (005FD3D0 CaptureScreen, 005FD440 Rgb565Copy); with the sidecar presenting they come from its frame.
+  (005FD3D0 CaptureScreen, 005FD440 Rgb565Copy); in the image they are made from the new renderer's frame on the GPU
+  and only the 5:6:5 picture is read back (section 6, "Screen copies on the GPU").
 - **Timing:** up to five world updates of 0078FF34 ms per frame; vsync only changes grouping.
 
 ## 4. Hand-over map (game data, hand-over point, `render::` call)
@@ -204,8 +205,8 @@ size, bit count and channel masks. Made by the holder code, used by game code (`
 describes it as a `SurfacePixels`, in `surface.h`) and read by the renderer after GdiFlush.
 Change detection (R16a): writers mark what they wrote (`render::SurfaceWritten`): the DC release 005FDC60 marks
 GDI's bounds of the DC (`SetBoundsRect` at 005FDC00, `GetBoundsRect`, 2 pixels wider), `DirectPixels` the whole
-memory unless the caller only reads (`reads`: PixelAt, the copies' sources, SwapContents' save, SurfaceBytes),
-`CopyFrameTo` the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
+memory unless the caller only reads (`reads`: PixelAt, SwapContents' save, SurfaceBytes), a canvas read back
+(`render::ui::ReadBack`) the whole memory. At a blit only the marked rectangle is compared with the copy of what the texture
 holds, and the differing part is converted and written into the texture (a Direct3D 11 default-usage texture handed
 to sokol, `UpdateSubresource`); a surface already blitted in this frame gets a new texture instead. The harness
 build compares the rest of the memory at every blit: a change outside the marks is logged ("MISSED WRITE") and fails
@@ -229,7 +230,7 @@ the renderer fails").
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
 | 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new DIB section is zero) |
 | 005FDC00 / 005FDC60 | GDI through a memory DC on the DIB |
-| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy (`render::CopyFrameTo`; no Blt from the old target, which does not hold the frame; between frames the last frame, R13), save picture stretch (CPU copy, (2x+1) * source / (2 * size)), Greyscale, SwapContents, pixel read: no Lock / GetSurfaceDesc |
+| 005FD3D0, 005FD440, 005FE440, 005FD7A0, 005FD240 | screen copy, save picture, Greyscale on the GPU (R28a, "Screen copies on the GPU" below); SwapContents (a screen copy's canvas put aside on the GPU), pixel read (a screen copy's from the GPU): no Lock / GetSurfaceDesc |
 | 005FDA80, 005E54A0 / 005E5690 / 005E6630, 005DBD80 / 005DB3F0 / 005DA400 | the original's Blt, composition 005E5C40, background save, Lock / BinkCopyToBuffer / Unlock are gone (R11a); the new renderer gets the blits, the cursor and the frames |
 
 Scenarios: render_cpuwindows, render_present / render_present_cpuwindows, render_titles_present, render_movie_present.
@@ -250,10 +251,28 @@ is disabled in this install and not reproduced.
 CaptureScreen (005FD3D0) and stretches it to 256x192 (005FD440) for shot.sav. The new game's autosave passes DL 1 and
 draws the interface first (FrameStep without a present: the copy comes from that frame); the quick save key passes DL 0
 and copies between frames, before the next frame's first draw. The original's render target then still holds the
-last frame, and so does the new renderer's target: `render::CopyFrameTo` reads it as it is when nothing of the frame is
-drawn or queued yet (no pass, no commands). A pass there would clear it first: the save's picture was the plain clear
-colour (blue-grey 0x8596) after R11a. Checked by scenario ui_quicksave (`checksave saveq world`: the picture against a
-capture of the same frozen moment as 8x8 block averages; the original's: at most 22 per channel, a cleared one 145+).
+last frame, and so does the new renderer's target: the copy (`render::ui::CopyFrame`, which draws the frame so far
+first, SplitFrame) reads it as it is when nothing of the frame is drawn or queued yet (no pass, no commands). A pass
+there would clear it first: the save's picture was the plain clear colour (blue-grey 0x8596) after R11a. Checked by
+scenario ui_quicksave (`checksave saveq world`: the picture against a capture of the same frozen moment as 8x8 block
+averages; the original's: at most 22 per channel, a cleared one 145+).
+
+**Screen copies on the GPU (R28a).** A surface the screen is copied into (CaptureScreen 005FD3D0: the escape menu's
+and the camp's backdrops 005F5320, the global map's pick picture 00630670, the quick save's copy 006570E0) keeps its
+pixels in its interface canvas only (`render_ui.cpp`, docs/notes/ui-native.md section 3), whatever EI_RENDER says
+(`ui_native::Capture` makes the canvas, `render::ui::CanvasOnly`): the copy is the canvas's `ps_copy` from the frame
+target (x * source / size, as DirectDraw's Blt and the old CPU copy picked), the greying 005FE440 its `ps_grey` (the
+format's own bits, 005FE440's formulas), and the blit draws the canvas. Rgb565Copy 005FD440 draws the canvas into an
+R16_UINT target of the picture's size (`ps_rgb565`: the pixel under each centre, (2x+1) * source / (2 * size), each
+channel's top bits) and reads only that back (`render::ui::ReadRgb565`, a row copy): the escape menu's 256x192
+`screenCopy_` and the quick save's shot.sav keep their 5:6:5 format. PixelAt 005FD240 on such a surface reads its
+one pixel from the GPU (`ReadPixel`, packed to the memory's format: the pick picture's zone colours exact), and
+SwapContents 005FD7A0 (the camp's backdrop put aside in mode 3) moves the canvas aside under the surface's address
+and back (`MoveCanvas`) instead of keeping the bytes. The memory of these surfaces is not written (the CPU loops and
+`render::CopyFrameTo` are gone); a CPU reader (GetDC) gets the canvas read back first (`ui_native::Sync`). A lost
+device brings such a canvas back black (the copied frame is gone): the menu's backdrop shows nothing until the next
+window opens. Checked by ui_quicksave (checksave), ui_global_map_pick (the zone under the click), the gallery's
+escmenu / map_escmenu frames and `ei_ui_check` ("picture").
 
 ## 7. Textures without DirectDraw
 
@@ -405,8 +424,8 @@ come first, then what holds for the present path (the subsection names are cited
   below). R9c covers a window resized from outside, which is what such a change does to the game window.
 - **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8): window surfaces drawn on the
   GPU instead of GDI into DIB sections, no GDI in src/render, own font loading. R28 (which took P7 in) put the composed
-  skins and the item pictures on the GPU; the menu backdrop's copy, the global map's clouds and the save / load
-  pictures are still written on the CPU (R28a, R28b).
+  skins and the item pictures on the GPU, R28a the screen copies (the menu backdrop, its greying, the save's picture,
+  the pick picture); the global map's clouds and the save / load pictures are still written on the CPU (R28b).
 - **DirectDraw left after R11c**: R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only ports no
   code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
@@ -616,7 +635,7 @@ the header of `render_cursor.cpp`; the rules worth knowing:
   thread runs the same draw (the same raw pipeline) with its own cursor position over the frame target: no copy of the
   frame (R16f; there was a whole-frame copy a frame, 33 MB of GPU traffic at 4K). So that the target is whole when it
   reads it, everything that draws into the frame target runs under the present lock (`EndFrame`, and `DrawPendingAlone`
-  for the passes of a copy in the middle of a frame, CopyFrameTo) and `BeginWindowPresent` drops what the cursor thread
+  for the passes of a copy in the middle of a frame, SplitFrame) and `BeginWindowPresent` drops what the cursor thread
   draws with until the frame's own present: during a frame that drew a pass early (a copy in its middle: quick save),
   the cursor does not move between frames. `CursorBetweenFrames` presents only when nothing was presented on
   the game window for 40 ms (real time: the harness's virtual clock does not reach the renderer).
@@ -748,7 +767,7 @@ resolution must have the machine to themselves and serialised the suites.
     of the multisampled depth; before a world run that follows other draws the frame target's colour and depth go
     into every sample (a pass of its own: the resolve's destination cannot be read in the pass that resolves into
     it). The frame target is what every reader takes (the present, the cursor thread's copy, `ReadFrame`,
-    `CopyFrameTo`, the gamma ramp check), always resolved: a pass ends with the resolve, and a copy between frames
+    the canvases' screen copy, the gamma ramp check), always resolved: a pass ends with the resolve, and a copy between frames
     (R13) finds the last frame there.
   - Every pipeline drawing into the frame is made for the pass's sample count (`detail::PassSampleCount`; mesh and
     terrain pipelines keyed by it, the blit and depth clear made for it at first use): sokol's validation skips a

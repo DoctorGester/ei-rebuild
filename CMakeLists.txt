@@ -96,7 +96,7 @@ ei_shader(shadow_dilate_ps shadow_dilate.hlsl ps_main ps_4_1)
 # The interface canvases (render_ui.cpp): one file, an entry point per program.
 ei_shader(ui_rect_vs ui_canvas.hlsl vs_rect vs_4_0)
 ei_shader(ui_glyph_vs ui_canvas.hlsl vs_glyph vs_4_0)
-foreach(e solid glyph compose grey copy blit)
+foreach(e solid glyph compose grey copy rgb565 blit)
     ei_shader(ui_${e}_ps ui_canvas.hlsl ps_${e} ps_4_0)
 endforeach()
 target_sources(ei_render PRIVATE ${EI_SHADER_HEADERS})

@@ -11,7 +11,10 @@
 //   glyphs  glyph runs (render_text layouts, underlines, clipping, over a coloured background, the shadow
 //           pass under the text) against the CPU rule, and over black against text::ComposeAgainstBlack.
 //   grey    greying against 005FE440's formulas on the packed pixels.
-//   copy    screen copies of a frame texture against CopyFrameTo's stretch and packing.
+//   copy    screen copies of a frame texture against the original's stretch (x * source / size) and packing.
+//   picture the save's 5:6:5 picture (ReadRgb565) against the original's stretch ((2 x + 1) * source / (2 size))
+//           and packing; one-pixel reads (ReadPixel); a canvas moved to another key with its queued commands
+//           (MoveCanvas); a canvas-only canvas always blitted and listed as such (CanvasOnly).
 //   image   pixels written into canvases (clipped, quantised) exactly; the switch's words and paths; the
 //           comparison's view (versions, the glyph runs' rectangles).
 //   frame   canvases blitted in the frame (keyed, stretched, a source part) against the window blit's
@@ -131,6 +134,8 @@ void SplitFrame() {
     if (g_target.id) DrawTestFrame();   // before CheckFrame there is no frame: "between frames"
 }
 void RunCanvasesNow() { RunCanvasCommands(); }
+GpuWorkAlone::GpuWorkAlone() {}
+GpuWorkAlone::~GpuWorkAlone() {}
 FpuGuard::FpuGuard() : saved_(0) {}
 FpuGuard::~FpuGuard() {}
 } // namespace detail
@@ -655,6 +660,66 @@ void CheckCopy() {
     sg_commit();
 }
 
+// ---- picture: the save's 5:6:5 picture, one-pixel reads, moved and canvas-only canvases ---------------------
+
+void CheckPicture() {
+    if (g_verbose) std::printf("picture:\n");
+    struct Case {
+        int canvasWidth, canvasHeight, width, height;
+    };
+    const Case cases[] = {{800, 600, 256, 192}, {1920, 1080, 256, 192}, {37, 29, 256, 192}, {200, 150, 64, 48}};
+    for (const Format& f : kFormats) {
+        for (const Case& c : cases) {
+            const void* holder = &c;
+            ui::Canvas(holder, c.canvasWidth, c.canvasHeight, f.format);
+            std::mt19937 random(99);
+            std::vector<std::uint32_t> picture(static_cast<std::size_t>(c.canvasWidth) * c.canvasHeight);
+            for (std::uint32_t& px : picture) px = random() & 0xFFFFFF;
+            ui::Image(holder, Rect{0, 0, c.canvasWidth, c.canvasHeight}, picture.data(), c.canvasWidth);
+            std::vector<std::uint32_t> held;
+            std::vector<std::uint16_t> got(static_cast<std::size_t>(c.width) * c.height, 0xFFFF);
+            bool read = ui::ReadPixels(holder, &held) && ui::ReadRgb565(holder, c.width, c.height, got.data());
+            int differ = read ? 0 : -1;
+            for (int y = 0; y < c.height && read; ++y)
+                for (int x = 0; x < c.width; ++x) {
+                    int sx = (2 * x + 1) * c.canvasWidth / (2 * c.width), sy = (2 * y + 1) * c.canvasHeight / (2 * c.height);
+                    std::uint32_t rgb = held[static_cast<std::size_t>(sy) * c.canvasWidth + static_cast<std::size_t>(sx)];
+                    std::uint32_t packed = ((rgb >> 8) & 0xF800) | ((rgb >> 5) & 0x7E0) | ((rgb >> 3) & 0x1F);
+                    differ += got[static_cast<std::size_t>(y) * c.width + static_cast<std::size_t>(x)] != packed;
+                }
+            Check(differ == 0, std::string(f.name) + " 5:6:5 picture of a " + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) +
+                                   " canvas at " + std::to_string(c.width) + "x" + std::to_string(c.height) + ": " + std::to_string(differ) + " pixels differ");
+            int wrong = read ? 0 : -1;
+            const int points[][2] = {{0, 0}, {c.canvasWidth - 1, c.canvasHeight - 1}, {c.canvasWidth / 3, c.canvasHeight / 2}};
+            for (const auto& pt : points) {
+                std::uint32_t one = 0;
+                wrong += !read || !ui::ReadPixel(holder, pt[0], pt[1], &one) ||
+                         one != held[static_cast<std::size_t>(pt[1]) * c.canvasWidth + static_cast<std::size_t>(pt[0])];
+            }
+            std::uint32_t outside = 0;
+            Check(wrong == 0 && !ui::ReadPixel(holder, c.canvasWidth, 0, &outside),
+                  std::string(f.name) + " one-pixel reads of the " + std::to_string(c.canvasWidth) + "x" + std::to_string(c.canvasHeight) + " canvas");
+            ui::DropCanvas(holder);
+        }
+    }
+    // A canvas moved with a fill still queued: the fill lands on the canvas under its new key.
+    int from = 0, to = 0;
+    ui::Canvas(&from, 16, 8, kFormats[2].format);
+    ui::Fill(&from, Rect{0, 0, 16, 8}, RGB(10, 20, 30));
+    ui::CanvasOnly(&from);
+    ui::MoveCanvas(&from, &to);
+    ui::Fill(&to, Rect{0, 0, 8, 8}, RGB(200, 100, 50));
+    std::vector<std::uint32_t> moved;
+    bool ok = !ui::HasCanvas(&from) && ui::ReadPixels(&to, &moved) && moved.size() == 128 && moved[0] == 0xC86432 && moved[15] == 0x0A141E;
+    std::vector<ui::CanvasInfo> canvases;
+    ui::Canvases(&canvases);
+    ok = ok && canvases.size() == 1 && canvases[0].holder == &to && canvases[0].only && ui::DrawsCanvas(&to);
+    ui::ResetOptions();
+    Check(ok && ui::CurrentMode() == ui::Mode::Cpu, "a canvas moved with its queued fill, canvas-only: listed so and blitted with no word");
+    ui::DropCanvas(&to);
+    sg_commit();
+}
+
 // ---- frame: canvases in the frame, the pass split ---------------------------------------------------------------
 
 bool ReadTarget(std::vector<std::uint32_t>* rgb) {
@@ -834,6 +899,7 @@ int main(int argc, char** argv) {
     CheckGrey();
     CheckImage();
     CheckCopy();
+    CheckPicture();
     CheckFrame();
     detail::DropCanvases();
     sg_shutdown();

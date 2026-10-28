@@ -19,9 +19,9 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Lines and carets (a solid pen, width 1 or 2: gdi::Pen) | MoveTo / LineTo / SelectPen | console 005E4A10, chat typed line 005E3700, edit field 0065C2E0, connect list 0061D780, save/load list (`ui_saveload_list.cpp:104`) | CPU |
 | Single pixel | `SetPixel` | minimap marker: N0 found `CHudMap::SetupVanilla` 00641F20, about 33 pixels on a 24x18 surface (18x18 under Rebirth), drawn again at each HUD setup | CPU |
 | Get / release DC (start and end of drawing) | 005FDC00 / 005FDC60 (`ui_surface_dc.cpp`: a memory DC on the DIB) | about 57 sites in 38 files | CPU |
-| Screen copy into a surface | 005FD3D0 `CaptureScreen` → `render::CopyFrameTo` (staging readback to the CPU) | escape-menu backdrop (`ui_interface_draw.cpp:151/161`), global-map pick picture (`ui_global_map_places.cpp:182`), save game (`ui_saveload.cpp:591`) | GPU → CPU readback |
-| Greyscale, (2r+4g+b)/16 | 005FE440 (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp:154`) | CPU |
-| Save picture | 005FD440 `Rgb565Copy` (CPU stretch with the (2x+1)·src/(2·size) rule) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | CPU, reads pixels |
+| Screen copy into a surface | 005FD3D0 `CaptureScreen` → the surface's canvas (`ps_copy`; R28a, canvas-only in every mode) | escape-menu backdrop (`ui_interface_draw.cpp`), global-map pick picture (`ui_global_map_places.cpp`), quick save (`ui_saveload.cpp`) | GPU |
+| Greyscale, (2r+4g+b)/16 | 005FE440 → `ps_grey` on the canvas (R28a) | escape-menu backdrop | GPU |
+| Save picture | 005FD440 `Rgb565Copy` → `ps_rgb565` into an R16_UINT target, (2x+1)·src/(2·size), read back (R28a) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | GPU, 5:6:5 read-back |
 | Pixel read | 005FD240 `PixelAt` | global-map click (`ui_global_map_input.cpp:128`) and FindPaths (`ui_global_map_paths.cpp:171`): zone = (pixel>>4)&0xF − 1 | CPU, reads pixels |
 | Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `Freeze` | camp, menus, backdrop mode 3/4; N0: also every window's `ShowSurfaces` 006002C0 on each show and hide | CPU memcpy |
 | RichEdit text | 0065F020 `CUiScrollingSurface::RenderText` (EM_FORMATRANGE into the DIB) | titles / credits | CPU, keep |
@@ -337,7 +337,7 @@ they depend on.
 
 ### Critical files for implementation
 - E:\workspace\ei\src\render\render_blit.cpp (and new render_ui.cpp / render_text.cpp beside it; render.cpp `DrawPending`, render_internal.h `Command`)
-- E:\workspace\ei\src\render\render_textures.cpp (`WindowSurfaceView`, surface memory, `CopyFrameTo` readback partners)
+- E:\workspace\ei\src\render\render_textures.cpp (`WindowSurfaceView`, surface memory)
 - E:\workspace\ei\src\game\ui_text_draw.cpp (005FDE20 / 005F8340; W2 conflict) and E:\workspace\ei\src\game\ui_text.cpp (005FDFA0)
 - E:\workspace\ei\src\game\ui_surface_blit.cpp, E:\workspace\ei\src\game\ui_surface_dc.cpp, E:\workspace\ei\src\game\ui_surface_frame.cpp, E:\workspace\ei\src\game\ui_surface_pixels.cpp, E:\workspace\ei\src\game\ui_surface_create.cpp
 - E:\workspace\ei\src\game\ui_interface_draw.cpp (frame order, backdrop / greyscale / save picture), E:\workspace\ei\src\game\ui_interface_create.cpp (fonts), E:\workspace\ei\src\game\ui_global_map_places.cpp (pick picture)
@@ -353,8 +353,11 @@ render::ui::DrawsCanvas says so.
 Under "uinative" the screen copy (CaptureScreen) goes to the canvas only (no read-back of the frame), and
 greying a surface whose memory is behind its canvas too; that memory is "behind" until Sync reads the
 canvas back, which the code that reads or draws the memory on the CPU calls first (GetDC, PixelAt,
-Rgb565Copy, SwapContents). Without a "ui" word in EI_RENDER nothing is adopted and every function here
-does nothing.
+Rgb565Copy, SwapContents). Without a "ui" word in EI_RENDER nothing is adopted, except the screen copies
+(R28a): a surface CaptureScreen copies into gets a canvas that is its only copy in every mode (CanvasOnly:
+always blitted, left out of the uiboth comparison); its greying, the 5:6:5 picture (ReadRgb565), PixelAt
+(ReadPixel) and SwapContents (the canvas put aside on the GPU, PutAside / TakeBack) work on that canvas
+(docs/notes/renderer.md section 6, "Screen copies on the GPU").
 
 ## DrawText layout rules (render_text.cpp)
 

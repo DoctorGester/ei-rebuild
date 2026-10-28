@@ -1,7 +1,8 @@
 // The interface surfaces drawn on GPU canvases (ticket P1): see ui_native.h. The native surfaces are kept in
-// a side map keyed by the surface (CUiSurface is the game's 0x38 bytes; no room for a flag), their canvases
-// by the surface's holder (render_ui.h), so a canvas goes with its holder (HolderGone) and SwapContents,
-// which swaps the holder out and makes a new one, makes it again (Restored).
+// a side map keyed by the surface, their canvases by the surface's holder (render_ui.h), so a canvas goes
+// with its holder (HolderGone) and SwapContents, which swaps the holder out and makes a new one, makes it
+// again (Restored) or, for a canvas newer than the memory, puts it aside under the surface's own address
+// and back (PutAside, TakeBack).
 #include "ui_native.h"
 #include "ui.h"
 
@@ -21,7 +22,8 @@ namespace canvas = render::ui;
 
 struct NativeSurface {
     const char* family = nullptr;
-    bool behind = false;   // the canvas holds drawing the memory does not have (uinative)
+    bool behind = false;   // the canvas holds drawing the memory does not have (uinative, the screen copies)
+    bool aside = false;    // the canvas is kept under the surface's address while it has no holder (PutAside)
 };
 std::unordered_map<const CUiSurface*, NativeSurface> g_surfaces;
 
@@ -72,7 +74,19 @@ void MemoryToCanvas(const CUiSurface* surface, const RECT& rect) {
     canvas::Image(surface->holder_, render::Rect{left, top, right, bottom}, rgb.data(), width);
 }
 
-bool CanvasOnly() { return canvas::CurrentMode() == canvas::Mode::Native; }
+// The surface's canvas made its only copy (render::ui::CanvasOnly), the memory behind it from now on: made
+// first when the surface has none, with the memory's pixels on it when `keep` (a screen copy covers it whole).
+NativeSurface* GpuOnly(const CUiSurface* surface, bool keep) {
+    if (!IsNative(surface)) {
+        if (!MakeCanvas(surface)) return nullptr;
+        if (keep) MemoryToCanvas(surface, RECT{0, 0, surface->width_, surface->height_});
+    }
+    NativeSurface& native = g_surfaces[surface];
+    if (!native.family) native.family = "screen copy";
+    native.behind = true;
+    canvas::CanvasOnly(surface->holder_);
+    return &native;
+}
 
 } // namespace
 
@@ -84,8 +98,10 @@ void Adopt(CUiSurface* surface, const char* family) {
 void (*g_goneObserver)(const CUiSurface* surface) = nullptr;
 
 void Forget(const CUiSurface* surface) {
-    if (g_surfaces.empty()) return;
+    NativeSurface* native = Find(surface);
+    if (!native) return;
     if (g_goneObserver && IsNative(surface)) g_goneObserver(surface);
+    if (native->aside) canvas::DropCanvas(surface);
     g_surfaces.erase(surface);
 }
 
@@ -111,18 +127,46 @@ void TextDrawn(const CUiSurface* surface, const RECT& rect, bool clipped) {
     MemoryToCanvas(surface, clipped ? rect : RECT{0, 0, surface->width_, surface->height_});
 }
 
-bool Capture(const CUiSurface* surface, const RECT& source) {
-    if (!IsNative(surface)) return true;
-    canvas::CopyFrame(surface->holder_, ToRect(source));
-    if (!CanvasOnly()) return true;
-    Find(surface)->behind = true;
-    return false;
+void Capture(const CUiSurface* surface, const RECT& source) {
+    if (GpuOnly(surface, false)) canvas::CopyFrame(surface->holder_, ToRect(source));
 }
 
-bool Greyscale(const CUiSurface* surface) {
-    if (!IsNative(surface)) return true;
-    canvas::Greyscale(surface->holder_);
-    return !CanvasOnly() || !Find(surface)->behind;
+void Greyscale(const CUiSurface* surface) {
+    if (GpuOnly(surface, true)) canvas::Greyscale(surface->holder_);
+}
+
+bool ReadRgb565(const CUiSurface* surface, int width, int height, std::uint16_t* out) {
+    return GpuOnly(surface, true) && canvas::ReadRgb565(surface->holder_, width, height, out);
+}
+
+bool PixelOnGpu(const CUiSurface* surface, int x, int y, std::uint32_t* pixel) {
+    NativeSurface* native = Find(surface);
+    if (!native || !native->behind || !IsNative(surface)) return false;
+    const render::SurfaceMemory* memory = MemoryOf(surface);
+    std::uint32_t rgb = 0;
+    if (!memory || !canvas::ReadPixel(surface->holder_, x, y, &rgb)) return false;
+    *pixel = canvas::Pack(rgb, FormatOf(*memory)) | memory->alphaMask;
+    return true;
+}
+
+bool PutAside(const CUiSurface* surface) {
+    NativeSurface* native = Find(surface);
+    if (!native || !native->behind || !IsNative(surface)) return false;
+    canvas::MoveCanvas(surface->holder_, surface);
+    native->aside = true;
+    return true;
+}
+
+bool TakeBack(const CUiSurface* surface) {
+    NativeSurface* native = Find(surface);
+    if (!native || !native->aside) return false;
+    native->aside = false;
+    if (!surface->holder_) {
+        canvas::DropCanvas(surface);
+        return false;
+    }
+    canvas::MoveCanvas(surface, surface->holder_);
+    return true;
 }
 
 void Restored(CUiSurface* surface) {

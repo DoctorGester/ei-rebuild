@@ -256,6 +256,7 @@ void Mirror(const std::unordered_map<const void*, std::string>& names) {
 
 // One canvas compared with its holder's memory, when its version or the memory changed since its last check.
 void Check(const ui::CanvasInfo& canvas, const std::unordered_map<const void*, std::string>& names) {
+    if (canvas.only) return;   // a screen copy's: its memory is not drawn
     const render::SurfaceMemory* m = render::SurfaceMemoryOf(canvas.holder);
     if (!Readable(m)) return;
     const std::uint64_t hash = HashMemory(*m);
