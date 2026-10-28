@@ -10,7 +10,6 @@
 #include "figure_mesh.h"
 #include "ground_decal.h"
 #include "model.h"
-#include "record_lists.h"
 #include "terrain.h"
 #include "texture.h"
 #include "world.h"
@@ -18,7 +17,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/stlp_list.h"
 #include "game_data.h"
 #include "game_singletons.h"
 

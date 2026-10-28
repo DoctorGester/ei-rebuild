@@ -10,8 +10,11 @@
 #include "item.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_data.h"
+
+#include <list>
+#include <string>
+#include <vector>
 
 
 // An archive the texts are looked up in.
@@ -21,12 +24,7 @@ struct TextSource {
 };
 
 // The archive list (CTextManager::sources_).
-struct TextSources : stlp::list<TextSource> {
-    // *out = the next node. Returns out.
-    Node** Erase(Node** out, Node* pos);
-    Node* CreateNode(const TextSource* value);
-    // A new node linked before `pos`; *out = the new node. Returns out.
-    Node** Insert(Node** out, Node* pos, const TextSource* value);
+struct TextSources {
     // Add: unless an archive of that exact name is listed (then 1), appends a new
     // CMappedResource under `path` and returns its OpenResource(path, writable); a failed open stays in the
     // list. Remove: closes, deletes and unlinks the archive named `path`, if any. Clear: closes and deletes
@@ -42,8 +40,9 @@ struct TextSources : stlp::list<TextSource> {
     void* Find(const char* key, std::uint32_t* size);
     void* FindKeyText(const char* key, std::uint32_t* size);
     void ListKeys(std::vector<std::string>* out, const char* pattern);
+
+    std::list<TextSource> archives;
 };
-static_assert(sizeof(TextSources) == 4);
 
 class CTextManager : public CEngineObject {
 public:
@@ -60,7 +59,6 @@ public:
     // The first word at the cursor (leading spaces and line ends skipped; it ends at a
     // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
     BOOL PeekWord(std::string* out);
-    using SourceNode = TextSources::Node;
 
     // Whether `p` is at or past the end of the current text (signed compare).
     BOOL IsPastEnd(const char* p);
@@ -110,12 +108,3 @@ public:
     const char* text_;      // start of the current text (null: none)
     std::uint32_t length_;  // size of the current text, written by GetFile
 };
-static_assert(offsetof(CTextManager, sources_) == 0x1C);
-static_assert(offsetof(CTextManager, length_) == 0x28);
-
-using TextSourceNode = TextSources::Node;
-
-struct TextSourceIterator {
-    CTextManager::SourceNode* node;
-};
-

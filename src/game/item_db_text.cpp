@@ -224,27 +224,3 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
     return 1;
 }
 
-TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
-    Node* next = pos->next;
-    Node* prev = pos->prev;
-    prev->next = next;
-    next->prev = prev;
-    std::destroy_at(&pos->data.name);   // the storage freed
-    if (pos) libcrt::NodeDeallocate(pos, sizeof(Node));   // checked only here, after using the node (always true)
-    *out = next;
-    return out;
-}
-
-TextSources::Node* TextSources::CreateNode(const TextSource* value) {
-    return stlp::list<TextSource>::CreateNode(*value);
-}
-
-TextSources::Node** TextSources::Insert(Node** out, Node* pos, const TextSource* value) {
-    Node* node = CreateNode(value);
-    node->next = pos;
-    node->prev = pos->prev;
-    pos->prev->next = node;
-    pos->prev = node;
-    *out = node;
-    return out;
-}

@@ -17,7 +17,6 @@
 #include <cstring>
 #include <memory>
 #include <vector>
-#include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
@@ -47,16 +46,6 @@ void PushBack(FrameQueue& v, CMapObject* const& value) {
     v.push_back(value);
 }
 
-using ObjectList = stlp::list<CMapObject*>;
-using ObjectListNode = ObjectList::Node;
-
-// Insert(pos, value): new node holding a reference; returns *result.
-ObjectListNode** ObjectListInsert(ObjectList* /*list*/, ObjectListNode** result, ObjectListNode* pos, CMapObject* const& value) {
-    *result = ObjectList::Insert<stlp::HeldObject>(pos, value);
-    return result;
-}
-ObjectList* DeferredUnits() { return FrameDeferredUnits(); }
-
 const int& g_multiplayerView = options::TheOptions()->drawVisibleOnly_;
 const int& g_modelTouchDelay = options::TheOptions()->shadowLightingFreq_;
 
@@ -81,7 +70,7 @@ CObject3DClientSpecific* ModelOf(CMapObject* object) {
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+int CWorldClient::CollectVisible(SectorList* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
     CTransformPipeline* device = Device();
     int touched = 0;
@@ -89,10 +78,7 @@ int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* v
     bool drawAllUnits = true;
     if (g_multiplayerView != 0 && Session()->sessionKind100_ == 1) drawAllUnits = false;
 
-    ObjectListNode* node = list->head->next;
-    if (node == list->head) return 0;
-    do {
-        CMapObject* object = node->data;
+    for (CMapObject* object : *list) {
         if (object && Object3D(object)->attached) {
             bool process = true;
             if (object->GetClassId() == world::kClassUnit) {
@@ -103,11 +89,7 @@ int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* v
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
-                    CMapObject* held = object;
-                    ++held->refCount_;
-                    ObjectListNode* result;
-                    ObjectListInsert(DeferredUnits(), &result, DeferredUnits()->head, held);
-                    held->Release();
+                    FrameDeferredUnits()->emplace_back(object);
                     process = false;
                 }
             }
@@ -176,8 +158,7 @@ int CWorldClient::CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* v
                 }
             }
         }
-        node = node->next;
-    } while (node != list->head);
+    }
     return touched;
 }
 

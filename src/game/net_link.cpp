@@ -5,7 +5,6 @@
 #include "core_streams.h"
 #include "net_connection.h"
 #include "net_messages.h"
-#include "record_lists.h"
 #include "world.h"   // CWorldHandle (CreatePair)
 
 #include "lib/file_io.h"
@@ -13,14 +12,13 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace netlink {
 
 namespace {
 
-using QueueElement = recordlist::QueueStreamElement;
-void NodeFree(void* a0, std::size_t a1) { libcrt::NodeDeallocate(a0, a1); }
 // The counted pointer release the classes inline: the count dropped, the object deleted at zero.
 void ReleaseCounted(CRefObject* object) {
     if (!object) return;
@@ -128,35 +126,19 @@ void NetLink::CloseRecording() {
 // LoopbackLink
 
 LoopbackLink::LoopbackLink() {
-    queue_.Construct();
     peer_ = nullptr;
 }
 
+// The game's queue copy is kept: each copy is a new stream of the source's size whose Read takes the source's
+// buffer, so the new stream's fresh bytes are read into the source (both then hold them).
 LoopbackLink::LoopbackLink(const LoopbackLink& other) : NetLink(other) {
-    queue_.head = nullptr;
-    auto* header = stlp::allocate_as<QueueNode>();
-    queue_.head = header;
-    header->next = header;
-    queue_.head->prev = queue_.head;
-    StreamQueue::InsertRange<QueueElement>(queue_.head->next, other.queue_.First(), other.queue_.End());
+    for (const CMemoryStream& source : other.queue_) {
+        CMemoryStream& copy = queue_.emplace_back();
+        copy.SetSize(source.size_);
+        copy.Read(source.data_, copy.size_);
+    }
     peer_ = other.peer_;
     if (peer_) ++peer_->refs_;
-}
-
-// The queue's destructor as it is inlined: every element's deleting destructor (flags 0),
-// the node back to the pool; then the header.
-void LoopbackLink::DestroyQueue() {
-    QueueNode* head = queue_.head;
-    for (QueueNode* node = head->next; node != head;) {
-        QueueNode* current = node;
-        node = node->next;
-        CStream* stream = &current->data;
-        stream->~CStream();
-        if (current) NodeFree(current, sizeof(QueueNode));
-    }
-    head->next = head;
-    head->prev = head;
-    if (head) NodeFree(head, sizeof(QueueNode));
 }
 
 // The first goes to the player's pending link; null for a null player. Without memory for the
@@ -175,17 +157,13 @@ LoopbackLink* LoopbackLink::CreatePair(CWorldHandle* player) {
     return second;
 }
 
-LoopbackLink::~LoopbackLink() {
-    ReleaseCounted(peer_);
-    DestroyQueue();
-}
+LoopbackLink::~LoopbackLink() { ReleaseCounted(peer_); }
 
 // Torn down (the queue cleared rather than destroyed) and built again in place (the reference count
 // and +9 kept): no peer, an empty queue, a closed file, not recording.
 int LoopbackLink::OnShutdown() {
     ReleaseCounted(peer_);
-    queue_.Clear<QueueElement>();
-    stlp::deallocate(queue_.head, 48);
+    std::destroy_at(&queue_);
     record_.~FileStream();
     new (this) LoopbackLink();
     return 0;
@@ -197,35 +175,29 @@ LoopbackLink* LoopbackLink::Clone() { return net::NewCounted<LoopbackLink>(*this
 bool LoopbackLink::Connected() { return IsLive(peer_); }
 
 bool LoopbackLink::Alive() {
-    if (!queue_.Empty()) return true;
+    if (!queue_.empty()) return true;
     return IsLive(peer_);
 }
 
-bool LoopbackLink::HasIncoming() { return !queue_.Empty(); }
+bool LoopbackLink::HasIncoming() { return !queue_.empty(); }
 
-int LoopbackLink::IncomingCount() {
-    int count = 0;
-    for (QueueNode* node = queue_.First(); node != queue_.End(); node = node->next) ++count;
-    return count;
-}
+int LoopbackLink::IncomingCount() { return static_cast<int>(queue_.size()); }
 
 // A new empty stream at the end of the peer's queue takes a copy of `stream` (its slot 7). False
 // without a live peer.
 bool LoopbackLink::Send(CStream* stream) {
     LoopbackLink* peer = peer_;
     if (!IsLive(peer)) return false;
-    StreamQueue::InsertDefault<QueueElement>(peer->queue_.End());
-    CStream* last = &peer_->queue_.head->prev->data;
-    last->CopyFrom(stream);
+    peer->queue_.emplace_back().CopyFrom(stream);
     return true;
 }
 
 // The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
 // does. False when nothing is queued.
 bool LoopbackLink::Receive(CMemoryStream* stream) {
-    if (queue_.Empty()) return false;
-    stream->CopyFrom(&queue_.First()->data);
-    StreamQueue::Erase<QueueElement>(queue_.First());
+    if (queue_.empty()) return false;
+    stream->CopyFrom(&queue_.front());
+    queue_.pop_front();
     Record(stream);
     return true;
 }

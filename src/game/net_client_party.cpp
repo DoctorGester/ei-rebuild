@@ -6,13 +6,14 @@
 #include "game_lists.h"
 #include "item.h"
 #include "party.h"
-#include "record_lists.h"
 #include "spell.h"
 
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
 #include <cstring>
+#include <iterator>
+#include <list>
 #include <vector>
 
 namespace net {
@@ -158,13 +159,9 @@ void ClientApplyParty(ClientSession* self) {
     for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);
 
     std::int32_t revision = static_cast<std::int32_t>(remote->revision_);
-    TradeRecordNode* sentinel = self->tradeRecords_.End();
-    for (TradeRecordNode* node = sentinel->next; node != sentinel;) {
-        TradeRecordNode* next = node->next;
-        if (static_cast<std::int32_t>(node->data.acceptedRevision) < revision)
-            stlp::list<TradeRecord>::Erase<recordlist::TradeElement>(node);
-        node = next;
-    }
+    std::list<TradeRecord>& records = self->tradeRecords_;
+    for (auto record = records.begin(); record != records.end();)
+        record = static_cast<std::int32_t>(record->acceptedRevision) < revision ? records.erase(record) : std::next(record);
     for (CEngineObject* item : items)
         if (item) item->Release();
 }

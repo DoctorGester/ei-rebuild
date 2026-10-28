@@ -1,7 +1,6 @@
 // The session's receive step, its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "console.h"
-#include "library_net_lists.h"
 #include "net_classes.h"
 #include "game_strings.h"
 #include "net_coder.h"
@@ -113,11 +112,10 @@ void LogConnection(const char* before, Connection* connection, const char* after
 } // namespace
 
 ClientNode** SessionBase::FindClient(ClientNode** out, const NetAddress* address) {
-    ClientNode* last = clients_;
-    ClientNode* first = clients_->next;
-    netlists::ClientsIterator found;
-    found.FindByAddress(first, last, address);
-    *out = found.node;
+    ClientNode* node = clients_->next;
+    while (node != clients_ && std::memcmp(&node->connection->address_, address, sizeof(NetAddress)) != 0)
+        node = node->next;
+    *out = node;
     return out;
 }
 

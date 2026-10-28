@@ -12,10 +12,10 @@
 #include "lib/file_io.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
-#include "lib/stlp_list.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 
 namespace net {
 class SessionBase;
@@ -58,8 +58,7 @@ public:
 };
 
 // The loopback link's queue.
-using StreamQueue = stlp::list<CMemoryStream>;
-using QueueNode = StreamQueue::Node;
+using StreamQueue = std::list<CMemoryStream>;
 
 class NetLink : public CRefObject {
 public:
@@ -116,9 +115,6 @@ public:
 
     StreamQueue queue_;
     LoopbackLink* peer_;         // counted
-
-private:
-    void DestroyQueue();
 };
 
 class ReplayLink final : public NetLink {

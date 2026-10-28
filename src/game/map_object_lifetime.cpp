@@ -24,7 +24,6 @@
 #include "lib/mfc.h"
 
 #include "ei/vcall.h"
-#include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "game_data.h"

@@ -24,7 +24,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 
 #include <cstdint>
 #include <cstring>
@@ -150,8 +149,7 @@ using PartyIds = CBattleScreen::PartyIds;
 // STLport lists of ids and unit pointers.
 using List = std::list<std::uintptr_t>;
 using ListNode = List::iterator;
-using UnitList = stlp::list<CMapObject*>;
-void NodeFree(void* a0, std::uint32_t a1) { libcrt::NodeDeallocate(a0, (std::size_t)a1); }
+using UnitList = std::list<CMapObject*>;
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
@@ -232,19 +230,6 @@ void RebuildClientParty(CBattleScreen* screen) {
     }
 }
 
-// Frees a list's nodes and empties it (the header is freed by the caller).
-template <typename L>
-void FreeListNodes(L* list) {
-    auto* header = list->head;
-    for (auto* node = header->next; node != header;) {
-        auto* next = node->next;
-        if (node) NodeFree(node, 0xC);
-        node = next;
-    }
-    header->next = header;
-    header->prev = header;
-}
-
 } // namespace
 
 void CBattleScreen::Update() {
@@ -299,12 +284,11 @@ void CBattleScreen::Update() {
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         UnitList units;
-        units.Construct();
         TheClientWorld()->UnitsInBox(&selectionBox_, &units);
         List inside;
-        for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
+        for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
-                if ((*party)[i] != node->data) continue;
+                if ((*party)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
             }
         }
@@ -324,10 +308,6 @@ void CBattleScreen::Update() {
                 unit->flags_ = flags | 0x100;
                 mark(unit, 1);
             }
-        }
-        FreeListNodes(&units);
-        if (units.head) {
-            stlp::PushSmallNode(units.head);
         }
     }
 
@@ -382,13 +362,12 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     auto unitAt = [&](int i) { return (*party)[i]; };
     int first = -1;
     UnitList units;
-    units.Construct();
     world->UnitsInBox(&selectionBox_, &units);
     List inside;
-    if (units.head->next != units.head) {
-        for (UnitList::Node* node = units.head->next; node != units.head; node = node->next) {
+    if (!units.empty()) {
+        for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
-                if ((*party)[i] != node->data) continue;
+                if ((*party)[i] != unit) continue;
                 inside.push_back(static_cast<std::uintptr_t>(i));
                 if (first < 0) first = i;
             }
@@ -425,10 +404,6 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     }
     RefreshSelection();
     boxSelecting_ = false;
-    FreeListNodes(&units);
-    if (units.head) {
-        stlp::PushSmallNode(units.head);
-    }
 }
 
 // --- a quest variable's notice -------------------------------------------------------------------

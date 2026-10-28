@@ -167,10 +167,9 @@ void BlinkOpen(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkOpen(
 void BlinkClose(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkClose(true); }
 
 bool UnitFaceHalves(std::vector<void*>* halves) {
-    MapObjectList::Node* head = TheClientWorld()->objects_.head;
-    if (!head) return false;
-    for (MapObjectList::Node* node = head->next; node != head; node = node->next) {
-        CMapObject* object = node->data;
+    CWorldClient* world = TheClientWorld();
+    if (!world) return false;
+    for (CMapObject* object : world->objects_) {
         if (!object || object->GetClassId() != world::kClassUnit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);

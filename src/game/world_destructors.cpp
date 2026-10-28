@@ -28,13 +28,6 @@ void RefPtrRelease(RefPtr* self);
 
 namespace {
 
-// A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
-// cells' lists (their vector deleting destructor), then the row pointers.
-void FreeGrid(SectorGrid& grid) {
-    if (grid.cells_) grid.cells_->VectorDelete(3);
-    gamecrt::operator_delete(grid.rows_);
-}
-
 // The server's lists' element destructors (their RemoveAll rows).
 // A shared object: its array of counted objects (the base vtable, every object released through
 // Release, the data freed).
@@ -129,13 +122,10 @@ CWorldClient::~CWorldClient() {
     scorchMarks_.clear();
     footprints_.clear();
     bloodPrints_.clear();
-    secondGrid_.Resize(1, 1);
-    FreeGrid(secondGrid_);
-    objectGrid_.Resize(1, 1);
-    FreeGrid(objectGrid_);
+    // The second grid still holds its objects: released here, as the original's destructor does.
+    secondGrid_.Free();
+    objectGrid_.Free();
     dynamicObjects_.clear();
-    objects_.Destroy();
-    DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();
     countedA0_.ReleaseAll();
     gamearrays::Exits::Destruct<mfc::impl::ExitArrayClass>(&exits_);
