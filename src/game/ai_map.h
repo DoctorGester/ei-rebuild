@@ -779,7 +779,7 @@ public:
     SearchGrid<AIMapCell> cells;        // the map's cells (cells.width x cells.height)
     SearchGrid<std::uint32_t> occluders;  // per-cell occluder words (see LineOfSight)
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers
-    AIEventTable events;                // the world's AI events (CWorldServer::AIEvents)
+    AIEventTable events;                // the world's AI events (CWorldServer::aiMap_.events)
 };
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).

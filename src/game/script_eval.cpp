@@ -105,8 +105,6 @@ net::ServerSession* ActiveServer() {
 
 WorldAlarm& Alarm(int index) { return g_serverWorld->alarms_[index]; }
 
-int WorldTick() { return g_serverWorld->tick_; }
-
 // GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
     const CWorldServer* world = &g_serverWorld.Get();
@@ -255,14 +253,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             return;
         }
         Vector3 buffer;
-        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(WorldTick(), f[0]));
+        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(g_serverWorld->tick_, f[0]));
         std::memcpy(result, id == 0xBF ? &position->x : &position->y, 4);
         return;
     }
     case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs[0]->object;
         int inWater = 0;
-        if (o) inWater = g_serverWorld->AIMap()->CellFlag80At(&ObjectSlots(o)->localPosition_) ? 1 : 0;
+        if (o) inWater = g_serverWorld->aiMap_.CellFlag80At(&ObjectSlots(o)->localPosition_) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -283,7 +281,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x60: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
         int b = Ftol(f[1]);
         int a = Ftol(f[0]);
-        int relation = GameDiplomacy()->GetRelation(a, b);
+        int relation = g_serverWorld->diplomacy_.GetRelation(a, b);
         StoreBits(result, kZero);
         if (relation == 2) StoreBits(result, kMinusOne);
         else if (relation == 0) StoreBits(result, kOne);
@@ -617,7 +615,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     }
     case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (FILD, FCOMP)
         EI_NAN_AUDIT(floatArgs[0]);
-        for (CEngineObject* o = objects.First(WorldObjectManager()); o; o = objects.Next()) {
+        for (CEngineObject* o = objects.First(g_serverWorld->objectManager_); o; o = objects.Next()) {
             CUnit* unit = UnitOrNull(o);
             if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }

@@ -14,6 +14,7 @@
 #include <string>
 
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -94,11 +95,11 @@ int CMapObjectClientSpecific::RunTick() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;
             int handle = endSound;
-            CSoundManager* soundSystem = TheSoundManager();
+            CSoundManager* soundSystem = g_clientWorld->sounds_;
             if (handle != -1 &&
                 (soundSystem->FindPlaying(handle) || soundSystem->FindDeferred(handle)))
                 continue;
-            endSound = TheSoundManager()->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
+            endSound = g_clientWorld->sounds_->Play3D(kEndSoundName, 0, &OwnerOf(this)->localPosition_.x,
                                                   kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -117,9 +118,9 @@ int CMapObjectClientSpecific::RunTick() {
                 name = str::Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            TheSoundManager()->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
+            g_clientWorld->sounds_->Play3D(name, 0, &OwnerOf(this)->localPosition_.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
-            TheSoundManager()->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
+            g_clientWorld->sounds_->MoveSequence(sound->handle, &OwnerOf(this)->localPosition_.x);
         }
     }
 
@@ -140,7 +141,7 @@ int CMapObjectClientSpecific::RunTick() {
             direction.x = followed->localPosition_.x - lightPosition.x;
             direction.y = followed->localPosition_.y - lightPosition.y;
             direction.z = followed->localPosition_.z - lightZ;
-            TheTerrain()->MoveLight(lamp, &direction);
+            g_clientWorld->terrain_->MoveLight(lamp, &direction);
             followed = OwnerOf(this);
             float* position = PositionOf(light);
             std::memcpy(position, &followed->localPosition_.x, 2 * sizeof(float));

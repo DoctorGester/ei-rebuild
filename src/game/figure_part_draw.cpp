@@ -32,8 +32,6 @@ constinit std::vector<VertexPacket> g_movedPositions = /*007C2E48*/ {};
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E58*/ {};
 // The scale the lights' colours are set with and the "crown" option.
-float LightingCoefficient() { return options::g_options->objectsLightingCoeff_; }
-int CrownOption() { return options::g_options->floraSpecialLight_; }
 
 // --- Helpers -------------------------------------------------------------------------------------
 
@@ -134,8 +132,8 @@ const render::MeshLighting* PartLighting(const Part& part) {
     l.emissiveColour[0] = c.emissive.x;
     l.emissiveColour[1] = c.emissive.y;
     l.emissiveColour[2] = c.emissive.z;
-    l.coefficient = LightingCoefficient();
-    l.crown = CrownOption() != 0 && text::CompareIgnoringCase(MeshName(part.node->mesh_), "crown") == 0;
+    l.coefficient = options::g_options->objectsLightingCoeff_;
+    l.crown = options::g_options->floraSpecialLight_ != 0 && text::CompareIgnoringCase(MeshName(part.node->mesh_), "crown") == 0;
     g_partLights.clear();
     for (int i = 0; part.lights && i < std::ssize(*part.lights); ++i) {
         const CLight* light = (*part.lights)[i];

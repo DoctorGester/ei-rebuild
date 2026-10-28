@@ -286,10 +286,10 @@ double WheelZoomFactor(int delta) {
 
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = SceneMesh(2);
-    CBaseManager* objects = TheObjectManager();
+    CBaseManager* objects = g_clientWorld->objectManager_;
     CPlayerClient* view = LocalView();
     int unitCount = view ? std::ssize(view->partyUnitIds_) : 0;
-    CLightFactory* markers = TheLightFactory();
+    CLightFactory* markers = g_clientWorld->lightFactory_;
     const std::list<int>& marked = markers->litIds_;
     const int markedCount = static_cast<int>(marked.size());
     int exitCount = static_cast<int>(std::ssize(g_clientWorld->exits_));

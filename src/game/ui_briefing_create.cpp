@@ -38,7 +38,6 @@
 
 namespace {
 
-float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 bool LoadingGame() { return g_saveStream->size_ != 0; }
 
 const char* SaveLoadTexture() { return "saveload"; }
@@ -106,7 +105,7 @@ void PlaceMover(BriefingMover* node) {
     if (!unit) return;
     CUnitServer* controller = unit->ServerController();
     Vector3 target{node->target.x, node->target.y, node->target.z};
-    TheSectorMap()->Move(unit, &target);
+    g_serverWorld->aiMap_.sectorMap.Move(unit, &target);
     Vector3 facing = NormalisedUnlessZero(node->direction);
     unit->SetHeading(&facing.x);
     node->person->SetHeading(&facing.x);
@@ -155,7 +154,7 @@ void StopTalking(CUnit* speaker) {
 
 // Whether the voice `handle` has ended (neither playing nor waiting).
 bool VoiceEnded(int handle) {
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -203,14 +202,14 @@ void CBriefingScreen::CreateScreen() {
     exitPending_ = true;
     exit_ = 0;
     leader_ = nullptr;
-    savedEdgeFade_ = MapEdgeFade();
-    MapEdgeFade() = kEdgeFade;
+    savedEdgeFade_ = options::g_options->borderFogDistance_;
+    options::g_options->borderFogDistance_ = kEdgeFade;
 
     if (MapRecord* record = FindLocalMap()) {
-        TheMusicSystem()->PlayBriefing(record->allod);
+        g_clientWorld->music_->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {
-        TheMusicSystem()->PlayBriefing(DefaultAllod());
+        g_clientWorld->music_->PlayBriefing(DefaultAllod());
         noWalk_ = false;
     }
     GameStartAmbience();

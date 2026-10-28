@@ -104,7 +104,7 @@ SIZE TextExtent(CInterface3D* ui, std::string_view text, int font) {
     return size;
 }
 
-CSceneRenderer* TitlesDisplay() { return SceneRenderer(); }
+CSceneRenderer* TitlesDisplay() { return &g_sceneRenderer.Get(); }
 
 struct TitlesTokenizer : TextTokenizer {
     // The current word, or "" past the last one (the original assigned null to a CString, which keeps "").
@@ -204,12 +204,12 @@ void COptionsWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = str::Format("tip option_group_%s", OptionGroupName(k));
-        if (TheTextManager()->Open(text.c_str()) != 0) TheTextManager()->ReadToHash(&text, 1);
+        if (g_clientWorld->texts_->Open(text.c_str()) != 0) g_clientWorld->texts_->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
-            TheTextManager()->GetString(key.c_str(), &text);
+            g_clientWorld->texts_->GetString(key.c_str(), &text);
         }
         groupNames_.push_back(text);
     }
@@ -321,7 +321,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     }
     case 2: {
         {
-            std::string path = *GameBasePathString() + "Movies\\Exit.bik";
+            std::string path = *g_discFolder + "Movies\\Exit.bik";
             PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
@@ -346,7 +346,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // second master server.
         if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         std::string text;
-        GameClientTexts()->CTextManager::GetString("reserved_04", &text);
+        g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
         g_interface->ShowStatusText(text);
         GameSetServerPaused(1);
         ui->PlaySound(okSound, 0);
@@ -426,8 +426,8 @@ void CDifficultyBox::CreateScreen() {
     int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     std::string explanation;
     int textHeight = 0;
-    if (TheTextManager()->Open("tip option_difficulty") != 0) {
-        TheTextManager()->ReadToHash(&explanation, 1);
+    if (g_clientWorld->texts_->Open("tip option_difficulty") != 0) {
+        g_clientWorld->texts_->ReadToHash(&explanation, 1);
         str::TrimRight(explanation, "\r\n");
         rect = RECT{15, 0, 385, 300};
         textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
@@ -442,8 +442,8 @@ void CDifficultyBox::CreateScreen() {
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     std::string easy;
     std::string hard;
-    TheTextManager()->GetString("difficulty_easy", &easy);
-    TheTextManager()->GetString("difficulty_hard", &hard);
+    g_clientWorld->texts_->GetString("difficulty_easy", &easy);
+    g_clientWorld->texts_->GetString("difficulty_hard", &hard);
     SIZE easySize = TextExtent(interface_, easy, 2);
     SIZE hardSize = TextExtent(interface_, hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
@@ -485,8 +485,8 @@ void CCreditsScreen::CreateScreen() {
     CInterface3D* ui = interface_;
     const std::string& name = name_;
     if (!fromGame_) {
-        TheSoundManager()->StopAll(1);
-        TheMusicSystem()->Stop();
+        g_clientWorld->sounds_->StopAll(1);
+        g_clientWorld->music_->Stop();
     }
     g_cursor->ShowImage(0);
     app::PlayMovies((name + "fin"), true, false, 0, 0);
@@ -550,7 +550,7 @@ void CCreditsScreen::CreateScreen() {
     if (fromGame_) GameSetServerPaused(0);
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
-    player_.Open((*GameBasePathString() + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
+    player_.Open((*g_discFolder + "Movies\\" + name + ".bik").c_str(),   // "<folder>Movies\<name>.bik"
                                              0);
     finished_ = false;
 }

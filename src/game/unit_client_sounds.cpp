@@ -101,7 +101,7 @@ void Shake(CUnit* unit) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -196,7 +196,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     EI_NAN_AUDIT(now, lastAnimationTime);
     if (now == lastAnimationTime) return;   // the same frame
     if (!current) return;
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     std::uint32_t kind = current->key & kKeyKind;
 
     bool action = false;     // ActionSound at `priority`

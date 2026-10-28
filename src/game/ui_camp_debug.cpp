@@ -29,8 +29,6 @@ const char* RuneItem() { return "Rune"; }
 const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell managers (their name lists).
-CItemManager* ItemDatabase() { return g_clientWorld->itemManager_; }
-CSpellManager* SpellDatabase() { return g_clientWorld->spellManager_; }
 
 constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;
@@ -82,13 +80,13 @@ bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
 void CCampPages::DebugFill() {
     std::vector<std::string> names;
     std::vector<std::string> materials;
-    ItemDatabase()->ListMaterialNames(&materials);
+    g_clientWorld->itemManager_->ListMaterialNames(&materials);
     const int materialCount = static_cast<int>(materials.size());
 
     if (CParty* items = itemParts_[0]) {
         items->Clear(1, 0);
 
-        ItemDatabase()->ListWeaponNames(&names);
+        g_clientWorld->itemManager_->ListWeaponNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemManager();
@@ -97,7 +95,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, weapon, kWeaponClass, materialCount);
         }
 
-        ItemDatabase()->ListArmorNames(&names);
+        g_clientWorld->itemManager_->ListArmorNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             CResourceManager* manager = items->ItemManager();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
@@ -107,7 +105,7 @@ void CCampPages::DebugFill() {
             AddInMaterials(items, manager, maker, armor, kArmorClass, materialCount);
         }
 
-        ItemDatabase()->ListQuickItemNames(&names);
+        g_clientWorld->itemManager_->ListQuickItemNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
             if (NameHas(quick, WandWord()))
@@ -116,7 +114,7 @@ void CCampPages::DebugFill() {
 
         // "Material.<name>" (CString + "." + name, two operator+), twenty each,
         // the record index left as made.
-        ItemDatabase()->ListMaterialNames(&names);
+        g_clientWorld->itemManager_->ListMaterialNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             std::string name = MaterialWord();
             name += Dot();
@@ -129,10 +127,10 @@ void CCampPages::DebugFill() {
 
     if (CParty* spells = spellParts_[0]) {
         spells->Clear(1, 0);
-        SpellDatabase()->ListModifierNames(&names);
+        g_clientWorld->spellManager_->ListModifierNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
-        SpellDatabase()->ListSpellNames(&names);
+        g_clientWorld->spellManager_->ListSpellNames(&names);
         for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }

@@ -159,7 +159,7 @@ int CUnitServer::RunTick() {
                 presence->x = unit->localPosition_.x;
                 presence->y = unit->localPosition_.y;
             }
-            presence = g_serverWorld->AIEvents()->StepNoise(&unit->localPosition_, this);
+            presence = g_serverWorld->aiMap_.events.StepNoise(&unit->localPosition_, this);
         }
         TickItemSpells();
         if (unit->player != nullptr) {
@@ -492,7 +492,7 @@ void CUnitServer::TickAction() {
         int cellX;
         int cellY;
         bool turning;
-        unit->Motion()->Sample(context, OrderOf(&motion), static_cast<float>(TickOf(context)),
+        unit->motion.Sample(context, OrderOf(&motion), static_cast<float>(TickOf(context)),
                                &turning, &position.x, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         unit->TurnUpTowards(direction, 0);

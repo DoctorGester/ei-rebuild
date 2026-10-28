@@ -22,6 +22,7 @@
 #include <string>
 
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -147,7 +148,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request.textures.push_back(name.c_str());
             }
             name = str::Format(kWoundCacheName, unit->id_);
-            result = TheTextureManager()->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
+            result = g_clientWorld->textureManager_->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
         }
     }
     return result;
@@ -170,7 +171,7 @@ WoundsMaterial::WoundsMaterial() {
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
     if (!partSets[0]) return 0;
-    CTextureManager* manager = TheTextureManager();
+    CTextureManager* manager = g_clientWorld->textureManager_;
     if (!woundsTexture) {
         AssignTexture(&woundsTexture, manager->FindTypedTexture(kWoundsTextureKind, name));
         if (!woundsTexture) {
@@ -212,12 +213,12 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     char name[0x400];
     if (unit->type_ == kTypeHero) std::snprintf(name, sizeof(name), kHeroFace, unit->name.c_str(), prototype->skin);
     else std::snprintf(name, sizeof(name), kFace, unit->name.c_str());
-    CTexture* texture = TheTextureManager()->FindOrCreate(kFaceTextureKind, name);
+    CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kFaceTextureKind, name);
     CTexture* old = faceTexture;
     faceTexture = texture;
     if (texture) ++texture->refCount_;
     if (old) old->Release();
-    TheTextureManager()->LoadTexture(faceTexture);
+    g_clientWorld->textureManager_->LoadTexture(faceTexture);
     CTexture* face = faceTexture;
     if (face->flags_ & kTextureLoaded) return true;
     faceTexture = nullptr;

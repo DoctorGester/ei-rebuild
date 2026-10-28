@@ -115,8 +115,8 @@ void CScreenFade::Start(int ms) {
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
-    if (!stack_.empty()) stack_.back()->Draw(SceneRenderer());
-    fade_->Draw(SceneRenderer());
+    if (!stack_.empty()) stack_.back()->Draw(&g_sceneRenderer.Get());
+    fade_->Draw(&g_sceneRenderer.Get());
     return 1;
 }
 

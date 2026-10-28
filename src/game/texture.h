@@ -208,7 +208,6 @@ public:
     virtual void BlurShadow(void* pixels, int width, int height);
     virtual void BlurShadow2(void* pixels, int width, int height);
 };
-CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its

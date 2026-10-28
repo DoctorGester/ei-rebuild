@@ -11,6 +11,7 @@
 #include "spell.h"         // CLight, CLightFactory
 
 #include "game_singletons.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -93,21 +94,21 @@ void CTorchObjectClientSpec::ShowEffects() {
     if (particles_) particles_->StartEmitting();
     if (light_ && (light_->flags_ & kLightHidden)) {
         light_->flags_ &= ~kLightHidden;
-        TheTerrain()->AddLight(light_);
+        g_clientWorld->terrain_->AddLight(light_);
     }
-    if (sound_) TheSoundManager()->StopSound(sound_);
+    if (sound_) g_clientWorld->sounds_->StopSound(sound_);
     const float farRadius = values_[1] * kShowFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = g_clientWorld->sounds_->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 
 void CTorchObjectClientSpec::HideEffects() {
     if (particles_) particles_->StopEmitting();
     if (light_ && !(light_->flags_ & kLightHidden)) {
         light_->flags_ |= kLightHidden;
-        TheTerrain()->RemoveLight(light_);
+        g_clientWorld->terrain_->RemoveLight(light_);
     }
     if (sound_) {
-        TheSoundManager()->StopSound(sound_);
+        g_clientWorld->sounds_->StopSound(sound_);
         sound_ = 0;
     }
 }
@@ -126,7 +127,7 @@ void CTorchObjectClientSpec::SetParticles(std::uint32_t type, const float* offse
         particles_ = nullptr;
         if (old) ReleaseSource(old);
     }
-    CParticleSource* source = TheParticleManager()->CreateSource(static_cast<int>(type));
+    CParticleSource* source = g_clientWorld->particleManager_->CreateSource(static_cast<int>(type));
     CParticleSource* old = particles_;
     particles_ = source;
     if (source) ++source->refCount_;
@@ -140,12 +141,12 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     SetFlame(offset, radius, colour);
     const Vector3 at = AtTorch(torch_, offset);
     if (light_) {
-        TheTerrain()->RemoveLight(light_);
+        g_clientWorld->terrain_->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old) old->Release();
     }
-    CLight* light = TheLightFactory()->CreateLight(kPointLightClass);
+    CLight* light = g_clientWorld->lightFactory_->CreateLight(kPointLightClass);
     CLight* old = light_;
     light_ = light;
     if (light) ++light->refCount_;
@@ -157,14 +158,14 @@ void CTorchObjectClientSpec::SetLightAt(const float* offset, float radius, const
     const float squared = static_cast<float>(radius * radius);
     light_->rangeSquared_ = squared;
     light_->inverseRangeSquared_ = 1.0f / squared;
-    TheTerrain()->AddLight(light_);
+    g_clientWorld->terrain_->AddLight(light_);
 }
 
 void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
-    if (sound_) TheSoundManager()->StopSound(sound_);
+    if (sound_) g_clientWorld->sounds_->StopSound(sound_);
     const float farRadius = values_[1] * kSetFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = g_clientWorld->sounds_->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 
 // Slots 6, 11 and 12: the update returns 1, the class name and id.

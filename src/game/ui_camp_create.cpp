@@ -323,7 +323,7 @@ void CCampPages::BuildPages() {
     NextHero();
 
     // The pages' titles.
-    CTextManager* texts = GameClientTexts();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string title;
     const char* const titleKeys[] = {
         "mode_weapons",
@@ -367,16 +367,16 @@ void CCampPages::BuildPages() {
 
     // The music of the allod the party's zone is on.
     const MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
-    TheMusicSystem()->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
+    g_clientWorld->music_->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
-    CTextureDevice* display = TheRenderDevice();
+    CTextureDevice* display = g_sceneRenderer->device_;
     D3DDEVICEDESC7 description = {};
     long result = device::GetCaps(display->d3dDevice_, &description);
     display->lastLoadResult_ = result;
     if (result != 0) app::FatalErrorCode(result, "Can't get device description.\n");   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
-        device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
+        device::SetRenderState(g_sceneRenderer->device_->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
     }
 }

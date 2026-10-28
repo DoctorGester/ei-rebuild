@@ -52,7 +52,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
     b.Int("zoneLoaded", w->zoneLoaded_);
     b.Int("scriptsActive", w->scriptsActive_);
     b.Vector("start.x", "start.y", "start.z", w->startPosition_);
-    b.Int("occluderReplanTime", w->AIMap()->footprintTick);
+    b.Int("occluderReplanTime", w->aiMap_.footprintTick);
     b.Int("sessionKind", w->sessionKind_);
     b.Unsigned("objects", static_cast<std::uint32_t>(w->objects_.map.size()));
     b.Unsigned("mapObjects", static_cast<std::uint32_t>(w->mapObjects_.map.size()));
@@ -179,7 +179,7 @@ void ReadUnit(CUnit* u, const std::map<const void*, int>& players, Builder& b) {
     b.Float("heightOffset", u->heightOffset);
     b.Int("sizeClass", u->sizeClass);
     b.Int("fightAtWill", u->fightAtWill);
-    const auto* m = u->Motion();
+    const auto* m = &u->motion;
     b.Int("motion.points", std::ssize(m->points));
     b.Int("motion.waypoints", std::ssize(m->waypoints));
     b.Int("motion.segment", m->segment);
@@ -625,7 +625,7 @@ void Read(void* server, Snapshot& s) {
 
     b.entity = &Slot(s.state, {kEvents, 0});
     b.entity->description = "events";
-    ReadEvents(w->AIEvents(), b);
+    ReadEvents(&w->aiMap_.events, b);
 
     b.entity = &Slot(s.state, {kScript, 0});
     b.entity->description = "script";
@@ -656,7 +656,7 @@ UnitNow Unit(void* server, int id) {
     CEngineObject* controller = u->controller;
     if (controller && controller->GetClassId() == kClassUnitServer) {
         auto* c = static_cast<CUnitServer*>(controller);
-        now.idle = c->action.kind == 0 && u->Motion()->points.empty();
+        now.idle = c->action.kind == 0 && u->motion.points.empty();
         now.experience = c->stats.experience;
     }
     return now;

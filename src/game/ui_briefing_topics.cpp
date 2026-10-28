@@ -82,7 +82,7 @@ std::string* CBriefingScreen::TopicTitle(std::string* out, std::string_view topi
         isConstructor = str::Compare(start, ConstructorTopic()) == 0;
     }
     if (isConstructor) key = ConstructorTopic();
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string section = BriefingSection();
     section += key;
     if (texts->CTextManager::Open(section.c_str())) texts->ReadLine(&title, 1);

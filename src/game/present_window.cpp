@@ -4,6 +4,7 @@
 #include "device.h"
 #include "texture.h"
 #include "game_singletons.h"
+#include "model.h"
 
 #include "../hook/log.h"
 #include "lib/gameapi.h"
@@ -15,7 +16,7 @@ namespace present_window {
 namespace {
 
 HWND Window() {
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     return device ? device->window_ : nullptr;
 }
 

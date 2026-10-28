@@ -217,7 +217,7 @@ const HighestObject& Highest(const CWorldClient* world) {
 
 void HandOverSceneLights(CWorldClient* world) {
     Terrain* terrain = world->terrain_;
-    CLight* sun = terrain && terrain->sun ? terrain->sun : SceneRenderer()->sun_;
+    CLight* sun = terrain && terrain->sun ? terrain->sun : g_sceneRenderer->sun_;
     if (!sun) return;
     static std::vector<render::ScenePointLight> points;
     points.clear();

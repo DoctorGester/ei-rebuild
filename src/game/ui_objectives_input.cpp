@@ -168,7 +168,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     }
     std::string header;
     std::vector<std::string> words;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     texts->Open(MapText());
     header = str::Format(QuestHeader(), name);
     if (texts->FindLine(header.c_str())) {

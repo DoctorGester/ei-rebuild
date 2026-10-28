@@ -525,8 +525,6 @@ public:
     int scriptsActive_;                   // non-zero: Tick runs the zone's script (set by Redeploy)
     Vector3 startPosition_;               // where joining players start
     CAIMap aiMap_;
-    CAIMap* AIMap() { return &aiMap_; }
-    AIEventTable* AIEvents() { return &aiMap_.events; }
     // Its globals_ hold the "Heroes" group.
     lib::InPlace<CScript> commandsA_;
     CScript* MainScript() { return commandsA_.Get(); }
@@ -1268,11 +1266,6 @@ std::string* SessionMapNameInto(std::string* out);
 // bz7g (case-insensitive) take progres1.bik.
 void SelectLoadingMovie(std::optional<std::string_view> zone);
 
-inline int TimeSpeedSetting() { return options::g_options->defaultTimeScale_; }
-inline float FogStartDay() { return options::g_options->fogDayStartDistance_; }
-inline float FogStartNight() { return options::g_options->fogNightStartDistance_; }
-inline float FarClipDistance() { return options::g_options->farClipDistance_; }
-
 extern std::vector<CMapObject*> g_touchedModels;
 extern std::vector<CMapObject*> g_shadow52;
 extern std::vector<CMapObject*> g_shadowUnits;
@@ -1306,9 +1299,6 @@ inline std::vector<CMapObject*>& FrameObjects(FrameList list) {
 extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
-inline int& NextClientObjectId() { return g_clientWorld->nextClientObjectId_; }
-inline CItemManager* WorldItemManager() { return g_serverWorld->itemManager_; }
-inline CMapObjectManager* WorldObjectManager() { return g_serverWorld->objectManager_; }
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

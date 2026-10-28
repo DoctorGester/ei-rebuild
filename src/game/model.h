@@ -190,7 +190,6 @@ public:
 };
 
 // The scene renderer's pipeline: stacks 1 and 2 take the scene matrices, 5 the world draw's, 9 the views.
-CTransformPipeline* ScenePipeline();
 
 struct tagRECT;
 struct ScreenPoints;
@@ -385,7 +384,7 @@ struct HeldDevice {
     CTextureDevice* device;
 };
 
-// The scene renderer (the global renderer object, SceneRenderer()).
+// The scene renderer (the global renderer object, &g_sceneRenderer.Get()).
 class CSceneRenderer : public CVisualizator {
 public:
     int SetFogColourState(std::uint32_t colour) override;
@@ -480,7 +479,6 @@ public:
     CSceneRenderer();
 };
 
-CSceneRenderer* SceneRenderer();
 
 // Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by the half extents,
 // y flipped.

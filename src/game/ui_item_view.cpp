@@ -27,6 +27,7 @@
 #include <cstring>
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 
 #include <cmath>
 #include <bit>
@@ -166,7 +167,7 @@ void SetShade(CUiMesh* sprite, float grey) {
 }
 
 void SetSpecular(int on) {
-    device::SetRenderState(device::D3D(TheRenderDevice()), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
+    device::SetRenderState(device::D3D(g_sceneRenderer->device_), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
 
 bool SameText(const char* a, const char* b) {
@@ -408,7 +409,7 @@ void CItemScreen::DrawHeroFace(CSceneRenderer* pass, HeroFaceCell* cell) {
 // --- An item's figure texture -------------------------------------------------------------
 
 CTexture* ItemFigureTexture(std::string_view name) {
-    CTextureManager* manager = TheTextureManager();
+    CTextureManager* manager = g_clientWorld->textureManager_;
     CTexture* texture = manager->NewTexture(0x100, 0x100, 0x20);
     if (!texture) return nullptr;
     ++texture->refCount_;
@@ -431,7 +432,7 @@ CTexture* ItemFigureTexture(std::string_view name) {
         std::uint32_t count = static_cast<std::uint32_t>(height) * static_cast<std::uint32_t>(width);
         pixels = new std::uint32_t[count];
         std::memset(pixels, 0, count * 4);
-        PixelConverter()->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
+        g_sceneRenderer->graphicsProcessor_->UnpackTo32(pixels, image + 1, count, image->format == kPnt3 ? 1 : 0);
     }
     gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels target;
@@ -475,7 +476,7 @@ int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidt
     {
         std::string base(name);
         std::string file = base + ".mmp";
-        image = TheTextureManager()->GetFileData(file);
+        image = g_clientWorld->textureManager_->GetFileData(file);
     }
     std::uint32_t* pixels = nullptr;
     if (image) {
@@ -513,6 +514,6 @@ int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidt
     }
     if (pixels) delete[] pixels;
     gameapi::LeaveCriticalSection(&g_deviceLock);
-    TheTextureManager()->FreeAllFiles();
+    g_clientWorld->textureManager_->FreeAllFiles();
     return image != nullptr;
 }

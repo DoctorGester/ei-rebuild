@@ -108,8 +108,8 @@ void CInterface3D::Update() {
         Activate(queuedWindow_);
         queuedWindow_ = nullptr;
     }
-    mouseX_ = MouseScreenX();
-    mouseY_ = MouseScreenY();
+    mouseX_ = g_cursor->position_.x;
+    mouseY_ = g_cursor->position_.y;
     if (disconnected_ && IsMultiplayerClient() && net::g_gameClient->joinState_ != 2) {
         disconnected_ = false;
         ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's

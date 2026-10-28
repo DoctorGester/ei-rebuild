@@ -10,6 +10,7 @@
 #include "ui_item_info.h"
 #include "texture.h"   // g_stageBlocks
 #include "unit.h"
+#include "ui_cursor.h"
 
 #include "ei/x87.h"
 #include "lib/gameapi.h"
@@ -37,7 +38,7 @@ void ClearDepth(CTextureDevice* device, unsigned long count, RECT* rects, float 
 // The screens' draws share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, CSceneRenderer* pass, bool mouseMove) {
     GameRender();
-    if (mouseMove) self->Input()->MouseMove(0, MouseScreenX(), MouseScreenY());
+    if (mouseMove) self->Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
     return static_cast<CUiContainer*>(self)->CUiContainer::Draw(pass);
 }

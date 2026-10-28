@@ -13,6 +13,7 @@
 #include "spell.h"         // CLight
 #include "ui.h"            // GameDeviceLock, UiTextureManager
 #include "game_singletons.h"
+#include "world.h"
 
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -106,7 +107,6 @@ void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
 // --- The renderer -----------------------------------
 
 // The renderer.
-CSceneRenderer* SceneRenderer() { return &g_sceneRenderer.Get(); }
 
 CSceneRenderer::CSceneRenderer() {
     device_ = nullptr;
@@ -222,7 +222,7 @@ int TextureHolderEnsureLoaded(HeldTexture* holder) {
     CTexture* texture = *holder;
     if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;
-    return TheTextureManager()->LoadTexture(texture);
+    return g_clientWorld->textureManager_->LoadTexture(texture);
 }
 
 void HeldTexture::Load(int kind, const char* name) {
@@ -230,7 +230,7 @@ void HeldTexture::Load(int kind, const char* name) {
         texture = nullptr;
         old->Release();
     }
-    auto* manager = TheTextureManager();
+    auto* manager = g_clientWorld->textureManager_;
     auto* found = manager->FindTypedTexture(kind, name);
     if (!found) found = manager->NewTextureOfType(kind);
     found->name_ = name;

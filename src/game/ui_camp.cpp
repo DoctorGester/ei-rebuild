@@ -28,6 +28,7 @@
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
+#include "ui_cursor.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -582,7 +583,7 @@ void CCampPages::UpdateAction() {
 
     std::string text;
     std::string line;
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     CUiSurface* draw = surfaces_[0];
     UiSurfaceGetDC(draw);
     draw->Clear();
@@ -608,8 +609,8 @@ void CCampPages::UpdateAction() {
 }
 
 BOOL CCampPages::Draw(CSceneRenderer* pass) {
-    int x = MouseScreenX();   // the mouse in screen pixels
-    int y = MouseScreenY();
+    int x = g_cursor->position_.x;   // the mouse in screen pixels
+    int y = g_cursor->position_.y;
     hoveredItem_ = nullptr;
     int topic = 0;
     // The page buttons' help topics.
@@ -785,7 +786,7 @@ bool CCampPages::CanMakeItem() {
 
 void CCampPages::Close() {
     GameSetServerPaused(0);
-    device::SetRenderState(TheRenderDevice()->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
+    device::SetRenderState(g_sceneRenderer->device_->d3dDevice_, D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, their keys raised meanwhile.
     std::vector<PartyUnitRecord*> records = {};
@@ -1109,7 +1110,7 @@ void CCampPages::PreviousHero() {
 
 void CCampPages::ShowHero() {
     CUnit* unit = heroes_[hero_];
-    CTextManager* table = GameClientTexts();
+    CTextManager* table = g_clientWorld->texts_;
     std::string name;
     std::string own = unit->GetName();
     if (own.size() == 0) {

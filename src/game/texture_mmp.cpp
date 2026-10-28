@@ -28,7 +28,6 @@ namespace {
 
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
-int MipmapsEnabled() { return options::g_options->mipmapping_; }
 
 // The alpha kind from the file (texture flags 0x4000..0x20000), and the texture loaded.
 void MarkLoaded(CTexture* texture, const MmpHeader* header) {
@@ -110,7 +109,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
         }
         levels = header->mipCount - mip;
     }
-    if (!MipmapsEnabled()) levels = 1;
+    if (!options::g_options->mipmapping_) levels = 1;
     height_ = height;
     width_ = width;
 

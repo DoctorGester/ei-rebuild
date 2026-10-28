@@ -29,7 +29,7 @@ constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 
 // The scene's transform pipeline: the picking stack, the clip stack an object's matrix is pushed on to classify it,
 // and the view stack.
-CTransformPipeline* Device() { return ScenePipeline(); }
+CTransformPipeline* Device() { return g_sceneRenderer->pipeline_; }
 float* StackTop(CTransformPipeline* device, int index) {
     MatrixStack& stack = device->stacks_[index];
     return stack.matrices[stack.count - 1].m;

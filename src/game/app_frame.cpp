@@ -46,7 +46,7 @@ std::string* ConcatText(std::string* a0, const std::string* a1, const char* a2) 
 // render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
 // without a surface (renderer.md section 9): nothing to fill, the result 0.
 void ClearScreen() {
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     gameapi::EnterCriticalSection(&g_deviceLock);
     device->lastLoadResult_ = 0;
     gameapi::LeaveCriticalSection(&g_deviceLock);
@@ -70,7 +70,7 @@ void FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     LockCursorAtCallSite();
     CursorDrawFrame(&g_cursor.Get());
-    if (DevicePresent(TheRenderDevice())) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
+    if (DevicePresent(g_sceneRenderer->device_)) game::FatalError("Can't flip render surface");   // "Can't flip render surface"
     g_cursor->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
@@ -84,7 +84,7 @@ void FrameStep(bool draw, bool cursor) {
     // {0, 0, width, height} of the render target's surface; without one the game passes two stack
     // words it never set.
     std::uint32_t rect[5];
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     std::uint32_t width = rect[4], height = rect[4];
     if (device->primary_) {
         CDXSurface* target = device->renderTarget_;

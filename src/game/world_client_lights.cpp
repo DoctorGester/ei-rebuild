@@ -75,7 +75,7 @@ float Scaled(float value, float scale) {
 }
 
 float FogStart(float hour) {
-    const float day = FogStartDay(), night = FogStartNight();
+    const float day = options::g_options->fogDayStartDistance_, night = options::g_options->fogNightStartDistance_;
     double fog;
     if (hour >= kDayStart && hour <= kDayEnd) fog = day;
     else if (hour < kNightStart && hour > kDawnStart) {
@@ -118,7 +118,7 @@ int GameFtol(double value) {
 } // namespace
 
 int CWorldClient::UpdateLighting() {
-    auto* display = SceneRenderer();
+    auto* display = &g_sceneRenderer.Get();
     if (!(display->flags_ & 1)) return 1;
     UpdateExitMarkers();
     const double now = HourOfDay(this);
@@ -128,7 +128,7 @@ int CWorldClient::UpdateLighting() {
         float stored = static_cast<float>(now);
         const float hour = stored;
         if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
-        transform->SetDepthRange(FogStartDay(), FarClipDistance());
+        transform->SetDepthRange(options::g_options->fogDayStartDistance_, options::g_options->farClipDistance_);
         const LightColour sun = sunlight_[0];
         frameSun_.r = sun.r;
         frameSun_.g = sun.g;
@@ -168,7 +168,7 @@ int CWorldClient::UpdateLighting() {
     float stored = static_cast<float>(now);
     const float hour = stored;
     const int index = GameFtol(now);
-    transform->SetDepthRange(FogStart(hour), FarClipDistance());
+    transform->SetDepthRange(FogStart(hour), options::g_options->farClipDistance_);
     lightingMark_ = 0x80;
     if (g_lastLitHour > hour) g_lastLitHour = -1.0f;
 

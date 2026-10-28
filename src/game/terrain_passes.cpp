@@ -24,8 +24,6 @@ constexpr std::uint32_t kLit = 4;       // SectorAt's stage: the sector is lit (
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
 // The squared-distance limits of the levels of detail 0 and 1.
-float DetailNear() { return options::g_options->lod1_; }
-float DetailFar() { return options::g_options->lod2_; }
 
 
 // Calls `visit(sector)` for every visible sector (SetVisibleSectors' rows and columns) that is
@@ -113,8 +111,8 @@ void Terrain::ChooseDetail(SectorData* sector) {
     const float distanceSquared = DistanceSquaredZYX(centre + localPosition_, g_camera->localPosition_);
     int level = 2;
     EI_NAN_AUDIT(distanceSquared);
-    if (distanceSquared < DetailNear() * DetailNear() && minDetail <= 0) level = 0;
-    else if (distanceSquared < DetailFar() * DetailFar() && minDetail <= 1) level = 1;
+    if (distanceSquared < options::g_options->lod1_ * options::g_options->lod1_ && minDetail <= 0) level = 0;
+    else if (distanceSquared < options::g_options->lod2_ * options::g_options->lod2_ && minDetail <= 1) level = 1;
     sector->SetDetail(level);
 }
 

@@ -53,7 +53,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 // Back to the main menu: the "reserved_04" status text, the session ended, the screen closed.
 void BackToMainMenu(CInterface3D* ui) {
     std::string text;
-    GameClientTexts()->CTextManager::GetString("reserved_04", &text);
+    g_clientWorld->texts_->CTextManager::GetString("reserved_04", &text);
     g_interface->ShowStatusText(text);
     uiorig::PlayUiSound(ui, game::CancelSoundText(), 0);
     g_gameFlow->EndSession();
@@ -102,8 +102,7 @@ void MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 
 // The heroes' folder and the records.
 const std::string& MpHeroesFolder() { return g_savedParties->folder_; }
-std::vector<MpHeroRecord>& MpHeroes() { return g_savedParties->entries_; }
-std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(MpHeroes().size()); }
+std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(g_savedParties->entries_.size()); }
 constexpr std::uint32_t kListRows = 10;
 constexpr int kAnswerOk = 0x10001;
 
@@ -520,9 +519,9 @@ void SavedParties::Select(const MpHeroRecord* hero) { outsideGame_ = *hero; }
 
 void CMpHeroScreen::DeleteHero() {
     if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
-    std::string path = MpHeroesFolder() + MpHeroes()[heroIndex_].file;
+    std::string path = MpHeroesFolder() + g_savedParties->entries_[heroIndex_].file;
     gameapi::DeleteFileA(path.c_str());
-    MpHeroes().erase(MpHeroes().begin() + heroIndex_);
+    g_savedParties->entries_.erase(g_savedParties->entries_.begin() + heroIndex_);
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     RefreshHeroScroll();
@@ -547,7 +546,7 @@ void CMpHeroScreen::RefreshHeroScroll() {
 void CMpHeroScreen::OnMessageResult(int result) {
     if (result == kAnswerOk) MpHeroDelete(this);
     if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
-        MpHeroRecord* hero = &MpHeroes()[heroIndex_];
+        MpHeroRecord* hero = &g_savedParties->entries_[heroIndex_];
         hero->Party()->Assign(LocalPlayerData());
         hero->WriteFile(HeroesFolder());
     }
@@ -580,7 +579,7 @@ void CMpHeroScreen::AddNewHero() {
     }
 
     // A new record; at capacity the original copies a blank one into the grown storage (a party copy draws ids).
-    std::vector<MpHeroRecord>& heroes = MpHeroes();
+    std::vector<MpHeroRecord>& heroes = g_savedParties->entries_;
     if (heroes.size() == heroes.capacity()) {
         MpHeroRecord blank;
         g_savedParties->ReserveOne();

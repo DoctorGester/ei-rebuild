@@ -2,12 +2,13 @@
 // event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
 #include "model.h"
 #include "ui.h"
+#include "game_singletons.h"
 
 #include "ei/x87.h"
 
 namespace {
 // The scene renderer: the last frame's length in milliseconds.
-std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
+std::uint32_t FrameMilliseconds() { return g_sceneRenderer->FrameTime(); }
 
 } // namespace
 

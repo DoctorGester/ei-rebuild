@@ -47,7 +47,7 @@ bool Important(int kind) {
 
 bool SoundBusy(int handle) {
     if (handle == -1) return false;
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     return sounds->FindPlaying(handle) || sounds->FindDeferred(static_cast<std::uint32_t>(handle));
 }
 
@@ -104,7 +104,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
 void CUnitClientSpecific::StopSpeech() {
     for (const ClientSpeech& queued : speech) {
         if (queued.talking) SetTalking(unit->id_, false);
-        TheSoundManager()->StopSound(queued.sound);
+        g_clientWorld->sounds_->StopSound(queued.sound);
     }
     speech.clear();
 }
@@ -112,7 +112,7 @@ void CUnitClientSpecific::StopSpeech() {
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = TheSoundManager()->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = g_clientWorld->sounds_->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

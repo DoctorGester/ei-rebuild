@@ -46,9 +46,7 @@ constexpr int kShoutCannotDo = 0x0E;
 // --- Helpers --------------------------------------------------------------------------------------
 
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
-std::uint8_t& PathFlag() { return g_serverWorld->AIMap()->refreshUnits; }
-CSectorMap* ServerSectors() { return &g_serverWorld->aiMap_.sectorMap; }
-CAIMap* MapOf(CWorldServer* world) { return world->AIMap(); }
+CAIMap* MapOf(CWorldServer* world) { return &world->aiMap_; }
 float HalfCell() { return 1.0f /*0073EEE4*/ * 0.5f /*0073B86C*/; }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
@@ -263,9 +261,9 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             CMapObject* target = order->target;
             std::uint8_t savedFlag = 0;
             if (target) {
-                savedFlag = PathFlag();
-                PathFlag() = false;
-                ServerSectors()->Remove(target);
+                savedFlag = g_serverWorld->aiMap_.refreshUnits;
+                g_serverWorld->aiMap_.refreshUnits = false;
+                g_serverWorld->aiMap_.sectorMap.Remove(target);
             }
             CWorldServer* world = ServerWorld();
             path.path.object.mayExcludeRegions = unit->player == nullptr;
@@ -275,8 +273,8 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             unit->altPassCosts = savedAltPassCosts;
             if (!found) path.path.object.StandStill(unit);
             if (target) {
-                ServerSectors()->Add(target);
-                PathFlag() = savedFlag;
+                g_serverWorld->aiMap_.sectorMap.Add(target);
+                g_serverWorld->aiMap_.refreshUnits = savedFlag;
             }
             path.path.object.ToMotionOrder(&route);
             ok = actsFromDestination();

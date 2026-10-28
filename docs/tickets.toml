@@ -4919,7 +4919,7 @@ id = "C38c"
 title = "AIMap(), Motion(), AIEvents(): the harness's digest reader reads the fields"
 group = "cleanup"
 depends = ["C38a"]
-note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite."
+note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite. Done: AIMap()/AIEvents()/Motion() gone (replica: CAIMap::events at +0x26C8 inside CAIMap, offset asserts for aiMap_/events/motion); GameDataPathString/GameBasePathString, ShowHitNumbersOption/GameDifficulty and ~150 more free one-line getters { return EXPR; } (EXPR a global / field chain; options field getters, g_serverWorld/g_clientWorld/g_sceneRenderer/g_interface/g_cursor member getters, TheTextManager and friends), ~750 calls, by scratchpad C38c/batch1.py, batch2.py (plan: no argument; go: rewrite), batch3.py, blanks.py, includes.py <compiler log>, manual.patch (replica, digest reader, docs; apply it AFTER batch2 or batch2 sees no definitions to rewrite). Left (C38d): names that clash with a class member or a qualified call (CellSize camera::, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevels*, CurrentWorldTick), the out-of-line class member getters (CParty::ItemConstructor ..., CUnitServer::TamingStage), and file-local getters in tests/verify, src/render, src/lib."
 
 [[ticket]]
 id = "C40b"
@@ -4927,3 +4927,11 @@ title = "Offset-named members still left after C40a: manager3C_..58_ / manager18
 group = "cleanup"
 depends = ["C40a"]
 note = "Found by C40a (2026-10-28): members still named after an offset or a format id, not in C40a's list. Name each from its setters and readers (rewrite guide, the offset-name rule), as one scripted rename like C40 / C40a (C:\\Users\\Kirill\\AppData\\Local\\Temp\\claude\\E--workspace-ei\\68b512f1-2aa8-49c2-bc9c-9e235d7da745\\scratchpad\\C40a\\rename_c40a.py is the pattern). Also the methods UnitStats::Value6E8 / Value6E9."
+
+[[ticket]]
+id = "C38d"
+title = "The remaining one-line getters: clashing free names and out-of-line class member getters"
+group = "cleanup"
+model = "sonnet"
+depends = ["C38c"]
+note = "C38c left: free getters whose names clash with a class member or are called qualified (camera::CellSize, Cursor, ItemManager, Map, World, PanelOffset, VolumeSettingA/B, MovieVolumeSetting, LightLevelsSetting/Period, CurrentWorldTick in tests/vectors), and out-of-line member getters of the form T C::Name() { return field_; } (CParty::ItemConstructor / SpellConstructor / ItemFactory / SpellManager, CUnitServer::TamingStage, CWorldClient::TextureManager / ClientParticleManager, CEngineObject::ManagerContext, CUnit::IsDead / Radius ...: make the field public, callers read it; keep the virtual ones). Scripts: C38c/batch2.py as a base (scratchpad C38c)."

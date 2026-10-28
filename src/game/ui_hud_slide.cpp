@@ -329,7 +329,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
 
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     std::string key;
     for (int i = 0; i < kInfoTexts; ++i) {

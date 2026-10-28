@@ -51,7 +51,7 @@ constexpr int kMessageTameFailed = 0x16;
 
 CDiplomacy* DiplomacyOf(CWorldServer* world) { return &world->diplomacy_; }
 
-AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
+AIEventTable* AIEventsOf(CWorldServer* world) { return &world->aiMap_.events; }
 
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 

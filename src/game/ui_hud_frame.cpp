@@ -44,7 +44,6 @@ float FaceStep() { return 0.083333336f /*00741438*/; }   // one hour of the face
 float FaceOffset() { return 15.0f /*0073C518*/; }   // 15 hours
 float HandRadius() { return 73.0f /*00742B10*/; }
 float DialRadius() { return 30.0f /*0073BAF0*/; }
-float CentreX() { return widescreen::g_layoutWidth; }   // the clock centre (800; Rebirth's widescreen width)
 float CentreY() { return 600.0f /*00742B0C*/; }
 float BlinkBase() { return 1.4f /*0073CDF8*/; }
 float PulseAmplitude() { return 0.3f /*0073C54C*/; }
@@ -144,7 +143,7 @@ void CHudClock::Update() {
     Turn(objects[1], -1.0f, handAngle);
     double handSin = x87::fsin(handAngle);
     float handY = static_cast<float>(CentreY() - handSin * HandRadius());
-    float handX = static_cast<float>(x87::fcos(handAngle) * HandRadius() + CentreX());
+    float handX = static_cast<float>(x87::fcos(handAngle) * HandRadius() + widescreen::g_layoutWidth);
     Sprite(objects[1])->Place(handX, handY, FloatFromBits(kHandDepth));
 
     // The face turns with the time of day.
@@ -157,7 +156,7 @@ void CHudClock::Update() {
         Turn(mark, 1.0f, angle);
         double c = x87::fcos(angle);
         float y = static_cast<float>(CentreY() - c * DialRadius());
-        float x = static_cast<float>(x87::fsin(angle) * DialRadius() + CentreX());
+        float x = static_cast<float>(x87::fsin(angle) * DialRadius() + widescreen::g_layoutWidth);
         Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
         angle = static_cast<float>(D(angle) - D(static_cast<float>(D(Pi()) * DialStep())));
     }

@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 
 #include <d3d.h>
@@ -184,7 +185,7 @@ void SetRenderStates(CSceneRenderer* renderer, const GameOptions* settings) {
 // The default light: class 0x2E of the light factory, white, at (5, 5, -8), range 1e6,
 // +0x100 = 1e12, +0x104 = 1e-12 (stored as dwords).
 void AddDefaultLight(CSceneRenderer* renderer) {
-    CLight* light = TheLightFactory()->CreateLight(0x2E);
+    CLight* light = g_clientWorld->lightFactory_->CreateLight(0x2E);
     Vector3 colour = {1.0f, 1.0f, 1.0f};
     Vector3 position = {5.0f, 5.0f, -8.0f};
     light->SetDirectional(&colour, &position);

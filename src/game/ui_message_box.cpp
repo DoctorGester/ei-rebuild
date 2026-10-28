@@ -30,7 +30,7 @@ constexpr std::uint32_t kAnswerCancel = 2;
 
 void PlayExitMovieAndQuit() {
     {
-        std::string path = *GameBasePathString() + ExitMovie();
+        std::string path = *g_discFolder + ExitMovie();
         PlayMovie(path, 0, 0, 0, 1, 1, 1);
     }
     app::QuitGame(0);
@@ -90,7 +90,7 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
 void CDifficultyBox::OnLButtonDown(int, int x, int y) {
     switch (RegionAt(x, y)) {
     case 0:
-        GameDifficulty() = easy_;
+        options::g_options->difficulty_ = easy_;
         interface_->PlaySound(OkSound(), 0);
         interface_->SetPendingValue(result_ | kAnswerOk);
         break;
@@ -117,7 +117,7 @@ void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
     if (handled_) return;
     if (key == VK_RETURN) {
-        GameDifficulty() = easy_;
+        options::g_options->difficulty_ = easy_;
         interface_->PlaySound(OkSound(), 0);
         interface_->SetPendingValue(result_ | kAnswerOk);
     } else if (key == VK_ESCAPE) {

@@ -26,14 +26,6 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-const std::string* GameDataPathString() {
-    return &g_dataFolder.Get();
-}
-
-const std::string* GameBasePathString() {
-    return &g_discFolder.Get();
-}
-
 int FinishQuestMap(const char* name) {
     net::ServerSession* server = net::g_gameServer;
     if (!server || (server->flags7_ & CRefCounted::kDetached)) return 0;
@@ -49,8 +41,6 @@ constexpr unsigned kFolderBufferSize = 0x400;
 constexpr double kHoursPerDay = 24.0;
 const char kConstructionVariable[] = "constr.current";
 // Every window closes before the next input message or by the next pass (CloseAllPending, Activate, Draw).
-bool& CloseAllRequested() { return g_interface->closeAll_; }
-float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 const char* DefaultMusic() { return options::g_options->defaultStreamingSound_.c_str(); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
 constexpr std::uint32_t kTerrainAmbience = 8;            // Terrain landscapeFlags
@@ -114,8 +104,6 @@ void GamePassTime(float offset) {
 
 void GameEnsureZone(std::string_view map, std::string_view mob) { g_serverWorld->EnsureZone(map, mob); }
 
-CMemoryStream* GameObject7C2D60() { return &g_serverWorld->zoneHeader_; }
-
 void GameSetUnitHeight(int id, float z) {
     CWorldServer* world = &g_serverWorld.Get();
     auto* unit = world->FindUnit(id);
@@ -127,8 +115,6 @@ void GameSetUnitHeight(int id, float z) {
     world->aiMap_.sectorMap.Move(unit, &target);
     unit->MarkChanged(2);
 }
-
-std::uint8_t GameServerPaused() { return g_serverWorld->paused_; }
 
 void GameSetServerPaused(int paused) { g_serverWorld->SetServerPaused(static_cast<std::uint8_t>(paused)); }
 
@@ -200,12 +186,12 @@ void GameLeaveThroughExit(int exit) {
 }
 
 void GameSendLeave04(int value) {
-    CloseAllRequested() = 1;
+    g_interface->closeAll_ = 1;
     LocalClient()->SendLeave04(value);
 }
 
 void GameRejoin() {
-    CloseAllRequested() = 1;
+    g_interface->closeAll_ = 1;
     LocalClient()->Rejoin();
 }
 
@@ -218,6 +204,3 @@ CPlayerClient* GameLocalView() { return g_clientWorld->LocalView(); }
 
 int GameSendFlag10(int value) { return g_clientWorld->SendFlag10(value); }
 
-std::uint8_t GameClientPaused() { return g_clientWorld->paused_; }
-
-CTextManager* GameClientTexts() { return g_clientWorld->texts_; }

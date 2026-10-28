@@ -15,6 +15,7 @@
 #include "render/render_state.h"
 #include "render/render.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <cstdint>
 
@@ -82,7 +83,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
         return;
     }
     if (!s.name.empty()) {
-        CTexture* texture = TheTextureManager()->FindTexture(s.name.data());
+        CTexture* texture = g_clientWorld->textureManager_->FindTexture(s.name.data());
         CEngineObject* old = s.texture;
         s.texture = texture;
         if (texture) ++texture->refCount_;
@@ -103,7 +104,7 @@ void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
         device->BindSurface(stage, TextureSurface(s.texture));
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, TheTextureManager()->FindTexture(s.name.data()));
+        AssignTexture(&s.texture, g_clientWorld->textureManager_->FindTexture(s.name.data()));
         device->BindTexture(stage, s.texture);
     } else {
         device->BindSurface(stage, nullptr);
@@ -116,7 +117,7 @@ void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (!s.name.empty()) {
-        AssignTexture(&s.texture, TheTextureManager()->FindTexture(s.name.data()));
+        AssignTexture(&s.texture, g_clientWorld->textureManager_->FindTexture(s.name.data()));
         if (s.texture) surface = TextureSurface(s.texture);
     }
     device->BindSurface(0, surface);

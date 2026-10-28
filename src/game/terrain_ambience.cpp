@@ -125,7 +125,7 @@ std::string* CWorldClient::AmbienceTimeOfDay(std::string* out) {
 }
 
 void Terrain::PlayAmbience() {
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
@@ -264,7 +264,7 @@ void Terrain::PlayAmbience() {
 void Terrain::StopAmbience() {
     landscapeFlags &= ~8u;
     for (int slot = 0; slot < 3; ++slot) {
-        ambientSounds[slot] = TheSoundManager()->StopSound(ambientSounds[slot]);
+        ambientSounds[slot] = g_clientWorld->sounds_->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;
     }
 }
@@ -280,7 +280,7 @@ void terrain::CountAmbientVariants(const char* set) {
         for (;;) {
             char name[260];
             std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\day\\%i.wav", set, kind.name, kind.variants + 1);
-            if (TheSoundManager()->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
+            if (g_clientWorld->sounds_->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
             ++kind.variants;
         }
     }

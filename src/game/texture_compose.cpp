@@ -97,7 +97,7 @@ void WriteLevels(lib::File& file, const MmpHeader& header, std::vector<std::uint
     unsigned count = height * width;
     std::vector<std::uint16_t> converted(count);
     std::vector<std::uint32_t> halved(count);
-    CPixelConverter* converter = PixelConverter();
+    CPixelConverter* converter = g_sceneRenderer->graphicsProcessor_;
     converter->ConvertTo16(converted.data(), image.data(), kind, count);
     file.Write(converted.data(), count * 2);
     std::uint32_t* source = image.data();
@@ -122,7 +122,7 @@ void WriteLevels(lib::File& file, const MmpHeader& header, std::vector<std::uint
 
 
 int CTextureManager::DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width) {
-    CPixelConverter* converter = PixelConverter();
+    CPixelConverter* converter = g_sceneRenderer->graphicsProcessor_;
     int drawn = 0;
     for (const std::string& name : *names) {
         auto* data = GetFileData(name);

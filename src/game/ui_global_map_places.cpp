@@ -34,7 +34,7 @@ constexpr const char* kMissingNumber = "0";
 
 // The text `prefix` + `name` (empty when there is none), into `out`.
 std::string* PlaceTitle(std::string* out, std::string_view prefix, std::string_view name) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text;
     std::string key(prefix);
     key += name;
@@ -73,7 +73,7 @@ std::string* CGlobalMap::QuestTitle(std::string* out, std::string_view quest) { 
 // --- positions -----------------------------------------------------------------------------------
 
 bool CGlobalMap::ReadMapPosition(Vector3* out, std::string_view prefix, std::string_view name, bool positionLine) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string key;
     std::vector<std::string> words;
     texts->Open(kMapText);
@@ -159,10 +159,10 @@ void CGlobalMap::RefreshSelection() {
     ShowAllButZones(0);
     SetRenderState(interface_->renderer_, kShadeMode, 1);
     SetRenderState(interface_->renderer_, kDitherEnable, 0);
-    std::uint32_t colour = SceneRenderer()->fogColour_;
-    SceneRenderer()->fogColour_ = 0;
+    std::uint32_t colour = g_sceneRenderer->fogColour_;
+    g_sceneRenderer->fogColour_ = 0;
     app::FrameStep(false, false);
-    SceneRenderer()->fogColour_ = colour;
+    g_sceneRenderer->fogColour_ = colour;
     SetRenderState(interface_->renderer_, kShadeMode, 2);
     SetRenderState(interface_->renderer_, kDitherEnable, 1);
     surfaces_[1]->Freeze(1, 0);
@@ -178,7 +178,7 @@ void CGlobalMap::RefreshSelection() {
 void CGlobalMap::SetWeather() {
     int index = weatherIndex_;
     if (index < 4) {
-        SceneRenderer()->fogColour_ = Argb(&weatherTable_[0]);
+        g_sceneRenderer->fogColour_ = Argb(&weatherTable_[0]);
     } else if (index < 8) {
         Marker(markerCount_)->flatColour_ = Argb(&weatherTable_[4]);
     } else if (index < 12) {

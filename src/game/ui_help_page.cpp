@@ -18,6 +18,7 @@
 #include <cstring>
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -114,7 +115,7 @@ void CHelpWindow::ShowPage() {
     ClearRegions();
     ClearSceneObjects();
 
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::vector<std::string> words;
     BOOL found;
     {

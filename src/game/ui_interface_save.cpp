@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -75,7 +76,7 @@ char g_pauseMessageKey[12] = /*007930EC*/ {"reserved_02"};
 std::string* CInterface3D::MessageText(std::string* out, int id, const char* value) {
     std::string key, text;
     if (static_cast<unsigned>(id) <= 12) key = kMessageKeys[id];
-    CTextManager* table = TheTextManager();
+    CTextManager* table = g_clientWorld->texts_;
     table->CTextManager::GetString(key.c_str(), &key);
     if (value)
         text = str::Format(key.c_str(), value);

@@ -112,7 +112,6 @@ float g_clientSpeed = /*00784758*/ 1.0f;
 std::uint8_t g_littleNonLocalMemory = /*00784755*/ 1;
 constexpr DWORD kLittleMemory = 0x800000;
 
-SkillDatabase* SkillDatabaseObject() { return &g_skillDatabase.Get(); }
 
 
 // ---- Start-up --------------------------------------------------------------------------------------
@@ -323,20 +322,20 @@ DWORD CreateRenderer() {
     camera->localPosition_.x = options->cameraDefaultXDeploy_;
     camera->localPosition_.y = options->cameraDefaultYDeploy_;
     camera->localPosition_.z = options->cameraDefaultHeight_;
-    SceneRenderer()->CreateRenderer(g_mainWindow, options);
+    g_sceneRenderer->CreateRenderer(g_mainWindow, options);
 
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY;
-    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
+    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
     DWORD other = free;
     caps.dwCaps = DDSCAPS_TEXTURE;
-    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
+    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
     g_littleTextureMemory = free <= kLittleMemory;
     if (free < other) other -= free;
     g_littleOtherMemory = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
-    device::GetAvailableVidMem(TheRenderDevice()->ddraw_, &caps, &total, &free);
+    device::GetAvailableVidMem(g_sceneRenderer->device_->ddraw_, &caps, &total, &free);
     g_littleNonLocalMemory = free <= kLittleMemory;
     g_deviceNamed = options->driverIndex_ != 0;
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);
@@ -350,34 +349,34 @@ std::uintptr_t OpenSound() {
     std::string textFolder = *g_textFolder;
     std::string dataFolder = *g_dataFolder;
     std::string discFolder = *g_discFolder;
-    TheSoundManager()->Open(g_mainWindow, 1, -1, 44100, 16);
+    g_clientWorld->sounds_->Open(g_mainWindow, 1, -1, 44100, 16);
     {
         std::string registry = textFolder + "streamsn.reg";
         std::string folder = dataFolder + "stream\\";
-        TheSoundManager()->SetPath(folder, registry);
+        g_clientWorld->sounds_->SetPath(folder, registry);
     }
     {
         std::string effects = textFolder + "sfx.res";
-        CSoundManager* sound = TheSoundManager();
+        CSoundManager* sound = g_clientWorld->sounds_;
         sound->ClearWaveSources();
         sound->AddWaveSource(effects);
     }
     {
         std::string unused = discFolder + "res\\speech.res";   // "res\speech.res" (built twice)
         std::string speech = discFolder + "res\\speech.res";
-        TheSoundManager()->AddWaveSource(speech);
+        g_clientWorld->sounds_->AddWaveSource(speech);
     }
-    TheSoundManager()->SetEffectsVolume(options->audioSfx_);
-    TheSoundManager()->SetSpeechVolume(options->audioSpeech_);
-    TheSoundManager()->SetMusicVolume(options->audioStreaming_);
-    TheSoundManager()->panDirect = options->reverseStereo_ != 0;
+    g_clientWorld->sounds_->SetEffectsVolume(options->audioSfx_);
+    g_clientWorld->sounds_->SetSpeechVolume(options->audioSpeech_);
+    g_clientWorld->sounds_->SetMusicVolume(options->audioStreaming_);
+    g_clientWorld->sounds_->panDirect = options->reverseStereo_ != 0;
     return reinterpret_cast<std::uintptr_t>(discFolder.c_str());
 }
 
 void LoadDatabases() {
     const std::string archive = "database.res";
     GameOptions* options = &options::g_options.Get();
-    SkillDatabaseObject()->Load(options->resourcesPath_, archive);
+    g_skillDatabase->Load(options->resourcesPath_, archive);
     g_questDatabase->Load(options->resourcesPath_);
     g_unitDatabase->Load(options->resourcesPath_, archive);
     g_spellDatabase->Load(options->resourcesPath_, archive);
@@ -439,15 +438,15 @@ void TakeActivationChange() {
     if (!g_activationChanged) return;
     if (g_active) {
         if (g_sceneRenderer->flags_ & 2) {
-            CTextureDevice* device = TheRenderDevice();
+            CTextureDevice* device = g_sceneRenderer->device_;
             gameapi::EnterCriticalSection(&g_deviceLock);
             device->lastLoadResult_ = device::RestoreAllSurfaces(device->ddraw_);
             gameapi::LeaveCriticalSection(&g_deviceLock);
         }
-        SceneRenderer()->flags_ |= 1;
+        g_sceneRenderer->flags_ |= 1;
         gameapi::SetCursor(nullptr);
     } else {
-        SceneRenderer()->flags_ &= ~1u;
+        g_sceneRenderer->flags_ &= ~1u;
         gameapi::InvalidateRect(nullptr, nullptr, TRUE);
     }
     g_activationChanged = 0;
@@ -525,7 +524,7 @@ void PrintClientSpeed(float speed, float balance) {
 bool RunPass() {
     TakeActivationChange();
     std::uint32_t elapsed = TimeSinceLastPass();
-    if (!(SceneRenderer()->flags_ & 1)) {
+    if (!(g_sceneRenderer->flags_ & 1)) {
         GuardPlayerData(0);
         return false;
     }
@@ -618,7 +617,7 @@ void ShutDown() {
     g_mouse = nullptr;
     if (mouse) ReleaseMouse(mouse);
     g_sceneRenderer->SetGamma(0.0f, 0.0f, 0.0f);
-    SceneRenderer()->DestroyRenderer();
+    g_sceneRenderer->DestroyRenderer();
     options::g_options->SaveToRegistry(g_registryRoot->c_str());
     g_clientWorld->SetCamera(nullptr);
     g_serverWorld->Destroy();
@@ -726,12 +725,12 @@ int GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
     CloseLoadingMovie();
     LoadDatabases();
     g_mouse->Setup(g_mainWindow, instance);
-    g_clientWorld->SetUpGraphics(TheRenderDevice());
+    g_clientWorld->SetUpGraphics(g_sceneRenderer->device_);
     // The last argument's upper three bytes are whatever the call before left behind; only the low
     // byte is a value (the shapes' flag: no device named).
     SetUpCursors(options->fpsIndependentCursor_ != 0, g_mouse, 0,
                  g_deviceNamed == 0);
-    g_interface->Create(TheRenderDevice());
+    g_interface->Create(g_sceneRenderer->device_);
     g_mapDatabase->LoadAll();
     StartFirstMap();
     g_sceneRenderer->SetGamma(options->brightness_, options->contrast_, options->gamma_);

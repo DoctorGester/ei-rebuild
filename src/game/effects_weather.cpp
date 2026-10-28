@@ -67,19 +67,19 @@ void CRainSnow::UpdateFade(float now) {
     EI_NAN_AUDIT(now, fadeStart);
     if (fadeDuration == kZero) {   // no fade running
         mode = targetMode;
-        if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld->sounds_->SetSoundVolume(sound, 100, 0);
     } else if ((now - fadeStart) / fadeDuration <= kOne) {
         double c = x87::fcos((now - fadeStart) / fadeDuration * kFadePi);
         float level = static_cast<float>((targetMode == 0 ? c + kOne : kOne - c) * kHalf);
-        if (sound) TheSoundManager()->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
+        if (sound) g_clientWorld->sounds_->SetSoundVolume(sound, x87::fistp(level * kVolumeScale), 0);
         density = x87::fistp(level * kDensityScale);
         return;
     } else {
         mode = targetMode;
-        if (targetMode == 1 && sound) TheSoundManager()->SetSoundVolume(sound, 100, 0);
+        if (targetMode == 1 && sound) g_clientWorld->sounds_->SetSoundVolume(sound, 100, 0);
     }
     if (mode == 0 && sound) {
-        TheSoundManager()->StopSound(sound);
+        g_clientWorld->sounds_->StopSound(sound);
         sound = 0;
     }
     density = 64;
@@ -97,7 +97,7 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
 
 void CRainSnow::Clear() {
     if (sound) {
-        TheSoundManager()->StopSound(sound);
+        g_clientWorld->sounds_->StopSound(sound);
         sound = 0;
     }
     CTexture* old = texture;
@@ -116,10 +116,10 @@ void CRainSnow::Clear() {
 void CRainSnow::Start(int newMode, float duration) {
     texture.Load(kWeatherTextureKind, WeatherTextureName());
     if (sound && newMode) {
-        TheSoundManager()->StopSound(sound);
+        g_clientWorld->sounds_->StopSound(sound);
         sound = 0;
     }
-    if (newMode == 1) sound = TheSoundManager()->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    if (newMode == 1) sound = g_clientWorld->sounds_->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
     targetMode = newMode;
     if (mode == 0) mode = newMode;
     std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));

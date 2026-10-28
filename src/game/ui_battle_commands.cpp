@@ -235,7 +235,7 @@ void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quic
 // --- a unit's speech event -----------------------------------------------------------------------
 
 void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
-    CUnit* unit = UnitWithId(TheObjectManager(), id);
+    CUnit* unit = UnitWithId(g_clientWorld->objectManager_, id);
     if (!unit) return;
     const SpeechRecord* phrase = (event == 0x2A || event == 0x2B) ? acks::SayNamedAck(unit, extra, event == 0x2B)
                                                                   : acks::SayAck(unit, static_cast<int>(event));
@@ -245,7 +245,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         std::string line;
         UnitName(unit, &line);
         line += ":\n";
-        CTextManager* texts = GameClientTexts();
+        CTextManager* texts = g_clientWorld->texts_;
         const char* name = phrase->name.data();
         BOOL found;
         {

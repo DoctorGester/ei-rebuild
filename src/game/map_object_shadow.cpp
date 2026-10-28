@@ -41,7 +41,6 @@
 
 namespace {
 
-int ShadowMode() { return options::g_options->shadowQuality_; }   // 0 off, 2 blurred
 int ShadowSwitch(int classId) {
     if (classId == 0x50) return options::g_options->unitShadow_;   // units
     if (classId == 0x52) return options::g_options->floraShadow_;
@@ -231,7 +230,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
             count += part->Rasterise(static_cast<CPixelConverter*>(device), &g_pixels[count], &target);
         }
     }
-    if (ShadowMode() == 2) {
+    if (options::g_options->shadowQuality_ == 2) {
         auto* converter = static_cast<CPixelConverter*>(device);
         converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
         converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
@@ -241,7 +240,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
 
     // Copy the surface into the shadow texture.
     CTexture* shadowTexture = self->texture;
-    shadowTexture->LoadPixelsFrom(TheRenderDevice(), surface);
+    shadowTexture->LoadPixelsFrom(g_sceneRenderer->device_, surface);
     // The new renderer takes the shadow from the CPU buffer, in the surface's pixel format.
     render::TexturePixels(shadowTexture->surface_, pixels.data(), kTextureSize, kTextureSize, description.pitch,
                           description.bitsPerPixel, description.redMask, description.greenMask, description.blueMask,
@@ -259,7 +258,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     Vector3 sum;
     sum = kDefaultLight;
     ObjectListIteratorOf<CLight> lights{};
-    for (CLight* light = lights.First(TheLightFactory()); light; light = lights.Next()) {
+    for (CLight* light = lights.First(g_clientWorld->lightFactory_); light; light = lights.Next()) {
         if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;
         Vector3 share;
         if (light->type_ == kTypePointLight) {
@@ -457,7 +456,7 @@ void FreePixels() {
 // --- The shadow -------------------------------------------------------------------------------
 
 bool ShadowCastStrength(CObject3D* object, float* strength) {
-    if (ShadowMode() <= 0) return false;
+    if (options::g_options->shadowQuality_ <= 0) return false;
     if (!ShadowSwitch(object->GetClassId())) return false;
     if (object->flags_ & kObjectHidden) return false;
     if (object->InvisibleSlot()) return false;
@@ -474,7 +473,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     render::CastsShadow(object, strength);
 
     if (!texture) {
-        AssignTexture(&texture, TheTextureManager()->NewShadowTexture());
+        AssignTexture(&texture, g_clientWorld->textureManager_->NewShadowTexture());
         if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
         std::snprintf(name, sizeof(name), "SR%d", object->id_);
@@ -503,9 +502,9 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     g_sceneRenderer->SetTexture(0, texture);
-    std::uint8_t lit = TheTerrain()->EdgeFade(&object->localPosition_);
+    std::uint8_t lit = g_clientWorld->terrain_->EdgeFade(&object->localPosition_);
     if (!makeTexture) return 1;   // the shadow map draws it
-    TheRenderDevice()
+    g_sceneRenderer->device_
         ->DrawFlatBlocks(vertices.data(), texCoords.data(), std::ssize(vertices), indices.data(),
                          std::ssize(indices), colour, static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                          std::bit_cast<float>(kDrawDepth));

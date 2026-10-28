@@ -1,7 +1,7 @@
 // CWorldClient's draw path: Render and DrawPass, with Rebirth's LandscapeDrawRadius and ObjectsDrawRadius
 // behind their flags. See world.h and docs/notes/world.md. Both talk to Direct3D 7 through the renderer
-// (TheRenderDevice(): d3dDevice_ the IDirect3DDevice7, lastLoadResult_ the last state block result) and to
-// the scene pipeline's matrix stacks (ScenePipeline()) with the same calls in the same order as the original.
+// (g_sceneRenderer->device_: d3dDevice_ the IDirect3DDevice7, lastLoadResult_ the last state block result) and to
+// the scene pipeline's matrix stacks (g_sceneRenderer->pipeline_) with the same calls in the same order as the original.
 #include "ground_print.h"
 #include "lightning.h"
 #include "options.h"
@@ -126,7 +126,6 @@ int LightEffectsSetting(const int& setting) { return setting; }
 int LightEffects1B8() { return LightEffectsSetting(options::g_options->enableBloodprints_); }
 int LightEffects1BC() { return LightEffectsSetting(options::g_options->enableFootprints_); }
 int LightEffects1C0() { return LightEffectsSetting(options::g_options->enableFireprints_); }
-int GameMode() { return options::g_options->selectionType_; }
 const char* MarkerPartName() { return "hp"; }
 
 float AddRounded(float a, float b) { return static_cast<float>(static_cast<double>(a) + b); }
@@ -207,8 +206,8 @@ int CWorldClient::Render() {
     // The world view for the new renderer's smooth option (multisampled, models sampled
     // anisotropically); the interface draws after it.
     render::BeginWorld();
-    CTextureDevice* renderer = TheRenderDevice();
-    CTransformPipeline* device = ScenePipeline();
+    CTextureDevice* renderer = g_sceneRenderer->device_;
+    CTransformPipeline* device = g_sceneRenderer->pipeline_;
     UpdateLighting();
     // The sun the new renderer's shadow map is drawn from: the terrain's (Terrain::SetSun), as this
     // frame's lighting turned it; the GPU lighting's sun, ambient and point lights.
@@ -271,22 +270,22 @@ int CWorldClient::Render() {
     net::Pump();
     if (flags_ & 0x400) {
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
-        SetRenderState(TheRenderDevice(), 27, 1);
-        SetRenderState(TheRenderDevice(), 15, 0);
-        SetRenderState(TheRenderDevice(), 19, 5);
-        SetRenderState(TheRenderDevice(), 20, 6);
+        SetRenderState(g_sceneRenderer->device_, 27, 1);
+        SetRenderState(g_sceneRenderer->device_, 15, 0);
+        SetRenderState(g_sceneRenderer->device_, 19, 5);
+        SetRenderState(g_sceneRenderer->device_, 20, 6);
         SetRenderState(renderer, 14, 0);
         arrayManager_->Draw(&g_sceneRenderer.Get());
-        SetRenderState(TheRenderDevice(), 19, 5);
-        SetRenderState(TheRenderDevice(), 20, 6);
+        SetRenderState(g_sceneRenderer->device_, 19, 5);
+        SetRenderState(g_sceneRenderer->device_, 20, 6);
         SetRenderState(renderer, 14, 0);
         CParticleManager* particles = ClientParticleManager();
         particles->DrawAll(&g_sceneRenderer.Get());
-        SetRenderState(TheRenderDevice(), 19, 5);
-        SetRenderState(TheRenderDevice(), 20, 6);
+        SetRenderState(g_sceneRenderer->device_, 19, 5);
+        SetRenderState(g_sceneRenderer->device_, 20, 6);
         listManager_->DrawAll(&g_sceneRenderer.Get());
-        SetRenderState(TheRenderDevice(), 19, 5);
-        SetRenderState(TheRenderDevice(), 20, 6);
+        SetRenderState(g_sceneRenderer->device_, 19, 5);
+        SetRenderState(g_sceneRenderer->device_, 20, 6);
         rainSnow_.Draw(&g_sceneRenderer.Get());
         SetRenderState(renderer, 14, 1);
     }
@@ -311,7 +310,7 @@ int CWorldClient::Render() {
 
 int CWorldClient::DrawLineLists() {
     for (auto node = lineLists_.begin(); node != lineLists_.end(); ++node)
-        node->second->Draw(ScenePipeline(), TheRenderDevice());
+        node->second->Draw(g_sceneRenderer->pipeline_, g_sceneRenderer->device_);
     return 1;
 }
 
@@ -355,8 +354,8 @@ void CWorldClient::HideWorldData() {
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;
     if (!terrain || !terrain->mapLoaded) return 0;
-    CTextureDevice* renderer = TheRenderDevice();
-    CTransformPipeline* device = ScenePipeline();
+    CTextureDevice* renderer = g_sceneRenderer->device_;
+    CTransformPipeline* device = g_sceneRenderer->pipeline_;
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
     g_deferredUnits->clear();
@@ -502,7 +501,7 @@ int CWorldClient::DrawPass() {
     // Selection markers (selectedIds_ of object ids) in single-player mode 1 with units drawn: a marker at
     // each living object (at its named part when it has one); dead ones leave the list.
     std::list<int>& selected = selectedIds_;
-    if (!selected.empty() && GameMode() == 1 && (flags_ & 0x80)) {
+    if (!selected.empty() && options::g_options->selectionType_ == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         g_sceneRenderer->SetTexture(0, nullptr);
         CMapObjectManager* manager = objectManager_;

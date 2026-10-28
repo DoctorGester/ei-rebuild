@@ -59,10 +59,10 @@ Quaternion TiltTimesSpin(const Quaternion& tilt, const Quaternion& spin) {
 
 // The cursor stops being held and goes back to where the drag began.
 void ReleaseDragCursor() {
-    int x = MouseScreenX();
-    int y = MouseScreenY();
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    int x = g_cursor->position_.x;
+    int y = g_cursor->position_.y;
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
     g_cursor->SetHeld(0);
     gameapi::SetCursorPos(x, y);
 }
@@ -81,8 +81,8 @@ void CGlobalMap::OnRightDown(int, int x, int y) {
     turning_ = 0;
     interface_->ScalePointFromScreenEntry(&dragStart_);
     dragAngle_ = angle_;
-    MouseDragY() = 0;
-    MouseDragX() = 0;
+    g_cursor->motion_.y = 0;
+    g_cursor->motion_.x = 0;
     g_cursor->SetHeld(1);
 }
 
@@ -94,7 +94,7 @@ void CGlobalMap::OnRightUp(int, int, int) {
 
 void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (dragging_) {
-        POINT drag{MouseDragX(), MouseDragY()};
+        POINT drag{g_cursor->motion_.x, g_cursor->motion_.y};
         console::EndLine(console::g_graphicsLogOut << static_cast<int>(drag.x) << ':' << static_cast<int>(drag.y));
         // Rebirth's WideScreen scales the drag without the margin (addon's entry).
         interface_->CallScalePointFromScreenNoMargin(&drag);
@@ -106,8 +106,8 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, 3.1415927f /*00742098*/ * 0.8f /*0073CCA8*/);
         Quaternion turn = TiltTimesSpin(tilt, spin);
         std::memcpy(&turn_, &turn, sizeof(turn));
-        MouseDragX() = 0;
-        MouseDragY() = 0;
+        g_cursor->motion_.x = 0;
+        g_cursor->motion_.y = 0;
         return;
     }
     bool isLink = false;
@@ -187,8 +187,8 @@ void CGlobalMap::OnKeyDown(int key, int repeat, int flags) {
 }
 
 void CGlobalMap::OnMessageResult(int) {
-    int x = MouseScreenX();
-    int y = MouseScreenY();
+    int x = g_cursor->position_.x;
+    int y = g_cursor->position_.y;
     turning_ = 0;
     dragging_ = false;
     selectPending_ = 1;

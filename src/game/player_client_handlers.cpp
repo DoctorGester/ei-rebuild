@@ -237,7 +237,7 @@ int CPlayerClient::OnObjectRemoved() {
 int CPlayerClient::OnUnitDied() {
     int id;
     in_.Read(&id, 4);
-    CEngineObject* object = TheObjectManager()->FindObject(static_cast<unsigned>(id));
+    CEngineObject* object = g_clientWorld->objectManager_->FindObject(static_cast<unsigned>(id));
     if (CUnit* unit = UnitOrNull(object)) unit->Controller()->Died();
     return 1;
 }

@@ -433,9 +433,8 @@ struct CUnit : CMapObject {
     int fightAtWill;                        // +0x438
     std::uint32_t altPassCosts;             // +0x43C
     std::uint8_t unknown440[0x9C];
-    UnitMotion* Motion() { return &motion; }
 };
-static_assert(sizeof(CUnit) == 0x4DC);
+static_assert(sizeof(CUnit) == 0x4DC && offsetof(CUnit, motion) == 0x27C);
 
 // A unit controller's order (combat.h).
 struct UnitAction {
@@ -661,8 +660,9 @@ struct CAIMap {
     std::uint8_t unknown0[0x2694];
     int footprintTick;                      // +0x2694
     std::uint8_t unknown2698[0x30];
+    AIEventTable events;                    // +0x26C8
 };
-static_assert(sizeof(CAIMap) == 0x26C8);
+static_assert(sizeof(CAIMap) == 0x12704 && offsetof(CAIMap, footprintTick) == 0x2694 && offsetof(CAIMap, events) == 0x26C8);
 
 struct WorldAlarm {
     std::uint8_t active;                    // +0x00
@@ -883,7 +883,6 @@ struct CWorldServer : CWorld {
     int scriptsActive_;                     // +0x160
     Vector3 startPosition_;                 // +0x164
     CAIMap aiMap_;                          // +0x170
-    AIEventTable aiEvents_;                 // +0x2838
     CScript commandsA_;                     // +0x12874
     std::uint8_t unknown12A6C[0x1F8];
     CDiplomacy diplomacy_;                  // +0x12C64
@@ -899,11 +898,9 @@ struct CWorldServer : CWorld {
     List<CSpellEffect*> projectiles_;       // +0x12E28
     List<CEngineObject*> counted_;          // +0x12E44
     List<SharedObject> sharedObjects_;      // +0x12E60
-    CAIMap* AIMap() { return &aiMap_; }
-    AIEventTable* AIEvents() { return &aiEvents_; }
     CScript* MainScript() { return &commandsA_; }
 };
-static_assert(sizeof(CWorldServer) == 0x12E7C);
+static_assert(sizeof(CWorldServer) == 0x12E7C && offsetof(CWorldServer, aiMap_) == 0x170 && offsetof(CWorldServer, commandsA_) == 0x12874);
 
 // A window rectangle of the frame: the client world's screen list (world.h).
 struct ScreenEntry {

@@ -69,7 +69,7 @@ bool CObject3DClientSpecific::ShadowInView() {
     sphere.center.x = sphere.center.x + at.x;
     sphere.center.y = at.y + sphere.center.y;
     sphere.center.z = at.z + sphere.center.z;
-    int side = ScenePipeline()->ClipTest(&sphere);
+    int side = g_sceneRenderer->pipeline_->ClipTest(&sphere);
     const Vector3& back = object->localPosition_;
     sphere.center.x = sphere.center.x - back.x;
     sphere.center.y = sphere.center.y - back.y;

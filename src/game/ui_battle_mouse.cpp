@@ -33,8 +33,8 @@ void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     }
     g_cursor->SetShape(kCursorArrow);
-    if (viewPressed_ && BoxSelectThreshold() > 0 && !IsMultiplayerClient()) {
-        int threshold = BoxSelectThreshold();
+    if (viewPressed_ && options::g_options->cameraFrameSelectionArea_ > 0 && !IsMultiplayerClient()) {
+        int threshold = options::g_options->cameraFrameSelectionArea_;
         if (Distance(x, pressX_) > threshold || Distance(y, pressY_) > threshold) boxSelecting_ = true;
         if (boxSelecting_) {
             CHudUnitPanel* panel = unitPanel_;
@@ -75,7 +75,7 @@ void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
 // --- a unit's name line --------------------------------------------------------------------------
 
 void CBattleScreen::UnitName(CUnit* unit, std::string* out) {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string name;
     name = unit->GetName();
     if (name.size() != 0) {

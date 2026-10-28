@@ -57,8 +57,6 @@ constexpr float kFarAway = 1e30f;                     // the nearest-unit search
 
 // The shares a revived hero loses: of the party's money and of its experience above the
 // NPC record's floor. Set at startup.
-float MoneyPenalty() { return g_logicSettings.lostMoney; }
-float ExperiencePenalty() { return g_logicSettings.lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
@@ -74,7 +72,6 @@ void AddCounted(std::list<CUnit*>& list, CUnit* object) {
 
 // The game mode (1 single player, 2 multiplayer); the campaign mode is CWorldServer::sessionKind_ (1 and 3 end
 // the game when the leader is gone).
-int GameMode() { return g_serverWorld->gameResult_; }
 // The next object id for a new party's record (the party manager stores the party).
 int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 
@@ -163,7 +160,7 @@ void CPlayerServer::OnLeaderDied() {
     int oldId = kNoId;
     int newId = kNoId;
     if (std::ssize(party->members_) == 1) {
-        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money_) * MoneyPenalty()));
+        int lost = x87::RoundToInt(static_cast<float>(static_cast<float>(party->money_) * g_logicSettings.lostMoney));
         party->money_ -= lost;
         oldId = static_cast<int>(party->members_[0].unitId);
         CUnit* hero = FindUnit(oldId);
@@ -189,7 +186,7 @@ void CPlayerServer::OnLeaderDied() {
             float above = static_cast<float>(experience - npc->experienceFloor);
             experience = above <= 0.0f ? 0.0f : above;   // a NaN is kept
         }
-        stats->TakePendingExperience(ExperiencePenalty() * experience);
+        stats->TakePendingExperience(g_logicSettings.lostXp * experience);
     }
     SendParty();
     lastPosition_.z = kUnknownZ;
@@ -309,7 +306,7 @@ int CPlayerServer::OnUseOrder() {
                 break;
             }
             Vector3 from;
-            if (g_serverWorld->AIMap()->FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
+            if (g_serverWorld->aiMap_.FindPath(nearest, &aim, &path, kPathRange, 0.0f)) {
                 Vector3 end;
                 from = *path.TargetPoint(&end);
             } else {
@@ -392,7 +389,7 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
     state_ = 3;
     party->entrance_ = static_cast<std::uint32_t>(entrance);
     party->zone_ = zone;
-    int mode = GameMode();
+    int mode = g_serverWorld->gameResult_;
     if (mode == 1) {
         g_partyManager->BeginRedeploy(party);
     } else if (mode == 2) {
@@ -412,7 +409,7 @@ void CPlayerServer::LeaveAndFlush() {
             g_serverWorld->CollectParty(player_, nullptr);
             partyDeployed_ = 0;
         }
-        if (GameMode() == 2) SendParty();
+        if (g_serverWorld->gameResult_ == 2) SendParty();
     }
     if (state_ != 3) {
         state_ = 3;
@@ -566,7 +563,7 @@ int CPlayerServer::OnLogin() {
     login.name[kLoginTextLength] = 0;
     login.password[kLoginTextLength] = 0;
     CParty* party = player->Party();
-    switch (GameMode()) {
+    switch (g_serverWorld->gameResult_) {
     case 1:
         g_partyManager->EndRedeploy(party);
         party->OpenEdgeExits();

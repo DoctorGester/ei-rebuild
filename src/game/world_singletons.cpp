@@ -12,27 +12,9 @@
 #include "world_data.h"
 
 int CurrentWorldTick() { return g_serverWorld->tick_; }
-int CurrentClientTick() { return g_clientWorld->tick_; }
-float ClientTickFraction() { return g_clientWorld->tickFraction_; }
-
-CTextManager* TheTextManager() { return g_clientWorld->texts_; }
-CMapObjectManager* TheObjectManager() { return g_clientWorld->objectManager_; }
-CFigureManager* TheFigureManager() { return g_clientWorld->figureManager_; }
-CTextureManager* TheTextureManager() { return g_clientWorld->textureManager_; }
-CMaterialManager* TheMaterialManager() { return g_clientWorld->materialManager_; }
-CSoundManager* TheSoundManager() { return g_clientWorld->sounds_; }
-CMusicSystem* TheMusicSystem() { return g_clientWorld->music_; }
-CParticleManager* TheParticleManager() { return g_clientWorld->particleManager_; }
-CLightFactory* TheLightFactory() { return g_clientWorld->lightFactory_; }
-Terrain* TheTerrain() { return g_clientWorld->terrain_; }
 
 int worlddata::FightState() { return g_clientWorld->partyDanger_; }
 
-CTextureDevice* TheRenderDevice() { return g_sceneRenderer->device_; }
-CTransformPipeline* ScenePipeline() { return g_sceneRenderer->pipeline_; }
-CPixelConverter* PixelConverter() { return g_sceneRenderer->graphicsProcessor_; }
 CLight* worlddata::SceneSun() { return g_sceneRenderer->sun_; }
 
-CDiplomacy* GameDiplomacy() { return &g_serverWorld->diplomacy_; }
 CScript* TheMissionScript() { return g_serverWorld->MainScript(); }
-CSectorMap* TheSectorMap() { return &g_serverWorld->aiMap_.sectorMap; }

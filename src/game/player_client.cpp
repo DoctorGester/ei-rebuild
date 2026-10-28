@@ -311,7 +311,7 @@ int CPlayerClient::OnZoneChange() {
 int CPlayerClient::OnJingle() {
     std::string name;
     in_.ReadString(&name);
-    TheMusicSystem()->PlayJingle(name);
+    g_clientWorld->music_->PlayJingle(name);
     return 1;
 }
 
@@ -453,7 +453,7 @@ int CPlayerClient::OnPathMarker() {
     float value;
     in_.Read(&value, 4);
     if (kind != kKindNoPath) {
-        auto* walker = TheObjectManager()->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
+        auto* walker = g_clientWorld->objectManager_->CreateObjectAs<CUnit>(kClassScratchUnit, -1);
         ++walker->refCount_;
         PathOrder* path = &walker->ClientController()->motion;
         DeltaField* writing = field.BeginWriteB(0);
@@ -464,7 +464,7 @@ int CPlayerClient::OnPathMarker() {
         reading->EndField();
         if (MarkersShown()) {
             walker->SetMotionSpeeds(std::bit_cast<float>(kMarkerSpeedA), std::bit_cast<float>(kMarkerSpeedB));
-            auto* source = TheParticleManager()->CreateSource(kPathParticles);
+            auto* source = g_clientWorld->particleManager_->CreateSource(kPathParticles);
             pathSource = source;
             source->Attach(walker);
             source->typeParam = value;
@@ -477,7 +477,7 @@ int CPlayerClient::OnPathMarker() {
         walker->Release();
     }
     if (MarkersShown()) {
-        auto* marker = TheParticleManager()->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
+        auto* marker = g_clientWorld->particleManager_->CreateSource(flag != 0 ? kMarkerParticles + 1 : kMarkerParticles);
         marker->localPosition_ = at;
         CEngineObject* owner = player_;
         CUnit* unit = owner->WorldContext()->FindUnit(unitId);
@@ -579,7 +579,7 @@ int CPlayerClient::OnNewObject() {
     }
     if (Same(model, TextWisp())) {
         auto* source =
-            TheParticleManager()->CreateSource(kWispParticles);
+            g_clientWorld->particleManager_->CreateSource(kWispParticles);
         source->Attach(object);
         source->ScaleSize(kWispSize / source->baseSize);
         source->attachPoint = 0;

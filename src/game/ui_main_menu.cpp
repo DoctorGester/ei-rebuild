@@ -31,9 +31,7 @@
 namespace {
 
 // The width of the fade at the map's edges. The menu shows its world with 6.
-float& MapEdgeFade() { return options::g_options->borderFogDistance_; }
 // Interface options (bit 0: the menu's lightning).
-std::uint32_t InterfaceOptions() { return g_sceneRenderer->flags_; }
 // The tick count of the menu's next lightning chance.
 std::uint32_t g_nextLightningTick = /*007C811C*/ {};
 
@@ -87,7 +85,7 @@ void CMainMenu::AddVersionLine() {
     UiSurfaceGetDC(surface);
     surface->Clear();
     std::string text;
-    TheTextManager()->CTextManager::GetString(kVersionKey, &text);
+    g_clientWorld->texts_->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
     surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
@@ -111,8 +109,8 @@ void CMainMenu::CreateScreen() {
         region->SetRectFrom(rect);
     }
     GamePlayMusic(nullptr);
-    savedEdgeFade_ = MapEdgeFade();
-    MapEdgeFade() = kMenuEdgeFade;
+    savedEdgeFade_ = options::g_options->borderFogDistance_;
+    options::g_options->borderFogDistance_ = kMenuEdgeFade;
     rain_ = (g_random.Next() & 1) == 1;
     // The hour is read three times (the unrounded result is compared each time).
     EI_NAN_AUDIT(GameServerTimeOfDay());
@@ -122,7 +120,7 @@ void CMainMenu::CreateScreen() {
     GameStartAmbience();
     GameShowCameraPath(kCameraPath);
     hour_ = 0.0f;
-    TheMusicSystem()->PlayMainMenu();
+    g_clientWorld->music_->PlayMainMenu();
 }
 
 // --- Update (every frame) ---------------------------------------------------
@@ -134,7 +132,7 @@ void CMainMenu::Update() {
         if (hour == kRainStartHour) GameSetWeather(kWeatherRain, kWeatherStrength);
         else if (hour == kRainEndHour) GameSetWeather(kWeatherClear, kWeatherStrength);
     }
-    if (!daylight_ && rain_ && hour < kLightningBeforeHour && (InterfaceOptions() & 1) != 0) {
+    if (!daylight_ && rain_ && hour < kLightningBeforeHour && (g_sceneRenderer->flags_ & 1) != 0) {
         std::uint32_t now = gameapi::GetTickCount();
         if (now > g_nextLightningTick) {
             g_nextLightningTick = now + 100;
@@ -155,7 +153,7 @@ void CMainMenu::Update() {
 // --- Close -----------------------------------------------------------------
 
 void CMainMenu::Close() {
-    MapEdgeFade() = savedEdgeFade_;
+    options::g_options->borderFogDistance_ = savedEdgeFade_;
     GameStopSounds(1);
     GameStopAmbience();
 }
@@ -167,13 +165,13 @@ void CMainMenu::OnMessageResult(int result) {
     GameSetServerPaused(0);
     if (result == 0x10001) {
         {
-            std::string path = *GameBasePathString() + kExitMovie;
+            std::string path = *g_discFolder + kExitMovie;
             PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
-            std::string path = *GameBasePathString() + kIntroMovie;
+            std::string path = *g_discFolder + kIntroMovie;
             PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
@@ -187,7 +185,7 @@ void CMainMenu::OnMessageResult(int result) {
 // --- The mouse move and the keys -------------------------------------------
 
 void CMainMenu::OnMouseMove(int buttons, int x, int y) {
-    if (auto* stones = TheObjectManager()->FindObjectAs<CObject3D>(kStonesObject)) {
+    if (auto* stones = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(kStonesObject)) {
         int region = RegionAt(x, y);
         std::string name(stones->name);
         if (region != hovered_) {
@@ -195,7 +193,7 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
             if (region >= 0 && region < 6)
                 animation = stones->FindSkillAnimation(kStoneAnimation[region]);
             else
-                animation = TheObjectManager()->FindAnimation(&name, kRestPoseKind);
+                animation = g_clientWorld->objectManager_->FindAnimation(&name, kRestPoseKind);
             stones->PlayAnimation(animation, 1);
             interface_->PlaySound(kStoneSound, 0);
         }

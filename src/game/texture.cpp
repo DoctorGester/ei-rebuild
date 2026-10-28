@@ -29,7 +29,6 @@ int BmpFormatFor(int type) {
 }
 
 // The texture quality setting (0 best .. 3).
-int TextureQuality() { return options::g_options->textureQuality_; }
 const char* CantGetDeviceDescriptionText() { return "Can't get device description.\n"; }
 
 } // namespace
@@ -102,7 +101,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
         mipLevel_ = 2;
         return;
     }
-    switch (TextureQuality()) {
+    switch (options::g_options->textureQuality_) {
     case 0: mipLevel_ = 0; break;
     case 1: mipLevel_ = 1; break;
     case 2: mipLevel_ = 2; break;

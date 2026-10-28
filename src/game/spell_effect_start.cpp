@@ -421,7 +421,7 @@ void CSpellEffect::SetVisual(CEffect* object) {
 
 void CSpellEffect::UpdateFootprint(int type, int stamp) {
     if (!visual) return;
-    CAIMap* aiMap = world->AIMap();
+    CAIMap* aiMap = &world->aiMap_;
     switch (type) {
     case 6: {
         Vector3 direction;

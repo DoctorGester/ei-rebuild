@@ -19,8 +19,6 @@ namespace {
 CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched by Rebirth
     return factory->CreateItem(name);
 }
-CItemManager* TheFactory() { return g_serverWorld->itemManager_; }
-CSpellManager* SpellOwner() { return g_serverWorld->spellManager_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])
@@ -32,7 +30,7 @@ void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
 
 void UnitRecord::ApplyTo(CUnit* target) {
     const UnitRecordStats& r = stats;
-    CItemManager* factory = TheFactory();
+    CItemManager* factory = g_serverWorld->itemManager_;
     CUnit* unit = target;
     const float k0 = 0.0f /*0073B858*/;
     EI_NAN_AUDIT(r.speed, r.rate);
@@ -81,7 +79,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.conspicuity[i].base = s.conspicuity[i].current = r.conspicuity[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, SpellOwner()));
+    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, g_serverWorld->spellManager_));
     AddItems(*this, unit, factory);
     for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
     for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));

@@ -11,6 +11,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
@@ -208,7 +209,7 @@ void Terrain::BuildVertexTiles() {
 
 void Terrain::ClearMap() {
     for (int slot = 0; slot < 3; ++slot) {
-        ambientSounds[slot] = TheSoundManager()->StopSound(ambientSounds[slot]);
+        ambientSounds[slot] = g_clientWorld->sounds_->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;
     }
     while (!sectorCache.empty()) {
@@ -382,15 +383,15 @@ int Terrain::SetupPages(int count) {
             name = str::Format("%s%3.3i", mapName.c_str(), i);
         } else {
             name = str::Format("%sL%2.2i", mapName.c_str(), i - count);
-            if (!TheTextureManager()->HasFile((name + ".mmp"))) return 1;
+            if (!g_clientWorld->textureManager_->HasFile((name + ".mmp"))) return 1;
             ++extraPages;
             pageTextures.push_back(nullptr);
             pageMaterials.push_back(nullptr);
         }
-        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name);
+        CTexture* texture = g_clientWorld->textureManager_->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         ++texture->refCount_;
-        CMaterial* material = TheMaterialManager()->NewMaterial(kPageMaterial);
+        CMaterial* material = g_clientWorld->materialManager_->NewMaterial(kPageMaterial);
         pageMaterials[i] = material;
         ++material->refCount_;
         material->name = "Wood";
@@ -400,7 +401,7 @@ int Terrain::SetupPages(int count) {
         material->colors.emissive.x = material->colors.emissive.y = material->colors.emissive.z = 0.0f;
         material->colors.diffuse.w = 1.0f;
         material->colors.power = 5.0f;
-        if (!TheTextureManager()->LoadTexture(pageTextures[i])) return 0;
+        if (!g_clientWorld->textureManager_->LoadTexture(pageTextures[i])) return 0;
     }
     return 1;
 }

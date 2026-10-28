@@ -28,7 +28,7 @@ void UnitParams::ProtectionBlock(const UnitVitalsPacked* vitals, float* out, std
         }
         if (total > 0.0) scale = 1.0 / total;
     }
-    double factor = keyed ? 1.0 : DifficultyFactors()[GameDifficulty()];
+    double factor = keyed ? 1.0 : DifficultyFactors()[options::g_options->difficulty_];
     for (int k = 0; k < kDamageTypes; ++k)
         out[k] = static_cast<float>((scale * out[k] + static_cast<std::uint16_t>(vitals->protection[k])) * factor);
 }

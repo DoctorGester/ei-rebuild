@@ -17,6 +17,7 @@
 #include "render/render.h"
 #include "render/render_state.h"
 #include "game_singletons.h"
+#include "world.h"
 
 #include <d3d.h>
 
@@ -131,7 +132,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
 
             savedPosition = model->localPosition_;
             savedOrientation = model->localRotation_;
-            unit->AdvanceTime(static_cast<float>(CurrentClientTick()) + ClientTickFraction());
+            unit->AdvanceTime(static_cast<float>(g_clientWorld->tick_) + g_clientWorld->tickFraction_);
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
@@ -160,7 +161,7 @@ BOOL CHudUnitPanel::DrawVanilla(CSceneRenderer* pass) {
 
             // Texture stage 0's mip filter off around the model's draw.
             DWORD mipFilter = 0;
-            CTextureDevice* device = TheRenderDevice();
+            CTextureDevice* device = g_sceneRenderer->device_;
             device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
             device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);

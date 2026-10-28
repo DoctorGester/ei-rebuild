@@ -69,7 +69,6 @@ constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x20
 
 // The party light (r, g, b; radius).
 const float* PartyLightColour() { return &options::g_options->heroLight_.red; }
-float PartyLightRadius() { return options::g_options->heroLight_.radius; }
 
 // The hit sound's folder by the weapon class (kinds 7 and 8 and above 15 have none).
 const char* HitSoundFormat(std::uint8_t kind) {
@@ -163,7 +162,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     if (!part || !(unit->flags_ & kFiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
-        auto* source = TheParticleManager()->CreateSource(kBloodParticles[blood - 1]);
+        auto* source = g_clientWorld->particleManager_->CreateSource(kBloodParticles[blood - 1]);
         source->localPosition_ = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->box_.bounds.radius * kBloodScale);
         source->typeParam = kBloodRate;
@@ -192,7 +191,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
 }
 
 void CUnitClientSpecific::Wound(float) {
-    auto* source = TheParticleManager()->CreateSource(kSparks);
+    auto* source = g_clientWorld->particleManager_->CreateSource(kSparks);
     source->localPosition_ = {0.0f, 0.0f, 0.0f};
     source->ScaleSize(unit->bounds.radius);
     source->alpha = kSparkAlpha;
@@ -228,5 +227,5 @@ void CUnitClientSpecific::PlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    unit->MapObject()->ClientCompanion()->CreateLight(colour, PartyLightRadius(), false);
+    unit->MapObject()->ClientCompanion()->CreateLight(colour, options::g_options->heroLight_.radius, false);
 }

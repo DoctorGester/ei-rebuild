@@ -16,7 +16,6 @@
 namespace {
 
 // The fog manager; VisFogManagerAdd makes a fog object, already counted once by the manager's list.
-ClientArrayManager* FogManager() { return g_clientWorld->arrayManager_; }
 
 void ReleaseFog(CVisibilityFog*& fog) {
     CVisibilityFog* old = fog;
@@ -62,7 +61,7 @@ void CEffectShowVisibility::SetUnits(int observerId, int seerId) {
 
 void CEffectShowVisibility::Start(int update) {
     if (update == 0) {
-        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(FogManager()));
+        auto* created = static_cast<CVisibilityFog*>(VisFogManagerAdd(g_clientWorld->arrayManager_));
         CVisibilityFog* old = fog_;
         fog_ = created;
         if (created != nullptr) ++created->refCount_;

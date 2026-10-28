@@ -71,7 +71,7 @@ void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
 
 void CEffect::MarkChanged() {
     flags_ |= 2;
-    changeStamp_ = ChangeStamp();
+    changeStamp_ = g_serverWorld->updateCount_;
 }
 
 int CEffect::Create() {
@@ -95,7 +95,7 @@ double CEffect::Radius() { return ConstAt(worlddata::DefaultRadius()); }
 
 void CEffectSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1 && looping_ != 0) TheSoundManager()->StopSound(sound_);
+    if (sound_ != -1 && looping_ != 0) g_clientWorld->sounds_->StopSound(sound_);
     sound_ = -1;
     looping_ = 1;
     std::memset(name_, 0, sizeof(name_));   // the original clears name_[0] only (the harness all of it)
@@ -111,18 +111,18 @@ int CEffectSound::RunTick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         // Tests the handle against 0, not -1 (a stopped sound is moved too).
-        if (sound_ != 0) TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+        if (sound_ != 0) g_clientWorld->sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
     }
     return looping_ == 0 && wasFresh == 0 ? 0 : 1;
 }
 
 void CEffectSound::Start(int update) {
     if (update == 0) {
-        sound_ = TheSoundManager()->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
+        sound_ = g_clientWorld->sounds_->Play3D(name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
                                             volume_, radius_, looping_, 0);
         return;
     }
-    TheSoundManager()->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
+    g_clientWorld->sounds_->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
 }
 
 int CEffectSound::Unpack(int update, DeltaField* field) {
@@ -181,7 +181,7 @@ double CEffectSound::Radius() { return radius_; }
 
 void CEffectSoundSeq::Reset() {
     ClearBase(this);
-    if (sound_ != -1) TheSoundManager()->RemoveSequence(sound_);
+    if (sound_ != -1) g_clientWorld->sounds_->RemoveSequence(sound_);
     sound_ = -1;
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -194,7 +194,7 @@ int CEffectSoundSeq::RunTick() {
     if (moving_ != 0) {
         MoveByVelocity(this);
         if (sound_ != 0)
-            TheSoundManager()->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
+            g_clientWorld->sounds_->UpdateSequence(sound_, &localPosition_.x, volume_, radius_, -1);
     }
     return 1;
 }
@@ -241,7 +241,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
-    if (sound_ != -1) sound_ = TheSoundManager()->RemoveEmitter(sound_);
+    if (sound_ != -1) sound_ = g_clientWorld->sounds_->RemoveEmitter(sound_);
     names_.clear();
     volume_ = 0.0f;
     radius_ = 0.0f;
@@ -251,11 +251,11 @@ void CEffectAmbientSound::Reset() {
 
 void CEffectAmbientSound::Start(int update) {
     if (update == 0) {
-        sound_ = TheSoundManager()->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
+        sound_ = g_clientWorld->sounds_->AddEmitter(&names_, &localPosition_.x, volume_, radius_,
                              minInterval_, maxInterval_);
         return;
     }
-    TheSoundManager()->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
+    g_clientWorld->sounds_->MoveEmitter(sound_, &localPosition_.x, volume_, radius_, minInterval_,
                 maxInterval_);
 }
 

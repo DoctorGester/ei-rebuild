@@ -36,7 +36,6 @@ void LoadPersonTexts(std::map<int, std::string>* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen starts a
 // selection box (0 or less: never).
-inline int BoxSelectThreshold() { return options::g_options->cameraFrameSelectionArea_; }
 
 class ClassTemplate;
 

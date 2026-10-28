@@ -45,4 +45,3 @@ struct CDiplomacy {
 };
 
 // The game's diplomacy table (the server world's; world_singletons.cpp).
-CDiplomacy* GameDiplomacy();

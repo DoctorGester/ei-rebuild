@@ -7,6 +7,7 @@
 #include "sound.h"
 
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
@@ -57,7 +58,7 @@ bool SnapshotReadToEnd() {
 // like the original). A new start lists the first name (when not empty) and the others, and starts the
 // sequence with the chooser for their count.
 void CEffectSoundSeq::Start(int update) {
-    CSoundManager* sounds = TheSoundManager();
+    CSoundManager* sounds = g_clientWorld->sounds_;
     if (update != 0) {
         sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
         return;

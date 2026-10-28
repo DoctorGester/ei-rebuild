@@ -286,7 +286,7 @@ void LoadVar(std::vector<std::string>* args) {
 
 // "Current FPS: " 1000 / last frame time (printed as float).
 void LastFps(std::vector<std::string>*) {
-    auto* timer = SceneRenderer();
+    auto* timer = &g_sceneRenderer.Get();
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
     double fps = 1000.0f /*0073C34C*/ / x87::FromUnsigned(ms);
@@ -416,7 +416,7 @@ void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpe
 void GenerateAcks(std::vector<std::string>*) {
     lib::TextFile file;
     {
-        std::string path = *GameDataPathString() + "scenack.txt";
+        std::string path = *g_dataFolder + "scenack.txt";
         if (!file.Open(path, "w")) return;
     }
     lib::TextFile* out = &file;

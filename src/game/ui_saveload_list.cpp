@@ -7,7 +7,9 @@
 
 #include "item_db_text.h"       // CTextManager
 #include "ui_gdi.h"
-#include "world_glue.h"         // GameClientTexts
+#include "game_singletons.h"
+#include "world.h"
+#include "world_glue.h"
 
 #include "ei/rebirth.h"
 #include "lib/calendar.h"
@@ -131,7 +133,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
     std::string dayText;
-    GameClientTexts()->GetString(kDayText, &dayText);
+    g_clientWorld->texts_->GetString(kDayText, &dayText);
     line = str::Format(kGameTimeFormat, dayText.c_str(), day + 1, hour, minute);
     surface->DrawTextIn(line, &detailRect, kFont, kTextColour, 0, 1);
 

@@ -161,7 +161,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
-    CFigureManager* manager = TheFigureManager();
+    CFigureManager* manager = g_clientWorld->figureManager_;
     int row = RowOfSlot(static_cast<int>(slot));
     if (row < 0) return true;
 
@@ -216,7 +216,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
     FigureModel* model;
     {
         std::string name(unit->name.c_str());
-        model = TheFigureManager()->FindModel(&name);
+        model = g_clientWorld->figureManager_->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
@@ -253,7 +253,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     FigureModel* model;
     {
         std::string name(unit->name.c_str());
-        model = TheFigureManager()->FindModel(&name);
+        model = g_clientWorld->figureManager_->FindModel(&name);
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);
@@ -407,7 +407,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* 
 }
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
-    CTextureManager* textureManager = TheTextureManager();
+    CTextureManager* textureManager = g_clientWorld->textureManager_;
     std::vector<SkinLayer> layers;
     void* result;
     {

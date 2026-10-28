@@ -55,7 +55,7 @@ constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
 // The item named `name` (the game builds two unused temporary lists around the creation).
-CItem* CreateNamedItem(const char* name) { return WorldItemManager()->CreateItem(name); }
+CItem* CreateNamedItem(const char* name) { return g_serverWorld->itemManager_->CreateItem(name); }
 
 void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingRecord* record) {
     float experience = record->exp;

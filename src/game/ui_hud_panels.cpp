@@ -161,7 +161,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     CUiSurface* surface = surfaces_[0];
     std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
@@ -262,7 +262,7 @@ void CHudTopPanel::ShowPage() {
 }
 
 void CHudTopPanel::ShowItems() {
-    CTextManager* texts = TheTextManager();
+    CTextManager* texts = g_clientWorld->texts_;
     // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
     std::list<CItem*> merged{};
     CPlayer* player = g_clientWorld->LocalView()->player_;

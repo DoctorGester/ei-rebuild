@@ -308,7 +308,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         path2->ForgetObject(unit->id_);
         float walk, run;
         unit->GetMoveSpeeds(&walk, &run);
-        UnitMotion* walker = unit->Motion();
+        UnitMotion* walker = &unit->motion;
         walker->segment = -1;
         walker->speedScale = walk;
         walker->baseTurnRate = run;

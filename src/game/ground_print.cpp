@@ -98,7 +98,7 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
 
 void GroundPrint::SetTexture(const char* name) {
     texture_.name.assign(name, name + std::strlen(name));
-    CTextureManager* textures = TheTextureManager();
+    CTextureManager* textures = g_clientWorld->textureManager_;
     AssignCounted(&texture_.texture, textures->FindTexture(name));
     if (texture_.texture) return;
     AssignCounted(&texture_.texture, textures->FindOrCreate(kTextureKind, name));
@@ -112,7 +112,7 @@ GroundPrint::GroundPrint(float x, float y, float halfWidth, float halfLength, fl
     halfWidth_ = halfWidth;
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = TheTerrain()->EdgeFade(&point);
+    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
     int quarter = RandomQuarter();
     uvScale_ = {kHalf, kHalf};
     uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
@@ -226,7 +226,7 @@ int GroundPrint::Draw() {
     }
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
-    CTextureDevice* device = TheRenderDevice();
+    CTextureDevice* device = g_sceneRenderer->device_;
     device->BindNamedTexture(0, &texture_);
     return device->DrawFlatBlocks(positions_.data(), texCoords_.data(), std::ssize(positions_),
                                   indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
@@ -247,7 +247,7 @@ Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float 
     halfWidth_ = halfWidth;
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = TheTerrain()->EdgeFade(&point);
+    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
     uvOffset_.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
@@ -286,7 +286,7 @@ BloodPrint::BloodPrint(float x, float y, float halfSize, float fullSize, float a
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
-    lit_ = TheTerrain()->EdgeFade(&point);
+    lit_ = g_clientWorld->terrain_->EdgeFade(&point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;

@@ -17,7 +17,6 @@
 namespace {
 
 // The id registry.
-CBaseManager* Registry() { return g_serverWorld->timedObjectManager_; }
 
 int ReadInt(CStream* stream) {
     int value = 0;
@@ -34,7 +33,7 @@ int StreamVersion(const CStream* stream) { return static_cast<int>(stream->versi
 template <class T>
 T* FindById(int id) {
     if (id == -1) return nullptr;
-    return Registry()->FindObjectAs<T>(id);
+    return g_serverWorld->timedObjectManager_->FindObjectAs<T>(id);
 }
 
 // The world's first script (the only script a savegame holds): block

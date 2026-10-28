@@ -105,7 +105,7 @@ void WallScorchShape(const Vector3* direction, const float* half, float* angleAn
 void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
-        TheTerrain()->RemoveLight(light_);
+        g_clientWorld->terrain_->RemoveLight(light_);
         CLight* old = light_;
         light_ = nullptr;
         if (old != nullptr) old->Release();
@@ -128,19 +128,19 @@ int CEffectPointLight::RunTick() {
     std::memcpy(&delta, &velocity_, sizeof(Vector3));
     if ((FrameCounter() & 0xF) == 0) {
         // Every 16th frame the light is re-registered at its new place.
-        TheTerrain()->RemoveLight(light_);
+        g_clientWorld->terrain_->RemoveLight(light_);
         std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
-        TheTerrain()->AddLight(light_);
+        g_clientWorld->terrain_->AddLight(light_);
         return 1;
     }
-    TheTerrain()->MoveLight(light_, &delta);
+    g_clientWorld->terrain_->MoveLight(light_, &delta);
     std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
     return 1;
 }
 
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
-        light_.Assign(TheLightFactory()->CreateLight(0x31));
+        light_.Assign(g_clientWorld->lightFactory_->CreateLight(0x31));
         Vector3 position;
         std::memcpy(&position.x, &localPosition_.x, sizeof(float));
         std::memcpy(&position.y, &localPosition_.y, sizeof(float));
@@ -152,7 +152,7 @@ void CEffectPointLight::Start(int update) {
         light_->SetPoint(&color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
-        TheTerrain()->AddLight(light_);
+        g_clientWorld->terrain_->AddLight(light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
         std::memcpy(&light_->color_[0], &color_.x, sizeof(float));
@@ -170,13 +170,13 @@ void CEffectPointLight::Start(int update) {
             delta.z = static_cast<float>(localPosition_.z - at.z);
             delta.y = static_cast<float>(localPosition_.y - at.y);
             delta.x = static_cast<float>(localPosition_.x - at.x);
-            TheTerrain()->MoveLight(light_, &delta);
+            g_clientWorld->terrain_->MoveLight(light_, &delta);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
         } else {
-            TheTerrain()->RemoveLight(light_);
+            g_clientWorld->terrain_->RemoveLight(light_);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
             SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-            TheTerrain()->AddLight(light_);
+            g_clientWorld->terrain_->AddLight(light_);
         }
     }
     // A negative range (or NaN) sets flag 0x400.
@@ -318,7 +318,7 @@ void CEffectParticle::Spawn() {
         return;
     }
 
-    source_.Assign(TheParticleManager()->CreateSource(type_));
+    source_.Assign(g_clientWorld->particleManager_->CreateSource(type_));
     std::memcpy(&source_->localPosition_, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
@@ -329,7 +329,7 @@ void CEffectParticle::Spawn() {
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
-    int age = CurrentClientTick() - startTick_;
+    int age = g_clientWorld->tick_ - startTick_;
     if (!IsOneShotType(type_) && age >= 30) age = 30;
     if (age > 1) {
         for (int left = age - 1; left != 0; --left) source_->RunTick();
@@ -400,7 +400,7 @@ void CEffectParticle::Attach() {
             return;
         }
     }
-    CObject3D* object = TheObjectManager()->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
+    CObject3D* object = g_clientWorld->objectManager_->FindObjectAs<CObject3D>(static_cast<unsigned>(attachedTo_));
     Vector3 saved;
     std::memcpy(&saved, &source_->localPosition_, sizeof(Vector3));
     source_->Attach(object);
@@ -569,7 +569,7 @@ void CEffectLightning::UpdateEnds() {
 
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = BoltFactory()->CreateObjectAs<CLightning>(0, -1);
+    auto* created = g_clientWorld->listManager_->CreateObjectAs<CLightning>(0, -1);
     CLightning* old = bolt_;
     bolt_ = created;
     if (created != nullptr) ++created->refCount_;

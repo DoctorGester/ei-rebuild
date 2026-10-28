@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 #include "world_data.h"
+#include "world.h"
 
 #include <cstring>
 #include <new>
@@ -60,7 +61,7 @@ void PlayThemeFile(CMusicSystem* music, std::string_view allod, std::string Musi
     });
     if (theme == music->themes.end()) return;
     std::string path = (*theme).*file + kMp3;
-    TheSoundManager()->RequestStream(path, 4);
+    g_clientWorld->sounds_->RequestStream(path, 4);
 }
 
 constexpr int kMusicClassId = 0xE;
@@ -120,15 +121,15 @@ int CMusicSystem::LoadThemes() {
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
 void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
-    TheSoundManager()->StreamNotify(4);
-    TheSoundManager()->StopStream(4);
+    g_clientWorld->sounds_->StreamNotify(4);
+    g_clientWorld->sounds_->StopStream(4);
     holding = 1;
     for (int i = 0; i < std::ssize(themes); ++i) {
         if (text::CompareIgnoringCase(themes[i].name, allod) == 0 && themes[i].dungeon == dungeon) {
             theme = i;
             state = 1;
             calmDue = 1;
-            TheSoundManager()->StopStream(4);
+            g_clientWorld->sounds_->StopStream(4);
             inCombat = 0;
             combatTrack = game::kEmptyText;
             return;
@@ -142,26 +143,26 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
 
 void CMusicSystem::Stop() {
     state = 0;
-    TheSoundManager()->StopStream(4);
+    g_clientWorld->sounds_->StopStream(4);
 }
 
 void CMusicSystem::PlayBriefing(std::string_view allod) {
     state = 2;
-    TheSoundManager()->StopStream(4);
+    g_clientWorld->sounds_->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::briefing);
 }
 
 void CMusicSystem::PlayConstructor(std::string_view allod) {
     state = 3;
-    TheSoundManager()->StopStream(4);
+    g_clientWorld->sounds_->StopStream(4);
     PlayThemeFile(this, allod, &MusicTheme::constructor);
 }
 
 void CMusicSystem::PlayMainMenu() {
     state = 4;
-    TheSoundManager()->StopStream(4);
+    g_clientWorld->sounds_->StopStream(4);
     std::string path = mainMenu + kMp3;
-    TheSoundManager()->RequestStream(path, 4);
+    g_clientWorld->sounds_->RequestStream(path, 4);
 }
 
 // A one-off piece in a zone (the PlayMusic script command); the calm/combat choice
@@ -173,14 +174,14 @@ void CMusicSystem::PlayJingle(std::string_view name) {
         path += kMp3;
         jingle = path;
     }
-    TheSoundManager()->RequestStream(jingle, 4);
-    WaitAndEndAfter(TheSoundManager());
+    g_clientWorld->sounds_->RequestStream(jingle, 4);
+    WaitAndEndAfter(g_clientWorld->sounds_);
     jinglePlaying = 1;
 }
 
 // Every world frame. Always 1.
 int CMusicSystem::UpdateMusic() {
-    CSoundManager* snd = TheSoundManager();
+    CSoundManager* snd = g_clientWorld->sounds_;
     if (state != 1 || holding == 1) return 1;
     std::string current;
     {
@@ -253,8 +254,8 @@ CMusicSystem::~CMusicSystem() {
     ResetThemes();
 }
 
-void CMusicSystem::FadeOut() { TheSoundManager()->FadeOutStream(); }
-void CMusicSystem::FadeIn() { TheSoundManager()->FadeInStream(); }
+void CMusicSystem::FadeOut() { g_clientWorld->sounds_->FadeOutStream(); }
+void CMusicSystem::FadeIn() { g_clientWorld->sounds_->FadeInStream(); }
 
 // GetClassName and GetClassId.
 const char* CMusicSystem::GetClassName() { return MusicClassNameText(); }

@@ -123,7 +123,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
     points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
-    if (!ShowHitNumbersOption()) return 1;
+    if (!options::g_options->drawFlyingHp_) return 1;
 
     const float width = static_cast<float>(targetWidth), height = static_cast<float>(targetHeight);
     for (const FlyingHitPoint& point : points_) {

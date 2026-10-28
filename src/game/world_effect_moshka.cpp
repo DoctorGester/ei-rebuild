@@ -64,7 +64,6 @@ bool Same(float a, float b) {
     return a == b;
 }
 
-CAIMap* AIMap() { return g_serverWorld->AIMap(); }
 
 Vector3& PositionOf(CMapObject* object) { return object->localPosition_; }
 
@@ -102,7 +101,7 @@ void CEffectMoshka::Reset() {
 }
 
 int CEffectMoshka::RunTick() {
-    Update(static_cast<float>(CurrentClientTick()));
+    Update(static_cast<float>(g_clientWorld->tick_));
     return 0;
 }
 
@@ -118,7 +117,7 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
         perch.z = static_cast<float>(from->z + height);
         perch.x = static_cast<float>(x87::fcos(angle) * radius + from->x);
         perch.y = static_cast<float>(x87::fsin(angle) * radius + from->y);
-        if (AIMap()->LineOfSight(&eye, &perch) > kClearance) break;
+        if (g_serverWorld->aiMap_.LineOfSight(&eye, &perch) > kClearance) break;
         height = height + kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
     }
@@ -160,7 +159,7 @@ void CEffectMoshka::Update(float now) {
             double outward = kHalfPi + angle;
             perch.x = static_cast<float>(x87::fcos(outward) * kPerchSearchRadius + perch.x);
             perch.y = static_cast<float>(x87::fsin(outward) * kPerchSearchRadius + perch.y);
-            if (AIMap()->LineOfSight(&bird->localPosition_, &perch) > kClearance) {
+            if (g_serverWorld->aiMap_.LineOfSight(&bird->localPosition_, &perch) > kClearance) {
                 state_ = kFlyingOff;
                 timer_ = kFlyingOffFrames;
                 localPosition_ = perch;
@@ -233,8 +232,8 @@ void CEffectMoshka::Follow(int objectId) {
     if (followed == nullptr) return;
     std::string model = game::MoshkaModelText();
     std::string texture = game::MoshkaTextureText();
-    int id = NextClientObjectId()--;
-    auto* object = TheObjectManager()->CreateObjectAs<CMapObject>(kClassFigureObject, id);
+    int id = g_clientWorld->nextClientObjectId_--;
+    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kClassFigureObject, id);
     bird_.Assign(object);
     // No null test (the original has none either). The figure the object holds is read before the
     // figure is made, like the original.
@@ -255,7 +254,7 @@ void CEffectMoshka::Follow(int objectId) {
         bird->animation->queue.clear();
         bird->animation->Play(first);
     }
-    CParticleSource* source = TheParticleManager()->CreateSource(kBirdParticles);
+    CParticleSource* source = g_clientWorld->particleManager_->CreateSource(kBirdParticles);
     CEngineObject* old = source_;
     source_ = source;
     if (source != nullptr) ++source->refCount_;

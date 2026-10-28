@@ -59,37 +59,7 @@ float ConstHalf() { return 0.5f /*0073B86C*/; }       // the slider's centre
 float ConstThumbLift() { return 0.1f /*0073B850*/; }  // the thumb above the track
 constexpr float kQuarterTurn = /*007C8210*/ 1.5707964f;   // a static initialiser: pi * 0.5
 
-int& OptVolume0() { return options::g_options->audioSfx_; }       // setting 0 (the sound system's volume A)
-int& OptVolume1() { return options::g_options->audioStreaming_; }       // setting 1
-int& OptVolume2() { return options::g_options->audioSpeech_; }       // setting 2
-float& OptSpeedA() { return options::g_options->cameraScroll_.powerKeyboard; }    // setting 3 (three more copies on store)
-float& OptSpeedA2() { return options::g_options->cameraPitch_.powerKeyboard; }
-float& OptSpeedA3() { return options::g_options->cameraZoom_.powerKeyboard; }
-float& OptSpeedA4() { return options::g_options->cameraRotate_.powerKeyboard; }
-float& OptSpeedB() { return options::g_options->cameraScroll_.powerMouse; }    // setting 4 (three more copies on store)
-float& OptSpeedB2() { return options::g_options->cameraPitch_.powerMouse; }
-float& OptSpeedB3() { return options::g_options->cameraZoom_.powerMouse; }
-float& OptSpeedB4() { return options::g_options->cameraRotate_.powerMouse; }
-int& Opt5() { return options::g_options->cameraBorderScrollArea_; }             // setting 5
-int& Opt6Tenths() { return options::g_options->cameraFrameSelectionArea_; }       // setting 6 * 10
-int& OptShadowUnits() { return options::g_options->unitShadow_; }
-int& OptShadowBuildings() { return options::g_options->buildingShadow_; }
-int& OptShadowFlora() { return options::g_options->floraShadow_; }
-int& Opt10() { return options::g_options->enableBloodprints_; }
-int& Opt11() { return options::g_options->enableFootprints_; }
-int& Opt12() { return options::g_options->selectionType_; }
-int& Opt13() { return options::g_options->drawPath_; }
-float& OptGamma14() { return options::g_options->brightness_; }   // settings 14-16 (setting * 0.02 - 1)
-float& OptGamma15() { return options::g_options->contrast_; }
-float& OptGamma16() { return options::g_options->gamma_; }
-int& Opt17() { return options::g_options->drawFlyingHp_; }
 // Setting 18: help windows (Rebirth's ForceShowTutorial patches its store).
-int& OptHelp18() { return options::g_options->showTutorial_; }
-int& Opt19() { return options::g_options->autosave_; }
-float& Opt20() { return options::g_options->toolTipTime_; }        // setting 20
-int& Opt21() { return options::g_options->switchFilters_; }
-float& OptSign22() { return options::g_options->cameraFlipX_; }    // setting 22 (-1 for 1, else +1)
-float& OptSign23() { return options::g_options->cameraFlipY_; }    // setting 23 (likewise)
 constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {0, "volume_sfx", 0, 100, 1, 0},
     {1, "volume_stream", 0, 100, 1, 1},
@@ -119,9 +89,6 @@ constexpr OptionDefinition kOptionDefinitions[26] = /*00787430*/ {
     {25, "difficulty", 1, 2, 3, 0},
 };
 
-int& Opt24() { return options::g_options->reverseStereo_; }
-int& OptDifficultyCopy() { return options::g_options->difficultyStored_; } // setting 25 (with GameDifficulty)
-
 CUiMesh* SceneSprite(CUiWindow* window, int index) { return window->SceneMesh(index); }
 
 void DrawRowText(CUiSurface* surface, std::string_view text, RECT* rect, int font, COLORREF colour, int format) {
@@ -129,12 +96,12 @@ void DrawRowText(CUiSurface* surface, std::string_view text, RECT* rect, int fon
 }
 
 void ReadTip(std::string* text) {
-    if (TheTextManager()->CTextManager::Open(text->c_str()) != 0) TheTextManager()->ReadToHash(text, 1);
+    if (g_clientWorld->texts_->CTextManager::Open(text->c_str()) != 0) g_clientWorld->texts_->ReadToHash(text, 1);
 }
 
 void ShownName(std::string* out, const char* prefix, const char* name) {
     std::string text;
-    if (TheTextManager()->GetString((std::string(prefix) + name).c_str(), &text))
+    if (g_clientWorld->texts_->GetString((std::string(prefix) + name).c_str(), &text))
         *out = text;
     else
         *out = name;
@@ -274,12 +241,12 @@ void COptionsWindow::BuildSettings() {
         } else if (definition->kind_ == kSpinKind) {
             std::string text;
             text = TextOffDefault();
-            TheTextManager()->GetString(TextOptionOff(), &text);
-            if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyHard(), &text);
+            g_clientWorld->texts_->GetString(TextOptionOff(), &text);
+            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(TextDifficultyHard(), &text);
             setting.spin_ = new CUiSpin(interface_, RECT{530, top + 160, 690, top + 176}, text.c_str());
             text = TextOnDefault();
-            TheTextManager()->GetString(TextOptionOn(), &text);
-            if (i == kDifficultySetting) TheTextManager()->GetString(TextDifficultyEasy(), &text);
+            g_clientWorld->texts_->GetString(TextOptionOn(), &text);
+            if (i == kDifficultySetting) g_clientWorld->texts_->GetString(TextDifficultyEasy(), &text);
             setting.spin_->AddText(text);
             AddChild(setting.spin_);
             setting.bar_ = nullptr;
@@ -349,37 +316,37 @@ void COptionsWindow::LoadSettings() {
     OptionSetting* s = settings_.data();
     const double fromStep = ConstFromStep();
     const float one = ConstOne();
-    s[0].value_ = OptVolume0();
-    s[1].value_ = OptVolume1();
-    s[2].value_ = OptVolume2();
-    s[24].value_ = Opt24();
+    s[0].value_ = options::g_options->audioSfx_;
+    s[1].value_ = options::g_options->audioStreaming_;
+    s[2].value_ = options::g_options->audioSpeech_;
+    s[24].value_ = options::g_options->reverseStereo_;
     // _ftol: truncation.
-    s[3].value_ = static_cast<int>(OptSpeedA() * fromStep);
-    s[4].value_ = static_cast<int>(OptSpeedB() * fromStep);
+    s[3].value_ = static_cast<int>(options::g_options->cameraScroll_.powerKeyboard * fromStep);
+    s[4].value_ = static_cast<int>(options::g_options->cameraScroll_.powerMouse * fromStep);
     // Equal gives 0.
-    float sign22 = OptSign22();
-    float sign23 = OptSign23();
+    float sign22 = options::g_options->cameraFlipX_;
+    float sign23 = options::g_options->cameraFlipY_;
     EI_NAN_AUDIT(sign22, sign23);
     s[22].value_ = sign22 == one ? 0 : 1;
     s[23].value_ = sign23 == one ? 0 : 1;
-    s[5].value_ = Opt5();
-    s[6].value_ = Opt6Tenths() / 10;
-    s[20].value_ = static_cast<int>(Opt20() * static_cast<double>(ConstScrollFrom()));
-    s[7].value_ = OptShadowUnits();
-    s[8].value_ = OptShadowBuildings();
-    s[9].value_ = OptShadowFlora();
-    s[10].value_ = Opt10();
-    s[11].value_ = Opt11();
-    s[12].value_ = Opt12();
-    s[13].value_ = Opt13();
-    s[17].value_ = Opt17();
-    s[18].value_ = OptHelp18();
-    s[19].value_ = Opt19();
-    s[21].value_ = Opt21();
-    s[14].value_ = static_cast<int>((static_cast<double>(OptGamma14()) + one) * fromStep);
-    s[15].value_ = static_cast<int>((static_cast<double>(OptGamma15()) + one) * fromStep);
-    s[16].value_ = static_cast<int>((static_cast<double>(OptGamma16()) + one) * fromStep);
-    s[25].value_ = GameDifficulty();
+    s[5].value_ = options::g_options->cameraBorderScrollArea_;
+    s[6].value_ = options::g_options->cameraFrameSelectionArea_ / 10;
+    s[20].value_ = static_cast<int>(options::g_options->toolTipTime_ * static_cast<double>(ConstScrollFrom()));
+    s[7].value_ = options::g_options->unitShadow_;
+    s[8].value_ = options::g_options->buildingShadow_;
+    s[9].value_ = options::g_options->floraShadow_;
+    s[10].value_ = options::g_options->enableBloodprints_;
+    s[11].value_ = options::g_options->enableFootprints_;
+    s[12].value_ = options::g_options->selectionType_;
+    s[13].value_ = options::g_options->drawPath_;
+    s[17].value_ = options::g_options->drawFlyingHp_;
+    s[18].value_ = options::g_options->showTutorial_;
+    s[19].value_ = options::g_options->autosave_;
+    s[21].value_ = options::g_options->switchFilters_;
+    s[14].value_ = static_cast<int>((static_cast<double>(options::g_options->brightness_) + one) * fromStep);
+    s[15].value_ = static_cast<int>((static_cast<double>(options::g_options->contrast_) + one) * fromStep);
+    s[16].value_ = static_cast<int>((static_cast<double>(options::g_options->gamma_) + one) * fromStep);
+    s[25].value_ = options::g_options->difficulty_;
 
     for (int i = 0; i < kOptionDefinitionCount; ++i) {
         if (s[i].bar_)
@@ -394,43 +361,43 @@ void COptionsWindow::Apply() {
     const OptionSetting* s = settings_.data();
     const double toStep = ConstToStep();
     const float one = ConstOne();
-    OptVolume0() = s[0].value_;
-    OptVolume1() = s[1].value_;
-    OptVolume2() = s[2].value_;
-    Opt24() = s[24].value_;
+    options::g_options->audioSfx_ = s[0].value_;
+    options::g_options->audioStreaming_ = s[1].value_;
+    options::g_options->audioSpeech_ = s[2].value_;
+    options::g_options->reverseStereo_ = s[24].value_;
     // Each product is rounded once by its float stores.
     float speedA = static_cast<float>(s[3].value_ * toStep);
     float speedB = static_cast<float>(s[4].value_ * toStep);
-    OptSpeedA() = speedA;
-    OptSpeedA2() = speedA;
-    OptSpeedA3() = speedA;
-    OptSpeedA4() = speedA;
-    OptSpeedB() = speedB;
-    OptSpeedB2() = speedB;
-    OptSpeedB3() = speedB;
-    OptSpeedB4() = speedB;
-    OptSign22() = s[22].value_ == 1 ? -1.0f : 1.0f;
-    OptSign23() = s[23].value_ == 1 ? -1.0f : 1.0f;
-    Opt5() = s[5].value_;
-    Opt6Tenths() = s[6].value_ * 10;
-    Opt20() = static_cast<float>(s[20].value_ * static_cast<double>(ConstScrollTo()));
-    OptShadowUnits() = s[7].value_;
-    OptShadowBuildings() = s[8].value_;
-    OptShadowFlora() = s[9].value_;
-    Opt10() = s[10].value_;
-    Opt11() = s[11].value_;
-    Opt12() = s[12].value_;
-    Opt13() = s[13].value_;
-    Opt17() = s[17].value_;
-    OptHelp18() = s[18].value_;
-    Opt19() = s[19].value_;
-    Opt21() = s[21].value_;
-    OptGamma14() = static_cast<float>(s[14].value_ * toStep - one);
-    OptGamma15() = static_cast<float>(s[15].value_ * toStep - one);
-    OptGamma16() = static_cast<float>(s[16].value_ * toStep - one);
+    options::g_options->cameraScroll_.powerKeyboard = speedA;
+    options::g_options->cameraPitch_.powerKeyboard = speedA;
+    options::g_options->cameraZoom_.powerKeyboard = speedA;
+    options::g_options->cameraRotate_.powerKeyboard = speedA;
+    options::g_options->cameraScroll_.powerMouse = speedB;
+    options::g_options->cameraPitch_.powerMouse = speedB;
+    options::g_options->cameraZoom_.powerMouse = speedB;
+    options::g_options->cameraRotate_.powerMouse = speedB;
+    options::g_options->cameraFlipX_ = s[22].value_ == 1 ? -1.0f : 1.0f;
+    options::g_options->cameraFlipY_ = s[23].value_ == 1 ? -1.0f : 1.0f;
+    options::g_options->cameraBorderScrollArea_ = s[5].value_;
+    options::g_options->cameraFrameSelectionArea_ = s[6].value_ * 10;
+    options::g_options->toolTipTime_ = static_cast<float>(s[20].value_ * static_cast<double>(ConstScrollTo()));
+    options::g_options->unitShadow_ = s[7].value_;
+    options::g_options->buildingShadow_ = s[8].value_;
+    options::g_options->floraShadow_ = s[9].value_;
+    options::g_options->enableBloodprints_ = s[10].value_;
+    options::g_options->enableFootprints_ = s[11].value_;
+    options::g_options->selectionType_ = s[12].value_;
+    options::g_options->drawPath_ = s[13].value_;
+    options::g_options->drawFlyingHp_ = s[17].value_;
+    options::g_options->showTutorial_ = s[18].value_;
+    options::g_options->autosave_ = s[19].value_;
+    options::g_options->switchFilters_ = s[21].value_;
+    options::g_options->brightness_ = static_cast<float>(s[14].value_ * toStep - one);
+    options::g_options->contrast_ = static_cast<float>(s[15].value_ * toStep - one);
+    options::g_options->gamma_ = static_cast<float>(s[16].value_ * toStep - one);
     if (!IsMultiplayerClient()) {
-        OptDifficultyCopy() = s[25].value_;
-        GameDifficulty() = s[25].value_;
+        options::g_options->difficultyStored_ = s[25].value_;
+        options::g_options->difficulty_ = s[25].value_;
     }
     if (shadowsChanged_) g_clientWorld->DropShadows();
 }

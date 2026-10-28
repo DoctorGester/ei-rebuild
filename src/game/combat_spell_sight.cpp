@@ -32,5 +32,5 @@ bool SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, cons
         eye.z = static_cast<float>(caster->BaseSpeed() + ground);
     }
     // The unrounded ST0 result is compared (TEST AH,1: below or unordered fails).
-    return world->AIMap()->LineOfSight(&eye, &to) >= kMinSight;
+    return world->aiMap_.LineOfSight(&eye, &to) >= kMinSight;
 }

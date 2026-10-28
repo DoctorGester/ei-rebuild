@@ -34,8 +34,6 @@ constexpr std::uint32_t kFlagSideChanged = 0x80000;
 constexpr int kClassQuickItem = 0x13;
 
 // Globals read by the formulas.
-float BackwardSpeedScale() { return g_logicSettings.rotateSpeedMult; }
-float HeroTransitionSpeed() { return g_logicSettings.humanCrossAnimationSpeed; }
 
 float ItemWeight(const CItem* item) { return item->Weight(); }
 
@@ -292,16 +290,16 @@ void CUnit::GetMoveSpeeds(float* forward, float* backward) {
     case 4:
         *backward = static_cast<float>(params.modeSpeeds[0]) * *forward * kTwo * kByteScale;
         *forward = static_cast<float>(params.modeSpeeds[1]) * *forward * kTwo * kByteScale;
-        *backward = BackwardSpeedScale() * *backward;
+        *backward = g_logicSettings.rotateSpeedMult * *backward;
         return;
     default:
-        *backward = BackwardSpeedScale() * *backward;
+        *backward = g_logicSettings.rotateSpeedMult * *backward;
         return;
     }
     float scaled = static_cast<float>(speed) * *forward * kTwo * kByteScale;
     *forward = scaled;
     *backward = scaled;
-    *backward = BackwardSpeedScale() * *backward;
+    *backward = g_logicSettings.rotateSpeedMult * *backward;
 }
 
 double CUnit::MoveSpeed2() { return ModeSpeedOf(this, static_cast<std::uint32_t>(moveMode2)); }
@@ -359,7 +357,7 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     case 0xC0000: return actionSpeeds[1];
     case 0x200000: return actionSpeeds[2];
     case 0x1C0000: return actionSpeeds[3];
-    case 0x240000: return type_ == kUnitTypeHero ? HeroTransitionSpeed() : actionSpeeds[4];
+    case 0x240000: return type_ == kUnitTypeHero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
     case 0x40000: return actionSpeeds[5];
     default: return kOne;
     }

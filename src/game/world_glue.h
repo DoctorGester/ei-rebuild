@@ -8,8 +8,6 @@
 #include <string>
 
 // The data folder CString / the base folder CString.
-const std::string* GameDataPathString();
-const std::string* GameBasePathString();
 
 // The scripts' QuestComplete in a network game. With a live game server: its FinishMap for the map named
 // `name` (the held map message dropped, "name_3" queued), 1 when it did; else 0.
@@ -57,12 +55,10 @@ void GamePassTime(float offset);
 void GameEnsureZone(std::string_view map, std::string_view mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
 class CMemoryStream;
-CMemoryStream* GameObject7C2D60();
 // The server unit with id `id` moves to height `z` (its sector map entry follows, part 2 marked changed)
 // unless it is there already (or NaN).
 void GameSetUnitHeight(int id, float z);
 // The server world's pause flag / CWorldServer::SetPaused.
-std::uint8_t GameServerPaused();
 void GameSetServerPaused(int paused);
 
 // Recording stops: CameraCloseFile, the client world's flag 0x10 off.
@@ -100,5 +96,3 @@ void GameRejoin();
 void GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
 CPlayerClient* GameLocalView();
 int GameSendFlag10(int value);
-std::uint8_t GameClientPaused();
-CTextManager* GameClientTexts();

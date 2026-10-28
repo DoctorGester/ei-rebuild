@@ -453,7 +453,6 @@ public:
     CUnitServer* ServerController() const;
     CUnitClientSpecific* ClientController() const;
     CMapObject* MapObject() { return this; }
-    UnitMotion* Motion() { return &motion; }
 
     std::string scriptName;        // network field 9
     int secondPrototype;              // a second prototype index (-1 none)

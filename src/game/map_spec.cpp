@@ -26,7 +26,6 @@ namespace {
 
 // The objects manager (0x7AF5F8) look-up by id; the world server: an object removed by id, an object made
 // from a record; the editor's selection and object lists the world object's own updates.
-CAIMap* Selection() { return g_serverWorld->AIMap(); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t b;
@@ -75,7 +74,7 @@ std::string* Spec::TypeName(std::string* out) {
 void Spec::Remove() { Apply(); }
 void Spec::Refresh() { Apply(); }
 
-void* Spec::WorldObject() { return TheObjectManager()->FindObject(id); }
+void* Spec::WorldObject() { return g_clientWorld->objectManager_->FindObject(id); }
 
 void Spec::Move(float dx, float dy, float dz) {
     position.x = dx + position.x;
@@ -190,8 +189,8 @@ void ObjectSpec::Apply() {
         g_serverWorld->CreateObject(this);
         return;
     }
-    Selection()->BeginRefresh();
-    TheSectorMap()->Remove(MapObject());
+    g_serverWorld->aiMap_.BeginRefresh();
+    g_serverWorld->aiMap_.sectorMap.Remove(MapObject());
     CMapObject* mapObject = MapObject();
     std::memcpy(&mapObject->localPosition_, &position, 12);
     std::memcpy(&mapObject->localRotation_, &rotation, 16);
@@ -203,8 +202,8 @@ void ObjectSpec::Apply() {
     else flags &= ~8u;
     MapObject()->MarkChanged(2);
     MapObject()->MarkChanged(1);
-    TheSectorMap()->Add(MapObject());
-    Selection()->EndRefresh();
+    g_serverWorld->aiMap_.sectorMap.Add(MapObject());
+    g_serverWorld->aiMap_.EndRefresh();
 }
 
 std::string* ObjectSpec::TypeName(std::string* out) {

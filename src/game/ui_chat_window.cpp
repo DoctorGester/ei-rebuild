@@ -73,7 +73,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     portraits_ = 0;
     std::string text;
     for (int i = 0; i < kTextCount; ++i) {
-        TheTextManager()->GetString(TextKey(i), &text);
+        g_clientWorld->texts_->GetString(TextKey(i), &text);
         texts_.push_back(text);
     }
 }

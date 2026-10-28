@@ -70,12 +70,12 @@ constexpr int kEventLeaves = 2;
 
 
 void CBriefingScreen::StartPhrases() {
-    if (voice_ != -1) TheSoundManager()->StopSound(voice_);
+    if (voice_ != -1) g_clientWorld->sounds_->StopSound(voice_);
     voice_ = -1;
-    TheMusicSystem()->FadeOut();
+    g_clientWorld->music_->FadeOut();
     std::string key = BriefingSection();
     key += topic_;
-    if (!TheTextManager()->CTextManager::Open(key.c_str())) {
+    if (!g_clientWorld->texts_->CTextManager::Open(key.c_str())) {
         state_ = 0;
         return;
     }

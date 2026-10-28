@@ -62,10 +62,7 @@ constexpr float kSamePointSq = 0.01f;
 
 // how close a follower stays and how far its goal may drift before it walks
 // again (set at startup).
-float FollowNear() { return g_logicSettings.followMinDist; }
-float FollowFar() { return g_logicSettings.followMaxDist; }
 
-CAIMap* AIMap() { return g_serverWorld->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return &unit->localPosition_; }
 
 // The CPtrList the sector map fills (blocks of 10).
@@ -81,7 +78,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
     IsaacRandom* random = (&g_random);
     int count = static_cast<int>(random->Next() & 3) + 1;
     Vector3 eye = order->point;
-    eye.z = static_cast<float>(AIMap()->TopHeightAt(&eye) + kEyeHeight);
+    eye.z = static_cast<float>(g_serverWorld->aiMap_.TopHeightAt(&eye) + kEyeHeight);
     if (wander >= 0.0f) wander = static_cast<float>(wander * kWanderScale);
     else wander = kDefaultWander;   // also NaN
     if (farGoal) {
@@ -107,7 +104,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             if (tries-- < 0) break;
             Vector3 reach{static_cast<float>(dx + dx), static_cast<float>(dy + dy), static_cast<float>(direction->z + direction->z)};
             Vector3 to{static_cast<float>(reach.x + eye.x), static_cast<float>(reach.y + eye.y), static_cast<float>(reach.z + eye.z)};
-            float sight = AIMap()->LineOfSight(&eye, &to);
+            float sight = g_serverWorld->aiMap_.LineOfSight(&eye, &to);
             EI_NAN_AUDIT(sight);
             if (sight == kOne) break;
         }
@@ -140,7 +137,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     out->x = static_cast<float>(dx + point->x);
     out->y = static_cast<float>(dy + point->y);
     out->z = 0.0f;
-    CAIMap* map = AIMap();
+    CAIMap* map = &g_serverWorld->aiMap_;
     if (map->SlopeAt(out) > kMaxSlope) return false;
 
     // No unit of an allied player may stand near it.
@@ -150,7 +147,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     g_serverWorld->aiMap_.sectorMap.FindUnitsInRadius(out, &units, self->standingHeight * kAllySpace);
     for (auto node = units.begin(); node != units.end(); ++node) {
         auto* other = *node;
-        if (GameDiplomacy()->allied_[other->side] & (1u << (self->side & 31))) {
+        if (g_serverWorld->diplomacy_.allied_[other->side] & (1u << (self->side & 31))) {
             units.clear();
             return false;
         }
@@ -185,9 +182,9 @@ void AIBrain::UpdateFollow() {
     }
     if (followTimer++ < kFollowWait) return;
 
-    float farSq = static_cast<float>(FollowFar() * FollowFar());
+    float farSq = static_cast<float>(g_logicSettings.followMaxDist * g_logicSettings.followMaxDist);
     CUnit* self = owner->unit;
-    float nearSq = static_cast<float>(FollowNear() * FollowNear());
+    float nearSq = static_cast<float>(g_logicSettings.followMinDist * g_logicSettings.followMinDist);
     auto* leader = static_cast<CUnit*>(target.object);
     Vector3 toLeader{static_cast<float>(leader->localPosition_.x - self->localPosition_.x), static_cast<float>(leader->localPosition_.y - self->localPosition_.y),
                      static_cast<float>(leader->localPosition_.z - self->localPosition_.z)};
@@ -274,7 +271,7 @@ void AIBrain::UpdateFollow() {
 
     ScopedPath local;
     Vector3 aside{static_cast<float>(passing.x + side.x), static_cast<float>(passing.y + side.y), static_cast<float>(side.z + passing.z)};
-    AIMap()->FindPath(self, &aside, &local.path, kPassRange, 0.0f);
+    g_serverWorld->aiMap_.FindPath(self, &aside, &local.path, kPassRange, 0.0f);
     double half = kOne * kHalf;
     float targetY = static_cast<float>(half * local.path.targetY);
     float offY = static_cast<float>(aside.y - targetY);
@@ -306,7 +303,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     Vector3 saved = *PositionOf(unit);
     float range = static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     g_serverWorld->aiMap_.sectorMap.Move(unit, from);
-    bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
+    bool found = g_serverWorld->aiMap_.FindPath(unit, to, &local.path, range, 0.0f);
     g_serverWorld->aiMap_.sectorMap.Move(unit, &saved);
     return found;
 }

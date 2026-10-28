@@ -244,7 +244,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 
 void CBriefingScreen::DrawTopics() {
     std::string prefix;
-    TheTextManager()->GetString(TopicPrefixKey(), &prefix);
+    g_clientWorld->texts_->GetString(TopicPrefixKey(), &prefix);
     CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();

@@ -56,7 +56,7 @@ void TryLightningStrike(CWorldServer* world) {
     ground.x = Uniform(MapScale());
     ground.y = Uniform(MapScale());
     ground.z = 0.0f;
-    CAIMap* aiMap = world->AIMap();
+    CAIMap* aiMap = &world->aiMap_;
     int kind = aiMap->MaterialAt(&ground);
     if (kind != 3 && kind != 1) return;
     if (aiMap->CellFlag80At(&ground)) return;

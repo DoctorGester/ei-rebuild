@@ -10,6 +10,7 @@
 #include <cstring>
 #include <string>
 #include "game_singletons.h"
+#include "world.h"
 #include "lib/str.h"
 
 #include <concepts>
@@ -83,10 +84,10 @@ void CHudTopPanel::Build(int page, int shown) {
 void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     std::string name;
     std::string kind;
-    TheTextManager()->FormatItemName(item, &name);
+    g_clientWorld->texts_->FormatItemName(item, &name);
     const char* key = static_cast<char>(crippled) ? "combat_crippled"
                                                   : "combat_picked_up";
-    TheTextManager()->GetString(key, &kind);
+    g_clientWorld->texts_->GetString(key, &kind);
     std::string line = kind;
     line += " ";
     line += name;
@@ -101,8 +102,8 @@ void CHudTopPanel::AddMoney(int money) {
     std::string text;
     std::string picked;
     std::string format;
-    TheTextManager()->GetString("combat_picked_up", &picked);
-    TheTextManager()->GetString("format_money", &format);
+    g_clientWorld->texts_->GetString("combat_picked_up", &picked);
+    g_clientWorld->texts_->GetString("format_money", &format);
     text = str::Format(format.c_str(), money);
     std::string line = picked;
     line += " ";

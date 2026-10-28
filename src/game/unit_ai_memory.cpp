@@ -23,7 +23,7 @@ constexpr float kZero = 0.0f;
 const float kFar = 1e30f;
 
 bool IsDead(CMapObject* object) { return object->IsDead() != 0; }
-bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
+bool Allied(int side, int other) { return (g_serverWorld->diplomacy_.allied_[side] & (1u << (other & 31))) != 0; }
 
 // (a - b) squared in 3D, summed z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
@@ -154,7 +154,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         if (distance < sight) {
             Vector3 theirEye;
             Vector3 to = *other->EyePoint(&theirEye);
-            double range = g_serverWorld->AIMap()->LineOfSight(&eye, &to) * sight;
+            double range = g_serverWorld->aiMap_.LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
         KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.perception[2].current) * self->stats.conspicuity[2].current));

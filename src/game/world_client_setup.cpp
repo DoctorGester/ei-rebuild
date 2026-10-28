@@ -124,7 +124,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     CLinkFigureLoader* loader;
     {
         std::string resource(FiguresResource());
-        loader = new CLinkFigureLoader(TheRenderDevice(), &resource);
+        loader = new CLinkFigureLoader(g_sceneRenderer->device_, &resource);
     }
     CLinkFigureLoader* old = figureLoader_;
     figureLoader_ = loader;

@@ -81,7 +81,7 @@ void CUnitServer::Resettle() {
     unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
-    CAIMap* map = world->AIMap();
+    CAIMap* map = &world->aiMap_;
     if (!map->CanLeaveCell(unit)) {
         auto* position = &unit->localPosition_;
         Vector3 spot;
@@ -92,11 +92,11 @@ void CUnitServer::Resettle() {
             DamageInfo hit;
             ResetDamageInfo(&hit);
             TakeHit(&hit, nullptr, nullptr);
-            g_serverWorld->AIMap()->sectorMap.Add(unit);
+            g_serverWorld->aiMap_.sectorMap.Add(unit);
             return;
         }
     }
-    g_serverWorld->AIMap()->sectorMap.Add(unit);
+    g_serverWorld->aiMap_.sectorMap.Add(unit);
 }
 
 int CUnitServer::Create() {

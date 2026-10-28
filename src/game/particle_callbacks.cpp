@@ -4039,7 +4039,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
-    Vector3 point = *UnitPoint(unit, &scratch, index + CurrentClientTick());
+    Vector3 point = *UnitPoint(unit, &scratch, index + g_clientWorld->tick_);
     float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));

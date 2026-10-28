@@ -304,7 +304,7 @@ bool CUnitServer::StartMove() {
     }
     // Plan the way with the units near the goal lifted off the sector map.
     LiftNearby(&lifted, &action.point, action.source != 0);
-    CAIMap* map = ServerWorld()->AIMap();
+    CAIMap* map = &ServerWorld()->aiMap_;
     unit->altPassCosts = map->CellFlag80At(&unit->localPosition_);
     bool found = PathTo(&action.point, action.point.z);
     for (auto node = lifted.begin(); node != lifted.end();) {
@@ -761,7 +761,7 @@ void CUnitServer::ApproachTarget() {
         }
     }
     float patience = static_cast<float>(unit->ScaledValue(distance) + kFive);
-    CAIMap* aiMap = g_serverWorld->AIMap();
+    CAIMap* aiMap = &g_serverWorld->aiMap_;
     std::uint8_t savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
     EI_NAN_AUDIT(DistanceSquaredXYUnrounded<double>(unit->localPosition_, goal));

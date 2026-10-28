@@ -412,7 +412,7 @@ void CGlobalMap::CreateScreen() {
     minutes -= hour * 60;
     std::string clock;
     std::string dayText;
-    TheTextManager()->GetString("save_day", &dayText);
+    g_clientWorld->texts_->GetString("save_day", &dayText);
     clock = str::Format("%s  %d,  %d:%02d", dayText.c_str(), day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
@@ -463,7 +463,7 @@ void CGlobalMap::CreateScreen() {
     SelectZone(-1, 0);
     dragging_ = false;
     GameSetWeather(0, 0.0f);   // clear
-    TheMusicSystem()->Stop();
+    g_clientWorld->music_->Stop();
     weather_ = new CGlobalMapClouds();
     weather_->Start();
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,

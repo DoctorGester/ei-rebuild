@@ -124,7 +124,7 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
 
     // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
     // order, and the first that takes the click wins.
-    DepthLess depth{ScenePipeline()->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    DepthLess depth{g_sceneRenderer->pipeline_->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
     lib::IntroSort(hits.data(), hits.data() + hits.size(),
                    [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
     ScreenEntry*& cursor = client->hitCursor_;
@@ -1085,13 +1085,13 @@ int CWorldClient::LoadZone(CStream* block) {
     }
 
     // The local server's pending messages follow this block in the view's stream.
-    LocalView()->AppendReceived(GameObject7C2D60());
+    LocalView()->AppendReceived(&g_serverWorld->zoneHeader_);
     ticksRun_ = 0;
     BuildUnitSkins(&looks.figured, &looks.dressed);
     // A wind option other than 0 sets the waves.
     const float wind = worlddata::DefaultWindForceOption();
     EI_NAN_AUDIT(wind);
-    if (wind != 0.0f) TheTerrain()->SetWaveStrength(wind);
+    if (wind != 0.0f) g_clientWorld->terrain_->SetWaveStrength(wind);
     ShowLoadingMovie(kProgressZoneReady);
     LocalView()->SendResume();
     CloseLoadingMovie();

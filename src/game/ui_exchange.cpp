@@ -13,6 +13,7 @@
 
 #include "lib/crt.h"
 #include "world_glue.h"
+#include "ui_cursor.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -210,9 +211,9 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     // What is under the mouse: an item of the strip or else of the grid, or a help topic.
     hoveredItem_ = nullptr;
     int topic = 0;
-    hoveredItem_ = strip_->ItemAt(MouseScreenX(), MouseScreenY(), &topic);
+    hoveredItem_ = strip_->ItemAt(g_cursor->position_.x, g_cursor->position_.y, &topic);
     if (!hoveredItem_ && !topic)
-        hoveredItem_ = grid_->ItemAt(MouseScreenX(), MouseScreenY(), &topic);
+        hoveredItem_ = grid_->ItemAt(g_cursor->position_.x, g_cursor->position_.y, &topic);
     if (hoveredItem_) {
         if (descPanel_) descPanel_->Describe(hoveredItem_);
     } else if (topic) {
@@ -221,7 +222,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
         descPanel_->Describe(nullptr);
     }
 
-    CTextManager* texts = GameClientTexts();
+    CTextManager* texts = g_clientWorld->texts_;
     std::string text, line;
     net::ClientSession* client = net::g_gameClient;
 
