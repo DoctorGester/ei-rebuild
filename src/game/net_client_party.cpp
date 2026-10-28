@@ -3,7 +3,6 @@
 #include "core_streams.h"
 #include "net_messages.h"
 #include "core_refcount.h"
-#include "game_lists.h"
 #include "item.h"
 #include "party.h"
 #include "spell.h"

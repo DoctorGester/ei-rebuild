@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "game_strings.h"
 #include "class_templates.h"
-#include "game_lists.h"
 #include "party.h"
 
 #include "lib/mfc.h"

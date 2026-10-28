@@ -10,7 +10,6 @@
 
 #include "chunk_stream.h"
 #include "object_tables.h"
-#include "game_arrays.h"
 #include "world_deleting_destructors.h"
 #include "world_map_files.h"
 

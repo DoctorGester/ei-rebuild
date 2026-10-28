@@ -6,6 +6,8 @@
 #include "script_load_vectors.h"
 #include "script_vectors.h"
 
+#include "../../src/game/script.h"
+
 #include "ei/hook.h"
 
 #include <vector>
@@ -28,14 +30,15 @@ void PutLocals(Writer& w, const OriginalScriptVars* locals) {
     if (locals) PutVars(w, *locals);
 }
 
+// No elements and no storage.
 template <typename T>
-bool Empty(const mfc::CArray<T>& a) {
-    return a.size == 0 && a.maxSize == 0 && !a.data;
+bool Empty(const exe::Vector<T>& a) {
+    return a.empty() && a.maxSize_ == 0 && !a.data();
 }
 
 // 004CF4D0: MOV EAX,FS:[0] (6). Bucket: the result.
-BOOL(__fastcall* s_expect)(CScript*, void*, const OriginalScriptTokenList*, OriginalScriptPos*, int);
-BOOL __fastcall ExpectRecord(CScript* self, void*, const OriginalScriptTokenList* tokens, OriginalScriptPos* pos,
+BOOL(__fastcall* s_expect)(OriginalScript*, void*, const OriginalScriptTokenList*, OriginalScriptPos*, int);
+BOOL __fastcall ExpectRecord(OriginalScript* self, void*, const OriginalScriptTokenList* tokens, OriginalScriptPos* pos,
                              int id) {
     OfferFixtures();
     Writer w;
@@ -53,9 +56,9 @@ BOOL __fastcall ExpectRecord(CScript* self, void*, const OriginalScriptTokenList
 
 // 004CFBC0: PUSH -1; PUSH imm32 (7). Bucket: a plain call, an assignment or a script call, each
 // succeeded or failed.
-BOOL(__fastcall* s_loadFunction)(CScript*, void*, OriginalSSCCmd*, OriginalScriptPos*, const OriginalScriptTokenList*,
-                                 int, OriginalScriptVars*, const char*, BOOL, BOOL);
-BOOL __fastcall LoadFunctionRecord(CScript* self, void*, OriginalSSCCmd* cmd, OriginalScriptPos* pos,
+BOOL(__fastcall* s_loadFunction)(OriginalScript*, void*, OriginalSSCCmd*, OriginalScriptPos*,
+                                 const OriginalScriptTokenList*, int, OriginalScriptVars*, const char*, BOOL, BOOL);
+BOOL __fastcall LoadFunctionRecord(OriginalScript* self, void*, OriginalSSCCmd* cmd, OriginalScriptPos* pos,
                                    const OriginalScriptTokenList* tokens, int id, OriginalScriptVars* locals,
                                    const char* signature, BOOL assignment, BOOL scriptCall) {
     OfferFixtures();
@@ -73,9 +76,6 @@ BOOL __fastcall LoadFunctionRecord(CScript* self, void*, OriginalSSCCmd* cmd, Or
         PutLocals(w, locals);
         w.Put<std::int32_t>(cmd->id);
         PutBlockRef(w, cmd->calledScript);
-        for (int growBy : {cmd->floatArgs.growBy, cmd->stringArgs.growBy, cmd->objectArgs.growBy, cmd->groupArgs.growBy,
-                           cmd->localBindings.growBy, cmd->globalBindings.growBy, cmd->subCalls.growBy})
-            w.Put<std::int32_t>(growBy);
     }
     const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
@@ -91,10 +91,11 @@ BOOL __fastcall LoadFunctionRecord(CScript* self, void*, OriginalSSCCmd* cmd, Or
 }
 
 // 004D1330: PUSH -1; PUSH imm32 (7). Bucket: succeeded or failed, payload up to 4 KB or larger.
-BOOL(__fastcall* s_loadCommands)(CScript*, void*, mfc::CArray<OriginalSSCCmd>*, OriginalScriptPos*,
+BOOL(__fastcall* s_loadCommands)(OriginalScript*, void*, exe::Vector<OriginalSSCCmd>*, OriginalScriptPos*,
                                   const OriginalScriptTokenList*, OriginalScriptVars*);
-BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<OriginalSSCCmd>* commands, OriginalScriptPos* pos,
-                                   const OriginalScriptTokenList* tokens, OriginalScriptVars* locals) {
+BOOL __fastcall LoadCommandsRecord(OriginalScript* self, void*, exe::Vector<OriginalSSCCmd>* commands,
+                                   OriginalScriptPos* pos, const OriginalScriptTokenList* tokens,
+                                   OriginalScriptVars* locals) {
     OfferFixtures();
     const bool empty = Empty(*commands);
     Writer w;
@@ -102,10 +103,8 @@ BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<OriginalSSC
         PutState(w, self, true);
         PutError(w, self);
         PutLocals(w, locals);
-        w.Put<std::int32_t>(commands->growBy);
     }
-    const OriginalScriptDecls& blocks = OriginalBlocks(self->blocks_);
-    const auto* lastBlock = blocks.tail;
+    const std::size_t blocksBefore = self->blocks.size();
     const OriginalScriptPos from = *pos;
     const std::uint16_t cw = ControlWord();
     const BOOL result = s_loadCommands(self, nullptr, commands, pos, tokens, locals);
@@ -114,42 +113,39 @@ BOOL __fastcall LoadCommandsRecord(CScript* self, void*, mfc::CArray<OriginalSSC
     w.Put<std::int32_t>(result);
     PutError(w, self);
     w.Put(HashOf([&](Writer& h) { PutCmds(h, *commands); }));
-    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, blocks, lastBlock); }));
+    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, self->blocks, blocksBefore); }));
     if (w.size() <= kMaxLoadPayload) g_loadCommands.OfferBytes(w, cw, (result ? 0 : 2) + (w.size() > 0x1000 ? 1 : 0));
     return result;
 }
 
 // 004D23A0: PUSH -1; PUSH imm32 (7). Bucket: succeeded or failed, by the text's size (SourceBucket).
-BOOL(__fastcall* s_load)(CScript*, void*, mfc::CString*, BOOL);
-BOOL __fastcall LoadRecord(CScript* self, void*, mfc::CString* text, BOOL runWorldScript) {
+BOOL(__fastcall* s_load)(OriginalScript*, void*, exe::CString*, BOOL);
+BOOL __fastcall LoadRecord(OriginalScript* self, void*, exe::CString* text, BOOL runWorldScript) {
     OfferFixtures();
     Writer w;
     PutState(w, self, true);
     PutError(w, self);
     PutText(w, *text);
     w.Put<std::int32_t>(runWorldScript);
-    const std::uint32_t length = static_cast<std::uint32_t>(text->GetLength());
+    const std::uint32_t length = Length(*text);
     std::vector<int> skip;
-    const mfc::CArray<OriginalScriptDefinition>& definitions = OriginalDefinitions(self);
-    for (int i = 0; i < definitions.size; ++i) skip.push_back(definitions.data[i].ifThen.size);
-    const OriginalScriptDecls& blocks = OriginalBlocks(self->blocks_);
-    const OriginalScriptDecls& worldBlocks = OriginalBlocks(self->worldBlocks_);
-    const auto* lastBlock = blocks.tail;
-    const auto* lastWorld = worldBlocks.tail;
-    const int runs = self->runs_.count;
+    for (const OriginalScriptDefinition& d : self->definitions) skip.push_back(static_cast<int>(d.ifThen.size()));
+    const std::size_t blocksBefore = self->blocks.size();
+    const std::size_t worldBlocksBefore = self->worldBlocks.size();
+    const std::size_t runs = self->runs.size();
     const std::uint16_t cw = ControlWord();
     const BOOL result = s_load(self, nullptr, text, runWorldScript);
     w.Put<std::int32_t>(result);
     PutError(w, self);
-    w.Put<std::int32_t>(self->LoadedFlag());
-    w.Put<std::int32_t>(self->FileCount());
+    w.Put<std::int32_t>(self->loaded);
+    w.Put<std::int32_t>(self->fileCount);
     w.Put(HashOf([&](Writer& h) { PutText(h, *text); }));
-    w.Put(HashOf([&](Writer& h) { PutDefinitionsAfter(h, definitions, skip); }));
-    w.Put(HashOf([&](Writer& h) { PutVars(h, OriginalGlobals(self)); }));
-    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, blocks, lastBlock); }));
-    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, worldBlocks, lastWorld); }));
+    w.Put(HashOf([&](Writer& h) { PutDefinitionsAfter(h, self->definitions, skip); }));
+    w.Put(HashOf([&](Writer& h) { PutVars(h, self->globals); }));
+    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, self->blocks, blocksBefore); }));
+    w.Put(HashOf([&](Writer& h) { PutBlocksAfter(h, self->worldBlocks, worldBlocksBefore); }));
     // RunWorldScript (004BCC60) adds a run of the block at the head of the run list.
-    PutBlockRef(w, self->runs_.count > runs ? self->runs_.head->data.block : nullptr);
+    PutBlockRef(w, self->runs.size() > runs ? (*self->runs.begin()).block : nullptr);
     if (w.size() <= kMaxLoad) g_load.OfferBytes(w, cw, (result ? 0 : 3) + SourceBucket(length));
     return result;
 }

@@ -10,8 +10,6 @@
 
 #include "../lib/text_case.h"
 #include "text_reader.h"
-#include "game_arrays.h"
-#include "game_slots.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 #include "game_data.h"

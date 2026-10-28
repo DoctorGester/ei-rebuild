@@ -247,7 +247,7 @@ struct ZoneExit;
 
 struct ScriptObjectRef;
 // A script's group of objects: a CArray of object references.
-struct ScriptGroup : Array<ScriptObjectRef> {};
+struct ScriptGroup : Vector<ScriptObjectRef> {};
 
 // CEngineObject (engine_object.h): every world object's base. Slot 11 GetClassName, slot 12 GetClassId.
 struct CEngineObject {
@@ -678,8 +678,8 @@ static_assert(sizeof(ScriptObjectRef) == 0x4);
 // A script's variables: values and names of the four kinds (script.h).
 template <typename Value>
 struct ScriptNamedValues {
-    Array<Value> values;                    // +0x00
-    Array<CString> names;                   // +0x14
+    Vector<Value> values;                   // +0x00
+    Vector<CString> names;                  // +0x14
 };
 struct ScriptVars {
     ScriptNamedValues<float> floats;        // +0x00
@@ -759,7 +759,7 @@ static_assert(sizeof(ScriptLightning) == 0x8);
 
 // The mission script (script.h).
 struct CScript {
-    Array<ScriptPointLight> pointLights_;   // +0x00
+    Vector<ScriptPointLight> pointLights_;  // +0x00
     List<ScriptParticleSource> particles_;  // +0x14
     List<ScriptFxSource> fxSources_;        // +0x30
     List<ScriptLightning> lightning_;       // +0x4C

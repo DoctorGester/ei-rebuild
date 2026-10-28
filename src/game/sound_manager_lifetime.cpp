@@ -12,7 +12,6 @@
 #include "lib/mfc_thread.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
-#include "game/game_slots.h"
 #include "lib/str.h"
 
 #include <cstring>

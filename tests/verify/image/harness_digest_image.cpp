@@ -64,6 +64,12 @@ std::uint32_t MissileVtable(const CSpellEffect* e) {
 
 bool IsSpellEffect(const CSpellEffect* e) { return typeid(*e) == typeid(CSpellEffect); }
 
+// A script effect's object id (-1: none); the reader's IdOf takes the object pointers.
+template <class T>
+int IdOf(const ScriptEffect<T>& effect) {
+    return effect.SavedId();
+}
+
 // Our text, UTF-8, in the asset code page game.exe's text is in, so both sides digest the same bytes. Our std::string
 // members as game.exe's CStrings (read as const char*).
 std::string Text(const char* s) { return ::text::ToAssetText(digest::Text(s)); }

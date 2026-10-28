@@ -161,8 +161,6 @@ void DestructArrayOf(CArray<T, E>& a) {
 // CompiledCollection); the element policies and aliases below only name them. What each is: mfc_slots.h.
 
 struct IntArrayClass;
-struct ScriptAreaClass;
-struct ScriptAreaPartsClass;
 
 // ---- Elements ------------------------------------------------------------------------------------
 
@@ -189,20 +187,10 @@ void DestroyArrayAt(E* p) {
 
 using Plain4 = ArrayAbi<Bytes<4>>;
 using Plain8 = ArrayAbi<Bytes<8>>;
-using Plain12 = ArrayAbi<Bytes<12>>;
-using Plain20 = ArrayAbi<Bytes<20>>;
 using Plain24 = ArrayAbi<Bytes<24>>;
 using Plain28 = ArrayAbi<Bytes<28>>;
 using Plain40 = ArrayAbi<Bytes<40>>;
 using Floats = ArrayAbi<float>;
 
 
-// Script areas: 24-byte elements that are an array of ScriptAreaPartsClass, destroyed by
-// the base's destructor (ScriptAreaClass's vtable, the storage freed).
-using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
-using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
-                                                            DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
-
-// The script's string arrays (game.exe's CArray<CString>): std::string elements.
-using Strings = ArrayAbi<std::string>;
 } // namespace mfc::impl

@@ -375,17 +375,16 @@ void ReadEvents(const AIEventTable* t, Builder& b) {
 // a group is kept in address order).
 std::uint32_t HashVars(const ScriptVars& v) {
     Hash h;
-    h.Add(static_cast<std::uint32_t>(v.floats.values.GetSize()));
-    for (int i = 0; i < v.floats.values.GetSize(); ++i) h.Add(FloatBits(v.floats.values[i]));
-    h.Add(static_cast<std::uint32_t>(v.strings.values.GetSize()));
-    for (int i = 0; i < v.strings.values.GetSize(); ++i) h.AddText(Text(v.strings.values[i]));
-    h.Add(static_cast<std::uint32_t>(v.objects.values.GetSize()));
-    for (int i = 0; i < v.objects.values.GetSize(); ++i) h.Add(static_cast<std::uint32_t>(IdOf(v.objects.values[i].object)));
-    h.Add(static_cast<std::uint32_t>(v.groups.values.GetSize()));
-    for (int i = 0; i < v.groups.values.GetSize(); ++i) {
-        const ScriptGroup& group = v.groups.values[i];
+    h.Add(static_cast<std::uint32_t>(v.floats.values.size()));
+    for (float value : v.floats.values) h.Add(FloatBits(value));
+    h.Add(static_cast<std::uint32_t>(v.strings.values.size()));
+    for (const auto& text : v.strings.values) h.AddText(Text(text));
+    h.Add(static_cast<std::uint32_t>(v.objects.values.size()));
+    for (const ScriptObjectRef& ref : v.objects.values) h.Add(static_cast<std::uint32_t>(IdOf(ref.object)));
+    h.Add(static_cast<std::uint32_t>(v.groups.values.size()));
+    for (const ScriptGroup& group : v.groups.values) {
         std::vector<int> ids;
-        for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
+        for (const ScriptObjectRef& member : group) ids.push_back(IdOf(member.object));
         std::sort(ids.begin(), ids.end());
         h.Add(static_cast<std::uint32_t>(ids.size()));
         for (int id : ids) h.Add(static_cast<std::uint32_t>(id));
@@ -401,19 +400,19 @@ void ReadScript(CScript* s, Builder& b) {
     b.Int("files", s->fileCount_);
     b.Int("nextParticleId", s->nextParticleId_);
     b.Int("nextFxId", s->nextFxId_);
-    b.Int("instances", s->instances_.GetCount());
+    b.Int("instances", static_cast<int>(s->instances_.size()));
     std::vector<const int*> killFlags;
     int i = 0;
-    for (auto* n = s->instances_.head; n; n = n->next, ++i) {
-        killFlags.push_back(&n->data.index);
-        b.Int("inst#.killed", n->data.index, i);
-        b.Bits("inst#.name", TextHash(Text(n->data.name)), i);
-        b.Bits("inst#.vars", HashVars(n->data.vars), i);
+    for (const ScriptDefinition& instance : s->instances_) {
+        killFlags.push_back(&instance.index);
+        b.Int("inst#.killed", instance.index, i);
+        b.Bits("inst#.name", TextHash(Text(instance.name)), i);
+        b.Bits("inst#.vars", HashVars(instance.vars), i);
+        ++i;
     }
-    b.Int("runs", s->runs_.GetCount());
+    b.Int("runs", static_cast<int>(s->runs_.size()));
     i = 0;
-    for (auto* n = s->runs_.head; n; n = n->next, ++i) {
-        const ScriptRun& run = n->data;
+    for (const ScriptRun& run : s->runs_) {
         int instance = -1;   // the WorldScript's runs have none
         if (run.killFlag) {
             auto found = std::find(killFlags.begin(), killFlags.end(), run.killFlag);
@@ -425,29 +424,28 @@ void ReadScript(CScript* s, Builder& b) {
         b.Int("run#.sleepStart", run.sleepStart, i);
         b.Int("run#.instance", instance, i);
         b.Bits("run#.vars", HashVars(run.vars), i);
+        ++i;
     }
     // The global variables by name (by index past the names, "<kind>#"): floats, strings (a hash of the
     // text), objects (the id) and groups (a hash of the sorted ids).
     const ScriptVars& g = s->globals_;
-    auto field = [&b](const char* kind, const auto& names, int v, Kind type, std::uint32_t value) {
-        if (v < names.GetSize()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
-        else b.Add(Intern(std::string(kind) + "#"), v, type, value);
+    auto field = [&b](const char* kind, const auto& names, std::size_t v, Kind type, std::uint32_t value) {
+        if (v < names.size()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
+        else b.Add(Intern(std::string(kind) + "#"), static_cast<int>(v), type, value);
     };
-    for (int v = 0; v < g.floats.values.GetSize(); ++v) field("global", g.floats.names, v, Kind::Float, FloatBits(g.floats.values[v]));
-    for (int v = 0; v < g.strings.values.GetSize(); ++v) field("gstring", g.strings.names, v, Kind::Bits, TextHash(Text(g.strings.values[v])));
-    for (int v = 0; v < g.objects.values.GetSize(); ++v)
+    for (std::size_t v = 0; v < g.floats.values.size(); ++v) field("global", g.floats.names, v, Kind::Float, FloatBits(g.floats.values[v]));
+    for (std::size_t v = 0; v < g.strings.values.size(); ++v) field("gstring", g.strings.names, v, Kind::Bits, TextHash(Text(g.strings.values[v])));
+    for (std::size_t v = 0; v < g.objects.values.size(); ++v)
         field("gobject", g.objects.names, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects.values[v].object)));
-    for (int v = 0; v < g.groups.values.GetSize(); ++v) {
-        const ScriptGroup& group = g.groups.values[v];
+    for (std::size_t v = 0; v < g.groups.values.size(); ++v) {
         std::vector<int> ids;
-        for (int j = 0; j < group.GetSize(); ++j) ids.push_back(IdOf(group[j].object));
+        for (const ScriptObjectRef& member : g.groups.values[v]) ids.push_back(IdOf(member.object));
         std::sort(ids.begin(), ids.end());
         field("ggroup", g.groups.names, v, Kind::Bits, HashWords(reinterpret_cast<const std::uint32_t*>(ids.data()), int(ids.size())));
     }
-    b.Int("globals.names", g.floats.names.GetSize() + g.strings.names.GetSize() + g.objects.names.GetSize() + g.groups.names.GetSize());
+    b.Int("globals.names", static_cast<int>(g.floats.names.size() + g.strings.names.size() + g.objects.names.size() + g.groups.names.size()));
     i = 0;
-    for (auto* n = s->fxSources_.head; n; n = n->next, ++i) {
-        const ScriptFxSource& fx = n->data;
+    for (const ScriptFxSource& fx : s->fxSources_) {
         b.Int("fx#.id", fx.id, i);
         b.Int("fx#.sound", IdOf(fx.object), i);
         b.Float("fx#.x", fx.position.x, i);
@@ -457,32 +455,34 @@ void ReadScript(CScript* s, Builder& b) {
         // A source CreateFXSource made with a new id has the original's stack leftovers in its
         // delays, spread and countdown (ours: 0, 0, 0, INT_MAX; docs/notes/script.md): only the
         // randomized sources' (idle) are read.
-        if (!fx.idle) continue;
-        b.Int("fx#.countdown", fx.countdown, i);
-        b.Int("fx#.minDelay", fx.minDelay, i);
-        b.Int("fx#.maxDelay", fx.maxDelay, i);
-        b.Float("fx#.spread", fx.spread, i);
+        if (fx.idle) {
+            b.Int("fx#.countdown", fx.countdown, i);
+            b.Int("fx#.minDelay", fx.minDelay, i);
+            b.Int("fx#.maxDelay", fx.maxDelay, i);
+            b.Float("fx#.spread", fx.spread, i);
+        }
+        ++i;
     }
     i = 0;
-    for (auto* n = s->particles_.head; n; n = n->next, ++i) {
-        const ScriptParticleSource& p = n->data;
+    for (const ScriptParticleSource& p : s->particles_) {
         b.Int("part#.id", p.id, i);
         b.Int("part#.object", IdOf(p.object), i);
         b.Int("part#.moving", p.moving, i);
         b.Int("part#.steps", p.steps, i);
         b.Int("part#.lifetime", p.lifetime, i);
+        ++i;
     }
-    for (int slot = 0; slot < s->pointLights_.GetSize(); ++slot) {
+    for (std::size_t slot = 0; slot < s->pointLights_.size(); ++slot) {
         const ScriptPointLight& light = s->pointLights_[slot];
         if (!light.object) continue;
-        b.Int("light#.id", light.id, slot);
-        b.Int("light#.object", IdOf(light.object), slot);
-        b.Int("light#.moving", light.moving, slot);
-        b.Int("light#.steps", light.steps, slot);
+        b.Int("light#.id", light.id, static_cast<int>(slot));
+        b.Int("light#.object", IdOf(light.object), static_cast<int>(slot));
+        b.Int("light#.moving", light.moving, static_cast<int>(slot));
+        b.Int("light#.steps", light.steps, static_cast<int>(slot));
     }
     Hash bolts;
-    for (auto* n = s->lightning_.head; n; n = n->next) bolts.Add(static_cast<std::uint32_t>(IdOf(n->data.object)));
-    b.Int("lightning", s->lightning_.GetCount());
+    for (const ScriptLightning& bolt : s->lightning_) bolts.Add(static_cast<std::uint32_t>(IdOf(bolt.object)));
+    b.Int("lightning", static_cast<int>(s->lightning_.size()));
     b.Bits("lightning.ids", bolts.h);
 }
 

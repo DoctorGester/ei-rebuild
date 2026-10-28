@@ -19,7 +19,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "lib/mfc.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
@@ -41,9 +40,9 @@ namespace {
 int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
 
 CPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
-const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
-const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i].c_str(); }
-CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
+const float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
+const char* Text(Call* call, int i) { return call->cmd->stringArgs[i].c_str(); }
+CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]->object; }
 
 // The float bits of `value` as the dword the player messages take.
 std::uint32_t Bits(float value) {
@@ -121,7 +120,7 @@ bool GiveExp(Call* call) {
 // GiveUnitExp(unit, value): the unit's data gains the experience; a unit in a party with a
 // server-side player also sends it (the value's bits) with the unit's id.
 bool GiveUnitExp(Call* call) {
-    auto* data = UnitData(call->cmd->objectArgs.data[0]);
+    auto* data = UnitData(call->cmd->objectArgs[0]);
     if (!data) return InvalidArguments("GiveUnitExp");
     data->AddExperience(Floats(call)[0]);
     CUnit* unit = data->unit;
@@ -347,7 +346,7 @@ bool SetWeather(Call* call) {
 bool AddMobEx(Call* call) {
     std::string file;
     file = Text(call, 0);
-    bool keepIds = call->cmd->floatArgs.size != 0 && Equals(1.0f, Floats(call)[0]);
+    bool keepIds = std::ssize(call->cmd->floatArgs) != 0 && Equals(1.0f, Floats(call)[0]);
     g_loadingMovieOff = 1;
     int loaded = TheServerWorld()->LoadMapObjects(file.c_str(), keepIds ? 1 : 0);
     g_loadingMovieOff = 0;

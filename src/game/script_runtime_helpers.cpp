@@ -1,41 +1,8 @@
-// Small pieces of the script runtime that the rewritten script code reaches through
-// the game's code (the party a script names is party_script.cpp): the group / command block /
-// define list destructors, the AI map's sector map wrappers
-// and the console's float output. Names are provisional.
+// The AI map's sector map wrappers the script commands reach.
 #include "ai_map.h"
-#include "console.h"
-#include "script.h"
 #include "sector_map.h"
 
-#include "ei/vcall.h"
-#include "lib/crt.h"
-#include "lib/mfc.h"
-#include "game/game_slots.h"
-
 #include <list>
-
-void ScriptGroup::DestructBody() {
-    ei::SetVtable(this, mfc::impl::ObjectRefArrayClass::Vtable());   // CArray<ScriptObjectRef>'s base vtable
-    if (!data) return;
-    for (int i = 0; i < size; ++i) {
-        if (data[i].object) data[i].object->Release();
-        data[i].object = nullptr;
-    }
-    gamecrt::operator_delete(data);
-}
-
-void ScriptDeclDestruct(ScriptDecl* block) {
-    mfc::CArray<SSCCmd>& commands = block->commands;
-    ei::SetVtable(&commands, gameslots::CommandArrayClass::Vtable());   // CArray<SSCCmd>
-    if (!commands.data) return;
-    for (int i = 0; i < commands.size; ++i) ScriptCmdDestruct(&commands.data[i]);
-    gamecrt::operator_delete(commands.data);
-}
-
-void ScriptDefinesDestruct(ScriptDefineList* defines) {
-    ei::SetVtable(defines, gameslots::DefineListClass::Vtable());   // CList<ScriptDefine>
-    defines->RemoveAll();
-}
 
 // ---- The AI map's sector map ------------------------------------------------------------------------
 

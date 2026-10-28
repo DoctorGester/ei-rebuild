@@ -18,7 +18,6 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include "game_arrays.h"
 #include "game_data.h"
 
 namespace {

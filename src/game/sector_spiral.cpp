@@ -7,7 +7,6 @@
 // path vectors' replay (tests/vectors/replay_path.cpp) links the definitions.
 #include "sector_map.h"
 
-#include "game_arrays.h"
 
 #include <cstdlib>
 #include <vector>

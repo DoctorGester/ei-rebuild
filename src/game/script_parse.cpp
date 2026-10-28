@@ -360,41 +360,10 @@ const char* __fastcall KeywordName(int id) {
     return "Unknown command";
 }
 
-ScriptToken* ScriptToken::Construct() {
-    std::construct_at(&text);
-    text = "None";
-    line = -1;
-    return this;
-}
-
-ScriptToken* ScriptToken::Assign(const ScriptToken& other) {
-    text = other.text;
-    line = other.line;
-    return this;
-}
-
-ScriptToken* ScriptToken::CopyConstruct(const ScriptToken& other) {
-    std::construct_at(&text, other.text);
-    line = other.line;
-    return this;
-}
-
-void ConstructTokens(ScriptToken* tokens, int count) {
-    for (; count != 0; --count, ++tokens)
-        if (tokens) tokens->Construct();
-}
-
 BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
     const char* p = source.c_str();
 
-    // RemoveAll.
-    for (ScriptTokenList::Node* node = tokens->head; node; node = node->next) std::destroy_at(&node->data.text);
-    tokens->count = 0;
-    tokens->free = nullptr;
-    tokens->tail = nullptr;
-    tokens->head = nullptr;
-    mfc::PlexFreeDataChain(tokens->blocks);
-    tokens->blocks = nullptr;
+    tokens->clear();
 
     const char quote = kQuote;
     int line = 1;
@@ -454,24 +423,14 @@ BOOL CScript::Tokenize(const std::string& source, ScriptTokenList* tokens) {
         p -= rest;
         std::string text(buffer, static_cast<int>(std::strlen(buffer)) - rest);
 
-        // CList::AddTail as the game inlines it: the new node's token zeroed, then constructed.
-        ScriptTokenList::Node* node = tokens->NewNode(tokens->tail, nullptr);
-        node->data.Construct();
-        node->data.text = text;
-        node->data.line = line;
-        if (tokens->tail) tokens->tail->next = node;
-        else tokens->head = node;
-        tokens->tail = node;
+        tokens->push_back({text, line});
     }
     return 1;
 }
 
 BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
-    ScriptPos node = *pos;
-    if (!node) return Error(this, tokens->tail->data.line, 1, "Unexpected end of file");
-    *pos = node->next;
-    ScriptToken token;
-    token.CopyConstruct(node->data);
+    if (*pos == tokens->end()) return Error(this, tokens->back().line, 1, "Unexpected end of file");
+    const ScriptToken token = *(*pos)++;
     std::string text = token.text;
     int found;
     ClassifyToken(text.c_str(), &found, nullptr);
@@ -492,9 +451,9 @@ std::string* CScript::QualifyName(std::string* out, const std::string& name) {
 
 int CScript::FindScript(const char* name) {
     for (;;) {
-        const mfc::CArray<ScriptDefinition>& scripts = Scripts();
-        for (int i = 0; i < scripts.size; ++i)
-            if (Mbscmp(scripts.data[i].name, name) == 0) return i;
+        const std::vector<ScriptDefinition>& scripts = Scripts();
+        for (std::size_t i = 0; i < scripts.size(); ++i)
+            if (Mbscmp(scripts[i].name, name) == 0) return static_cast<int>(i);
         // Not found: retry without the leading "!<file>!" qualification.
         if (*name != '!') return -1;
         do {
@@ -508,46 +467,27 @@ int CScript::FindScript(const char* name) {
 // ---- #define ------------------------------------------------------------------------------------
 
 void AddDefine(ScriptDefineList* defines, const ScriptDefine* define) {
-    using Node = ScriptDefineList::Node;
-    if (defines->head) {
-        // Before the first define with a shorter name; when there is none, before the last one.
-        const int length = static_cast<int>(define->name.size());
-        Node* before = defines->head;
-        for (;;) {
-            if (static_cast<int>(before->data.name.size()) < length || !before->next) break;
-            before = before->next;
-        }
-        Node* prev = before->prev;
-        Node* node = defines->NewNode(prev, before);   // the strings constructed empty
-        node->data.name = define->name;
-        node->data.value = define->value;
-        if (before->prev) before->prev->next = node;
-        else defines->head = node;
-        before->prev = node;
+    if (defines->empty()) {
+        defines->push_back(*define);
         return;
     }
-    Node* tail = defines->tail;
-    Node* node = defines->NewNode(tail, nullptr);
-    node->data.name = define->name;
-    node->data.value = define->value;
-    if (defines->tail) defines->tail->next = node;
-    else defines->head = node;
-    defines->tail = node;
+    // Before the first define with a shorter name; when there is none, before the last one.
+    auto before = defines->begin();
+    while (before->name.size() >= define->name.size() && std::next(before) != defines->end()) ++before;
+    defines->insert(before, *define);
 }
 
 void __fastcall ApplyDefines(std::string* line, const ScriptDefineList* defines) {
-    for (const ScriptDefineList::Node* node = defines->head; node;) {
-        const ScriptDefineList::Node* next = node->next;
+    for (const ScriptDefine& define : *defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).
         for (;;) {
             const std::string& text = *line;
-            int at = str::Find(text, node->data.name.c_str());
+            int at = str::Find(text, define.name.c_str());
             if (at < 0) break;
-            std::string right = str::Right(text, static_cast<int>(line->size()) - static_cast<int>(node->data.name.size()) - at);
+            std::string right = str::Right(text, static_cast<int>(line->size()) - static_cast<int>(define.name.size()) - at);
             std::string left = str::Left(text, at);
-            *line = (left + node->data.value) + right;
+            *line = (left + define.value) + right;
         }
-        node = next;
     }
 }

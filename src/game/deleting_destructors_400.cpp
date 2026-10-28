@@ -5,7 +5,6 @@
 #include "base_manager.h"
 #include "core_refcount.h"
 #include "core_streams.h"
-#include "game_lists.h"
 #include "net_classes.h"
 
 #include "lib/crt.h"

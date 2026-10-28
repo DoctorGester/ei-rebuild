@@ -3642,7 +3642,7 @@ title = "C14 MFC arrays and lists, batch 3: the script's records to std"
 group = "cleanup"
 model = "opus"
 depends = ["C14u"]
-note = "What C14u left in the script (about 70 mfc::CArray / CList lines in script.h and the script_*.cpp files, with their CompiledCollection tags in game_slots.h, game_lists.h, game_arrays.h, record_arrays.h): definitions, runs, decls, groups (ScriptGroup over CArray<ScriptObjectRef>), areas, FX / particle / lightning / point light sources, tokens (ScriptPos as an iterator), defines, commands (SSCCmd's arg arrays), quest objectives, the variables' names and values. Each element gets real special members first (HeldPtr for the object references), then C14u's retype_u.py by element plus C14m's fixer, guards and memcheck (scratch c14u folder). tests/vectors' script recorders (script_original.h, script_load_vectors.h, replay_script_load.cpp) read game.exe's script through mfc layouts: give them exe_objects.h views (Array / Vector / List) so mfc.h's CArray / CList can go. Notes: docs/notes/core.md 'MFC CArray and CList to std (C14m, C14u)'."
+note = "Done: script records on std; mfc::CArray/CList lines (src+tests, excl. src/lib/mfc*) 123 -> 22 at this branch's base (151 in the brief), CompiledCollection 32 -> 10 (56 in the brief); none of the rest is script. Follow-up C14zd (record_path CAIMap view). Suites: image 121 same, original 114 same."
 
 [[ticket]]
 id = "C14za"
@@ -3701,6 +3701,14 @@ title = "The last stlp: stlp_algo.h's 11 stlp::Sort uses to std::sort where keys
 group = "cleanup"
 model = "opus"
 note = "Left by C14t: stlp::Sort (stl_sorts.cpp, world_client_view.cpp, tests/verify/harness_address_order.cpp) is the last stlp in the game code. C35h moved the sorts with unique keys to std::sort; for each remaining one show whether equal keys can occur (and whether their order is visible). Unique keys: std::sort. Ties that matter: keep the original's order with our own small sort in src/lib under a plain name (not stlp), shared with libcrt's Qsort if that fits. Then delete stlp_algo.h and the word stlp from src (tests' game.exe views may keep the name)."
+
+[[ticket]]
+id = "C14zd"
+title = "Vector recorders: record_path.cpp reads game.exe's CAIMap through our retyped class and crashes recording runs"
+group = "cleanup"
+model = "sonnet"
+files = ["tests/vectors/record_path.cpp", "tests/vectors/path_vectors.h"]
+note = "C14z's re-record of the script family: every vanilla EI_VECTORS=1 run crashed (C0000005) in record_path.cpp OfferTables / EnsureSaved, because the path recorders read game.exe's CAIMap (and SmoothTable, fixed in C14z phase 0 with an exe::Array view, static_assert 0x3C) through src/game/ai_map.h, whose containers C14u made std. C14z recorded with the path recorders off for that run only. Give record_path.cpp an OriginalAIMap view at game.exe's offsets (cells, waterDepth, marks, the region grids; exe_objects.h's Array / Vector / List as OriginalSmoothTable does), so PutCallMap / Identify / EnsureSaved / MarksOf read no class of ours; then a recording run of the path family must finish and ei_vectors stay at 0 problems."
 
 [[ticket]]
 id = "S"

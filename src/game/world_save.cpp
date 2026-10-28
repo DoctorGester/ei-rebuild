@@ -4,7 +4,6 @@
 #include "bink_video.h"
 #include "combat.h"
 #include "core_refcount.h"
-#include "game_arrays.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
@@ -34,7 +33,6 @@
 #include "lib/crt.h"
 #include "lib/file_io.h"
 #include "lib/mfc.h"
-#include "lib/mfc_array.h"
 
 #include <cstring>
 #include <list>
@@ -234,10 +232,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
         if (stream->version_ < kVersionPlayerGroup) {
             ScriptGroup group;
-            mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&group);
-            group.vtable = mfc::impl::ScriptGroupClass::Vtable();
             group.Load(stream);
-            group.DestructBody();
         }
         state->SendParty();
         state->SetFlag70(1);

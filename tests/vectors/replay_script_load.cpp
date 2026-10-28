@@ -1,26 +1,23 @@
 // Replay of the script loader's records (script_load_vectors.h) against src/game/script_parse_load.cpp
-// and the script code it calls (the arrays', variables' and blocks' ports, reached through their
-// addresses: hook_stub.cpp). Each record gets a CScript built from the recorded state: the error, the
+// and the script code it calls. Each record gets a CScript built from the recorded state: the error, the
 // file count and loaded flag, the definitions (their pairs empty: the loader only counts them), the
-// global variables, and the block lists holding just their counts (the loader numbers new blocks by
-// the count; the replay's lists then hold only the new blocks, which are what the record hashed).
+// global variables, and the block lists holding as many empty blocks as they had (the loader numbers new
+// blocks by the count; the record hashed the new blocks after them).
 #include "script_load_vectors.h"
 #include "script_vectors.h"
 
-#include "../../src/game/record_arrays.h"
 #include "../../src/game/script.h"
 
 #include "ei/hook.h"
 #include "game/game_data.h"
-#include "game/game_slots.h"
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <deque>
-#include <memory>
-#include <new>
+#include <iterator>
+#include <list>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -30,82 +27,62 @@ using namespace ei::vectors::script;
 
 // ---- Building the state -------------------------------------------------------------------------
 
-// Storage for `maxSize` elements as the game's arrays have it (operator new; none when 0).
-template <typename T>
-void ReadShape(Reader& r, mfc::CArray<T>* a, void* vtable) {
-    a->vtable = vtable;
-    a->size = r.Get<std::int32_t>();
-    a->maxSize = r.Get<std::int32_t>();
-    a->growBy = r.Get<std::int32_t>();
-    a->data = nullptr;
-    if (a->maxSize > 0) {
-        const std::size_t bytes = static_cast<std::size_t>(a->maxSize) * sizeof(T);
-        a->data = static_cast<T*>(gamecrt::operator_new(bytes));
-        std::memset(static_cast<void*>(a->data), 0, bytes);
-    }
-}
-
-void ReadTexts(Reader& r, mfc::CArray<std::string>* a) {
-    ReadShape(r, a, gamearrays::ScriptStringValuesClass::Vtable());
-    for (int i = 0; i < a->size; ++i) std::construct_at(&a->data[i], r.String());
+void ReadTexts(Reader& r, std::vector<std::string>* a) {
+    a->resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
+    for (std::string& text : *a) text = r.String();
 }
 
 // PutVars' set: objects null, groups empty (the loader reads neither).
 void ReadVars(Reader& r, ScriptVars* v) {
-    v->ScriptVarsConstruct();
-    ReadShape(r, &v->floats.values, mfc::impl::ScriptFloatValuesClass::Vtable());
-    if (v->floats.values.size > 0) {
-        if (const unsigned char* p = r.Bytes(static_cast<std::size_t>(v->floats.values.size) * 4))
-            std::memcpy(v->floats.values.data, p, static_cast<std::size_t>(v->floats.values.size) * 4);
+    v->floats.values.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
+    if (!v->floats.values.empty()) {
+        if (const unsigned char* p = r.Bytes(v->floats.values.size() * 4))
+            std::memcpy(v->floats.values.data(), p, v->floats.values.size() * 4);
     }
     ReadTexts(r, &v->floats.names);
     ReadTexts(r, &v->strings.values);
     ReadTexts(r, &v->strings.names);
-    ReadShape(r, &v->objects.values, mfc::impl::ScriptGroupClass::Vtable());
+    v->objects.values.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
     ReadTexts(r, &v->objects.names);
-    ReadShape(r, &v->groups.values, gamearrays::ScriptGroupValuesClass::Vtable());
-    for (int i = 0; i < v->groups.values.size; ++i) v->groups.values.data[i].vtable = mfc::impl::ScriptGroupClass::Vtable();
+    v->groups.values.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
     ReadTexts(r, &v->groups.names);
 }
 
-void InitBlocks(mfc::CList<ScriptDecl>* list, int count) {
-    list->vtable = gameslots::DeclListClass::Vtable();
-    list->head = list->tail = list->free = nullptr;
-    list->blocks = nullptr;
-    list->count = count;
-    list->blockSize = 10;
-}
+// PutState's script, the block counts it had (the new blocks follow them) and, for Load, the pair count
+// each definition had. The loader numbers new blocks by the list's size: empty blocks stand for the
+// recorded ones.
+constexpr std::size_t kMaxBlocks = 0x100000;
 
-CScript* EmptyScript() {
-    auto* s = static_cast<CScript*>(std::calloc(1, sizeof(CScript)));
-    std::construct_at(&s->errorText_);
-    return s;
-}
+struct State {
+    CScript* script = nullptr;
+    std::size_t blocks = 0;
+    std::size_t worldBlocks = 0;
+};
 
-// PutState's script, and (for Load) the pair count each definition had.
-CScript* ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
-    CScript* s = EmptyScript();
+State ReadState(Reader& r, std::vector<int>* pairs = nullptr) {
+    State state;
+    CScript* s = state.script = new CScript;
     s->fileCount_ = r.Get<std::int32_t>();
     s->loaded_ = r.Get<std::int32_t>();
-    InitBlocks(&s->blocks_, r.Get<std::int32_t>());
-    InitBlocks(&s->worldBlocks_, r.Get<std::int32_t>());
-    s->definitions_.vtable = recordarrays::DefinitionArrayClass::Vtable();
+    state.blocks = r.Get<std::uint32_t>();
+    state.worldBlocks = r.Get<std::uint32_t>();
+    if (state.blocks > kMaxBlocks || state.worldBlocks > kMaxBlocks) return state;   // a broken payload
+    s->blocks_.resize(state.blocks);
+    s->worldBlocks_.resize(state.worldBlocks);
     if (r.Get<std::uint8_t>()) {
-        ReadShape(r, &s->definitions_, recordarrays::DefinitionArrayClass::Vtable());
-        for (int i = 0; i < s->definitions_.size && r.ok(); ++i) {
-            ScriptDefinition& d = s->definitions_.data[i];
+        s->definitions_.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
+        for (ScriptDefinition& d : s->definitions_) {
+            if (!r.ok()) break;
             d.index = r.Get<std::int32_t>();
-            const std::string name = r.String();
-            std::construct_at(&d.name, name.c_str(), static_cast<int>(name.size()));
-            const std::string params = r.String();
-            std::construct_at(&d.params, params.c_str(), static_cast<int>(params.size()));
-            ReadShape(r, &d.ifThen, mfc::impl::ScriptIfThenPairsClass::Vtable());
-            if (pairs) pairs->push_back(d.ifThen.size);
+            d.name = r.String();
+            d.params = r.String();
+            d.ifThen.resize(static_cast<std::size_t>(r.Get<std::int32_t>()));
+            if (pairs) pairs->push_back(static_cast<int>(d.ifThen.size()));
             ReadVars(r, &d.vars);
         }
     }
     ReadVars(r, s->Globals());
-    return s;
+    return state;
 }
 
 struct Error {
@@ -135,50 +112,44 @@ bool SameError(const Error& a, const Error& b) { return a.code == b.code && a.li
 std::deque<ScriptDecl> g_blocks;
 ScriptDecl* ReadBlockRef(Reader& r) {
     if (!r.Get<std::uint8_t>()) return nullptr;
-    g_blocks.emplace_back();
-    ScriptDecl& block = g_blocks.back();
-    std::memset(static_cast<void*>(&block), 0, sizeof(block));
-    block.commands.vtable = recordarrays::SubCallArrayClass::Vtable();
+    ScriptDecl& block = g_blocks.emplace_back();
     block.id = r.Get<std::int32_t>();
     return &block;
 }
 
-// PutRun's tokens: the list, and where the call must end (the token after the consumed ones, or null).
+// PutRun's tokens: the list, and where the call starts and must end (the token after the consumed ones, or
+// the list's end). The list's first token stands for the ones before the run and carries the tail's line:
+// when a run reaches the end, the list's last token is the original's tail (the last consumed token, or
+// this one when none was).
 struct Run {
-    std::vector<ScriptTokenList::Node> nodes;
-    ScriptTokenList::Node tail{};
-    ScriptTokenList list{};
-    ScriptPos start = nullptr;
-    ScriptPos end = nullptr;
+    ScriptTokenList list;
+    ScriptPos start;
+    ScriptPos end;
 };
 
-void ReadToken(Reader& r, ScriptTokenList::Node* node) {
-    const std::string text = r.String();
-    std::construct_at(&node->data.text, text.c_str(), static_cast<int>(text.size()));
-    node->data.line = r.Get<std::int32_t>();
+ScriptToken ReadToken(Reader& r) {
+    ScriptToken token;
+    token.text = r.String();
+    token.line = r.Get<std::int32_t>();
+    return token;
 }
 
 void ReadRun(Reader& r, Run* run) {
     const std::uint32_t n = r.Get<std::uint32_t>();
     if (n > r.left()) return;   // a broken payload: RunBytes reports it
-    run->nodes.resize(n + 1);
-    for (std::uint32_t i = 0; i < n; ++i) ReadToken(r, &run->nodes[i]);
+    std::vector<ScriptToken> consumed;
+    consumed.reserve(n);
+    for (std::uint32_t i = 0; i < n; ++i) consumed.push_back(ReadToken(r));
     const bool next = r.Get<std::uint8_t>() != 0;
-    if (next) ReadToken(r, &run->nodes[n]);
-    const std::uint32_t linked = n + (next ? 1 : 0);
-    for (std::uint32_t i = 0; i < linked; ++i) {
-        run->nodes[i].prev = i ? &run->nodes[i - 1] : nullptr;
-        run->nodes[i].next = i + 1 < linked ? &run->nodes[i + 1] : nullptr;
-    }
-    std::construct_at(&run->tail.data.text);
-    run->tail.data.line = r.Get<std::int32_t>();
-    run->list.vtable = gameslots::TokenListClass::Vtable();
-    run->list.head = linked ? &run->nodes[0] : nullptr;
-    run->list.tail = &run->tail;   // only its line is read
-    run->list.count = static_cast<int>(linked);
-    run->list.blockSize = 10;
-    run->start = run->list.head;
-    run->end = next ? &run->nodes[n] : nullptr;
+    ScriptToken after;
+    if (next) after = ReadToken(r);
+    ScriptToken before;
+    before.line = r.Get<std::int32_t>();
+    run->list.push_back(std::move(before));
+    for (ScriptToken& token : consumed) run->list.push_back(std::move(token));
+    if (next) run->list.push_back(std::move(after));
+    run->start = std::next(run->list.cbegin());
+    run->end = next ? std::prev(run->list.cend()) : run->list.cend();
 }
 
 // The block RunWorldScript was given in the replay (Load).
@@ -195,7 +166,7 @@ void Describe(char* d, std::size_t n, const char* what, int result0, int result,
 // ---- Checks -------------------------------------------------------------------------------------
 
 bool CheckExpect(Reader& r, char* d, std::size_t n) {
-    CScript* s = EmptyScript();   // ExpectLexeme reads only the error
+    CScript* s = new CScript;   // ExpectLexeme reads only the error
     SetError(s, ReadError(r));
     const int id = r.Get<std::int32_t>();
     Run run;
@@ -214,26 +185,22 @@ EI_VECTOR_CHECK_BYTES("CScript::ExpectLexeme", CheckExpect);
 
 ScriptVars* ReadLocals(Reader& r) {
     if (!r.Get<std::uint8_t>()) return nullptr;
-    auto* v = static_cast<ScriptVars*>(std::calloc(1, sizeof(ScriptVars)));
+    auto* v = new ScriptVars;
     ReadVars(r, v);
     return v;
 }
 
 bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
-    CScript* s = ReadState(r);
+    CScript* s = ReadState(r).script;
     SetError(s, ReadError(r));
     const int id = r.Get<std::int32_t>();
     const std::string signature = r.String();
     const BOOL assignment = r.Get<std::int32_t>();
     const BOOL scriptCall = r.Get<std::int32_t>();
     ScriptVars* locals = ReadLocals(r);
-    alignas(8) unsigned char storage[sizeof(SSCCmd)];
-    SSCCmd* cmd = reinterpret_cast<SSCCmd*>(storage)->Construct();
+    auto* cmd = new SSCCmd;
     cmd->id = r.Get<std::int32_t>();
     cmd->calledScript = ReadBlockRef(r);
-    for (int* growBy : {&cmd->floatArgs.growBy, &cmd->stringArgs.growBy, &cmd->objectArgs.growBy, &cmd->groupArgs.growBy,
-                        &cmd->localBindings.growBy, &cmd->globalBindings.growBy, &cmd->subCalls.growBy})
-        *growBy = r.Get<std::int32_t>();
     Run run;
     ReadRun(r, &run);
     const int result0 = r.Get<std::int32_t>();
@@ -257,10 +224,11 @@ bool CheckLoadFunction(Reader& r, char* d, std::size_t n) {
 EI_VECTOR_CHECK_BYTES("CScript::LoadFunction", CheckLoadFunction);
 
 bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
-    CScript* s = ReadState(r);
+    const State state = ReadState(r);
+    CScript* s = state.script;
     SetError(s, ReadError(r));
     ScriptVars* locals = ReadLocals(r);
-    ScriptCommands commands{{recordarrays::SubCallArrayClass::Vtable(), nullptr, 0, 0, r.Get<std::int32_t>()}};
+    std::vector<SSCCmd> commands;
     Run run;
     ReadRun(r, &run);
     const int result0 = r.Get<std::int32_t>();
@@ -272,7 +240,7 @@ bool CheckLoadCommands(Reader& r, char* d, std::size_t n) {
     const int result = s->LoadCommands(&commands, &pos, &run.list, locals);
     const Error error = TakeError(s);
     const bool sameCommands = HashOf([&](Writer& h) { PutCmds(h, commands); }) == commands0;
-    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, nullptr); }) == blocks0;
+    const bool sameBlocks = HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }) == blocks0;
     const bool ok = result == result0 && SameError(error, error0) && pos == run.end && sameCommands && sameBlocks;
     if (!ok)
         Describe(d, n, "LoadCommands", result0, result, error0, error,
@@ -284,7 +252,8 @@ EI_VECTOR_CHECK_BYTES("CScript::LoadCommands", CheckLoadCommands);
 
 bool CheckLoad(Reader& r, char* d, std::size_t n) {
     std::vector<int> pairs;
-    CScript* s = ReadState(r, &pairs);
+    const State state = ReadState(r, &pairs);
+    CScript* s = state.script;
     SetError(s, ReadError(r));
     const std::string source = r.String();
     const BOOL runWorldScript = r.Get<std::int32_t>();
@@ -306,8 +275,8 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
         HashOf([&](Writer& h) { PutText(h, text); }),
         HashOf([&](Writer& h) { PutDefinitionsAfter(h, s->Scripts(), pairs); }),
         HashOf([&](Writer& h) { PutVars(h, *s->Globals()); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, nullptr); }),
-        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, nullptr); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->blocks_, state.blocks); }),
+        HashOf([&](Writer& h) { PutBlocksAfter(h, s->worldBlocks_, state.worldBlocks); }),
     };
     static const char* const kParts[5] = {"the text", "the definitions", "the globals", "the new blocks",
                                           "the new WorldScript blocks"};

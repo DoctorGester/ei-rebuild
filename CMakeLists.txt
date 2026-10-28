@@ -165,31 +165,24 @@ add_executable(ei_vectors
     src/game/ai_region_reach.cpp
     src/game/core_maths.cpp
     src/game/core_refcount.cpp
-    src/game/game_arrays.cpp
     src/game/game_buffer.cpp
-    src/game/game_lists.cpp
     src/game/maths.cpp
     src/game/matrix_math.cpp
     src/game/net_coder.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
-    src/game/record_arrays.cpp
     src/game/refptr_copies.cpp
-    src/game/script_arrays.cpp
     src/game/script_blocks.cpp
-    src/game/script_copy.cpp
-    src/game/script_destroy.cpp
+    src/game/script_construct.cpp
     src/game/script_group.cpp
     src/game/script_load.cpp
     src/game/script_parse.cpp
-    src/game/script_parse_arrays.cpp
     src/game/script_parse_load.cpp
     src/game/script_reset.cpp
     src/game/script_runtime_helpers.cpp
     src/game/unit_db_globals.cpp
     src/game/options_global.cpp
     src/game/script_vars.cpp
-    src/game/script_vars_append.cpp
     src/game/sector_spiral.cpp
     src/game/settings_document.cpp
     src/game/unit_hit_location.cpp
@@ -203,7 +196,6 @@ add_executable(ei_vectors
     src/lib/hash_map.cpp
     src/lib/mfc.cpp
     src/lib/mfc_archive.cpp
-    src/lib/mfc_array.cpp
     src/lib/mfc_coll.cpp
     src/lib/mfc_list.cpp
     src/lib/rebirth.cpp

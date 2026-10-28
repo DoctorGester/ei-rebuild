@@ -18,12 +18,10 @@
 #include <cstring>
 #include "game_singletons.h"
 #include "lib/mfc.h"
-#include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
 #include "logic_settings.h"
-#include "game_arrays.h"
 #include "lib/static_object.h"
 
 namespace {
@@ -787,13 +785,7 @@ void PlayerMode::Load(CStream* stream) {
     stream->Read(&state, 4);
     if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
         ScriptGroup group;
-        group.vtable = mfc::impl::ScriptGroupClass::Vtable();
-        group.data = nullptr;
-        group.size = 0;
-        group.maxSize = 0;
-        group.growBy = 0;
         group.Load(stream);
-        group.DestructBody();
     }
 }
 

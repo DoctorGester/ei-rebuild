@@ -5,90 +5,20 @@
 #include "script.h"
 #include "world_effect.h"
 
-#include "lib/static_object.h"
-#include "lib/crt.h"
-#include "game_lists.h"
-#include "world.h"
-#include "game_singletons.h"
-#include "game_arrays.h"
-
-#include "lib/mfc_array.h"
-
-#include <cstring>
-#include <memory>
-
-namespace {
-
-// CList::RemoveAll as inlined: each element destroyed in place, the list emptied, its blocks freed.
-template <typename T, typename Destroy>
-void RemoveAll(mfc::CList<T>& list, Destroy destroy) {
-    for (auto* node = list.head; node; node = node->next) destroy(&node->data);
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
-    list.blocks = nullptr;
-}
-
-// The group variables (names, then values) of a removed instance or run.
-void DestroyGroupVariables(ScriptVars& vars) {
-    ScriptNamesDestruct(&vars.groups.names);
-    mfc::impl::DestructArrayOf<gamearrays::GroupArrayClass>(mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups.values));
-}
-
-} // namespace
-
 // Called after every removal of a world object: the runs', the instances' and the global
 // variables drop deleted objects (object variables released, group members removed), then the
 // evaluation temporaries are freed.
 void ScriptPurgeDeletedObjects(CScript* script) {
-    for (auto* node = script->runs_.head; node;) {
-        auto* next = node->next;
-        node->data.vars.RemoveDeletedObjects();
-        node = next;
-    }
-    for (auto* node = script->instances_.head; node;) {
-        auto* next = node->next;
-        node->data.vars.RemoveDeletedObjects();
-        node = next;
-    }
+    for (ScriptRun& run : script->runs_) run.vars.RemoveDeletedObjects();
+    for (ScriptDefinition& instance : script->instances_) instance.vars.RemoveDeletedObjects();
     script->globals_.RemoveDeletedObjects();
     ScriptFreeTemporaries(script);
 }
 
-// Every instance and every run removed from the head of its list and destroyed.
+// Every instance, then every run, destroyed.
 void ScriptDropInstancesAndRuns(CScript* script) {
-    while (script->instances_.count != 0) {
-        lib::InPlace<ScriptDefinition> element;
-        script->instances_.PopHead(element.Get());
-        auto* instance = element.Get();
-        ScriptVars& vars = instance->vars;
-        DestroyGroupVariables(vars);
-        ScriptObjectsDestruct(&vars.objects);
-        ScriptStringsDestruct(&vars.strings);
-        ScriptFloatsDestruct(&vars.floats);
-        mfc::impl::DestructHeader<mfc::impl::ScriptIfThenArrayClass>(&instance->ifThen);
-        std::destroy_at(&instance->params);
-        std::destroy_at(&instance->name);
-    }
-    while (script->runs_.count != 0) {
-        lib::InPlace<ScriptRun> element;
-        script->runs_.PopHead(element.Get());
-        ScriptVars& vars = element.Get()->vars;
-        DestroyGroupVariables(vars);
-        ScriptNamesDestruct(&vars.objects.names);
-        vars.objects.values.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-        if (vars.objects.values.data) {
-            gamearrays::ObjectRefs::DestructElements(vars.objects.values.data, vars.objects.values.size);
-            gamecrt::operator_delete(vars.objects.values.data);
-        }
-        ScriptNamesDestruct(&vars.strings.names);
-        ScriptNamesDestruct(&vars.strings.values);
-        ScriptNamesDestruct(&vars.floats.names);
-        vars.floats.values.vtable = mfc::impl::ScriptFloatsClass::Vtable();
-        if (vars.floats.values.data) gamecrt::operator_delete(vars.floats.values.data);
-    }
+    script->instances_.clear();
+    script->runs_.clear();
 }
 
 // When the party enters a zone: instances and runs dropped, the For depth and the
@@ -99,29 +29,11 @@ void ScriptResetZone(CScript* script) {
     script->forDepth_ = 0;
     ScriptFreeTemporaries(script);
 
-    mfc::CArray<ScriptPointLight>& lights = script->pointLights_;
-    for (int i = 0; i < lights.size; ++i) {
-        if (CEngineObject* object = lights.data[i].object) {
-            TheServerWorld()->RemoveTimedObject(object->id_);
-            lights.data[i].object->Release();
-        }
-    }
-    if (lights.size) std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
-
-    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { source->ScriptFxSourceDestruct(); });
-    RemoveAll(script->particles_, [](ScriptParticleSource* source) {
-        if (CEngineObject* object = source->object) {
-            TheServerWorld()->RemoveTimedObject(object->id_);
-            source->object->Release();
-        }
-        source->object = nullptr;
-    });
-    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { bolt->ScriptLightningDestruct(); });
+    for (ScriptPointLight& light : script->pointLights_) light = {};
+    script->fxSources_.clear();
+    script->particles_.clear();
+    script->lightning_.clear();
 
     script->globals_.ResetValues();
-    for (auto* node = script->worldBlocks_.head; node;) {
-        auto* next = node->next;
-        script->RunWorldScript(&node->data);
-        node = next;
-    }
+    for (ScriptDecl& block : script->worldBlocks_) script->RunWorldScript(&block);
 }

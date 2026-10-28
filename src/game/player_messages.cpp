@@ -16,10 +16,7 @@
 #include "ei/x87.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
-#include "game_arrays.h"
 
 #include <algorithm>
 #include <bit>
@@ -278,8 +275,8 @@ void CPlayerServer::ClearServerState() {
     lastPosition_.y = 0.0f;
     lastPosition_.z = 0.0f;
     spare_ = -1;
-    group50F8_.SetSize(0, -1);
-    partyUnits_.SetSize(0, -1);
+    group50F8_.clear();
+    partyUnits_.clear();
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
@@ -304,14 +301,6 @@ int CPlayerServer::OnMessage37() { return 0; }
 
 namespace {
 
-void ConstructGroup(ScriptGroup& group) {
-    group.data = nullptr;
-    group.size = 0;
-    group.maxSize = 0;
-    group.growBy = 0;
-    group.vtable = mfc::impl::ScriptGroupClass::Vtable();
-}
-
 constexpr std::uint8_t kPathMessage = 0x0E;
 constexpr int kPathKindNoPath = 3;
 
@@ -321,17 +310,12 @@ constexpr int kPathKindNoPath = 3;
 CPlayerServer::CPlayerServer() {
     compressor_.Construct();
     decompressor_.Construct();
-    ConstructGroup(group50F8_);
-    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
-    partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
     ClearServerState();
 }
 
 // The stream is a member, destroyed after the body (the original frees it before the handler table).
 CPlayerServer::~CPlayerServer() {
     ClearServerState();
-    partyUnits_.DestructBody();
-    group50F8_.DestructBody();
     decompressor_.out.End();
     compressor_.out.End();
 }
@@ -342,11 +326,11 @@ int CPlayerServer::GetClassId() { return 0x3B; }
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);
     ReleaseAll(sentTimed_);
-    group50F8_.SetSize(0, -1);
-    partyUnits_.Resize(0);
+    group50F8_.clear();
+    partyUnits_.clear();
 }
 
-void CPlayerServer::ClearGroup50F8() { group50F8_.Resize(0); }
+void CPlayerServer::ClearGroup50F8() { group50F8_.clear(); }
 
 void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                                     std::uint32_t limitBits) {

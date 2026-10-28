@@ -19,8 +19,8 @@ namespace scriptaddon {
 
 namespace {
 
-float* Floats(Call* call) { return call->cmd->floatArgs.data; }
-int FloatCount(Call* call) { return call->cmd->floatArgs.size; }
+float* Floats(Call* call) { return call->cmd->floatArgs.data(); }
+int FloatCount(Call* call) { return std::ssize(call->cmd->floatArgs); }
 
 double CrtSin(double x) { return std::sin(x); }
 double CrtCos(double x) { return std::cos(x); }

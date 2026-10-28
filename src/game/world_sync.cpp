@@ -143,8 +143,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     if (world->sessionKind_ != kKindSinglePlayer) return out;
 
     // The units always sent.
-    int extra = state->partyUnits_.size;
-    for (int i = 0; i < extra; ++i) *out++ = state->partyUnits_.data[i].object;
+    for (const ScriptObjectRef& unit : state->partyUnits_) *out++ = unit.object;
     for (auto node = world->namedObjects_.map.begin(); node != world->namedObjects_.map.end() && node->second; ++node)
         *out++ = node->second;
 

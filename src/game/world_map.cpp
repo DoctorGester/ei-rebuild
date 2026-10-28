@@ -12,7 +12,6 @@
 #include "spell.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "game_strings.h"
-#include "game_arrays.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"

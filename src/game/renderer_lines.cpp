@@ -10,7 +10,6 @@
 #include "game_singletons.h"
 
 #include "lib/containers.h"
-#include "game_arrays.h"
 #include "lib/mfc_coll.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"

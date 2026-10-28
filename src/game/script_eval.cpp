@@ -4,7 +4,6 @@
 // old x87 FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
 // computations keep their intermediates unrounded (double locals), as x87 registers would.
 #include "script.h"
-#include "game_arrays.h"
 #include "world_glue.h"
 #include "script_addon.h"
 
@@ -113,32 +112,24 @@ float WorldTimeOfDay() {
     return static_cast<float>(std::fmod(static_cast<double>(world->tick_) * world->secondsPerTick_ + world->timeBase_, 24.0));
 }
 
-// Release a slot's object and store `object` with a new reference.
-void Store(ScriptObjectRef* slot, CEngineObject* object) {
-    if (slot->object) slot->object->Release();
-    slot->object = nullptr;
-    if (object) ++object->refCount_;
-    slot->object = object;
-}
-
 } // namespace
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
-    SetParameters(&localBindings, vars);
-    SetParameters(&globalBindings, script->Globals());
-    for (int i = 0; i < subCalls.size; ++i) CalcParameters(script, vars, &subCalls.data[i]);
+    SetParameters(localBindings, vars);
+    SetParameters(globalBindings, script->Globals());
+    for (int i = 0; i < std::ssize(subCalls); ++i) CalcParameters(script, vars, &subCalls[i]);
 }
 
 void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCall* call) {
     switch (call->type) {
     case kScriptFloat:
-        call->cmd->CalcFloat(script, vars, &floatArgs.data[call->argIndex]);
+        call->cmd->CalcFloat(script, vars, &floatArgs[call->argIndex]);
         return;
     case kScriptString: {
         // Rebirth's AddNewScriptCommands calls SSCCmd::CalcString, which
         // runs addon's string functions.
         if (scriptaddon::Enabled()) {
-            scriptaddon::CalcString(call->cmd, script, vars, &stringArgs.data[call->argIndex]);
+            scriptaddon::CalcString(call->cmd.get(), script, vars, &stringArgs[call->argIndex]);
             return;
         }
         // No function returns a string: the arguments are still evaluated before the error.
@@ -147,10 +138,10 @@ void SSCCmd::CalcParameters(CScript* script, ScriptVars* vars, const ScriptSubCa
         return;
     }
     case kScriptObject:
-        call->cmd->CalcObject(script, vars, &objectArgs.data[call->argIndex]);
+        call->cmd->CalcObject(script, vars, &objectArgs[call->argIndex]);
         return;
     case kScriptGroup:
-        call->cmd->CalcGroup(script, vars, &groupArgs.data[call->argIndex]);
+        call->cmd->CalcGroup(script, vars, &groupArgs[call->argIndex]);
         return;
     default:
         game::FatalError("SSCCmd::CalcParameters, unknown function parameter type");
@@ -163,7 +154,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         scriptaddon::Call call{this, script, result, nullptr, nullptr};
         if (scriptaddon::Dispatch(&call)) return;
     }
-    const float* f = floatArgs.data;
+    const float* f = floatArgs.data();
     switch (id) {
     case 0x45:   // IsEqual
         EI_NAN_AUDIT(f[0], f[1]);
@@ -177,7 +168,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(std::strcmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
+        *result = FromBool(std::strcmp(stringArgs[0].c_str(), stringArgs[1].c_str()) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];
@@ -200,7 +191,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x50:   // MaxHP
     case 0x51:   // Mana
     case 0x52: { // MaxMana
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         CMapObjectServer* stats = o ? ServerHalf(o) : nullptr;
         if (stats) {
             const UnitVitals& vitals = stats->vitals;
@@ -216,13 +207,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x55:   // GetX
     case 0x56: { // GetY
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         if (o) CopyFloat(result, id == 0x55 ? &ObjectSlots(o)->localPosition_.x : &ObjectSlots(o)->localPosition_.y);
         else StoreBits(result, kZero);
         return;
     }
     case 0x57: { // GetZ: height above the ground at the object's position
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         if (!o) {
             StoreBits(result, kZero);
             return;
@@ -241,13 +232,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0xE3: { // WasLooted
         StoreBits(result, kOne);
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 20) & 1));
         return;
     }
     case 0xBF:   // GetFutureX
     case 0xC0: { // GetFutureY
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         if (!o) {
             StoreBits(result, kZero);
             return;
@@ -258,25 +249,18 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         int inWater = 0;
         if (o) inWater = TheServerWorld()->AIMap()->CellFlag80At(&ObjectSlots(o)->localPosition_) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
     case 0x58:   // GroupSize
-        *result = static_cast<float>(groupArgs.data[0]->size);
+        *result = static_cast<float>(groupArgs[0]->size());
         return;
     case 0x5C: { // GroupHas
-        CEngineObject* o = objectArgs.data[0]->object;
-        const ScriptGroup* g = groupArgs.data[0];
-        bool found = false;
-        for (int i = 0; i < g->size; ++i)
-            if (g->data[i].object == o) {
-                found = true;
-                break;
-            }
-        StoreBits(result, found ? kOne : kZero);
+        CEngineObject* o = objectArgs[0]->object;
+        StoreBits(result, groupArgs[0]->Contains(o) ? kOne : kZero);
         return;
     }
     case 0x5F: { // Random(range): [0, range]
@@ -296,7 +280,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x63:   // IsAlive
     case 0x64: { // IsDead
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         CMapObjectCompanion* stats = o ? ObjectSlots(o)->companion : nullptr;
         StoreBits(result, kZero);
         if (!stats) return;
@@ -305,7 +289,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x61: { // IsEnemy(unit, player)
-        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs[0]->object);
         StoreBits(result, kZero);
         if (!unit) return;
         int player = Ftol(f[0]);
@@ -315,26 +299,26 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0x65: { // GetPlayer
-        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs[0]->object);
         StoreBits(result, kZero);
         if (unit) *result = static_cast<float>(unit->side);
         return;
     }
     case 0x8F: { // GetAIClass (the unit's size class)
-        CUnit* unit = UnitOrNull(objectArgs.data[0]->object);
+        CUnit* unit = UnitOrNull(objectArgs[0]->object);
         StoreBits(result, kMinusOne);
         if (unit) *result = static_cast<float>(unit->sizeClass);
         return;
     }
     case 0x90: { // GetLeverState
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         StoreBits(result, kZero);
         if (!o || o->GetClassId() != kClassLever) return;
         *result = static_cast<float>(static_cast<Lever*>(o)->state);
         return;
     }
     case 0x66: { // GetObjectID
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         StoreBits(result, kZero);
         if (o) *result = static_cast<float>(o->id_);
         return;
@@ -352,14 +336,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         std::memcpy(result, &Alarm(x87::fistp(f[0])).y, 4);
         return;
     case 0x53: { // DistanceUnitUnit
-        CEngineObject* a = objectArgs.data[0]->object;
-        CEngineObject* b = objectArgs.data[1]->object;
+        CEngineObject* a = objectArgs[0]->object;
+        CEngineObject* b = objectArgs[1]->object;
         if (a && b) *result = Distance(ObjectSlots(a)->localPosition_.x, ObjectSlots(a)->localPosition_.y, ObjectSlots(b)->localPosition_.x, ObjectSlots(b)->localPosition_.y);
         else StoreBits(result, kFar);
         return;
     }
     case 0x54: { // DistanceUnitPoint
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         if (o) *result = Distance(ObjectSlots(o)->localPosition_.x, ObjectSlots(o)->localPosition_.y, f[0], f[1]);
         else StoreBits(result, kFar);
         return;
@@ -372,55 +356,45 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x69:   // Any
     case 0x6A: { // Sum
         const ScriptSubCall* condition = nullptr;
-        for (int i = 0; i < subCalls.size; ++i)
-            if (subCalls.data[i].type == kScriptFloat) {
-                condition = &subCalls.data[i];
+        for (int i = 0; i < std::ssize(subCalls); ++i)
+            if (subCalls[i].type == kScriptFloat) {
+                condition = &subCalls[i];
                 break;
             }
         if (!condition) {
-            if (id == 0x68) std::memcpy(result, &floatArgs.data[0], 4);
+            if (id == 0x68) std::memcpy(result, &floatArgs[0], 4);
             else if (id == 0x69) {
-                EI_NAN_AUDIT(floatArgs.data[0]);
-                *result = FromBool(floatArgs.data[0] != 0.0f);
+                EI_NAN_AUDIT(floatArgs[0]);
+                *result = FromBool(floatArgs[0] != 0.0f);
             }
-            else *result = static_cast<float>(groupArgs.data[0]->size) * floatArgs.data[0];
+            else *result = static_cast<float>(groupArgs[0]->size()) * floatArgs[0];
             return;
         }
         StoreBits(result, id == 0x68 ? kOne : kZero);
-        ScriptGroup* g = groupArgs.data[0];
-        if (g->size <= 0) return;
+        ScriptGroup* g = groupArgs[0];
+        if (g->empty()) return;
         int k = 0;
         do {
-            ScriptObjectRef* member = &g->data[k];
-            ScriptObjectRef* variable = objectArgs.data[0];
-            if (variable->object) variable->object->Release();
-            variable->object = nullptr;
-            if (id == 0x6A) {
-                CEngineObject* o = member->object;
-                variable->object = o;
-                if (o) ++o->refCount_;
-            } else {
-                variable->Construct(*member);
-            }
+            *objectArgs[0] = (*g)[static_cast<std::size_t>(k)];
             CalcParameters(script, vars, condition);
             if (id == 0x68) {
-                EI_NAN_AUDIT(floatArgs.data[0]);
-                if (floatArgs.data[0] == 0.0f) {
+                EI_NAN_AUDIT(floatArgs[0]);
+                if (floatArgs[0] == 0.0f) {
                     StoreBits(result, kZero);
                     return;
                 }
             } else if (id == 0x69) {
-                EI_NAN_AUDIT(floatArgs.data[0]);
-                if (floatArgs.data[0] != 0.0f) {
+                EI_NAN_AUDIT(floatArgs[0]);
+                if (floatArgs[0] != 0.0f) {
                     StoreBits(result, kOne);
                     return;
                 }
             } else {
-                *result = floatArgs.data[0] + *result;
+                *result = floatArgs[0] + *result;
             }
             ++k;
-            g = groupArgs.data[0];
-        } while (k < g->size);
+            g = groupArgs[0];
+        } while (k < std::ssize(*g));
         return;
     }
 
@@ -445,14 +419,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x80: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
         if (server) {
-            const char* name = stringArgs.data[0].c_str();
+            const char* name = stringArgs[0].c_str();
             std::string key(name);
             *result = static_cast<float>(server->GetVariable(&key));
             return;
         }
         StoreBits(result, kZero);
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = player->Party()->variables_.Get(stringArgs.data[0].c_str());
+        if (player) *result = player->Party()->variables_.Get(stringArgs[0].c_str());
         return;
     }
     case 0xA2:   // IsCameraPlaying
@@ -471,7 +445,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0xBC: { // UnitInSquare(object, x1, y1, x2, y2)
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
         float x = ObjectSlots(o)->localPosition_.x, y = ObjectSlots(o)->localPosition_.y;
@@ -481,19 +455,12 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0xE5: { // IsUnitVisible: in the local player's list of units always sent
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
         CPlayer* player = TheServerWorld()->GetPlayer(0);
         if (!player) return;
-        const ScriptGroup& visible = player->Server()->partyUnits_;
-        bool found = false;
-        for (int i = 0; i < visible.size; ++i)
-            if (visible.data[i].object == o) {
-                found = true;
-                break;
-            }
-        *result = static_cast<float>(found ? 1 : 0);
+        *result = static_cast<float>(player->Server()->partyUnits_.Contains(o) ? 1 : 0);
         return;
     }
     case 0xBD:   // GetZValue
@@ -505,10 +472,9 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xC5: { // IsInArea(area, x, y)
         int area = x87::fistp(f[0]);
         float x = f[1], y = f[2];
-        const mfc::CArray<ScriptAreaPart>* parts = script->FindArea(area);
+        const ScriptArea* parts = script->FindArea(area);
         bool inside = false;
-        for (int i = 0, n = parts->size; i < n; ++i) {
-            const ScriptAreaPart& part = parts->data[i];
+        for (const ScriptAreaPart& part : parts->parts) {
             EI_NAN_AUDIT(x, y, part.x, part.y, part.x2OrRadiusSquared);
             if (part.isRect) {
                 if (x < part.x) continue;
@@ -527,7 +493,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0xE6: { // IsUnitBlocked
-        CEngineObject* o = objectArgs.data[0]->object;
+        CEngineObject* o = objectArgs[0]->object;
         StoreBits(result, kZero);
         if (o) *result = static_cast<float>(static_cast<int>((o->flags_ >> 23) & 1));
         return;
@@ -547,40 +513,37 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     }
     switch (id) {
     case 0x4E: { // GetObject(id)
-        CEngineObject* o = TheServerWorld()->FindObject(Ftol(floatArgs.data[0]));
-        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Ftol(floatArgs.data[0]), "GetObject");
-        ScriptObjectRef* slot = *result;
-        slot->Reset();
-        if (o) ++o->refCount_;
-        slot->object = o;
+        CEngineObject* o = TheServerWorld()->FindObject(Ftol(floatArgs[0]));
+        if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Ftol(floatArgs[0]), "GetObject");
+        (*result)->object = o;
         return;
     }
     case 0xB4: { // GetUnitOfPlayer(player, index)
-        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs[0]));
         CEngineObject* o = nullptr;
         if (player) {
             const std::vector<PartyUnitRecord>& members = player->Party()->members_;
-            int index = x87::fistp(floatArgs.data[1]);
+            int index = x87::fistp(floatArgs[1]);
             if (index >= 0 && index < std::ssize(members))
                 o = TheServerWorld()->FindUnit(static_cast<int>(members[index].unitId));
         }
-        Store(*result, o);
+        (*result)->object = o;
         return;
     }
     case 0x85: { // GetObjectByName
-        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs.data[0].c_str()));
+        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs[0].c_str()));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
-                           stringArgs.data[0].c_str(), "GetObjectByName");
-        Store(*result, o);
+                           stringArgs[0].c_str(), "GetObjectByName");
+        (*result)->object = o;
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs.data[0].c_str()));
+        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs[0].c_str()));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
-                           stringArgs.data[0].c_str(), "GetObjectByID");
-        Store(*result, o);
+                           stringArgs[0].c_str(), "GetObjectByID");
+        (*result)->object = o;
         return;
     }
     case 0xE4: { // GetLeader: the server's leader in multiplayer, else player 0's first unit
@@ -593,7 +556,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             if (player && std::ssize(player->Party()->members_) > 0)
                 unitId = static_cast<int>(player->Party()->members_[0].unitId);
         }
-        Store(*result, TheServerWorld()->FindObject(unitId));
+        (*result)->object = TheServerWorld()->FindObject(unitId);
         return;
     }
     default:
@@ -603,8 +566,6 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
 }
 
 namespace {
-
-inline void GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
@@ -622,17 +583,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     ObjectListIterator objects;
     objects.manager = nullptr;
     PrepareArguments(script, vars);
-    {
-        ScriptGroup empty;
-        empty.vtable = mfc::impl::ScriptGroupClass::Vtable();
-        empty.data = nullptr;
-        empty.size = 0;
-        empty.maxSize = 0;
-        empty.growBy = 0;
-        auto* node = script->tempGroups_.PushTail(&empty);
-        GroupDestruct(&empty);
-        *result = &node->data;
-    }
+    *result = &script->tempGroups_.emplace_back();
     ScriptGroup* group = *result;
     bool done = false;
     if (scriptaddon::Enabled()) {
@@ -643,45 +594,45 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
     case -1:
         break;
     case 0x59:   // GroupAdd
-        group->Union(*groupArgs.data[0], *groupArgs.data[1]);
+        group->Union(*groupArgs[0], *groupArgs[1]);
         break;
     case 0x5A:   // GroupSub
-        group->Difference(*groupArgs.data[0], *groupArgs.data[1]);
+        group->Difference(*groupArgs[0], *groupArgs[1]);
         break;
     case 0x5B:   // GroupCross
-        group->Intersection(*groupArgs.data[0], *groupArgs.data[1]);
+        group->Intersection(*groupArgs[0], *groupArgs[1]);
         break;
     case 0x5D: { // UnitSee(unit)
-        group->SetSize(0, -1);
-        CUnit* unit = objectArgs.data[0]->AsUnit();
+        group->clear();
+        CUnit* unit = objectArgs[0]->AsUnit();
         if (!unit) break;
         if (CUnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         break;
     }
     case 0x5E: { // GroupSee(group): what its units see
-        group->SetSize(0, -1);
-        for (int i = 0; i < groupArgs.data[0]->size; ++i) {
-            CUnit* unit = groupArgs.data[0]->data[i].AsUnit();
+        group->clear();
+        for (const ScriptObjectRef& member : *groupArgs[0]) {
+            CUnit* unit = member.AsUnit();
             if (!unit) continue;
             if (CUnitServer* controller = unit->ServerController()) InsertSeen(*result, controller);
         }
         break;
     }
     case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (FILD, FCOMP)
-        EI_NAN_AUDIT(floatArgs.data[0]);
+        EI_NAN_AUDIT(floatArgs[0]);
         for (CEngineObject* o = objects.First(WorldObjectManager()); o; o = objects.Next()) {
             CUnit* unit = UnitOrNull(o);
-            if (unit && static_cast<double>(unit->side) == floatArgs.data[0]) (*result)->Insert(o);
+            if (unit && static_cast<double>(unit->side) == floatArgs[0]) (*result)->Insert(o);
         }
         break;
     }
     case 0xA5: { // PlayerSee(player): the player's seen objects, its units and what they see
-        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        CPlayer* player = TheServerWorld()->GetPlayer(Ftol(floatArgs[0]));
         if (!player) {
-            (*result)->SetSize(0, -1);
+            (*result)->clear();
             break;
         }
-        (*result)->CopyFrom(player->Server()->group50F8_);
+        **result = player->Server()->group50F8_;
         const auto& units = player->units_;
         for (auto node = units.begin(); node != units.end(); ++node) {
             CUnit* unit = node->second;

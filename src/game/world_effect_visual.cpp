@@ -4,7 +4,6 @@
 #include "camera.h"
 #include "random.h"
 #include "effects.h"
-#include "game_lists.h"
 #include "lightning.h"
 #include "net_delta.h"
 #include "script.h"
