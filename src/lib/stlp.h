@@ -28,82 +28,6 @@ void PushSmallNode(Node* node) {
     deallocate(node, 12);
 }
 
-// basic_string<char>: three pointers, no small-string buffer. 12 bytes.
-class string {
-public:
-    string() = default;
-    string(const char* first, const char* last) { InitRange(first, last); }
-    explicit string(const char* s) : string(s, s + std::strlen(s)) {}
-    string(const string& s) : string(s.start_, s.finish_) {}
-    string& operator=(const string&) = delete;
-    ~string() { Release(); }
-
-    // Empty string with room for `capacity` bytes (including the terminator).
-    static void Reserve(string& s, std::size_t capacity);
-    // Replaces the contents with [first, last), reusing the buffer when possible.
-    void Assign(const char* first, const char* last);
-    // Appends [first, last), growing to size + max(size, n) + 1 when full.
-    void Append(const char* first, const char* last);
-
-    void AssignFrom(const string& s) { Assign(s.start_, s.finish_); }
-    void Assign(const char* text) { Assign(text, text + std::strlen(text)); }
-    string substr(std::size_t pos, std::size_t n) const;
-
-    const char* data() const { return start_; }
-    char* data() { return start_; }
-    char& operator[](std::size_t i) { return start_[i]; }
-    char operator[](std::size_t i) const { return start_[i]; }
-    std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
-    std::size_t capacity() const { return static_cast<std::size_t>(eos_ - start_); }
-    bool empty() const { return start_ == finish_; }
-    bool operator==(const string& o) const {
-        return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
-    }
-    bool operator<(const string& o) const {
-        std::size_t n = size() < o.size() ? size() : o.size();
-        int c = std::memcmp(start_, o.start_, n);
-        return c != 0 ? c < 0 : size() < o.size();
-    }
-
-    std::uint32_t Hash() const {
-        std::uint32_t h = 0;
-        for (const char* p = start_; p != finish_; ++p) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(*p));
-        return h;
-    }
-
-private:
-    friend struct StringAbi;   // the exe's members at their addresses (stlp_string.h)
-
-    void InitRange(const char* first, const char* last);
-    void Release() {
-        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_));
-    }
-
-    char* start_ = nullptr;
-    char* finish_ = nullptr;
-    char* eos_ = nullptr;   // end of storage; STLport keeps the (empty) allocator in the same word
-};
-static_assert(sizeof(string) == 12);
-
-// operator+(const string&, const char*): joined in a temporary with exactly the room,
-// which the result is a copy of (two blocks; the temporary's is freed once the result has its own).
-// operator+(const string&, const string&) the same.
-string Plus(const string& a, const char* text);
-string Plus(const string& a, const string& b);
-
-// The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
-// assigned through assign(first, last), destroyed with the buffer freed. A
-// default-constructed one (from resize(n)) is empty with room for 8 bytes.
-struct StringElement {
-    static void Construct(string* to, const string& from) { new (to) string(from); }
-    static void Assign(string& to, const string& from) { to.AssignFrom(from); }
-    static void Destroy(string* p) { p->~string(); }
-    static void Default(string* p) {
-        new (p) string();
-        string::Reserve(*p, 8);
-    }
-};
-
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {
     template <typename T> std::uint32_t operator()(T* p) const { return reinterpret_cast<std::uint32_t>(p); }
@@ -113,7 +37,6 @@ struct IntHash {
     template <typename T> std::uint32_t operator()(T v) const { return static_cast<std::uint32_t>(v); }
 };
 struct StringHash {
-    std::uint32_t operator()(const string& s) const { return s.Hash(); }
     std::uint32_t operator()(const std::string& s) const {
         std::uint32_t h = 0;
         for (char c : s) h = h * 5 + static_cast<std::uint32_t>(static_cast<int>(c));
