@@ -109,7 +109,6 @@ STANDALONE = {
 # image, and reads of game.exe's file by the host and by ei_hook.dll in the image.
 IMAGE_TIES = [
     ('CMakeLists.txt', re.compile(r'ei_standalone\s+PRIVATE[^\n]*/FIXED')),       # the host at a fixed base
-    ('src/standalone/host.cpp', re.compile(r'\bg_reserve\b')),                    # game.exe's range in the host
     ('src/standalone/host.cpp', re.compile(r'\bReadWholeFile\b')),                # the host reads game.exe
     ('src/hook/hook.cpp', re.compile(r'\bStandaloneExePath\b')),                  # InstallHooks reads it in the image
     ('src/standalone/image_imports.cpp', re.compile(r'\bEiStandaloneExe\b')),    # imports from game.exe's folder
