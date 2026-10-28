@@ -48,7 +48,7 @@ CUnit* FindClientUnit(int id) { return g_clientWorld->FindUnit(id); }
 
 int CPlayerClient::OnLoginAccepted() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     state_ = kStateLoggedIn;
     CPlayer* player = player_;
     static_cast<CPlayerManager*>(player->owner_)->ChangeId(player, id);
@@ -62,9 +62,9 @@ int CPlayerClient::OnDisconnect() {
 
 int CPlayerClient::OnCameraPlacement() {
     Vector3 point;
-    in_.Read(&point, 12);
+    in_.ReadValue(point);
     float heading;
-    in_.Read(&heading, 4);
+    in_.ReadValue(heading);
     int mode;
     const int result = static_cast<int>(in_.Read(&mode, 4));
     g_clientWorld->CentreOn(&point);
@@ -86,9 +86,9 @@ int CPlayerClient::OnGameState() {
     CPlayer* player = player_;
     player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind_);
     int state;
-    in_.Read(&state, 4);
+    in_.ReadValue(state);
     int tick;
-    in_.Read(&tick, 4);
+    in_.ReadValue(tick);
     if (localSession_) {
         g_interface->OnKeyDown(-1, kKeyEnter, 0);
         return 1;
@@ -118,24 +118,24 @@ int CPlayerClient::OnUnitSpeech() {
 int CPlayerClient::OnObjectValues() {
     for (;;) {
         int id;
-        in_.Read(&id, 4);
+        in_.ReadValue(id);
         if (id == -1) return 1;
         if (!in_.ok_) return 0;
         CItem* item = FindItem(g_clientWorld->itemManager_, static_cast<unsigned>(id));
         if (!item) continue;   // the value is then read as the next id (kept)
         float value;
-        in_.Read(&value, 4);
+        in_.ReadValue(value);
         item->charge_ = value;
     }
 }
 
 int CPlayerClient::OnFreeCamera() {
     Vector3 from;
-    in_.Read(&from, 12);
+    in_.ReadValue(from);
     Vector3 to;
-    in_.Read(&to, 12);
+    in_.ReadValue(to);
     std::uint8_t free = 0;
-    in_.Read(&free, 1);
+    in_.ReadValue(free);
     g_camera->LookFrom(&from, &to);
     g_camera->SetFree(free != 0);
     return 1;
@@ -152,9 +152,9 @@ int CPlayerClient::OnWorldValue() {
 
 int CPlayerClient::OnItemValue() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     float value;
-    in_.Read(&value, 4);
+    in_.ReadValue(value);
     CPlayer* player = player_;
     CItem* item = FindItem(player->Party()->ItemFactory(), static_cast<unsigned>(id));
     if (item) {
@@ -166,9 +166,9 @@ int CPlayerClient::OnItemValue() {
 
 int CPlayerClient::OnWeaponRemoved() {
     int unitId;
-    in_.Read(&unitId, 4);
+    in_.ReadValue(unitId);
     int index;
-    in_.Read(&index, 4);
+    in_.ReadValue(index);
     // The party (an embedded CParty) seen as its record array.
     PartyUnitRecord* record = player_->Party()->Find(unitId);
     if (record && std::ssize(record->weapons) > index)
@@ -181,7 +181,7 @@ int CPlayerClient::OnUnitControl() {
     int kind = 0;
     in_.Read(&kind, 1);
     int unitId;
-    in_.Read(&unitId, 4);
+    in_.ReadValue(unitId);
     auto* unit = FindClientUnit(unitId);
     switch (kind) {
     case 0:
@@ -206,7 +206,7 @@ int CPlayerClient::OnUnitControl() {
 
 int CPlayerClient::OnObjectChanged() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     CPlayer::MapObjectMap& known = player_->knownObjects_;
     auto node = known.find(id);
     if (node == known.end()) return 0;
@@ -220,7 +220,7 @@ int CPlayerClient::OnObjectChanged() {
 
 int CPlayerClient::OnObjectRemoved() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     CPlayer* player = player_;
     if (auto unit = player->units_.find(id); unit != player->units_.end()) unit->second->SetPlayer(nullptr);
     auto node = player->knownObjects_.find(id);
@@ -235,7 +235,7 @@ int CPlayerClient::OnObjectRemoved() {
 
 int CPlayerClient::OnUnitDied() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     CEngineObject* object = g_clientWorld->objectManager_->FindObject(static_cast<unsigned>(id));
     if (CUnit* unit = UnitOrNull(object)) unit->Controller()->Died();
     return 1;
@@ -258,7 +258,7 @@ int CPlayerClient::OnTimedObjectAdded() {
 
 int CPlayerClient::OnTimedObjectChanged() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     CPlayer::TimedObjectMap& known = player_->knownTimed_;
     auto node = known.find(id);
     if (node == known.end()) return 0;
@@ -267,7 +267,7 @@ int CPlayerClient::OnTimedObjectChanged() {
 
 int CPlayerClient::OnTimedObjectRemoved() {
     int id;
-    in_.Read(&id, 4);
+    in_.ReadValue(id);
     CPlayer* player = player_;
     auto node = player->knownTimed_.find(id);
     if (node == player->knownTimed_.end()) return 0;
@@ -298,9 +298,9 @@ int CPlayerClient::OnWorldTime() {
 
 int CPlayerClient::OnWorldPoint() {
     Vector3 point;
-    in_.Read(&point, 12);
+    in_.ReadValue(point);
     int value;
-    in_.Read(&value, 4);
+    in_.ReadValue(value);
     g_clientWorld->ApplyWind(&point, std::bit_cast<float>(value));
     return 1;
 }

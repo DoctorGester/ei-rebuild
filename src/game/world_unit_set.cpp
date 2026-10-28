@@ -13,7 +13,7 @@ namespace {
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
-void PutWord(CStream* stream, std::uint32_t value) { Put(stream, &value, 4); }
+void PutWord(CStream* stream, std::uint32_t value) { stream->WriteValue(value); }
 
 // vector<int>::resize(n, value), vector<string>::resize, the stream's string reader.
 
@@ -22,7 +22,7 @@ void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, s
 // A counted dword array: the count, the vector resized (new entries 0), the data.
 void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
     std::uint32_t n;
-    Get(stream, &n, 4);
+    stream->ReadValue(n);
     std::uint32_t zero = 0;
     list.resize(n, zero);
     Get(stream, list.data(), static_cast<std::uint32_t>(list.size()) << 2);
@@ -32,13 +32,13 @@ void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
 
 void DressedUnitRecord::Write(CStream* stream) {
     std::int16_t word = static_cast<std::int16_t>(prototype);
-    Put(stream, &word, 2);
+    stream->WriteValue(word);
     PutWord(stream, static_cast<std::uint32_t>(items.size()));
     Put(stream, items.data(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
     PutWord(stream, static_cast<std::uint32_t>(extraWeapons.size()));
     Put(stream, extraWeapons.data(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
     std::uint8_t byte = static_cast<std::uint8_t>(extraWeapon);
-    Put(stream, &byte, 1);
+    stream->WriteValue(byte);
     PutWord(stream, static_cast<std::uint32_t>(modelNumber));
 }
 
@@ -87,32 +87,32 @@ void UnitSet::Write(CStream* stream) {
 
 void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
-    Get(stream, &count, 4);
+    stream->ReadValue(count);
     figured->resize(count);
     for (FiguredUnitRecord& looks : *figured) {
         FiguredUnitRecord* record = &looks;
-        Get(stream, &record->prototype, 2);
+        stream->ReadValue(record->prototype);
         GetIds(stream, record->items);
         GetIds(stream, record->extraWeapons);
-        Get(stream, &record->extraWeapon, 1);
-        Get(stream, &record->modelNumber, 4);
-        Get(stream, &record->morphS, 4);
-        Get(stream, &record->morphT, 4);
-        Get(stream, &record->morphU, 4);
+        stream->ReadValue(record->extraWeapon);
+        stream->ReadValue(record->modelNumber);
+        stream->ReadValue(record->morphS);
+        stream->ReadValue(record->morphT);
+        stream->ReadValue(record->morphU);
         std::uint32_t names;
-        Get(stream, &names, 4);
+        stream->ReadValue(names);
         record->names.resize(names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
             stream->ReadInto(&record->names[i]);
     }
-    Get(stream, &count, 4);
+    stream->ReadValue(count);
     dressed->resize(count);
     for (DressedUnitRecord& looks : *dressed) {
         DressedUnitRecord* record = &looks;
-        Get(stream, &record->prototype, 2);
+        stream->ReadValue(record->prototype);
         GetIds(stream, record->items);
         GetIds(stream, record->extraWeapons);
-        Get(stream, &record->extraWeapon, 1);
-        Get(stream, &record->modelNumber, 4);
+        stream->ReadValue(record->extraWeapon);
+        stream->ReadValue(record->modelNumber);
     }
 }

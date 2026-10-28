@@ -58,23 +58,23 @@ void CBattleScreen::CreateScreen() {
         CMemoryStream* stream = &g_saveStream.Get();
         stream->Seek(0);
         int count;
-        stream->Read(&count, 4);
+        stream->ReadValue(count);
         heroes_.resize(count);
-        for (int i = 0; i < std::ssize(heroes_); ++i) stream->Read(&heroes_[i], 4);
-        stream->Read(&mapZoom, 4);
+        for (int i = 0; i < std::ssize(heroes_); ++i) stream->ReadValue(heroes_[i]);
+        stream->ReadValue(mapZoom);
         std::uint8_t serverFlag;
-        stream->Read(&serverFlag, 1);
+        stream->ReadValue(serverFlag);
         GameSetServerPaused(serverFlag);
         if (SaveVersion() >= 0x47) {
             int unused;
-            stream->Read(&unused, 4);
+            stream->ReadValue(unused);
             std::string raw;
             std::string* text = stream->ReadString(&raw);
             savedText = *text;
         }
         if (SaveVersion() >= 0x62) {
-            stream->Read(&exitPending_, 1);
-            stream->Read(&pendingExit_, 4);
+            stream->ReadValue(exitPending_);
+            stream->ReadValue(pendingExit_);
         }
         stream->Resize(0);
     } else {

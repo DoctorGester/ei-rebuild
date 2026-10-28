@@ -60,13 +60,13 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
 }
 
 void CTransformObject::SaveTransform(lib::File* file) {
-    file->Write(&localPosition_, 12u);
-    file->Write(&localRotation_, 16u);
+    file->WriteValue(localPosition_);
+    file->WriteValue(localRotation_);
 }
 
 void CTransformObject::LoadTransform(lib::File* file) {
-    file->Read(&localPosition_, 12u);
-    file->Read(&localRotation_, 16u);
+    file->ReadValue(localPosition_);
+    file->ReadValue(localRotation_);
 }
 
 void CCamera::GroundPoint(Vector3* out) const {

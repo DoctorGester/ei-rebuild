@@ -231,23 +231,23 @@ void MagicTrap::Save(CStream* stream) { SaveTrap(stream); }
 void MagicTrap::SaveTrap(CStream* stream) {
     SaveMapObject(stream);
     std::int32_t value = spell ? spell->id_ : -1;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = std::ssize(area);
-    stream->Write(&value, 4);
-    for (int i = 0; i < std::ssize(area); ++i) stream->Write(&area[i], sizeof(TrapCircle));
+    stream->WriteValue(value);
+    for (int i = 0; i < std::ssize(area); ++i) stream->WriteValue(area[i]);
     value = std::ssize(inside);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     for (auto node = inside.begin(); node != inside.end();) {
         auto next = std::next(node);
         AIRefTo<CUnit>::Of(&*node)->Save(stream);
         node = next;
     }
     value = std::ssize(points);
-    stream->Write(&value, 4);
-    for (int i = 0; i < std::ssize(points); ++i) stream->Write(&points[i], sizeof(TrapPoint));
+    stream->WriteValue(value);
+    for (int i = 0; i < std::ssize(points); ++i) stream->WriteValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) {
         std::memcpy(&value, TailFields(this, i), 4);
-        stream->Write(&value, 4);
+        stream->WriteValue(value);
     }
 }
 
@@ -256,15 +256,15 @@ void MagicTrap::LoadTrap(CStream* stream) {
     CSpellManager* manager = SpellManagerOf(WorldContext());
     // The id and the two counts are read into one local: a read that fails leaves the previous value.
     std::int32_t value = 0;
-    stream->Read(&value, 4);
+    stream->ReadValue(value);
     SetSpell(this, value == -1 ? nullptr : manager->FindObjectAs<CSpell>(value));
-    stream->Read(&value, 4);
+    stream->ReadValue(value);
     area.resize(value);
-    for (int i = 0; i < std::ssize(area); ++i) stream->Read(&area[i], sizeof(TrapCircle));
+    for (int i = 0; i < std::ssize(area); ++i) stream->ReadValue(area[i]);
     CountedListLoad(&inside, stream, WorldContext());
-    stream->Read(&value, 4);
+    stream->ReadValue(value);
     points.resize(value);
-    for (int i = 0; i < std::ssize(points); ++i) stream->Read(&points[i], sizeof(TrapPoint));
+    for (int i = 0; i < std::ssize(points); ++i) stream->ReadValue(points[i]);
     for (int i = 0; i < kTailFieldCount; ++i) stream->Read(TailFields(this, i), 4);
 }
 

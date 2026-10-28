@@ -35,23 +35,23 @@ void CTorchObjectSpec::DestroySpec() {
 }
 
 void CTorchObjectSpec::LoadSpec(CStream* stream) {
-    stream->Read(&lightKind_, 4);
+    stream->ReadValue(lightKind_);
     stream->ReadInto(&name_);
-    stream->Read(&values_[0], 4);
-    stream->Read(&values_[1], 4);
+    stream->ReadValue(values_[0]);
+    stream->ReadValue(values_[1]);
     stream->Read(&values_[2], 0x10);
     stream->Read(colours_[0], 0xC);
     stream->Read(colours_[1], 0xC);
 }
 
 void CTorchObjectSpec::SaveSpec(CStream* stream) {
-    stream->Write(&lightKind_, 4);
+    stream->WriteValue(lightKind_);
     stream->WriteString(name_);
     std::uint32_t value;
     value = std::bit_cast<std::uint32_t>(values_[0]);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = std::bit_cast<std::uint32_t>(values_[1]);
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     stream->Write(&values_[2], 0x10);
     stream->Write(colours_[0], 0xC);
     stream->Write(colours_[1], 0xC);

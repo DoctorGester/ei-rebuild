@@ -65,13 +65,6 @@ constexpr int kProgressDone = 7;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// Writes `value`'s bytes.
-template <typename T>
-void WriteCopy(CStream* stream, const T& value) {
-    T copy = value;
-    stream->Write(&copy, sizeof(T));
-}
-
 void ShowLoadProgress(int stage) { ShowLoadingMovie(stage); }
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
@@ -84,7 +77,7 @@ void ReadStringInto(CStream* stream, std::string& target) {
 template <typename T>
 T ReadValue(CStream* stream) {
     T value;
-    stream->Read(&value, sizeof(T));
+    stream->ReadValue(value);
     return value;
 }
 
@@ -122,10 +115,10 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->Server();
-        stream->Read(&player->partyId_, 4);
+        stream->ReadValue(player->partyId_);
         player->Party()->LoadParty(stream, 1);
         player->lastTick_ = world->tick_;
-        stream->Read(&player->sessionKind_, 4);
+        stream->ReadValue(player->sessionKind_);
         CBaseManager* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
@@ -135,14 +128,14 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
             player->items_.push_back(object);
             ++object->refCount_;
         }
-        stream->Read(&player->godMode_, 1);
+        stream->ReadValue(player->godMode_);
         if (stream->version_ >= kVersionPlayerLists) {
             std::list<std::uint32_t>& ids = player->recharging_;
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) ids.push_back(0);
             for (auto node = ids.begin(); node != ids.end();) {
                 auto next = std::next(node);
-                stream->Read(&*node, 4);
+                stream->ReadValue(*node);
                 node = next;
             }
         }
@@ -160,21 +153,21 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
 void SavePlayers(CWorldServer* world, CStream* stream) {
     PlayerIterator it;
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
-        stream->Write(&player->partyId_, 4);
+        stream->WriteValue(player->partyId_);
         player->Party()->SaveParty(stream, 1);
-        stream->Write(&player->sessionKind_, 4);
+        stream->WriteValue(player->sessionKind_);
         for (auto node = player->items_.begin(); node != player->items_.end();) {
             auto next = std::next(node);
-            WriteCopy(stream, (*node)->id_);
+            stream->WriteValue((*node)->id_);
             node = next;
         }
-        WriteCopy(stream, -1);
-        WriteCopy(stream, player->godMode_);
+        stream->WriteValue(-1);
+        stream->WriteValue(player->godMode_);
         std::list<std::uint32_t>& ids = player->recharging_;
-        WriteCopy(stream, std::ssize(ids));
+        stream->WriteValue(std::ssize(ids));
         for (auto node = ids.begin(); node != ids.end();) {
             auto next = std::next(node);
-            stream->Write(&*node, 4);
+            stream->WriteValue(*node);
             node = next;
         }
     }
@@ -298,21 +291,21 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     }
 
     stream->Read(windDirection_, 12);
-    stream->Read(&windStrength_, 4);
-    stream->Read(&nightLevel_, 4);
-    for (WorldAlarm& alarm : alarms_) stream->Read(&alarm, 16);
-    stream->Read(&tick_, 4);
-    stream->Read(&weather_, 4);
-    stream->Read(&weatherStrength_, 4);
+    stream->ReadValue(windStrength_);
+    stream->ReadValue(nightLevel_);
+    for (WorldAlarm& alarm : alarms_) stream->ReadValue(alarm);
+    stream->ReadValue(tick_);
+    stream->ReadValue(weather_);
+    stream->ReadValue(weatherStrength_);
     float time = ReadValue<float>(stream);
     float speed;
     if (stream->version_ >= kVersionTimeSpeedFloat) {
-        stream->Read(&speed, 4);
-        if (stream->version_ >= kVersionRainBoltTick) stream->Read(&lastRainBoltTick_, 4);
+        stream->ReadValue(speed);
+        if (stream->version_ >= kVersionRainBoltTick) stream->ReadValue(lastRainBoltTick_);
     } else {
         speed = static_cast<float>(ReadValue<int>(stream));
     }
-    stream->Read(&sessionKind_, 4);
+    stream->ReadValue(sessionKind_);
 
     int result;
     if (!ReadAIGraph(mapName, mobName, &savedGraph)) {
@@ -369,8 +362,8 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             aiMap_.events.Load(stream);
             MainScript()->LoadState(stream);
             diplomacy_.ReadFrom(stream);
-            stream->Read(&climate_, 4);
-            stream->Read(&cave_, 4);
+            stream->ReadValue(climate_);
+            stream->ReadValue(cave_);
             if (stream->version_ >= kVersionCountdowns)   // the countdowns are a tween array
                 countdowns_.LoadEntries(stream);
 
@@ -385,13 +378,13 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
-            stream->Read(&paused_, 1);
+            stream->ReadValue(paused_);
 
             // The item manager's object records.
             if (stream->version_ >= kVersionPlayerLists) {
                 for (;;) {
                     int id = -1;
-                    stream->Read(&id, 4);
+                    stream->ReadValue(id);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
                     CItem* object = FindItem(ItemFactory(), id);
@@ -459,22 +452,22 @@ void CWorldServer::SaveWorld(CStream* stream) {
     stream->WriteString(mapName_);
     stream->WriteString(zoneName_);
     stream->Write(windDirection_, 12);
-    WriteCopy(stream, windStrength_);
-    WriteCopy(stream, nightLevel_);
-    for (WorldAlarm& alarm : alarms_) stream->Write(&alarm, 16);
-    WriteCopy(stream, tick_);
-    stream->Write(&weather_, 4);
+    stream->WriteValue(windStrength_);
+    stream->WriteValue(nightLevel_);
+    for (WorldAlarm& alarm : alarms_) stream->WriteValue(alarm);
+    stream->WriteValue(tick_);
+    stream->WriteValue(weather_);
     std::uint32_t e8;
     e8 = std::bit_cast<std::uint32_t>(weatherStrength_);
-    WriteCopy(stream, e8);
-    // Stored by the callee as floats; written on as their bytes (WriteCopy takes a reference).
+    stream->WriteValue(e8);
+    // Stored by the callee as floats; written on as their bytes.
     float time;
     float speed;
     GetTime(&time, &speed);
-    WriteCopy(stream, time);
-    WriteCopy(stream, speed);
-    WriteCopy(stream, lastRainBoltTick_);
-    stream->Write(&sessionKind_, 4);
+    stream->WriteValue(time);
+    stream->WriteValue(speed);
+    stream->WriteValue(lastRainBoltTick_);
+    stream->WriteValue(sessionKind_);
 
     ReadAIGraph(mapName_, mobName_, &base);
     aiMap_.regionMap.SaveBlocks(&current);
@@ -483,11 +476,11 @@ void CWorldServer::SaveWorld(CStream* stream) {
     // The map objects' identities (the walk stops at the first empty entry).
     for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {
         CEngineObject* object = node->second;
-        WriteCopy(stream, object->id_);
-        WriteCopy(stream, object->type_);
-        WriteCopy(stream, object->prototypeId_);
+        stream->WriteValue(object->id_);
+        stream->WriteValue(object->type_);
+        stream->WriteValue(object->prototypeId_);
     }
-    WriteCopy(stream, -1);
+    stream->WriteValue(-1);
     timedObjectManager_->Save(stream);
     spellManager_->Save(stream);
     itemManager_->Save(stream);
@@ -497,34 +490,34 @@ void CWorldServer::SaveWorld(CStream* stream) {
     itemManager_->SaveObjects(stream);
 
     for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)
-        WriteCopy(stream, node->second->id_);
-    WriteCopy(stream, -1);
+        stream->WriteValue(node->second->id_);
+    stream->WriteValue(-1);
 
     for (auto node = projectiles_.begin(); node != projectiles_.end();) {
         auto next = std::next(node);
         CSpellEffect* missile = *node;
-        WriteCopy(stream, static_cast<std::uint8_t>(1));
+        stream->WriteValue(static_cast<std::uint8_t>(1));
         missile->Save(stream);
         node = next;
     }
-    WriteCopy(stream, static_cast<std::uint8_t>(0));
+    stream->WriteValue(static_cast<std::uint8_t>(0));
 
     aiMap_.events.Save(stream);
     MainScript()->SaveState(stream);
     diplomacy_.WriteTo(stream);
-    stream->Write(&climate_, 4);
-    stream->Write(&cave_, 4);
+    stream->WriteValue(climate_);
+    stream->WriteValue(cave_);
     countdowns_.Save(stream);
 
     for (auto node = counted_.begin(); node != counted_.end();) {
         auto next = std::next(node);
-        WriteCopy(stream, (*node)->id_);
+        stream->WriteValue((*node)->id_);
         node = next;
     }
-    WriteCopy(stream, -1);
+    stream->WriteValue(-1);
 
     if (PlayerList()) SavePlayers(this, stream);
-    WriteCopy(stream, paused_);
+    stream->WriteValue(paused_);
 
     // The item manager's object records.
     {
@@ -532,31 +525,31 @@ void CWorldServer::SaveWorld(CStream* stream) {
         for (CItem* item = it.First(ItemFactory()); item; item = it.Next()) {
             CItemLink* record = item->ServerLink();
             if (!record) continue;
-            WriteCopy(stream, item->id_);
-            WriteCopy(stream, record->value);
+            stream->WriteValue(item->id_);
+            stream->WriteValue(record->value);
         }
-        WriteCopy(stream, -1);
+        stream->WriteValue(-1);
         if (it.manager) --it.manager->refCount_;
     }
 
-    WriteCopy(stream, static_cast<int>(mobFiles_.size()));
+    stream->WriteValue(static_cast<int>(mobFiles_.size()));
     for (const std::string& file : mobFiles_) stream->WriteString(file);
 
-    WriteCopy(stream, static_cast<int>(sharedObjects_.size()));
+    stream->WriteValue(static_cast<int>(sharedObjects_.size()));
     for (const SharedObject& entry : sharedObjects_) {
-        WriteCopy(stream, entry.objectId);
-        WriteCopy(stream, entry.player);
-        WriteCopy(stream, entry.money);
-        WriteCopy(stream, static_cast<int>(entry.objects.size()));
-        for (CItem* object : entry.objects) WriteCopy(stream, object->id_);
+        stream->WriteValue(entry.objectId);
+        stream->WriteValue(entry.player);
+        stream->WriteValue(entry.money);
+        stream->WriteValue(static_cast<int>(entry.objects.size()));
+        for (CItem* object : entry.objects) stream->WriteValue(object->id_);
     }
 }
 
 void SharedObject::Load(CStream* stream) {
     SharedObject* entry = this;
-    stream->Read(&entry->objectId, 4);
-    stream->Read(&entry->player, 4);
-    stream->Read(&entry->money, 4);
+    stream->ReadValue(entry->objectId);
+    stream->ReadValue(entry->player);
+    stream->ReadValue(entry->money);
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);

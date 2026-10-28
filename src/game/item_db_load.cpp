@@ -93,39 +93,39 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->StringField(1, &code);
     ar->StringField(2, &unreadText);
-    ar->Field(3, &price, 4);
-    ar->Field(4, &castType, 4);
-    ar->Field(5, &mana, 4);
-    ar->Field(6, &complexity, 4);
-    ar->Field(7, &speed, 4);
-    ar->Field(8, &range, 4);
-    ar->Field(9, &area, 4);
-    ar->Field(10, &damage, 4);
-    ar->Field(11, &targetKind, 4);
-    ar->Field(12, &targetCount, 4);
-    ar->Field(13, &duration, 4);
-    ar->Field(14, &castTime, 4);
-    ar->Field(15, &needsSight, 4);
+    ar->Field(3, &price);
+    ar->Field(4, &castType);
+    ar->Field(5, &mana);
+    ar->Field(6, &complexity);
+    ar->Field(7, &speed);
+    ar->Field(8, &range);
+    ar->Field(9, &area);
+    ar->Field(10, &damage);
+    ar->Field(11, &targetKind);
+    ar->Field(12, &targetCount);
+    ar->Field(13, &duration);
+    ar->Field(14, &castTime);
+    ar->Field(15, &needsSight);
     ar->IntVectorField(16, &unreadIdListA);
     ar->IntVectorField(17, &unreadIdListB);
-    ar->Field(18, &icon, 4);
-    ar->Field(19, &school, 4);
+    ar->Field(18, &icon);
+    ar->Field(19, &school);
     ar->Field(20, allowedModifiers, 5);
-    ar->Field(21, &skill, 4);
-    ar->Field(22, &classMask, 4);
-    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i], 4);
+    ar->Field(21, &skill);
+    ar->Field(22, &classMask);
+    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i]);
 }
 
 void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &code[0], 4);
-    ar->Field(2, &price, 4);
-    ar->Field(3, &kind, 4);
-    ar->Field(4, &mana, 4);
-    ar->Field(5, &strength, 4);
-    ar->Field(6, &skill, 4);
+    ar->Field(2, &price);
+    ar->Field(3, &kind);
+    ar->Field(4, &mana);
+    ar->Field(5, &strength);
+    ar->Field(6, &skill);
     ar->StringField(7, &unreadText);
-    ar->Field(8, &classMask, 4);
+    ar->Field(8, &classMask);
 }
 
 void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
@@ -133,7 +133,7 @@ void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
     StringListField(ar, 2, &required);
     StringListField(ar, 3, &optional);
     ar->StringField(4, &repeated);
-    ar->Field(5, &classMask, 4);
+    ar->Field(5, &classMask);
 }
 
 void ChunkArchive::IntVectorField(int id, std::vector<int>* values) {

@@ -37,7 +37,7 @@ std::string CachePath(const std::string& name) { return *g_dataFolder + kTexture
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
 bool CacheMatches(lib::File& file, MmpHeader& header, const SkinRequest* request) {
-    file.Read(&header, sizeof(MmpHeader));
+    file.ReadValue(header);
     int size = static_cast<int>(header.extraSize);
     std::vector<std::uint8_t> extra(static_cast<std::size_t>(size));
     if (size != 0) file.Read(extra.data(), static_cast<unsigned>(size));
@@ -183,7 +183,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     header.extraSize = static_cast<std::uint32_t>(std::ssize(request->layers));
     int kind = ConversionKind(format);
     if (!file.Open(path, kWriteCreate)) return game::FatalError(kCantWrite, path);
-    file.Write(&header, sizeof(MmpHeader));
+    file.WriteValue(header);
     if (header.extraSize != 0) file.Write(request->layers.data(), header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);
     return 1;

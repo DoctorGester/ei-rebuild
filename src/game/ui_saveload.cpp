@@ -236,11 +236,11 @@ void CSaveLoadWindow::SaveGame() {
     SaveEntry* first = entries_.data();
     info.s.WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
-    info.Write(&gameTime, 4);
+    info.s.WriteValue(gameTime);
     info.WriteText(first->map_);
     info.WriteText(first->zone_);
     std::int32_t savedAt = first->savedAt_;
-    info.Write(&savedAt, 4);
+    info.s.WriteValue(savedAt);
     info.WriteText(first->title_);
     info.Close();
 
@@ -295,7 +295,7 @@ void CSaveLoadWindow::FillEntries() {
             LocalFileStream info;
             info.Open(FilePath(infoFind), 0, 1);
             if (info.s.ReadHeader(kInfoMagic, (int)kInfoVersion, 1)) {
-                info.Read(&entry->gameTime_, 4);
+                info.s.ReadValue(entry->gameTime_);
                 {
                     std::string map;
                     info.s.ReadString(&map);
@@ -305,7 +305,7 @@ void CSaveLoadWindow::FillEntries() {
                 // The version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
-                    info.Read(&savedAt, 4);
+                    info.s.ReadValue(savedAt);
                     entry->savedAt_ = savedAt;
                 }
                 if (static_cast<int>(info.s.version_) > 2) info.s.ReadInto(&entry->title_);
@@ -399,10 +399,10 @@ void QuickSave(const char* slot, char stepFrame) {
     LocalFileStream info;
     info.Open((folder + game::savewords::InfoFile()), kOpenWrite, 0);
     info.s.WriteHeader(kInfoMagic, kInfoVersion);
-    info.Write(&gameTime, 4);
+    info.s.WriteValue(gameTime);
     info.WriteText(map);
     info.WriteText(zone);
-    info.Write(&savedAt, 4);
+    info.s.WriteValue(savedAt);
     info.WriteText(title);
     info.Close();
 

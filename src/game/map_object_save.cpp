@@ -24,53 +24,53 @@ std::string ReadText(CStream* stream) {
 
 void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
-    stream->Read(&animationSpeed, sizeof(animationSpeed));
+    stream->ReadValue(animationSpeed);
     stream->Read(&localPosition_.x, 3 * sizeof(float));
-    stream->Read(&localRotation_, sizeof(localRotation_));
+    stream->ReadValue(localRotation_);
     name = ReadText(stream);
-    stream->Read(&scale, sizeof(scale));
+    stream->ReadValue(scale);
     int count = 0;
-    stream->Read(&count, sizeof(count));
+    stream->ReadValue(count);
     SetEffectCount(count);
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Load(stream);
     std::uint32_t flags = flags_;   // the original's local starts as stack garbage
-    stream->Read(&flags, sizeof(flags));
+    stream->ReadValue(flags);
     flags_ = flags;
     name2 = ReadText(stream);
-    if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
+    if (stream->version_ > kBaseScaleVersion) stream->ReadValue(baseScale);
 }
 
 void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
     float speed = animationSpeed;
-    stream->Write(&speed, sizeof(speed));
+    stream->WriteValue(speed);
     stream->Write(&localPosition_.x, 3 * sizeof(float));
-    stream->Write(&localRotation_, sizeof(localRotation_));
+    stream->WriteValue(localRotation_);
     stream->WriteString(name);
-    stream->Write(&scale, sizeof(scale));
+    stream->WriteValue(scale);
     int count = std::ssize(effects);
-    stream->Write(&count, sizeof(count));
+    stream->WriteValue(count);
     for (int i = 0; i < std::ssize(effects); ++i) effects[i].Save(stream);
     std::uint32_t flags = flags_;
-    stream->Write(&flags, sizeof(flags));
+    stream->WriteValue(flags);
     stream->WriteString(name2);
-    stream->Write(&baseScale, sizeof(baseScale));
+    stream->WriteValue(baseScale);
 }
 
 void CMapObjectServer::Load(CStream* stream) {
-    stream->Read(&vitals, sizeof(vitals));
+    stream->ReadValue(vitals);
     parentIname = ReadText(stream);
     skinTexture = ReadText(stream);
     int count = 0;
-    stream->Read(&count, sizeof(count));
+    stream->ReadValue(count);
     for (int i = 0; i < count; ++i) strings.push_back(ReadText(stream));
 }
 
 void CMapObjectServer::Save(CStream* stream) {
-    stream->Write(&vitals, sizeof(vitals));
+    stream->WriteValue(vitals);
     stream->WriteString(parentIname);
     stream->WriteString(skinTexture);
     int count = static_cast<int>(strings.size());
-    stream->Write(&count, sizeof(count));
+    stream->WriteValue(count);
     for (const std::string& text : strings) stream->WriteString(text);
 }

@@ -617,21 +617,21 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
 
 void ClientQueries::Serialize(ChunkArchive* archive) {
     RecordChunks(archive, 1, &list, [](Query& q, ChunkArchive* ar) {
-        ar->Field(1, &q.address, 0x10);
+        ar->Field(1, &q.address);
         std::uint32_t length;
         if (ar->loading_) {
-            ar->Field(2, &length, 4);
+            ar->Field(2, &length);
             GameBuffer& r = q.reply;
             r.cur = r.begin;
             r.high = r.begin + length;
             if (r.high > r.end) r.Grow(length);
         } else {
             length = static_cast<std::uint32_t>(BufferLength(&q.reply));
-            ar->Field(2, &length, 4);
+            ar->Field(2, &length);
         }
         ar->Field(3, q.reply.begin, length);
     });
-    archive->Field(2, &extra, 4);
+    archive->Field(2, &extra);
 }
 
 } // namespace net

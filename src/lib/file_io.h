@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 struct _WIN32_FIND_DATAA;
 
@@ -55,6 +56,17 @@ public:
     unsigned Read(void* buffer, unsigned count);
     // A FileError also when fewer bytes were written.
     void Write(const void* buffer, unsigned count);
+    // One value as its bytes (sizeof(T)).
+    template <class T>
+    unsigned ReadValue(T& value) {
+        static_assert(std::is_trivially_copyable_v<T>, "a file value is plain bytes");
+        return Read(&value, sizeof(T));
+    }
+    template <class T>
+    void WriteValue(const T& value) {
+        static_assert(std::is_trivially_copyable_v<T>, "a file value is plain bytes");
+        Write(&value, sizeof(T));
+    }
     // `from` FILE_BEGIN, FILE_CURRENT or FILE_END; the new position.
     long Seek(long offset, unsigned from);
     unsigned long GetPosition() const;

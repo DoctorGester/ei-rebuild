@@ -32,7 +32,7 @@ void AIRefTo<T>::Assign(T* newObject) {
 template <typename T>
 void AIRefTo<T>::Load(CStream* stream, CWorld* world) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     if (id == kNoObject) {
         Reset();
         return;
@@ -44,7 +44,7 @@ void AIRefTo<T>::Load(CStream* stream, CWorld* world) {
 template <typename T>
 void AIRefTo<T>::Save(CStream* stream) {
     int id = object ? object->id_ : kNoObject;
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
 }
 
 // The references: the engine object's two members, the typed ones' (the AI's map objects and units, the effects'
@@ -64,7 +64,7 @@ template void AIRefTo<CUnit>::Save(CStream*);
 // `context` (the trap's units, the brain's lists).
 void CountedListLoad(std::list<CUnit*>* list, CStream* stream, CWorld* context) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     while (count-- > 0) {
         list->push_back(nullptr);
         AIRefTo<CUnit>::Of(&list->back())->Load(stream, context);

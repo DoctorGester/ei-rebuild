@@ -919,15 +919,15 @@ int CWorldClient::LoadItemsAndSpells(CStream* block) {
 int LoadManagerObjects(CBaseManager* manager, CStream* stream) {
     for (;;) {
         std::uint8_t more;
-        stream->Read(&more, 1);
+        stream->ReadValue(more);
         if (more == 0) return 1;
         if (!stream->ok_) return 0;
         int id;
         int type;
         std::uint32_t extra;
-        stream->Read(&id, 4);
-        stream->Read(&type, 4);
-        stream->Read(&extra, 4);
+        stream->ReadValue(id);
+        stream->ReadValue(type);
+        stream->ReadValue(extra);
         if (CEngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
             if (old->refCount_ == 0) old->refCount_ = 1;
             old->Release();
@@ -961,19 +961,19 @@ PlatformSet::~PlatformSet() {
 // ends the list.
 void SaveListedObject(CEngineObject* object, CStream* stream) {
     std::uint8_t more = 1;
-    stream->Write(&more, 1);
+    stream->WriteValue(more);
     int id = object->id_;
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
     int type = object->type_;
-    stream->Write(&type, 4);
+    stream->WriteValue(type);
     std::uint32_t extra = object->prototypeId_;
-    stream->Write(&extra, 4);
+    stream->WriteValue(extra);
     object->Save(stream);
 }
 
 void SaveListedObjectsEnd(CStream* stream) {
     std::uint8_t more = 0;
-    stream->Write(&more, 1);
+    stream->WriteValue(more);
 }
 
 CLightningManager::CLightningManager() {
@@ -1001,15 +1001,15 @@ int CWorldClient::LoadZone(CStream* block) {
     partyDanger_ = 0;
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
-    block->Read(&tick_, 4);
+    block->ReadValue(tick_);
     block->ReadInto(&map);
     block->ReadInto(&mob);
     int exitCount;
-    block->Read(&exitCount, 4);
+    block->ReadValue(exitCount);
     exits_.resize(exitCount);
     for (ZoneExit& exit : exits_) exit.Read(block);
     int cave;
-    block->Read(&cave, 4);
+    block->ReadValue(cave);
     UnitLooks looks;
     ReadUnitLooks(block, &looks.figured, &looks.dressed);
     cave_ = cave;

@@ -97,13 +97,13 @@ int CEffectShowVisibility::RunTick() {
 }
 
 void CEffectShowVisibility::Load(CStream* s) {
-    s->Read(&observerId_, 4);
-    s->Read(&seerId_, 4);
+    s->ReadValue(observerId_);
+    s->ReadValue(seerId_);
 }
 
 void CEffectShowVisibility::Save(CStream* s) {
     int copy = observerId_;
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     copy = seerId_;
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
 }

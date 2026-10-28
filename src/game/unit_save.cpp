@@ -32,15 +32,9 @@ int PrototypeIndexOf(const UnitPrototypeRecord* record) {
     return record ? static_cast<int>(record - g_unitDatabase->prototypes.records.data()) : -1;
 }
 
-// Writes `value`'s bytes.
-template <typename T>
-void WriteCopy(CStream* stream, T value) {
-    stream->Write(&value, sizeof(T));
-}
-
 template <typename T>
 void WriteItemIds(CStream* stream, T* const* items, int count) {
-    for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
+    for (int i = 0; i < count; ++i) stream->WriteValue<int>(items[i] ? items[i]->id_ : -1);
 }
 
 // The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
@@ -57,7 +51,7 @@ CWorld* ContextWorld(CUnit* unit) { return unit->WorldContext(); }
 CItem* ReadItem(CUnit* unit, CStream* stream) {
     CBaseManager* manager = ContextWorld(unit)->ItemFactory();
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     if (id == -1) return nullptr;
     CItem* item = FindItem(manager, id);
     if (item) ++item->refCount_;
@@ -89,29 +83,29 @@ void CUnit::LoadUnit(CStream* stream) {
     controller->Load(stream);
     flags_ &= ~kFlag800000;
     stream->ReadInto(&scriptName);
-    stream->Read(&relationsA, 4);
+    stream->ReadValue(relationsA);
     int playerId;
-    stream->Read(&playerId, 4);
+    stream->ReadValue(playerId);
     CPlayer* newPlayer = PlayerById(this, playerId);
 
-    stream->Read(&side, 4);
-    stream->Read(&animationEntry, 1);
-    stream->Read(&secondEntry, 1);
-    stream->Read(&animationStart, 4);
-    stream->Read(&motionMode, 4);
-    stream->Read(&pathTimeShift, 4);
-    stream->Read(&moveMode, 4);
-    stream->Read(&moveMode2, 4);
-    stream->Read(&activeWeapon, 4);
-    stream->Read(&pendingWeapon, 4);
-    stream->Read(&dead, 4);
-    stream->Read(&obstacle, 4);
+    stream->ReadValue(side);
+    stream->ReadValue(animationEntry);
+    stream->ReadValue(secondEntry);
+    stream->ReadValue(animationStart);
+    stream->ReadValue(motionMode);
+    stream->ReadValue(pathTimeShift);
+    stream->ReadValue(moveMode);
+    stream->ReadValue(moveMode2);
+    stream->ReadValue(activeWeapon);
+    stream->ReadValue(pendingWeapon);
+    stream->ReadValue(dead);
+    stream->ReadValue(obstacle);
     motion.LoadState(stream);
-    stream->Read(&heightOffset, 4);
-    stream->Read(&sizeClass, 4);
-    stream->Read(&unitRadius, 4);
+    stream->ReadValue(heightOffset);
+    stream->ReadValue(sizeClass);
+    stream->ReadValue(unitRadius);
     params.Reset();
-    stream->Read(&activeWeapon, 4);             // saved twice; the second copy wins
+    stream->ReadValue(activeWeapon);             // saved twice; the second copy wins
 
     ReadItems(this, stream, weapons, 4);
     ReadItems(this, stream, quickItems, 4);
@@ -121,15 +115,15 @@ void CUnit::LoadUnit(CStream* stream) {
     StatsChanged();
     SetPlayer(newPlayer);   // inlined
 
-    stream->Read(&relationsB, 4);
+    stream->ReadValue(relationsB);
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     carried.resize(static_cast<std::size_t>(count > 0 ? count : 0));
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
-    stream->Read(&standingHeight, 4);
+    stream->ReadValue(standingHeight);
 
     if (stream->version_ < kVersionFightAtWill) return;
-    stream->Read(&fightAtWill, 4);
+    stream->ReadValue(fightAtWill);
     if (stream->version_ < kVersionPrototypeNames) return;
 
     std::string prototypeName;
@@ -149,36 +143,36 @@ void CUnit::SaveUnit(CStream* stream) {
     SaveMapObject(stream);
     controller->Save(stream);
     stream->WriteString(scriptName);
-    WriteCopy(stream, relationsA);
-    WriteCopy<int>(stream, player ? player->playerId_ : -1);
-    WriteCopy(stream, side);
-    WriteCopy(stream, animationEntry);
-    WriteCopy(stream, secondEntry);
-    WriteCopy(stream, animationStart);
-    stream->Write(&motionMode, 4);
-    stream->Write(&pathTimeShift, 4);
-    stream->Write(&moveMode, 4);
-    stream->Write(&moveMode2, 4);
-    WriteCopy(stream, activeWeapon);
-    WriteCopy(stream, pendingWeapon);
-    WriteCopy(stream, dead);
-    WriteCopy(stream, obstacle);
+    stream->WriteValue(relationsA);
+    stream->WriteValue<int>(player ? player->playerId_ : -1);
+    stream->WriteValue(side);
+    stream->WriteValue(animationEntry);
+    stream->WriteValue(secondEntry);
+    stream->WriteValue(animationStart);
+    stream->WriteValue(motionMode);
+    stream->WriteValue(pathTimeShift);
+    stream->WriteValue(moveMode);
+    stream->WriteValue(moveMode2);
+    stream->WriteValue(activeWeapon);
+    stream->WriteValue(pendingWeapon);
+    stream->WriteValue(dead);
+    stream->WriteValue(obstacle);
     motion.SaveState(stream);
-    WriteCopy(stream, heightOffset);
-    WriteCopy(stream, sizeClass);
-    WriteCopy(stream, std::bit_cast<std::uint32_t>(unitRadius));
-    WriteCopy(stream, activeWeapon);
+    stream->WriteValue(heightOffset);
+    stream->WriteValue(sizeClass);
+    stream->WriteValue(std::bit_cast<std::uint32_t>(unitRadius));
+    stream->WriteValue(activeWeapon);
 
     WriteItemIds(stream, weapons, 4);
     WriteItemIds(stream, quickItems, 4);
     WriteItemIds(stream, spells, 8);
     WriteItemIds(stream, armor, 7);
     stream->Write(exposure, sizeof(exposure));
-    WriteCopy(stream, relationsB);
-    WriteCopy(stream, static_cast<int>(std::ssize(carried)));
+    stream->WriteValue(relationsB);
+    stream->WriteValue(static_cast<int>(std::ssize(carried)));
     WriteItemIds(stream, carried.data(), static_cast<int>(std::ssize(carried)));
-    WriteCopy(stream, standingHeight);
-    stream->Write(&fightAtWill, 4);
+    stream->WriteValue(standingHeight);
+    stream->WriteValue(fightAtWill);
 
     // The prototype's name (the record's first field is a string; a record out of range is copied from
     // address 0), then the second prototype's or "".

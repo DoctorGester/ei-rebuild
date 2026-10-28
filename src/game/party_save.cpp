@@ -18,11 +18,6 @@
 
 namespace {
 
-template <typename T>
-void WriteValue(CStream* stream, T value) {
-    stream->Write(&value, sizeof(value));
-}
-
 template <typename Text>
 void ReadText(CStream* stream, Text& text) {
     stream->ReadInto(&text);
@@ -30,10 +25,10 @@ void ReadText(CStream* stream, Text& text) {
 
 // A list's count, then each item's id (-1 for an empty entry).
 void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
-    WriteValue(stream, std::ssize(list));
+    stream->WriteValue(std::ssize(list));
     for (int i = 0; i < std::ssize(list); ++i) {
         const CItem* item = list[i];
-        WriteValue(stream, item != nullptr ? item->id_ : -1);
+        stream->WriteValue(item != nullptr ? item->id_ : -1);
     }
 }
 
@@ -41,11 +36,11 @@ void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
 void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manager) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
     int count;
-    stream->Read(&count, sizeof(count));
+    stream->ReadValue(count);
     list.resize(count);
     for (int i = 0; i < std::ssize(list); ++i) {
         unsigned id;
-        stream->Read(&id, sizeof(id));
+        stream->ReadValue(id);
         CItem* item = FindItem(manager, id);
         list[i] = item;
         if (item != nullptr) ++item->refCount_;
@@ -85,7 +80,7 @@ void PartyUnitRecord::Load(CStream* stream) {
     ReadText(stream, texts[4]);
     ReadText(stream, texts[5]);
     texts[6] = texts[5];
-    stream->Read(&unitId, sizeof(unitId));
+    stream->ReadValue(unitId);
     stats.LoadFrom(stream);
     stream->Read(&scaleX, 0xC);   // +0x728 and the height
     ReadItemIds(stream, weapons, g_loadingParty->ItemFactory());
@@ -94,13 +89,13 @@ void PartyUnitRecord::Load(CStream* stream) {
     ReadItemIds(stream, spells, g_loadingParty->ItemFactory());
     ReadText(stream, texts[1]);
     if (Version(stream) < kVersionRecordFlags) return;
-    stream->Read(&moveMode2, 4);
-    stream->Read(&weaponIndex, 4);
-    stream->Read(&selected, 1);
+    stream->ReadValue(moveMode2);
+    stream->ReadValue(weaponIndex);
+    stream->ReadValue(selected);
     if (Version(stream) < kVersionRecord77C) return;
-    stream->Read(&leaderId, 4);
+    stream->ReadValue(leaderId);
     if (Version(stream) < kVersionRecord780) return;
-    stream->Read(&fightAtWill, 4);
+    stream->ReadValue(fightAtWill);
     if (Version(stream) < kVersionRecordText6) return;
     ReadText(stream, texts[6]);
 }
@@ -111,7 +106,7 @@ void PartyUnitRecord::Save(CStream* stream) {
     stream->WriteString(texts[3]);
     stream->WriteString(texts[4]);
     stream->WriteString(texts[5]);
-    WriteValue(stream, unitId);
+    stream->WriteValue(unitId);
     stats.SaveTo(stream);
     stream->Write(&scaleX, 0xC);
     WriteItemIds(stream, weapons);
@@ -119,11 +114,11 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteItemIds(stream, armor);
     WriteItemIds(stream, spells);
     stream->WriteString(texts[1]);
-    stream->Write(&moveMode2, 4);
-    WriteValue(stream, weaponIndex);
-    WriteValue(stream, selected);
-    WriteValue(stream, leaderId);
-    stream->Write(&fightAtWill, 4);
+    stream->WriteValue(moveMode2);
+    stream->WriteValue(weaponIndex);
+    stream->WriteValue(selected);
+    stream->WriteValue(leaderId);
+    stream->WriteValue(fightAtWill);
     stream->WriteString(texts[6]);
 }
 
@@ -132,23 +127,23 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     g_loadingParty = this;
     Clear(loadVariables, 0);
     ReadText(stream, zone_);
-    stream->Read(&entrance_, 4);
+    stream->ReadValue(entrance_);
     itemManager_->Load(stream);
     spellManager_->Load(stream);
     itemManager_->LoadObjects(stream);
     spellManager_->LoadObjects(stream);
     ReadItemIds(stream, items_, ItemFactory());
     int records;
-    stream->Read(&records, sizeof(records));
+    stream->ReadValue(records);
     members_.resize(records);
     for (int i = 0; i < records; ++i) members_[i].Load(stream);
     if (loadVariables != 0) variables_.Load(stream);
     g_loadingParty = nullptr;
     money_ = 0;
-    stream->Read(&money_, 4);
+    stream->ReadValue(money_);
     if (Version(stream) > kVersionPartyKey) {
         std::uint32_t key;
-        stream->Read(&key, sizeof(key));
+        stream->ReadValue(key);
         money_ ^= key;
     }
     itemManager_->ReleaseUnused();
@@ -158,19 +153,19 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
     stream->WriteString(zone_);
-    WriteValue(stream, entrance_);
+    stream->WriteValue(entrance_);
     itemManager_->Save(stream);
     spellManager_->Save(stream);
     itemManager_->SaveObjects(stream);
     spellManager_->SaveObjects(stream);
     WriteItemIds(stream, items_);
     int records = std::ssize(members_);
-    WriteValue(stream, records);
+    stream->WriteValue(records);
     for (int i = 0; i < records; ++i) members_[i].Save(stream);
     if (saveVariables != 0) variables_.Save(stream);
     std::uint32_t key = g_random.Next();
-    WriteValue(stream, money_ ^ key);
-    WriteValue(stream, key);
+    stream->WriteValue(money_ ^ key);
+    stream->WriteValue(key);
 }
 
 CParty* CParty::Assign(CParty* source) {

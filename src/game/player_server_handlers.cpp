@@ -81,10 +81,10 @@ constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
 // flagged 0x800000 are left out).
 void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
     int count = 0;
-    in.Read(&count, 4);
+    in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
         int id = 0;
-        in.Read(&id, 4);
+        in.ReadValue(id);
         CUnit* unit = FindUnit(id);
         if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
@@ -98,8 +98,8 @@ int MoveUnits(MoveCommand command) {
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
-    in.Read(&run, 4);
-    in.Read(&to, sizeof(to));
+    in.ReadValue(run);
+    in.ReadValue(to);
     FormationOffsets(&units, &offsets);
     for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = &units[i]->ServerController()->brain;
@@ -147,7 +147,7 @@ void CPlayerServer::OnLeaderDied() {
     CParty* party = player->Party();
     if (!IsMultiplayerClient()) {
         std::uint8_t type = kMessageGameOver;
-        out_.Write(&type, 1);
+        out_.WriteValue(type);
         CUnit* hero = FindUnit(static_cast<int>(party->members_[0].unitId));
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         return;
@@ -255,18 +255,18 @@ int CPlayerServer::OnUseOrder() {
     CMemoryStream& in = *g_receivedMessages;
     std::vector<CUnit*> units{};
     int count = 0;
-    in.Read(&count, 4);
+    in.ReadValue(count);
     for (int i = 0; i < count; ++i) {
         int id = 0;
-        in.Read(&id, 4);
+        in.ReadValue(id);
         CUnit* unit = FindUnit(id);
         if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
     int flag = 0, kind = 0, value = 0, objectId = 0;
-    in.Read(&flag, 4);
-    in.Read(&kind, 4);
-    in.Read(&value, 4);
-    in.Read(&objectId, 4);
+    in.ReadValue(flag);
+    in.ReadValue(kind);
+    in.ReadValue(value);
+    in.ReadValue(objectId);
     // A map object (the use order's target), or null.
     CMapObject* object = g_serverWorld->FindObject(static_cast<unsigned>(objectId));
 
@@ -395,9 +395,9 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
         SendParty();
     }
     std::uint8_t type = kMessageZone;
-    out_.Write(&type, 1);
+    out_.WriteValue(type);
     out_.WriteString(zone);
-    out_.Write(&entrance, 4);
+    out_.WriteValue(entrance);
     Flush();
 }
 
@@ -412,7 +412,7 @@ void CPlayerServer::LeaveAndFlush() {
     if (state_ != 3) {
         state_ = 3;
         std::uint8_t type = 0x01;
-        out_.Write(&type, 1);
+        out_.WriteValue(type);
     }
     Flush();
 }
@@ -427,7 +427,7 @@ int CPlayerServer::OnTakeExit() {
     std::string zone;
     int exit = 0;
     int entrance = 0;
-    g_receivedMessages->Read(&exit, 4);
+    g_receivedMessages->ReadValue(exit);
     if (!g_serverWorld->GetZoneExit(exit, &zone, &entrance)) return 0;
     LeaveToZone(zone, entrance);
     return 1;
@@ -451,7 +451,7 @@ int CPlayerServer::OnLeaveToZone() {
         zone = *read;
     }
     int entrance = 0;
-    g_receivedMessages->Read(&entrance, 4);
+    g_receivedMessages->ReadValue(entrance);
     LeaveToZone(zone, entrance);
     return 1;
 }
@@ -500,9 +500,9 @@ int CPlayerServer::OnAttack() {
     std::vector<CUnit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
-    in.Read(&ctrl, 4);
-    in.Read(&how, 4);
-    in.Read(&objectId, 4);
+    in.ReadValue(ctrl);
+    in.ReadValue(how);
+    in.ReadValue(objectId);
     if (CMapObject* object = g_serverWorld->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = &units[i]->ServerController()->brain;
@@ -541,7 +541,7 @@ BOOL IsPrintableText(const char* text, int maxLength, int minLength) {
 int CPlayerServer::OnLogin() {
     PlayerLoginMessage login;
     login.partyId = 0;
-    g_receivedMessages->Read(&login, sizeof(login));
+    g_receivedMessages->ReadValue(login);
     if (state_ != 0) return 0;
     CPlayer* player = player_;
     if (login.version != kClientVersion) {
@@ -551,7 +551,7 @@ int CPlayerServer::OnLogin() {
         world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
         const std::string text = str::Format(format, 1, 0);
         std::uint8_t type = kMessageError;
-        out_.Write(&type, 1);
+        out_.WriteValue(type);
         out_.WriteString(text);
         state_ = 3;
         return 0;
@@ -579,8 +579,8 @@ int CPlayerServer::OnLogin() {
     }
     std::uint8_t type = kMessageLogin;
     int id = player->id_;
-    out_.Write(&type, 1);
-    out_.Write(&id, 4);
+    out_.WriteValue(type);
+    out_.WriteValue(id);
     SendParty();
     state_ = 1;
     return 1;
@@ -592,7 +592,7 @@ void CPlayerServer::SendPartyUpdate() {
     CMemoryStream block;
     player_->Party()->SaveParty(&block, 0);
     std::uint8_t type = kMessagePartyUpdate;
-    out_.Write(&type, 1);
+    out_.WriteValue(type);
     out_.WriteSized(&block);
 }
 
@@ -607,7 +607,7 @@ void CPlayerServer::ResendParty() {
 
 void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
     std::uint8_t type = kMessage19;
-    out_.Write(&type, 1);
-    out_.Write(&a, 1);
-    out_.Write(&b, 4);
+    out_.WriteValue(type);
+    out_.WriteValue(a);
+    out_.WriteValue(b);
 }

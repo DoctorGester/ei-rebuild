@@ -808,7 +808,7 @@ void CWorldServer::LoadZoneScripts(std::string_view mob) {
     } else if (scripts.FindTagged(kScriptPlain, &text)) {
         text.Seek(text.size_);
         char zero = 0;
-        text.Write(&zero, 1u);
+        text.WriteValue(zero);
         script = reinterpret_cast<const char*>(text.data_);
     }
     ScriptReset(MainScript());

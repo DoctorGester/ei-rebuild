@@ -72,7 +72,7 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
         file->WriteHeader(magic, static_cast<std::uint32_t>(version));
         if (version > kVersionChecksum) {
             std::uint32_t sum = Checksum(data->data_, static_cast<std::int32_t>(data->Size()));
-            file->Write(&sum, 4u);
+            file->WriteValue(sum);
         }
         // Decompressed again; the packed data is used only when it gives the input back.
         LocalBuffer check;
@@ -91,12 +91,12 @@ void SaveFileWrite(CStream* file, unsigned magic, int version, CMemoryStream* da
                 same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;
             }
             if (same) {
-                file->Write(&compressed, 1u);
+                file->WriteValue(compressed);
                 std::int32_t length = Length(packed.b);
                 file->Write(packed.b.begin, static_cast<std::uint32_t>(length));
             } else {
                 compressed = 0;
-                file->Write(&compressed, 1u);
+                file->WriteValue(compressed);
                 std::uint8_t* raw = data->data_;
                 file->Write(raw, data->Size());
             }
@@ -120,8 +120,8 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, 
         LocalBuffer packed;
         LocalBuffer plain;
         std::uint32_t stored = 0;
-        if (VersionOf(file) > kVersionChecksum) file->Read(&stored, 4u);
-        if (VersionOf(file) > kVersionFlag) file->Read(&compressed, 1u);
+        if (VersionOf(file) > kVersionChecksum) file->ReadValue(stored);
+        if (VersionOf(file) > kVersionFlag) file->ReadValue(compressed);
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         if (compressed) {

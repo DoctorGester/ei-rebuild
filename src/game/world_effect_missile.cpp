@@ -207,39 +207,39 @@ void CEffectArrow::Pack(DeltaField* field) {
 }
 
 void CEffectArrow::Load(CStream* s) {
-    s->Read(&localPosition_, 12);
-    s->Read(&targetId_, 4);
-    s->Read(&velocity_, 12);
-    s->Read(&arrived_, 4);
+    s->ReadValue(localPosition_);
+    s->ReadValue(targetId_);
+    s->ReadValue(velocity_);
+    s->ReadValue(arrived_);
     s->ReadInto(&soundName_);
-    s->Read(&lightColor_, 12);
-    s->Read(&lightRange_, 4);
-    s->Read(&particleType_, 4);
-    s->Read(&particleSize_, 4);
+    s->ReadValue(lightColor_);
+    s->ReadValue(lightRange_);
+    s->ReadValue(particleType_);
+    s->ReadValue(particleSize_);
     if (static_cast<int>(s->version_) < 0x43) return;
-    s->Read(&casterId_, 4);
-    s->Read(&fromCaster_, 1);
+    s->ReadValue(casterId_);
+    s->ReadValue(fromCaster_);
 }
 
 void CEffectArrow::Save(CStream* s) {
     std::uint32_t copy;
-    s->Write(&localPosition_, 12);
+    s->WriteValue(localPosition_);
     std::memcpy(&copy, &targetId_, 4);
-    s->Write(&copy, 4);
-    s->Write(&velocity_, 12);
+    s->WriteValue(copy);
+    s->WriteValue(velocity_);
     std::memcpy(&copy, &arrived_, 4);
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     s->WriteString(soundName_);
-    s->Write(&lightColor_, 12);
+    s->WriteValue(lightColor_);
     copy = std::bit_cast<std::uint32_t>(lightRange_);
-    s->Write(&copy, 4);
-    s->Write(&particleType_, 4);
+    s->WriteValue(copy);
+    s->WriteValue(particleType_);
     copy = std::bit_cast<std::uint32_t>(particleSize_);
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     std::memcpy(&copy, &casterId_, 4);
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     std::uint8_t flag = fromCaster_;
-    s->Write(&flag, 1);
+    s->WriteValue(flag);
 }
 
 CEffectArrow::CEffectArrow() { Reset(); }
@@ -348,30 +348,30 @@ void CEffectArrowFigure::Pack(DeltaField* field) {
 }
 
 void CEffectArrowFigure::Load(CStream* s) {
-    s->Read(&localPosition_, 12);
-    s->Read(&targetId_, 4);
-    s->Read(&casterId_, 4);
-    s->Read(&velocity_, 12);
-    s->Read(&arrived_, 4);
+    s->ReadValue(localPosition_);
+    s->ReadValue(targetId_);
+    s->ReadValue(casterId_);
+    s->ReadValue(velocity_);
+    s->ReadValue(arrived_);
     figure_.Load(s, WorldContext());
-    s->Read(&hit_, sizeof(hit_));
-    s->Read(&fromCaster_, 1);
+    s->ReadValue(hit_);
+    s->ReadValue(fromCaster_);
 }
 
 void CEffectArrowFigure::Save(CStream* s) {
     std::uint32_t copy;
-    s->Write(&localPosition_, 12);
+    s->WriteValue(localPosition_);
     std::memcpy(&copy, &targetId_, 4);
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     std::memcpy(&copy, &casterId_, 4);
-    s->Write(&copy, 4);
-    s->Write(&velocity_, 12);
+    s->WriteValue(copy);
+    s->WriteValue(velocity_);
     std::memcpy(&copy, &arrived_, 4);
-    s->Write(&copy, 4);
+    s->WriteValue(copy);
     figure_.Save(s);
-    s->Write(&hit_, sizeof(hit_));
+    s->WriteValue(hit_);
     std::uint8_t flag = fromCaster_;
-    s->Write(&flag, 1);
+    s->WriteValue(flag);
 }
 
 CEffectArrowFigure::CEffectArrowFigure() {

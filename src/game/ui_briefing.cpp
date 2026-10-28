@@ -157,7 +157,7 @@ void CBriefingScreen::ShowChat(char show) {
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
-    g_saveStream->Write(&zero, 4);
+    g_saveStream->WriteValue(zero);
 }
 
 void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }

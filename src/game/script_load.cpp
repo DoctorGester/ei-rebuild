@@ -20,7 +20,7 @@ namespace {
 
 int ReadInt(CStream* stream) {
     int value = 0;
-    stream->Read(&value, 4);
+    stream->ReadValue(value);
     return value;
 }
 
@@ -68,12 +68,12 @@ void LoadList(std::list<T>* list, CStream* stream, Read read) {
 void LoadParticles(std::list<ScriptParticleSource>* list, CStream* stream) {
     LoadList(list, stream, [stream](ScriptParticleSource& source) {
         source.object = ScriptEffect<CEffectParticle>(FindById<CEffectParticle>(ReadInt(stream)));
-        stream->Read(&source.id, 4);
-        stream->Read(&source.deleteAfterMove, 4);
-        stream->Read(&source.moving, 4);
-        stream->Read(&source.steps, 4);
-        stream->Read(&source.step, 0xC);
-        stream->Read(&source.lifetime, 4);
+        stream->ReadValue(source.id);
+        stream->ReadValue(source.deleteAfterMove);
+        stream->ReadValue(source.moving);
+        stream->ReadValue(source.steps);
+        stream->ReadValue(source.step);
+        stream->ReadValue(source.lifetime);
     });
 }
 
@@ -81,14 +81,14 @@ void LoadParticles(std::list<ScriptParticleSource>* list, CStream* stream) {
 void LoadLightning(std::list<ScriptLightning>* list, CStream* stream) {
     LoadList(list, stream, [stream](ScriptLightning& bolt) {
         bolt.object = ScriptEffect<CEffectLightning>(FindById<CEffectLightning>(ReadInt(stream)));
-        stream->Read(&bolt.id, 4);
+        stream->ReadValue(bolt.id);
     });
 }
 
 // Script instances: killed flag, name, parameter types, if-then pairs, variables.
 void LoadInstances(std::list<ScriptDefinition>* list, CStream* stream) {
     LoadList(list, stream, [stream](ScriptDefinition& instance) {
-        stream->Read(&instance.index, 4);
+        stream->ReadValue(instance.index);
         ScriptStringLoad(&instance.name, stream);
         ScriptStringLoad(&instance.params, stream);
         instance.ifThen.resize(ReadCount(stream));
@@ -102,9 +102,9 @@ void LoadInstances(std::list<ScriptDefinition>* list, CStream* stream) {
 void LoadRuns(std::list<ScriptRun>* list, CStream* stream) {
     LoadList(list, stream, [stream](ScriptRun& run) {
         run.block = FindBlock(ReadInt(stream));
-        stream->Read(&run.index, 4);
-        stream->Read(&run.ticks, 4);
-        stream->Read(&run.sleepStart, 4);
+        stream->ReadValue(run.index);
+        stream->ReadValue(run.ticks);
+        stream->ReadValue(run.sleepStart);
         const int instanceIndex = ReadInt(stream);
         run.killFlag = nullptr;
         int k = 0;
@@ -125,7 +125,7 @@ template <> void ScriptNamedValues<float>::Load(CStream* stream) {
     values.resize(count);
     names.resize(count);
     for (std::size_t i = 0; i < count; ++i) {
-        stream->Read(&values[i], 4);
+        stream->ReadValue(values[i]);
         ScriptStringLoad(&names[i], stream);
     }
 }
@@ -168,10 +168,10 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(CStream* stream) {
 // slots are made and left null. The called block is found in the lists of the world's first script (-1, an
 // unset block, finds a WorldScript block with id -1 if any).
 void SSCCmd::Load(CStream* stream) {
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
 
     floatArgs.resize(ReadCount(stream));
-    for (float& value : floatArgs) stream->Read(&value, 4);
+    for (float& value : floatArgs) stream->ReadValue(value);
 
     stringArgs.resize(ReadCount(stream));
     for (std::string& text : stringArgs) ScriptStringLoad(&text, stream);
@@ -180,9 +180,9 @@ void SSCCmd::Load(CStream* stream) {
     groupArgs.assign(ReadCount(stream), nullptr);
 
     localBindings.resize(ReadCount(stream));
-    for (ScriptBinding& binding : localBindings) stream->Read(&binding, 12);
+    for (ScriptBinding& binding : localBindings) stream->ReadValue(binding);
     globalBindings.resize(ReadCount(stream));
-    for (ScriptBinding& binding : globalBindings) stream->Read(&binding, 12);
+    for (ScriptBinding& binding : globalBindings) stream->ReadValue(binding);
 
     subCalls.resize(ReadCount(stream));
     for (ScriptSubCall& call : subCalls) call.Load(stream);
@@ -191,8 +191,8 @@ void SSCCmd::Load(CStream* stream) {
 }
 
 void ScriptSubCall::Load(CStream* stream) {
-    stream->Read(&type, 4);
-    stream->Read(&argIndex, 4);
+    stream->ReadValue(type);
+    stream->ReadValue(argIndex);
     cmd->Load(stream);
 }
 
@@ -207,9 +207,9 @@ void ScriptStringLoad(std::string* out, CStream* stream) {
 // second read keeps the first id when it reads nothing; the first defaults to -1.
 void ScriptIfThen::Load(CStream* stream) {
     int id = -1;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     conditions = FindBlock(id);
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     commands = FindBlock(id);
 }
 
@@ -241,25 +241,25 @@ void CScript::LoadState(CStream* stream) {
     LoadParticles(&particles_, stream);
     LoadList(&fxSources_, stream, [stream](ScriptFxSource& source) { source.Load(stream); });
     LoadLightning(&lightning_, stream);
-    stream->Read(&nextParticleId_, 4);
-    stream->Read(&nextFxId_, 4);
+    stream->ReadValue(nextParticleId_);
+    stream->ReadValue(nextFxId_);
 
     // Command blocks: created empty, then each block's id and commands.
     const int blocks = ReadInt(stream);
     for (int i = 0; i < blocks; ++i) NewCommandList();
     for (ScriptDecl& block : blocks_) {
-        stream->Read(&block.id, 4);
+        stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
     }
     // WorldScript blocks: id, count, each SSCCmd.
     LoadList(&worldBlocks_, stream, [stream](ScriptDecl& block) {
-        stream->Read(&block.id, 4);
+        stream->ReadValue(block.id);
         LoadBlockCommands(&block, stream);
     });
 
     definitions_.resize(ReadCount(stream));
     for (ScriptDefinition& definition : definitions_) {
-        stream->Read(&definition.index, 4);
+        stream->ReadValue(definition.index);
         ScriptStringLoad(&definition.name, stream);
         ScriptStringLoad(&definition.params, stream);
         definition.ifThen.resize(ReadCount(stream));
@@ -270,15 +270,15 @@ void CScript::LoadState(CStream* stream) {
     LoadVariables(&globals_, stream);
     LoadInstances(&instances_, stream);
     LoadRuns(&runs_, stream);
-    stream->Read(&loaded_, 4);
-    stream->Read(&fileCount_, 4);
+    stream->ReadValue(loaded_);
+    stream->ReadValue(fileCount_);
     g_streamedScript = nullptr;
 
     if (StreamVersion(stream) < 0x57) return;
     areas_.resize(ReadCount(stream));
     for (ScriptArea& area : areas_) {
-        stream->Read(&area.id, 4);
+        stream->ReadValue(area.id);
         area.parts.resize(ReadCount(stream));
-        for (ScriptAreaPart& part : area.parts) stream->Read(&part, sizeof(ScriptAreaPart));
+        for (ScriptAreaPart& part : area.parts) stream->ReadValue(part);
     }
 }

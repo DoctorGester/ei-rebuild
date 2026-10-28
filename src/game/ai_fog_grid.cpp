@@ -33,27 +33,27 @@ void FogGrid::Clear() {
 }
 
 void FogGrid::Read(CMemoryStream* stream) {
-    stream->Read(&x0, 4);
-    stream->Read(&y0, 4);
+    stream->ReadValue(x0);
+    stream->ReadValue(y0);
     // Like the original, the locals hold the stream and the grid pointers when a read fails.
     int newWidth = 0;
     int newHeight = 0;
-    stream->Read(&newWidth, 4);
-    stream->Read(&newHeight, 4);
+    stream->ReadValue(newWidth);
+    stream->ReadValue(newHeight);
     if (cells.width != newWidth || cells.height != newHeight) Reallocate(&cells, newWidth, newHeight);
     stream->Read(cells.data, static_cast<std::uint32_t>(newHeight * newWidth));
 }
 
 void FogGrid::Write(CMemoryStream* stream) {
     int value = x0;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = y0;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     const int w = cells.width;
     const int h = cells.height;
     value = w;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     value = h;
-    stream->Write(&value, 4);
+    stream->WriteValue(value);
     stream->Write(cells.data, static_cast<std::uint32_t>(h * w));
 }

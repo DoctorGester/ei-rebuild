@@ -161,7 +161,7 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         CMapObject* object = node->second;
         if (!object) break;
         int id = object->id_;
-        out->Write(&id, 4u);
+        out->WriteValue(id);
         CUnit* unit = UnitOrNull(object);
         const std::string_view prototype = unit ? std::string_view(unit->GetPrototype()->name) : std::string_view(object->name);
         out->WriteString(prototype);
@@ -169,10 +169,10 @@ void CWorldServer::SaveMapObjects(CStream* out) {
         // The parts changed and those already sent (the network state's mask).
         std::uint32_t flags = static_cast<std::uint32_t>(object->netState_.mask_) |
                               static_cast<std::uint32_t>(object->netState_.sentMask_);
-        out->Write(&flags, 4u);
+        out->WriteValue(flags);
     }
     int end = -1;
-    out->Write(&end, 4u);
+    out->WriteValue(end);
 }
 
 // ---- Loading movie -------------------------------------------------------------------

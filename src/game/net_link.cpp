@@ -253,7 +253,7 @@ bool FramedLink::HasIncoming() {
     if (inbox->Size() < 4) return false;
     inbox->Seek(0);
     std::uint32_t length = 0;   // the read always fills it
-    inbox->Read(&length, 4);
+    inbox->ReadValue(length);
     std::uint32_t size = inbox->Size();
     return size >= length + 4;
 }
@@ -268,7 +268,7 @@ int FramedLink::IncomingCount() {
         std::uint32_t at = inbox->Position() + 4;
         if (at > inbox->Size()) break;
         std::int32_t length = 0;
-        inbox->Read(&length, 4);
+        inbox->ReadValue(length);
         std::uint32_t end = inbox->Position() + static_cast<std::uint32_t>(length);
         if (end > inbox->Size()) break;
         if (length <= 0) break;
@@ -301,7 +301,7 @@ bool FramedLink::Receive(CMemoryStream* stream) {
     CStream* inbox = &inbox_;
     std::uint32_t length = 0;
     inbox->Seek(0);
-    inbox->Read(&length, 4);
+    inbox->ReadValue(length);
     if (inbox->Size() < length + 4) return false;
     stream->Resize(length);
     inbox->Read(stream->data_, length);

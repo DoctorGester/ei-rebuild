@@ -165,8 +165,6 @@ void ClearModifierList(std::list<itemdb::SpellModifierRecord*>& list) { list.cle
 
 // The counts and the material values are read into locals reused for every section, so a failed read leaves the
 // previous value.
-void ReadInt(CStream* stream, void* value) { stream->Read(value, 4u); }
-
 void ReadName(CStream* stream, std::string& name) {
     std::string temporary;
     std::string* read = stream->ReadString(&temporary);
@@ -182,7 +180,7 @@ void AddUnique(std::vector<T*>& list, T* record) {
 template <typename Record>
 void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::NamedRecordTable<Record>& table,
                  std::vector<itemdb::ItemRecordHead*>& list) {
-    ReadInt(stream, &count);
+    stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         str::MakeLower(name);
@@ -194,7 +192,7 @@ void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::Na
 // A map section: a count, then names (as read) looked up by name.
 template <typename Record, typename Map>
 void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
-    ReadInt(stream, &count);
+    stream->ReadValue(count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         Record* record;
@@ -206,7 +204,7 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
     }
 }
 
-void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
+void WriteInt(CStream* stream, std::uint32_t value) { stream->WriteValue(value); }
 
 void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
@@ -490,13 +488,13 @@ void ItemStock::LoadLists(CStream* stream) {
     LoadRecords(stream, name, count, items.weapons, weapons);
     LoadRecords(stream, name, count, items.quickItems, quickItems);
 
-    ReadInt(stream, &count);
+    stream->ReadValue(count);
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
         str::MakeLower(name);
         StockMaterial entry;
-        for (int& v : values) ReadInt(stream, &v);
+        for (int& v : values) stream->ReadValue(v);
         entry.record = items.materials.Named(name);
         entry.minCount = values[0];
         entry.maxCount = values[1];

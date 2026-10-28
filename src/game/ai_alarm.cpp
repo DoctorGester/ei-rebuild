@@ -76,16 +76,16 @@ void AIAlarm::Reset() {
 void AIAlarm::Raise(int newLevel) { pending = newLevel > pending ? newLevel : pending; }
 
 void AIAlarm::Load(CStream* stream) {
-    stream->Read(&level, 4);
-    stream->Read(&pending, 4);
-    stream->Read(&active, 4);
-    stream->Read(&timer, 4);
+    stream->ReadValue(level);
+    stream->ReadValue(pending);
+    stream->ReadValue(active);
+    stream->ReadValue(timer);
 }
 
 void AIAlarm::Save(CStream* stream) {
-    stream->Write(&level, 4);
-    stream->Write(&pending, 4);
-    stream->Write(&active, 4);
+    stream->WriteValue(level);
+    stream->WriteValue(pending);
+    stream->WriteValue(active);
     int steps = timer;   // keeps the original's copy of the last one
-    stream->Write(&steps, 4);
+    stream->WriteValue(steps);
 }

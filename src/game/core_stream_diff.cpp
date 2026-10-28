@@ -9,7 +9,7 @@ namespace {
 
 constexpr int kFullRun = 0x100;
 
-void PutByte(CStream* stream, std::uint8_t value) { stream->Write(&value, 1); }
+void PutByte(CStream* stream, std::uint8_t value) { stream->WriteValue(value); }
 
 // Writes `length` into the run header at `header`, comes back to the end and writes the next run's
 // header (0 for now); returns where that header is.
@@ -37,8 +37,8 @@ void CStream::WriteDiff(CStream* base, CStream* current) {
     for (; remaining > 0; --remaining) {
         std::uint8_t was;
         std::uint8_t now;
-        base->Read(&was, 1);
-        current->Read(&now, 1);
+        base->ReadValue(was);
+        current->ReadValue(now);
         if (was != now) {
             if (!equalRun) {
                 if (++count == kFullRun) {

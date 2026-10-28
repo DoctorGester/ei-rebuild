@@ -313,12 +313,12 @@ void CBaseManager::FreeSpares() {
 void CBaseManager::Load(CStream* in) {
     FreeSpares();
     int count;
-    in->Read(&count, 4);
+    in->ReadValue(count);
     for (int i = 0; i < count; ++i) {
         int id, type, extra;
-        in->Read(&id, 4);
-        in->Read(&type, 4);
-        in->Read(&extra, 4);
+        in->ReadValue(id);
+        in->ReadValue(type);
+        in->ReadValue(extra);
         CEngineObject* object = CreateObject(type, id);
         object->prototypeId_ = static_cast<std::uint32_t>(extra);
     }
@@ -326,14 +326,14 @@ void CBaseManager::Load(CStream* in) {
 
 void CBaseManager::Save(CStream* out) {
     int count = static_cast<int>(objectList_.size());
-    out->Write(&count, 4);
+    out->WriteValue(count);
     for (CEngineObject* object : objectList_) {
         int value = object->id_;
-        out->Write(&value, 4);
+        out->WriteValue(value);
         value = object->type_;
-        out->Write(&value, 4);
+        out->WriteValue(value);
         value = static_cast<int>(object->prototypeId_);
-        out->Write(&value, 4);
+        out->WriteValue(value);
     }
 }
 
@@ -342,10 +342,10 @@ void CBaseManager::Save(CStream* out) {
 void CBaseManager::LoadObjects(CStream* in) {
     for (;;) {
         int id;
-        in->Read(&id, 4);
+        in->ReadValue(id);
         if (id == kEndOfObjects) {
             char more;
-            in->Read(&more, 1);
+            in->ReadValue(more);
             if (!more) return;
         }
         CEngineObject* object = FindObject(static_cast<unsigned>(id));
@@ -359,17 +359,17 @@ void CBaseManager::LoadObjects(CStream* in) {
 void CBaseManager::SaveObjects(CStream* out) {
     for (CEngineObject* object : objectList_) {
         int id = object->id_;
-        out->Write(&id, 4);
+        out->WriteValue(id);
         if (object->id_ == kEndOfObjects) {
             char one = 1;
-            out->Write(&one, 1);
+            out->WriteValue(one);
         }
         object->Save(out);
     }
     int mark = kEndOfObjects;
-    out->Write(&mark, 4);
+    out->WriteValue(mark);
     char zero = 0;
-    out->Write(&zero, 1);
+    out->WriteValue(zero);
 }
 
 void CBaseManager::ReleaseUnused() {

@@ -272,8 +272,8 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
 
 void CRegionMap::SaveBlocks(CStream* stream) {
     int width = BlocksWide(this), height = BlocksHigh(this);
-    stream->Write(&width, 4);
-    stream->Write(&height, 4);
+    stream->WriteValue(width);
+    stream->WriteValue(height);
     auto rowBytes = static_cast<std::uint32_t>(width);
     for (int c = 0; c < 8; ++c) {
         for (int y = 0; y < BlocksHigh(this); ++y) {

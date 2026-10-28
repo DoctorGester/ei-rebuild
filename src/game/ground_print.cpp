@@ -61,7 +61,7 @@ void Read(CStream* stream, T* value) {
 }
 template <typename T>
 void Write(CStream* stream, T value) {
-    stream->Write(&value, sizeof(T));
+    stream->WriteValue(value);
 }
 
 int RandomQuarter() { return libcrt::Rand() * 4 / 0x7FFF % 4; }
@@ -133,46 +133,46 @@ int GroundPrint::Tick() {
 }
 
 void GroundPrint::Load(CStream* stream) {
-    Read(stream, &position_.x);
-    Read(stream, &position_.y);
-    Read(stream, &halfWidth_);
-    Read(stream, &halfLength_);
-    Read(stream, &growth_);
-    Read(stream, &life_);
+    stream->ReadValue(position_.x);
+    stream->ReadValue(position_.y);
+    stream->ReadValue(halfWidth_);
+    stream->ReadValue(halfLength_);
+    stream->ReadValue(growth_);
+    stream->ReadValue(life_);
     char name[kNameCapacity];
     stream->ReadText(name, kNameCapacity);
     SetTexture(name);
-    Read(stream, &uvOffset_.x);
-    Read(stream, &uvOffset_.y);
-    Read(stream, &uvScale_.x);
-    Read(stream, &uvScale_.y);
-    Read(stream, &uvAngle_);
-    Read(stream, &angle_);
-    Read(stream, &lit_);
-    Read(stream, &alphaScale_);
-    Read(stream, &lifetime_);
-    Read(stream, &colour_);
+    stream->ReadValue(uvOffset_.x);
+    stream->ReadValue(uvOffset_.y);
+    stream->ReadValue(uvScale_.x);
+    stream->ReadValue(uvScale_.y);
+    stream->ReadValue(uvAngle_);
+    stream->ReadValue(angle_);
+    stream->ReadValue(lit_);
+    stream->ReadValue(alphaScale_);
+    stream->ReadValue(lifetime_);
+    stream->ReadValue(colour_);
     built_ = false;
 }
 
 void GroundPrint::Save(CStream* stream) {
-    Write(stream, position_.x);
-    Write(stream, position_.y);
-    Write(stream, halfWidth_);
-    Write(stream, halfLength_);
-    Write(stream, growth_);
-    Write(stream, life_);
+    stream->WriteValue(position_.x);
+    stream->WriteValue(position_.y);
+    stream->WriteValue(halfWidth_);
+    stream->WriteValue(halfLength_);
+    stream->WriteValue(growth_);
+    stream->WriteValue(life_);
     stream->WriteString(texture_.name.data());
-    Write(stream, uvOffset_.x);
-    Write(stream, uvOffset_.y);
-    Write(stream, uvScale_.x);
-    Write(stream, uvScale_.y);
-    Write(stream, uvAngle_);
-    Write(stream, angle_);
-    Write(stream, lit_);
-    Write(stream, alphaScale_);
-    Write(stream, lifetime_);
-    Write(stream, colour_);
+    stream->WriteValue(uvOffset_.x);
+    stream->WriteValue(uvOffset_.y);
+    stream->WriteValue(uvScale_.x);
+    stream->WriteValue(uvScale_.y);
+    stream->WriteValue(uvAngle_);
+    stream->WriteValue(angle_);
+    stream->WriteValue(lit_);
+    stream->WriteValue(alphaScale_);
+    stream->WriteValue(lifetime_);
+    stream->WriteValue(colour_);
 }
 
 int GroundPrint::Draw() {
@@ -265,14 +265,14 @@ Footprint::Footprint(float x, float y, float halfWidth, float halfLength, float 
 
 void Footprint::Load(CStream* stream) {
     GroundPrint::Load(stream);
-    Read(stream, &scale_);
-    Read(stream, &kind_);
+    stream->ReadValue(scale_);
+    stream->ReadValue(kind_);
 }
 
 void Footprint::Save(CStream* stream) {
     GroundPrint::Save(stream);
-    Write(stream, scale_);
-    Write(stream, kind_);
+    stream->WriteValue(scale_);
+    stream->WriteValue(kind_);
 }
 
 // ---- BloodPrint ---------------------------------------------------------------------------------
@@ -314,18 +314,18 @@ int BloodPrint::Tick() {
 
 void BloodPrint::Load(CStream* stream) {
     GroundPrint::Load(stream);
-    Read(stream, &spin_);
-    Read(stream, &spreadTicks_);
-    Read(stream, &kind_);
-    Read(stream, &fresh_);
+    stream->ReadValue(spin_);
+    stream->ReadValue(spreadTicks_);
+    stream->ReadValue(kind_);
+    stream->ReadValue(fresh_);
 }
 
 void BloodPrint::Save(CStream* stream) {
     GroundPrint::Save(stream);
-    Write(stream, spin_);
-    Write(stream, spreadTicks_);
-    Write(stream, kind_);
-    Write(stream, fresh_);
+    stream->WriteValue(spin_);
+    stream->WriteValue(spreadTicks_);
+    stream->WriteValue(kind_);
+    stream->WriteValue(fresh_);
 }
 
 // ---- The client world's prints ------------------------------------------------------------------

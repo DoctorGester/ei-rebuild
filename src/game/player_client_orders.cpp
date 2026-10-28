@@ -45,21 +45,21 @@ struct UnitByteBlock {      // 5 bytes
 #pragma pack(pop)
 static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(UnitByteBlock) == 5);
 
-void WriteType(CMemoryStream& out, std::uint8_t type) { out.Write(&type, 1); }
+void WriteType(CMemoryStream& out, std::uint8_t type) { out.WriteValue(type); }
 
 void WriteUnits(CMemoryStream& out, const std::vector<CUnit*>* units) {
     int count = std::ssize(*units);
-    out.Write(&count, 4);
+    out.WriteValue(count);
     for (int i = 0; i < std::ssize(*units); ++i) {
         int id = (*units)[i] ? (*units)[i]->id_ : kNoId;
-        out.Write(&id, 4);
+        out.WriteValue(id);
     }
 }
 
 int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3* to, int run) {
     WriteType(out, type);
     WriteUnits(out, units);
-    out.Write(&run, 4);
+    out.WriteValue(run);
     out.Write(to, sizeof(Vector3));
     return 1;
 }
@@ -82,24 +82,24 @@ int CPlayerClient::SendGoTo(const std::vector<CUnit*>* units, const Vector3* to,
 int CPlayerClient::SendAttack(const std::vector<CUnit*>* units, CEngineObject* target, int how, int ctrl) {
     WriteType(out_, kAttack);
     WriteUnits(out_, units);
-    out_.Write(&ctrl, 4);
-    out_.Write(&how, 4);
+    out_.WriteValue(ctrl);
+    out_.WriteValue(how);
     int id = target->id_;
-    out_.Write(&id, 4);
+    out_.WriteValue(id);
     return 1;
 }
 
 int CPlayerClient::SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl) {
     OnUnitBlock block{static_cast<std::uint32_t>(slot), caster->id_, target->id_, static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastOnUnit);
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     return 1;
 }
 
 int CPlayerClient::SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl) {
     AtPointBlock block{static_cast<std::uint32_t>(slot), caster->id_, *point, static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastAtPoint);
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     return 1;
 }
 
@@ -108,7 +108,7 @@ int CPlayerClient::SendItemOnUnit(int slot, CUnit* user, CEngineObject* target, 
     OnUnitBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id_, target->id_,
                       static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastOnUnit);
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     return 1;
 }
 
@@ -117,14 +117,14 @@ int CPlayerClient::SendItemAtPoint(int slot, CUnit* user, const Vector3* point, 
     AtPointBlock block{static_cast<std::uint32_t>(slot) | kItemSlot, user->id_, *point,
                        static_cast<std::uint8_t>(ctrl)};
     WriteType(out_, kCastAtPoint);
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     return 1;
 }
 
 int CPlayerClient::SetWeapon(CUnit* unit, int slot) {
     UnitByteBlock block{unit->id_, static_cast<std::uint8_t>(slot)};
     WriteType(out_, kWeapon);
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     unit->pendingWeapon = slot;
     return 1;
 }
@@ -132,7 +132,7 @@ int CPlayerClient::SetWeapon(CUnit* unit, int slot) {
 int CPlayerClient::SetMoveMode(CUnit* unit, int mode) {
     WriteType(out_, kMoveMode);
     UnitByteBlock block{unit->id_, static_cast<std::uint8_t>(mode)};
-    out_.Write(&block, sizeof(block));
+    out_.WriteValue(block);
     unit->moveMode2 = mode;
     return 1;
 }
@@ -141,9 +141,9 @@ int CPlayerClient::SetUnitFightAtWill(CUnit* unit, int value) {
     unit->SetFightAtWill(value);
     WriteType(out_, kFightAtWill);
     int id = unit->id_;
-    out_.Write(&id, 4);
+    out_.WriteValue(id);
     std::uint8_t byte = static_cast<std::uint8_t>(value);
-    out_.Write(&byte, 1);
+    out_.WriteValue(byte);
     return 1;
 }
 
@@ -157,34 +157,34 @@ int CPlayerClient::SendFollow(CUnit* unit, CEngineObject* target) {
 int CPlayerClient::SendFlag10(std::uint8_t value) {
     WriteType(out_, kFlag10);
     std::uint8_t set = value != 0 ? 1 : 0;
-    out_.Write(&set, 1);
+    out_.WriteValue(set);
     return 1;
 }
 
 int CPlayerClient::SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag) {
     WriteType(out_, kUseOrder);
     int count = 1;
-    out_.Write(&count, 4);
+    out_.WriteValue(count);
     int id = unit ? unit->id_ : kNoId;
-    out_.Write(&id, 4);
-    out_.Write(&flag, 4);
-    out_.Write(&kind, 4);
-    out_.Write(&value, 4);
+    out_.WriteValue(id);
+    out_.WriteValue(flag);
+    out_.WriteValue(kind);
+    out_.WriteValue(value);
     int targetId = target->id_;
-    out_.Write(&targetId, 4);
+    out_.WriteValue(targetId);
     return 1;
 }
 
 int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* target, int flag) {
     WriteType(out_, kUseOrder);
     WriteUnits(out_, units);
-    out_.Write(&flag, 4);
+    out_.WriteValue(flag);
     int kind = kDeadUseKind;
-    out_.Write(&kind, 4);
+    out_.WriteValue(kind);
     int value = kNoId;
-    out_.Write(&value, 4);
+    out_.WriteValue(value);
     int targetId = target->id_;
-    out_.Write(&targetId, 4);
+    out_.WriteValue(targetId);
     return 1;
 }
 
@@ -207,7 +207,7 @@ void CPlayerClient::Rejoin() {
 int CPlayerClient::TakeExit(int exit) {
     Rejoin();
     WriteType(out_, kTakeExit);
-    out_.Write(&exit, 4);
+    out_.WriteValue(exit);
     return static_cast<int>(out_.position_);
 }
 
@@ -215,13 +215,13 @@ int CPlayerClient::RequestZone(std::string_view zone, int entrance) {
     Rejoin();
     WriteType(out_, kGoToZone);
     out_.WriteString(zone);
-    out_.Write(&entrance, 4);
+    out_.WriteValue(entrance);
     return static_cast<int>(out_.position_);
 }
 
 int CPlayerClient::SendLeave04(int value) {
     WriteType(out_, kLeave04);
-    out_.Write(&value, 4);
+    out_.WriteValue(value);
     state_ = kStateBetweenZones;
     return static_cast<int>(out_.position_);
 }

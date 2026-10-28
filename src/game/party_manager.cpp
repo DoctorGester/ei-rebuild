@@ -54,7 +54,7 @@ CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties);
     ar->SerializePartyEntries(2, &manager->entries);
-    ar->Field(3, &manager->unreadField, 4);
+    ar->Field(3, &manager->unreadField);
     if (ar->EnterChunk(4)) {
         ar->SerializeClassTemplates(1, &manager->templates);
         ar->LeaveChunk();
@@ -80,7 +80,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
             int key = 0;
             Current()->occurrence = i;
             if (EnterChunk(1)) {
-                Field(1, &key, 4);
+                Field(1, &key);
                 LeaveChunk();
             }
             CParty* party = PartyAt(*parties, key);
@@ -93,7 +93,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties) {
         for (auto& [stored, party] : *parties) {
             int key = stored;
             if (EnterChunk(1)) {
-                Field(1, &key, 4);
+                Field(1, &key);
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
@@ -158,9 +158,9 @@ void PartyRecord::Serialize(ChunkArchive* ar) {
 }
 
 void ClassTemplate::Serialize(ChunkArchive* ar) {
-    ar->Field(1, &type, 4);
-    ar->Field(2, &sellsItems, 1);
-    ar->Field(3, &sellsSpells, 1);
+    ar->Field(1, &type);
+    ar->Field(2, &sellsItems);
+    ar->Field(3, &sellsSpells);
     ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
     CMemoryStream local;
     CParty* itemsParty = ItemsParty();
@@ -179,7 +179,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
         allowed.LoadLists(&local);
         magic.LoadLists(&local);
     }
-    ar->Field(6, &restockDue, 1);
+    ar->Field(6, &restockDue);
 }
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {

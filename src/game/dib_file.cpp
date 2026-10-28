@@ -72,7 +72,7 @@ int CDib::Write(lib::File* output) {
     fileHeader.bfReserved2 = 0;
     fileHeader.bfOffBits = maskBytes + sizeof(BITMAPINFOHEADER) + sizeof(fileHeader);
     try {
-        output->Write(&fileHeader, sizeof(fileHeader));
+        output->WriteValue(fileHeader);
         output->Write(header, maskBytes + sizeof(BITMAPINFOHEADER));
         output->Write(bits, imageSize);
     } catch (const lib::FileError&) {

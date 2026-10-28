@@ -208,7 +208,7 @@ void ChunkArchive::StringField(int id, std::string* s) {
 void ChunkArchive::StreamField(int id, CMemoryStream* s) {
     if (!EnterChunk(id)) return;
     std::uint32_t size = s->Size();
-    Field(1, &size, 4);
+    Field(1, &size);
     if (loading_) {
         s->Clear();
         s->SetSize(size);
@@ -297,11 +297,11 @@ bool FindStreamChunk(CStream* in, int id, CMemoryStream* to, int occurrence) {
 
 bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
     char tag = static_cast<char>(id);
-    out->Write(&tag, 1);
+    out->WriteValue(tag);
     std::uint32_t length = from->Size() * 2;
     if (length >= 0x100) {
         length |= 1;
-        out->Write(&length, 4);
+        out->WriteValue(length);
     } else {
         out->Write(&length, 1);
     }
@@ -330,14 +330,14 @@ void ChunkArchive::Open(CStream* stream, int loading, int version) {
     while (index->Position() < index->Size()) {
         std::uint32_t classId = 0;
         std::uint32_t key = 0;
-        index->Read(&classId, 4);
-        index->Read(&key, 4);
+        index->ReadValue(classId);
+        index->ReadValue(key);
         Factory factory = g_classRegistry->factories[classId];
         CRefCounted* object = factory ? factory() : nullptr;
         saved_.insert(saved_.end(), object);
         loaded_[key] = object;
     }
-    if (version == 1) Field(2, &version_, 4);
+    if (version == 1) Field(2, &version_);
     else version_ = version;
 
     int count = CountChildrenOf(Current(), 1);
@@ -390,8 +390,8 @@ void ChunkArchive::Close(CStream* stream) {
             auto found = classIds.find(vtable);
             std::int32_t classId = found != classIds.end() ? found->second : -1;
             std::uint32_t number = SavedNumber(this, object);   // the number is the key, not the address
-            index->Write(&classId, 4);
-            index->Write(&number, 4);
+            index->WriteValue(classId);
+            index->WriteValue(number);
             ChunkArchive::Ref* record = PushRecordChunk(this);
             if (loading_) {
                 ChunkArchive::Ref field;
@@ -415,7 +415,7 @@ void ChunkArchive::Close(CStream* stream) {
                 ResizeToCurrent();
             }
         }
-        Field(2, &version_, 4);
+        Field(2, &version_);
         WriteStreamChunk(stream, 0, index);
         ResizeToCurrent();
         WriteStreamChunk(stream, 2, data);

@@ -99,7 +99,7 @@ void CMemoryStream::StartByte() {
     if (bitsIndex_ >= 0) data_[bitsIndex_] = bits_;
     bitsIndex_ = static_cast<std::int32_t>(position_);
     bits_ = 0;
-    Write(&bits_, 1);
+    WriteValue(bits_);
     bitMask_ = 1;
 }
 
@@ -142,7 +142,7 @@ void CStream::WriteSized(CStream* from) {
     std::uint32_t word;
     if (size > kShortSizeLimit) {
         word = static_cast<std::uint32_t>(size) * 2 + 1;
-        Write(&word, 4);
+        WriteValue(word);
     } else {
         word = static_cast<std::uint32_t>(size) * 2;
         Write(&word, 2);
@@ -156,9 +156,9 @@ void CStream::WriteSized(CStream* from) {
 
 bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::int32_t oldestVersion) {
     std::int32_t value = 0;
-    Read(&value, kHeaderFieldBytes);
+    ReadValue(value);
     if (static_cast<std::uint32_t>(value) != magic) return false;
-    Read(&value, kHeaderFieldBytes);
+    ReadValue(value);
     if (value > newestVersion) return false;
     if (value < oldestVersion) return false;
     version_ = static_cast<std::uint32_t>(value);
@@ -166,7 +166,7 @@ bool CStream::ReadHeader(std::uint32_t magic, std::int32_t newestVersion, std::i
 }
 
 void CStream::WriteHeader(std::uint32_t magic, std::uint32_t version) {
-    Write(&magic, kHeaderFieldBytes);
-    Write(&version, kHeaderFieldBytes);
+    WriteValue(magic);
+    WriteValue(version);
     version_ = version;
 }

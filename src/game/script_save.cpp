@@ -8,7 +8,7 @@
 
 namespace {
 
-void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
+void WriteInt(CStream* stream, int value) { stream->WriteValue(value); }
 
 // Variable i's name, or a single zero byte when the name array is shorter.
 void WriteName(CStream* stream, const std::vector<std::string>& names, std::size_t i) {
@@ -38,14 +38,14 @@ void WriteList(CStream* stream, const Container& list) {
 } // namespace
 
 void ScriptDecl::Save(CStream* stream) const {
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
     WriteList(stream, commands);
 }
 
 template <> void ScriptNamedValues<float>::Save(CStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
-        stream->Write(&values[i], 4);
+        stream->WriteValue(values[i]);
         WriteName(stream, names, i);
     }
 }
@@ -78,7 +78,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const {
 
 // A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
 void ScriptDefinition::Save(CStream* stream) const {
-    stream->Write(&index, 4);
+    stream->WriteValue(index);
     stream->WriteString(name);
     stream->WriteString(params);
     WriteInt(stream, static_cast<int>(ifThen.size()));
@@ -93,9 +93,9 @@ void ScriptDefinition::Save(CStream* stream) const {
 // index) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
 void ScriptRun::Save(CStream* stream) const {
     WriteInt(stream, block->id);
-    stream->Write(&index, 4);
-    stream->Write(&ticks, 4);
-    stream->Write(&sleepStart, 4);
+    stream->WriteValue(index);
+    stream->WriteValue(ticks);
+    stream->WriteValue(sleepStart);
     int instance = 0;
     bool found = false;
     for (const ScriptDefinition& candidate : g_streamedScript->instances_) {
@@ -116,8 +116,8 @@ void CScript::SaveState(CStream* stream) {
     WriteList(stream, particles_);
     WriteList(stream, fxSources_);
     WriteList(stream, lightning_);
-    stream->Write(&nextParticleId_, 4);
-    stream->Write(&nextFxId_, 4);
+    stream->WriteValue(nextParticleId_);
+    stream->WriteValue(nextFxId_);
     WriteList(stream, blocks_);
     WriteList(stream, worldBlocks_);
     WriteList(stream, definitions_);
@@ -128,8 +128,8 @@ void CScript::SaveState(CStream* stream) {
     WriteList(stream, instances_);
     WriteList(stream, runs_);
 
-    stream->Write(&loaded_, 4);
-    stream->Write(&fileCount_, 4);
+    stream->WriteValue(loaded_);
+    stream->WriteValue(fileCount_);
     g_streamedScript = nullptr;
 
     // The areas: count, then per area its id, part count and parts.
@@ -137,6 +137,6 @@ void CScript::SaveState(CStream* stream) {
     for (const ScriptArea& area : areas_) {
         WriteInt(stream, area.id);
         WriteInt(stream, static_cast<int>(area.parts.size()));
-        for (const ScriptAreaPart& part : area.parts) stream->Write(&part, sizeof(ScriptAreaPart));
+        for (const ScriptAreaPart& part : area.parts) stream->WriteValue(part);
     }
 }

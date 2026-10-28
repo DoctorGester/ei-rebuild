@@ -125,7 +125,7 @@ int CTextureManager::LoadMmpExtra(const char* name, std::vector<std::uint8_t>* o
     lib::File file;
     path = str::Format("%stextures\\%s.mmp", DataFolderText(), name);
     if (file.Open(path, lib::File::modeRead)) {
-        file.Read(&header, sizeof(header));
+        file.ReadValue(header);
         int size = static_cast<int>(header.extraSize);
         out->resize(size);
         if (size) file.Read(out->data(), static_cast<unsigned>(size));

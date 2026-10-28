@@ -76,16 +76,16 @@ int CPlayerServer::OnGameStateRequest() {
     if (state_ != kStateJoined) return 0;
     CPlayer* player = player_;
     int state;
-    g_receivedMessages->Read(&state, 4);
+    g_receivedMessages->ReadValue(state);
     player->sessionKind_ = state;
     g_serverWorld->CollectParty(player, &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
-    out_.Write(&type, 1);
+    out_.WriteValue(type);
     int value = player->sessionKind_;
-    out_.Write(&value, 4);
+    out_.WriteValue(value);
     value = g_serverWorld->tick_;
-    out_.Write(&value, 4);
+    out_.WriteValue(value);
     player->dirty_ &= ~kDirtyGameState;
     state_ = kStateSendingCamera;
     return 1;
@@ -93,7 +93,7 @@ int CPlayerServer::OnGameStateRequest() {
 
 int CPlayerServer::OnPause() {
     std::uint8_t pause = 0;
-    g_receivedMessages->Read(&pause, 1);
+    g_receivedMessages->ReadValue(pause);
     net::ServerSession* server = net::g_gameServer;
     // EI_Plugin's Pause (the mode from its ini): 1 and 2 jump to bytes
     // which write the text key's digit and go on to announce resumes too; 2 also replaces the leader
@@ -118,7 +118,7 @@ int CPlayerServer::OnPause() {
 
 int CPlayerServer::OnCastAtObject() {
     CastAtObject message;
-    g_receivedMessages->Read(&message, sizeof(message));
+    g_receivedMessages->ReadValue(message);
     CPlayer* player = player_;
     CMapObject* target = player->WorldContext()->ObjectWithId(message.targetId);
     CUnit* unit = FindUnit(player, message.unitId);
@@ -132,7 +132,7 @@ int CPlayerServer::OnCastAtObject() {
 
 int CPlayerServer::OnCastAtPoint() {
     CastAtPoint message;
-    g_receivedMessages->Read(&message, sizeof(message));
+    g_receivedMessages->ReadValue(message);
     CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) {
         AIBrain* brain = &unit->ServerController()->brain;
@@ -146,7 +146,7 @@ int CPlayerServer::OnCastAtPoint() {
 
 int CPlayerServer::OnWantedWeapon() {
     UnitByte message;
-    g_receivedMessages->Read(&message, sizeof(message));
+    g_receivedMessages->ReadValue(message);
     CUnit* unit = FindUnit(player_, message.unitId);
     if (Able(unit)) unit->ServerController()->SetWantedWeapon(message.value);
     return 1;
@@ -154,7 +154,7 @@ int CPlayerServer::OnWantedWeapon() {
 
 int CPlayerServer::OnMoveStyle() {
     UnitByte message;
-    g_receivedMessages->Read(&message, sizeof(message));
+    g_receivedMessages->ReadValue(message);
     CUnit* unit = FindUnit(player_, message.unitId);
     if (unit && Alive(unit)) unit->ServerController()->SetMoveStyle(message.value);
     return 1;
@@ -162,8 +162,8 @@ int CPlayerServer::OnMoveStyle() {
 
 int CPlayerServer::OnUnitLookup() {
     int values[2];
-    g_receivedMessages->Read(&values[0], 4);
-    g_receivedMessages->Read(&values[1], 4);
+    g_receivedMessages->ReadValue(values[0]);
+    g_receivedMessages->ReadValue(values[1]);
     FindUnit(player_, values[0]);
     return 1;
 }
@@ -182,10 +182,10 @@ int CPlayerServer::OnFollow() {
 
 int CPlayerServer::OnFightAtWill() {
     int id;
-    g_receivedMessages->Read(&id, 4);
+    g_receivedMessages->ReadValue(id);
     CUnit* unit = FindUnit(player_, id);
     std::int8_t value = 0;
-    g_receivedMessages->Read(&value, 1);
+    g_receivedMessages->ReadValue(value);
     if (unit) unit->SetFightAtWill(value);
     return 1;
 }

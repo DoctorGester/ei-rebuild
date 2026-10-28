@@ -45,14 +45,14 @@ void ScriptObjectRef::ReleaseIfDeleted() {
 
 void ScriptObjectRef::Load(CStream* stream) {
     int id;
-    stream->Read(&id, 4);
+    stream->ReadValue(id);
     object = id == -1 ? nullptr : FindObject(id);
 }
 
 void ScriptObjectRef::Save(CStream* stream) const {
     int id = -1;
     if (object) id = object->id_;
-    stream->Write(&id, 4);
+    stream->WriteValue(id);
 }
 
 // The merges walk both groups in member order (After) and write the result from the front of `this`, which is
@@ -202,7 +202,7 @@ BOOL ScriptGroup::Contains(CEngineObject* object) const {
 
 void ScriptGroup::Load(CStream* stream) {
     int count;
-    stream->Read(&count, 4);
+    stream->ReadValue(count);
     resize(static_cast<std::size_t>(count));
     for (ScriptObjectRef& slot : *this) slot.Load(stream);
     Sort();

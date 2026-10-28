@@ -53,22 +53,22 @@ void CStream::ReadInto(std::string* out) {
 }
 
 void ZoneExit::Read(CStream* stream) {
-    stream->Read(&passTime, 4);
-    for (float& value : deploy) stream->Read(&value, 4);
-    stream->Read(&x1, 4);
-    stream->Read(&y1, 4);
-    stream->Read(&x2, 4);
-    stream->Read(&y2, 4);
+    stream->ReadValue(passTime);
+    for (float& value : deploy) stream->ReadValue(value);
+    stream->ReadValue(x1);
+    stream->ReadValue(y1);
+    stream->ReadValue(x2);
+    stream->ReadValue(y2);
     stream->ReadInto(&target);
-    stream->Read(&entrance, 4);
-    stream->Read(&view, 4);
+    stream->ReadValue(entrance);
+    stream->ReadValue(view);
     hasDeployAngle = 0;
     deployAngle = 0;
     angle = 0;
     if (static_cast<int>(stream->version_) >= static_cast<int>(kExitExtrasVersion)) {
-        stream->Read(&hasDeployAngle, 1);
-        stream->Read(&deployAngle, 4);
-        stream->Read(&angle, 4);
+        stream->ReadValue(hasDeployAngle);
+        stream->ReadValue(deployAngle);
+        stream->ReadValue(angle);
     }
 }
 

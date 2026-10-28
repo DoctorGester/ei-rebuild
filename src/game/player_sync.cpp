@@ -61,8 +61,8 @@ constexpr float kLowLevel = 2.0f;
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 
-void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); }
-void WriteDword(CMemoryStream* out, std::uint32_t value) { out->Write(&value, 4); }
+void WriteByte(CMemoryStream* out, std::uint8_t value) { out->WriteValue(value); }
+void WriteDword(CMemoryStream* out, std::uint32_t value) { out->WriteValue(value); }
 
 // Appends all of `from` (sought to 0) to `out`, the pending bits of `out` stored first.
 void WriteStateStream(CMemoryStream* out, CMemoryStream* from) {
@@ -157,7 +157,7 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
         out_.Write(header, sizeof(header));
         Vector3 scale;
         scale = object->scale;
-        out_.Write(&scale, sizeof(scale));
+        out_.WriteValue(scale);
         out_.WriteString(object->name2);
         out_.WriteString(object->name);
         auto* server = object->ServerCompanion();
@@ -295,7 +295,7 @@ int CPlayerServer::SendPartyState() {
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
     }
-    out_.Write(&refreshPending_, 4);
+    out_.WriteValue(refreshPending_);
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;

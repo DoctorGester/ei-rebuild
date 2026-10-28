@@ -210,21 +210,21 @@ void CEffectPointLight::Pack(DeltaField* field) {
 }
 
 void CEffectPointLight::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
-    Read(stream, &color_, 12);
-    Read(stream, &range_, 4);
-    Read(stream, &velocity_, 12);
+    stream->ReadValue(localPosition_);
+    stream->ReadValue(color_);
+    stream->ReadValue(range_);
+    stream->ReadValue(velocity_);
     moving_ = IsMoving(velocity_);
     if (Version(stream) < 0x67) return;
-    Read(stream, &lightFlags_, 4);
+    stream->ReadValue(lightFlags_);
 }
 
 void CEffectPointLight::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
-    Write(stream, &color_, 12);
-    WriteCopy(stream, &range_);
-    Write(stream, &velocity_, 12);
-    WriteCopy(stream, &lightFlags_);
+    stream->WriteValue(localPosition_);
+    stream->WriteValue(color_);
+    stream->WriteValue(range_);
+    stream->WriteValue(velocity_);
+    stream->WriteValue(lightFlags_);
 }
 
 double CEffectPointLight::LightRadius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
@@ -408,32 +408,32 @@ void CEffectParticle::Attach() {
 }
 
 void CEffectParticle::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
-    Read(stream, &type_, 4);
-    Read(stream, &size_, 4);
-    Read(stream, &attachedTo_, 4);
-    Read(stream, &velocity_, 12);
+    stream->ReadValue(localPosition_);
+    stream->ReadValue(type_);
+    stream->ReadValue(size_);
+    stream->ReadValue(attachedTo_);
+    stream->ReadValue(velocity_);
     moving_ = IsMoving(velocity_);
-    Read(stream, &startTick_, 4);
-    Read(stream, &target_, 12);
+    stream->ReadValue(startTick_);
+    stream->ReadValue(target_);
     if (Version(stream) < 0x43) return;
-    Read(stream, &unitId_, 4);
+    stream->ReadValue(unitId_);
     if (Version(stream) < 0x58) return;
-    Read(stream, &alpha_, 4);
-    Read(stream, &typeParam_, 4);
+    stream->ReadValue(alpha_);
+    stream->ReadValue(typeParam_);
 }
 
 void CEffectParticle::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
-    Write(stream, &type_, 4);
-    WriteCopy(stream, &size_);
-    WriteCopy(stream, &attachedTo_);
-    Write(stream, &velocity_, 12);
-    WriteCopy(stream, &startTick_);
-    Write(stream, &target_, 12);
-    WriteCopy(stream, &unitId_);
-    WriteCopy(stream, &alpha_);
-    WriteCopy(stream, &typeParam_);
+    stream->WriteValue(localPosition_);
+    stream->WriteValue(type_);
+    stream->WriteValue(size_);
+    stream->WriteValue(attachedTo_);
+    stream->WriteValue(velocity_);
+    stream->WriteValue(startTick_);
+    stream->WriteValue(target_);
+    stream->WriteValue(unitId_);
+    stream->WriteValue(alpha_);
+    stream->WriteValue(typeParam_);
 }
 
 int CEffectParticle::RunTick() {
@@ -532,12 +532,12 @@ void CEffectWall::Pack(DeltaField* field) {
 
 void CEffectWall::Load(CStream* stream) {
     CEffectParticle::Load(stream);
-    Read(stream, &direction_, 12);
+    stream->ReadValue(direction_);
 }
 
 void CEffectWall::Save(CStream* stream) {
     CEffectParticle::Save(stream);
-    Write(stream, &direction_, 12);
+    stream->WriteValue(direction_);
 }
 
 
@@ -622,24 +622,24 @@ void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float wid
 }
 
 void CEffectLightning::Load(CStream* stream) {
-    Read(stream, &localPosition_, 12);
-    Read(stream, &from_, 12);
-    Read(stream, &to_, 12);
-    Read(stream, &width_, 4);
-    Read(stream, &toObject_, 4);
-    Read(stream, &fromObject_, 4);
+    stream->ReadValue(localPosition_);
+    stream->ReadValue(from_);
+    stream->ReadValue(to_);
+    stream->ReadValue(width_);
+    stream->ReadValue(toObject_);
+    stream->ReadValue(fromObject_);
     if (Version(stream) < 100) return;
-    Read(stream, &flag_, 1);
+    stream->ReadValue(flag_);
 }
 
 void CEffectLightning::Save(CStream* stream) {
-    Write(stream, &localPosition_, 12);
-    Write(stream, &from_, 12);
-    Write(stream, &to_, 12);
-    WriteCopy(stream, &width_);
-    WriteCopy(stream, &toObject_);
-    WriteCopy(stream, &fromObject_);
-    Write(stream, &flag_, 1);
+    stream->WriteValue(localPosition_);
+    stream->WriteValue(from_);
+    stream->WriteValue(to_);
+    stream->WriteValue(width_);
+    stream->WriteValue(toObject_);
+    stream->WriteValue(fromObject_);
+    stream->WriteValue(flag_);
 }
 
 void CEffectLightning::SetObjects(int fromObject, int toObject) {

@@ -325,17 +325,17 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
                                     std::uint32_t limitBits) {
     if (!unit) return;
     std::uint8_t type = kPathMessage;
-    out_.Write(&type, 1);
-    out_.Write(&kind, 4);
-    out_.Write(&flag, 4);
+    out_.WriteValue(type);
+    out_.WriteValue(kind);
+    out_.WriteValue(flag);
     std::uint32_t word;
     word = std::bit_cast<std::uint32_t>(point[0]);
-    out_.Write(&word, 4);
+    out_.WriteValue(word);
     word = std::bit_cast<std::uint32_t>(point[1]);
-    out_.Write(&word, 4);
+    out_.WriteValue(word);
     int id = unit->id_;
-    out_.Write(&id, 4);
-    out_.Write(&limitBits, 4);
+    out_.WriteValue(id);
+    out_.WriteValue(limitBits);
     if (kind == kPathKindNoPath) return;
     DeltaField field;
     DeltaField* delta = field.BeginWriteB(0);

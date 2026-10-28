@@ -84,11 +84,4 @@ inline bool SnapshotReadToEnd() {
 inline void Read(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 inline void Write(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 inline int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
-// Writes the dword at `field`.
-inline void WriteCopy(CStream* stream, const void* field) {
-    std::uint32_t copy;
-    std::memcpy(&copy, field, 4);
-    Write(stream, &copy, 4);
-}
-
 } // namespace effect

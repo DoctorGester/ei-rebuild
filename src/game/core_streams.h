@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 // The engine's abstract byte stream. The save game, the network messages and the chunk archives are memory
 // streams behind it; the message recordings are file streams.
@@ -30,6 +31,20 @@ public:
     virtual std::uint32_t Position() = 0;
     virtual void Clear() = 0;                                           // memory streams empty, file streams rewind
     virtual void CopyFrom(CStream* source);                             // all of `source`, 1 KB at a time
+
+    // One value as its bytes (sizeof(T), in the host byte order: the saves and the messages are little-endian
+    // x86 images of the fields). A read or a write of another size (a four-byte field in a wider variable, a
+    // byte in an int) stays a Read / Write with its size written out.
+    template <class T>
+    void ReadValue(T& value) {
+        static_assert(std::is_trivially_copyable_v<T>, "a stream value is plain bytes");
+        Read(&value, sizeof(T));
+    }
+    template <class T>
+    void WriteValue(const T& value) {
+        static_assert(std::is_trivially_copyable_v<T>, "a stream value is plain bytes");
+        Write(&value, sizeof(T));
+    }
 
 
     // Text in the streams (the saves, the network's messages and recordings) is in the asset code page, as the
