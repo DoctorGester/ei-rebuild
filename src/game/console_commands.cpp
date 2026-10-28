@@ -5,6 +5,7 @@
 #include "console.h"
 
 #include "../lib/text_case.h"
+#include "lib/calendar.h"
 #include "lib/file_io.h"
 #include "player_client.h"
 #include "text_split.h"
@@ -193,7 +194,7 @@ void ListVar(Arguments* args) {
 
     std::string line;
     lib::TextFile file;
-    mfc::BOOL writing = 0;
+    bool writing = false;
     if (args->size() > 1) {
         writing = file.Open((*args)[1], "w");
         if (!writing)   // "Cannot open file <name> for writing"
@@ -423,16 +424,14 @@ void Days(Arguments* args) {
             if (month >= 1 && month <= 12) {
                 int day = number(0, 0, 2);
                 if (day >= 1 && day <= 31) {
-                    mfc::CTime birth;
-                    long from = birth.Construct(year, month, day, 6, 0, 0, -1)->time_;
+                    const std::int32_t from = lib::MakeTime(year, month, day, 6, 0, 0, -1);
                     int year2 = number(1, 4, 4);
                     if (year2 >= 1900) {
                         int month2 = number(1, 2, 2);
                         if (month2 >= 1 && month2 <= 12) {
                             int day2 = number(1, 0, 2);
                             if (day2 >= 1 && day2 <= 31) {
-                                mfc::CTime now;
-                                long to = now.Construct(year2, month2, day2, 7, 1, 1, -1)->time_;
+                                const std::int32_t to = lib::MakeTime(year2, month2, day2, 7, 1, 1, -1);
                                 int days = static_cast<int>((to - from) / 86400);
                                 EndLine(Out() << "Your age: " << days << " days");
                                 return;

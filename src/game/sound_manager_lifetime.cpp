@@ -9,7 +9,7 @@
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
 
-#include "lib/mfc_thread.h"
+#include "lib/thread.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
@@ -240,7 +240,12 @@ struct PcmFormat {
 };
 static_assert(sizeof(PcmFormat) == 0x10);
 
-void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
+// The thread waited for and its handle closed.
+void EndThread(HANDLE& thread) {
+    gameapi::WaitForSingleObject(thread, INFINITE);
+    gameapi::CloseHandle(thread);
+    thread = nullptr;
+}
 
 } // namespace
 
@@ -307,12 +312,10 @@ void CSoundManager::StreamThread() {
         }
         gameapi::LeaveCriticalSection(&streamLock);
     }
-    mfc::impl::AfxEndThread(0, 1);
 }
 
-// The stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached: StreamThread ends
-// the thread).
-unsigned __cdecl StreamThreadEntry(void* manager) {
+// The stream thread's procedure: the manager's StreamThread, then 0.
+unsigned __stdcall StreamThreadEntry(void* manager) {
     static_cast<CSoundManager*>(manager)->StreamThread();
     return 0;
 }
@@ -503,7 +506,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     }
     gameapi::AIL_set_DirectSound_HWND(waveDriver, window);
     if (OpenStream(waveDriver) != 0)
-        streamThread = mfc::impl::AfxBeginThread(StreamThreadEntry, this, kStreamThreadPriority, 0, 0, nullptr);
+        streamThread = lib::StartThread(StreamThreadEntry, this, kStreamThreadPriority);
     // operator new[]: the count, then the voices.
     auto* block = gamecrt::operator_new_as<VoiceBlock>();
     SoundSlot* voices = nullptr;
@@ -538,11 +541,11 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
 void CSoundManager::Close() {
     if (streamThread != nullptr) {
         threadsQuit = 1;
-        WaitForThread(streamThread);
+        EndThread(streamThread);
     }
     if (midiThread != nullptr) {
         threadsQuit = 1;
-        WaitForThread(midiThread);
+        EndThread(midiThread);
     }
     if (slots != nullptr) {
         for (int i = 0; i < kVoiceCount; ++i) {

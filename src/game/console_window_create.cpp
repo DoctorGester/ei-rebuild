@@ -28,13 +28,7 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     shown_ = false;
     ctrl_ = false;
     shift_ = false;
-    auto* font = new mfc::impl::CFont();   // null without memory
-    font_ = font;
-    // A failed allocation still calls CreatePointFont on null (the original does too).
-    if (!font->CreatePointFont(kFontSize, kFontFace, nullptr)) {
-        delete font_;
-        font_ = nullptr;
-    }
+    font_ = gdi::PointFont(kFontSize, kFontFace);
     RECT rect = kInitialRect;
     SetRect(&rect);
     history_ = kHistory;

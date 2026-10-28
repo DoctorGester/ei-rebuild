@@ -75,9 +75,8 @@ void CursorThread(CCursor* self) {
     gameapi::SetEvent(self->stopped_);
 }
 
-// The procedure AfxBeginThread starts (the cursor as its
-// parameter): CursorThread, then exit code 0.
-unsigned __cdecl CursorThreadEntry(void* cursor) {
+// The procedure lib::StartThread starts (the cursor as its parameter): CursorThread, then exit code 0.
+unsigned __stdcall CursorThreadEntry(void* cursor) {
     CursorThread(static_cast<CCursor*>(cursor));
     return 0;
 }

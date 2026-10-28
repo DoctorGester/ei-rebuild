@@ -147,7 +147,7 @@ void UnitStats::GetFactors(float* a, float* b, int) {
     *b = static_cast<float>((y * kPointEight + x * kPointTwo) * kPointEight + kPointTwo);
 }
 
-BOOL LockKey::Opens(const LockKey* lock) const {
+int LockKey::Opens(const LockKey* lock) const {
     std::uint32_t common = lock->mask & mask;
     if (common == 0) return 0;
     if ((common & 8) == 8 && id == lock->id) return 1;
@@ -155,7 +155,7 @@ BOOL LockKey::Opens(const LockKey* lock) const {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixLeversActivate)) {
         // Rebirth: levels compared signed; a lock of level 0 gives the key's level + 1, so a key of level -1
         // (0xFFFFFFFF) no longer opens it.
-        if (lock->level == 0) return static_cast<BOOL>(level + 1);
+        if (lock->level == 0) return static_cast<int>(level + 1);
         return static_cast<std::int32_t>(level) < static_cast<std::int32_t>(lock->level) ? 0 : 1;
     }
     return level >= lock->level ? 1 : 0;

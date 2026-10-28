@@ -2,8 +2,8 @@
 
 // MFC 4.2's CObject as the game's copy has it: the three slots every MFC object starts with, 0 GetRuntimeClass,
 // 1 the (scalar deleting) destructor, 2 Serialize (CObject's is empty). The library classes that keep the
-// exe's tables derive from it (the exceptions, CMapPtrToPtr, the GDI objects); a handle map deletes its temporary
-// objects through it. On the game's heap: null without memory, and then no constructor runs.
+// exe's tables derive from it (the exceptions, CWnd). On the game's heap: null without memory, and then no
+// constructor runs.
 
 #include "crt.h"
 

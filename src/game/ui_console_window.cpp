@@ -20,7 +20,6 @@ namespace console {
 
 namespace {
 
-using mfc::impl::CDC;
 
 // Colours and the strings the window draws (read from the exe: "> " before the input, "+" for
 // the scroll marks).
@@ -42,10 +41,10 @@ int Clamp(int value, int high) {
 }
 
 // Width in pixels of the prompt and the first `count` characters of the input.
-int PromptWidth(CDC* dc, const std::string& input, int count) {
+int PromptWidth(HDC dc, const std::string& input, int count) {
     std::string text = std::string(game::consoletexts::Prompt()) + Left(input, count);
     SIZE size;
-    gameapi::GetTextExtentPoint32A(dc->hdc, text.c_str(), text.size(), &size);   // measured wide
+    gameapi::GetTextExtentPoint32A(dc, text.c_str(), text.size(), &size);   // measured wide
     return size.cx;
 }
 
@@ -304,28 +303,28 @@ void ConsoleWindow::DrawLines() {
     if (scroll_ < 0) scroll_ = 0;
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
-    CDC* dc = surface->GetDC();
-    dc->FillSolidArea(0, 0, width_, height_ - kInputHeight, kBackground);
-    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
-    dc->SetTextColor(kLineText);
-    dc->SetBkMode(TRANSPARENT);
+    HDC dc = surface->GetDC();
+    gdi::FillSolidRect(dc, 0, 0, width_, height_ - kInputHeight, kBackground);
+    HGDIOBJ oldFont = gameapi::SelectObject(dc, font_.get());
+    gameapi::SetTextColor(dc, kLineText);
+    gameapi::SetBkMode(dc, TRANSPARENT);
     int line = lineCount - scroll_ - 1;
     for (int i = 0, y = 0; i < visibleLines_ && line >= 0; ++i, y += kLineHeight, --line) {
         RECT rect{8, height_ - y - 0x2E, width_ - 0x12, height_ - y - 0x1A};
         const std::string& text = lines_[line];
-        dc->DrawText(text.c_str(), static_cast<int>(text.size()), &rect, kDrawLine);
+        gameapi::DrawTextA(dc, text.c_str(), static_cast<int>(text.size()), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
         std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
-        dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);
+        gameapi::DrawTextA(dc, mark.c_str(), mark.size(), &rect, kDrawMark);
     }
     if (scroll_ < lineCount - visibleLines_) {
         std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
-        dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);
+        gameapi::DrawTextA(dc, mark.c_str(), mark.size(), &rect, kDrawMark);
     }
-    dc->SelectFont(oldFont);
+    gameapi::SelectObject(dc, oldFont);
     surface->ReleaseDC();
 }
 
@@ -337,30 +336,30 @@ void ConsoleWindow::DrawInput() {
     anchor_ = Clamp(anchor_, input_.size());
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
-    CDC* dc = surface->GetDC();
-    mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
-    dc->FillSolidArea(0, height_ - kInputHeight, width_, kInputHeight, kBackground);
+    HDC dc = surface->GetDC();
+    HGDIOBJ oldFont = gameapi::SelectObject(dc, font_.get());
+    gdi::FillSolidRect(dc, 0, height_ - kInputHeight, width_, kInputHeight, kBackground);
     int caretX = PromptWidth(dc, input_.c_str(), caret_);
     if (anchor_ != caret_) {
         int anchorX = PromptWidth(dc, input_.c_str(), anchor_);
         int low = caretX < anchorX ? caretX : anchorX;
         int high = caretX > anchorX ? caretX : anchorX;
         if (high > width_ - 0x10) high = width_ - 0x10;
-        if (low < high) dc->FillSolidArea(low + 8, height_ - 0x17, high - low, 0xF, kSelection);
+        if (low < high) gdi::FillSolidRect(dc, low + 8, height_ - 0x17, high - low, 0xF, kSelection);
     }
-    dc->SetTextColor(kInputText);
-    dc->SetBkMode(TRANSPARENT);
+    gameapi::SetTextColor(dc, kInputText);
+    gameapi::SetBkMode(dc, TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
     std::string text = std::string(game::consoletexts::Prompt()) + input_;
-    dc->DrawText(text.c_str(), text.size(), &rect, kDrawLine);
+    gameapi::DrawTextA(dc, text.c_str(), text.size(), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
-        mfc::impl::CPen pen(PS_SOLID, 2, kInputText);
-        mfc::impl::CGdiObject* oldPen = dc->SelectObject(&pen);
-        dc->MoveTo(caretX + 8, height_ - 0x17);
-        dc->LineTo(caretX + 8, height_ - 8);
-        dc->SelectObject(oldPen);
+        gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 2, kInputText));
+        HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());
+        gameapi::MoveToEx(dc, caretX + 8, height_ - 0x17, nullptr);
+        gameapi::LineTo(dc, caretX + 8, height_ - 8);
+        gameapi::SelectObject(dc, oldPen);
     }
-    dc->SelectFont(oldFont);
+    gameapi::SelectObject(dc, oldFont);
     surface->ReleaseDC();
 }
 

@@ -461,8 +461,8 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
 
     CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
     AddSurface(dot);
-    mfc::impl::CDC* dc = UiSurfaceGetDC(dot);
-    gameapi::SetPixel(dc->hdc, 0, 0, 0xFFFFFF);
+    HDC dc = UiSurfaceGetDC(dot);
+    gameapi::SetPixel(dc, 0, 0, 0xFFFFFF);
     UiSurfaceReleaseDC(dot);
 
     const CUiMesh* disc = SceneMesh(1);

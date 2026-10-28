@@ -19,6 +19,7 @@
 
 #include "lib/compiled_vtable.h"
 #include "lib/containers.h"
+#include "lib/gdi.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/str.h"
@@ -39,7 +40,6 @@ inline constexpr Quaternion kHudRestRotation = /*007C8150*/ {1.0f, 0.0f, 0.0f, 0
 
 namespace console { class ConsoleWindow; }
 class CParty;
-namespace mfc::impl { class CFont; class CDC; }
 
 class CUiWindow;
 class CChatOverlay;
@@ -246,7 +246,7 @@ public:
     int mouseX_;
     int mouseY_;
     // The three interface fonts (Create: "Times New Roman", sized with the screen width).
-    mfc::impl::CFont* fonts_[3];
+    gdi::Font fonts_[3];
     // Set by the key-down handler from the scan codes, cleared by key-up and when the windows change.
     bool ctrlDown_;
     std::uint8_t shiftDown_;
@@ -374,7 +374,7 @@ public:
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
     // The DC must be held. Returns the drawn height in layout units, 0 without a surface.
     int DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
-    mfc::impl::CDC* GetDC();
+    HDC GetDC();
     void ReleaseDC();
     // DrawTextIn's line of text (Rebirth-patched).
     int DrawLine(std::string_view text, RECT* rect, int font, std::uint32_t colour, int format, int shadow);
@@ -423,10 +423,10 @@ static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
 static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
-// The surface's CDC (a temporary MFC wrapper; null without a DirectDraw surface) and the matching release.
-mfc::impl::CDC* UiSurfaceGetDC(CUiSurface* surface);
+// The surface's DC (null without a DirectDraw surface) and the matching release.
+HDC UiSurfaceGetDC(CUiSurface* surface);
 void UiSurfaceReleaseDC(CUiSurface* surface);
-inline mfc::impl::CDC* CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
+inline HDC CUiSurface::GetDC() { return UiSurfaceGetDC(this); }
 inline void CUiSurface::ReleaseDC() { UiSurfaceReleaseDC(this); }
 
 // The memory totals the window surfaces keep: bytes kept while swapped out and the surfaces' height * pitch.

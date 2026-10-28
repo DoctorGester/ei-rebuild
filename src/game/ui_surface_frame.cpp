@@ -6,12 +6,11 @@
 #include "ui_native.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc_gdi.h"
+#include "lib/gdi.h"
 
 void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
     if (!holder_) return;
-    mfc::impl::CBrush brush;
-    auto* dc = mfc::impl::CDC::FromHandle(dc_);
+    gdi::Brush brush;
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -19,17 +18,16 @@ void CUiSurface::FrameRect(const RECT* rect, COLORREF colour) {
         frame = *rect;
         interface_->ScaleRectToScreenEntry(&frame);   // (Rebirth-patched)
     }
-    brush.Attach(gameapi::CreateSolidBrush(colour));
-    gameapi::FrameRect(dc->hdc, &frame, static_cast<HBRUSH>(brush.handle));
+    brush.reset(gameapi::CreateSolidBrush(colour));
+    gameapi::FrameRect(dc_, &frame, brush.get());
     ui_native::FrameRect(this, frame, colour);
 }
 
 void CUiSurface::Fill(COLORREF colour) {
     if (!holder_) return;
-    auto* dc = mfc::impl::CDC::FromHandle(dc_);
     RECT whole = rect_;
     gameapi::OffsetRect(&whole, -whole.left, -whole.top);
-    dc->FillSolidRect(&whole, colour);
+    gdi::FillSolidRect(dc_, whole, colour);
     ui_native::Fill(this, whole, colour);
 }
 

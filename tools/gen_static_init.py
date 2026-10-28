@@ -550,7 +550,6 @@ NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 # order: named_data.py compares that definition at its zero start). The generated files include the headers.
 GENERATED_NAMES = {
     0x007CAEE4: ('lib::g_emptyStaticGuard', 'lib/static_object.h'),
-    0x007C8BB8: ('mfc::impl::g_gdiAllocExitGuards', 'lib/mfc_static_objects.h'),
     0x007C8BC0: ('mfc::impl::g_simpleUserException', 'lib/mfc_static_objects.h'),
     0x007C90BC: ('mfc::impl::g_baseModuleStateLocal', 'lib/mfc_static_objects.h'),
     0x007C90C0: ('mfc::impl::g_threadStateLocal', 'lib/mfc_static_objects.h'),
@@ -559,9 +558,7 @@ GENERATED_NAMES = {
     0x007CAA88: ('mfc::impl::g_ctl3dStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
     0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
-    # C18r: MFC's fixed allocators and static windows, which hand code reads too (mfc_gdi.cpp, mfc_window.cpp).
-    0x007C8CF0: ('mfc::impl::g_tempGdiObjectAlloc', 'lib/mfc_gdi.h'),
-    0x007C8D18: ('mfc::impl::g_tempDCAlloc', 'lib/mfc_gdi.h'),
+    # C18r: MFC's static windows, which hand code reads too (mfc_window.cpp).
     0x007CA968: ('mfc::impl::g_wndNoTopMost', 'lib/mfc_window.h'),
     0x007CA9A8: ('mfc::impl::g_wndTopMost', 'lib/mfc_window.h'),
     0x007CA9E8: ('mfc::impl::g_wndBottom', 'lib/mfc_window.h'),
@@ -611,7 +608,6 @@ REVIEWED_NEAR = {
     0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
     0x0079BEE0: ('0079BED8', 'the options 0079BC70 (GameOptions, 0x26C bytes) end at 0079BEDC; 0079BED8 is its master server CString'),
-    0x0079BF28: ('0079BF1C', 'the map database 0079BF00 (CMapDatabase, 0x28 bytes); 0079BF1C is its maps array data'),
     0x0079C1C0: ('0079C1AC', 'the lever table 0079C1A0 (0x20 bytes); 0079C1AC is a member'),
     0x007A9698: ('007A9694', 'the lightning noise loaded flag (dword)'),
     0x007A9750: ('007A9748', 'the sort scratch guard byte (the scratch array is below it)'),
@@ -797,6 +793,12 @@ UNUSED_INITIALISERS = {
     0x0070BE81: "CStringArray's runtime class 00796EE8, linked into the module state's class list",
     0x0070C1ED: "MFC's _simpleNotSupportedException 007C8D50 (only CStdioFile threw it; the game's text files are "
                 "lib::TextFile since C14d)",
+    0x006D4A70: "CDib's runtime class 00796CD0, linked into the module state's class list (nothing asks a CDib its "
+                "class since C14ze)",
+    0x0070C093: "MFC's fixed allocator of the temporary DCs 007C8D18 (guard byte 007C8BB8, bit 1; no CDC since C14ze: "
+                "the interface draws on plain HDCs)",
+    0x0070C0D3: "MFC's fixed allocator of the temporary GDI objects 007C8CF0 (guard byte 007C8BB8, bit 2; no "
+                "CGdiObject since C14ze)",
 }
 
 
@@ -1152,7 +1154,7 @@ def decode_exits(img, decoded):
 # initialisers, exit functions and atexit targets ported by hand, which are neither decoded nor inlined
 # (registered_addresses). The csv's name is fully qualified and its file holds the definition; the call is the
 # definition's name, and a header that declares it in the same namespace is included, otherwise an initialiser's or
-# exit function's `void __cdecl Fn()` is declared at the top of the generated file. A function defined in an anonymous
+# exit function's `void Fn()` is declared at the top of the generated file. A function defined in an anonymous
 # namespace has no name another file can call, and a function with no row has no name at all: the tool stops with a
 # problem (move it out of the namespace, add the row; nothing is called by address, C20 batch 3). Statements stay in
 # address form until render, so the analyses above (unread objects, stored values, named_data.py) read them
@@ -1221,7 +1223,7 @@ class Names:
         if a in self.exits:   # this tool's own exit functions (static_exit.cpp)
             if self.exits[a] == 'nothing':
                 return RET, None, None
-            return f'Exit{a:08X}', None, ('ei::static_init', f'void __cdecl Exit{a:08X}();')
+            return f'Exit{a:08X}', None, ('ei::static_init', f'void Exit{a:08X}();')
         port = self.ports.get(a)
         if port is None:
             self.problems.append(f'{a:08X} is called but has no port: port it (a row of config/static_init_ports.csv)')
@@ -1275,7 +1277,7 @@ class Names:
         if not re.fullmatch(r'void(?:\s+__cdecl)?', head) or params not in ('', 'void'):
             self.problems.append(f'{rel}: {port.name} ({a:08X}) is `{head} {last}({params})`: declare it in a header')
             return None
-        return expr, None, ('::'.join(full), f'void __cdecl {last}();')
+        return expr, None, ('::'.join(full), f'void {last}();')
 
 
 DROPPED = '@@dropped@@'
@@ -1322,7 +1324,7 @@ def render_exits(exits, names):
         body = name_calls(name_operands(body.replace('\n        ', '\n    '), headers), names, headers, declarations)
         if re.search(r'\bd\.(?:Cdecl|Stdcall|Thiscall)\(0x', body):
             names.problems.append(f'exit function {fn:08X}: {body.strip()} calls by address: give the callee a name')
-        functions += [note, f'void __cdecl Exit{fn:08X}() {{', '    Code d;', f'    {body}', '}', '']
+        functions += [note, f'void Exit{fn:08X}() {{', '    Code d;', f'    {body}', '}', '']
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary)
             .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +

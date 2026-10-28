@@ -20,7 +20,6 @@ public:
     // Create's bitmap (the fields are left to Create).
     CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue);
 
-    virtual const void* GetRuntimeClass() const;
     virtual ~CDib();
 
     static void* operator new(std::size_t size) noexcept;

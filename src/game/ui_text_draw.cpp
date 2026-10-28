@@ -10,8 +10,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-#include "lib/mfc_gdi.h"
 #include "game_data.h"
 
 namespace {
@@ -28,7 +26,7 @@ int CUiSurface::DrawLine(std::string_view text, RECT* rect, int font, std::uint3
 
 int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow) {
     if (!holder_) return 0;
-    auto* dc = mfc::impl::CDC::FromHandle(dc_);
+    HDC dc = dc_;
     RECT frame;
     if (gameapi::IsRectEmpty(rect)) {
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
@@ -39,24 +37,24 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, CO
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
-    mfc::impl::CGdiObject* oldFont = dc->SelectFont(interface_->fonts_[font]);
-    dc->SetBkMode(TRANSPARENT);
+    HGDIOBJ oldFont = gameapi::SelectObject(dc, interface_->fonts_[font].get());
+    gameapi::SetBkMode(dc, TRANSPARENT);
     // Where the text lands: DrawText clips to its rectangle (and draws nothing for DT_CALCRECT).
     RECT inked = frame;
     if (shadow) {
-        dc->SetTextColor(kShadowColour);
+        gameapi::SetTextColor(dc, kShadowColour);
         RECT shifted = frame;
         gameapi::OffsetRect(&shifted, 1, 1);
         ++inked.right;   // with the shadow's rectangle, one pixel lower and to the right
         ++inked.bottom;
         RECT drawn = shifted;
-        dc->DrawText(text.data(), static_cast<int>(text.size()), &drawn, format);
+        gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &drawn, format);
     }
-    dc->SetTextColor(colour);
+    gameapi::SetTextColor(dc, colour);
     // The original scales a point whose x is an unwritten local; only y is used.
     POINT extent{0, 0};
-    extent.y = dc->DrawText(text.data(), static_cast<int>(text.size()), &frame, format);
-    dc->SelectFont(oldFont);
+    extent.y = gameapi::DrawTextA(dc, text.data(), static_cast<int>(text.size()), &frame, format);
+    gameapi::SelectObject(dc, oldFont);
     // A native surface's canvas gets the text from the memory (text recorded on the canvas: P2).
     if (!(format & DT_CALCRECT)) ui_native::TextDrawn(this, inked, !(format & DT_NOCLIP));
     interface_->ScalePointFromScreenCopyEntry(&extent);
@@ -66,13 +64,13 @@ int CUiSurface::DrawTextIn(std::string_view text, const RECT* rect, int font, CO
 // --- TextExtent ---------------------------------------------------------------------------------------
 
 SIZE* CInterface3D::TextExtent(SIZE* out, std::string_view text, int font) {
-    auto* dc = mfc::impl::CDC::FromHandle(gameapi::GetDC(app::g_mainWindow));
-    mfc::impl::CGdiObject* oldFont = dc->SelectFont(fonts_[font]);
+    HDC dc = gameapi::GetDC(app::g_mainWindow);
+    HGDIOBJ oldFont = gameapi::SelectObject(dc, fonts_[font].get());
     // Left unwritten by the original when the call fails.
     SIZE size{0, 0};
-    gameapi::GetTextExtentPoint32A(dc->hdc, text.data(), static_cast<int>(text.size()), &size);   // measured wide (system_text.h)
-    dc->SelectFont(oldFont);
-    gameapi::ReleaseDC(app::g_mainWindow, dc->hdc);
+    gameapi::GetTextExtentPoint32A(dc, text.data(), static_cast<int>(text.size()), &size);   // measured wide (system_text.h)
+    gameapi::SelectObject(dc, oldFont);
+    gameapi::ReleaseDC(app::g_mainWindow, dc);
     if (widescreen::Active()) {
         // WideScreen (addon's replacement): by the 4:3 part's width and the mode's height.
         *out = widescreen::TextExtentToLayout(size);

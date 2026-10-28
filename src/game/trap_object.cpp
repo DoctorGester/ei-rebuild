@@ -31,7 +31,7 @@ constexpr std::uint32_t kArmedFresh = 0x100000;
 constexpr float kTriggerRadius = 1.0f;
 } // namespace
 
-BOOL LockKey::AcceptedByTrap() const { return 1; }
+bool LockKey::AcceptedByTrap() const { return true; }
 
 CTrapObject::CTrapObject() {
     CreateMapObject();

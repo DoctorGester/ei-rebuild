@@ -3,8 +3,6 @@
 #include "dib.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_runtime_class.h"
-#include "lib/mfc_state.h"
 #include "game_data.h"
 
 #include <cstring>
@@ -25,17 +23,7 @@ std::uint32_t ImageSize(const BITMAPINFOHEADER* header) {
     return header->biHeight * rowDwords * 4;
 }
 
-void* __stdcall CreateDib() { return new CDib(); }
-
-using mfc::impl::CRuntimeClass;
-using mfc::impl::kClassCObject;
-
-// IMPLEMENT_SERIAL (schema 0): linked into the module state's class list by the static initialiser below.
-constinit CRuntimeClass g_classCDib = /*00796CD0*/ {"CDib", 0x3C, 0, &CreateDib, &kClassCObject, nullptr};
-
 } // namespace
-
-void LinkDibClass() { mfc::impl::AfxClassInit(&g_classCDib); }
 
 std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
@@ -64,8 +52,6 @@ CDib::CDib(int width, int height, int bitCount, std::uint32_t red, std::uint32_t
 }
 
 CDib::~CDib() { Empty(); }
-
-const void* CDib::GetRuntimeClass() const { return &g_classCDib; }
 
 void CDib::Create(int width, int height, int bitCount, std::uint32_t red, std::uint32_t green, std::uint32_t blue) {
     // What Empty looks at (the constructor above leaves the object raw).

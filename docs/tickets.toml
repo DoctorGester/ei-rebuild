@@ -3718,6 +3718,13 @@ model = "opus"
 note = "After C14z (2026-10-28) src/game has 0 CArray / CList but still ~100 mfc:: uses: CDC (17, FromHandle 5), CGdiObject 10, CFont 9, CPen 5, CBrush 1 (the text / debug drawing on GDI), mfc::BOOL 16, MessageBoxText 5, WinThread / AfxBeginThread / AfxEndThread (the loader thread), CTime / CurrentTime, CByteArray / CWordArray, CarriedArrayClass, CRuntimeClass / kClassCObject / AfxClassInit, EachElements / ArrayAbi / PlainElements / Bytes. Usage first: GDI through plain HDC / HFONT / HPEN with small RAII holders of ours (or the renderer's text path where it already exists), BOOL to bool / int, the thread to std::thread or CreateThread, CTime to std::time / chrono, message boxes to MessageBoxA / W. Then delete the src/lib/mfc pieces only the tests' game.exe views use. Goal: git grep 'mfc::' -- src/game is 0."
 
 [[ticket]]
+id = "C14zi"
+title = "Delete MFC's static-init-only state: mfc_state (AuxData, thread / process locals, global locks, AfxClassInit, DBCS, halftone brush) and mfc_static_objects"
+group = "cleanup"
+depends = ["C14zb"]
+note = "After C14ze (no GDI, threads, handle maps) and C14zb (no CWordArray / CByteArray / CDWordArray links), nothing of the game reads MFC's module state, afxData, the thread / process locals, _afxDBCS or the class list: only game.exe's static initialisers and exit functions build and destroy them. Add those initialisers to gen_static_init.py's UNUSED_INITIALISERS (0070D12E afxData, 0070CC0C / 0070CE56 / 0070D5D8 / 0070D5FE / 0070DC27 the locals' atexits, 0070B5FB wingdix, 0070DC70 DBCS, the Link*ArrayClass ones), drop the GENERATED_NAMES rows, the named_data ranges and static_init_ports rows, regenerate, then delete mfc_state.h / .cpp and what of mfc_static_objects is left after C14zh."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
