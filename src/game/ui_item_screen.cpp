@@ -10,7 +10,6 @@
 #include "ui_screens.h"
 #include "core_streams.h"
 
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "item.h"

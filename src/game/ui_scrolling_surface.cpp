@@ -10,7 +10,6 @@
 #include "ui_gdi.h"
 #include "world.h"
 
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"

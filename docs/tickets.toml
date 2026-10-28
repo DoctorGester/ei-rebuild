@@ -4780,3 +4780,12 @@ size = 0.5
 model = "sonnet"
 files = ["docs/notes/renderer.md"]
 note = "renderer.md still describes retired modes: verify wrappers whose originals need DirectDraw, run_all --dgvoodoo and --native (around lines 352-358, 505-515), hooked runs. Rewrite to what holds since S21e (our renderer only in the standalone image; game.exe runs only the original on dgVoodoo), and cut section 9 'What is left' (~260 lines, D3's count) to the open items with ticket ids. Current facts only, no log; keep section numbers so citations hold."
+
+[[ticket]]
+id = "D6"
+title = "Docs and config: drop the text about deleted MFC / STLport / compiled-tag files"
+group = "docs"
+size = 0.5
+model = "sonnet"
+files = ["docs/rewrite-guide.md", "docs/notes/standalone.md", "docs/standalone-cleanup.md", "docs/comment-guide.md", "config/comment_batches.txt"]
+note = "Since C14p / C14zi (2026-10-28) src/lib has no mfc_* files, no stlp, and compiled_vtable.h is gone (it had no users). Docs still describe them: rewrite-guide (line ~40 compiled_vtable, ~152 the mfc::CArray / mfc.h container list), notes/standalone.md ('Compiled tags for any class', UnportedSlot, SetVtable / mfc_slots.h text), standalone-cleanup.md, comment-guide.md line ~142, and comment_batches.txt lists deleted files. git grep -n -i -e mfc -e stlp -e compiled_vtable -e mfc_slots -- docs config tools and rewrite each hit to current facts or drop it (no history log). Leave docs/tickets.* and docs/notes/*.md text that names game.exe's original MFC functions by address."

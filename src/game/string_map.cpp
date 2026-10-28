@@ -4,7 +4,6 @@
 // static initialiser. See docs/notes/app.md.
 #include "debug_panel.h"
 
-#include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/static_object.h"

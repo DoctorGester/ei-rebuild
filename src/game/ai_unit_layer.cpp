@@ -2,7 +2,6 @@
 // unit moves (CAIMap::MarkFootprint through CSectorMap::Move).
 #include "ai_unit_layer.h"
 
-#include "lib/compiled_vtable.h"
 
 #include <cstring>
 #include <list>

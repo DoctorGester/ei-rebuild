@@ -7,7 +7,6 @@
 #include "unit_ai.h"
 #include "world_data.h"
 
-#include "lib/compiled_vtable.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

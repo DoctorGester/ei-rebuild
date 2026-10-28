@@ -17,7 +17,6 @@
 #include "object_tables.h"   // g_keyActions
 #include "unit.h"   // LockKey
 
-#include "lib/compiled_vtable.h"
 #include "lib/containers.h"
 #include "lib/gdi.h"
 #include <cstddef>
