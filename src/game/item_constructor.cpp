@@ -325,7 +325,8 @@ BOOL CItemConstructor::Build() {
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
     item_->InitFromRecord(record);
-    if (item_->GetClassId() == ClassId::ItemQuick && item_->GetCategory() == QuickItemCategory::Potion) {
+    if (item_->GetClassId() == ClassId::ItemQuick &&
+        static_cast<QuickItemCategory>(prototype->category) == QuickItemCategory::Potion) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
         spell_ = spell;
