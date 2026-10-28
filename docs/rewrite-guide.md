@@ -23,9 +23,10 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   `check` and `waitfor`); its golden is recorded centrally.
 - Run `python tools/check_x87.py` (after `build.cmd release`) and `tools\check_signatures.cmd` (after
   `build.cmd verify`) before handing back, and `python tools/check_stolen.py` after adding a vector
-  recorder. check_signatures compares the stack arguments of registered, forwarded and recorded
-  declarations with the original's RET n: a recorder runs inside game.exe, and a registration or a
-  forwarder is reached with the original's calling convention (rule 3).
+  recorder. check_signatures compares the stack arguments of the declarations where game.exe's code meets ours
+  with the original's RET n: the recorders (they run inside game.exe), the harness's forwarders, and the rewrites
+  at a recorded address (the vectors' replays call them with arguments recorded from the original). Any other
+  rewrite is free to change its signature (a std::string_view for a const char*); `--all` checks them too.
 
 ## Where code goes
 
@@ -61,7 +62,8 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    only AL return `bool`. A float left unrounded in ST0 is rule 7's.
 3. **The original's address.** A rewrite is an ordinary function or member, called by name. Write
    `EI_REWRITTEN(addr, Function)` next to it: it keeps the function in the tools' function-to-original map
-   (check_signatures, coverage, progress; C20d). Nothing reaches game.exe's code addresses (C20 batch 6
+   (coverage, progress, check_signatures for the recorded addresses; C20d). Its signature need not match the original's RET n
+   unless a vector recorder records that address. Nothing reaches game.exe's code addresses (C20 batch 6
    removed the registrations). `build.cmd` runs `tools/check_registrations.py` (one `EI_REWRITTEN` per address).
 4. **Virtual methods** are the compiler's (C19): nothing reaches a slot's address, a virtual is `EI_REWRITTEN`.
    The `...Hook` shims and `...Impl` bodies left from registering slots are C28's to fold into the
