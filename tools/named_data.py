@@ -116,7 +116,7 @@ TYPES = {
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
     'lib::AlignedArray': 'Iiii',   # containers.h: data, size, capacity, growBy (game.exe's; our std::vector: below)
-    'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
+    'stlp::vector': 'III',         # the original's STLport vector (a key only: none of ours): start, finish, end of storage
     'std::vector': 'III',          # MSVC's: first, last, end of storage (zero is empty, as STLport's)
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.

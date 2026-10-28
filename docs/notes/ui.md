@@ -127,8 +127,8 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
   24 runs, last the root's. `CScreenFade::Draw` (005E69C0): bars of height * [00740150]; alpha step `(ms as qword) *
   rate + alpha` stored as float, clamped at 255, below 0 the fade ends. `Shutdown` writes config\tutorial.ini from
   `helpTopics_`.
-- `CInterface3D` declares +0x40 (queued window), the fonts +0x70, `messages_` +0x84 (stlp::list of CString),
-  `helpTopics_` +0x98 (stlp::map<CString, int>); its root window +0x1C is the `CChatOverlay` (`chatOpen_` +0x14C,
+- `CInterface3D` declares +0x40 (queued window), the fonts +0x70, `messages_` +0x84 (STLport list of CString),
+  `helpTopics_` +0x98 (STLport map<CString, int>); its root window +0x1C is the `CChatOverlay` (`chatOpen_` +0x14C,
   `caret_` +0x154). `CUiItemPanel` (+0x148 `mode_`, +0x14C `owner_`) is the base of the description panel, hero
   equipment, quick strip, trade / repair grids, constructor pages and the blank panel 00741B58. The hero stats panel has
   its own deleting destructors 0060E340 / 00613DD0.
@@ -251,7 +251,7 @@ Global map (`ui_global_map*.cpp`): `Create` (0062D350, 6.7 KB), `Update` (0062F0
 `QuestTitle` in `ui_global_map_places.cpp`), `ZonePosition`, `QuestPosition`, `SelectZone` (RET 8, flag is a byte),
 `SetWeather` (S). `RefreshSelection` (00630670) draws the zone markers alone in colours 0xFF181818 + 0x101010 i through a
 frame step 00458010(0, 0) into the backdrop; the click reads the zone back from the pixel. `FindPaths` (006312C0, S, RET 4)
-is a recursive way search; `arrivals_` = stlp::map<int, float> exit -> shortest "#passtime" sum
+is a recursive way search; `arrivals_` = STLport map<int, float> exit -> shortest "#passtime" sum
 (`ui_global_map_paths.cpp`). game.exe's `GlobalMapZonesSetAtGrow` is CArray<GlobalMapZone>'s (elements
 005FBF50 / 005FBD30); ours are std::vectors (push_back). `OnRightDown` / `OnRightUp` (S) drag (motion 007C7C60), `OnKeyDown` (Esc menu inline, '5' / '6'
 quick save / load "saveq"). `CBattleScreen::Create` (00635250) builds 11 panels and 2 input handlers.
@@ -367,12 +367,11 @@ mesh drew the topics' frame inside the text's, W5; ui_widescreen_dialogue's phra
 Layout: speakers +0x1A4 hero, +0x1A8 person, +0x1AC third; places_ +0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2]
 third), thirdPlace_ / thirdDirection_ +0x210 / +0x21C, personHome_ / personHomeDirection_ +0x228 / +0x234, firstPhrase_ +0x244,
 dialogueText_ +0x248, speaking_ +0x254, shown_ +0x278 (BriefingShownItem list), immediate_ +0x27C, autosave_ +0x27E, people_
-+0x284 (stlp::vector<int>), markPhase_ +0x290, speakers_ +0x294 (12-byte BriefingSpeaker), text_ a CUiScrollText;
++0x284 (STLport vector<int>), markPhase_ +0x290, speakers_ +0x294 (12-byte BriefingSpeaker), text_ a CUiScrollText;
 the rewards are the quest database's `QuestBriefingRecord` (quest_records.h, 0x6C: exp, money, the lists by
 `ListKind`, specials +0x68). The "constr" topic's number is `Mid(7)` (006FD9B4, not
 Right). Helpers: `BriefingVariables` (00578C40 into a 100-bucket table, 00581790; walked with 005E0DB0), `LocalPlayerZone`
-(00578A90). player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarders
-(originals_ui.h) and `player_out_mark.h`. Inlined in the original, not functions: 00609A80, 0060B490 / 0060AC00, 00609A40 (pool
+(00578A90). player_messages.h and ui_briefing.h are kept apart by `player_out_mark.h`. Inlined in the original, not functions: 00609A80, 0060B490 / 0060AC00, 00609A40 (pool
 0x30). 00608D10 (slot 35, `MOV AL,1; RET`) is too short to hook; 006023F0 is no function in Ghidra or function_sizes.inc.
 Left out as unused: Update's sort / unique of the marked
 ids, the unused party searches (00578BA0) in HideSpeaker / FinishDialogue, OnUnitJoined's server-world lookup.
@@ -501,8 +500,8 @@ P) ui_hud, ui_saveload; `Confirm`, `AskDelete`, `LoadSelected`, `DeleteSave` (lo
 import, which harness runs redirect to harness_saves; called by address `Call*`) ui_saveload, ui_saveload_delete; `OnDialogResult`
 (the caller 005F590D ignores EAX); `SaveEntry::MakeTitle`, `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space,
 007941F8 / 00794200; else "save_camp" / "Unknown"; S; `ui_saveload.cpp`); `QuickSave` (`__fastcall` slot, DL frame step) /
-`QuickLoad` (newgame's savea); `Build` (00653DD0 save/load, 006503C0 options; `bindings_` / `settings_` are stlp::vectors,
-`groupNames_` an mfc::CStringArray; `DestroyOptions` 0062B180); options (`COptionsWindow`: input, `Draw`, `Redraw`, `HelpTopic`
+`QuickLoad` (newgame's savea); `Build` (00653DD0 save/load, 006503C0 options; `bindings_` / `settings_` are vectors,
+`groupNames_` a `std::vector<std::string>`; `DestroyOptions` 0062B180); options (`COptionsWindow`: input, `Draw`, `Redraw`, `HelpTopic`
 P, `Update`, `OnKeyDown`; ui_hud; `RefreshRows`, `ShowGroup` (RET 4), `BuildSettings`, `BuildBindings`, `LoadSettings` (S; sets
 every control twice), `Apply` (`ui_options.cpp`; `Call*` forms by address); Build runs all but Apply (ui_hud also clicks group
 2); Apply: ui_main_menu's OK; key remapping: ui_options_bind (Enter, a taken key's box, cancelled), ui_options_remap (SV8:
@@ -656,8 +655,8 @@ nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface
   BestPartySkill, RefreshWeapons / RefreshStats, Next / PreviousHero, HeroUnit, HeroRecord, ChooseFigure, Weight, Price) go
   through `CItemScreen::Virtual*` (ui_item_info.h; ItemScreenClass names the same slots); a panel's Build (slot 18) through
   `CUiWindow::VirtualBuild`. The save window's entries (+0x164), the HUD portraits' slots (+0x158) and the quick items'
-  entries (+0x158) are typed containers (`stlp::vector<SaveEntry>`, `stlp::vector<HudPortraitSlot>`,
-  `mfc::CArray<Entry>`), called with their element policies.
+  entries (+0x158) are typed containers (`std::vector<SaveEntry>`, `std::vector<HudPortraitSlot>`,
+  `std::vector<Entry>`).
 
 ## CMpHeroScreen::OnLButtonDown
 

@@ -69,11 +69,11 @@ PATTERNS = {
     'placeholder virtual (SlotNN)': re.compile(r'\bSlot\d+\s*\('),
     'byte offset arithmetic': re.compile(r'(?:char|uint8_t|byte)\s*\*\s*>\s*\([^()]*(?:\([^()]*\))?[^()]*\)\s*\+\s*0x'),
     # A container layout declared in a game file (struct FooArray { ... }, struct BarList : ...)
-    # instead of the shared templates in src/lib (mfc::CArray / CList, std::vector, stlp::).
+    # instead of std containers (std::vector / std::list, lib::HashMap).
     # Definitions only; src/lib itself is not counted.
     'per-file container struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Array|List)\b(?=\s*[:{])'),
-    # The same for STLport-shaped layouts (stlp::vector / map / set / hash_map views declared per
-    # file). Some matches are grids or managers named *Map; those go when they are renamed.
+    # The same for vector / map / set / hash map layouts declared per
+    # file. Some matches are grids or managers named *Map; those go when they are renamed.
     'per-file vector/map/set struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Vector|Map|Set)\b(?=\s*[:{])'),
     # Vector maths written out instead of the vecmath.h helpers and types (count_vector_maths above).
     'hand-written vector maths': count_vector_maths,
@@ -90,8 +90,8 @@ PATTERNS = {
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
 # over std::vector; ObjectIdMap and UnitSet
-# (and MapObjectIdMap, its shape with CMapObject* values) are records whose members are stlp::hash_maps; CRegionMap is a
-# block grid; PlatformSet is the engine's CBridgeManager around an mfc::CList.
+# (and MapObjectIdMap, its shape with CMapObject* values) are records whose members are hash maps; CRegionMap is a
+# block grid; PlatformSet is the engine's CBridgeManager around a list.
 NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet', 'CRegionMap', 'PlatformSet'}
 # src/lib/crt_x87.cpp holds the CRT's register-argument x87 entries (_ftol, _CIpow, ...): naked by necessity.
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',

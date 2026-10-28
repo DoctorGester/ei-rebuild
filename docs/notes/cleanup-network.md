@@ -15,11 +15,11 @@ qualified member).
   retry timer and interval, servers, queries, waiting addresses), `ServerSession` / `ClientSession` on top with their lists and counted pointers named
   from what the handlers do with them. `Message : CRefObject` (0073BC10, virtual Write / Read, `version_` +8), `ServerEntryBase` (0073BB40) /
   `ServerEntry` (0073BB28), `Query` / `ClientQueries`, `NetAddress` (sockaddr_in: Parse 00440440, Format 00440690, ToString 00435010), `SocketDriver` members,
-  `TypeRegistry` over two `stlp::hash_map`s (`Bucket` / `LinkAtHead` added to stlp.h for the inlined insert that still calls the game's resize / new node),
+  `TypeRegistry` over two hash maps,
   one `LogStream`, and the session globals declared once (`NetLog()`, `CurrentSession()`, `CurrentConnection()`, `SendBuffer()`, `ReceiveBuffer()`,
   `GameServer()`, `GameClient()`).
 - `net_connection.h`: `Connection : CRefObject` (0073BF38; slot 2 OnShutdown = the reset 00433320, slot 3 Clone) and `ReplicaEntry : CRefObject`
-  (0073BF4C); typed STLport containers (`TreeMap`, `HistoryNode` with a double time, `HeaderNode` / `ReliableChunk`, `FreedBatch` / `FreedId`, `Record`,
+  (0073BF4C); typed std containers (`TreeMap`, `HistoryNode` with a double time, `HeaderNode` / `ReliableChunk`, `FreedBatch` / `FreedId`, `Record`,
   `AttachedId`) replace the `+0x10` / `+0x14` node offsets.
 - `net_messages.h`: one novtable class per message deriving from `Message` with slot 2 `OnShutdown` (the reset), slot 3 `Clone` (covariant), slots 4 / 5
   `Write` / `Read`, a static `Create` (the registry's factory), `Construct` (only where the constructor body is a function of its own) and `Destruct`.
@@ -40,7 +40,7 @@ qualified member).
   `TradeRecordNode` (three parties) is in `net_classes.h` and `tradeRecords_` is typed. The party publish / apply (`net_client_party.cpp`)
   read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id, `Save` / `Load` slots 10 / 9) and the partner
   party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23); `PartyMessage::partyValue_` is `money_`
-  (`CParty::Money()`). The object vector is an `stlp::vector<CEngineObject*>`.
+  (`CParty::Money()`). The object vector is a `std::vector<CEngineObject*>`.
 - `ApplyAwards` / the client tick go through `CPlayer` (`Party()->Money()`, `items_`, `connection_->state_`) and `CItem::IsSameAs` /
   `GetClassId` / `Release`; kind 3 takes the first given item whose slot 14 returns 0 (checked against Ghidra, 0041CD80).
 - `CPlayerConnection` has `state_` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty_` (the state bits the server's writers
@@ -48,10 +48,10 @@ qualified member).
   (`Party()->variables_`) and the game state (`sessionKind100_`) through `Owner()`. `WriteTo` takes a `CStream*` (slot 7 `CopyFrom`, the
   world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the item's `charge_`
   (+0x28; the FLD / FSTP copy is kept).
-- `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s CFile goes through `mfc::CFileVirtuals`
+- `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s file is a `lib::File`
   (`File()`). `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server) and asks the game server
   (`GameServer()`, 00417E40) about each connection.
-- Shared list values in `net_classes.h`: `RefNode` (= `stlp::list<RefPtr>::Node`), `TimedEntry` / `TimedNode` ({seconds as a float or its
+- Shared list values in `net_classes.h`: `TimedEntry` / `TimedNode` ({seconds as a float or its
   bits, counted object}: the client's timers, the server's awards and finished trades). `SentPacket` is a history node's value: `RollBack`
   / `Delivered` take it. `NewMessageMemory` is in `net_classes.h`.
 - Every new virtual call must dispatch through the vtable (no devirtualised call to a rewritten body such as `CMemoryStream::Write` or
@@ -68,23 +68,19 @@ qualified member).
 
 ## Left
 
-- The `ClientSession` / `ServerSession` / `ClientBase` list members are still `void*` sentinels, typed at the use sites (`RefNode`,
-  `TimedNode`, `TradeRecordNode`); typing the members touches `ui_chat_window.cpp` (`ClientList(client->offers_)`). `net_lobby.cpp` walks
-  its lists through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
+- The `ClientSession` / `ServerSession` / `ClientBase` lists are typed `std::list` members (core.md, "Containers: the net lists").
 - `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval_` and the halves of `clock_`): kept (no FPU load).
 - `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784
   + 0x1C`). `net_server_awards.cpp` /
   `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14). `world_game.cpp`'s `AnnounceHost` builds a `HostMessage`
-  by hand. Forwarders to the STLport list / vector / string instantiations the handlers call, the MFC `CFile` slots, GameBuffer's own
-  slot bodies (free functions) and the growing buffer's forwarders (004DA7F0 ...) are declared per file. `StringRep` vs `stlp::string`;
-  `hash_tables_400.cpp`'s own view of the type registry (004368F0).
+  by hand. `hash_tables_400.cpp`'s own view of the type registry (004368F0).
 
 ## C2z: the client's queries
 
-`ClientQueries` (`net_classes.h`): `stlp::vector<Query> list` plus the `extra` dword saved with it (+0x0C). The original's vector
-functions are the game's `stlp::vector<Query>` instantiation, forwarded with it as `this`: 004439C0 `_M_insert_overflow`, 00443BF0
-`operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` keep the inlined push_back / erase over `Finish()` /
-`EndOfStorage()`; `ui_connect_screen.cpp`'s address book follows (the constructor's wrapper copies raw bytes: the vector has no copy).
+`ClientQueries` (`net_classes.h`): `std::vector<Query> list` plus the `extra` dword saved with it (+0x0C). The original's vector
+functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overflow`, 00443BF0
+`operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` are the inlined push_back / erase;
+`ui_connect_screen.cpp`'s address book follows.
 
 ## F5: meanings of unknown fields in the rest (2026-10-14)
 
@@ -105,11 +101,10 @@ functions are the game's `stlp::vector<Query>` instantiation, forwarded with it 
 
 ## C21 batch 22: typed links (2026-10-22)
 
-- The player sources' slot 6 takes a `JoinedLinks*` (player_source.h: `mfc::CTypedPtrList<netlink::NetLink>`); CWorldHandle's and
+- The player sources' slot 6 takes a `JoinedLinks*` (player_source.h: `std::list<netlink::NetLink*>`); CWorldHandle's and
   DriverSession's TakeNew append through `AddTail` and count the link.
 - `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
-- `SocketDriver::addresses` is an `stlp::vector<NetAddress>` (the inlined push_back over `Finish()` / `EndOfStorage()`, the overflow
-  through `InsertOverflow<stlp::PlainElement<NetAddress>>`).
+- `SocketDriver::addresses` is a `std::vector<NetAddress>`.
 - The world's helpers are `RefPtrTo<CWorldHandle> shared5C_`, `RefPtrTo<netlink::DriverSession> netSession_` and
   `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `TheServerWorld()->shared5C_`.
 

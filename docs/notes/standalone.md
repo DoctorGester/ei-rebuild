@@ -54,8 +54,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   "the main module exports `EiStandaloneHost`" (the host's marker; game.exe exports nothing).
   **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
   (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
-  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp; MFC's string table went with its exceptions in
-  C14zi); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
+  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
   no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
   GetModuleFileNameA(NULL) names ei_standalone.exe (the
   message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
@@ -75,16 +74,14 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   virtual, `EI_REPLACE_DISPATCH` and its byte check are gone.
 - **Start** (EiStandaloneMain): the C initialiser `__initmbctable` (00783BC0), then the 748 static initialisers in
   list order (`StaticInitialisers(Run)`), then WinMain; its result goes to the CRT's exit as the CRT did.
-- **Missing code.** Reaching an address without code (a jump into the guarded .text, a compiled table's
-  `ei::UnportedSlot`) logs `FAILED: standalone: no code at <address>, [esp] <caller>` and ends the run;
+- **Missing code.** Reaching an address without code (a jump into the guarded .text) logs `FAILED: standalone: no code at <address>, [esp] <caller>` and ends the run;
   `tools/resolve_crash.py <run folder>` names it. A read or write of .text is reported as such
   (`... of game.exe's code at ...`). The handler goes in before the start-up actions
   (S16c), so a startup action's hit is reported too; a hit during ei_hook.dll's static constructors prints
   `ei_standalone: no code at ... before ei_hook.dll's missing-code report` and exits 3.
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
-  holds no code pointer in the image since C20). The unported slots of compiled tables (`ei::UnportedSlot`, MFC's
-  classes never made or never called virtually) say why at the class (none is left since C14ze / C14zh).
+  holds no code pointer in the image since C20).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -185,12 +182,12 @@ each step green on the goldens and removing a measured tie:
   image (C29: named seams, `IsaacRandom::SetSeedHook` / `SetDrawObserver`, `gamecrt::SetRandObserver`). **No code cells** (C20 batch 1): game.exe's data keeps no code pointer
   in the image; every dword of .rdata / .data that pointed into its code section is zero there. Until then
   `image_code_cells.inc` listed the ones the image fixed up to the registration of their value
-  (21,636 at S18i; 825 at the end: the static initialiser list 748, MFC's message maps 35, the CRT's function
+  (21,636 at S18i; 825 at the end: the static initialiser list 748, the original's MFC message maps 35, the CRT's function
   pointers 35, ThrowInfo's destructors / copy constructors 7), and C20 batch 1 measured that nothing of ours read
   any of them: the static initialisers are generated code (static_init.cpp calls each one's body or its
-  registration, never through the list), CWnd::GetMessageMap is an unported slot, the CRT tables' readers are
+  registration, never through the list), CWnd::GetMessageMap is never called, the CRT tables' readers are
   game.exe's own CRT (the host CRT's in the image, C26), and no code throws with game.exe's ThrowInfo
-  (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with C19, the EH
+  (libcrt::CxxThrowException has no caller; our throws use the compiler's). The vtable slots went with the compiler-made vtables, the EH
   funclets with C20a. A stray call through one would be a call of null. The launch-free check (no `--run`): `CheckGuard` logs what
   of game.exe's range is open, the routes and imports are checked. Stack scans of the harness and the profiler skip the game's code range in the image.
 - **Own import table** (S18f, src/standalone/image_imports.cpp): the import address table (game_data.h's
@@ -264,25 +261,12 @@ each step green on the goldens and removing a measured tie:
   literal is still x87::flog at run time (FYL2X ignores the precision control). The six `d.Dword` reads of .rdata (pointer
   cells 0073D720, 0073D728) stay.
 - **.rdata sealed** (S18g; `rdata` sealed in config/data_seam.csv, raw 365 -> 0): every use of 0073B820-00783000 reaches the
-  seam. **Vtables** (until C19 makes a family's vtables the compiler's: "Compiler-made vtables" below):
-  `ei::SetVtable(object, std::uintptr_t)` (include/ei/vcall.h) resolves its argument with `GameAddress`, so
-  the per-class `kVtableAddress` constants and the `SetVtable(this, 0x...)` literals are ids / helper arguments; the
-  `const void*` overload takes a pointer already resolved (`X::Vtable()` accessors returning `GamePointer<void>`). A file's own
-  vtable helper (`SetVtable(CUnitShape*, std::uintptr_t)`, `ConstructList`, `FreeArray`, `DestroyArray`, `InitList`,
-  `SetVtables`, `NewPlainPanel`, ...) stores `ei::GamePointer<void>(id)` or forwards `GamePointer<const void>(id)` to the
-  `const void*` overload (forwarding the id to `ei::SetVtable` again reads to data_seam.py as recursion, no helper). A comparison
-  with an object's vtable compares with `ei::GameAddress(X::kVtableAddress)` (harness_digest's CSpellEffect, record_coder's
-  buffers, the harness's save / options windows). A vtable that is a template argument (map_object_kinds.h's `PlainMapObject`) or
-  a table entry (the harness's `kKnownWindows`, the effects' `Vtable()` accessors returning `std::uintptr_t`) is `ei::DataId`,
-  resolved by its reader (`SetVtable`, `WindowVtables`). Resolving twice is harmless (the storage lies outside game.exe's
-  ranges, so `GameAddress` of a resolved address is that address) but not the convention. **Other tables**: unit_hits' armour
+  seam. **Vtables**: no class of ours stores game.exe's table ("Compiler-made vtables" below). **Other tables**: unit_hits' armour
   rows through `ArmourTable` (GamePointer), ui_widescreen's two layout floats (addon.dll writes them) through Read/WriteFloat,
   the addon-site table's .rdata entries as `DataId` (make_addon_sites.py, from 0073B000 to .data's end). cover.cpp's code bound
-  is the last byte of .text (0073AFFF), not the start of .rdata. **data_seam.py**: an alias constant
-  (`constexpr std::uintptr_t kStreamVtable = CStream::kVtableAddress;`) passes for the constant it names when all of its own
-  mentions reach the seam. A helper's parameter that shares a member's name (`list.vtable = GamePointer<void>(vtable)`) is not
-  seen as routed (the member counts as a use): name the parameter `vtableAddress`. Lambdas are no helpers (pass
-  `GamePointer<void>(0x...)` to them).
+  is the last byte of .text (0073AFFF), not the start of .rdata. **data_seam.py**: an alias constant passes for the constant it names when all of its own
+  mentions reach the seam.
+
 | Sub-ticket | Step | Tie it removes |
 |---|---|---|
 | S18a | the seam, the check, .bss sealed, the casts of the other sections | raw uses: .bss 883 -> 0, .data 495 -> 64, .rdata 2028 -> 381, IAT 563 -> 76 |
@@ -299,7 +283,7 @@ each step green on the goldens and removing a measured tie:
 | S18k | an ordinary host (no fixed base, no range in its image; free parts of the range reserved as the guard), no read of game.exe (dispatch bytes from the build, imports from the game folder), stray game addresses reported by the seam | the address image (dashboard "image ties" 5 -> 0) |
 
 Not on this path: named, typed globals in place of a section's bytes (C18, below) and vtables as real virtual
-classes (C19), plain new / delete and standard containers (C14), Win32 calls linked directly.
+classes (C19, C28), plain new / delete and standard containers (C14), Win32 calls linked directly.
 
 ### The build without game.exe (C25)
 
@@ -307,8 +291,7 @@ The build reads no game.exe (C25c). The image's .rdata / .data bytes (`gen_image
 but the committed pointer cells (image_cells.inc); everything else our code reads
 there is a named global of ours (C18) or a literal. The resources are the host's own (C23). How it got there: C25a's
 trace of the reads and zero-filled trial, its kept list (`config/image_kept.csv`) and its static proof that every
-address src/ names held only zeros and cells; C25c named the last rows (out_of_range was a class of ours the compiler
-threw, gone with stlp::string in C14a; `__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
+address src/ names held only zeros and cells; C25c named the last rows (`__lc_category` and its static "C" are crt_locale.cpp's) and dropped that machinery
 (EI_IMAGE_BYTES_FROM_EXE, the trial, EI_IMAGE_TRACE / image_trace.py, the kept list, the proof, EI_NO_GAME_EXE).
 The code cells went in C20 batch 1 ("How it runs", Code): the bytes are zero but the pointer cells.
 
@@ -334,7 +317,7 @@ What C25a named or dropped of its list, still the code's form:
 - **Named**: OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
-- **MFC's empty string**: no CString of ours is left (C14i: src/lib's MFC is on std::string). game.exe's cells
+- **MFC's empty string**: game.exe's cells
   00796E48 / 00796E4C (`_afxInitData` and its character) stay in image_cells.inc, unread.
 - **Unread tables, no definition**: the 72 `.SEC` copies and the dead code's two tables (C18o's
   header_constant_copies.cpp / dead_code_tables.cpp) are gone; their cells are gen_image_cells.py's `UNREAD` groups
@@ -343,13 +326,12 @@ What C25a named or dropped of its list, still the code's form:
 ### Named data (C18)
 
 The code still names game.exe's data by address (progress.py's "game data addresses", 3,028 when C18 began, 3,015
-after its first batch, 3,000 after the second, 2,982 after C18c with C19 batch 2 and C21 batch 2, 2,952 after C18d,
+after its first batch, 3,000 after the second, 2,982 after C18c with the first vtable batch and C21 batch 2, 2,952 after C18d,
 2,095 after C18j's unread objects and 2,068 after its particle and weather names, 1,859 after the app* objects of C18f, 1,798 after C18h's small areas, 1,733
 after C18e's runtime classes and throws, 1,328 after C18m's reviewed unread objects, 1,276 after C18i's net and CRT state, 732 -> 728 after C18o's game tables,
 which took the pointer cells from 1,522 to 1,243, 243 -> 234 after C18q's script keyword and CRT tables, pointer cells
 1,243 -> 711; 247 -> 130 after the remaining objects batch, 2026-10-22; 121 -> 90 after C18s's console streams, 90 -> 56 after C18t's singletons with C25a's rows, 53 -> 41 after C18u's generated names, 41 -> 6 after C18r's MFC and CRT objects). C18 turns them into named C++
-globals, one kind and one owner area per batch; C19 does the
-vtables. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
+globals, one kind and one owner area per batch; the vtables are the compiler's. `python tools/named_data.py --split [KIND ...]` counts what is left by kind (import slot, vtable,
 eh/rtti/runtime class, rdata constant, data object, bss object, other) and by owner area (the one hand-written file
 that names the address, "several files", or "generated static init / exit only"), and lists the addresses of the
 kinds given.
@@ -408,8 +390,7 @@ kinds given.
   Each pointer element names what game.exe's pointer in its place points at, and the check compares that: a string
   literal (adjacent ones joined, escapes decoded) the zero-terminated text at the target (game.exe's string literals,
   in .data); the name of another named range its address; the name of a function of ours (`&` optional; any other
-  name, the compiler checks it) some code of game.exe (the function it rewrites; since C20l no table holds its address;
-  a stub of ours reporting an unported function, ei::UnportedSlot, its address); nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
+  name, the compiler checks it) some code of game.exe (the function it rewrites; since C20l no table holds its address); nullptr (or 0) a zero. The packed dword is then game.exe's pointer, so the byte comparison holds, and its
   offset is a pointer element: the only place a cell may sit inside the range. gen_image_cells leaves the cells inside
   named ranges out of image_cells.inc (the bytes are zero, nothing fixes them up) and its
   reviewed groups' counts drop with them; the strings they pointed at stay in the image for their other readers.
@@ -600,7 +581,7 @@ kinds given.
       function-local guard (run-time state), 0079B2A0 (2 pi) and the folds that only game.exe's own code reads (the
       per-window pi / 2 and 1 / 1 copies in 007C7B70-007C8844) are no hand code's; sky_object 007AA890 /
       007AA8A0, the unit objects 007AF280 / 007AF284, the animation / object3d / map_object lifetime objects
-      (007AF0E0-007AF110, 007AF1C0-007AF238) and torch_spec 007AF2D0 wait for C19 batch 4's conversions.
+      (007AF0E0-007AF110, 007AF1C0-007AF238) and torch_spec 007AF2D0 wait for their classes' conversions.
       gen_static_init reads a parenthesised negative literal in a fold; named_data takes a negative single number.
     - **Objects with exit functions** (C18k, the destructor rule): an initialiser that registers an exit function
       (`stores + atexit`, `constructor + atexit`) and the exit function are ported on the name; the game's atexit
@@ -608,8 +589,8 @@ kinds given.
       - The definition is constant initialisation with no C++ destructor (`constinit`): a destructor of ours would
         run at our CRT's exit, not at the original's place in the game's atexit list, and could free into the game's
         heap after the game's CRT has gone. A container the stores zero is defined zero:
-        `constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};`, `constinit stlp::vector<stlp::string>
-        g_questFiles = /*007AFDD0*/ {};` (named_data's TYPES names a template, `lib::AlignedArray` / `stlp::vector`;
+        `constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};`, `constinit std::vector<std::string>
+        g_questFiles = /*007AFDD0*/ {};` (named_data's TYPES names a template, `lib::AlignedArray` / `std::vector`;
         a pointer type it does not list is a pointer element: `CDirectInputMouse* g_mouse = /*0079BA08*/ {nullptr};`).
       - The exit function: ported on the name, outside any anonymous namespace, with a row in
         config/static_init_ports.csv (function_sizes.inc already has it, gen_static_init wrote it there); the initialiser's atexit stays at its
@@ -669,7 +650,7 @@ kinds given.
         reaches them: camera 0079B1E0 / 0079B1F8 / 0079B210 (00402310), terrain 007C8890 / 007C88A8 / 007C88B8
         (006BFF40) and 007C8950 (006C8990); their `free` exit functions stay generated until those functions are ported.
       - C18k3 (1,190 -> 1,180 game data addresses after the draw lists) named the frame's eleven draw lists
-        (world_client_view.cpp, 007AF508-007AF5A8: plain `stlp::vector<CEngineObject*>` 0x10 apart, the word after
+        (world_client_view.cpp, 007AF508-007AF5A8: plain `std::vector<CEngineObject*>` 0x10 apart, the word after
         each no one's; the last one ends where the deferred unit list 007AF5B4 starts, so there is no 16-byte
         struct; their stores stay generated, the exit functions 0056A510-0056A830 are ported; world.h's
         FrameObjects picks one from a table of the names; 0056A840, which clears them all, has no caller) and the
@@ -770,9 +751,7 @@ kinds given.
       four static windows (wndTop 007CAA28, wndBottom 007CA9E8, wndTopMost 007CA9A8, wndNoTopMost 007CA968, guard byte
       007CAA24) were CWnds nothing read: C14zh deleted the class and listed their four initialisers (00704410,
       0070444E, 0070448C, 007044CA) in UNUSED_INITIALISERS.
-    - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
-      allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
-      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
+    - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state (STLport's node allocator, free lists 0079B224, has no port: our objects are the host's `new`); `_pnhHeap` (007CAAD8) is gone
       (nothing called the handler it held, C35e); `_afxNewHandler` 00796E14 went
       with MFC's new handler loop (C14ze, C35g: our allocations are the host's `new`). MFC's (hand-ported until C14zi: the resource / memory / not-supported exceptions 007C8C58 /
       007C8DE8 / 007C8D50, afxData 007C90C8, the global locks 007C8E80..007C907C, _afxThreadData 007C9084, the halftone
@@ -784,8 +763,7 @@ kinds given.
       the pointer. The only data cells that point at it are the units' model folders 0078F7EC / 0078F824, a table only
       the dead 00532650 reads (gen_image_cells' UNREAD: zero in the image), so an UNREAD cell may
       point into a named range. The seams that took an address and had no address caller left went with it:
-      `game::Text`, the camera's and the transform maths' `GameFloat(std::uintptr_t)`, the `FreeArray` / `ConstructList`
-      overloads by vtable address and `CArray::Construct(std::uintptr_t)` (a vtable is passed as the class's `Vtable()`).
+      `game::Text` and the camera's and the transform maths' `GameFloat(std::uintptr_t)`.
     - **Left**: the section bounds in game_data.h and image_data.cpp (0073B000, 0073B820, 00783000, 007CD000, 007D7000):
       the address image's layout, not data. They go when the image no longer keeps game.exe's sections at their
       addresses (the generated static initialisers, image cells and import slots still reach the range by address).
@@ -793,677 +771,70 @@ kinds given.
 
 ### Compiler-made vtables (C19)
 
-Most objects still get game.exe's vtables: the constructors we wrote out store the address (`ei::SetVtable`), and the
-image's copy of each table holds code cells that image_code.cpp points at our registered functions. C19 makes the
-classes real C++ virtual classes, one family per batch, so the compiler builds their vtables and game.exe's tables
-are left to nobody. The split (batch 1, tools: `find_vtables.py`'s config/vtables.csv, 619 vtables, 7,258 slot code
-cells; who names each address in src/ and tests/, comments blanked):
+Every class of ours with virtual functions is a real C++ class: the compiler builds its vtable and no code of ours
+stores game.exe's table address. game.exe's tables stay in the image as data of the original (generated from game.exe
+at build, "Own data"). config/vtables.csv (tools/find_vtables.py; 608 rows: vtable address, slot count, RTTI name, kind,
+slot 0, class, file, note) lists them, and every row is retired: its class and declaring file (`-` for a table with no
+class of ours) are in the csv, gen_image_cells.py moves the table's slots out of the code cells (group
+`vtable-retired`) and writes their bytes zero in the image, `python tools/named_data.py --check` proves no address
+inside a retired table is named in src/ or tests/, and `python tools/gen_image_cells.py --check` that each row is a
+vtable of the csv with its slot count and a class of the file it names (a find_vtables.py rerun's new row needs a
+decision). `python tools/named_data.py --split vtable` lists each table with the files that name it.
 
-| Family | Vtables | Slots | What ties it |
-|---|---|---|---|
-| container instantiations (mfc_array / mfc_slots / mfc_list, record_arrays, class_templates) | 159 | 475 | one table per CArray / CList instantiation: a template parameter of the shared templates |
-| world, units, items, spells, effects, AI, combat, party | 101 | 1,358 | |
-| interface (ui*, console) | 88 | 1,574 | slots called by index (`vtable_[n]`: 74 sites, ui.h 28) |
-| library (MFC, CRT; RTTI type_info) | 54 | 522 | MFC's own classes; with C14 |
-| network (net*, link*, player_sync, server*) | 45 | 422 | message classes (net_messages.cpp: 117 stores) |
-| no store in src/ | 39 | 421 | only game.exe's code installed them: 13 retired (batch 2, below); the rest are tails or EH data |
-| render, device, textures, figures, scene, sound | 39 | 516 | |
-| map objects (map_object*, object3d*, trap, magic trap, lever, torch, sky, lightning) | 39 | 947 | |
-| named by the harness | 35 | 940 | the window labels (`kKnownWindows`, `WindowReady`, the census's `W<vtable>#n`), the digest's AI modes and CSpellEffect, harness_savetrace's stream Write slots, the console streambuf's sync slot (`PatchSlot`) |
-| streams, files, resources, core | 17 | 136 | |
-| src/lib only | 3 | 7 | |
-
-Nothing else depends on a vtable's address: saves and network messages carry values (no vtable comparison in src/),
-game.exe's game classes have no RTTI (only MFC's have type descriptors; nothing reads them), find_vtables reads RTTI
-names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5 (mod_folders reproduces it).
-
-**The method** (batch 1: the ground prints, ground_print.{h,cpp}, 0073F754 / 0073F760 / 0073F76C / 0073F778):
-1. Pick a family whose vtables only its own files name (`python tools/named_data.py --split vtable` lists each
-   vtable address with the files that name it; tests/ too: grep the harness), with no harness use (or replace
-   that first, below).
-2. The classes: drop `__declspec(novtable)` and the `kVtableAddress` constants; the virtuals stay declared in
-   game.exe's slot order (every slot, so slot indexes keep their meaning) and hold the bodies (`TickImpl` becomes
-   `Tick`); a derived slot calls the base's qualified (`GroundPrint::Tick()`).
-3. The constructors become C++ constructors (the shared part a protected one, the copy the lists make a copy
-   constructor); callers construct in place (`new (storage) BloodPrint(...)`, `new (to) BloodPrint(from)` in the list
-   policies). Members must be trivially default-constructible (or initialised in the list as the original does):
-   a constructor default-initialises what it does not name. The explicit `Destruct` / deleting destructors can stay.
-4. The registrations stay (C20 retires them): virtual slots and constructors through `__fastcall` shims that call
-   without dispatch (`self->GroundPrint::Tick()`, `new (self) GroundPrint(...)`; rewrite guide rule 4).
-5. Give the family's game.exe vtables their class and declaring file in config/vtables.csv (columns class, file,
-   note; until C20 batch 6 config/retired_vtables.csv):
-   gen_image_cells.py moves their slots out of the code cells (group `vtable-retired`; the `vtable` group's count is
-   7,258 less the retired slots) and writes their bytes zero in the image; named_data.py --check proves no address inside them is named (src/, tests/), and gen_image_cells.py --check that
-   each row is a vtable of config/vtables.csv with its slot count and a class of the file it names. A vtable two
-   classes shared (0073F778, the copy constructor's) goes when both do.
-6. `python tools/gen_image_cells.py`, the checks, both builds, `work.py test <ID> --golden --jobs 4`.
-- **Engine objects** (batch 2: CMusicSystem, CMaterial): CEngineObject's default slots are defined
-  (engine_object.cpp: the destructor clears the owner, CopyFrom is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0), so a
-  derived class with a C++ constructor gets the compiler's vtable; the constructor calls ClearFields. Slot 0 is the
-  virtual destructor: the compiler's scalar deleting destructor runs the destructor and the global
-  `operator delete` (the host's heap, as every allocation in the image). The
-  destructor body leaves out the members' destructors (C++ runs them after it). The registrations: Construct is
-  `new (this) X()`, the destructor bodies call `this->X::~X()` (qualified: no dispatch), slots 11 / 12 overrides
-  with shims calling them qualified. windows.h's GetClassName macro renames slot 11 in a file that includes it in
-  between: engine_object.h, the class's header and its .cpp `#undef GetClassName`.
-- **Batch 2's families**: the chunks (Chunk, RootChunk; 0073BE94 / 0073BE9C and the .mob root's 0073FAD4), the
-  buffered streams (BufferedStream, BufferedFile over GameBuffer's slots; 0073F8C8 / 0073F8A4), CMusicSystem
-  (00744098) and CMaterial (00743BB4). Left for later batches, with what each needs: CSoundManager (007440F0; its
-  members include a CMappedResource, a polymorphic class whose own virtuals and destructor would have to be defined,
-  and a dozen other member types to check for default constructors), CTexture (00743D24; its name_ is a CString C15
-  retypes), CSkyObject (0073D5B8; abstract in C++ and sharing 0073C224 with CFigureMesh), the map objects (torch
-  0073E834 with its tail 0073E850, lever 0073E740, trap 0073E548, magic trap 0073E63C: CMapObject's 61 slots need
-  definitions first), the torch spec (0073E954 with its tail 0073E98C), the texture and material managers
-  (CResourceManager's 26 slots), CArray<MusicTheme> (007440CC, with the container instantiations).
-- **Batch 3's families**: CTexture (00743D24), CMappedResource / CMMIOResource (007432E0 with its tail 007432FC,
-  00743300), CSoundManager (007440F0), the map objects (torch 0073E834 + 0073E850, lever 0073E740, trap 0073E548, magic
-  trap 0073E63C + 0073E6E8), the torch's spec and its client half (0073D558, 0073E954 + 0073E98C) and the managers
-  CTextureManager (00743CB0), CSpellManager (00743A14), CFigureManager (0073FB88): 17 rows, 21,439 -> 21,037 code cells.
-  - **Bases still built by constructor bodies** (CObject3D, CMapObject, CBaseManager, CResourceManager): CUnit, the
-    plain map objects and the other managers keep `Construct` / `DestructBody` (they store game.exe's vtable). The
-    class also gets protected C++ constructors and a virtual destructor that share the bodies' work
-    (`SetUpMapObject` / `TearDownMapObject`, `SetUpBaseManager` / `TearDownBaseManager`, ...), and every slot is
-    defined (the bodies registered by member pointer get forwarding definitions), so its compiled vtable is a
-    replica of game.exe's: a derived class's base destructors run with it, and a virtual call there (CMapObject's
-    `DestroyMapObject`, CBaseManager's `Destroy`) reaches the same function as in the original. Members whose
-    default constructor only nulls (stlp's vector and hash_map) are fine; base_manager.cpp asserts the rest are trivial.
-  - **Slots with other types in the original**: slot 41 (`ApplyScience(int, int)`) gets the key record's address
-    from combat_actions.cpp; the trap's and lever's overrides cast it back to `const LockKey*`. CTorchObjectSpecSlots
-    (the setters 13-18 reached through the vtable) became CTorchObjectSpec's own virtuals.
-  - **The tails go with their table**: gen_image_cells.py's check accepts a retired row that no code stores when it
-    starts where a retired row it may follow ends (007432FC after 007432E0's 7 slots; 0073E850, 0073E6E8, 0073E98C).
-  - **addon.dll sites**: CMappedResource's table holds addon.dll's ResOverride site 007432F4. addon.dll runs in game.exe
-    only (harness_addon.cpp), so named_data.py exempts the sites in `RETIRED_ADDON_SITES` from the "no addon site
-    inside a retired vtable" rule and does not count tests/verify/addon_sites.inc as naming an address inside one.
-- **Batch 4's families**: every class derived from CBaseManager / CResourceManager (CMaterialManager 00743C38,
-  CItemManager 0073F25C, CServerSpecificManager 0073D4F4, CClientSpecificManager 0073BECC + its tail 0073BF08,
-  CLightFactory 00743B50, CPlayerManager 0073F328, CEffectManager 0073F2C4, CParticleManager 0073F644,
-  CLightningManager 0073F5B8, CMapObjectManager 0073DCD8, the visibility fog's ClientArrayManager 0073F554) and the
-  plain map objects (CTree 0073E178, CBuilding 0073E26C, CStone 0073E360, CStuffObject 0073E454): 19 rows,
-  7,526 -> 7,004 code cells.
-  - **Managers the original builds inline** (the item, player, effect, particle, lightning and fog managers: the base
-    constructor, then members and the vtable in the caller) get a public C++ constructor and a `Construct()` that
-    constructs in place (unregistered when the original has no function of its own), for `ConstructOn` and the
-    callers (`Make<CBaseManager>(size, ConstructOn<CItemManager, &CItemManager::Construct>, nullptr)`).
-  - **Slots a manager inherits as a thunk** (slot 3 of the item, material, map object, player and effect managers:
-    `thunk_FUN_00674f40` / `thunk_FUN_004031e0`) and slot 13's copies of CBaseManager::Init at their own address
-    (00562D70 lightning, 00562DA0 fog) are the base's virtual in the compiled table; their registrations stay.
-  - **Two classes for one table**: world.h's ClientListManager was CLightningManager (the client world's +0x1A0, the
-    same 0xCC bytes; its list is the new bolts); it is gone and the world holds a CLightningManager*. The map object
-    manager was a plain struct reached through casts; it is now a CResourceManager (slot 14's body is NewObjectImpl,
-    CreateObject is slot 23's override).
-  - **A template keyed by its vtable** (PlainMapObject<kTreeVtable>) is keyed by the class id; gen_image_cells.py's
-    check wants the csv's class to be one the file declares (`PlainMapObject`, the instance in the note).
-  - **Left in game.exe's tables**: the bases' own 0073B870 (CBaseManager) and 00743338 (CResourceManager), stored only
-    by the registered bodies ConstructBase / DestructBody / Construct / Destruct, which no code of ours calls any more
-    (they go with their registrations, C20). CSkyObject and CUnit: batch 5.
-- **Batch 5's families**: CSkyObject (0073D5B8), CUnit (0073EA8C + its tail 0073EAA0) and CFakeUnit (0073BFE8): 4
-  rows, 7,004 -> 6,855 code cells.
-  - **CSkyObject** derives from CPlainFigureMesh (batch 6; the mesh's layout plus the haze array; game.exe's 0x44
-    table is the 0x42 mesh's 0073C1C4 but for slots 0, 11 and 12). CFigureMesh's protected constructor and destructor
-    share ConstructBase's and DestructBase's work (`SetUpFigure` / `TearDownFigure`). CTransformObject's slots 13-17
-    are defined (core_transform.cpp) for the compiled tables. SetPose takes the quaternion and offset by reference.
-  - **CUnit**: every slot the unit changes is declared, the bodies registered at their addresses under other names
-    (CreateUnit, Tick, LoadUnit, StandPoint, the net-state functions, ...) are called by the slots; slot 56's result
-    (ObjectDeletedImpl has none) is 0, which nothing reads. The C++ constructor and destructor are 0052E110's and
-    0052E310's work; the destructor calls slot 5's body (ReleaseUnit) directly, as the original calls it through the
-    table's memory (that call is why find_vtables split the tail 0073EAA0 off). The members' CArray tables (carried
-    0073EB84, the motion's 0073EB90 / 0073EB9C and their bases 0073EBA8 / 0073EBB4) are compiled collections since
-    batch 8.
-  - **CFakeUnit** (0073BFE8; scene::FakeUnitScene, scene_loader.h) is a CUnit with the skin and the scene's arrays
-    (4 bytes at +0x4DC: the skin is 8-aligned in the original), overriding 2, 3, 11, 12 and adding slot 62
-    (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
-    after the bone block now, a free order only). No scenario makes a fake unit (class 0x39; coverage: dead), so
-    only the builds checked it; C35l deleted it. CUnit's slot bodies stay registered at their addresses until C20.
-- **Batch 6's families**: the figure classes 0x41 (CSharedFigureMesh, 0073FBF0), 0x42 (CPlainFigureMesh, 0073C1C4: the
-  factory's attached parts and the scene loader's figure records 00453240) and 0x43 (CUiMesh, "CI3DFigure", 0073FC48),
-  and the scene's meshes (scene::SceneMesh, "CFakeFigure", 0073C274): 4 rows, 6,855 -> 6,767 code cells. Next: the
-  factory's other classes and link_figure.h's (batch 7), the containers by template (CArray<FaceGroup> 0073C2BC, the
-  unit's member tables 0073EB84 / 90 / 9C / A8 / B4), network messages, interface (needs the harness id); the bases'
-  own tables (0073B870, 00743338, 0073C224) with C20.
-  - **CFigureMesh** is the abstract base ("CFigure"): it declares slots 18-21 (CopyFigure, LoadFromMemory, LoadFig,
-    LoadOld; 20 / 21 pure) and overrides 2, 3, 7, 11, 12, 15, 16 as game.exe's base table 0073C224 has them (19 is
-    LoadNothing there). CPlainFigureMesh adds 22 / 23 (MirrorX / MirrorY) and overrides 3, 17, 19-21; CSharedFigureMesh
-    overrides 3 and 19-21 (game.exe's 0x41 table has 22 slots: no mirror); CUiMesh overrides 2, 3, 11, 12 of
-    CPlainFigureMesh, CSkyObject 11 and 12. The slot bodies keep their registered names (CreateMesh, ClearMesh,
-    SetPose, ...); where a virtual took the name the body is `...Impl` (CopyFigureImpl, LoadFromMemoryImpl, LoadFigImpl,
-    LoadOldImpl, MirrorXImpl, MirrorYImpl). CFigureObjectVirtuals / FigureSlots are gone.
-  - **0073C224 stays** (as CBaseManager's 0073B870): only ConstructBase / DestructBase store it, which no code of ours
-    calls; nothing ever has the base as its final class (game.exe's other two stores, 00476FB0 / 004A0350, are dead code).
-  - **Sizes**: CFigureMesh is class 0x41's 0x1E0 bytes; the four arrays only class 0x42 and its derived classes have
-    (corners, words, indices, texture coordinates) and the bodies that use them are CPlainFigureMesh's (batch 7). The
-    factory allocates `sizeof(T)`, static_asserted against the game's size for the class.
-  - **Value-initialisation**: the factory's `new (o) T()` zero-fills a class whose default constructor is not
-    user-provided before running it; every class it constructs declares one (CUiMesh's is empty), so the memory is
-    left as operator new gave it, as in the original.
-  - **ei_vectors** links record_arrays.cpp but not the figure or scene files: the element constructors that need the
-    classes' vtables (InitFigurePart, InitSceneMesh) are defined next to the classes and stubbed in
-    tests/vectors/replay_unlinked.cpp.
-  - Registrations whose only reader was a retired table's code cell became EI_REWRITTEN
-    (`registration_readers.py --drop --only`), batch 5's sky ones with them.
-- **Batch 7's families**: the figure factory's other classes AnimationTrack (0x300B, 0073D9D8), FigureBone (0x300C,
-  0073DA0C) and CFigureAnimationState (0x300D, 0073DA4C; also the map object factory's class 0x300D), the figure mesh
-  drawer (FigureMeshDrawer, class 0x36 "CFigureClientSpecific", 0073FB10) over its base (FigureDrawerBase, 0073FB44)
-  and the figure's mesh (CLinkMesh, 0073D790) over its base (CLinkMeshBase, 0073D7CC): 7 rows, 6,767 -> 6,672 code
-  cells; the 37 registrations only those cells read are EI_REWRITTEN. Before them, class 0x41's size (above).
-  - **Engine objects again** (as batch 2's): C++ constructor and virtual destructor sharing the registered bodies'
-    work, `operator delete` into the game's heap, the changed slots overridden (2 / 3 call the registered reset
-    bodies CreateTrack, DestroyBone, ...; 11 / 12 return the small_slots_500.cpp / world_class_slots.cpp constants).
-    Their lists' tables (the bone's child list and the state's lists, 0073DA40 / 0073DA80) went in batch 8.
-  - **A base with only pure slots** (0073FB44, 0073D7CC: every slot but 0 is `_purecall`) is an abstract C++ class
-    with a protected constructor; its registered destructor bodies (005A70C0 / 005A70A0, 004F2D40 / 004F2E00) call its
-    destructor qualified. CLinkMeshBase declares the 14 slots pure (their comments live there); CLinkMesh overrides
-    each with a call of its `...Impl` body. The counted root under CLinkMeshBase (0073C368, one slot, no fields) is not
-    a class of ours: other classes' destructors still store it (`kRootVtableAddress`).
-  - **Counted deletes**: the figure's last reference goes with `delete mesh` (the virtual deleting destructor), where
-    the code called slot 0 with 1 by name (`DeleteThis(1)`).
-  - **CObject3D (0073DDD4) waits for C20** with the bases' own tables: only CObject3D::Construct / DestructBody store
-    it, reached from CMapObject's (0073DAA0, the same case) and CObject3D::DeleteObject3D, none of which our code
-    calls; every class under it has a C++ constructor. Its row in config/vtables.csv is 5 slots: find_vtables split the
-    table at 0073DDE8 (006E0437 reads that address), and gen_image_cells.py lists the other 22 slots as a reviewed
-    range (`CODE_REVIEWED`), so retiring it also needs the row widened to 27 and that range dropped. (Batch 22 retired
-    it with CMapObject's, and moved the range to NOT_CODE instead of widening the row.)
-- **Batch 8's families**: the containers by template: CArray<FaceGroup> (0073C2BC, record_arrays.h's
-  FaceGroupArrayClass), the unit's member arrays (carried 0073EB84; the motion's waypoints 0073EB90 over 0073EBB4 and
-  points 0073EB9C over 0073EBA8) and the lists 0073DA40 (a bone's children, an animation state's bones), 0073DA80 (an
-  animation state's queue), 0073DE4C (a 3D object's effect sources): 9 rows, 6,659 -> 6,632 code cells; the 16 slot
-  registrations only those cells read (the scalar deleting destructors and the Serialize bodies) are EI_REWRITTEN.
-  - **Compiled collections** (mfc_slots.h's `CompiledCollection<Self, Destroy, Store>`): the collection templates keep
-    the vtable a plain field, and an instantiation's Class tag names the table its constructor and destructor store
-    (`Class::Vtable()`). A tag that derives from CompiledCollection is a C++ class with CObject's three slots over
-    the header's layout: slot 0 GetRuntimeClass (CObject's record, as 007005E3), slot 1 the virtual destructor
-    calling the instantiation's own destructor on the header (`ArrayHeader<Tag>::Destruct`, `PtrList::Destruct<Tag>`,
-    `scene::FaceGroupArrayDestruct`: the table written, the elements destroyed, the storage freed; the scalar
-    deleting destructor frees into the game's heap), slot 2 Serialize (`SerializeCArray<Abi>`, `SerializeCList<Abi>`).
-    `Vtable()` is the table a Tag's constructor stores (`CompiledVtable<T>`: one built in a buffer and read back).
-    Nothing of ours is a Tag object: our code calls the header's functions by name, and the slots are what a dispatch
-    through the table reaches (an element's slot 1 in DestructElements, an archive's slot 2).
-  - **Derived instantiations** (the motion's 0073EB9C / 0073EB90, which the unit's constructor stores, over
-    0073EBA8 / 0073EBB4, which the destructors and 00556D70 store): the derived tag (MotionPointsClass,
-    MotionWaypointArrayClass) derives from the base's and only names its own table; its destructor ends in the
-    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do. (C14m made the motion's arrays
-    std::vector and those tags went; ScriptFloatValuesClass over ScriptFloatsClass is a derived tag still in use.)
-  - **Slot 0** is `ObjectRuntimeClass()` (mfc_coll.cpp: ei_vectors links it, not mfc_slots.cpp).
-  - CUnit's carried array's table field is `void*` (unit.h); the code sets every one of these tables through its tag.
-  - The other ~150 container tables can go the same way, a tag at a time: replace the tag's `Vtable()` by deriving
-    from CompiledCollection with the tag's destructor and Serialize (mfc_slots.cpp's ScalarDelete / Serialize
-    registrations name both), retire the row, then drop the registrations only the retired cells read.
-- **Batch 9's families** (2026-10-21): 52 more container tags, 6,632 -> 6,476 code cells, 97 slot registrations
-  EI_REWRITTEN: in mfc_slots.h the trap arrays (circles, points, and the map trap record's areas / targets derived from
-  them), the script command's argument and binding arrays (ArgObjectsBase / ArgGroupsBase / BindingsBase with the
-  derived ArgObjects / ArgGroups), the scene loader's arrays and maps (Vector3, NodeItems A-C, TextureLink,
-  MeshCorner, FigureRegistry, CornerMap A-C), the map object, world and unit arrays (Effect, EffectSound, Frame, Id,
-  SkinLayer, Countdown, PartyUnit, SpiralCell), the path smoothing, UI and terrain builder arrays (SmoothEdge / Copy /
-  Step, ObjectiveExit, ItemStrip, QuickEntry, TokenPtr, LinePtr, TerrainArray A-C) and the pointer lists
-  (ClientObject, Experience, Attention, Player, Texture, Sound); in record_arrays.h CArray<SceneNode / DeltaField /
-  Behaviour / SectorVertex>, the command's nested calls (SubCallBase with the derived SubCallArray), the binding arrays
-  (BindingArrayClass over BindingsBaseClass) and the terrain's tile lists.
-  - **A derived tag** is the tag whose table's slots call another tag's destructor (ScalarDelete<ArrayHeader<Base>>)
-    and Serialize (the same address as the base's): `struct Derived final : Base` with its own `Vtable()`
-    (`CompiledVtable<Derived>()`); the base is not final and is defined before it.
-  - **Where the uses were**: every `GamePointer<void>(0x...)` / `DataId(0x...)` / `kXxxVtable` constant for a retired
-    table became the tag's `Vtable()` (helpers that took an address got a `void*` overload or parameter); tests/vectors'
-    replay_script_load.cpp builds its command arrays with SubCallArrayClass (the loader's empty arrays, 0073D4A8).
-    Aliases a tag names (Plain36 / Plain56, AttentionList) moved above the tags.
-  - **Skipped** (not the pattern, or a header the tag cannot reach): SectorOccluderArrayClass 0073FAE0 (shares slots
-    with the sector's own table 0073FADC, which gen_image_cells.py refuses to retire apart); Array0498Class /
-    ParticleDepthArrayClass 0073D024, SectorCellArrayClass / SpiralOffsetArrayClass 0073FDEC and SmoothRowArrayClass /
-    SmoothNodeArrayClass 0073FE34 (static_init.cpp stores the table in generated static initialisers: 007A9C50,
-    007C2FF8, 007C3038); the tags of mfc_array.h and mfc_list.h (the aliases there name them: they would move into
-    mfc_slots.h); the owned-element arrays whose Serialize alias lives in a game header (record_arrays.h, game_arrays.h:
-    FakeUnit*, NamedRecord, the global map's) or later in mfc_slots.h; game_slots.h's and game_lists.h's script lists
-    (SerializeCListThrough over aliases of game_slots.h); synonyms of the same address in two headers (game_arrays.h's).
-- **Batch 10's families** (2026-10-21): 51 more container tags, 6,476 -> 6,323 code cells, 93 slot registrations
-  EI_REWRITTEN: the owned-element arrays of mfc_slots.h (FakeUnitBoneArrays, SceneObject, TerrainByteArrays,
-  AlignedAt4 / AlignedAt8, TextureName, MemoryRecord, the global map's Point / Path / Zone, Patrol with the derived
-  BehaviourPatrols, Allod, ScriptArea: their element-policy aliases moved above the tags); the owned-element arrays whose
-  Serialize alias lived in a game header (record_arrays.h: FakeUnitPart / SceneRecord / Record9C and Definition;
-  game_arrays.h: PointLight, Group, the object pointer base ObjectPtrArrayBase); game_slots.h's script lists and arrays
-  (ItemObject, ClientObject2, ObjectRef, Victim, RefListB, OwnedRef, SharedObject, ArmourSpell, Wave, the script's
-  ParticleSource / FxSource / Lightning / Decl / Definition / Run / Group / Token / Define lists, MemoryObject,
-  ClientObjectPtr, EffectObject and CommandArray); and mfc_array.h's model and animation file arrays (RotKey, PosKey,
-  MorphHead, Normal, FilePoint, FileUv, FileFace, Index) moved into mfc_slots.h.
-  - **Duplicates made one**: game_arrays.h / game_slots.h / mfc::impl each had a tag for 0073D3A0 (PointLight) and 0073D3B8
-    (Definition) and game_lists.h another for the script lists (TempObject / TempGroup / Instance names), the owned and
-    shared lists and the token list; each address has one tag now (game_slots.h's `gameslots::`, record_arrays.h's
-    `recordarrays::`, game_arrays.h's `gamearrays::`). The raw constants (script.h's `scriptvtable::kXxxList` and
-    kGroupsBase, world.h's ObjectsBaseVtable, worlddata::kClientListVtable, combat_lifetime / world_destructors /
-    world_construct / sound_manager_lifetime / map_object_lifetime's `kXxxVtable`, scene_loader.h's `scenedata::` array
-    accessors) became `Tag::Vtable()`. The sound cache's WaveListClass registrations moved to game_slots.cpp: its
-    Serialize names WaveRecord::Assign (sound_manager.cpp), which tests/vectors does not link.
-  - **Skipped, for a later batch**: the tables static_init.cpp stores in generated initialisers (0073D024, 0073FDEC,
-    0073FE34, plus FloatArrayClass 0073D3E8 and the Objective / NamedRecord array 0073D46C, 007AA608); the sector occluder
-    array 0073FAE0; RefListAClass 0073FA4C (kept as the old tag); mfc_array.h's remaining tags (IntArray, UnitPtr,
-    Float, ArgFloat, ObjectRef, ScriptGroup, ScriptFloats, ScriptArea, ScriptIfThen, PartySlot, AiLook, Sprite, BoneLink,
-    Waypoint, Exit, MapRecordItems, Point, AttackOption, AnimationSteps(Copy), ClientMap, ObjectPtr, Sector, CellRow,
-    AreaList, StringArray, ArrayBase, AiLookRecord) and mfc_list.h's (PtrList, ItemList, TempList, CellList, LootList,
-    PlatformList, Client / Client2 / Client3, NodeList, BlockCostList, AiMapList, WaypointList, StaticList, DwordMap,
-    ScriptCommands): the shared base tags (mfc::PtrListVtable / DWordArrayVtable) and the element aliases that name them
-    in mfc_array.h need their dependencies reordered first.
-- **Batch 11's families** (2026-10-21): 43 more container tags, 6,323 -> 6,194 code cells (6,218 after the 35 library tags,
-  then the 8 game ones), 76 slot registrations EI_REWRITTEN (62 + 14): the rest of mfc_array.h's and mfc_list.h's tags.
-  - **Library tags** (35, defined in mfc_slots.h after the element policies and the base tags PtrList / IntArray, which
-    the batch moved ahead of the users): IntArray, UnitPtrArray, ArgFloatArray, ScriptFloats, ScriptArea with the derived
-    ScriptAreaParts, ScriptIfThenArray, PartySlotArray, AiLookArray with AiLookRecordArray, SpriteArray, BoneLinkArray,
-    ArrayBase with WaypointArray, PointArray, AttackOptionArray, AnimationSteps with AnimationStepsCopy, CellRowArray,
-    StringArray, and the lists PtrList, ItemList, TempList, CellList, LootList, PlatformList, ClientList / 2 / 3, NodeList,
-    BlockCostList, AiMapList, WaypointList, StaticList, plus DwordMap. mfc_array.h and mfc_list.h only declare them
-    (the element policies and aliases name them), so a translation unit that calls `Tag::Vtable()` or instantiates an
-    alias over them includes lib/mfc_slots.h (MSVC instantiates the alias' element functions where the alias is
-    named: an incomplete tag fails there). Removed: lib/mfc.h's PtrListVtable / DWordArrayVtable, combat_plan.h's
-    kAnimationStepsVtable / kAnimationStepsBaseVtable, script.h's kFloatsBase / kStringsBase.
-  - **Game tags** (8, mfc::impl classes defined in the game header that has their elements): game_arrays.h (ExitArray with
-    the derived MapRecordItems, ObjectRefArray, ScriptGroup, the derived ObjectPtrArray), game_slots.h (the derived
-    ScriptCommands), record_arrays.h (ClientMapArray, SectorArray). The element aliases that name them moved with them
-    (MapRecords, ScriptGroups, SharedObject*, CommandBlock*): a lib header cannot name a tag it does not define. The lib
-    registrations over them (Construct of the arrays, ConstructElements / NewNode of the aliases, ExitTargets::Destruct)
-    moved to game_arrays.cpp, record_arrays.cpp (ClientMap) and game_slots.cpp. The Sector array's Construct is in
-    sector_map.cpp: its table's destructor is CSectorMap::DestructSectors, which tests/vectors does not link.
-    gameslots::GroupDestruct became gamearrays::DestructGroupBody (inline, so the vectors build links the tags).
-    Raw constants gone: flowdata::kExitArrayVtable / kExitArrayBaseVtable, world_construct.cpp's kZoneExitArrayVtable,
-    world_destructors.cpp's kWaterLevelsVtable, sector_map.h's kSectorArrayVtable, world.h's ObjectsVtable, script.h's
-    kRefs / kRefsBase and the literals in script_load.cpp, script_runtime_helpers.cpp and script_vars_append.cpp.
-  - **Left raw** (batch 12 took them): AreaList 0073F9E0, FloatArray 0073D3E8, the script variables' derived tables and
-    the batch 10 skips.
-- **Batch 12's families** (2026-10-21): the container tables earlier batches left for tool or initialiser reasons: 12
-  rows, 6,194 -> 6,158 code cells, 24 slot registrations EI_REWRITTEN.
-  - **One-slot tables** (find_vtables.py): a table ends after its first slot when the next address is one the code
-    stores (`mov r/m32, imm32` / `mov r32, imm32`: a vtable of its own; an address the code only calls through, `call
-    [v]`, still splits only after the second slot). CSectorMap's 0073F9DC and the sector's 0073FADC (each only a
-    deleting destructor) were 4 slots, overlapping the area list's 0073F9E0 and the occluder array's 0073FAE0; 19 other
-    rows got their one slot too (0073CAB0, 0073D760 / 64 / 70 / 74, 0073FD58, 00740F28, 00742F20 / 24, 00743320,
-    00744054-00744064, 00744264, and the retired 0073CA08, 0073CA0C, 007432FC). Only the slot counts of
-    config/vtables.csv were taken from the rerun (the five string rows it then added are gone since batch 24, "Not
-    vtables" below). The union of slots is the same, so no code cell moved. AreaListClass and SectorOccluderArrayClass are compiled tags in
-    mfc_slots.h (sector_map.h's kSectorOccluderArrayVtable gone).
-  - **Tables the static initialisers stored** (ParticleDepth 0073D024 / 007A9C50, Objective 0073D46C / 007AA608, SpiralOffset
-    0073FDEC / 007C2FF8, CArray<float> 0073D3E8 / the radius tree's keys 007C2FD8, SmoothNode 0073FE34 / 007C3038): the
-    initialisers inlined the arrays' constructors (00498E60, 004C9D90, 005C18C0, 005BF890, 005C44B0); game_arrays.cpp
-    registers those constructors (`ArrayHeader<Tag>::Construct`), so gen_static_init.py writes `d.Thiscall(ctor, object)`
-    in place of the stores of game.exe's table (no change to the generator: a registered callee is called, not inlined).
-    The four game tags are game_arrays.h's (mfc_slots.h's raw duplicates Array0498Class, SectorCellArrayClass,
-    SmoothRowArrayClass and NamedRecordArrayClass are gone, their slot registrations moved to game_arrays.cpp);
-    FloatArrayClass is mfc_slots.h's (the raw constants of sector_map, terrain_landscape and map_object_lifetime gone).
-    Two unread objects right after two of the arrays (007A9C64, 007C3010) are REVIEWED_NEAR entries: with the stores
-    gone the array below is no longer an initialiser-stored object, and its maxSize / growBy field is the referenced
-    address below them.
-  - **The script variables' tables**: kFloats 0073D2E0 is mfc_slots.h's ScriptFloatValuesClass (derived from
-    ScriptFloatsClass, whose destructor its slot calls), kIfThen 0073D430 ScriptIfThenPairsClass (derived from
-    ScriptIfThenArrayClass); kStrings 0073D2D4 and kGroups 0073D304 are game_arrays.h's ScriptStringValuesClass /
-    ScriptGroupValuesClass over the destructors their slots call (ScriptNamesDestruct 004BC810, ScriptGroupArrayDestruct
-    004BCA20). script.h's scriptvtable::kFloats / kStrings / kGroups / kIfThen, game_lists.cpp's DefinitionIfThenClass
-    and the literals in script_load.cpp / script_parse_load.cpp are gone. RefListAClass 0073FA4C (the world server's
-    new connections, AcceptNewPlayers) is game_slots.h's compiled tag (game_flow_data.h's kSessionListVtable gone).
-- **Batch 13's families** (2026-10-21): the one-slot rows batch 12 freed and the CScript members' tables: 26 rows,
-  6,158 -> 6,126 code cells, 27 slot registrations EI_REWRITTEN.
-  - **Compiled tags for any class** (src/lib/compiled_vtable.h): `ei::CompiledVtable<T>()` (moved out of mfc_slots.h,
-    which re-exports it), `ei::CompiledTag<Self>` (the `Vtable()` accessor) and `ei::CompiledDeleter<Self, &C::Delete>`
-    (a one-slot table whose slot 0 calls the class's deleting destructor member). A class that keeps `void* vtable`
-    as a field stores `Tag::Vtable()` where it stored game.exe's address; the original's dispatch through the field
-    (`Release`, `Delete`, `Blit`, `Kind`) reaches the tag's slot, which calls the same body.
-  - **The rows**: the thrown error object (CDXException / CGameException, 0073CAB4 / 0073CAB0; dx_errors.h; real
-    classes since C28j); the renderer's (real classes since C28j: renderer_base.h's CRendererBase 0073D768,
-    texture.h's CDXDirectDraw 0073D770, CTextureDevice 0073D760 over it and CDXSurface 0073D774, model.h's
-    CTransformPipeline 0073D778, whose MatrixStack members construct and free themselves); 0073D764 with no class (only the dead 004E72A0 / 004E76B0 / 004E7700 store it);
-    UnitShapeCache 0073FD58 (a real virtual class: CreateShape calls CreateUnitShape, Construct constructs in place);
-    CUiSurface 00740F28 (a real class since C28m: slot 0 Blit; CUiScrollingSurface 00742FD8 over it, built with
-    `new`, freed with `delete`) and the scrolling text's tokens (UiTextToken
-    00742F24, UiFormatToken 00742F28, UiWordToken 00742F20; ui.h; real classes since C28m); CResourceBase / CResourceStream
-    (00743324 / 00743320: real virtual classes since C15 batch 11); the item records (item_db.h, 00744054-00744068: real
-    classes since C28i, ItemRecordHead abstract with Kind as slot 0 (its 00744060's slot is the compiler CRT's
-    `_purecall` as game.exe's 006E73EB, reached only by a bug), constructors and copy constructors per kind); prints.db's PrintRecord /
-    PrintRecord2 (00744264 / 00744268: real virtual classes, `Vtable()` the compiler's, Serialize defined).
-  - **Two game tables for one instantiation**: the CScript constructor's 0073D394 / 0073D358 / 0073D334 do what
-    0073D3A0 / 0073D3B8 / 0073D3C4 do (MSVC6 emitted the instantiations twice); the constructor stores the compiled
-    PointLightArrayClass / DefinitionArrayClass / ScriptAreaArrayClass that the destructors already used.
-  - **Not vtables**: strings whose dword falls in .text: "%ld" 0074676C, "dde" 0074718C, "a/p" 007474B8 (each a
-    false Ghidra function, library.csv's "not a function" rows 00646C25 / 00656464 / 00702F61), "OCP" / "ACP"
-    00747E2C / 30 (inside a function), "ime" 00746E60 (dead_code.csv), and the EH unwind entries (kind `eh`). Never
-    retire them (zeroing them breaks the strings). find_vtables.py takes a dword as a slot only when it is a game,
-    library or thunk function start less those rows, so a full rerun reproduces config/vtables.csv (613 rows; it had
-    given _AFX_CTL3D_THREAD 00746768 the "%ld" as a second slot).
-- **Batch 14's families** (2026-10-21): the network area's tables and the items': 42 rows, 6,126 -> 5,666 code cells,
-  220 slot registrations EI_REWRITTEN.
-  - **Messages and server entries** (net_messages.h, net_classes.h; 20 rows 0073BB28-0073BDD0): real C++ classes since
-    C28k (a constructor, Clone's copy constructor, OnShutdown destroying and rebuilding in place, a destructor). The
-    message registry keys on the object's class (TypeRegistry::KeyOf: its vtable).
-  - **Sessions** (net_classes.h): SessionBase (15 slots), ServerBase / ClientBase (17) and the final ServerSession /
-    ClientSession, real C++ classes since C28k. **Connection, replica entry** (net_connection.h) and the **links**
-    (net_link.h: NetLink and its Loopback / Replay / Framed / Driver links): real C++ classes since C28k (FileStream
-    since earlier, DriverSession since C28g).
-  - **Items** (item_class.h over engine_object_class.h; real classes since C28a): EngineObjectClass declares CEngineObject's 13 slots with the
-    base's bodies (Release keeps the hook's EAX: this, or the manager's slot 24 result); ItemClass adds CItem's 14-21
-    (17-20 return a CString by value: the caller's hidden result, as game.exe's); one tag per item class (the
-    scroll's slots 9, 10, 13 and 14 are CItemQuick's bodies) and the item constructor's.
-  - **Trap: a removed `kVtableAddress` falls back to the base's.** Removing a class's constant leaves an unqualified
-    `kVtableAddress` in its members compiling against the base class's (CEngineObject's 0073B8E0, CRefObject's): the
-    first build of the item tags stored CEngineObject's table from party_lifetime.cpp's CItemConstructor::Construct
-    and every run hit `_purecall` at startup. Before building, declare a poison member (`static const struct
-    Poison kVtableAddress;`) in the classes and build once to list every leftover use.
-  - **Left**: GameBuffer's 0073CA48 / 0073CA64 / 0073D624 (net_coder.h): tests/vectors/record_coder.cpp compares a
-    buffer's table with game.exe's address under game.exe, which named_data's check forbids for a retired row; it
-    needs another recognition first.
-- **Batch 15's families** (2026-10-22): the spells', GameBuffer's, the world's and the units' tables: 39 rows,
-  5,666 -> 5,175 code cells, 194 slot registrations EI_REWRITTEN, 1,138 -> 1,108 game data addresses.
-  - **Spells and light** (spell_class.h; real classes since C28b): CSpellClass, CSpellContainerClass, CSpellConstructorClass, and CLightClass
-    over the new `TransformObjectClass<Self, T>` (engine_object_class.h: CTransformObject's slots 13-17 with the base's
-    bodies). 0074399C stays: the harness names it.
-  - **GameBuffer** (net_coder.h): the abstract GameBuffer (0073CA48: 2 Commit returns 0, 5 its deleting destructor)
-    with GrowingBuffer (0073D624) and BufferView (0073CA64) over it, real C++ classes since C28k (locals and members
-    are built and destroyed by C++; MasterLink and Query became real classes with them).
-    tests/vectors/record_coder.cpp recognises game.exe's buffers by `&ei::OriginalGameData<const
-    std::uint8_t>(0x0073D624 / 0x0073CA64)`, which named_data allows in tests.
-  - **World effects** (world_effect.h; real classes since C28f): CEffect declares 18-23 over the transform's; the point
-    light's own radius is slot 24 (LightRadius; its slot 19 is the base's), the missile's MoveParts slot 24. 007435D8 is a
-    byte match inside an FDIV operand of 005E1680: retired as the particle table's tail.
-  - **Small ones**: the unit shape (ai_unit_shape.cpp) and the item link (item_link.cpp) (real classes since C28e);
-    the terrain (terrain.h, slot 14 its own CombineRotation; tail 0073F6E8 a byte match in 006E81C2), the text manager
-    (item_db_text.h), the player sources' base 0073F38C (slots 2-4 and 6 pure), the server's counted helper 0073F240,
-    the client's source 0073F628 and the network session 0073F3A8 (world.h, net_link.h) are real classes since C28g;
-    the bridge manager 0073F4FC (PlatformSet, world.h; since C28g).
-  - **Trap: `python tools/find_vtables.py --help` runs the tool** and rewrites config/vtables.csv; restore it with git.
-  - **Left in world* / unit***: the map object companions 0073DBEC / 0073DD6C (irregular slots), the worlds 0073F18C /
-    0073F41C / 0073F928 (42-43 slots), the unit client's 0073ECD8 / 0073EDBC / 0073F0C4, the AI modes (the harness
-    digest names them), and world_data's unit spec tables 0073C6E0 / 0073FA58 (map spec, C21).
-- **Batch 16's families** (2026-10-22): the worlds', the unit controllers' and the map object companions' tables: 9
-  rows (retired 346 -> 355), 5,175 -> 4,825 code cells.
-  - **Worlds** (world.h; real classes since C28g): CWorld declares slots 25-41 (13-24 are CManagerContext's; 27-30
-    pure), CWorldClient (0073F41C) adds slot 42 MoveObject2, CWorldServer (0073F928). Not final: the original calls
-    the slots through the table, and a devirtualised call let the client's slot 29 inline slot 27's float body
-    (effects_bow's unit height moved). The height slots return double (ST0); the server's slot 27 and the client's
-    call the float bodies GridHeight / ClampedGroundHeight, and slot 6 calls Update / Segment, which keep their names
-    for the main loop and the harness (by address).
-  - **Unit controllers** (real classes since C28h): CUnitController (unit.h, 0073EDBC) declares slots 13-53 with
-    the base's bodies (16, 17, 24-27, 36, 37 and 50 pure); CUnitServer (combat.h, 0073EF38) and CUnitClientSpecific
-    (unit_client_models.h, 0073ECD8) derive from it. Slots whose original is a plain RET are void (CUnit passes EAX
-    of 23 / 44 / 49 / 53 on; nothing was seen to use it, so CUnit's wrappers return 0). The bodies registered at
-    their addresses (the server's MotionSlot / EmptySlot17, the client's ClientControllerPath and the shared empty
-    ones) stay beside the overrides.
-  - **Map object companions** (real classes since C28h): CMapObjectCompanion (map_object.h, 0073DC54) declares
-    slots 13-19 (17 and 18 pure); CMapObjectClientSpecific (0073DBEC) and CMapObjectServer (0073DD6C, slot 20
-    TakeHit) derive from it (unit.h). Slot 13 takes a bool (the client's body reads the low byte); slot 19 is void
-    (the objects' slot 47 passes EAX on, which nothing reads).
-  - **check_fp_fold** (removed in C25d): once CWorld::SetTimeSpeed lost its slot registration the compiler inlined it into the
-    server's (0058EEE0); its 1/15 is 0055FB50's own double.
-  - **Left in world* / unit***: world_data's unit spec tables 0073C6E0 / 0073FA58 (C21). (The tamed mode 0073F0C4
-    went with the other AI modes; real classes since C28h.)
-- **Batch 17's families** (2026-10-22): combat_lifetime's containers, the AI modes, the 3D object halves and a dozen
-  small ones: 33 rows (retired 355 -> 388), 4,825 -> 4,548 code cells, 1,099 -> 1,065 game data addresses.
-  - **Second tables**: the brain constructor stores 0073F04C / 0073F070 / 0073F140, tables with the same slots as the
-    container tags' 0073F034 / ... (twins the compiler emitted per instantiation site); one tag serves both.
-    The shadow object's one-slot 0073DF68 is WoundsMaterial's (map_object_shadow.h): a real final class over
-    CDeviceMaterial, whose slot 0 is now a pure `DeletingDestructor`.
-  - **AI modes** (real classes since C28h, unit_ai.h): AIMode (the base 0073D15C) and AIActionMode (0073D22C) over
-    CRefObject, one class per mode (guard, sentry, follow, suspection, aggression, corpse watcher, fear, patrol,
-    player, tamed: TamedMode derives from PlayerMode). AIMode's constructor clears the count and flags (the
-    original's creators did). Slot 2's original body leaves EAX unset where ours returns 0. The patrol points' CArray
-    (unit_ai_mode_lifetime.cpp) is a CompiledCollection.
-  - **The digest's mode id**: harness_digest.cpp's `ModeKinds()` lists each mode's game.exe table
-    (`&ei::OriginalGameData<const std::uint8_t>(address)`) in type order; in the image `ModeId` takes the kind from
-    `GetType()` (Follow's 10 the last), so `ai.mode` prints game.exe's address in both runs and no golden changed.
-  - **3D object halves** (real classes since C28h): CObject3DSpecific (map_object_figures.h, 0073DEFC; slots 13-17
-    pure), CObject3DServer (0073DFBC: 14 / 16 / 17 null slots) and CObject3DClientSpecific (map_object_shadow.h,
-    0073DE90).
-  - **Small ones**: the theme array 007440CC and the map database's maps 0073C3E8 (CompiledCollection; game_slots.h's
-    MapRecordArrayClass over BuiltZoneRecords), the mouse 0073C350 (`ei::CompiledDeleter`), the debug panel 0073BFA4,
-    the class template 0073D0C4, the party record 0073C360 (real CRefCounted classes since C28i; ClassTemplate keeps
-    a `Construct` that runs its constructor in place for 004A6580's registration, which the harness's zeroing patch
-    calls) and CDib 00744288 (a real class since C28i), the AI map's unit layers
-    0073FD7C / 0073FD74 / 0073FD6C, a sector 0073FADC and the sector map 0073F9DC (real classes since C28h: CUnitLayer,
-    CSmallUnitLayer, CLargeUnitLayer, Sector and CSectorMap, members of CAIMap, whose constructor and destructor
-    are its own since then).
-  - **Left**: 236 rows of config/vtables.csv (3,702 slots); the counted root 0073BB68 (some 100 storing functions),
-    the render helper 0073D880, the cloud noise base 0073D030 with ui_global_map's 007420D4, the map spec chunk
-    readers 0073C710 / 18 / 20 (map_spec_unit.cpp, next to C21's unit spec tables), the UI's 007403F8 / 00740FD4 /
-    007418E0 / 00742464, and the MFC library kind.
-- **Batch 18's families** (2026-10-22): the two counted roots, the render helper, the cloud noise, the item turn,
-  four input sides, the figure loader, seven engine objects, the party and the player connections: 29 rows (retired
-  388 -> 417), 4,548 -> 4,229 code cells, 109 registrations EI_REWRITTEN.
-  - **Roots**: `CRefCounted::RootVtable()` (core_streams.cpp's CountedRootClass: the deleting destructor, the empty
-    Serialize) in place of 0073BB68, which every counted class's destructor leaves (net messages, sessions, links,
-    AI modes, the party records, the spell effect, ...); `PlainRootVtable()` (core_refcount.h, PlainRootClass) in place
-    of 0073C368, the renderer's, the figures' and the mouse's root.
-  - **Small tags**: the renderer's helper CRenderHelper (0073D840) and its preset CRenderPreset (0073D880), real
-    classes since C28j (their fieldless abstract bases 0073D860 / 0073D888 are not modelled); the cloud
-    noise's 0073D030 and 007420D4 (CCloudNoise and CGlobalMapClouds, real classes since C28f); the item
-    turn's ItemTurn (007403F8, a real CRefObject since C28m); the figure loader CLinkFigureLoader (0073D808), the wounds material (0073DF68) and
-    the DirectInput mouse (0073C350), real classes since C28j (the loader's abstract base 0073D824 is not modelled).
-  - **Input sides** (ui_input_class.h): `InputSideClass<Self, Delete>` declares an input side's 13 slots with the base
-    input side's bodies (1-6 and 9-11 empty, returning 0 where the original leaves EAX; 7 / 8 the double click as a
-    press; 12 the wheel ignored); slot 0 is `Delete`, the window's deleting destructor through the side (the window
-    member pointer's class gives the -0x94) or UiInputSide's own for an extra side. The container's
-    ContainerInputClass (00740FD4 with its tail 00740FE8), the HUD top panel's TopPanelInputClass (00742464 with
-    0074247C), the battle camera's CameraInputClass (00740208) and the shared InertInputClass (00741154:
-    `InertInputVtable()`). The window tables themselves stay game.exe's: the census (ui_census.cpp's
-    `InGameVtables`) and the window slot checks' stand-in tables need a window's vtable to be game data, so the
-    windows' main tables (007418E0 and the other 26-slot ones) wait for a harness id as the AI modes' (batch 17).
-  - **Engine objects** (engine_object_class.h): CHoover (0073C434) is a real class since C28e, CLightning (0073C550)
-    and CCamera (0073B9E0) since C28f, CSysInfo (0073D644; its global a lib::StaticObject) since C28i; PlayerClass
-    (00743104).
-    The classes' `DeleteScalar` became `DeletingDestruct` (EngineObjectClass's slot 0 names it). CParticleSource
-    (0073CFD0) and CRainSnow (0073F4C8 with its tail 0073F4E8; its slots 11 / 12, "CWeather" and 0x1D, are dead
-    code's) are real classes since C28f.
-  - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
-    PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world.h) with the base's
-    bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
-    and id and the item and spell getters. Its unit records are a std::vector (PartyMemberArrayClass 00742FF4 is a
-    game.exe-only row of config/vtables.csv).
-  - **The player connections** (player_messages.h, player_client.h): CPlayerConnection (007431E0; slots 13 / 23
-    pure, the others empty), CPlayerClient (00743180), CPlayerServer (00743280) and the world player CPlayer
-    (00743104) are real C++ classes since C28k; the sides' slots call their named bodies.
-  - **UI_INPUT_HANDLER registrations** are not taken by `registration_readers.py --drop` (its default kinds): the top
-    panel's four became EI_REWRITTEN of the window members by hand.
-  - **Left**: the windows' main tables (harness id first), the scene renderer 0073D93C and its base 0073D8A0 (26 / 25
-    slots, the placeholder slots need their real signatures), CRefObject's 0073BB58 (net_connection.cpp stores it:
-    after C21), the map spec chunk readers (C21), the streams (the harness names their Write slots), the MFC library
-    kind.
-- **Batch 19's families** (2026-10-22): CRefObject, the scene renderer and 42 window tables: 45 rows (retired
-  417 -> 462), 4,229 -> 3,393 code cells, about 145 registrations EI_REWRITTEN.
-  - **CRefObject** (core_streams.cpp's RefObjectBaseClass, `CRefObject::Vtable()`) in place of 0073BB58: the deleting
-    destructor, the empty Serialize, slots 2 / 3 `_purecall`. The net files store it (net_connection.cpp's one line).
-  - **The scene renderer** is a real virtual class (model.h): `CVisualizator` declares game.exe's 0073D8A0 (slot 0 and
-    4-6, 8-24 pure, 1 the virtual destructor, 2 / 3 / 7 the base's bodies) and `CSceneRenderer` over it overrides every
-    slot and adds SetView (25) in place of 0073D93C. The registered constructor and destructor bodies are
-    `new (this) CSceneRenderer()` and `this->CSceneRenderer::~CSceneRenderer()`; the slot bodies other code registers
-    go through `__fastcall` shims (rule 4). `CTextManager::CreateImpl`'s unread registration is EI_REWRITTEN.
-  - **Windows** (ui_window_class.h): `UiWindowClass<Self, Delete>` declares a window's 25 slots with the plain
-    window's bodies (CTransformObject's 0-17 with the interface objects' 2 / 11 / 12, 18 Build empty, 19 ShowSurfaces,
-    20 DrawBase, 21 UpdateRegionTips, 22 RedrawBase, 23 RedrawTips, 24 Update empty); slot 0 is `Delete`. It does not
-    derive from TransformObjectClass: that one's slot 0 names the class's DeletingDestruct, which every instantiation
-    then needs. ScrollbarClass adds 24-26, PanelClass casts to a panel whose slot 0 is a base's destructor, and
-    ScrollbarInputClass / PanelInputClass give the input sides' handlers. The plain window (`CUiWindow::PlainVtable()` /
-    `PlainInputVtable()`, not `Vtable()`: a derived window would inherit it, batch 14's trap) and the base input side
-    (`BaseInputVtable()`, ui_input_class.h); the scroll bar, slider, scrolling text, spin, edit field and tooltip; the
-    view screen's unit pick; the chat overlay, the briefing's chat window, the item screens' icon window and the
-    scrolling RichEdit surface (2 slots); the HUD's top panel, clock, movement panel, unit panel, map, weapon bar,
-    quick items, spell and action columns and portraits. The HUD's Rebirth-patched slot bodies (the movement panel's
-    setup, the map's and the unit panel's update, the unit panel's draw) are the vanilla bodies, which reproduce
-    WideScreen behind its flag as the image runs them (no addon.dll in the image). The `UI_INPUT_HANDLER` macros of
-    ui_hud.cpp became EI_REWRITTEN lines.
-  - **The harness id**: ui_census.cpp's `WindowKinds` lists each compiled window table with game.exe's address of its
-    kind (`ei::OriginalGameData`), as harness_digest.cpp's ModeKinds does for the AI modes; `RealVtable` names a
-    compiled window by that address and no longer looks for stand-in copies in game data (the window slot checks'
-    stand-ins are gone; slot_recorder.h has no user left). `ReadSurface` takes the compiled surface tables.
-    kKnownWindows / WindowReady name screens (containers), none of them compiled yet.
-  - **Left**: the containers and screens (00741008 and the 42 / 55-slot tables: they need a ContainerClass over
-    UiWindowClass's 25 slots, and kKnownWindows / WindowReady / CSaveLoadWindow / COptionsWindow's kVtableAddress a
-    mapping like WindowKinds), the camp's panels (007418E0, 00741504-00741C60, the item info panel 007404A8 /
-    007404DC: named in ui_camp_create.cpp, C15's area), the console 00740034, the map spec chunk readers (C21), the
-    streams and the MFC library kind (batch 20 took the containers, screens, console, streams and part of the
-    library kind).
-- **Batch 20's families** (2026-10-22): the containers and screens, the console, the streams and part of the library
-  kind: 62 rows (retired 462 -> 524), 3,393 -> 2,154 code cells, game data addresses 994 -> 936.
-  - **Containers and screens** (ui_container_class.h, ui_screen_tables.cpp): `ContainerClass<Self, Delete, Screen>`
-    over UiWindowClass declares the container's 42 slots (19-24 the container's bodies, 25 / 26 `_purecall`, 27-41
-    the interface's screen news with game.exe's shared RET stubs' answers), `ItemScreenClass` adds the item screens'
-    42-54 (CItemScreen's defaults) and `ContainerInputClass` forwards the input side to UiContainerInput. `Screen`
-    is the class the slots call: the window class, a class derived from it, or a screen kept as a struct around its
-    container (CEscMenu, CCampPages, CMpHeroScreen; reached by reinterpret_cast, `ScreenAs`). UiWindowClass's
-    window slots use CUiWindow when Delete's class is no window (CMpHeroScreen). 39 tables: the container
-    00741008 (its input side 00740FD4, batch 19's, moved here), and each screen's main and input tables (battle, main menu, briefing, view, island map,
-    titles, help, objectives, Esc menu, save / load, options, message box, difficulty, master request box,
-    connection screen, plain item screen, camp, exchange, hero screen). Accessors are `X::Vtable()` /
-    `InputVtable()`, the bases' `CUiContainer::ContainerVtable()` and `CItemScreen::ItemScreenVtable()` (batch 14's
-    trap). The island map's slot 40 has its own CGlobalMap::SaveState (it was registered as the briefing's), and
-    the objectives window's slot 26 is CObjectivesWindow::RestoreAlphaRef.
-  - **The harness id** (tests/verify/harness_windows.cpp, from ui_census.cpp): `RealWindowVtable` maps each compiled
-    window table to game.exe's address of its kind. kKnownWindows became `KnownWindows()` of game.exe's main tables
-    (`ei::OriginalGameData`); WindowReady, DescribeTopWindow, waitwindow (a hex table is game.exe's address; the top
-    window's table goes through RealWindowVtable, then OriginalAddress), the camp's put-on and checkplayers compare
-    game.exe's addresses in both runs. CSaveLoadWindow / COptionsWindow lost kVtableAddress.
-  - **The console** (console.cpp): since C35d ConsoleStreambuf has no virtual functions (00740034 retired, file
-    `-`). The image's harness reads each line through `console::g_consoleLineObserver` (set under
-    `ei::Standalone()`); game.exe's run still takes game.exe's sync slot.
-  - **The streams** (core_streams.h; real classes since C28e): CStream (0073BDB0, 1-6 pure), CMemoryStream (0073BD90
-    with its tail 0073BD98; 0073C960 is the original's second copy of its table, stored by 0066C4F0) and FileStream
-    (net_link.h, 0073C8D8). Locals are plain, members of hand-built owners use placement new and the destructor;
-    ChunkArchive and DeltaField have real constructors and destructors over them.
-  - **The counted root** (core_refcount.h): CRefCounted / CRefObject have C++ constructors (the count left to the
-    creator) and destructors and the game heap's `operator new` / `delete`; CItemLink (item.h) and CUnitShape
-    (ai_unit_layer.h) derive from them as real classes. The root's and the counted value's compiled tables
-    (RootVtable, CRefObject::Vtable, PlainRootVtable) stay until the network (C28k) and the other derived families
-    are real classes.
-    The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
-    with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: the simple exceptions (CResourceException, CUserException, CMemoryException; file `-`
-    since C14zi) and std::exception (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector), CMapPtrToPtr (C14ze: no handle maps) and CArchiveException
-    (C14r: nothing throws it) are retired the same way. CPtrArray,
-    CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
-    destructors store them, and no code of ours calls those.
-  - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
-    out_of_range tables 0073B994 / 0073BE8C (batch 21), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
-    CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
-    deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
-    and the module / thread state records (mfc_thread, mfc_state), CCmdUI / CTestCmdUI,
-    CCommandLineInfo, CRecentFileList, 00746E60 and type_info 007472B0 (the RTTI type descriptors point at it).
-- **Batch 21's families** (2026-10-22): the rest of the MFC library kind and stlp's out_of_range: 36 rows (retired
-  524 -> 560), 2,154 -> 1,696 code cells, game data addresses 936 -> 918 (no library vtable is named in src/ any more).
-  - **Unported slots**: a slot of a compiled table whose game.exe body is not ported (the image never reaches it) is
-    `ei::UnportedSlot(<game.exe's address>)` (compiled_vtable.h): reached anyway, it reports "no code at <address>"
-    through `ei::ReportNoCode` (now declared in ei/hook.h), as the old table's slot did. config/standalone_unreachable.csv
-    lists those addresses (`address` lines: standalone_gaps.py counts them as code literals) with the reason; the
-    retired tables' `vtable` lines are gone (a retired table's slots are no data reference, so the line covered nothing).
-    Port only what the image reaches (or what a ported body calls: CDC::Detach's slot 5); the rest stays unported.
-  - **mfc_gdi** (gone in C14ze: the interface draws on plain HDCs, lib/gdi.h holds its fonts, pens and brushes;
-    the tables are retired with file `-`): GdiObjectTable (CGdiObject, CBrush, CPen, CTempGdiObject: 0 the class's record, 1 the deleting
-    destructor, CTempGdiObject's back to its fixed allocator) and DCTable (CDC, CTempDC: 29 slots; 3-6, 10, 12, 26, the
-    destructor, Detach ported, the rest unported). Since C28n real classes over CObject (mfc_gdi.h; CTempGdiObject and
-    CTempDC in mfc_gdi.cpp), the interface's pens, brushes and fonts plain locals or `new`. CClientDC,
-    CWindowDC, CPaintDC and CRgn are retired with no class of ours.
-  - **CHandleMap** (mfc_handle_map.cpp, gone in C14ze): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
-    CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
-    through its slot 1, the CTempDC / CTempGdiObject destructors above).
-  - **Windows and threads** (all gone: CWinThread and CCmdTarget in C14ze, CWnd and mfc_window in C14zh): CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
-    the class's own); WndTable (CWnd: 46 slots, only the destructor ported; CTempWnd, CMenu and CTempMenu went in C20o, never made) and WinThreadTable (31 slots; gone in C14ze: the
-    game's threads are lib::StartThread's, lib/thread.h). Retired with no class of ours:
-    CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records
-    (_AFX_CTL3D_STATE / _THREAD, CThreadData, _AFX_THREAD_STATE, AFX_MODULE_STATE, AFX_MODULE_THREAD_STATE,
-    _AFX_BASE_MODULE_STATE).
-  - **The CFile family**: CFile 00745DF4, CFileException 00745E4C, CFileFind 00745EE8, CStdioFile 007464F0 and
-    CMemFile 00746650 are retired with no class of ours (file `-`): the game's files are lib::File, lib::TextFile and
-    lib::FileFind (src/lib/file_io.h), a failed call throws lib::FileError. Their runtime class records are
-    gen_image_cells.py's UNREAD.
-  - **stlp's out_of_range**: retired with file `-` (C14a removed stlp::string and the one unreachable throw); game.exe's
-    ThrowInfo 0074C640 and its records are dead data.
-  - **Left**: the camp's panels (C15), the map spec chunk readers (C21), the game's CFont table 0073BFB4 (string_map,
-    the interface and the console name it: C21's area), 00746E60 (one slot, a false row?) and type_info 007472B0.
-- **Batch 22's families** (2026-10-22): the bases' own tables, the zone records, the item panels, CFont and the map
-  objects: 44 rows (retired 560 -> 604), 1,696 -> 974 code cells, game data addresses 918 -> 874.
-  - **The bases' own tables** (engine_object_class.h, gone in C28p: CEngineObject, CTransformObject and CObject3D
-    are real classes whose destructors the compiler builds): EngineObjectBaseClass (CEngineObject's 0073B8E0), `ManagerClass`
-    over EngineObjectClass (CBaseManager's slots 2 / 3 / 9 / 10 and 13-24) with BaseManagerClass (0073B870) and
-    resource_manager.cpp's ResourceManagerClass (00743338), and TransformBaseClass (CTransformObject's 0073BA38). The
-    constants became `X::BaseVtable()`; figure_mesh_life.cpp's FigureBaseClass (0073C224, CFigureMesh's slots 18 / 19
-    over TransformObjectClass; gone in C28h with ConstructBase / DestructBase) and spell_lifetime.cpp's SpellEffectClass (0074399C, a one-slot deleter plus an empty
-    Serialize; the harness's IsSpellEffect compares the image's table with `CSpellEffect::Vtable()`). CTransformObject
-    gained `BaseVtable()`, which hides CEngineObject's in its derived classes: every unqualified `BaseVtable()` under it
-    was checked to be its own class's (CEffect, CFigureMesh). named_data's check found ui_window.cpp's
-    CUiWindow::DestroyBase storing 0073BA38 by address.
-  - **Zone records** (map_spec.h): 0073C5C4-0073C7B8 and the quick item effect's twin 0073FA58 (ObjectSpec's). The unit
-    record's chunk readers (map_spec_unit.cpp) for 0073C710 / 18 / 20. world_data.h's kUnitSpecVtable /
-    kQuickEffectSpecVtable went. Since C28i the records are real classes on Chunk (Spec, ObjectSpec and EffectSpec with
-    the records on them, their own operator new on the game's heap; the twin is a plain ObjectSpec) and the chunk
-    readers TargetChunk's; map_spec_class.h's tags went.
-  - **Item panels** (ui_item_panel_tables.cpp): `ItemPanelClass` over PanelClass (slot 25 the item under a point,
-    CUiWindow::NoItemAt by default) and `ItemPanelInputClass` (2 CUiItemPanel::OnLeftDown) for the blank panel, the
-    description panel, the statistics column, the equipment panel (with its tail 007418E8), the quick strip, the trade
-    panel and grid, the spell and item makers and the repair grid: 21 rows. Accessors are `X::Vtable()` /
-    `InputVtable()`, `CUiItemPanel::BlankVtable()` and `CConstructorPage::ItemMakerVtable()` (CSpellMakerPage derives
-    from it). harness_windows.cpp maps the ten main tables. The item strips' tables (00741A1C, 0074197C, 00741BF4 and
-    their input sides) stay: CUiItemStrip and NewStrip are C21's.
-  - **CFont** (mfc_gdi.cpp's FontTable over GdiObjectTable with kClassCFont; gone in C14ze: the debug panel's, the
-    interface's and the console's fonts are gdi::Font).
-  - **Map objects** (map_object_tables.cpp, gone in C28p): `Object3DClass` over TransformObjectClass (CObject3D's 27 slots) and
-    MapObjectBaseClass over it (CMapObject's 61; gone in C28h: CMapObject's own table), each slot the class's C++
-    virtual called qualified. CObject3D's row is
-    five slots (find_vtables split it at 0073DDE8): its slots 5-26 moved from gen_image_cells.py's CODE_REVIEWED to
-    NOT_CODE, with a `data` line in config/standalone_unreachable.csv (nothing stores the table).
-  - **Left**: the item strips (C21), 00746E60 (a false row: the "ime" string 00704BE6 hands lstrcmpiA; retiring it
-    would zero the text, so it needs find_vtables to drop the row), type_info 007472B0 (named_data refuses it: the
-    exe's RTTI descriptors point at it), and the one-slot .data rows 0073B984, 0073D6B4, 0074E824, 00753B04, 00758904,
-    00758B0C, 00758B14 (not looked at).
-- **Batch 23's families** (2026-10-22): the item strips, CVisibilityFog, stlp's length_error and type_info, and six
-  false rows dropped: every row of config/vtables.csv is retired now (613 rows; retired 604 -> 613, 974 -> 832 code
-  cells, game data addresses 874 -> 867).
-  - **Item strips** (ui_item_panel_tables.cpp): `ItemStripClass` over ItemPanelClass<.., CUiItemStrip> (24 Update,
-    26 RebuildList) and `ItemStripInputClass` (2 / 3 / 4 the strip's buttons and drag, 12 the wheel) for the plain
-    strip 00741A1C / 007419E8 (slot 26 is game.exe's _purecall 006E73EB: `ei::UnportedSlot`), the forwarding strip
-    0074197C / 00741948 (0 ForwardingStripDelete, 20 Draw, 25 ItemAt, input 2 OnLButtonDownForward) and the figure
-    strips 00741BF4 / 00741C60 (20 DrawFigures, 25 FigureItemAt, 26 CountFigures, input 2 OnFigureClick). Accessors
-    `CUiItemStrip::PlainVtable()` / `ForwardingVtable()` / `FigureVtable()` and their `...InputVtable()`;
-    harness_windows.cpp maps the three window tables.
-  - **CVisibilityFog** (effects.h, 0073D6B4; a real class since C28f): 2 / 3 the cells cleared, 6 UpdateCells, 11 / 12.
-  - **Retired with no class of ours**: 0073B984 is stlp's length_error (stored only by game.exe's string growth
-    0040C2A0, 0040C6E0, 00421800, 004269A0, 0042B700; our ports never throw it). The ~140 functions that name the
-    address compare a hash table's prime pointer with the end of __stl_prime_list (0073B914 + 28 dwords), which is
-    the same address: no read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable
-    field points at it; nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by
-    address and name; none is destroyed), so those pointer cells may point at the
-    zero table.
-  - **False rows** (find_vtables.py now skips a candidate whose slot 0 is an EH funclet, functions.csv kind `eh`, or
-    config/dead_code.csv's "not a function start"): 00746E60 (the text "ime" 00704BE6 hands lstrcmpiA; now a
-    NOT_CODE cell of gen_image_cells.py, the MFC message map group split around it) and the EH unwind entries
-    0074E824, 00753B04, 00758904, 00758B0C, 00758B14 (now eh-unwind cells, left).
-  - Batch 24: find_vtables.py takes only function starts as slots ("Not vtables" above); a full rerun gives the
-    committed config/vtables.csv (84 rows' installed_by refreshed from today's functions.csv; vtable, slots, rtti,
-    kind and slot0 unchanged).
+- **Not vtables**: strings whose dword falls in .text: "%ld" 0074676C, "dde" 0074718C, "a/p" 007474B8 (each a false
+  Ghidra function, library.csv's "not a function" rows 00646C25 / 00656464 / 00702F61), "OCP" / "ACP" 00747E2C / 30
+  (inside a function), "ime" 00746E60 (dead_code.csv; a NOT_CODE cell of gen_image_cells.py), and the EH unwind entries
+  (kind `eh`: 0074E824, 00753B04, 00758904, 00758B0C, 00758B14). Never retire them (zeroing them breaks the strings).
+  find_vtables.py takes a dword as a slot only when it is a game, library or thunk function start less those rows
+  (and skips a candidate whose slot 0 is an EH funclet), so a full rerun reproduces config/vtables.csv.
+  `python tools/find_vtables.py --help` runs the tool and rewrites the csv: restore it with git.
 - **Tails in config/vtables.csv**: find_vtables.py splits a table at every address the code holds as an operand, so
   some rows are the tail of the row before them: split off at a devirtualised slot call (`call [0073BD98]` is
-  CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction. A tail is never
-  stored; retiring it zeroes live slots (the first try of batch 2 retired 0073BD98: every run crashed calling a null
-  slot at startup). gen_image_cells.py's check refuses a retired row that no code of game.exe stores
-  (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use (rows that overlap
-  where find_vtables.py could not tell a table's end). A family's retirement takes its tails with it (0073E954's 0073E98C).
-- **Retired with no class of ours** (batch 2; file `-` in the csv, the note names the storing functions): 0073B98C
-  (an exception class, 0040C440 / 0040C500), 0073BFAC (CDebugPanel's base), 0073D860 / 0073D888 (the render helper's
-  base and local), 0074019C (CUiMesh::SetVertexCount's local), 00740244 (the battle camera's input side, before
-  InputSideDestroy's 007401D0) and the dead code's 0073C474, 0073CA00 / 08 / 0C / 10, 0073F7C4 / 0073F7F8: 135 code
-  cells. Not retired from the "no store in src/" row: the tails 0073BD98 (CMemoryStream), 0073E98C (0073E954),
-  0073EAA0, 007435B4, 00743618, 00743678, 007436D8, 00743738, 00743AA8, 00743ADC (devirtualised slot calls of the
-  tables before them), 0073BF08, 0073E6E8, 0073E850, 0073F4E8, 00740FE8, 007418E8, 0074247C, 007435D8 (byte matches:
-  inside the table before them), 0073D764 (shared slots with 0073D760 / 0073D768 until batch 12
-  gave each one slot: a candidate now); 0073B984 and the EH unwind entries went in batch 23. The library kind's unstored MFC
-  vtables (CClientDC, CWinApp, ...; config/standalone_unreachable.csv) go with the library batch.
-- **Ids for later families**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
+  CMemoryStream's slot 2, 0073BD90's 8 slots listed as 2 + 6) or at a byte match inside an instruction (0073E850,
+  0073E6E8, 007435D8, ...). A tail is never stored; retiring it zeroes live slots (retiring 0073BD98 alone made every
+  run crash calling a null slot at startup). gen_image_cells.py's check refuses a retired row that no code of game.exe
+  stores (`stored_vtable`: `mov r/m32, imm32` or `mov r32, imm32`) or that shares a slot with a row still in use. A
+  family's retirement takes its tails with it (0073E954's 0073E98C). A table ends after its first slot when the next
+  address is one the code stores (a vtable of its own); an address the code only calls through splits only after the
+  second slot.
+- **Tables with no class of ours** (file `-`): only game.exe's own constructors and destructors store them, and no code
+  of ours calls those: the exception classes (CResourceException, CUserException, CMemoryException, CArchiveException,
+  CFileException, std::exception, STLport's length_error 0073B984 and out_of_range), the MFC application, window,
+  thread, GDI, DC, handle-map and state classes (CWinApp, CWnd, CCmdTarget, CDC, CGdiObject, CHandleMap, _AFX_*_STATE,
+  ...), the old iostream classes, 0073B98C, 0073BFAC, 0073D860 / 0073D888, 0074019C and 00740244 (small bases and
+  locals of game.exe's inlined code) and the dead code's tables. Our code does the same work with other classes: the
+  game's files are `lib::File`, `lib::TextFile` and `lib::FileFind` (src/lib/file_io.h; a failed call throws
+  `lib::FileError`), its fonts, pens and brushes `lib/gdi.h`'s, its threads `lib::StartThread`. 0073B984's ~140 readers
+  compare a hash table's prime pointer with the end of `__stl_prime_list` (0073B914 + 28 dwords), the same address: no
+  read of the table. type_info 007472B0 (game.exe's CRT): the 74 RTTI type descriptors' vtable field points at it;
+  nothing in the image calls a descriptor's virtual (the frame handlers compare descriptors by address and name), so
+  those cells may point at the zero table. Code that reaches game.exe's unported function reports "no code at
+  <address>" through `ei::ReportNoCode` (ei/hook.h).
+- **Ids for the harness**: the harness names objects by game.exe's vtable (window labels in goldens: the census's
   `W00740688#3`, `waitwindow`, the digest's AI modes). A converted class needs an id that both game.exe runs (golden
-  recording) and the image give the same: e.g. the harness maps a vtable to a name (`kKnownWindows`' names) through
-  game.exe's address in game.exe and through the class's compiler vtable (read from a constructed object, or
-  `typeid` once no game.exe table is left in that hierarchy) in the image; when the label text changes, re-record with
+  recording) and the image give the same: the harness maps a class to game.exe's address (`ei::OriginalGameData`):
+  harness_digest.cpp's `ModeKinds()` for the AI modes, `WindowKind` (a window by its class's `typeid`) with
+  `KnownWindows()` / `WindowReady` naming screens by game.exe's main table. When the label text changes, re-record with
   `--no-hooks --golden --fresh`. Slots the harness patches (`PatchSlot`, harness_savetrace) need a hook in our code
-  instead.
+  instead (the console's line observer `console::g_consoleLineObserver`, the memory stream's
+  `g_memoryStreamWriteObserver`).
+- **Slot conventions**: a class declares every slot of game.exe's table in its order (slot indexes keep their meaning
+  for the harness and for callers that pass a slot number), the slots game.exe fills with `_purecall` are pure, and a
+  slot whose original leaves EAX unset returns 0 or is void only where nothing reads the result. A base is not made
+  final where the original calls through the table (a devirtualised call let the client world's slot 29 inline slot
+  27's float body: the effects' bow height moved).
+- **Traps**: a class constant left in a derived class compiles against the base class's (the item tags once stored
+  CEngineObject's table, every run hit `_purecall` at startup): remove a constant by declaring a poison member first.
+  Member pointers of classes with several bases are two words: `ei::MemberAddress` takes the code word (adjustment 0).
+  windows.h's `GetClassName` macro renames slot 11 in a file that includes it: engine_object.h, the class's header and
+  its .cpp `#undef GetClassName`.
 
 ### Real classes (C28)
 
-C19 left most families on compiled tag classes: the class keeps game.exe's layout and its constructor body stores a
-tag's compiled table (`ei::SetVtable(this, X::Vtable())`, engine_object_class.h, compiled_vtable.h, mfc_slots.h),
-whose slots call `...Impl` bodies or `__fastcall ...Hook` shims. C28 makes each family ordinary C++ (child tickets
-C28a-p, one family per commit; the order is in C28's ticket note). How a family converts (C28a, the items):
-- The constructor body becomes the C++ constructor (no SetVtable), Destruct / DestructBody the virtual destructor,
-  DeletingDestruct the compiler's scalar deleting destructor. The destructor calls its own Destroy qualified
-  (`CItem::Destroy()`), as the original's does.
-- The slot bodies are the virtual overrides (the `Impl` split folded into the virtual of the same name, base calls
-  qualified); class names and ids are `GetClassName` / `GetClassId` overrides (`#undef GetClassName` where windows.h
-  is in). The helper's `Vtable()`, `Construct` / `DestructBody` / `DeletingDestruct` and the layout asserts go.
+Classes are ordinary C++: the constructor body is the C++ constructor, `Destruct` / `DestructBody` the virtual
+destructor, the slot bodies the virtual overrides (base calls qualified), class names and ids `GetClassName` /
+`GetClassId` overrides. How a family converts (C28a, the items):
+- The destructor calls its own Destroy qualified (`CItem::Destroy()`), as the original's does.
 - Allocation: `new T()`. CEngineObject has the game heap's `operator new` (noexcept: null without memory, then no
   constructor runs, which the original's callers test) and `operator delete`, plus the placement pair; a derived
   class declares no `operator delete` of its own (it would hide the placement delete: warning C4291). An object built
@@ -1474,23 +845,18 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
 - check_signatures accepts a destructor named by an EI_RECORD whose original pops 4 more (the scalar deleting
   destructor's flags argument).
-- game.exe's tables stay in config/vtables.csv; their rows name the real class and its header (every row: all are
-  retired; gen_image_cells.py --check fails on a row without one, so a find_vtables.py rerun's new row needs a
-  decision).
+- Members must be trivially default-constructible or initialised in the constructor's list as the original does: a
+  constructor default-initialises what it does not name.
 
-The window base (C28l, ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
+The window base (ui.h): `UiInputSide` (007401D0: the input slots 1-12 as virtuals, `handled_`) and
 `CUiWindow : CUiWindowBase, UiInputSide` (CUiWindowBase is CTransformObject plus the 0x40 bytes before +0x94, so
 the input side lands at +0x94 and the compiler's adjustor thunks are game.exe's SUB ECX,0x94; JMP) with slots 18-24
 as virtuals; `CUiContainer` adds 25-41 (25 / 26 `_purecall`) and its input dispatch as the input-side overrides
-(screens call the defaults qualified, `CUiContainer::LeftDown(...)`). Real classes too: the inert extra side
-(`UiInertInput`, 00741154), the battle camera's (`CCameraInput`), the view screen's unit pick (`UnitPickInput`) and
-the item screens' icon window (`CItemIconWindow`). Since C28m the screens (CBattleScreen ... CMpHeroScreen,
+(screens call the defaults qualified, `CUiContainer::LeftDown(...)`). The screens (CBattleScreen ... CMpHeroScreen,
 the item screens over `CItemScreen`'s slots 42-54) and the item panels (`CUiItemPanel`'s slot 25 `ItemAt`; the
 strips `CUiItemStrip` (26 `RebuildList`, pure), `CForwardingStrip` and `CFigureStrip`) are ordinary classes built with
 `new X(...)`, their slots the overrides (an input slot that runs a named handler is a one-line override,
-`int LeftDown(...) override { return OnLButtonDown(...), 0; }`). Member pointers of
-the windows are two words: `ei::MemberAddress` takes the code word (adjustment 0). The harness names a window by its class's
-`typeid` (harness_windows.cpp's `WindowKind`).
+`int LeftDown(...) override { return OnLButtonDown(...), 0; }`).
 
 ### What the image needs in place of game.exe's module (S14, S16, S19)
 
@@ -1605,8 +971,7 @@ the `--no-hooks` suite) keeps the registry.
   callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
   (static_init.h), run by its one visitor `Run` (the image).
 - **Calls by name** (C20 batch 2): a call or atexit of a function ported by hand (a row of
-  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
-  Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
+  config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&Class::Method, &g_object, args)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,
   `name_calls`). Code::Call converts the decoded dwords to the declared parameters (`Argument`: a pointer from a
   dword, a lib::StaticObject's T for a named object) and returns the result as a dword (`Returned`). The name is the
   definition's (its namespaces from srcscan.Scopes); a header that declares it in the same namespace is included,
@@ -1615,7 +980,7 @@ the `--no-hooks` suite) keeps the registry.
   `&Class::Method` of the class a header declares. A function in an anonymous namespace has no name another file can
   reach, and a function with no port none at all: the generator stops with a problem (move it out of the namespace).
   Batch 2 moved 92 out of their anonymous namespaces (right after the block, same enclosing namespaces), batch 3
-  the last 29 (console_streams 18, mfc_string 4, mfc_coll 4, script_exec_helpers 2, string_map 1): nothing is
+  the last 29 (console_streams 18, script_exec_helpers 2, string_map 1, and the files of the old MFC string and collections): nothing is
   called by address any more, so Targets / ReportMissingTargets, Code's Cdecl / Stdcall / Thiscall / Import and
   AtExit by address went. The statements stay in address form until render, so unread_objects, stored_values and named_data.py read
   them unchanged; `d.Begin(0x...)` is a label.
@@ -1643,8 +1008,7 @@ the `--no-hooks` suite) keeps the registry.
 - **No function-to-original map** (C20l): the `EI_REWRITTEN` lines (C20d-C20k: {address, &Fn} in the DLL's `.eiorg`
   section, one per address by check_registrations) went with their last readers. What still needs a game address
   of a function of ours has it where it is used: an EI_RECORD names the rewrite its replays call (check_signatures
-  checks its stack arguments), gen_static_init reads config/static_init_ports.csv, an UnportedSlot stub names its
-  address. The trace tools (coverage, save_trace, ui_census_report, named_data's --emit / --refs) no longer map
+  checks its stack arguments), gen_static_init reads config/static_init_ports.csv. The trace tools (coverage, save_trace, ui_census_report, named_data's --emit / --refs) no longer map
   game.exe's functions to ours; progress / the dashboard dropped the port counts.
 - **game.exe's side**: the vector recorders (`EI_RECORD`, tests/vectors/record_*.cpp) are the only hooks;
   InstallHooks installs them in game.exe with EI_VECTORS=1, leaving out (and counting as unexpected) a second one at
@@ -1828,47 +1192,40 @@ the `--no-hooks` suite) keeps the registry.
   the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through str::Format "%.6g". The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
   run: the image's atexit, streams and crash filter are ours / the host's.
 
-### MFC (none left but lib/mfc.h's CString since C14zi; S5-S8b, S3d, S3f, S16)
+### MFC (none of ours; S5-S8b, S3d, S3f, S16)
 
-The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i (std::string; lib/mfc.h's CString goes in C14p); the static initialisers of CString's four fixed
-  allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
-  (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0) went in C14ze. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
-  real MakeUpper, unreached.
-- **Collections**: none of MFC's are left (C14zb): the game's CArray / CList / CWordArray / CDWordArray / CByteArray
-  instantiations are std::vector / std::list, their vtables game.exe-only rows of config/vtables.csv, and CArchive
-  went with their Serialize slots (C14r). CPlex went with CMapPtrToPtr and CFixedAlloc (C14ze).
-- **Exceptions, state** (gone in C14zi): the simple exceptions, their string table, ReportError, the thread /
-  process locals, afxData, the global locks, _afxDBCS, the halftone brush and the module state's class list: nothing
-  of the game read them, only game.exe's static initialisers and exit functions built and destroyed them (now
-  gen_static_init.py's UNUSED_INITIALISERS). CArchive and CArchiveException went in C14r; the harness's crash report
-  reads a CArchiveException only in game.exe's runs. The game code's own message boxes of MFC's kind are
-  app::ShowLibraryMessageBox.
-- **Gone in C14ze**: CTime (lib/calendar.h: VC6's time() from GetLocalTime through the import, `_mktime32`,
-  `_localtime32_s` / strftime), the GDI classes and handle maps (the interface draws on plain HDCs: lib/gdi.h's
-  gdi::Font / Pen / Brush, PointFont = CreatePointFont, FillSolidRect), the threads (lib/thread.h StartThread:
-  `_beginthreadex` suspended, the priority set, resumed, as AfxBeginThread), the new handler (libcrt::OperatorNew throws
-  the CMemoryException itself).
+The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller). Our
+code has no MFC classes: strings are std::string, collections std::vector / std::list / std::map, files lib::File /
+TextFile / FileFind, the clock lib/calendar.h, the interface's drawing lib/gdi.h on plain HDCs, threads lib/thread.h.
+- **CString**: the static initialisers of CString's four fixed allocators (00700718 .. 007007AB, 007C8B80 ..
+  007C8B08) and of the temporary DCs' and GDI objects' CFixedAlloc (007C8D18 / 007C8CF0) are gen_static_init.py's
+  UNUSED_INITIALISERS. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the real MakeUpper,
+  unreached.
+- **Collections and archives**: the game's CArray / CList / CWordArray / CDWordArray / CByteArray instantiations are
+  std::vector / std::list; their vtables are game.exe-only rows of config/vtables.csv, and no CArchive is left (the
+  Serialize slots are gone).
+- **Exceptions, state**: the simple exceptions, their string table, ReportError, the thread / process locals,
+  afxData, the global locks, _afxDBCS, the halftone brush and the module state's class list: nothing of the game reads
+  them, only game.exe's static initialisers and exit functions built and destroyed them (gen_static_init.py's
+  UNUSED_INITIALISERS). The harness's crash report reads a CArchiveException only in game.exe's runs. The game code's
+  own message boxes of MFC's kind are app::ShowLibraryMessageBox.
+- **Replacements**: CTime is lib/calendar.h (VC6's time() from GetLocalTime through the import, `_mktime32`,
+  `_localtime32_s` / strftime); the GDI classes and handle maps are lib/gdi.h's gdi::Font / Pen / Brush (PointFont =
+  CreatePointFont, FillSolidRect); the threads are lib/thread.h's StartThread (`_beginthreadex` suspended, the priority
+  set, resumed, as AfxBeginThread); the new handler is libcrt::OperatorNew, which throws the CMemoryException itself.
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
-  constructors / FormatMessage; CPtrList, CPtrArray (S5a).
+  constructors / FormatMessage; CPtrList, CPtrArray.
 
-### STLport (S9-S12g; none left since C14zc)
+### STLport (S9-S12g; none of ours)
 
-The containers were ported one body per member over an element policy; since C14t every container is std and the
-node allocator (`__node_alloc`, libcrt::NodeAllocate, its free lists at 0079B224) is gone with stlp.h / stlp.cpp /
-stlp_alloc.h.
-- **list** (stlp_list, stlp_list_refs: gone with C14n / C14s / C14t; core.md).
-- **vector** (S10, S10a; stlp_vector, stlp_vector_refs, record_vectors: all gone with C14n / C14q, the vectors are
-  std).
-  `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
-  vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
-- **hashtable** (stlp_hash, game_hashes: gone with C14c / C14q; the order is lib::HashMap's, src/lib/hash_map.h).
-- **deque** (stlp_deque: gone with C14x; the camera's view stack, which nothing ever pushed to, is deleted and the material's entries are a std::vector).
-- **tree** (stlp_tree, stlp_tree_abi, stlp_tree_mbs, net_connection_trees, library_trees: gone with C14c / C14q;
-  the maps are std::map, the CString keys' `_mbscmp` order is `str::MbsLess`).
-- **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
-- **pair** (stlp_pair: gone).
-- **sort** (C14zc): `lib::IntroSort` (src/lib/intro_sort.h: STLport's introsort, median of three, unguarded partition
+Every container of ours is std (or `lib::HashMap`, src/lib/hash_map.h, whose iteration order is STLport's); the
+original's node allocator (`__node_alloc`, free lists at 0079B224) has no port, our objects are the host's `new` /
+`delete`. The maps are std::map with the CString keys' `_mbscmp` order as `str::MbsLess`; strings are std::string; a
+camera view stack that nothing ever pushed to is deleted.
+- **Plain records**: `records::IsPlain<T>` decides plain data: never CString, std::string, std::vector or arrays of
+  them (an array of vectors is trivially copyable to the compiler, so a default record's lists were garbage once:
+  S10b / S10d).
+- **sort**: `lib::IntroSort` (src/lib/intro_sort.h: STLport's introsort, median of three, unguarded partition
   and inserts, heap sort at the depth limit, insertion sort of the first 16) wherever equal elements can differ and
   their order shows: the draw lists by `address_order::DrawBefore` and the touched models by last use (which keep
   flag 0x400; world_client_draw.cpp), the particles by depth, the picking hits (`DepthLess`), the connection screen's
@@ -1877,8 +1234,8 @@ stlp_alloc.h.
   briefing topics (`_stricmp`); the harness's draw-list sort in game.exe (harness_address_order.cpp) is the same
   template. `std::sort` where equal elements are identical: the client's file chunks (one message per index, or the
   same data), CollectChanges's replicated objects (one entry per object and priority), the battle screen's ids, the
-  hero screen's names (`str::MbsLess`). The element copies no longer follow STLport's (heap layout is no longer
-  kept). libcrt::Qsort is the CRT's quicksort, a different algorithm, and shares nothing with it.
+  hero screen's names (`str::MbsLess`). The element copies do not follow STLport's (heap layout is not kept).
+  libcrt::Qsort is the CRT's quicksort, a different algorithm, and shares nothing with it.
 - Unregistered twins with the same instructions (no code of ours calls them): 00429DB0, 004FAF10, 0042B3C0,
   0042B3F0, 00404D50, 005E1560, 00457940, 004FC0C0, 004217C0; "unreviewed family" rows 005F8E90, 005F92A0,
   005F94B0, 005FB810.
@@ -1909,7 +1266,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 
 ### Open
 
-S2a (short getters as named members), S5a (unreached MFC pieces), S11b, S16e (`find_vtables.py` should take only
+S2a (short getters as named members), S11b, S16e (`find_vtables.py` should take only
 function starts as slots; the dashboard's library count includes library.csv's "not a function" rows), S19d. The console's `disconnect` (005DFC10 -> GameFlow 00581620 ->
 CWorldClient::DisconnectLocalPlayer 00566E00, S16c) cannot be a scenario: in net_lobby's lobby the client's next
 segment then ends the game in its "packet parsing error" box, the original's too. Multiplayer client paths and many container members are reached by no
@@ -1917,24 +1274,20 @@ scenario (tests/coverage/coverage.csv).
 
 ## 3. Runtime: MFC, STLport, CRT later
 
-MFC in use: containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546, files and archives 91, a
-little GDI, `AfxMessageBox`, the TRY / CATCH link. After C13 / C15 (C14): `CArray` to `std::vector`, lists to
-`std::list`, `stlp::string` and `CString` to one string type, `stlp::vector / list / map` to their `std` twins; the
-framework pieces stay small classes of our own (linking real MFC would tie the build to Windows, platform-layer.md).
+The game's MFC and STLport uses are std containers, std::string and small classes of our own (src/lib: file_io.h,
+gdi.h, thread.h, calendar.h, hash_map.h, intro_sort.h, str.h); linking real MFC would tie the build to Windows
+(platform-layer.md).
 
 What must survive:
-- **Hash map order** (39 `stlp::hash_map` uses): iteration follows STLport's bucket counts and insertion rule. A loop
-  that feeds game logic, saves or network messages keeps our copy of the container.
+- **Hash map order**: iteration follows STLport's bucket counts and insertion rule (`lib::HashMap`). A loop that feeds
+  game logic, saves or network messages keeps that container.
 - **Sort order**: STLport's `sort` leaves equal elements in another order than MSVC's (the objectives list shows it).
-  Keep the original algorithm at those sites.
+  Keep the original algorithm (`lib::IntroSort`) at those sites.
 - **CRT behaviour**: `_ftol`, `rand` (MSVC6's generator and seed), sprintf's float digits (section 2), the pooled
   small-block allocator only where code depends on reuse order (none known).
 - **Formats**: the archive encoding of strings and arrays in saves and network messages is a pair of read / write
   functions, independent of the container type.
-- **Struct sizes**: a `CString` is 4 bytes, a `std::string` 24; every raw offset left breaks when a member changes
-  size, so this waits for the member cleanup.
 - **x87 maths**: the exe stays a 32-bit MSVC build with the same float settings until the float checks are replaced.
-
 ## 4. UTF-8 instead of cp1251
 
 Every string inside the game is UTF-8 (C34 dropped the old `EI_UTF8` switch: there is no 8-bit build). Text in the
@@ -2006,7 +1359,7 @@ Byte-equality compares, hashing, copying and formatting work unchanged on UTF-8.
   CharLowerA (U5). The image's log names the routes: "504 resolved (33 routed)" (32 here and the command line).
 - **Direct calls** (not through the slots): our own code calls `text::utf8::<Name>A` by name (mod_folders,
   script_addon_commands, script_addon_strings, console_addon, settings_file, world_client_maps). The console's
-  clipboard and addon's AutoExec lines convert with UTF-8; `Fullpath` (mfc_file.cpp) takes the current folder
+  clipboard and addon's AutoExec lines convert with UTF-8; `GetFullPathNameA` (system_text.cpp) takes the current folder
   through the slot.
 - **Input that is not UTF-8** is taken in the ANSI code page, as the ANSI call took it; output is always UTF-8.
 - **Not routed**: the profile calls (`CIniFile`: GetPrivateProfile*, WritePrivateProfileString; the values

@@ -7,7 +7,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 
 - World effects: `CEffect` (world_effect.h; a real class since C28f) declares slots 18-23 (`Reset`, `Radius`, `Position`, `Unpack`,
   `Pack`, `Start`). `CEffectPointLight::light_` is a `CLight*`, `CEffectParticle::source_` a
-  `CParticleSource*`, `CEffectLightning::bolt_` a `CLightning*`, `CEffectSoundSeq::name_` an `mfc::CString`. world_effect_internal.h has `WorldOf` /
+  `CParticleSource*`, `CEffectLightning::bolt_` a `CLightning*`, `CEffectSoundSeq::name_` a `std::string`. world_effect_internal.h has `WorldOf` /
   `ContextWorld` (a `CWorld*`); the stream helpers go through `CStream`.
 - Spells: `CSpellEffect::world` is a `CWorldServer*` (`AIMap()`, `Sectors()`, `AIEvents()`, `tick_`). The buff record a unit gets is a `MapEffect`
   (`power`, `ending`), built by 00688510 through its address. Units go through `ObjectSlots` (`EyePoint`, `AddEffect`, `IsLargeUnit`, `IsDead`,

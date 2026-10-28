@@ -268,8 +268,7 @@ address in its source comment (grep the address); the per-function table that us
   first level's rectangles to `render::TexturePatch` (R11d, renderer.md section 7): the shader draws them over the skin
   on every level (a lower level's rectangle can be a texel off the original's halved one). Check: `render_blink`. `HitEffect`'s third argument is a flags word whose stack slot the original
   reuses for the material CString; heroes index the armour table 0073EC78 by the hit location without a range check.
-  `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees nodes through
-  `stlp::deallocate` where the original pushes them on the 32-byte free list (0079B230). `CObject3D::LoadPart` returns null
+  `Say`'s new queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees the nodes with the list's own erase where the original pushes them on the 32-byte free list (0079B230). `CObject3D::LoadPart` returns null
   for a part the figure has no piece of without releasing the new part object (leak).
 - CTrapObject's +0x238 is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is cleared when
   nobody is near; the torch's Load, Save, AttachTorchObject (type_ read first) and network writer use the spec without a

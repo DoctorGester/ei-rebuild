@@ -112,7 +112,7 @@ Figure models, factory, loading (O): 005AA5F0 `FindFigureModel` (the manager's h
 "FIG" headers to 005AAE60, others to 005AB9A0), 005ACCF0 `SetFigureAnimation`, 005A9EF0 `FindModelAnimation`, 005AA1C0
 `DestroyFigureManager`.
 
-Kept: `CLinkFigureLoader::AddArchive` leaks the `CMMIOResource` when opening fails and passes the `stlp::string` by value to
+Kept: `CLinkFigureLoader::AddArchive` leaks the `CMMIOResource` when opening fails and passes the `std::string` by value to
 `"%s"`. `TweenArray::Load` reads the count into its stream argument's stack slot, `LoadEntries` into an uninitialised local
 (ours starts from 0); `SetTarget` appends an uninitialised entry before overwriting all of it; `ShearMatrix` sets m[10] to 0
 after zero-filling. `DrawFigurePart`: without a rectangle the device path never sets the drawn flag; a singular (or NaN)
@@ -188,8 +188,8 @@ All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebir
 - **CDib** 006D49E0-006D6FC0 (BMP overrides and movie screenshots).
 - Dead (config/dead_code.csv): 006C98F0 (reached only from the unreferenced chunk 006CA170), 006D5480, 006D6800.
 
-Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006C8140 (LRU cache `mfc::CList<SectorData*>` +0x1FC, grid
-+0x1F8, frame +0x218), the `lib::AlignedArray<uint32>` SetSize / SetAtGrow copies 006CD5C0, 006CE890 / 006CDD50, 006CDE90,
+Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006C8140 (LRU cache `CList<SectorData*>` +0x1FC, grid
++0x1F8, frame +0x218), the `AlignedArray<uint32>` SetSize / SetAtGrow copies 006CD5C0, 006CE890 / 006CDD50, 006CDE90,
 `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
 entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
 006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain_animation.cpp), `SetSun`

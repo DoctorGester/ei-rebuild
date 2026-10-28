@@ -8,7 +8,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
 
 - `CScript` (script.h) is laid out whole; the reset, save and block code walk its typed members (`pointLights_`, `particles_`, `fxSources_`,
   `lightning_`, `blocks_`, `definitions_`, `globals_`, `instances_`, `runs_`, `worldBlocks_`, `areas_`, `tempGroups_`, `tempObjects_`, `forDepth_`,
-  `loaded_`, `fileCount_`); `RemoveAll` / `WriteList` are templates over `mfc::CList<T>`. `SSCCmd::calledScript->id` is the called block's id.
+  `loaded_`, `fileCount_`); `RemoveAll` / `WriteList` are templates over the container. `SSCCmd::calledScript->id` is the called block's id.
 - The parser's `VarsAt` / `DefinitionAt` / `TokenListAt` views are typed `__fastcall` forwarders (`VarsFindVariable`, `VarsHasVariable`,
   `VarsAppendFrom`, `VarsResetValues`, `VarsClear`, `DefinitionReset`, `TokensDestruct`), still through the original addresses as the file's header
   asks.
@@ -20,7 +20,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
   `WorldGetPlayer`), a player is `CPlayer` (`Server()`, `Party()->members_` / `variables_` / `Money()`, `logTraffic_` +0x10C), the local player is
   `LocalView()->player_`, the network client is `net::GameClient()` (active unless `flags7_ & kDetached`; the host test reads
   `BindingMessage::PlayerRef()` as a `PlayerMessage::host_`), the frame timer is `CSceneRenderer::FrameTime` (slot 6).
-- `mfc::CTime` (006FE3BB `Construct`) and `mfc::CString::FormatV` (006FDC12) in lib/mfc.h; `ConsoleStreambuf::StreambufConstruct` /
+- The original's CTime (006FE3BB `Construct`) is lib/calendar.h and CString::FormatV (006FDC12) `str::Format`; `ConsoleStreambuf::StreambufConstruct` /
   `StreambufDestruct` (the old iostream base, 006FCAD2 / 006FCB35); `CUiWindow::VirtualPlayerList(mode)` (slot 38, kick / ban) and
   `VirtualDebugFill()` (slot 39, "give assortment"). `listgvar` reads `CScript::globals_` of the console script 007C27D4 (`ScriptObjectRef`,
   `ScriptGroup`, `CEngineObject::GetClassName` slot 11, `id_`); `execs` prints its `errorLine_` / `errorText_`.

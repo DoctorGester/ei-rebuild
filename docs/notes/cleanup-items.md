@@ -9,15 +9,15 @@ How the item family is declared after the cleanup (`item*.h` / `item_*.cpp`, `it
   00743EAC, quest 00743F04, loot 00743F5C, scroll 00743FB4 (the scroll's slots 9, 10, 13 and 14 are the quick item's). All 22 slots are known:
   slots 2 / 3 / 6 / 9 / 10 are overrides of CEngineObject's (`Create`, `Destroy`, `RunTick` (the recharge), `Load`, `Save`; Load / Save take `void*` and
   cast to `CStream*`); slots 13-21 are new virtuals: `InitFromRecord`, `IsSameAs(CItem*)`, `CopyTo`, `GetPrice`, `ModelName`, `FirstListName`,
-  `FigureName`, `PictureName`, `GetUse` (the names return `mfc::CString` by value: the slot builds in the caller's result). Each rewritten slot is
+  `FigureName`, `PictureName`, `GetUse` (the names return `std::string` by value: the slot builds in the caller's result). Each rewritten slot is
   registered through a file-local `...Hook` shim calling the qualified member (rule 4).
 - CItem fields: `link_`, `condition_` / `conditionMax_` (floats; unit_hits' WearItem takes the `CItem*`), `charge_` / `chargeMax_` / `chargeRate_`, `weight_` (float bits, `Weight()`),
   `price_`, `magicLevel_`, `spell_` (a `CSpell*`), `count_`. Weapon `reach_`, quest item `questItemId_`. Quest and loot follow the game's names: 007C8778
   holds the loot records and the quest items are their own table.
 - `CItemConstructor` (00744020): `Create` / `Destroy` overrides. `CItemManager` (0073F25C): `Create` and `NewObject` overrides with file-local hooks.
 - `item_db.h`: the database records are typed structs, with typed accessors (`MaterialAt`, `WeaponAt`, `ArmorAt`, `QuickItemAt`, `SpellAt`,
-  `SpellModifierAt`) and `kWeaponCodes` / `kArmorCodes`. `item_stock.h`: the stock's vectors are `stlp::vector` (StockPtrVector, StockMaterialVector,
-  StockStringVector, SpellRecipeVector of `SpellRecipe` = `itemdb::SpellListRecord`, the spell database's `lists[3]` themselves, `stock::CandidateVector`); writes go through `Start()` / `Finish()` / `EndOfStorage()`.
+  `SpellModifierAt`) and `kWeaponCodes` / `kArmorCodes`. `item_stock.h`: the stock's vectors are `std::vector` (StockPrototypeVector, StockMaterialVector,
+  StockStringVector, SpellRecipeVector of `SpellRecipe` = `itemdb::SpellListRecord`, the spell database's `lists[3]` themselves, `stock::CandidateVector`).
 
 ## Left
 

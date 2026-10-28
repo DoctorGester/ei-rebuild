@@ -6,27 +6,27 @@ The screens themselves are in `ui.md`. Calls to rewritten code still go through 
 
 ## Declarations
 
-- `CCampPages : CItemScreen`; its parties, panels and hero list are typed (`mfc::CArray<CUnit*> heroes_`, `HeroAt`), the controller slots are
+- `CCampPages : CItemScreen`; its parties, panels and hero list are typed (`std::vector<CUnit*> heroes_`, `HeroAt`), the controller slots are
   called on `CUnit::Controller()`. `CMpHeroScreen` has the item screens' two `ItemObjectCache`s (`models_`, `textures_`), `CUiEditField*` edit
   windows and slot 52 `VirtualChooseFigure`.
-- `CItemInfoPanel`'s text arrays are `mfc::CStringArray`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
+- `CItemInfoPanel`'s text arrays are `std::vector<std::string>`; the descriptions read `itemdb` records (item heads, materials, weapons, armour,
   spells) and `UnitStats` slots.
 - Sprites are `CUiMesh` (derived from `CFigureMesh`; `texture_`, `plainColour_`, `flags_`, `position_`, `orientation_`, `tint_`, `uOffset_`,
   `vOffset_`, `visible_`); window vtables are `CUiWindow::vtable_` / `inputVtable_`; texture memory is `CTexture::surface_` (`CDXSurface`)
   locked through `IDirectDrawSurface7`. Surfaces are `CUiSurface` (`flags_`, `holder_`, `kept_`, `keptSize_`, `width_`, `height_`).
 - `CInterface3D` names `pollTop_` (+0x81), `disconnected_` (+0x88), its backdrops (`backdrop_`, `secondBackdrop_`, `backdropMode_`),
   `serverFlag_`, the modifier flags (`ctrlDown_`, `shiftDown_`, `altDown_`, `doubleClick_`, `rightDown_`), `messages_`, `helpTopics_`
-  (`stlp::map<CString, int>`), the saved HUD state (`hudPanelsIn_[3]`, `hudBodyPart_`, `hudTopPage_`), `fastGame_`. The frame calls the windows
+  (`std::map<std::string, int, str::MbsLess>`), the saved HUD state (`hudPanelsIn_[3]`, `hudBodyPart_`, `hudTopPage_`), `fastGame_`. The frame calls the windows
   through `CUiWindow`'s slot helpers (27 `VirtualMessageResult`, 34 `VirtualShowBriefing`, 35 `VirtualReadyToStopPolling`).
 - The Direct3D device is `UiD3DDevice` with its stdcall slots (10 `Clear`, 20 / 21 `Set` / `GetRenderState`, 36 / 37 `Get` / `SetTextureStageState`);
   `UiRenderer` names `device_`, `caps_`, `stencil_`, `result_`. `CSceneRenderer`'s slots 7 `SetColour` and 19 `DrawRectangle` (model.h) draw the
   selection box; the fog colour is `CSceneRenderer::fogColour_`.
 - The HUD panels built inline by the battle screen are `CHudUnitPanel` / `CHudMap` / `CHudClock` / `CHudMovePanel` / `CHudTopPanel`; the panels'
-  text arrays (`CHeroStatsPanel`, `CSpellMakerPage`, `CTradePanel`, `CHudUnitPanel`, `CCampPages::pageTitles_`) are `mfc::CStringArray`.
+  text arrays (`CHeroStatsPanel`, `CSpellMakerPage`, `CTradePanel`, `CHudUnitPanel`, `CCampPages::pageTitles_`) are `std::vector<std::string>`.
 - The map database is read as `MapRecord` / `ZoneExit` (the objectives picture is `picture2`), quests as `QuestRecord`, the global map's exit
-  distances as `stlp::map<int, float>`. Containers are the shared templates: `PersonTextMap = stlp::map<int, mfc::CString>` (`LoadPersonTexts`
+  distances as `std::map<int, float>`. Containers are std: `PersonTextMap = std::map<int, std::string>` (`LoadPersonTexts`
   a free function), `IdVector`, `MpStringVector` / `MpVoiceVector`, `UnitSoundBank::entries`; `CObjectivesWindow` has `zones_`, `exits_`
-  (`mfc::CArray<ObjectiveExit>`), `quests_` / `objectiveTexts_`, `questPlaces_` (`stlp::vector<UiPointF>`); `CGlobalMap::Construct` and
+  (`std::vector<ObjectiveExit>`), `quests_` / `objectiveTexts_`, `questPlaces_` (`std::vector<UiPointF>`); `CGlobalMap::Construct` and
   `GlobalMapDestroy` go through `zones_` / `links_` / `quests_`, `path_` and `arrivals_` (`Count`, `Compare`, `ResetToEmpty`).
 - Shared forwarders: `NamedTableConstructOriginal`, `GameSetWeatherOriginal`, `InterfaceTextExtentOriginal`, `TradePanelSettleOriginal`,
   `CFileFindPathOriginal`, `ConsoleDrawInputOriginal` (005E4A10, originals_ui.h).
@@ -44,7 +44,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
   `ui_item_view.cpp`, `ui_hero_screen*.cpp`, `ui_hero_figure.cpp`, `ui_camp.cpp`, `ui_camp_deals.cpp`, `ui_battle_setup.cpp` (player +0x30),
   `ui_trade_panel.cpp` (stats +0x700): byte locals. Item fields are read with `Read<>(item, offset)` in ui_camp.cpp, ui_hero_panels.cpp and
   ui_item_info.cpp until the item classes are declared.
-- Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` is a raw array (the HUD panels' `labels_` are `mfc::CStringArray`s); each file keeps its
+- Declarations: `CCampScreen` (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` is a raw array (the HUD panels' `labels_` are `std::vector<std::string>`s); each file keeps its
   own `SetRenderState` helper; `WindowFromInput` / `FromInput` are repeated per file; `AllodView` repeats `AllodRecord`;
   `CCreditsScreen::archive_` is bytes (a CMappedResource). `MapRecord::kind`: object_tables.h
   says 1 edge / 2 brief, the global map treats 2 as a way between zones; check. `SpellRecord::unknown_1C` (power, radius, level, duration) and

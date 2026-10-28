@@ -17,7 +17,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
   `CreateMesh` (0059F210), slot 18 `CopyFigureImpl` (0059F0F0), slots 19-23 `LoadFromMemoryImpl`, `LoadFigImpl`, `LoadOldImpl`,
   `MirrorXImpl`, `MirrorYImpl`, 0059F3D0 `SetObject`; the CObject3D pointer at +0x98 is `object_`; the +0x94 drawer is `FigureMeshDrawer`, not
   CLinkMesh, though both have the screen RECT at +0x20. `using FigurePart = CFigureMesh` stays only for ui_model.cpp, player_client.cpp and
-  verify_ui_model.cpp. Mesh file slots take `mfc::CFileVirtuals*` (`Read` 13, `Write` 14).
+  verify_ui_model.cpp. Mesh file slots take `lib::File*` (`Read` 13, `Write` 14).
 - `RasterTriangle` and `CPixelConverter` slot 9 `RasteriseKeyedTriangle` are in texture.h; link_mesh_draw.cpp uses the same struct.
 - `FigureModel` (model.h; the cached model, 0x20 bytes) holds the three archives (`mesh`, `bones`, `animations`, each a
   `CMappedResource`) and the animation cache. Models go through `GetFile` / `CloseFile` / `OpenFromMemory` / `CloseResource` and `delete`;
@@ -36,7 +36,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 - `CFigureCache` is gone: CWorld slot 23 (vtable +0x5C) is `FigureLoader()` returning `CLinkFigureLoader*` (model.h; party.h's slot 23 is
   named the same, still null there). MakeFigure (00516DA0) calls `LoadLink` (slot 4) / `LoadFigure` (slot 3) and SetFigureScale (00517700)
   calls `Remorph` (slot 6) with the scale as floats and `fresh` false (x87 float load / store is exact except for a signalling NaN, which a
-  figure scale never is). `PieceNames` is the loader's `stlp::vector<std::string>`.
+  figure scale never is). `PieceNames` is the loader's `std::vector<std::string>`.
 - `CountedRef<T>` has `Assign` defined in object3d_lifetime.cpp for the three types the game's copies hold: 00519580
   `CountedRef<CLinkMesh>` (the figure), 0051E570 `CountedRef<WoundsMaterial>`, 0051E4F0 `CountedRef<CRenderPreset>` (0051C3D0 ShowWounds
   calls 0051E570 for the wounds material and 0051E4F0 for its preset; 0051AF70 DestroyClient calls 0051E570). `CountOf` / `DeleteCounted`
@@ -60,9 +60,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 
 ## Left
 
-- `DestroyFigureManager` keeps its `char*` parameter, because world_deleting_destructors.cpp declares it that way. `StringSlot` in
-  figure_links.cpp and figure_models.cpp is a raw STLport string layout; the game's own string members build and free it through their
-  addresses.
+- `DestroyFigureManager` keeps its `char*` parameter, because world_deleting_destructors.cpp declares it that way.
 - Duplicate layouts: `CFigureModelPart` (map_object_figures.h, map_object_animation_bones.cpp) duplicates `CMappedResource`;
   map_object_shadow.cpp has its own raster target.
   `CFigureMesh::CopyFrom` still calls `TransformCopy` (00401490) through its address. figure_part_draw.cpp:681 casts `owner->figure` to the
