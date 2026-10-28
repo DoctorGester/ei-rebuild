@@ -44,7 +44,6 @@ WindowPresents WindowPresentCounts() {
     counts.cursorMismatches = info.cursorMismatches;
     counts.rampCheckPending = info.rampCheckPending;
     counts.rampIdentity = info.rampIdentity;
-    counts.failed = info.failed;
     counts.deviceLosses = info.deviceLosses;
     counts.deviceRecoveries = info.deviceRecoveries;
     counts.presentsAtRecovery = info.presentsAtRecovery;
@@ -78,10 +77,6 @@ bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) { return
 bool RenderStep(const std::string& verb, const std::string& argument, std::vector<std::string>* failures,
                 std::vector<std::string>* frames) {
     if (verb == "terrainlevels") {
-        if (!render::Active()) {
-            Log("harness: terrainlevels %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "on") render::TerrainLevels(render::TerrainLevelMode::Levels);
         else if (argument == "point") render::TerrainLevels(render::TerrainLevelMode::PointMips);
         else if (argument == "off") render::TerrainLevels(render::TerrainLevelMode::Off);
@@ -91,10 +86,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         double least = 0, most = 1;
         if (sscanf_s(argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
             failures->push_back("levelsteps needs a frame name, a least and a most fraction");
-            return true;
-        }
-        if (!render::Active()) {
-            Log("harness: levelsteps %s: not the new renderer (the original code): no level map", frame);
             return true;
         }
         double steps = 0;
@@ -115,10 +106,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         double least = 0, most = 1;
         if (sscanf_s(argument.c_str(), "%63s %lf %lf", frame, unsigned(sizeof(frame)), &least, &most) < 3) {
             failures->push_back("hues needs a frame name, a least and a most fraction");
-            return true;
-        }
-        if (!render::Active()) {
-            Log("harness: hues %s: not the new renderer (the original code): ignored", frame);
             return true;
         }
         double shares[4] = {0, 0, 0, 0};
@@ -145,10 +132,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             failures->push_back("mmplevels needs the largest mean difference allowed");
             return true;
         }
-        if (!render::Active()) {
-            Log("harness: mmplevels: not the new renderer (the original code): no decoded textures");
-            return true;
-        }
         render::MmpLevelCheck check = render::CheckMmpLevels();
         char text[240];
         std::snprintf(text, sizeof(text),
@@ -160,10 +143,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         frames->push_back(text);
         if (check.levels == 0 || check.worst > most) failures->push_back(text);
     } else if (verb == "smooth") {
-        if (!render::Active()) {
-            Log("harness: smooth %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "on" || argument == "off") render::SetSmooth(argument == "on");
         else failures->push_back("smooth needs on or off");
     } else if (verb == "smoothcheck") {
@@ -172,10 +151,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         if (sscanf_s(argument.c_str(), "%63s %63s %lf %lf", plain, unsigned(sizeof(plain)), smooth, unsigned(sizeof(smooth)),
                      &least, &most) < 4) {
             failures->push_back("smoothcheck needs two frame names, a least and a most fraction");
-            return true;
-        }
-        if (!render::Active()) {
-            Log("harness: smoothcheck %s %s: not the new renderer (the original code): skipped", plain, smooth);
             return true;
         }
         render::SmoothInfo info = render::SmoothState();
@@ -198,10 +173,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             failures->push_back(text);
     } else if (verb == "smoothorder") {
         static render::SmoothOrder order = render::SmoothOrder::Game;
-        if (!render::Active()) {
-            Log("harness: smoothorder %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "game" || argument == "before" || argument == "split") {
             order = argument == "game" ? render::SmoothOrder::Game
                     : argument == "before" ? render::SmoothOrder::Before : render::SmoothOrder::Split;
@@ -227,27 +198,15 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         else ok = ok && info.multisampledPasses >= 2 && info.copiesInto >= 1 && info.depthCopiesBack >= 2;
         if (!ok) failures->push_back(text);
     } else if (verb == "shadowcasters") {
-        if (!render::Active()) {
-            Log("harness: shadowcasters %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "view") render::SetOffscreenCasters(render::OffscreenCasters::View);
         else if (argument == "all") render::SetOffscreenCasters(render::OffscreenCasters::All);
         else if (argument == "walked") render::SetOffscreenCasters(render::OffscreenCasters::Walked);
         else failures->push_back("shadowcasters needs view, all or walked");
     } else if (verb == "shadowview" || verb == "shadowshift") {
-        if (!render::Active()) {
-            Log("harness: %s %s: not the new renderer (the original code): ignored", verb.c_str(), argument.c_str());
-            return true;
-        }
         if (verb == "shadowshift") render::SetShadowShift(std::atoi(argument.c_str()));
         else if (argument == "on" || argument == "off") render::SetShadowView(argument == "on");
         else failures->push_back("shadowview needs on or off");
     } else if (verb == "terraincache") {
-        if (!render::Active()) {
-            Log("harness: terraincache %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "on" || argument == "off") {
             render::SetTerrainCache(argument == "on");
         } else if (argument == "check") {
@@ -263,10 +222,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             failures->push_back("terraincache needs on, off or check");
         }
     } else if (verb == "meshcache") {
-        if (!render::Active()) {
-            Log("harness: meshcache %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "on" || argument == "off") {
             render::SetMeshCache(argument == "on");
         } else if (argument == "check") {
@@ -282,17 +237,9 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             failures->push_back("meshcache needs on, off or check");
         }
     } else if (verb == "meshcorners") {
-        if (!render::Active()) {
-            Log("harness: meshcorners %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "read" || argument == "full") render::SetMeshCornersFull(argument == "full");
         else failures->push_back("meshcorners needs read or full");
     } else if (verb == "memorytextures") {
-        if (!render::Active()) {
-            Log("harness: memorytextures %s: not the new renderer (the original code): ignored", argument.c_str());
-            return true;
-        }
         if (argument == "inplace" || argument == "remake") render::SetMemoryTexturesInPlace(argument == "inplace");
         else failures->push_back("memorytextures needs inplace or remake");
     } else if (verb == "shadowcheck") {
@@ -300,10 +247,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         int least = 1, leastOutside = 0;
         if (sscanf_s(argument.c_str(), "%d %d", &least, &leastOutside) < 1) {
             failures->push_back("shadowcheck needs the least number of casters");
-            return true;
-        }
-        if (!render::Active()) {
-            Log("harness: shadowcheck: not the new renderer (the original code): skipped");
             return true;
         }
         render::ShadowInfo info = render::ShadowState();
@@ -322,10 +265,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             info.lost > 0 || info.outsideCasters < leastOutside)
             failures->push_back(text);
     } else if (verb == "renderstats") {
-        if (!render::Active()) {
-            Log("harness: renderstats %s: not the new renderer (the original code): skipped", argument.c_str());
-            return true;
-        }
         render::FrameStats t = render::TakeFrameStats();
         // The main thread's CPU time (its cycles, in milliseconds by the thread's CPU time so far, as the
         // TIMING lines) and the wall time since the last renderstats (R16h: what a frame costs the main
@@ -367,7 +306,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "%.0f / %.0f, %.0f meshes share another's geometry; upload KB "
             "terrain %.1f v + %.1f i, meshes %.1f v + %.1f i, uniforms %.1f; %.1f passes, %.0f draws, pipelines %.0f "
             "applied / %.0f changed, bindings %.0f (first texture changed %.0f); images made (count / KB): mmp %.2f / "
-            "%.1f, cpu pixels %.2f / %.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
+            "%.1f, memory textures %.2f / %.1f, window surfaces %.2f / %.1f, movie %.2f / %.1f, "
             "small %.2f / %.1f; largest image KB: memory texture %.1f, window surface %.1f; memory compared %.1f KB; "
             "CPU ms terrain %.3f, hand-over %.3f, textures %.3f (window surfaces %.3f), end of frame %.3f (counting %.3f), device mesh draws %.3f; "
             "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
@@ -382,8 +321,8 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             per(t.meshReuse[F::New]), per(t.sharedMeshes),
             kb(t.terrainVertexBytes), kb(t.terrainIndexBytes), kb(t.meshVertexBytes), kb(t.meshIndexBytes), kb(t.uniformBytes),
             per(t.passes), per(t.draws), per(t.pipelineApplies), per(t.pipelineChanges), per(t.bindings),
-            per(t.textureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]), per(t.uploads[F::CpuPixels]),
-            kb(t.uploadBytes[F::CpuPixels]), per(t.uploads[F::MemoryTexture]), kb(t.uploadBytes[F::MemoryTexture]),
+            per(t.textureChanges), per(t.uploads[F::Mmp]), kb(t.uploadBytes[F::Mmp]),
+            per(t.uploads[F::MemoryTexture]), kb(t.uploadBytes[F::MemoryTexture]),
             per(t.uploads[F::WindowSurface]), kb(t.uploadBytes[F::WindowSurface]), per(t.uploads[F::Movie]),
             kb(t.uploadBytes[F::Movie]), per(t.uploads[F::Small]), kb(t.uploadBytes[F::Small]),
             static_cast<double>(t.largestUpload[F::MemoryTexture]) / 1024.0,

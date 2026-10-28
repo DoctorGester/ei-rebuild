@@ -127,10 +127,6 @@ public:
     // bounds grown) with the vertices moved by offsets_ when there are any (into a shared buffer). Returns the
     // vertex count (4 per packet).
     int DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds);
-    // The shadow pass: the projected `points` rasterised into `target` through `rasteriser`, each triangle with
-    // its texture coordinates scaled to 0..255 (keyed when the target has key texels); returns the number of
-    // points used (4 per vertex).
-    int Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Point* points, RasterTarget* target);
 
     // The create virtual of every figure class: no drawer, flags, buffers or bounds; white flat colours.
     // Returns 1.

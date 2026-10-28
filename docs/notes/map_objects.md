@@ -38,8 +38,14 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   "magic\end1.wav" under 30 ticks left, stench plays "magic\Stench\1..3.wav" every 17 ticks (ISAAC
   draw), a shown light sits 2 above the object.
 - **Shadows**: gates 0079BD0C > 0 and the class switch (units 0079BD14, class 0x52 0079BD1C, others
-  0079BD18); shadow globals 007AF1E0 / 007AF1F8 / 007AF208 (pixel, point, quad buffers), lights
-  007AF748, render lock 007AEE78. The algorithm is in `map_object_shadow.h`.
+  0079BD18); shadow globals 007AF1F8 / 007AF208 (point, quad buffers), lights 007AF748. The renderer's
+  shadow map draws the shadow (renderer.md section 13); DrawShadow 0051CE60 hands the object over as a
+  caster (`render::CastsShadow`) and still builds the game's projection, whose decal sphere ShadowInView
+  0051E300 tests for objects out of view (CollectVisible 0056A990 lists them for shadows and updates their
+  pose). The original's 64x64 shadow texture (raster, blur, the render surface 00692140 and its lock, the
+  pixel buffer 007AF1E0, the `SR<id>` names) and the decal's draw (DrawFlatBlocks) are not ported (R26: no
+  fallback draw); `shadowMade` stands for "the texture was made" (the first draw after Create /
+  ClearShadow builds). The algorithm is in `map_object_shadow.h`.
 - **Drawing**: `CObject3DClientSpecific::Draw` is described in `map_object_shadow.h` and
   `map_object_draw.cpp` (lights within range + 10, matrix stacks, part sets +0x20 / +0x24).
 - **Figures**: layouts in `map_object_figures.h`; LoadFigures reads the model named at +0xA4

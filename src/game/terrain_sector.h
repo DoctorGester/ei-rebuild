@@ -173,14 +173,11 @@ struct SectorData {
     int Project(CTransformPipeline* pipeline);
 
     // The vertices x0..x1, y0..y1 (inclusive, 0..32) of the water layer (where it has a material), then of
-    // the ground, with the FPU in chop rounding. Without skipSun relightCountdown becomes -1.
-    void Light(CLight* sun, Terrain* owner, int skipSun, int x0, int y0, int x1, int y1);
-    // Ambient and `sun`, both dimmed under water on the ground layer; where the sun's ray is blocked
-    // (shadows on, ground layer) ambient + material colour, else max(sun shading, ambient).
-    void ShadeSun(CLight* sun, const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
-    // Maxima per channel; flag 0x40 lights count as specular.
-    void LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
-    // LightVertex's specular word alone, for the water layer when the GPU lights the colours.
+    // the ground, with the FPU in chop rounding. Without skipSun relightCountdown becomes -1 (and the sun's ray
+    // march runs where it can change the sector cache).
+    void Light(Terrain* owner, int skipSun, int x0, int y0, int x1, int y1);
+    // The water layer's specular word (maxima per channel of the flag 0x40 lights, the edge fade above them);
+    // the GPU lights the colours.
     void LightSpecular(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
 
     // The per-quarter arrays keep their sizes.

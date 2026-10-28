@@ -138,8 +138,8 @@ CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int widt
     converter_ = getProcessor();
 
     // The switch-over: the new renderer presents; no DirectDraw object, display mode or surfaces. Without it the
-    // game cannot run: the error ends it in WinMain.
-    if (!render::StartPresenting()) ThrowGameError("Can't start the renderer (no Direct3D 11 device).\n");
+    // game cannot run: when it cannot start, the game ends there (render::detail::Fatal).
+    render::StartPresenting();
     render::SetPerfOverlay(PerfOverlaySetting());
     if (render::VsyncSwitchSupported()) render::SetVsync(VsyncSetting());
     ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);

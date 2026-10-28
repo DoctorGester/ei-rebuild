@@ -685,6 +685,20 @@ group = "renderer"
 model = "opus"
 note = "User 2026-10-28: 'If renderer fails to start, the game shouldn't start either, same for all other paths which depend on that, no fallbacks.' Today render sets g_failed and goes on drawing nothing (render.cpp:126 sokol panic, :419 / :480 device or shaders, render_window.cpp:230 / :253 swap chain) and the game keeps its classic paths behind render::Active() / ClassicShadowSkipped(). Do: (1) a failure to start the device, shaders, blit pipeline or swap chain, a sokol panic, or a device loss whose recovery fails ends the game through game::FatalError with the reason (log it too); device-lost recovery itself stays, it is not a fallback. (2) Delete g_failed / Active() and every branch that only runs when the renderer is off. (3) map_object_shadow.cpp: the 64x64 shadow texture (MakeTexture, NewShadowTexture, the raster / blur, scratch buffers and their atexit frees, the SR%d names, DrawFlatBlocks) and TextureParts / PartGroup texture state go; keep ShadowCastStrength + CastsShadow; replace ShadowInView's decal-projection sphere with the renderer's own caster test (ShadowCasterArea) if the goldens allow, else keep only the sphere; move what is left next to the frame lists (world_client_draw.cpp) and delete the file if it ends up tiny. (4) Grep for other game-side code that only feeds the old DDraw / D3D7 draw (classic textures, flat draws, 2DintMMX shadow helpers) and remove it or list it. Goldens hold no frames (no-render-flags rule) but must stay the same; the image suite's render checks (render_stats / ShadowState) must still pass."
 
+[[ticket]]
+id = "R26a"
+title = "Shared harness: drop image::RenderActive and WindowPresents.failed (renderer failure is fatal since R26)"
+group = "renderer"
+depends = ["R26"]
+note = "R26 made every renderer failure end the game, so the image always draws: tests/verify/image/harness_objects_image.cpp's RenderActive returns true and render::WindowPresentInfo lost 'failed'. The shared harness still asks: HarnessRenderActive (harness_objects.h: ei::Standalone() && image::RenderActive()), image_side.h's RenderActive and WindowPresents::failed, harness.cpp's waitpresent / newdevice checks of now.failed, harness_capture.cpp and ui_census.cpp. Fold them into ei::Standalone() and drop the field. Left out of R26 because it changes the harness key (the --no-hooks suite replays): do it with the next harness change."
+
+[[ticket]]
+id = "R26b"
+title = "Old-device draws after render::TlDraw / ScreenDraw / MeshPass: the null device's DrawPrimitive calls and the bool results go"
+group = "renderer"
+depends = ["R26"]
+note = "Found by R26. renderer_lines.cpp, renderer_rect.cpp (2), renderer_sprites.cpp, renderer_strip.cpp, renderer_triangles.cpp and device_draw.cpp call device::DrawPrimitive / DrawIndexedPrimitive (device_null.cpp: D3D_OK, draws nothing) when render::TlDraw / ScreenDraw / MeshPass return true (the renderer did not take the draw: bad arguments, another FVF, no target size, the vertex limit, Build failed). That is the shape of a fallback to the classic draw, though it draws nothing: make the three void, drop the blocks (lastLoadResult_ is not read after them), log what the renderer refuses. Also check CRainSnow::DrawParticles (weather_particles.cpp) and CSceneRenderer::DrawTexture (renderer_scene.cpp), which draw only through the null device: whether the renderer gets those draws some other way (weather_draw.cpp's TlDraw) or they are dead."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

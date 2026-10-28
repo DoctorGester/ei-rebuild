@@ -339,12 +339,10 @@ public:
     BOOL SetPoint(const Vector3* color, const Vector3* position);
     // Kind 3; the light also tilts towards `direction`; flags_ bit 3. Returns 1.
     BOOL SetDirectional(const Vector3* color, const Vector3* direction);
-    // The terrain's vertex lighting: `base` plus the light's colour times `scale` and a factor, each channel
-    // clamped at 1; w is then not written (the callers do not read it). Unlit, `out` is `base`. Directional:
-    // the factor is minus the cosine between `normal` and direction_ (unlit when not above 0). Point: 1 -
-    // distance^2 / range^2 (unlit below 0), times 1 + the cosine between `normal` and `toLight` when that is
-    // not above 0.
-    void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
+    // The terrain water layer's specular lighting: `base` plus the light's colour times `scale` and a factor,
+    // each channel clamped at 1; w is then not written (the callers do not read it). Unlit, `out` is `base`. The
+    // factor: 1 - distance^2 / range^2 (unlit below 0), times 1 + the cosine between `normal` and `toLight` when
+    // that is not above 0.
     void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
                   float distance) const;
 

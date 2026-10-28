@@ -281,12 +281,6 @@ public:
     // A square surface header->width wide (the height is not read) in the new renderer's memory, one level.
     // Returns 1.
     int CreateBlank(CTextureDevice* device, const MmpHeader* header);
-    // Enters the device lock, held until UnlockPixels. 0 without a holder (no lock) or without memory.
-    int LockPixels(SurfacePixels* pixels);
-    // Nothing without a holder.
-    void UnlockPixels();
-    // The shadow's render surface into its texture.
-    void LoadPixelsFrom(CTextureDevice* device, const CTexture* source);
     // A 24-bit .bmp and, when `alphaPath` is an 8-bit .bmp, its alpha. 1 (also when already loaded); 0 when
     // the .bmp cannot be opened.
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
@@ -343,10 +337,6 @@ public:
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.
     CTexture* NewTexture(int width, int height, int kind);
-    // 64x64 4:4:4:4 (kind 0x25, flag 0x200). FatalError's result when the device has no 4:4:4:4 format.
-    CTexture* NewShadowTexture();
-    // Made on first use as NewShadowTexture's, but flag 0x400.
-    CTexture* ShadowRenderSurface();
     // A registered texture with a flag of 0x38 goes into the cache, any other is destroyed and kept as a
     // spare. Returns 0.
     int ReleaseObject(CEngineObject* object) override;
@@ -382,7 +372,6 @@ public:
     std::list<CTexture*> cache_;   // released textures kept for reuse
     int cachedBytes_;           // the cached textures' CTexture::uploadResult_
     std::uint32_t videoMemoryTenth_;
-    CTexture* shadowRenderSurface_;   // counted
     CTextureDevice* device_;
     std::uint16_t mipLevel_;    // first mip level to load
     int limitTo512_;            // nonzero: textures are loaded at most 511 pixels wide and high

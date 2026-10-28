@@ -89,12 +89,11 @@ TextureParts::~TextureParts() {
 }
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
-    texture = nullptr;
+    shadowMade = false;
     std::memset(&sphere, 0, sizeof(sphere));
     woundsTexture = nullptr;
     woundsMaterial = nullptr;
     materialCursor = -1;
-    AssignCounted<CTexture>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
@@ -107,7 +106,7 @@ CObject3DClientSpecific::CObject3DClientSpecific() {
 int CObject3DClientSpecific::Create() {
     materialCursor = -1;
     flags_ = 0;
-    AssignCounted<CTexture>(&texture, nullptr);
+    shadowMade = false;
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     ClearWoundsMaterial();
     bounds[3] = 0.0f;
@@ -125,7 +124,7 @@ int CObject3DClientSpecific::Create() {
 }
 
 void CObject3DClientSpecific::Destroy() {
-    AssignCounted<CTexture>(&texture, nullptr);
+    shadowMade = false;
     AssignCounted<CTexture>(&woundsTexture, nullptr);
     woundsMaterial.Assign(nullptr);
     for (int k = 0; k < 2; ++k) {
@@ -154,7 +153,6 @@ CObject3DClientSpecific::~CObject3DClientSpecific() {
     CObject3DClientSpecific::Destroy();
     if (woundsMaterial) woundsMaterial->Release();
     if (woundsTexture) woundsTexture->Release();
-    if (texture) texture->Release();
 }
 
 // --- Parts, textures and materials ----------------------------------------------------------------

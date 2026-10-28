@@ -217,7 +217,7 @@ void Terrain::RelightArea(const LightArea* area) {
             SectorData* sector = BuiltSector(this, sx, sy, 4);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
-            sector->Light(sun, this, 1, range.x0, range.y0, range.x1, range.y1);
+            sector->Light(this, 1, range.x0, range.y0, range.x1, range.y1);
         }
     }
 }

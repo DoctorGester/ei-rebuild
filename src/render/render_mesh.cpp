@@ -528,7 +528,8 @@ void DestroyMeshes() {
 void BeginMesh(void* device, const MeshDraw& mesh) {
     g_pending = Pending{};
     NoteMeshDraw(mesh);
-    if (!device || !mesh.matrix || !Active() || !Started()) return;
+    if (!device || !mesh.matrix) return;
+    Start();
     StatsTimer timer(&FrameStats::handOverMs);
     Frame& f = g_frame;
     if (f.meshVertices.size() > 4'000'000) {   // no present for a long time: drop the rest
@@ -636,7 +637,8 @@ void EndMesh() { g_pending = Pending{}; }
 
 bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
             int primitive) {
-    if (!device || !vertices || vertexCount <= 0 || !Active() || !Started()) return true;
+    if (!device || !vertices || vertexCount <= 0) return true;
+    Start();
     if (fvf != 0x1C4 && fvf != 0xC4) return true;   // not a layout the game uses for these
     StatsTimer timer(&FrameStats::handOverMs);
     ++g_stats.transformedDraws;
@@ -710,7 +712,8 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
 }
 
 bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount) {
-    if (!device || !vertices || count <= 0 || !Active() || !Started()) return true;
+    if (!device || !vertices || count <= 0) return true;
+    Start();
     StatsTimer timer(&FrameStats::handOverMs);
     ++g_stats.transformedDraws;
     int width = 0, height = 0;

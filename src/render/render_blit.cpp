@@ -427,7 +427,8 @@ void RetireFrameImages() {
 } // namespace detail
 
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
-    if (!key || !rgbx || width <= 0 || height <= 0 || !Active() || !Started()) return;
+    if (!key || !rgbx || width <= 0 || height <= 0) return;
+    Start();
     FpuGuard fpu;
     CountImageRequest(ImageUse::Movie);
     g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
@@ -452,7 +453,6 @@ void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height
 }
 
 void MovieBlit(const void* key, const Rect& to) {
-    if (!Active()) return;
     auto it = g_movies.find(key);
     if (it == g_movies.end() || !it->second.view.id) return;
     Movie& m = it->second;
@@ -464,7 +464,8 @@ void MovieBlit(const void* key, const Rect& to) {
 }
 
 void Fill(const Rect& to, std::uint32_t colour) {
-    if (!Active() || !Started() || to.right <= to.left || to.bottom <= to.top) return;
+    if (to.right <= to.left || to.bottom <= to.top) return;
+    Start();
     FpuGuard fpu;
     // One texel stretched over the rectangle (D3DCOLOR is B, G, R, A in memory).
     std::vector<std::uint8_t> rgba{static_cast<std::uint8_t>(colour >> 16), static_cast<std::uint8_t>(colour >> 8),
@@ -473,7 +474,8 @@ void Fill(const Rect& to, std::uint32_t colour) {
 }
 
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
-    if (!imageHolder || !mask || !Active() || !Started()) return;
+    if (!imageHolder || !mask) return;
+    Start();
     const auto* holder = static_cast<const CDXSurface*>(imageHolder);
     int w = from.right - from.left, h = from.bottom - from.top;
     if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
@@ -509,7 +511,8 @@ void DropBlits() {
 } // namespace detail
 
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key) {
-    if (!holder || !Active() || !Started()) return;
+    if (!holder) return;
+    Start();
     FpuGuard fpu;
     int width = 0, height = 0;
     sg_view view = WindowSurfaceView(holder, keyed, key, &width, &height);

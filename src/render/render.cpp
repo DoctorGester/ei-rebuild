@@ -26,6 +26,7 @@
 #include "../game/game_singletons.h"
 #include "../game/model.h"
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -43,7 +44,6 @@ using namespace detail;
 // --- The switch ------------------------------------------------------------------------------------
 
 bool g_configured = false;
-bool g_failed = false;   // device or pipelines could not be created, or sokol panicked: nothing more is drawn
 bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 bool g_smooth = false;
 bool g_smoothCamera = false;
@@ -122,8 +122,8 @@ void SokolLog(const char* tag, std::uint32_t level, std::uint32_t item, const ch
     }
     ei::Log("render: %s %s %u (line %u): %s", tag ? tag : "sg", level < 4 ? kLevels[level] : "?", item, line,
             message ? message : "");
-    // sokol cannot go on after a panic: the new renderer switches itself off (nothing more is drawn).
-    if (level == 0) g_failed = true;
+    // sokol cannot go on after a panic (it would abort): the game ends with the message.
+    if (level == 0) Fatal("The renderer stopped: sokol_gfx panic %u (%s).", item, message ? message : "");
 }
 
 #if defined(EI_RENDER_VALIDATION)
@@ -221,6 +221,9 @@ bool TakePreparedDevice(HRESULT* result, D3D_FEATURE_LEVEL* got) {
     return true;
 }
 
+// Why the last CreateDevice failed (for the fatal error's message).
+char g_deviceError[160] = "";
+
 bool CreateDevice() {
     D3D_FEATURE_LEVEL got{};
     HRESULT hr = S_OK;
@@ -230,7 +233,9 @@ bool CreateDevice() {
 #endif
         if (!TakePreparedDevice(&hr, &got)) hr = CreatePlainDevice(&g_device, &g_context, &got);
     if (FAILED(hr)) {
-        ei::Log("render: D3D11CreateDevice failed (%08lX); the new renderer stays off", static_cast<unsigned long>(hr));
+        std::snprintf(g_deviceError, sizeof(g_deviceError), "no Direct3D 11 device (D3D11CreateDevice failed, %08lX)",
+                      static_cast<unsigned long>(hr));
+        ei::Log("render: %s", g_deviceError);
         return false;
     }
     sg_desc desc{};
@@ -249,7 +254,8 @@ bool CreateDevice() {
     desc.sampler_pool_size = 256;
     sg_setup(&desc);
     if (!sg_isvalid()) {
-        ei::Log("render: sg_setup failed; the new renderer stays off");
+        std::snprintf(g_deviceError, sizeof(g_deviceError), "sokol_gfx could not be set up on the Direct3D 11 device");
+        ei::Log("render: %s", g_deviceError);
         g_context->Release();
         g_device->Release();
         g_context = nullptr;
@@ -410,18 +416,25 @@ bool g_started = false;
 std::uint32_t g_frameNumber = 0;
 std::uint32_t g_commits = 0;
 
-bool EnsureStarted() {
-    EnsureConfigured();
-    if (!Active()) return false;
-    if (g_started) return true;
-    FpuGuard fpu;
-    if (!CreateDevice() || !CreateTerrainShader() || !CreateMeshShader() || !CreateBlitPipeline()) {
-        g_failed = true;
-        return false;
-    }
-    g_started = true;
-    return true;
+// The device, sokol and the pipelines at the first use. The game cannot run without them: a failure ends it.
+void MakePipelines(const char* what) {
+    if (!CreateTerrainShader()) Fatal("%s: the terrain shader could not be made.", what);
+    if (!CreateMeshShader()) Fatal("%s: the mesh shader could not be made.", what);
+    if (!CreateBlitPipeline()) Fatal("%s: the blit pipeline could not be made.", what);
 }
+
+} // namespace
+
+void detail::Start() {
+    EnsureConfigured();
+    if (g_started) return;
+    FpuGuard fpu;
+    if (!CreateDevice()) Fatal("Can't start the renderer: %s.", g_deviceError);
+    MakePipelines("Can't start the renderer");
+    g_started = true;
+}
+
+namespace {
 
 // --- A lost device -------------------------------------------------------------------------------------
 
@@ -437,8 +450,8 @@ UINT g_stagingWidth = 0, g_stagingHeight = 0;
 // Everything made on the lost device is released (sokol's resources through each module, then sg_shutdown),
 // the device and context with them; a new device gets sokol again and the pipelines. The frame target, the
 // window's swap chain, window surfaces and textures are made again as the next frames ask for them: from the
-// game's memory, or from the file levels kept for them. False when no new device could be made.
-bool RecreateDevice() {
+// game's memory, or from the file levels kept for them. No new device ends the game.
+void RecreateDevice() {
     FpuGuard fpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
@@ -475,14 +488,10 @@ bool RecreateDevice() {
         if (attempt) Sleep(200);
         made = CreateDevice();
     }
-    if (!made || !CreateTerrainShader() || !CreateMeshShader() || !CreateBlitPipeline()) {
-        ei::Log("render: no new Direct3D 11 device; the new renderer is off");
-        g_failed = true;
-        return false;
-    }
+    if (!made) Fatal("The Direct3D 11 device was lost and no new one could be made: %s.", g_deviceError);
+    MakePipelines("The Direct3D 11 device was lost and made again");
     ++g_recoveries;
     g_deviceLost = false;
-    return true;
 }
 
 // The end of a presented frame (nothing of it holds sokol resources any more): a loss reported
@@ -895,13 +904,13 @@ void DeviceLossCounts(WindowPresentInfo* info) {
 } // namespace detail
 
 void LoseDevice() {
-    if (!Active() || !g_started) return;
+    if (!g_started) return;
     g_simulateLoss = true;
 }
 
 #if defined(EI_RENDER_VALIDATION)
 bool RemoveDevice() {
-    if (!Active() || !g_started || !g_d3d12) return false;
+    if (!g_started || !g_d3d12) return false;
     ID3D12Device5* device5 = nullptr;
     if (FAILED(g_d3d12->QueryInterface(IID_PPV_ARGS(&device5)))) {
         ei::Log("render: RemoveDevice: no ID3D12Device5 (Windows 10 1809 or later)");
@@ -949,6 +958,17 @@ void RemoveIfAsked() {
 
 namespace detail {
 
+void Fatal(const char* format, ...) {
+    char text[512];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    ei::Log("render: fatal: %s", text);
+    app::ShowMessageBox(text, MB_ICONHAND);
+    std::exit(-1);
+}
+
 // The game's main-thread x87 state is part of its behaviour (docs/notes/rebirth.md, "FPU precision");
 // drivers are not expected to change it, but the control word is put back after every call into them anyway
 // (loaded only when it changed).
@@ -960,7 +980,6 @@ FpuGuard::~FpuGuard() {
 Frame g_frame;
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
-bool Started() { return EnsureStarted(); }
 
 ID3D11Device* D3DDevice() { return g_device; }
 ID3D11DeviceContext* D3DContext() { return g_context; }
@@ -1034,14 +1053,12 @@ void Configure(const char* spec) {
 
 void PrepareDevice() {
     EnsureConfigured();
-    if (!Active() || g_started || g_prepared.thread) return;
+    if (g_started || g_prepared.thread) return;
 #if defined(EI_RENDER_VALIDATION)
     if (g_removable) return;   // made at the first use (CreateRemovableDevice)
 #endif
     g_prepared.thread = CreateThread(nullptr, 0, &PrepareDeviceThread, nullptr, 0, nullptr);
 }
-
-bool Active() { return !g_failed; }
 
 void BeginDeviceMeshTime() {
 #if defined(EI_RENDER_VALIDATION)
@@ -1100,7 +1117,7 @@ void EndShadowBuildTime() {
     g_shadowBuildTimer.End();
 #endif
 }
-bool MeshCornersSkipped() { return Active() && !g_meshCornersFull; }
+bool MeshCornersSkipped() { return !g_meshCornersFull; }
 void SetMeshCornersFull(bool full) {
 #if defined(EI_RENDER_VALIDATION)
     if (full != g_meshCornersFull)
@@ -1111,23 +1128,14 @@ void SetMeshCornersFull(bool full) {
 #endif
 }
 
-bool StartPresenting() {
-    if (g_presentsItself) return true;
-    if (!Active() || !EnsureStarted()) return false;
+void StartPresenting() {
+    if (g_presentsItself) return;
+    Start();
     g_presentsItself = true;
     ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
-    return true;
 }
 
 bool PresentsItself() { return g_presentsItself; }
-
-void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,
-                   std::uint32_t redMask, std::uint32_t greenMask, std::uint32_t blueMask, std::uint32_t alphaMask) {
-    if (!holder || !pixels || !Active() || !EnsureStarted()) return;
-    FpuGuard fpu;
-    StatsTimer timer(&FrameStats::textureMs);
-    TextureFromPixels(holder, pixels, width, height, pitch, bitsPerPixel, redMask, greenMask, blueMask, alphaMask);
-}
 
 void SetSmooth(bool on) {
     EnsureConfigured();
@@ -1153,7 +1161,7 @@ bool SmoothCamera() {
 
 void BeginWorld() {
     std::vector<Frame::Range>& ranges = g_frame.worldRanges;
-    if (!Active() || (!ranges.empty() && ranges.back().end == SIZE_MAX)) return;
+    if (!ranges.empty() && ranges.back().end == SIZE_MAX) return;
     ranges.push_back(Frame::Range{g_frame.commands.size(), SIZE_MAX});
 }
 
@@ -1163,7 +1171,6 @@ void EndWorld() {
 }
 
 void ClearDepth(float z, const Rect* rects, int count) {
-    if (!Active()) return;
     g_stats.depthClears += rects ? static_cast<std::uint64_t>(count > 0 ? count : 0) : 1;
     if (!rects) {
         g_frame.clears.push_back(ClearBatch{z, Rect{0, 0, 0, 0}});
@@ -1262,13 +1269,13 @@ FrameStats TakeFrameStats() {
 namespace detail {
 
 void SplitFrame() {
-    if (!Active() || !g_started || g_frameDrawn || BetweenFrames()) return;
+    if (!g_started || g_frameDrawn || BetweenFrames()) return;
     FpuGuard fpu;
     DrawPendingAlone();
 }
 
 void RunCanvasesNow() {
-    if (!Active() || !EnsureStarted()) return;
+    Start();
     FpuGuard fpu;
     if (g_presentsItself) BeginWindowPresent();
     RunCanvasCommands();
@@ -1278,7 +1285,8 @@ void RunCanvasesNow() {
 } // namespace detail
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
-    if (!holder || !Active() || !EnsureStarted()) return false;
+    if (!holder) return false;
+    Start();
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
     if (!memory || (memory->bitsPerPixel != 16 && memory->bitsPerPixel != 32)) return false;
     FpuGuard fpu;
@@ -1329,7 +1337,8 @@ bool CopyFrameTo(const void* holder, const Rect& source) {
 }
 
 void EndFrame() {
-    if (g_frameDrawn || !EnsureStarted()) return;
+    if (g_frameDrawn) return;
+    Start();
     g_frameDrawn = true;
     FpuGuard fpu;
     StatsTimer timer(&FrameStats::endFrameMs);
@@ -1361,7 +1370,6 @@ void EndFrame() {
 }
 
 void Present() {
-    if (!Active()) return;
     EndFrame();
     perf::FrameDone(g_stats.draws, g_stats.shadowDraws);
     AddFrameStats();
@@ -1425,7 +1433,7 @@ SmoothInfo SmoothState() {
 }
 
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr) {
-    if (!Active() || !g_started || !g_haveFrame || !g_colour.id) return false;
+    if (!g_started || !g_haveFrame || !g_colour.id) return false;
     FpuGuard fpu;
     sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
     auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));

@@ -22,7 +22,6 @@ LightParams g_params = {{0.0f, 0.0f, -1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 0.0f}, {0.
 } // namespace
 
 void SceneLighting(const SceneLights& lights) {
-    if (!Active()) return;
     LightParams p{};
     const Vector3& d = lights.sunDirection;
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(d));
@@ -56,8 +55,6 @@ void SceneLighting(const SceneLights& lights) {
     p.counts[0] = static_cast<float>(count);
     g_params = p;
 }
-
-bool GpuTerrainLighting() { return Active(); }
 
 namespace detail {
 
