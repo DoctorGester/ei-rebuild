@@ -39,6 +39,7 @@ constexpr double kMushroomWidth = 0.2;
 constexpr float kMushroomRise = std::bit_cast<float>(0x3DF5C28Fu);     // 0.12
 constexpr double kOrbitMinRadius = 0.01;
 constexpr float kSphereScale = std::bit_cast<float>(0x3FCCCCCDu);      // 1.6
+constexpr float kSphereBefore = 1.0f;   // the four bytes before kSphereSizeByLife in the original (ByLife)
 
 
 // Reads a float back from memory after storing it (the compiler would otherwise reuse the unrounded register
@@ -279,16 +280,16 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     p->pos.x = px;
     switch (type_) {
     case kTypeSphereFire:
-        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale * 2.0f;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * 2.0f;
         break;
     case kTypeAntimagic:
-        p->size = kAntimagicSizeByLife[p->life] * p->drift.x * scale;
+        p->size = ByLife(kAntimagicSizeByLife, p->life, kSphereSizeByLife[15]) * p->drift.x * scale;
         break;
     case kTypeSphereElectricity:
-        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale;
         break;
     default:
-        p->size = kSphereSizeByLife[p->life] * p->drift.x * scale * kSphereScale;
+        p->size = ByLife(kSphereSizeByLife, p->life, kSphereBefore) * p->drift.x * scale * kSphereScale;
         break;
     }
     return 1;

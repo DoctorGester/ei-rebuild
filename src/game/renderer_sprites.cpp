@@ -279,6 +279,10 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
     }
     float xMax = static_cast<float>(x87::FromUnsigned(screen.width));
     float yMax = static_cast<float>(x87::FromUnsigned(screen.height));
+    // The clipper appends its new vertices after the corners (up to two per plane, six planes, two triangles per
+    // sprite): the vector holds them (the original wrote them past its end, into its spare capacity).
+    constexpr int kClipAddedPerSprite = 2 * 6 * 2;
+    Corners().resize(static_cast<std::size_t>(sprites) * (4 + kClipAddedPerSprite));
     TLVertex* vertices = CornerData();
     const auto* outcodes = Outcodes().data();
     std::uint16_t* tri = IndexData();

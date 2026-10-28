@@ -57,6 +57,15 @@ struct Particle {
 };
 static_assert(sizeof(Particle) == 0x64);
 
+// A table read by a particle's remaining life, unchecked as the original reads it. The tick updates a particle
+// once more after it has died and gone back to the pool (CParticleSource::RunTick keeps the original's order), so
+// an update that counts the life down reads index -1 then: the original read the four bytes before the table there
+// (in game.exe's data, the last entry of the table before it), `before` here.
+template <class T, std::size_t N>
+constexpr T ByLife(const T (&table)[N], int life, T before) {
+    return life < 0 ? before : table[life];
+}
+
 // One element of a source's own array (32-byte aligned). What the slots hold depends on the source type (the
 // views below); code indexes element 0 and reads element 1 through it.
 struct ParticleElement {

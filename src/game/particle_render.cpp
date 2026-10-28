@@ -117,7 +117,9 @@ int CParticleSource::Draw(CSceneRenderer* renderer) {
             argb <<= 8;
             argb |= static_cast<std::uint32_t>(MixChannel(now, before, 0, t, u));
             sprite->color = argb;
-            sprite->frame = frames.data() + p->prevFrame;
+            // A frame past the grid (a link spark is emitted on a frame up to frameCount, one past the last): the
+            // original read the heap after the frames there, here the first frame.
+            sprite->frame = frames.data() + (p->prevFrame < std::ssize(frames) ? p->prevFrame : 0);
             ++sprite;
             ++vertex;
         } while (cursor != particles.end());

@@ -74,6 +74,12 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
 ## Original bugs kept on purpose
 
 - `Tick` unlinks and pools a particle the previous update rejected, then still updates it and counts it in the bounds.
+  An update that counts the life down then reads its life table at index -1 (Shower, Casting, CastSwirl, Orbit,
+  ZoneExit; ClayRing its countdown table): the original read the four bytes before the table in game.exe's data, the
+  previous table's last entry. `ByLife` (effects.h) gives that value; AddressSanitizer found these reads.
+- Out of the tables the other way: FireBlast's flame frame can step to 16 (the original read kAcidSpread's 0.0f, alpha
+  0; further out other data, here 0), and Link sparks are emitted on a frame up to frameCount, one past the grid (the
+  original drew the heap after the frames; the draw takes the first frame instead).
 - `EmitLightning` never counts its bursts (+0x34 of point 0 is raised elsewhere, if at all).
 - The renderer passes the blend flag with garbage in the upper bytes of the pushed register (the callee reads the low
   byte; ours passes 0 / 1).
