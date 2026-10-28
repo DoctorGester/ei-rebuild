@@ -642,6 +642,12 @@ to which template:
 - `stlp::NamedSlot(map, key)` (operator[] with a null record for a new key) is `map[key]`; `find_or_insert({k, v})` is
   `map[k]` (the table grows first in both). Where the original read the count after the insert (the saved numbers), the
   slot is taken first, then the count read.
+- Lifetimes as in C14b: a map member of a class with a real constructor and destructor is the compiler's (the
+  Construct(100) / InitBuckets / Destroy calls went); construct_at / destroy_at only in raw storage (the databases'
+  tables, the ack records, FigureModel, the StaticObject registries and sets). The item stock looks raw (Construct /
+  Destruct) but is a member of ClassTemplate: its maps are the compiler's (a construct_at there built and freed them
+  twice, a heap corruption at start-up). A std::unordered_map is not valid zeroed; lib::HashMap is (an empty
+  bucket vector).
 - Walks that erase the entry they stand on step first (CPlayer::ReleaseTamedUnits; the game's walk read the freed
   node); the render helper's destructor collects the presets before releasing them.
 - Kept as stlp (C14o): the connection's five trees (counted RefPtr values with their element policies), UnitSet's

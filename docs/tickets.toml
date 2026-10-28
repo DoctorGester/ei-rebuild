@@ -2957,7 +2957,7 @@ title = "C14 maps: stlp::hash_map, map, set to std types, keeping iteration orde
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals. 2026-10-28 (review): trees -> std::map / std::multimap (b03dc113c; library_trees.h/.cpp deleted); hash maps -> lib::HashMap (src/lib/hash_map.h, STLport's walk order, for maps whose walk decides behaviour, saved or listed data) or std::unordered_map / unordered_set (lookups) (7f6846f7e); item stock maps fixed to the owner's members (c3fe60666). One-off script outside the repo (scratch retype_maps.py + edits/*.py + generic.py). Lines (files) before -> after in src+tests: stlp::hash_map 51 (26) -> 0, stlp::hashtable 9 (7) -> 6 (4), stlp::map 23 (13) -> 3 (1), stlp::TreeAbi 13 (3) -> 4 (2), stlp::NamedSlot 26 (13) -> 0; std::unordered_map 60 -> 93, std::map 14 -> 27, std::multimap 0 -> 2, lib::HashMap 26 (17). src/lib/stlp* 3318 -> 2755 lines; deleted stlp::hash_map + functors, LowerBoundDwords, string/dword traits, NamedSlot, RecordsByName, stlp_pair.h/.cpp, stlp_hash.cpp. Kept for C14o: Connection's trees, UnitSet's tables, PartyTable, ShapeTable. tests/vectors/replay_hash_map.cpp checks the order; the game.exe hash view walks like a std map. Image suite 145 pass, 121 the same; original suite 126 pass, 114 the same. Notes: docs/notes/core.md 'Containers: STLport hash_map, map and set to std (C14c)'."
 
 [[ticket]]
 id = "C14d"
@@ -3495,6 +3495,13 @@ group = "cleanup"
 model = "opus"
 depends = ["C14b"]
 note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
+
+[[ticket]]
+id = "C14o"
+title = "C14 the kept STLport hash tables and trees: Connection's maps, UnitSet's tables, the parties, the shape cache to std"
+group = "cleanup"
+depends = ["C14c"]
+note = "Left by C14c (user 2026-10-28 rule: replace the usage code with std or small code of ours, then delete the stlp piece once only the tests' game.exe views use it). Kept as stlp: net::Connection's five trees (net_connection.h trees::*, counted RefPtr values with CountedValue / RecordValue policies; stlp_tree.h / stlp_tree_abi.h / stlp_tree_mbs.h stay for them), UnitSet's FiguredTable / FiguredGroups / DressedTable (world.h, record element policies; walked to write the zone message, so lib::HashMap), PartyTable (party_manager.h, CParty in place with a nonstandard copy; game_hashes.h PartyAbi), ShapeTable (ai_shape_cache.h, RefPtr values, its own height equality). Each needs its element's real special members (an RAII counted pointer, CParty's copy) first; then lib::HashMap (src/lib/hash_map.h) where the walk matters, std::map for the trees, and stlp_hash.h / stlp_tree*.h go. The hashtable's bucket vectors are stlp::vector (C14n)."
 
 [[ticket]]
 id = "S"
