@@ -46,7 +46,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         {
             std::string image = weapon->FigureName();
             std::string model = weapon->PictureName();
-            AddWeapon(model.c_str(), image.c_str());
+            AddWeapon(model, image);
         }
         TheTextManager()->GetItemTexts(weapon, &tip, &description, &line);
         tip += "\n";

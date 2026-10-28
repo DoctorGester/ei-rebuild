@@ -18,7 +18,7 @@ inline bool Enabled() { return ei::rebirth::Enabled(ei::rebirth::Patch::EiPlugin
 
 // The plugin's replacement of the "unhuma" / "unhufe" comparisons (cmp byte [name+4], 0x66): a
 // model whose fifth character is 'f' is a woman's, every other one a man's.
-inline bool ModelIsFemale(const char* model) { return model[4] == 'f'; }
+inline bool ModelIsFemale(std::string_view model) { return model.size() > 4 && model[4] == 'f'; }
 
 namespace detail {
 // The plugin's 100030B0: does `name` contain `needle`, compared without case (letters only)?

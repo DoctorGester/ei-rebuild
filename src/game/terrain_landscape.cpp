@@ -387,7 +387,7 @@ int Terrain::SetupPages(int count) {
             pageTextures.push_back(nullptr);
             pageMaterials.push_back(nullptr);
         }
-        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name.c_str());
+        CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name);
         pageTextures[i] = texture;
         ++texture->refCount_;
         CMaterial* material = TheMaterialManager()->NewMaterial(kPageMaterial);
@@ -409,9 +409,9 @@ int Terrain::SetupPages(int count) {
 
 // Float notes (rule 7): the game works on the FPU stack at the main thread's 24-bit precision, so every
 // quotient and product below is rounded to float where it is made.
-int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
+int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon) {
     ClearMap();
-    std::string name = path;
+    const std::string name(path);
     if (!archive.OpenResource(name, 0)) return 0;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");

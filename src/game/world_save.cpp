@@ -188,13 +188,13 @@ constexpr const char* kCantLoadMap = "CWorldServer::NewZone()\n Can't load map.\
 
 // Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
 // first: `site`).
-bool MapFileMissing(const char* name, modfolders::MapsSite site) {
-    if (lib::FileExists(name)) return false;
+bool MapFileMissing(std::string_view name, modfolders::MapsSite site) {
+    const std::string file(name);
+    if (lib::FileExists(file)) return false;
     std::string folder;
     modfolders::SelectMaps(name, site);
     MapsFolder(&folder);
-    std::string path = folder + name;
-    return !lib::FileExists(path.c_str());
+    return !lib::FileExists(folder + file);
 }
 
 } // namespace
@@ -224,7 +224,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
         if (stream->version_ >= kVersionMapObjectName) {
             std::string name;
             ReadStringInto(stream, name);
-            object->TakePrototype(name.c_str());
+            object->TakePrototype(name);
         }
         object->WriteFullState();
         object->Load(stream);
@@ -291,7 +291,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     ReadStringInto(stream, zoneName);
     if (map) mapName = map;
     zoneName_ = zoneName;
-    SelectLoadingMovie(zoneName.c_str());
+    SelectLoadingMovie(zoneName);
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
@@ -317,12 +317,12 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
     stream->Read(&sessionKind_, 4);
 
     int result;
-    if (!ReadAIGraph(mapName.c_str(), mobName.c_str(), &savedGraph)) {
+    if (!ReadAIGraph(mapName, mobName, &savedGraph)) {
         result = 0;
     } else {
         graph.ApplyDiff(&savedGraph, stream);
         ShowLoadProgress(kProgressZone);
-        if (!LoadMap(mapName.c_str(), mobName.c_str(), &graph, 1)) {
+        if (!LoadMap(mapName, mobName, &graph, 1)) {
             result = game::FatalError(game::CantLoadSaveMapText());
         } else {
             // The map objects' identities: id, type and prototype id.
@@ -478,7 +478,7 @@ void CWorldServer::SaveWorld(CStream* stream) {
     WriteCopy(stream, lastRainBoltTick_);
     stream->Write(&sessionKind_, 4);
 
-    ReadAIGraph(mapName_.c_str(), mobName_.c_str(), &base);
+    ReadAIGraph(mapName_, mobName_, &base);
     AIMap()->regionMap.SaveBlocks(&current);
     stream->WriteDiff(&base, &current);
 
@@ -593,12 +593,12 @@ void CWorldServer::PrepareSave() {
     }
 }
 
-int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
+int CWorldServer::NewZone(std::string_view map, std::string_view mob, std::optional<std::string_view> zone) {
     cave_ = 0;
     SelectLoadingMovie(zone);
     ShowLoadProgress(kProgressStart);
-    if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
-    if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
+    if (MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
+    if (MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
     CMemoryStream graph;
     if (!ReadAIGraph(map, mob, &graph))
         return game::FatalError(kCantLoadGraph);
@@ -614,7 +614,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     AIMap()->EndRefresh();
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
-    if (zone) zoneName_ = zone;
+    if (zone) zoneName_ = *zone;
     scriptsActive_ = 0;
     return 1;
 }

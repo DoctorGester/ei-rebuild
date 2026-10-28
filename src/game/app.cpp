@@ -257,7 +257,7 @@ int StartFirstMap() {
         return 1;
     }
     CWorldServer* world = &g_serverWorld.Get();
-    if (!world->NewZone(map.c_str(), cmdMode.c_str(), (const char*)0))
+    if (!world->NewZone(map, cmdMode, std::nullopt))
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = &g_clientWorld.Get();

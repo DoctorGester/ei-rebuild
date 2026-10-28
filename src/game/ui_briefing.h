@@ -164,7 +164,7 @@ public:
     void FindTopics(int personId);
     // The first line of the text "briefing <topic>" (lowercased; "constr..." topics share "briefing constr"),
     // empty without one. `out` is constructed here.
-    std::string* TopicTitle(std::string* out, const char* topic);
+    std::string* TopicTitle(std::string* out, std::string_view topic);
 
     void LoadPersonTexts();
 

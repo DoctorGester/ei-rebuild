@@ -88,7 +88,7 @@ void CResourceStream::Close() {
     size_ = 0;
 }
 
-BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
+BOOL CResourceStream::OpenFile(const std::string& name, std::uint32_t* size) {
     // Close the file opened before (the archive stays open).
     if (offset_ != 0) {
         offset_ = 0;
@@ -101,9 +101,9 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
     // A readable loose file comes first.
     if (lib::FileExists(name)) {
         WIN32_FIND_DATAA found{};   // the size (the original's _findfirst never closed its search)
-        const HANDLE search = gameapi::FindFirstFileA(name, &found);
+        const HANDLE search = gameapi::FindFirstFileA(name.c_str(), &found);
         if (search != INVALID_HANDLE_VALUE) FindClose(search);
-        file_ = gameapi::mmioOpenA(const_cast<char*>(name), nullptr, MMIO_DENYWRITE);
+        file_ = gameapi::mmioOpenA(const_cast<char*>(name.c_str()), nullptr, MMIO_DENYWRITE);
         if (file_ != nullptr) {
             if (size != nullptr) *size = found.nFileSizeLow;
             offset_ = 1;

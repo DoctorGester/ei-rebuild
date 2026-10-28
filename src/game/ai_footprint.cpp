@@ -124,7 +124,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
 
     bool hasBridge = false;
     for (const std::string& name : *names) {
-        int index = object->FindPartIndex(name.c_str());
+        int index = object->FindPartIndex(name);
         if (index < 0) {
             game::FatalError(PartNotFoundFormat(), name.c_str(), object->name.c_str());
             continue;

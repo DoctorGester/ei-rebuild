@@ -7,6 +7,7 @@
 #include "options.h"
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -346,7 +347,7 @@ public:
     void AddUnitToServer(unsigned id, const char* prototype, const char* name, const Vector3* position);
     // Reads the objects of a .mob file (chunked). Returns 1, or what FatalError returns when the file
     // cannot be opened or read.
-    int LoadMapObjects(const char* file, int keepIds);
+    int LoadMapObjects(std::string_view file, int keepIds);
     // Loads .mob file `file` once (the loaded names are kept).
     int LoadMobFile(const char* file);
     // Removes every map object from the server, releases the missiles and the counted objects and clears
@@ -374,7 +375,7 @@ public:
     void PrepareSave();
     // Reads the zone's AI graph into the memory stream `out`: the 0x31415926 chunk of the .mob file when
     // there is one, else the whole <map>.grp file. 1 when found.
-    int ReadAIGraph(const char* map, const char* mob, CStream* out);
+    int ReadAIGraph(std::string_view map, std::string_view mob, CStream* out);
     // The zone's scripts from the .mob file's 0xA000 chunk (its 0xACCEECCB text packed and XORed,
     // decoded by the game's routine, or the plain 0xACCEECCA text) become the only line of the first
     // command queue.
@@ -388,7 +389,7 @@ public:
     // Loads map `map` (when it changed), the AI layer state from `graph` and the zone's .mob objects (the
     // same .mob starts the zone over, another one empties the world first; from a save the loaded objects are
     // cleared again). Returns 1, 0 when the map or the objects cannot be loaded.
-    int LoadMap(const char* map, const char* mob, CStream* graph, char fromSave);
+    int LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave);
     // Empties the world of the current zone.
     void ResetZone();
     // ResetZone, then the map name, diplomacy, both command queues and the AI map are reset and the game state
@@ -400,9 +401,9 @@ public:
     // A new zone from `map` and `mob`: the loading movie for `zone` shown, the AI graph read (a fatal error
     // without it), the map loaded; the zone name kept when given, scriptsActive_ cleared. 0 when a file is
     // neither where its name says nor in the maps folder, else 1.
-    int NewZone(const char* map, const char* mob, const char* zone);
+    int NewZone(std::string_view map, std::string_view mob, std::optional<std::string_view> zone);
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
-    void EnsureZone(const char* map, const char* mob);
+    void EnsureZone(std::string_view map, std::string_view mob);
     // `unit` used one of `item` (a scroll): the item's count drops, and the count of the party's item it was made
     // from when the unit's player has a record for the unit.
     void UseItemUp(class CUnit* unit, class CItem* item);
@@ -815,7 +816,7 @@ public:
     // <name> without a dot summons the bird (as SummonBird).
     void OnQuestVariable(std::string_view name, float value);
     // The party variable of an object's name: "q.<the local player's zone>.<name>".
-    std::string ObjectVariableName(const char* name);
+    std::string ObjectVariableName(std::string_view name);
     // Every filed object with a name gets the visibility level of its variable (ObjectVariableName) in the
     // local session's variables; run when the party variables arrive.
     void ApplyObjectVariables();
@@ -1125,7 +1126,7 @@ struct GameFlow {
     // (requestTarget_), requestArg_ and, for 5 and 6, a copy of a party (requestParty_).
     void RequestState3();
     void RequestLoad(const char* name, char flag);                   // 2, requestArg_ = flag != 0
-    void RequestZoneChange(const char* zone, int entrance);          // 4, requestArg_ = entrance
+    void RequestZoneChange(std::string_view zone, int entrance);          // 4, requestArg_ = entrance
     void RequestPartyZone5(const char* zone, CParty* party);
     void RequestPartyZone6(const char* zone, CParty* party);
     void DisconnectClient();
@@ -1274,7 +1275,7 @@ std::string* SessionMapNameInto(std::string* out);
 // progres2.bik for gipat, progres3.bik for ingos, progres4.bik for suslanger, else progres.bik
 // (Rebirth's FixProgressNames: progres2.bik for gipat2, progres5.bik for jigran); the zones gz1g and
 // bz7g (case-insensitive) take progres1.bik.
-void SelectLoadingMovie(const char* zone);
+void SelectLoadingMovie(std::optional<std::string_view> zone);
 
 inline int TimeSpeedSetting() { return options::g_options->defaultTimeScale_; }
 inline float FogStartDay() { return options::g_options->fogDayStartDistance_; }

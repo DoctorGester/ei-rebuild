@@ -63,13 +63,13 @@ CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_v
     return part;
 }
 
-CFigureMesh* CFigureManager::NewFigure(const char* name) {
-    auto* figure = CreateObjectAs<CFigureMesh>(kFigureClass, -1);
-    if (!name) return figure;
+CFigureMesh* CFigureManager::NewBlankFigure() { return CreateObjectAs<CFigureMesh>(kFigureClass, -1); }
+
+CFigureMesh* CFigureManager::NewFigure(std::string_view name) {
+    auto* figure = NewBlankFigure();
     figure->name_ = name;
     figure->directory_ = game::kEmptyText;
-    std::string path;
-    path = str::Format(game::FigFileFormat(), name);
+    const std::string path = std::string(name) + ".fig";
     void* data = GetFile(path, nullptr);
     if (!data) {
         ReleaseObject(figure);

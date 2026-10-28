@@ -214,7 +214,7 @@ bool GSListPlayerVars(Call* call) {
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::string line;
         line = str::Format("%s = %f", node->first.c_str(), static_cast<double>(node->second));
-        (console::g_consoleOut << line.c_str() << "\n").Flush();
+        (console::g_consoleOut << line << "\n").Flush();
     }
     return true;
 }
@@ -347,7 +347,7 @@ bool AddMobEx(Call* call) {
     file = Text(call, 0);
     bool keepIds = std::ssize(call->cmd->floatArgs) != 0 && Equals(1.0f, Floats(call)[0]);
     g_loadingMovieOff = 1;
-    int loaded = g_serverWorld->LoadMapObjects(file.c_str(), keepIds ? 1 : 0);
+    int loaded = g_serverWorld->LoadMapObjects(file, keepIds ? 1 : 0);
     g_loadingMovieOff = 0;
     if (!loaded) return Report("AddMobEx", "Can't load .mob file \"%s\"", file.c_str());
     return true;

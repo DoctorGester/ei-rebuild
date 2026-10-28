@@ -159,7 +159,7 @@ bool Say(Call* call) {
 // flush.
 bool ConsoleString(Call* call) {
     std::string text = Joined(call);
-    (console::g_consoleOut << text.c_str() << "\n").Flush();
+    (console::g_consoleOut << text << "\n").Flush();
     return true;
 }
 

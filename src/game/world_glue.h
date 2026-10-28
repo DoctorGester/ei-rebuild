@@ -54,7 +54,7 @@ void GameSetWeather(int weather, float strength);
 double GameServerTimeOfDay();
 // The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes) unless it is negative or a NaN.
 void GamePassTime(float offset);
-void GameEnsureZone(const char* map, const char* mob);
+void GameEnsureZone(std::string_view map, std::string_view mob);
 // The memory stream of the local server's pending messages (the client's state block hands it over).
 class CMemoryStream;
 CMemoryStream* GameObject7C2D60();

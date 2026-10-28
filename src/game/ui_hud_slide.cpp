@@ -271,13 +271,13 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     }
     AddRegion()->SetRect(0, 0, 185, 225);
 
-    CUiMesh* back = AddSprite(nullptr);
+    CUiMesh* back = AddBlankSprite();
     back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
     back->texture_ = nullptr;
     back->flags_ |= kPlainColour;
     back->flatColour_ = 0x50000000;
     back->visible_ = 0;
-    CUiMesh* edge = AddSprite(nullptr);
+    CUiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
     edge->texture_ = nullptr;
     edge->flags_ |= kPlainColour;
@@ -288,35 +288,35 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     PlaceSling(slingButton, kHudQuarterTurn, -50.0f);
     slingButton->SetScale(0.8f);
     // 3-6: the body part buttons; 7: the frame.
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 130.0f, 20.0f, 160.0f, 0x45, 0x3E, 0x59, 0x5C);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 160.0f, 20.0f, 190.0f, 3, 0x5E, 0x17, 0x7C);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 190.0f, 20.0f, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
-    AddSprite(nullptr)->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 130.0f, 20.0f, 160.0f, 0x45, 0x3E, 0x59, 0x5C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 160.0f, 20.0f, 190.0f, 3, 0x5E, 0x17, 0x7C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 190.0f, 20.0f, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
+    AddBlankSprite()->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
-    CUiMesh* strip = AddSprite(nullptr);
+    CUiMesh* strip = AddBlankSprite();
     strip->SetGridVanilla(4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
     strip->visible_ = 0;
-    CUiMesh* more = AddSprite(nullptr);
+    CUiMesh* more = AddBlankSprite();
     more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
     more->visible_ = 0;
     // 10-13: the health and the mana bar, each over its frame.
-    AddSprite(nullptr)->SetRectangle(4.0f, 100.0f, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
-    AddSprite(nullptr)->SetRectangle(5.0f, 100.0f, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
-    AddSprite(nullptr)->SetRectangle(4.0f, 100.0f, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
-    AddSprite(nullptr)->SetRectangle(5.0f, 100.0f, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
+    AddBlankSprite()->SetRectangle(4.0f, 100.0f, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
+    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
+    AddBlankSprite()->SetRectangle(4.0f, 100.0f, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
+    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
     // 14-25: the six body parts' bars, each over its frame, at the tables' places.
     for (int i = 0; i < kParts; ++i) {
         const int x = kPartX[i];
         const int y = kPartY[i];
-        AddSprite(nullptr)->SetRectangle(4.0f, 50.0f, static_cast<float>(x + 25), static_cast<float>(y + 15),
+        AddBlankSprite()->SetRectangle(4.0f, 50.0f, static_cast<float>(x + 25), static_cast<float>(y + 15),
                                          static_cast<float>(x + 75), static_cast<float>(y + 20), 0x40, 0x7E, 0x72, 0x83);
-        AddSprite(nullptr)->SetRectangle(5.0f, 50.0f, static_cast<float>(x + 20), static_cast<float>(y + 15),
+        AddBlankSprite()->SetRectangle(5.0f, 50.0f, static_cast<float>(x + 20), static_cast<float>(y + 15),
                                          static_cast<float>(x + 80), static_cast<float>(y + 20), 0x3B, 0x77, 0x77, 0x7C);
     }
     // 26-31: the effects' pictures, from the panel's icon texture.
     for (int top = 38; top < 218; top += 30) {
-        CUiMesh* icon = AddSprite(nullptr);
+        CUiMesh* icon = AddBlankSprite();
         icon->SetRectangle(5.0f, 30.0f, 28.0f, static_cast<float>(top), 52.0f, static_cast<float>(top + 24), 0, 0, 64, 64);
         icon->texture_ = objects_[1];
     }
@@ -359,11 +359,11 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     if (const MapRecord* zone = LocalZone()) {
         worldWidth_ = static_cast<float>(zone->sizeX) * ZoneUnit();
         worldHeight_ = static_cast<float>(zone->sizeY) * ZoneUnit();
-        LoadTexture(zone->picture.c_str(), kMapTextureKind, nullptr);
+        LoadTexture(zone->picture, kMapTextureKind);
     } else {
         worldWidth_ = 32.0f;
         worldHeight_ = 32.0f;
-        LoadTexture(kDefaultPicture, kMapTextureKind, nullptr);
+        LoadTexture(kDefaultPicture, kMapTextureKind);
     }
     textureSize_ = worldWidth_ < worldHeight_ ? worldHeight_ : worldWidth_;
     scale_ = MapSide() / textureSize_;
@@ -409,16 +409,16 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
 
     // Scene object 0: the world's bounds, in the map's picture; 1: the visible area's disc, in the
     // picture too; 2: the markers, four texels of one colour each.
-    CUiMesh* bounds = AddSprite(nullptr);
+    CUiMesh* bounds = AddBlankSprite();
     bounds->SetRectangle(18.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     bounds->texture_ = objects_[1];
     bounds->tint_[0] = bounds->tint_[1] = bounds->tint_[2] = 0.8f;
     bounds->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * BoundsScale()));
-    CUiMesh* area = AddSprite(nullptr);
+    CUiMesh* area = AddBlankSprite();
     area->Disc(14.0f, 80.0f, 700.0f, 80.0f, 64.0f, kOutlinePoints, 0x80, 0x80, 0x80);
     area->texture_ = objects_[1];
     area->tint_[0] = area->tint_[1] = area->tint_[2] = 1.0f;
-    CUiMesh* markers = AddSprite(nullptr);
+    CUiMesh* markers = AddBlankSprite();
     markers->PlaceBody(700.0f, 80.0f, 12.0f);
     markers->SetScale(static_cast<float>(static_cast<float>(DepthUnit() * halfSide_) * MarkersScale()));
     markers->ResetColours();
@@ -427,10 +427,10 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
         {0.9375f, 0.984375f}, {0.953125f, 0.984375f}, {0.96875f, 0.984375f}, {0.984375f, 0.984375f}};
     for (int i = 0; i < 4; ++i) markers->texCoords_[i] = markerTexels[i];
     // 3 and 4: the map's and the buttons' plain backgrounds.
-    CUiMesh* back = AddSprite(nullptr);
+    CUiMesh* back = AddBlankSprite();
     back->SetRectangle(20.0f, 100.0f, 620.0f, 0.0f, 780.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(back, 0x50000000);
-    CUiMesh* edge = AddSprite(nullptr);
+    CUiMesh* edge = AddBlankSprite();
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
     CUiMesh* slingButton = AddSprite(kArrowSprite);
@@ -440,16 +440,16 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     slingButton->SetScale(0.8f);
     // 6 and 7: the view buttons; 8: the ring round the map; 9: the frame; 10: the compass needle;
     // 11: "camera north".
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 100.0f, 800.0f, 130.0f, 0x19, 0x3E, 0x2D, 0x5C);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
-    AddSprite(nullptr)->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
-    AddSprite(nullptr)->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 100.0f, 800.0f, 130.0f, 0x19, 0x3E, 0x2D, 0x5C);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
+    AddBlankSprite()->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
+    AddBlankSprite()->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
     CUiMesh* needle = AddSprite(kArrowSprite);
     needle->textureOffsetU_ = 0.22265625f;
     needle->textureOffsetV_ = 0.140625f;
     needle->PlaceBody(900.0f, 80.0f, FromBits(kSlingDepthBits));
     needle->SetScale(0.8f);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 780.0f, 70.0f, 800.0f, 100.0f, 0x22, 0x76, 0x36, 0x94);
 
     CUiSurface* dot = new CUiSurface(interface_, 700, 80, 705, 85, 5, 1);
     AddSurface(dot);

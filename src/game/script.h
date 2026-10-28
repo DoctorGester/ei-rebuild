@@ -463,7 +463,7 @@ public:
     // `name`, or "!<file>!<name>" when this is not the first file loaded.
     std::string* QualifyName(std::string* out, const std::string& name);
     // Retries without each "!<n>!" prefix.
-    int FindScript(const char* name);
+    int FindScript(std::string_view name);
     // Rebirth patches it. `signature`: the parameter types (lower-case letters). `assignment`: one parameter,
     // no parentheses; `scriptCall`: one extra float and string slot.
     BOOL LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id,

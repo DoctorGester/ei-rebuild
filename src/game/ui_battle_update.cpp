@@ -84,7 +84,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             std::string image = item->FigureName();
             std::string model = item->PictureName();
-            AddItem(model.c_str(), image.c_str());
+            AddItem(model, image);
         }
         finish(item, true);
         ItemTip(slot, &tip);
@@ -109,7 +109,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         {
             std::string image = item->FigureName();
             std::string model = item->PictureName();
-            AddItem(model.c_str(), image.c_str());
+            AddItem(model, image);
         }
         finish(item, false);
         // The same CString serves as the second and third texts.

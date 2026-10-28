@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include <vector>
@@ -131,7 +132,7 @@ public:
     CTexture* ReplaceTexture(CTexture* texture);
     // The skin names become `first` / `second`; for each that is not null or "none" (any case) the part set's
     // texture is replaced by the texture manager's of that kind and name or else renamed and loaded. Returns 1.
-    int SetSkins(const char* first, const char* second);
+    int SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second);
     // Every material takes the world material manager's colours for its kind, then SetSkins with the names
     // kept (the second only when it is not "none").
     void ApplyMaterials() override;

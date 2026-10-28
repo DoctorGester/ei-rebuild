@@ -34,7 +34,7 @@ int CMapObject::NotifyCompanion() {
     return 1;
 }
 
-void CMapObject::TakePrototype(const char* prototype) {
+void CMapObject::TakePrototype(std::string_view prototype) {
     // Zeroed: the builder leaves the vitals alone when the prototype exists (it wants statistics too), and the
     // original then packs what its stack held; the harness zeroes them there too (a determinism fix,
     // harness_leftovers.h).

@@ -424,7 +424,7 @@ void QuickSave(const char* slot, char stepFrame) {
 void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
-    if (!lib::FileExists(folder.c_str())) return;
+    if (!lib::FileExists(folder)) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
     g_interface->ShowStatusText(notice);

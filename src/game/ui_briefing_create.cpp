@@ -170,22 +170,22 @@ void CBriefingScreen::CreateScreen() {
         autosave_ = true;
     MapRecord* map = FindLocalMap();
     LoadPersonTexts();
-    LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
+    LoadTexture(SaveLoadTexture(), kTextureKind);
 
     // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
     // with a frame.
-    CUiMesh* sprite = AddSprite(nullptr);
+    CUiMesh* sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
     sprite->flags_ |= kPlainFlag;
     sprite->flatColour_ = kDarkBackdrop;
-    AddSprite(nullptr)->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    sprite = AddSprite(nullptr);
+    AddBlankSprite()->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    sprite = AddBlankSprite();
     sprite->SetRectangle(20.0f, 100.0f, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, 0x100, 0x100);
     sprite->texture_ = nullptr;
     sprite->flatColour_ = kTextBackdrop;
     sprite->flags_ |= kPlainFlag;
-    AddSprite(nullptr)->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
 
     // Surface 0 the topic rows, 1 a person's label.
     AddSurface(new CUiSurface(interface_, 200, 430, 600, 570, kSurfaceFormat, 1));
@@ -207,7 +207,7 @@ void CBriefingScreen::CreateScreen() {
     MapEdgeFade() = kEdgeFade;
 
     if (MapRecord* record = FindLocalMap()) {
-        TheMusicSystem()->PlayBriefing(record->allod.c_str());
+        TheMusicSystem()->PlayBriefing(record->allod);
         noWalk_ = record->cage;
     } else {
         TheMusicSystem()->PlayBriefing(DefaultAllod());

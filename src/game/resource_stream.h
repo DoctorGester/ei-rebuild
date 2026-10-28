@@ -7,6 +7,7 @@
 #include "resource.h"
 
 #include <cstdint>
+#include <string>
 
 // Opens files for the sound system (a member of CSoundManager): a loose file through mmioOpen, or an
 // entry of an archive opened with mmio (the archive part is never opened: its Open, has no
@@ -24,7 +25,7 @@ struct CResourceStream : CResourceBase {
     void Close();                                   // closes the file and the archive
     // Opens `name`: a loose file when one is readable, else the archive entry. Stores
     // the size when `size` is not null. Returns 1 on success.
-    BOOL OpenFile(const char* name, std::uint32_t* size);
+    BOOL OpenFile(const std::string& name, std::uint32_t* size);
     long Read(char* buffer, long size);             // mmioRead; -1 when nothing is open
     long Seek(long offset, int origin);             // mmioSeek relative to the entry
 };

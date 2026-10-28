@@ -37,7 +37,7 @@ bool SameText(std::string_view a, std::string_view b) { return a == b; }
 // EI_Plugin's Fixes: "f" when the fifth character of the name is 'f', else "m".
 void SexOf(const std::string& figure, std::string& sex) {
     const bool fixes = pluginfixes::Enabled();
-    if (fixes ? !pluginfixes::ModelIsFemale(figure.c_str()) : SameText(figure, "unhuma"))
+    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, "unhuma"))
         sex = "m";
     else if (fixes || SameText(figure, "unhufe"))
         sex = "f";
@@ -88,7 +88,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
     CopyImage(objects_[std::ssize(objects_) - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
     slots_.emplace_back();   // identity orientations, empty strings
     slots_[count_].hasPlayer_ = player;
-    CUiMesh* face = AddSprite(model.c_str());
+    CUiMesh* face = AddSprite(model);
 
     int x;
     int width;
@@ -113,7 +113,7 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
         slots_[count_].restA_ = *turn.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, Pi());
         face->localRotation_ = slots_[count_].restA_;
     } else {
-        face = AddSprite(nullptr);
+        face = AddBlankSprite();
         face->SetRectangle(7.0f, 100.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 580.0f, 0, 0, 0x80,
                            0x80);
         slots_[count_].restA_ = kHudRestRotation;
@@ -132,21 +132,21 @@ void CHudPortraits::AddPortrait(const std::string& model, std::string_view pictu
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.
     const float barScale = static_cast<float>(right - x - 6);
-    CUiMesh* health = AddSprite(nullptr);
+    CUiMesh* health = AddBlankSprite();
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
     health->texture_ = objects_[0];
     if (player) health->visible_ = 0;
-    CUiMesh* mana = AddSprite(nullptr);
+    CUiMesh* mana = AddBlankSprite();
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
     mana->texture_ = objects_[0];
     if (player) mana->visible_ = 0;
-    CUiMesh* frame = AddSprite(nullptr);
+    CUiMesh* frame = AddBlankSprite();
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
     frame->texture_ = objects_[0];
-    CUiMesh* flash = AddSprite(nullptr);
+    CUiMesh* flash = AddBlankSprite();
     flash->SetRectangle(22.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 0, 0, 0x100,
                         0x100);
     flash->texture_ = nullptr;
@@ -163,7 +163,7 @@ void CHudPortraits::Rebuild(int wide) {
     ClearSceneObjects();
     ClearRegions();
     while (std::ssize(objects_) > 1) RemoveObjectAt(1);
-    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
+    AddBlankSprite()->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
     count_ = 0;
 
     std::string build;     // "th", "me" or "fa"

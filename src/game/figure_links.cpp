@@ -45,7 +45,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, std::string_
         for (std::uint32_t i = data[0]; i != 0; --i) {
             ReadPrefixedName(&child, &cursor);
             ReadPrefixedName(&parent, &cursor);
-            state->LinkPiece(model, child.c_str(), parent.c_str());
+            state->LinkPiece(model, child, parent);
         }
         state->FindRoot();
         if (model) model->mesh->CloseFile(data);

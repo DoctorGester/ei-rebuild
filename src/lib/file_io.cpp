@@ -107,7 +107,7 @@ TextFile::~TextFile() { Close(); }
 bool TextFile::Open(std::string_view path, const char* mode) {
     Close();
     path_ = path;
-    stream_ = OpenFile(path_.c_str(), mode);
+    stream_ = OpenFile(path_, mode);
     return stream_ != nullptr;
 }
 
@@ -216,14 +216,14 @@ bool FileFind::IsDots() const { return MatchesMask(FILE_ATTRIBUTE_DIRECTORY) && 
 
 // ---- fopen / _access ------------------------------------------------------------------------------
 
-std::FILE* OpenFile(const char* path, const char* mode) {
+std::FILE* OpenFile(const std::string& path, const char* mode) {
     const char kind = mode[0];
     if (kind != 'r' && kind != 'w' && kind != 'a') return nullptr;
     const bool update = std::strchr(mode + 1, '+') != nullptr;
     const bool binary = std::strchr(mode + 1, 'b') != nullptr;
     const DWORD access = update ? GENERIC_READ | GENERIC_WRITE : kind == 'r' ? GENERIC_READ : GENERIC_WRITE;
     const DWORD disposition = kind == 'r' ? OPEN_EXISTING : kind == 'w' ? CREATE_ALWAYS : OPEN_ALWAYS;
-    const HANDLE handle = gameapi::CreateFileA(path, access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, disposition,
+    const HANDLE handle = gameapi::CreateFileA(path.c_str(), access, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, disposition,
                                                FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) return nullptr;
     // The descriptor takes the translation mode and the append flag, the stream the direction.
@@ -238,6 +238,6 @@ std::FILE* OpenFile(const char* path, const char* mode) {
     return file;
 }
 
-bool FileExists(const char* path) { return gameapi::GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES; }
+bool FileExists(const std::string& path) { return gameapi::GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 
 } // namespace lib

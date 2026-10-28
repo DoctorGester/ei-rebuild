@@ -72,9 +72,9 @@ void CBriefingScreen::FindTopics(int personId) {
     if (constructor.size() != 0) topics_.push_back(constructor);
 }
 
-std::string* CBriefingScreen::TopicTitle(std::string* out, const char* topic) {
+std::string* CBriefingScreen::TopicTitle(std::string* out, std::string_view topic) {
     std::string title;
-    std::string key = topic;
+    std::string key(topic);
     str::MakeLower(key);
     bool isConstructor;
     {

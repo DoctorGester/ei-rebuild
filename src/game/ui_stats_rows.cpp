@@ -34,13 +34,14 @@ UnitStats* HeroStats(CItemScreen* owner) { return &owner->HeroRecord()->stats; }
 
 // --- A labelled value ----------------------------------------------------------------------------
 
-void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maximum) {
+void CHeroStatsPanel::DrawRow(RECT* rect, std::string_view label, int value, int maximum) {
     CTextManager* texts = TheTextManager();
     std::string name;
     std::string number;
     BOOL found;
     {
-        std::string key = std::string(kPerkPrefix) + label;
+        std::string key = kPerkPrefix;
+        key += label;
         found = texts->CTextManager::Open(key.c_str());
     }
     if (found)

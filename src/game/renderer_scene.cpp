@@ -92,11 +92,11 @@ int CSceneRenderer::EndScene() {
     std::string text;
     strmap::CDebugPanel* panel = &strmap::g_debugPanel.Get();
     text = str::Format("%g", 1000.0 / x87::FromUnsigned(frameTime_));
-    panel->Set("FPS", text.c_str());
+    panel->Set("FPS", text);
     text = str::Format("%d", device_->vertexCount_);
-    panel->Set("num verts", text.c_str());
+    panel->Set("num verts", text);
     text = str::Format("%d", device_->primitiveCount_);
-    panel->Set("num trias", text.c_str());
+    panel->Set("num trias", text);
     lastFrameStart_ = frameStart_;
     return 1;
 }

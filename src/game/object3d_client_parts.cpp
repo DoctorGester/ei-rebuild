@@ -277,20 +277,15 @@ CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
 
 // --- Skins and materials --------------------------------------------------------------------------
 
-int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
+int CObject3DClientSpecific::SetSkins(std::optional<std::string_view> first, std::optional<std::string_view> second) {
     CTextureManager* manager = WorldContext()->TextureManager();
-    skinName = first ? first : "";   // (a null name was the empty text)
-    secondSkinName = second ? second : "";
-    const char* names[2] = {first, second};
+    skinName = first.value_or("");   // (an absent name was the empty text)
+    secondSkinName = second.value_or("");
+    const std::optional<std::string_view> names[2] = {first, second};
     for (int k = 0; k < 2; ++k) {
-        const char* name = names[k];
-        if (!name) continue;
-        bool named;
-        {
-            std::string copy = name;
-            named = text::CompareIgnoringCase(copy, kNoneText) != 0;
-        }
-        if (!named) continue;
+        if (!names[k]) continue;
+        const std::string_view name = *names[k];
+        if (text::CompareIgnoringCase(name, kNoneText) == 0) continue;
         TextureParts* set = partSets[k];
         if (set && set->texture) {
             auto* found = manager->FindTypedTexture(set->texture->type_, name);
@@ -322,9 +317,9 @@ void CObject3DClientSpecific::ApplyMaterials() {
         }
     }
     if (str::Compare(secondSkinName, kNoneText) == 0)
-        SetSkins(skinName.c_str(), nullptr);
+        SetSkins(skinName, std::nullopt);
     else
-        SetSkins(skinName.c_str(), secondSkinName.c_str());
+        SetSkins(skinName, secondSkinName);
 }
 
 void CObject3DClientSpecific::SetMaterialsLit(int lit) {

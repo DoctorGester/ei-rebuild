@@ -124,9 +124,9 @@ void CInterface3D::DrawOverlays() {
     std::string text;
     strmap::CDebugPanel* panel = &strmap::g_debugPanel.Get();
     text = str::Format("%d", SurfaceBytesKept());
-    panel->Set("surface stored", text.c_str());
+    panel->Set("surface stored", text);
     text = str::Format("%d", SurfaceBytesAllocated());
-    panel->Set("surface alloc", text.c_str());
+    panel->Set("surface alloc", text);
     if (!stack_.empty()) {
         stack_.back()->Redraw();       // its surfaces blit themselves
         stack_.back()->RedrawTips();   // its tooltips follow the mouse and redraw

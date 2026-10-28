@@ -112,7 +112,7 @@ void GamePassTime(float offset) {
     if (offset >= 0.0f) g_serverWorld->UpdatePlayerTimes(offset);
 }
 
-void GameEnsureZone(const char* map, const char* mob) { g_serverWorld->EnsureZone(map, mob); }
+void GameEnsureZone(std::string_view map, std::string_view mob) { g_serverWorld->EnsureZone(map, mob); }
 
 CMemoryStream* GameObject7C2D60() { return &g_serverWorld->zoneHeader_; }
 

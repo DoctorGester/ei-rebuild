@@ -54,7 +54,9 @@ public:
 
     // (The interface's model manager too.) A figure object, loaded from "<name>.fig" when named (released and null
     // when the file is missing); the empty object without a name.
-    CFigureMesh* NewFigure(const char* name);
+    CFigureMesh* NewFigure(std::string_view name);
+    // The empty figure object (no file read).
+    CFigureMesh* NewBlankFigure();
     // `part`'s data from the model's mesh archive or "<directory><name>.fig" at the morph (s, t, u); returns 1.
     // Missing data: FatalError's result. The data is not closed.
     int LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u);

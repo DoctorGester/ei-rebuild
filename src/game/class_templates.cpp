@@ -81,7 +81,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
     spells->ListSpellNames(&names);
     for (const std::string& name : names) {
-        const char* code = SpellCodeByName(name.c_str());
+        const char* code = SpellCodeByName(name);
         std::string key(code);
         itemdb::SpellRecord* record = stock::SpellsByName()[key];
         if (record && Allowed(t, record->classMask)) {
@@ -91,7 +91,7 @@ void ClassTemplateFill(ClassTemplate* t) {
     }
     spells->ListModifierNames(&names);
     for (const std::string& name : names) {
-        const char* code = SpellModifierCodeByName(name.c_str());
+        const char* code = SpellModifierCodeByName(name);
         std::string key(code);
         auto* record = stock::ModifiersByName()[key];
         if (record && Allowed(t, record->classMask)) {

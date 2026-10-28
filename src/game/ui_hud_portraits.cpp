@@ -217,7 +217,7 @@ void CHudPortraits::Update() {
                 std::string full = withPrefix + suffix;
                 name = full;
             }
-            ReplaceSceneObject(object(1), name.c_str());
+            ReplaceSceneObject(object(1), name);
         }
 
         // Now and then (a third of the time per second) a wobble starts after a random delay:

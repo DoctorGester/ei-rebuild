@@ -49,7 +49,7 @@ inline int CharacterBytes(const std::string& text, int characters) {
 // The longest start of `text` that fits `room` bytes (without the terminator) and ends at a character's end.
 std::size_t FittingBytes(std::string_view text, std::size_t room);
 // `from` copied into `to` (`size` bytes, always terminated; nothing when `size` is 0), cut at a character's end.
-void CopyFitting(char* to, std::size_t size, const char* from);
+void CopyFitting(char* to, std::size_t size, std::string_view from);
 
 // --- Typing ---------------------------------------------------------------------------------
 // The game window is a Unicode one: a typed character reaches the editors as its code point (DispatchInput joins a

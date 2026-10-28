@@ -56,7 +56,7 @@ void ClearMissilePointers(CWorldServer* world) {
 
 } // namespace
 
-int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
+int CWorldServer::LoadMap(std::string_view map, std::string_view mob, CStream* graph, char fromSave) {
     CAIMap* aiMap = AIMap();
     if (text::CompareIgnoringCase(mapName_, map) != 0) {
         aiMap->Reset();
@@ -268,8 +268,8 @@ void CWorldServer::ResetState() {
     startPosition_.z = 0.0f;
 }
 
-void CWorldServer::EnsureZone(const char* map, const char* mob) {
+void CWorldServer::EnsureZone(std::string_view map, std::string_view mob) {
     if (str::Compare(mapName_, map) == 0 && str::Compare(mobName_, mob) == 0) return;
-    NewZone(map, mob, nullptr);
+    NewZone(map, mob, std::nullopt);
     TeardownZone();
 }

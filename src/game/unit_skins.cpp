@@ -131,7 +131,7 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
 void Compose(CWorldClient* self, std::string& out, SkinRequest& set, const std::string& name, int size, int kind) {
     set.flags = size;
     self->textureManager_->Compose(&out, &set, &name, &name, 3, 0, 0x5551);
-    self->textureManager_->FindOrLoad(kind, name.c_str());
+    self->textureManager_->FindOrLoad(kind, name);
 }
 
 void DressUnit(CWorldClient* self, DressedUnitRecord* record) {

@@ -69,8 +69,8 @@ void CHudClock::SetupVanilla(int fast) {
     widescreen::EnterRightPanel();   // addon's 1002332C; 100233E0 at the end
     const int shift = widescreen::EdgeShift();
     rect_ = RECT{720 + shift, 520, kLayoutRight + shift, kLayoutBottom};   // WideScreen
-    AddSprite(nullptr)->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
-    SetHand(AddSprite(nullptr));
+    AddBlankSprite()->Disc(10.0f, 80.0f, 800.0f, 600.0f, 65.0f, kDiscPoints, 0xAE, 0x51, 0x41);
+    SetHand(AddBlankSprite());
     for (int i = 0; i < 4; ++i) {
         CUiMesh* arrow = AddSprite(ArrowSprite());
         arrow->textureOffsetU_ = 0.22265625f;
@@ -78,8 +78,8 @@ void CHudClock::SetupVanilla(int fast) {
         arrow->PlaceBody(1000.0f, 1000.0f, kArrowDepth);
         arrow->SetScale(0.4f);
     }
-    AddSprite(nullptr)->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);
-    AddSprite(nullptr)->Disc(12.0f, 80.0f, 800.0f, 600.0f, 80.0f, kDiscPoints, 0xAE, 0x51, 0x50);
+    AddBlankSprite()->Disc(8.0f, 80.0f, 800.0f, 600.0f, 32.0f, kDiscPoints, 0xAE, 0x51, 0x20);
+    AddBlankSprite()->Disc(12.0f, 80.0f, 800.0f, 600.0f, 80.0f, kDiscPoints, 0xAE, 0x51, 0x50);
 
     // The pause, normal and fast sectors, each between two radii of the corner.
     for (int i = 0; i < 3; ++i) {
@@ -134,10 +134,10 @@ void CHudMovePanel::SetupVanilla() {
         sector->SetTip(0x2905 + mode, 1, 0x17 + mode);
     }
 
-    SetHand(AddSprite(nullptr));
+    SetHand(AddBlankSprite());
     // The sectors' pictures: triangles from the corner, the texels following the layout points.
     for (int mode = 0; mode < 4; ++mode) {
-        CUiMesh* sector = AddSprite(nullptr);
+        CUiMesh* sector = AddBlankSprite();
         const float endAngle = ArcAngle(mode + 1, Eighth());
         const float endUp = static_cast<float>(ArcSin(endAngle) * SectorRadius());
         const float endAcross = static_cast<float>(ArcCos(endAngle) * SectorRadius());
@@ -152,7 +152,7 @@ void CHudMovePanel::SetupVanilla() {
         sector->tint_[1] = kSectorTint;
         sector->tint_[2] = kSectorTint;
     }
-    AddSprite(nullptr)->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
+    AddBlankSprite()->Disc(8.0f, 80.0f, 0.0f, 600.0f, 32.0f, kDiscPoints, 2, 0xFE, 0x20);
     ShowModeVanilla(-1);
     flag_ = -1;
     SceneMesh(5)->textureOffsetU_ = 0.48046875f;

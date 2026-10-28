@@ -59,11 +59,11 @@ void BuildCellGrid(CUiWindow* window) {
             CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
-            CUiMesh* picture = window->AddSprite(0);
+            CUiMesh* picture = window->AddBlankSprite();
             picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
             picture->texture_ = texture;
-            CUiMesh* frame = window->AddSprite(0);
+            CUiMesh* frame = window->AddBlankSprite();
             frame->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
             frame->texture_ = texture;
@@ -92,12 +92,12 @@ void BuildMakerPage(CConstructorPage* page) {
 void AddMakerPictures(CConstructorPage* page) {
     const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
     for (int i = 0; i < 4; ++i) {
-        CUiMesh* picture = page->AddSprite(0);
+        CUiMesh* picture = page->AddBlankSprite();
         picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
         picture->texture_ = page->objects_[i];
     }
-    CUiMesh* frame = page->AddSprite(0);
+    CUiMesh* frame = page->AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0x96FFFFFF;
     SetPlainFlag(frame);
@@ -189,10 +189,10 @@ void CHeroStatsPanel::DrawStats() {
         DrawRow(&rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5].c_str(), static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5], static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, texts_[6].c_str(), points_, -1);
+        DrawRow(&rect, texts_[6], points_, -1);
 
         // "-": while above 15 (the integer compared before it is stored as float).
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
@@ -317,7 +317,7 @@ void CHeroEquipPanel::Build(bool body) {
     mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
     for (int i = 0; i < 2; ++i) {
-        CUiMesh* frame = AddSprite(0);
+        CUiMesh* frame = AddBlankSprite();
         frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
         SetPlainFlag(frame);
         frame->flatColour_ = 0xFF8B8B37;
@@ -327,24 +327,24 @@ void CHeroEquipPanel::Build(bool body) {
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = 100.0f /*0073BAB0*/;
     for (int i = 0; i < 4; ++i)
-        AddSprite(0)->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+        AddBlankSprite()->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
-    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
+    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
     for (int i = 4; i < 8; ++i)
-        AddSprite(0)->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+        AddBlankSprite()->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
                                       static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
-    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
+    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         const int* xs = kBodySlotX;
         const int* ys = kBodySlotY;
         for (int i = 0; i < 7; ++i) AddRect(this, RECT{xs[i] - 50, ys[i] - 50, xs[i] + 50, ys[i] + 50});
-        LoadTexture("camp1", 3, 0);   // camp1
-        LoadTexture("camp2", 3, 0);   // camp2
-        LoadTexture("camp3", 3, 0);   // camp3
-        LoadTexture("camp4", 3, 0);   // camp4
+        LoadTexture("camp1", 3);   // camp1
+        LoadTexture("camp2", 3);   // camp2
+        LoadTexture("camp3", 3);   // camp3
+        LoadTexture("camp4", 3);   // camp4
         const float quarters[4][4] = {{200, 100, 400, 300}, {400, 100, 600, 300}, {200, 300, 400, 500}, {400, 300, 600, 500}};
         for (int i = 0; i < 4; ++i) {
-            CUiMesh* picture = AddSprite(0);
+            CUiMesh* picture = AddBlankSprite();
             picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
             picture->texture_ = objects_[i + 1];
@@ -362,14 +362,14 @@ void CHeroStatsPanel::Build() {
     {
         AddSurface(new CUiSurface(interface_, 0, 100, 200, 400, 5, 1));
     }
-    AddSprite(0)->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
-    AddSprite(0)->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
-    AddSprite(0)->SetRectangle(6.0f, 100.0f, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
+    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 176.0f, 125.0f, 192.0f, 145.0f, 2, 0x81, 0x12, 0x95);
+    AddBlankSprite()->SetRectangle(5.0f, 100.0f, 8.0f, 125.0f, 24.0f, 145.0f, 0x12, 0x81, 2, 0x95);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 14.0f, 110.0f, 100.0f, 160.0f, 0xE7, 0x4C, 0x91, 0x88);
+    AddBlankSprite()->SetRectangle(6.0f, 100.0f, 100.0f, 110.0f, 186.0f, 160.0f, 0x91, 0x4C, 0xE7, 0x88);
     // The new hero page's -/+ buttons (scene objects 4-11, shown only there).
     const float buttons[8][4] = {{140, 165, 160, 180}, {140, 180, 160, 195}, {140, 195, 160, 210}, {140, 240, 160, 255},
                                  {160, 165, 180, 180}, {160, 180, 180, 195}, {160, 195, 180, 210}, {160, 240, 180, 255}};
-    for (const auto& b : buttons) AddSprite(0)->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
+    for (const auto& b : buttons) AddBlankSprite()->SetRectangle(5.0f, 100.0f, b[0], b[1], b[2], b[3], 0x90, 0xB1, 0xA4, 0xC0);
     CTextManager* texts = TheTextManager();
     std::string text;
     for (const char* key : {"infounit_3", "infounit_4", "infounit_9", "infounit_14", "infounit_17", "lmp_points_left",
@@ -390,10 +390,10 @@ void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, c
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     flag_ = flag;
-    LoadTexture("trade1", 3, 0);   // trade1
-    LoadTexture("trade2", 3, 0);   // trade2
-    LoadTexture("trade3", 3, 0);   // trade3
-    LoadTexture("trade4", 3, 0);   // trade4
+    LoadTexture("trade1", 3);   // trade1
+    LoadTexture("trade2", 3);   // trade2
+    LoadTexture("trade3", 3);   // trade3
+    LoadTexture("trade4", 3);   // trade4
     BuildCellGrid(this);
 }
 
@@ -430,10 +430,10 @@ void CRepairGrid::Build(std::vector<CItem*>* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
     items_ = items;
-    LoadTexture("repair1", 3, 0);   // repair1
-    LoadTexture("repair2", 3, 0);   // repair2
-    LoadTexture("repair3", 3, 0);   // repair3
-    LoadTexture("repair4", 3, 0);   // repair4
+    LoadTexture("repair1", 3);   // repair1
+    LoadTexture("repair2", 3);   // repair2
+    LoadTexture("repair3", 3);   // repair3
+    LoadTexture("repair4", 3);   // repair4
     BuildCellGrid(this);
 }
 
@@ -444,13 +444,13 @@ void CHeroQuickStrip::Build(bool top) {
     rect_ = RECT{0, y_, 800, y_ + 100};
     mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
-    CUiMesh* frame = AddSprite(0);
+    CUiMesh* frame = AddBlankSprite();
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
     frame->flatColour_ = 0xFF8B8B37;
     SetPlainFlag(frame);
     frame->texture_ = nullptr;
     frame->visible_ = 0;
-    AddSprite(0)->SetGridVanilla(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
+    AddBlankSprite()->SetGridVanilla(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
 }
@@ -461,10 +461,10 @@ void CSpellMakerPage::BuildSpellMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 6;
     slots_ = slots;
-    LoadTexture("constrspell1", 3, 0);   // constrspell1
-    LoadTexture("constrspell2", 3, 0);   // constrspell2
-    LoadTexture("constrspell3", 3, 0);   // constrspell3
-    LoadTexture("constrspell4", 3, 0);   // constrspell4
+    LoadTexture("constrspell1", 3);   // constrspell1
+    LoadTexture("constrspell2", 3);   // constrspell2
+    LoadTexture("constrspell3", 3);   // constrspell3
+    LoadTexture("constrspell4", 3);   // constrspell4
     AddRect(this, RECT{200, 250, 300, 350});   // the container
     AddRect(this, RECT{300, 250, 400, 350});   // the spell
     BuildMakerPage(this);
@@ -486,10 +486,10 @@ void CConstructorPage::BuildItemMaker(CParty* slots) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 7;
     slots_ = slots;
-    LoadTexture("constritem1", 3, 0);   // constritem1
-    LoadTexture("constritem2", 3, 0);   // constritem2
-    LoadTexture("constritem3", 3, 0);   // constritem3
-    LoadTexture("constritem4", 3, 0);   // constritem4
+    LoadTexture("constritem1", 3);   // constritem1
+    LoadTexture("constritem2", 3);   // constritem2
+    LoadTexture("constritem3", 3);   // constritem3
+    LoadTexture("constritem4", 3);   // constritem4
     AddRect(this, RECT{200, 250, 300, 350});   // the blueprint
     AddRect(this, RECT{300, 200, 400, 300});   // the parts
     AddRect(this, RECT{300, 300, 400, 400});

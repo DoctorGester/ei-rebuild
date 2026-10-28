@@ -25,8 +25,8 @@ public:
     CDebugPanel();
     // At exit: every node destroyed and freed, then the header. Not virtual: the table has no destructor.
     ~CDebugPanel();
-    virtual void Set(const char* key, const char* value);
-    virtual void Remove(const char* key);
+    virtual void Set(std::string_view key, std::string_view value);
+    virtual void Remove(std::string_view key);
     // Binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
     void Init(CInterface3D* ui);
     void Release();

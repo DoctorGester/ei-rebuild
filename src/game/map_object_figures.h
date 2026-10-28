@@ -220,7 +220,7 @@ public:
     FigureBone* FindBone(const char* boneName);
     // A new bone (the figure manager's class 0x300C) named `child` with parent `parentName` joins through
     // LinkBone. Returns 1.
-    int LinkPiece(FigureModel* model, const char* child, const char* parentName);
+    int LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName);
     // `bone` becomes a child of the first bone named as its parent (name2) unless that one has a child of its
     // name; it joins the list (referenced), takes the model name (name3) and morph, and its manager loads its
     // key frames from `model`. `changed` set. Returns 1.
@@ -376,7 +376,7 @@ public:
     // and the figure are 0. Returns 1.
     int MakeFigure(std::string_view model, std::vector<std::string>* partList, std::uint32_t arg);
     // The index of the part name equal to `partName` (_mbscmp), or -1.
-    int FindPartIndex(const char* partName);
+    int FindPartIndex(std::string_view partName);
     // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
     FootprintPart* PartBox(int index);
 

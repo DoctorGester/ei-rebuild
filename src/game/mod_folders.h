@@ -52,7 +52,7 @@ enum class MapsSite : int {
 // Before a maps-folder use: the folder becomes the mod's when its Maps\ has `name` (any case; the
 // zone table: when its top folder has a ".mq" file), else the game's. It stays until the next one.
 // Nothing without Active(Maps).
-void SelectMaps(const char* name, MapsSite site);
+void SelectMaps(std::string_view name, MapsSite site);
 // The folder MapsFolder starts from: the game's data folder or the mod's.
 const std::string& MapsRoot(const std::string& dataFolder);
 

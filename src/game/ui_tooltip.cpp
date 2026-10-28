@@ -73,7 +73,7 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, std::string_view tex
         SIZE size;
         int width;
         if (lines_[i].empty() && i < static_cast<int>(lines_.size()) - 1) {
-            size = TextExtent(interface_, std::string(EmptyLineSample()).c_str(), kFont);
+            size = TextExtent(interface_, std::string(EmptyLineSample()), kFont);
             width = 0;
         } else {
             size = TextExtent(interface_, lines_[i], kFont);

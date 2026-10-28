@@ -117,7 +117,7 @@ void CCampPages::BuildPages() {
     if (PlayerSwitch("i.offitemconstr")) itemConstructor_ = false;
     if (PlayerSwitch("i.onitemconstr")) itemConstructor_ = true;
 
-    LoadTexture("campinfo", 3, nullptr);
+    LoadTexture("campinfo", 3);
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
@@ -140,7 +140,7 @@ void CCampPages::BuildPages() {
 
     // The buttons' sprites, in the regions' order without the turn areas.
     auto button = [this](float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
-        CUiMesh* sprite = AddSprite(nullptr);
+        CUiMesh* sprite = AddBlankSprite();
         sprite->SetRectangle(3.0f, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
         return sprite;
     };
@@ -367,7 +367,7 @@ void CCampPages::BuildPages() {
 
     // The music of the allod the party's zone is on.
     const MapRecord* zone = g_mapDatabase->FindMap(LocalPlayerZone());
-    TheMusicSystem()->PlayConstructor(zone ? zone->allod.c_str() : "gipat");
+    TheMusicSystem()->PlayConstructor(zone ? std::string_view(zone->allod) : std::string_view("gipat"));
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = TheRenderDevice();

@@ -51,5 +51,5 @@ void CStream::ReadText(char* buffer, int capacity) {
     buffer[capacity - 1] = 0;
     std::string text(buffer);
     text::FromAssetText(&text);
-    text::CopyFitting(buffer, static_cast<std::size_t>(capacity), text.c_str());
+    text::CopyFitting(buffer, static_cast<std::size_t>(capacity), text);
 }

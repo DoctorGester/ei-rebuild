@@ -60,11 +60,11 @@ int CTextureManager::ReleaseObject(CEngineObject* object) {
     return RemoveObject(object);
 }
 
-CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
+CTexture* CTextureManager::TakeFromCache(int type, std::string_view name) {
     for (auto node = cache_.begin(); node != cache_.end();) {
         auto next = std::next(node);
         CTexture* texture = *node;
-        if (texture->type_ == type && std::strcmp(texture->GetName(), name) == 0) {
+        if (texture->type_ == type && texture->name_ == name) {
             cache_.erase(node);
             cachedBytes_ -= texture->uploadResult_;
             RegisterInstant(texture);
@@ -77,11 +77,11 @@ CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
 
 // Details kept: a texture taken back from the cache here is not subtracted from
 // cachedBytes_ (the by-type lookup does subtract it).
-CTexture* CTextureManager::FindTexture(const char* name) {
+CTexture* CTextureManager::FindTexture(std::string_view name) {
     ObjectListIteratorOf<CTexture> registered{};
     CTexture* found = nullptr;
     for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
-        if (std::strcmp(texture->GetName(), name) == 0) {
+        if (texture->name_ == name) {
             found = texture;
             break;
         }
@@ -90,7 +90,7 @@ CTexture* CTextureManager::FindTexture(const char* name) {
         for (auto node = cache_.begin(); node != cache_.end();) {
             auto next = std::next(node);
             CTexture* texture = *node;
-            if (std::strcmp(texture->GetName(), name) == 0) {
+            if (texture->name_ == name) {
                 cache_.erase(node);
                 RegisterInstant(texture);
                 found = texture;
@@ -103,11 +103,11 @@ CTexture* CTextureManager::FindTexture(const char* name) {
     return found;
 }
 
-CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
+CTexture* CTextureManager::FindTypedTexture(int type, std::string_view name) {
     ObjectListIteratorOf<CTexture> registered{};
     CTexture* found = nullptr;
     for (CTexture* texture = registered.First(this); texture; texture = registered.Next()) {
-        if (texture->type_ == type && std::strcmp(texture->GetName(), name) == 0) {
+        if (texture->type_ == type && texture->name_ == name) {
             found = texture;
             break;
         }

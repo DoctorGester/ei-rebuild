@@ -62,6 +62,7 @@ public:
     void Attach(ConsoleStreambuf* buffer) { buffer_ = buffer; }
 
     Stream& operator<<(const char* text);
+    Stream& operator<<(const std::string& text);
     Stream& operator<<(char c);
     Stream& operator<<(int value);        // "%d"
     Stream& operator<<(long value);       // "%ld"
@@ -173,7 +174,7 @@ struct CommandRegistration {
 };
 extern const CommandRegistration kCommandRegistrations[27];
 
-void Execute(const char* text);
+void Execute(const std::string& text);
 // Rebirth's console additions. AddNewConsoleCommands: the executor registers
 // addon's commands on every call; the battle screen's drawing applies "nogui" to its panels.
 // AutoExec: the "Console AutoExec" lines, run before three of the game's console executions.

@@ -147,7 +147,7 @@ public:
     // Sets up the stack, lists, map and texts; nothing else is written.
     CInterface3D* Construct();
     // When there is a console window.
-    void ConsoleAddText(const char* text);
+    void ConsoleAddText(std::string_view text);
     void SetConsoleRect(const RECT* rect);
     void SetConsoleHistory(int lines);
     void SetDebugInfoRect(const RECT* rect);
@@ -512,7 +512,7 @@ public:
     // Replaces scene object `object` (released) at its place with object `name` of the model manager,
     // given the window's texture 0 and the old one's position, orientation, texture and scale; returns the
     // new one or null.
-    CEngineObject* ReplaceSceneObject(CEngineObject* object, const char* name);
+    CEngineObject* ReplaceSceneObject(CEngineObject* object, std::string_view name);
     void RemoveSceneObjectAt(int index);
     void ClearSceneObjects();
 
@@ -545,18 +545,20 @@ public:
     // image exists (0 also when the lock fails).
     int CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
-    // The texture manager's texture `name` of `kind` (found or made), loaded (or from `directory`) and
-    // appended to the referenced objects with one more reference; null when either step fails (a texture
-    // made but not loaded is kept by the manager).
-    CTexture* LoadTexture(const char* name, int kind, const char* directory);
+    // The texture manager's texture `name` of `kind` (found or made), loaded and appended to the
+    // referenced objects with one more reference; null when either step fails (a texture made but not
+    // loaded is kept by the manager).
+    CTexture* LoadTexture(std::string_view name, int kind);
     // A new CPU-filled texture (flag 0x40000) kept with the referenced objects; null when none is made.
     CTexture* CreateTexture(int width, int height, int kind);
     // `show` 0: every surface keeps its contents in memory and lets its DirectDraw surface go; otherwise the
     // shown surfaces get theirs back.
     void ShowSurfaces(int show);
-    // Object `name` of the model manager (null: a new CUiMesh) added to the scene objects with the black
-    // material and the first referenced object as its texture; null when the manager makes none.
-    CUiMesh* AddSprite(const char* name);
+    // Object `name` of the model manager added to the scene objects with the black material and the first
+    // referenced object as its texture; null when the manager makes none. AddBlankSprite: a new CUiMesh.
+    CUiMesh* AddSprite(std::string_view name);
+    CUiMesh* AddBlankSprite();
+    CUiMesh* AddSceneObject(CFigureMesh* object);   // AddSprite's shared end: listed, black material, texture 0
     void RedrawBase();
     void RedrawRegionTips();
     CUiMesh* SceneMesh(int index) const;   // defined after CUiMesh
@@ -693,7 +695,7 @@ public:
     void Highlight(int index, int on);
     // The next slot's sprite: `image` copied into the bar's texture, the model `model` turned to face the
     // screen (a plain rectangle without one); shown not highlighted.
-    void AddWeapon(const char* model, const char* image);
+    void AddWeapon(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per weapon, then the unit's current weapon highlighted.
     void SetUnit(CUnit* unit);
 
@@ -744,7 +746,7 @@ public:
     CHudQuickItems(CInterface3D* ui, CBattleScreen* owner);
     // The next sprite (at most eight): `image` copied into the panel's texture, the model `model` turned
     // over (a plain rectangle without one).
-    void AddItem(const char* model, const char* image);
+    void AddItem(std::string_view model, std::string_view image);
     // The unit's four quick items in the bottom row (sprites Rebirth-patched); for the local player's unit
     // up to four of the player's 0x3009 items in the top row.
     void SetUnit(CUnit* unit);
@@ -792,7 +794,7 @@ public:
     // Rebirth-patched (WideScreen behind its flag: the column at the screen's right edge).
     CHudSpellColumn(CInterface3D* ui, CBattleScreen* owner);
     // The next button at the bottom, the ones so far moved up a step; selected_ = its index.
-    void AddSpell(const char* model, const char* image);
+    void AddSpell(std::string_view model, std::string_view image);
     // A sprite (Rebirth-patched) and a tooltip per spell slot that holds one.
     void SetUnit(CUnit* unit);
 
@@ -824,7 +826,7 @@ public:
     // Rebirth-patched (WideScreen behind its flag: the column at the screen's left edge).
     CHudActionColumn(CInterface3D* ui, CBattleScreen* owner);
     // The next button, above the ones so far; selected_ = its index.
-    void AddAction(const char* model, const char* image, int action);
+    void AddAction(std::string_view model, std::string_view image, int action);
     // With `extra`'s low byte first a "skill0011" button; with a unit the science button.
     void SetUnit(CUnit* unit, int extra);
 

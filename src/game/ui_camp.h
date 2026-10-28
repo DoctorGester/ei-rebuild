@@ -97,15 +97,15 @@ public:
     void Update() override;
 
     // Empty when there is no such text; `this` not read.
-    std::string* AllodTitle(std::string* out, const char* allod);
-    std::string* ZoneTitle(std::string* out, const char* zone);
-    std::string* QuestTitle(std::string* out, const char* quest);
+    std::string* AllodTitle(std::string* out, std::string_view allod);
+    std::string* ZoneTitle(std::string* out, std::string_view zone);
+    std::string* QuestTitle(std::string* out, std::string_view quest);
     // From map.txt (missing numbers 0). Not found leaves `out` as it is (the original writes its
     // uninitialised locals there). `this` not read.
-    Vector3* ZonePosition(Vector3* out, const char* zone);
-    Vector3* QuestPosition(Vector3* out, const char* quest);
+    Vector3* ZonePosition(Vector3* out, std::string_view zone);
+    Vector3* QuestPosition(Vector3* out, std::string_view quest);
     // `positionLine` looks for "#position" after the entry; false when map.txt has no such entry.
-    static bool ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine);
+    static bool ReadMapPosition(Vector3* out, std::string_view prefix, std::string_view name, bool positionLine);
     // On gipat a zone and its link are selected together. -1 selects nothing.
     void SelectZone(int index, bool isLink);
     // Applies weatherTable_: the display's colour, the three layers' colours (ARGB from four ints, alpha
@@ -447,7 +447,7 @@ public:
     // (points_ <= 99; height = points_ * 0.01). True when it changed something.
     bool StepPoint(int region);
     // The text of "perk <label>" (else `label` itself), `value` as "%d", or "%d/%d" with a maximum >= 0.
-    void DrawRow(RECT* rect, const char* label, int value, int maximum);
+    void DrawRow(RECT* rect, std::string_view label, int value, int maximum);
     void DrawPart(RECT* rect, const char* name, int part);
     // Per damage type the three layers' absorption summed (stored as float); the largest of the first six.
     float PartArmour(int part);

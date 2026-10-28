@@ -77,7 +77,7 @@ void ShareQuestFile(const char* path, const char* name) {
 // The path of the maps folder's file `file` (LoadZoneQuests's).
 std::string MapFilePath(const std::string& file) {
     std::string folder;
-    modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
+    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
     std::string full = folder + file;
     return std::string(full);
@@ -184,7 +184,7 @@ bool LoadZoneQuests(const char* zone) {
     {
         lib::FileFind find;
         std::string folder;
-        modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
+        modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
         std::string pattern = folder.c_str() + file;
         found = find.FindFile(pattern) != 0;

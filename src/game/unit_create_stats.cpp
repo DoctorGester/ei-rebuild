@@ -66,7 +66,7 @@ void FpuCopy2(float* a, float* b, const float* src) {
 std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 const UnitPrototypeRecord* FindPrototype(std::string_view name) { return g_unitDatabase->prototypes.FindByName(name); }
-const UnitNpcRecord* FindNpc(const char* name) { return g_unitDatabase->npcs.FindByName(name); }
+const UnitNpcRecord* FindNpc(std::string_view name) { return g_unitDatabase->npcs.FindByName(name); }
 
 // The prototype's model; its index is read even from a null prototype (that faults).
 const UnitModelRecord* ModelOf(const UnitPrototypeRecord* prototype) {
@@ -293,7 +293,7 @@ int CMapObjectManager::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     return 1;
 }
 
-int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
+int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, std::string_view name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) {
         SetDefaults(vitals, stats);

@@ -186,7 +186,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         return;
     }
 
-    LoadTexture(map->picture2.c_str(), 3, 0);
+    LoadTexture(map->picture2, 3);
     float width = static_cast<float>(static_cast<double>(map->sizeX));
     float height = static_cast<float>(static_cast<double>(map->sizeY));
     float larger = width < height ? height : width;
@@ -258,7 +258,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         exit->mapX_ = static_cast<float>(mapX);
         exit->mapY_ = y;
 
-        CUiMesh* marker = AddSprite(0);
+        CUiMesh* marker = AddBlankSprite();
         float base = static_cast<float>(D(y) + kMarkerHeight);
         marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
@@ -455,7 +455,7 @@ void CObjectivesWindow::ShowQuest() {
         const UiPointF& place = questPlaces_[i];
         float x = static_cast<float>((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
         float y = static_cast<float>(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
-        CUiMesh* marker = AddSprite(0);
+        CUiMesh* marker = AddBlankSprite();
         float bottom = static_cast<float>(D(y) + kMarkerHalfWidth);
         float right = static_cast<float>(D(x) + kMarkerHalfWidth);
         float top = static_cast<float>(D(y) - kMarkerHalfWidth);
@@ -492,38 +492,38 @@ void CObjectivesWindow::CreateScreen() {
     bar_ = new CUiScrollbar(interface_, RECT{60, 30, 384, 150}, 3.0f, 0, 1.0f);
     AddChild(bar_);
 
-    LoadTexture("saveload", 3, 0);
-    LoadTexture("cross", 3, 0);
+    LoadTexture("saveload", 3);
+    LoadTexture("cross", 3);
     AddSurface(NewSurface(interface_, 50, 20, 390, 160));
     AddSurface(NewSurface(interface_, 410, 380, 750, 520));
     AddSurface(NewSurface(interface_, 280, 540, 520, 580));
 
     if (twoButtons_)
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 163.0f, 536.0f, 237.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
     else
-        AddSprite(0)->SetRectangle(3.0f, 100.0f, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
-    CUiMesh* second = AddSprite(0);
+        AddBlankSprite()->SetRectangle(3.0f, 100.0f, 363.0f, 536.0f, 437.0f, 584.0f, 0x51, 2, 0x9B, 0x32);
+    CUiMesh* second = AddBlankSprite();
     second->SetRectangle(3.0f, 100.0f, 563.0f, 536.0f, 637.0f, 584.0f, 0xA0, 2, 0xEA, 0x32);
     if (!twoButtons_) second->visible_ = 0;
-    CUiMesh* highlight = AddSprite(0);
+    CUiMesh* highlight = AddBlankSprite();
     highlight->SetRectangle(3.0f, 100.0f, 60.0f, 30.0f, 370.0f, 54.0f, 0, 0, 0x100, 0x100);
     SetSpriteTexture(highlight, nullptr);
     SetSpriteColour(highlight, 0xC8A06800);
     SetSpritePlain(highlight);
     highlight->visible_ = 0;
-    AddSprite(0);   // object 3: the zone picture, set up by the zone page
-    CUiMesh* bottomShade = AddSprite(0);
+    AddBlankSprite();   // object 3: the zone picture, set up by the zone page
+    CUiMesh* bottomShade = AddBlankSprite();
     bottomShade->SetRectangle(15.0f, 100.0f, 285.0f, 541.0f, 515.0f, 579.0f, 0, 0, 0x100, 0x100);
     SetSpriteTexture(bottomShade, nullptr);
     SetSpritePlain(bottomShade);
     SetSpriteColour(bottomShade, 0xA0000000);
-    AddSprite(0)->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddBlankSprite()->SetFrame(3.0f, 100.0f, 280.0f, 536.0f, 520.0f, 584.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
     const float shades[4][4] = {{50.0f, 20.0f, 390.0f, 160.0f},
                                 {50.0f, 180.0f, 390.0f, 520.0f},
                                 {410.0f, 20.0f, 750.0f, 360.0f},
                                 {410.0f, 380.0f, 750.0f, 520.0f}};
     for (const auto& s : shades) {
-        CUiMesh* shade = AddSprite(0);
+        CUiMesh* shade = AddBlankSprite();
         shade->SetRectangle(15.0f, 100.0f, s[0], s[1], s[2], s[3], 0, 0, 0x100, 0x100);
         SetSpriteTexture(shade, nullptr);
         SetSpritePlain(shade);
@@ -534,15 +534,15 @@ void CObjectivesWindow::CreateScreen() {
                                 {405.0f, 15.0f, 755.0f, 365.0f},
                                 {405.0f, 375.0f, 755.0f, 525.0f}};
     for (const auto& f : frames)
-        AddSprite(0)->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
-    CUiMesh* left = AddSprite(0);
+        AddBlankSprite()->SetFrame(3.0f, 100.0f, f[0], f[1], f[2], f[3], 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    CUiMesh* left = AddBlankSprite();
     left->SetRectangle(3.0f, 100.0f, 414.0f, 384.0f, 443.0f, 404.0f, 2, 0x72, 0x1F, 0x86);
     left->visible_ = 0;
-    CUiMesh* right = AddSprite(0);
+    CUiMesh* right = AddBlankSprite();
     right->SetRectangle(3.0f, 100.0f, 717.0f, 384.0f, 746.0f, 404.0f, 0x21, 0x72, 0x3E, 0x86);
     right->visible_ = 0;
     for (int top = 31; top < 151; top += 24) {
-        CUiMesh* mark = AddSprite(0);
+        CUiMesh* mark = AddBlankSprite();
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible_ = 0;

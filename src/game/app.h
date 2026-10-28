@@ -59,7 +59,7 @@ int StartFirstMap();
 // One frame: the interface drawn and the scene presented, nothing while the application is inactive.
 void FrameStep(bool draw, bool cursor);
 // Plays the movies listed under `section`, clearing the screen before and, with `clearAfter`, after each.
-void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b);
+void PlayMovies(const std::string& section, bool clearFirst, bool clearAfter, int a, int b);
 // The game's message box over the main window, under the window's title: in full screen (the device object's
 // flag 1) DirectDraw first flips to the GDI surface (a failure is reported through FatalErrorCode: "Can't
 // flip to GDI surface."); the cursor that was set is put back afterwards. Returns MessageBoxA's answer.

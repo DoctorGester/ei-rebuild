@@ -43,7 +43,7 @@ CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 } // namespace
 
 void CUiItemStrip::Setup(std::vector<CItem*>* source, char top) {
-    LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind, nullptr);
+    LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind);
     Build(top);
     regions_[0]->SetTip(0x4FB0, 1, 0);
     regions_[1]->SetTip(0x4FB1, 1, 0);
@@ -55,7 +55,7 @@ void CUiItemStrip::Setup(std::vector<CItem*>* source, char top) {
 
 void CUiItemStrip::SetupFigures(std::vector<std::string>* names, char top, char noArrowTips) {
     figures_ = names;
-    LoadTexture(kFigureTexture, kTextureKind, nullptr);
+    LoadTexture(kFigureTexture, kTextureKind);
     Build(top);
     if (!noArrowTips) {
         regions_[0]->SetTip(0x9DD0, 1, 0);

@@ -35,7 +35,7 @@ void DestroySurface(CUiSurface* surface) {
 }
 
 // A new object of the model manager by name, or null.
-CFigureMesh* NewModelObject(const char* name) {
+CFigureMesh* NewModelObject(std::string_view name) {
     return TheFigureManager()->NewFigure(name);
 }
 
@@ -269,11 +269,11 @@ void CUiWindow::ClearSurfaces() {
     surfaces_.clear();
 }
 
-CTexture* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
+CTexture* CUiWindow::LoadTexture(std::string_view name, int kind) {
     CTextureManager* manager = TheTextureManager();
     CTexture* texture = manager->FindOrCreate(kind, name);
     if (!texture) return nullptr;
-    int loaded = directory ? manager->LoadTextureFrom(texture, directory) : manager->LoadTexture(texture);
+    int loaded = manager->LoadTexture(texture);
     if (!loaded) return nullptr;
     objects_.push_back(texture);
     ++texture->refCount_;
@@ -336,7 +336,7 @@ CUiModel* CUiWindow::AddModel() {
 
 // --- ReplaceSceneObject ----------------------------------------------------------------------------
 
-CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
+CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, std::string_view name) {
     for (int i = 0; i < std::ssize(sceneObjects_); ++i) {
         if (sceneObjects_[i] != object) continue;
         CFigureMesh* made = NewModelObject(name);
@@ -365,9 +365,15 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
 
 // --- AddSprite -------------------------------------------------------------------------------------
 
-CUiMesh* CUiWindow::AddSprite(const char* name) {
+CUiMesh* CUiWindow::AddSprite(std::string_view name) {
     CFigureMesh* object = NewModelObject(name);
     if (!object) return nullptr;
+    return AddSceneObject(object);
+}
+
+CUiMesh* CUiWindow::AddBlankSprite() { return AddSceneObject(TheFigureManager()->NewBlankFigure()); }
+
+CUiMesh* CUiWindow::AddSceneObject(CFigureMesh* object) {
     bool listed = false;
     for (int i = 0; i < std::ssize(sceneObjects_) && !listed; ++i) listed = sceneObjects_[i] == object;
     if (!listed) {

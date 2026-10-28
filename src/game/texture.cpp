@@ -92,37 +92,6 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     return 1;
 }
 
-int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
-    if (!texture) {
-        game::DebugLog("CTextureManager::LoadTexture.\n Can't load texture to NULL pointer.\n");
-        return 0;
-    }
-    if (texture->flags_ & kTextureLoaded) {
-        game::DebugLog("Load already loaded texture \"%s\".\n", texture->GetName());
-        return 1;
-    }
-
-    std::string path;
-    lib::File file;
-    path = str::Format("%s%s.mmp", directory, texture->GetName());
-    if (!file.Open(path, lib::File::modeRead)) {
-        game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\" in directory \"%s\"\n",
-                       texture->GetName(), directory);
-        return 1;
-    }
-    auto* buffer = static_cast<MmpHeader*>(::operator new(file.GetLength()));
-    file.Read(buffer, file.GetLength());
-    file.Close();
-    PixelFormat format;
-    if (!device_->ParseMmpHeader(buffer, &format))   // the original leaks `buffer` here
-        return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
-                                texture->GetName());
-    texture->format_ = format;
-    texture->CreateFromMmp(device_, buffer, mipLevel_);
-    ::operator delete(buffer);
-    return 1;
-}
-
 void CTextureManager::SetDevice(CTextureDevice* device) {
     CTextureDevice* old = device_;
     device_ = device;
