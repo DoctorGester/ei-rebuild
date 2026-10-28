@@ -528,7 +528,7 @@ void CMpConnectScreen::CreateScreen() {
     std::string text;
     for (int i = 0, top = 238; top < 334; top += 24, ++i) {
         text = str::Format(AllodNameFormat(), i);
-        texts->CTextManager::GetString(text.c_str(), &text);
+        texts->CTextManager::GetString(text, &text);
         allodNames_.push_back(text);
         const int bottom = top + 21;
         sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
@@ -593,7 +593,7 @@ void CMpConnectScreen::CreateScreen() {
     }
     for (int i = 0; i < kTextCount; ++i) {
         text = str::Format(ConnectionTextFormat(), i);
-        texts->CTextManager::GetString(text.c_str(), &text);
+        texts->CTextManager::GetString(text, &text);
         texts_.push_back(text);
     }
 

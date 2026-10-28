@@ -117,7 +117,7 @@ std::string SlotFolder(const char* slot) {
 std::string FirstLineOf(const char* prefix, const std::string& suffix) {
     std::string line;
     CTextManager* texts = g_clientWorld->texts_;
-    BOOL found = texts->Open((std::string(prefix) + suffix).c_str());
+    BOOL found = texts->Open((std::string(prefix) + suffix));
     if (found) texts->ReadLine(&line, 1);
     return line;
 }
@@ -152,7 +152,7 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     std::string folder;
-    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
+    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     lib::FileFind find;
     BOOL found;
     {
@@ -185,15 +185,15 @@ void SaveEntry::MakeTitle(int) {
     g_clientWorld->texts_->GetString(kAutoExitTitle, &autoExit);
     auto& title = title_;
     if (SameFolder(folder_, kQuickFolder)) {
-        title = str::Format(kPlainFormat, quick.c_str());
+        title = str::Format(kPlainFormat, quick);
     } else if (SameFolder(folder_, kAutoFolderA)) {
-        title = str::Format(kPlainFormat, autoEnter.c_str());
+        title = str::Format(kPlainFormat, autoEnter);
     } else if (SameFolder(folder_, kAutoFolderB)) {
-        title = str::Format(kPlainFormat, autoExit.c_str());
+        title = str::Format(kPlainFormat, autoExit);
     } else {
         // The zone name ("zone" + zone_ in the texts, else "save_camp").
         const std::string name = ZoneTitle();
-        title = str::Format(kPlainFormat, name.c_str());
+        title = str::Format(kPlainFormat, name);
     }
 }
 
@@ -213,7 +213,7 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     std::string folder;
-    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
+    folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_);
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface->ShowStatusText(notice);
@@ -473,14 +473,14 @@ void CSaveLoadWindow::LoadSelected() {
     g_interface->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
-    g_gameFlow->RequestLoad(entries_.data()[selected_].folder_.c_str(), 0);
+    g_gameFlow->RequestLoad(entries_.data()[selected_].folder_, 0);
 }
 
 void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder;
-    folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_.c_str());
+    folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_);
     lib::FileFind find;
     BOOL more = find.FindFile((folder + kEveryFile));
     while (more) {

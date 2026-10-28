@@ -20,7 +20,7 @@ void ArmorModelName(std::string* out, std::uint32_t armorIndex, std::uint32_t ma
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
     if (static_cast<std::uint32_t>(armor->type) <= 6) std::memcpy(code, kArmorCodes[armor->type], 3);
-    *out = str::Format("%s_%.2d.%s.%d", code, armor->number, material->name.c_str(), armor->variant);
+    *out = str::Format("%s_%.2d.%s.%d", code, armor->number, material->name, armor->variant);
 }
 
 void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
@@ -32,7 +32,7 @@ void WeaponModelName(std::string* out, std::uint32_t weaponIndex, std::uint32_t 
     char code[4];
     std::memcpy(code, &materialIndex, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
-    *out = str::Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
+    *out = str::Format("%s_%.2d.%s.%d", code, weapon->number, material->name, weapon->variant);
 }
 
 void WeaponRecordModelName(std::string* out, const WeaponRecord* weapon, const MaterialRecordHead* material) {
@@ -40,5 +40,5 @@ void WeaponRecordModelName(std::string* out, const WeaponRecord* weapon, const M
     char code[4];
     std::memcpy(code, &out, sizeof(code));
     if (static_cast<std::uint32_t>(weapon->type) <= 6) std::memcpy(code, kWeaponCodes[weapon->type], 3);
-    *out = str::Format("%s_%.2d.%s.%d", code, weapon->number, material->name.c_str(), weapon->variant);
+    *out = str::Format("%s_%.2d.%s.%d", code, weapon->number, material->name, weapon->variant);
 }

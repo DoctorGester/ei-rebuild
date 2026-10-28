@@ -42,7 +42,7 @@ void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {
         piece = str::Format("Unit %i claims that player %i are enemies! ", claimant->id_, player);
         text += piece;
     }
-    BrainOf(this)->memory.AddClaim(mask, kCallClaim, text.c_str());
+    BrainOf(this)->memory.AddClaim(mask, kCallClaim, text);
 }
 
 BOOL CUnitServer::TakeUpWeapon(int slot) {

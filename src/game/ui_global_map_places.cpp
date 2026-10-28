@@ -38,7 +38,7 @@ std::string* PlaceTitle(std::string* out, std::string_view prefix, std::string_v
     std::string text;
     std::string key(prefix);
     key += name;
-    if (texts->Open(key.c_str())) texts->ReadLine(&text, 1);
+    if (texts->Open(key)) texts->ReadLine(&text, 1);
     *out = text; return out;
 }
 
@@ -80,7 +80,7 @@ bool CGlobalMap::ReadMapPosition(Vector3* out, std::string_view prefix, std::str
     key = prefix;
     key += name;
     bool found = false;
-    if (texts->FindLine(key.c_str()) && (!positionLine || texts->FindLine(kPositionLine))) {
+    if (texts->FindLine(key) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
             while (words.size() < 3) words.push_back(kMissingNumber);

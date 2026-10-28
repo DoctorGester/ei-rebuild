@@ -213,7 +213,7 @@ void ShowLoadingMovie(int progress) {
         }
         g_loadingBink = OpenBink(path.c_str(), 0);
         if (!g_loadingBink) {
-            game::DebugLog("Can't open video file \"%s\"\n", path.c_str());
+            game::DebugLog("Can't open video file \"%s\"\n", path);
             return;
         }
         RECT screen;

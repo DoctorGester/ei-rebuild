@@ -591,7 +591,7 @@ void CMpHeroScreen::AddNewHero() {
     heroIndex_ = static_cast<int>(heroes.size()) - 1;
 
     std::string pattern;
-    pattern = str::Format(HeroFilePattern(), MpHeroesFolder().c_str());
+    pattern = str::Format(HeroFilePattern(), MpHeroesFolder());
     int highest = HighestFileNumber(pattern);
     record->file = str::Format(HeroFileFormat(), highest + 1);
     record->Party()->Assign(LocalPlayerData());

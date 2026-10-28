@@ -37,7 +37,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, std::string_
         std::string path = base + ".lnk";
         data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
     }
-    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name).c_str());
+    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name));
 
     const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
     {

@@ -306,11 +306,11 @@ void CreateMouse() {
 }
 
 void CreateFolders(std::string& path) {
-    path = str::Format("%ssaves\\", g_dataFolder->c_str());
+    path = str::Format("%ssaves\\", *g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%smp\\", g_dataFolder->c_str());
+    path = str::Format("%smp\\", *g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
-    path = str::Format("%stextures\\", g_dataFolder->c_str());
+    path = str::Format("%stextures\\", *g_dataFolder);
     gameapi::CreateDirectoryA(path.c_str(), nullptr);
 }
 

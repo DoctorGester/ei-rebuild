@@ -13,6 +13,8 @@
 //     characters written into the buffer, then the length up to the terminator.
 // The usual operations are std::string's own: size(), empty(), clear(), c_str(), +, +=, ==.
 
+#include "printf_args.h"
+
 #include <cstdarg>
 #include <cstdlib>
 #include <string>
@@ -34,6 +36,12 @@ inline int ToInt(const std::string& s) { return std::atoi(s.c_str()); }
 inline double ToDouble(const std::string& s) { return std::atof(s.c_str()); }
 
 std::string Format(const char* format, ...);
+// With a std::string among the arguments: its text is passed for the %s.
+template <class... Args>
+    requires libprintf::HasString<Args...>
+std::string Format(const char* format, Args&&... args) {
+    return Format(format, libprintf::Arg(std::forward<Args>(args))...);
+}
 std::string FormatV(const char* format, va_list arguments);
 
 int Find(const std::string& s, char c, int start = 0);

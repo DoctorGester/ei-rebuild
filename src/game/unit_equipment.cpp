@@ -40,7 +40,7 @@ bool Named(const std::string& name) {
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CItem* MakeWeapon(CItemManager* items, const std::string& name, const char* prototype) {
     CItem* weapon = items->CreateItem(name);
-    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name.c_str(), prototype);
+    if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name, prototype);
     return weapon;
 }
 } // namespace
@@ -59,7 +59,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CItem* armour = items->CreateItem(prototype->armourNames.begin()[i]);
             if (armour) unit->EquipArmour(armour);
-            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].c_str(), name);
+            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i], name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -72,7 +72,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
         if (spell) unit->AddSpell(spell);
-        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].c_str(), name);
+        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i], name);
     }
     return 1;
 }

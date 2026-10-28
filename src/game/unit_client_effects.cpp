@@ -149,7 +149,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
             material = "leather";
     }
     std::string sound;
-    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material.c_str());
+    if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound = str::Format(format, material);
     if (sound.size() != 0) {
         auto* world = ClientWorld();
         world->sounds_->Play3D(sound, kSoundPriority, &unit->localPosition_.x, kSoundNear, kSoundFar, 0, 0);

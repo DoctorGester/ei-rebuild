@@ -432,7 +432,7 @@ BOOL CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
     std::string text = token.text;
     int found;
     ClassifyToken(text.c_str(), &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
+    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text);
     return 1;
 }
 
@@ -442,7 +442,7 @@ std::string* CScript::QualifyName(std::string* out, const std::string& name) {
         return out;
     }
     std::string qualified;
-    qualified = str::Format("!%i!%s", fileCount_, name.c_str());
+    qualified = str::Format("!%i!%s", fileCount_, name);
     *out = qualified;
     return out;
 }

@@ -48,10 +48,10 @@ void ForgetConvertedTexts(const CMappedResource* source) {
 
 // The lookup: the data of file `key` in the first archive of `list` that has it, its archive
 // into `*source` (when not null).
-void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedResource** source) {
+void* FindFile(TextSources* list, std::string_view key, std::uint32_t* size, CMappedResource** source) {
     // A key that is text (the people's names, "pers <name>") back in the archive's code page.
     std::string assetKey;
-    if (text::ToAssetText(key, &assetKey)) key = assetKey.c_str();
+    if (text::ToAssetText(key, &assetKey)) key = assetKey;
     for (const TextSource& archive : list->archives) {
         if (void* data = archive.source->GetFile(key, size)) {
             if (source) *source = archive.source;
@@ -62,9 +62,8 @@ void* FindFile(TextSources* list, const char* key, std::uint32_t* size, CMappedR
 }
 
 // The exact name comparison of the list (length, then the bytes).
-bool SameName(const TextSource& archive, const char* path) {
-    std::size_t length = std::strlen(path);
-    return archive.name.size() == length && std::memcmp(archive.name.data(), path, length) == 0;
+bool SameName(const TextSource& archive, const std::string& path) {
+    return archive.name.size() == path.size() && std::memcmp(archive.name.data(), path.data(), path.size()) == 0;
 }
 
 void CloseAndDelete(CMappedResource* source) {
@@ -75,15 +74,15 @@ void CloseAndDelete(CMappedResource* source) {
 
 } // namespace
 
-BOOL TextSources::Add(const char* path, BOOL writable) {
+BOOL TextSources::Add(const std::string& path, BOOL writable) {
     for (const TextSource& archive : archives)
         if (SameName(archive, path)) return 1;
     auto* resource = new CMappedResource();
-    archives.push_back(TextSource{std::string(path), resource});
+    archives.push_back(TextSource{path, resource});
     return archives.back().source->OpenResource(path, writable);
 }
 
-void TextSources::Remove(const char* path) {
+void TextSources::Remove(const std::string& path) {
     for (auto archive = archives.begin(); archive != archives.end(); ++archive) {
         if (!SameName(*archive, path)) continue;
         CloseAndDelete(archive->source);
@@ -97,11 +96,11 @@ void TextSources::Clear() {
     archives.clear();
 }
 
-BOOL CTextManager::AddSource(const char* path) {
+BOOL CTextManager::AddSource(const std::string& path) {
     return sources_.Add(path, 0);
 }
 
-void CTextManager::RemoveSource(const char* path) { sources_.Remove(path); }
+void CTextManager::RemoveSource(const std::string& path) { sources_.Remove(path); }
 
 void CTextManager::ClearSources() { sources_.Clear(); }
 
@@ -112,11 +111,11 @@ CTextManager::CTextManager() {
 
 CTextManager::~CTextManager() { ClearSources(); }
 
-void* TextSources::Find(const char* key, std::uint32_t* size) {
+void* TextSources::Find(std::string_view key, std::uint32_t* size) {
     return FindFile(this, key, size, nullptr);
 }
 
-void* TextSources::FindKeyText(const char* key, std::uint32_t* size) {
+void* TextSources::FindKeyText(std::string_view key, std::uint32_t* size) {
     CMappedResource* source = nullptr;
     void* data = FindFile(this, key, size, &source);
     return data ? AsGameText(source, data, size) : nullptr;

@@ -98,7 +98,7 @@ public:
 
     // A script string event ("say" / "say_block" text [key], "tutorial" name, "briefing" name, "autosave",
     // "endofgame"); the first word is lowercased. Rebirth's NewStringEvents adds "gameover [title [text]]".
-    void OnStringEvent(const char* event);
+    void OnStringEvent(std::string_view event);
     CUiWindow* GetActiveWindow() const;
     // The top window as the screen the caller runs under (the HUD's panels under the CBattleScreen, the
     // briefing chat under the CBriefingScreen); no check.
@@ -1815,7 +1815,7 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // A multiplayer client takes them from the quest database's record, otherwise from map.txt's "#quest
     // <name>" entry (the second line after it, its words as x y pairs).
-    void LoadQuestPlaces(const char* name);
+    void LoadQuestPlaces(std::string_view name);
     // Exit `index` becomes the nearest (its marker 1.2 times markerScale_); the blink restarts.
     void SelectExit(int index);
     // Keeps the selected quest within the five shown rows.

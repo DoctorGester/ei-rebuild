@@ -64,7 +64,7 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 
-int FindText(const char* key) { return g_clientWorld->texts_->Open(key); }
+int FindText(std::string_view key) { return g_clientWorld->texts_->Open(key); }
 
 // The quest the window last selected (a global string): built empty by its static initialiser in the list's
 // order, destroyed once by the exit function it registers. Both are defined on their names
@@ -154,7 +154,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
 
-QuestRecord* FindQuestRecord(const char* name) {
+QuestRecord* FindQuestRecord(std::string_view name) {
     std::string key(name);
     return QuestIndex()[key];
 }
@@ -239,7 +239,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             }
         } else {
             std::string name;
-            name = str::Format("z.%s", source.target.c_str());
+            name = str::Format("z.%s", source.target);
             float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
@@ -302,7 +302,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         std::vector<std::string> parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
-        prefix = str::Format("q.%s", shownZone_.c_str());
+        prefix = str::Format("q.%s", shownZone_);
         table->Fill(prefix.c_str());
         std::vector<std::string> found;
         for (auto node = table->begin(); node != table->end(); ++node) {
@@ -341,7 +341,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             {
                 std::string zoneKey("zone ");
                 std::string key = zoneKey + shownZone_;
-                foundText = FindText(key.c_str());
+                foundText = FindText(key);
             }
             if (foundText) {
                 g_clientWorld->texts_->ReadLine(&title, 1);
@@ -389,7 +389,7 @@ void CObjectivesWindow::ShowQuest() {
     {
         std::string questWord("quest ");
         std::string key = questWord + quests[selectedQuest_];
-        found = FindText(key.c_str()) != 0;
+        found = FindText(key) != 0;
     }
     if (!found) return;
 
@@ -402,26 +402,26 @@ void CObjectivesWindow::ShowQuest() {
         text = colour + text;
     }
     text += "\n ";
-    if (QuestRecord* record = FindQuestRecord(quests[selectedQuest_].c_str())) {
+    if (QuestRecord* record = FindQuestRecord(quests[selectedQuest_])) {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = str::Format("%s %d\n ", costExp.c_str(), static_cast<int>(libcrt::Ftol(D(experience))));
+            part = str::Format("%s %d\n ", costExp, static_cast<int>(libcrt::Ftol(D(experience))));
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part = str::Format("%s %d\n ", costMoney.c_str(), static_cast<int>(libcrt::Ftol(D(money))));
+            part = str::Format("%s %d\n ", costMoney, static_cast<int>(libcrt::Ftol(D(money))));
             text += part;
         }
     }
-    while (texts->FindLine(nullptr)) {
+    while (texts->FindHeader()) {
         texts->Split(&fields, 1);
         if (fields.size() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
-        variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
-                        fields[1].c_str());
+        variable = str::Format("q.%s.%s.%s", shownZone_, quests[selectedQuest_],
+                        fields[1]);
         int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
@@ -445,7 +445,7 @@ void CObjectivesWindow::ShowQuest() {
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
-    LoadQuestPlaces(quests[selectedQuest_].c_str());
+    LoadQuestPlaces(quests[selectedQuest_]);
     while (std::ssize(sceneObjects_) > std::ssize(exits_) + 0x15) RemoveSceneObjectAt(std::ssize(exits_) + 0x15);
     while (std::ssize(regions_) > std::ssize(exits_) + 9) RemoveRegionAt(std::ssize(exits_) + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
@@ -485,7 +485,7 @@ void CObjectivesWindow::CreateScreen() {
     std::string key;
     for (int k = 0; k < 3; ++k) {
         key = str::Format("obj_%d", k);
-        g_clientWorld->texts_->GetString(key.c_str(), &text);
+        g_clientWorld->texts_->GetString(key, &text);
         objectiveTexts_.push_back(text);
     }
 
@@ -648,11 +648,11 @@ void CObjectivesWindow::DrawQuestList() {
         {
             std::string questWord("quest ");
             std::string key = questWord + quests[row];
-            found = FindText(key.c_str()) != 0;
+            found = FindText(key) != 0;
         }
         if (found) texts->ReadLine(&title, 1);
         else title = quests[row];
-        variable = str::Format("q.%s.%s", shownZone_.c_str(), quests[row].c_str());
+        variable = str::Format("q.%s.%s", shownZone_, quests[row]);
         int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;

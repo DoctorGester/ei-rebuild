@@ -166,6 +166,6 @@ int CLinkFigureLoader::AddArchive(const std::string* path) {
     // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
     // string object by value to "%s": its first word, the text pointer, is what printed.)
     archives_.pop_back();
-    game::DebugLog("Can't open resource file \"%s\"\n", path->c_str());
+    game::DebugLog("Can't open resource file \"%s\"\n", *path);
     return 0;
 }

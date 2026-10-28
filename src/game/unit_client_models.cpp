@@ -124,9 +124,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const UnitPrototypeRecord* prototype = unitdb::PrototypeRecord(static_cast<std::uint32_t>(unit->prototypeId_));
     if (prototype)
-        texture = str::Format("%sskin_%.2d.mmp", unit->name.c_str(), prototype->skin);
+        texture = str::Format("%sskin_%.2d.mmp", unit->name, prototype->skin);
     else
-        texture = str::Format("%sskin_00.mmp", unit->name.c_str());
+        texture = str::Format("%sskin_00.mmp", unit->name);
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
@@ -184,8 +184,8 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        CFigureMesh* current = unit->FindPartByPrefix(part.c_str());
-        armourPart = str::Format("%s.armor%.2d", part.c_str(), armour->number);
+        CFigureMesh* current = unit->FindPartByPrefix(part);
+        armourPart = str::Format("%s.armor%.2d", part, armour->number);
         if (model->mesh->FindEntry(armourPart) != -1) {
             unit->LoadPart(armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) unit->RemovePart(current);
@@ -230,7 +230,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             part = str::Format("hr.%.2d", hair);
         }
         std::vector<CFigureMesh*> parts;
-        unit->CollectPartsByPrefix(part.c_str(), &parts);
+        unit->CollectPartsByPrefix(part, &parts);
         if (std::ssize(parts) == 1) {
             // One part of that name: replaced only when it is not the plain part already.
             if (str::Compare(part, parts[0]->GetName()) != 0) {
@@ -257,7 +257,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     }
     if (previous != kNone) {
         WeaponModelParts(previous >> 16, &names);
-        for (const std::string& name : names) unit->RemovePartNamed(name.c_str());
+        for (const std::string& name : names) unit->RemovePartNamed(name);
     }
     unit->activeWeapon = slot;
     weaponHidden = 0;
@@ -289,7 +289,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
     std::vector<std::string> names;
     if (hand != kNone) WeaponModelParts(hand >> 16, &names);
     for (const std::string& name : names) {
-        if (CEngineObject* part = unit->FindPart(name.c_str())) {
+        if (CEngineObject* part = unit->FindPart(name)) {
             if (hidden) part->flags_ |= kArrowPartFlag;
             else part->flags_ &= ~kArrowPartFlag;
         }

@@ -42,7 +42,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, std::string_view label, int value, int
     {
         std::string key = kPerkPrefix;
         key += label;
-        found = texts->CTextManager::Open(key.c_str());
+        found = texts->CTextManager::Open(key);
     }
     if (found)
         texts->ReadLine(&name, 1);
@@ -80,7 +80,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
     std::string unused;
     {
         std::string key = std::string(kPartPrefix) + name;
-        g_clientWorld->texts_->CTextManager::GetString(key.c_str(), &label);
+        g_clientWorld->texts_->CTextManager::GetString(key, &label);
     }
     label = std::string(kPartIndent) + label;
     CUiSurface* surface = surfaces_[0];

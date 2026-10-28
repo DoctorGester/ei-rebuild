@@ -65,47 +65,47 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             const std::vector<std::string>& labels = labels_;
             std::string line;
             tip += " \n";   // " \n"
-            line = str::Format("%s %d  ", labels[0].c_str(), Truncate(Get<float>(data, 0x40)));
+            line = str::Format("%s %d  ", labels[0], Truncate(Get<float>(data, 0x40)));
             tip += line;
             line = "Unknown";
             description = str::Format("school_%d", SpellPrototypeOf(data)->castType);
-            g_clientWorld->texts_->CTextManager::GetString(description.c_str(), &line);
+            g_clientWorld->texts_->CTextManager::GetString(description, &line);
             line = labels[1] + " " + line + " \n";
             tip += line;
             if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)
-                line = str::Format("%s %s  ", labels[2].c_str(), labels[12].c_str());
+                line = str::Format("%s %s  ", labels[2], labels[12]);
             else
-                line = str::Format("%s %d  ", labels[2].c_str(), Truncate(Get<float>(data, 0x24)));
+                line = str::Format("%s %d  ", labels[2], Truncate(Get<float>(data, 0x24)));
             tip += line;
             const float one = 1.0f;
             float duration = Get<float>(data, 0x30);
             EI_NAN_AUDIT(duration);
             if (duration < one)
-                line = str::Format("%s %s \n", labels[3].c_str(), labels[8].c_str());   // "%s %s \n"
+                line = str::Format("%s %s \n", labels[3], labels[8]);   // "%s %s \n"
             else
-                line = str::Format("%s %d \n", labels[3].c_str(), Truncate(duration));   // "%s %d \n"
+                line = str::Format("%s %d \n", labels[3], Truncate(duration));   // "%s %d \n"
             tip += line;
-            line = str::Format("%s %d%s  ", labels[4].c_str(), Truncate(Get<float>(data, 0x34)), labels[10].c_str());
+            line = str::Format("%s %d%s  ", labels[4], Truncate(Get<float>(data, 0x34)), labels[10]);
             tip += line;
             if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-                line = str::Format("%s %s \n", labels[5].c_str(), labels[9].c_str());
+                line = str::Format("%s %s \n", labels[5], labels[9]);
             } else {
                 // The area: radius squared times pi (a float).
                 float radius = Get<float>(data, 0x28);
                 double area = static_cast<double>(radius) * radius * 3.1415927f;
-                line = str::Format("%s %.1f%s \n", labels[5].c_str(), area, labels[10].c_str());   // "%s %.1f%s \n"
+                line = str::Format("%s %.1f%s \n", labels[5], area, labels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
             std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
             if (ticks < 2) {
-                line = str::Format("%s %s  ", labels[6].c_str(), labels[8].c_str());
+                line = str::Format("%s %s  ", labels[6], labels[8]);
             } else {
                 // Ticks to seconds (1/15).
                 double seconds = x87::FromUnsigned(ticks) * 0.06666667f;
-                line = str::Format("%s %.1f%s  ", labels[6].c_str(), seconds, labels[11].c_str());
+                line = str::Format("%s %.1f%s  ", labels[6], seconds, labels[11]);
             }
             tip += line;
-            line = str::Format("%s %d \n", labels[7].c_str(), Get<int>(data, 0x38));
+            line = str::Format("%s %d \n", labels[7], Get<int>(data, 0x38));
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).

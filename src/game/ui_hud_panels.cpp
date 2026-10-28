@@ -180,7 +180,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             icons[i] = static_cast<int>(spell->icon);
             code = spell->code.c_str();
             // The texts' section "spell <code>": its first line is the spell's name.
-            bool found = texts->CTextManager::Open((std::string("spell ") + code).c_str()) != 0;
+            bool found = texts->CTextManager::Open((std::string("spell ") + code)) != 0;
             if (found) texts->ReadLine(&text, 1);
         }
         surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);

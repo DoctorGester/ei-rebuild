@@ -190,7 +190,7 @@ void CParty::OpenEdgeExits() {
     for (int i = 0; i < std::ssize(zone->exits); ++i) {
         MapRecord* target = g_mapDatabase->FindMap(zone->exits[i].target);
         if (target == nullptr || target->kind != kZoneKindGame) continue;
-        variable = str::Format(ZoneVariableFormat(), target->name.c_str());
+        variable = str::Format(ZoneVariableFormat(), target->name);
         float value = variables.Get(variable);
         EI_NAN_AUDIT(value);
         if (value == 0.0f) variables.Set(variable, kOpened);

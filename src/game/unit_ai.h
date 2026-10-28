@@ -446,10 +446,10 @@ struct AIHeardCalls : std::vector<AICallRecord> {
     void Update(CUnit* unit, AIMemory* memory);
     // The calls without a mask whose kind is `kind` or above are dropped, then {point, kind, 0, text} is
     // appended.
-    void Hear(const Vector3* point, int kind, const char* text);
+    void Hear(const Vector3* point, int kind, std::string_view text);
     // Appends {point not set, kind, mask, text}: when it runs out (Update) the unit's controller takes the
     // hostility mask.
-    void AddClaim(std::uint32_t mask, int kind, const char* text);
+    void AddClaim(std::uint32_t mask, int kind, std::string_view text);
     void RemoveClaims();
 };
 
@@ -554,8 +554,8 @@ struct AIMemory {
     // not higher.
     int Notice(const Vector3* point, int level, int kind);
     void Forget(CEngineObject* object);
-    void HearCall(const Vector3* point, int kind, const char* text);
-    void AddClaim(std::uint32_t mask, int kind, const char* text);
+    void HearCall(const Vector3* point, int kind, std::string_view text);
+    void AddClaim(std::uint32_t mask, int kind, std::string_view text);
     // `out` emptied, then the visible units hostile to the unit (its IsHostileTo), alive and not reported, in
     // visible-list order (no references taken).
     void FindEnemies(CUnit* self, CountedUnits* out);

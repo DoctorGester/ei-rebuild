@@ -16,6 +16,7 @@
 
 #include "core_streams.h"
 #include "engine_object.h"
+#include "lib/printf_args.h"
 #include "lib/static_object.h"
 #include "lib/vecmath.h"
 
@@ -114,7 +115,7 @@ struct ScriptVars {
     // Any type; case-sensitive.
     BOOL HasVariable(std::string_view name) const;
     // Sets *type (1..4) and *index (-1 when not found).
-    BOOL FindVariable(const char* name, int* index, int* type) const;
+    BOOL FindVariable(std::string_view name, int* index, int* type) const;
     void RemoveDeletedObjects();
 
     ScriptNamedValues<float> floats;
@@ -457,6 +458,12 @@ public:
 
     // Formats the message into the error text; returns 0. Rebirth patches it.
     static int Error(CScript* script, int line, int code, const char* format, ...);
+    // With a std::string among the arguments: its text is passed for the %s.
+    template <class... Args>
+        requires libprintf::HasString<Args...>
+    static int Error(CScript* script, int line, int code, const char* format, Args&&... args) {
+        return Error(script, line, code, format, libprintf::Arg(std::forward<Args>(args))...);
+    }
     // See script.md, "Lexer".
     BOOL Tokenize(const std::string& text, std::list<ScriptToken>* tokens);
     BOOL ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<ScriptToken>::const_iterator* pos, int id);
@@ -486,7 +493,7 @@ public:
     // The text is replaced by its #define-expanded form.
     BOOL Load(std::string* text, BOOL runWorldScript);
     // With the WorldScript started; error 0x11 when the file cannot be read.
-    BOOL LoadFile(const char* path);
+    BOOL LoadFile(const std::string& path);
 
     // The id is the block count after it.
     ScriptDecl* NewCommandList();

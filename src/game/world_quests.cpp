@@ -318,13 +318,13 @@ void CWorldServer::UpdateMercBriefings() {
             bool briefedHere = text::CompareIgnoringCase(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
-            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc.c_str(), slot);
-            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc.c_str(), slot);
-            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc.c_str(), slot);
-            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc.c_str(), slot);
-            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc.c_str(), slot);
-            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc.c_str(), slot);
-            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc.c_str(), slot);
+            b.n8 = str::Format(worlddata::MercVariableN8Format(), merc, slot);
+            b.n1 = str::Format(worlddata::MercVariableN1Format(), merc, slot);
+            b.n2 = str::Format(worlddata::MercVariableN2Format(), merc, slot);
+            b.n3 = str::Format(worlddata::MercVariableN3Format(), merc, slot);
+            b.n9 = str::Format(worlddata::MercVariableN9Format(), merc, slot);
+            b.n10 = str::Format(worlddata::MercVariableN10Format(), merc, slot);
+            b.n11 = str::Format(worlddata::MercVariableN11Format(), merc, slot);
             b.hired = str::Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 
@@ -435,7 +435,7 @@ void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
 
 void CWorldServer::QueueBriefingScript(int playerId, std::string_view name) {
     std::string script;
-    script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name).c_str(), playerId, std::string(name).c_str());
+    script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name), playerId, std::string(name));
     MainScript()->Load(&script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
@@ -452,12 +452,12 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
         MercNames v;
         v.merc = str::Format(worlddata::MercNameFormat(), slot);
         unsigned key = TextKeyFromName(v.merc);
-        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc.c_str(), slot);
-        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc.c_str(), slot);
-        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc.c_str(), slot);
-        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc.c_str(), slot);
-        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc.c_str(), slot);
-        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc.c_str(), slot);
+        v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc, slot);
+        v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc, slot);
+        v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc, slot);
+        v.n3 = str::Format(worlddata::MercVariableN3Format(), v.merc, slot);
+        v.n9 = str::Format(worlddata::MercVariableN9Format(), v.merc, slot);
+        v.n10 = str::Format(worlddata::MercVariableN10Format(), v.merc, slot);
         v.hired = str::Format(worlddata::MercHiredFormat(), slot);
         CUnit* unit = FindUnit(key);
 

@@ -157,7 +157,7 @@ void CMpConnectScreen::DrawListVanilla() {
         g_connectTextColour = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text = str::Format("%s %s", label(7), nameEdit_->text_.c_str());
+            text = str::Format("%s %s", label(7), nameEdit_->text_);
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
@@ -215,7 +215,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             DrawLabel(surface, label(17), &row, 0);
         } else {
-            text = str::Format("%s %s", label(0), entry.name.c_str());
+            text = str::Format("%s %s", label(0), entry.name);
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
                 int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, g_connectTextColour, 0, 1);
@@ -234,7 +234,7 @@ void CMpConnectScreen::DrawListVanilla() {
                 text = str::Format("%s %s", label(3), allod(entry.gameType));
             DrawLabel(surface, text, &row, 0);
             Down(&row);
-            text = str::Format("%s %s", label(4), entry.description.c_str());
+            text = str::Format("%s %s", label(4), entry.description);
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, g_connectTextColour, 0, 1);
             for (; lines != 0; --lines) Down(&row);
             std::string address = entry.address.ToString();

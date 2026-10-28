@@ -401,7 +401,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     if (!prototype) {
         // Rebirth's FixCreateItem logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
-            game::FatalError(kNoPrototype, parts[0].c_str());
+            game::FatalError(kNoPrototype, parts[0]);
         return nullptr;
     }
     constructor->SetManager(this);
@@ -424,7 +424,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
         // with the null item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
-        game::FatalError(kCantCreate, std::string(name).c_str());
+        game::FatalError(kCantCreate, std::string(name));
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);

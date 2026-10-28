@@ -203,12 +203,12 @@ void COptionsWindow::CreateScreen() {
         AddBlankSprite()->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
         text = str::Format("tip option_group_%s", OptionGroupName(k));
-        if (g_clientWorld->texts_->Open(text.c_str()) != 0) g_clientWorld->texts_->ReadToHash(&text, 1);
+        if (g_clientWorld->texts_->Open(text) != 0) g_clientWorld->texts_->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
             std::string prefix("option_group_");
             std::string key = prefix + OptionGroupName(k);
-            g_clientWorld->texts_->GetString(key.c_str(), &text);
+            g_clientWorld->texts_->GetString(key, &text);
         }
         groupNames_.push_back(text);
     }

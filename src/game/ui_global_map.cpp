@@ -262,7 +262,7 @@ void CGlobalMap::CreateScreen() {
         MapRecord* zone = ZoneAt(allod->maps[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         zones_.push_back(zoneTemplate);
-        variable = str::Format("z.%s", zone->name.c_str());
+        variable = str::Format("z.%s", zone->name);
         zones_[zoneCount_].link = -1;
         zones_[zoneCount_].state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
         zones_[zoneCount_].name = zone->name;
@@ -278,7 +278,7 @@ void CGlobalMap::CreateScreen() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable = str::Format("q.%s", zones_[i].name.c_str());
+        variable = str::Format("q.%s", zones_[i].name);
         GameLocalPlayerVariables(variable.c_str(), &vars.table_);
         const NamedFloatTable& table = vars.table_;
         for (auto node = table.begin(); node != table.end(); ++node) {
@@ -322,7 +322,7 @@ void CGlobalMap::CreateScreen() {
         for (int e = 0; e < std::ssize(zone->exits); ++e) {
             MapRecord* way = FindZone(zone->exits[e].target);
             if (!way) continue;
-            variable = str::Format("z.%s", way->name.c_str());
+            variable = str::Format("z.%s", way->name);
             if (way->kind != 2) continue;
             double state = D(LocalPlayerVariable(variable));
             double two = 2.0;
@@ -412,7 +412,7 @@ void CGlobalMap::CreateScreen() {
     std::string clock;
     std::string dayText;
     g_clientWorld->texts_->GetString("save_day", &dayText);
-    clock = str::Format("%s  %d,  %d:%02d", dayText.c_str(), day + 1, hour, minutes);
+    clock = str::Format("%s  %d,  %d:%02d", dayText, day + 1, hour, minutes);
     {
         CUiSurface* text = new CUiSurface(interface_, 20, 20, 170, 70, 5, 1);
         AddSurface(text);

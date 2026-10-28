@@ -490,7 +490,7 @@ int CPlayerClient::OnPathMarker() {
 int CPlayerClient::OnStringEvent() {
     std::string text;
     ReadText(&text);
-    g_interface->OnStringEvent(text.c_str());
+    g_interface->OnStringEvent(text);
     return 1;
 }
 

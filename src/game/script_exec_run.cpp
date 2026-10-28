@@ -129,19 +129,19 @@ void UpdateParticleSources(CScript* script) {
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
     if (call->floatArgs.size() - 1 != vars.floats.values.size()) {
-        game::FatalError(kWrongFloatCount, name.c_str());
+        game::FatalError(kWrongFloatCount, name);
         return;
     }
     if (call->stringArgs.size() - 1 != vars.strings.values.size()) {
-        game::FatalError(kWrongStringCount, name.c_str());
+        game::FatalError(kWrongStringCount, name);
         return;
     }
     if (call->objectArgs.size() != vars.objects.values.size()) {
-        game::FatalError(kWrongObjectCount, name.c_str());
+        game::FatalError(kWrongObjectCount, name);
         return;
     }
     if (call->groupArgs.size() != vars.groups.values.size()) {
-        game::FatalError(kWrongGroupCount, name.c_str());
+        game::FatalError(kWrongGroupCount, name);
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.

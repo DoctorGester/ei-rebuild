@@ -39,15 +39,15 @@ int IndexOf(const std::vector<CFigureMesh*>& parts, const CFigureMesh* part) {
 }
 } // namespace
 
-CFigureMesh* CObject3D::FindPartByPrefix(const char* prefix) {
+CFigureMesh* CObject3D::FindPartByPrefix(std::string_view prefix) {
     // The original asks for the name twice; the parts return the same string both times.
-    auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     if (CFigureMesh* part = FirstPart(parts, startsWith)) return part;
     return FirstPart(pendingParts, startsWith);
 }
 
-CFigureMesh* CObject3D::FindPart(const char* partName) {
-    auto named = [partName](CFigureMesh* part) { return std::strcmp(part->GetName(), partName) == 0; };
+CFigureMesh* CObject3D::FindPart(std::string_view partName) {
+    auto named = [partName](CFigureMesh* part) { return str::Compare(part->GetName(), partName) == 0; };
     if (CFigureMesh* part = FirstPart(parts, named)) return part;
     return FirstPart(pendingParts, named);
 }
@@ -68,7 +68,7 @@ int CObject3D::RemovePart(CFigureMesh* part) {
     return 1;
 }
 
-CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
+CFigureMesh* CObject3D::RemovePartNamed(std::string_view partName) {
     CFigureMesh* part = FindPart(partName);
     if (!part) return nullptr;
     RemovePart(part);

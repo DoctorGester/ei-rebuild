@@ -52,6 +52,11 @@ void SayFormat(const char* format, ...) {
     va_end(args);
     Say(text.c_str());
 }
+template <class... Args>
+    requires libprintf::HasString<Args...>
+void SayFormat(const char* format, Args&&... args) {
+    SayFormat(format, libprintf::Arg(std::forward<Args>(args))...);
+}
 
 // listgvar's object text: "null", or "<" class name ":" id ">".
 std::string ObjectText(const ScriptObjectRef& ref) {
@@ -101,7 +106,7 @@ void AddonDebug(std::vector<std::string>* args) {
         else
             SayFormat("Current addon log level: %d", g_addonLogLevel);
     } else {
-        SayFormat("Unknown debug type: %s", type.c_str());
+        SayFormat("Unknown debug type: %s", type);
     }
 }
 
@@ -116,17 +121,17 @@ void Addon(std::vector<std::string>* args) {
         args->erase(args->begin());
         AddonDebug(args);
     } else {
-        SayFormat("Unknown command: %s", (*args)[0].c_str());
+        SayFormat("Unknown command: %s", (*args)[0]);
     }
 }
 
 // execs file: loads a script file into the script loader and runs it.
 void Execs(std::vector<std::string>* args) {
-    if (TheMissionScript()->LoadFile((*args)[0].c_str())) {
+    if (TheMissionScript()->LoadFile((*args)[0])) {
         ScriptTick(TheMissionScript());
         return;
     }
-    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_.c_str());
+    SayFormat("Script error: line %d: %s", TheMissionScript()->errorLine_, TheMissionScript()->errorText_);
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
@@ -139,11 +144,11 @@ void ListGlobals(std::vector<std::string>*) {
         SayFormat("%s : string = \"%s\"", name(globals.strings.names, i), name(globals.strings.values, i));
     for (int i = 0; i < std::ssize(globals.objects.values); ++i) {
         std::string text = ObjectText(globals.objects.values[i]);
-        SayFormat("%s : object = %s", name(globals.objects.names, i), text.c_str());
+        SayFormat("%s : object = %s", name(globals.objects.names, i), text);
     }
     for (int i = 0; i < std::ssize(globals.groups.values); ++i) {
         std::string text = GroupText(globals.groups.values[i]);
-        SayFormat("%s : group = %s", name(globals.groups.names, i), text.c_str());
+        SayFormat("%s : group = %s", name(globals.groups.names, i), text);
     }
 }
 

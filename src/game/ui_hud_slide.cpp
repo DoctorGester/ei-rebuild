@@ -336,7 +336,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     for (int i = 0; i < kInfoTexts; ++i) {
         key = str::Format(kInfoTextFormat, i);
         text.clear();
-        texts->GetString(key.c_str(), &text);
+        texts->GetString(key, &text);
         texts_.push_back(text);
     }
     // A missing label keeps the text before it.

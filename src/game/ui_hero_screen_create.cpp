@@ -255,11 +255,11 @@ void CMpHeroScreen::CreateScreen() {
             isMale = !isFemale;
         }
         if (isMale) {
-            label = str::Format("%s %d", male.c_str(), static_cast<int>(maleVoices.size()) + 1);
+            label = str::Format("%s %d", male, static_cast<int>(maleVoices.size()) + 1);
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isFemale) {
-            label = str::Format("%s %d", female.c_str(), static_cast<int>(femaleVoices.size()) + 1);
+            label = str::Format("%s %d", female, static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }

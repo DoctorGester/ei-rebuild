@@ -29,7 +29,7 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
 }
 
 // Sends the server a command message, kept 60 seconds on the timers list.
-void ClientSession::SendCommand(int kind, const char* text) {
+void ClientSession::SendCommand(int kind, std::string_view text) {
     ClientSession* self = this;
     auto* command = NewCounted<CommandMessage>();
     command->kind_ = static_cast<std::uint32_t>(kind);

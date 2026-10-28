@@ -38,7 +38,7 @@ int CWorldServer::Create() {
     BOOL opened;
     {
         std::string path = folder + kMessagesFileName;
-        opened = Messages()->Open(path.c_str());
+        opened = Messages()->Open(path);
     }
     if (!opened) return game::FatalError(CantOpenText());
 

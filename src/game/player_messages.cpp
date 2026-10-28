@@ -229,7 +229,7 @@ void CPlayerServer::SendValue12(std::uint32_t, std::uint32_t value) {
     Write(&out_, payload, sizeof(payload));
 }
 
-void CPlayerServer::SendText13(std::uint32_t, const char* text) {
+void CPlayerServer::SendText13(std::uint32_t, std::string_view text) {
     WriteByte(&out_, 0x13);
     out_.WriteString(text);
 }

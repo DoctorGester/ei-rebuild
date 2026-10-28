@@ -94,7 +94,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
 FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb"), nullptr));
     if (!database) {
-        game::DebugLog(kNoDatabaseText, figure->c_str());
+        game::DebugLog(kNoDatabaseText, *figure);
         return nullptr;
     }
     const std::uint32_t variant = key & kKeyVariantBits;

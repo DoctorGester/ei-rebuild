@@ -9,6 +9,8 @@
 #include <cstring>
 #include <string>
 
+#include "printf_args.h"
+
 // The game CRT's own functions (docs/notes/standalone.md section 2). Its string, case and class functions are the
 // host CRT's (std::strcmp and so on) or text_case.h's (UTF-8: no lead bytes, no class past ASCII).
 namespace libcrt {
@@ -58,6 +60,12 @@ namespace game {
 
 // Reports a fatal error (printf-style) and normally exits the game.
 int FatalError(const char* format, ...);
+// With a std::string among the arguments: its text is passed for the %s.
+template <class... Args>
+    requires libprintf::HasString<Args...>
+int FatalError(const char* format, Args&&... args) {
+    return FatalError(format, libprintf::Arg(std::forward<Args>(args))...);
+}
 // FatalError's result as a pointer (it returns what the report returns, when it returns at all).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {
@@ -66,5 +74,10 @@ T* FatalErrorAs(const char* format, Args... args) {
 // Debug log; compiled out (empty) in the release build, but other mods may hook it. It leaves the caller's
 // result register unchanged (bink_video.cpp's error message masks it, so it returns a value).
 unsigned DebugLog(const char* format, ...);
+template <class... Args>
+    requires libprintf::HasString<Args...>
+unsigned DebugLog(const char* format, Args&&... args) {
+    return DebugLog(format, libprintf::Arg(std::forward<Args>(args))...);
+}
 
 } // namespace game

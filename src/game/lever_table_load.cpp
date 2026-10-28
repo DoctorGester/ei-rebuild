@@ -23,7 +23,7 @@ int LeverRecordTable::Load(const std::string& folder) {
     if (!opened) {
         // The message names "databases.res", not the file it tried: as in the game.
         std::string path = dir + "databases.res";
-        return game::FatalError("Can't open database file \"%s\"\n", path.c_str());
+        return game::FatalError("Can't open database file \"%s\"\n", path);
     }
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("Levers.ldb", &size);

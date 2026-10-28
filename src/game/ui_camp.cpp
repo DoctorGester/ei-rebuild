@@ -588,7 +588,7 @@ void CCampPages::UpdateAction() {
     UiSurfaceGetDC(draw);
     draw->Clear();
     if (action.size() != 0) {
-        texts->GetString(action.c_str(), &text);
+        texts->GetString(action, &text);
         RECT name = {0, 30, 200, 50};
         DrawLine(draw, text, &name);
         if (cost_ != 0)
@@ -598,8 +598,8 @@ void CCampPages::UpdateAction() {
         RECT value = {0, 50, 200, 70};
         DrawLine(draw, text, &value);
     }
-    texts->GetString(label.c_str(), &text);
-    line = str::Format("%s %d", text.c_str(), amount);
+    texts->GetString(label, &text);
+    line = str::Format("%s %d", text, amount);
     RECT top = {0, 10, 200, 30};
     DrawLine(draw, line, &top);
     UiSurfaceReleaseDC(draw);
@@ -1120,7 +1120,7 @@ void CCampPages::ShowHero() {
         {
             std::string prefix("pers ");
             std::string key = prefix + own;
-            found = table->CTextManager::Open(key.c_str());
+            found = table->CTextManager::Open(key);
         }
         if (found) table->ReadLine(&name, 1);
     } else {

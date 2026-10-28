@@ -184,7 +184,7 @@ bool GameOver(Call*) {
 bool GameOverMsg(Call* call) {
     if (CPlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
-        state->SendText13(0, text.c_str());
+        state->SendText13(0, text);
     }
     return true;
 }
@@ -213,7 +213,7 @@ bool GSListPlayerVars(Call* call) {
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
         std::string line;
-        line = str::Format("%s = %f", node->first.c_str(), static_cast<double>(node->second));
+        line = str::Format("%s = %f", node->first, static_cast<double>(node->second));
         (console::g_consoleOut << line << "\n").Flush();
     }
     return true;

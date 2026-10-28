@@ -43,7 +43,7 @@ inline bool OpenDatabase(LocalResource& resource, const std::string& folder) {
 }
 // Their report of a failed open. The game names "databases.res" here.
 inline int ReportNoDatabase(const std::string& folder) {
-    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res").c_str());
+    return game::FatalError("Can't open database file \"%s\"\n", (folder + "databases.res"));
 }
 
 // One table's pass over the stream: an archive of its own (the out-of-line constructor)

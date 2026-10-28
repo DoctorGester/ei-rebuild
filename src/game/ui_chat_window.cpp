@@ -164,8 +164,8 @@ void CChatWindow::ShowPlayers() {
         else if (fixes || SameText(figure->figureName, "unhufe"))
             sex = "f";
         build = "me";
-        model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
-        picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
+        model = str::Format("infa%s%s%dface", figure->figureName, build, prototype->hair + 1);
+        picture = str::Format("face%s%02d", sex, prototype->skin);
         AddPortrait(model, picture);
         regions_[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }

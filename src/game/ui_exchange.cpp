@@ -231,7 +231,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
-    line = str::Format("%s %d", text.c_str(), LocalParty()->money_);
+    line = str::Format("%s %d", text, LocalParty()->money_);
     RECT rect{0, 0, 200, 0x14};
     surface->DrawTextIn(line, &rect, kAlignLeft, kWhite, 1, 1);
     texts->GetString("xch_accept", &text);

@@ -126,7 +126,7 @@ bool CAIMap::CollectFootprint(CMapObject* object, FootprintCellSet* footprintSet
     for (const std::string& name : *names) {
         int index = object->FindPartIndex(name);
         if (index < 0) {
-            game::FatalError(PartNotFoundFormat(), name.c_str(), object->name.c_str());
+            game::FatalError(PartNotFoundFormat(), name, object->name);
             continue;
         }
         const FootprintPart* part = &object->partBoxes[index];

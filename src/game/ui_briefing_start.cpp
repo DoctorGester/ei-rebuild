@@ -119,7 +119,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     third_ = nullptr;
     CTextManager* texts = g_clientWorld->texts_;
     std::string key = BriefingSection();
-    if (!texts->Open((key + topic_).c_str())) {
+    if (!texts->Open((key + topic_))) {
         state_ = 0;
         briefingStarted_ = false;
         return;

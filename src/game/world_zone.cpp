@@ -101,29 +101,29 @@ int CWorldServer::LoadMapObjects(std::string_view fileName, int keepIds) {
     MapPath(&path, file);
     int result;
     if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
-        result = game::FatalError(game::zonetexts::CantOpenObjects(), file.c_str());
+        result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = root->Load(this, keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file.c_str());
+        result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
     return result;   // the file closed with the root
 }
 
-int CWorldServer::LoadMobFile(const char* file) {
+int CWorldServer::LoadMobFile(std::string_view file) {
     for (const std::string& loaded : mobFiles_)
         if (str::Compare(loaded, file) == 0) return 1;
     g_loadingMovieOff = 1;
-    if (file) {
+    {
         int loaded = LoadMapObjects(file, 0);
         if (loaded == 0) {
             g_loadingMovieOff = 0;
             zoneLoaded_ = 0;
-            return game::FatalError(game::zonetexts::CantLoadMob(), file);
+            return game::FatalError(game::zonetexts::CantLoadMob(), std::string(file));
         }
     }
     g_loadingMovieOff = 0;
-    mobFiles_.push_back(file);
+    mobFiles_.push_back(std::string(file));
     return 1;
 }
 

@@ -105,7 +105,7 @@ public:
     int BoundsContainPoint(const long* point) override;
     int PartsContainPoint(const long* point) override;
     int PartRectsMeet(const RECT* rect);
-    CFigureMesh* FindPart(const char* name) override;
+    CFigureMesh* FindPart(std::string_view name) override;
     CFigureMesh* FindPartOfType(int type) override;
 
     // The wounds material slot cleared and the material it held released.

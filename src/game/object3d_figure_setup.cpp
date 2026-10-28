@@ -157,9 +157,9 @@ void CObject3D::UpdatePartBounds() {
 
 // --- Parts by name prefix -----------------------------------------------------------------------
 
-void CObject3D::CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh*>* out) {
+void CObject3D::CollectPartsByPrefix(std::string_view prefix, std::vector<CFigureMesh*>* out) {
     // The game asks each part for its name twice; parts return the same string both times.
-    auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    auto startsWith = [prefix](CFigureMesh* part) { return std::string_view(part->GetName()).starts_with(prefix); };
     for (int i = 0; i < std::ssize(parts); ++i) {
         auto* part = parts[i];
         if (!startsWith(part)) continue;
@@ -180,7 +180,7 @@ CFigureMesh* CObject3D::LoadPart(std::string_view partName, FigureModel* model, 
     CFigureMesh* part = manager->NewPart(name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached);
     if (!part) {
-        game::DebugLog(kCantLoadPart, std::string(partName).c_str(), name.c_str());
+        game::DebugLog(kCantLoadPart, std::string(partName), name);
         return nullptr;
     }
     if (CLinkMesh* current = figure) {
@@ -230,7 +230,7 @@ int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>*
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
     for (const std::string& part : *names) {
-        if (!LoadPart(part, cached, arg)) game::DebugLog(kCantCreatePart, name.c_str(), part.c_str());
+        if (!LoadPart(part, cached, arg)) game::DebugLog(kCantCreatePart, name, part);
     }
     return 1;
 }

@@ -251,7 +251,7 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
         {
             std::string say("say ");
             std::string key = say + name;
-            found = texts->Open(key.c_str());
+            found = texts->Open(key);
         }
         if (found) {
             texts->ReadToHash(&text, 1);

@@ -102,7 +102,7 @@ int CObject3DServer::GetClassId() { return kServerClassId; }
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }
 CFigureMesh* CObject3DServer::RemoveFromPartSets(const char*) { return nullptr; }
 int CObject3DServer::OnPartRemoved(CFigureMesh*) { return 0; }
-CFigureMesh* CObject3DServer::FindPart(const char*) { return nullptr; }
+CFigureMesh* CObject3DServer::FindPart(std::string_view) { return nullptr; }
 CFigureMesh* CObject3DServer::FindPartOfType(int) { return nullptr; }
 
 // --- The wounds material and the stage copies ---------------------------------------------------------

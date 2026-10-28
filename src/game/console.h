@@ -186,7 +186,7 @@ void ApplyAddonGuiVisibility(CUiContainer* screen);
 void RunAddonAutoExec();
 // Splits a console line at spaces into `out` (a token in double quotes keeps its spaces
 // and quotes); returns 1.
-int Tokenize(const char* text, std::vector<std::string>* out);
+int Tokenize(std::string_view text, std::vector<std::string>* out);
 // Loads prefix + text + " arg"... + suffix into the mission script and runs it; prints
 // "Script error: ..." when it does not load.
 void RunScriptLine(const std::string& text, const std::vector<std::string>& args, const char* prefix, const char* suffix);

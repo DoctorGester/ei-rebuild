@@ -25,7 +25,7 @@ void LoadPersonTexts(std::map<int, std::string>* map) {
     std::string line;
     texts->ListKeys(&keys, PersonPattern());
     for (const std::string& textKey : keys) {
-        if (!texts->CTextManager::Open(textKey.c_str())) continue;
+        if (!texts->CTextManager::Open(textKey)) continue;
         texts->ReadLine(&line, 1);
         int key;
         {

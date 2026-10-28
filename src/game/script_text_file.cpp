@@ -13,7 +13,7 @@ namespace {
 constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 } // namespace
 
-int ReadTextFile(const char* path, std::string* text) {
+int ReadTextFile(const std::string& path, std::string* text) {
     text->clear();
     lib::TextFile file;
     if (!file.Open(path, "r")) return 0;

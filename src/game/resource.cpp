@@ -259,7 +259,7 @@ void CMappedFile::Close() {
 }
 
 BOOL CMappedFile::Open(const std::string& path, BOOL writable) {
-    if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path.c_str());
+    if (writable) game::DebugLog("CMappedFile::Open().\nMapping file \"%s\" with writting access.\n", path);
 
     // Unbuffered I/O only when the volume's sector size divides the page size.
     char root[4];
@@ -298,7 +298,7 @@ BOOL CMappedFile::Open(const std::string& path, BOOL writable) {
         } else {
             view_ = gameapi::MapViewOfFile(mapping_, writable ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
             if (view_) return true;
-            game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path.c_str(),
+            game::FatalError("CMappedFile::Open( \"%s\" ).\nUnable to create view of file (error=0x%X).\n", path,
                              gameapi::GetLastError());
         }
     }

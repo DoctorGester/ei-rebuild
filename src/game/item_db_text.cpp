@@ -34,7 +34,7 @@ constexpr const char kLineEnd[] = "\r\n";
 
 // Clears the current text, looks up `key` and makes it current. True when it was found and is not empty
 // (CTextManager::Open inlined).
-bool OpenText(CTextManager* self, const char* key) { return self->Open(key) != 0; }
+bool OpenText(CTextManager* self, std::string_view key) { return self->Open(key) != 0; }
 
 // The record's name as used in keys: spaces become '_', lower case. `name` is a string field of a database record
 // that may be null (reading it then faults).
@@ -46,7 +46,7 @@ void KeyName(std::string& out, const std::string& name) {
 
 // Looks up `key`; when found, reads the name line and the description.
 void ReadItemText(CTextManager* self, const std::string& key, std::string* name, std::string* description) {
-    if (OpenText(self, key.c_str())) {
+    if (OpenText(self, key)) {
         self->ReadLine(name, 1);
         self->ReadToHash(description, 1);
     }
@@ -66,19 +66,20 @@ BOOL CTextManager::IsPastEnd(const char* p) {
     return offset >= static_cast<int>(length_);
 }
 
-BOOL CTextManager::GetString(const char* name, std::string* out) {
+BOOL CTextManager::GetString(std::string_view name, std::string* out) {
     if (cursor_) {
         text_ = nullptr;
         cursor_ = nullptr;
     }
     bool found;
     {
-        std::string key = std::string(kString) + name;
-        found = OpenText(this, key.c_str());
+        std::string key(kString);
+        key += name;
+        found = OpenText(this, key);
     }
     if (!found) {
-        // `name` may be out's own buffer (callers pass a string's text and the string).
-        if (out->c_str() != name) *out = name;
+        // `name` may be out's own text (callers pass a string and its address).
+        if (out->data() != name.data()) *out = name;
         text_ = nullptr;
         cursor_ = nullptr;
         return 0;
@@ -135,7 +136,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
             bool found;
             {
                 std::string key = std::string(kSpell) + spell->GetPrototype()->code;
-                found = OpenText(this, key.c_str());
+                found = OpenText(this, key);
             }
             if (found) ReadLine(&spellName, 1);
             *name += kColon + spellName;
@@ -215,10 +216,10 @@ BOOL CTextManager::FormatItemName(CItem* item, std::string* out) {
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
     if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        *out = str::Format(format.c_str(), kind.c_str(), name.c_str(), item->count_);
+        *out = str::Format(format.c_str(), kind, name, item->count_);
     } else {
         GetString("format_item1", &format);
-        *out = str::Format(format.c_str(), kind.c_str(), name.c_str());
+        *out = str::Format(format.c_str(), kind, name);
     }
     return 1;
 }

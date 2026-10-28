@@ -141,7 +141,7 @@ void AIBrain::Think() {
             std::string text;
             std::string name;
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
-            text = str::Format(MotivationFormat(), owner->unit->id_, name.c_str(),
+            text = str::Format(MotivationFormat(), owner->unit->id_, name,
                         bestPriority);
             console::EndLine(*kModeLog << text.c_str());
             int type = best->GetType();

@@ -598,7 +598,7 @@ public:
     // Keeps `object` on the timers list for `seconds`.
     void AddTimed(CRefObject* object, std::uint32_t seconds);
     // A command message ({kind, text}) for the server, kept 60 s.
-    void SendCommand(int kind, const char* text);
+    void SendCommand(int kind, std::string_view text);
 
     std::list<CountedRefTo<PlayerMessage>> players_;
     std::list<CountedRefTo<LineMessage>> lines_;

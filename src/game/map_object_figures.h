@@ -100,7 +100,7 @@ public:
     // or null. The server returns null.
     virtual CFigureMesh* RemoveFromPartSets(const char* name) = 0;
     virtual int OnPartRemoved(CFigureMesh* part) = 0;      // server: 0
-    virtual CFigureMesh* FindPart(const char* name) = 0;   // a part by name (client); server: null
+    virtual CFigureMesh* FindPart(std::string_view name) = 0;   // a part by name (client); server: null
     virtual CFigureMesh* FindPartOfType(int type) = 0;     // a part by type (client); server: null
     // The figure's extra scale (the base's: 1, 1, 1).
     virtual void GetScale(float* x, float* y, float* z);
@@ -134,7 +134,7 @@ public:
     int OnPartAdded(CFigureMesh* part) override;
     CFigureMesh* RemoveFromPartSets(const char* name) override;
     int OnPartRemoved(CFigureMesh* part) override;
-    CFigureMesh* FindPart(const char* name) override;
+    CFigureMesh* FindPart(std::string_view name) override;
     CFigureMesh* FindPartOfType(int type) override;
 };
 
@@ -215,7 +215,7 @@ public:
     void ReleaseBones();
     void Reset();
     // The first bone named `boneName` (_mbscmp), or null.
-    FigureBone* FindBone(const char* boneName);
+    FigureBone* FindBone(std::string_view boneName);
     // A new bone (the figure manager's class 0x300C) named `child` with parent `parentName` joins through
     // LinkBone. Returns 1.
     int LinkPiece(FigureModel* model, std::string_view child, std::string_view parentName);
@@ -319,19 +319,19 @@ public:
 
     // The first part (of the parts, then of the pending parts) whose name starts with `prefix`
     // (case-sensitive), or null.
-    CFigureMesh* FindPartByPrefix(const char* prefix);
+    CFigureMesh* FindPartByPrefix(std::string_view prefix);
     // The first part (parts, then pending parts) named exactly `partName`, or null.
-    CFigureMesh* FindPart(const char* partName);
+    CFigureMesh* FindPart(std::string_view partName);
     // The first part (parts, then pending parts) whose engine object type_ is `type`, or null.
     CFigureMesh* FindPartOfType(int type);
     // Every part (parts, then pending parts) whose name starts with `prefix` appended to `out`.
-    void CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh*>* out);
+    void CollectPartsByPrefix(std::string_view prefix, std::vector<CFigureMesh*>* out);
     // Takes `part` out of the parts (it forgets its owner) or else out of the pending parts, tells the animation
     // state and releases it. The side half hears of it first, found or not. Returns 1 when it was there, else 0.
     int RemovePart(CFigureMesh* part);
     // FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer may be dangling)
     // or null.
-    CFigureMesh* RemovePartNamed(const char* partName);
+    CFigureMesh* RemovePartNamed(std::string_view partName);
     // `part`'s position turned by the object's rotation, scaled by the side half's GetScale and moved to the
     // object's position.
     float* PartWorldPosition(float* out, const CFigureMesh* part);
