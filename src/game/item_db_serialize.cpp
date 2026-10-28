@@ -3,7 +3,7 @@
 #include "item_db.h"
 
 #include "chunk_archive.h"
-#include "unit_db.h"   // CStringVector, InlineStrings
+#include "unit_db.h"   // InlineStrings
 
 #include "ei/hook.h"
 

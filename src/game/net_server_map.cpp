@@ -73,9 +73,9 @@ void ServerSession::SetMap(const std::string* name) {
     }
     if (!entry) return;
 
-    const CStringVector& quests = entry->lists[2];   // the quests given
-    for (const mfc::CString* it = quests.begin(); it != quests.end(); ++it) {
-        std::string resourceName(it->GetString());
+    const stlp::vector<std::string>& quests = entry->lists[2];   // the quests given
+    for (const std::string* it = quests.begin(); it != quests.end(); ++it) {
+        std::string resourceName(*it);
         RefNode* added;
         FindOrAddVariable(&added, &resourceName);
         auto* record = variables_.At(added);

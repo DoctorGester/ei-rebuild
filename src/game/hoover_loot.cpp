@@ -72,9 +72,9 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
     const UnitPrototypeRecord* prototype = cunit->GetPrototype();
     *gold = 0;
     if (prototype) {
-        const CStringVector& itemNames = prototype->lootItems;
+        const stlp::vector<std::string>& itemNames = prototype->lootItems;
         for (std::size_t i = 0; i < itemNames.size(); ++i) {   // the end is read again each time
-            CItem* item = manager->CreateItem(itemNames[i].GetString());
+            CItem* item = manager->CreateItem(itemNames[i].c_str());
             if (!item) continue;
             Append(drops, item);
             AppendShared(items, item);

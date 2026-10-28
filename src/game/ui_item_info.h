@@ -247,8 +247,8 @@ public:
     PartyStorage itemParty_;         // the described item's list: an embedded CParty, built and destroyed by this panel
     int x_;                          // layout position of the surface
     int y_;
-    mfc::CStringArray itemTexts_;    // "infoitem_0" .. "infoitem_44"
-    mfc::CStringArray skillTexts_;   // "infoskill_0" .. "infoskill_24"
+    std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"
+    std::vector<std::string> skillTexts_;   // "infoskill_0" .. "infoskill_24"
 };
 static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);
 static_assert(offsetof(CItemInfoPanel, itemParty_) == 0x150);

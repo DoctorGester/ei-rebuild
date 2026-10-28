@@ -72,4 +72,4 @@ int __stdcall PartyNextId(int* out);
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
 // without "::") equal to the manager's current name (NamedPartyRecords::text10) gives the player's own
 // party, any other the records' party of that owner (PartyRecordsFind). Null without a player.
-CParty* __fastcall PartyForScript(CPlayer* player, mfc::CString* name);
+CParty* __fastcall PartyForScript(CPlayer* player, std::string* name);

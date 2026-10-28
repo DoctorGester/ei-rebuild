@@ -83,7 +83,6 @@ bool SameText(std::string_view a, std::string_view b) { return a == b; }
 
 // Its own update; the input side's click and mouse move.
 CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
-    texts_.Construct();
     // EI_Plugin's NPlayers: the window and its surface start at x 0, not 0x1D0.
     const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
     rect_ = RECT{left, 0, 800, 0xA0};
@@ -92,7 +91,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
     std::string text;
     for (int i = 0; i < kTextCount; ++i) {
         TheTextManager()->GetString(TextKey(i), &text);
-        texts_.SetAtGrow(texts_.size, text);
+        texts_.push_back(text);
     }
 }
 EI_REWRITTEN_SPECIAL(0x00608D20, CChatWindow::CChatWindow);
@@ -229,20 +228,20 @@ void CChatWindow::Update() {
         net::PlayerMessage* player = PlayerOf(*p);
         status.clear();
         switch (player->state_) {
-        case 0: status = texts_.data[0]; break;
-        case 1: status = texts_.data[1]; break;
-        case 2: status = texts_.data[2]; break;
+        case 0: status = texts_[0]; break;
+        case 1: status = texts_[1]; break;
+        case 2: status = texts_[2]; break;
         case 3:
-        case 4: status = texts_.data[3]; break;
+        case 4: status = texts_[3]; break;
         default: break;
         }
         offer.clear();
         auto* own = client->party_.Get();
-        if (own && own->partner_.ptr == *p) offer = texts_.data[kWeOffer];
+        if (own && own->partner_.ptr == *p) offer = texts_[kWeOffer];
         const auto& offers = client->offers_;
         for (auto* node = offers.First(); node != offers.End(); node = node->next) {
             if (offers.At(node)->player_.ptr == *p) {
-                offer = texts_.data[kTheyOffer];
+                offer = texts_[kTheyOffer];
                 break;
             }
         }

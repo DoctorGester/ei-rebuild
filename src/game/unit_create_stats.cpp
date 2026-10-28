@@ -145,8 +145,8 @@ void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     stats->spentExperience = 0.0f;
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
-    for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
-        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->GetString());
+    for (const std::string* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
+        ::SkillLevelRecord* skill = SkillDb()->FindLevel(name->c_str());
         if (skill) stats->LearnSkill(SkillDb(), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
@@ -491,7 +491,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
         const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
-        char stat = record->statNames.begin()[0].GetString()[0];   // its first stat's letter
+        char stat = record->statNames.begin()[0][0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
         else if (stat == 'i') base = static_cast<double>(stat20) - kStatBase;

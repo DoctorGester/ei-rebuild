@@ -332,7 +332,6 @@ void CCampPages::BuildPages() {
     // The pages' titles.
     CTextManager* texts = GameClientTexts();
     std::string title;
-    auto& titles = pageTitles_;
     const char* const titleKeys[] = {
         "mode_weapons",
         "mode_spells",
@@ -344,9 +343,9 @@ void CCampPages::BuildPages() {
     };
     for (const char* key : titleKeys) {
         texts->GetString(key, &title);
-        titles.SetAtGrow(titles.size, title);
+        pageTitles_.push_back(title);
     }
-    titles.SetAtGrow(titles.size, "quit");
+    pageTitles_.push_back("quit");
 
     page_ = itemConstructor_ ? kPageItemConstructor : spellConstructor_ ? kPageSpellConstructor : kPageEquipment;
     ShowPage(page_);

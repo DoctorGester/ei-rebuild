@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 struct ScriptGroup;
 
@@ -57,7 +58,7 @@ public:
     int changeStamp_;          // the global when last changed, -1 after Reset
 };
 // Reads a count and that many strings from a save stream, each appended to `array`.
-void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream);
+void ReadSavedStrings(std::vector<std::string>* array, CStream* stream);
 
 // A positional sound (class id 0x48).
 class CEffectSound final : public CEffect {
@@ -103,7 +104,7 @@ public:
     double Radius() override;
 
     std::string name_;         // the first sound
-    mfc::CStringArray names_;  // the others
+    std::vector<std::string> names_;  // the others
     float volume_;
     float radius_;
     std::uint8_t noFade_;
@@ -126,7 +127,7 @@ public:
     void Save(CStream* stream) override;
     double Radius() override;
 
-    mfc::CStringArray names_;
+    std::vector<std::string> names_;
     float volume_;
     float radius_;
     int minInterval_;          // ms between plays (the sound emitter's minInterval)

@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CConstructorPage;
 class CGlobalMapClouds;
@@ -268,7 +269,7 @@ static_assert(sizeof(TradeRecord) == 0x3C);
 
 class CTradePanel : public CUiItemPanel {
 public:
-    CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
+    CTradePanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
     ~CTradePanel() override;
     void Update() override { UpdateHeld(); }
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
@@ -326,14 +327,13 @@ public:
     stlp::vector<TradeRecord> records_;           // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
     float holdTime_;                 // from -0.5 s
-    mfc::CStringArray texts_;        // the titles
+    std::vector<std::string> texts_; // the titles
 };
 static_assert(offsetof(CTradePanel, owner_) == 0x14C);
 static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
 static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
 static_assert(offsetof(CTradePanel, texts_) == 0x1A4);
-static_assert(sizeof(CTradePanel) == 0x1B8);
 static_assert(offsetof(CTradePanel, records_) == 0x190);
 static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
@@ -473,14 +473,12 @@ public:
     CItem* itemMade_;                // the item the item constructor would make, or null
     CItem* spellMade_;               // the spell the spell constructor would make, or null
     float priceWeights_[9];          // ClassTemplate::weights
-    mfc::CStringArray pageTitles_;   // the seven pages' titles and "quit"
+    std::vector<std::string> pageTitles_;   // the seven pages' titles and "quit"
     bool noConstructor_;             // the player's "i.noconstr" = 1: second pages hidden
-    std::uint8_t unused_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // passed to the hero preview
     int turning_;                    // 1 / 2 while a turn button is held (Update turns the hero)
 };
 static_assert(offsetof(CCampPages, page_) == 0x190);
-static_assert(offsetof(CCampPages, turning_) == 0x25C);
 static_assert(offsetof(CCampPages, hero_) == 0x1B0);
 static_assert(offsetof(CCampPages, spellResults_) == 0x1D4);
 static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
@@ -489,14 +487,12 @@ static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
 static_assert(offsetof(CCampPages, pageTitles_) == 0x240);
 static_assert(offsetof(CCampPages, heroes_) == 0x19C);
 static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
-static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
-static_assert(sizeof(CCampPages) == 0x260);
 
 // --- Hero statistics panel ---
 // The statistics column of the camp and the multiplayer hero screen.
 class CHeroStatsPanel : public CUiItemPanel {
 public:
-    CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) { texts_.Construct(); }
+    CHeroStatsPanel(CInterface3D* ui, CItemScreen* owner) : CUiItemPanel(ui, owner) {}
     ~CHeroStatsPanel() override;
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftUp(int b, int x, int y) override { return OnLButtonUp(b, x, y); }
@@ -533,7 +529,7 @@ public:
     int heroIndex_;
     std::string title_;
     int page_;
-    mfc::CStringArray texts_;
+    std::vector<std::string> texts_;
     int points_;                     // skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion_;                 // the -/+ button held on page 10 (-1 none)
     float holdTime_;                 // seconds it has been held (from -0.5)
@@ -649,7 +645,7 @@ static_assert(offsetof(CConstructorPage, slots_) == 0x150);
 static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 class CSpellMakerPage : public CConstructorPage {
 public:
-    CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) { texts_.Construct(); }
+    CSpellMakerPage(CInterface3D* ui, CItemScreen* owner) : CConstructorPage(ui, owner) {}
     ~CSpellMakerPage() override;
     BOOL Draw(CSceneRenderer* pass) override { return DrawSpellMaker(pass); }
     CItem* ItemAt(int x, int y, int* topic) override { return SpellMakerItemAt(x, y, topic); }
@@ -659,7 +655,6 @@ public:
     // next part goes.
     BOOL DrawSpellMaker(CSceneRenderer* pass);
 
-    mfc::CStringArray texts_;        // the cost texts ("infoitem_35", "infoitem_36")
+    std::vector<std::string> texts_; // the cost texts ("infoitem_35", "infoitem_36")
 };
 static_assert(offsetof(CSpellMakerPage, texts_) == 0x158);
-static_assert(sizeof(CSpellMakerPage) == 0x16C);

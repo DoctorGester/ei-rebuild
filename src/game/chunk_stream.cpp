@@ -290,42 +290,39 @@ void Chunk::WriteString(std::uint32_t id, mfc::CString text) {
 }
 EI_REWRITTEN(0x0042C820, Chunk::WriteString);
 
-// The array is emptied (SetSize(0, -1)), then `count` string chunks are read through a child chunk
-// (its constructor inlined) and appended. The count is unsigned.
-void Chunk::ReadStringArray(mfc::CStringArray* array) {
+// The array is emptied, then `count` string chunks are read through a child chunk (its constructor
+// inlined) and appended. The count is unsigned.
+void Chunk::ReadStringArray(std::vector<std::string>* array) {
     std::uint32_t count;
     ReadCounted(this, &count, 4);
     Chunk child(this);
-    array->SetSize(0, -1);
+    array->clear();
     for (std::uint32_t i = count; i != 0; --i) {
         child.ReadHeader();
         mfc::CString text(mfc::CString::kUnset);   // reuses a stack slot
-        array->SetAtGrow(array->GetSize(), *child.ReadString(&text));
+        array->push_back(child.ReadString(&text)->GetString());
     }
 }
 EI_REWRITTEN(0x0042CA20, Chunk::ReadStringArray);
 
-// The size covers the count and every element's chunk. Each element's buffer is taken with
-// GetBuffer(0) after the file is asked for (it may make a shared string unique).
-void Chunk::WriteStringArray(std::uint32_t id, mfc::CStringArray* array) {
-    int count = array->GetSize();
+// The size covers the count and every element's chunk.
+void Chunk::WriteStringArray(std::uint32_t id, const std::vector<std::string>* array) {
+    int count = static_cast<int>(array->size());
     int characters = 0;
-    for (int i = 0; i < count; ++i) characters += (*array)[i].GetLength();
+    for (const std::string& text : *array) characters += static_cast<int>(text.size());
     std::uint32_t chunkId = id;
     int size = characters + count * 8 + 0xC;
     FileWrite(File(), &chunkId, 4);
     FileWrite(File(), &size, 4);
     if (parent_) parent_->Advance(size);
     consumed_ += size;
-    int n = array->GetSize();
+    int n = count;
     FileWrite(File(), &n, 4);
-    for (int i = 0; i < array->GetSize(); ++i) {
-        int elementSize = (*array)[i].GetLength() + kHeader;
+    for (const std::string& text : *array) {
+        int elementSize = static_cast<int>(text.size()) + kHeader;
         FileWrite(File(), &id, 4);
         FileWrite(File(), &elementSize, 4);
-        int length = (*array)[i].GetLength();
-        mfc::CFileVirtuals* file = File();
-        FileWrite(file, (*array)[i].GetBuffer(0), static_cast<std::uint32_t>(length));
+        FileWrite(File(), text.data(), static_cast<std::uint32_t>(text.size()));
     }
 }
 EI_REWRITTEN(0x0042CB80, Chunk::WriteStringArray);

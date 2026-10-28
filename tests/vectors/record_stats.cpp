@@ -219,7 +219,7 @@ struct OriginalSkillRecord {
     mfc::CString name;
     mfc::CString field1;
     std::uint32_t field2;
-    CStringVector statNames;
+    stlp::vector<mfc::CString> statNames;
 };
 static_assert(offsetof(OriginalSkillRecord, statNames) == 0x0C && sizeof(OriginalSkillRecord) == 0x18);
 struct OriginalSkillLevelRecord {

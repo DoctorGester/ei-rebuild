@@ -660,7 +660,7 @@ struct CUiTooltip : CUiWindow {
     void Redraw() override;
     bool Shown() const { return state_ != 1 && state_ != 0; }
 
-    mfc::CStringArray lines_;        // the text's lines (none for an empty text)
+    std::vector<std::string> lines_; // the text's lines (none for an empty text)
     int lineHeight_;                 // the last line's height: the rows' step
     int keyWidth_;                   // the first line with the key name, + 12
     int flag_;                       // the constructor's fourth argument: the title lines (1 almost everywhere)
@@ -673,12 +673,6 @@ struct CUiTooltip : CUiWindow {
     int state_;                      // 0 idle, 1 hovered, 2 appearing, 3 disappearing, 4 shown
 };
 static_assert(offsetof(CUiTooltip, lines_) == 0x148);
-static_assert(offsetof(CUiTooltip, lineHeight_) == 0x15C);
-static_assert(offsetof(CUiTooltip, flag_) == 0x164);
-static_assert(offsetof(CUiTooltip, keyName_) == 0x16C);
-static_assert(offsetof(CUiTooltip, region_) == 0x170);
-static_assert(offsetof(CUiTooltip, state_) == 0x180);
-static_assert(sizeof(CUiTooltip) == 0x184);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
 // equipment, quick strip, trade and repair grids, constructor pages and item strips, built on the blank
@@ -1201,8 +1195,8 @@ public:
     float slideDirection_;           // +1 / -1
     int bodyPart_;                   // selected body part 0-3 (scene objects 3-6)
     int effectIcons_[6];             // the spell pictures in the icon texture's six places
-    mfc::CStringArray texts_;        // "infounit_0".."infounit_17": the info lines' labels
-    mfc::CStringArray partLabels_;   // four: the shown names of "skull", "torso", "leg", "arm"
+    std::vector<std::string> texts_; // "infounit_0".."infounit_17": the info lines' labels
+    std::vector<std::string> partLabels_;   // four: the shown names of "skull", "torso", "leg", "arm"
 };
 static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
@@ -1754,15 +1748,11 @@ public:
     int LeftDown(int b, int x, int y) override { return OnLButtonDown(b, x, y), 0; }
     int LeftDouble(int, int, int) override { return 0; }
 
-    mfc::CStringArray texts_;
+    std::vector<std::string> texts_;
     int value_;
     bool changed_;
-    std::uint8_t unused_161[3];
     RECT layout_;                    // the constructor's rectangle
 };
-static_assert(offsetof(CUiSpin, value_) == 0x15C);
-static_assert(offsetof(CUiSpin, layout_) == 0x164);
-static_assert(sizeof(CUiSpin) == 0x174);
 
 // A saved game in the save/load list; the fields after the folder come from the save's info.sav.
 struct SaveEntry {
@@ -1781,9 +1771,8 @@ struct SaveEntry {
     float gameTime_;                 // the "gtime" variable
     std::string map_;               // the map of the zone
     std::string zone_;
-    mfc::CStringArray stringArrays_[2];  // copied with the entry
+    std::vector<std::string> stringArrays_[2];  // copied with the entry
     bool broken_;                    // no info.sav: titled "Error Save", no picture
-    std::uint8_t unused_41[3];
 };
 
 // The quick and automatic saves (`slot` the save folder's name). Nothing for a multiplayer client or when
@@ -2024,13 +2013,13 @@ public:
     int nearestExit_;
     int selectedQuest_;              // row of the quest named by the current-quest global
     int shownQuest_;                 // the row ShowQuest last showed (-1: none)
-    mfc::CStringArray quests_;
+    std::vector<std::string> quests_;
     CUiScrollbar* bar_;
     int firstRow_;                   // the first quest row shown (the bar's position)
     float markerScale_;
     float blinkTime_;                // seconds since the exit was selected (the markers' blink)
     stlp::vector<UiPointF> questPlaces_;   // the selected quest's places
-    mfc::CStringArray objectiveTexts_;   // obj_0..obj_2
+    std::vector<std::string> objectiveTexts_;   // obj_0..obj_2
     std::uint32_t savedAlphaRef_;
 };
 static_assert(offsetof(CObjectivesWindow, zones_) == 0x164 && offsetof(CObjectivesWindow, zoneName_) == 0x170);
@@ -2205,7 +2194,6 @@ class CHelpWindow : public CUiContainer {
 public:
     CHelpWindow(CInterface3D* ui, bool message, const std::string& text, int page)
         : CUiContainer(ui), message_(message), text_(text), page_(page) {
-        lines_.Construct();
         pulsing_.Construct();
         pictures_.Construct();
     }
@@ -2232,7 +2220,7 @@ public:
     std::uint8_t unused_165[3];
     std::string text_;                  // the message, or the help topic
     std::string title_;
-    mfc::CStringArray lines_;            // the pages' texts
+    std::vector<std::string> lines_;     // the pages' texts
     int page_;                           // the page shown (the topic's or message's saved page)
     stlp::list<CUiMesh*> pulsing_;       // sprites whose plain colour pulses (Update)
     stlp::list<CUiMesh*> pictures_;      // the entries' picture sprites

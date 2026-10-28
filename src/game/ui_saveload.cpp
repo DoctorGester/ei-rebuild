@@ -78,19 +78,11 @@ struct LocalFileStream {
 };
 
 // An entry being built (the original's stack temporaries): empty strings and string arrays; the other fields
-// keep whatever the stack held, like the original. Destroyed as the original does: the arrays here, then the
-// strings by SaveEntry's destructor (from the last).
+// keep whatever the stack held, like the original.
 struct LocalEntry {
     SaveEntry e;
-    LocalEntry() {
-        e.stringArrays_[0].Construct();
-        e.stringArrays_[1].Construct();
-    }
-    explicit LocalEntry(const SaveEntry& from) : LocalEntry() { e.Assign(&from); }
-    ~LocalEntry() {
-        e.stringArrays_[1].Destruct();
-        e.stringArrays_[0].Destruct();
-    }
+    LocalEntry() {}
+    explicit LocalEntry(const SaveEntry& from) { e.Assign(&from); }
     LocalEntry(const LocalEntry&) = delete;
     LocalEntry& operator=(const LocalEntry&) = delete;
 };
@@ -524,8 +516,8 @@ SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
     gameTime_ = from->gameTime_;
     map_ = from->map_;
     zone_ = from->zone_;
-    stringArrays_[0].Copy(from->stringArrays_[0]);
-    stringArrays_[1].Copy(from->stringArrays_[1]);
+    stringArrays_[0] = from->stringArrays_[0];
+    stringArrays_[1] = from->stringArrays_[1];
     broken_ = from->broken_;
     return this;
 }
@@ -536,15 +528,15 @@ SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
     std::construct_at(&folder_);
     std::construct_at(&map_);
     std::construct_at(&zone_);
-    stringArrays_[0].Construct();
-    stringArrays_[1].Construct();
+    std::construct_at(&stringArrays_[0]);
+    std::construct_at(&stringArrays_[1]);
     return Assign(from);
 }
 EI_REWRITTEN(0x00656640, SaveEntry::CopyConstruct);
 
 void SaveEntry::Destruct() {
-    stringArrays_[1].Destruct();
-    stringArrays_[0].Destruct();
+    std::destroy_at(&stringArrays_[1]);
+    std::destroy_at(&stringArrays_[0]);
     std::destroy_at(&zone_);
     std::destroy_at(&map_);
     std::destroy_at(&folder_);

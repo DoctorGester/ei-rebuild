@@ -69,7 +69,7 @@ double UnitStats::SkillWithBonus(std::uint32_t index) {
     float skill = static_cast<float>(skills[index]);
     // The first letter of the skill's first stat name picks the stat; a missing record faults.
     const SkillRecord* skillRecord = unitdb::SkillAt(index);
-    const char* name = skillRecord->statNames.begin()[0];
+    const char* name = skillRecord->statNames.begin()[0].c_str();
     switch (*name) {
     case 'd': return (stat18 - kStatBase) + skill;
     case 'i': return (stat20 - kStatBase) + skill;

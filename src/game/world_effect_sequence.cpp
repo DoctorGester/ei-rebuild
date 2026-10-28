@@ -63,13 +63,13 @@ void CEffectSoundSeq::Start(int update) {
         sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
         return;
     }
-    console::CStringArray list;
+    SoundNameArray list;
     const std::string& first = name_;
-    const mfc::CStringArray& others = names_;
+    const std::vector<std::string>& others = names_;
     bool withFirst = gamecrt::mbscmp(first, "") != 0;
-    if (withFirst) list.SetAtGrow(list.GetSize(), first.c_str());
-    Chooser chooser = ChooserFor(others.GetSize(), withFirst);
-    for (int i = 0; i < others.GetSize(); ++i) list.SetAtGrow(list.GetSize(), others[i]);
+    if (withFirst) list.push_back(first);
+    Chooser chooser = ChooserFor(static_cast<int>(others.size()), withFirst);
+    for (const std::string& other : others) list.push_back(other);
     sound_ = sounds->AddSequence(&list, noFade_ != 0 ? 1000 : 0,
                                  &localPosition_.x, volume_, radius_, 0, -1, chooser);
 }
@@ -85,12 +85,12 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     // The count is read into the stack slot of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));
     field->ReadDelta(&count, 4);
-    mfc::CStringArray& others = names_;
-    others.SetSize(count, -1);
-    for (int i = 0; i < count; ++i) {
+    std::vector<std::string>& others = names_;
+    others.resize(static_cast<std::size_t>(count));
+    for (std::string& other : others) {
         mfc::CString read(mfc::CString::kUnset);   // reuses the name's stack slot, like the original
         field->ReadString(&read);
-        others[i] = read;
+        other = read.GetString();
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);

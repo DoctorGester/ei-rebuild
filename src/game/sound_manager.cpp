@@ -412,13 +412,13 @@ EI_REWRITTEN(0x006B9A30, CSoundManager::MoveEmitter);
 // Returns the emitter index or -1.
 int CSoundManager::AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer,
                               int minInterval, int maxInterval) {
-    if (enabled == 0 || names->size < 1) return -1;
+    if (enabled == 0 || names->empty()) return -1;
     int i = 0;
     while (i < 16 && emitters[i].active != 0) ++i;
     if (i == 16) return -1;
     SoundEmitter* e = &emitters[i];
     e->active = 1;
-    e->names.Copy(*names);
+    e->names = *names;
     MoveEmitter(i, position, inner, outer, minInterval, maxInterval);
     e->lastPlayed = gameapi::GetTickCount();
     return i;
@@ -454,17 +454,17 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         index = next;
         if (next < 0) return 0;
         index = next & 0xBFFFFFFF;
-        int h = manager->Play3D(names.data[next & 0xBFFFFFFF].GetString(), priority, &position.x, nearDistance, farDistance,
+        int h = manager->Play3D(names[next & 0xBFFFFFFF].c_str(), priority, &position.x, nearDistance, farDistance,
                                 next & 0x40000000, 0);
         handle = h;
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
-    if (random != 0) index = static_cast<std::int32_t>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(names.size));
-    int h = manager->Play3D(names.data[index].GetString(), priority, &position.x, nearDistance, farDistance, 0, 0);
+    if (random != 0) index = static_cast<std::int32_t>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(names.size()));
+    int h = manager->Play3D(names[index].c_str(), priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
-    index = (index + 1) % names.size;
+    index = (index + 1) % static_cast<int>(names.size());
     if (remaining > 0) --remaining;
     return 1;
 }
@@ -473,7 +473,7 @@ EI_REWRITTEN(0x006BA140, SoundSequence::PlayNext);
 // Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
                                float farDist, int randomOrder, int count, int(__fastcall* chooser)(int, int)) {
-    if (enabled == 0 || names->size < 1) return -1;
+    if (enabled == 0 || names->empty()) return -1;
     int i = 0;
     while (i < 8 && sequences[i].active != 0) ++i;
     if (i == 8) return -1;
@@ -481,7 +481,7 @@ int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const 
     ++s->generation;
     s->id = s->generation << 8 | i;
     s->active = 1;
-    s->names.Copy(*names);
+    s->names = *names;
     std::memcpy(&s->position, position, sizeof(s->position));
     s->nearDistance = nearDist;
     s->farDistance = farDist;
@@ -703,10 +703,10 @@ void CSoundManager::Tick() {
         }
         e->lastPlayed = now;
         std::uint32_t index = 0;
-        if (e->names.size > 1) index = random.Next() % static_cast<std::uint32_t>(e->names.size);
+        if (e->names.size() > 1) index = random.Next() % static_cast<std::uint32_t>(e->names.size());
         std::uint32_t panRoll = random.Next();
         std::uint32_t volumeRoll = random.Next();
-        Play2D(e->names.data[index].GetString(), 1, static_cast<int>(volumeRoll % 51 + 50),
+        Play2D(e->names[index].c_str(), 1, static_cast<int>(volumeRoll % 51 + 50),
                static_cast<int>(panRoll % 101), 0, 0, 0, 0);
     }
 }

@@ -100,7 +100,6 @@ EI_REWRITTEN(0x00469F40, Spec::Move);
 
 
 ObjectSpec::ObjectSpec() {
-    parts.Construct();
     std::string none("none");
     kind = 1;
     parentId = 0;
@@ -116,11 +115,10 @@ ObjectSpec::ObjectSpec() {
     side = 0;
     parentIname = none;
     skinTexture = none;
-    parts.SetSize(0, -1);
 }
 EI_REWRITTEN_SPECIAL(0x0046A5C0, ObjectSpec::ObjectSpec);
 
-ObjectSpec::~ObjectSpec() { parts.Destruct(); }
+ObjectSpec::~ObjectSpec() = default;
 EI_REWRITTEN_SPECIAL(0x0046AEB0, ObjectSpec::~ObjectSpec);
 EI_REWRITTEN_SPECIAL(0x0046A6F0, ObjectSpec::~ObjectSpec);
 EI_REWRITTEN_SPECIAL(0x0058EDF0, ObjectSpec::~ObjectSpec);   // the quick item effect record's twin (UseQuickItem)
@@ -446,19 +444,13 @@ namespace mapspec {
 
 // The diplomacy of the zone's 32 players (made by the zone loader): every pair 1 but a player
 // with itself (0), and the player names "Player-<i>".
-ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
-    mfc::CStringArray* names = &self->names;
-    names->Construct();
-    for (auto& row : self->relations) {
+ZoneDiplomacy::ZoneDiplomacy() {
+    for (auto& row : relations) {
         for (std::int32_t& relation : row) relation = 1;
     }
-    for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
-    for (int i = 0; i < 32; ++i) {
-        names->SetAtGrow(names->size, game::EmptyText());
-        names->data[i].Format("Player-%i", i);
-    }
-    return self;
+    for (int i = 0; i < 32; ++i) relations[i][i] = 0;
+    for (int i = 0; i < 32; ++i) names.push_back(str::Format("Player-%i", i));
 }
-EI_REWRITTEN(0x0046E5E0, DiplomacyConstruct);
+EI_REWRITTEN_SPECIAL(0x0046E5E0, ZoneDiplomacy::ZoneDiplomacy);
 
 } // namespace mapspec

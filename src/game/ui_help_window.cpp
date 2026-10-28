@@ -77,16 +77,16 @@ void CHelpWindow::CreateScreen() {
     while (texts->FindLine(ScreenLine())) {
         TextNextLine(texts);
         texts->ReadLine(&line, 1);
-        lines_.SetAtGrow(lines_.size, line);
+        lines_.push_back(line);
     }
-    if (lines_.size == 0) {
+    if (lines_.empty()) {
         interface_->SetPendingValue(0);
         return;
     }
     ReadTutorText(texts, title_, &title_);
-    for (int i = 0; i < lines_.size; ++i) ReadTutorText(texts, lines_.data[i].GetString(), &lines_.data[i]);
+    for (std::string& page : lines_) ReadTutorText(texts, page, &page);
     if (page_ < 0) page_ = 0;
-    if (page_ >= lines_.size) page_ = lines_.size - 1;
+    if (page_ >= static_cast<int>(lines_.size())) page_ = static_cast<int>(lines_.size()) - 1;
     pulseTime_ = 0.0f;
     SetRenderState(interface_->renderer_, kRenderStateAlphaRef, 1);
     ShowPage();
@@ -142,7 +142,7 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
         Finish();
         break;
     case 2:
-        if (page_ < lines_.size - 1) {
+        if (page_ < static_cast<int>(lines_.size()) - 1) {
             interface_->PlaySound(NextSound(), 0);
             ++page_;
             ShowPage();
@@ -155,7 +155,7 @@ void CHelpWindow::OnLeftDown(int buttons, int x, int y) {
 
 void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
     CUiContainer::KeyDown(key, repeat, flags);
-    if (key == VK_RETURN && page_ < lines_.size - 1) {
+    if (key == VK_RETURN && page_ < static_cast<int>(lines_.size()) - 1) {
         interface_->PlaySound(NextSound(), 0);
         ++page_;
         ShowPage();

@@ -77,7 +77,7 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp, 4);
     ar->Field(2, &money, 4);
-    ar->SerializeCStrings(3, &lists[0], ar);
+    ar->SerializeStrings(3, &lists[0], ar);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
     ar->Field(10, &specials, 4);
@@ -102,7 +102,7 @@ EI_REWRITTEN(0x006AF5A0, QuestBriefingRecord::Destruct);
 
 namespace {
 using PlaceElement = stlp::PlainElement<float>;
-using NameElement = stlp::ObjectElement<mfc::CString>;
+using NameElement = stlp::ObjectElement<std::string>;
 } // namespace
 
 void QuestRecord::CopyConstruct(const QuestRecord* source) {
@@ -153,7 +153,7 @@ void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
 
 void QuestBriefingRecord::ConstructDefault() {
     std::construct_at(&name);
-    for (CStringVector& list : lists) list.ConstructEmpty();
+    for (stlp::vector<std::string>& list : lists) list.ConstructEmpty();
     std::construct_at(&text);
 }
 

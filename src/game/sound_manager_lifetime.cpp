@@ -165,22 +165,6 @@ void ConstructFader(SoundFader& fader) {
 
 } // namespace
 
-// The emitters' and sequences' element constructors (thiscall, return this) and destructors
-// (compiler-generated: the name array at +4).
-SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter) {
-    emitter->names.Construct();
-    return emitter;
-}
-EI_REWRITTEN(0x006B63D0, ConstructEmitter);
-void __fastcall DestructEmitter(SoundEmitter* emitter) { emitter->names.Destruct(); }
-EI_REWRITTEN(0x006B63E0, DestructEmitter);
-SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence) {
-    sequence->names.Construct();
-    return sequence;
-}
-EI_REWRITTEN(0x006B63F0, ConstructSequence);
-void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
-EI_REWRITTEN(0x006B6400, DestructSequence);
 
 // The stream reader, the strings and the archive are members the compiler constructs (here before the body;
 // the game constructs the stream reader first and the archive between the registries).
@@ -200,10 +184,6 @@ CSoundManager::CSoundManager() {
     midiArray1F4.Construct();
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
-    // The CRT's eh vector constructor iterator over the emitters and the sequences: each
-    // element's constructor in order.
-    for (SoundEmitter& emitter : emitters) ConstructEmitter(&emitter);
-    for (SoundSequence& sequence : sequences) ConstructSequence(&sequence);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
     // hashtable(n, hash, equal, allocator); the functor bytes, never read, are 0 here (the game's are stack
     // bytes).
@@ -225,9 +205,6 @@ CSoundManager::~CSoundManager() {
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
-    // The CRT's eh vector destructor iterator: each element's destructor, last to first.
-    for (int i = kSequenceCount; --i >= 0;) DestructSequence(&sequences[i]);
-    for (int i = kEmitterCount; --i >= 0;) DestructEmitter(&emitters[i]);
     gameapi::DeleteCriticalSection(&midiLock);
     midiArray1F4.FreeData();
     midiArray1E4.FreeData();

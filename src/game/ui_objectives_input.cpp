@@ -83,7 +83,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     if (region < kRegionFirstRow) return;
     if (region < kRegionFirstExit) {
         int row = firstRow_ + region - kRegionFirstRow;
-        if (row >= 0 && row < quests_.GetSize()) {
+        if (row >= 0 && row < static_cast<int>(quests_.size())) {
             interface_->PlaySound(SelectSound(), 0);
             selectedQuest_ = row;
             DrawQuestList();
@@ -218,10 +218,10 @@ void CObjectivesWindow::SelectExit(int index) {
 EI_REWRITTEN(0x0064E990, CObjectivesWindow::SelectExit);
 
 void CObjectivesWindow::RefreshQuests() {
-    const auto* quests = &quests_;
-    if (quests->GetSize() == 0) return;
+    const auto& quests = quests_;
+    if (static_cast<int>(quests.size()) == 0) return;
     if (selectedQuest_ < 0) selectedQuest_ = 0;
-    if (selectedQuest_ >= quests->GetSize()) selectedQuest_ = quests->GetSize() - 1;
+    if (selectedQuest_ >= static_cast<int>(quests.size())) selectedQuest_ = static_cast<int>(quests.size()) - 1;
     const int row = selectedQuest_;
     if (firstRow_ + kVisibleRows <= row) firstRow_ = row - (kVisibleRows - 1);
     if (row < firstRow_) firstRow_ = row;

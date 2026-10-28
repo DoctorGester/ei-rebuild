@@ -5,12 +5,17 @@
 
 #include "console.h"
 
+#include <string>
+#include <vector>
+
 namespace text {
 
 // Split (ECX text, EDX array). The array is emptied (SetSize(0, -1)); the text with the
 // separator appended is cut at every separator and each piece, trimmed of white space at both ends,
 // is appended (empty pieces too). Returns 1.
 int __fastcall Split(const char* text, mfc::CStringArray* array, char separator);
+// Split into a vector of strings.
+int SplitStrings(const char* text, std::vector<std::string>* array, char separator);
 // (same arguments). As Split, but a piece between two adjacent separators (or before a
 // leading one) is skipped; a piece that is empty only after trimming is still added. Returns 1.
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator);

@@ -185,9 +185,7 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
     }
     if (kind == kFeebleMind) {
         if (record->handle == -1) {
-            console::CStringArray names;
-            names.SetAtGrow(names.GetSize(), "magic\\FeebleMind\\start.wav");
-            names.SetAtGrow(names.GetSize(), "magic\\FeebleMind\\circle.wav");
+            SoundNameArray names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
                                                  SoundNear(), SoundFar(), 0, -1, FeebleMindChooser);
             // The folder is empty here: the original plays the bare suffix.

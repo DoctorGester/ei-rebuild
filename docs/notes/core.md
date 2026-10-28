@@ -410,6 +410,20 @@ to which template:
   `std::vector<std::string>`: the HUD tooltips' `labels_` (CHudWeaponBar, CHudQuickItems, CHudSpellColumn,
   CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
   (the layout asserts after them went).
+  Batch 11: the ui's CStringArray members are `std::vector<std::string>`: CUiTooltip::lines_ (filled by
+  `text::SplitStrings`, Split into a vector), CHudUnitPanel's texts_ / partLabels_, CUiSpin::texts_,
+  SaveEntry::stringArrays_, CObjectivesWindow's quests_ / objectiveTexts_, CHelpWindow::lines_, CChatWindow::texts_,
+  CTradePanel / CHeroStatsPanel / CSpellMakerPage::texts_, CCampPages::pageTitles_, CMpConnectScreen's allodNames_ /
+  texts_, CItemInfoPanel's item and skill texts (the layout asserts and the padding bytes after them went). Chunk::
+  ReadStringArray / WriteStringArray take a vector: ObjectSpec::parts, SoundSpec::sounds, UnitRecord::lists and
+  ZoneDiplomacy::names (its constructor is the old DiplomacyConstruct; MobFile::Load holds it as a local). The sound
+  names: CEffectSoundSeq / CEffectAmbientSound::names_, ReadSavedStrings and `SoundNameArray` (SoundEmitter /
+  SoundSequence names, MusicTheme's calm / combat, AddEmitter / AddSequence); CSoundManager's constructor and
+  destructor build the emitters and sequences (their Construct / Destruct functions went). CStringVector went: the
+  unit database's and the quest briefings' name lists are `stlp::vector<std::string>` (`ChunkArchive::
+  SerializeStrings`; `records::ElementOf<std::string>` is ObjectElement, so Memberwise copies them as strings).
+  tests/vectors/record_stats.cpp's OriginalSkillRecord keeps game.exe's `stlp::vector<mfc::CString>`; replay_stats.cpp's
+  stand-in skill records point their stat name vectors at std::strings. PartyForScript takes a `std::string*`.
 - stlp::string is std::string in src/game (batch 12, 491 -> 0 uses outside src/lib): the members, locals,
   parameters, the vectors (`stlp::vector<std::string>`, policy `stlp::ObjectElement<std::string>`), the trees and hash
   maps keyed by name (stlp_hash.h's `StringKeyTraits` / `StringListTraits` / `NamedSlot` and `stlp::StringHash` hash a
@@ -421,9 +435,12 @@ to which template:
   their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
   hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
-- Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
-  (mfc::CStringArray and console::CStringArray: the console's history and lines, every command's arguments, Split /
-  SplitWords / Join, the ui's label and text arrays, the map specs' name lists).
+- Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
+  Split / SplitWords / Join's CStringArrays and the locals their callers fill, the registry's and resources' list out
+  parameters (GetStringArray, GetSectionNames, ListFiles), CMapObjectServer::strings together with CObject3D::partNames
+  and the figure loader's part lists (LoadParts / MakeFigure, PartNames, CollectBoneNames; world_units.cpp copies
+  ObjectSpec::parts into the companion's strings), the scene loader's names, CWorldServer::mobFiles_, the item
+  database's list20 / list50, CBriefingScreen::topics_ and the skin requests' textures.
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>

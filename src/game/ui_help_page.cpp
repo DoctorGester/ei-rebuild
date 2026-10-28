@@ -169,9 +169,9 @@ void CHelpWindow::ShowPage() {
     if (page_ <= 0) previous->visible_ = 0;
     SetTint(previous, 0.6f);
     CUiMesh* ok = AddSprite(nullptr);
-    if (page_ < lines_.size - 1) SetTint(ok, 0.6f);
+    if (page_ < static_cast<int>(lines_.size()) - 1) SetTint(ok, 0.6f);
     CUiMesh* next = AddSprite(nullptr);
-    if (page_ >= lines_.size - 1) next->visible_ = 0;
+    if (page_ >= static_cast<int>(lines_.size()) - 1) next->visible_ = 0;
 
     // Surface 0: the page's title and the topic's with the page's number.
     std::string text;
@@ -181,9 +181,9 @@ void CHelpWindow::ShowPage() {
     UiSurfaceGetDC(header);
     header->Clear();
     RECT line{0, 8, width, 30};
-    header->DrawTextIn(lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
+    header->DrawTextIn(lines_[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text = str::Format(kTitleFormat, title_.c_str(), page_ + 1, lines_.size);
+    text = str::Format(kTitleFormat, title_.c_str(), page_ + 1, static_cast<int>(lines_.size()));
     header->DrawTextIn(text.c_str(), &line, 1, kTitleColour, DT_CENTER, 1);
     UiSurfaceReleaseDC(header);
 
@@ -307,7 +307,7 @@ void CHelpWindow::ShowPage() {
     footer->Clear();
     if (page_ > 0) {
         RECT label{0, 5, width / 3, 25};
-        footer->DrawTextIn(lines_.data[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines_[page_ - 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_.data[0]->SetTip(0x7595, 1, 0);
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
@@ -318,9 +318,9 @@ void CHelpWindow::ShowPage() {
         RECT label{width / 3, 5, 2 * width / 3, 25};
         footer->DrawTextIn(hint.c_str(), &label, 0, kTitleColour, DT_CENTER, 1);
     }
-    if (page_ < lines_.size - 1) {
+    if (page_ < static_cast<int>(lines_.size()) - 1) {
         RECT label{2 * width / 3, 5, width, 25};
-        footer->DrawTextIn(lines_.data[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
+        footer->DrawTextIn(lines_[page_ + 1], &label, 0, kTitleColour, DT_CENTER, 1);
         regions_.data[2]->SetTip(0x7596, 1, 0);
     }
     UiSurfaceReleaseDC(footer);

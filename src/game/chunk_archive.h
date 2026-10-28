@@ -185,8 +185,8 @@ public:
     void SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void* unused);
     void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
     void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
-    // A vector<CString> as chunk `id` (InlineStrings).
-    void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
+    // A vector of strings as chunk `id` (InlineStrings).
+    void SerializeStrings(int id, stlp::vector<std::string>* strings, void* unused);
 
     ChunkArchive();
     ~ChunkArchive();

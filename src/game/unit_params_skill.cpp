@@ -26,7 +26,7 @@ const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
 // (an empty skill table faults).
 char StatLetter(int skill) {
     const SkillRecord* record = unitdb::SkillAt(static_cast<std::uint32_t>(skill));
-    const char* name = record->statNames.begin()[0];
+    const char* name = record->statNames.begin()[0].c_str();
     return name[0];
 }
 

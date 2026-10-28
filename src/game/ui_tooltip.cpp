@@ -59,14 +59,12 @@ SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
 
 // The virtuals: drawn and redrawn only while shown; the input side's defaults.
 CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra) : CUiWindow(ui) {
-    lines_.Construct();
     timer_ = 0.0f;
     state_ = 0;
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (!text || !*text) return;
-    lines_.SetSize(0, -1);
-    text::Split(text, &lines_, kLineSeparator);
+    text::SplitStrings(text, &lines_, kLineSeparator);
     width_ = 0;
     height_ = 0;
     lineHeight_ = 0;
@@ -74,15 +72,15 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
     extra_ = extra;
     keyName_ = nullptr;
     keyWidth_ = 0;
-    for (int i = 0; i < lines_.size; ++i) {
+    for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
         // An empty line (but the last) is as high as the sample and has no width.
         SIZE size;
         int width;
-        if (lines_[i].GetLength() == 0 && i < lines_.size - 1) {
+        if (lines_[i].empty() && i < static_cast<int>(lines_.size()) - 1) {
             size = TextExtent(interface_, mfc::CString(EmptyLineSample()).GetString(), kFont);
             width = 0;
         } else {
-            size = TextExtent(interface_, lines_[i].GetString(), kFont);
+            size = TextExtent(interface_, lines_[i], kFont);
             width = size.cx;
         }
         if (width > width_) width_ = width;
@@ -96,15 +94,14 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
 }
 EI_REWRITTEN_SPECIAL(0x0065E320, CUiTooltip::CUiTooltip);
 
-CUiTooltip::~CUiTooltip() { lines_.Destruct(); }
+CUiTooltip::~CUiTooltip() = default;
 EI_REWRITTEN_SPECIAL(0x0065E4F0, CUiTooltip::~CUiTooltip);
 EI_REWRITTEN_SPECIAL(0x0065E4D0, CUiTooltip::~CUiTooltip);   // the deleting destructor
 EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;
-    lines_.SetSize(0, -1);
-    text::Split(text, &lines_, kLineSeparator);
+    text::SplitStrings(text, &lines_, kLineSeparator);
     DrawLines();
 }
 EI_REWRITTEN(0x0065E540, CUiTooltip::SetText);
@@ -120,10 +117,10 @@ void CUiTooltip::DrawLines() {
     int right = width_ > keyWidth_ ? width_ : keyWidth_;
     int step = lineHeight_;
     RECT row{kTextLeft, kTextTop, right - kTextLeft, step + kTextTop};
-    for (int i = 0; i < lines_.size; ++i) {
+    for (int i = 0; i < static_cast<int>(lines_.size()); ++i) {
         COLORREF colour = i >= flag_ ? kTextColour : kTitleColour;
         if (i == 0 && keyName_) {
-            std::string text = (lines_[0] + KeyOpen() + keyName_ + KeyClose()).GetString();
+            std::string text = lines_[0] + KeyOpen() + keyName_ + KeyClose();
             surface->DrawTextIn(text, &row, kFont, colour, 0, 0);
         } else {
             surface->DrawTextIn(lines_[i], &row, kFont, colour, 0, 0);
@@ -138,7 +135,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
     switch (state_) {
     case kHovered: {
         const float delay = ShowDelay();
-        if (lines_.size == 0 || delay == 0.0f) {
+        if (lines_.empty() || delay == 0.0f) {
             state_ = kIdle;
             return;
         }
@@ -151,7 +148,7 @@ void CUiTooltip::OnMouseMove(int x, int y) {
         if (extra_) {
             keyName_ = static_cast<const char*>(FindCommandByKey(extra_));
             if (keyName_) {
-                keyWidth_ = TextExtent(interface_, (lines_[0] + KeyOpen() + keyName_ + KeyClose()).GetString(), kFont).cx + kPaddingX;
+                keyWidth_ = TextExtent(interface_, lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
             }
         }
         state_ = kAppearing;

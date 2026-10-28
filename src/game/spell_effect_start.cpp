@@ -533,11 +533,11 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
     effect->name_ = first;
     auto& names = effect->names_;
     if (count < 1) {
-        names.SetAtGrow(names.size, pattern);
+        names.push_back(pattern);
     } else {
         for (int i = 1; i <= count; ++i) {
             name = str::Format(pattern, i);
-            names.SetAtGrow(names.size, name);
+            names.push_back(name);
         }
     }
     Assign<CEffect>(this, &sound, effect);

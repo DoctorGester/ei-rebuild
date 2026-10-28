@@ -826,7 +826,6 @@ void DestroyRows(TradeRows& rows) {
 } // namespace
 
 CTradePanel::~CTradePanel() {
-    texts_.Destruct();
     stlp::deallocate(records_.Start(), records_.Capacity() * sizeof(TradeRecord));
     DestroyRows(science_);
     DestroyRows(schools_);
@@ -1226,6 +1225,5 @@ CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) 
     textures_.Construct(compare);
     fromHeroScreen_ = fromHeroScreen;
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
-    pageTitles_.Construct();
 }
 EI_REWRITTEN_SPECIAL(0x005F6240, CCampPages::CCampPages);

@@ -22,17 +22,16 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 // The window's virtuals; the input side's click and a left double click that does nothing.
 CUiSpin::CUiSpin(CInterface3D* ui, RECT rect, const char* text) : CUiWindow(ui) {
-    texts_.Construct();
     rect_ = rect;
     AddSurface(new CUiSurface(ui, &rect, kSurfaceFormat));
-    texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText());
+    texts_.push_back(text ? text : game::EmptyText());
     changed_ = false;
     layout_ = rect;
     SetValue(0);
 }
 EI_REWRITTEN_SPECIAL(0x0065BCD0, CUiSpin::CUiSpin);
 
-void CUiSpin::AddText(const char* text) { texts_.SetAtGrow(texts_.size, text ? text : game::EmptyText()); }
+void CUiSpin::AddText(const char* text) { texts_.push_back(text ? text : game::EmptyText()); }
 EI_REWRITTEN(0x0065BE70, CUiSpin::AddText);
 
 bool CUiSpin::GetValue(int* value) {
@@ -44,14 +43,14 @@ bool CUiSpin::GetValue(int* value) {
 EI_REWRITTEN(0x0065BEB0, CUiSpin::GetValue);
 
 void CUiSpin::SetValue(int value) {
-    value_ = value < texts_.size ? value : 0;
+    value_ = value < static_cast<int>(texts_.size()) ? value : 0;
     CUiSurface* surface = surfaces_.data[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     RECT rect = layout_;
     gameapi::OffsetRect(&rect, -layout_.left, -layout_.top);
     // DrawText is Rebirth-patched: through its address.
-    surface->DrawTextIn(texts_.data[value_], &rect, kTextFormat, kTextColour, 0, 1);
+    surface->DrawTextIn(texts_[value_], &rect, kTextFormat, kTextColour, 0, 1);
     UiSurfaceReleaseDC(surface);
     changed_ = true;
 }

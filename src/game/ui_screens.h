@@ -383,8 +383,6 @@ class CMpConnectScreen : public CUiContainer {
 public:
     explicit CMpConnectScreen(CInterface3D* ui) : CUiContainer(ui) {
         selectedAddress_ = net::NetAddress{};
-        allodNames_.Construct();
-        texts_.Construct();
     }
     ~CMpConnectScreen() override;
     void CloseScreen() override {}
@@ -467,10 +465,9 @@ public:
     bool unlisted_;                // the new game is not announced (1 from Create)
     std::uint8_t unused_221[3];
     std::string hostPassword_;    // the new game's password
-    mfc::CStringArray allodNames_; // "lmp_allod_name %d" texts (the game type tabs)
+    std::vector<std::string> allodNames_; // "lmp_allod_name %d" texts (the game type tabs)
     bool joining_;                 // the client was asking a host last frame
-    std::uint8_t unused_23D[3];
-    mfc::CStringArray texts_;      // "lmp_connection %d" texts (22)
+    std::vector<std::string> texts_;      // "lmp_connection %d" texts (22)
     int spare_;                    // 0 from Create; nothing else touches it
     int sortKey_;                  // 0 none; 1..8 the column pairs (odd ascending)
     bool newGameTips_;             // the unlisted and password regions have their tips (DrawList; 0 from Create)

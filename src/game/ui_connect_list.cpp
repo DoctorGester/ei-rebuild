@@ -87,8 +87,8 @@ void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 
 void CMpConnectScreen::DrawListVanilla() {
     auto sprite = [this](int index) { return SceneMesh(index); };
-    auto label = [this](int index) -> const char* { return texts_[index]; };
-    auto allod = [this](int index) -> const char* { return allodNames_[index]; };
+    auto label = [this](int index) -> const char* { return texts_[index].c_str(); };
+    auto allod = [this](int index) -> const char* { return allodNames_[index].c_str(); };
 
     const bool newGame = selected_ == 0;
     const int show = newGame ? 1 : 0;

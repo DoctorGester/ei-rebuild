@@ -204,9 +204,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 dialogueText_ += line;
                 if (!skip) text_->AddText(line.c_str());
             };
-            auto addItems = [&](const CStringVector& list) {
-                for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    CItem* item = TheClientWorld()->itemManager_->CreateItem(*it);
+            auto addItems = [&](const stlp::vector<std::string>& list) {
+                for (const std::string* it = list.begin(); it != list.end(); ++it) {
+                    CItem* item = TheClientWorld()->itemManager_->CreateItem(it->c_str());
                     if (!item) continue;
                     ++item->refCount_;
                     texts->FormatItemName(item, &name);
@@ -215,9 +215,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
                     item->Release();
                 }
             };
-            auto addQuests = [&](const CStringVector& list) {
-                for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
-                    text::Split(*it, &parts, '.');
+            auto addQuests = [&](const stlp::vector<std::string>& list) {
+                for (const std::string* it = list.begin(); it != list.end(); ++it) {
+                    text::Split(it->c_str(), &parts, '.');
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);

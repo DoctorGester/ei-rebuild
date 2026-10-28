@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 #include <windows.h>
 
 #undef GetClassName
@@ -82,7 +83,7 @@ struct DeferredSound {
     std::int32_t samplePosition;
 };
 
-using SoundNameArray = mfc::CStringArray;
+using SoundNameArray = std::vector<std::string>;
 
 // An ambient emitter (16): plays one of its names at random intervals while the listener is within `outerRadius`.
 struct SoundEmitter {
@@ -95,15 +96,10 @@ struct SoundEmitter {
     std::int32_t maxInterval;   // ms
     std::uint32_t lastPlayed;   // GetTickCount()
 };
-static_assert(sizeof(SoundEmitter) == 0x38);
 
 struct SoundSequence;
 unsigned __cdecl StreamThreadEntry(void* manager);
 // Handed to the CRT's eh vector iterators.
-SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter);
-void __fastcall DestructEmitter(SoundEmitter* emitter);
-SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence);
-void __fastcall DestructSequence(SoundSequence* sequence);
 
 // A 3D sound sequence (8): plays its names one after the other (or at random, or as a callback chooses) at one
 // position.
@@ -126,7 +122,6 @@ struct SoundSequence {
 
     int PlayNext(struct CSoundManager* manager);
 };
-static_assert(sizeof(SoundSequence) == 0x4C);
 
 using DeferredMap = stlp::hash_map<std::int32_t, DeferredSound*, stlp::IntHash>;
 using DeferredNode = DeferredMap::Node;
