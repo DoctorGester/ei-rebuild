@@ -672,7 +672,6 @@ address,size,note
 00702380,69,library function registered at its address (S16; MFC threads)
 006B6A10,12,game function registered at its address (S16; the sound stream thread's procedure)
 004584E0,67,list<byte> destructor only an exit function calls (S3c; no Ghidra function)
-004F0520,87,list<DirectDrawDriver> destructor only an exit function calls (S3c; no Ghidra function)
 0056E800,64,vector<T*> destructor only exit functions call (S3c; no Ghidra function)
 005BF870,21,CArray<float> destructor only an exit function calls (S3c; no Ghidra function)
 005C4490,21,CArray<SmoothNode> destructor only an exit function calls (S3c; no Ghidra function)

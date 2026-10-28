@@ -86,9 +86,6 @@ address,name,file
 004E5D10,devicebuffers::FreeProjected,src/game/device_buffers.cpp
 004E5D60,devicebuffers::FreeVertices,src/game/device_buffers.cpp
 004E5E00,devicebuffers::FreeClipIndices,src/game/device_buffers.cpp
-004ED520,static_lists::ConstructDriversList,src/game/static_lists.cpp
-004ED540,static_lists::ConstructDirectDrawDrivers,src/game/static_lists.cpp
-004ED5F0,static_lists::DestroyDrivers,src/game/static_lists.cpp
 004F0B10,ConstructDeviceLock,src/game/renderer_lifetime.cpp
 004F0B30,DestroyDeviceLock,src/game/renderer_lifetime.cpp
 004F2B20,FreeMovedPackets,src/game/link_mesh_draw.cpp

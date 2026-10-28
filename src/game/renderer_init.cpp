@@ -11,7 +11,7 @@
 #include "model.h"         // CSceneRenderer, CTransformPipeline, ITransformPipeline, CRenderHelper
 #include "options.h"
 #include "spell.h"         // CLight, CLightFactory
-#include "texture.h"       // CTextureDevice, DirectDrawDriver
+#include "texture.h"       // CTextureDevice
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_singletons.h"

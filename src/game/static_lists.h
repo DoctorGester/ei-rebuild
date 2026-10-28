@@ -6,7 +6,6 @@
 
 namespace static_lists {
 
-void ConstructDirectDrawDrivers();   // the driver list (0x38-byte nodes)
 void ConstructDeferredUnits();       // the frame's deferred unit list
 
 } // namespace static_lists
