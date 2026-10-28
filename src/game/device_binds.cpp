@@ -9,7 +9,7 @@
 
 #include "lib/gameapi.h"
 
-int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
+int CTextureDevice::BindSurface(int stage, Surface* holder) {
     if (stageSurfaces_[stage] == holder) return 1;
     stageSurfaces_[stage] = holder;
     // (No holder has a DirectDraw surface: the stage's texture is null on the switch-over; the new

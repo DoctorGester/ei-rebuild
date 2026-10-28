@@ -259,7 +259,7 @@ struct ScreenSize {
 bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
     CTextureDevice* holder = renderer->device_;
     if (holder->primary_) {
-        CDXSurface* target = holder->renderTarget_;
+        Surface* target = holder->renderTarget_;
         screen.width = static_cast<std::uint32_t>(target->width);
         screen.height = static_cast<std::uint32_t>(target->height);
     }

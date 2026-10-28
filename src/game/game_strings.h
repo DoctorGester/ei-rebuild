@@ -12,7 +12,6 @@ namespace game {
 inline constexpr char kEmptyText[1] = /*0079B298*/ "";
 
 // The texture manager's FatalError.
-inline const char* CantFindTextureFormatText() { return "Can't find texture format %d.\n"; }
 
 // The window surfaces' FatalDirectX.
 // The picture file name of a window made from a picture.

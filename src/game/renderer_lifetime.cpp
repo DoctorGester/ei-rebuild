@@ -5,7 +5,7 @@
 // (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
-#include "texture.h"       // CTextureDevice, CTexture, CDXSurface
+#include "texture.h"       // CTextureDevice, CTexture, Surface
 #include "device.h"        // the old device's calls
 
 #include "figure_mesh.h"   // CFigureMesh
@@ -157,10 +157,9 @@ void CSceneRenderer::DestroyRenderer() {
 int CSceneRenderer::ClearFrame() {
     const std::uint32_t colour = fogColour_;
     CTextureDevice* device = device_;
-    DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
-    if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    device->lastLoadResult_ = device::Clear(D3DDevice(device), 0, nullptr, flags, colour, 1.0f, 0);
+    gameapi::EnterCriticalSection(&g_deviceLock);   // (no stencil to clear)
+    device->lastLoadResult_ =
+        device::Clear(D3DDevice(device), 0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, colour, 1.0f, 0);
     gameapi::LeaveCriticalSection(&g_deviceLock);
     return 1;
 }
@@ -170,8 +169,8 @@ std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
 // The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     CTextureDevice* device = device_;
-    CDXSurface*& bound = device->stageSurfaces_[stage];
-    CDXSurface* surface = texture ? texture->surface_ : nullptr;
+    Surface*& bound = device->stageSurfaces_[stage];
+    Surface* surface = texture ? texture->surface_ : nullptr;
     if (bound == surface) return 1;
     bound = surface;
     device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);

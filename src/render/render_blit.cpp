@@ -476,7 +476,7 @@ void Fill(const Rect& to, std::uint32_t colour) {
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask) return;
     Start();
-    const auto* holder = static_cast<const CDXSurface*>(imageHolder);
+    const auto* holder = static_cast<const Surface*>(imageHolder);
     int w = from.right - from.left, h = from.bottom - from.top;
     if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;

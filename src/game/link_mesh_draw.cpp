@@ -80,7 +80,7 @@ struct PartDraw {
     // CTextureDevice::DrawMeshBlocks / 2: positions and
     // packets, normals and count, colours, speculars, texture coordinates and count, corners and
     // count, words and count, indices and count, the texture offsets, alpha, flags.
-    int Draw(CTextureDevice* device, CDXSurface* first, CDXSurface* second, bool textured) const {
+    int Draw(CTextureDevice* device, Surface* first, Surface* second, bool textured) const {
         auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices_.data() + r.indices.start);
         const auto* words = mesh->words_.data() + r.words.start;
         const auto* corners = mesh->corners_.data() + r.corners.start;
@@ -113,7 +113,7 @@ void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result)
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without
 // surfaces the device's specular is on around the draw for draw flag 8.
-int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, Surface* first, Surface* second,
                    bool textured, std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                    const std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     auto node = mesh->ranges_.find(*name);
@@ -192,13 +192,13 @@ int CLinkMesh::DrawPart(const std::string* name, int flags, std::vector<std::uin
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
 
-int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, Surface* first, Surface* second,
                                      std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars,
                                      std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
 
-int CLinkMesh::DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartTextured(const std::string* name, int flags, Surface* first, Surface* second,
                                 std::vector<std::uint32_t>* colours, std::vector<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
 }

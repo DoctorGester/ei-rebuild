@@ -43,8 +43,8 @@ HRESULT WINAPI DisplayModeCallback(DDSURFACEDESC2* mode, void* context) {
 
 // The switch-over's holder of the screen (the primary or the render target; device.h): no surface,
 // the screen's size and colour depth, counted like a holder of a surface.
-CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
-    auto* holder = new CDXSurface(device);
+Surface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
+    auto* holder = new Surface(device);
     if (!holder) return nullptr;
     holder->width = width;
     holder->height = height;
@@ -109,7 +109,8 @@ CDXDirectDraw::~CDXDirectDraw() {
 // Not kept: the game copies the processor's twelve bytes as a string into a local nothing reads.
 CDXDirectDraw::CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
                              int /*refreshRate*/, unsigned /*backBuffers*/, int /*for3D*/)
-    : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window) {
+    : driver_(nullptr), primary_(nullptr), renderTarget_(nullptr), clipper_(nullptr), flags_(0), window_(window),
+      bitsPerPixel_(bitsPerPixel) {
     const RECT screen = {0, 0, width, height};
 
     ProcessorInfo& processor = g_processorInfo;

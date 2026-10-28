@@ -25,10 +25,10 @@ constexpr std::uint32_t kTextColour = 0xA7D7E4;
 
 
 
-// IDirect3DDevice7::Clear of the depth buffer (and the stencil when the device has one) over
+// IDirect3DDevice7::Clear of the depth buffer over
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
 void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
-    unsigned long flags = uidevice::HasStencil(renderer) ? 6ul : 2ul;
+    unsigned long flags = 2ul;   // D3DCLEAR_ZBUFFER
     gameapi::EnterCriticalSection(&g_deviceLock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, 1ul, rect, flags, 0ul, z, 0ul);
     gameapi::LeaveCriticalSection(&g_deviceLock);

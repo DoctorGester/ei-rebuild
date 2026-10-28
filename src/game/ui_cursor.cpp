@@ -4,7 +4,7 @@
 // background through Locks of the holders' surfaces, has no caller of ours since: the new renderer draws the
 // cursor, ui_cursor_frame.cpp.)
 #include "ui_cursor.h"
-#include "dx_surface.h"
+#include "surface.h"
 #include "texture.h"
 
 #include "lib/crt.h"
@@ -36,13 +36,13 @@ void MaskRow(const std::uint8_t* row, T* mask, std::uint32_t count, T colourBits
 
 } // namespace
 
-CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int flag) {
+CursorImage::CursorImage(const char* name, int hotSpotX, int hotSpotY, int /*flag*/) {
     holder = nullptr;
     frame = 0;
     CTextureManager* manager = g_clientWorld->textureManager_;
     MmpHeader* picture = manager->GetFileData(name);
     // (A throw frees the holder's memory and passes the exception on; that ends the game.)
-    holder = new CDXSurface(g_sceneRenderer->device_, picture, flag);
+    holder = new Surface(g_sceneRenderer->device_, picture);
     if (holder) ++holder->refs_;
     // (A holder kept before here would be released; there is none: it was cleared above.)
     manager->CloseFile(picture);

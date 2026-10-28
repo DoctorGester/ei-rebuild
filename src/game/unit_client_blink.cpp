@@ -1,7 +1,7 @@
 // The blink of the party units' faces (CUnitClientSpecific, unit_client_models.h): the face
 // texture ("<model>mouth") holds the open and the closed state, which is copied over a
 // rectangle of the unit's skin texture with DirectDraw blits down the mip chain.
-// No texture has a DirectDraw surface (dx_surface.h; the skins are decoded by the new renderer):
+// No texture has a DirectDraw surface (surface.h; the skins are decoded by the new renderer):
 // the new renderer draws the face's rectangle over the skin's in its shader instead
 // (render::TexturePatch, docs/notes/units.md); the skin's texture is not changed.
 #include "unit_client_models.h"

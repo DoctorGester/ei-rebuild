@@ -872,7 +872,7 @@ pixels), and dialog_, which FillEntries fills from the escape menu's 256x192 cop
 screen for the new save of a save window and SaveGame writes to the new save's shot.sav. Like the original,
 the 0x18000 bytes are one block from the start of the pixels (a pitch of 512 bytes is taken for granted).
 Both textures keep their pixels only in memory the new renderer owns and reads (a DIB section per holder,
-given by the texture manager; dx_surface.cpp, render::SurfaceMemory): written into and read from that memory
+given by the texture manager; surface.cpp, render::SurfaceMemory): written into and read from that memory
 with no Lock (DirectPixels).
 
 ## Surface blit
@@ -894,7 +894,7 @@ picture, the destructor, one taking (interface, layout left, top, right, bottom,
 taking (interface, layout rectangle, format; always scaled). Both scale the rectangle to the screen
 (Rebirth's wide-screen patch sits there), make a surface holder of its size, add height * pitch to the
 surface-bytes total, clear the surface to 0 with a colour-fill Blt and set a flag. The holder has no
-DirectDraw surface, only the new renderer's memory (dx_surface.cpp): the surface is already zero (a new DIB
+DirectDraw surface, only the new renderer's memory (surface.cpp): the surface is already zero (a new DIB
 section), so the colour fill is left out, and the descriptions the surface-bytes total takes come from that
 memory, for picture windows as well. Making a window asks DirectDraw for nothing. (The picture constructor
 has no caller in game.exe or the mods: config/dead_code.csv.) The original's unwinding when the holder's

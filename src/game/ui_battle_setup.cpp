@@ -37,8 +37,7 @@ namespace {
 int SaveVersion() { return static_cast<int>(g_saveStream->version_); }
 bool LoadingGame() { return g_saveStream->size_ != 0; }
 
-constexpr DWORD kClearTarget = 2;         // D3DCLEAR_ZBUFFER
-constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
+constexpr DWORD kClearDepth = 2;          // D3DCLEAR_ZBUFFER
 
 } // namespace
 
@@ -191,9 +190,9 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
                                                             selectionBox_.bottom, 0x40, 1);
     }
     Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
-    // The depth buffer (and stencil, when the device has one) is cleared before the panels draw.
+    // The depth buffer is cleared before the panels draw (the device has no stencil).
     CTextureDevice* renderer = interface_->renderer_;
-    DWORD flags = uidevice::HasStencil(renderer) ? kClearStencil : kClearTarget;
+    DWORD flags = kClearDepth;
     auto* lock = &g_deviceLock;
     gameapi::EnterCriticalSection(lock);
     renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 1.0f, 0);

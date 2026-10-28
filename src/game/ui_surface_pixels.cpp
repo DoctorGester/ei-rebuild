@@ -7,7 +7,7 @@
 #include "ui_native.h"
 
 #include "device.h"   // device::SameSurface
-#include "dx_surface.h"
+#include "surface.h"
 #include "texture.h"
 
 #include "lib/crt.h"
@@ -21,16 +21,15 @@
 
 namespace {
 
-CDXSurface* HolderOf(const CUiSurface* surface) { return surface->holder_; }
+Surface* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 
 
-// Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (texture.h: Split,
+// Pixels of a surface's format go to and from 0xAARRGGBB through ChannelLayout (surface.h: Split,
 // FromNative, ToNative).
 ChannelLayout LayoutOf(const SurfacePixels& pixels) {
     ChannelLayout layout;
-    const PixelFormat format = pixels.Format();
-    layout.Split(&format);
+    layout.Split(pixels.format);
     return layout;
 }
 
@@ -50,10 +49,10 @@ std::uint32_t ReadPixel(const std::uint8_t* at, int bytes) {
 // Windows' DirectDraw does exactly that at whole-number ratios (checked offline: 800x600 and
 // 1280x720 to 160x120, 1920x1080 to 128x96); at other ratios it picks a neighbour now and then.
 void StretchCopy(const SurfacePixels& to, const SurfacePixels& from) {
-    int bytes = to.bitsPerPixel >> 3;
+    int bytes = to.format.bitsPerPixel >> 3;
     std::uint32_t dw = static_cast<std::uint32_t>(to.width), dh = static_cast<std::uint32_t>(to.height);
     std::uint32_t sw = static_cast<std::uint32_t>(from.width), sh = static_cast<std::uint32_t>(from.height);
-    if (dw == 0 || dh == 0 || from.bitsPerPixel != to.bitsPerPixel) return;
+    if (dw == 0 || dh == 0 || from.format.bitsPerPixel != to.format.bitsPerPixel) return;
     for (std::uint32_t y = 0; y < dh; ++y) {
         const std::uint8_t* src = from.bits +
                                   static_cast<std::size_t>((2 * static_cast<std::uint64_t>(y) + 1) * sh / (2 * dh)) * from.pitch;
@@ -77,7 +76,7 @@ void ObservePixels(const CUiSurface* surface, const char* what, bool writes, voi
 }
 
 // Drops a holder reference.
-void ReleaseHolder(CDXSurface* holder) { holder->Release(); }
+void ReleaseHolder(Surface* holder) { holder->Release(); }
 
 } // namespace
 
@@ -85,9 +84,9 @@ void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bo
 
 void CUiSurface::CaptureScreen() {
     ObservePixels(this, "CaptureScreen", true, _AddressOfReturnAddress());
-    CDXSurface* holder = HolderOf(this);
+    Surface* holder = HolderOf(this);
     if (!holder) return;
-    CDXSurface* screen = holder->device->renderTarget_;
+    Surface* screen = holder->device->renderTarget_;
     if (device::SameSurface(screen, holder)) return;
     if (!ui_native::Capture(this, rect_)) return;
     // The copy is taken from the new renderer's frame (the original's Blt from the render target is
@@ -102,18 +101,18 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     // A surface of the wanted size in this one's format, and this one stretched into it.
     const int format = static_cast<int>(flags_);   // the format, as the constructors store it
     CUiSurface* copy = new CUiSurface(interface_, 0, 0, width, height, format, 0);
-    CDXSurface* from = HolderOf(this);
-    CDXSurface* to = HolderOf(copy);
+    Surface* from = HolderOf(this);
+    Surface* to = HolderOf(copy);
     SurfacePixels fromPixels, toPixels;
     if (DirectPixels(from, &fromPixels, true) && DirectPixels(to, &toPixels)) StretchCopy(toPixels, fromPixels);
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
     auto* pixels = new std::uint16_t[static_cast<std::size_t>(count)];
-    CDXSurface* holder = HolderOf(copy);
+    Surface* holder = HolderOf(copy);
     gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels copied;
     bool direct = DirectPixels(holder, &copied, true);
-    int bytes = copied.bitsPerPixel >> 3;
+    int bytes = copied.format.bitsPerPixel >> 3;
     const ChannelLayout converter = LayoutOf(copied);
     const std::uint8_t* source = copied.bits;
     std::uint16_t* out = pixels;
@@ -137,7 +136,7 @@ void CUiSurface::Greyscale() {
     ObservePixels(this, "Greyscale", true, _AddressOfReturnAddress());
     if (!HolderOf(this)) return;
     if (!ui_native::Greyscale(this)) return;
-    CDXSurface* holder = HolderOf(this);
+    Surface* holder = HolderOf(this);
     gameapi::EnterCriticalSection(&g_deviceLock);
     SurfacePixels desc;
     if (!DirectPixels(holder, &desc)) {
@@ -145,8 +144,8 @@ void CUiSurface::Greyscale() {
         return;
     }
     std::uint32_t count = static_cast<std::uint32_t>(desc.width) * static_cast<std::uint32_t>(desc.height);
-    std::uint32_t bits = static_cast<std::uint32_t>(desc.bitsPerPixel);
-    std::uint32_t red = desc.redMask, green = desc.greenMask, blue = desc.blueMask;
+    std::uint32_t bits = static_cast<std::uint32_t>(desc.format.bitsPerPixel);
+    std::uint32_t red = desc.format.redMask, green = desc.format.greenMask, blue = desc.format.blueMask;
     bool done = false;
     if (bits == 16 && red == 0xF800 && green == 0x7E0 && blue == 0x1F) {
         // 5:6:5: (2 r + 2 g6 + b) / 16 in every channel.
@@ -203,8 +202,8 @@ void CUiSurface::SwapContents(int restore) {
     if (restore) {
         if (!holder_) {
             // A new surface of the surface's size.
-            CDXSurface* made = new CDXSurface(interface_->renderer_, width_, height_);
-            CDXSurface* previous = holder_;
+            Surface* made = new Surface(interface_->renderer_, width_, height_);
+            Surface* previous = holder_;
             holder_ = made;
             if (made) ++made->refs_;
             if (previous) ReleaseHolder(previous);
@@ -215,7 +214,7 @@ void CUiSurface::SwapContents(int restore) {
             ui_native::Restored(this);
             return;
         }
-        CDXSurface* holder = holder_;
+        Surface* holder = holder_;
         gameapi::EnterCriticalSection(&g_deviceLock);
         if (DirectPixels(holder, &desc)) std::memcpy(desc.bits, kept_, keptSize_);
         g_uiSurfaceKeptBytes -= keptSize_;
@@ -226,7 +225,7 @@ void CUiSurface::SwapContents(int restore) {
         ui_native::Restored(this);
         return;
     }
-    CDXSurface* holder = holder_;
+    Surface* holder = holder_;
     if (!holder) return;
     ui_native::Sync(this);
     gameapi::EnterCriticalSection(&g_deviceLock);
@@ -238,7 +237,7 @@ void CUiSurface::SwapContents(int restore) {
     g_uiSurfaceKeptBytes += keptSize_;
     gameapi::LeaveCriticalSection(&g_deviceLock);
     g_uiSurfaceBytes -= keptSize_;
-    CDXSurface* released = holder_;
+    Surface* released = holder_;
     holder_ = nullptr;
     if (released) released->Release();
 }
@@ -247,7 +246,7 @@ void CUiSurface::SwapContents(int restore) {
 // without one.
 std::uint32_t CUiSurface::PixelAt(int x, int y) {
     ObservePixels(this, "PixelAt", false, _AddressOfReturnAddress());
-    CDXSurface* holder = HolderOf(this);
+    Surface* holder = HolderOf(this);
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= width_ || y >= height_) return 0;
     ui_native::Sync(this);
@@ -257,7 +256,7 @@ std::uint32_t CUiSurface::PixelAt(int x, int y) {
         gameapi::LeaveCriticalSection(&g_deviceLock);
         return 0;
     }
-    int bytes = desc.bitsPerPixel >> 3;
+    int bytes = desc.format.bitsPerPixel >> 3;
     const std::uint8_t* at = desc.bits + static_cast<std::size_t>(desc.pitch) * static_cast<std::uint32_t>(y) +
                              static_cast<std::size_t>(bytes) * static_cast<std::uint32_t>(x);
     std::uint32_t value = bytes > 0 ? ReadPixel(at, bytes) : 0;

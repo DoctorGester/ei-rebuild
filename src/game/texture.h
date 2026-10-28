@@ -7,11 +7,11 @@
 #include "lib/static_object.h"
 #include "raster_target.h"
 #include "renderer_base.h"
+#include "surface.h"
 #include "render/render_state.h"
 
 #include <list>
 #include <string>
-#include <unordered_map>
 #include <vector>
 #include <windows.h>
 
@@ -21,15 +21,7 @@ struct IDirectDraw7;
 
 #undef GetClassName
 
-// Pixel format of a texture surface (a DDPIXELFORMAT).
-struct PixelFormat {
-    std::uint32_t words[8];
-};
-static_assert(sizeof(PixelFormat) == 32);
-
-struct CDXSurface;
 class CPixelConverter;
-struct SurfacePixels;
 class CTexture;
 class CTextureManager;
 struct ClipBounds;
@@ -62,13 +54,14 @@ public:
     int lastLoadResult_ = 0;    // result of the last IDirect3DDevice7::Load (and other calls)
     IDirectDraw7* ddraw_;
     GUID* driver_;
-    CDXSurface* primary_;
-    CDXSurface* renderTarget_;
+    Surface* primary_;
+    Surface* renderTarget_;
     void* clipper_;             // IDirectDrawClipper* of the window
     std::uint32_t flags_;       // the cooperative level; bit 0: full screen (the present flips)
     RECT screen_;
     HWND window_;
     std::list<_DDSURFACEDESC2> modes_;
+    int bitsPerPixel_;          // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
     std::uint32_t videoFourCC_;     // the YUV format an off-screen video-memory surface can have (0: none)
     std::uint32_t overlayFourCC_;   // the YUV format an overlay can have (0: none)
     bool overlayStretch_;       // DDCAPS_OVERLAYSTRETCH
@@ -83,7 +76,7 @@ public:
     int SetMaterial(CDeviceMaterial* material);
     int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
                  std::uint32_t colour, std::uint32_t specular, const ClipBounds* bounds, float zScale);
-    int DrawMeshBlocks2(CDXSurface* firstTexture, CDXSurface* secondTexture, const VertexPacket* positions, int blocks,
+    int DrawMeshBlocks2(Surface* firstTexture, Surface* secondTexture, const VertexPacket* positions, int blocks,
                   const NormalPacket* normals, int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
                   const TexCoord* uvs, int unused10, const MeshCorner* corners, int cornerCount,
                   const std::uint32_t* words, int wordCount, std::uint16_t* indices, int indexCount, float uOffset,
@@ -92,7 +85,7 @@ public:
                  std::uint32_t* colours, std::uint32_t* speculars, const TexCoord* uvs, int unused10,
                  const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                  std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha, int flags);
-    int DrawTwoTextures(CDXSurface* first, CDXSurface* second, int vertexCount, unsigned indexCount);
+    int DrawTwoTextures(Surface* first, Surface* second, int vertexCount, unsigned indexCount);
     int DrawIndexed(int vertexCount, unsigned indexCount);
     int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
@@ -100,14 +93,8 @@ public:
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
     int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
                           int indexCount);
-    // The format the header's id names; for a DXT id the device does not have, the one its channel bit counts
-    // name (anything else looks id 0 up). 1 with `format` filled, 0 with it untouched.
-    int ParseMmpHeader(const MmpHeader* header, PixelFormat* format);
-    // `id`: 0x5650, 0x5551, 0x4444, 0x8888 or a DXT four-character code. 1 with `format` filled, 0 with it
-    // untouched.
-    int FindFormat(int id, PixelFormat* format);
     // Only when the stage has another holder (the change counted). Returns 1.
-    int BindSurface(int stage, CDXSurface* holder);
+    int BindSurface(int stage, Surface* holder);
     // A null texture binds none.
     int BindTexture(int stage, CTexture* texture);
     // A texture not looked up yet is found by its name among the texture manager's registered and cached
@@ -117,26 +104,16 @@ public:
     CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
                    unsigned backBuffers, int depthBits, int stencilBits);
     ~CTextureDevice() override;
-    // formats_ from the Direct3D device's formats: DXT1 .. DXT5 by their four-character codes, 5:6:5, 5:5:5
-    // (0x5550), 1:5:5:5, 4:4:4:4 and 8:8:8:8 by their ids.
-    void BuildFormatTable();
 
     IDirect3D7* d3d_;
     IDirect3DDevice7* d3dDevice_;
-    CDXSurface* depth_;         // restored with the primary
-    CDXSurface* depth2_;        // a second depth surface like it (not attached)
+    Surface* depth_;         // restored with the primary
+    Surface* depth2_;        // a second depth surface like it (not attached)
     std::uint32_t zEnable_;     // the z-buffer setting render state 7 goes back to
     GUID deviceGuid_;
-    // The frame clear clears the stencil too when its flags (words[1]) have DDPF_STENCILBUFFER and its
-    // stencil bits (words[4]) are nonzero.
-    PixelFormat depthFormat_;
     CTransformPipeline* pipeline_;
     std::list<Direct3DDeviceRecord> devices_;
-    std::list<PixelFormat> textureFormats_;
-    // The values point at textureFormats_'s elements.
-    std::unordered_map<int, PixelFormat*> formats_;
-    std::uint32_t largestFormatId_;
-    CDXSurface* stageSurfaces_[8];   // the holder bound to each texture stage
+    Surface* stageSurfaces_[8];   // the holder bound to each texture stage
     CDeviceMaterial* material_;
     std::uint32_t colour_;           // the renderer's draw colour (mesh draw flag 4)
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
@@ -164,26 +141,6 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
 
 // Once a frame; returns the DirectDraw result (0).
 long DevicePresent(CTextureDevice* device);
-
-// A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
-// (dx_surface.h).
-struct CDXSurface final : CRendererBase {
-    explicit CDXSurface(CTextureDevice* device);
-    // Of the screen's format. Throws the game's error object when the surface cannot be made.
-    CDXSurface(CTextureDevice* device, int width, int height);
-    // Shows an .mmp picture.
-    CDXSurface(CTextureDevice* device, const MmpHeader* picture, int flag);
-    ~CDXSurface() override;
-
-    int LoadPictureData(const MmpHeader* picture, int flag);
-
-    long result = 0;
-    CTextureDevice* device;
-    void* surface = nullptr;    // always null
-    int width = 0;
-    int height = 0;
-    int bitsPerPixel = 0;
-};
 
 // 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
 // Never constructed here.
@@ -240,10 +197,13 @@ struct MmpHeader {
 
     // After the header: the extra block plus the sizes of the larger levels (32-bit arithmetic).
     std::uint32_t MipOffset(unsigned mip) const;
-    // What filling a texture surface of `surfaceFormat` from this file returns (the texture cache counts it
-    // as the texture's size): per level width x height times the bits written, / 8 (the file's own bits when
-    // it copies, the surface's for 8888 converted to 16 bits, 16 for DXT decoded); 32-bit arithmetic.
-    std::uint32_t FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const;
+    // The texture format the file's texture is held in (IsTextureFormat): its own when listed; for another DXT code
+    // the RGB format its channel bit counts name. 0 when none is.
+    std::uint32_t HeldFormat() const;
+    // What filling a texture of format `heldFormat` from this file returned (the texture cache counts it as the
+    // texture's size): per level width x height times the bits written, / 8 (the file's own bits, 16 for a DXT file
+    // held in an RGB format); 32-bit arithmetic.
+    std::uint32_t FilledBytes(std::uint32_t heldFormat, unsigned mip, unsigned levels) const;
     void SetNoFormat();
     void SetFormat5551();
     void SetFormat4444();
@@ -253,24 +213,11 @@ static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
 static_assert(sizeof(MmpHeader) == 0x4C);
 
-// A DDPIXELFORMAT's channels as mask, bit count and shift.
-struct ChannelLayout {
-    // The bits per pixel the texture upload counts with; Split zeroes it and never writes it, so it is
-    // always 0.
-    std::uint32_t bitCount;
-    std::uint32_t alphaMask, alphaBits, alphaShift;
-    std::uint32_t redMask, redBits, redShift;
-    std::uint32_t greenMask, greenBits, greenShift;
-    std::uint32_t blueMask, blueBits, blueShift;
-    // 0 for a null format, one without DDPF_RGB, and at the first channel wider than 8 bits (the channels
-    // before it stay filled); else 1.
-    int Split(const void* format);
-    // Each channel's top bits at its shift.
-    std::uint32_t ToNative(std::uint32_t argb) const;
-    // Each channel's bits moved to the top of its byte (the low bits stay 0).
-    std::uint32_t FromNative(std::uint32_t pixel) const;
-};
-static_assert(sizeof(ChannelLayout) == 0x34);
+// The texture formats, one fixed list: the RGB ids 0x5650 (5:6:5), 0x5551 (1:5:5:5), 0x4444 and 0x8888 and the
+// compressed DXT1 .. DXT5 by their four-character codes (texture.cpp).
+bool IsTextureFormat(std::uint32_t id);
+// The pixel format of an RGB texture format; none (all zero) for a compressed or unknown one.
+PixelFormat TextureFormat(std::uint32_t id);
 
 // Class id 6, "CTexture".
 class CTexture : public CEngineObject {
@@ -302,8 +249,8 @@ public:
     std::uint32_t height_;
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
     std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
-    PixelFormat format_;
-    CDXSurface* surface_;       // counted
+    std::uint32_t format_;      // the texture format it is held in (TextureFormat); 0 none
+    Surface* surface_;       // counted
 
     CTextureManager* Manager() const;
 };

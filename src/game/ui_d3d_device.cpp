@@ -12,9 +12,4 @@ long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD 
     return device::Clear(device->d3dDevice_, count, static_cast<D3DRECT*>(rects), flags, colour, z, stencil);
 }
 
-bool HasStencil(const CTextureDevice* device) {
-    constexpr std::uint32_t kStencilFormat = 0x4000;   // DDPF_STENCILBUFFER
-    return (device->depthFormat_.words[1] & kStencilFormat) != 0 && device->depthFormat_.words[4] != 0;
-}
-
 } // namespace uidevice

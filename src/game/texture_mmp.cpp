@@ -1,12 +1,8 @@
-// .mmp textures: creating a texture's Direct3D surfaces from the file data, the mip
-// offsets and the file's extra block.
-// An .mmp texture has no DirectDraw texture: the new
-// renderer decodes the levels the game would load from the file data (keyed by the holder,
-// render::TextureFromMmp) and the holder has no surface and no memory (NewDecodedTextureHolder,
-// dx_surface.cpp); no staging surface, fill, Load or priority. The byte size the texture
-// cache counts is what the fill would have returned (MmpHeader::FilledBytes). A texture the new
-// renderer does not decode (a format it does not know, or the renderer off after a failure) keeps
-// its holder and shows nothing. See docs/notes/renderer.md (section 7).
+// .mmp textures: a texture's holder for the levels the new renderer decodes from the file data (keyed by the holder,
+// render::TextureFromMmp; the holder has no memory: NewDecodedTextureHolder, surface.cpp), the mip offsets and the
+// file's extra block. The byte size the texture cache counts is what the original's fill returned
+// (MmpHeader::FilledBytes). A texture the new renderer does not decode (a format it does not know) keeps its holder
+// and shows nothing. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "lib/file_io.h"
@@ -15,7 +11,7 @@
 #include <cstring>
 #include <string>
 #include "render/render.h"
-#include "dx_surface.h"
+#include "surface.h"
 
 #include "../hook/log.h"
 #include "game_data.h"
@@ -43,19 +39,17 @@ void MarkLoaded(CTexture* texture, const MmpHeader* header) {
 }
 
 constexpr std::uint32_t kDxtTag = 0x545844;          // "DXT" (the format's low three bytes)
-constexpr std::uint32_t kFormat8888 = 0x8888;
-constexpr std::uint32_t kPixelFormatFourCC = 0x4;   // DDPIXELFORMAT flags
 
 bool g_undecodedLogged = false;
 
 // A holder with no DirectDraw texture for the levels the new renderer decodes from the file (keyed
 // by the holder). One it does not decode keeps the holder and shows nothing (logged once). Its
 // allocation failing ends the game, like a surface that could not be made.
-CDXSurface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
-                          unsigned levels) {
-    CDXSurface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_),
-                                                 static_cast<int>(texture->height_), texture->format_.words);
-    if (!holder) ThrowSurfaceNotMade(device, 0, 0);
+Surface* DecodedHolder(CTextureDevice* device, const CTexture* texture, const MmpHeader* data, unsigned mip,
+                       unsigned levels) {
+    Surface* holder = NewDecodedTextureHolder(device, static_cast<int>(texture->width_), static_cast<int>(texture->height_),
+                                              TextureFormat(texture->format_).bitsPerPixel);
+    if (!holder) ThrowSurfaceNotMade(0, 0);
     if (!render::TextureFromMmp(holder, data, mip, levels) && !g_undecodedLogged) {
         g_undecodedLogged = true;
         ei::Log("cpuwindows: an .mmp texture the new renderer does not decode (format %08X) shows nothing",
@@ -75,13 +69,9 @@ std::uint32_t MmpHeader::MipOffset(unsigned mip) const {
     return larger + extraSize;
 }
 
-std::uint32_t MmpHeader::FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const {
+std::uint32_t MmpHeader::FilledBytes(std::uint32_t heldFormat, unsigned mip, unsigned levels) const {
     std::uint32_t bits = bitsPerPixel;
-    if ((format & 0xFFFFFF) == kDxtTag) {
-        if (!(surfaceFormat.words[1] & kPixelFormatFourCC) || format != surfaceFormat.words[2]) bits = 16;
-    } else if (format == kFormat8888 && surfaceFormat.words[3] != 32) {
-        bits = surfaceFormat.words[3];
-    }
+    if ((format & 0xFFFFFF) == kDxtTag && heldFormat != format) bits = 16;   // decoded into an RGB format
     std::uint32_t w = width >> (mip & 31);
     std::uint32_t h = height >> (mip & 31);
     std::uint32_t total = 0;
@@ -116,8 +106,8 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const MmpHeader* header, uns
     // The new renderer decodes the levels from the file and the holder has no DirectDraw texture
     // (a system-memory staging surface filled from the file, loaded into a managed
     // texture with the kind's priority hints, its priority set to 100, is not made).
-    CDXSurface* decoded = DecodedHolder(device, this, header, mip, levels);
-    CDXSurface* previous = surface_;
+    Surface* decoded = DecodedHolder(device, this, header, mip, levels);
+    Surface* previous = surface_;
     surface_ = decoded;
     ++decoded->refs_;
     if (previous) previous->Release();
