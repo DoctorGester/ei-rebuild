@@ -275,12 +275,12 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             ChooseFigure(defaults_[0].c_str());
             PartyUnitRecord* hero = HeroRecord();
             auto* stats = &hero->stats;
-            stats->stat10Base = 25.0f;
-            stats->stat10 = 25.0f;
-            stats->stat18Base = 25.0f;
-            stats->stat18 = 25.0f;
-            stats->stat20Base = 25.0f;
-            stats->stat20 = 25.0f;
+            stats->strengthBase = 25.0f;
+            stats->strength = 25.0f;
+            stats->dexterityBase = 25.0f;
+            stats->dexterity = 25.0f;
+            stats->intelligenceBase = 25.0f;
+            stats->intelligence = 25.0f;
             hero->height = 0.7f;
             nameEdit_->SetText(game::kEmptyText);
             statsPanel_->SetHero(0, const_cast<char*>(game::kEmptyText));
@@ -484,7 +484,7 @@ void CMpHeroScreen::CreateHero() {
     std::string name = nameEdit_->text_;
     auto* hero = HeroRecord();
     auto* stats = &hero->stats;
-    double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
+    double sum = static_cast<double>(stats->intelligenceBase) + stats->dexterityBase + stats->strengthBase;
     float points = AttributePoints();
     EI_NAN_AUDIT(sum, points);
     if (sum != points || static_cast<int>(name.size()) == 0) {

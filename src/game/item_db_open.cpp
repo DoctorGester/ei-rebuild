@@ -53,7 +53,7 @@ void FileByCode(itemdb::CodeIndexedTable<Record>& table) {
 }
 
 const char* MaterialKey(const itemdb::MaterialRecordHead* record) { return record->key.c_str(); }
-const char* ItemName(const itemdb::ItemRecordHead* record) { return record->text04.c_str(); }
+const char* ItemName(const itemdb::ItemRecordHead* record) { return record->name.c_str(); }
 
 } // namespace
 

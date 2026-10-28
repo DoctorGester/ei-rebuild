@@ -112,9 +112,9 @@ void AIMemory::ForceSee(CUnit* self, CUnit* object) {
     bool attacksUs = (theirBrain->action == AIBrain::kActionAttack || theirBrain->action == AIBrain::kActionCast) &&
                      theirBrain->target == self;
     if (!attacksUs) {
-        double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
-                       ours->stats.valuesB0[0].current;
-        double nearValue = static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current;
+        double sight = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                       ours->stats.perception[0].current;
+        double nearValue = static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current;
         if (sight > distance && nearValue > distance) return;
     }
     if (IsDead(object)) {
@@ -149,7 +149,7 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
         double dz = static_cast<double>(other->localPosition_.z) - unit->localPosition_.z;
         float distance = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
         float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
-                                   theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
+                                   theirs->stats.perception[0].current * self->stats.conspicuity[0].current);
         EI_NAN_AUDIT(distance, sight);
         if (distance < sight) {
             Vector3 theirEye;
@@ -157,9 +157,9 @@ void AIMemory::MeasureExposure(CUnitServer* self, float* out) {
             double range = g_serverWorld->AIMap()->LineOfSight(&eye, &to) * sight;
             KeepLower(out[0], Exposure(distance, range));
         }
-        KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[2].current) * self->stats.valuesE0[2].current));
-        KeepLower(out[1], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[4].current) * self->stats.valuesE0[4].current));
+        KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.perception[2].current) * self->stats.conspicuity[2].current));
+        KeepLower(out[1], Exposure(distance, static_cast<double>(theirs->stats.perception[4].current) * self->stats.conspicuity[4].current));
         KeepLower(out[2], Exposure(distance, static_cast<double>(theirs->moveFactors[1]) * self->moveFactors[0] *
-                                                 theirs->stats.valuesB0[3].current * self->stats.valuesE0[3].current));
+                                                 theirs->stats.perception[3].current * self->stats.conspicuity[3].current));
     }
 }

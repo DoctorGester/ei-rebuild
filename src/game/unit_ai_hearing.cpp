@@ -58,7 +58,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
         CUnitServer* control = other->ServerController();
         AIBrain* brain = &control->brain;
         if (brain->memory.noticedLevel >= kAlertedLevel) continue;
-        const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.valuesB0[3].current;
+        const double hearing = static_cast<double>(control->moveFactors[1]) * control->stats.perception[3].current;
         const float distance = vecmath::Distance<Sum3::XYZ>(*point, other->localPosition_);
         EI_NAN_AUDIT(hearing, loudness, distance);
         if (hearing * loudness <= distance) continue;
@@ -76,7 +76,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
 AIEventPresence* AIViewer::StepNoise(const Vector3* position, CUnitServer* source) {
     constexpr int kStepNoise = 0x1A;
     const AITerrainType* ground = g_serverWorld->AIMap()->MaterialRecordAt(position);
-    float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;
+    float loudness = source->moveFactors[0] * source->stats.conspicuity[3].current;
     loudness *= ground->noise;
     Noise(source, loudness, kStepNoise, nullptr);
     return nullptr;

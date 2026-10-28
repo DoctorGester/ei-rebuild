@@ -21,8 +21,10 @@ How the item family is declared after the cleanup (`item*.h` / `item_*.cpp`, `it
 
 ## Left
 
-- Unnamed fields: `CItem::unknown_3C` (prototype value3C); `unknown_4C` of the weapon, quick item and scroll (combat scales the weapon's); the meaning of
-  the prototype's value38 (the item's weight); most of the remaining `unknown_` are database record fields (item_db.h, item_db_serialize.cpp).
+- Unnamed fields: `CItem::unreadValue_` (the prototype's `unreadValue`, archive field 9: saved, loaded, compared by IsSameAs; nothing else reads it;
+  its meaning is unknown); `unknown_4C` of the weapon, quick item and scroll (combat scales the weapon's); most of the remaining `unknown_` are database
+  record fields (item_db.h, item_db_serialize.cpp).
+- `FirstListName` (slot 18 of the original) is not in our `CItem`: nothing called it and the record lists it read (`list20`) were never filled.
 - `CItem` slots 17-21: the base bodies are still class_slots.cpp's `ItemNoName` / `ItemNoUse`. Slot 16 (004622F0, four bytes) is not hooked.
 - `IsSameAsSlot` is kept for ui_screens.cpp. Callers outside the family still use VCall on item slots: net_client_awards.cpp (slots 4, 12, 14),
   ui_battle_hover.cpp and ui_trade_grid_draw.cpp.

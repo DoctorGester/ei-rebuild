@@ -127,7 +127,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
         stream->Read(&player->partyId_, 4);
         player->Party()->LoadParty(stream, 1);
         player->lastTick_ = world->tick_;
-        stream->Read(&player->sessionKind100_, 4);
+        stream->Read(&player->sessionKind_, 4);
         CBaseManager* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
@@ -164,7 +164,7 @@ void SavePlayers(CWorldServer* world, CStream* stream) {
     for (CPlayer* player = it.First(world->PlayerList()); player; player = it.Next()) {
         stream->Write(&player->partyId_, 4);
         player->Party()->SaveParty(stream, 1);
-        stream->Write(&player->sessionKind100_, 4);
+        stream->Write(&player->sessionKind_, 4);
         for (auto node = player->items_.begin(); node != player->items_.end();) {
             auto next = std::next(node);
             WriteCopy(stream, (*node)->id_);

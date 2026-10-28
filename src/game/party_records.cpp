@@ -46,8 +46,8 @@ CParty* FindParty(const PartyMap& parties, int key) {
 
 void PartyRecordsReset(NamedPartyRecords* list) {
     list->records.clear();
-    list->text0C = game::kEmptyText;
-    list->text10 = game::kEmptyText;
+    list->requestedName = game::kEmptyText;
+    list->currentName = game::kEmptyText;
 
     list->records.emplace_back(NewRecord());
 

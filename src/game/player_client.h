@@ -113,7 +113,7 @@ public:
     // Message 0x17. A player update, then the quest log refreshed with an empty list.
     int OnQuestItemsChanged();
     // Messages 0x15 / 0x18. Experience shown over each of the player's units / over one unit (id): the
-    // amount (a float) times 1.04 ^ (the unit's params.attackRate - 25), rounded through a float, kind 8.
+    // amount (a float) times 1.04 ^ (the unit's params.intelligence - 25), rounded through a float, kind 8.
     int OnExperienceAll();
     int OnExperience();
     // Message 0x06. The party's money (read into it) and items by id (until -1; found in the client world's

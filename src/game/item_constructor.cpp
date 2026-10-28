@@ -84,8 +84,8 @@ std::uint32_t IndexIn(const NamedRecordTable<Record>& table, const ItemRecordHea
 void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
     if (!material) {
         CopyBits(record->price, prototype->price);
-        CopyBits(record->value38, prototype->value38);
-        CopyBits(record->value3C, prototype->value3C);
+        CopyBits(record->weight, prototype->weight);
+        CopyBits(record->unreadValue, prototype->unreadValue);
         CopyBits(record->charge, prototype->charge);
         CopyBits(record->condition, prototype->condition);
         CopyBits(record->magicLevel, prototype->magicLevel);
@@ -97,9 +97,9 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
     double units = x87::FromUnsigned(prototype->materialUnits);
     float unitPrice = material->unitPrice, price = prototype->price;
     record->price = static_cast<float>(units * unitPrice + price);
-    float value38 = prototype->value38, factor38 = material->factor38;
-    record->value38 = value38 * factor38;
-    CopyBits(record->value3C, prototype->value3C);
+    float weight = prototype->weight, weightFactor = material->weightFactor;
+    record->weight = weight * weightFactor;
+    CopyBits(record->unreadValue, prototype->unreadValue);
     float charge = prototype->charge, extraCharge = material->magicPower;
     record->charge = charge + extraCharge;
     float condition = prototype->condition, conditionFactor = material->conditionFactor;
@@ -139,7 +139,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
     }
     case kClassQuick:
     case kClassSpell:
-        CopyBits(RecordAs<QuickItemRecord>(record)->value70, RecordAs<QuickItemRecord>(prototype)->value70);
+        CopyBits(RecordAs<QuickItemRecord>(record)->actionValue, RecordAs<QuickItemRecord>(prototype)->actionValue);
         return IndexIn(g_itemDatabase->quickItems, prototype);
     case kClassQuest:
         CopyBits(record->category, prototype->category);
@@ -206,7 +206,7 @@ void ListRecordNames(const NamedRecordTable<Record>& table, std::vector<std::str
     }
 }
 
-const std::string* HeadName(const ItemRecordHead* record) { return &record->text04; }
+const std::string* HeadName(const ItemRecordHead* record) { return &record->name; }
 
 } // namespace
 
@@ -220,9 +220,9 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
     std::memcpy(&chargeMax_, &head->charge, sizeof(float));
     std::memcpy(&charge_, &head->charge, sizeof(float));
-    std::memcpy(&weight_, &head->value38, 4);
+    std::memcpy(&weight_, &head->weight, 4);
     std::memcpy(&price_, &head->price, 4);
-    value3C_ = head->value3C;
+    unreadValue_ = head->unreadValue;
     magicLevel_ = head->magicLevel;
 }
 
@@ -344,7 +344,7 @@ BOOL CItemConstructor::Build() {
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C).c_str());
+        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText).c_str());
         spell_ = spell;
         item_->SetSpell(spell);
     } else if (spell_) {
@@ -417,7 +417,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
-    const char* type = prototype->text04.c_str();
+    const char* type = prototype->name.c_str();
     if (extra.size() != 0 && std::strcmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);

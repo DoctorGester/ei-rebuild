@@ -30,10 +30,10 @@ BOOL CItem::IsSameAs(CItem* other) {
     if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
     EI_NAN_AUDIT(condition_, other->condition_, conditionMax_, other->conditionMax_, charge_,
                  other->charge_, chargeMax_, other->chargeMax_, FloatOf(weight_), FloatOf(other->weight_), price_, other->price_,
-                 FloatOf(value3C_), FloatOf(other->value3C_));
+                 FloatOf(unreadValue_), FloatOf(other->unreadValue_));
     if (condition_ != other->condition_ || conditionMax_ != other->conditionMax_ ||
         charge_ != other->charge_ || chargeMax_ != other->chargeMax_ || FloatOf(weight_) != FloatOf(other->weight_) ||
-        price_ != other->price_ || FloatOf(value3C_) != FloatOf(other->value3C_))
+        price_ != other->price_ || FloatOf(unreadValue_) != FloatOf(other->unreadValue_))
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
     const CSpell* spell = spell_;
@@ -87,7 +87,7 @@ void CItemArmor::InitFromRecord(const ItemRecordHead* record) {
 
 void CItemQuick::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    actionValue_ = RecordAs<QuickItemRecord>(record)->value70;
+    actionValue_ = RecordAs<QuickItemRecord>(record)->actionValue;
 }
 
 void CItemQuest::InitFromRecord(const ItemRecordHead* record) {

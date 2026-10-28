@@ -74,7 +74,7 @@ void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* m
 
 // The record's name contains `word`.
 bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
-    return str::Find(record->text04, word) >= 0;
+    return str::Find(record->name, word) >= 0;
 }
 
 } // namespace

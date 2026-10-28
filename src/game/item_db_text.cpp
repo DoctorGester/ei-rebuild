@@ -103,7 +103,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     switch (item->type_) {
     case kItemWeapon: {
         KeyName(materialName, MaterialAt(materialIndex)->key);
-        KeyName(recordName, WeaponAt(prototypeIndex)->text04);
+        KeyName(recordName, WeaponAt(prototypeIndex)->name);
         ReadItemText(this, std::string(kWeapon) + recordName + kSpace + materialName, name, description);
         kindKey = "item_weapon";
         break;
@@ -111,13 +111,13 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     case kItemArmor: {
         KeyName(materialName, MaterialAt(materialIndex)->key);
         const ArmorRecord* armor = ArmorAt(prototypeIndex);
-        KeyName(recordName, armor->text04);
+        KeyName(recordName, armor->name);
         ReadItemText(this, std::string(kArmor) + recordName + kSpace + materialName, name, description);
         kindKey = IsUpperArmor(armor) ? "item_armor_upper" : "item_armor_lower";
         break;
     }
     case kItemQuick: {
-        KeyName(recordName, QuickItemAt(prototypeIndex)->text04);
+        KeyName(recordName, QuickItemAt(prototypeIndex)->name);
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         const ItemRecordHead* prototype = item->GetPrototype();
         if (prototype && text::CompareIgnoringCase(prototype->materialClass,
@@ -146,7 +146,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     case kItemLoot: {
         auto* loot = AsLoot(item);
         if (loot->kind_ == 0) {
-            KeyName(recordName, LootAt(prototypeIndex)->text04);
+            KeyName(recordName, LootAt(prototypeIndex)->name);
             ReadItemText(this, std::string(kLootItem) + recordName, name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
@@ -156,19 +156,19 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
         } else if (loot->kind_ == 2) {
             switch (loot->recordType_) {
             case 0:
-                KeyName(recordName, WeaponAt(loot->index_)->text04);
+                KeyName(recordName, WeaponAt(loot->index_)->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_weapon_shape";
                 break;
             case 1: {
                 const ArmorRecord* armor = ArmorAt(loot->index_);
-                KeyName(recordName, armor->text04);
+                KeyName(recordName, armor->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = IsUpperArmor(armor) ? "item_armor_shape_upper" : "item_armor_shape_lower";
                 break;
             }
             case 2:
-                KeyName(recordName, QuickItemAt(loot->index_)->text04);
+                KeyName(recordName, QuickItemAt(loot->index_)->name);
                 ReadItemText(this, std::string(kInstruction) + recordName, name, description);
                 kindKey = "item_wand_shape";
                 break;
@@ -197,7 +197,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, std::string* name, std::string* des
     }
     case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table is Loot in item_db.h.
-        KeyName(recordName, QuestItemAt(prototypeIndex)->text04);
+        KeyName(recordName, QuestItemAt(prototypeIndex)->name);
         ReadItemText(this, std::string(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";
         break;

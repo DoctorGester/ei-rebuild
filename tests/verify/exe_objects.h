@@ -824,7 +824,7 @@ struct CPlayer : CEngineObject {
     CParty party_;                          // +0x70
     List<CItem*> items_;                    // +0xE0
     int partyId_;                           // +0xFC
-    int sessionKind100_;                    // +0x100
+    int sessionKind_;                    // +0x100
     std::uint32_t lastScreen_;              // +0x104
     std::uint8_t godMode_;                  // +0x108
     std::uint8_t unknown109[0x7];

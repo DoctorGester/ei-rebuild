@@ -4920,3 +4920,10 @@ title = "AIMap(), Motion(), AIEvents(): the harness's digest reader reads the fi
 group = "cleanup"
 depends = ["C38a"]
 note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite."
+
+[[ticket]]
+id = "C40b"
+title = "Offset-named members still left after C40a: manager3C_..58_ / manager188_..198_, countedA0_, group50F8_, flag70_ / flag80_, zone7C_, value25E0 / value25FC, setting2C / setting30, levels4C8, prototype23C, name78 / name7C, offset98_ / offsetA4_, text1C / text20 / text28, midiData1D0 / 1D4, archive074 / registry0CC, block5C_, constant6E8_ / 228_ / constants7C4_, list48 / list54 / bytes78, look2 / look3"
+group = "cleanup"
+depends = ["C40a"]
+note = "Found by C40a (2026-10-28): members still named after an offset or a format id, not in C40a's list. Name each from its setters and readers (rewrite guide, the offset-name rule), as one scripted rename like C40 / C40a (C:\\Users\\Kirill\\AppData\\Local\\Temp\\claude\\E--workspace-ei\\68b512f1-2aa8-49c2-bc9c-9e235d7da745\\scratchpad\\C40a\\rename_c40a.py is the pattern). Also the methods UnitStats::Value6E8 / Value6E9."

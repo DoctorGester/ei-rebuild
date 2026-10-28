@@ -76,12 +76,12 @@ int CPlayerServer::OnGameStateRequest() {
     CPlayer* player = player_;
     int state;
     g_receivedMessages->Read(&state, 4);
-    player->sessionKind100_ = state;
+    player->sessionKind_ = state;
     g_serverWorld->CollectParty(player, &placements_);
     SendParty();
     std::uint8_t type = kMessageGameState;
     out_.Write(&type, 1);
-    int value = player->sessionKind100_;
+    int value = player->sessionKind_;
     out_.Write(&value, 4);
     value = g_serverWorld->tick_;
     out_.Write(&value, 4);

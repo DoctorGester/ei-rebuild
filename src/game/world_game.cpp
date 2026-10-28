@@ -952,7 +952,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         CPlayer* player = players_->CreateSessionPlayer();
         player->Connect(connection);
         player->dirty_ = 0xFFFFFFFFu;
-        player->sessionKind100_ = sessionKind_;
+        player->sessionKind_ = sessionKind_;
         std::memcpy(&player->Server()->lastPosition_, &startPosition_, 12);
         int id = player->playerId_;
         console::EndLine(console::g_netLogOut << kAcceptedPlayer << id);
@@ -1481,7 +1481,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player_->sessionKind100_ == 1) {
+    if (ClientWorldLocalView(clientWorld)->player_->sessionKind_ == 1) {
         unsigned previous = g_appliedStamp;
         if (g_serverStamp > g_appliedStamp + 2) g_appliedStamp = g_serverStamp + 1;
         std::vector<const net::VariableMessage*> changed;

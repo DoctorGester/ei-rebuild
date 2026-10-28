@@ -378,7 +378,7 @@ double CUnit::AnimationRatio() {
     return AnimationFactor(scale.z) / denominator;
 }
 
-double UnitParams::Period() { return 25.0f / static_cast<float>(attackRate); }   // unrounded
+double UnitParams::Period() { return 25.0f / static_cast<float>(intelligence); }   // unrounded
 
 // --- Map object state ------------------------------------------------------------------------
 

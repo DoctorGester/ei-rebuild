@@ -41,19 +41,19 @@ struct NamedPartyRecords {
     // the slot is skipped (original behaviour).
     void Remove(const char* name);
     std::vector<CountedPtr<PartyRecord>> records;
-    std::string text0C;
-    std::string text10;
+    std::string requestedName;      // SetCurrentParty's name; EndRedeploy makes it the current one
+    std::string currentName;        // the party on stage (the record BeginRedeploy saves it to)
 
     // Chunk 1: the records as object references (field 1 per chunk 1; loading releases the old ones first);
     // then the strings as fields 2 and 3.
     void Serialize(ChunkArchive* ar);
     // The redeploy (party_manager.cpp). The record a name picks is found as PartyRecordsFind does (the
-    // unnamed one when no record has the name). The record named text10 gets a copy of `party` (SaveParty /
+    // unnamed one when no record has the name). The record named currentName gets a copy of `party` (SaveParty /
     // LoadParty through a memory stream); then every record's party gets `party`'s variables, zone name and
     // +0x6C.
     void BeginRedeploy(CParty* party);
-    // `party` gets a copy of the record named text0C, or is cleared (Clear(1, 0)) when
-    // there is none; then text10 = text0C.
+    // `party` gets a copy of the record named requestedName, or is cleared (Clear(1, 0)) when
+    // there is none; then currentName = requestedName.
     void EndRedeploy(CParty* party);
 };
 
@@ -69,6 +69,6 @@ void PartyManagerNewGameFour(PartyManager* manager);
 int PartyNextId(int* out);
 
 // The party a script's "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty
-// without "::") equal to the manager's current name (NamedPartyRecords::text10) gives the player's own
+// without "::") equal to the manager's current name (NamedPartyRecords::currentName) gives the player's own
 // party, any other the records' party of that owner (PartyRecordsFind). Null without a player.
 CParty* PartyForScript(CPlayer* player, std::string* name);

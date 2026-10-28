@@ -72,7 +72,7 @@ constexpr float kSoundFar = 40.0f;
 constexpr float kShakeDuration = 5.0f;
 constexpr float kShakeDecay = 0.25f;
 constexpr std::uint32_t kEffectSilence = 0x10;
-constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind100_
+constexpr int kViewNoAttackSounds = 3;       // the local view player's sessionKind_
 constexpr double kMinAxisLength = 0.0001;
 constexpr float kPi = 3.14159274f;
 constexpr float kHalf = 0.5f;
@@ -203,7 +203,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     bool steps = false;
     switch (kind) {
     case kKindAttack: {
-        if (g_clientWorld->LocalView()->player_->sessionKind100_ == kViewNoAttackSounds) break;
+        if (g_clientWorld->LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&
@@ -282,9 +282,9 @@ void CUnitClientSpecific::PlayStepSounds() {
         float sizeY = foot->box_.bounds.boxMax.y;
         float sizeX = foot->box_.bounds.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
-        // The prototype's valuesE0[0] is the footprint scale (read unchecked: a unit without a prototype
+        // The prototype's conspicuity[0] is the footprint scale (read unchecked: a unit without a prototype
         // faults here).
-        float scale = prototype->valuesE0[0];
+        float scale = prototype->conspicuity[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
         int id = g_clientWorld->AddFootprint(footAt.x - sizeX * facing.x * kHalf,

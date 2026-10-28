@@ -218,7 +218,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
         break;
     case 2:
         // 1.04 ^ (intelligence - 25) * 100.
-        line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->stat20, kStatBase, kPercentScale));
+        line("%s %d%%", 4, PowFtol(kIntelligenceGrowth, stats->intelligence, kStatBase, kPercentScale));
         line("%s %d%%", 24, Ftol(stats->Period20() * kPercentScale));
         w.Down();
         break;
@@ -300,7 +300,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
         w.line = str::Format("%d", value);
         w.Value(w.line);
     };
-    int base = DifferenceFtol(stats->stat18, kStatBase);   // dexterity - 25
+    int base = DifferenceFtol(stats->dexterity, kStatBase);   // dexterity - 25
     part(29, base);
     int sum = base;
     w.Down();
@@ -535,7 +535,7 @@ void CItemInfoPanel::DescribeMaterial() {
         std::string type = w.line;
         w.Joined(17, type);
     }
-    w.Number(0, FtolOf(material->factor38));
+    w.Number(0, FtolOf(material->weightFactor));
     w.Number(2, FtolOf(material->magicPower));
     w.Number(14, static_cast<int>(material->magicLevel));
     w.Number(3, FtolOf(material->conditionFactor));
@@ -587,7 +587,7 @@ void CItemInfoPanel::DescribeBlueprint() {
                   static_cast<int>(head->materialUnits));
     w.Text(w.line);
     w.Down();
-    w.Number(0, FtolOf(head->value38));
+    w.Number(0, FtolOf(head->weight));
     if (sort <= 2) {
         w.Number(2, FtolOf(head->charge));
         w.Number(14, static_cast<int>(head->magicLevel));

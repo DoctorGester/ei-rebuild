@@ -33,7 +33,7 @@ struct SpellRecord {
     std::string name;
     // the spell's code (the trader stock's spell instructions).
     std::string code;
-    std::string text08;
+    std::string unreadText;             // archive field 2; nothing reads it
     float price;                        // a loot item's price when it stands for the spell (CItemLoot::GetPrice)
     int castType;                       // 1: cast without noise and without slowing the caster; 0: planned as kind 2; the item info shows it
     int school;
@@ -48,7 +48,7 @@ struct SpellRecord {
     std::uint32_t targetKind;           // 'u' a unit, 't' a point (target flags 0x10000000 / 0x20000000)
     std::uint32_t targetCount;
     std::uint32_t duration;             // ticks
-    std::uint32_t value3C;              // copied, loaded and saved, not read
+    std::uint32_t castTime;             // CSpell::castTime_ (CUnitServer::CastValue: ticks of the cast animation)
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
     std::vector<int> list48;           // (chunk 16)
@@ -105,30 +105,28 @@ public:
     // Not virtual: the records' tables have only Kind.
     ~ItemRecordHead();
 
-    // list50, classMask and the category are not copied.
+    // classMask and the category are not copied.
     ItemRecordHead* Assign(const ItemRecordHead* source);
     void SerializeHead(ChunkArchive* ar);
 
 
-    std::string text04;                // the name the tables file the record under
-    std::string text08;
+    std::string name;                   // the name the tables file the record under
+    std::string family;                 // the item's family ("wand", "scroll"; what the trader stock skips by)
     int type;                           // weapon / armour class
     // the class of material it is made of ("none": a potion, without a material).
     std::string materialClass;
     std::uint32_t unreadHeadField;      // archive field 4 (4 bytes); nothing reads it
     int number;                         // the number in the item's text keys and names ("item%04d")
     int variant;                        // the model variant
-    std::vector<std::string> list20;    // the first list name (FirstListName)
     float price;                        // CItem::price_ (plus materialUnits times the material's unitPrice)
-    // CItem::weight_, times the material's factor38; also what WeaponAttack returns, which the unit's attack
+    // CItem::weight_, times the material's weightFactor; also what WeaponAttack returns, which the unit's attack
     // info shows as the weapon's speed.
-    float value38;
-    std::uint32_t value3C;              // CItem::value3C_
+    float weight;
+    std::uint32_t unreadValue;          // CItem::unreadValue_ (a float; archive field 9, nothing else reads it)
     float charge;                       // item charge and maximum
     std::uint32_t magicLevel;           // CItem::magicLevel_ (plus the material's)
     float condition;                    // item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // units of material (the price; the trader stock takes them)
-    std::vector<std::string> list50;
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
     // archive field 15, 1 after construction: 0 keeps the item out of the camp's item
     // constructor (UiItemKinds::IsBuildable).
@@ -208,17 +206,17 @@ struct QuickItemRecord : ItemRecordHead {
     QuickItemRecord(const QuickItemRecord& from);
     ~QuickItemRecord();
     int Kind() override;                        // 0x3006
-    // value70 and attributeBonus; the category, unreadFields and text7C are not copied (text7C is constructed
+    // actionValue and attributeBonus; the category, unreadFields and spellText are not copied (spellText is constructed
     // empty).
     void CopyOwn(const QuickItemRecord* source);
-    // The head, then category (0x15), value70 (0x16), unreadFields (0x17, 0x18), text7C (0x19), attributeBonus
+    // The head, then category (0x15), actionValue (0x16), unreadFields (0x17, 0x18), spellText (0x19), attributeBonus
     // (0x1A) and unreadFields (0x1B).
     void Serialize(ChunkArchive* ar);
 
-    std::uint32_t value70;              // CItemQuick::actionValue_
+    std::uint32_t actionValue;              // CItemQuick::actionValue_
     // archive fields 0x17 (4 bytes), 0x18 (4) and 0x1B (8); nothing reads them
     std::uint8_t unreadFields[16];
-    std::string text7C;                // the spell text of a category 8 item (CItemConstructor::Build)
+    std::string spellText;                // the spell text of a category 8 item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // per attribute (UnitStats::AttributeWithItems)
 };
 
@@ -259,7 +257,7 @@ struct MaterialRecordHead {
     // the price per unit of the prototype's materialUnits; the trader stock's material draw
     //; a loot item of kind 1's price.
     float unitPrice;
-    float factor38;                     // multiplies the prototype's value38 (WeaponAttack)
+    float weightFactor;                     // multiplies the prototype's weight (WeaponAttack)
     float magicPower;                   // added to the prototype's charge (CItemConstructor::MagicCapacity)
     std::uint32_t magicLevel;           // added to the prototype's magicLevel
     float conditionFactor;              // multiplies the prototype's condition

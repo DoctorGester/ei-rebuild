@@ -40,7 +40,7 @@ CPlayer::CPlayer() {
     link_ = nullptr;
     SetConnection(nullptr);
     lastTick_ = -1;
-    sessionKind100_ = 0;
+    sessionKind_ = 0;
     lastScreen_ = 0;
 }
 
@@ -88,7 +88,7 @@ void CPlayer::DestroyPlayer() {
     }
     lastTick_ = -1;
     connection_ = nullptr;
-    sessionKind100_ = 0;
+    sessionKind_ = 0;
     lastScreen_ = 0;
 }
 

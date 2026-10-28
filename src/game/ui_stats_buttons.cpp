@@ -41,24 +41,24 @@ void SetAttribute(float& base, float& current, float value) {
 bool CHeroStatsPanel::StepPoint(int region) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     UnitStats* stats = StatsOf(hero);
-    int total = static_cast<int>(stats->stat10Base) + static_cast<int>(stats->stat20Base) +
-                static_cast<int>(stats->stat18Base);
+    int total = static_cast<int>(stats->strengthBase) + static_cast<int>(stats->intelligenceBase) +
+                static_cast<int>(stats->dexterityBase);
     bool roomLeft = static_cast<float>(total) < kMaxTotal;
     switch (region - kFirstButton) {
     case 0:
-        EI_NAN_AUDIT(stats->stat10Base);
-        if (stats->stat10Base <= kMinAttribute) return false;
-        SetAttribute(stats->stat10Base, stats->stat10, stats->stat10Base - kStep);
+        EI_NAN_AUDIT(stats->strengthBase);
+        if (stats->strengthBase <= kMinAttribute) return false;
+        SetAttribute(stats->strengthBase, stats->strength, stats->strengthBase - kStep);
         return true;
     case 1:
-        EI_NAN_AUDIT(stats->stat18Base);
-        if (stats->stat18Base <= kMinAttribute) return false;
-        SetAttribute(stats->stat18Base, stats->stat18, stats->stat18Base - kStep);
+        EI_NAN_AUDIT(stats->dexterityBase);
+        if (stats->dexterityBase <= kMinAttribute) return false;
+        SetAttribute(stats->dexterityBase, stats->dexterity, stats->dexterityBase - kStep);
         return true;
     case 2:
-        EI_NAN_AUDIT(stats->stat20Base);
-        if (stats->stat20Base <= kMinAttribute) return false;
-        SetAttribute(stats->stat20Base, stats->stat20, stats->stat20Base - kStep);
+        EI_NAN_AUDIT(stats->intelligenceBase);
+        if (stats->intelligenceBase <= kMinAttribute) return false;
+        SetAttribute(stats->intelligenceBase, stats->intelligence, stats->intelligenceBase - kStep);
         return true;
     case 3:
         if (points_ < 1) return false;
@@ -66,16 +66,16 @@ bool CHeroStatsPanel::StepPoint(int region) {
         hero->height = static_cast<float>(points_) * kHeightScale;
         return true;
     case 4:
-        if (stats->stat10Base >= kMaxAttribute || !roomLeft) return false;
-        SetAttribute(stats->stat10Base, stats->stat10, stats->stat10Base + kStep);
+        if (stats->strengthBase >= kMaxAttribute || !roomLeft) return false;
+        SetAttribute(stats->strengthBase, stats->strength, stats->strengthBase + kStep);
         return true;
     case 5:
-        if (stats->stat18Base >= kMaxAttribute || !roomLeft) return false;
-        SetAttribute(stats->stat18Base, stats->stat18, stats->stat18Base + kStep);
+        if (stats->dexterityBase >= kMaxAttribute || !roomLeft) return false;
+        SetAttribute(stats->dexterityBase, stats->dexterity, stats->dexterityBase + kStep);
         return true;
     case 6:
-        if (stats->stat20Base >= kMaxAttribute || !roomLeft) return false;
-        SetAttribute(stats->stat20Base, stats->stat20, stats->stat20Base + kStep);
+        if (stats->intelligenceBase >= kMaxAttribute || !roomLeft) return false;
+        SetAttribute(stats->intelligenceBase, stats->intelligence, stats->intelligenceBase + kStep);
         return true;
     case 7:
         if (points_ > kMaxHeight) return false;

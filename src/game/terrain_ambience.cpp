@@ -224,7 +224,7 @@ void Terrain::PlayAmbience() {
         {
             std::string time;   // the empty string, replaced (raw stack storage in the game)
             g_clientWorld->AmbienceTimeOfDay(&time);
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\%s\\%i.wav", textAE0.c_str(), kind.name, time.c_str(),
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\%s\\%i.wav", ambientSet.c_str(), kind.name, time.c_str(),
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
@@ -246,7 +246,7 @@ void Terrain::PlayAmbience() {
             sounds->SetSoundVolume(vote.sound, vote.volume, vote.pan);
         } else {
             char name[256];
-            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\circle.wav", textAE0.c_str(), classes[vote.soundClass].name);
+            std::snprintf(name, sizeof(name), "ambient\\%s\\%s\\circle.wav", ambientSet.c_str(), classes[vote.soundClass].name);
             vote.sound = sounds->Play2D(name, 1000, vote.volume, vote.pan, 1, 1, 0, 0);
         }
     }

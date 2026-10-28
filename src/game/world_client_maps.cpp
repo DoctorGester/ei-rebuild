@@ -316,7 +316,7 @@ int CWorldClient::AddObject(CMapObject* object) {
         }
     }
     CUnit* unit = UnitOrNull(object);
-    if (unit && session_->sessionKind100_ == 1) {
+    if (unit && session_->sessionKind_ == 1) {
         if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
@@ -448,7 +448,7 @@ void CWorldClient::RemoveObject(int id) {
     CMapObject* object = *filed;
     if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
         RemoveHeld(heroes_, object);
-        if (session_->sessionKind100_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
+        if (session_->sessionKind_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
     if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     objects_.erase(filed);
@@ -471,7 +471,7 @@ void CWorldClient::ClearMaps() {
     dynamicNodes_.clear();
     dynamicMaxId_ = 0;
 
-    list7BC_.clear();
+    selectedIds_.clear();
 
     heroes_.clear();
     // The objects with a positive id released and unfiled.
@@ -700,7 +700,7 @@ void CWorldClient::Destroy() {
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             grid.rows_[y][x].clear();
-    list7BC_.clear();
+    selectedIds_.clear();
     heroes_.clear();
     for (CMapObject* object : objects_)
         if (object) object->Release();
@@ -744,7 +744,7 @@ void CWorldClient::ResetZoneObjects() {
 }
 
 void CWorldClient::Deselect(CMapObject* object) {
-    std::list<int>& selected = list7BC_;
+    std::list<int>& selected = selectedIds_;
     auto* objects = manager40_;
     if (!object) {
         for (std::list<int>::iterator node = selected.begin(); node != selected.end(); ++node) {
@@ -770,7 +770,7 @@ void CWorldClient::Select(CMapObject* object) {
         object->flags_ |= 0x10;
         object->attached->Unused25(1);
     }
-    std::list<int>& selected = list7BC_;
+    std::list<int>& selected = selectedIds_;
     const int id = object->id_;
     std::list<int>::iterator node = selected.begin();
     while (node != selected.end() && (*node) != id) ++node;
@@ -1023,7 +1023,7 @@ int CWorldClient::LoadZone(CStream* block) {
     ClearMaps();
     ReleaseItemsAndSpells();
     ClientParticleManager()->ReleaseUnheld();
-    session_->sessionKind100_ = 0;
+    session_->sessionKind_ = 0;
     ShowLoadingMovie(kProgressZoneCleared);
     Terrain* terrain = terrain_;
     if (static_cast<int>(map.size()) > 1 && map[1] != ':') {

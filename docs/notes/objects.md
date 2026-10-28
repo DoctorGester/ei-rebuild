@@ -95,7 +95,7 @@ original (`stolenBytes` 0).
 Layout: CPlayer (the world player, `player_messages.h`, 0x134 bytes) +0x1C link, +0x24 id, +0x28 / +0x58 hash_maps of the map /
 timed objects the client knows (each counted once; +0x3C / +0x6C the highest id), +0x40 the player's units (hash_map; max id
 +0x54), +0x70..+0xE0 an embedded CParty (slot 18 its item manager), +0xE0 the given items (CPtrList of counted items), +0x100
-`sessionKind100_`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
+`sessionKind_`, +0x10C log flag (Flush prints both sizes to cout), +0x114 the recharge id list (vtable 00743138).
 `CPlayerConnection` (its own vtable 007431E0) names the connection's slots 13..23 and is the C++ base of CPlayerServer (00743280) and
 CPlayerClient (00743180, not 00743188: Pump is slot 6, ReceiveMessages slot 23); their slot bodies have their own names
 (`ClearServerState`, `ReleaseSentObjects`, `LeaveAndFlush`; rewrite guide rule 4). `CPlayer::Server()` and `CWorldClient::LocalView()`

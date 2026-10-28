@@ -139,8 +139,8 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
         CUnit* unit = node->second;
         std::list<CUnit*> heard;
         auto* controller = unit->ServerController();
-        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
-        float minimum = controller->stats.valuesB0[2].current;
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.perception[0].current);
+        float minimum = controller->stats.perception[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         world->aiMap_.sectorMap.FindUnitsInRadius(&unit->localPosition_, &heard, radius);

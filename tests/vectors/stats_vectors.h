@@ -18,7 +18,7 @@ struct SlotView {
     float current, maximum, factor;
 };
 struct StatView {
-    float stat10, stat18, stat20;
+    float strength, dexterity, intelligence;
     std::uint8_t attributes[3];
     std::uint8_t skills[8];
     std::uint8_t pad;
@@ -76,11 +76,11 @@ struct LevelView {
     std::uint32_t value;
     std::int32_t exponent;
 };
-// SkillLevelValue (`index` the skill, `level` its level byte), Value6E8 (stat10, the byte at
+// SkillLevelValue (`index` the skill, `level` its level byte), Value6E8 (strength, the byte at
 // +0x6E8) and Value6E9 (`setting` the setting backstabAdd, the byte at +0x6E9).
 struct LevelCall {
     std::int32_t index;
-    float stat10, setting;
+    float strength, setting;
     std::uint8_t level, pad[3];
     LevelView record;
     double result;
@@ -88,22 +88,22 @@ struct LevelCall {
 // SkillWithBonus: the three stats, the skill bytes, and the first letter of the skill's first stat
 // name (its record exists and names at least one stat).
 struct SkillBonusCall {
-    float stat10, stat18, stat20;
+    float strength, dexterity, intelligence;
     std::uint8_t skills[8];
     std::uint32_t index;
     char letter, pad[3];
     std::uint32_t pad2;
     double result;
 };
-// StrengthRatio (stat10, "HP Val 1") and DexterityRatio (stat18, "MP Val 1").
+// StrengthRatio (strength, "HP Val 1") and DexterityRatio (dexterity, "MP Val 1").
 struct RatioCall {
     float stat, setting;
     double result;
 };
-// GetFactors: stat10, stat18, the stat range (007AF280), what it wrote to a and b (one float when the
+// GetFactors: strength, dexterity, the stat range (007AF280), what it wrote to a and b (one float when the
 // two pointers were the same: `aliased`).
 struct FactorsCall {
-    float stat10, stat18, range;
+    float strength, dexterity, range;
     float a, b;
     std::int32_t aliased;
 };
@@ -150,7 +150,7 @@ struct ProtectionCall {
 // weapon's skill bonus bytes (`weapon` 0: no weapon).
 struct WeaponBonusCall {
     std::int32_t type;
-    std::uint8_t stat10, stat18, attackRate, level;
+    std::uint8_t strength, dexterity, intelligence, level;
     std::uint8_t skills[2];
     char letters[2];
     std::uint8_t weapon, bonus[2], pad;

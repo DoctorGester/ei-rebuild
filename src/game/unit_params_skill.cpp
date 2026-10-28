@@ -30,9 +30,9 @@ char StatLetter(int skill) {
 // The stat that letter names, minus 25, or false for another letter.
 bool StatTerm(const UnitParams* params, char letter, double* term) {
     switch (letter) {
-    case 's': *term = static_cast<double>(params->stat10) - kStatBase; return true;
-    case 'i': *term = static_cast<double>(params->attackRate) - kStatBase; return true;
-    case 'd': *term = static_cast<double>(params->stat18) - kStatBase; return true;
+    case 's': *term = static_cast<double>(params->strength) - kStatBase; return true;
+    case 'i': *term = static_cast<double>(params->intelligence) - kStatBase; return true;
+    case 'd': *term = static_cast<double>(params->dexterity) - kStatBase; return true;
     default: return false;
     }
 }

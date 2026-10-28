@@ -68,7 +68,6 @@ public:
     virtual bool Receive(CMemoryStream* stream);      // records the stream: true
     virtual void Pump() {}
     virtual void Disconnect() = 0;
-    virtual int Unknown12() { return 0; }
 
     // Starts recording into a new file `path`; the first message is dropped.
     void OpenRecording(const char* path);

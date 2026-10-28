@@ -342,7 +342,7 @@ Next StartCharm(CSpellEffect* e) {
     if (!IsUnit(e->caster)) return Next::Leave;
     CUnitServer* tamed = ControllerOf(TargetUnit(e));
     CUnitServer* tamer = ControllerOf(e->caster);
-    float skill = tamer->stats.stat20 + e->Spell()->damage_;
+    float skill = tamer->stats.intelligence + e->Spell()->damage_;
     auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
         if (tamed->TryTame(e->caster, skill) == 0) {

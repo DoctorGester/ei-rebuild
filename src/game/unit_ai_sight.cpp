@@ -82,8 +82,8 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     int blockX = cellX / 32;
     int blockY = cellY / 32;
     CUnitServer* control = self->ServerController();
-    float hearing = control->stats.valuesB0[2].current;
-    float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
+    float hearing = control->stats.perception[2].current;
+    float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
     float reach = sight >= hearing ? sight : hearing;
     int count = 0;
     const std::int16_t* offsets =
@@ -130,8 +130,8 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
         CUnitServer* theirs = other->ServerController();
         float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
-        double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
-                          ours->stats.valuesB0[0].current;
+        double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                          ours->stats.perception[0].current;
         float sight = static_cast<float>(sightRaw);
         bool seen = false;
         if (sightRaw >= distance) {
@@ -150,8 +150,8 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
                 seen = true;
             } else {
                 if (dead) continue;
-                EI_NAN_AUDIT(theirs->stats.valuesE0[2].current, ours->stats.valuesB0[2].current, distance);
-                if (static_cast<double>(theirs->stats.valuesE0[2].current) * ours->stats.valuesB0[2].current <= distance) continue;
+                EI_NAN_AUDIT(theirs->stats.conspicuity[2].current, ours->stats.perception[2].current, distance);
+                if (static_cast<double>(theirs->stats.conspicuity[2].current) * ours->stats.perception[2].current <= distance) continue;
                 *kAiLog << "using sense life ";
                 alive = true;
             }
@@ -208,10 +208,10 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
             CUnitServer* theirs = other->ServerController();
             AIBrain* theirBrain = &theirs->brain;
             if (theirs->moveMode2.onGuard && theirBrain->target == self) continue;
-            double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.valuesE0[0].current *
-                           owner->stats.valuesB0[0].current * reachFactor;
+            double sight = static_cast<double>(theirs->moveFactors[2]) * owner->moveFactors[3] * theirs->stats.conspicuity[0].current *
+                           owner->stats.perception[0].current * reachFactor;
             if (sight > distance) continue;
-            double sense = static_cast<double>(theirs->stats.valuesE0[2].current) * owner->stats.valuesB0[2].current * reachFactor;
+            double sense = static_cast<double>(theirs->stats.conspicuity[2].current) * owner->stats.perception[2].current * reachFactor;
             if (sense > distance) continue;
             if (theirBrain->AggressionEnemy() == self) continue;
         }
@@ -239,14 +239,14 @@ void MarkSightCells(CUnit* seer, CUnit* observer, FogGrid* grid) {
     CUnitServer* theirs = observer->ServerController();
     float cone = mine->stats.sightCone;
     float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
-                               theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);
+                               theirs->stats.conspicuity[0].current * mine->stats.perception[0].current);
     // The larger of 0 and the sight.
     EI_NAN_AUDIT(sight);
     float radius = kZero < sight ? sight : kZero;
     float height = static_cast<float>(observer->ModeSpeed());
     CAIMap* map = g_serverWorld->AIMap();
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
-    double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
+    double hearing = static_cast<double>(mine->stats.perception[2].current) * theirs->stats.conspicuity[2].current;
     if (!IsZero(hearing)) map->MarkVisibleCells(&eye, static_cast<float>(hearing), &look, kNoCone, kNoLineOfSight, grid);
     float peripheral = mine->stats.peripheralRange;
     if (!IsZero(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);

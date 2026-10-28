@@ -70,8 +70,8 @@ struct UnitPrototypeRecord {
     float attributes01;             // 0x16 attributes 0 and 1
     float attribute2;               // 0x17 attribute 2
     std::uint32_t peripheralRange;      // 0x18 its peripheral sight range
-    float valuesB0[6];              // 0x19
-    float valuesE0[6];              // 0x1A
+    float perception[6];              // 0x19
+    float conspicuity[6];              // 0x1A
     UnitGoldRoll gold;              // chunk 0x1B, fields 0..3 (the loot)
     UnitGoldRoll secondGold;        // chunk 0x1C (fields 0..3)
     std::vector<std::string> lootItems;            // 0x1D item names its loot draws from

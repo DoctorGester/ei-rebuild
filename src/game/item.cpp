@@ -130,7 +130,7 @@ float WeaponMaxDamage(std::uint32_t packedId) {
 
 float WeaponAttack(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
-    return weapon->value38 * MaterialOf(packedId)->factor38;
+    return weapon->weight * MaterialOf(packedId)->weightFactor;
 }
 
 int WeaponDamageType(std::uint32_t packedId) {

@@ -108,8 +108,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         auto next = std::next(node);
         auto* other = *node;
         CUnitServer* control = other->ServerController();
-        float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
-        float hearing = control->stats.valuesB0[2].current;
+        float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.perception[0].current);
+        float hearing = control->stats.perception[2].current;
         EI_NAN_AUDIT(sight, hearing);
         float reach = sight < hearing ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;

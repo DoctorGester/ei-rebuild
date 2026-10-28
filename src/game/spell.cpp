@@ -41,7 +41,7 @@ int CSpell::Create() {
     manaCost_ = 0;
     complexity_ = 0;
     price_ = 0;
-    prototypeField14_ = 0;
+    castTime_ = 0;
     skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
@@ -59,7 +59,7 @@ BOOL CSpell::InitFromPrototype(const itemdb::SpellRecord* prototype) {
     manaCost_ = prototype->mana;
     complexity_ = prototype->complexity;
     price_ = prototype->price;
-    prototypeField14_ = prototype->value3C;
+    castTime_ = prototype->castTime;
     skillNeeded_ = static_cast<std::uint32_t>(prototype->skill);
     effectPower_ = 0x10;
     prototypeIndex_ = static_cast<std::uint8_t>(prototypeId_ >> 16);

@@ -78,8 +78,8 @@ CDirectInputMouse::~CDirectInputMouse() {
 
 void PartyManager::Destruct() {
     std::destroy_at(&templates);
-    std::destroy_at(&records.text10);
-    std::destroy_at(&records.text0C);
+    std::destroy_at(&records.currentName);
+    std::destroy_at(&records.requestedName);
     std::destroy_at(&records.records);
     std::destroy_at(&entries);
     std::destroy_at(&parties);
@@ -89,8 +89,8 @@ PartyManager* PartyManager::Construct() {
     std::construct_at(&parties);
     std::construct_at(&entries);
     std::construct_at(&records.records);
-    std::construct_at(&records.text0C);
-    std::construct_at(&records.text10);
+    std::construct_at(&records.requestedName);
+    std::construct_at(&records.currentName);
     std::construct_at(&templates);
     return this;
 }

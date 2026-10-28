@@ -189,11 +189,11 @@ struct FigureBone : CEngineObject {
 // from FigureModel::FindAnimation). Only the virtual the animation state calls is named.
 class __declspec(novtable) CFigureModelPart {
 public:
-    virtual void Unknown0();
-    virtual void Unknown1();
-    virtual void Unknown2();
-    virtual void Unknown3();
-    virtual void Unknown4();
+    virtual void Unused0();
+    virtual void Unused1();
+    virtual void Unused2();
+    virtual void Unused3();
+    virtual void Unused4();
     // The data of entry `name` (its size to *size when not null), or null.
     virtual void* ReadEntry(const char* name, int* size);
 };

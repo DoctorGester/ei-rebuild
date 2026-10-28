@@ -184,17 +184,17 @@ struct CDXSurface final : CRendererBase {
 // Never constructed here.
 class CPixelConverter {
 public:
-    virtual void Unknown0();
+    virtual void Unused0();
     // The 16-bit format ConvertTo16 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them).
     virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
                                  std::uint32_t blueMask);
     // `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
     virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
-    virtual void Unknown3();
-    virtual void Unknown4();
+    virtual void Unused3();
+    virtual void Unused4();
     // An .mmp file's pixels (after its header and extra block) into 32-bit pixels.
     virtual void UnpackTo32(std::uint32_t* out, const void* in, unsigned count, int pnt3);
-    virtual void Unknown6();
+    virtual void Unused6();
     // A square image; `width` is the new width.
     virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
     // `target` starts with the triangle's three corners (a screen and a texture point each, pairs of ints)

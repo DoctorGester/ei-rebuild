@@ -47,15 +47,15 @@ public:
     void Destroy() override;
     // The recharge: charge_ moves towards chargeMax_ by chargeRate_ * chargeMax_. 0 when already full.
     int RunTick() override;
-    // The packed id, condition_..value3C_, the spell's id (-1: none; Load finds it in the context's spell
+    // The packed id, condition_..unreadValue_, the spell's id (-1: none; Load finds it in the context's spell
     // manager and counts it), count_ and magicLevel_, four bytes each, in that order.
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // The classes call it first: price_, weight_, value3C_, charge_ and chargeMax_, magicLevel_, condition_
+    // The classes call it first: price_, weight_, unreadValue_, charge_ and chargeMax_, magicLevel_, condition_
     // and conditionMax_ from the record (see CItemConstructor::Build); chargeRate_ 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
     // 1 for the item itself; else the same kind, packed id, magicLevel_ and (equal or unordered floats)
-    // condition_..chargeMax_ and weight_..value3C_, and both without a spell or both with one of the same
+    // condition_..chargeMax_ and weight_..unreadValue_, and both without a spell or both with one of the same
     // packed id and modifiers.
     virtual BOOL IsSameAs(CItem* other);
     // `target`, when of the same kind, gets (after its Destroy) this item's packed id, condition_..magicLevel_,
@@ -64,7 +64,6 @@ public:
     virtual float GetPrice() { return price_; }
     // "" for a plain item.
     virtual std::string ModelName();
-    virtual std::string FirstListName();
     virtual std::string FigureName();
     virtual std::string PictureName();
     // The key the item works as on a lock (AcceptsKey, a lever's or a trap's ApplyScience): zeros; the quest
@@ -107,9 +106,9 @@ public:
     float charge_;
     float chargeMax_;             // the prototype's charge
     float chargeRate_;            // 0.001 by default
-    std::uint32_t weight_;        // float bits (Weight()); prototype value38
+    std::uint32_t weight_;        // float bits (Weight()); prototype weight
     float price_;                 // includes the attached spell's price
-    std::uint32_t value3C_;     // prototype value3C
+    std::uint32_t unreadValue_;   // the prototype's unreadValue (float bits); only saved, loaded and compared by IsSameAs
     // the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
@@ -153,10 +152,9 @@ public:
     BOOL IsSameAs(CItem* other) override;
 
     // Names built from the prototype. Model name: "<type>_<number>.<material name>.<variant>" (type "sw",
-    // "ax", ...; empty without a prototype or material). First list name: the first string of list20, else "".
-    // Figure name: "unhuma" + the model name. Picture name: "initwe<type><number>weapon".
+    // "ax", ...; empty without a prototype or material). Figure name: "unhuma" + the model name. Picture name:
+    // "initwe<type><number>weapon".
     std::string ModelName() override;
-    std::string FirstListName() override;
     std::string FigureName() override;
     std::string PictureName() override;
 
@@ -186,7 +184,6 @@ public:
     // The same four names as CItemWeapon's, with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
     std::string ModelName() override;
-    std::string FirstListName() override;
     std::string FigureName() override;
     std::string PictureName() override;
 
@@ -221,7 +218,7 @@ public:
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
-    std::uint32_t actionValue_;         // the record's value70 (CUnitServer::ScaledItemValue)
+    std::uint32_t actionValue_;         // the record's actionValue (CUnitServer::ScaledItemValue)
 };
 
 class CItemQuest : public CItem {
@@ -432,7 +429,7 @@ struct CItemManager : CResourceManager {
     CItem* CreateSpellItem(const char* spellText, CSpellManager* spells);
 
     // `names` resized to the table's record count and filled with the records' names: the materials' keys,
-    // the others' text04.
+    // the others' name.
     void ListMaterialNames(std::vector<std::string>* names);
     void ListWeaponNames(std::vector<std::string>* names);
     void ListArmorNames(std::vector<std::string>* names);

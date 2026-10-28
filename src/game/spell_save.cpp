@@ -36,7 +36,7 @@ void CSpell::Load(CStream* stream) {
     stream->Read(&manaCost_, 4);
     stream->Read(&complexity_, 4);
     stream->Read(&price_, 4);
-    stream->Read(&prototypeField14_, 4);
+    stream->Read(&castTime_, 4);
     stream->Read(modifiers_, sizeof(modifiers_));
     std::uint32_t flags = 0;
     stream->Read(&flags, 4);
@@ -53,7 +53,7 @@ void CSpell::Save(CStream* stream) {
     stream->Write(&manaCost_, 4);
     stream->Write(&complexity_, 4);
     stream->Write(&price_, 4);
-    stream->Write(&prototypeField14_, 4);
+    stream->Write(&castTime_, 4);
     stream->Write(modifiers_, sizeof(modifiers_));
     stream->Write(&flags_, 4);
     stream->Write(&skillNeeded_, 4);

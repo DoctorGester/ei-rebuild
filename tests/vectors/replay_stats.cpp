@@ -27,9 +27,9 @@ using namespace ei::vectors::stats;
 UnitStats& StatsOf(const StatView& view) {
     static UnitStats stats;   // 0x704 bytes
     std::memset(&stats, 0, sizeof(stats));
-    stats.stat10 = view.stat10;
-    stats.stat18 = view.stat18;
-    stats.stat20 = view.stat20;
+    stats.strength = view.strength;
+    stats.dexterity = view.dexterity;
+    stats.intelligence = view.intelligence;
     std::memcpy(stats.attributes, view.attributes, sizeof(view.attributes));
     std::memcpy(stats.skills, view.skills, sizeof(view.skills));
     for (int i = 0; i < 6; ++i) {
@@ -190,9 +190,9 @@ UnitStats& ZeroStats() {
 
 bool CheckSkillWithBonus(const SkillBonusCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.stat10 = v.stat10;
-    stats.stat18 = v.stat18;
-    stats.stat20 = v.stat20;
+    stats.strength = v.strength;
+    stats.dexterity = v.dexterity;
+    stats.intelligence = v.intelligence;
     std::memcpy(stats.skills, v.skills, sizeof(v.skills));
     char letters[8] = {};
     letters[v.index] = v.letter;
@@ -217,12 +217,12 @@ EI_VECTOR_CHECK("UnitStats::SkillLevelValue", LevelCall, CheckSkillLevelValue);
 
 bool CheckValue6E8(const LevelCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.stat10 = v.stat10;
+    stats.strength = v.strength;
     stats.skillLevels[0x6E8 - 0x6D3] = v.level;
     if (!PutLevel(v.record, d, n)) return false;
     double result = stats.Value6E8();
     if (Same(result, v.result)) return true;
-    std::snprintf(d, n, "stat10 %g level %u: ours %.17g, original %.17g", v.stat10, v.level, result, v.result);
+    std::snprintf(d, n, "strength %g level %u: ours %.17g, original %.17g", v.strength, v.level, result, v.result);
     return false;
 }
 EI_VECTOR_CHECK("UnitStats::Value6E8", LevelCall, CheckValue6E8);
@@ -241,7 +241,7 @@ EI_VECTOR_CHECK("UnitStats::Value6E9", LevelCall, CheckValue6E9);
 
 bool CheckStrengthRatio(const RatioCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.stat10 = v.stat;
+    stats.strength = v.stat;
     g_logicSettings.hpVal[0] = v.setting;
     double result = stats.StrengthRatio();
     if (Same(result, v.result)) return true;
@@ -252,7 +252,7 @@ EI_VECTOR_CHECK("UnitStats::StrengthRatio", RatioCall, CheckStrengthRatio);
 
 bool CheckDexterityRatio(const RatioCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.stat18 = v.stat;
+    stats.dexterity = v.stat;
     g_logicSettings.mpVal[0] = v.setting;
     double result = stats.DexterityRatio();
     if (Same(result, v.result)) return true;
@@ -263,8 +263,8 @@ EI_VECTOR_CHECK("UnitStats::DexterityRatio", RatioCall, CheckDexterityRatio);
 
 bool CheckGetFactors(const FactorsCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.stat10 = v.stat10;
-    stats.stat18 = v.stat18;
+    stats.strength = v.strength;
+    stats.dexterity = v.dexterity;
     if (v.range != 20.0f) {   // unit_stats.cpp's kFactorStatRange, a constant of ours
         std::snprintf(d, n, "recorded range %g, ours 20", v.range);
         return false;
@@ -273,7 +273,7 @@ bool CheckGetFactors(const FactorsCall& v, char* d, std::size_t n) {
     stats.GetFactors(&out[0], v.aliased ? &out[0] : &out[1], 0);
     const float b = v.aliased ? out[0] : out[1];
     if (Same(out[0], v.a) && Same(b, v.b)) return true;
-    std::snprintf(d, n, "stats %g %g range %g%s: ours %.9g / %.9g, original %.9g / %.9g", v.stat10, v.stat18, v.range,
+    std::snprintf(d, n, "stats %g %g range %g%s: ours %.9g / %.9g, original %.9g / %.9g", v.strength, v.dexterity, v.range,
                   v.aliased ? " (aliased)" : "", out[0], b, v.a, v.b);
     return false;
 }
@@ -372,9 +372,9 @@ EI_VECTOR_CHECK("UnitParams::ProtectionBlock", ProtectionCall, CheckProtectionBl
 bool CheckWeaponSkillBonus(const WeaponBonusCall& v, char* d, std::size_t n) {
     static UnitParams params;
     std::memset(&params, 0, sizeof(params));
-    params.stat10 = v.stat10;
-    params.stat18 = v.stat18;
-    params.attackRate = v.attackRate;
+    params.strength = v.strength;
+    params.dexterity = v.dexterity;
+    params.intelligence = v.intelligence;
     params.skills[0] = v.skills[0];
     params.skills[1] = v.skills[1];
     if (v.type < 7) params.skillLevels[v.type] = v.level;

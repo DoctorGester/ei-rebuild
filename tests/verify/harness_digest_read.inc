@@ -71,7 +71,7 @@ void ReadWorld(CWorldServer* w, Builder& b) {
 void ReadPlayer(CPlayer* p, Builder& b) {
     b.Int("id", p->playerId_);
     b.Unsigned("partyId", p->partyId_);
-    b.Unsigned("sessionKind", p->sessionKind100_);
+    b.Unsigned("sessionKind", p->sessionKind_);
     b.Int("lastScreen", p->lastScreen_);
     b.Unsigned("godMode", p->godMode_);
     b.Int("lastTick", p->lastTick_);

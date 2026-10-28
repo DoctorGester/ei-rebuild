@@ -88,7 +88,7 @@ constexpr int kNumberExperience = 8;
 int ScaledExperience(const CUnit* unit, float amount) {
     double base = 1.04 /*0073E128*/;
     float offset = 25.0f /*0073E124*/;
-    float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->params.attackRate) - offset) * amount);
+    float scaled = static_cast<float>(std::pow(base, static_cast<double>(unit->params.intelligence) - offset) * amount);
     return x87::RoundToInt(scaled);
 }
 
@@ -619,7 +619,7 @@ int CPlayerClient::OnNewObject() {
         const std::string variable = g_clientWorld->ObjectVariableName(object->name2.c_str());
         object->SetVisibilityLevel(player->Party()->variables_.Get(variable));
     }
-    if (player->sessionKind100_ == kSessionClient) {
+    if (player->sessionKind_ == kSessionClient) {
         if (CUnit* unit = UnitOrNull(created)) unit->ClientController()->LoadFaceTexture();
     }
     return 1;
@@ -713,7 +713,7 @@ int CPlayerClient::OnPartyState() {
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
-        if (!g_partyIdSet->contains(id) && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+        if (!g_partyIdSet->contains(id) && player->sessionKind_ == kSessionKindSingle && unit->player == nullptr &&
             g_clientWorld->ticksRun_ >= 1)
             unit->Controller()->RestartFadeIn();
     }

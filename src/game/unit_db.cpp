@@ -71,8 +71,8 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x16, &attributes01);
     Dword(ar, 0x17, &attribute2);
     Dword(ar, 0x18, &peripheralRange);
-    ar->Field(0x19, valuesB0, sizeof(valuesB0));
-    ar->Field(0x1A, valuesE0, sizeof(valuesE0));
+    ar->Field(0x19, perception, sizeof(perception));
+    ar->Field(0x1A, conspicuity, sizeof(conspicuity));
     if (ar->EnterChunk(0x1B)) {
         Dword(ar, 0, &gold.chance);
         Dword(ar, 1, &gold.unreadField);
