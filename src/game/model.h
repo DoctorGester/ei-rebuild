@@ -213,6 +213,7 @@ class CMaterial;
 // The lights a figure part is lit with (the draw's lights argument).
 using FigureLights = std::vector<CLight*>;
 struct LineBatch;
+struct LightningPoint;
 
 // A render state preset the renderer's helper keeps (counted).
 class CRenderPreset final {
@@ -328,8 +329,8 @@ public:
     virtual int DrawFigure(CFigureMesh* figure, const void* unknownA, const void* unknownB, CMaterial* material, int alpha,
                            tagRECT* screen) = 0;
     virtual void DrawLineList(LineBatch* lines) = 0;
-    virtual int DrawStrip(void* points, float width, int visibility, float length, float offset,
-                          float slant) = 0;
+    virtual int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length,
+                          float offset, float slant) = 0;
     virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;
     virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
                                     const Vector3* axisY) = 0;
@@ -451,7 +452,8 @@ public:
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
-    int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant) override;
+    int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length, float offset,
+                  float slant) override;
     // Draws sprites facing the view with the bound texture: `points` an aligned array of centres and sizes
     // (x, y, z, size), `sprites` a CArray of their colours and texture rectangles. The first argument is 0
     // at every call known.

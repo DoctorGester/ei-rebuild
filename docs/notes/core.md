@@ -573,8 +573,7 @@ to which template:
   their last reference); the map must end empty.
 - A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
   0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
-  the keys resized to length / 36 as the engine's aligned arrays are (+0x2F0..+0x2FC are an
-  `AlignedArray<CameraKey>`: data, size, capacity, grow step) and filled with one read. With the second
+  the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units
   after its predecessor gives its position and rotation to every key before it. Side by side on the camera
   itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).

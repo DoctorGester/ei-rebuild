@@ -1071,8 +1071,6 @@ struct UiPointF {
     float y;
 };
 using UiPointArray = std::vector<UiPointF>;
-// `growBy` -1 keeps the growth step.
-void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.

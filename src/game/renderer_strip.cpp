@@ -4,6 +4,7 @@
 #include "clip.h"
 #include "device.h"
 #include "model.h"
+#include "lightning.h"   // LightningPoint
 #include "texture.h"
 
 #include "lib/containers.h"
@@ -182,35 +183,32 @@ int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
     return 1;
 }
 
-// `points` is an array {data, count} of world points (16 bytes each: x, y, z and one more); `width` scales
+// `points` holds the world points (x, y, z and one more); `width` scales
 // the ribbon's screen width; `mode` 0 projects, 1 projects and clips (points flagged by the transform object
 // are skipped), 2 only sizes the buffers; u runs over `uLength` along the ribbon (0.875 at the start when it
 // is 0), v from `vStart` over `vSize`. Returns the draw's result (1 when nothing is drawn).
-int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLength, float vStart, float vSize) {
-    const int* points = static_cast<const int*>(pointArray);
+int CSceneRenderer::DrawStrip(const std::vector<LightningPoint>* pointArray, float width, int mode, float uLength,
+                              float vStart, float vSize) {
+    const LightningPoint* points = pointArray->data();
+    const int pointCount = static_cast<int>(std::ssize(*pointArray));
     CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
 
-    int n = points[1];
-    if (n == 0) {
-        Projected().clear();
-        Strip().clear();
-    } else {
-        Projected().resize(n);
-        Strip().resize(n);
-    }
+    const auto n = static_cast<std::size_t>(pointCount);
+    Projected().resize(n);
+    Strip().resize(n);
     Ribbon().resize(n * 2 + 100);
     Clipped().resize(n);
-    // The index array is sized for the ribbon and then freed at once; the indices are appended later.
-    Indices().resize(std::ssize(Ribbon()) * 3 + 0x96);
+    // The indices are appended later; room for the ribbon's.
     Indices().clear();
+    Indices().reserve(Ribbon().size() * 3 + 0x96);
 
     if (mode == 2) return 1;
-    if (points[1] < 2) return 1;
+    if (pointCount < 2) return 1;
 
     g_currentU = 0.0f;
-    float step = static_cast<float>(uLength / static_cast<double>(points[1] - 1));
+    float step = static_cast<float>(uLength / static_cast<double>(pointCount - 1));
     float zero = 0.0f;
     EI_NAN_AUDIT(uLength);
     if (uLength == zero) g_currentU = 0.875f;
@@ -219,12 +217,10 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
 
     int clipped = mode;
     if (mode == 0) {
-        transform->ProjectPoints(pipeline->Top(1), reinterpret_cast<const void*>(points[0]), Projected().data(),
-                                 points[1]);
+        transform->ProjectPoints(pipeline->Top(1), points, Projected().data(), pointCount);
     } else {
-        clipped = transform->ProjectPointsClipped(pipeline->Top(CTransformPipeline::kClipStack),
-                                                  reinterpret_cast<const void*>(points[0]), Projected().data(),
-                                                  Clipped().data(), points[1]);
+        clipped = transform->ProjectPointsClipped(pipeline->Top(CTransformPipeline::kClipStack), points,
+                                                  Projected().data(), Clipped().data(), pointCount);
         if (clipped == 2) return 1;
     }
 

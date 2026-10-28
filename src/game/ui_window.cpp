@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <memory>
 #include <initializer_list>
 #include <bit>
 
@@ -287,7 +288,7 @@ CUiRegion* CUiWindow::AddRegion() {
     if (region) {
         // The bounds are left uninitialised, as in the original.
         region->interface_ = interface_;
-        region->points_ = {};
+        std::construct_at(&region->points_);
         region->tip_ = nullptr;
         region->enabled_ = false;
         region->rectOnly_ = false;

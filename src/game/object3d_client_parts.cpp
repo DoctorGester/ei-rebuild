@@ -44,13 +44,12 @@ bool IsPrimaryKind(int kind) {
     }
 }
 
-// A zeroed 0x14-byte part set or group; null when the allocation fails (the callers then write
+// A value-initialised part set or group; null when the allocation fails (the callers then write
 // through null, as the game does).
 template <typename T>
 T* NewZeroed() {
     auto* p = gamecrt::operator_new_as<T>();
-    if (p) std::memset(p, 0, sizeof(T));
-    return p;
+    return p ? new (p) T() : nullptr;
 }
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
