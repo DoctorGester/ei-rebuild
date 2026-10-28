@@ -3,8 +3,8 @@
 
 #include "settings_file.h"
 
-#include "../lib/crt.h"
-#include "../lib/gameapi.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
 
 #include <bit>
 #include <cstring>

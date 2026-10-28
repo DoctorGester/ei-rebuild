@@ -7,7 +7,7 @@
 #include "ui.h"
 #include "script.h"
 
-#include "../lib/crt.h"
+#include "lib/crt.h"
 
 #include "ei/hook.h"
 #include "ui.h"

@@ -13,7 +13,7 @@
 #include "world_effect_internal.h"
 #include "game_singletons.h"
 
-#include "../lib/crt.h"
+#include "lib/crt.h"
 #include "ei/x87.h"
 
 #include <cmath>

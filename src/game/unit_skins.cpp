@@ -11,8 +11,8 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "../lib/containers.h"
-#include "../lib/crt.h"
+#include "lib/containers.h"
+#include "lib/crt.h"
 #include "unit_client_models.h"
 #include <cstddef>
 #include <cstdint>

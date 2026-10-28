@@ -5,9 +5,9 @@
 #include "sound.h"
 #include "game_strings.h"
 
-#include "../lib/crt.h"
-#include "../lib/gameapi.h"
-#include "../lib/vecmath.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/vecmath.h"
 #include "random.h"
 
 #include "ei/x87.h"

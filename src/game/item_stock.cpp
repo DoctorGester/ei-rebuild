@@ -9,13 +9,13 @@
 #include "random.h"
 #include "spell.h"
 
-#include "../lib/crt.h"
+#include "lib/crt.h"
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "../lib/text_case.h"
+#include "lib/text_case.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/containers.h"

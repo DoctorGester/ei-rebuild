@@ -9,9 +9,9 @@
 #include "console.h"
 #include "registry.h"
 
-#include "../lib/crt.h"
-#include "../lib/gameapi.h"
-#include "../lib/text_case.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/text_case.h"
 #include "random.h"
 
 #include "game_singletons.h"

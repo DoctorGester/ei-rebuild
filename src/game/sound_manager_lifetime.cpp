@@ -5,8 +5,8 @@
 #include "game_strings.h"
 #include "mod_folders.h"
 
-#include "../lib/crt.h"
-#include "../lib/gameapi.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
 
 #include "lib/thread.h"
 #include "game_data.h"

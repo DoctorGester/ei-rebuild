@@ -9,7 +9,7 @@
 
 #include "ei/x87.h"
 #include "random.h"
-#include "../lib/crt.h"
+#include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

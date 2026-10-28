@@ -5,15 +5,15 @@
 
 #include "engine_object.h"
 
-#include "../lib/containers.h"
+#include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "../lib/hash_map.h"
-#include "../lib/vecmath.h"
+#include "lib/hash_map.h"
+#include "lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
-#include "../lib/import_prototypes.h"
+#include "lib/import_prototypes.h"
 
 #include <list>
 #include <unordered_map>

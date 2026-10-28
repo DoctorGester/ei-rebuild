@@ -8,7 +8,7 @@
 #include "console.h"
 #include "object_tables.h"
 
-#include "../lib/text_case.h"
+#include "lib/text_case.h"
 #include "text_reader.h"
 #include "game_data.h"
 #include "game_singletons.h"

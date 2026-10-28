@@ -14,7 +14,7 @@
 #include "unit.h"
 #include "world.h"
 
-#include "../lib/crt.h"
+#include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "save_versions.h"

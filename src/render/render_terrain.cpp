@@ -5,7 +5,7 @@
 
 #include "../game/model.h"
 #include "../game/terrain_sector.h"
-#include "../lib/float_select.h"
+#include "lib/float_select.h"
 #include "../hook/log.h"
 
 #include <vector>

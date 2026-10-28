@@ -4,7 +4,7 @@
 #include "ei/x87.h"
 #include "console.h"
 
-#include "../lib/text_case.h"
+#include "lib/text_case.h"
 #include "lib/calendar.h"
 #include "lib/file_io.h"
 #include "player_client.h"
