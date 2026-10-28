@@ -40,7 +40,6 @@ namespace {
 // game_arrays.cpp's other element types.
 void EffectParticle::ReleaseSource() EI_UNLINKED("EffectParticle::ReleaseSource")
 void __fastcall aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
-void __fastcall aligned::ArrayAt4Free(void*) EI_UNLINKED("aligned::ArrayAt4Free")
 void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
 void __fastcall zone::ExitDestruct(ZoneExit*) EI_UNLINKED("zone::ExitDestruct")
 void __fastcall zone::ZoneRecordDestruct(MapRecord*) EI_UNLINKED("zone::ZoneRecordDestruct")
@@ -100,13 +99,10 @@ std::size_t __cdecl libcrt::Fwrite(const void*, std::size_t, std::size_t, gamecr
 
 // The library's exceptions and resources (mfc_archive.cpp, mfc_string.cpp, mfc.cpp's
 // TRY link, mfc_file.cpp).
-libcrt::Exception* libcrt::Exception::Construct() EI_UNLINKED("libcrt::Exception::Construct")
-libcrt::Exception* libcrt::Exception::DeletingDestruct(unsigned) EI_UNLINKED("libcrt::Exception::DeletingDestruct")
 mfc::impl::CFileException::~CFileException() {}   // the stack exceptions of mfc_file.cpp's CFile opens
 const mfc::impl::CRuntimeClass* mfc::impl::CFileException::GetRuntimeClass() const EI_UNLINKED("mfc::impl::CFileException::GetRuntimeClass")
 BOOL mfc::impl::CFileException::GetErrorMessage(char*, unsigned, unsigned*) EI_UNLINKED("mfc::impl::CFileException::GetErrorMessage")
 int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
-void __stdcall libcrt::CxxThrowException(void*, const void*) EI_UNLINKED("libcrt::CxxThrowException")
 void __stdcall mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void __stdcall mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
 int __stdcall mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")

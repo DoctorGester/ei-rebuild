@@ -1,4 +1,4 @@
-// MFC 4.2's thread and process locals and AUX_DATA, registered at their library addresses (mfc_state.h).
+// MFC 4.2's thread and process locals and AUX_DATA (mfc_state.h).
 #include "mfc_state.h"
 
 #include "crt.h"
@@ -9,22 +9,12 @@
 namespace mfc::impl {
 
 namespace {
-
-// on afxData, no arguments.
-void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
-void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
-
-} // namespace
-
-namespace {
 // _afxThreadData: made on first use of a thread local, which the image never makes (null).
 constinit CThreadSlotData* g_afxThreadData = /*007C9084*/ {nullptr};
 // afxData, zero at the start: built by its static initialiser in the list's order and its menu-dot bitmap deleted by
 // the exit function it registers.
 constinit lib::StaticObject<AuxData> g_afxData = /*007C90C8*/ {};
 } // namespace
-
-AuxData& AfxData() { return *g_afxData; }
 
 // ---- Thread and process locals -------------------------------------------------------------------
 

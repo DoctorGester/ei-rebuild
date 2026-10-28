@@ -114,8 +114,6 @@ int CharacterCount(std::string_view text) {
     }
 }
 
-int CharacterCount(const mfc::CString& text) { return CharacterCount(Bytes(text.GetString())); }
-
 // ---- Lengths and cuts by character ----------------------------------------------------------------
 
 namespace {
@@ -157,8 +155,6 @@ int CharacterBytes(std::string_view text, int characters) {
         return static_cast<int>(i);
     }
 }
-
-int CharacterBytes(const mfc::CString& text, int characters) { return CharacterBytes(Bytes(text.GetString()), characters); }
 
 std::size_t FittingBytes(std::string_view text, std::size_t room) {
     if (text.size() <= room) return text.size();

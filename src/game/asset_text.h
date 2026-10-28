@@ -34,7 +34,6 @@ bool ToAssetText(std::string_view text, std::string* out, unsigned codepage = kA
 // character) or a limit: its bytes in the asset code page. A colour escape ("\007C" and three raw bytes, built
 // by the game) counts its 5 bytes.
 int CharacterCount(std::string_view text);
-int CharacterCount(const mfc::CString& text);
 inline int CharacterCount(const std::string& text) { return CharacterCount(std::string_view(text)); }
 
 // --- Lengths and cuts by character -----------------------------------------------------------
@@ -44,7 +43,6 @@ inline int CharacterCount(const std::string& text) { return CharacterCount(std::
 int CharacterLength(const char* p);
 // The bytes of `text`'s first `characters` characters (all of it when it has fewer; 0 for none).
 int CharacterBytes(std::string_view text, int characters);
-int CharacterBytes(const mfc::CString& text, int characters);
 inline int CharacterBytes(const std::string& text, int characters) {
     return CharacterBytes(std::string_view(text), characters);
 }

@@ -124,21 +124,3 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
     FreeStrings(&vars.floats.names);
     FreePlain(&vars.floats.values, mfc::impl::ScriptFloatsClass::Vtable());
 }
-
-// The names, then each group's references through the element destructor and
-// its storage, then the array's storage.
-void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
-    FreeStrings(&vars->names);
-    mfc::CArray<ScriptGroup>& groups = vars->values;
-    groups.vtable = gamearrays::GroupArrayClass::Vtable();
-    if (!groups.data) return;
-    ScriptGroup* group = groups.data;
-    for (int n = groups.size; n != 0; --n, ++group) {
-        group->vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-        if (!group->data) continue;
-        ScriptObjectRef* ref = group->data;
-        for (int k = group->size; k != 0; --k, ++ref) ref->DestroyElement(0);
-        gamecrt::operator_delete(group->data);
-    }
-    gamecrt::operator_delete(groups.data);
-}

@@ -4,7 +4,7 @@
 // game.exe instantiates them (docs/notes/standalone.md section 2). The list bodies are mfc::CList's (mfc.h), the
 // map bodies are written here over mfc::CMap's layout; the instantiations differ in the element: its size (read
 // from each NewNode's CPlex::Create) and the element policy (mfc_array.h). ListAbi / MapAbi turn the members
-// into the instantiations' calling conventions; mfc_list.cpp registers the library-only instantiations,
+// into the instantiations' calling conventions; mfc_list.cpp has the library-only instantiations,
 // src/game/game_lists.cpp the ones whose elements are game types.
 
 #include "mfc_array.h"
@@ -42,7 +42,7 @@ struct ListAbi : CList<T, E> {
     // The instantiations' NewNode(pPrev, pNext) (the node, its element constructed), FreeNode(pNode)
     // (the element destroyed, the node onto the free list; the last one frees every block),
     // RemoveAt(position) (unlinked, then FreeNode) and RemoveAll (the elements
-    // destroyed, every block freed) are CList's own members (mfc.h), registered through this type.
+    // destroyed, every block freed) are CList's own members (mfc.h), reached through this type.
     // AddTail / AddHead with ARG_TYPE by value: the new node (POSITION).
     Node* AddTailByValue(T value) { return List::AddTail(value); }
     // RemoveHead: the head's element.
@@ -138,7 +138,7 @@ struct MapAbi : CMap<K, V> {
     void Serialize(CArchive* ar);
 
     // The instantiations' InitHashTable, GetAssocAt, NewAssoc, operator[] (ElementAt) and RemoveAll
-    // (elements without destructors) are CMap's own members (mfc.h), registered through this type.
+    // (elements without destructors) are CMap's own members (mfc.h), reached through this type.
 
     // The destructor (the vtable of `Class` written first): RemoveAll.
     template <typename Class>
@@ -187,9 +187,6 @@ using List1C = ListAbi<Bytes<0x1C>>;
 using List4C = ListAbi<Bytes<0x4C>>;
 using LightningList = ListAbi<Lightning8, LightningElements>;
 
-using ParticleSourceArray = ArrayAbi<Bytes<0x24>>;   // 0x24-byte particle sources: the zero fill
-using Plain4C = ArrayAbi<Bytes<0x4C>>;
-using LightningArray = ArrayAbi<Lightning8, LightningElements>;
 
 using Map32 = MapAbi<std::uint32_t, std::uint32_t>;
 using Map64x32 = MapAbi<std::uint64_t, std::uint32_t>;

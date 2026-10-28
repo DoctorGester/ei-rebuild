@@ -1,4 +1,4 @@
-// MFC 4.2's resource strings and their formatting, registered at their library addresses (mfc_resource.h).
+// MFC 4.2's resource strings and their formatting (mfc_resource.h).
 #include "mfc_resource.h"
 #include "crt_locale_data.h"
 

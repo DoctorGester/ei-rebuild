@@ -114,9 +114,6 @@ struct AuxData {
 };
 static_assert(sizeof(AuxData) == 0x6C);
 
-// afxData.
-AuxData& AfxData();
-
 // ---- Module state, runtime class list, global locks ----------------------------------------
 
 // CSimpleList: an intrusive singly linked list; each element keeps its next pointer `nextOffset` bytes in.

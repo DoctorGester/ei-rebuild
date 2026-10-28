@@ -82,7 +82,6 @@ public:
 static_assert(offsetof(CSysInfo, computerName_) == 0x1C);
 
 extern lib::StaticObject<CSysInfo> g_sysInfo;   // sys_info.cpp: constructed by its static initialiser
-inline CSysInfo* TheSysInfo() { return &*g_sysInfo; }
 
 // The translation unit's static initialisers (they run before WinMain). The four
 // constants: 2 pi, pi / 2, pi / 4 and

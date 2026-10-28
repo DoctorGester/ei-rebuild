@@ -94,7 +94,7 @@ struct ArrayAbi : CArray<T, E> {
     // The instantiations' SetSize(nNewSize, nGrowBy), SetAtGrow(nIndex, ARG_TYPE) and Add(ARG_TYPE)
     // (ARG_TYPE a reference: the element's address), Copy(const CArray&), RemoveAt(nIndex, nCount)
     // ElementAt(nIndex) and the by-value GetAt(nIndex) are CArray's own members
-    // (mfc.h), registered through this type (Abi::SetSize ...).
+    // (mfc.h), reached through this type (Abi::SetSize ...).
     // SetAtGrow for the dword instantiations: ARG_TYPE the value.
     void SetAtGrowByValue(int index, T value) { Array::SetAtGrow(index, value); }
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
@@ -314,12 +314,9 @@ using Plain20 = ArrayAbi<Bytes<20>>;
 using Plain24 = ArrayAbi<Bytes<24>>;
 using Plain28 = ArrayAbi<Bytes<28>>;
 using Plain40 = ArrayAbi<Bytes<40>>;
-using Plain9C = ArrayAbi<Bytes<0x9C>>;
 using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
-using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
-                                InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 

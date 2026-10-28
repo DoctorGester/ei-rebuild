@@ -1,10 +1,8 @@
 #pragma once
 
 // The world's player manager (a CBaseManager of CPlayer objects, the world's +0x38, also the script commands'
-// event dispatcher ; a real virtual class); player_manager.cpp, its lifetime and class virtuals in Its slot 2
-// and 14 bodies are registered by member pointer under their own names. Creating a player for a lobby session
-// is Rebirth-patched (PlayerNumbers, reproduced behind its flag); callers go through its address
-// (PlayerCreateOriginal, rule 9).
+// event dispatcher; a real virtual class); player_manager.cpp holds its lifetime and class virtuals. Creating a
+// player for a lobby session is Rebirth-patched (PlayerNumbers, reproduced behind its flag).
 
 #include "base_manager.h"
 

@@ -3442,6 +3442,14 @@ model = "sonnet"
 note = "User 2026-10-28 asked why so many: __fastcall 1,058, __stdcall 479, __cdecl 549, __thiscall 9 in src/game + src/lib. They matched the original's ABI so registrations could put our function where game.exe called its own (ECX/EDX for MSVC6 helpers turned free functions). Since C20 / C20l nothing in game.exe calls ours, so they are noise. Scripted removal; keep only where an outside signature requires one: Win32 / COM / DirectX callbacks and interfaces (WNDPROC, thread procs, CALLBACK / WINAPI / STDMETHOD), CRT callbacks (qsort, atexit, _onexit), function pointers stored in game data the image reads, and the EI_RECORD recorders (they run inside game.exe; check_signatures). Default convention for x86 32-bit build stays. Checks: verify/release, check_signatures, image suite goldens."
 
 [[ticket]]
+id = "C20o"
+title = "Dead functions C20m left: C14a's files and mfc_window's CMenu group"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14a"]
+note = "C20m (/Od COFF graph, both EI_UTF8 configs) left these dead: after C14a merges, mfc_coll.cpp / mfc.cpp CStringArray::Append, Copy, CopyElements, InsertAt, InsertEmpty, RemoveAt (+ mfc_coll.h, mfc.h declarations), mfc_string.cpp ConstructStrings, DestructStrings, shim::Destruct, CString::ConstructText, FindOneOf, Format, UIntArrayClass::Vtable (mfc_coll), console::Str::AppendText (console.cpp). Re-run the scan then (scratch builds with -DCMAKE_CXX_FLAGS_RELWITHDEBINFO='/Od /Zi /Gy /DNDEBUG', both EI_UTF8 values, COFF relocation graph); also drop whatever C14a makes dead. mfc_window.cpp: CMenu, CTempMenu, CTempWnd and their create functions are never made; removing them takes kClassCMenu / kClassCTempMenu / kClassCTempWnd (mfc_runtime_class.h), g_tempMenuAlloc / g_tempWndAlloc and their exit guards (mfc_static_objects), so it needs the named-data and static-initialiser lists checked (gen_static_init, named_data). Comments still saying 'registered at their library addresses': mfc_coll.*, mfc_string.* (C14a's files). Also the anonymous-namespace functions the compiler drops from the object are invisible to the COFF graph: C20m found them with a name-count scan (tools-less script), no check guards against new ones."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

@@ -31,9 +31,6 @@ int GrownCapacity(int size, int max, int growBy, int wanted) {
     int capacity = max + step;
     return capacity <= wanted ? wanted : capacity;
 }
-
-// The element constructor: zero bytes.
-void ZeroLooks(AILook* first, int count) { std::memset(first, 0, sizeof(AILook) * static_cast<unsigned>(count)); }
 } // namespace
 
 AILookArray* __fastcall LooksInit(AILookArray* looks) {

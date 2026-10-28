@@ -73,8 +73,6 @@ T& GameData(std::uintptr_t address) {
 }
 #endif
 
-// A pointer `offset` bytes into an object whose members are not declared yet (a half-built screen).
-inline std::uint8_t* OffsetPtr(void* base, int offset) { return static_cast<std::uint8_t*>(base) + offset; }
 
 // Slot `slot` of a hand-made vtable (an array of code pointers) as the function type Fn.
 template <typename Fn>

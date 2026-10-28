@@ -96,24 +96,6 @@ template int ScriptNamedValues<std::string>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
 template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
 
-ScriptCommands* ScriptCommands::ConstructEmpty() {
-    data = nullptr;
-    growBy = 0;
-    maxSize = 0;
-    size = 0;
-    vtable = recordarrays::SubCallArrayClass::Vtable();   // the loader arrays
-    return this;
-}
-
-ScriptIfThens* ScriptIfThens::ConstructEmpty() {
-    data = nullptr;
-    growBy = 0;
-    maxSize = 0;
-    size = 0;
-    vtable = mfc::impl::ScriptIfThenPairsClass::Vtable();
-    return this;
-}
-
 void ScriptStrings::SetAtGrow(int index, const std::string& text) {
     if (index >= size) SetSize(index + 1, -1);
     data[index] = text;

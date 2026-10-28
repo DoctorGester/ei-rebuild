@@ -198,9 +198,6 @@ void MpVoiceEntry::Destroy() {
     std::destroy_at(&name);
     std::destroy_at(&file);
 }
-namespace {
-void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
-} // namespace
 
 // --- The caches' objects released ----------------------------------------------------------
 
@@ -281,9 +278,6 @@ void CMpHeroScreen::DrawHeroList() {
     }
     UiSurfaceReleaseDC(surface);
 }
-namespace {
-void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
-} // namespace
 
 void CMpHeroScreen::DrawVoices() {
     CUiSurface* surface = surfaces_.data[2];
@@ -309,9 +303,6 @@ void CMpHeroScreen::DrawVoices() {
     }
     UiSurfaceReleaseDC(surface);
 }
-namespace {
-void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
-} // namespace
 
 // --- The preview's unit -------------------------------------------------------------------
 

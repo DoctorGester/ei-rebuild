@@ -2,7 +2,7 @@
 // the record array (MFC CArray::SetSize and ConstructElements), the party's constructor,
 // destructor, Create / Destroy / Clear, and the constructors of the managers a party makes. The
 // record's item lists are aligned pointer arrays; four more copies of their SetSize are
-// registered here. See party.h and docs/notes/items_spells.md ("Party").
+// here. See party.h and docs/notes/items_spells.md ("Party").
 #include "party.h"
 
 #include "game_strings.h"

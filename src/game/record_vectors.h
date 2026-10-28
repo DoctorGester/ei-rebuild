@@ -408,7 +408,6 @@ struct EngineObjectRefElement {
     }
 };
 
-using EngineObjectRefVector = stlp::VectorAbi<CEngineObject*, EngineObjectRefElement>;
 
 // ---- The HUD's portrait slots (ui.h; ui_hud_portrait_setup.cpp) ---------------------------
 
@@ -464,7 +463,6 @@ private:
     }
 };
 
-using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotElement>;
 
 // ---- The UI's lists (ui.h, ui_camp.h, ui_screens.h) ---------------------------------------------
 
@@ -496,11 +494,7 @@ struct OptionBindingElement : records::Memberwise<OptionBinding, &OptionBinding:
     static void Destroy(OptionBinding* p) { p->Destroy(); }
 };
 
-using SaveEntryVector = stlp::VectorAbi<SaveEntry, SaveEntryElement>;
-using MpAddressVector = stlp::VectorAbi<MpAddressEntry, MpAddressElement>;
-using TradeRowVector = stlp::VectorAbi<TradeRow, TradeRowElement>;
 using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records
-using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>;
 
 // ---- The game flow's zone table (world_game.cpp) -------------------------------------
 

@@ -3,7 +3,7 @@
 // STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). One
 // pointer to the sentinel node the constructor allocates (its next is the first element, its prev the last; an
 // empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. The
-// game's instantiations of the members below are registered at their own addresses in stlp_list.cpp through the
+// game's instantiations of the members below are in stlp_list.cpp through the
 // ListAbi shims: one body for every element type, the element's copy and destruction supplied by an element policy.
 
 #include "stlp_alloc.h"

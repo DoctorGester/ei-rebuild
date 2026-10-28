@@ -18,7 +18,7 @@ struct TweenEntry {
 static_assert(sizeof(TweenEntry) == 16);
 
 // CArray<TweenEntry> of the world: new entries zero-filled, never constructed. RemoveAll
-// and SetSize are registered on the template (model_db.cpp); the rest are members.
+// and SetSize are the template's; the rest are members.
 struct WaterTweens : mfc::CArray<TweenEntry> {
     // The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).

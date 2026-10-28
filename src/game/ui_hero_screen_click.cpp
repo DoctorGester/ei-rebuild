@@ -460,9 +460,6 @@ void CMpHeroScreen::RefreshHero() {
     }
     statsPanel_->DrawStats();
 }
-namespace {
-void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
-} // namespace
 
 void CMpHeroScreen::CreateHero() {
     std::string name = nameEdit_->text_;

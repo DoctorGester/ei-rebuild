@@ -500,7 +500,7 @@ struct HashtableAbi : hashtable<Traits> {
         return self;
     }
     // _M_initialize_buckets(n), resize(hint), erase(key) and _M_copy_from(ht) are hashtable's own members,
-    // registered through this type.
+    // reached through this type.
     Iterator* Find(Iterator* out, const Key& key) {
         out->cur = Table::Find(key);
         out->table = this;

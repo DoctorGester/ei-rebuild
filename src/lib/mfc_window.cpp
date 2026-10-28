@@ -1,4 +1,4 @@
-// MFC 4.2's AfxMessageBox, CWnd's constructor and destructor, registered at their library addresses
+// MFC 4.2's AfxMessageBox, CWnd's constructor and destructor
 // (mfc_window.h).
 #include "mfc_window.h"
 

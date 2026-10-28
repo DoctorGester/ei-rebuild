@@ -143,7 +143,7 @@ void SetReplayCtype(const ReplayCtype& ctype);
 
 } // namespace gamecrt
 
-// The game CRT's own functions (docs/notes/standalone.md section 2), each registered at its library address.
+// The game CRT's own functions (docs/notes/standalone.md section 2).
 // The string and character functions are the host CRT's under the host's locale (crt_locale_data.h); with
 // EI_UTF8 the case and class functions answer for UTF-8 (text_case.h).
 namespace libcrt {
@@ -229,24 +229,6 @@ double __cdecl CiPow(double x, double y);
 // control word 133F (to nearest) whatever the caller's; an overflow as the caller's rounding direction has
 // it, a NaN argument as x87 addition propagates it, an infinity otherwise +infinity.
 double __cdecl Hypot(double x, double y);
-
-// C++ exceptions (src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not continuable,
-// {0x19930520, object, throw info}); the throw information is VC6's layout, which this compiler's frame
-// handler reads too (src/lib/mfc_try.h). Does not return.
-void __stdcall CxxThrowException(void* object, const void* throwInfo);
-// MSVC 6's std::exception: the exe's vtable, the text, and whether the object owns (and frees)
-// it. The const char* constructor has no callers.
-struct Exception {
-    Exception* Construct();                                   // exception: no text
-    void Destruct();
-    Exception* DeletingDestruct(unsigned flags);
-    const char* What() const;                                 // "Unknown exception" without text
-
-    const void* vtable;
-    const char* text;
-    int ownsText;
-};
-static_assert(sizeof(Exception) == 12);
 
 // The runtime the image owns: the heap (the modern CRT's), operator
 // new's handler loop, the atexit list and exit.

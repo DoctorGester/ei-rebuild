@@ -2,8 +2,8 @@
 
 // STLport's sort internals (introsort with a final insertion sort, heap sort at depth 0) as the
 // exe instantiates them, one comparator per instantiation: the draw lists (world_client_view.cpp),
-// the changed variables (world_stamp_sort.cpp) and the instantiations registered at their library
-// addresses (game/stl_sorts.cpp). sort() is unstable, so the order of equal elements is part of the
+// the changed variables (world_stamp_sort.cpp) and the library's instantiations
+// (game/stl_sorts.cpp). sort() is unstable, so the order of equal elements is part of the
 // behaviour: every step follows STLport's (same comparisons in the same order, same moves). Every
 // scan STLport leaves unguarded is unguarded here too: with a comparator that is not a strict
 // weak ordering they run off the array.

@@ -40,10 +40,6 @@
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 void CHudQuickItems::SetUnit(CUnit* unit) {
     std::string tip;
     std::string unused;
@@ -365,9 +361,6 @@ void CBattleScreen::Update() {
         questSound_ = 0;
     }
 }
-namespace {
-void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
-} // namespace
 
 // --- the party ids compared ----------------------------------------------------------------------
 
@@ -554,10 +547,6 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
 }
 
 // --- the selection's refresh ---------------------------------------------------------------------
-
-namespace {
-
-} // namespace
 
 void CBattleScreen::RefreshSelection() {
     auto* party = &party_;

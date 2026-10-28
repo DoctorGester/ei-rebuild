@@ -44,14 +44,6 @@ int scriptparse::ScriptErrorV(CScript* script, int line, int code, const char* f
     return 0;
 }
 
-// Rebirth patches it: vanilla only.
-int __cdecl scriptparse::ScriptError(CScript* script, int line, int code, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    int result = ScriptErrorV(script, line, code, format, args);
-    va_end(args);
-    return result;
-}
 // Rebirth's AddNewScriptCommands also copies the error to addon.log (not reproduced).
 
 // ---- Keyword table ------------------------------------------------------------------------------

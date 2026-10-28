@@ -204,9 +204,6 @@ void CTradePanel::BuildLists() {
     ClampScroll();
     DrawLists();
 }
-namespace {
-void __fastcall TradeBuildLists(CTradePanel* self) { self->BuildLists(); }
-} // namespace
 
 namespace {
 
@@ -295,9 +292,6 @@ void CTradePanel::DrawLists() {
     }
     draw->ReleaseDC();
 }
-namespace {
-void __fastcall TradeDrawLists(CTradePanel* self) { self->DrawLists(); }
-} // namespace
 
 namespace {
 void __fastcall TradeSnapshotRecord(CTradePanel*);
@@ -363,9 +357,6 @@ void CTradePanel::Build() {
         holdTime_ = 0.0f;
     }
 }
-namespace {
-void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
-} // namespace
 
 // --- The records again --------------------------------------------------------------------------------
 
@@ -380,9 +371,6 @@ void CTradePanel::ResetRecords() {
         TradeSnapshotRecord(this);
     }
 }
-namespace {
-void __fastcall TradeResetRecords(CTradePanel* self) { self->ResetRecords(); }
-} // namespace
 
 // --- The record from the hero ------------------------------------------------------------------------
 

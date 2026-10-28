@@ -79,8 +79,6 @@ struct ScriptStrings : mfc::CArray<std::string> {
     // A by-value GetAt assigned to `out`.
     void CopyTo(int index, std::string* out) const;
     ScriptStrings* CopyConstruct(const ScriptStrings* other);
-    // A by-value GetAt constructed in raw storage at `out`.
-    std::string* CopyAt(std::string* out, int index) const;
     void CopyFrom(const ScriptStrings& source);
 };
 
@@ -106,8 +104,6 @@ struct ScriptCommands : mfc::CArray<SSCCmd> {
     void SetAtGrow(int index, const SSCCmd& cmd);
     SSCCmd* CopyAt(SSCCmd* out, int index) const;
     void CopyFrom(const ScriptCommands& source);
-    // Empty, growBy 0.
-    ScriptCommands* ConstructEmpty();
 };
 
 struct ScriptDefinitions : mfc::CArray<ScriptDefinition> {
@@ -351,8 +347,6 @@ static_assert(sizeof(ScriptParticleSource) == 0x24);
 // CreateFXSource / CreateRandomizedFXSource. The tick replaces the sound of a source whose `idle` is 0 when
 // its countdown runs out.
 struct ScriptFxSource {
-    // The name is the caller's to destroy.
-    void ScriptFxSourceDropSound();
     void ScriptFxSourceDestruct();
     // Freed when bit 0 of `flags` is set.
     void* DestroyElement(int flags);
@@ -696,8 +690,6 @@ struct ScriptIfThen {
 static_assert(sizeof(ScriptIfThen) == 8);
 
 struct ScriptIfThens : mfc::CArray<ScriptIfThen> {
-    // Empty, growBy 0.
-    ScriptIfThens* ConstructEmpty();
 };
 
 // A Script / DeclareScript definition. Script instances are copies of their definition: an instance's
@@ -843,5 +835,4 @@ void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float
 // The pointer stays.
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
 
-void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars);
 void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count);

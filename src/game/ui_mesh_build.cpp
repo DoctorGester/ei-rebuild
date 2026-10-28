@@ -309,6 +309,3 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
 }
 
 void CUiMesh::ResetColours() { ResetVertexColours(this); }
-namespace {
-void __fastcall MeshResetColours(CUiMesh* self) { self->ResetColours(); }
-} // namespace

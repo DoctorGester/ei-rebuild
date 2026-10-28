@@ -170,13 +170,6 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 }
 
 // Slots 6, 11 and 12: the update returns 1, the class name and id.
-namespace {
-int __fastcall TorchClientUpdate(CTorchObjectClientSpec* self) { return self->CTorchObjectClientSpec::RunTick(); }
-const char* __fastcall TorchClientClassName(CTorchObjectClientSpec* self) {
-    return self->CTorchObjectClientSpec::GetClassName();
-}
-int __fastcall TorchClientClassId(CTorchObjectClientSpec* self) { return self->CTorchObjectClientSpec::GetClassId(); }
-} // namespace
 
 int CTorchObjectClientSpec::RunTick() { return 1; }
 const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }

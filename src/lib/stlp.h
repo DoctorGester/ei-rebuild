@@ -56,7 +56,7 @@ const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, con
 //   +0x10 element count (STLport keeps it in the node allocator's proxy)
 // The members named after STLport's (Construct, InitializeBuckets, Resize, Find, FindOrInsert,
 // First, After, SkipToNext, Erase, EraseKey, Clear, Destroy, NewNode, DeleteNode) do what the
-// game's instantiations do (stlp_hash.h's hashtable, registered at their addresses), so code can
+// game's instantiations do (stlp_hash.h's hashtable), so code can
 // call them where game.exe calls an instantiation.
 template <typename Key, typename Value, typename Hash>
 class hash_map {

@@ -144,10 +144,6 @@ public:
     CEngineObject* NewObject(int type) override;
 
 };
-namespace misc400 {
-void __fastcall ManagerDestruct(CBaseManager* self);
-} // namespace misc400
-
 // T's constructor on `memory`, as the map object factory takes it.
 template <typename T>
 void* __fastcall ConstructOn(void* memory) {

@@ -49,7 +49,7 @@ struct PartyUnitRecordElements {
     static void Relocate(PartyUnitRecord* to, PartyUnitRecord* from, int count);   // party_lifetime.cpp
 };
 // A party's unit records: an MFC CArray<PartyUnitRecord> (CObject vtable Vtable()). Its SetSize is
-// registered on the template (party_lifetime.cpp).
+// the template's (party_lifetime.cpp).
 struct PartyMembers : mfc::CArray<PartyUnitRecord, PartyUnitRecordElements> {
     // The compiled table (party_lifetime.cpp's PartyMemberArrayClass over mfc_slots.h's CompiledCollection).
     static void* Vtable();

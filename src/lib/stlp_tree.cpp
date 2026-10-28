@@ -1,5 +1,5 @@
 // STLport's _Rb_global<bool> (stlp_tree.h): the node-only algorithms every tree instantiation of
-// the exe shares, registered at their addresses.
+// the exe shares.
 #include "stlp_tree.h"
 #include "stlp_tree_mbs.h"
 
