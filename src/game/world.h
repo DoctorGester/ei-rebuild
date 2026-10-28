@@ -140,15 +140,15 @@ public:
     int RunTick() override;
 
     CWorld* ThisWorld() override { return this; }
-    CBaseManager* TimedObjectManager() override { return manager48_; }
-    CBaseManager* FigureManager() override;   // manager3C_ (world_class_slots.cpp: CFigureManager is complete there)
-    CItemConstructor* ItemConstructor() override { return manager58_; }
-    CSpellConstructor* SpellConstructor() override { return manager50_; }
+    CBaseManager* TimedObjectManager() override { return timedObjectManager_; }
+    CBaseManager* FigureManager() override;   // figureManager_ (world_class_slots.cpp: CFigureManager is complete there)
+    CItemConstructor* ItemConstructor() override { return itemConstructor_; }
+    CSpellConstructor* SpellConstructor() override { return spellConstructor_; }
     CItemManager* ItemFactory() override { return itemManager_; }
-    CMapObjectManager* MapObjectManager() override { return manager40_; }
+    CMapObjectManager* MapObjectManager() override { return objectManager_; }
     CPlayerManager* PlayerList() override { return players_; }
-    CBaseManager* SpecificManager() override { return manager44_; }
-    CSpellManager* SpellManager() override { return manager4C_; }
+    CBaseManager* SpecificManager() override { return specificManager_; }
+    CSpellManager* SpellManager() override { return spellManager_; }
     CLinkFigureLoader* FigureLoader() override { return figureLoader_; }
 
     // The world's own virtuals; docs/notes/map_objects.md, "Virtual slot names".
@@ -173,8 +173,6 @@ public:
     virtual CTextureManager* TextureManager() { return nullptr; }
     virtual CBaseManager* ClientLightManager() { return nullptr; }
     virtual CParticleManager* ClientParticleManager() { return nullptr; }
-    virtual CEngineObject* ClientManager194() { return nullptr; }   // not identified
-    virtual CEngineObject* ClientManager198() { return nullptr; }   // not identified
     virtual int Unused39() { return 0; }
     virtual CMapObject* ObjectWithId(int id);
     // `object` moves to `position` (the client's sector map).
@@ -201,16 +199,16 @@ public:
     std::uint32_t windStrength_;          // float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // counted (the client's from SetUpGraphics; FigureLoader returns it)
     CPlayerManager* players_;
-    CFigureManager* manager3C_;          // FigureManager
-    CMapObjectManager* manager40_;       // map objects by id (its NewObject creates one)
-    CBaseManager* manager44_;            // SpecificManager
-    CBaseManager* manager48_;            // the timed objects (spells, effects; TimedObjectManager)
-    CSpellManager* manager4C_;           // the spells (SpellManager)
-    CSpellConstructor* manager50_;       // SpellConstructor
+    CFigureManager* figureManager_;      // FigureManager
+    CMapObjectManager* objectManager_;   // map objects by id (its NewObject creates one)
+    CBaseManager* specificManager_;      // SpecificManager
+    CBaseManager* timedObjectManager_;   // the timed objects (spells, effects; TimedObjectManager)
+    CSpellManager* spellManager_;        // the spells (SpellManager)
+    CSpellConstructor* spellConstructor_;   // SpellConstructor
     CItemManager* itemManager_;          // items (ItemFactory)
-    CItemConstructor* manager58_;        // ItemConstructor
+    CItemConstructor* itemConstructor_;  // ItemConstructor
     // A counted helper CWorld::Create shares in.
-    RefPtrTo<CWorldHandle> shared5C_;
+    RefPtrTo<CWorldHandle> worldHandle_;
     RefPtrTo<netlink::DriverSession> netSession_;   // the network session (OpenSession)
     int tick_;                            // game time in ticks
     int updateCount_;                     // world updates run (the server's Update)
@@ -499,10 +497,10 @@ public:
     float nightLevel_;
     std::uint32_t weatherFactor_;         // float bits: 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
     WorldAlarm alarms_[5];
-    // The zone's weather kind (its record's setting2C): 3 storms with lightning strikes, 1 light rain,
+    // The zone's weather kind (its record's climate): 3 storms with lightning strikes, 1 light rain,
     // other non-zero values heavier weather; 0 none. Single-player only.
     int climate_;
-    int cave_;                            // the zone is a cave (its record's setting30; sent with the zone)
+    int cave_;                            // the zone is a cave (its record's cave; sent with the zone)
     int weather_;                         // 0 clear, 1 rain, 2 snow (the script's SetWeather)
     float weatherStrength_;               // sent with the weather
     std::vector<ZoneExit> exits_;
@@ -747,8 +745,6 @@ public:
     CTextureManager* TextureManager() override;
     CBaseManager* ClientLightManager() override;
     CParticleManager* ClientParticleManager() override;
-    CEngineObject* ClientManager194() override;
-    CEngineObject* ClientManager198() override;
     void MoveObject(CMapObject* object, const float* position) override;
     virtual void MoveObject2(CMapObject* object, const float* position);   // the second grid's move
 
@@ -800,7 +796,7 @@ public:
     // Index of the exit whose area contains `point` and that leads somewhere.
     BOOL FindExitAt(const float* point, int* index);
     float* ExitCentre(float* out, int index);
-    // One ZoneExit particle source (0x2038) per exit that leads somewhere, in countedA0_ at the exit's index (the old
+    // One ZoneExit particle source (0x2038) per exit that leads somewhere, in exitMarkers_ at the exit's index (the old
     // markers released), then UpdateExitMarkers.
     void CreateExitMarkers();
     // Whether the party can leave through `exit`: every living unit of `records` (unit id in the
@@ -944,7 +940,7 @@ public:
     // 0's colours and a fixed sun. Returns 1 when a new hour began (or the renderer's flag bit 0 is clear:
     // nothing done), else 0; no caller reads it.
     int UpdateLighting();
-    // With one marker per exit (countedA0_, ZoneExit particle sources): a marker whose target zone's
+    // With one marker per exit (exitMarkers_, ZoneExit particle sources): a marker whose target zone's
     // party variable "z.<zone>" is 1 (or NaN) gets extent (1, 0, 0) (its particles turn red), the
     // others (0, 0, 0).
     void UpdateExitMarkers();
@@ -959,7 +955,7 @@ public:
     std::uint32_t debugFlags_;            // the debug display's switches (bits 0-3: ShowFps ...)
     std::vector<ZoneExit> exits_;
     // The exits' particle markers, one per exit or null (counted; CreateExitMarkers / UpdateExitMarkers).
-    std::vector<HeldPtr<CParticleSource>> countedA0_;
+    std::vector<HeldPtr<CParticleSource>> exitMarkers_;
     std::list<HeldPtr<CMapObject>> heroes_;                   // heroes with a text-key id (counted)
     std::list<CMapObject*> objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
@@ -980,11 +976,9 @@ public:
     // database's record of the local player's zone, "gipat" without one). It names the terrain's
     // texture pages, the lights table and the music theme.
     std::string zoneName_;
-    CMaterialManager* manager188_;        // counted
+    CMaterialManager* materialManager_;   // counted
     CTextureManager* textureManager_;     // counted
-    CLightFactory* manager190_;           // counted
-    CEngineObject* manager194_;           // (ClientManager194 returns it; not identified)
-    CEngineObject* manager198_;           // (ClientManager198 returns it; not identified)
+    CLightFactory* lightFactory_;         // counted
     CParticleManager* particleManager_;        // counted
     CLightningManager* listManager_;      // owned
     ClientArrayManager* arrayManager_;    // owned
@@ -1006,7 +1000,6 @@ public:
     CPlayer* session_;
     CCamera* camera_;                     // the view camera (DrawPass, Render)
     std::string texturePath_;            // <data path>textures\ (Setup)
-    int constant228_;                     // 10 from the constructor; nothing in the exe reads it
     // The light colours by hour (0..23; r, g, b, 1) from the lights table's [sunlight], [ambient] and
     // [sky] sections (LoadLights).
     LightColour sunlight_[24];
@@ -1023,7 +1016,6 @@ public:
     // EnvironmentFlags 0x400 instead of 0x200).
     int cave_;
     int partyDanger_;                     // 0 after Setup; the party state's danger (message 0x60: 2 fighting)
-    int constant6E8_;                     // 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // Segment's count; AddObject fades units in when >= 1
     float tickFraction_;                  // added to the tick for the units' time (network client)
     // The rain / snow layer, built and destroyed with the world. Its `mode` (1 rain, 2 snow) picks the ground
@@ -1031,7 +1023,6 @@ public:
     CRainSnow rainSnow_;
     std::list<int> selectedIds_;             // the selected objects' ids
     int worldValue_;                      // -1; message 0x12 sets it (SetWorldValue); the exe never reads it
-    int constants7C4_[3];                 // 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // HCURSOR wincurs\Df0000.cur
     // The window's names, set by the constructor and freed by the destructor only: "EvilIslands",
     // "EvilIslandsClass", "EvilIslands", "EvilIslands Paused".
@@ -1070,7 +1061,7 @@ struct GameFlow {
     // name, the allod}: 0 / 1 / 2 by the three map name lists, else 3.
     void BuildZoneTable();
     // Used each network step. The local player's "z.MPGame1" variable, set to 1 or removed: on a client unless the
-    // client session's field is active; on the host when more than one player is in (flag80_) or unless the client's
+    // client session's field is active; on the host when more than one player is in (zoneSwitchStarted_) or unless the client's
     // field is active. Nothing without an active client session.
     void UpdateMultiplayerVariable();
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
@@ -1108,17 +1099,17 @@ struct GameFlow {
     // texts the quest table reads it, the map database loads "<folder>\map.txt" and the folder joins the
     // list.
     void RegisterQuests(const char* folder);
-    // The multiplayer zone switch, in two calls: the first (flag80_ clear) resets the host's
+    // The multiplayer zone switch, in two calls: the first (zoneSwitchStarted_ clear) resets the host's
     // connections, takes the party (player 0's records when its state has a party, else the outside
-    // party) for zone7C_, asks for game state 3 and requests state 6 (host) or 5 (client, to its peer's
-    // zone); the second (flag80_ set) asks for state 1 and the start zone again, and the host drops its
+    // party) for multiplayerZone_, asks for game state 3 and requests state 6 (host) or 5 (client, to its peer's
+    // zone); the second (zoneSwitchStarted_ set) asks for state 1 and the start zone again, and the host drops its
     // client.
     void SwitchMultiplayerZone();
     // Hosts a multiplayer game: new server (game type) and client sessions, the client connects to
     // 127.0.0.1 with the password (20 bytes) as hello, then the server's name ("Server" when empty),
-    // value25E0, password, listing (not `unlisted`) and value25FC are set (both between calls patched by
+    // maxPlayers, password, listing (not `unlisted`) and masterKey are set (both between calls patched by
     // Rebirth).
-    void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
+    void StartServer(const char* name, int maxPlayers, int gameType, const char* password, char unlisted, int masterKey);
     void StartClient();
     void JoinServer(const net::NetAddress* address, const char* password);
     // The flow's requests: the state (state_) the flow's update acts on next, the zone or save name
@@ -1170,7 +1161,7 @@ struct GameFlow {
 
     GameFlow* Construct();
     void Destruct();
-    // saves\current emptied, the multiplayer zone (zone7C_) named; a host without an active client
+    // saves\current emptied, the multiplayer zone (multiplayerZone_) named; a host without an active client
     // session starts it when there is a name.
     void SetNetworkZone(const char* zone);
 
@@ -1178,8 +1169,8 @@ struct GameFlow {
     std::string requestTarget_;           // the request's zone or save name
     lib::InPlace<CParty> requestParty_;
     int requestArg_;                      // the entrance (4) or the load flag (2)
-    std::string zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
-    char flag80_;                         // set by SwitchMultiplayerZone, cleared by the game's start
+    std::string multiplayerZone_;         // the multiplayer zone (SwitchMultiplayerZone)
+    char zoneSwitchStarted_;              // set by SwitchMultiplayerZone, cleared by the game's start
 };
 
 extern lib::StaticObject<GameFlow> g_gameFlow;
@@ -1316,7 +1307,7 @@ extern lib::StaticObject<std::list<HeldPtr<CMapObject>>> g_deferredUnits;
 // use counts it down.
 inline int& NextClientObjectId() { return g_clientWorld->nextClientObjectId_; }
 inline CItemManager* WorldItemManager() { return g_serverWorld->itemManager_; }
-inline CMapObjectManager* WorldObjectManager() { return g_serverWorld->manager40_; }
+inline CMapObjectManager* WorldObjectManager() { return g_serverWorld->objectManager_; }
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

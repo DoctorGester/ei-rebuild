@@ -113,7 +113,7 @@ std::uint32_t CUnit::IsHostileTo(const CUnit* other) {
 
 // --- Simple state setters --------------------------------------------------------------------
 
-void CUnit::SetUnknown438(int value) {
+void CUnit::SetFightAtWill(int value) {
     fightAtWill = value;
     MarkChanged(13);
 }
@@ -341,13 +341,13 @@ UnitModelRecord* CUnit::GetPrototypeModel() {
     return unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
 }
 
-UnitPrototypeRecord* CUnit::GetPrototype23C() {
-    return unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
+UnitPrototypeRecord* CUnit::GetSecondPrototype() {
+    return unitdb::PrototypeRecord(static_cast<std::uint32_t>(secondPrototype));
 }
 
-std::uint32_t CUnit::SetPrototype23C(const UnitPrototypeRecord* record) {
+std::uint32_t CUnit::SetSecondPrototype(const UnitPrototypeRecord* record) {
     int offset = unitdb::PrototypeByteOffset(record);
-    prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
+    secondPrototype = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
     return offset < 0 ? 1u : 0u;   // the sign of the unadjusted quotient
 }
 

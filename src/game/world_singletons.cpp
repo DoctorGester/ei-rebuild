@@ -16,14 +16,14 @@ int CurrentClientTick() { return g_clientWorld->tick_; }
 float ClientTickFraction() { return g_clientWorld->tickFraction_; }
 
 CTextManager* TheTextManager() { return g_clientWorld->texts_; }
-CMapObjectManager* TheObjectManager() { return g_clientWorld->manager40_; }
-CFigureManager* TheFigureManager() { return g_clientWorld->manager3C_; }
+CMapObjectManager* TheObjectManager() { return g_clientWorld->objectManager_; }
+CFigureManager* TheFigureManager() { return g_clientWorld->figureManager_; }
 CTextureManager* TheTextureManager() { return g_clientWorld->textureManager_; }
-CMaterialManager* TheMaterialManager() { return g_clientWorld->manager188_; }
+CMaterialManager* TheMaterialManager() { return g_clientWorld->materialManager_; }
 CSoundManager* TheSoundManager() { return g_clientWorld->sounds_; }
 CMusicSystem* TheMusicSystem() { return g_clientWorld->music_; }
 CParticleManager* TheParticleManager() { return g_clientWorld->particleManager_; }
-CLightFactory* TheLightFactory() { return g_clientWorld->manager190_; }
+CLightFactory* TheLightFactory() { return g_clientWorld->lightFactory_; }
 Terrain* TheTerrain() { return g_clientWorld->terrain_; }
 
 int worlddata::FightState() { return g_clientWorld->partyDanger_; }

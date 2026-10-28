@@ -130,7 +130,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);
-    // Body armour and trousers, in the armours' drawing order (ArmorFieldB8).
+    // Body armour and trousers, in the armours' drawing order (ArmorLayer).
     std::uint32_t body = self->armourIds[1];
     std::uint32_t legs = self->armourIds[2];
     if (body == kNone || legs == kNone) {
@@ -138,8 +138,8 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         if (only != kNone) AddArmourTexture(request, unit, texture, only);
         return;
     }
-    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmorFieldB8(body >> 16));
-    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmorFieldB8(legs >> 16));
+    std::uint32_t bodyOrder = static_cast<std::uint32_t>(ArmorLayer(body >> 16));
+    std::uint32_t legsOrder = static_cast<std::uint32_t>(ArmorLayer(legs >> 16));
     if (legsOrder < bodyOrder) {
         AddArmourTexture(request, unit, texture, legs);
         AddArmourTexture(request, unit, texture, body);

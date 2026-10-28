@@ -244,7 +244,7 @@ public:
     std::uint32_t IsHostileTo(const CUnit* other);
 
     // Marks part 13.
-    void SetUnknown438(int value);
+    void SetFightAtWill(int value);
     // Marks part 8.
     void SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound);
     // Set motionMode / pathTimeShift; mark part 7 when they change.
@@ -283,10 +283,10 @@ public:
 
     UnitPrototypeRecord* GetPrototype();
     UnitModelRecord* GetPrototypeModel();
-    UnitPrototypeRecord* GetPrototype23C();
-    // Stores the index of prototype record `record` in prototype23C. Returns 1 when `record` lies before the
+    UnitPrototypeRecord* GetSecondPrototype();
+    // Stores the index of prototype record `record` in secondPrototype. Returns 1 when `record` lies before the
     // table.
-    std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
+    std::uint32_t SetSecondPrototype(const UnitPrototypeRecord* record);
 
     // Puts an item into the first free weapon (4), quick item (4) or spell (8) slot and takes a reference:
     // returns the slot, 1 if already there (sic), -1 if full, 0 for null (weapons and quick items only).
@@ -369,9 +369,9 @@ public:
     void TakePrototype(const char* prototype) override;
     // Sends the equipment ids to the controller (the 7 armour ids, then the 4 weapon ids).
     void SendEquipment();
-    // prototype23C = the index of the unit prototype named `prototypeName`, or -1.
-    std::uint32_t SetPrototype23CByName(const char* prototypeName);
-    int SetPrototype23CIndex(int index);
+    // secondPrototype = the index of the unit prototype named `prototypeName`, or -1.
+    std::uint32_t SetSecondPrototypeByName(const char* prototypeName);
+    int SetSecondPrototypeIndex(int index);
 
     // Back to a blank unit: no name, prototypes, controller (released), relations, player, side, items (the slots
     // cleared without releasing) or carried array; standard sizes and movement modes, the parameter block cleared,
@@ -386,7 +386,7 @@ public:
 
     // The map object part, the controller, the unit's name, relations, player, movement fields, items by id
     // (counted references), the carried items, and from version 0x4D the prototype names (prototypeId_ /
-    // prototype23C).
+    // secondPrototype).
     void LoadUnit(CStream* stream);
     // The same fields in the same order (the active weapon twice), items as ids (-1 for none), the prototype
     // names as zero-terminated strings.
@@ -456,7 +456,7 @@ public:
     UnitMotion* Motion() { return &motion; }
 
     std::string scriptName;        // network field 9
-    int prototype23C;              // a second prototype index (-1 none)
+    int secondPrototype;              // a second prototype index (-1 none)
     CEngineObject* controller;      // (the script code calls it the perception object)
     std::uint32_t relationsA;       // \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // / bit s set
@@ -492,7 +492,7 @@ public:
     CItemArmor* armor[7];           // a piece per armour type
     std::vector<CItem*> carried;    // further items, each holding a reference
     float actionSpeeds[6];          // per action kind (ActionSpeed; from the model record)
-    float levels4C8[5];             // any at most 2 (or NaN) asks for a party refresh
+    float exposure[5];             // any at most 2 (or NaN) asks for a party refresh
 };
 
 inline CUnit* UnitOrNull(CEngineObject* object) {
@@ -598,11 +598,11 @@ struct UnitStats {
     float WeaponSkill(int type);
     double SkillLevelValue(int index);
     ::SkillLevelRecord* SkillLevelRecord(int index);
-    // Stat10 * 12 scaled by (1 + 0.01 * the level value of skill level 21).
-    double Value6E8();
+    // Strength * 12 scaled by (1 + 0.01 * the level value of skill level 21).
+    double ScaledStrength();
     // Global + 0.01 * the level value of skill level 22.
-    double Value6E9();
-    double Value6E9Arg(int unused);
+    double BackstabFactor();
+    double BackstabFactorArg(int unused);
     // `value` minus what the six slots take from it (by their kind, current, maximum and factor).
     double Reduce(float value);
     // `value` minus value * factor of each slot record of kind 1.
@@ -904,8 +904,8 @@ public:
     void Destroy() override;
 
     UnitVitals vitals;
-    std::string name78;
-    std::string name7C;
+    std::string parentIname;
+    std::string skinTexture;
     std::vector<std::string> strings;
 };
 inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }

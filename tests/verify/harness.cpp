@@ -513,11 +513,11 @@ std::string DescribeLocalPlayer() {
     void* player = LocalWorldPlayer();
     void* connection = LocalConnection();
     char text[200];
-    // The server world's +0x5C (shared5C_), which the flow passes to the client world's SetPlayer (00566CE0). It is
+    // The server world's +0x5C (worldHandle_), which the flow passes to the client world's SetPlayer (00566CE0). It is
     // not the server's player number: the first X9 run found no player with it (logged by the steps).
     std::snprintf(text, sizeof(text), "player %d -> %p, connection %p, state %d (world +0x5C = %p)", kLocalPlayer, player,
                   connection, connection ? ConnectionState(connection) : -1,
-                  ei::Standalone() ? image::WorldShared5C() : exe::ServerWorld()->shared5C_.ptr);
+                  ei::Standalone() ? image::WorldHandle() : exe::ServerWorld()->worldHandle_.ptr);
     return text;
 }
 // The server world's zone (+0x120, the map database name NewZone 00595480 stores), or "".

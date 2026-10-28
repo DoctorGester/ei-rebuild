@@ -17,7 +17,7 @@
 namespace {
 
 // The id registry.
-CBaseManager* Registry() { return g_serverWorld->manager48_; }
+CBaseManager* Registry() { return g_serverWorld->timedObjectManager_; }
 
 int ReadInt(CStream* stream) {
     int value = 0;

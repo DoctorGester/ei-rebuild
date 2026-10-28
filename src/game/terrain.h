@@ -182,7 +182,6 @@ public:
     std::vector<CTexture*> pageTextures;     // held
     std::vector<CMaterial*> pageMaterials;   // held ("Wood")
     std::string mapName;
-    std::string textFC;
     int mapLoaded;                  // nothing is drawn or lit while 0
     int sectorsX;                   // map size in sectors
     int sectorsY;

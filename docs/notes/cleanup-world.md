@@ -16,7 +16,7 @@ ones in `cleanup-engine-base.md` and `cleanup-units.md`.
   `UpdateMoveFactors` 57, `MoveSpeed` 59, `Radius` 60. Also CBaseManager `CreateObject`, CStream `Read` / `Write`,
   CItem `GetUse`, CParty `ItemManager`, CPlayerSource `TakeNew` / `Query`, CEngineObject `ClearState` / `Release`, CSpellEffect `DeletingDestructor`.
 - **Members instead of offsets:** `CEffect::startTick_` (timed objects), `CParty::Money()` (player gold), `CPlayerServer::partyUnits_`,
-  `AIBrain::visible` / `unknown_37`, `CUnitServer::stats`, `CTextManager::cursor_`, `CWorld::shared5C_`, `CWorldServer::hoover_`,
+  `AIBrain::visible` / `unknown_37`, `CUnitServer::stats`, `CTextManager::cursor_`, `CWorld::worldHandle_`, `CWorldServer::hoover_`,
   `CPlayer::units_` / `Server()`.
 - **AddUnitToServer's record builder** (`world_zone.cpp`) is storage for a `CParty`. Its record is the party's first `PartyUnitRecord`, and the
   unit id goes in `unknown_01C`. `world.h` still counts `ObjectIdMap`, `PlatformSet` and `UnitSet` as per-file container structs: they are game
@@ -58,4 +58,4 @@ A gap became a name when src reads or writes it through the class, else `unused_
   state's Send* functions take each element as the pass's class through `NextAs<CMapObject>` / `NextAs<CEffect>` (player_sync.cpp:
   the same arrays carry map objects, then timed objects).
 - `CWorldServer::ReadAIGraph` writes a `CStream*`; the picking sort's `DepthLess::manager` is a `CBaseManager*`; the selection
-  markers look their objects up with `manager40_->FindObjectAs<CMapObject>` (the 00403F40 forwarder is gone).
+  markers look their objects up with `objectManager_->FindObjectAs<CMapObject>` (the 00403F40 forwarder is gone).

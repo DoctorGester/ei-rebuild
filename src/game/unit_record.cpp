@@ -20,7 +20,7 @@ CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched b
     return factory->CreateItem(name);
 }
 CItemManager* TheFactory() { return g_serverWorld->itemManager_; }
-CSpellManager* SpellOwner() { return g_serverWorld->manager4C_; }
+CSpellManager* SpellOwner() { return g_serverWorld->spellManager_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])

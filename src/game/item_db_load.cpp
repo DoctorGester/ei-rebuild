@@ -106,11 +106,11 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(13, &duration, 4);
     ar->Field(14, &castTime, 4);
     ar->Field(15, &needsSight, 4);
-    ar->IntVectorField(16, &list48, ar);
-    ar->IntVectorField(17, &list54, ar);
+    ar->IntVectorField(16, &unreadIdListA, ar);
+    ar->IntVectorField(17, &unreadIdListB, ar);
     ar->Field(18, &icon, 4);
     ar->Field(19, &school, 4);
-    ar->Field(20, bytes78, 5);
+    ar->Field(20, allowedModifiers, 5);
     ar->Field(21, &skill, 4);
     ar->Field(22, &classMask, 4);
     for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i], 4);
@@ -124,7 +124,7 @@ void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->Field(4, &mana, 4);
     ar->Field(5, &strength, 4);
     ar->Field(6, &skill, 4);
-    ar->StringField(7, &text1C);
+    ar->StringField(7, &unreadText);
     ar->Field(8, &classMask, 4);
 }
 

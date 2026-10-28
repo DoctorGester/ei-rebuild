@@ -852,7 +852,7 @@ struct CWorld : CEngineObject {
     std::uint8_t unknown34[0x4];
     CPlayerManager* players_;               // +0x38
     std::uint8_t unknown3C[0x20];
-    RefPtr shared5C_;                       // +0x5C
+    RefPtr worldHandle_;                       // +0x5C
     std::uint8_t unknown60[0x4];
     int tick_;                              // +0x64
     int updateCount_;                       // +0x68

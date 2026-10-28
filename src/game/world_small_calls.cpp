@@ -14,8 +14,8 @@ CTexture* CWorldClient::NewTexture(int type) {
 }
 
 CMaterial* CWorldClient::NewMaterial(int type) {
-    if (!manager188_) return nullptr;
-    return manager188_->NewMaterial(type);
+    if (!materialManager_) return nullptr;
+    return materialManager_->NewMaterial(type);
 }
 
 void CWorldClient::SetCamera(CCamera* camera) {

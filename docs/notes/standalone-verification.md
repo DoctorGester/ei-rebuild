@@ -146,7 +146,7 @@ and school prices, protection, hit location, LockKey::Opens), `crt` (vsprintf, a
 `coder` (CoderState Compress / Decompress, "@CoderTables"), `script` (ClassifyToken, FunctionSignature, KeywordName,
 Tokenize, ApplyDefines, the loader's Load / LoadFunction / LoadCommands / ExpectLexeme), `path` (SV4c; CAIMap::FindPath,
 PlanLongPath, PathSmoother::Smooth with "@PathTables" and "@AIMap"; `tools/path_vectors.py prune --keep` keeps the maps
-small). Not reached by any scenario: CubicSegment::SetBSpline (dead), Value6E9, GetFactors, PickLocation's draw.
+small). Not reached by any scenario: CubicSegment::SetBSpline (dead), BackstabFactor, GetFactors, PickLocation's draw.
 
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name, sizeof(payload),
 cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record run and `vectors.py merge`. A

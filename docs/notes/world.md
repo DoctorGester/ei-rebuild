@@ -17,7 +17,7 @@ ones); what the notes add is the meaning of fields it still calls `unknown*`, th
   seconds per tick +0x20 + base +0x1C modulo the day length: before 6 or from 22 h). Slot 27 ground height (server 00594220
   from its coarse grid at +0x280C, client 00563F70 from the terrain), slot 28 surface height (client 00564070 =
   `TerrainOwner::SurfaceHeight`; TerrainOwner is CWorldClient), slots 29 / 30 (005618E0 / 00561930) combine platforms with
-  ground / surface height. CWorld +0x5C is `RefPtr shared5C_`; +0x68 / +0x6C / +0x70 (updateCount_, unknown6C_,
+  ground / surface height. CWorld +0x5C is `RefPtr worldHandle_`; +0x68 / +0x6C / +0x70 (updateCount_, unknown6C_,
   countdowns_) are shared by both worlds.
 - Globals: 0079B5D8 multiplayer client session, 0079B5DC game server (+4 bit 31 = inactive), 007AF61C / 007AFCA8 game clock,
   007AFFC4 server tick, 007AFE20 the game flow, 007AFEA4 / 007AFEA5 interface / client glue, 007AFFB4 item manager, 007AFFA8
@@ -78,7 +78,7 @@ same, `world_sync.cpp` added / kept / removed).
   saves\current (`ClearSaveFolder` 0057AAB0) and starts zone1 through 0057C460; kind 2 (load) calls 0057ABA0. Requests acted
   on by the flow's update 005800C0: 2 load (005816D0), 3 (005816C0), 4 go to a zone (00581700, also BeginMultiplayerGame), 5
   / 6 with a party copy (00581730 / 00581760). GameFlow (world.h): state_ +0, requestTarget_ +4, requestParty_ +8,
-  requestArg_ +0x78, zone7C_ +0x7C, flag80_ +0x80.
+  requestArg_ +0x78, multiplayerZone_ +0x7C, zoneSwitchStarted_ +0x80.
 - **NewZone** 00595480 (Rebirth, not rewritten): checks map / .mob paths, reads the AI graph (00596140), clears alarms, then
   `LoadMap` 00595C70 loads the terrain when the map changed (005B43C0) and either tears the zone down (same .mob) or
   `ResetZone` 0058B250; marks every player dirty; then `LoadMapObjects` 00596030 for the .mob and `SendFreshObjects` 005951A0
@@ -384,7 +384,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); CPlayer link_
   (+0x1C) / connection_ (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
   0073F530. script_exec's callees are call-only `...Calls` facades.
-- Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::shared5C_: on the server the pending connection source
+- Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::worldHandle_: on the server the pending connection source
   world_update.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;
   ClientSetPlayer 00566CE0, declared with an int, passes it to 004782E0 as a link): needs a class and the forwarder retyped
   (app.cpp shares it); its two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, the literal-address accessors (GameMode, Campaign,

@@ -161,15 +161,15 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
         out_.WriteString(object->name2);
         out_.WriteString(object->name);
         auto* server = object->ServerCompanion();
-        out_.WriteString(server->name78);
-        out_.WriteString(server->name7C);
+        out_.WriteString(server->parentIname);
+        out_.WriteString(server->skinTexture);
         std::uint32_t count = static_cast<std::uint32_t>(server->strings.size());
         out_.Write(&count, 2);
         for (const std::string& text : server->strings) out_.WriteString(text);
         std::uint32_t prototype = 0;
         if (isUnit) {
             out_.WriteString(object->GetName());
-            prototype = static_cast<std::uint32_t>(UnitOrNull(object)->prototype23C);
+            prototype = static_cast<std::uint32_t>(UnitOrNull(object)->secondPrototype);
         } else {
             out_.WriteString(game::kEmptyText);
         }
@@ -269,7 +269,7 @@ int CPlayerServer::SendPartyState() {
     CPlayer* player = player_;
     const float low = LowLevel();
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
-        const float* levels = node->second->levels4C8;
+        const float* levels = node->second->exposure;
         EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
         if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
             refreshPending_ = 1;
@@ -320,7 +320,7 @@ int CPlayerServer::ForgetObject(CEngineObject* object) {
         WriteByte(&out_, kMessageObjectRemoved);
         WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
     }
-    group50F8_.Remove(object);
+    possessedGroup_.Remove(object);
     partyUnits_.Remove(object);
     return 1;
 }
@@ -365,7 +365,7 @@ int CPlayerServer::ReceiveMessages() {
 
 void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
-    ScriptGroup party = group50F8_;
+    ScriptGroup party = possessedGroup_;
     CPlayer::UnitMap& units = player_->units_;
     if (possessedId_ == kNoPartyCopy) {
         for (auto node = units.begin(); node != units.end() && node->second; ++node) {

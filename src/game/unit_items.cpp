@@ -94,20 +94,20 @@ void CUnit::SendEquipment() {
     Controller()->SetWeaponModels(&ids[0], 4);
 }
 
-std::uint32_t CUnit::SetPrototype23CByName(const char* prototypeName) {
+std::uint32_t CUnit::SetSecondPrototypeByName(const char* prototypeName) {
     UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(prototypeName);
     if (!record) {
-        prototype23C = -1;
+        secondPrototype = -1;
         return 0xFFFFFFFFu;
     }
     int offset = unitdb::PrototypeByteOffset(record);
-    prototype23C = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
+    secondPrototype = offset / static_cast<int>(sizeof(UnitPrototypeRecord));
     // The original returns the low half of the multiply by the reciprocal of 0x120, the original record size
     // (no caller reads it).
     return static_cast<std::uint32_t>(static_cast<std::int64_t>(offset) * 0x38E38E39);
 }
 
-int CUnit::SetPrototype23CIndex(int index) {
-    prototype23C = index;
+int CUnit::SetSecondPrototypeIndex(int index) {
+    secondPrototype = index;
     return index;
 }

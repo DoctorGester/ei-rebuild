@@ -71,7 +71,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             TheTextManager()->CTextManager::GetString(description.c_str(), &line);
             line = labels[1] + " " + line + " \n";
             tip += line;
-            if (SpellPrototypeOf(data)->bytes78[3] == 0)
+            if (SpellPrototypeOf(data)->allowedModifiers[3] == 0)
                 line = str::Format("%s %s  ", labels[2].c_str(), labels[12].c_str());
             else
                 line = str::Format("%s %d  ", labels[2].c_str(), Truncate(Get<float>(data, 0x24)));

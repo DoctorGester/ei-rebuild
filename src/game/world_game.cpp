@@ -542,8 +542,8 @@ int StartNetworkZone(const char* zone) {
     std::vector<ZoneExit> exits = zoneRecord->exits;
     for (ZoneExit& exit : exits) exit.target = kNetworkExitTarget;
     g_serverWorld->SetZoneExits(&exits);
-    g_serverWorld->SetClimate(zoneRecord->setting2C);
-    g_serverWorld->SetCave(zoneRecord->setting30);
+    g_serverWorld->SetClimate(zoneRecord->climate);
+    g_serverWorld->SetCave(zoneRecord->cave);
     g_serverWorld->sessionKind_ = 1;
     g_serverWorld->SetGameResult(kGameResultNetwork);
     SpectatorFlag() = 1;
@@ -619,7 +619,7 @@ void GameFlow::UpdateMultiplayerVariable() {
         set(!Active(net::g_gameClient->info_));
         return;
     }
-    if (flag80_) set(ServerPlayerCount() > 1);
+    if (zoneSwitchStarted_) set(ServerPlayerCount() > 1);
     else set(!Active(net::g_gameClient->map_));
 }
 
@@ -646,7 +646,7 @@ void GameFlow::BeginMultiplayerGame() {
         requestTarget_ = zone.c_str();
         requestArg_ = 0;
     }
-    flag80_ = 0;
+    zoneSwitchStarted_ = 0;
     LocalLogin()->state_ = 1;
     ++LocalLogin()->version_;
     SessionsOpen() = 1;
@@ -826,7 +826,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
 }
 
 void GameFlow::SwitchMultiplayerZone() {
-    if (flag80_) {
+    if (zoneSwitchStarted_) {
         // A switch is pending: ask for the start zone again.
         RequestKind(1);
         bool host = Active(net::g_gameServer);
@@ -846,7 +846,7 @@ void GameFlow::SwitchMultiplayerZone() {
                 handle.Share(nullptr);
             }
         }
-        flag80_ = 0;
+        zoneSwitchStarted_ = 0;
         return;
     }
 
@@ -864,18 +864,18 @@ void GameFlow::SwitchMultiplayerZone() {
     }
     LocalRecords records;
     CPlayer* player = g_serverWorld->GetPlayer(0);
-    if (player && player->Server()->flag70_) {
+    if (player && player->Server()->partyDeployed_) {
         g_serverWorld->SyncPartyRecords(player);
         records.Party()->Assign(player->Party());
         g_serverWorld->ClearPlayerItems(player);
     } else {
         records.Party()->Assign(GlobalParty());
     }
-    records.Party()->zone_ = zone7C_;
+    records.Party()->zone_ = multiplayerZone_;
     RequestKind(3);
     if (Active(net::g_gameServer)) {
         state_ = 6;
-        requestTarget_ = zone7C_;
+        requestTarget_ = multiplayerZone_;
         RequestParty()->Assign(records.Party());
     } else {
         net::HostMessage* host = net::g_gameClient->info_;
@@ -887,11 +887,11 @@ void GameFlow::SwitchMultiplayerZone() {
             RequestParty()->Assign(records.Party());
         }
     }
-    flag80_ = 1;
+    zoneSwitchStarted_ = 1;
 }
 
-void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
-                           int value25FC) {
+void GameFlow::StartServer(const char* name, int maxPlayers, int gameType, const char* password, char unlisted,
+                           int masterKey) {
     BuildZoneTable();
     net::g_netLog = &console::g_netLogOut;
     {
@@ -916,11 +916,11 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : kServerName;
     net::g_gameServer->name_.assign(shown);
-    net::g_gameServer->maxPlayers_ = value25E0;
+    net::g_gameServer->maxPlayers_ = maxPlayers;
     if (password && *password) net::g_gameServer->SetPassword(password);
     net::g_gameServer->SetPublic(unlisted == 0);
     net::g_gameClient->gameType_ = gameType;
-    net::g_gameServer->masterKey_ = value25FC;
+    net::g_gameServer->masterKey_ = masterKey;
     AfterServerStart();
 }
 
@@ -1099,8 +1099,8 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
         g_partyManager->BeginRedeploy(records.Party());
         g_serverWorld->SetTime(HoursOfDay(VariableGet(&records.Party()->variables_, kGTime)));
         if (zoneRecord) {
-            g_serverWorld->SetClimate(zoneRecord->setting2C);
-            g_serverWorld->SetCave(zoneRecord->setting30);
+            g_serverWorld->SetClimate(zoneRecord->climate);
+            g_serverWorld->SetCave(zoneRecord->cave);
         }
         result = kResultPlaying;
     }
@@ -1109,7 +1109,7 @@ void GameFlow::StartZone(std::string_view zone, int mode) {
     if (mode == 1) SpectatorFlag() = mode;
     g_serverWorld->SetGameResult(result);
     // The server world's player source handed to the client world.
-    g_clientWorld->SetPlayer(g_serverWorld->shared5C_.Get());
+    g_clientWorld->SetPlayer(g_serverWorld->worldHandle_.Get());
     ClientWorldLocalView(&g_clientWorld.Get())->sendParty_ = 0;
 }
 
@@ -1188,7 +1188,7 @@ void GameFlow::ProcessRequest() {
         StartZone(kMainMenu, 2);
         break;
     case kStateLoad:
-        clientWorld->SetPlayer(g_serverWorld->shared5C_.Get());
+        clientWorld->SetPlayer(g_serverWorld->worldHandle_.Get());
         ClientWorldLocalView(clientWorld)->sendParty_ = 0;
         g_serverWorld->SetGameResult(1);
         clientWorld->Segment();
@@ -1234,7 +1234,7 @@ void GameFlow::ProcessRequest() {
         StartNetworkZone(requestTarget_.c_str());
         CPlayer* player = ClientWorldLocalView(clientWorld)->player_;
         player->AssignParty(RequestParty());
-        clientWorld->SetPlayer(g_serverWorld->shared5C_.Get());
+        clientWorld->SetPlayer(g_serverWorld->worldHandle_.Get());
         ClientWorldLocalView(clientWorld)->sendParty_ = 1;
         break;
     }
@@ -1350,13 +1350,13 @@ int GameFlow::LoadGame(const char* slot) {
 GameFlow* GameFlow::Construct() {
     std::construct_at(&requestTarget_);
     new (RequestParty()) CParty();
-    std::construct_at(&zone7C_);
+    std::construct_at(&multiplayerZone_);
     state_ = 0;
     return this;
 }
 
 void GameFlow::Destruct() {
-    std::destroy_at(&zone7C_);
+    std::destroy_at(&multiplayerZone_);
     RequestParty()->~CParty();
     std::destroy_at(&requestTarget_);
 }
@@ -1374,7 +1374,7 @@ void GameFlow::SetNetworkZone(const char* zone) {
     std::string folder;
     folder = str::Format(kCurrentFolder, DataFolderText());
     ClearSaveFolder(folder);
-    zone7C_ = zone ? zone : "";   // null (LeaveZone): no zone
+    multiplayerZone_ = zone ? zone : "";   // null (LeaveZone): no zone
     if (Active(net::g_gameServer) && !Active(net::g_gameClient) && zone) StartNetworkZone(zone);
 }
 

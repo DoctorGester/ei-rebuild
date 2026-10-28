@@ -58,7 +58,7 @@ int CWorldServer::Update() {
             DropPlayer(this, player);
     }
 
-    if (CWorldHandle* handle = shared5C_.Get()) {
+    if (CWorldHandle* handle = worldHandle_.Get()) {
         handle->Pump();
         AcceptNewPlayers(handle);
     }

@@ -59,8 +59,8 @@ void CMapObject::SaveMapObject(CStream* stream) {
 
 void CMapObjectServer::Load(CStream* stream) {
     stream->Read(&vitals, sizeof(vitals));
-    name78 = ReadText(stream);
-    name7C = ReadText(stream);
+    parentIname = ReadText(stream);
+    skinTexture = ReadText(stream);
     int count = 0;
     stream->Read(&count, sizeof(count));
     for (int i = 0; i < count; ++i) strings.push_back(ReadText(stream));
@@ -68,8 +68,8 @@ void CMapObjectServer::Load(CStream* stream) {
 
 void CMapObjectServer::Save(CStream* stream) {
     stream->Write(&vitals, sizeof(vitals));
-    stream->WriteString(name78);
-    stream->WriteString(name7C);
+    stream->WriteString(parentIname);
+    stream->WriteString(skinTexture);
     int count = static_cast<int>(strings.size());
     stream->Write(&count, sizeof(count));
     for (const std::string& text : strings) stream->WriteString(text);

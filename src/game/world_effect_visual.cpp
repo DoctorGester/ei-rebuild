@@ -240,7 +240,7 @@ void CEffectParticle::Reset() {
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
-    param164_ = 1.0f;
+    typeParam_ = 1.0f;
     target_ = Vector3{0.0f, 0.0f, 0.0f};
     type_ = 0;
     attachedTo_ = -1;
@@ -289,7 +289,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     field->ReadPosition(&target_);
     field->ReadDelta(&unitId_, 4);
     field->ReadFloat16(&alpha_);
-    field->ReadFloat16(&param164_);
+    field->ReadFloat16(&typeParam_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
     if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
@@ -313,7 +313,7 @@ void CEffectParticle::Spawn() {
         std::memcpy(&baseSize, &source_->baseSize, 4);
         source_->ScaleSize(static_cast<float>(size_ / baseSize));
         std::memcpy(&source_->alpha, &alpha_, sizeof(float));
-        std::memcpy(&source_->typeParam, &param164_, sizeof(float));
+        std::memcpy(&source_->typeParam, &typeParam_, sizeof(float));
         Attach();
         return;
     }
@@ -325,7 +325,7 @@ void CEffectParticle::Spawn() {
     source_->ScaleSize(static_cast<float>(size_ / baseSize));
     source_->Attach(nullptr);
     std::memcpy(&source_->alpha, &alpha_, sizeof(float));
-    std::memcpy(&source_->typeParam, &param164_, sizeof(float));
+    std::memcpy(&source_->typeParam, &typeParam_, sizeof(float));
     Attach();
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
@@ -337,7 +337,7 @@ void CEffectParticle::Spawn() {
 
     if (type_ == 0x2002) {
         float alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
-        float radius = param164_;
+        float radius = typeParam_;
         float angle = RandomAngle(((&g_random))->Next());
         g_clientWorld->AddScorchMark(localPosition_.x, localPosition_.y, radius, radius, angle, alpha);
     }
@@ -365,7 +365,7 @@ void CEffectParticle::Pack(DeltaField* field) {
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
-    field->WriteFloat16(Bits(param164_));
+    field->WriteFloat16(Bits(typeParam_));
 }
 
 void CEffectParticle::SetAttachedTo(int objectId) {
@@ -380,7 +380,7 @@ void CEffectParticle::SetSize(float size) {
 
 void CEffectParticle::SetColors(float a, float b) {
     std::memcpy(&alpha_, &a, 4);
-    std::memcpy(&param164_, &b, 4);
+    std::memcpy(&typeParam_, &b, 4);
     MarkChanged();
 }
 
@@ -420,7 +420,7 @@ void CEffectParticle::Load(CStream* stream) {
     Read(stream, &unitId_, 4);
     if (Version(stream) < 0x58) return;
     Read(stream, &alpha_, 4);
-    Read(stream, &param164_, 4);
+    Read(stream, &typeParam_, 4);
 }
 
 void CEffectParticle::Save(CStream* stream) {
@@ -433,7 +433,7 @@ void CEffectParticle::Save(CStream* stream) {
     Write(stream, &target_, 12);
     WriteCopy(stream, &unitId_);
     WriteCopy(stream, &alpha_);
-    WriteCopy(stream, &param164_);
+    WriteCopy(stream, &typeParam_);
 }
 
 int CEffectParticle::RunTick() {
@@ -482,7 +482,7 @@ void CEffectWall::Reset() {
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
-    param164_ = 1.0f;
+    typeParam_ = 1.0f;
     attachedTo_ = -1;
     target_ = Vector3{0.0f, 0.0f, 0.0f};
     type_ = 0;
@@ -526,7 +526,7 @@ void CEffectWall::Pack(DeltaField* field) {
     value = unitId_;
     field->WriteDelta(&value, 4);
     field->WriteFloat16(Bits(alpha_));
-    field->WriteFloat16(Bits(param164_));
+    field->WriteFloat16(Bits(typeParam_));
     field->WriteFloat16x3(&direction_.x);
 }
 

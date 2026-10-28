@@ -12,7 +12,7 @@ reach other classes after the cleanup, and what is left. The classes themselves 
 - Spells: `CSpellEffect::world` is a `CWorldServer*` (`AIMap()`, `Sectors()`, `AIEvents()`, `tick_`). The buff record a unit gets is a `MapEffect`
   (`power`, `ending`), built by 00688510 through its address. Units go through `ObjectSlots` (`EyePoint`, `AddEffect`, `IsLargeUnit`, `IsDead`,
   `ReceiveHit`); controllers are `CUnitServer` (`Brain()->memory / visible / unknown_12C`, `unit->player`); the possessing player's server is
-  `CPlayer::connection_` as `CPlayerServer` (`group50F8_`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.
+  `CPlayer::connection_` as `CPlayerServer` (`possessedGroup_`, `unknown24_`). Spell records go through `SpellRecord` / `SpellModifierRecord`.
   `CManagerContext` slot 17 (item.h) returns the `CSpellConstructor*`.
 - `CSceneRenderer` slot 16 (model.h) is `DrawStrip`; the lightning reaches slots 11 / 16 / 17 and `pipeline_` through it, and the manager walks
   `CBaseManager::objectList_`. Particle callbacks read element values through `ParticleElement`'s per-type views (`fragment`, `flames`, `orbiter`,

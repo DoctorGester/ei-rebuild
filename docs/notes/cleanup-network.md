@@ -88,7 +88,7 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
   index).
 - `CPlayer` is the one player class (world.h's `WorldPlayer` and `WorldSession` views folded in, C15): +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110 `lastTick_`; `CPlayerClient`
   +0x84 is `localSession_`. The login's +0x84 is the party id.
-- `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends group50F8_ and resets it.
+- `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends possessedGroup_ and resets it.
   world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a pending possession passes).
 - `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578 `masterToken_` (the master
   server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the kind and the password flag.
@@ -105,8 +105,8 @@ functions are STLport's `vector<Query>` instantiation: 004439C0 `_M_insert_overf
   DriverSession's TakeNew append through `AddTail` and count the link.
 - `LoopbackLink::CreatePair` takes the `CWorldHandle*`; every link's Receive takes the `CMemoryStream*`.
 - `SocketDriver::addresses` is a `std::vector<NetAddress>`.
-- The world's helpers are `RefPtrTo<CWorldHandle> shared5C_`, `RefPtrTo<netlink::DriverSession> netSession_` and
-  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld->shared5C_`.
+- The world's helpers are `RefPtrTo<CWorldHandle> worldHandle_`, `RefPtrTo<netlink::DriverSession> netSession_` and
+  `RefPtrTo<CClientHandle> handle_`; the server's 007AFFBC is `g_serverWorld->worldHandle_`.
 
 ## C21 batch 23: typed server records (2026-10-22)
 

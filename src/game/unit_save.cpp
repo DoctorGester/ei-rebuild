@@ -22,7 +22,7 @@ namespace {
 constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load
 constexpr int kWorldServerClassId = 8;              // the world's GetClassId on a server
 
-constexpr int kVersionField438 = 0x49;
+constexpr int kVersionFightAtWill = 0x49;
 constexpr int kVersionPrototypeNames = 0x4D;
 constexpr int kVersionSecondName = 0x6A;
 
@@ -117,7 +117,7 @@ void CUnit::LoadUnit(CStream* stream) {
     ReadItems(this, stream, quickItems, 4);
     ReadItems(this, stream, spells, 8);
     ReadItems(this, stream, armor, 7);
-    stream->Read(levels4C8, sizeof(levels4C8));
+    stream->Read(exposure, sizeof(exposure));
     StatsChanged();
     SetPlayer(newPlayer);   // inlined
 
@@ -128,7 +128,7 @@ void CUnit::LoadUnit(CStream* stream) {
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
     stream->Read(&standingHeight, 4);
 
-    if (stream->version_ < kVersionField438) return;
+    if (stream->version_ < kVersionFightAtWill) return;
     stream->Read(&fightAtWill, 4);
     if (stream->version_ < kVersionPrototypeNames) return;
 
@@ -142,7 +142,7 @@ void CUnit::LoadUnit(CStream* stream) {
         stream->ReadInto(&prototypeName);
         second = PrototypeByName(prototypeName);
     }
-    prototype23C = PrototypeIndexOf(second);
+    secondPrototype = PrototypeIndexOf(second);
 }
 
 void CUnit::SaveUnit(CStream* stream) {
@@ -173,7 +173,7 @@ void CUnit::SaveUnit(CStream* stream) {
     WriteItemIds(stream, quickItems, 4);
     WriteItemIds(stream, spells, 8);
     WriteItemIds(stream, armor, 7);
-    stream->Write(levels4C8, sizeof(levels4C8));
+    stream->Write(exposure, sizeof(exposure));
     WriteCopy(stream, relationsB);
     WriteCopy(stream, static_cast<int>(std::ssize(carried)));
     WriteItemIds(stream, carried.data(), static_cast<int>(std::ssize(carried)));
@@ -184,7 +184,7 @@ void CUnit::SaveUnit(CStream* stream) {
     // address 0), then the second prototype's or "".
     std::string prototypeName = unitdb::PrototypeRecord(prototypeId_)->name;
     stream->WriteString(prototypeName);
-    const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(prototype23C));
+    const UnitPrototypeRecord* second = unitdb::PrototypeRecord(static_cast<std::uint32_t>(secondPrototype));
     if (second) prototypeName = second->name;
     else prototypeName = "";
     stream->WriteString(prototypeName);

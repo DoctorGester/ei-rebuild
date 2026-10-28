@@ -148,8 +148,8 @@ public:
     void SetTargetId(int id);
 
     options::GameOptions* settings_;   // the game options: heights, start placement, limits, saved views
-    Vector3 offset98_;          // pan velocity
-    Vector3 offsetA4_;          // pan velocity target
+    Vector3 panVelocity_;       // pan velocity
+    Vector3 panTarget_;         // pan velocity target
     float panResponse_;
     float turnRate_;
     float turnTarget_;

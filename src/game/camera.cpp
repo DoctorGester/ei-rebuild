@@ -112,8 +112,8 @@ void TargetPlace(int id, Vector3* at, float* ground) {
 }
 
 void ResetMotion(CCamera* c) {
-    std::memcpy(&c->offset98_, &camera::kZeroVector, sizeof(Vector3));
-    std::memcpy(&c->offsetA4_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&c->panVelocity_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&c->panTarget_, &camera::kZeroVector, sizeof(Vector3));
     const float zero = 0.0f;
     CopyFloat(&c->turnRate_, &zero);
     CopyFloat(&c->turnTarget_, &zero);
@@ -229,9 +229,9 @@ void CCamera::Pan(const Vector3* direction) {
     double k2 = (1.0 / std::sqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
     up.x = static_cast<float>(k2 * up.x);
     double upY = k2 * up.y;
-    offsetA4_.x = static_cast<float>(D(up.x) + right.x);
-    offsetA4_.y = static_cast<float>(upY + rightY);
-    offsetA4_.z = 0.0f;
+    panTarget_.x = static_cast<float>(D(up.x) + right.x);
+    panTarget_.y = static_cast<float>(upY + rightY);
+    panTarget_.z = 0.0f;
 }
 
 void CCamera::StopMotion() {
@@ -248,7 +248,7 @@ void CCamera::StopMotion() {
     up.z = 0.0f;
     Vector3 sum;
     AddVectors(&sum, right, up);
-    std::memcpy(&offsetA4_, &sum, sizeof(Vector3));
+    std::memcpy(&panTarget_, &sum, sizeof(Vector3));
     // SetTiltRate(0) / SetTurnRate(0) inlined: a rate is replaced when its magnitude is below the
     // target's (never, for 0; a NaN rate is replaced).
     EI_NAN_AUDIT(tiltRate_, turnRate_);
@@ -370,8 +370,8 @@ void CCamera::Update(float dt) {
     }
 
     // Pan: the velocity eases towards its target.
-    Vector3& velocity = offset98_;
-    const Vector3& wanted = offsetA4_;
+    Vector3& velocity = panVelocity_;
+    const Vector3& wanted = panTarget_;
     Vector3 change = {static_cast<float>(D(wanted.x) - velocity.x), static_cast<float>(D(wanted.y) - velocity.y),
                       static_cast<float>(D(wanted.z) - velocity.z)};
     Vector3 accel;

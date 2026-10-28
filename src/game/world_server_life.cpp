@@ -41,9 +41,9 @@ int CWorldServer::Create() {
     }
     if (!opened) return game::FatalError(CantOpenText());
 
-    manager44_ = new CServerSpecificManager();
-    ++manager44_->refCount_;   // the reference is counted without testing the pointer
-    manager44_->SetContext(this);
+    specificManager_ = new CServerSpecificManager();
+    ++specificManager_->refCount_;   // the reference is counted without testing the pointer
+    specificManager_->SetContext(this);
     hoover_ = new CHoover();
     ++hoover_->refCount_;
 

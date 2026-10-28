@@ -114,7 +114,7 @@ void CCamera::SetTarget(const CEngineObject* target) {
 void CCamera::SetTargetId(int id) {
     targetId_ = id;
     if (id != -1) {
-        std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
-        std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
     }
 }

@@ -94,8 +94,8 @@ constexpr int kClassParticles = 0x4A;   // CEffectParticle
 constexpr int kClassLightning = 0x4D;   // CEffectLightning
 constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
-// The world's manager of timed objects (spells and effects; CWorld::manager48_).
-CBaseManager* EffectManager() { return g_serverWorld->manager48_; }
+// The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
+CBaseManager* EffectManager() { return g_serverWorld->timedObjectManager_; }
 
 void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
 

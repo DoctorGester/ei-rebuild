@@ -230,7 +230,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
 
         unit->SetPlayer(player);
         slots->SetScriptName(record->texts[0]);
-        unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
+        unit->SetFightAtWill(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
         slots->SetStats(&record->stats);
         unit->ReleaseAllItems();
@@ -253,19 +253,19 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        unit->SetPrototype23CByName(record->texts[6].c_str());
+        unit->SetSecondPrototypeByName(record->texts[6].c_str());
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = AIMap()->IsPassableForClass(1, &unit->localPosition_);
-            if (flagged) unit->SetMoveModes(placement->value20, placement->value20);
-            else unit->moveMode2 = static_cast<int>(placement->value20);
+            if (flagged) unit->SetMoveModes(placement->moveMode, placement->moveMode);
+            else unit->moveMode2 = static_cast<int>(placement->moveMode);
         }
         controller->ResyncWithUnit();
         if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             unit->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && sessionKind_ != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->value24);
+        if (placement && sessionKind_ != kKindNoRangeTest) unit->pendingWeapon = static_cast<int>(placement->weapon);
     }
 
     // Followers follow their leaders.
@@ -323,8 +323,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         return -1;
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
-        companion->name78 = spec->parentIname;
-        companion->name7C = spec->skinTexture;
+        companion->parentIname = spec->parentIname;
+        companion->skinTexture = spec->skinTexture;
         companion->strings = spec->parts;
     };
     auto race = [spec](CMapObject* object) {
@@ -348,7 +348,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         timedObjects_.Set(static_cast<unsigned>(object->id_), object);
         return object->id_;
     };
-    CBaseManager* timedManager = manager48_;
+    CBaseManager* timedManager = timedObjectManager_;
     CMapObjectManager* objectManager = MapObjectManager();
 
     switch (base.kind) {

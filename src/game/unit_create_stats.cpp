@@ -580,7 +580,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         object->SetFigureScale(&scale.x);
         std::memcpy(&object->baseScale, &scale, sizeof(scale));
         object->ApplyBaseScale();
-        UnitOrNull(object)->SetPrototype23C(prototype);
+        UnitOrNull(object)->SetSecondPrototype(prototype);
     }
     UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(name);
     object->prototypeId_ = record ? static_cast<std::uint32_t>(record - g_unitDatabase->prototypes.records.data()) : 0xFFFFFFFFu;
@@ -589,7 +589,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
 
 // --- The factory ------------------------------------------------------------------------------
 
-// Every object starts zeroed (kZeroed): the units' constructors leave levels4C8 and the
+// Every object starts zeroed (kZeroed): the units' constructors leave exposure and the
 // motion's turn fields, which the saves write.
 CEngineObject* CMapObjectManager::NewObject(int classId) {
     for (const FactoryEntry& entry : kFactory) {

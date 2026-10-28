@@ -154,7 +154,7 @@ void LoadPlayers(CWorldServer* world, CStream* stream) {
             group.Load(stream);
         }
         state->SendParty();
-        state->SetFlag70(1);
+        state->SetPartyDeployed(1);
     }
 }
 
@@ -220,7 +220,7 @@ void CWorldServer::LoadSavedMapObjects(CStream* stream) {
     for (;;) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
-        CMapObject* object = manager40_->FindMapObject(id);
+        CMapObject* object = objectManager_->FindMapObject(id);
         if (stream->version_ >= kVersionMapObjectName) {
             std::string name;
             ReadStringInto(stream, name);
@@ -331,16 +331,16 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 if (id == -1) break;
                 int type = ReadValue<int>(stream);
                 std::uint32_t value18 = ReadValue<std::uint32_t>(stream);
-                CEngineObject* object = manager40_->CreateObject(type, id);
+                CEngineObject* object = objectManager_->CreateObject(type, id);
                 object->prototypeId_ = value18;
             }
-            manager48_->Load(stream);
-            manager4C_->Load(stream);
+            timedObjectManager_->Load(stream);
+            spellManager_->Load(stream);
             itemManager_->Load(stream);
             ShowLoadProgress(kProgressManagers);
             LoadSavedMapObjects(stream);
-            manager48_->LoadObjects(stream);
-            manager4C_->LoadObjects(stream);
+            timedObjectManager_->LoadObjects(stream);
+            spellManager_->LoadObjects(stream);
             itemManager_->LoadObjects(stream);
             ShowLoadProgress(kProgressObjects);
 
@@ -348,7 +348,7 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
             for (;;) {
                 int id = ReadValue<int>(stream);
                 if (id == -1) break;
-                CEngineObject* object = manager48_->FindObject(id);
+                CEngineObject* object = timedObjectManager_->FindObject(id);
                 ++object->refCount_;
                 static_cast<CEffect*>(object)->MarkChanged();
                 timedObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -435,9 +435,9 @@ int CWorldServer::LoadSave(CStream* stream, const char* map) {
                 for (SharedObject& entry : shared) entry.Load(stream);
             }
 
-            manager40_->ReleaseUnused();
-            manager48_->ReleaseUnused();
-            manager4C_->ReleaseUnused();
+            objectManager_->ReleaseUnused();
+            timedObjectManager_->ReleaseUnused();
+            spellManager_->ReleaseUnused();
             itemManager_->ReleaseUnused();
             result = 1;
         }
@@ -452,9 +452,9 @@ void CWorldServer::SaveWorld(CStream* stream) {
     CMemoryStream current;
 
     if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimes(0.0f);
-    manager40_->ReleaseUnused();
-    manager48_->ReleaseUnused();
-    manager4C_->ReleaseUnused();
+    objectManager_->ReleaseUnused();
+    timedObjectManager_->ReleaseUnused();
+    spellManager_->ReleaseUnused();
     itemManager_->ReleaseUnused();
 
     stream->WriteString(mobName_);
@@ -490,12 +490,12 @@ void CWorldServer::SaveWorld(CStream* stream) {
         WriteCopy(stream, object->prototypeId_);
     }
     WriteCopy(stream, -1);
-    manager48_->Save(stream);
-    manager4C_->Save(stream);
+    timedObjectManager_->Save(stream);
+    spellManager_->Save(stream);
     itemManager_->Save(stream);
     SaveMapObjects(stream);
-    manager48_->SaveObjects(stream);
-    manager4C_->SaveObjects(stream);
+    timedObjectManager_->SaveObjects(stream);
+    spellManager_->SaveObjects(stream);
     itemManager_->SaveObjects(stream);
 
     for (auto node = timedObjects_.map.begin(); node != timedObjects_.map.end(); ++node)

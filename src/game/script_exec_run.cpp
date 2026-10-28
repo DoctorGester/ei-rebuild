@@ -34,8 +34,8 @@ bool IsZero(float value) {
     return value == 0.0f;
 }
 
-// The world's manager of timed objects (spells and effects; CWorld::manager48_).
-CBaseManager* EffectManager() { return g_serverWorld->manager48_; }
+// The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
+CBaseManager* EffectManager() { return g_serverWorld->timedObjectManager_; }
 
 // An effect object took a new position.
 void EffectMoved(CEngineObject* object) { static_cast<CEffect*>(object)->MarkChanged(); }

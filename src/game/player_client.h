@@ -43,8 +43,8 @@ public:
     // (pendingWeapon / moveMode2).
     int SetWeapon(CUnit* unit, int slot);
     int SetMoveMode(CUnit* unit, int mode);
-    // CUnit::SetUnknown438(value), then 0x3B: the id and the value's low byte.
-    int SetUnitFlag438(CUnit* unit, int value);
+    // CUnit::SetFightAtWill(value), then 0x3B: the id and the value's low byte.
+    int SetUnitFightAtWill(CUnit* unit, int value);
     // 0x39: the unit's id and the target's (-1 for none).
     int SendFollow(CUnit* unit, CEngineObject* target);
     // 0x10: whether `value` (a byte) is set.

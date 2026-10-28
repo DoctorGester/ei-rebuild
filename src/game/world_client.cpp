@@ -220,15 +220,15 @@ void EndWalk(ObjectListIterator& it) {
 } // namespace
 
 void CWorldClient::CreateExitMarkers() {
-    countedA0_.clear();
-    countedA0_.resize(exits_.size());
+    exitMarkers_.clear();
+    exitMarkers_.resize(exits_.size());
     for (int i = 0; i < std::ssize(exits_); ++i) {
         if (text::CompareIgnoringCase(exits_[i].target,
                             game::NoneText()) == 0) {
             continue;
         }
         auto* source = TheParticleManager()->CreateSource(kExitParticles);
-        countedA0_[i] = source;
+        exitMarkers_[i] = source;
         const ZoneExit& exit = exits_[i];
         source->localPosition_ = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
@@ -349,7 +349,7 @@ int CWorldClient::Segment() {
     if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();
     }
-    if (CWorldHandle* source = shared5C_.Get()) source->Pump();
+    if (CWorldHandle* source = worldHandle_.Get()) source->Pump();
     if (CClientHandle* source = handle_.Get()) source->Pump();
     if (netlink::DriverSession* session = netSession_.Get()) session->PumpDrivers(net::g_gameClient);
     if (CPlayer* session = session_) {

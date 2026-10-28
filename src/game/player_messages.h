@@ -43,8 +43,8 @@ struct UnitPlacement {
     int id;
     std::uint32_t position[3];      // float bits
     std::uint32_t rotation[4];
-    std::uint32_t value20;
-    std::uint32_t value24;
+    std::uint32_t moveMode;         // the unit's moveMode2
+    std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
 static_assert(sizeof(UnitPlacement) == 0x28);
 
@@ -89,7 +89,7 @@ public:
     void ItemsTaken() override { Send17(); }
     void ItemTaken(CEngineObject* item) override { SendObject0A(item); }
     void LeaderDied() override { OnLeaderDied(); }
-    void TickDone() override { ClearGroup50F8(); }
+    void TickDone() override { ClearPossessedGroup(); }
     void ItemUsed(CEngineObject* item) override { SendObject14(item); }
     int Receive() override { return ReceiveMessages(); }
 
@@ -119,7 +119,7 @@ public:
     void SendText13(std::uint32_t unused, const char* text);        // the text is the 2nd argument
     void WriteTo(CStream* target);                                  // target->CopyFrom(out_)
     void SetDisconnect();                                           // state 4
-    void SetFlag70(std::uint8_t value);
+    void SetPartyDeployed(std::uint8_t value);
 
     // Compresses the outgoing messages and sends them on the player's link; the messages are emptied. The
     // send's result (a bool), 0 without a link.
@@ -159,9 +159,9 @@ public:
     // dropped. A read past the end, a type without a handler or a refusing handler ends in the fatal error
     // (its result returned). 0 when leaving (state 3, also after a handler) or without a link, else 1.
     int ReceiveMessages();
-    // The party units (partyUnits_) recomputed: with possessedId_ at -1, group50F8_ plus the player's units,
+    // The party units (partyUnits_) recomputed: with possessedId_ at -1, possessedGroup_ plus the player's units,
     // the units they see and what they know (their brains' lists), and every brain then knows all of it;
-    // otherwise partyUnits_ becomes a copy of group50F8_ and possessedId_ -1.
+    // otherwise partyUnits_ becomes a copy of possessedGroup_ and possessedId_ -1.
     void UpdatePartyUnits();
 
     // The player's leader died. Outside a network game: messages 0x09 and 0x0B (the hero's id, 0xFF). In one,
@@ -220,8 +220,8 @@ public:
     int OnUnitLookup();        // Message 0x38: two dwords, the first looked up as a unit (unused)
     // Message 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
     int OnFollow();
-    // Message 0x3B: a unit id, then a byte: CUnit::SetUnknown438(signed byte) when the unit exists.
-    int OnUnitFlag438();
+    // Message 0x3B: a unit id, then a byte: CUnit::SetFightAtWill(signed byte) when the unit exists.
+    int OnFightAtWill();
     int OnLastPosition();      // Message 0x40: 8 bytes into lastPosition_ x, y
     // Message 0x00: the login (PlayerLoginMessage); 0 unless the state is 0 (after the read). A client version
     // other than 0x64 gets message 0x11 ("WrongClientVersion") and state 3 (0); a name or password that is
@@ -239,8 +239,8 @@ public:
 
     void ClearServerState();
     void ReleaseSentObjects();
-    void ClearGroup50F8();
-    // A joined player (state 1) collects its party when deployed (flag70_, then cleared) and, in a
+    void ClearPossessedGroup();
+    // A joined player (state 1) collects its party when deployed (partyDeployed_, then cleared) and, in a
     // multiplayer game, sends it; then state 3 with message 0x01 unless already 3, and Flush.
     void LeaveAndFlush();
     // Message 0x0E about a path of `unit` (nothing for null): kind, flag, the point's two dwords, the unit's
@@ -248,7 +248,7 @@ public:
     void SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
-    // -1, or the unit a Possession spell took (its id): the next party refresh then sends group50F8_ (the
+    // -1, or the unit a Possession spell took (its id): the next party refresh then sends possessedGroup_ (the
     // target and what it sees) and sets it back to -1. Sent with message 0x60.
     std::uint32_t possessedId_;
     // ClearServerState, then the handler table: 256 entries, zeroed, and the 25 handlers by message type.
@@ -259,13 +259,13 @@ public:
     Vector3 lastPosition_;          // sent with 0x04 / 0x0F
     int spare_;                     // -1 after Create; nothing reads it
     CMemoryStream out_;                 // messages to the client
-    std::uint8_t flag70_;           // OnLeaderDied collects the party when set, redeploys it when clear
+    std::uint8_t partyDeployed_;    // the party stands in the world: OnLeaderDied collects it when set, redeploys it when clear
     std::vector<UnitPlacement> placements_;
     CoderState compressor_;         // for the messages sent (Flush)
     CoderState decompressor_;       // for the messages received
     std::vector<CEngineObject*> sentObjects_; // map objects the client has (counted)
     std::vector<CEngineObject*> sentTimed_;   // timed objects the client has (counted)
-    ScriptGroup group50F8_;
+    ScriptGroup possessedGroup_;
     ScriptGroup partyUnits_;        // units always sent (message 0x60)
     int refreshPending_;            // 0, 1 or 2 (SendPartyState)
     int refreshTimer_;              // updates until the party is sent again

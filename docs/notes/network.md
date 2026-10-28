@@ -46,7 +46,7 @@ function does; this file keeps what is not visible in the code.
   briefing "b.<speaker>.<zone>_1" (MarkBriefing), so the zones are the speaker's topics (Nsheriff on
   bz1mpg; a network client's topics are sorted by _stricmp). Finishing one sends command 1 "<zone>_1"
   (CompleteBriefing -> RequestBriefing); the host's server then runs SetMap: the queued "<zone>_2", the Map
-  message, SetNetworkZone (zone7C_). Which zones are offered differs by install (vanilla z3q2 first,
+  message, SetNetworkZone (multiplayerZone_). Which zones are offered differs by install (vanilla z3q2 first,
   Rebirth z3q1).
 - Leaving: a client may leave while "z.MPGame1" is not 1 (UpdateMultiplayerVariable 0057F190: the host
   once it has the Map, a joiner once it has the Host message); the leader walking into exit 1's remove
@@ -71,7 +71,7 @@ function does; this file keeps what is not visible in the code.
   (z3q3 on both). The sheriff's topics after the map choice: "about life in the village", the map's reject
   briefing ("<zone>_2"), "talk later".
 - Back to the base: the game zone's exit 1 (z3q1 / z3q2: remove rectangle 0 130 20 147, next to the deploy
-  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, flag80_ set: the client
+  rectangle) asks the leave box (yes: 00578AC0 -> SwitchMultiplayerZone's second call, zoneSwitchStarted_ set: the client
   state 1 and the start zone again; the host also sends command 9 with the announced zone to its guests and
   drops the Host message). The base is local again; the zone's map message stays held.
 - The reject topic sends command 1 "<zone>_2": LeaveZone (text 6 announced, AwardHost with the final award for

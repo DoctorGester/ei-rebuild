@@ -256,12 +256,10 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 
 // --- Constructor, destructor, stream reset ---------------------------------------------------
 
-// The stream reader, the strings and the archive are members the compiler constructs (here before the body;
-// the game constructs the stream reader first and the archive between the registries).
+// The stream reader, the strings and the archive are members the compiler constructs before the body.
 CSoundManager::CSoundManager() {
     ClearFields();
     soundRegistry.Construct();
-    registry0CC.Construct();
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -273,8 +271,7 @@ CSoundManager::CSoundManager() {
     Reset();
 }
 
-// The archive, the strings and the stream reader are destroyed after the body (the archive after the
-// registries; the game destroys it between them and the stream reader last).
+// The archive, the strings and the stream reader are destroyed after the body.
 CSoundManager::~CSoundManager() {
     Close();
     gameapi::AIL_shutdown();
@@ -283,7 +280,6 @@ CSoundManager::~CSoundManager() {
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
     waveSources.clear();
-    registry0CC.Destroy();
     soundRegistry.Destroy();
 }
 
@@ -532,13 +528,10 @@ void CSoundManager::Close() {
         gameapi::AIL_end_sequence(midiSequence);
         gameapi::AIL_release_sequence_handle(midiSequence);
     }
-    if (midiData1D0 != nullptr) gameapi::AIL_mem_free_lock(midiData1D0);
-    if (midiData1D4 != nullptr) gameapi::AIL_mem_free_lock(midiData1D4);
     if (waveDriver != nullptr) gameapi::AIL_waveOutClose(waveDriver);
     if (midiDriver != nullptr) gameapi::AIL_midiOutClose(midiDriver);
     ClearWaveSources();
     streamReader.Close();
-    archive074.CloseResource();
     soundRegistry.Close();
     Reset();
 }
@@ -578,8 +571,6 @@ void CSoundManager::Reset() {
     emitterTick = 0;
     midiSequence = nullptr;
     midiState = 0;
-    midiData1D0 = nullptr;
-    midiData1D4 = nullptr;
     ConstructFader(midiFader);
     speechVolume = kFullVolume;
     effectsVolume = kFullVolume;

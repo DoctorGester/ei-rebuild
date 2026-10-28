@@ -385,7 +385,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
                 manaSum = static_cast<float>(D(manaSum) + D(record->mana));
                 // The modifier must suit the spell (the spell's flag byte for the modifier's kind).
                 std::uint32_t kind = ModifierRecordOf(item)->kind;
-                if (kind < 5 && record->bytes78[kind] == 0) return false;
+                if (kind < 5 && record->allowedModifiers[kind] == 0) return false;
             } else if (IsModifier(ItemOf(spellResults_, i))) {
                 ++modifiers;
                 const itemdb::SpellModifierRecord* modifier = ModifierRecordOf(ItemOf(spellResults_, i));

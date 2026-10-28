@@ -377,10 +377,10 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->prototypeId_);
         std::memcpy(&out->speed, &weapon->weight_, sizeof(float));
-        float base = WeaponStat84(weapon->prototypeId_);
+        float base = WeaponAttackBonus(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
-        base = WeaponStat88(weapon->prototypeId_);
+        base = WeaponDefenceBonus(weapon->prototypeId_);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
         out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
@@ -501,7 +501,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->amount = ScaleDamageByEffects(self, out->amount);
     out->location = location;
     out->hitKind = 0;
-    if (backstab) out->backstabFactor = static_cast<float>(stats.Value6E9Arg(0));
+    if (backstab) out->backstabFactor = static_cast<float>(stats.BackstabFactorArg(0));
     else out->backstabFactor = kOne;
     if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);

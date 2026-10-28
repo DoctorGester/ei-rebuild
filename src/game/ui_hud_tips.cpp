@@ -111,7 +111,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
         int maximum = Truncate(charges);
         line = str::Format("%s %d/%d (%d)\n", labels_[0].c_str(), Truncate(level), maximum, now);
         *text += line;
-        if (SpellPrototype(data)->bytes78[3] == 0)
+        if (SpellPrototype(data)->allowedModifiers[3] == 0)
             line = str::Format("%s %s  ", labels_[1].c_str(), labels_[11].c_str());
         else
             line = str::Format("%s %d  ", labels_[1].c_str(), Truncate(data->damage_));
@@ -147,7 +147,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
     if (item->GetCategory() == 8) {
         // A scroll: mana and time.
         *text += " \n";
-        if (SpellPrototype(data)->bytes78[3] == 0)
+        if (SpellPrototype(data)->allowedModifiers[3] == 0)
             line = str::Format("%s %s\n", labels_[1].c_str(), labels_[11].c_str());
         else
             line = str::Format("%s %d\n", labels_[1].c_str(), Truncate(data->damage_));

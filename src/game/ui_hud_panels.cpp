@@ -63,7 +63,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
     return *ratio > 0.0f;
 }
 
-// The local view, whose SetUnitFlag438 sets a unit's flag and sends it to the server.
+// The local view, whose SetUnitFightAtWill sets a unit's flag and sends it to the server.
 CPlayerClient* Orders() { return g_clientWorld->LocalView(); }
 
 } // namespace
@@ -142,7 +142,7 @@ void CHudMovePanel::ToggleFlag() {
     int value = !owner_->party_.empty() && common == 1 ? 0 : 1;
     for (int i = 0; i < std::ssize(owner_->party_); ++i) {
         CUnit* unit = owner_->party_[i];
-        if (unit->flags_ & 0x10) Orders()->SetUnitFlag438(unit, value);
+        if (unit->flags_ & 0x10) Orders()->SetUnitFightAtWill(unit, value);
     }
     flag_ = value;
     // The button's frame (the original also has 0.48046875 for any other value; `value` is 0 or 1).
