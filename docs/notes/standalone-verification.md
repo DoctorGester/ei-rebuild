@@ -390,8 +390,8 @@ happen (the harness logs "share id" if one does).
   only when placed (else the focus), scene meshes and figure parts are zero-filled arrays, map objects and figures
   get theirs on placement / load. The 3DS readers' stack figure (004A0350) is unported dead code.
 - **Address order**: a sort or hash walk by pointer that reaches behaviour, a save or a frame gets an id or name order
-  in ours and a harness patch in the original. Pointer-keyed containers that reach no output (CRenderHelper::records_,
-  CMappedResource::filesByData_, mod_folders' sets, ChunkArchive::numbers_, text_sources' converted texts, ui_native's
+  in ours and a harness patch in the original. Pointer-keyed containers that reach no output
+  (CMappedResource::filesByData_, mod_folders' sets, ChunkArchive::numbers_, text_sources' converted texts, ui_native's
   surfaces, the renderer's caches) need nothing. Net replication (SV7b5) sends by entry serial in ours (network.md,
   "Original bugs kept (rest)"); the original's runs keep the address order unpatched, as no golden reads it.
 - **Allocation order** (SV2f, SV2h1b): the game reads the heap's address order in places, and before the

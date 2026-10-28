@@ -769,8 +769,8 @@ File map of the device layer (all in `src/game`; the files' headers name the add
   004E5E50, 004E6EE0 format table, destructor body 004E68A0 (the four stage-0 state blocks at 007AEDD0..DC are section 5's constants); the
   depth buffer 004E6C30 / 004E6BC0 and the device callback 004ED820 are not ported); `pixel_formats.cpp` (004EDAA0 /
   004EDC00 / 004EDC70 and the format lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
-  axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`
-  slots and built-in presets, `CTransformPipeline` constructor 004F0B90 / destructor 004F0E10 / matrix stacks 004F0DB0,
+  axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`'s
+  built-in presets, `CTransformPipeline` constructor 004F0B90 / destructor 004F0E10 / matrix stacks 004F0DB0,
   `DriverAt` 004EE6D0); `link_mesh_draw.cpp` (CLinkMesh slots 7-14, 004F3870..004F4850); `weather_particles.cpp` (rain
   004E4240 and snow 004E4C80); `effects_weather_draw.cpp` (visibility fog draw 004E1EB0, rain / snow buffers 004E3C20);
   `device_bounds.cpp` (screen bounds 004E86B0 / 004E8900); `link_loader_create.cpp` (`CLinkFigureLoader` constructor

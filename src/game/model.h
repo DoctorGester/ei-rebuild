@@ -203,11 +203,11 @@ class CMaterial;
 struct LineBatch;
 struct LightningPoint;
 
-class CRenderPreset;
-
-// What the helper keeps for a preset: the states it was recorded from (PresetStates) and the preset itself,
-// counted.
-struct RenderPresetRecord {
+// A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
+// sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
+// the states from `stages_` on, with its blend factors.
+class CRenderPreset final {
+public:
     // One texture stage's operations and the blend factors of its pass.
     struct State {
         bool enabled;                     // the stage's operations are set
@@ -216,18 +216,8 @@ struct RenderPresetRecord {
         render::Blend sourceBlend;
         render::Blend destBlend;
     };
-    std::vector<State> states;
-    CRenderPreset* preset;        // counted
-};
 
-// A render state preset the renderer's helper keeps (counted): the passes of a material's draw. The first pass
-// sets the texture stages of the first `stages_` states and turns the next stage off; each further pass is one of
-// the states from `stages_` on, with its blend factors.
-class CRenderPreset final {
-public:
-    CRenderPreset(const std::vector<RenderPresetRecord::State>& states, int stages, int index);
-    virtual ~CRenderPreset();
-    virtual unsigned Index() { return static_cast<unsigned>(index_); }
+    CRenderPreset(const std::vector<State>& states, int stages) : states_(states), stages_(stages) {}
 
     CRenderPreset(const CRenderPreset&) = delete;
     CRenderPreset& operator=(const CRenderPreset&) = delete;
@@ -237,48 +227,35 @@ public:
     void ApplyPass(int pass) const;
 
     int refs_ = 0;
-    std::vector<RenderPresetRecord::State> states_;
+    std::vector<State> states_;
     int stages_;                         // texture stages the first pass sets
-    int index_;                          // the index it was recorded with (below 9: built in)
 };
 
 struct IDirect3DDevice7;
 
-// The renderer's counted helper: the render state presets of the materials.
+// The renderer's counted helper: the nine built-in render state presets of the materials.
 class CRenderHelper final {
 public:
     static constexpr unsigned kPresetCount = 9;
 
+    // Takes the device's capabilities and records the nine presets (`flag`'s low byte: one texture stage each).
     CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag);
-    virtual ~CRenderHelper();
-    // Makes a preset of `states` and keeps it (as built-in preset `index` when that is below 9). `singleStage`: at
-    // most one texture stage.
-    virtual CRenderPreset* Record(const std::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
-    // Forget for `preset`'s record, if there is one.
-    virtual void ReleasePreset(CRenderPreset* preset);
-    // Clears the preset's place among the built-in presets and drops its record.
-    virtual void Forget(CRenderPreset* preset);
-    // The preset of `preset`'s record, or null without a record.
-    virtual void* PresetBlock(CRenderPreset* preset);
+    ~CRenderHelper();
     // Preset `index` of the nine, or null beyond them.
-    virtual CRenderPreset* Preset(unsigned index);
-    // The states of `preset`'s record copied into `out`; false without a record.
-    virtual bool PresetStates(CRenderPreset* preset, std::vector<RenderPresetRecord::State>* out);
-    // PresetStates for built-in preset `index`; false beyond the nine or for a null one.
-    virtual bool BuiltInStates(unsigned index, std::vector<RenderPresetRecord::State>* out);
+    CRenderPreset* Preset(unsigned index) const { return index < kPresetCount ? presets_[index] : nullptr; }
 
     CRenderHelper(const CRenderHelper&) = delete;
     CRenderHelper& operator=(const CRenderHelper&) = delete;
 
-    // The state list of built-in preset `index` into `states` (emptied first); false beyond the nine.
-    // Presets 0 and 8 have no states.
-    bool RenderHelperBuiltInStateList(std::vector<RenderPresetRecord::State>* states, unsigned index);
-
     int refs_ = 0;
     IDirect3DDevice7* device_;          // counted (AddRef / Release)
     std::uint8_t caps_[0xEC];           // the device's D3DDEVICEDESC7
-    std::unordered_map<CRenderPreset*, RenderPresetRecord> records_;   // by preset
-    std::vector<CRenderPreset*> presets_;   // the nine built-in presets (not counted)
+
+private:
+    // Preset `index` made of `states`. `singleStage`: at most one texture stage.
+    void Record(const std::vector<CRenderPreset::State>& states, unsigned index, bool singleStage);
+
+    CRenderPreset* presets_[kPresetCount] = {};   // counted
 };
 
 // The scene renderer's base class ("CVisualizator" in the game's messages); CSceneRenderer is its only one.
