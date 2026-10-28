@@ -100,7 +100,8 @@ struct ItemStock {
     float baseLevels[8];            // set with scrollLevels (SetLevels)
     float scrollLevels[8];          // the spell level per school for the scrolls
 
-    // Both maps empty; baseLevels and scrollLevels are not written.
+    // The owner and class index 0 (the members are the template's to build); baseLevels and scrollLevels are
+    // not written.
     ItemStock* Construct(CParty* context);
 
     // `record` appended to the armors / weapons / quick items / spells / modifiers unless null or already

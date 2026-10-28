@@ -29,8 +29,6 @@ void HandOver(const StockList& list, CParty* party) {
 ItemStock* ItemStock::Construct(CParty* owner) {
     context = owner;
     classIndex = 0;
-    std::construct_at(&spellMap);
-    std::construct_at(&modifierMap);
     return this;
 }
 
@@ -49,8 +47,6 @@ ClassTemplate::ClassTemplate() : weightsTail{} {
 
 void ItemStock::Destruct() {
     context = nullptr;
-    std::destroy_at(&modifierMap);
-    std::destroy_at(&spellMap);
 }
 
 ClassTemplate::~ClassTemplate() {
