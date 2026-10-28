@@ -2965,7 +2965,7 @@ title = "C14 archives: CFile/CArchive to our own small stream, with a save round
 group = "cleanup"
 model = "opus"
 depends = ["C14c"]
-note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals. Done (to review, 3d2964af0): src/lib/file_io.h gains lib::File (binary, Win32 handle, MFC's open flags), lib::TextFile (lines on a host stream), lib::FileFind (CFileFind's read-ahead and absolute paths) and lib::FileError (where MFC threw CFileException*); opens and finds stay on the game's import slots. 37 game files moved (scratch retype_files.py, then by hand). mfc::CFile / CArchive / CMemFile uses 94 -> 0, CStdioFile / CFileFind / CFileVirtuals / ExceptionLink lines in src/game 103 -> 0 (one comment). Deleted: mfc_file.h/.cpp, mfc.h's file and archive facades, CFileException and its throws, the TRY link, CTime's file-time constructors, CDib::Serialize, _simpleNotSupportedException (initialiser 0070C1ED UNUSED_INITIALISERS); src/lib 1392 lines out, 378 in. mfc_archive kept on a lib::File for the collections' dead Serialize slots (C14r). Save byte check: 2406 files of harness_saves byte-identical with main's runs. Image suite --golden 145 pass, 121 the same (before 121); original suite not run (tests/verify untouched)."
 
 [[ticket]]
 id = "C28a"
@@ -3577,6 +3577,15 @@ title = "C14 the kept STLport hash tables and trees: Connection's maps, UnitSet'
 group = "cleanup"
 depends = ["C14c"]
 note = "Left by C14c (user 2026-10-28 rule: replace the usage code with std or small code of ours, then delete the stlp piece once only the tests' game.exe views use it). Kept as stlp: net::Connection's five trees (net_connection.h trees::*, counted RefPtr values with CountedValue / RecordValue policies; stlp_tree.h / stlp_tree_abi.h / stlp_tree_mbs.h stay for them), UnitSet's FiguredTable / FiguredGroups / DressedTable (world.h, record element policies; walked to write the zone message, so lib::HashMap), PartyTable (party_manager.h, CParty in place with a nonstandard copy; game_hashes.h PartyAbi), ShapeTable (ai_shape_cache.h, RefPtr values, its own height equality). Each needs its element's real special members (an RAII counted pointer, CParty's copy) first; then lib::HashMap (src/lib/hash_map.h) where the walk matters, std::map for the trees, and stlp_hash.h / stlp_tree*.h go. The hashtable's bucket vectors are stlp::vector (C14n)."
+
+[[ticket]]
+id = "C14r"
+title = "Delete mfc_archive: CArchive, CArchiveException and the string operators once the collections' Serialize slots are gone"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14m"]
+files = ["src/lib/mfc_archive.h", "src/lib/mfc_archive.cpp", "src/lib/mfc_exception.h", "src/lib/mfc_exception.cpp", "src/lib/mfc_slots.h"]
+note = "C14d left src/lib/mfc_archive.h/.cpp (CArchive over a lib::File, StoreText / LoadText / ReadStringLength / WideToMultiByte) and CArchiveException / ThrowArchiveException (mfc_exception), reached only by the MFC collections' Serialize slots (mfc_slots.h, mfc_array.cpp's Strings::Serialize, game_arrays.h / game_slots.h / party_lifetime.cpp's CompiledCollection tags). Nothing builds an archive, so the slots are dead. When C14m has moved CArray / CList to std (or makes slot 2 CObject's empty Serialize), delete them with mfc_archive, CArchiveException (its vtable row 00746808 to file -, kClassCArchiveException 007467D8 to gen_image_cells UNREAD), kIdpArchiveNone and its resource strings, and the replay_unlinked.cpp stub."
 
 [[ticket]]
 id = "S"
