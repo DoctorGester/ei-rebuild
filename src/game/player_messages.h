@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CPlayer;
 class CItem;
@@ -30,7 +31,7 @@ class NetLink;
 
 // A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
 // 32-byte boundary, size, capacity, grow-by.
-using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
+using PlayerObjectArray = std::vector<CEngineObject*>;
 
 // One row of the server's and the client's handler tables: a message type and its handler, a method of the
 // connection that reads the message from its stream.
@@ -261,7 +262,7 @@ public:
     BOOL CreateServer();
 
     using Handler = int (CPlayerServer::*)();
-    lib::AlignedArray<Handler> handlers_;   // by message type (null: refused; 256 of them)
+    std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
     Vector3 lastPosition_;          // sent with 0x04 / 0x0F
     int spare_;                     // -1 after Create; nothing reads it
     BitStream out_;                 // messages to the client

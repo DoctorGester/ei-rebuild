@@ -117,14 +117,9 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
 }
 
 LightningSegment::LightningSegment() {
-    points.data = nullptr;
-    points.size = 0;
-    points.capacity = 0;
-    points.growBy = 0;
 }
 
 LightningSegment::~LightningSegment() {
-    if (points.data) LightningPointArray::Free(points.data);
 }
 
 CLightning::CLightning() {

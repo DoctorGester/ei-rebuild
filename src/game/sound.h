@@ -210,8 +210,8 @@ struct CSoundManager : CEngineObject {
     SoundFader musicFader;              // music volume (options) and fades
     std::string streamName;            // playing
     std::string nextName;              // requested
-    lib::AlignedArray<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
-    lib::AlignedArray<std::int32_t> markers2;
+    std::vector<std::int32_t> markers;    // switch points ("Markers1/2" in the file)
+    std::vector<std::int32_t> markers2;
     CRITICAL_SECTION nameLock;          // guarding streamName
     std::int32_t switchMode;            // RequestStream's mode
     std::uint32_t streamFileSize;
@@ -226,8 +226,8 @@ struct CSoundManager : CEngineObject {
     miles::Sequence* midiSequence;
     std::string midiName;
     std::string midiNextName;
-    lib::AlignedArray<std::int32_t> midiArray1E4;
-    lib::AlignedArray<std::int32_t> midiArray1F4;
+    std::vector<std::int32_t> midiArray1E4;
+    std::vector<std::int32_t> midiArray1F4;
     std::uint8_t unused_204[8];
     SoundFader midiFader;
     std::uint8_t unused_228[4];

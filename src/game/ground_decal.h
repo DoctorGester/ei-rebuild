@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 // A clipper vertex: position, then the decal's texture coordinate.
 struct DecalVertex {
@@ -28,8 +29,8 @@ public:
     // Starts a decal: empties the arrays (keeping their buffers) and sets the projection up from the quad's
     // corners (a row-major 4x4 matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the
     // direction (normalised in the copy) and the cut-off plane's point, `depth` * 0.33 back along it.
-    void Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
-               lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
+    void Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+               std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                const Vector3* point, float depth);
     // Whether a sphere around `center` can touch the decal: its u and v ranges widened by radius * the axis
     // lengths overlap [0, 1].
@@ -49,9 +50,9 @@ public:
     // Appends one vertex; returns its index.
     std::uint16_t AddVertex(const DecalVertex* v);
 
-    lib::AlignedArray<VertexPacket>* points_;       // x[4], y[4], z[4] per packet (w untouched)
-    lib::AlignedArray<DecalTexCoord>* texCoords_;
-    lib::AlignedArray<std::uint16_t>* indices_;
+    std::vector<VertexPacket>* points_;       // x[4], y[4], z[4] per packet (w untouched)
+    std::vector<DecalTexCoord>* texCoords_;
+    std::vector<std::uint16_t>* indices_;
     Vector3 uAxis_;          // the u edge across the direction, over its squared length
     Vector3 vAxis_;          // the same for v
     Vector3 normal_;         // the (normalised) direction

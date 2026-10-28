@@ -15,7 +15,7 @@ namespace {
 
 // Empties the set (SetSize(0, -1)) and its buckets when it was hashed.
 void ResetSet(FootprintCellSet* set) {
-    set->SetSize(0, -1);
+    set->SetSize(0);
     if (set->hashed)
         for (int& bucket : set->buckets) bucket = -1;
 }
@@ -23,8 +23,8 @@ void ResetSet(FootprintCellSet* set) {
 // The cell record of these footprints. The original appends it from a stack copy whose byte 0x13 and `next`
 // it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the cells are in no bucket.
 void AddCell(FootprintCellSet* set, int x, int y) {
-    int index = set->cells.size;
-    set->SetSize(index + 1, -1);
+    int index = std::ssize(set->cells);
+    set->SetSize(index + 1);
     FootprintCell& cell = set->cells[index];
     cell.x = x;
     cell.y = y;

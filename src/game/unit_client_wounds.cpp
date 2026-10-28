@@ -108,13 +108,14 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
         std::string name;
         std::string out;
         SkinRequest request{};
-        // Six level bytes in 32-byte aligned storage (the block kept before them).
-        request.layers.SetSize(kBodyParts);
-        if (WoundLevels(&request.layers.data)) {
+        // Six level bytes.
+        request.layers.resize(kBodyParts);
+        std::uint8_t* levels = request.layers.data();
+        if (WoundLevels(&levels)) {
             bool hero = unit->type_ == kTypeHero;
             request.flags = hero ? kHeroTextureSize : kTextureSize;
             for (int i = 0; i < kBodyParts; ++i) {
-                std::uint8_t level = request.layers.data[i];
+                std::uint8_t level = request.layers[i];
                 if (!level) continue;
                 name = str::Format(kWoundTexture, unit->name.c_str(), unit->type_ == kTypeHero ? kHeroParts[i] : kParts[i],
                             static_cast<int>(level));
@@ -123,7 +124,6 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
             name = str::Format(kWoundCacheName, unit->id_);
             result = TheTextureManager()->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
         }
-        lib::FreeAligned32(request.layers.data);
     }
     return result;
 }
@@ -172,14 +172,14 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
     AlignedBuffer extra{};
     manager->LoadMmpExtra(name, &extra);
     const AlignedBuffer& loaded = woundsTexture->extra_;
-    bool same = extra.size != 0 && loaded.size == extra.size &&
-                std::memcmp(loaded.data, extra.data, static_cast<std::size_t>(extra.size)) == 0;
+    bool same = !extra.empty() && std::ssize(loaded) == std::ssize(extra) &&
+                std::memcmp(loaded.data(), extra.data(), static_cast<std::size_t>(std::ssize(extra))) == 0;
     if (!same) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!manager->LoadTexture(woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
             woundsMaterial.Assign(nullptr);
-            extra.FreeData();
+            lib::FreeStorage(extra);
             return 0;
         }
     }
@@ -190,7 +190,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }
-    extra.FreeData();
+    lib::FreeStorage(extra);
     return 1;
 }
 

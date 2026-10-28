@@ -44,8 +44,8 @@ void SetFlatNormals(CFigureMesh* mesh, int corners) {
 
 // The four texture corners of the texel rectangle (u0, v0)-(u1, v1): v runs up, so 1 - v / 256.
 void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
-    sprite->texCoords_.SetSize(4);
-    TexCoord* texels = sprite->texCoords_.data;
+    sprite->texCoords_.resize(4);
+    TexCoord* texels = sprite->texCoords_.data();
     float left = static_cast<float>(u0) * Texel();
     float top = One() - static_cast<float>(v0) * Texel();
     float bottom = One() - static_cast<float>(v1) * Texel();
@@ -62,8 +62,8 @@ void SetTexelCorners(CUiMesh* sprite, int u0, int v0, int u1, int v1) {
 
 // Every texture coordinate moved half a texel into its texel.
 void InsetTexels(CUiMesh* sprite) {
-    for (int i = 0; i < sprite->texCoords_.size; ++i) {
-        TexCoord* texel = sprite->texCoords_.data + i;
+    for (int i = 0; i < std::ssize(sprite->texCoords_); ++i) {
+        TexCoord* texel = sprite->texCoords_.data() + i;
         texel->u = texel->u + HalfTexel();
         texel->v = texel->v - HalfTexel();
     }
@@ -80,7 +80,7 @@ void SetCorner(CUiMesh* sprite, int corner, int point, int texel) {
 // The two triangles of the quad whose four corners start at `first`, appended to the indices.
 void AddQuadIndices(CUiMesh* sprite, int first) {
     for (std::uint16_t corner : kQuadCorners)
-        sprite->indices_.SetAtGrow(sprite->indices_.size, static_cast<std::uint16_t>(first + corner));
+        sprite->indices_.push_back(static_cast<std::uint16_t>(first + corner));
 }
 
 // `count` packets of points on the sprite's plane (z 0, the fourth row 1).
@@ -110,7 +110,7 @@ float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset())
 void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0,
                                   int v0, int u1, int v1) {
     SetFlatNormals(this, 4);
-    corners_.SetSize(4);
+    corners_.resize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
     // A mirrored picture starts a texel further left.
     if (u0 > u1) {
@@ -118,7 +118,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
         --u1;
     }
     SetTexelCorners(this, u0, v0, u1, v1);
-    indices_.SetSize(0);
+    indices_.clear();
     AddQuadIndices(this, 0);
 
     SetFlatPackets(this, 1);
@@ -174,8 +174,8 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     }
     SetTexelCorners(this, u0, v0, u1, v1);
     // Every cell is a quad showing the whole picture.
-    corners_.SetSize(columns * rows * 4);
-    indices_.SetSize(0);
+    corners_.resize(columns * rows * 4);
+    indices_.clear();
     int first = 0;
     int point = 0;
     for (int r = 0; r < rows; ++r) {
@@ -206,13 +206,13 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
     SetFlatNormals(this, 4);
     // Four quads round the frame; each joins an outer and an inner corner to the next pair, the
     // last one back to the first.
-    corners_.SetSize(16);
+    corners_.resize(16);
     for (int side = 0; side < 4; ++side)
         for (int k = 0; k < 4; ++k) SetCorner(this, side * 4 + k, side * 2 + k, k);
     corners_[14].position = 0;
     corners_[15].position = 1;
     SetTexelCorners(this, u0, v0, u1, v1);
-    indices_.SetSize(0);
+    indices_.clear();
     for (int side = 0; side < 4; ++side) AddQuadIndices(this, side * 4);
 
     SetFlatPackets(this, 2);
@@ -255,10 +255,10 @@ void CUiMesh::SetFrame(float depth, float scale, float left, float top, float ri
 void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
     SetFlatNormals(this, 4);
-    corners_.SetSize(4);
+    corners_.resize(4);
     for (int i = 0; i < 4; ++i) SetCorner(this, i, i, i);
-    texCoords_.SetSize(4);
-    TexCoord* texels = texCoords_.data;
+    texCoords_.resize(4);
+    TexCoord* texels = texCoords_.data();
     texels[0].u = u0 * Texel();
     texels[0].v = One() - v0 * Texel();
     texels[1].u = u1 * Texel();
@@ -267,8 +267,8 @@ void CUiMesh::SetTriangle(float depth, float scale, float x0, float y0, float x1
     texels[2].v = One() - v2 * Texel();
     texels[3].u = 0.0f;
     texels[3].v = 0.0f;
-    indices_.SetSize(0);
-    for (std::uint16_t corner = 0; corner < 3; ++corner) indices_.SetAtGrow(indices_.size, corner);
+    indices_.clear();
+    for (std::uint16_t corner = 0; corner < 3; ++corner) indices_.push_back(corner);
 
     SetFlatPackets(this, 1);
     // The first point is the origin; the fourth is not drawn.

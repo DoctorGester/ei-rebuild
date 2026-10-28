@@ -11,6 +11,7 @@
 #include "scene_loader.h"   // InitFigurePart
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 #undef GetClassName   // CEngineObject::GetClassName
@@ -35,7 +36,7 @@ void CFigureMesh::SetUpFigure() {
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     object_ = nullptr;
-    offsets_.Construct();
+    std::construct_at(&offsets_);
     colorsA_.Construct();
     colorsB_.Construct();
     std::memset(&box_.bounds, 0, sizeof(box_.bounds));
@@ -70,7 +71,7 @@ void CFigureMesh::Clear() {
     name_.clear();
     directory_.clear();
     BuffersChanged();
-    offsets_.SetSize(0);
+    offsets_.clear();
     colorsA_.SetSize(0);
     colorsB_.SetSize(0);
     std::memset(&buffers_, 0, sizeof(buffers_));
@@ -87,10 +88,10 @@ void CFigureMesh::Clear() {
 void CPlainFigureMesh::Destroy() {
     vertices_.SetSize(0);
     normals_.SetSize(0);
-    corners_.SetSize(0);
-    words_.SetSize(0);
-    indices_.SetSize(0);
-    texCoords_.SetSize(0);
+    corners_.clear();
+    words_.clear();
+    indices_.clear();
+    texCoords_.clear();
     Clear();
 }
 
@@ -106,7 +107,7 @@ void CFigureMesh::TearDownFigure() {
     Clear();
     colorsB_.FreeData();
     colorsA_.FreeData();
-    offsets_.FreeData();
+    lib::FreeStorage(offsets_);
 }
 
 CFigureMesh::~CFigureMesh() { TearDownFigure(); }
@@ -126,17 +127,9 @@ CSharedFigureMesh::~CSharedFigureMesh() {
 CPlainFigureMesh::CPlainFigureMesh() {
     vertices_.Construct();
     normals_.Construct();
-    corners_.Construct();
-    words_.Construct();
-    indices_.Construct();
-    texCoords_.Construct();
 }
 
 CPlainFigureMesh::~CPlainFigureMesh() {
-    texCoords_.FreeData();
-    indices_.FreeData();
-    words_.FreeData();
-    corners_.FreeData();
     normals_.FreeData();
     vertices_.FreeData();
 }

@@ -133,7 +133,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
     if (!view || !unit) return nullptr;
     float best = 1e38f;
     CUnit* nearest = nullptr;
-    for (int i = 0; i < view->partyUnitIds_.size; ++i) {
+    for (int i = 0; i < std::ssize(view->partyUnitIds_); ++i) {
         CUnit* found = FindUnit(view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (found->IsDead() != 0) continue;

@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName
 
@@ -174,7 +175,7 @@ public:
     Matrix4 poseMatrix_;
     std::string name_;                  // (the scene loader names it after its mesh)
     std::string directory_;             // where its .fig file is (NewFigure empties it)
-    lib::AlignedArray<Vector3> offsets_;     // per-vertex offsets added when drawing
+    std::vector<Vector3> offsets_;     // per-vertex offsets added when drawing
     lib::AlignedArray<std::uint32_t> colorsA_;   // one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // one per normal
     // from the file header (before meshType_): the material value of the scene's mesh (the number in its
@@ -238,10 +239,10 @@ public:
     // Points the buffer descriptor at the mesh's own arrays and sizes the colour arrays (one per normal).
     void RefreshBuffers();
 
-    lib::AlignedArray<MeshCorner> corners_;
-    lib::AlignedArray<std::uint32_t> words_;
-    lib::AlignedArray<std::uint16_t> indices_;
-    lib::AlignedArray<TexCoord> texCoords_;
+    std::vector<MeshCorner> corners_;
+    std::vector<std::uint32_t> words_;
+    std::vector<std::uint16_t> indices_;
+    std::vector<TexCoord> texCoords_;
 };
 // The figure factory allocates the game's sizes.
 

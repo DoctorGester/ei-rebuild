@@ -14,7 +14,6 @@
 #include <memory>
 
 namespace aligned {
-std::uint32_t* __fastcall AllocateDwords(int count);
 void __fastcall ArrayAt8Free(void* self);
 } // namespace aligned
 

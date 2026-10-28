@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CPlayerClient final : public CPlayerConnection {
 public:
@@ -221,7 +222,7 @@ public:
 
     // The base's state_: 0 connecting, 1 logged in, 2 sending the camera, 3 between zones.
     using Handler = int (CPlayerClient::*)();
-    lib::AlignedArray<Handler> handlers_;   // by message type (null: refused; 256 of them)
+    std::vector<Handler> handlers_;   // by message type (null: refused; 256 of them)
     BitStream in_;                  // the server's messages being run
     BitStream out_;                 // requests for the server
     // A local session (GameStartLocalSession sets it): a unit's network owner becomes the local
@@ -235,8 +236,8 @@ public:
     CoderState decompressor_;       // for the messages received
     // The ids of the party's units (message 0x60; the HUD's map and the client world's NearestVisibleUnit
     // read them).
-    lib::AlignedArray<int> partyUnitIds_;
+    std::vector<int> partyUnitIds_;
     // The ids of the other players' units the map shows (message 0x60).
-    lib::AlignedArray<int> otherUnitIds_;
+    std::vector<int> otherUnitIds_;
 };
 

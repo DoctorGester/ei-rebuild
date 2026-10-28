@@ -20,6 +20,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <string>
+#include <vector>
 
 using terrain::SectorData;
 
@@ -95,8 +96,8 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
     int rowLast = SectorBound(y + radius - 0.5f, sectorsY);
     int rows = rowLast - rowFirst + 1;
     if (rows < 0) rows = 0;
-    visibleColumnFirst.SetSize(rows);
-    visibleColumnLast.SetSize(rows);
+    visibleColumnFirst.resize(rows);
+    visibleColumnLast.resize(rows);
     for (int row = 0; row < rows; ++row) {
         visibleColumnFirst[row] = columnFirst;
         visibleColumnLast[row] = columnLast;
@@ -119,11 +120,11 @@ void AddTile(terrain::VertexTiles& entry, int x, int y) {
 
 void Terrain::BuildVertexTiles() {
     constexpr int kSide = 33;   // vertices per sector row
-    vertexTiles.SetSize(kSide * kSide);
+    vertexTiles.resize(kSide * kSide);
     // One stack record per vertex is filled without clearing it: the tiles after `count` keep earlier
     // vertices' values (here they start from zero).
     terrain::VertexTiles entry{};
-    terrain::VertexTiles* out = vertexTiles.data;
+    terrain::VertexTiles* out = vertexTiles.data();
     for (int y = 0; y < kSide; ++y) {
         for (int x = 0; x < kSide; ++x) {
             entry.count = 0;
@@ -155,10 +156,10 @@ void Terrain::ClearMap() {
         SectorData* sector = sectorCache.RemoveHead();
         if (sector) DeleteSector(sector);
     }
-    for (int i = 0; i < pageTextures.size; ++i) pageTextures[i]->Release();
-    pageTextures.SetSize(0, -1);
-    for (int i = 0; i < pageMaterials.size; ++i) pageMaterials[i]->Release();
-    pageMaterials.SetSize(0, -1);
+    for (int i = 0; i < std::ssize(pageTextures); ++i) pageTextures[i]->Release();
+    pageTextures.clear();
+    for (int i = 0; i < std::ssize(pageMaterials); ++i) pageMaterials[i]->Release();
+    pageMaterials.clear();
     archive.CloseResource();
     if (sectorGrid) {
         for (int i = 0; i < sectorsX; ++i) gamecrt::operator_delete(sectorGrid[i]);
@@ -204,22 +205,10 @@ Terrain::Terrain() {
     // Identity rotations (w first); the positions are not initialised.
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
-    pageTextures.data = nullptr;
-    pageTextures.growBy = 0;
-    pageTextures.capacity = 0;
-    pageTextures.size = 0;
-    pageMaterials.Construct();
-    materials.Construct();
-    textureClass.Construct();
-    textureFrames.Construct();
     // archive: a C++ member, constructed before this body (CMMIOResource())
-    vertexTiles.Construct();
     mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
     lights.Construct(100);   // the light table, then the highest id 0
     maxLightId = 0;
-    wavePhases.Construct();
-    visibleColumnFirst.Construct();
-    visibleColumnLast.Construct();
     mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&waterLevels);
     Reset();
 }
@@ -229,19 +218,10 @@ Terrain::~Terrain() {
     Terrain::Destroy();
     waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
     waterLevels.FreeData();
-    visibleColumnLast.FreeData();
-    visibleColumnFirst.FreeData();
-    wavePhases.FreeData();
     lights.Destroy();
     sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
     sectorCache.RemoveAll();
-    vertexTiles.FreeData();
     // archive: destroyed after this body (~CMMIOResource())
-    textureFrames.FreeData();
-    textureClass.FreeData();
-    materials.FreeData();
-    pageMaterials.FreeData();
-    pageTextures.FreeData();
 }
 
 int Terrain::Create() {
@@ -266,8 +246,8 @@ void Terrain::Destroy() {
 void Terrain::Reset() {
     extraPages = 0;
     landscapeFlags = 0;
-    pageTextures.RemoveAll();
-    pageMaterials.RemoveAll();
+    pageTextures.clear();
+    pageMaterials.clear();
     std::memset(&worldMatrix, 0, sizeof(worldMatrix));
     mapLoaded = 0;
     textF8 = "none";
@@ -293,8 +273,8 @@ void Terrain::Reset() {
     minDetail = 0;
     visibleRowFirst = 0;
     wavePhase = kPi + kPi;
-    visibleColumnFirst.SetSize(0, -1);
-    visibleColumnLast.SetSize(0, -1);
+    visibleColumnFirst.clear();
+    visibleColumnLast.clear();
     for (int i = 0; i < 3; ++i) {
         ambientSounds[i] = -1;
         ambientClasses[i] = -1;
@@ -303,8 +283,8 @@ void Terrain::Reset() {
 }
 
 void Terrain::BuildWavePhases() {
-    wavePhases.SetSize(kVertices);
-    float* phases = wavePhases.data;
+    wavePhases.resize(kVertices);
+    float* phases = wavePhases.data();
     std::memset(phases, 0, kVertices * sizeof(float));
     for (int ripple = 0; ripple < kRipples; ++ripple) {
         float centreX = static_cast<float>(gamecrt::rand() % kRow);
@@ -370,8 +350,8 @@ constexpr int kExtraPages = 2;        // <map>L00, <map>L01
 } // namespace
 
 int Terrain::SetupPages(int count) {
-    pageTextures.SetSize(count);
-    pageMaterials.SetSize(count);
+    pageTextures.resize(count);
+    pageMaterials.resize(count);
     for (int i = 0; i < count + kExtraPages; ++i) {
         std::string name;
         if (i < count) {
@@ -380,8 +360,8 @@ int Terrain::SetupPages(int count) {
             name = str::Format("%sL%2.2i", textF8.c_str(), i - count);
             if (!TheTextureManager()->HasFile((name + ".mmp").c_str())) return 1;
             ++extraPages;
-            pageTextures.SetAtGrow(pageTextures.size, nullptr);
-            pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
+            pageTextures.push_back(nullptr);
+            pageMaterials.push_back(nullptr);
         }
         CTexture* texture = TheTextureManager()->FindOrCreate(kPageTexture, name.c_str());
         pageTextures[i] = texture;
@@ -527,7 +507,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const std::uint8_t* cursor = file + sizeof(MapHeader);
     const int materialCount = header.materials;
-    materials.SetSize(materialCount);
+    materials.resize(materialCount);
     for (int i = 0; i < materialCount; ++i, cursor += sizeof(MapMaterial)) {
         MapMaterial source;
         std::memcpy(&source, cursor, sizeof(source));
@@ -547,11 +527,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
 
     const int textures = header.textures;
     const std::size_t classBytes = static_cast<std::size_t>(textures * 4);
-    textureClass.SetSize(textures + kExtraTextures);
-    std::memcpy(textureClass.data, cursor, classBytes);
+    textureClass.resize(textures + kExtraTextures);
+    std::memcpy(textureClass.data(), cursor, classBytes);
     for (int i = 0; i < kExtraTextures; ++i) textureClass[textures + i] = kExtraClass;
-    textureFrames.SetSize(textures);
-    std::memset(textureFrames.data, 0, classBytes);
+    textureFrames.resize(textures);
+    std::memset(textureFrames.data(), 0, classBytes);
     const std::uint8_t* animated = cursor + classBytes;
     for (int i = 0; i < static_cast<int>(header.animated); ++i, animated += sizeof(MapAnimatedTexture)) {
         MapAnimatedTexture entry;
@@ -594,7 +574,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     waterLevels.SetSize(sectors);
     for (int i = 0; i < sectorsY * sectorsX; ++i) {
         mfc::CArray<float>& levels = waterLevels[i];
-        levels.SetSize(materials.size);
+        levels.SetSize(std::ssize(materials));
         std::memset(levels.data, 0, static_cast<std::size_t>(levels.size) * sizeof(float));
     }
     return 1;
@@ -614,7 +594,7 @@ void Terrain::SetLightInterval(int frames) {
 }
 
 void Terrain::SetWaterLevel(int material, float level) {
-    if (material < 0 || material >= materials.size) return;
+    if (material < 0 || material >= std::ssize(materials)) return;
     float change = static_cast<float>(level - materials[material].level);
     materials[material].level = change + materials[material].level;
     for (int sector = 0; sector < sectorsY * sectorsX; ++sector) {

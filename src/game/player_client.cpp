@@ -170,7 +170,7 @@ int CPlayerClient::DispatchMessages() {
         if (!in_.ok_) return PlayerMessageError(TextReadPastEnd(), previous, type);
         previous = type;
         if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageError(TextUnknownType(), previous, type);
+        if (static_cast<int>(type) >= std::ssize(handlers_)) return PlayerMessageError(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
         if (handler == nullptr) return PlayerMessageError(TextNoHandler(), previous, type);
         if (!(this->*handler)()) return PlayerMessageError(TextHandlerFailed(), previous, type);
@@ -652,15 +652,15 @@ constexpr HandlerEntry<CPlayerClient> kClientHandlers[] = {
 
 BOOL CPlayerClient::CreateClient() {
     state_ = 0;
-    partyUnitIds_.SetSize(0, -1);
+    partyUnitIds_.clear();
     in_.Resize(0);
     out_.Resize(0);
     localSession_ = 0;
     sendParty_ = 0;
     compressor_.Reset();
     decompressor_.Reset();
-    handlers_.SetSize(kClientHandlerCount);
-    std::fill_n(handlers_.data, handlers_.size, Handler{});
+    handlers_.resize(kClientHandlerCount);
+    std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
     for (const auto& entry : kClientHandlers)
         handlers_[entry.type] = entry.handler;
     return 1;
@@ -668,7 +668,7 @@ BOOL CPlayerClient::CreateClient() {
 
 void CPlayerClient::Clear() {
     state_ = 0;
-    partyUnitIds_.RemoveAll();
+    partyUnitIds_.clear();
     in_.Resize(0);
     out_.Resize(0);
     localSession_ = 0;
@@ -688,22 +688,16 @@ CPlayerConnection::~CPlayerConnection() { player_ = nullptr; }
 
 // The streams are members (constructed before the body; the original builds them after the handler table).
 CPlayerClient::CPlayerClient() {
-    handlers_.Construct();
     compressor_.Construct();
     decompressor_.Construct();
-    partyUnitIds_.Construct();
-    otherUnitIds_.Construct();
     Clear();
 }
 
 // The streams are members, destroyed after the body (the original frees them before the handler table).
 CPlayerClient::~CPlayerClient() {
     Clear();
-    otherUnitIds_.FreeData();
-    partyUnitIds_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
-    handlers_.FreeData();
 }
 
 const char* CPlayerClient::GetClassName() { return "CPlayerClient"; }
@@ -737,10 +731,10 @@ void __cdecl ConstructPartyIdSet() {
 
 int CPlayerClient::OnPartyState() {
     CPlayer* player = Owner();
-    for (int i = 0; i < partyUnitIds_.size; ++i) {
+    for (int i = 0; i < std::ssize(partyUnitIds_); ++i) {
         bool inserted;
-        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_.data[i])}, inserted);
-        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_.data[i]);
+        PartyIdSet().InsertUnique(stlp::DwordKeyed<4>{static_cast<std::uint32_t>(partyUnitIds_[i])}, inserted);
+        CUnit* unit = player->WorldContext()->FindUnit(partyUnitIds_[i]);
         if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
     }
 
@@ -750,10 +744,10 @@ int CPlayerClient::OnPartyState() {
     ReadDword(&in_);   // the server's possessedId_, not used
 
     int count = ReadDword(&in_);
-    partyUnitIds_.SetSizeDiscard(count);
+    partyUnitIds_.resize(count);
     for (int i = 0; i < count; ++i) {
         int id = ReadDword(&in_);
-        partyUnitIds_.data[i] = id;
+        partyUnitIds_[i] = id;
         auto* unit = player->WorldContext()->FindUnit(id);
         if (unit == nullptr) continue;
         unit->flags_ |= kUnitInClientParty;
@@ -765,8 +759,8 @@ int CPlayerClient::OnPartyState() {
 
     player->ClientWorld()->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
-    otherUnitIds_.SetSize(others);
-    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);
+    otherUnitIds_.resize(others);
+    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_[i], 4);
     return 1;
 }
 

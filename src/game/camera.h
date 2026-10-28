@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CObject3D;
 
@@ -196,8 +197,8 @@ public:
     // than 500 time units among the first `settle` take the pose of the key after the gap. Returns 0 when the
     // file does not open, else 1.
     int LoadPath(const char* name, int settle);
-    // the recorded path's keys (grow step 0: an eighth of the size, 4..1024)
-    lib::AlignedArray<CameraKey> keys_;
+    // the recorded path's keys
+    std::vector<CameraKey> keys_;
     float timeOffset_;
     int keyIndex_;
 };

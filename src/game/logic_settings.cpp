@@ -10,9 +10,9 @@ namespace {
 void ReadDifficulties(CFileRegistry& reg, const char* key, float* out) {
     DwordArray values{};
     reg.GetFloatArray("DifficultyLevels", key, &values);
-    int n = values.size < 3 ? values.size : 3;
-    if (n > 0) std::memcpy(out, values.data, static_cast<std::size_t>(n) * sizeof(float));
-    values.SetSize(0);
+    int n = std::ssize(values) < 3 ? std::ssize(values) : 3;
+    if (n > 0) std::memcpy(out, values.data(), static_cast<std::size_t>(n) * sizeof(float));
+    values.clear();
 }
 } // namespace
 

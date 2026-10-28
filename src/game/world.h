@@ -7,6 +7,7 @@
 #include "options.h"
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "ai_map.h"
 #include "base_manager.h"
@@ -903,8 +904,8 @@ public:
     // lies on a platform; with `objects`, the platform faces' objects the decal can touch add the triangles of each
     // part of their figure (once per face).
     void ProjectDecal(const Vector3* direction, const Vector3* point, float depth, VertexPacket* const* corners,
-                      lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
-                      lib::AlignedArray<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
+                      std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+                      std::vector<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
     // The ambient sounds' time of day into `out`: "day" from 6 to 18 o'clock, "morning" before 6 and
     // "evening" after 18 within 2..22, else "night". Returns out.
     std::string* AmbienceTimeOfDay(std::string* out);

@@ -1,7 +1,6 @@
 // Drawing a 3D object on the client (CObject3DClientSpecific::Draw). See map_object_shadow.h and
 // docs/notes/map_objects.md ("Drawing").
 #include "engine_object.h"
-#include "game_arrays.h"          // aligned::AllocateDwords
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
@@ -66,7 +65,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
         --lights.manager->refCount_;
         lights.manager = nullptr;
     }
-    if (list.data) lib::FreeAligned32(list.data);
+    lib::FreeStorage(list);
 }
 } // namespace
 
@@ -94,18 +93,16 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     if (object->animation) object->animation->UpdatePose();
 
     // The lights within reach (the list starts with room for 16).
-    LightList list{nullptr, 0, 0, 0};
+    LightList list;
+    list.reserve(0x10);
     ObjectListIteratorOf<CLight> lights{};
     CLight* light = lights.First(TheLightFactory());
-    list.data = reinterpret_cast<CLight**>(aligned::AllocateDwords(0x10));
-    list.capacity = 0x10;
-    list.size = 0;
     for (; light; light = lights.Next()) {
         if (context->sun_ == light) continue;
         if (!InReach(object, light)) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
-        list.SetAtGrow(list.size, light);
+        list.push_back(light);
     }
 
     // The object's matrix, and its extra scale when it has one.
@@ -150,8 +147,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         WoundsMaterial* wounds = woundsMaterial;
         TheRenderDevice()->SetMaterial(k == 0 ? wounds : nullptr);
         set = partSets[k];
-        for (int g = 0; g < set->groups.size; ++g) {
-            for (int p = 0; p < set->groups[g]->parts.size; ++p) {
+        for (int g = 0; g < std::ssize(set->groups); ++g) {
+            for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
                 CFigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
                 if (!(object->flags_ & kObjectStatic)) part->flags_ &= ~kPartMoving;

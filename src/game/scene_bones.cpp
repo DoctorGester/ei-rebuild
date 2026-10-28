@@ -9,7 +9,6 @@
 #include "figure.h"
 #include "object_maths.h"
 #include "scene_loader.h"
-#include "game_arrays.h"
 
 #include "../lib/containers.h"
 #include "../lib/crt.h"
@@ -18,15 +17,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 namespace scene {
 namespace {
 
 using PointArray = lib::AlignedArray<Vector3>;
 
-
-// Element helpers [pointer, count]: the morph frame constructor (mfc::impl::Plain24's) and destructor.
-constexpr auto DestroyMorphFrames = mfc::impl::DestructElementsAt<gamearrays::BlocksAt8>;
 // Out-of-line SetSize [size, growth or -1]: the morph frames'; the aligned arrays' (a frame's points, the children;
 // a frame's points copied) are their members.
 
@@ -41,7 +38,7 @@ void FrameRatio(int numerator, int denominator, float* out) { *out = static_cast
 void CopyRotationKeys(CAnimationNode* bone, const SceneNode* node) {
     for (int i = 0; i < node->positionKeys.size; ++i) {
         const NodePositionKey& src = node->positionKeys.data[i];
-        AnimationRotationKey& dst = bone->rotationKeys_.data[i];
+        AnimationRotationKey& dst = bone->rotationKeys_[i];
         int frame = src.frame;
         dst.frame = frame;
         dst.next = frame + 1;
@@ -56,7 +53,7 @@ void CopyRotationKeys(CAnimationNode* bone, const SceneNode* node) {
 void CopyTranslationKeys(CAnimationNode* bone, const SceneNode* node) {
     for (int i = 0; i < node->rotationKeys.size; ++i) {
         const NodeRotationKey& src = node->rotationKeys.data[i];
-        AnimationTranslationKey* dst = &bone->translationKeys_.data[i];
+        AnimationTranslationKey* dst = &bone->translationKeys_[i];
         int frame = src.frame;
         dst->frame = frame;
         dst->next = frame + 1;
@@ -89,9 +86,9 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             out.frame = frame;
             ++frame;
             out.next = frame;
-            out.points.SetSize(KeyPoints(node, 0).size, -1);
-            for (int j = 0; j < frames.data[index].points.size; ++j) {
-                Vector3* p = &frames.data[index].points.data[j];
+            out.points.resize(KeyPoints(node, 0).size);
+            for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
+                Vector3* p = &frames.data[index].points[j];
                 if (key <= 0) {
                     std::memcpy(p, &KeyPoints(node, key).data[j], sizeof(Vector3));
                     continue;
@@ -111,13 +108,14 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
         out.frame = frame;
         ++frame;
         out.next = frame;
-        out.points.SetSize(KeyPoints(node, 0).size, -1);
+        out.points.resize(KeyPoints(node, 0).size);
         if (key >= node->morphKeys.size) {
-            frames.data[index].points.Copy(KeyPoints(node, key - 1));
+            const PointArray& last = KeyPoints(node, key - 1);
+            frames.data[index].points.assign(last.data, last.data + last.size);
             continue;
         }
-        for (int j = 0; j < frames.data[index].points.size; ++j) {
-            Vector3* p = &frames.data[index].points.data[j];
+        for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
+            Vector3* p = &frames.data[index].points[j];
             const Vector3* a = &KeyPoints(node, key - 1).data[j];
             const Vector3* b = &KeyPoints(node, key).data[j];
             Vector3 d, s, r;
@@ -139,38 +137,35 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);
 
-    bone->translationKeys_.SetSize(node->rotationKeys.size);
-    bone->rotationKeys_.SetSize(node->positionKeys.size);
+    bone->translationKeys_.resize(node->rotationKeys.size);
+    bone->rotationKeys_.resize(node->positionKeys.size);
     bone->normals_.SetSize(node->normals.size);
     int morphKeys = node->morphKeys.size;
     bone->morphFrames_.SetSize(morphKeys != 0 ? morphKeys + 1 : 0);
     std::memcpy(&bone->restRotation_, &node->restRotation, sizeof(Quaternion));
     std::memcpy(&bone->restPosition_, &node->restPivot, sizeof(Vector3));
     if (node->morphKeys.size != 0) {
-        PointArray& a = bone->pointsA_;
-        a.SetSize(KeyPoints(node, 0).size);
-        std::memset(a.data, 0, static_cast<std::size_t>(a.size) * sizeof(Vector3));
-        PointArray& b = bone->pointsB_;
-        b.SetSize(KeyPoints(node, 0).size);
-        std::memset(b.data, 0, static_cast<std::size_t>(b.size) * sizeof(Vector3));
+        const auto points = static_cast<std::size_t>(KeyPoints(node, 0).size);
+        bone->pointsA_.assign(points, Vector3{});
+        bone->pointsB_.assign(points, Vector3{});
     }
 
     CopyRotationKeys(bone, node);
     CopyTranslationKeys(bone, node);
     if (node->morphKeys.size == 0) {
-        mfc::impl::ArrayAs<gamearrays::BlocksAt8>(bone->morphFrames_).SetSize(0, -1);
+        bone->morphFrames_.SetSize(0, -1);
     } else {
         bone->morphFrames_.SetSize(node->positionKeys.size);
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);
     }
 
-    bone->children_.SetSize(node->children.size, -1);
-    for (int i = 0; i < bone->children_.size; ++i) {
+    bone->children_.resize(node->children.size);
+    for (int i = 0; i < std::ssize(bone->children_); ++i) {
         CAnimationNode* block = gamecrt::operator_new_as<CAnimationNode>();
         CAnimationNode* child = block ? block->Construct() : nullptr;
-        bone->children_.data[i] = child;
-        bone->children_.data[i]->parent_ = bone;
-        BuildBone(skin, bone->children_.data[i], node->children.data[i], frames);
+        bone->children_[i] = child;
+        bone->children_[i]->parent_ = bone;
+        BuildBone(skin, bone->children_[i], node->children.data[i], frames);
     }
 
     const Vector3& pivot = node->offset;
@@ -184,8 +179,11 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
 } // namespace scene
 
 void AnimationMorphFrameElements::Construct(AnimationMorphFrame* frames, int count) {
-    mfc::PlainElements<AnimationMorphFrame>::Construct(frames, count);
+    for (; count--; ++frames) std::construct_at(frames);
 }
 void AnimationMorphFrameElements::Destruct(AnimationMorphFrame* frames, int count) {
-    scene::DestroyMorphFrames(frames, count);
+    std::destroy_n(frames, count);
+}
+void AnimationMorphFrameElements::Relocate(AnimationMorphFrame* to, AnimationMorphFrame* from, int count) {
+    mfc::MoveElements(to, from, count);
 }

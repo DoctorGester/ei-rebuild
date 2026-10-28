@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <vector>
 
 // ---- The visibility fog ---------------------------------------------------------------------------------
 
@@ -31,9 +33,9 @@ struct FogSprite {
 // The draw's work arrays (function-local statics): the sprites' centres and sizes and their records (a CArray of
 // SpriteArrayClass), bit 0 / bit 1 of the guard set once the records / the points are constructed. Exit handlers
 // free the records and the points.
-constinit lib::AlignedArray<ParticleVertex> g_points = /*007ABA30*/ {};
-lib::AlignedArray<ParticleVertex>& Points() { return g_points; }
-void __cdecl FreePoints() { g_points.FreeData(); }
+constinit std::vector<ParticleVertex> g_points = /*007ABA30*/ {};
+std::vector<ParticleVertex>& Points() { return g_points; }
+void __cdecl FreePoints() { lib::FreeStorage(g_points); }
 constinit lib::StaticObject<mfc::CArray<FogSprite>> g_sprites = /*007ABA40*/ {};
 mfc::CArray<FogSprite>& Sprites() { return *g_sprites; }
 void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
@@ -61,16 +63,16 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     }
     if (!(g_workArrayGuards & kPointsConstructed)) {
         g_workArrayGuards |= kPointsConstructed;
-        Points().Construct();
+        std::construct_at(&Points());
         libcrt::AtExit(FreePoints);
     }
     Sprites().SetSize(kWorkRecords);
-    Points().SetSize(kWorkRecords);
+    Points().resize(kWorkRecords);
     Sprites().SetSize(static_cast<int>(cells.Size()));
-    Points().SetSize(static_cast<int>(cells.Size()));
+    Points().resize(static_cast<int>(cells.Size()));
 
     int remaining = static_cast<int>(cells.Size());
-    ParticleVertex* point = Points().data;
+    ParticleVertex* point = Points().data();
     FogSprite* sprite = Sprites().data;
     for (CellMap::Node* node = cells.First(); node; node = cells.After(node)) {
         if (--remaining < 0) break;
@@ -105,19 +107,19 @@ constexpr float kTile = 0.25f;
 } // namespace
 
 void CRainSnow::PrepareBuffers() {
-    positions.SetSize(kDrops);
-    vertices.SetSize(kDropVertices);
+    positions.resize(kDrops);
+    vertices.resize(kDropVertices);
     frames.SetSize(kDrops, -1);
 
-    offsets.SetSize(2 * kRings + 1);
+    offsets.resize(2 * kRings + 1);
     for (int i = 0; i < kRings; ++i) {
         offsets[2 * i] = kRings - i;
         offsets[2 * i + 1] = -offsets[2 * i];
     }
-    offsets[offsets.size - 1] = 0;
+    offsets[std::ssize(offsets) - 1] = 0;
 
     // Every vertex's fixed part: white, no specular, its corner's texture coordinates.
-    for (int i = 0; i < vertices.size; ++i) {
+    for (int i = 0; i < std::ssize(vertices); ++i) {
         TLVertex& vertex = vertices[i];
         const Corner& corner = kCorners[i % 3];
         vertex.color = 0xFFFFFFFFu;

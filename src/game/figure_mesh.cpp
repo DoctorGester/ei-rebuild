@@ -12,6 +12,7 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -339,10 +340,10 @@ void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std:
 }
 
 template <typename T>
-void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
-    array.SetSize(count);
+void LoadArray(std::vector<T>& array, char** cursor, int count) {
+    array.resize(static_cast<std::size_t>(count));
     if (count != 0) {
-        std::memcpy(array.data, *cursor, static_cast<std::size_t>(count) * sizeof(T));
+        std::memcpy(array.data(), *cursor, static_cast<std::size_t>(count) * sizeof(T));
         *cursor += count * static_cast<int>(sizeof(T));
     }
 }
@@ -381,14 +382,14 @@ void CPlainFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     buffers_.normalCount = normals_.size;
     colorsA_.SetSize(normals_.size * 4);
     colorsB_.SetSize(normals_.size * 4);
-    buffers_.texCoords = texCoords_.data;
-    buffers_.texCoordCount = texCoords_.size;
-    buffers_.indices = indices_.data;
-    buffers_.indexCount = indices_.size;
-    buffers_.corners = corners_.data;
-    buffers_.cornerCount = corners_.size;
-    buffers_.wordCount = words_.size;
-    buffers_.words = words_.data;
+    buffers_.texCoords = texCoords_.data();
+    buffers_.texCoordCount = std::ssize(texCoords_);
+    buffers_.indices = indices_.data();
+    buffers_.indexCount = std::ssize(indices_);
+    buffers_.corners = corners_.data();
+    buffers_.cornerCount = std::ssize(corners_);
+    buffers_.wordCount = std::ssize(words_);
+    buffers_.words = words_.data();
     flags_ |= 0x20;
 }
 
@@ -502,14 +503,14 @@ void CPlainFigureMesh::LoadOld(char** cursor, float s, float t, float u) {
     buffers_.normalCount = normals_.size;
     colorsA_.SetSize(normals_.size * 4);
     colorsB_.SetSize(normals_.size * 4);
-    buffers_.texCoords = texCoords_.data;
-    buffers_.texCoordCount = texCoords_.size;
-    buffers_.corners = corners_.data;
-    buffers_.cornerCount = corners_.size;
-    buffers_.words = words_.data;
-    buffers_.wordCount = words_.size;
-    buffers_.indexCount = indices_.size;
-    buffers_.indices = indices_.data;
+    buffers_.texCoords = texCoords_.data();
+    buffers_.texCoordCount = std::ssize(texCoords_);
+    buffers_.corners = corners_.data();
+    buffers_.cornerCount = std::ssize(corners_);
+    buffers_.words = words_.data();
+    buffers_.wordCount = std::ssize(words_);
+    buffers_.indexCount = std::ssize(indices_);
+    buffers_.indices = indices_.data();
     flags_ |= 0x20;
 }
 
@@ -590,9 +591,9 @@ void NegateBlock(lib::AlignedArray<Packet>& packets, int block) {
 }
 
 // Swaps the first two corners of every triangle (reverses the winding after a mirror).
-void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
-    std::uint16_t* p = indices.data;
-    for (int i = 0; i < indices.size; i += 3, p += 3) {
+void ReverseWinding(std::vector<std::uint16_t>& indices) {
+    std::uint16_t* p = indices.data();
+    for (int i = 0; i < std::ssize(indices); i += 3, p += 3) {
         std::uint16_t first = p[0];
         p[0] = p[1];
         p[1] = first;
@@ -601,11 +602,11 @@ void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
 
 // The shared buffer DrawOffset moves the vertices into, and the exit function its static initialiser
 // registers: it frees the block.
-constinit lib::AlignedArray<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
-lib::AlignedArray<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
+constinit std::vector<VertexPacket> g_offsetVertices = /*007C2E18*/ {};
+std::vector<VertexPacket>& OffsetVertices() { return g_offsetVertices; }
 } // namespace
 
-void __cdecl FreeOffsetVertices() { g_offsetVertices.FreeData(); }
+void __cdecl FreeOffsetVertices() { lib::FreeStorage(g_offsetVertices); }
 
 void CPlainFigureMesh::MirrorX() {
     NegateBlock(vertices_, 0);
@@ -633,23 +634,23 @@ void CPlainFigureMesh::RefreshBuffers() {
     buffers_.normalCount = normals_.size;
     colorsA_.SetSize(normals_.size * 4, -1);
     colorsB_.SetSize(normals_.size * 4, -1);
-    buffers_.texCoords = texCoords_.data;
-    buffers_.texCoordCount = texCoords_.size;
-    buffers_.corners = corners_.data;
-    buffers_.cornerCount = corners_.size;
-    buffers_.words = words_.data;
-    buffers_.wordCount = words_.size;
-    buffers_.indices = indices_.data;
-    buffers_.indexCount = indices_.size;
+    buffers_.texCoords = texCoords_.data();
+    buffers_.texCoordCount = std::ssize(texCoords_);
+    buffers_.corners = corners_.data();
+    buffers_.cornerCount = std::ssize(corners_);
+    buffers_.words = words_.data();
+    buffers_.wordCount = std::ssize(words_);
+    buffers_.indices = indices_.data();
+    buffers_.indexCount = std::ssize(indices_);
 }
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     // The positions the new renderer keeps on the GPU move with new offsets: the animation's frame.
-    const bool same = offsets_.size == offsets->count &&
+    const bool same = std::ssize(offsets_) == offsets->count &&
                       (offsets->count == 0 ||
-                       std::memcmp(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3)) == 0);
-    offsets_.SetSize(offsets->count);
-    std::memcpy(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
+                       std::memcmp(offsets_.data(), offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3)) == 0);
+    offsets_.resize(offsets->count);
+    std::memcpy(offsets_.data(), offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
     if (!same) render::MeshChanged(this, render::MeshChange::Positions);
 }
 
@@ -657,39 +658,17 @@ void CFigureMesh::BuffersChanged() { render::MeshChanged(this, render::MeshChang
 
 int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, Vector2* points, float* bounds) {
     const VertexPacket* vertices = buffers_.vertices;
-    if (offsets_.size != 0) {
+    if (!offsets_.empty()) {
         const VertexPacket* source = buffers_.vertices;
-        lib::AlignedArray<VertexPacket>& moved = OffsetVertices();
-        // Sized like SetSize, except that a larger buffer is not given the old contents (they are
-        // all rewritten below) and 0 allocates an empty buffer instead of freeing it.
-        int packets = buffers_.vertexCount;
-        if (!moved.data) {
-            moved.data = lib::AlignedArray<VertexPacket>::Allocate(packets);
-            moved.capacity = packets;
-            moved.size = packets;
-        } else if (packets <= moved.capacity) {
-            moved.size = packets;
-        } else {
-            int step = moved.growBy;
-            if (step == 0) {
-                step = moved.size / 8;
-                if (step < 4) step = 4;
-                else if (step > 0x400) step = 0x400;
-            }
-            int newCapacity = moved.capacity + step;
-            if (packets >= newCapacity) newCapacity = packets;
-            VertexPacket* fresh = lib::AlignedArray<VertexPacket>::Allocate(newCapacity);
-            lib::AlignedArray<VertexPacket>::Free(moved.data);
-            moved.data = fresh;
-            moved.size = packets;
-            moved.capacity = newCapacity;
-        }
+        std::vector<VertexPacket>& moved = OffsetVertices();
+        // Every element is rewritten below.
+        moved.resize(static_cast<std::size_t>(buffers_.vertexCount));
         // Vertex i is component i & 3 of packet i >> 2; each coordinate is offset + source.
-        for (int i = 0; i < moved.size * 4; ++i) {
+        for (int i = 0; i < std::ssize(moved) * 4; ++i) {
             const float* from = &source[i >> 2].block[0][i & 3];
-            float* to = &moved.data[i >> 2].block[0][i & 3];
-            if (i < offsets_.size) {
-                const Vector3& d = offsets_.data[i];
+            float* to = &moved[i >> 2].block[0][i & 3];
+            if (i < std::ssize(offsets_)) {
+                const Vector3& d = offsets_[i];
                 to[0] = d.x + from[0];
                 to[4] = d.y + from[4];
                 to[8] = d.z + from[8];
@@ -699,7 +678,7 @@ int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, V
                 std::memcpy(&to[8], &from[8], 4);
             }
         }
-        vertices = moved.data;
+        vertices = moved.data();
     }
     pipeline->transform_->ProjectFlat(matrix, vertices, points, buffers_.vertexCount,
                                       bounds);

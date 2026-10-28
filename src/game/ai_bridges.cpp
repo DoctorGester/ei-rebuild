@@ -41,7 +41,7 @@ void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* oc
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->cells.size; ++i) {
+        for (int i = 0; i < std::ssize(set->cells); ++i) {
             FootprintCell& c = set->cells[i];
             int x = c.x, y = c.y;
             if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;
@@ -62,7 +62,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         }
         return true;
     }
-    for (int i = 0; i < set->cells.size; ++i) {
+    for (int i = 0; i < std::ssize(set->cells); ++i) {
         FootprintCell& c = set->cells[i];
         int x = c.x, y = c.y;
         if (x < 0 || y < 0 || x >= cells.width || y >= cells.height || c.low >= c.high) continue;

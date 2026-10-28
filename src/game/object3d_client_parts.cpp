@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -43,13 +44,12 @@ bool IsPrimaryKind(int kind) {
     }
 }
 
-// A zeroed 0x14-byte part set or group; null when the allocation fails (the callers then write
+// A value-initialised part set or group; null when the allocation fails (the callers then write
 // through null, as the game does).
 template <typename T>
 T* NewZeroed() {
     auto* p = gamecrt::operator_new_as<T>();
-    if (p) std::memset(p, 0, sizeof(T));
-    return p;
+    return p ? new (p) T() : nullptr;
 }
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
@@ -58,13 +58,13 @@ bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = self->partSets[k];
         if (!set) continue;
-        for (int g = 0; g < set->groups.size; ++g) {
+        for (int g = 0; g < std::ssize(set->groups); ++g) {
             PartGroup* group = set->groups[g];
-            for (int i = 0; i < group->parts.size; ++i) {
+            for (int i = 0; i < std::ssize(group->parts); ++i) {
                 if (group->parts[i] != part) continue;
-                int tail = group->parts.size - i - 1;
+                int tail = std::ssize(group->parts) - i - 1;
                 if (tail != 0) std::memmove(&group->parts[i], &group->parts[i + 1], static_cast<std::size_t>(tail) * 4);
-                --group->parts.size;
+                group->parts.pop_back();
                 part->Release();
                 return true;
             }
@@ -78,22 +78,17 @@ bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
 // --- Part sets ------------------------------------------------------------------------------------
 
 int PartGroup::ReleaseParts() {
-    for (int i = 0; i < parts.size; ++i) {
+    for (int i = 0; i < std::ssize(parts); ++i) {
         if (!parts[i]) continue;
         parts[i]->Release();
         parts[i] = nullptr;
     }
-    if (parts.data) {
-        lib::FreeAligned32(parts.data);
-        parts.data = nullptr;
-    }
-    parts.capacity = 0;
-    parts.size = 0;
+    lib::FreeStorage(parts);
     return 1;
 }
 
 void TextureParts::Destruct() {
-    for (int i = 0; i < groups.size; ++i) {
+    for (int i = 0; i < std::ssize(groups); ++i) {
         PartGroup* group = groups[i];
         if (!group) continue;
         group->ReleaseParts();
@@ -101,21 +96,16 @@ void TextureParts::Destruct() {
             group->material->Release();
             group->material = nullptr;
         }
-        if (group->parts.data) lib::FreeAligned32(group->parts.data);   // freed by ReleaseParts already
+        lib::FreeStorage(group->parts);   // freed by ReleaseParts already
         gamecrt::operator_delete(group);
         groups[i] = nullptr;
     }
-    groups.SetSize(0, -1);
+    groups.clear();
     texture = nullptr;
-    if (groups.data) lib::FreeAligned32(groups.data);
+    lib::FreeStorage(groups);
 }
 
 CObject3DClientSpecific::CObject3DClientSpecific() {
-    textures = {};
-    materials = {};
-    vertices = {};
-    texCoords = {};
-    indices = {};
     texture = nullptr;
     std::memset(&sphere, 0, 0x38);
     woundsTexture = nullptr;
@@ -163,18 +153,18 @@ void CObject3DClientSpecific::Destroy() {
     }
     partSets[0] = nullptr;
     partSets[1] = nullptr;
-    for (int i = 0; i < textures.size; ++i) {
+    for (int i = 0; i < std::ssize(textures); ++i) {
         if (!textures[i]) continue;
         textures[i]->Release();
         textures[i] = nullptr;
     }
-    textures.SetSize(0, -1);
-    for (int i = 0; i < materials.size; ++i) {
+    textures.clear();
+    for (int i = 0; i < std::ssize(materials); ++i) {
         if (!materials[i]) continue;
         materials[i]->Release();
         materials[i] = nullptr;
     }
-    materials.SetSize(0, -1);
+    materials.clear();
     object = nullptr;
     touchTime = 0;
     flags_ = 0;
@@ -185,17 +175,12 @@ CObject3DClientSpecific::~CObject3DClientSpecific() {
     if (woundsMaterial) woundsMaterial->Release();
     if (woundsTexture) woundsTexture->Release();
     if (texture) texture->Release();
-    if (indices.data) lib::FreeAligned32(indices.data);
-    if (texCoords.data) lib::FreeAligned32(texCoords.data);
-    if (vertices.data) lib::FreeAligned32(vertices.data);
-    if (materials.data) lib::FreeAligned32(materials.data);
-    if (textures.data) lib::FreeAligned32(textures.data);
 }
 
 // --- Parts, textures and materials ----------------------------------------------------------------
 
 CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
-    for (int i = 0; i < textures.size; ++i)
+    for (int i = 0; i < std::ssize(textures); ++i)
         if (textures[i]->type_ == kind) return textures[i];
     int k = IsPrimaryKind(kind) ? 0 : 1;
     TextureParts* set;
@@ -203,8 +188,8 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         set = NewZeroed<TextureParts>();
         set->texture = ClientWorld()->NewTexture(kind);
         partSets[k] = set;
-        int count = textures.size;
-        textures.SetSize(count + 1, -1);
+        int count = std::ssize(textures);
+        textures.resize(count + 1);
         textures[count] = set->texture;
         ++set->texture->refCount_;
     } else {
@@ -220,7 +205,7 @@ CMaterial* CObject3DClientSpecific::FindMaterial(int textureKind, int materialKi
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set || !set->texture || set->texture->type_ != textureKind) continue;
-        for (int g = 0; g < set->groups.size; ++g) {
+        for (int g = 0; g < std::ssize(set->groups); ++g) {
             CMaterial* material = set->groups[g]->material;
             if (material && material->type_ == materialKind) return partSets[k]->groups[g]->material;
         }
@@ -234,7 +219,7 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
         if (++k > 1) return nullptr;
     }
     TextureParts* set = partSets[k];
-    for (int g = 0; g < set->groups.size; ++g) {
+    for (int g = 0; g < std::ssize(set->groups); ++g) {
         CMaterial* material = set->groups[g]->material;
         if (material && material->type_ == materialKind) return set->groups[g]->material;
     }
@@ -243,11 +228,11 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
     group->material = material;
     ++material->refCount_;
     set = partSets[k];
-    int count = set->groups.size;
-    set->groups.SetSize(count + 1, -1);
+    int count = std::ssize(set->groups);
+    set->groups.resize(count + 1);
     set->groups[count] = group;
-    count = materials.size;
-    materials.SetSize(count + 1, -1);
+    count = std::ssize(materials);
+    materials.resize(count + 1);
     materials[count] = group->material;
     ++group->material->refCount_;
     return group->material;
@@ -257,7 +242,7 @@ int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
     int materialKind = static_cast<int>(part->materialValue_);
     int textureKind = static_cast<int>(part->meshType_);
     bool known = false;
-    for (int i = 0; i < textures.size; ++i) {
+    for (int i = 0; i < std::ssize(textures); ++i) {
         if (textures[i]->type_ != textureKind) continue;
         known = textures[i] != nullptr;
         break;
@@ -269,13 +254,13 @@ int CObject3DClientSpecific::OnPartAdded(CFigureMesh* part) {
         if (++k >= 2) return 0;
     }
     TextureParts* set = partSets[k];
-    for (int g = 0; g < set->groups.size; ++g) {
+    for (int g = 0; g < std::ssize(set->groups); ++g) {
         PartGroup* group = set->groups[g];
         if (!group->material || group->material->type_ != materialKind) continue;
-        for (int i = 0; i < group->parts.size; ++i)
+        for (int i = 0; i < std::ssize(group->parts); ++i)
             if (group->parts[i] == part) return 1;
-        int count = group->parts.size;
-        group->parts.SetSize(count + 1, -1);
+        int count = std::ssize(group->parts);
+        group->parts.resize(count + 1);
         group->parts[count] = part;
         ++part->refCount_;
         return 1;
@@ -294,7 +279,7 @@ CFigureMesh* CObject3DClientSpecific::RemoveFromPartSets(const char* name) {
 CTexture* CObject3DClientSpecific::ReplaceTexture(CTexture* replacement) {
     if (!replacement) return nullptr;
     CTexture* old = nullptr;
-    for (int i = 0; i < textures.size; ++i) {
+    for (int i = 0; i < std::ssize(textures); ++i) {
         if (textures[i]->type_ != replacement->type_) continue;
         old = textures[i];
         textures[i] = replacement;
@@ -345,14 +330,14 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
 
 void CObject3DClientSpecific::ApplyMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
-    if (materials.size <= 0) {
+    if (materials.empty()) {
         materialCursor = -1;
     } else {
         materialCursor = 0;
         for (CMaterial* material = materials[0]; material;) {
             manager->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
             ++materialCursor;
-            if (materials.size <= materialCursor) break;
+            if (std::ssize(materials) <= materialCursor) break;
             material = materials[materialCursor];
         }
     }
@@ -364,7 +349,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
 
 void CObject3DClientSpecific::SetMaterialsLit(int lit) {
     if (lit) {
-        for (int i = 0; i < materials.size; ++i) {
+        for (int i = 0; i < std::ssize(materials); ++i) {
             CMaterial* material = materials[i];
             material->entries.push_back(MaterialEntry{material->colors.emissive});
             material = materials[i];
@@ -374,7 +359,7 @@ void CObject3DClientSpecific::SetMaterialsLit(int lit) {
         }
         return;
     }
-    for (int i = 0; i < materials.size; ++i) {
+    for (int i = 0; i < std::ssize(materials); ++i) {
         CMaterial* material = materials[i];
         if (material->entries.empty()) continue;
         material->colors.emissive = material->entries.back().emissive;

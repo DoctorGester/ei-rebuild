@@ -21,6 +21,8 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <vector>
 
 namespace {
 
@@ -35,21 +37,21 @@ constexpr float kByteScale = 255.0f;
 
 // The positions of a part moved by its per-vertex offsets (one work array for the draws and the shadow's
 // projection). Zero at the start; its exit function frees the block.
-constinit lib::AlignedArray<VertexPacket> g_movedPackets = /*007AEED0*/ {};
-lib::AlignedArray<VertexPacket>& MovedPackets() { return g_movedPackets; }
+constinit std::vector<VertexPacket> g_movedPackets = /*007AEED0*/ {};
+std::vector<VertexPacket>& MovedPackets() { return g_movedPackets; }
 // A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
 using PixelPair = RasterTriangle::Point;
 
 // A part's texture coordinates in 0..255 (a function-local static; its exit handler frees its block).
-constinit lib::AlignedArray<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
+constinit std::vector<RasterTriangle::Point> g_texturePixels = /*007AEEB8*/ {};
 std::uint8_t g_texturePixelsGuard = /*007AEEC8*/ {};
-void __cdecl FreeTexturePixels() { g_texturePixels.FreeData(); }
-lib::AlignedArray<PixelPair>& TexturePixels() {
+void __cdecl FreeTexturePixels() { lib::FreeStorage(g_texturePixels); }
+std::vector<PixelPair>& TexturePixels() {
     auto& constructed = g_texturePixelsGuard;
     auto& pixels = g_texturePixels;
     if (!(constructed & 1)) {
         constructed |= 1;
-        pixels.Construct();
+        std::construct_at(&pixels);
         libcrt::AtExit(FreeTexturePixels);
     }
     return pixels;
@@ -67,22 +69,22 @@ float& Coordinate(VertexPacket* packets, int i, int axis) { return packets[i >> 
 
 // `source` (`packets` packets) with the offsets added, in the work array: a vertex beyond the
 // offsets is copied; the w row is not written.
-const VertexPacket* MovedPositions(const VertexPacket* source, int packets, const lib::AlignedArray<Vector3>* offsets) {
+const VertexPacket* MovedPositions(const VertexPacket* source, int packets, const std::vector<Vector3>* offsets) {
     auto& moved = MovedPackets();
-    moved.SetSizeDiscard(packets);
+    moved.resize(packets);
     auto* from = const_cast<VertexPacket*>(source);
-    for (int i = 0; i < moved.size * 4; ++i) {
-        if (i < offsets->size) {
-            const Vector3& offset = offsets->data[i];
-            Coordinate(moved.data, i, 0) = offset.x + Coordinate(from, i, 0);
-            Coordinate(moved.data, i, 1) = offset.y + Coordinate(from, i, 1);
-            Coordinate(moved.data, i, 2) = offset.z + Coordinate(from, i, 2);
+    for (int i = 0; i < std::ssize(moved) * 4; ++i) {
+        if (i < std::ssize(*offsets)) {
+            const Vector3& offset = (*offsets)[i];
+            Coordinate(moved.data(), i, 0) = offset.x + Coordinate(from, i, 0);
+            Coordinate(moved.data(), i, 1) = offset.y + Coordinate(from, i, 1);
+            Coordinate(moved.data(), i, 2) = offset.z + Coordinate(from, i, 2);
         } else {
             for (int axis = 0; axis < 3; ++axis)
-                std::memcpy(&Coordinate(moved.data, i, axis), &Coordinate(from, i, axis), sizeof(float));
+                std::memcpy(&Coordinate(moved.data(), i, axis), &Coordinate(from, i, axis), sizeof(float));
         }
     }
-    return moved.data;
+    return moved.data();
 }
 
 // IDirect3DDevice7::SetRenderState(D3DRENDERSTATE_SPECULARENABLE); the result is not kept.
@@ -106,11 +108,11 @@ struct PartDraw {
     // packets, normals and count, colours, speculars, texture coordinates and count, corners and
     // count, words and count, indices and count, the texture offsets, alpha, flags.
     int Draw(CTextureDevice* device, CDXSurface* first, CDXSurface* second, bool textured) const {
-        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices_.data + r.indices.start);
-        const auto* words = mesh->words_.data + r.words.start;
-        const auto* corners = mesh->corners_.data + r.corners.start;
-        const auto* texCoords = mesh->texCoords_.data + r.texCoords.start;
-        const auto* normals = mesh->normals_.data + r.normals.start;
+        auto* indices = reinterpret_cast<std::uint16_t*>(mesh->indices_.data() + r.indices.start);
+        const auto* words = mesh->words_.data() + r.words.start;
+        const auto* corners = mesh->corners_.data() + r.corners.start;
+        const auto* texCoords = mesh->texCoords_.data() + r.texCoords.start;
+        const auto* normals = mesh->normals_.data() + r.normals.start;
         const float uOffset = std::bit_cast<float>(u);
         const float vOffset = std::bit_cast<float>(v);
         if (textured) {
@@ -140,12 +142,12 @@ void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result)
 // surfaces the device's specular is on around the draw for draw flag 8.
 int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                    bool textured, ColourArray* colours, ColourArray* speculars,
-                   const lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                   const std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     const LinkRangeMap::Node* node = mesh->ranges_.find(*name);
     if (node == mesh->ranges_.end()) return kNothingDrawn;
     const LinkPartRanges& r = node->second;
-    const VertexPacket* positions = mesh->vertices_.data + r.vertices.start;
-    if (offsets && offsets->size != 0) positions = MovedPositions(positions, r.vertices.count, offsets);
+    const VertexPacket* positions = mesh->vertices_.data() + r.vertices.start;
+    if (offsets && !offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
 
     CTextureDevice* device = mesh->loader_->renderer_;
     const bool specular = !textured && (flags & kDrawSpecular) != 0;
@@ -159,7 +161,7 @@ int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurfa
 
 } // namespace
 
-void __cdecl FreeMovedPackets() { g_movedPackets.FreeData(); }
+void __cdecl FreeMovedPackets() { lib::FreeStorage(g_movedPackets); }
 
 // ---- 7 / 8: the colours ----------------------------------------------------------------------------
 
@@ -209,7 +211,7 @@ bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, C
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
 int CLinkMesh::DrawPartMoved(const std::string* name, int flags, ColourArray* colours, ColourArray* speculars,
-                             lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                             std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
 
@@ -220,7 +222,7 @@ int CLinkMesh::DrawPart(const std::string* name, int flags, ColourArray* colours
 
 int CLinkMesh::DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                      ColourArray* colours, ColourArray* speculars,
-                                     lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
+                                     std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
 
@@ -233,13 +235,13 @@ int CLinkMesh::DrawPartTextured(const std::string* name, int flags, CDXSurface* 
 
 // The part's positions (moved by `offsets` when it has any) through
 // the transform object's flat projection; four points per packet.
-int CLinkMesh::ProjectPart(const std::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                            Vector2* points, float* bounds) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
-    const VertexPacket* positions = vertices_.data + r.vertices.start;
-    if (offsets->size != 0) positions = MovedPositions(positions, r.vertices.count, offsets);
+    const VertexPacket* positions = vertices_.data() + r.vertices.start;
+    if (!offsets->empty()) positions = MovedPositions(positions, r.vertices.count, offsets);
     pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;
 }
@@ -251,24 +253,24 @@ int CLinkMesh::RasterisePart(const std::string* name, const PixelPair* pixels, R
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
-    lib::AlignedArray<PixelPair>& texturePixels = TexturePixels();
+    std::vector<PixelPair>& texturePixels = TexturePixels();
     CPixelConverter* converter = loader_->renderer_->converter_;
 
-    texturePixels.SetSizeDiscard(r.texCoords.count);
+    texturePixels.resize(r.texCoords.count);
     for (unsigned i = 0; i < static_cast<unsigned>(r.texCoords.count); ++i) {
         float uv[2];
-        std::memcpy(uv, &texCoords_.data[r.texCoords.start + static_cast<int>(i)], sizeof(uv));
-        texturePixels.data[i].x = x87::fistp(static_cast<float>(uv[0] * kByteScale));
-        texturePixels.data[i].y = x87::fistp(static_cast<float>(uv[1] * kByteScale));
+        std::memcpy(uv, &texCoords_[r.texCoords.start + static_cast<int>(i)], sizeof(uv));
+        texturePixels[i].x = x87::fistp(static_cast<float>(uv[0] * kByteScale));
+        texturePixels[i].y = x87::fistp(static_cast<float>(uv[1] * kByteScale));
     }
 
-    const MeshCorner* corners = corners_.data + r.corners.start;
-    const std::uint16_t* indices = indices_.data + r.indices.start;
+    const MeshCorner* corners = corners_.data() + r.corners.start;
+    const std::uint16_t* indices = indices_.data() + r.indices.start;
     for (unsigned n = 0; n < static_cast<unsigned>(r.indices.count); n += 3) {
         for (int k = 0; k < 3; ++k) {
             const MeshCorner& corner = corners[indices[n + k]];
             std::memcpy(&target->corners[k].screen, &pixels[corner.position], sizeof(PixelPair));
-            std::memcpy(&target->corners[k].texture, &texturePixels.data[corner.texCoord], sizeof(PixelPair));
+            std::memcpy(&target->corners[k].texture, &texturePixels[corner.texCoord], sizeof(PixelPair));
         }
         converter->RasteriseTriangle(target);
     }

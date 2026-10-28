@@ -341,7 +341,7 @@ public:
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;
-    lib::AlignedArray<UiPoint> points_;   // polygon vertices
+    std::vector<UiPoint> points_;   // polygon vertices
     RECT bounds_;
     bool rectOnly_;
     bool enabled_;
@@ -350,9 +350,6 @@ public:
     int offsetY_;
     CUiTooltip* tip_;
 };
-static_assert(offsetof(CUiRegion, bounds_) == 0x14);
-static_assert(offsetof(CUiRegion, offsetX_) == 0x28);
-static_assert(sizeof(CUiRegion) == 0x34);
 
 // An off-screen DirectDraw surface a window draws into; no destructor: the owners destroy it directly.
 class CUiSurface {
@@ -1073,9 +1070,7 @@ struct UiPointF {
     float x;
     float y;
 };
-using UiPointArray = lib::AlignedArray<UiPointF>;
-// `growBy` -1 keeps the growth step.
-void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
+using UiPointArray = std::vector<UiPointF>;
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
@@ -1137,12 +1132,6 @@ public:
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
-static_assert(offsetof(CHudMap, viewPolygon_) == 0x178 && offsetof(CHudMap, visibleArea_) == 0x188);
-static_assert(offsetof(CHudMap, view_) == 0x1AC);
-static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
-static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
-static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
-static_assert(sizeof(CHudMap) == 0x1B4);   // CBattleScreen's operator new
 
 // Unit panel (0..185 x 0..225). Regions: 0 the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {

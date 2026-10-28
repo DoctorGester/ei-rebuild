@@ -9,6 +9,7 @@
 // cell fades in while visible and out once not, and is dropped when nearly transparent.
 
 #include "base_manager.h"
+#include "clip.h"   // TLVertex
 #include "core_transform.h"
 #include "maths.h"
 #include "model.h"   // ClipBounds
@@ -22,10 +23,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName
 
-struct TLVertex;
 struct VertexPacket;
 
 // One particle (from the source's pool). The source's tick saves the "prev" fields before calling the update
@@ -564,7 +565,7 @@ public:
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;
-    lib::AlignedArray<SourceFrame> frames;
+    std::vector<SourceFrame> frames;
     EmitCallback emitFn;
     UpdateCallback updateFn;
     ElementCallback elementFn;
@@ -629,13 +630,13 @@ public:
     class CWorldClient* world;      // the client world (set after construction)
     int sound;                      // rain loop handle in the sound manager (0: none)
     // The draws' work arrays.
-    lib::AlignedArray<Vector4> projected;       // the positions projected (four per packet)
-    lib::AlignedArray<VertexPacket> positions;  // the particles' corners (w not written)
+    std::vector<Vector4> projected;       // the positions projected (four per packet)
+    std::vector<VertexPacket> positions;  // the particles' corners (w not written)
     mfc::impl::CByteArray outcodes;             // a clip outcode per position
     mfc::impl::CByteArray frames;               // a texture frame (0..3) per particle
-    lib::AlignedArray<TLVertex> vertices;       // what is drawn (colours never written)
+    std::vector<TLVertex> vertices;       // what is drawn (colours never written)
     mfc::impl::CWordArray indices;              // 0, 1, 2, ... (filled elsewhere)
-    lib::AlignedArray<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
+    std::vector<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
     int particleCount;              // positions built by the last draw
     Vector3 wind;
     int mode;                       // 0 off, 1 rain, 2 snow

@@ -96,9 +96,9 @@ public:
                         int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags);
     int DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
                     unsigned indexCount, int flags);
-    int BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+    int BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                           const std::uint8_t* outcodes);
-    int BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices, const std::uint8_t* outcodes);
+    int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
     int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
                           int indexCount, int flags);
@@ -256,7 +256,7 @@ CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // Aligned to 32 bytes.
-using AlignedBuffer = lib::AlignedArray<std::uint8_t>;
+using AlignedBuffer = std::vector<std::uint8_t>;
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.

@@ -16,8 +16,10 @@
 #include "lib/str.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 #undef GetClassName
 
@@ -163,12 +165,8 @@ CSoundManager::CSoundManager() {
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
-    markers.Construct();
-    markers2.Construct();
     gameapi::InitializeCriticalSection(&nameLock);
     gameapi::InitializeCriticalSection(&streamLock);
-    midiArray1E4.Construct();
-    midiArray1F4.Construct();
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
@@ -191,12 +189,8 @@ CSoundManager::~CSoundManager() {
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
     gameapi::DeleteCriticalSection(&midiLock);
-    midiArray1F4.FreeData();
-    midiArray1E4.FreeData();
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
-    markers2.FreeData();
-    markers.FreeData();
     waveSources.vtable = mfc::impl::SoundListClass::Vtable();
     waveSources.RemoveAll();
     registry0CC.Destroy();
@@ -264,7 +258,6 @@ constexpr std::uint32_t kStreamPeriodMs = 100;
 constexpr int kNoHalfReady = -1;
 
 // PCMWAVEFORMAT, as Open fills it.
-#pragma pack(push, 2)
 struct PcmFormat {
     std::uint16_t formatTag;
     std::uint16_t channels;
@@ -273,7 +266,6 @@ struct PcmFormat {
     std::uint16_t blockAlign;
     std::uint16_t bitsPerSample;
 };
-#pragma pack(pop)
 static_assert(sizeof(PcmFormat) == 0x10);
 
 void WaitForThread(const mfc::impl::WinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
@@ -355,9 +347,9 @@ unsigned __cdecl StreamThreadEntry(void* manager) {
 
 // kDeviceCallback: DirectSoundEnumerateA's callback in Open. The device's GUID pointer is appended to the
 // aligned array `devices` (its SetSize by one); the enumeration goes on (TRUE).
-int __stdcall AddSoundDevice(void* guid, const char*, const char*, lib::AlignedArray<int>* list) {
-    const int at = list->size;
-    list->SetSize(at + 1);
+int __stdcall AddSoundDevice(void* guid, const char*, const char*, std::vector<int>* list) {
+    const int at = std::ssize(*list);
+    list->resize(at + 1);
     (*list)[at] = static_cast<int>(reinterpret_cast<std::intptr_t>(guid));
     return 1;
 }
@@ -422,7 +414,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     gameapi::LeaveCriticalSection(&m->nameLock);
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kSwitchMarkers, &m->markers);
     m->soundRegistry.GetIntArray(m->streamName.c_str(), kLoopMarkers, &m->markers2);
-    m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
+    m->streamLoopAt = !m->markers2.empty() ? m->markers2[0] : kNoLoop;
     m->streamSwitchAt = kNeverSwitch;
     CodecClose(m);
     m->streamFile = m->streamCodec->open(m, reinterpret_cast<void*>(SoundStreamRead), 0);
@@ -523,11 +515,9 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
     const bool waveOut = SoundOption() == kWaveOutMode;
     int device = waveOut ? kWaveMapper : 0;
     if (deviceIndex >= 0) {
-        lib::AlignedArray<int> devices;
-        devices.Construct();
-        if (gameapi::DirectSoundEnumerateA(reinterpret_cast<void*>(AddSoundDevice), &devices) == 0 && deviceIndex < devices.size)
+        std::vector<int> devices;
+        if (gameapi::DirectSoundEnumerateA(reinterpret_cast<void*>(AddSoundDevice), &devices) == 0 && deviceIndex < std::ssize(devices))
             device = devices[deviceIndex];
-        devices.FreeData();
     }
     reverbOn = useReverb;
     if (useReverb != 0) gameapi::AIL_set_preference(kPrefReverb, kReverbBufferBytes);

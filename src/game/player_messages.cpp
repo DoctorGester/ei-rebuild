@@ -267,9 +267,9 @@ constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
 // The sent-object arrays emptied: every object released, the block freed.
 void ReleaseAll(PlayerObjectArray& objects) {
     // The data pointer is read once, the size after every release.
-    CEngineObject** element = objects.data;
-    for (int i = 0; i < objects.size; ++i) (*element++)->Release();
-    objects.RemoveAll();
+    CEngineObject** element = objects.data();
+    for (int i = 0; i < std::ssize(objects); ++i) (*element++)->Release();
+    objects.clear();
 }
 
 } // namespace
@@ -296,8 +296,8 @@ void CPlayerServer::ClearServerState() {
 
 BOOL CPlayerServer::CreateServer() {
     ClearServerState();
-    handlers_.SetSize(kServerHandlerCount);
-    std::fill_n(handlers_.data, handlers_.size, Handler{});
+    handlers_.resize(kServerHandlerCount);
+    std::fill_n(handlers_.data(), std::ssize(handlers_), Handler{});
     for (const auto& entry : kServerHandlers)
         handlers_[entry.type] = entry.handler;
     return 1;
@@ -324,7 +324,6 @@ constexpr int kPathKindNoPath = 3;
 
 // The stream is a member (constructed before the body; the original builds it after the handler table).
 CPlayerServer::CPlayerServer() {
-    handlers_.Construct();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     placements_.data = nullptr;
     placements_.size = 0;
@@ -332,8 +331,6 @@ CPlayerServer::CPlayerServer() {
     placements_.growBy = 0;
     compressor_.Construct();
     decompressor_.Construct();
-    sentObjects_.Construct();
-    sentTimed_.Construct();
     ConstructGroup(group50F8_);
     mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&partyUnits_);
     partyUnits_.vtable = mfc::impl::ScriptGroupClass::Vtable();
@@ -345,13 +342,10 @@ CPlayerServer::~CPlayerServer() {
     ClearServerState();
     partyUnits_.DestructBody();
     group50F8_.DestructBody();
-    sentTimed_.FreeData();
-    sentObjects_.FreeData();
     decompressor_.out.End();
     compressor_.out.End();
     placements_.vtable = mfc::impl::PartySlotArrayClass::Vtable();
     if (placements_.data) gamecrt::operator_delete(placements_.data);
-    handlers_.FreeData();
 }
 
 const char* CPlayerServer::GetClassName() { return "CPlayerServer"; }

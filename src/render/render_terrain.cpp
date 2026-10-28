@@ -6,6 +6,7 @@
 #include "../game/terrain_sector.h"
 #include "../hook/log.h"
 
+#include <vector>
 #include <windows.h>
 #include <d3d11.h>
 
@@ -114,8 +115,8 @@ PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
         v.loss = 0.0f;
         if (const SectorVertex* water = WaterAbove(s, index)) {
             const Terrain* owner = s->owner;
-            if (owner && water->waterMaterial < owner->materials.size) {
-                float absorption = owner->materials.data[water->waterMaterial].absorption;
+            if (owner && water->waterMaterial < std::ssize(owner->materials)) {
+                float absorption = owner->materials[water->waterMaterial].absorption;
                 v.loss = kWaterFalloff * absorption * record.depth * record.depth;
             }
         }
@@ -173,13 +174,13 @@ PageSource SourceOf(const SectorData* s, int page) {
     src.positionCount = s->vertices.size;
     for (int q = 0; q < 4; ++q) {
         if (s->tiles[q].data && page < s->tiles[q].size) {
-            src.lists[q] = s->tiles[q].data[page].data;
-            src.listSizes[q] = s->tiles[q].data[page].size;
+            src.lists[q] = s->tiles[q].data[page].data();
+            src.listSizes[q] = std::ssize(s->tiles[q].data[page]);
         }
         if (s->tileFlags[q].data && page < s->tileFlags[q].size) src.edges[q] = s->tileFlags[q].data[page].data;
     }
-    src.animated = s->animated.data;
-    src.animatedCount = s->animated.size;
+    src.animated = s->animated.data();
+    src.animatedCount = std::ssize(s->animated);
     auto it = g_changes.find(s);
     if (it != g_changes.end()) src.changes = it->second;
     return src;
@@ -230,7 +231,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
     // The sector's animated tiles (their 9 entries in the tile lists), for animatedTiles.
     static std::vector<const TileVertex*> animated;
     animated.clear();
-    for (int i = 0; i < s->animated.size; ++i) animated.push_back(s->animated.data[i].vertices);
+    for (int i = 0; i < std::ssize(s->animated); ++i) animated.push_back(s->animated[i].vertices);
     std::sort(animated.begin(), animated.end());
     const int* entries = lod == 0 ? kLod0Entries : lod == 1 ? kLod1Entries : kLod2Entries;
     int perTile = lod == 0 ? 9 : lod == 1 ? 6 : 4;
@@ -239,14 +240,14 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.firstVertex = static_cast<std::uint32_t>(out.vertices.size());
         range.firstIndex = static_cast<std::uint32_t>(out.indices.size());
         const auto& lists = s->tiles[quarter];
-        if (lists.data && page < lists.size && lists.data[page].data) {
+        if (lists.data && page < lists.size && !lists.data[page].empty()) {
             const terrain::TileList& list = lists.data[page];
-            int tiles = list.size / 9;
+            int tiles = std::ssize(list) / 9;
             const std::uint8_t* edges = nullptr;
             if (seams && s->tileFlags[quarter].data && page < s->tileFlags[quarter].size)
                 edges = s->tileFlags[quarter].data[page].data;
             for (int t = 0; t < tiles; ++t) {
-                const TileVertex* tile = list.data + t * 9;
+                const TileVertex* tile = list.data() + t * 9;
                 if (std::binary_search(animated.begin(), animated.end(), tile)) out.animatedTiles = true;
                 auto base = static_cast<std::uint32_t>(out.vertices.size());
                 bool ok = true;
@@ -771,8 +772,8 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     bool inView = false;
     for (int q = 0; q < 4 && !inView; ++q) {
         const auto& lists = s->tiles[q];
-        inView = s->quarterMode[q] != 2 && lists.data && page < lists.size && lists.data[page].data &&
-                 lists.data[page].size >= 9;
+        inView = s->quarterMode[q] != 2 && lists.data && page < lists.size && !lists.data[page].empty() &&
+                 std::ssize(lists.data[page]) >= 9;
     }
     if (!inView) return;
 

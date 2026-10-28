@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -88,18 +89,14 @@ constexpr int kMaxDepth = 0x3F;
 // (the file is closed before the sectors are read).
 struct MapDescription {
     MapDescription() {
-        materials.Construct();
-        tileTypes.Construct();
     }
     ~MapDescription() {
-        tileTypes.FreeData();
-        materials.FreeData();
     }
     MapDescription(const MapDescription&) = delete;
 
     MapHeader header;
-    lib::AlignedArray<MapMaterial> materials;
-    lib::AlignedArray<std::uint32_t> tileTypes;
+    std::vector<MapMaterial> materials;
+    std::vector<std::uint32_t> tileTypes;
 };
 
 // A resource archive as a local, constructed in place.
@@ -138,10 +135,10 @@ int ReadDescription(Archive& archive, const std::string& path, const std::string
 
     const auto* materials = static_cast<const std::uint8_t*>(file) + sizeof(MapHeader);
     const std::size_t materialBytes = header.materialCount * sizeof(MapMaterial);
-    map.materials.SetSize(header.materialCount);
-    std::memcpy(map.materials.data, materials, materialBytes);
-    map.tileTypes.SetSize(static_cast<int>(header.tileCount));
-    std::memcpy(map.tileTypes.data, materials + materialBytes, header.tileCount * sizeof(std::uint32_t));
+    map.materials.resize(header.materialCount);
+    std::memcpy(map.materials.data(), materials, materialBytes);
+    map.tileTypes.resize(static_cast<int>(header.tileCount));
+    std::memcpy(map.tileTypes.data(), materials + materialBytes, header.tileCount * sizeof(std::uint32_t));
     archive.Close(file);
     return 1;
 }
@@ -204,8 +201,8 @@ int ReadTerrainTypes(CAIMap& map) {
     std::vector<std::string> sections;
     registry.file.GetSectionNames(&sections);
 
-    map.materials.SetSize(kTerrainTypes);
-    for (int i = 0; i < map.materials.size; ++i) {
+    map.materials.resize(kTerrainTypes);
+    for (int i = 0; i < std::ssize(map.materials); ++i) {
         AITerrainType& type = map.materials[i];
         type.name[0] = '\0';
         type.cost = 1;
@@ -220,7 +217,7 @@ int ReadTerrainTypes(CAIMap& map) {
         {
             std::string name = registry.file.GetString(section, "Name", std::string(""));
             const char* text = str::Buffer(name, 0);
-            std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
+            std::memcpy(map.materials[index].name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
         type.cost = registry.file.GetInt2(section, "CostMul", -1);

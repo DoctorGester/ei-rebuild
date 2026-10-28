@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <string>
 
@@ -83,8 +84,8 @@ namespace {
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
 void CopyRecords(SkinComposition& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
-    set.layers.SetSize(size);
-    std::memcpy(set.layers.data, list.begin(), static_cast<std::size_t>(size));
+    set.layers.resize(size);
+    std::memcpy(set.layers.data(), list.begin(), static_cast<std::size_t>(size));
 }
 
 // Inlined strcpy / strcat: the bytes up to and including the terminator.
@@ -199,7 +200,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         Compose(self, built, set, name, 0x80, 2);
     }
 
-    set.layers.FreeData();
+    lib::FreeStorage(set.layers);
     list.FreeStorage();
 }
 

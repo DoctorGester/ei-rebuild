@@ -17,6 +17,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <memory>
 #include <initializer_list>
 #include <bit>
 
@@ -40,7 +41,7 @@ BOOL CUiRegion::HitTest(int x, int y) const {
     if (rectOnly_) return 1;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products wrap at 32
     // bits like the original's.
-    int count = points_.size;
+    int count = std::ssize(points_);
     for (int i = 0; i < count;) {
         const UiPoint& a = points_[i];
         ++i;
@@ -61,7 +62,7 @@ BOOL CUiRegion::HasActiveTip() const {
 // Rebirth's WideScreen replaces SetRect and AddPoint (addon's replacements in front of the original's body): x
 // is moved by the panel offset its panel builders set (ui_widescreen.h; 0 outside them).
 void CUiRegion::SetRect(int left, int top, int right, int bottom) {
-    points_.RemoveAll();
+    points_.clear();
     if (widescreen::Active()) {
         left += widescreen::PanelOffset();
         right += widescreen::PanelOffset();
@@ -76,7 +77,7 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
 
 void CUiRegion::AddPoint(int x, int y) {
     if (widescreen::Active()) x += widescreen::PanelOffset();
-    if (points_.size == 0) {
+    if (points_.empty()) {
         bounds_.left = x;
         bounds_.top = y;
         bounds_.right = x;
@@ -87,12 +88,11 @@ void CUiRegion::AddPoint(int x, int y) {
         if (x > bounds_.right) bounds_.right = x;
         if (y > bounds_.bottom) bounds_.bottom = y;
     }
-    // The vertex array is a lib::AlignedArray of 8-byte points.
-    int index = points_.size;
-    points_.SetSize(index + 1);
+    int index = std::ssize(points_);
+    points_.resize(index + 1);
     points_[index].x = x;
     points_[index].y = y;
-    if (points_.size > 2) enabled_ = true;
+    if (std::ssize(points_) > 2) enabled_ = true;
 }
 
 void CUiRegion::OnMouseMove(int x, int y) {
@@ -288,7 +288,7 @@ CUiRegion* CUiWindow::AddRegion() {
     if (region) {
         // The bounds are left uninitialised, as in the original.
         region->interface_ = interface_;
-        region->points_ = {};
+        std::construct_at(&region->points_);
         region->tip_ = nullptr;
         region->enabled_ = false;
         region->rectOnly_ = false;

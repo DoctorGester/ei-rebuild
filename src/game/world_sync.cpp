@@ -22,10 +22,12 @@
 #include "game_data.h"
 
 #include <cstring>
+#include <memory>
+#include <vector>
 
-void __fastcall DiffObjectSets(lib::AlignedArray<CEngineObject*>* sent, lib::AlignedArray<CEngineObject*>* current,
-                               lib::AlignedArray<CEngineObject*>* added, lib::AlignedArray<CEngineObject*>* gone,
-                               lib::AlignedArray<CEngineObject*>* same);
+void __fastcall DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current,
+                               std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* gone,
+                               std::vector<CEngineObject*>* same);
 
 namespace {
 
@@ -58,22 +60,22 @@ constexpr int kKindNoRangeTest = 3;
 
 // A function-static aligned pointer array ({data, size, capacity, growBy}; the data block is freed through the
 // pointer stored before it).
-using StaticPtrArray = lib::AlignedArray<CEngineObject*>;
+using StaticPtrArray = std::vector<CEngineObject*>;
 
 // SyncPlayer's four function statics (their guard bits) and their atexit destructors.
-constinit lib::AlignedArray<CEngineObject*> g_collected = /*007AFF48*/ {};
-constinit lib::AlignedArray<CEngineObject*> g_added = /*007AFF38*/ {};
-constinit lib::AlignedArray<CEngineObject*> g_kept = /*007AFF28*/ {};
-constinit lib::AlignedArray<CEngineObject*> g_removed = /*007AFF18*/ {};
+constinit std::vector<CEngineObject*> g_collected = /*007AFF48*/ {};
+constinit std::vector<CEngineObject*> g_added = /*007AFF38*/ {};
+constinit std::vector<CEngineObject*> g_kept = /*007AFF28*/ {};
+constinit std::vector<CEngineObject*> g_removed = /*007AFF18*/ {};
 StaticPtrArray& Collected() { return g_collected; }
 StaticPtrArray& Added() { return g_added; }
 StaticPtrArray& Kept() { return g_kept; }
 StaticPtrArray& Removed() { return g_removed; }
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeCollected() { g_collected.FreeData(); }
-void __cdecl FreeAdded() { g_added.FreeData(); }
-void __cdecl FreeKept() { g_kept.FreeData(); }
-void __cdecl FreeRemoved() { g_removed.FreeData(); }
+void __cdecl FreeCollected() { lib::FreeStorage(g_collected); }
+void __cdecl FreeAdded() { lib::FreeStorage(g_added); }
+void __cdecl FreeKept() { lib::FreeStorage(g_kept); }
+void __cdecl FreeRemoved() { lib::FreeStorage(g_removed); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 std::uint8_t& StaticsGuard() { return g_staticsGuard; }
 using AtExitFunction = void(__cdecl*)();
@@ -87,11 +89,8 @@ void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray*
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
     if (StaticsGuard() & bit) return;
-    array.data = nullptr;
     StaticsGuard() |= bit;
-    array.growBy = 0;
-    array.capacity = 0;
-    array.size = 0;
+    array.clear();
     libcrt::AtExit(destructor);
 }
 
@@ -231,17 +230,17 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
 
         // Map objects: room for seven entries per world object.
         StaticPtrArray& collected = Collected();
-        collected.SetSize(static_cast<int>(objects_.map.Size()) * 7);
-        CEngineObject** end = CollectMapObjects(this, player, state, collected.data);
-        collected.SetSize(static_cast<int>(end - Collected().data));
+        collected.resize(static_cast<int>(objects_.map.Size()) * 7);
+        CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
+        collected.resize(static_cast<int>(end - Collected().data()));
         DiffSets(&state->sentObjects_, &collected, &Added(), &Kept(), &Removed());
         state->SendObjectsRemoved(&Kept());
         state->SendObjectsAdded(&Added());
         state->SendObjectsChanged(&Removed());
 
-        collected.SetSize(static_cast<int>(timedObjects_.map.Size()));
-        end = CollectTimedObjects(this, state, collected.data);
-        collected.SetSize(static_cast<int>(end - Collected().data));
+        collected.resize(static_cast<int>(timedObjects_.map.Size()));
+        end = CollectTimedObjects(this, state, collected.data());
+        collected.resize(static_cast<int>(end - Collected().data()));
         DiffSets(&state->sentTimed_, &collected, &Added(), &Kept(), &Removed());
         state->SendTimedRemoved(&Kept());
         state->SendTimedAdded(&Added());

@@ -49,12 +49,12 @@ float Pulse(float& clock, float frames) {
 
 void CObject3DClientSpecific::InvisiblePulse(float frames) {
     float value = Pulse(pulseClock, frames);
-    for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = value;
+    for (int i = 0; i < std::ssize(materials); ++i) materials[i]->colors.diffuse.w = value;
 }
 
 void CObject3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
-    for (int i = 0; i < materials.size; ++i) {
+    for (int i = 0; i < std::ssize(materials); ++i) {
         CMaterial* part = materials[i];
         part->colors.specular.x = value;
         part->colors.specular.y = 0.0f;

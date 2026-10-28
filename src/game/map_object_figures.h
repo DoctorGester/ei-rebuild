@@ -34,7 +34,7 @@ class CLinkMesh;
 struct tagRECT;
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is kept at data[-1]).
-using AlignedPtrArray = lib::AlignedArray<void*>;
+using AlignedPtrArray = std::vector<void*>;
 // An object's figure parts (CObject3D::parts / pendingParts).
 using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
 
@@ -163,7 +163,7 @@ struct FigureBone : CEngineObject {
     float morphU;                           // (also the time factor's t)
     Vector3 position;                       // in figure space
     Quaternion rotation;                    // in figure space
-    lib::AlignedArray<Matrix4> matrices;    // (emptied without freeing; freed by the destructor)
+    std::vector<Matrix4> matrices;    // (emptied without freeing; freed by the destructor)
 
     FigureBone();
     ~FigureBone() override;

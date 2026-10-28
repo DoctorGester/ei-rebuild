@@ -3,6 +3,7 @@
 #include "figure.h"
 
 #include "figure_mesh.h"
+#include "record_arrays.h"
 
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
@@ -25,16 +26,16 @@ CAnimationNode* CAnimationNode::Construct() {
     std::construct_at(&name_);
     std::construct_at(&spareName008_);
     std::construct_at(&spareName00C_);
-    children_.Construct();
-    rotationKeys_.Construct();
-    translationKeys_.Construct();
+    std::construct_at(&children_);
+    std::construct_at(&rotationKeys_);
+    std::construct_at(&translationKeys_);
     normals_.Construct(mfc::impl::Vector3ArrayClass::Vtable());
-    morphFrames_.Construct(mfc::impl::AlignedAt8ArrayClass::Vtable());
+    morphFrames_.Construct(recordarrays::MorphFrameArrayClass::Vtable());
     defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
-    pointsB_.Construct();
+    std::construct_at(&pointsB_);
     restRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
-    pointsA_.Construct();
+    std::construct_at(&pointsA_);
     clock_[0] = 0;
     rotationCursor_ = kNoKey;
     translationCursor_ = kNoKey;
@@ -60,24 +61,24 @@ void CAnimationNode::DestructBody() {
         --mesh_->refCount_;
         mesh_ = nullptr;
     }
-    for (int i = 0; i < children_.size; ++i) {
-        if (CAnimationNode* child = children_.data[i]) {
+    for (int i = 0; i < std::ssize(children_); ++i) {
+        if (CAnimationNode* child = children_[i]) {
             child->DestructBody();
             gamecrt::operator_delete(child);
-            children_.data[i] = nullptr;
+            children_[i] = nullptr;
         }
     }
-    children_.SetSize(0, -1);
+    children_.clear();
     spare000_ = 0;
-    pointsA_.FreeData();
-    pointsB_.FreeData();
-    morphFrames_.vtable = mfc::impl::AlignedAt8ArrayClass::Vtable();
+    lib::FreeStorage(pointsA_);
+    lib::FreeStorage(pointsB_);
+    morphFrames_.vtable = recordarrays::MorphFrameArrayClass::Vtable();
     morphFrames_.FreeData();
     normals_.vtable = mfc::impl::Vector3ArrayClass::Vtable();
     normals_.FreeData();
-    translationKeys_.FreeData();
-    rotationKeys_.FreeData();
-    children_.FreeData();
+    lib::FreeStorage(translationKeys_);
+    lib::FreeStorage(rotationKeys_);
+    lib::FreeStorage(children_);
     std::destroy_at(&spareName00C_);
     std::destroy_at(&spareName008_);
     std::destroy_at(&name_);

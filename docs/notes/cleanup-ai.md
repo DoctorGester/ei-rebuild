@@ -21,7 +21,7 @@ disassembly diff: the only differences were virtual calls replacing the VCall he
   (`CanPlanAction`, `PlanAction`, `CanActFrom`, `FindSightTarget`, `ActionDistance`, `CanReachTarget`, `CanCast`, `TimeUntilAction`) take a
   `const AIOrder*`, so nothing reads past it. The brain's action point and looks are one `AIMoveOrder move` (+0x008; 00545B20 clears it).
 - **UnitShapeCache** (`ai_shape_cache.h`) is a novtable class whose slot 0 is `CreateShape`; `UnitShapeHandle` is `ShapeCacheHandle`; the shape map
-  is an `stlp::hash_map`. **FootprintCellSet** holds its cells in a `lib::AlignedArray<FootprintCell>`.
+  is an `stlp::hash_map`. **FootprintCellSet** holds its cells in a `std::vector<FootprintCell>`.
 - **Virtual slots used.** CMapObject: `KeepsMapFlag` (43, returns bool, AL), `PositionAt` (52), `AimPoint` (53), `IsLargeUnit` (54), `IsDead` (55).
   CWorld: `ObjectWithId` (40). CStream: `Read` / `Write` (path save). CRefCounted's deleting destructor through `delete` (the original's inlined
   release).

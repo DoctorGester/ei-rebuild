@@ -19,14 +19,15 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 DecalBuilder g_builder = /*007AF488*/ {};   // the function-local static of the draw (guard bit 0 of g_guards)
 DecalBuilder& Builder() { return g_builder; }
-constinit lib::AlignedArray<Vector4> g_partPoints = /*007AF478*/ {};
-lib::AlignedArray<Vector4>& PartPoints() { return g_partPoints; }
-void __cdecl FreePartPoints() { g_partPoints.FreeData(); }
+constinit std::vector<Vector4> g_partPoints = /*007AF478*/ {};
+std::vector<Vector4>& PartPoints() { return g_partPoints; }
+void __cdecl FreePartPoints() { lib::FreeStorage(g_partPoints); }
 std::uint8_t g_guards = /*007AF504*/ {};
 std::uint8_t& Guards() { return g_guards; }
 
@@ -81,10 +82,10 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
         std::string name(part->GetName());
         figure->GetPartData(&name, &data.vertices, &data.corners, &data.indices, &data.blocks, &data.indexCount);
     }
-    lib::AlignedArray<Vector4>& points = PartPoints();
-    points.SetSizeDiscard(data.blocks * 4);
+    std::vector<Vector4>& points = PartPoints();
+    points.resize(data.blocks * 4);
     Matrix4 transposed = Transposed(*top);
-    pipeline->transform_->TransformPoints(&transposed, data.vertices, points.data, data.blocks);
+    pipeline->transform_->TransformPoints(&transposed, data.vertices, points.data(), data.blocks);
     DecalBuilder& builder = Builder();
     builder.Reserve(data.indexCount * 6);
     for (unsigned i = 0; i < static_cast<unsigned>(data.indexCount); i += 3) {
@@ -101,8 +102,8 @@ void AddPartTriangles(CTransformPipeline* pipeline, CLinkMesh* figure, CFigureMe
 } // namespace
 
 void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, float depth,
-                                VertexPacket* const* corners, lib::AlignedArray<VertexPacket>* points,
-                                lib::AlignedArray<DecalTexCoord>* texCoords, lib::AlignedArray<std::uint16_t>* indices,
+                                VertexPacket* const* corners, std::vector<VertexPacket>* points,
+                                std::vector<DecalTexCoord>* texCoords, std::vector<std::uint16_t>* indices,
                                 std::uint8_t skipOnPlatform, std::uint8_t objects) {
     render::BeginDecalTime(!skipOnPlatform);   // the ground prints skip the ground under a platform
     DecalBuilder& builder = Builder();
@@ -113,7 +114,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;
-        PartPoints() = lib::AlignedArray<Vector4>{};
+        PartPoints() = std::vector<Vector4>{};
         libcrt::AtExit(FreePartPoints);
     }
     auto* quad = reinterpret_cast<float* const*>(corners);
@@ -150,5 +151,5 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
         }
     }
     builder.Finish();
-    render::EndDecalTime(points->size * 4);
+    render::EndDecalTime(std::ssize(*points) * 4);
 }

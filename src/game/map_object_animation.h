@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -57,15 +58,11 @@ struct AnimationTrack : CEngineObject {
     int rotationCount;
     const float* rotations;         // quaternions
     int vertexCount;
-    lib::AlignedArray<float*> frames;   // vertex sets (three floats per vertex), one per key frame
+    std::vector<float*> frames;   // vertex sets (three floats per vertex), one per key frame
     float time;                     // (0 when the animation changes)
     Vector3 position;
     Quaternion rotation;
     // the morphed vertices ({data, size} is what a bone gives).
-    lib::AlignedArray<Vector3> vertices;
+    std::vector<Vector3> vertices;
 };
 static_assert(offsetof(AnimationTrack, bone) == 0x20 && offsetof(AnimationTrack, positionCount) == 0x24);
-static_assert(offsetof(AnimationTrack, frames) == 0x38 && sizeof(AnimationTrack) == 0x78);
-static_assert(offsetof(AnimationTrack, time) == 0x48);
-static_assert(offsetof(AnimationTrack, rotation) == 0x58);
-static_assert(offsetof(AnimationTrack, vertices) == 0x68 && offsetof(AnimationTrack, animation) == 0x1C);

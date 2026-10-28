@@ -12,6 +12,7 @@
 
 #include <cstring>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -31,12 +32,11 @@ const T* FileArray(const char* at) {
     return reinterpret_cast<const T*>(at);
 }
 
-// Appends `count` elements to an aligned array; returns where they start.
+// Appends `count` elements to an array; returns where they start.
 template <typename T>
-int Append(lib::AlignedArray<T>& array, const T* from, int count) {
-    int start = array.size;
-    array.SetSize(start + count);
-    if (count) std::memcpy(array.data + start, from, static_cast<std::size_t>(count) * sizeof(T));
+int Append(std::vector<T>& array, const T* from, int count) {
+    const int start = static_cast<int>(std::ssize(array));
+    array.insert(array.end(), from, from + count);
     return start;
 }
 
@@ -99,12 +99,6 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s
     morphWeights_[0] = s;
     morphWeights_[1] = t;
     morphWeights_[2] = u;
-    vertices_.Construct();
-    normals_.Construct();
-    texCoords_.Construct();
-    corners_.Construct();
-    words_.Construct();
-    indices_.Construct();
     ranges_.Construct();
     loader_ = loader;
     pipeline_ = loader->renderer_->pipeline_->transform_;
@@ -113,12 +107,6 @@ CLinkMesh::CLinkMesh(CLinkFigureLoader* loader, const std::string* name, float s
 CLinkMesh::~CLinkMesh() {
     render::MeshChanged(this, render::MeshChange::Rebuilt);   // the parts the new renderer keeps
     ranges_.Destroy();
-    indices_.FreeData();
-    words_.FreeData();
-    corners_.FreeData();
-    texCoords_.FreeData();
-    normals_.FreeData();
-    vertices_.FreeData();
 }
 
 bool CLinkMesh::AddPart(const std::string* name, const VertexPacket* vertices, int vertexCount,
@@ -133,9 +121,9 @@ bool CLinkMesh::AddPart(const std::string* name, const VertexPacket* vertices, i
     ranges.normals = {Append(normals_, normals, normalCount), normalCount};
     ranges.texCoords = {Append(texCoords_, texCoords, texCoordCount), texCoordCount};
 
-    int start = corners_.size;
-    corners_.SetSize(start + cornerCount, -1);
-    std::memcpy(corners_.data + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
+    int start = std::ssize(corners_);
+    corners_.resize(start + cornerCount);
+    std::memcpy(corners_.data() + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     ranges.corners = {start, cornerCount};
 
     // The out-of-line SetSize(n, -1) for these two.
@@ -252,8 +240,8 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name,
 
 int CLinkMesh::MemoryBytes() const {
     const int parts = static_cast<int>(ranges_.size());
-    const int inner = texCoords_.size + 8 * (vertices_.size + normals_.size) + 6 * parts;
-    return 2 * (indices_.size + 3 * corners_.size + 2 * (words_.size + 0x2C + 2 * inner));
+    const int inner = std::ssize(texCoords_) + 8 * (std::ssize(vertices_) + std::ssize(normals_)) + 6 * parts;
+    return 2 * (std::ssize(indices_) + 3 * std::ssize(corners_) + 2 * (std::ssize(words_) + 0x2C + 2 * inner));
 }
 
 bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* vertices, unsigned count) {
@@ -261,7 +249,7 @@ bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* ver
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
     unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
-    std::memcpy(vertices_.data + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
+    std::memcpy(vertices_.data() + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
     render::MeshChanged(this, render::MeshChange::Positions);   // the parts the new renderer keeps
     return true;
 }
@@ -270,13 +258,10 @@ bool CLinkMesh::SetPartVertices(const std::string* name, const VertexPacket* ver
 
 namespace {
 
-// Moves the elements after [start, start + count) down over them and shortens the array (the
-// capacity and block stay).
+// Removes [start, start + count): the elements after it move down (the capacity stays).
 template <typename T>
-void CloseGap(T* data, int& size, int start, int count) {
-    int after = size - start - count;
-    if (after != 0) std::memmove(data + start, data + start + count, static_cast<std::size_t>(after) * sizeof(T));
-    size -= count;
+void CloseGap(std::vector<T>& array, int start, int count) {
+    array.erase(array.begin() + start, array.begin() + start + count);
 }
 
 constexpr int kNoRect = 2000000000;
@@ -317,12 +302,12 @@ bool CLinkMesh::RemovePart(const std::string* name) {
     LinkPartRanges removed = node->second;
     ranges_.Erase(node);
 
-    CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count);
-    CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count);
-    CloseGap(texCoords_.data, texCoords_.size, removed.texCoords.start, removed.texCoords.count);
-    CloseGap(corners_.data, corners_.size, removed.corners.start, removed.corners.count);
-    CloseGap(words_.data, words_.size, removed.words.start, removed.words.count);
-    CloseGap(indices_.data, indices_.size, removed.indices.start, removed.indices.count);
+    CloseGap(vertices_, removed.vertices.start, removed.vertices.count);
+    CloseGap(normals_, removed.normals.start, removed.normals.count);
+    CloseGap(texCoords_, removed.texCoords.start, removed.texCoords.count);
+    CloseGap(corners_, removed.corners.start, removed.corners.count);
+    CloseGap(words_, removed.words.start, removed.words.count);
+    CloseGap(indices_, removed.indices.start, removed.indices.count);
 
     for (LinkRangeMap::Node* n = ranges_.begin(); n != ranges_.end(); n = LinkRangeMap::Next(n)) {
         LinkPartRanges& r = n->second;
@@ -342,9 +327,9 @@ bool CLinkMesh::GetPartData(const std::string* name, VertexPacket** vertices, Me
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
-    *vertices = vertices_.data + r.vertices.start;
-    *corners = corners_.data + r.corners.start;
-    *indices = indices_.data + r.indices.start;
+    *vertices = vertices_.data() + r.vertices.start;
+    *corners = corners_.data() + r.corners.start;
+    *indices = indices_.data() + r.indices.start;
     *indexCount = r.indices.count;
     *vertexCount = r.vertices.count;
     return true;

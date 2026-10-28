@@ -85,7 +85,7 @@ void SampleCurve(LightningSegment* segment, const NoiseKey* keys, const float* b
     rows[7] = fresh.index[1] + 16;
     rows[6] = fresh.index[0] + 16;
     for (int j = 0; j < 8; ++j) weights[j] = static_cast<float>(static_cast<double>(blend[j]) * weights[j]);
-    int count = segment->points.size;
+    int count = std::ssize(segment->points);
     const float* table = NoiseTable();
     for (int p = 0; p < count; ++p) {
         double sum = 0.0;
@@ -143,7 +143,7 @@ void LightningSegment::SampleNoise(float time, float* outSide, float* outUp, flo
 }
 
 void LightningSegment::Animate(float time, float amplitude) {
-    int count = points.size;
+    int count = std::ssize(points);
     float* sideNoise = g_noiseSide;
     float* upNoise = g_noiseUp;
     SampleNoise(time, sideNoise, upNoise, amplitude);
@@ -152,7 +152,7 @@ void LightningSegment::Animate(float time, float amplitude) {
     float sideSlope = static_cast<float>((static_cast<double>(sideNoise[count - 1]) - sideNoise[0]) / countF);
     double upAt = upNoise[0];
     float upSlope = static_cast<float>((static_cast<double>(upNoise[count - 1]) - upNoise[0]) / countF);
-    for (int i = 0; i < points.size; ++i) {
+    for (int i = 0; i < std::ssize(points); ++i) {
         double s = sideNoise[i] - sideAt;   // the curve minus its straight line from the first value
         double u = upNoise[i] - upAt;
         float ux = static_cast<float>(u * up.x);
@@ -174,7 +174,7 @@ void LightningSegment::Animate(float time, float amplitude) {
         double rx = static_cast<double>(qx) + ux;
         float ry = static_cast<float>(static_cast<double>(qy) + uy);
         float rz = static_cast<float>(qz + uz);
-        LightningPoint& point = points.data[i];
+        LightningPoint& point = points[i];
         point.x = static_cast<float>(rx);
         point.y = ry;
         point.z = rz;
@@ -234,7 +234,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.x = static_cast<float>(step.x / n);
     step.y = static_cast<float>(step.y / n);
     step.z = static_cast<float>(step.z / n);
-    points.SetSize(count, -1);
+    points.resize(count);
 }
 
 // --- CLightning --------------------------------------------------------------------------------
@@ -259,8 +259,8 @@ int CLightning::Create() {
 }
 
 void CLightning::ExpandBounds(const LightningSegment* segment) {
-    for (int i = 0; i < segment->points.size; ++i) {
-        const LightningPoint& p = segment->points.data[i];
+    for (int i = 0; i < std::ssize(segment->points); ++i) {
+        const LightningPoint& p = segment->points[i];
         // Minimum: the point when it is smaller or unordered; maximum likewise.
         bounds_.boxMin.x = p.x >= bounds_.boxMin.x ? bounds_.boxMin.x : p.x;
         bounds_.boxMin.y = p.y >= bounds_.boxMin.y ? bounds_.boxMin.y : p.y;
@@ -310,7 +310,7 @@ void CLightning::Animate() {
     if (power_ != 0.0f) {
         // The branches follow the main segment: each starts at its point of the bolt and ends near
         // the bolt's end, swaying on two sines.
-        double n = main_.points.size;
+        double n = std::ssize(main_.points);
         Vector3 length;
         length.x = static_cast<float>(n * main_.step.x);
         length.y = static_cast<float>(n * main_.step.y);
@@ -336,14 +336,14 @@ void CLightning::Animate() {
             float targetY = static_cast<float>(static_cast<double>(wy) + uy);
             float targetZ = static_cast<float>(static_cast<double>(wz) + uz);
 
-            int index = x87::fistp(static_cast<float>((1.0 - branchPos_[i]) * main_.points.size));
-            int last = main_.points.size - 1;
+            int index = x87::fistp(static_cast<float>((1.0 - branchPos_[i]) * std::ssize(main_.points)));
+            int last = std::ssize(main_.points) - 1;
             if (index >= last) index = last;
-            const LightningPoint& origin = main_.points.data[index];
+            const LightningPoint& origin = main_.points[index];
             branch.start.x = origin.x;
             branch.start.y = origin.y;
             branch.start.z = origin.z;
-            float inverse = static_cast<float>(1.0 / branch.points.size);
+            float inverse = static_cast<float>(1.0 / std::ssize(branch.points));
             double dz = static_cast<double>(targetZ) - branch.start.z;
             double dy = static_cast<double>(targetY) - branch.start.y;
             double dx = static_cast<double>(targetX) - branch.start.x;

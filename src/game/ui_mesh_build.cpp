@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -21,7 +22,7 @@ inline double D(float f) { return f; }
 
 // The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_), the two colour arrays
 // (colorsA_, colorsB_) and the 16-bit indices.
-using IndexArray = lib::AlignedArray<std::uint16_t>;
+using IndexArray = std::vector<std::uint16_t>;
 
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {
@@ -48,16 +49,16 @@ void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
 void AppendBySize(IndexArray* indices, CUiMesh* mesh, int value) {
-    int at = mesh->indices_.size;
-    indices->SetSize(at + 1, -1);
+    int at = std::ssize(mesh->indices_);
+    indices->resize(at + 1);
     mesh->indices_[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetAtGrow(mesh->indices_.size, static_cast<std::uint16_t>(value)); }
+void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices_), static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {
     double half = D(worlddata::HalfTexel());
-    for (int i = 0; i < mesh->texCoords_.size; ++i) {
+    for (int i = 0; i < std::ssize(mesh->texCoords_); ++i) {
         mesh->texCoords_[i].u = static_cast<float>(D(mesh->texCoords_[i].u) + half);
         mesh->texCoords_[i].v = static_cast<float>(D(mesh->texCoords_[i].v) - half);
     }
@@ -124,7 +125,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
     SetUvCount(8);
     double texel = D(worlddata::Texel());
     double one = D(worlddata::One());
-    TexCoord* uv = texCoords_.data;
+    TexCoord* uv = texCoords_.data();
     float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
     float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
     uv[0].u = static_cast<float>(static_cast<double>(u0) * texel);
@@ -147,7 +148,7 @@ void CUiMesh::Framed(float depth, float scale, float left, float top, float righ
 
     // The frame's eight triangles between the outer (0-3) and inner (4-7) corners.
     auto* indices = &indices_;
-    indices->SetSize(0, -1);
+    indices->clear();
     static const int kFrame[24] = {0, 4, 2, 4, 6, 2, 2, 6, 3, 6, 7, 3, 3, 7, 1, 7, 5, 1, 1, 5, 0, 5, 4, 0};
     for (int index : kFrame) AppendByGrow(indices, this, index);
 
@@ -207,7 +208,7 @@ void CUiMesh::Disc(float depth, float scale, float x, float y, float radius, int
     }
     // A fan around point 0.
     auto* indices = &indices_;
-    indices->SetSize(0, -1);
+    indices->clear();
     for (int i = 1; i < count - 1; ++i) {
         AppendByGrow(indices, this, 0);
         AppendByGrow(indices, this, i + 1);
@@ -264,7 +265,7 @@ void CUiMesh::Ring(float depth, float scale, float x, float y, float radius, int
 
     // Two triangles per segment.
     auto* indices = &indices_;
-    indices->SetSize(0, -1);
+    indices->clear();
     for (int i = 0; i < count; ++i) {
         int base = 4 * i;
         AppendBySize(indices, this, base);
