@@ -773,6 +773,14 @@ title = "2DintMMX loaded once: the scene renderer's graphicsProcessor_ / graphic
 group = "renderer"
 note = "Found by R27f. CSceneRenderer::LoadPipelineAndConverter (renderer_base_create.cpp) and the CTextureDevice constructor (device_object.cpp) each check CPUID for MMX, LoadLibraryA 2DintMMX.dll (one with the work path, one bare) and keep GetGraphicsProcessor()'s object; texture_compose.cpp and ui_item_view.cpp read the renderer's, surface.cpp and ui_item_view.cpp the device's. Check that GetGraphicsProcessor returns one object (or that the two never differ in state: SetChannelMasks), then keep one load, one MMX check and one pointer. Goldens must stay the same."
 
+[[ticket]]
+id = "R28"
+title = "CPU-built textures in 8:8:8:8: unit skins, wounds, item pictures, menu backdrop, weather"
+group = "renderer"
+model = "opus"
+depends = ["C47"]
+note = "User 2026-10-28: after C47. The game builds these textures on the CPU in 16-bit and the renderer converts each to RGBA8 at upload: unit skins composed 5:5:5:1 (unit_skins.cpp, unit_client_models.cpp Compose 0x5551), wound overlays 4:4:4:4 (unit_client_wounds.cpp), the item preview packed 1:5:5:5 by hand (ui_item_view.cpp), the 256x192 menu backdrop copy 5:6:5 (ui_interface_draw.cpp Rgb565Copy), global-map weather / clouds, and the blank targets (texture_blank.cpp). Write them as 8:8:8:8 and upload without conversion; drop the 16-bit paths and conversions that become dead (2DintMMX's 16-bit routes where unused). The save screenshot stays 5:6:5 (shot.sav file format). .mmp files on disk keep their formats. Renderer upgrades replace the old look (no switch); skins and wounds gain smooth alpha. Goldens hold no frames: check visually with frame captures before/after."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
