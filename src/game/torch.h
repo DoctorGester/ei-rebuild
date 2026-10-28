@@ -43,7 +43,7 @@ public:
     // (its Load / Save; the spec must exist).
     void LoadTorch(CStream* stream);
     void SaveTorch(CStream* stream);
-    // A type 0x4B object (its type_ read before any null test) becomes
+    // A SideObjectType::Torch object (its type_ read before any null test) becomes
     // the spec (a reference taken, the old one released) and points back here. Anything else goes to the map
     // object's AttachObject.
     void AttachTorchObject(CEngineObject* object);

@@ -158,7 +158,7 @@ int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float fro
         return 1;
     case kKindAttack: {
         std::uint32_t hand = unit->activeWeapon < 4 ? weaponIds[unit->activeWeapon] : kNone;
-        if (unit->type_ == kUnitTypeHero && unit->activeWeapon < 4 && hand != kNone &&
+        if (unit->MapType() == MapObjectType::Hero && unit->activeWeapon < 4 && hand != kNone &&
             (WeaponType(hand) == kWeaponBow || WeaponType(hand) == kWeaponCrossbow)) {
             *out = str::Format("weapons\\%d.wav", sound);
             return 1;
@@ -201,7 +201,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (g_clientWorld->LocalView()->player_->sessionKind_ == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
-        if (unit->type_ == kUnitTypeHero && unit->actionSound &&
+        if (unit->MapType() == MapObjectType::Hero && unit->actionSound &&
             ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
             sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
         priority = kPriorityAction;

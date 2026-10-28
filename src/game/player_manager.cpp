@@ -12,7 +12,6 @@
 namespace {
 
 constexpr int kPlayerType = 0x300A;      // a CPlayer
-constexpr int kConnectionType = 0x49;    // the side's player connection (CPlayerServer / CPlayerClient)
 
 // Walks every player of `manager`, as the original's iterator does (the manager counted
 // while it walks).
@@ -52,7 +51,7 @@ CPlayer* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObject(kPlayerType, -1));
     if (!player) return nullptr;
     CBaseManager* specific = ContextAsWorld()->SpecificManager();
-    player->SetConnection(specific->CreateObjectAs<CPlayerConnection>(kConnectionType, -1));
+    player->SetConnection(specific->CreateObjectAs<CPlayerConnection>(SideObjectType::Player, -1));
     ++player->refCount_;
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
         player->playerId_ = NextPlayerNumber(player, 0);

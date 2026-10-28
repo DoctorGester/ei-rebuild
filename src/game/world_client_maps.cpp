@@ -100,7 +100,6 @@ HitCollector* CollectHits(HitCollector* out, std::list<ScreenEntry>::iterator fi
 
 void SessionPlayerClear(CPlayer* session) { session->Clear(); }
 
-constexpr int kTypeHero = 0x32;
 
 std::list<HeldPtr<CMapObject>>* CellFor(SectorGrid& grid, CMapObject* object) {
     std::uint32_t x = CellOf(object->localPosition_.x);
@@ -311,7 +310,7 @@ int CWorldClient::AddObject(CMapObject* object) {
 
     if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) RemoveHeld(*cell, object);
     if (std::list<HeldPtr<CMapObject>>* cell = CellFor(objectGrid_, object)) cell->emplace_back(object);
-    if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
+    if (object->MapType() == MapObjectType::Hero && (IsTextKey(object->id_) & 0xFF)) heroes_.emplace_back(object);
     return 1;
 }
 
@@ -432,7 +431,7 @@ void CWorldClient::RemoveObject(int id) {
     auto filed = std::ranges::find_if(objects_, [id](const CMapObject* object) { return object->id_ == id; });
     if (filed == objects_.end()) return;
     CMapObject* object = *filed;
-    if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
+    if (object->MapType() == MapObjectType::Hero && (IsTextKey(id) & 0xFF)) {
         RemoveHeld(heroes_, object);
         if (session_->sessionKind_ == 3) static_cast<CUnit*>(object)->ClientController()->DropFaceTexture();
     }
@@ -519,7 +518,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
             }
         }
         auto* manager = MapObjectManager();
-        auto* unit = manager->CreateObjectAs<CUnit>(kTypeHero, static_cast<int>(record->unitId));
+        auto* unit = manager->CreateObjectAs<CUnit>(MapObjectType::Hero, static_cast<int>(record->unitId));
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);

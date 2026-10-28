@@ -13,7 +13,6 @@
 
 namespace {
 constexpr const char* kUnitClassName = "CUnit";
-constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit controllers
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // UnitParams::movementKind
 
@@ -48,7 +47,7 @@ void CUnit::LoadFigures() {
 }
 
 void CUnit::AttachObject(CEngineObject* object) {
-    if (!object || object->type_ != kControllerType) {
+    if (!object || SideTypeOf(object) != SideObjectType::Unit) {
         CMapObject::AttachObject(object);
         return;
     }

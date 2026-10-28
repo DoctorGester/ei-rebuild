@@ -171,7 +171,6 @@ float TurnedBy(double seconds, float turn, bool backwards) {
     return static_cast<float>(std::fmod(turned, kCampFullTurn));
 }
 
-constexpr int kHeroClass = 0x32;
 
 // From the current hero, step until a record of the hero class (fatal after more steps than there are
 // records).
@@ -188,7 +187,7 @@ int FindHero(int start, Step step) {
         i = step(i, count);
         ++tries;
         PartyUnitRecord* record = &party->members_[i];
-        if (PrototypeObjectClass(record->texts[5]) == kHeroClass) break;
+        if (PrototypeObjectClass(record->texts[5]) == MapObjectType::Hero) break;
     }
     return i;
 }

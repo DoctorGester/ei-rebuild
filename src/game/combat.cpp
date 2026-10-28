@@ -357,7 +357,7 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
     case 0: return 0x30000;
     case 1: return 0x20000;
     case 2:
-        if (mode->onGuard || unit->type_ != kUnitTypeHero) return 0x10000;
+        if (mode->onGuard || unit->MapType() != MapObjectType::Hero) return 0x10000;
         return 0;
     case 4: return 0x8000;
     default: return 0;
@@ -562,7 +562,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         CItem* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
         if (stats.ApplyHit(unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
-                if (attacker->type_ != kUnitTypeHero) {
+                if (attacker->MapType() != MapObjectType::Hero) {
                     LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
                     auto* controller = attacker->ServerController();
@@ -609,7 +609,7 @@ void CUnitServer::UpdateSizeClasses() {
     float load = static_cast<float>(unit->BodyExtent());
     const auto* model = unit->GetPrototypeModel();
     double size = unit->DoubleHeight() * model->sizeScale;
-    if (unit->type_ == kUnitTypeHero) {
+    if (unit->MapType() == MapObjectType::Hero) {
         float uncapped = static_cast<float>(size);
         size = uncapped <= kHeroSizeCap ? uncapped : kHeroSizeCap;
     }

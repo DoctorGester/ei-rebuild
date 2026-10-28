@@ -173,7 +173,7 @@ void ShareAmongHeroes(CWorldServer* world, CPlayer* player, float amount) {
     std::vector<int> heroes{};
     for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        if (unit->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
+        if (unit->IsDead() != 0 || unit->MapType() != MapObjectType::Hero) continue;
         int id = unit->id_;
         int index = std::ssize(heroes);
         heroes.resize(index + 1);

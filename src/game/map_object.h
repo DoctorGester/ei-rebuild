@@ -82,8 +82,8 @@ public:
     int RunTick() override { return Update(); }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
-    // An object of type 0x47 becomes the companion (AttachCompanion); null and others go to CObject3D's (which
-    // takes type 0x46). Units override it.
+    // An object of type SideObjectType::MapObject becomes the companion (AttachCompanion); null and others go to CObject3D's (which
+    // takes SideObjectType::Object3D). Units override it.
     void AttachObject(CEngineObject* object) override;
     bool InvisibleSlot() override;
     // Resets the scale and grows or shrinks it by 0.4 per net level of enlarge/shrink (x, y, z) or, without

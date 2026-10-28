@@ -27,7 +27,6 @@
 #include <vector>
 
 namespace {
-constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
 constexpr float kHeroHalfWidth = 0.5f;
 constexpr std::uint32_t kBoundsSphere = 1;       // bounds.flags: radius valid
 constexpr std::uint32_t kBoundsBox = 2;          // bounds.flags: box valid
@@ -100,7 +99,7 @@ void CObject3D::SetUpAnimatedFigure(std::string_view model) {
         }
         animation->ReleaseBones();
     }
-    if (type_ == kTypeHero) {
+    if (MapType() == MapObjectType::Hero) {
         high.y = kHeroHalfWidth;
         high.x = kHeroHalfWidth;
         low.y = -kHeroHalfWidth;

@@ -233,14 +233,14 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     case 1: bits = 0x20000; break;
     case 4: bits = 0x8000; break;
     case 2:
-        if (moveMode.onGuard || self->type_ != kUnitTypeHero) {
+        if (moveMode.onGuard || self->MapType() != MapObjectType::Hero) {
             bits = 0x10000;
             break;
         }
         [[fallthrough]];
     default:
         // A hero's own walk is looped with the walking bits (not when played once).
-        bits = (!once && self->type_ == kUnitTypeHero) ? 0x10000 : 0;
+        bits = (!once && self->MapType() == MapObjectType::Hero) ? 0x10000 : 0;
         break;
     }
     std::uint32_t key = WeaponTypeMask() | bits | (self->moveMode == 3 ? 0x100000u : 0x140000u);
@@ -248,7 +248,7 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
         key |= kKeyMoveOnce;
     } else {
         key |= kKeyMoveLoop;
-        if (self->type_ == kUnitTypeHero) {
+        if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
             if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
@@ -276,7 +276,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
         key |= 0x100000;
     } else {
         key |= 0x140000;
-        if (self->type_ == kUnitTypeHero) {
+        if (self->MapType() == MapObjectType::Hero) {
             float stamina = stats.loadFactor;
             EI_NAN_AUDIT(stamina, g_logicSettings.damageLevel2Value, g_logicSettings.damageLevel1Value);
             if (stamina <= g_logicSettings.damageLevel2Value) key |= 0x800000;
@@ -285,7 +285,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     }
     if (MoveKey(this) == key) return &MoveSteps(this);
     MoveKey(this) = key;
-    if (self->type_ != kUnitTypeHero) {
+    if (self->MapType() != MapObjectType::Hero) {
         BuildMoveSteps(&MoveSteps(this), 0);
         return &MoveSteps(this);
     }

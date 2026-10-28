@@ -2,7 +2,7 @@
 
 // The world server's manager of server-side state objects: CServerSpecificManager
 // (class id 0x31; created by the world server) and the torch state object it makes for
-// type 0x4B, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
+// SideObjectType::Torch, CTorchObjectSpec (0x58 bytes, class id 0x42). Both are real virtual classes: the
 // compiler makes their vtables).
 // server_specific_manager.cpp. Names from the classes' own ClassName strings.
 
@@ -26,10 +26,10 @@ public:
     const char* ClassName() override;
     // 0x31.
     ClassId GetClassId() override;
-    // A new object of `type`: 0x46 CObject3DServer,
-    // 0x47 CMapObjectServer (0x94), 0x48 CUnitServer (0xB20), 0x49 the player's server
-    // object (0x5128), 0x4B CTorchObjectSpec (constructed inline, then its Create);
-    // null for any other type (0x4A too) or when the allocation fails.
+    // A new object of a SideObjectType `type`: Object3D CObject3DServer,
+    // MapObject CMapObjectServer (0x94), Unit CUnitServer (0xB20), Player the player's server
+    // object (0x5128), Torch CTorchObjectSpec (constructed inline, then its Create);
+    // null for any other type (Drawer and 0x4A too) or when the allocation fails.
     CEngineObject* NewObject(int type) override;
 };
 

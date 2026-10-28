@@ -37,7 +37,6 @@ static_assert(std::bit_cast<std::uint32_t>(kSteepDown) == 0xBFDDB3D0u);
 constexpr float kReachSlack = 0.15f;
 static_assert(std::bit_cast<std::uint32_t>(kReachSlack) == 0x3E19999Au);
 
-constexpr int kUnitTypeHeroes = 0x32;     // CEngineObject::type_ of the player's own units
 constexpr int kNoNaturalWeapon = 7;       // natural weapon types from 7 up have no animation bit
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
@@ -108,7 +107,7 @@ std::uint32_t LeaveBits(const MoveModeState* from, const CUnit* unit) {
     switch (from->mode) {
     case 0: return 0x30000;
     case 1: return 0x20000;
-    case 2: return !from->onGuard && unit->type_ == kUnitTypeHeroes ? 0 : 0x10000;
+    case 2: return !from->onGuard && unit->MapType() == MapObjectType::Hero ? 0 : 0x10000;
     case 4: return 0x8000;
     default: return 0;
     }
@@ -118,7 +117,7 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
     switch (to->mode) {
     case 0: return 0x1000000;
     case 1: return 0xC00000;
-    case 2: return !to->onGuard && unit->type_ == kUnitTypeHeroes ? 0x400000 : 0x800000;
+    case 2: return !to->onGuard && unit->MapType() == MapObjectType::Hero ? 0x400000 : 0x800000;
     case 4: return 0x1400000;
     default: return 0;
     }
@@ -232,7 +231,7 @@ int CUnitServer::AnimationMoment(std::uint32_t index) { return EntryTicks(unit, 
 
 bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to) {
     *steps = {};
-    if (unit->type_ != kUnitTypeHeroes && to->mode != 4 && from->mode != 4) return false;
+    if (unit->MapType() != MapObjectType::Hero && to->mode != 4 && from->mode != 4) return false;
     if (from->mode == to->mode && (from->mode != 2 || from->onGuard == to->onGuard)) return false;
 
     std::uint32_t key = WeaponBit(this) | (LeaveBits(from, unit) | kKeyTransition);
@@ -296,7 +295,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     (void)kind;
     *steps = {};
     std::uint32_t key;
-    if (unit->type_ == kUnitTypeHeroes) {
+    if (unit->MapType() == MapObjectType::Hero) {
         key = WeaponBit(this) | kKeyCast;
         if (moveMode.mode == 1) {
             key |= kKeyCastStanding;
@@ -467,7 +466,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     }
     key |= kKeyBlow;
 
-    if (unit->type_ != kUnitTypeHeroes) {
+    if (unit->MapType() != MapObjectType::Hero) {
         // Other creatures strike low at targets that reach further than the distance between them.
         float myRadius = unit->Radius();
         CMapObject* other = order.target;
@@ -495,7 +494,7 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
     std::uint32_t key = WeaponBit(this) | LeaveBits(&moveMode, unit);
     int mode = moveMode.mode;
 
-    if (unit->type_ == kUnitTypeHeroes) {
+    if (unit->MapType() == MapObjectType::Hero) {
         if (isDying && mode != 4) {
             if (mode == 1) {
                 if (isFall) key = RandomSide(key);

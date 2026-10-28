@@ -300,7 +300,7 @@ void CUnitServer::PropagateHostility() {
 
 void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CWorldServer* world = ServerWorld();
-    if (unit->type_ < 0x32 || unit->type_ > 0x36) {
+    if (unit->MapType() < MapObjectType::Hero || unit->MapType() > MapObjectType::Building) {
         unit->flags_ |= 1;
         return;
     }

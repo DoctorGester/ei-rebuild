@@ -293,7 +293,7 @@ void CUnitClientSpecific::ShowWeaponParts(bool hidden) {
 }
 
 void CUnitClientSpecific::UpdateArrow() {
-    if (unit->type_ != kUnitTypeHero) return;
+    if (unit->MapType() != MapObjectType::Hero) return;
     const CFigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     if (current && (current->flags & 1)) {

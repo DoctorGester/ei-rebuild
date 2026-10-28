@@ -134,7 +134,7 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
     EI_NAN_AUDIT(amount);
     if (amount <= kMinAmount) return;
     std::string material = ModelOf(unit)->hitMaterial;
-    if (unit->type_ == kUnitTypeHero) {
+    if (unit->MapType() == MapObjectType::Hero) {
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;

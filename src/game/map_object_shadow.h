@@ -117,7 +117,7 @@ public:
     int OnPartRemoved(CFigureMesh* part) override;
     // The texture of kind `kind`: one of `textures`, else a new one of the client world for a new part set,
     // the first for the skin kinds (1, 3, 4, 6-9, 0xB, 0xD-0x10), the second for any other; an existing set
-    // only has its texture's kind changed. Objects of type 0x35 flag the texture 0x2000.
+    // only has its texture's kind changed. Trees (MapObjectType::Tree) flag the texture 0x2000.
     CTexture* FindOrAddTexture(int kind);
     // The material of kind `material` in the set whose texture has kind `texture`: its group's, else a new
     // one of the client world in a new group. Null when no set has the texture.

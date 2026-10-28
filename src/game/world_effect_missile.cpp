@@ -48,7 +48,6 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-constexpr int kStuffObjectType = 0x38;   // the map object factory's type of a CStuffObject: the drawn arrow
 
 } // namespace
 
@@ -292,7 +291,7 @@ void CEffectArrowFigure::Start(int update) {
     std::string model = game::ArrowFigureModelText();
     std::string texture = game::ArrowFigureTextureText();
     int id = g_clientWorld->nextClientObjectId_--;
-    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(kStuffObjectType, id);
+    auto* object = g_clientWorld->objectManager_->CreateObjectAs<CMapObject>(MapObjectType::StuffObject, id);
     if (object != figure_) {
         figure_.Reset();
         if (object != nullptr) ++object->refCount_;

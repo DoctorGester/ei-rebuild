@@ -17,7 +17,6 @@ namespace {
 constexpr float kScaleStep = 0.4f;
 static_assert(std::bit_cast<std::uint32_t>(kScaleStep) == 0x3ECCCCCDu);
 constexpr std::uint32_t kFlagDirty = 2;
-constexpr int kTypeHero = 0x32;          // CEngineObject::type_ of the player's units
 
 // The original's branch-free max(0, v): 0 against v, as a mask selecting v's bits
 // (also a NaN's), else 0.
@@ -59,7 +58,6 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
     }
 }
 
-constexpr int kTypeMapCompanion = 0x47;   // CEngineObject::type_ of the companions AttachCompanion accepts
 
 } // namespace
 
@@ -154,7 +152,7 @@ void CMapObject::RecomputeScale() {
             double step = strengthLevel * static_cast<double>(kScaleStep);   // rounded to a float
             float stepRounded = static_cast<float>(step);
             StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
-            if (type_ != kTypeHero)
+            if (MapType() != MapObjectType::Hero)
                 StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
         }
     } else if (total != 0.0f) {
@@ -217,7 +215,7 @@ void CMapObject::AttachCompanion(CEngineObject* object) {
 }
 
 void CMapObject::AttachObject(CEngineObject* object) {
-    if (!object || object->type_ != kTypeMapCompanion) {
+    if (!object || SideTypeOf(object) != SideObjectType::MapObject) {
         CObject3D::AttachSpecific(object);   // the 3D object's attach virtual
         return;
     }

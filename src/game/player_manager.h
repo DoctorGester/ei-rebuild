@@ -24,7 +24,7 @@ public:
     // A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
     // A new player (type 0x300A, a free id) with a new connection from the
-    // world's side-specific manager (type 0x49: a CPlayerServer or a CPlayerClient), one reference
+    // world's side-specific manager (SideObjectType::Player: a CPlayerServer or a CPlayerClient), one reference
     // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
     // when the player cannot be made (the connection is not checked).
     CPlayer* CreateSessionPlayer();

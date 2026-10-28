@@ -13,15 +13,6 @@ namespace {
 constexpr const char* kManagerClassName = "CServerSpecificManager";
 constexpr const char* kTorchSpecClassName = "CTorchObjectSpecific";
 
-enum ServerObjectType {
-    kObject3DServer = 0x46,
-    kMapObjectServer = 0x47,
-    kUnitServer = 0x48,
-    kPlayerServer = 0x49,
-    kTorchObjectSpec = 0x4B,
-};
-
-
 } // namespace
 
 
@@ -35,16 +26,16 @@ ClassId CServerSpecificManager::GetClassId() { return kClassServerSpecificManage
 // Every object starts zeroed (kZeroed): CUnitServer's constructor leaves waitFrame,
 // which ResolveBlocker reads, and others the saves write.
 CEngineObject* CServerSpecificManager::NewObject(int type) {
-    switch (type) {
-    case kObject3DServer:
+    switch (static_cast<SideObjectType>(type)) {
+    case SideObjectType::Object3D:
         return new (kZeroed) CObject3DServer();
-    case kMapObjectServer:
+    case SideObjectType::MapObject:
         return new (kZeroed) CMapObjectServer();
-    case kUnitServer:
+    case SideObjectType::Unit:
         return new (kZeroed) CUnitServer();
-    case kPlayerServer:
+    case SideObjectType::Player:
         return new (kZeroed) CPlayerServer();
-    case kTorchObjectSpec:
+    case SideObjectType::Torch:
         return new (kZeroed) CTorchObjectSpec();
     default:
         return nullptr;

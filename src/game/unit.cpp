@@ -358,14 +358,14 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
     case 0xC0000: return actionSpeeds[1];
     case 0x200000: return actionSpeeds[2];
     case 0x1C0000: return actionSpeeds[3];
-    case 0x240000: return type_ == kUnitTypeHero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
+    case 0x240000: return MapType() == MapObjectType::Hero ? g_logicSettings.humanCrossAnimationSpeed : actionSpeeds[4];
     case 0x40000: return actionSpeeds[5];
     default: return 1.0f;
     }
 }
 
 bool CUnit::AcceptsAnimation(const FigureAnimation* entry) {
-    if (type_ != kUnitTypeHero) return true;
+    if (MapType() != MapObjectType::Hero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
     if (Controller()->HasMainArmour()) required |= 0x20;

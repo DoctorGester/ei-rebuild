@@ -57,7 +57,6 @@ using mapspec::ObjectSpec;
 using mapspec::Spec;
 using mapspec::UnitSpec;
 
-constexpr int kTypeHero = 0x32;                        // the map objects manager's type of hero prototypes
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kGameResultLost = 2;
@@ -188,9 +187,9 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         message->skinTexture = record->texts[4];
         message->parts.clear();
         const char* prototypeName = record->texts[5].c_str();
-        int type = PrototypeObjectClass(prototypeName);
-        message->parentId = type;
-        if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
+        MapObjectType type = PrototypeObjectClass(prototypeName);
+        message->parentId = static_cast<int>(type);
+        if (type == MapObjectType::Hero) FillHeroParts(message, prototypeName, line);
 
         int id = static_cast<int>(record->unitId);
         message->id = id;
@@ -313,7 +312,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     Spec& base = *message;
     // The object of the spec's class (parentId), as the class the kind makes.
     auto created = [this, spec]<class T>(std::type_identity<T>) {
-        return MapObjectManager()->CreateObjectAs<T>(spec->parentId, spec->id);
+        return MapObjectManager()->CreateObjectAs<T>(static_cast<MapObjectType>(spec->parentId), spec->id);
     };
     auto allowed = [this](CMapObject* object) {
         return (object->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;

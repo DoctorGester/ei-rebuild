@@ -16,7 +16,6 @@ namespace {
 
 constexpr int kFirstFigureClass = 0x41;
 constexpr int kLastFigureClass = 0x44;
-constexpr int kDrawerClass = 0x45;
 
 } // namespace
 
@@ -157,7 +156,7 @@ CEngineObject* CFigureManager::CreateFigureObject(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObject(type, id);
     if (type < kFirstFigureClass || type > kLastFigureClass || object == nullptr) return object;
     CBaseManager* drawers = context_->SpecificManager();
-    auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(kDrawerClass, -1);
+    auto* drawer = drawers->CreateObjectAs<FigureMeshDrawer>(SideObjectType::Drawer, -1);
     static_cast<CFigureMesh*>(object)->SetDrawer(drawer);
     return object;
 }

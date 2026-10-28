@@ -219,7 +219,7 @@ void CWorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::v
 // [1] the shown extra weapon (kItemWeapon, the weapon's type) when its index is within the list. items[1..6] are
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
 void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list) {
-    constexpr std::uint32_t kBody = 0x32;
+    constexpr auto kBody = static_cast<std::uint32_t>(MapObjectType::Hero);
     list->clear();
     auto& items = const_cast<std::vector<std::uint32_t>&>(record->items);
     if (items.empty()) return;

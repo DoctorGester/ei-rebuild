@@ -49,7 +49,7 @@ void UnitSet::Add(CUnit* unit) {
     record.morphT = scale.y;
     record.morphU = scale.z;
 
-    if (unit->type_ == kUnitTypeHero) {
+    if (unit->MapType() == MapObjectType::Hero) {
         for (int slot = 0; slot < 7; ++slot)
             record.items.push_back(ItemId(unit->WornItem(slot), KnownArmour));
         for (std::uint32_t slot = 0; slot < 4; ++slot)
@@ -70,7 +70,7 @@ void UnitSet::Add(CUnit* unit) {
         }
     }
     if (!marked) {
-        if (unit->type_ != kUnitTypeHero) {
+        if (unit->MapType() != MapObjectType::Hero) {
             // The texts the server companion holds (CMapObjectServer's string array).
             const CMapObjectServer* server = unit->ServerCompanion();
             for (const std::string& name : server->strings) record.names.push_back(name);

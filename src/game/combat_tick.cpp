@@ -530,7 +530,7 @@ void CUnitServer::ExecuteOrder() {
         clear = true;
     } else {
         if (action.kind != kOrderUse) {
-            if (IsCastKind(action.kind) && unit->type_ == kUnitTypeHero) {
+            if (IsCastKind(action.kind) && unit->MapType() == MapObjectType::Hero) {
                 if (moveMode.mode == 0) {
                     SetModeInline(unit, kModeWalk);
                     stop = true;
