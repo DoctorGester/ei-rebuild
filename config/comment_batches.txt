@@ -173,8 +173,6 @@ src/lib/stlp.cpp
 src/lib/stlp.h
 src/lib/stlp_algo.h
 src/lib/stlp_alloc.h
-src/lib/stlp_deque.cpp
-src/lib/stlp_deque.h
 src/lib/stlp_hash.cpp
 src/lib/stlp_hash.h
 src/lib/stlp_list.cpp
@@ -1951,8 +1949,6 @@ src/lib/stlp.cpp
 src/lib/stlp.h
 src/lib/stlp_algo.h
 src/lib/stlp_alloc.h
-src/lib/stlp_deque.cpp
-src/lib/stlp_deque.h
 src/lib/stlp_hash.cpp
 src/lib/stlp_hash.h
 src/lib/stlp_list.cpp

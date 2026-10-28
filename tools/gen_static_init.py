@@ -604,7 +604,6 @@ UNREAD_NEAR = 0x100   # an object referenced right below may be the enclosing on
 REVIEWED_NEAR = {
     0x0079B1A8: ('0079B1A0', '"sqrt", the CRT math function name (8 bytes)'),
     0x0079B2A0: ('0079B298', 'the empty string "" (its 178 readers take its address: a char)'),
-    0x0079B5E0: ('0079B5DC', 'counted pointer to the server (4 bytes: its constructor 0041FF50 stores one dword)'),
     0x0079B610: ('0079B60C', 'the player serial counter (dword read and written directly)'),
     0x0079B680: ('0079B66C', 'the clip work buffer: CWordArray 0079B668, 0x14 bytes, its data pointer'),
     0x007C7E80: ('007C7E78', 'the window surfaces\' byte total (a lone dword, ui.h\'s g_uiSurfaceBytes)'),

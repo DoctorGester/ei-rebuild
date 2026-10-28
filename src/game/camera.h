@@ -11,7 +11,6 @@
 #include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "game_singletons.h"
 #include "options.h"
 
@@ -62,11 +61,6 @@ static_assert(sizeof(CameraKey) == 0x24);
 struct CubicCurve3 {
     float c[12];
 };
-
-// The camera's saved view stack (0x24-byte elements, 14 per node; its _Destroy does nothing).
-using ViewStack = stlp::deque<stlp::Opaque<0x24>>;
-static_assert(sizeof(ViewStack) == 0x28);
-static_assert(sizeof(ViewStack) == 0x28);
 
 // Average, lowest and highest surface height on a grid of `step` spacing over
 // [p.x - halfX, p.x + halfX] x [p.y - halfY, p.y + halfY] (points off the map skipped; the centre
@@ -186,8 +180,7 @@ public:
     float boundsRadius_;
     int targetId_;
     CameraView views_[8];
-    ViewStack viewStack_;
-    std::uint8_t unused_208[0x2E0 - 0x208];
+    std::uint8_t unused_1E0[0x2E0 - 0x1E0];   // (the original's saved view stack, a deque nothing ever pushed to)
     float nearDistance_;        // (renderer_init reads the three as zNear / zFar / fov)
     float farDistance_;
     float fieldOfView_;

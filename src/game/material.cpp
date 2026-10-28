@@ -41,25 +41,17 @@ void ResetFields(CMaterial* m) {
 
 CMaterial::CMaterial() {
     ClearFields();
-    entries.Construct();
     ResetFields(this);
-    entries.PopAll();
-}
-
-// The names go after the body (name3, name2, then name after the deque in the game).
-CMaterial::~CMaterial() {
-    entries.PopAll();
-    entries.Destroy();
 }
 
 int CMaterial::Create() {
     ResetFields(this);
-    entries.PopAll();
+    entries.clear();
     return 1;
 }
 
 void CMaterial::Destroy() {
-    entries.PopAll();
+    entries.clear();
 }
 
 const char* CMaterial::GetName() { return name.c_str(); }

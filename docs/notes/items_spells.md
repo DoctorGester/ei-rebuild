@@ -428,8 +428,8 @@ slots 25 "materials", 11, 12 (P).
 
 CMaterial (0x9C). The manager's
 table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is entered with the key's bits in all 17 dwords
-(the original's default pair), and its Create 0068E640 (Rebirth-patched) fills it. The deque (16-byte elements, no writer
-found) is `stlp::deque<T>` now; its instantiations went to library.csv. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:
+(the original's default pair), and its Create 0068E640 (Rebirth-patched) fills it. The entries (16-byte elements; only SetLit pushes
+and pops them) are a `std::vector<MaterialEntry>` now. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:
 NewMaterial returns null on a failed creation (the original faults).
 
 **Small slots and copies (A-H24).** The name / id slots (11 / 12) of CParty, the twelve CEffect* classes
