@@ -46,10 +46,10 @@ CSceneRenderer::~CSceneRenderer() {
     if (device) device->Release();
     // The helper's member destructor: released, the pointer left as it is.
     if (helper_ && --helper_->refs_ == 0) delete helper_;
-    ReleasePipelineAndConverter();
+    ReleasePipeline();
 }
 
-void CSceneRenderer::ReleasePipelineAndConverter() {
+void CSceneRenderer::ReleasePipeline() {
     CLight* sun = sun_;
     sun_ = nullptr;
     if (sun) sun->Release();
@@ -57,9 +57,6 @@ void CSceneRenderer::ReleasePipelineAndConverter() {
     CTransformPipeline* pipeline = pipeline_;
     pipeline_ = nullptr;
     if (pipeline) pipeline->Release();
-    if (graphicsLibrary_) gameapi::FreeLibrary(static_cast<HMODULE>(graphicsLibrary_));
-    graphicsLibrary_ = nullptr;
-    graphicsProcessor_ = nullptr;
 }
 
 void CSceneRenderer::SetColour(std::uint32_t colour) {
@@ -117,7 +114,7 @@ void ConstructDeviceLock() {
 }
 
 void CSceneRenderer::DestroyRenderer() {
-    ReleasePipelineAndConverter();
+    ReleasePipeline();
     flags_ &= ~2u;
     CRenderHelper* helper = helper_;
     helper_ = nullptr;
