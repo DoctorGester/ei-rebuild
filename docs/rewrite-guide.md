@@ -39,7 +39,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   Vtable()`, `ei::SetVtable`, the slot templates of engine_object_class.h and
   compiled_vtable.h) are C28's to convert: add no new ones.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
-  functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),
+  functions, file I/O),
   `containers.h` (the engine's aligned arrays), `intro_sort.h` (the game's
   std::sort, for the sorts whose order of equal keys is behaviour), `gameapi.h` (the Win32 imports; generated: the
   ones the harness or the image routes go through the image's import slots). C14a-d move the code to

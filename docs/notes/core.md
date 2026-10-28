@@ -496,10 +496,9 @@ to which template:
   std::string (`CFileFind::GetFilePath` / `GetFileName` / `GetTitle`, `CTime::Format`), and `impl::CStdioFile::ReadLine`
   (slot 22, MFC's ReadString(CString&)) reads into a std::string: 128-byte chunks through a local buffer, fgets given
   129 as MFC gave it, each chunk counted up to its first zero byte (ReleaseBuffer(-1)), FALSE when the last fgets read
-  nothing, even after a full chunk. `mfc::CString` (mfc.h) keeps its constructors, assignments, GetLength and the
-  `const char*` conversion: the tests' Original* layouts of game.exe's objects (record_script*.cpp,
-  script_original.h, script_load_vectors.h, record_stats.cpp) hold it, ei_vectors gives it its own core
-  (replay_mfc.cpp); the harness views have `exe::CString`. src/lib's MFC is on std::string since C14i (below).
+  nothing, even after a full chunk. mfc.h is gone (C14p): the tests' Original* layouts of game.exe's objects (record_script*.cpp,
+  script_original.h, script_load_vectors.h, record_stats.cpp) and the harness views use `exe::CString`
+  (tests/verify/exe_objects.h). src/lib's MFC is on std::string since C14i (below).
 - Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
   at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
   body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.

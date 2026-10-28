@@ -15,7 +15,7 @@ The counts below come from game.exe's import table and from grepping `src/` at m
 | Input | DINPUT (1), window messages | the cursor thread, keyboard through messages | SDL3 |
 | Network | WSOCK32 (22, by ordinal) | sessions, UDP | BSD sockets map almost 1:1 |
 | Files, threads, time | KERNEL32 (159), WINMM (5), ADVAPI32 registry (11) | `CFile` 93 references, critical sections ~130 calls, `timeGetTime` 31 | std::filesystem / std::thread / std::chrono; registry becomes a config file |
-| Runtime libraries | MFC 4.2, STLport and the MSVC6 CRT, statically linked | src/lib/mfc.h, stlp.h, crt.h already model them | must become our own code (no MFC on other systems) |
+| Runtime libraries | MFC 4.2, STLport and the MSVC6 CRT, statically linked | src/lib's MFC, stlp.h, crt.h already model them | must become our own code (no MFC on other systems) |
 | Win32 types in game headers | `HWND`, `HDC`, `RECT`, `POINT`, `COLORREF`, `HANDLE` | 92 files | portable typedefs in a platform header |
 
 ## The real blockers (in order of cost)
