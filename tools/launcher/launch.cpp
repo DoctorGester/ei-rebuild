@@ -9,8 +9,8 @@
 // of next to ei_hook.dll (EI_OUT_DIR), so several runs can go at once.
 // game.exe is always the original game (the original's harness: goldens, EI_VECTORS recording, addon's
 // WideScreen frames): ei_hook.dll is loaded into it before the game's own code runs, so the harness
-// runs, with EI_NO_HOOKS=1, so none of the rewritten functions is installed (InstallHooks installs
-// only the vector recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
+// runs, with EI_NO_HOOKS=1, so none of our code is installed (InstallHooks installs only the vector
+// recorders there, with EI_VECTORS=1). --no-hooks says the same and is kept for the
 // tools' command lines; since S21e nothing starts game.exe with our rewrites.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.

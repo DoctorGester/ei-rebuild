@@ -333,10 +333,6 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
         // computes at the game's 24-bit precision.
         static unsigned long long lastCycles = 0;
         static long long lastTicks = 0;
-        static std::uint64_t lastLookups = 0;
-        const std::uint64_t lookups = ei::CodeLookups();
-        const double codeLookups = static_cast<double>(lookups - lastLookups);
-        lastLookups = lookups;
         unsigned long long cycles = 0;
         double msPerCycle = 0.0, msPerTick = 0.0;
         LARGE_INTEGER now{}, frequency{};
@@ -377,7 +373,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             "decals projected: %.1f shadows %.3f ms, %.1f prints %.3f ms (%.0f vertices); flat draws: %.1f, %.3f ms "
             "(%.0f vertices); shadow builds %.1f, %.3f ms; "
             "shadow map %.1f draws, CPU ms %.3f; GPU ms (%u frames) frame %.3f, shadow map %.3f; morphed meshes %.1f "
-            "(%.0f corners); main thread ms CPU %.2f / wall %.2f; code lookups %.1f",
+            "(%.0f corners); main thread ms CPU %.2f / wall %.2f",
             argument.c_str(), t.frames, t.width, t.height, per(t.terrainPages), per(t.terrainBatches), per(t.meshes),
             per(t.meshPasses), per(t.flatMeshes), kb(t.flatVertexBytes),
             per(t.transformedDraws), per(t.blits), per(t.depthClears), per(t.stateReads), per(t.matrices),
@@ -397,7 +393,7 @@ bool RenderStep(const std::string& verb, const std::string& argument, std::vecto
             per(t.flatDraws), t.flatMs / n, per(t.flatDrawVertices), per(t.shadowBuilds), t.shadowBuildMs / n,
             per(t.shadowDraws), t.shadowMs / n, t.gpuFrames, t.gpuFrames ? t.gpuFrameMs / t.gpuFrames : 0.0,
             t.gpuFrames ? t.gpuShadowMs / t.gpuFrames : 0.0, per(t.morphMeshes), per(t.morphCorners), frameCpuMs / n,
-            frameWallMs / n, codeLookups / n);
+            frameWallMs / n);
         Log("harness: %s", text);
         frames->push_back(text);
     } else {
