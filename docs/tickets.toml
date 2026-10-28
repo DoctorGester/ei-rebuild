@@ -3412,6 +3412,14 @@ files = ["tools/find_dead_code.py"]
 note = "From C20i: config/dead_code.csv now has 56 hand rows (evidence 'C20g ...') for short functions only game.exe code or retired vtable slots name. tools/find_dead_code.py rewrites the csv from scratch and would drop them, and its reachability counts vtable slots, so gen_short_functions would add the 56 back. Keep hand rows (or stop counting retired vtable slots), so a rerun of both writes the committed files again."
 
 [[ticket]]
+id = "C20l"
+title = "Drop EI_REWRITTEN where nothing needs the original's address"
+group = "cleanup"
+model = "opus"
+files = ["tools/check_signatures.py", "include/ei/hook.h", "tools/gen_short_functions.py", "tools/gen_static_init.py"]
+note = "User 2026-10-28: drop check_signatures' --all audit (C20j), and drop the EI_REWRITTEN lines (7,470 in src/ and tests/) that nothing needs; ideally all of them, with the address moved into the EI_RECORD it pairs with. Readers today: check_signatures (62 rewrites at recorded addresses), gen_static_init (game.exe's initialiser list to names), named_data (function pointers in data cells), gen_short_functions, coverage / save_trace / ui_census_report (dev tools mapping traces of the original), progress / dashboard_data (rewritten counts), check_cleanup, check_registrations (.eiorg). For each: does it still need address -> our function, and if so can it come from a small generated or config table (or the EI_RECORD) instead of a line per function? Dev tools that only map traces of the original can go or lose that feature if unused. Dashboard history keeps its old counts. Then delete the lines, .eiorg and check_registrations if nothing is left."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
