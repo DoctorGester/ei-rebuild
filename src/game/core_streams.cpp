@@ -29,7 +29,6 @@ CStream::CStream() {
     ok_ = 1;
 }
 
-void* CStream::operator new(std::size_t size) noexcept { return gamecrt::operator_new(size); }
 void CStream::operator delete(void* block) { gamecrt::operator_delete(block); }
 
 void (*g_memoryStreamWriteObserver)(CMemoryStream* stream, std::uint32_t size, void* const* frame) = nullptr;

@@ -134,7 +134,6 @@ struct AIRefTo {
     // Read / write the object id (-1: none); Load looks it up in `world`.
     void Load(CStream* stream, CWorld* world);
     void Save(CStream* stream);
-    AIRefTo* DeleteScalar(unsigned flags);
     // A counted object pointer kept in a container of plain pointers seen as the reference it is.
     static AIRefTo* Of(T** slot) { return reinterpret_cast<AIRefTo*>(slot); }
 
@@ -148,8 +147,6 @@ struct AIRefTo {
     T* object;
 };
 using AIRef = AIRefTo<CEngineObject>;
-template <>
-AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

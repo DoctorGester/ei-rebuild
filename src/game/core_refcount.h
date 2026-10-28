@@ -83,7 +83,7 @@ void AssignCounted(T*& slot, std::type_identity_t<T>* object) {
     if (old && --old->refs_ == 0) delete old;
 }
 
-// A typed counted pointer's plain release (RefPtrRelease on the slot's content): one reference dropped, the
+// A typed counted pointer's plain release: one reference dropped, the
 // object deleted with the last. The pointer itself is left as it was.
 template <typename T>
 void ReleaseCounted(T* object) {

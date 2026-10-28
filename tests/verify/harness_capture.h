@@ -23,9 +23,6 @@ enum class State { Idle, Pending, Done, Failed };
 // The state of the last request; `detail` gets the file written or the reason it failed.
 State Poll(const char** detail);
 
-// Frames presented through the hooked point so far.
-unsigned FramesPresented();
-
 // Writes `bgr` (24-bit rows from the top, `width` x `height`) to <output folder>\frames\<name>.bmp as
 // the captures are written; `written` gets the file's path.
 bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written);

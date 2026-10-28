@@ -11,24 +11,11 @@
 #include "terrain.h"
 #include "world.h"
 #include "world_data.h"
-#include "world_deleting_destructors.h"
 
 #include "lib/crt.h"
 #include "game_data.h"
 
 #include <memory>
-
-void RefPtrRelease(RefPtr* self);
-
-namespace {
-
-template <typename T>
-T* DeleteIf(T* self, unsigned flags) {
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
-}
-
-} // namespace
 
 CWorld::~CWorld() {
     CWorld::Destroy();

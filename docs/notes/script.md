@@ -458,8 +458,7 @@ them is below.
 - `CSysInfo` (`sys_info.cpp`; the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C). Rewritten: what
   can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28 and returns 1), the empty
   Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor 004DDE75, its deleting form 004DE8B0 and the
-  exit handler 004DDD60 (runs on every exit). A static initialiser runs the rest before the hooks install (ported by A-E2
-  and compared at WinMain's entry with what the original built, `verify_static_initialisers.cpp`): 004DDCB0, 004DDCBA (it
+  exit handler 004DDD60 (runs on every exit). A static initialiser runs the rest before WinMain (ported by A-E2): 004DDCB0, 004DDCBA (it
   stores 2 * pi at 007AB8F0), 004DDCCD, 004DDCD7, 004DDCEE, 004DDCF8, 004DDD0F, 004DDD19, 004DDD30 (constructs the global and
   registers 004DDD60), 004DDD3F, 004DDD4E, 004DE855, 004DE87C, the constructor 004DDD6F, the collector 004DDF28 (1887 bytes:
   registry and version queries into the five texts) and its helpers 004DE687, 004DE6C2, 004DE6F3, 004DE789.

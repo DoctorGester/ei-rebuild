@@ -154,7 +154,7 @@ does not need a second pass:
   no `using` alias for a container used once (spell `mfc::CArray<Foo>` where it is used); an alias stays only where it
   names a concept used in several places. `python tools/alias_census.py` lists the aliases by use count;
 - parameters and fields carry their types (C21): no `void*` that every caller and the body cast;
-  raw blocks come typed from `gamecrt::operator_new_as<T>()` / `operator_new_zeroed_as<T>()` /
+  raw blocks come typed from `gamecrt::operator_new_as<T>()` /
   `operator_new_array<T>(count)`, `operator_new_bytes_as<T>(bytes)` (a block shorter or longer
   than T: a figure strip, a CString's data) (`src/lib/crt.h`), not a `static_cast` at each allocation (tools/progress.py counts the
   pointer casts; check_cleanup does not); objects of a manager come typed from

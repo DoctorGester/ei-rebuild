@@ -19,15 +19,10 @@ struct SearchGrid {
     // ai_grids.cpp. The fog grid's marks, FogGrid::cells. Reallocated to
     // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
     void Resize(int newWidth, int newHeight);
-    // Copy (also for the local search's nodes, whose Recenter
-    // keeps the old window in such a copy). Makes the grid a copy of `source`: its size, a block and
-    // row table of its own, the cells copied.
-    void CopyFrom(const SearchGrid* source);
     // The constructor for a size (several copies); returns this.
     SearchGrid* Construct(int newWidth, int newHeight);
 };
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);
-template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source);
 template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight);
 static_assert(sizeof(SearchGrid<std::uint8_t>) == 0x10);

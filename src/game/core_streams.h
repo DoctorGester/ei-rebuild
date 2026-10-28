@@ -31,8 +31,7 @@ public:
     virtual void Clear() = 0;                                           // memory streams empty, file streams rewind
     virtual void CopyFrom(CStream* source);                             // all of `source`, 1 KB at a time
 
-    // Streams live on the game's heap.
-    static void* operator new(std::size_t size) noexcept;
+    // Streams are made in place (the save and message streams); deleted, on the game's heap.
     static void* operator new(std::size_t, void* place) noexcept { return place; }
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}

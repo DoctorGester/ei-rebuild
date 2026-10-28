@@ -28,8 +28,6 @@ struct PlainArray {
     void Destruct();                                // the destructor
     PlainArray* DeletingDestructor(unsigned flags); // vtable slot 1
     void SetSize(int newSize, int newGrowBy);
-    void SetAtGrow(int index, T value);
-    void Copy(const PlainArray& source);            // SetSize to the source's, the elements copied
     void Serialize(CArchive* ar);                   // vtable slot 2
 };
 

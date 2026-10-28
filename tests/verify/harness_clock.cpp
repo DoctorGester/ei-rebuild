@@ -737,8 +737,6 @@ void InstallTrace() {
     Log("clocktrace: on (game.exe's clock and wait imports, and those of the DLLs in the game's folders)");
 }
 
-bool Tracing() { return g_tracing; }
-
 void DumpTrace(const char* why) {
     if (!g_tracing) return;
     struct Line {

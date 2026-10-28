@@ -32,7 +32,6 @@
 #include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
-#include "world_deleting_destructors.h"
 #include "world_effect.h"
 #include "mod_folders.h"
 #include "world_map_files.h"

@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 
 namespace {
-constexpr std::uint32_t kBoxIgnored = 0x800;   // FootprintPart::flags: the part's box is left out
 constexpr float kFirstFrame = 0.0f;
 
 CFigureMesh* PartAt(const CObject3D* object, int index) { return object->parts[index]; }

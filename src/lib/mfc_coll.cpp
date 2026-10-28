@@ -76,18 +76,6 @@ void PlainArray<T, Class>::SetSize(int newSize, int newGrowBy) {
     }
 }
 
-template <typename T, typename Class>
-void PlainArray<T, Class>::SetAtGrow(int index, T value) {
-    if (index >= size) SetSize(index + 1, -1);
-    data[index] = value;
-}
-
-template <typename T, typename Class>
-void PlainArray<T, Class>::Copy(const PlainArray& source) {
-    SetSize(source.size, -1);
-    std::memcpy(data, source.data, static_cast<std::size_t>(source.size) * sizeof(T));
-}
-
 // The count, then the elements as raw bytes.
 template <typename T, typename Class>
 void PlainArray<T, Class>::Serialize(CArchive* ar) {

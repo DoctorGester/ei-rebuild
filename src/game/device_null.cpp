@@ -228,12 +228,6 @@ public:
         for (const Entry& e : entries) SetState(e);
         return D3D_OK;
     }
-    HRESULT CaptureStateBlock(DWORD handle) {
-        Block* block = Find(handle);
-        if (!block) return D3DERR_INVALIDSTATEBLOCK;
-        for (Entry& e : block->entries) e.value = Current(e);
-        return D3D_OK;
-    }
     HRESULT DeleteStateBlock(DWORD handle) {
         for (auto it = blocks_.begin(); it != blocks_.end(); ++it) {
             if (it->handle != handle || &*it == recording_) continue;
@@ -242,25 +236,7 @@ public:
         }
         return D3DERR_INVALIDSTATEBLOCK;
     }
-    // Every state (D3DSBT_ALL and the two halves alike), as it is now.
-    HRESULT CreateStateBlock(LPDWORD handle) {
-        Block block;
-        for (DWORD s = 0; s < kRenderStates; ++s) block.entries.push_back(Entry{false, 0, s, render_[s]});
-        for (DWORD stage = 0; stage < kStages; ++stage)
-            for (DWORD s = 1; s < kStageStates; ++s) block.entries.push_back(Entry{true, stage, s, stage_[stage][s]});
-        block.handle = NextHandle();
-        if (handle) *handle = block.handle;
-        blocks_.push_back(std::move(block));
-        if (recording_) recording_ = &blocks_[blocks_.size() - 2];
-        return D3D_OK;
-    }
 
-    HRESULT GetTexture(DWORD stage, LPDIRECTDRAWSURFACE7* texture) {
-        if (!texture) return DDERR_INVALIDPARAMS;
-        *texture = stage < kStages ? textures_[stage] : nullptr;
-        if (*texture) (*texture)->AddRef();
-        return D3D_OK;
-    }
     HRESULT SetTexture(DWORD stage, LPDIRECTDRAWSURFACE7 texture) {
         if (stage >= kStages) return DDERR_INVALIDPARAMS;
         if (texture) texture->AddRef();
@@ -319,7 +295,6 @@ private:
         stage_[e.stage][e.state] = e.value;
         render::state::Stage(e.stage, e.state, e.value);
     }
-    DWORD Current(const Entry& e) const { return e.stageState ? StageState(e.stage, e.state) : RenderState(e.state); }
     Block* Find(DWORD handle) {
         for (Block& b : blocks_)
             if (b.handle == handle && handle != 0) return &b;

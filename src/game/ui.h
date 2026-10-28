@@ -400,8 +400,6 @@ public:
     void Fill(COLORREF colour);
     void Clear();
 
-    static constexpr std::uint32_t kFromPicture = 1;   // flags_: made from an .mmp picture
-
     CInterface3D* interface_;
     HDC dc_;                         // while the DC is held
     std::uint32_t flags_;            // the constructors store the format here, then set kShown

@@ -21,7 +21,6 @@ using SpareMap = CBaseManager::SpareMap;
 using SpareCountMap = CBaseManager::SpareCountMap;
 
 using IdList = std::list<int>;
-using IdNode = IdList::iterator;
 
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;

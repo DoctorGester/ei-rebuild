@@ -63,22 +63,6 @@ template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
     AllocateGrid(*this);
 }
 
-template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source) {
-    height = source->height;
-    width = source->width;
-    AllocateGrid(*this);
-    int count = width * height;
-    if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count));
-}
-
-template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source) {
-    height = source->height;
-    width = source->width;
-    AllocateGrid(*this);
-    int count = width * height;
-    if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
-}
-
 // ---- Constructors ---------------------------------------------------------------------------------
 
 template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight) {

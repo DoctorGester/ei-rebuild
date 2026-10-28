@@ -321,7 +321,8 @@ public:
     // Empty; units override it.
     virtual void AdvanceTime(float time);
     // Loads the figure named by the model name and builds the pending parts at the current scale, each new
-    // one joining as AddPart does; non-units mark every part and themselves (flags_ 8 / 0x200). Then the
+    // one appended to the parts, referenced, told its owner and announced to the animation and to the
+    // attached object; non-units mark every part and themselves (flags_ 8 / 0x200). Then the
     // half's LoadFigures-done virtual and flags_ 0x80. Nothing when already loaded.
     virtual void LoadFigures();
 
@@ -335,10 +336,6 @@ public:
     // Sets the scale and, when it changed, rebuilds the figure at that scale through the figure manager, copies
     // each part's piece record from it, rescales the animation and recomputes the bounds.
     void SetFigureScale(const float* newScale);
-
-    // Adds `part` to the parts unless it is there: referenced, told its owner, announced to the animation and to
-    // the attached object (whose OnPartAdded result is returned). Returns 1 otherwise.
-    int AddPart(CFigureMesh* part);
 
     // The first part (of the parts, then of the pending parts) whose name starts with `prefix`
     // (case-sensitive), or null.
@@ -384,7 +381,7 @@ public:
     void SetUpAnimatedFigure(const char* model);
     // A part object for the figure part `partName` (the figure manager's LoadPart; "Can't load figure" logged
     // and null when missing). With a figure the part must be one of its pieces (else null, the part leaked)
-    // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as AddPart does.
+    // and takes its box; box flags by name prefix as SetUpAnimatedFigure. It joins the parts as LoadFigures' new parts do.
     CFigureMesh* LoadPart(const char* partName, FigureModel* model, std::uint32_t arg);
     // The object's figure becomes `model` and each name of `partList` is loaded by LoadPart
     // (with the cached model; failures logged). Without a figure manager: FatalError. Returns 1.

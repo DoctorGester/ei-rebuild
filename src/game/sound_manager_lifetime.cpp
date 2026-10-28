@@ -128,8 +128,6 @@ namespace {
 constexpr int kListBlockSize = 10;
 constexpr int kFullVolume = 100;
 constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
-constexpr int kEmitterCount = 16;
-constexpr int kSequenceCount = 8;
 
 void ConstructFader(SoundFader& fader) {
     fader.volume = kFullVolume;

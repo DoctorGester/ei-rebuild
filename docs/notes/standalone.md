@@ -493,8 +493,9 @@ kinds given.
     (8 `{kind, "x.mat"}` rows). Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
-  - **Pointers to game.exe's records** (C18e): MFC's 41 CRuntimeClass records are named as one piece
-    (lib/mfc_runtime_class.h: the 36 in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
+  - **Pointers to game.exe's records** (C18e): MFC's CRuntimeClass records are named as one piece, but for the leaves no class of ours has (CBitmap, CClientDC,
+    CPaintDC, CPalette, CPtrArray, CPtrList, CRgn, CWinApp, CWindowDC: game.exe's bytes)
+    (lib/mfc_runtime_class.h: those in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
     the serializable ones in .data, which AfxClassInit links into the module state's list: CWordArray /
     CDWordArray / CByteArray in mfc_coll.cpp, CDib in game/dib.cpp (CStringArray's 00796EE8 went in C14i), `constinit CRuntimeClass g_classCDib`; TYPES has
     `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
@@ -1624,7 +1625,7 @@ the `--no-hooks` suite) keeps the registry.
   operands as tagged literals, S18e1), calls (cdecl, stdcall, thiscall, through an import slot), `atexit` and the
   once-only guard bit; a single-use decodable
   callee is inlined, everything else is a call. One template, `StaticInitialisers(Do&)`
-  (static_init.h), with visitors `Run` (the image) and `Check` (the stores, compared with the original's memory).
+  (static_init.h), run by its one visitor `Run` (the image).
 - **Calls by name** (C20 batch 2): a call or atexit of a function ported by hand (a row of
   config/static_init_ports.csv: address, qualified name, the file of the definition; C20l) is rendered by its name: `d.Call(app::ConstructCameraFile)`, `d.Call(&mfc::impl::CFixedAlloc::
   Construct, &mfc::impl::g_tempDCAlloc, 0x10, 0x40)`, `d.AtExit(Exit0070C0B8)` (gen_static_init's `Names`,

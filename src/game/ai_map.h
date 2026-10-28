@@ -258,7 +258,6 @@ struct SearchNode {
 };
 static_assert(sizeof(SearchNode) == 0x14);
 
-template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source);
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
 static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);

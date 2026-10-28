@@ -13,8 +13,7 @@ target's port (C20 batch 3: nothing is called by address), unless the target is 
 referenced from one place only and decodes itself: then it is inlined (the compiler's helper halves,
 `call A; jmp B`). An initialiser registered by a rewrite (0042FAE0) is one call of its own name. Anything the interpreter does not know stops the script.
 
-The result is one template, StaticInitialisers(Do&), that the standalone runs (Run) and the verify
-build's start-up check evaluates against what the original's initialisers left in memory (Check).
+The result is one template, StaticInitialisers(Do&), that the standalone runs (Run).
 
 usage: python tools/gen_static_init.py [--exe game.exe]
 """
@@ -611,7 +610,6 @@ REVIEWED_NEAR = {
     0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
     0x0079BEE0: ('0079BED8', 'the options 0079BC70 (GameOptions, 0x26C bytes) end at 0079BEDC; 0079BED8 is its master server CString'),
-    0x0079BF28: ('0079BF1C', 'the map database 0079BF00 (CMapDatabase, 0x28 bytes); 0079BF1C is its maps array data'),
     0x0079C1C0: ('0079C1AC', 'the lever table 0079C1A0 (0x20 bytes); 0079C1AC is a member'),
     0x007A9698: ('007A9694', 'the lightning noise loaded flag (dword)'),
     0x007A9750: ('007A9748', 'the sort scratch guard byte (the scratch array is below it)'),
@@ -1426,7 +1424,6 @@ FOOTER = '''
 }
 
 template void StaticInitialisers<Run>(Run&);
-template void StaticInitialisers<Check>(Check&);
 
 } // namespace ei::static_init
 '''

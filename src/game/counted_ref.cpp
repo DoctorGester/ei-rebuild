@@ -47,9 +47,10 @@ void AIRefTo<T>::Save(CStream* stream) {
     stream->Write(&id, 4);
 }
 
-template struct AIRefTo<CEngineObject>;
-// The typed references (the AI's map objects and units, the effects' figures): the four members
-// (DeleteScalar is AIRef's alone).
+// The references: the engine object's two members, the typed ones' (the AI's map objects and units, the effects'
+// figures) four.
+template void AIRefTo<CEngineObject>::Reset();
+template void AIRefTo<CEngineObject>::Assign(CEngineObject*);
 template void AIRefTo<CMapObject>::Reset();
 template void AIRefTo<CMapObject>::Assign(CMapObject*);
 template void AIRefTo<CMapObject>::Load(CStream*, CWorld*);

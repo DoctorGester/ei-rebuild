@@ -93,10 +93,10 @@ All `__forceinline`, by value:
 | helper | evaluation |
 |---|---|
 | `+ - * /`, unary `-`, `+= -= *= /=` (Vector2, Vector3) | one operation per component (`/ s` divides, no reciprocal) |
-| `Dot2D`, `LengthSquared2D`, `Length2D`, `DistanceSquared2D`, `Distance2D` | `x*x' + y*y'` |
+| `Dot2D`, `LengthSquared2D`, `Length2D`, `DistanceSquared2D` | `x*x' + y*y'` |
 | `DistanceSquaredXY(Vector3, Vector3)` | `dx*dx + dy*dy` |
 | `Cross(a, b)` | `(y*z' - z*y', z*x' - x*z', x*y' - y*x')` |
-| `Lerp(a, b, t)` (float, Vector3), `LerpWeighted(a, b, t)` (float) | `(b - a) * t + a`, `(1 - t) * a + t * b` |
+| `Lerp(a, b, t)` (float, Vector3) | `(b - a) * t + a` |
 | `DotXYZ / DotZYX / DotZXY`, `vecmath::Dot<Sum3>` | the named grouping of the three products |
 | `LengthSquared<Sum3>`, `Length<Sum3>` (+ `...XYZ / ZYX / ZXY`) | grouped sum of squares; FSQRT (`std::sqrt` of a double) |
 | `DistanceSquared<Sum3>`, `Distance<Sum3>` (+ named) | of `a - b` |
