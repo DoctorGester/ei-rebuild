@@ -4899,3 +4899,17 @@ group = "cleanup"
 model = "opus"
 files = ["src/game"]
 note = "User 2026-10-28 asked why unnamed fields remain. Count 2026-10-28: ~186 mentions in 65 files of offset names (flagN, fieldNN, spareNN, unknownNN; moveMode2.flag4 alone is heavily used in combat_motion / combat_tick / combat_sight / class_templates). (1) Bit flags (9 distinct flagN names): read every setter and reader, name each by the rule it encodes (flag18 = the order's point was picked by a path search, flag4 = ... ), then drop C38's naming-only getters that exist because of them (NoBackstab, Busy, ChangedParts and similar). (2) Unread fields of fixed formats (item_db.h's archive fields field16..field1B filled from the .res records): one named skip per record (e.g. `std::uint8_t unreadArchiveFields[N]` with the format's field ids in the comment) or the format's name when docs/notes know it; the loader's byte counts must not change. (3) Spares nothing reads (figure_mesh.h spareDC_ and any left): delete with their copies / clears, watching literal-size memcpy / memset. Also unknownNN names in comments. Spelling and field removal only; saves, packets and goldens unchanged."
+
+[[ticket]]
+id = "C38b"
+title = "The singleton accessors { return &*g_x; }: callers use the StaticObject global"
+group = "cleanup"
+depends = ["C38a"]
+note = "C38a's survey: 21 accessors of the form X* TheX() { return &*g_x; } with about 1000 calls: TheServerWorld 258, TheClientWorld 205, TheOptions 149, TheInterface 77, TheCursor 63, TheCamera 62, TheGameFlow 49, TheSceneRenderer 35, ThePartyManager 30, TheMapDatabase 27, GameSaveStream 21, SkillDb 14, DebugInfoPanel 8, SpiralRadiusTree 6, SpellFootprint 6, FrameDeferredUnits 6, and six with 2-4. Callers write g_x-> / &g_x.Get() (scratchpad C38a/c38alib.py, kind addr_static, does the rewrite). Split by size (TheServerWorld / TheClientWorld alone touch most of src/game); also tests/verify/image. Spelling only."
+
+[[ticket]]
+id = "C38c"
+title = "AIMap(), Motion(), AIEvents(): the harness's digest reader reads the fields"
+group = "cleanup"
+depends = ["C38a"]
+note = "C38a kept CWorldServer::AIMap() { return &aiMap_; }, AIEvents() { return &aiMap_.events; } and CUnit::Motion() { return &motion; } (90 game calls): tests/verify/harness_digest_read.inc calls them on both sides, and exe_objects.h's replica has aiEvents_ beside aiMap_ rather than inside it. Give the replica the game's member names and nesting, then the .inc and the game's callers use the fields (scratchpad C38a/c38alib.py, kind addr, member=True; unit_ai_moves.cpp / world_effect_moshka.cpp have their own free AIMap()). A harness change: run the --no-hooks suite."
