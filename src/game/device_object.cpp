@@ -1,28 +1,18 @@
 // The device object (CTextureDevice, texture.h): its constructor and destructor. There is no DirectDraw or Direct3D
-// object: the constructor loads 2DintMMX.dll (the only load) and starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
+// object: the constructor starts the new renderer (src/render), which draws and presents. See docs/notes/renderer.md (section 9).
 #include "texture.h"
 
-#include "app.h"
 #include "device_material.h"
-#include "game_strings.h"
 #include "model.h"               // CTransformPipeline
 #include "settings_file.h"
-#include "sys_info.h"
 
-#include "lib/gameapi.h"
 #include "render/render.h"
 
 #include <float.h>
 
 #include <cstdint>
-#include <cstdlib>
-#include <string>
 
 namespace {
-
-constexpr const char* kNoLibraryText = "CVisualizator::Create.\n Can't load 2D graphics library.\n";
-constexpr const char* kNoFunctionText =
-    "CVisualizator::Create.\n Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n";
 
 // The performance overlay's switch (docs/notes/renderer.md section 15): "PerfOverlay" (a DWORD, not 0: on) of
 // Software\Nival Interactive\EvilIslands\Standalone in ei_settings.ini; off when absent or without the overlay.
@@ -44,31 +34,9 @@ bool VsyncSetting() {
 
 } // namespace
 
-CTextureDevice::CTextureDevice(const std::string& workPath, HWND window, bool fullScreen, int width, int height,
-                               int bitsPerPixel)
+CTextureDevice::CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel)
     : fullScreen_(fullScreen), screen_{0, 0, width, height}, window_(window), bitsPerPixel_(bitsPerPixel) {
-    ReadProcessorInfo();
-    if (!(g_processorInfo.features & kProcessorMmx)) {
-        game::FatalError("MMX required in this version !!!.\n");
-        std::exit(-1);
-    }
-
-    converterLibrary_ = gameapi::LoadLibraryA((workPath + "2DintMMX.dll").c_str());
-    game::DebugLog("MMX graphics release library loaded.\n");
-    if (!converterLibrary_) {
-        game::FatalError(kNoLibraryText);
-        std::exit(-1);
-    }
-    using GetGraphicsProcessor = CPixelConverter*(*)();
-    const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
-        gameapi::GetProcAddress(converterLibrary_, "GetGraphicsProcessor"));
-    if (!getProcessor) {
-        game::FatalError(kNoFunctionText);
-        std::exit(-1);
-    }
-    game::DebugLog("Acquiring graphics processor from graphics library.\n");
-    converter_ = getProcessor();
-
+    // (The original required MMX and loaded 2DintMMX.dll, its pixel converter, here; nothing needs it now.)
     // The new renderer presents; when it cannot start, the game ends there (render::detail::Fatal).
     render::StartPresenting();
     render::SetPerfOverlay(PerfOverlaySetting());
@@ -83,5 +51,4 @@ CTextureDevice::CTextureDevice(const std::string& workPath, HWND window, bool fu
 CTextureDevice::~CTextureDevice() {
     if (pipeline_) pipeline_->Release();
     if (material_) material_->Release();
-    if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
 }

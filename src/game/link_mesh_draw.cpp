@@ -7,7 +7,7 @@
 
 #include "core_maths.h"
 #include "material.h"            // CMaterial
-#include "texture.h"             // CTextureDevice, CPixelConverter
+#include "texture.h"             // CTextureDevice
 
 #include "ei/x87.h"
 #include "lib/crt.h"

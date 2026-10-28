@@ -40,10 +40,9 @@ const std::uint8_t* PicturePixels(const MmpHeader* picture) {
     return reinterpret_cast<const std::uint8_t*>(picture) + sizeof(MmpHeader) + picture->extraSize;
 }
 
-// The picture's pixels into the holder's memory `pixels` (16 or 32 bits). The device's pixel converter (2DintMMX's
-// graphics processor): the first call takes the target format (0 5:6:5, 1 5:5:5, 2 1:5:5:5, -1 another) and its
-// alpha, red, green and blue masks; the second converts one row of 8888 pixels (out, in, format, count).
-void FillPicture(const Surface* holder, const MmpHeader* picture, const SurfacePixels& pixels) {
+// The picture's pixels into the holder's memory `pixels` (16 or 32 bits): 32 bits row by row as they are; 16 bits each
+// 8888 pixel cut to the format's channels (each channel's top bits at its place).
+void FillPicture(const MmpHeader* picture, const SurfacePixels& pixels) {
     const std::uint8_t* source = PicturePixels(picture);
     std::uint8_t* out = pixels.bits;
     if (pixels.format.bitsPerPixel == 32) {
@@ -56,22 +55,14 @@ void FillPicture(const Surface* holder, const MmpHeader* picture, const SurfaceP
     }
     ChannelLayout layout;
     layout.Split(pixels.format);
-    int target = -1;
-    if (layout.redBits == 5) {
-        if (layout.greenBits == 5) {
-            if (layout.blueBits == 5) {
-                if (layout.alphaBits == 1) target = 2;
-                else if (layout.alphaBits == 0) target = 1;
-            }
-        } else if (layout.greenBits == 6 && layout.blueBits == 5 && layout.alphaBits == 0) {
-            target = 0;
-        }
-    }
-    CPixelConverter* converter = holder->device->converter_;
-    converter->SetChannelMasks(target, layout.alphaMask, layout.redMask, layout.greenMask, layout.blueMask);
     for (std::uint32_t row = 0; row < picture->height; ++row) {
-        converter->ConvertTo16(reinterpret_cast<std::uint16_t*>(out), reinterpret_cast<const std::uint32_t*>(source),
-                               target, picture->width);
+        for (std::uint32_t x = 0; x < picture->width; ++x) {
+            const std::uint8_t* in = source + x * 4;
+            const std::uint32_t argb = in[0] | (in[1] << 8) | (in[2] << 16) | (static_cast<std::uint32_t>(in[3]) << 24);
+            const auto native = static_cast<std::uint16_t>(layout.ToNative(argb));
+            out[x * 2] = static_cast<std::uint8_t>(native);
+            out[x * 2 + 1] = static_cast<std::uint8_t>(native >> 8);
+        }
         out += pixels.pitch;
         source += picture->width * 4;
     }
@@ -93,7 +84,7 @@ int LoadPicture(Surface* holder, const MmpHeader* picture) {
     SurfacePixels pixels;
     DirectPixels(holder, &pixels);
     gameapi::EnterCriticalSection(&g_deviceLock);
-    FillPicture(holder, picture, pixels);
+    FillPicture(picture, pixels);
     gameapi::LeaveCriticalSection(&g_deviceLock);
     return 1;
 }

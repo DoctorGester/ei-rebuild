@@ -16,7 +16,6 @@
 
 #undef GetClassName
 
-class CPixelConverter;
 class CTexture;
 class CTextureManager;
 struct ClipBounds;
@@ -33,7 +32,7 @@ struct TexCoord;
 struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
 
-// The device object: the screen (its window, size and colour depth), 2DintMMX's pixel converter, the transform pipeline, the texture stages' holders and the
+// The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.
 class CTextureDevice final : public CRendererBase {
@@ -64,18 +63,15 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // Needs MMX (else a fatal error and exit); loads `workPath`'s 2DintMMX.dll (fatal when missing; the game's only
-    // load, freed with the device) and starts the new renderer (its failure ends the game). `width` x `height`
-    // pixels of `bitsPerPixel` (16 or 32) on `window`.
-    CTextureDevice(const std::string& workPath, HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
+    // Starts the new renderer (its failure ends the game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on
+    // `window`.
+    CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
     bool fullScreen_ = false;   // the window covers the monitor
     RECT screen_ = {};          // (0, 0, width, height): the screen's size
     HWND window_ = nullptr;
     int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
-    HMODULE converterLibrary_ = nullptr;     // 2DintMMX.dll
-    CPixelConverter* converter_ = nullptr;   // 2DintMMX's graphics processor (pixel conversions): the only pointer to it
     CTransformPipeline* pipeline_ = nullptr;
     Surface* stageSurfaces_[8] = {};   // the holder bound to each texture stage
     CDeviceMaterial* material_ = nullptr;
@@ -106,30 +102,6 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
 // Once a frame: the new renderer's frame shown. Returns 0.
 long DevicePresent(CTextureDevice* device);
 
-// 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
-// Never constructed here.
-class CPixelConverter {
-public:
-    virtual void Unused0();
-    // The 16-bit format ConvertTo16 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them).
-    virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
-                                 std::uint32_t blueMask);
-    // `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
-    virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
-    virtual void Unused3();
-    virtual void Unused4();
-    // An .mmp file's pixels (after its header and extra block) into 32-bit pixels.
-    virtual void UnpackTo32(std::uint32_t* out, const void* in, unsigned count, int pnt3);
-    virtual void Unused6();
-    // A square image; `width` is the new width.
-    virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
-    // The DLL's two triangle rasterisers (the former shadow rasteriser; no caller since the new renderer draws the
-    // shadows), kept so DecodeDxt is slot 10.
-    virtual void Unused8();
-    virtual void Unused9();
-    // Into 16-bit pixels.
-    virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
-};
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its

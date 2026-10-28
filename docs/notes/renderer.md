@@ -145,8 +145,8 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 Their game-side work stays (visibility, LOD, animation, lighting, sorting, water levels); the goldens check it. Not
 handed over directly yet: `figure_part_draw*.cpp` (005A7A70, 005A7640: model matrices and figure data once meshes stop
 going through the old projection), the particle data, materials from the game's data instead of the device state,
-picking rectangles. The 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
-before clipping, the shadow rasteriser) still want plain C++ replacements (section 9).
+picking rectangles. The 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
+clipping) still want plain C++ replacements (section 9); 2DintMMX has no caller since R28.
 
 The interface is overlay, not native: each window surface is uploaded as a texture when its contents changed (checked
 at every blit) and drawn at the blit's place with the colour key as transparency. Native drawing (glyph atlas from the
@@ -224,7 +224,7 @@ the renderer fails").
 | Address | Name / change |
 |---|---|
 | 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | memory-owning holder, no CreateSurface |
-| 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits through 2DintMMX slots 1, 2); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
+| 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits each pixel cut to the screen format's channels, as 2DintMMX slots 1, 2 did); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
 | 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask (16 bits all ones where the pixel is 0; 32 bits low 24 bits 0) |
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
 | 005FCC00 / 005FCDD0 / 005FCF80 / 005FD120 | the colour-fill Blt that clears a new window is left out (a new DIB section is zero) |
@@ -258,7 +258,7 @@ capture of the same frozen moment as 8x8 block averages; the original's: at most
 ## 7. Textures without DirectDraw
 
 CPU-written textures (00691D80) and .bmp textures have only the renderer's memory; .mmp textures only
-its decoded copy. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
+its decoded copy; the 1:5:5:5 textures 00691D80 makes (kind 0x20) and the composed ones only the texture the GPU drew. The texture fills 0068FA10 / 00690970 / 00690B30 / 00690D30 are not ported (config/dead_code.csv).
 
 **Texture formats (R27b).** A texture keeps the id of the format it is held in (`CTexture::format_`: 0x5650, 0x5551,
 0x4444, 0x8888 or a DXT1..DXT5 code; 0 none). The list is fixed (texture.cpp `IsTextureFormat`, what the old device
@@ -266,8 +266,9 @@ offered; DXT5 must stay: Rebirth's battle00 and footprints are DXT5) and `Textur
 `PixelFormat` (bits and channel masks, surface.h, what `render::NewSurfaceMemory` takes). An .mmp file is held in its
 own format, a DXT code outside the list in the RGB format its channel bit counts name (`MmpHeader::HeldFormat`; none:
 the original's "Can't find texture format" error); a .bmp texture by its kind (1:5:5:5, 4:4:4:4 or 5:6:5). The file
-formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the game's CPU writers still write their
-16-bit layouts, and the renderer converts every layout to RGBA8 at upload.
+formats (MMP, BMP, shot.sav's 5:6:5 picture) are read and written as before; the game's CPU writers left (the save /
+load pictures, the global map's weather) still write their 16-bit layouts, and the renderer converts every layout to
+RGBA8 at upload.
 
 **Memory textures updated in place (R16b, `render_textures.cpp`).** A texture whose holder has the renderer's memory
 (the classic shadows' 64 x 64 4:4:4:4 textures, the global map's 256 x 256, the item and save pictures) is checked at
@@ -291,7 +292,7 @@ path could put the shadows into one if an instanced decal draw wants them in one
 
 | Address | Name / change |
 |---|---|
-| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
+| 0068F6C0 `CTexture::CreateBlank` (`texture_blank.cpp`, RET 8, EAX 1) | surface square from header->width (height not read); the holder is `NewMemoryTextureHolder`, one level; a 1:5:5:5 one (R28) a `NewDecodedTextureHolder` with `render::BlankTexture` (the original: 004EFA60's texture with mipCount levels, caps by the kind flags); +0x28 = bits x size x size / 8 |
 | 00691D80 `CTextureManager::NewTexture` (RET 0xC) | kinds 0x1E / 0x20 / 0x21 get the texture formats 5650 / 5551 / 4444 (always there: the original's "Can't find texture format %d." is gone); another kind gets none and 0068F6C0 throws; its texture through 0068F6C0 |
 | 00692010 `NewShadowTexture`, 00692140 `ShadowRenderSurface`, 00690FC0 `LockPixels`, 00691030 `UnlockPixels` | not ported (R26): only the 64x64 shadow texture used them, which the shadow map replaced (section 13) |
 | 00690430 `CTexture::CreateFromMmp` (`texture_mmp.cpp`) | no staging surface, fill (0068FA10), Load or priority; `render::TextureFromMmp` decodes the file's levels (DXT1 / DXT3, 8888, 4444, 5551, 5650 by the header's channel masks; keyed by the holder); +0x28 = `MmpHeader::FilledBytes`; an undecodable format keeps the holder and shows nothing (logged once) |
@@ -307,8 +308,8 @@ green texels, drawn as thin strips where a leaf card is seen edge-on). A DXT lev
 
 Users of the CPU-written textures: 005FF0B0 (`CUiWindow::CreateTexture`, from the battle screen 00635250, options
 006503C0, save / load, global map 0062D350, tutorial 00658E10, 00605DE0, 00608F90, 00640060) and 005EC020 (item screens'
-figure textures); writers 005FFFB0 CopyImage, 005EC020, the global map's weather 0062F050 (00499F10 draws into the
-memory) and the save / load three all use `DirectPixels`. The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
+figure textures); writers 005FFFB0 CopyImage and 005EC020 draw on the GPU (R28, below); the global map's weather
+0062F050 (00499F10 draws into the memory) and the save / load three use `DirectPixels`. The binders (004EB300, 004EBAF0, 00501AF0, 004EB370's inline
 one) pass null to SetTexture (the old device draws nothing in the switch-over; the renderer reads the bound holder,
 CTextureDevice::stageSurfaces_). Renderer side (`render_textures.cpp`): decoded textures (`StoreDecoded`) are keyed by
 the holder; a holder with neither surface nor memory shows its decoded texture until it goes (`HolderGone` retires its
@@ -339,6 +340,16 @@ composed texture again right after it is made (`RemakeComposed`; render_device_l
 before and after the loss). Frames against the CPU composition (render_blink, units, models, render_device_lost: at
 most 0.012% of a 4K frame over 8, on the hero's and wounded units' skins; ui_gallery_camp unchanged): the 8-bit
 colours instead of 1:5:5:5 / 4:4:4:4.
+
+**Item pictures drawn on the GPU (R28).** The 1:5:5:5 textures (00691D80 kind 0x20: the item screens' figure textures
+005EC020 and the image atlases 005FFFB0 CopyImage fills: the interface's portraits, buttons and item cells) are
+composed textures without layers: `render::BlankTexture` makes the transparent texture (one level), and
+`render::DrawIntoTexture(holder, image, x, y, width, height)` draws an .mmp picture's rectangle (or white, without
+the file) into it, replacing what was there: the same shader with blending off, alpha cut to one bit (at least
+half: opaque, else 0) as the 1:5:5:5 store did. The step joins the recipe (a step it covers whole leaves it), so a
+new device draws the texture again. The picture is the file's pixels right after the header (the extra block not
+skipped, as the original read them). No 2DintMMX: the original unpacked the picture with slot 5 and packed it to 1:5:5:5
+by hand under the device lock. Colours are 8-bit now (the picture's own instead of 5 bits a channel).
 
 Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
@@ -392,9 +403,10 @@ come first, then what holds for the present path (the subsection names are cited
 
 - A desktop display mode change while the game runs is not exercised: no run may switch the display mode (R9c4
   below). R9c covers a window resized from outside, which is what such a change does to the game window.
-- **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8; P7 is optional): window surfaces drawn on the
-  GPU instead of GDI into DIB sections, no GDI in src/render, own font loading; P7 puts the CPU-written textures and
-  the global map's clouds on the GPU.
+- **Native interface** (docs/notes/ui-native.md, tickets N1, N4, P1 to P8): window surfaces drawn on the
+  GPU instead of GDI into DIB sections, no GDI in src/render, own font loading. R28 (which took P7 in) put the composed
+  skins and the item pictures on the GPU; the menu backdrop's copy, the global map's clouds and the save / load
+  pictures are still written on the CPU (R28a, R28b).
 - **DirectDraw left after R11c**: R11b removed the holders' DirectDraw branches and the 18 DirectDraw-only ports no
   code of ours called (config/dead_code.csv rows "R11b, DirectDraw only"; find_dead_code.py drops hand rows, so re-add
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
@@ -411,8 +423,8 @@ come first, then what holds for the present path (the subsection names are cited
   R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
-  from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
-  before clipping, the shadow rasteriser) want plain C++ replacements; several steps (holders, saved pictures, interface
+  from projected bounds; the 3DfpFPU calls left in game code (bounds at figure load, the terrain's transform before
+  clipping) want plain C++ replacements; several steps (holders, saved pictures, interface
   draws, movies, textures) are checked by goldens and harness scenarios, never by a person in game.
 
 ### R9a: the game without DirectDraw
@@ -421,8 +433,8 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
 no stand-in for any of them (R27c):
 - `CTextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
   object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
-  depth, 2DintMMX's converter, the transform pipeline, the stages' bound holders and the draws' state. Its constructor
-  reads CPUID (MMX required), loads the work path's 2DintMMX (R27g: the only load and the only converter pointer; the scene renderer reads `device_->converter_`), starts the new renderer (`render::StartPresenting`: the Direct3D 11
+  depth, the transform pipeline, the stages' bound holders and the draws' state. Its constructor (R28: no MMX check
+  and no 2DintMMX.dll any more, its last uses gone) starts the new renderer (`render::StartPresenting`: the Direct3D 11
   device) and sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passed DDSCL_FPUSETUP). The
   options' driver, refresh rate and depth / stencil bits choose nothing. No display mode list (nothing read it), no
   video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7). Where the game read the primary's
@@ -676,7 +688,8 @@ resolution must have the machine to themselves and serialised the suites.
   mapping (31-34), vertex fog into the specular alpha (35), lighting into packed colours (39-44), bounds (6, 7, 29).
   **2DintMMX.dll** (`GetGraphicsProcessor`, 13 slots): 8888 to 16-bit conversion (1, 2), skin compositing blends (3-5),
   premultiply (6), mip downsampling (7), shadow triangle rasterisers (8, 9), a 16-bit block operation (10), shadow blur
-  (11, 12). Both DLLs are identical in the GOG and Rebirth installs.
+  (11, 12). Both DLLs are identical in the GOG and Rebirth installs. The rebuild still loads 3DfpFPU (the transform
+  pipeline); 2DintMMX not since R28, which took its last uses (composition, picture unpacking, 16-bit packing).
 
 ## 11. Verification and frame capture
 
@@ -1043,8 +1056,8 @@ across runs; the goldens check the game state.
    texture pixels 007AF1E0 / 007AEEB8 / 007C2E00 and their exit functions) and, after SetTexture and EdgeFade, the
    decal's DrawFlatBlocks are gone. The half's `shadowMade` stands for the original's "texture made" test: the
    first draw after Create / ClearShadow builds the shadow. 2DintMMX's RasteriseTriangle / RasteriseKeyedTriangle
-   (slots 8 and 9, `Unused8` / `Unused9` in CPixelConverter: the interface needs the places so DecodeDxt stays slot 10) and
-   BlurShadow / BlurShadow2 (slots 11 / 12, not declared any more) are not called (R27e). (Until R16i a switch to the classic option needed the textures again: a table
+   (slots 8 and 9) and BlurShadow / BlurShadow2 (slots 11 / 12) are not called (R27e; R28 removed the converter's
+   interface and the DLL's load). (Until R16i a switch to the classic option needed the textures again: a table
    of the shadows whose texture was made, with a generation the harness's `shadows rebuild` moved, rebuilt the
    static ones the game would not rebuild; R16i removed the option, the table and those harness words.) Measured (render_stats, 4K,
    per frame, the `_shadowfull` stretch with them made against `_shadowskip` right after; shadow builds ms + the

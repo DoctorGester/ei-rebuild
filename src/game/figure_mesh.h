@@ -63,7 +63,6 @@ struct MeshBuffers {
 
 class CObject3D;
 class CFigureMesh;
-class CPixelConverter;
 
 struct FigureMeshDrawer;
 // The flags an animated mesh's drawer gets on top of its own (figure_part_draw*.cpp).
