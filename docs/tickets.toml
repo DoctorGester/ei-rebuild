@@ -2957,7 +2957,7 @@ title = "C14 maps: stlp::hash_map, map, set to std types, keeping iteration orde
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "Child of C14 (user 2026-10-22: scripted mechanical rewrite, checked by both suites; hand work only where goldens differ). Write the rewrite as a script under tools/ (one rule per call shape), run it, build, run both suites; fix by hand only the sites that differ. Classes are normal C++ (rewrite-guide.md). After C27. 57 hash_map uses: where order is visible (goldens differ), keep an order-compatible map; the rest std::unordered_map. Sort stability where equal elements show (objectives list)."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C14d"
@@ -2965,7 +2965,7 @@ title = "C14 archives: CFile/CArchive to our own small stream, with a save round
 group = "cleanup"
 model = "opus"
 depends = ["C14c"]
-note = "Child of C14 (user 2026-10-22: scripted mechanical rewrite, checked by both suites; hand work only where goldens differ). Write the rewrite as a script under tools/ (one rule per call shape), run it, build, run both suites; fix by hand only the sites that differ. Classes are normal C++ (rewrite-guide.md). After C27. Saves and network messages keep their byte encoding; add a check that writes a save and compares its bytes with the original's."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C28a"
@@ -3463,7 +3463,7 @@ title = "C14 aligned arrays, the rest: the kept lib::AlignedArray declarations a
 group = "cleanup"
 model = "opus"
 depends = ["C14a", "C14b"]
-note = "C14e left lib::AlignedArray where C14a's files (scene_loader, ui_item_info) reach it: figure.h parts, figure_mesh vertices/normals/colours/packets, link_figure colours/speculars, sky_object packets, the figure part draws' ColourArray, party.h PartyItemArray, unit.h weapons/quickItems/armor/spells, world.h items, ui.h UiPtrArray, ui_camp UiItemList, the ui equip/hero lists, scene_bones/meshes/weld and skin_rewind (74 lines, 28 files in src). After C14a merges, rerun C14e's retype_aligned.py (path in C14e's report) with SKIP / KEEP emptied, hand-fix, then delete the dead helpers: mfc_array.h AlignedArrays / FreeAlignedData, mfc_slots.h AlignedAt8Records / AlignedAt8ArrayClass (after C14b), game_arrays.h BlocksAt8 / BlocksAt4 and aligned_arrays.cpp (tests/vectors/replay_unlinked.cpp references ArrayAt8Free / ArrayAt4Free), and replace the remaining AlignedArray<T>::Allocate raw blocks (renderer_lines, particle_emitters, render_helper matrix stack, texture_compose, link_figure packets) with vectors. Also terrain_sector.h SectorVertex pack(1) if its CArray Serialize writes no file. Checks: verify/release, image suite goldens the same."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C20p"
@@ -3478,7 +3478,7 @@ group = "cleanup"
 model = "opus"
 depends = ["C20o"]
 files = ["src/lib/mfc_string.h", "src/lib/mfc_string.cpp"]
-note = "User 2026-10-28: mfc_string.h/.cpp is still 924 lines (78 functions: MFC's CString implementation, PchNil, Format, the refcounted buffer). After C14g nothing in src/game uses it (15 game files only include it or name PchNil in comments); its users are src/lib's own MFC (mfc.cpp/h, mfc_archive, mfc_coll, mfc_exception, mfc_gdi, mfc_resource, mfc_time, mfc_window), static_init/static_exit and tests/vectors/replay_mfc.cpp. Retype those internals to std::string (CArchive's string read/write keeps its byte format), drop the stale includes, then delete mfc_string.*; the tests' game.exe CString views (exe::CString, Original* layouts) become a small local layout struct. Scripted where it pays; one-off scripts in the scratchpad."
+note = "User 2026-10-28: don't retype MFC's internals. Replace the usage code first: each place that uses an MFC class (CFile / CStdioFile / CFileFind, CArchive, CTime, CWnd text, GDI, resources, exceptions) calls std or a small simple helper of ours instead; when a piece of src/lib's MFC has no user left, delete it. mfc_string goes once only the tests' game.exe views (a local layout struct) still need its layout. Same approach for the other MFC / STLport tickets (C14c, C14d, C14m, C14n, C14h)."
 
 [[ticket]]
 id = "S"
