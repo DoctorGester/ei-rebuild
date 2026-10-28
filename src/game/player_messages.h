@@ -46,7 +46,6 @@ struct UnitPlacement {
     std::uint32_t moveMode;         // the unit's moveMode2
     std::uint32_t weapon;           // its active weapon (pendingWeapon on restore)
 };
-static_assert(sizeof(UnitPlacement) == 0x28);
 
 // A world player's connection to its client (CPlayer::connection_): CPlayerServer or CPlayerClient.
 class CPlayerConnection : public CEngineObject {

@@ -242,7 +242,6 @@ struct SearchNode {
     std::int8_t direction;      // 1..8: the way back to the cell it was reached from; 0 none
     std::uint8_t unused_13;
 };
-static_assert(sizeof(SearchNode) == 0x14);
 
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);

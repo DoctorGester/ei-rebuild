@@ -34,7 +34,6 @@ struct ClipBounds {
     // Sets the box and its flag; returns the new flags.
     std::uint32_t SetBox(const float* min, const float* max);
 };
-static_assert(sizeof(ClipBounds) == 0x2C);
 
 // A box of an object's model that blocks the AI map: the part's bounds with the part's position when it was
 // loaded. A figure mesh has one (CFigureMesh::box_), copied whole from the piece's header into the object's

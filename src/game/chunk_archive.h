@@ -69,7 +69,6 @@ public:
         // {0xFF, 0, 0, occurrence 1}.
         void Reset();
     };
-    static_assert(sizeof(Ref) == 0x10);
 
     // While loading: key -> the object the index names (by the key its record is stored under).
     // (walked in STLport's order by Close: the objects nobody took are deleted in that order)

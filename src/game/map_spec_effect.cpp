@@ -188,11 +188,8 @@ SoundSpec::SoundSpec() {
     kind = 3;
     volume = 10;
     radius = 15;
-    unused_70 = 1;
     minInterval = 1500;
     maxInterval = 3000;
-    unused_7C = 0;
-    unused_80 = 0;
     ambient = 0;
 }
 
