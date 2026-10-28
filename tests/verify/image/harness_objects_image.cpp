@@ -48,7 +48,7 @@ namespace {
 void (*g_fill)(std::uint32_t* results) = nullptr;
 
 void FixedSeed(IsaacRandom& random) {
-    gamecrt::srand(12345);
+    libcrt::Srand(12345);
     g_fill(random.results_);
 }
 

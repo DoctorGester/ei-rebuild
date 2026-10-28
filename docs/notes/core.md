@@ -297,7 +297,7 @@ to which template:
   with CString's answers: `str::Find` / `ReverseFind` / `FindOneOf` (int positions, -1 when absent, the multibyte
   CRT's searches), `Mid` / `Left` / `Right` (a start or count outside the text clamped, never a throw), `Format` (the
   game CRT's vsprintf, `crt_format.cpp`: "1.#INF" and three-digit exponents, C26), `MakeLower`, `Remove`, the trims
-  (multibyte stepping, `_ismbcspace`), `Buffer` / `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) /
+  (byte stepping, ASCII white space: `text::IsSpace`, what `_ismbcspace` answered), `Buffer` / `CutAtNull` / `SetLength` for GetBuffer / ReleaseBuffer(-1) /
   GetBufferSetLength.
 - The rewrite was a tool (tools/c14_strings.py, deleted in C20o: nothing is left to retype; the git history has it):
   it retyped `mfc::CString` declarations and fixed what the verify build then reported, one rule per diagnostic

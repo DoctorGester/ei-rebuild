@@ -93,7 +93,7 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     double weightB;
     double one = EI_ONE_D;
     if (one - cosine > EI_SLERP_LINEAR) {
-        double angle = gamecrt::acos(stored);
+        double angle = libcrt::CiAcos(stored);
         double inverseSine = one / x87::fsin(angle);
         weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
         weightB = x87::fsin(angle * D(t)) * inverseSine;

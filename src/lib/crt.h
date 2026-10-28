@@ -38,10 +38,7 @@ int rand();
 // The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
-void srand(unsigned seed);
 
-// acos: the C entry of the body behind _CIacos; the result is left unrounded.
-double acos(double c);
 // The game's _ftol for a value computed in C++: the low 32 bits of the 64-bit
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
@@ -56,7 +53,9 @@ using NewHandler = int(__cdecl*)(std::size_t);
 namespace libcrt {
 
 // MSVC 6's quicksort (middle element as the pivot, selection sort up to 8 elements, the smaller part first):
-// equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens).
+// equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
+// whose elements can compare equal and differ (the sector spiral's distances, the ambience's class weights); the
+// others are std::sort (standalone.md, "The CRT").
 void Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),

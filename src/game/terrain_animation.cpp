@@ -20,6 +20,7 @@
 #include "game_data.h"
 #include "game_singletons.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -208,14 +209,11 @@ namespace {
 // The relight order, (sy, sx) of the sectors. The game's comparator meant this, but qsort hands it the
 // addresses of the array slots: it reads +0xC / +0x8 of those, the pointers three and two slots further on
 // (past the end for the last ones), so its order follows the heap. Here the sectors themselves are compared
-// (address_order.h).
-int CompareSectors(const void* a, const void* b) {
-    const auto* x = *static_cast<const SectorData* const*>(a);
-    const auto* y = *static_cast<const SectorData* const*>(b);
-    if (x->sy < y->sy) return -1;
-    if (x->sy > y->sy) return 1;
-    if (x->sx < y->sx) return -1;
-    return x->sx > y->sx ? 1 : 0;
+// (address_order.h). The cache holds one sector per grid cell (Terrain::SectorAt), so no two are equal and any sort
+// gives the order the game's qsort gives.
+bool SectorBefore(const SectorData* x, const SectorData* y) {
+    if (x->sy != y->sy) return x->sy < y->sy;
+    return x->sx < y->sx;
 }
 
 // SetSun's function-local static (guard bit 1, freed at exit).
@@ -269,7 +267,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
             sorted[index] = sector;
         }
     }
-    libcrt::Qsort(sorted.data(), std::ssize(sorted), sizeof(SectorData*), terrain::CompareSectors);
+    std::sort(sorted.begin(), sorted.end(), terrain::SectorBefore);
     if (sorted.empty()) return;
     float step = static_cast<float>(static_cast<double>(lightInterval - 1) / std::ssize(sorted));
     float at = 0.0f;

@@ -35,9 +35,6 @@ int rand() {
     if (g_randObserver) g_randObserver(value, _ReturnAddress());
     return value;
 }
-void srand(unsigned seed) { libcrt::Srand(seed); }
-
-double acos(double c) { return libcrt::CiAcos(c); }
 
 } // namespace gamecrt
 

@@ -100,7 +100,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
         angle = worlddata::Zero();
     } else {
         float axisStored = static_cast<float>(axis);
-        angle = gamecrt::acos(rx);
+        angle = libcrt::CiAcos(rx);
         angle = angle + angle;
         double sign = worlddata::One() / std::sqrt(axisStored) * rw;
         EI_NAN_AUDIT(sign);

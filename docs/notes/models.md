@@ -193,7 +193,7 @@ Ported (grep the address): `Terrain::SetVisibleSectors` 006CA260, `SectorAt` 006
 `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` 006D9A30 / 006D9CE0 / 006D9F80 (acks_db.cpp; index operator[], adds a null
 entry for a missing name), `acks::PickSpeech` / `PickEnvironmentSpeech` 006D8780 / 006D88E0, `SayAck` / `SayNamedAck` 006D8430 /
 006D8A40 (call the five above through their addresses), `Terrain::RunTick` 006CB1E0 (slot 6; terrain_animation.cpp), `SetSun`
-006C8ED0 (ray steps; relight countdowns of the lit cached sectors, sorted through the game's qsort), `SectorData::Animate`
+006C8ED0 (ray steps; relight countdowns of the lit cached sectors, sorted by (sy, sx) with std::sort: one per grid cell), `SectorData::Animate`
 006C3E80 (animated tiles, water waves; draws from the game's random generator), `SectorData::Clear` / `ResetFields` /
 `ScheduleRelight` / `RelightTick` 006C3C80, 006C3D70, 006C3E30, 006C3E50, `PlayAmbience` / `StopAmbience` 006CB390 / 006CBCD0
 (terrain_ambience.cpp), `CWorldClient::AmbienceTimeOfDay` 006CBC00, `Terrain::AddDecalTriangles` 006CCF20 (terrain_decal.cpp;

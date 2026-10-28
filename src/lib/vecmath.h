@@ -17,9 +17,9 @@
 // every operation already rounds to a float significand, so this gives the game's bits; on 53-bit threads it
 // is plain float maths, not the game's (code there stays written out, docs/notes/vector-math.md). Square
 // roots use std::sqrt (FSQRT at the precision control on this x87 target; cast a float argument to double
-// first: std::sqrt(float) is sqrtf). Transcendentals (Atan2, Acos, Asin) return the x87 result unrounded as
-// `double`, like FPATAN and the game's CRT; where the game stores the result to a float, round it with
-// static_cast<float> (ticket X3: an unrounded angle flipped a quaternion's sign).
+// first: std::sqrt(float) is sqrtf). Transcendentals (Atan2, libcrt::CiAcos / CiAsin) return the x87 result
+// unrounded as `double`, like FPATAN and the game's CRT; where the game stores the result to a float, round it
+// with static_cast<float> (ticket X3: an unrounded angle flipped a quaternion's sign).
 
 #include "crt.h"
 #include "ei/x87.h"
@@ -107,11 +107,9 @@ enum class Sum3 { XYZ, ZYX, ZXY };
 
 // ---- Transcendentals (the results stay unrounded) ------------------------------------------------
 
-// atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control).
+// atan2(y, x) by FPATAN, unrounded (64-bit significand whatever the precision control). acos / asin are the game
+// CRT's, libcrt::CiAcos / CiAsin (crt.h), unrounded too.
 __forceinline double Atan2(double y, double x) { return x87::fpatan(y, x); }
-// The game's CRT acos / asin (the bodies of _CIacos / _CIasin), unrounded.
-__forceinline double Acos(double c) { return gamecrt::acos(c); }
-__forceinline double Asin(double s) { return libcrt::CiAsin(s); }
 
 // ---- Arithmetic (the grouping written here is kept) ----------------------------------------------
 

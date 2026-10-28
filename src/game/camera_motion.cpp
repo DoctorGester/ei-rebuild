@@ -33,7 +33,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     float nx = static_cast<float>(inv * dx);
     float ny = static_cast<float>(D(invRounded) * dy);
     float elevation = static_cast<float>(libcrt::CiAsin(-(D(invRounded) * dz)));
-    float heading = static_cast<float>(gamecrt::acos(D(ny) / libcrt::Hypot(nx, ny)));
+    float heading = static_cast<float>(libcrt::CiAcos(D(ny) / libcrt::Hypot(nx, ny)));
     EI_NAN_AUDIT(nx, heading);
     if (nx == CAM_ZERO || heading == CAM_ZERO) {
         std::memcpy(&viewRotation_, &camera::kIdentityRotation, sizeof(Quaternion));
@@ -94,7 +94,7 @@ void CCamera::AlignToTarget() {
     EI_NAN_AUDIT(dot);
     if (dot > D(CAM_ONE)) cosine = 1.0f;
     else if (D(cosine) < D(CAM_MINUS_ONE)) cosine = -1.0f;
-    float angle = static_cast<float>(gamecrt::acos(cosine));
+    float angle = static_cast<float>(libcrt::CiAcos(cosine));
     float magnitude = angle;
     std::uint32_t bits;
     std::memcpy(&bits, &magnitude, 4);
