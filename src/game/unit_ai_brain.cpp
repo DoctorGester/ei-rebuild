@@ -287,7 +287,7 @@ void AIBrain::CallAllies(const Vector3* point) {
             message = str::Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
-        ally->memory.HearCall(point, 0x1A, message.c_str());
+        ally->memory.HearCall(point, 0x1A, message);
     }
     // The list emptied, no element destruction.
     units.clear();

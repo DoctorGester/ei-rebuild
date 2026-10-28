@@ -140,7 +140,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
             std::string left = str::Left(zone, static_cast<int>(zone.size()) - 2);
             zone = left;
         }
-        LoadZoneQuests(zone.c_str());
+        LoadZoneQuests(zone);
     }
     std::string variable;
     BriefingVariableInto(&variable, briefing);
@@ -176,10 +176,11 @@ void UnloadQuestTexts() {
 
 // ---- The quest file of a zone ---------------------------------------------------
 
-bool LoadZoneQuests(const char* zone) {
+bool LoadZoneQuests(std::string_view zone) {
     auto* texts = g_clientWorld->texts_;
     if (!texts) return false;
-    std::string file = std::string(zone) + kQuestFileSuffix;
+    std::string file(zone);
+    file += kQuestFileSuffix;
     bool found;
     {
         lib::FileFind find;

@@ -92,7 +92,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
     std::string name = (*args)[0];
     const char* text = name.c_str();
     if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
-    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name.c_str());
+    if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
 }
 
 // rate / localrate: bytes per second, clamped to 500..100000.
@@ -391,7 +391,7 @@ void Net(std::vector<std::string>* args) {
         app::g_showClientSpeed = str::ToInt((*args)[1]);
     if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && ServerActive(net::g_gameClient)) {
         std::string zone = (*args)[1];
-        net::g_gameClient->SendCommand(0, zone.c_str());
+        net::g_gameClient->SendCommand(0, zone);
     }
 }
 

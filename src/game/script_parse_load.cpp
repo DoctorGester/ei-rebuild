@@ -219,7 +219,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
                 sub.argIndex = local.argIndex;
                 sub.type = local.type;
                 const char* nested = FunctionSignature(tokenId, local.type);
-                if (!nested) return Error(this, token.line, 7, "Parameter of type %s expected", typeName.c_str());
+                if (!nested) return Error(this, token.line, 7, "Parameter of type %s expected", typeName);
                 if (!LoadFunction(sub.cmd.get(), pos, tokens, tokenId, locals, nested, 0, 0)) return 0;
                 cmd->subCalls.push_back(sub);
             }
@@ -266,7 +266,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
         ClassifyToken(text.c_str(), &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.empty())
-                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name.c_str());
+                return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name);
             return 1;
         }
         if (id != kLexIf) {
@@ -313,12 +313,12 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
         std::string text(token.text);
         int id;
         ClassifyToken(text.c_str(), &id, nullptr);
-        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
+        ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text);
     }
     if (!ok) return 0;
 
     int index, type;
-    globals_.FindVariable((*name).c_str(), &index, &type);
+    globals_.FindVariable((*name), &index, &type);
     // The value is parsed as the single parameter of command 0x78; float 1 holds the type - 1.
     static const std::uint32_t kTypeCode[] = {0, 0x00000000, 0x3F800000, 0x40000000, 0x40400000};
     if (type < 1 || type > 4) {
@@ -358,7 +358,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
             std::string text(colon.text);
             int id;
             ClassifyToken(text.c_str(), &id, nullptr);
-            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text.c_str());
+            ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text);
         }
         if (!ok) return 0;
         if (qualify) {
@@ -375,7 +375,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
         else if (Mbscmp(typeName, "group") == 0) type = kScriptGroup;
         else return Error(this, token.line, 12, "Unknown parameter type");
         if (!script->AddParameter(&name, type))   // "Duplicate variable name %s"
-            return Error(this, token.line, 13, "Duplicate variable name %s", name.c_str());
+            return Error(this, token.line, 13, "Duplicate variable name %s", name);
         first = false;
     }
     return result;
@@ -422,7 +422,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                     std::string nextText = next.text;
                     int nextId;
                     ClassifyToken(nextText.c_str(), &nextId, nullptr);
-                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
+                    open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
                 }
                 if (!open) return 0;
                 ScriptDecl* body = NewCommandList();
@@ -455,7 +455,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
             } else if (globals_.HasVariable(qualified)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
-                return Error(this, token.line, 3, "Unexpected token '%s'", text.c_str());
+                return Error(this, token.line, 3, "Unexpected token '%s'", text);
             }
         }
         if (!ok) return 0;
@@ -528,7 +528,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText.c_str(), &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
             if (!ok) return 0;
             if (worldScript) return Error(this, token.line, 14, "Only one WorldScript() per file allowed");
@@ -556,7 +556,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             } else {
                 ScriptDefinition* declared = &definitions_[static_cast<std::size_t>(index)];
                 if (!declared->ifThen.empty())
-                    return Error(this, token.line, 16, "Multiple declaration of script %s", declared->name.c_str());
+                    return Error(this, token.line, 16, "Multiple declaration of script %s", declared->name);
                 if (!LoadScriptBody(declared, &pos, &tokens)) return 0;
             }
             break;
@@ -570,7 +570,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 QualifyName(&name, word);
                 decl->name = name;
             }
-            if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word.c_str());
+            if (FindScript(decl->name) != -1) return Error(this, token.line, 15, "Duplicate script %s", word);
             if (!ExpectLexeme(&tokens, &pos, kLexOpen)) return 0;
             if (!LoadVariableDeclarations(decl, &pos, &tokens, 0)) return 0;
             definitions_.push_back(*decl);
@@ -586,7 +586,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 std::string nextText = next.text;
                 int nextId;
                 ClassifyToken(nextText.c_str(), &nextId, nullptr);
-                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText.c_str());
+                ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
             if (!ok) return 0;
             // Declared with qualified names, then added to the global variables.
@@ -596,7 +596,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             break;
         }
         default:
-            return Error(this, token.line, 3, "Unexpected '%s'", word.c_str());
+            return Error(this, token.line, 3, "Unexpected '%s'", word);
         }
     }
 
@@ -606,7 +606,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     return 1;
 }
 
-BOOL CScript::LoadFile(const char* path) {
+BOOL CScript::LoadFile(const std::string& path) {
     std::string text;
     if (!ReadTextFile(path, &text)) return Error(this, 0, 17, "Unable to read file \"%s\"", path);   // "Unable to read file \"%s\""
     return Load(&text, 1);

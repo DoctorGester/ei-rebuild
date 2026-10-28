@@ -223,4 +223,4 @@ void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
 }
 
 // CScript::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
-int scriptparse::ReadTextFile(const char*, std::string*) { std::abort(); } // namespace scriptaddon
+int scriptparse::ReadTextFile(const std::string&, std::string*) { std::abort(); } // namespace scriptaddon

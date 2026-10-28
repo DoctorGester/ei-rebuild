@@ -271,7 +271,7 @@ int StartFirstMap() {
         std::string root = *g_dataFolder;
         std::string dir = root + "Scripts\\";
         std::string path = dir + cmdScript;
-        loaded = script->LoadFile(path.c_str());
+        loaded = script->LoadFile(path);
     }
     if (loaded) return 1;
     ScriptErrorInfo error;

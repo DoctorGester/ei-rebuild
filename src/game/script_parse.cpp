@@ -432,7 +432,7 @@ BOOL CScript::ExpectLexeme(const std::list<ScriptToken>* tokens, std::list<Scrip
     std::string text = token.text;
     int found;
     ClassifyToken(text.c_str(), &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text.c_str());
+    if (found != id) return Error(this, token.line, 2, "Wrong lexeme %s", text);
     return 1;
 }
 

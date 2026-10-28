@@ -28,23 +28,23 @@ const char* const kHeardFormat = "Unit %i heard unit %i from %fm distance";
 
 } // namespace
 
-void AIHeardCalls::Hear(const Vector3* point, int kind, const char* text) {
+void AIHeardCalls::Hear(const Vector3* point, int kind, std::string_view text) {
     std::erase_if(*this, [kind](const AICallRecord& call) { return call.hostileMask == 0 && call.kind >= kind; });
-    push_back({*point, kind, 0, text});
+    push_back({*point, kind, 0, std::string(text)});
 }
 
-void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, const char* text) {
+void AIHeardCalls::AddClaim(std::uint32_t mask, int kind, std::string_view text) {
     // The point is left as the stack held it (saved as memory.callN.point); 0,0,0 is the
     // canonical value, which the harness gives game.exe too (harness_save_leftovers.cpp).
-    push_back({Vector3{0.0f, 0.0f, 0.0f}, kind, static_cast<int>(mask), text});
+    push_back({Vector3{0.0f, 0.0f, 0.0f}, kind, static_cast<int>(mask), std::string(text)});
 }
 
 void AIHeardCalls::RemoveClaims() {
     std::erase_if(*this, [](const AICallRecord& call) { return call.hostileMask != 0; });
 }
 
-void AIMemory::HearCall(const Vector3* point, int kind, const char* text) { calls.Hear(point, kind, text); }
-void AIMemory::AddClaim(std::uint32_t mask, int kind, const char* text) { calls.AddClaim(mask, kind, text); }
+void AIMemory::HearCall(const Vector3* point, int kind, std::string_view text) { calls.Hear(point, kind, text); }
+void AIMemory::AddClaim(std::uint32_t mask, int kind, std::string_view text) { calls.AddClaim(mask, kind, text); }
 
 void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector3* at) {
     std::list<CUnit*> units{};
@@ -67,7 +67,7 @@ void AIViewer::Noise(CUnitServer* source, float loudness, int kind, const Vector
             const double between = vecmath::Distance<Sum3::XYZ>(other->localPosition_, unit->localPosition_);
             text = str::Format(kHeardFormat, other->id_, unit->id_, between);
         }
-        brain->memory.calls.Hear(&unit->localPosition_, kind, text.c_str());
+        brain->memory.calls.Hear(&unit->localPosition_, kind, text);
     }
     // The list emptied, no element destruction.
     units.clear();

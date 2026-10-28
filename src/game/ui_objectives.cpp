@@ -63,7 +63,7 @@ float AbsBits(float f) {
 // leads nowhere).
 MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 
-int FindText(const char* key) { return g_clientWorld->texts_->Open(key); }
+int FindText(std::string_view key) { return g_clientWorld->texts_->Open(key); }
 
 // The quest the window last selected (a global string): built empty by its static initialiser in the list's
 // order, destroyed once by the exit function it registers. Both are defined on their names
@@ -153,7 +153,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 std::unordered_map<std::string, QuestRecord*>& QuestIndex() { return g_questDatabase->questsByName; }
 
-QuestRecord* FindQuestRecord(const char* name) {
+QuestRecord* FindQuestRecord(std::string_view name) {
     std::string key(name);
     return QuestIndex()[key];
 }
@@ -340,7 +340,7 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
             {
                 std::string zoneKey("zone ");
                 std::string key = zoneKey + shownZone_;
-                foundText = FindText(key.c_str());
+                foundText = FindText(key);
             }
             if (foundText) {
                 g_clientWorld->texts_->ReadLine(&title, 1);
@@ -388,7 +388,7 @@ void CObjectivesWindow::ShowQuest() {
     {
         std::string questWord("quest ");
         std::string key = questWord + quests[selectedQuest_];
-        found = FindText(key.c_str()) != 0;
+        found = FindText(key) != 0;
     }
     if (!found) return;
 
@@ -401,7 +401,7 @@ void CObjectivesWindow::ShowQuest() {
         text = colour + text;
     }
     text += "\n ";
-    if (QuestRecord* record = FindQuestRecord(quests[selectedQuest_].c_str())) {
+    if (QuestRecord* record = FindQuestRecord(quests[selectedQuest_])) {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
@@ -444,7 +444,7 @@ void CObjectivesWindow::ShowQuest() {
 
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
-    LoadQuestPlaces(quests[selectedQuest_].c_str());
+    LoadQuestPlaces(quests[selectedQuest_]);
     while (std::ssize(sceneObjects_) > std::ssize(exits_) + 0x15) RemoveSceneObjectAt(std::ssize(exits_) + 0x15);
     while (std::ssize(regions_) > std::ssize(exits_) + 9) RemoveRegionAt(std::ssize(exits_) + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
@@ -647,7 +647,7 @@ void CObjectivesWindow::DrawQuestList() {
         {
             std::string questWord("quest ");
             std::string key = questWord + quests[row];
-            found = FindText(key.c_str()) != 0;
+            found = FindText(key) != 0;
         }
         if (found) texts->ReadLine(&title, 1);
         else title = quests[row];

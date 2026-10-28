@@ -104,7 +104,7 @@ void CFigureAnimationState::Reset() {
     changed = 1;
 }
 
-FigureBone* CFigureAnimationState::FindBone(const char* boneName) {
+FigureBone* CFigureAnimationState::FindBone(std::string_view boneName) {
     for (auto node = bones.begin(); node != bones.end(); ++node)
         if (str::Compare((*node)->name, boneName) == 0) return *node;
     return nullptr;

@@ -78,7 +78,7 @@ BOOL ScriptVars::HasVariable(std::string_view name) const {
     return 0;
 }
 
-BOOL ScriptVars::FindVariable(const char* name, int* index, int* type) const {
+BOOL ScriptVars::FindVariable(std::string_view name, int* index, int* type) const {
     *type = kScriptFloat;
     *index = ::FindName(floats.names, name);
     if (*index >= 0) return 1;

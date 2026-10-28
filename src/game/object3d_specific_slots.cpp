@@ -74,7 +74,7 @@ int CObject3DClientSpecific::PartRectsMeet(const tagRECT* rect) {
     return FALSE;
 }
 
-CFigureMesh* CObject3DClientSpecific::FindPart(const char* name) { return object->FindPart(name); }
+CFigureMesh* CObject3DClientSpecific::FindPart(std::string_view name) { return object->FindPart(name); }
 
 CFigureMesh* CObject3DClientSpecific::FindPartOfType(int type) { return object->FindPartOfType(type); }
 

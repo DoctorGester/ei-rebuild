@@ -148,7 +148,7 @@ void Execute(const std::string& text) {
     }
 
     std::vector<std::string> args;
-    Tokenize(text.c_str(), &args);
+    Tokenize(text, &args);
     if (args.empty()) return;
     std::string command = args[0];
     args.erase(args.begin());
@@ -197,11 +197,12 @@ void Execute(const std::string& text) {
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token).
-int Tokenize(const char* text, std::vector<std::string>* out) {
+int Tokenize(std::string_view source, std::vector<std::string>* out) {
+    const std::string text(source);   // the scan below stops at the terminator
     std::string token;
     int state = 0;
     out->clear();
-    const char* p = text;
+    const char* p = text.c_str();
     for (;;) {
         const char c = *p;
         if (c == 0) break;

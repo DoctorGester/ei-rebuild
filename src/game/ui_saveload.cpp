@@ -473,7 +473,7 @@ void CSaveLoadWindow::LoadSelected() {
     g_interface->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
-    g_gameFlow->RequestLoad(entries_.data()[selected_].folder_.c_str(), 0);
+    g_gameFlow->RequestLoad(entries_.data()[selected_].folder_, 0);
 }
 
 void CSaveLoadWindow::DeleteSave() {

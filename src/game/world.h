@@ -347,7 +347,7 @@ public:
     // cannot be opened or read.
     int LoadMapObjects(std::string_view file, int keepIds);
     // Loads .mob file `file` once (the loaded names are kept).
-    int LoadMobFile(const char* file);
+    int LoadMobFile(std::string_view file);
     // Removes every map object from the server, releases the missiles and the counted objects and clears
     // the countdowns.
     void ClearMapObjects();
@@ -377,7 +377,7 @@ public:
     // The zone's scripts from the .mob file's 0xA000 chunk (its 0xACCEECCB text packed and XORed,
     // decoded by the game's routine, or the plain 0xACCEECCA text) become the only line of the first
     // command queue.
-    void LoadZoneScripts(const char* mob);
+    void LoadZoneScripts(std::string_view mob);
     // While a game runs, every new connection the lobby hands over becomes a player of this game's kind, fully dirty,
     // starting at startPosition_ ("Accepted player <id>" goes to the network log).
     void AcceptNewPlayers(CPlayerSource* lobby);
@@ -1114,7 +1114,7 @@ struct GameFlow {
     // The flow's requests: the state (state_) the flow's update acts on next, the zone or save name
     // (requestTarget_), requestArg_ and, for 5 and 6, a copy of a party (requestParty_).
     void RequestState3();
-    void RequestLoad(const char* name, char flag);                   // 2, requestArg_ = flag != 0
+    void RequestLoad(std::string_view name, char flag);                   // 2, requestArg_ = flag != 0
     void RequestZoneChange(std::string_view zone, int entrance);          // 4, requestArg_ = entrance
     void RequestPartyZone5(const char* zone, CParty* party);
     void RequestPartyZone6(const char* zone, CParty* party);
@@ -1228,7 +1228,7 @@ extern std::vector<std::string> g_questFiles;
 // "<zone>.mq". A running game server first lists the file's bytes under "<zone>.mq" for its clients
 // (ShareFile); then a path not yet among the quest files joins them and the briefing texts add it as a
 // source.
-bool LoadZoneQuests(const char* zone);
+bool LoadZoneQuests(std::string_view zone);
 
 bool NameInList(const char* const* list, const char* name);
 

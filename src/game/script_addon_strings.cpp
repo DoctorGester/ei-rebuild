@@ -42,8 +42,9 @@ std::string Joined(Call* call) {
 void Assign(Call* call, const std::string& text) { *call->result.text = text.c_str(); }
 
 // A NUL-terminated copy changed in place by CharLowerA / CharUpperA (the user's code page).
-std::string CaseConverted(const char* text, bool upper) {
-    std::vector<char> buffer(text, text + std::strlen(text) + 1);
+std::string CaseConverted(std::string_view text, bool upper) {
+    std::vector<char> buffer(text.begin(), text.end());
+    buffer.push_back(0);
     if (upper) text::utf8::CharUpperA(buffer.data());
     else text::utf8::CharLowerA(buffer.data());
     return std::string(buffer.data());
@@ -134,12 +135,12 @@ bool StrMid(Call* call) {
 }
 
 bool StrLower(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0).c_str(), false));
+    Assign(call, CaseConverted(Arg(call, 0), false));
     return true;
 }
 
 bool StrUpper(Call* call) {
-    Assign(call, CaseConverted(Arg(call, 0).c_str(), true));
+    Assign(call, CaseConverted(Arg(call, 0), true));
     return true;
 }
 

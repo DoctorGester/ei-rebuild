@@ -183,7 +183,7 @@ bool GameOver(Call*) {
 bool GameOverMsg(Call* call) {
     if (CPlayerServer* state = FirstPlayerState()) {
         std::string text = std::string("gameover ") + Text(call, 0) + " " + Text(call, 1);
-        state->SendText13(0, text.c_str());
+        state->SendText13(0, text);
     }
     return true;
 }

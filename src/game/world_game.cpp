@@ -484,7 +484,7 @@ int EnterZone(CParty* records) {
         }
         if (zoneRecord->kind == 2) {
             std::string scripts = zoneRecord->mob + kMobExtension;
-            g_serverWorld->LoadZoneScripts(scripts.c_str());
+            g_serverWorld->LoadZoneScripts(scripts);
         } else {
             ScriptResetZone(g_serverWorld->MainScript());   // the scripts reset for a zone without its own
         }
@@ -544,7 +544,7 @@ int StartNetworkZone(const char* zone) {
         AnnounceHost(zone);
         std::string name = zone;
         std::string mob = name + kMobExtension;
-        g_serverWorld->LoadMobFile(mob.c_str());
+        g_serverWorld->LoadMobFile(mob);
     }
     return 1;
 }
@@ -724,7 +724,7 @@ void GameFlow::CloseSessions() {
 // and 6.
 void GameFlow::RequestState3() { state_ = 3; }
 
-void GameFlow::RequestLoad(const char* name, char flag) {
+void GameFlow::RequestLoad(std::string_view name, char flag) {
     state_ = 2;
     requestTarget_ = name;
     requestArg_ = flag != 0;
@@ -786,7 +786,7 @@ int CWorldServer::ReadAIGraph(std::string_view map, std::string_view mob, CStrea
     return found;
 }
 
-void CWorldServer::LoadZoneScripts(const char* mob) {
+void CWorldServer::LoadZoneScripts(std::string_view mob) {
     FileStream file;
     std::string script;
     CMemoryStream scripts;

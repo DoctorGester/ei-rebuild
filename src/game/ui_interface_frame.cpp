@@ -123,11 +123,10 @@ void CInterface3D::Update() {
 }
 // ---- String events ------------------------------------------------------------------
 
-void CInterface3D::OnStringEvent(const char* event) {
-    if (!event) return;
+void CInterface3D::OnStringEvent(std::string_view event) {
     std::vector<std::string> words;
     std::string unused;
-    std::string text = event;
+    std::string text(event);
     text::SplitWords(text, &words, ' ');
     str::MakeLower(words[0]);
     // Rebirth's NewStringEvents: "gameover [title [text]]" plays

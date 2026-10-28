@@ -155,7 +155,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-void CObjectivesWindow::LoadQuestPlaces(const char* name) {
+void CObjectivesWindow::LoadQuestPlaces(std::string_view name) {
     std::vector<UiPointF>& places = questPlaces_;
     places.clear();
     if (IsMultiplayerClient()) {
@@ -170,7 +170,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     std::vector<std::string> words;
     CTextManager* texts = g_clientWorld->texts_;
     texts->Open(MapText());
-    header = str::Format(QuestHeader(), name);
+    header = str::Format(QuestHeader(), std::string(name));
     if (texts->FindLine(header)) {
         TextNextLine(texts);
         TextNextLine(texts);

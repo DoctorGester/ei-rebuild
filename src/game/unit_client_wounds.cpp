@@ -234,7 +234,7 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
     std::uint32_t slot = unit->activeWeapon;
     std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
     if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
-    const FigureBone* found = unit->Object3D()->animation->FindBone(node.c_str());
+    const FigureBone* found = unit->Object3D()->animation->FindBone(node);
     if (!found) return false;
     // The bone's position in figure space.
     const Vector3& position = found->position;
