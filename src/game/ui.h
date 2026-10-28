@@ -22,7 +22,7 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/stlp.h"
-#include "lib/stlp_tree_cstring.h"
+#include "lib/stlp_tree_mbs.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -256,7 +256,7 @@ public:
     // The top window is asked every frame until it agrees ("autosave" sets it).
     bool pollTop_;
     std::uint8_t unused_82[0x84 - 0x82];
-    stlp::list<mfc::CString> messages_;   // queued message texts (ShowMessage takes the first)
+    stlp::list<std::string> messages_;   // queued message texts (ShowMessage takes the first)
     bool disconnected_;
     // The state saved with a game (LoadState), cleared by ResetSavedState. The HUD panels keep theirs
     // here every frame.
@@ -266,7 +266,7 @@ public:
     int fastGame_;                   // the fast game speed (CHudClock::fast_)
     // Help topics seen: name -> times (or the page the help window was closed on; ui_help_window.cpp);
     // config\tutorial.ini "name count" lines, read by Create, written by Shutdown, counted by OpenHelp.
-    stlp::map<mfc::CString, int, stlp::CStringLess> helpTopics_;
+    stlp::map<std::string, int, stlp::MbsLess> helpTopics_;
     std::string messageText_;
     int messageFlag_;                // the message window's page, set when it closes
     std::string savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F

@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/stlp_hash.h"
+#include "lib/str.h"
 #include "game_data.h"
 
 namespace {
@@ -19,17 +20,6 @@ namespace {
 const char* const kNoSpellConstructor = "No valid spell constructor\n";
 const char* const kCantBegin = "Can't begin spell construction with prototype \"%s\"\n";
 const char* const kCantEnd = "Can't end spell construction\n";
-
-// MFC CString members not in lib/mfc.h, called on existing strings.
-struct TextOps : mfc::CString {
-    int Find(char c) const;                     // Find(TCHAR)
-    void TrimLeft();                            // white space
-    void TrimRight();                           // white space
-    void TrimRight(char c);
-};
-TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
-
-// Splits `text` at `separator` into `out` (separator on the stack).
 
 // The spell and modifier name maps (STLport hash_map<string, char*>), thiscall on the map. Operator[](key)
 // (inserts a null record for a missing name); returns the value. The spells and modifiers by name
@@ -41,30 +31,25 @@ itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpe
 
 } // namespace
 
-int TextOps::Find(char c) const { return mfc::CString::Find(c); }
-void TextOps::TrimLeft() { mfc::CString::TrimLeft(); }
-void TextOps::TrimRight() { mfc::CString::TrimRight(); }
-void TextOps::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
-
 namespace {
 
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
-void ParseSpellText(mfc::CString& text, std::vector<std::string>& codes) {
-    int brace = Ops(text).Find('{');
+void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
+    int brace = str::Find(text, '{');
     if (brace == -1) {
-        Ops(text).TrimLeft();
-        Ops(text).TrimRight();
+        str::TrimLeft(text);
+        str::TrimRight(text);
         return;
     }
-    mfc::CString inner = Ops(text).Right(text.GetLength() - brace - 1);
-    Ops(inner).TrimLeft();
-    Ops(inner).TrimRight();
-    Ops(inner).TrimRight('}');
-    Ops(inner).TrimRight();
-    text::Split(inner, &codes, ';');
-    text = text.Left(brace);
-    Ops(text).TrimLeft();
-    Ops(text).TrimRight();
+    std::string inner = str::Right(text, static_cast<int>(text.size()) - brace - 1);
+    str::TrimLeft(inner);
+    str::TrimRight(inner);
+    str::TrimRight(inner, '}');
+    str::TrimRight(inner);
+    text::Split(inner.c_str(), &codes, ';');
+    text = str::Left(text, brace);
+    str::TrimLeft(text);
+    str::TrimRight(text);
 }
 
 // The modifier record named `name` (find_or_insert with a null record).
@@ -76,7 +61,7 @@ itemdb::SpellModifierRecord* FindModifier(const char* name) {
 } // namespace
 
 CSpell* CSpellManager::CreateSpellFromText(const char* source) {
-    mfc::CString text(source);
+    std::string text(source);
     std::vector<std::string> codes;
     ParseSpellText(text, codes);
 
@@ -86,11 +71,11 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     itemdb::SpellRecord* prototype;
     {
-        std::string key(text.GetString());
+        std::string key(text);
         prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
     if (!constructor->BeginConstruct(prototype))
-        return game::FatalErrorAs<CSpell>(kCantBegin, text.GetString());
+        return game::FatalErrorAs<CSpell>(kCantBegin, text.c_str());
 
     for (const std::string& code : codes) {
         if (code.empty()) continue;

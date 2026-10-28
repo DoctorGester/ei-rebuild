@@ -237,10 +237,9 @@ to which template:
   006C5010; the bone's morph frames 00452E20 / 00452DF0; the scene loader's `OriginalElements<T, Make, Unmake>`). The
   vtable is a field: each instantiation keeps its own constant. CByteArray / CWordArray / CDWordArray / CUIntArray share
   the layout (`CArray<uint8_t / uint16_t / uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA, 006FF993,
-  006FF29A via originals_library.h). `mfc::CStringArray`: CArray's layout over CStrings without constructors (it sits in
-  layouts); its members are MFC's own code through their addresses (Construct 006FE925, Destruct 006FE958, SetSize
-  006FE9B8, SetAtGrow 006FEBFA / 006FEBCE, RemoveAt 006FED3C, Copy 006FEB61; src/lib/mfc.cpp); `console::CStringArray`
-  adds the constructor / destructor for locals.
+  006FF29A via originals_library.h). `mfc::impl::CStringArray` (mfc_coll.h): CArray's layout over CStrings,
+  registered at MFC's addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, ...); nothing in src/game
+  uses it since C14a batch 14 (the public `mfc::CStringArray` and `console::CStringArray` went).
   Aliases and registrations: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 /
   SetAtGrow forwarded); `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080, `ZoneExitsSetSizeOriginal`); world_save's
   id / object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 the aligned
@@ -305,8 +304,7 @@ to which template:
 - Scope `params` (batch 2): 65 `const mfc::CString&` parameters of functions defined in src/game are
   `const std::string&`, in the definition and every declaration of the name and position. Kept CStrings: virtual
   functions (an override retyped alone silently stops overriding), overload sets on the string type (CopyMember /
-  AssignMember of record_members.h, the `Ops` cast views of console.h, text_reader.cpp, options.cpp, which
-  static_cast the CString to a subclass, CharacterCount / CharacterBytes beside their string_view overloads), Sum and
+  AssignMember of record_members.h, the cast views that static_cast the CString to a subclass (gone by batch 14), CharacterCount / CharacterBytes beside their string_view overloads), Sum and
   Compose, and `MapsRoot`, which returns its parameter by `const mfc::CString&` (a std::string parameter would
   return a temporary: C4172, a code-generator warning without a column). A CString given to a retyped parameter
   passes `.GetString()` (a std::string copy of its text; the game's text has no embedded zero bytes), the seam the
@@ -455,22 +453,28 @@ to which template:
   their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
   hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
-- Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
-  Split / SplitWords / Join's CStringArrays and the locals their callers fill (the quest places' `parts`).
-  The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
+- The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
   `std::vector<std::string>` (SplitStrings went), and so do their callers' locals (the command line and sysmsg.txt
   lines, the map database's words, the briefing / objectives / help / global map texts, the key bindings, CreateItem's
   and CreateSpellFromText's names, the texture's path pieces, the script events' words). The console's command
   arguments are `console::Arguments` (`std::vector<std::string>`; the handlers take `Arguments*`), ConsoleWindow's
   commands_ / lines_ are vectors (its offset assert went; it is allocated by sizeof), Execute keeps the command as a
   std::string (the cheat word's XOR, then cut at the first zero byte as ReleaseBuffer(-1) did) and RunScriptLine
-  builds a std::string, converted to a CString only for RunScriptText. `str::TrimLeft(s, char)` is CString's
+  builds a std::string for RunScriptText (which makes the CString that CScript::Load preprocesses in place). `str::TrimLeft(s, char)` is CString's
   TrimLeft(TCHAR). The briefing's phrase speaker (`named` in NextPhrase) is empty for a one-word line, where the
   original read past the array.
-- Members that must stay CStrings for now: the registry's and resources' list out parameters (GetStringArray,
-  GetSectionNames, ListFiles, CIniFile::GetList / GetKeyNames, the List*Names, ListWaveFiles, ListKeys) and the locals
-  they fill (`console::CStringArray`, kept for them), the console's command map keys (`stlp::CStringLess`).
-  To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
+- Batch 14: no CStringArray is left in src/game, and mfc.h's public `mfc::CStringArray` went (only mfc_coll.h's
+  `mfc::impl::CStringArray`, registered at its library addresses, is left). console.h's `Str` / `Ops` views and
+  `console::CStringArray` went, and so did spell_text.cpp's and item_constructor.cpp's view classes (CreateItem's bracket
+  text and CreateSpellFromText's name are std::strings). The chat overlay's and DrawWrappedText's lines, the damage
+  lists (`ItemDamageLists` fills a `std::vector<std::string>*`), the unit panel's and the scene loader's roots are
+  vectors. The console's command maps and the interface's help topics are `stlp::map<std::string, ...,
+  stlp::MbsLess>` (stlp_tree_mbs.h: `_mbscmp < 0` on the text up to its first zero byte, CStringLess's order;
+  CStringLess went), and the queued tutorial messages are a `stlp::list<std::string>`. Their nodes grew (the 0x18 asserts
+  went; the trees allocate by sizeof). RunScriptText takes a `const std::string&` and CInterface3D::TextExtent a
+  `std::string_view`. `TextSources::FindText` is `FindKeyText`: windows.h's FindText macro renamed the call but not
+  the declaration once console.h stopped coming first in text_reader.cpp.
+- To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
   --out <scratch>`, `ei_vectors.exe <scratch>`): tests/vectors is not in the original runs' key without

@@ -9,7 +9,7 @@
 #include "../lib/mfc_file.h"
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_tree_cstring.h"
+#include "../lib/stlp_tree_mbs.h"
 #include "../lib/static_object.h"
 
 #include <cstddef>

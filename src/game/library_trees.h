@@ -10,7 +10,7 @@
 #include "lib/stlp_list.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/stlp_tree_abi.h"
-#include "lib/stlp_tree_cstring.h"
+#include "lib/stlp_tree_mbs.h"
 
 #include <cstdint>
 #include <cstring>
@@ -71,13 +71,13 @@ using ItemCache = ItemCacheOf<CTexture>;
 
 // The console's command maps (console.h; std::string keys by _mbscmp).
 using Commands = stlp::TreeAbi<console::CommandMap>;
-// The interface's help topics (0x18-byte nodes, CString keys by _mbscmp).
-using HelpTopics = stlp::TreeAbi<stlp::map<mfc::CString, int, stlp::CStringLess>>;
+// The interface's help topics (std::string keys by _mbscmp).
+using HelpTopics = stlp::TreeAbi<stlp::map<std::string, int, stlp::MbsLess>>;
 // The "pers" texts by text key (ui_camp.h; 0x18-byte nodes).
 using PersonTexts = stlp::TreeAbi<PersonTextMap>;
 // The global map's arrival times by exit (CGlobalMap::arrivals_; 0x18-byte nodes).
 using Arrivals = stlp::TreeAbi<stlp::map<int, float>>;
-static_assert(sizeof(HelpTopics::Node) == 0x18 && sizeof(PersonTexts::Node) == 0x18 &&
+static_assert(sizeof(PersonTexts::Node) == 0x18 &&
               sizeof(Arrivals::Node) == 0x18);
 
 // The hero screen's item caches (ItemObjectCache, ui_item_info.h). Their constructors:

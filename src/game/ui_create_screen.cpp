@@ -215,11 +215,11 @@ EI_REWRITTEN(0x005F5BA0, CInterface3D::CreateScreen);
 void CInterface3D::ShowMessage(int force) {
     bool forced = static_cast<std::uint8_t>(force) != 0;
     if (!forced) {
-        using Node = stlp::list<mfc::CString>::Node;
+        using Node = stlp::list<std::string>::Node;
         Node* header = messages_.head;
         Node* node = header->next;
         if (node == header) return;
-        std::string text = node->data.GetString();
+        std::string text = node->data;
         messages_.Erase(node);
         messageText_ = text;
         messageFlag_ = 0;

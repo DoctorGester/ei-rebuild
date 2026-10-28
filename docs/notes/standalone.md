@@ -1855,10 +1855,11 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
   `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most), 8 (the dword sets),
   20 in game.exe (string keys; ours are sizeof(Node) with std::string keys), 32 (find_or_insert 004E2E90).
 - **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
-- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_cstring; net_connection_trees, library_trees): SGI 3.x's tree
+- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_mbs; net_connection_trees, library_trees): SGI 3.x's tree
   (`_M_insert(x, y, v)`, RET 0x10, the hint insert falls back to `insert_unique(v)`); the node colour is a byte;
-  `stlp::CStringLess` is `_mbscmp < 0`; the sent-ids map compares signed. operator[] of records and attached ids
-  inserts a partly uninitialised value in the original.
+  `stlp::MbsLess` (the keys that were CStrings: the console commands, the help topics) is `_mbscmp < 0`; the
+  sent-ids map compares signed. operator[] of records and attached ids inserts a partly uninitialised value in the
+  original.
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`

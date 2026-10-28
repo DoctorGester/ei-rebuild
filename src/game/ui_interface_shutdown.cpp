@@ -59,7 +59,7 @@ void CInterface3D::Shutdown() {
         std::string line;
         using Topics = decltype(helpTopics_);
         for (Topics::Node* n = helpTopics_.begin(); n != helpTopics_.end(); n = Topics::Next(n)) {
-            line = str::Format(game::TutorialLineFormat(), n->first.GetString(), n->second);
+            line = str::Format(game::TutorialLineFormat(), n->first.c_str(), n->second);
             file.WriteString(line.c_str());
         }
         file.Close();
@@ -99,8 +99,8 @@ void CInterface3D::DestroyBody() {
     std::destroy_at(&savedText_);
     std::destroy_at(&messageText_);
     helpTopics_.Destroy();
-    messages_.ClearWith([](mfc::CString* text) { std::destroy_at(text); });
-    stlp::deallocate(messages_.head, sizeof(stlp::list<mfc::CString>::Node));
+    messages_.ClearWith([](std::string* text) { std::destroy_at(text); });
+    stlp::deallocate(messages_.head, sizeof(stlp::list<std::string>::Node));
     if (stack_.Start()) {
         stlp::deallocate(stack_.Start(), static_cast<std::size_t>(stack_.EndOfStorage() - stack_.Start()) * sizeof(CUiWindow*));
     }
