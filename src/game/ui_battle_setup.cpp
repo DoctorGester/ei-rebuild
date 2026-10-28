@@ -46,10 +46,6 @@ CHudUnitPanel::CHudUnitPanel(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
 
 CHudMap::CHudMap(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     for (UiPointArray* points : {&viewPolygon_, &visibleArea_}) {
-        points->data = nullptr;
-        points->growBy = 0;
-        points->capacity = 0;
-        points->size = 0;
     }
 }
 

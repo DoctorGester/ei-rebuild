@@ -16,6 +16,7 @@
 #include <concepts>
 #include <bit>
 #include <cstring>
+#include <memory>
 #include <new>
 #include "game_lists.h"
 #include "game_data.h"
@@ -755,7 +756,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         at = 0x7FFFFFFF;
         break;
     case 3: {
-        int n = markers.size;
+        int n = std::ssize(markers);
         if (n == 0) {
             m = 1;
             at = 0x7FFFFFFF;

@@ -19,6 +19,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <vector>
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/mfc_slots.h"
@@ -46,13 +48,13 @@ static_assert(sizeof(SpriteArray) == 0x14);
 constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
 void __cdecl DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
-constinit lib::AlignedArray<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
-lib::AlignedArray<LightningPoint>& GlowPoints() { return g_glowPoints; }
-void __cdecl FreeGlowPoints() { g_glowPoints.FreeData(); }
+constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
+std::vector<LightningPoint>& GlowPoints() { return g_glowPoints; }
+void __cdecl FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
 void SizeSprites() { Sprites().SetSize(8); }
-void SizePoints() { GlowPoints().SetSize(8); }
+void SizePoints() { GlowPoints().resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
@@ -72,10 +74,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     if (!(g_glowGuards & 2)) {
         g_glowGuards |= 2;
         LightningPointArray& p = GlowPoints();
-        p.data = nullptr;
-        p.growBy = 0;
-        p.capacity = 0;
-        p.size = 0;
+        std::construct_at(&p);
         libcrt::AtExit(FreeGlowPoints);
     }
     TextureHolderEnsureLoaded(&glowTexture_);
@@ -105,7 +104,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * 0.125f /*0073C520*/;   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
-        LightningPoint& p = GlowPoints().data[j];
+        LightningPoint& p = GlowPoints()[j];
         p.x = position->x + along.x;
         p.y = position->y + along.y;
         p.z = position->z + along.z;
@@ -134,16 +133,16 @@ int CLightning::Draw(CSceneRenderer* device) {
         for (LightningSegment& b : branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthZXY(main_.step) * static_cast<float>(main_.points.size) * 0.6f /*0073C4FC*/;
+        float span = LengthZXY(main_.step) * static_cast<float>(std::ssize(main_.points)) * 0.6f /*0073C4FC*/;
         renderer->DrawStrip(&main_.points, main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : branches_) {
             offset = RandomOffset();
-            span = LengthZXY(b.step) * static_cast<float>(b.points.size) * 0.6f /*0073C4FC*/;
+            span = LengthZXY(b.step) * static_cast<float>(std::ssize(b.points)) * 0.6f /*0073C4FC*/;
             renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
 
-    float count = static_cast<float>(main_.points.size);
+    float count = static_cast<float>(std::ssize(main_.points));
     Vector3 start = main_.start;
     Vector3 run{count * main_.step.x, count * main_.step.y, count * main_.step.z};
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};

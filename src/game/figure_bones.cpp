@@ -45,7 +45,7 @@ void FigureBone::Place(const Vector3* origin) {
         mesh->localPosition_ = position;
         mesh->localRotation_ = rotation;
         // The pose's morphed vertices ({data, count}; read even without a pose, like the original).
-        CFigureMesh::OffsetSpan vertices{pose->vertices.data, pose->vertices.size};
+        CFigureMesh::OffsetSpan vertices{pose->vertices.data(), std::ssize(pose->vertices)};
         mesh->SetOffsets(&vertices);
     }
     for (auto* node = children.head; node;) {

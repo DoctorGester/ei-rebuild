@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CObject3D;
 
@@ -197,7 +198,7 @@ public:
     // file does not open, else 1.
     int LoadPath(const char* name, int settle);
     // the recorded path's keys (grow step 0: an eighth of the size, 4..1024)
-    lib::AlignedArray<CameraKey> keys_;
+    std::vector<CameraKey> keys_;
     float timeOffset_;
     int keyIndex_;
 };

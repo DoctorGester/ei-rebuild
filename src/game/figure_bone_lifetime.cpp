@@ -32,10 +32,6 @@ FigureBone::FigureBone() {
     children.blocks = nullptr;
     children.blockSize = kChildBlockSize;
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
-    matrices.data = nullptr;
-    matrices.growBy = 0;
-    matrices.capacity = 0;
-    matrices.size = 0;
     CreateBone();
 }
 
@@ -53,7 +49,7 @@ int FigureBone::CreateBone() {
     counted58 = nullptr;
     position = kTrackDefaultPosition;
     rotation = kTrackDefaultRotation;
-    matrices.SetSizeDiscard(0);
+    matrices.clear();
     morphS = 0.0f;
     morphT = 0.0f;
     morphU = 0.0f;
@@ -77,7 +73,6 @@ void FigureBone::DestroyBone() {
 // The names go after the body (name3, name2, name), then the engine object's part.
 FigureBone::~FigureBone() {
     DestroyBone();   // its reset empties the matrices here, the same SetSize
-    if (matrices.data) lib::AlignedArray<Matrix4>::Free(matrices.data);
     // The child list's destructor: its vtable, RemoveAll again.
     children.vtable = mfc::impl::BoneListClass::Vtable();
     children.RemoveAll();

@@ -4,19 +4,21 @@
 // never used: config/unread_data.csv.
 #include "device_buffers.h"
 
+#include <vector>
+
 namespace devicebuffers {
 
-constinit lib::AlignedArray<std::uint16_t> g_clipIndices = /*007AEDE0*/ {};
-constinit lib::AlignedArray<TLVertex> g_vertices = /*007AEE00*/ {};
-constinit lib::AlignedArray<ProjectedVertex> g_projected = /*007AEE10*/ {};
-constinit lib::AlignedArray<std::uint8_t> g_cornerOutcodes = /*007AEE20*/ {};
-constinit lib::AlignedArray<std::uint8_t> g_outcodes = /*007AEE30*/ {};
+constinit std::vector<std::uint16_t> g_clipIndices = /*007AEDE0*/ {};
+constinit std::vector<TLVertex> g_vertices = /*007AEE00*/ {};
+constinit std::vector<ProjectedVertex> g_projected = /*007AEE10*/ {};
+constinit std::vector<std::uint8_t> g_cornerOutcodes = /*007AEE20*/ {};
+constinit std::vector<std::uint8_t> g_outcodes = /*007AEE30*/ {};
 
 // The exit functions: each frees its array's block (the fields stay).
-void __cdecl FreeOutcodes() { g_outcodes.FreeData(); }
-void __cdecl FreeCornerOutcodes() { g_cornerOutcodes.FreeData(); }
-void __cdecl FreeProjected() { g_projected.FreeData(); }
-void __cdecl FreeVertices() { g_vertices.FreeData(); }
-void __cdecl FreeClipIndices() { g_clipIndices.FreeData(); }
+void __cdecl FreeOutcodes() { lib::FreeStorage(g_outcodes); }
+void __cdecl FreeCornerOutcodes() { lib::FreeStorage(g_cornerOutcodes); }
+void __cdecl FreeProjected() { lib::FreeStorage(g_projected); }
+void __cdecl FreeVertices() { lib::FreeStorage(g_vertices); }
+void __cdecl FreeClipIndices() { lib::FreeStorage(g_clipIndices); }
 
 } // namespace devicebuffers

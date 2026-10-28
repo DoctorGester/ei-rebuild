@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace aligned {
 
@@ -18,7 +19,7 @@ struct Blob {
 };
 static_assert(sizeof(Blob<6>) == 6 && sizeof(Blob<12>) == 12 && sizeof(Blob<64>) == 64);
 
-using Dwords = lib::AlignedArray<std::uint32_t>;
+using Dwords = std::vector<std::uint32_t>;
 
 // ---- Allocate(count) (the aligned data pointer) -------------------------------------------------
 std::uint32_t* __fastcall AllocateDwords(int count) { return Dwords::Allocate(count); }

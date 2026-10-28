@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cfloat>
+#include <vector>
 
 namespace {
 
@@ -44,12 +45,12 @@ constexpr int kBlock = 4;   // projected positions come in blocks of four
 } // namespace
 
 // The bounds of TL vertices; with `outcodes` only of those whose outcode is 0 (the clipper's output: on screen).
-int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices,
+int CTextureDevice::BoundsOfVertices(const std::vector<TLVertex>* vertices,
                                       const std::uint8_t* outcodes) {
     ScreenBounds bounds;
-    for (int i = 0; i < vertices->size; ++i) {
+    for (int i = 0; i < std::ssize(*vertices); ++i) {
         if (outcodes && outcodes[i] != 0) continue;
-        const TLVertex& vertex = vertices->data[i];
+        const TLVertex& vertex = (*vertices)[i];
         bounds.Include(vertex.x, vertex.y);
     }
     return bounds.Store(this);
@@ -57,13 +58,13 @@ int CTextureDevice::BoundsOfVertices(const lib::AlignedArray<TLVertex>* vertices
 
 // The same of projected positions, whole blocks of four at a time (a size that is not a multiple of four reads to
 // the end of its last block).
-int CTextureDevice::BoundsOfProjected(const lib::AlignedArray<devicebuffers::ProjectedVertex>* positions,
+int CTextureDevice::BoundsOfProjected(const std::vector<devicebuffers::ProjectedVertex>* positions,
                                        const std::uint8_t* outcodes) {
     ScreenBounds bounds;
-    for (int i = 0; i < positions->size; i += kBlock) {
+    for (int i = 0; i < std::ssize(*positions); i += kBlock) {
         for (int k = i; k < i + kBlock; ++k) {
             if (outcodes && outcodes[k] != 0) continue;
-            const devicebuffers::ProjectedVertex& position = positions->data[k];
+            const devicebuffers::ProjectedVertex& position = (*positions)[k];
             bounds.Include(position.x, position.y);
         }
     }

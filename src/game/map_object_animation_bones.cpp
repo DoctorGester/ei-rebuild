@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -64,10 +65,10 @@ void ClearTrack(AnimationTrack* track) {
     track->rotationCount = 0;
     track->rotations = nullptr;
     track->vertexCount = 0;
-    track->frames.SetSize(0, -1);
+    track->frames.clear();
     track->position = kTrackDefaultPosition;
     track->rotation = kTrackDefaultRotation;
-    track->vertices.RemoveAll();
+    track->vertices.clear();
     track->time = 0.0f;
 }
 

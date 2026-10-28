@@ -6,6 +6,8 @@
 
 #include "lib/crt.h"
 
+#include <vector>
+
 namespace {
 constexpr std::uint32_t kKeyLowBits = 0x7FFF;          // variant bits a key may ask for
 constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
@@ -16,11 +18,11 @@ bool Accepts(CObject3D* object, const FigureAnimation* animation) {
 }
 
 // The candidate list: an aligned array of the database's entries (AlignedPtrArray's code).
-using AnimationList = lib::AlignedArray<FigureAnimation*>;
+using AnimationList = std::vector<FigureAnimation*>;
 
 // The local list's storage (32-byte aligned; the block from operator new kept before it).
 void FreeCandidates(AnimationList& list) {
-    if (list.data) gamecrt::operator_delete(list.data[-1]);
+    if (!list.empty()) gamecrt::operator_delete(list[-1]);
 }
 
 // rand() scaled to 0..count-1 as the game does.
@@ -37,10 +39,10 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         std::uint32_t entryKey = entry->key;
         bool variant = wanted == 0 ? (entryKey & kKeyLowBits) == 0 : (~entryKey & key & kKeyLowBits) == 0;
         if (!variant || ((entryKey ^ key) & kKeyKindBits) != 0) continue;
-        if (Accepts(this, entry)) candidates.SetAtGrow(candidates.size, entry);
+        if (Accepts(this, entry)) lib::SetAtGrow(candidates, std::ssize(candidates), entry);
     }
-    FigureAnimation** list = candidates.data;
-    int count = candidates.size;
+    FigureAnimation** list = candidates.data();
+    int count = std::ssize(candidates);
     if (count < 2) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
         FreeCandidates(candidates);
@@ -68,15 +70,15 @@ FigureAnimation* CObject3D::RandomAnimationOfKind(std::uint32_t key) {
         FigureAnimation* entry = &animations->animations[i];
         if (((entry->key ^ key) & kKeyKindBits) != 0) continue;
         if (!Accepts(this, entry)) continue;
-        int index = candidates.size;
-        candidates.SetSize(index + 1, -1);
-        candidates.data[index] = entry;
+        int index = std::ssize(candidates);
+        candidates.resize(index + 1);
+        candidates[index] = entry;
     }
-    if (candidates.size == 0) {
+    if (candidates.empty()) {
         FreeCandidates(candidates);
         return nullptr;
     }
-    FigureAnimation* picked = candidates.data[RandomIndex(candidates.size)];
+    FigureAnimation* picked = candidates[RandomIndex(std::ssize(candidates))];
     FreeCandidates(candidates);
     return picked;
 }

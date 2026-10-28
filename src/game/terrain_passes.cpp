@@ -33,7 +33,7 @@ float DetailFar() { return options::TheOptions()->lod2_; }
 // there once lit; a visit returning false ends the walk (false).
 template <typename Visit>
 bool ForVisibleSectors(Terrain* terrain, Visit visit) {
-    for (int row = 0; row < terrain->visibleColumnFirst.size; ++row) {
+    for (int row = 0; row < std::ssize(terrain->visibleColumnFirst); ++row) {
         for (int column = terrain->visibleColumnFirst[row]; column <= terrain->visibleColumnLast[row]; ++column) {
             SectorData* sector = terrain->SectorAt(column, terrain->visibleRowFirst + row, kLit, 1);
             if (sector && !visit(sector)) return false;
@@ -44,7 +44,7 @@ bool ForVisibleSectors(Terrain* terrain, Visit visit) {
 
 bool HasTilesOn(const SectorData* sector, int page) {
     for (const auto& quarter : sector->tiles)
-        if (quarter[page].size != 0) return true;
+        if (!quarter[page].empty()) return true;
     return false;
 }
 

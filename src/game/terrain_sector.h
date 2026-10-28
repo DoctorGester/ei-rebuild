@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #include "model.h"     // ClipBounds
 #include "terrain.h"
@@ -121,7 +122,7 @@ struct FlagArrayElements {
     static void Construct(FlagArray* arrays, int count);
     static void Destruct(FlagArray* arrays, int count);
 };
-using TileList = lib::AlignedArray<TileVertex>;
+using TileList = std::vector<TileVertex>;
 struct TileListElements {
     static void Construct(TileList* lists, int count);
     static void Destruct(TileList* lists, int count);
@@ -151,13 +152,13 @@ struct SectorData {
     int detail, seamBefore, seamAfter;
     mfc::CArray<SectorPosition> vertices;
     mfc::CArray<SectorVertex, RecordElements> records;
-    lib::AlignedArray<int> tileTextures;      // per tile, ground then water tiles
+    std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[0x100];
-    lib::AlignedArray<int> waterTiles;        // water material per tile, -1 none
+    std::vector<int> waterTiles;        // water material per tile, -1 none
     mfc::CArray<FlagArray, FlagArrayElements> tileFlags[4];  // per quarter, per page
     mfc::CArray<TileList, TileListElements> tiles[4];        // per quarter, per page (9 per tile)
-    lib::AlignedArray<AnimatedTile> animated;
-    lib::AlignedArray<int> classCounts;       // 16 texture classes
+    std::vector<AnimatedTile> animated;
+    std::vector<int> classCounts;       // 16 texture classes
     int lastUsed;                       // owner frame of the last use
     int relightCountdown;               // frames until the lighting is dropped (RelightTick), -1 none
     std::uint8_t spare38C;              // cleared with the rest; nothing reads it
@@ -218,13 +219,8 @@ struct SectorData {
     // those before / after in x are drawn at detail 2.
     void FindSeams();
 };
-static_assert(sizeof(SectorData) == 0x394);
 static_assert(offsetof(SectorData, minZ) == 0x154);
 static_assert(offsetof(SectorData, vertices) == 0x17C);
-static_assert(offsetof(SectorData, tileFlags) == 0x2C4);
-static_assert(offsetof(SectorData, tiles) == 0x314);
-static_assert(offsetof(SectorData, animated) == 0x364);
-static_assert(offsetof(SectorData, lastUsed) == 0x384);
 
 struct TerrainMaterial {
     int kind;                           // 4: water that keeps the ground's x, y

@@ -18,6 +18,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -27,21 +28,21 @@ using devicebuffers::ProjectedVertex;
 
 // The engine's aligned arrays (lib::AlignedArray; the SetSize calls,
 // for the element sizes, which AlignedArray::Allocate matches).
-constinit lib::AlignedArray<TLVertex> g_strip = /*007AF000*/ {};
-lib::AlignedArray<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
-void __cdecl FreeStrip() { g_strip.FreeData(); }
-constinit lib::AlignedArray<TLVertex> g_ribbon = /*007AF010*/ {};
-lib::AlignedArray<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
-void __cdecl FreeRibbon() { g_ribbon.FreeData(); }
-constinit lib::AlignedArray<ProjectedVertex> g_projected = /*007AF020*/ {};
-lib::AlignedArray<ProjectedVertex>& Projected() { return g_projected; }
-void __cdecl FreeProjected() { g_projected.FreeData(); }
-constinit lib::AlignedArray<std::uint16_t> g_indices = /*007AF030*/ {};
-lib::AlignedArray<std::uint16_t>& Indices() { return g_indices; }
-void __cdecl FreeIndices() { g_indices.FreeData(); }
-constinit lib::AlignedArray<std::uint8_t> g_clipped = /*007AF040*/ {};
-lib::AlignedArray<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
-void __cdecl FreeClipped() { g_clipped.FreeData(); }
+constinit std::vector<TLVertex> g_strip = /*007AF000*/ {};
+std::vector<TLVertex>& Strip() { return g_strip; }      // TL vertices of the points
+void __cdecl FreeStrip() { lib::FreeStorage(g_strip); }
+constinit std::vector<TLVertex> g_ribbon = /*007AF010*/ {};
+std::vector<TLVertex>& Ribbon() { return g_ribbon; }     // TL vertices, two per point
+void __cdecl FreeRibbon() { lib::FreeStorage(g_ribbon); }
+constinit std::vector<ProjectedVertex> g_projected = /*007AF020*/ {};
+std::vector<ProjectedVertex>& Projected() { return g_projected; }
+void __cdecl FreeProjected() { lib::FreeStorage(g_projected); }
+constinit std::vector<std::uint16_t> g_indices = /*007AF030*/ {};
+std::vector<std::uint16_t>& Indices() { return g_indices; }
+void __cdecl FreeIndices() { lib::FreeStorage(g_indices); }
+constinit std::vector<std::uint8_t> g_clipped = /*007AF040*/ {};
+std::vector<std::uint8_t>& Clipped() { return g_clipped; }    // a flag byte per point
+void __cdecl FreeClipped() { lib::FreeStorage(g_clipped); }
 std::uint8_t g_guards = /*007AF050*/ {};   // the function-local arrays constructed
 // The texture coordinates of the next cross section: u and the two v values.
 float g_bottomV = /*007AF054*/ {};
@@ -50,9 +51,9 @@ float g_currentU = /*007AF05C*/ {};
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
-void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, void(__cdecl* onExit)()) {
+void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onExit)()) {
     if (g_guards & bit) return;
-    array = lib::AlignedArray<T>{};
+    array = std::vector<T>{};
     g_guards |= bit;
     libcrt::AtExit(onExit);
 }
@@ -108,19 +109,19 @@ void EmitFirstSection(const TLVertex* first, const TLVertex* next, TLVertex** ar
 // The two triangles of the last two cross sections (count - 4 .. count - 1).
 void AddQuad(int count, bool firstBySetAtGrow) {
     if (firstBySetAtGrow) {
-        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 4));
-        Indices().SetAtGrow(Indices().size, static_cast<unsigned short>(count - 3));
+        lib::SetAtGrow(Indices(), std::ssize(Indices()), static_cast<unsigned short>(count - 4));
+        lib::SetAtGrow(Indices(), std::ssize(Indices()), static_cast<unsigned short>(count - 3));
     } else {
-        Indices().Add(static_cast<unsigned short>(count - 4));
-        Indices().Add(static_cast<unsigned short>(count - 3));
+        Indices().push_back(static_cast<unsigned short>(count - 4));
+        Indices().push_back(static_cast<unsigned short>(count - 3));
     }
-    Indices().Add(static_cast<unsigned short>(count - 2));
-    Indices().Add(static_cast<unsigned short>(count - 2));
-    Indices().Add(static_cast<unsigned short>(count - 3));
-    Indices().Add(static_cast<unsigned short>(count - 1));
+    Indices().push_back(static_cast<unsigned short>(count - 2));
+    Indices().push_back(static_cast<unsigned short>(count - 2));
+    Indices().push_back(static_cast<unsigned short>(count - 3));
+    Indices().push_back(static_cast<unsigned short>(count - 1));
 }
 
-TLVertex* StripAt(int i) { return Strip().data + i; }
+TLVertex* StripAt(int i) { return Strip().data() + i; }
 TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
@@ -148,9 +149,9 @@ void __fastcall EmitSection(const TLVertex* src, const float* direction, TLVerte
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
 // the previous one), else (1, 0). Returns out.
 float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
-    const auto* points = static_cast<const lib::AlignedArray<TLVertex>*>(array);
-    const TLVertex* v = points->data;
-    if (mode == 1 || (mode == 2 && !(index < points->size - 1))) {
+    const auto* points = static_cast<const std::vector<TLVertex>*>(array);
+    const TLVertex* v = points->data();
+    if (mode == 1 || (mode == 2 && !(index < std::ssize(*points) - 1))) {
         out[0] = v[index].x - v[index - 1].x;
         out[1] = v[index].y - v[index - 1].y;
     } else if (mode == 2) {
@@ -195,17 +196,17 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
 
     int n = points[1];
     if (n == 0) {
-        Projected().RemoveAll();
-        Strip().RemoveAll();
+        Projected().clear();
+        Strip().clear();
     } else {
-        Projected().SetSize(n);
-        Strip().SetSize(n);
+        Projected().resize(n);
+        Strip().resize(n);
     }
-    Ribbon().SetSize(n * 2 + 100);
-    Clipped().SetSize(n);
+    Ribbon().resize(n * 2 + 100);
+    Clipped().resize(n);
     // The index array is sized for the ribbon and then freed at once; the indices are appended later.
-    Indices().SetSize(Ribbon().size * 3 + 0x96);
-    Indices().RemoveAll();
+    Indices().resize(std::ssize(Ribbon()) * 3 + 0x96);
+    Indices().clear();
 
     if (mode == 2) return 1;
     if (points[1] < 2) return 1;
@@ -220,44 +221,44 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
 
     int clipped = mode;
     if (mode == 0) {
-        transform->ProjectPoints(pipeline->Top(1), reinterpret_cast<const void*>(points[0]), Projected().data,
+        transform->ProjectPoints(pipeline->Top(1), reinterpret_cast<const void*>(points[0]), Projected().data(),
                                  points[1]);
     } else {
         clipped = transform->ProjectPointsClipped(pipeline->Top(CTransformPipeline::kClipStack),
-                                                  reinterpret_cast<const void*>(points[0]), Projected().data,
-                                                  Clipped().data, points[1]);
+                                                  reinterpret_cast<const void*>(points[0]), Projected().data(),
+                                                  Clipped().data(), points[1]);
         if (clipped == 2) return 1;
     }
 
     // The projected points as TL vertices: opaque white, black specular; the ends transparent.
-    for (int i = 0; i < Projected().size; ++i) {
+    for (int i = 0; i < std::ssize(Projected()); ++i) {
         TLVertex* v = StripAt(i);
-        std::memcpy(v, &Projected().data[i], 16);
+        std::memcpy(v, &Projected()[i], 16);
         v->color = 0xFFFFFFFF;
         v->specular = 0xFF000000;
     }
     StripAt(0)->color = 0x00FFFFFF;
-    StripAt(Projected().size - 1)->color = 0x00FFFFFF;
+    StripAt(std::ssize(Projected()) - 1)->color = 0x00FFFFFF;
 
     int count = 0;
     std::uint32_t widthBits;
     std::memcpy(&widthBits, &width, 4);
     if (clipped == 0) {
         bool started = false;
-        for (int i = 1; i < Strip().size; ++i) {
+        for (int i = 1; i < std::ssize(Strip()); ++i) {
             if (!started) EmitFirstSection(StripAt(i - 1), StripAt(i), RibbonData(), &count, widthBits);
             g_currentU = g_currentU + step;
             float direction[2];
-            StripDirection(direction, i, i == Strip().size - 1 ? 1 : 2, &Strip());
+            StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
             EmitSection(StripAt(i), direction, RibbonData(), &count, width);
             started = true;
             AddQuad(count, true);
         }
     } else {
-        transform->ToScreenClipped(Strip().data, Strip().size);
+        transform->ToScreenClipped(Strip().data(), std::ssize(Strip()));
         bool started = false;
-        for (int i = 1; i < Strip().size; ++i) {
-            const std::uint8_t* flags = Clipped().data;
+        for (int i = 1; i < std::ssize(Strip()); ++i) {
+            const std::uint8_t* flags = Clipped().data();
             if (flags[i - 1] && flags[i]) {
                 g_currentU = g_currentU + step;
                 started = false;
@@ -270,14 +271,14 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
             }
             g_currentU = g_currentU + step;
             float direction[2];
-            StripDirection(direction, i, i == Strip().size - 1 ? 1 : 2, &Strip());
+            StripDirection(direction, i, i == std::ssize(Strip()) - 1 ? 1 : 2, &Strip());
             EmitSection(StripAt(i), direction, RibbonData(), &count, width);
             started = true;
             AddQuad(count, false);
         }
     }
 
-    if (Indices().size == 0) return 1;
+    if (Indices().empty()) return 1;
     IDirect3DDevice7* device = Device(this);
     DWORD savedSource = 0, savedDest = 0;
     device::GetRenderState(device, D3DRENDERSTATE_SRCBLEND, &savedSource);
@@ -286,8 +287,8 @@ int CSceneRenderer::DrawStrip(void* pointArray, float width, int mode, float uLe
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
-    int result = device_->DrawTlTriangles(Ribbon().data, Ribbon().size,
-                                 Indices().data, Indices().size);
+    int result = device_->DrawTlTriangles(Ribbon().data(), std::ssize(Ribbon()),
+                                 Indices().data(), std::ssize(Indices()));
     device::SetRenderState(Device(this), D3DRENDERSTATE_SRCBLEND, savedSource);
     device::SetRenderState(Device(this), D3DRENDERSTATE_DESTBLEND, savedDest);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));

@@ -140,13 +140,9 @@ void CRainSnow::Start(int newMode, float duration) {
 CRainSnow::CRainSnow() {
     ClearFields();
     texture = nullptr;
-    projected.Construct();
-    positions.Construct();
     outcodes.Construct();
     frames.Construct();
-    vertices.Construct();
     indices.Construct();
-    offsets.Construct();
     world = nullptr;
     sound = 0;
     Clear();
@@ -154,13 +150,9 @@ CRainSnow::CRainSnow() {
 
 CRainSnow::~CRainSnow() {
     Clear();
-    offsets.FreeData();
     indices.Destruct();
-    vertices.FreeData();
     frames.Destruct();
     outcodes.Destruct();
-    positions.FreeData();
-    projected.FreeData();
     if (texture) texture->Release();
 }
 

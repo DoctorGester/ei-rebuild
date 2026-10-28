@@ -37,5 +37,5 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
     for (int index : kOrder) lines.AddPoint(corner[index]);
     renderer->DrawLineList(&lines);
-    lines.packets.FreeData();
+    lib::FreeStorage(lines.packets);
 }

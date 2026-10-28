@@ -76,7 +76,7 @@ int CTexture::Create() {
     std::memset(&format_, 0, sizeof(format_));
     format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
     spare64_ = 0;
-    extra_.RemoveAll();
+    extra_.clear();
     return 1;
 }
 
@@ -100,7 +100,7 @@ CTexture::CTexture() {
     std::memset(&format_, 0, sizeof(format_));
     format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
     spare64_ = 0;
-    extra_.SetSize(0, -1);
+    extra_.clear();
 }
 
 // The name goes after the body (its destructor), then CEngineObject's.
@@ -110,7 +110,6 @@ CTexture::~CTexture() {
     spare64_ = 0;
     flags_ = 0;
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
-    if (extra_.data) lib::FreeAligned32(extra_.data);
 }
 
 namespace {

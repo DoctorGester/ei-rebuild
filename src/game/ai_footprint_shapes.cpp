@@ -23,7 +23,7 @@ void ResetSet(FootprintCellSet* set) {
 // The cell record of these footprints. The original appends it from a stack copy whose byte 0x13 and `next`
 // it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the cells are in no bucket.
 void AddCell(FootprintCellSet* set, int x, int y) {
-    int index = set->cells.size;
+    int index = std::ssize(set->cells);
     set->SetSize(index + 1, -1);
     FootprintCell& cell = set->cells[index];
     cell.x = x;

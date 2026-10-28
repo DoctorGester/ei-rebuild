@@ -13,7 +13,9 @@
 #include "../lib/mfc.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
+#include <vector>
 #include "lib/mfc_array.h"
 #include "lib/mfc_coll.h"
 #include "record_arrays.h"
@@ -141,15 +143,15 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
     // Water material per tile.
     if (hasWater) {
-        waterTiles.SetSize(0x100);
+        waterTiles.resize(0x100);
         const std::uint8_t* src = data + 0x4610 + (hasWaterTiles ? 0x200 : 0);
         for (int i = 0; i < 0x100; ++i) {
             std::uint16_t v;
             std::memcpy(&v, src + i * 2, 2);
-            waterTiles.data[i] = v == 0xFFFF ? -1 : v;
+            waterTiles[i] = v == 0xFFFF ? -1 : v;
         }
     } else {
-        waterTiles.RemoveAll();
+        waterTiles.clear();
     }
 
     // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
@@ -174,9 +176,9 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                 } else {
                     // The water material of the vertex: the lowest priority among its tiles'.
                     const VertexTiles& around = owner->vertexTiles[vi];
-                    int m = waterTiles.data[around.tiles[0]];
+                    int m = waterTiles[around.tiles[0]];
                     for (int i = 1; i < around.count; ++i) {
-                        int c = waterTiles.data[around.tiles[i]];
+                        int c = waterTiles[around.tiles[i]];
                         if (c == -1) continue;
                         if (m != -1) EI_NAN_AUDIT(owner->materials[c].priority, owner->materials[m].priority);
                         if (m == -1 || owner->materials[c].priority < owner->materials[m].priority) m = c;
@@ -228,8 +230,8 @@ const std::uint8_t* BuildRecords(SectorData& s) {
             if (layer == 1) {
                 // The first water material among the vertex's tiles.
                 const VertexTiles& around = s.owner->vertexTiles[vi];
-                int m = s.waterTiles.data[around.tiles[0]];
-                for (int i = 1; m == -1 && i < around.count; ++i) m = s.waterTiles.data[around.tiles[i]];
+                int m = s.waterTiles[around.tiles[0]];
+                for (int i = 1; m == -1 && i < around.count; ++i) m = s.waterTiles[around.tiles[i]];
                 rec->waterMaterial = static_cast<std::uint16_t>(m);
                 if (m != -1) {
                     const TerrainMaterial& mat = s.owner->materials[m];
@@ -254,12 +256,12 @@ const std::uint8_t* BuildRecords(SectorData& s) {
 int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
     const Terrain* owner = s.owner;
     int animated = 0;
-    s.classCounts.SetSize(16);
-    std::memset(s.classCounts.data, 0, 16 * 4);
-    s.tileTextures.SetSize(s.hasWaterTiles ? 0x200 : 0x100);
+    s.classCounts.resize(16);
+    std::memset(s.classCounts.data(), 0, 16 * 4);
+    s.tileTextures.resize(s.hasWaterTiles ? 0x200 : 0x100);
 
     const std::uint8_t* src = tiles;
-    int* out = s.tileTextures.data;
+    int* out = s.tileTextures.data();
     std::uint8_t* rotation = s.tileRotation;
     for (int y = 0; y < 32; y += 2) {
         for (int x = 0; x < 32; x += 2, src += 2, ++out) {
@@ -272,11 +274,11 @@ int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
             *out = texture;
             if (IsAnimated(owner, texture)) ++animated;
             ++counts[quarter * 256 + page];
-            ++s.classCounts.data[ClassOf(owner, texture)];
+            ++s.classCounts[ClassOf(owner, texture)];
         }
     }
     if (s.hasWaterTiles) {
-        const int* water = s.waterTiles.data;
+        const int* water = s.waterTiles.data();
         for (int y = 0; y < 32; y += 2) {
             for (int x = 0; x < 32; x += 2, src += 2, ++out) {
                 if (*water++ == -1) {
@@ -291,7 +293,7 @@ int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                 *out = texture;
                 if (IsAnimated(owner, texture)) ++animated;
                 ++counts[quarter * 256 + page];
-                ++s.classCounts.data[ClassOf(owner, texture)];
+                ++s.classCounts[ClassOf(owner, texture)];
             }
         }
     }
@@ -303,14 +305,14 @@ int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
 void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
     Terrain* owner = s.owner;
     const std::uint8_t* src = tiles;
-    const int* water = s.waterTiles.data;
+    const int* water = s.waterTiles.data();
     int animatedIndex = 0;
     int base = 0, pageAdd = 0;
     for (int layer = 0; layer < (s.hasWaterTiles ? 2 : 1); ++layer) {
         if (layer == 1) {
             pageAdd = s.pages + 2;
             base = kVertices;
-            water = s.waterTiles.data;
+            water = s.waterTiles.data();
         }
         for (int row = 0; row < 16; ++row) {
             for (int col = 0; col < 16; ++col) {
@@ -334,12 +336,12 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                 src += 2;
 
                 int& count = counts[quarter * 256 + page];
-                TileVertex* entry = s.tiles[quarter].data[page].data + count * 9;
+                TileVertex* entry = s.tiles[quarter].data[page].data() + count * 9;
                 SectorVertex* rec = s.records.data + vi;
                 if (texture < owner->perPage * owner->pages) {
                     int frames = owner->textureFrames[texture];
                     if (frames != 0) {
-                        AnimatedTile& a = s.animated.data[animatedIndex++];
+                        AnimatedTile& a = s.animated[animatedIndex++];
                         a.frameBase = index;
                         a.vertices = entry;
                         a.rotation = rotation;
@@ -424,10 +426,10 @@ void SectorData::Build() {
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
             tileFlags[q].data[k].SetSize(c, -1);   // CByteArray::SetSize
-            tiles[q].data[k].SetSize(c * 9);
+            tiles[q].data[k].resize(c * 9);
         }
     }
-    animated.SetSize(animatedCount);
+    animated.resize(animatedCount);
     if (hasWaterTiles) hasWaterTiles = 1;
 
     std::memset(counts, 0, sizeof(counts));
@@ -507,13 +509,13 @@ int Terrain::SurfaceClass(float x, float y) {
     terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, 2, 1);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
-    if (sector->hasWater && sector->waterTiles.data[tile] != -1) {
+    if (sector->hasWater && sector->waterTiles[tile] != -1) {
         float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
         const double ground = terrain::RawHeight(this, x, y, 0);
         EI_NAN_AUDIT(ground, water);
-        if (ground < water) return textureClass[sector->tileTextures.data[tile + 0x100]];
+        if (ground < water) return textureClass[sector->tileTextures[tile + 0x100]];
     }
-    return textureClass[sector->tileTextures.data[tile]];
+    return textureClass[sector->tileTextures[tile]];
 }
 
 void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth) {
@@ -542,9 +544,9 @@ namespace {
 // projected positions and outcodes out (16-byte vertices; the input's fourth float is not written).
 using ProjectionVertex = Vector4;
 static_assert(sizeof(ProjectionVertex) == 16);
-using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
-constinit lib::AlignedArray<ProjectionVertex> g_projectionInput = /*007C88F8*/ {};
-constinit lib::AlignedArray<ProjectionVertex> g_projectionOutput = /*007C88E8*/ {};
+using ProjectionBuffer = std::vector<ProjectionVertex>;
+constinit std::vector<ProjectionVertex> g_projectionInput = /*007C88F8*/ {};
+constinit std::vector<ProjectionVertex> g_projectionOutput = /*007C88E8*/ {};
 ProjectionBuffer& ProjectionInput() { return g_projectionInput; }
 ProjectionBuffer& ProjectionOutput() { return g_projectionOutput; }
 
@@ -575,12 +577,12 @@ constexpr int kRow = 33;
 void __cdecl FreeProjectionInput() {
     if (Freed() & 1) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 1);
-    g_projectionInput.FreeData();
+    lib::FreeStorage(g_projectionInput);
 }
 void __cdecl FreeProjectionOutput() {
     if (Freed() & 2) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 2);
-    g_projectionOutput.FreeData();
+    lib::FreeStorage(g_projectionOutput);
 }
 void __cdecl ConstructProjectionOutcodes() {
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
@@ -593,12 +595,12 @@ SectorData* SectorData::Construct() {
     waterMaterials.Construct(mfc::impl::ByteArrayClass::Vtable());
     vertices.Construct(mfc::impl::Vector3ArrayClass::Vtable());
     records.Construct(recordarrays::SectorVertexArrayClass::Vtable());
-    tileTextures.Construct();
-    waterTiles.Construct();
+    std::construct_at(&tileTextures);
+    std::construct_at(&waterTiles);
     for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
     for (auto& lists : tiles) lists.Construct(recordarrays::TerrainAlignedArrayClass::Vtable());
-    animated.Construct();
-    classCounts.Construct();
+    std::construct_at(&animated);
+    std::construct_at(&classCounts);
     detail = 0;
     sx = -1;
     sy = -1;
@@ -617,16 +619,16 @@ SectorData* SectorData::Construct() {
     spare38C = 0;
     spare390 = 0;
     hasSpecular = 0;
-    ProjectionInput().SetSize(kProjectionVertices);
-    ProjectionOutput().SetSize(kProjectionVertices);
-    ProjectionOutcodes().SetSize(ProjectionInput().size, -1);
+    ProjectionInput().resize(kProjectionVertices);
+    ProjectionOutput().resize(kProjectionVertices);
+    ProjectionOutcodes().SetSize(std::ssize(ProjectionInput()), -1);
     return this;
 }
 
 void SectorData::DestructBody() {
     Clear();
-    classCounts.FreeData();
-    animated.FreeData();
+    lib::FreeStorage(classCounts);
+    lib::FreeStorage(animated);
     for (int q = 3; q >= 0; --q) {
         tiles[q].vtable = recordarrays::TerrainAlignedArrayClass::Vtable();
         tiles[q].FreeData();
@@ -635,8 +637,8 @@ void SectorData::DestructBody() {
         tileFlags[q].vtable = mfc::impl::TerrainByteArraysClass::Vtable();
         tileFlags[q].FreeData();
     }
-    waterTiles.FreeData();
-    tileTextures.FreeData();
+    lib::FreeStorage(waterTiles);
+    lib::FreeStorage(tileTextures);
     records.vtable = recordarrays::SectorVertexArrayClass::Vtable();
     records.FreeData();   // each record's light list released
     vertices.vtable = mfc::impl::Vector3ArrayClass::Vtable();
@@ -652,7 +654,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         if (quarterMode[q] == kCulled) continue;
         const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
         const int layers = hasWater != 0 ? 2 : 1;
-        ProjectionVertex* in = ProjectionInput().data;
+        ProjectionVertex* in = ProjectionInput().data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
@@ -660,15 +662,15 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     std::memcpy(in, &p, sizeof(Vector3));
                     ++in;
                 }
-        const int count = static_cast<int>(in - ProjectionInput().data);
-        const int mode = pipeline->ProjectTerrain(ProjectionInput().data, ProjectionOutput().data, ProjectionOutcodes().data,
+        const int count = static_cast<int>(in - ProjectionInput().data());
+        const int mode = pipeline->ProjectTerrain(ProjectionInput().data(), ProjectionOutput().data(), ProjectionOutcodes().data,
                                                   count, BoundsOf(quarters[q]));
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
             quarterMode[q] = kCulled;
             continue;
         }
-        const ProjectionVertex* out = ProjectionOutput().data;
+        const ProjectionVertex* out = ProjectionOutput().data();
         const std::uint8_t* outcode = ProjectionOutcodes().data;
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)

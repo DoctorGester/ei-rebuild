@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include "game_data.h"
 #include "game_singletons.h"
 
@@ -64,7 +65,7 @@ bool CacheMatches(mfc::CFile& file, MmpHeader& header, ReadBuffer& buffer, const
     buffer.size = size;
     if (size != 0) file.Read(buffer.data, static_cast<unsigned>(size));
     file.Close();
-    return size == request->layers.size && std::memcmp(buffer.data, request->layers.data, static_cast<std::size_t>(size)) == 0;
+    return size == std::ssize(request->layers) && std::memcmp(buffer.data, request->layers.data(), static_cast<std::size_t>(size)) == 0;
 }
 
 // The pixel format fields for `format`; 0x5650 (5-6-5) is filled in place.
@@ -210,11 +211,11 @@ int CTextureManager::Compose(mfc::CString* out, const SkinRequest* request, cons
     header.width = static_cast<std::uint32_t>(request->flags);
     header.height = static_cast<std::uint32_t>(request->flags);
     header.mipCount = mipCount;
-    header.extraSize = static_cast<std::uint32_t>(request->layers.size);
+    header.extraSize = static_cast<std::uint32_t>(std::ssize(request->layers));
     int kind = ConversionKind(format);
     if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.c_str());
     file.Write(&header, sizeof(MmpHeader));
-    if (header.extraSize != 0) file.Write(request->layers.data, header.extraSize);
+    if (header.extraSize != 0) file.Write(request->layers.data(), header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }

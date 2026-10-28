@@ -393,11 +393,11 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
 }
 
 void CObject3DClientSpecific::ResetPartAlpha() {
-    for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
+    for (int i = 0; i < std::ssize(materials); ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
 
 void CObject3DClientSpecific::ClearPartTints() {
-    for (int i = 0; i < materials.size; ++i) {
+    for (int i = 0; i < std::ssize(materials); ++i) {
         CMaterial* part = materials[i];
         part->colors.specular.x = 0.0f;
         part->colors.specular.y = 0.0f;

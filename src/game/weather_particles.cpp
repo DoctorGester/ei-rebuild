@@ -110,7 +110,7 @@ ParticleFrame Begin(CRainSnow& layer, float sink, float rise) {
     frame.baseX = x87::fistp(static_cast<float>((eye.x - frame.wind.x * time) * kCellsPerUnit));
     frame.baseY = x87::fistp(static_cast<float>((eye.y - frame.wind.y * time) * kCellsPerUnit));
     layer.particleCount = 0;
-    layer.positions.SetSize(kMaxPackets);
+    layer.positions.resize(kMaxPackets);
     const float below = static_cast<float>(eye.z - kHalfHeight);
     frame.low = below <= 0.0f ? 0.0f : below;
     frame.high = static_cast<float>(kHalfHeight + eye.z);
@@ -125,7 +125,7 @@ constexpr int kJitterX = -59, kJitterY = 67, kJitterZ = -127;
 
 void Put(CRainSnow& layer, float x, float y, float z) {
     const int index = layer.particleCount++;
-    VertexPacket& packet = layer.positions.data[index >> 2];
+    VertexPacket& packet = layer.positions[index >> 2];
     packet.block[0][index & 3] = x;
     packet.block[1][index & 3] = y;
     packet.block[2][index & 3] = z;
@@ -133,12 +133,12 @@ void Put(CRainSnow& layer, float x, float y, float z) {
 
 // The corners built so far projected with the top of the pipeline's stack 2, an outcode each.
 void Project(CRainSnow& layer, CSceneRenderer* renderer) {
-    layer.positions.SetSize((layer.particleCount + 3) >> 2);
-    layer.projected.SetSizeDiscard(layer.positions.size * 4);
-    layer.outcodes.SetSize(layer.positions.size * 4, -1);
+    layer.positions.resize((layer.particleCount + 3) >> 2);
+    layer.projected.resize(std::ssize(layer.positions) * 4);
+    layer.outcodes.SetSize(std::ssize(layer.positions) * 4, -1);
     CTransformPipeline* pipeline = renderer->pipeline_;
-    pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data,
-                                         layer.projected.data, layer.outcodes.data, layer.positions.size);
+    pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
+                                         layer.projected.data(), layer.outcodes.data, std::ssize(layer.positions));
 }
 
 void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex, &projected, sizeof(projected)); }
@@ -156,8 +156,8 @@ void SetFrame(TLVertex* triangle, std::uint8_t frame, float top, float bottom) {
 
 // The vertices kept (three per particle on screen) and taken to the screen.
 int Finish(CRainSnow& layer, CSceneRenderer* renderer, int used) {
-    layer.vertices.SetSizeDiscard(used);
-    if (used != 0) renderer->pipeline_->transform_->ToScreen(layer.vertices.data, layer.vertices.size);
+    layer.vertices.resize(used);
+    if (used != 0) renderer->pipeline_->transform_->ToScreen(layer.vertices.data(), std::ssize(layer.vertices));
     return used;
 }
 
@@ -172,10 +172,10 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
 
     int drops = 0;
     for (int i = 0; i < kGridCells; ++i) {
-        const int a = offsets.data[i];
+        const int a = offsets[i];
         const int row = frame.baseY + a;
         for (int j = 0; j < kGridCells; ++j) {
-            const int b = offsets.data[j];
+            const int b = offsets[j];
             const int col = frame.baseX + b;
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
@@ -221,16 +221,16 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
     }
     Project(*this, renderer);
 
-    vertices.SetSizeDiscard(particleCount);
+    vertices.resize(particleCount);
     const std::uint8_t* frameOf = frames.data;
     int used = 0;
     for (int first = 0; first < particleCount; first += 3, ++frameOf) {
         const std::uint8_t* codes = outcodes.data + first;
         if (codes[0] != 0 || codes[1] != 0 || codes[2] != 0) continue;
-        const Vector4* corners = projected.data + first;
+        const Vector4* corners = projected.data() + first;
         EI_NAN_AUDIT(corners[0].z);
         if (corners[0].z < kNearDepth) continue;
-        TLVertex* triangle = vertices.data + used;
+        TLVertex* triangle = vertices.data() + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], corners[corner]);
         SetFrame(triangle, *frameOf, kRainTop, kRainBottom);
         used += 3;
@@ -243,9 +243,9 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
 
     int flakes = 0;
     for (int i = 0; i < kGridCells; ++i) {
-        const int row = frame.baseY + offsets.data[i];
+        const int row = frame.baseY + offsets[i];
         for (int j = 0; j < kGridCells; ++j) {
-            const int col = offsets.data[j] + frame.baseX;
+            const int col = offsets[j] + frame.baseX;
             const std::uint32_t column = static_cast<std::uint32_t>(col), line = static_cast<std::uint32_t>(row);
             const std::uint32_t seed =
                 (kSnowSeeds[(column * column + line) & (kSeedCount - 1)] - column * 30064u + line * 17843u) & 0xFFFF;
@@ -279,13 +279,13 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
     }
     Project(*this, renderer);
 
-    vertices.SetSizeDiscard(particleCount * 3);
+    vertices.resize(particleCount * 3);
     const std::uint8_t* frameOf = frames.data;
     int used = 0;
     for (int flake = 0; flake < particleCount; ++flake, ++frameOf) {
         if (outcodes.data[flake] != 0) continue;
-        TLVertex* triangle = vertices.data + used;
-        for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected.data[flake]);
+        TLVertex* triangle = vertices.data() + used;
+        for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected[flake]);
         // A triangle around the point, in the projection's units.
         triangle[0].x = triangle[0].x - kFlakeWidth * kHalf;
         triangle[1].x = triangle[1].x + kFlakeWidth * kHalf;
@@ -300,8 +300,8 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
 
 void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
     CTextureDevice* device = renderer->device_;
-    TLVertex* data = vertices.data;
-    const int count = vertices.size;
+    TLVertex* data = vertices.data();
+    const int count = std::ssize(vertices);
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
     gameapi::EnterCriticalSection(TheDeviceLock());
     device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 

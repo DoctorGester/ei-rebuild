@@ -15,11 +15,11 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <vector>
 #include "game_data.h"
 
 // {data, size, capacity, growBy} of world objects; the game compares and sorts them by address.
-using ObjectSet = lib::AlignedArray<CEngineObject*>;
-static_assert(sizeof(ObjectSet) == 0x10);
+using ObjectSet = std::vector<CEngineObject*>;
 
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
     int ia = a->id_;
@@ -32,16 +32,16 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
 // without the scratch array.
 void __fastcall ObjectSetSortUnique(ObjectSet* self) {
-    if (self->size < 2) return;
-    std::sort(self->data, self->data + self->size, address_order::ObjectBefore);
+    if (std::ssize(*self) < 2) return;
+    std::sort(self->data(), self->data() + std::ssize(*self), address_order::ObjectBefore);
     // Each element compared with the one before it in place.
-    CEngineObject** end = self->data + self->size;
-    CEngineObject** out = self->data + 1;
-    for (CEngineObject** p = self->data + 1; p < end; ++p) {
+    CEngineObject** end = self->data() + std::ssize(*self);
+    CEngineObject** out = self->data() + 1;
+    for (CEngineObject** p = self->data() + 1; p < end; ++p) {
         CEngineObject* value = *p;
         if (value != p[-1]) *out++ = value;
     }
-    self->SetSizeDiscardStep(static_cast<int>(out - self->data), -1);
+    self->resize(static_cast<int>(out - self->data()));
 }
 
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
@@ -49,22 +49,22 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
 void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
     ObjectSetSortUnique(current);
-    int most = current->size > sent->size ? current->size : sent->size;
-    added->SetSize(most);
-    gone->SetSize(most);
-    same->SetSize(most);
+    int most = std::ssize(*current) > std::ssize(*sent) ? std::ssize(*current) : std::ssize(*sent);
+    added->resize(most);
+    gone->resize(most);
+    same->resize(most);
 
-    CEngineObject* const* s = sent->data;
-    CEngineObject* const* c = current->data;
-    int sentLeft = sent->size;
-    int currentLeft = current->size;
+    CEngineObject* const* s = sent->data();
+    CEngineObject* const* c = current->data();
+    int sentLeft = std::ssize(*sent);
+    int currentLeft = std::ssize(*current);
     int addedCount = 0, goneCount = 0, sameCount = 0;
     bool changed = false;
     while (sentLeft != 0 && currentLeft != 0) {
         CEngineObject* old = *s;
         CEngineObject* now = *c;
         if (old == now) {
-            same->data[sameCount++] = now;
+            (*same)[sameCount++] = now;
             ++s;
             ++c;
             --sentLeft;
@@ -73,12 +73,12 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
         }
         changed = true;
         if (address_order::ObjectBefore(old, now)) {
-            gone->data[goneCount++] = old;
+            (*gone)[goneCount++] = old;
             ++s;
             old->Release();
             --sentLeft;
         } else {
-            added->data[addedCount++] = now;
+            (*added)[addedCount++] = now;
             ++c;
             ++now->refCount_;
             --currentLeft;
@@ -86,17 +86,17 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
     }
     if (changed || sentLeft != 0 || currentLeft != 0) {
         for (; sentLeft != 0; --sentLeft) {
-            gone->data[goneCount++] = *s++;
+            (*gone)[goneCount++] = *s++;
             s[-1]->Release();
         }
         for (; currentLeft != 0; --currentLeft) {
-            added->data[addedCount++] = *c++;
+            (*added)[addedCount++] = *c++;
             ++c[-1]->refCount_;
         }
-        sent->SetSize(current->size, -1);
-        if (current->size != 0) std::memcpy(sent->data, current->data, static_cast<std::size_t>(current->size) * 4);
+        sent->resize(std::ssize(*current));
+        if (!current->empty()) std::memcpy(sent->data(), current->data(), static_cast<std::size_t>(std::ssize(*current)) * 4);
     }
-    added->SetSize(addedCount, -1);
-    gone->SetSize(goneCount, -1);
-    same->SetSize(sameCount, -1);
+    added->resize(addedCount);
+    gone->resize(goneCount);
+    same->resize(sameCount);
 }

@@ -40,10 +40,6 @@ CCamera::CCamera() {
         view.pitch = DefaultPitch();
     }
     viewStack_.Construct(0);
-    keys_.data = nullptr;
-    keys_.growBy = 0;
-    keys_.capacity = 0;
-    keys_.size = 0;
     std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
@@ -69,7 +65,6 @@ CCamera::CCamera() {
 
 CCamera::~CCamera() {
     targetId_ = -1;
-    if (keys_.data) lib::FreeAligned32(keys_.data);   // block start kept before the keys
     viewStack_.Destroy();   // the nodes, then the map
     shakes_.Destroy();      // the nodes, then the sentinel
 }

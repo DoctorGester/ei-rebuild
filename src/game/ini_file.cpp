@@ -16,6 +16,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -40,12 +41,12 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     std::vector<std::string> codes;
     if (!ini->GetList(section, key, &codes, kListSeparator)) return 0;
-    temp.SetSize(static_cast<int>(codes.size()), -1);
-    for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
+    temp.resize(static_cast<int>(codes.size()));
+    for (int i = 0; i < std::ssize(temp); ++i) temp[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }
 
-template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, lib::AlignedArray<T>* out) {
+template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, std::vector<T>* out) {
     DwordArray temp{nullptr, 0, 0, 0};
     BOOL ok = ReadIntTemp(ini, section, key, temp);
     if (ok) {
@@ -53,7 +54,7 @@ template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, co
         out->SetSize(count);
         for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
-    temp.FreeData();
+    lib::FreeStorage(temp);
     return ok;
 }
 
@@ -148,7 +149,7 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     std::vector<std::string> codes;
     if (!GetList(section, key, &codes, kListSeparator)) return 0;
     int count = static_cast<int>(codes.size());
-    out->SetSize(count);
-    for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
+    out->resize(count);
+    for (int i = 0; i < count; ++i) (*out)[i] = static_cast<std::uint32_t>(std::atoi(codes[i].c_str()));
     return 1;
 }

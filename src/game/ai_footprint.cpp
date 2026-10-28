@@ -10,13 +10,14 @@
 #include "lib/vecmath.h"
 
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 
 // --- Footprint cell sets -------------------------------------------------------------------------
 
 FootprintCellSet* FootprintCellSet::Construct() {
-    cells.Construct();
+    std::construct_at(&cells);
     hashed = true;
     return this;
 }
@@ -28,7 +29,7 @@ constinit lib::StaticObject<FootprintCellSet> g_spellFootprint = /*007C8478*/ {}
 using spellfx::g_spellFootprint;
 
 namespace {
-void __cdecl FreeSpellFootprint() { g_spellFootprint->cells.FreeData(); }
+void __cdecl FreeSpellFootprint() { lib::FreeStorage(g_spellFootprint->cells); }
 } // namespace
 
 void __cdecl ConstructSpellFootprint() {
@@ -36,7 +37,7 @@ void __cdecl ConstructSpellFootprint() {
     libcrt::AtExit(FreeSpellFootprint);
 }
 
-void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
+void FootprintCellSet::SetSize(int size, int grow) { cells.resize(size); }
 
 namespace {
 FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
@@ -48,11 +49,11 @@ FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
 
 void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     int bucket = (cell.x + cell.y) & 15;
-    int index = set->cells.size;
+    int index = std::ssize(set->cells);
     set->SetSize(index + 1, -1);
     set->cells[index] = cell;
-    set->cells[set->cells.size - 1].next = set->buckets[bucket];
-    set->buckets[bucket] = set->cells.size - 1;
+    set->cells[std::ssize(set->cells) - 1].next = set->buckets[bucket];
+    set->buckets[bucket] = std::ssize(set->cells) - 1;
 }
 } // namespace
 
@@ -83,7 +84,7 @@ void FootprintCellSet::GetBounds(int* bounds) const {
     bounds[2] = 100000;
     bounds[3] = 0;
     bounds[1] = 0;
-    for (int i = 0; i < cells.size; ++i) {
+    for (int i = 0; i < std::ssize(cells); ++i) {
         int x = cells[i].x, y = cells[i].y;
         if (!(bounds[0] < x)) bounds[0] = x;
         if (!(bounds[2] < y)) bounds[2] = y;
@@ -272,10 +273,10 @@ bool CAIMap::MarkFootprint(CMapObject* object, bool remove) {
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->cells.size; ++i) ClearOccluderRecord(&set->cells[i]);
+        for (int i = 0; i < std::ssize(set->cells); ++i) ClearOccluderRecord(&set->cells[i]);
         return true;
     }
-    for (int i = 0; i < set->cells.size; ++i) {
+    for (int i = 0; i < std::ssize(set->cells); ++i) {
         if (!AddOccluderRecord(&set->cells[i])) {
             for (int j = 0; j < i; ++j) ClearOccluderRecord(&set->cells[j]);
             return false;

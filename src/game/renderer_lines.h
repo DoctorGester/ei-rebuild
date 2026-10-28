@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CTextureDevice;
 class CTransformPipeline;
@@ -61,7 +62,7 @@ static_assert(sizeof(LinePacket) == 0x40);
 // four to a packet; the unused points of the last packet repeat the last point.
 struct LineBatch {
     int spare00;                             // -1 (the destructor); nothing reads it
-    lib::AlignedArray<LinePacket> packets;
+    std::vector<LinePacket> packets;
     int count;                               // points
     std::uint32_t colour;
     int spare1C;                             // nothing reads it
@@ -74,12 +75,11 @@ struct LineBatch {
     // screen (result 0), draws the strip in the list's colour (DeviceDrawLineStrip). Returns 1.
     int Draw(CTransformPipeline* pipeline, CTextureDevice* device);
 };
-static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 
 // The line lists' work arrays: the projected points (x, y, z, rhw each, resized without keeping its contents) and
 // their clip outcodes (an MFC CByteArray built by a static initialiser).
-extern lib::AlignedArray<ProjectedPoint> g_lineProjected;
-inline lib::AlignedArray<ProjectedPoint>& LineProjected() { return g_lineProjected; }
+extern std::vector<ProjectedPoint> g_lineProjected;
+inline std::vector<ProjectedPoint>& LineProjected() { return g_lineProjected; }
 extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 

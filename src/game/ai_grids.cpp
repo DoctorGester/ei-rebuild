@@ -245,7 +245,7 @@ int CostBand(int cost) {
 } // namespace
 
 void CAIMap::BuildOpenMarks() {
-    for (int i = 0; i < materials.size; ++i) {
+    for (int i = 0; i < std::ssize(materials); ++i) {
         std::uint32_t packed = 0;
         for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
             // The smallest size class is marked as if every type cost 1. (The original also

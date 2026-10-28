@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -32,27 +33,25 @@ float Project(const Vector3& axis, const Vector3& p, float offset) {
 // Keeps the buffer and sets the size to 0; a missing buffer is allocated for 0 elements (the
 // growth branch for a negative capacity is the template's, never taken).
 template <typename T>
-void EmptyKeepingBuffer(lib::AlignedArray<T>* a) {
-    if (!a->data) {
-        a->data = lib::AlignedArray<T>::Allocate(0);
-        a->capacity = 0;
-        a->size = 0;
+void EmptyKeepingBuffer(std::vector<T>* a) {
+    if (a->empty()) {
+        a->resize(0);
         return;
     }
-    if (a->capacity >= 0) {
-        a->size = 0;
+    if (static_cast<int>(a->capacity()) >= 0) {
+        a->clear();
         return;
     }
     int step = a->growBy;
     if (step == 0) {
-        step = a->size / 8;
+        step = std::ssize(*a) / 8;
         if (step < 4) step = 4;
         else if (step > 0x400) step = 0x400;
     }
-    int capacity = step + a->capacity;
+    int capacity = step + static_cast<int>(a->capacity());
     if (capacity <= 0) capacity = 0;
     T* fresh = lib::AlignedArray<T>::Allocate(capacity);
-    lib::AlignedArray<T>::Free(a->data);
+    lib::FreeStorage(*a);
     a->data = fresh;
     a->size = 0;
     a->capacity = capacity;
@@ -137,8 +136,8 @@ DecalBuilder* DecalBuilder::Construct() {
     return this;
 }
 
-void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
-                         lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
+void DecalBuilder::Begin(std::vector<VertexPacket>* points, std::vector<DecalTexCoord>* texCoords,
+                         std::vector<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                          const Vector3* point, float depth) {
     std::memcpy(&direction_, direction, sizeof(Vector3));
     std::memcpy(&point_, point, sizeof(Vector3));
@@ -203,26 +202,26 @@ bool DecalBuilder::Touches(const Vector3* center, float radius) const {
 
 void DecalBuilder::Reserve(int triangles) {
     int corners = triangles * 3;
-    texCoords_->SetSize(corners + vertexCount_);
-    points_->SetSize(corners / 4 + 1 + vertexCount_);
-    indices_->SetSize(indexCount_ + corners, -1);
+    texCoords_->resize(corners + vertexCount_);
+    points_->resize(corners / 4 + 1 + vertexCount_);
+    indices_->resize(indexCount_ + corners);
 }
 
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
     int i = vertexCount_;
-    VertexPacket& packet = points_->data[i / 4];
+    VertexPacket& packet = (*points_)[i / 4];
     std::memcpy(&packet.block[0][i & 3], &v->position.x, 4);
     std::memcpy(&packet.block[1][i & 3], &v->position.y, 4);
     std::memcpy(&packet.block[2][i & 3], &v->position.z, 4);
-    std::memcpy(&texCoords_->data[i].u, &v->u, 4);
-    std::memcpy(&texCoords_->data[i].v, &v->v, 4);
+    std::memcpy(&(*texCoords_)[i].u, &v->u, 4);
+    std::memcpy(&(*texCoords_)[i].v, &v->v, 4);
     vertexCount_ = i + 1;
     return static_cast<std::uint16_t>(i);
 }
 
 void DecalBuilder::Emit(const DecalVertex* tri) {
     for (int k = 0; k < 3; ++k) {
-        std::uint16_t* slot = &indices_->data[indexCount_++];
+        std::uint16_t* slot = &(*indices_)[indexCount_++];
         *slot = AddVertex(&tri[k]);
     }
 }
@@ -274,13 +273,13 @@ void DecalBuilder::AddTerrainTriangle(const Vector3* a, const Vector3* b, const 
 }
 
 void DecalBuilder::Finish() {
-    lib::AlignedArray<VertexPacket>* points = points_;
-    lib::AlignedArray<std::uint16_t>* indices = indices_;
-    points->SetSize((vertexCount_ + 3) / 4);
-    indices->SetSize(indexCount_);
-    for (int i = vertexCount_; i < points->size * 4; ++i) {
-        VertexPacket& packet = points->data[i / 4];
-        const VertexPacket& first = points->data[0];
+    std::vector<VertexPacket>* points = points_;
+    std::vector<std::uint16_t>* indices = indices_;
+    points->resize((vertexCount_ + 3) / 4);
+    indices->resize(indexCount_);
+    for (int i = vertexCount_; i < std::ssize(*points) * 4; ++i) {
+        VertexPacket& packet = (*points)[i / 4];
+        const VertexPacket& first = (*points)[0];
         std::memcpy(&packet.block[0][i & 3], &first.block[0][0], 4);
         std::memcpy(&packet.block[1][i & 3], &first.block[1][0], 4);
         std::memcpy(&packet.block[2][i & 3], &first.block[2][0], 4);

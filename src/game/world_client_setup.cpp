@@ -24,6 +24,7 @@
 #include <bit>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 const float kByteToUnit = std::bit_cast<float>(0x3B808081u);   // 1 / 255
@@ -52,12 +53,12 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
     for (const std::string& key : keys) {
         hour = str::Mid(key, 4, 2);
         int index = std::atoi(hour.c_str());
-        values.SetSize(0, -1);      // the sky section frees the block inline (the same state)
+        values.clear();      // the sky section frees the block inline (the same state)
         ini.GetIntArray(section, key.c_str(), &values);
         LightColour& to = table[index];
-        to.r = static_cast<float>(static_cast<double>(static_cast<int>(values.data[0])) * kByteToUnit);
-        to.g = static_cast<float>(static_cast<double>(static_cast<int>(values.data[1])) * kByteToUnit);
-        to.b = static_cast<float>(static_cast<double>(static_cast<int>(values.data[2])) * kByteToUnit);
+        to.r = static_cast<float>(static_cast<double>(static_cast<int>(values[0])) * kByteToUnit);
+        to.g = static_cast<float>(static_cast<double>(static_cast<int>(values[1])) * kByteToUnit);
+        to.b = static_cast<float>(static_cast<double>(static_cast<int>(values[2])) * kByteToUnit);
         to.a = 1.0f;
         const LightColour& from = table[previous];
         double r = from.r, g = from.g, b = from.b;
@@ -91,7 +92,7 @@ int CWorldClient::LoadLights(const char* file) {
     ReadTable(ini, keys, hour, values, SunlightSection(), sunlight_);
     ReadTable(ini, keys, hour, values, AmbientSection(), ambient_);
     ReadTable(ini, keys, hour, values, SkySection(), sky_);
-    values.SetSize(0, -1);
+    values.clear();
     return 1;
 }
 

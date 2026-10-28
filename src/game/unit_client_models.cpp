@@ -27,6 +27,7 @@
 #include <cstring>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace {
 // The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
@@ -441,12 +442,12 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         SkinRequest request{};
         BuildSkinLayers(detailed, &layers);
         int bytes = layers.size * static_cast<int>(sizeof(SkinLayer));
-        request.layers.SetSize(bytes);
-        std::memcpy(request.layers.data, layers.data, static_cast<std::size_t>(bytes));
+        request.layers.resize(bytes);
+        std::memcpy(request.layers.data(), layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, request, unitKey, prototypeKey, texture);
         result = reinterpret_cast<void*>(
             textureManager->Compose(static_cast<mfc::CString*>(target), &request, &unitKey, &prototypeKey, 3, 0, 0x5551));
-        request.layers.FreeData();
+        lib::FreeStorage(request.layers);
     }
     if (layers.data) gamecrt::operator_delete(layers.data);
     return result;

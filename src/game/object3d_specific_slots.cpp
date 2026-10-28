@@ -19,12 +19,12 @@ void CObject3DClientSpecific::GetScale(float* x, float* y, float* z) {
 
 void CObject3DClientSpecific::RegisterPartMaterials() {
     CMaterialManager* manager = WorldContext()->MaterialManager();
-    if (materials.size <= 0) return;
+    if (materials.empty()) return;
     materialCursor = 0;
     for (CMaterial* material = materials[0]; material;) {
         manager->FillMaterial(material, static_cast<std::uint32_t>(material->type_));
         ++materialCursor;
-        if (materials.size <= materialCursor) break;
+        if (std::ssize(materials) <= materialCursor) break;
         material = materials[materialCursor];
     }
 }

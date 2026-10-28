@@ -11,6 +11,7 @@
 
 #include "lib/stlp.h"
 
+#include <vector>
 #include <windows.h>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
@@ -137,21 +138,21 @@ public:
     virtual bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                            lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) = 0;
     virtual int DrawPartMoved(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                              lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
+                              lib::AlignedArray<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                               std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPart(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                          lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                       lib::AlignedArray<std::uint32_t>* colours,
                                       lib::AlignedArray<std::uint32_t>* speculars,
-                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) = 0;
+                                      std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) = 0;
     virtual int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v) = 0;
     // The shadow of part `name`: its points projected with `matrix` (the part's per-vertex offsets added)
     // into `points`, growing `bounds`; then its projected points `pixels` rasterised into the shadow target.
     // Both return the point count (0 when there is no such part).
-    virtual int ProjectPart(const std::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+    virtual int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                             Vector2* points, float* bounds) = 0;
     virtual int RasterisePart(const std::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) = 0;
 
@@ -185,17 +186,17 @@ public:
     bool LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                    lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars) override;
     int DrawPartMoved(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
-                      lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
+                      lib::AlignedArray<std::uint32_t>* speculars, std::vector<Vector3>* offsets,
                       std::uint32_t u, std::uint32_t v) override;
     int DrawPart(const std::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                  lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v) override;
     int DrawPartMovedTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                               lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
-                              lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) override;
+                              std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) override;
     int DrawPartTextured(const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                          lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                          std::uint32_t u, std::uint32_t v) override;
-    int ProjectPart(const std::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+    int ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                     Vector2* points, float* bounds) override;
     int RasterisePart(const std::string* name, const RasterTriangle::Point* pixels, RasterTarget* target) override;
 
@@ -221,12 +222,12 @@ public:
 
     RECT screenRect_;
     float morphWeights_[3];           // the morph coefficients (s, t, u) the figure was loaded with
-    lib::AlignedArray<VertexPacket> vertices_;
-    lib::AlignedArray<NormalPacket> normals_;
-    lib::AlignedArray<TexCoord> texCoords_;
+    std::vector<VertexPacket> vertices_;
+    std::vector<NormalPacket> normals_;
+    std::vector<TexCoord> texCoords_;
     TriangleIndexArray corners_;            // 6-byte triangle corners (MeshCorner)
-    lib::AlignedArray<std::uint32_t> words_;
-    lib::AlignedArray<std::uint16_t> indices_;
+    std::vector<std::uint32_t> words_;
+    std::vector<std::uint16_t> indices_;
     LinkRangeMap ranges_;
     CLinkFigureLoader* loader_;
     ITransformPipeline* pipeline_;

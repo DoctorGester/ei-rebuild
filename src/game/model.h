@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 // ---- 3D library ---------------------------------------------------------------------------------
 
@@ -210,7 +211,7 @@ class CPixelConverter;
 class CFigureMesh;
 class CMaterial;
 // The lights a figure part is lit with (the draw's lights argument).
-using FigureLights = lib::AlignedArray<CLight*>;
+using FigureLights = std::vector<CLight*>;
 struct LineBatch;
 
 // A render state preset the renderer's helper keeps (counted).
@@ -523,7 +524,7 @@ struct MeshCorner {
     std::uint16_t texCoord;
 };
 static_assert(sizeof(MeshCorner) == 6);
-using TriangleIndexArray = lib::AlignedArray<MeshCorner>;
+using TriangleIndexArray = std::vector<MeshCorner>;
 
 class CMappedResource;
 

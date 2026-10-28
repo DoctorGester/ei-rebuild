@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -129,7 +130,7 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
 // leave them; the exit functions they register free the blocks (docs/notes/standalone.md, "The static
 // initialisers' objects"). 's array is never used: config/unread_data.csv.
 constinit LineBuffer g_lineVertices = /*007A9CE0*/ {};
-constinit lib::AlignedArray<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
+constinit std::vector<ProjectedPoint> g_lineProjected = /*007A9CB8*/ {};
 constinit lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes = /*007A9CC8*/ {};
 
 namespace {
@@ -141,7 +142,7 @@ void __cdecl DestroyLineOutcodes() {   // (CByteArray's destructor)
 void __cdecl FreeLineVertices() {
     if (g_lineVertices.data) lib::FreeAligned32(g_lineVertices.data);
 }
-void __cdecl FreeLineProjected() { g_lineProjected.FreeData(); }
+void __cdecl FreeLineProjected() { lib::FreeStorage(g_lineProjected); }
 void __cdecl ConstructLineOutcodes() {   // (CByteArray's constructor)
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_lineOutcodes);
     libcrt::AtExit(DestroyLineOutcodes);

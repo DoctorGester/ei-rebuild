@@ -23,7 +23,9 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -94,9 +96,6 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
     alphaScale_ = alphaScale;
     colour_ = colour;
     lifetime_ = lifetime;
-    positions_.Construct();
-    texCoords_.Construct();
-    indices_.Construct();
 }
 
 void GroundPrint::SetTexture(const char* name) {
@@ -209,11 +208,10 @@ int GroundPrint::Draw() {
     if (!built_) {
         // The quad at the height of the ground or the platform under the point.
         CWorldClient* world = TheClientWorld();
-        lib::AlignedArray<VertexPacket> quad;
-        quad.Construct();
+        std::vector<VertexPacket> quad;
         Vector3 at{position_.x, position_.y, 0.0f};
         float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));
-        quad.SetSize(1);
+        quad.resize(1);
         double c = x87::fcos(angle_);
         double s = x87::fsin(angle_);
         // Corners (+w, -l), (-w, -l), (-w, +l), (+w, +l) turned by the angle.
@@ -235,7 +233,7 @@ int GroundPrint::Draw() {
         // it, the others their v part.
         float uc = static_cast<float>(x87::fcos(uvAngle_));
         float us = static_cast<float>(x87::fsin(uvAngle_));
-        int vertices = positions_.size * 4;
+        int vertices = std::ssize(positions_) * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords_[i];
             double du = uv.u - kHalf;
@@ -247,23 +245,22 @@ int GroundPrint::Draw() {
             uv.u = static_cast<float>(u * uvScale_.x + uvOffset_.x);
             uv.v = static_cast<float>(v * uvScale_.y + uvOffset_.y);
         }
-        for (int i = 0; i < positions_.size; ++i)
+        for (int i = 0; i < std::ssize(positions_); ++i)
             for (float& height : positions_[i].block[2]) height = height + kLift;
         built_ = true;
-        quad.FreeData();
     }
     std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = TheRenderDevice();
     device->BindNamedTexture(0, &texture_);
-    return device->DrawFlatBlocks(positions_.data, texCoords_.data, positions_.size,
-                                  indices_.data, indices_.size, colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
+    return device->DrawFlatBlocks(positions_.data(), texCoords_.data(), std::ssize(positions_),
+                                  indices_.data(), std::ssize(indices_), colour_, static_cast<std::uint32_t>(lit_) << 24, nullptr, 1.0f);
 }
 
 void GroundPrint::Destruct() {
-    indices_.FreeData();
-    texCoords_.FreeData();
-    positions_.FreeData();
+    lib::FreeStorage(indices_);
+    lib::FreeStorage(texCoords_);
+    lib::FreeStorage(positions_);
     if (texture_.texture) texture_.texture->Release();
     std::destroy_at(&texture_.name);
 }

@@ -41,7 +41,7 @@ void FrameRatio(int numerator, int denominator, float* out) { *out = static_cast
 void CopyRotationKeys(CAnimationNode* bone, const SceneNode* node) {
     for (int i = 0; i < node->positionKeys.size; ++i) {
         const NodePositionKey& src = node->positionKeys.data[i];
-        AnimationRotationKey& dst = bone->rotationKeys_.data[i];
+        AnimationRotationKey& dst = bone->rotationKeys_[i];
         int frame = src.frame;
         dst.frame = frame;
         dst.next = frame + 1;
@@ -56,7 +56,7 @@ void CopyRotationKeys(CAnimationNode* bone, const SceneNode* node) {
 void CopyTranslationKeys(CAnimationNode* bone, const SceneNode* node) {
     for (int i = 0; i < node->rotationKeys.size; ++i) {
         const NodeRotationKey& src = node->rotationKeys.data[i];
-        AnimationTranslationKey* dst = &bone->translationKeys_.data[i];
+        AnimationTranslationKey* dst = &bone->translationKeys_[i];
         int frame = src.frame;
         dst->frame = frame;
         dst->next = frame + 1;
@@ -89,9 +89,9 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             out.frame = frame;
             ++frame;
             out.next = frame;
-            out.points.SetSize(KeyPoints(node, 0).size, -1);
-            for (int j = 0; j < frames.data[index].points.size; ++j) {
-                Vector3* p = &frames.data[index].points.data[j];
+            out.points.resize(KeyPoints(node, 0).size);
+            for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
+                Vector3* p = &frames.data[index].points[j];
                 if (key <= 0) {
                     std::memcpy(p, &KeyPoints(node, key).data[j], sizeof(Vector3));
                     continue;
@@ -111,13 +111,13 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
         out.frame = frame;
         ++frame;
         out.next = frame;
-        out.points.SetSize(KeyPoints(node, 0).size, -1);
+        out.points.resize(KeyPoints(node, 0).size);
         if (key >= node->morphKeys.size) {
-            frames.data[index].points.Copy(KeyPoints(node, key - 1));
+            frames.data[index].points = KeyPoints(node, key - 1);
             continue;
         }
-        for (int j = 0; j < frames.data[index].points.size; ++j) {
-            Vector3* p = &frames.data[index].points.data[j];
+        for (int j = 0; j < std::ssize(frames.data[index].points); ++j) {
+            Vector3* p = &frames.data[index].points[j];
             const Vector3* a = &KeyPoints(node, key - 1).data[j];
             const Vector3* b = &KeyPoints(node, key).data[j];
             Vector3 d, s, r;
@@ -139,8 +139,8 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
     bone->name_ = node->name;
     bone->frameCount_ = static_cast<short>(frames);
 
-    bone->translationKeys_.SetSize(node->rotationKeys.size);
-    bone->rotationKeys_.SetSize(node->positionKeys.size);
+    bone->translationKeys_.resize(node->rotationKeys.size);
+    bone->rotationKeys_.resize(node->positionKeys.size);
     bone->normals_.SetSize(node->normals.size);
     int morphKeys = node->morphKeys.size;
     bone->morphFrames_.SetSize(morphKeys != 0 ? morphKeys + 1 : 0);
@@ -164,13 +164,13 @@ void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode
         if (bone->morphFrames_.size > 0) BuildMorphFrames(bone, node);
     }
 
-    bone->children_.SetSize(node->children.size, -1);
-    for (int i = 0; i < bone->children_.size; ++i) {
+    bone->children_.resize(node->children.size);
+    for (int i = 0; i < std::ssize(bone->children_); ++i) {
         CAnimationNode* block = gamecrt::operator_new_as<CAnimationNode>();
         CAnimationNode* child = block ? block->Construct() : nullptr;
-        bone->children_.data[i] = child;
-        bone->children_.data[i]->parent_ = bone;
-        BuildBone(skin, bone->children_.data[i], node->children.data[i], frames);
+        bone->children_[i] = child;
+        bone->children_[i]->parent_ = bone;
+        BuildBone(skin, bone->children_[i], node->children.data[i], frames);
     }
 
     const Vector3& pivot = node->offset;

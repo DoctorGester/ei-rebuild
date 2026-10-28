@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CStream;
 class CTexture;
@@ -83,9 +84,9 @@ public:
     float alphaScale_;
     std::uint32_t colour_;          // its alpha byte is set from alpha_ every draw
     int lifetime_;
-    lib::AlignedArray<VertexPacket> positions_;     // the ground geometry (blocks of four)
-    lib::AlignedArray<DecalTexCoord> texCoords_;    // one per vertex
-    lib::AlignedArray<std::uint16_t> indices_;
+    std::vector<VertexPacket> positions_;     // the ground geometry (blocks of four)
+    std::vector<DecalTexCoord> texCoords_;    // one per vertex
+    std::vector<std::uint16_t> indices_;
 };
 static_assert(offsetof(GroundPrint, position_) == 0x08 && offsetof(GroundPrint, life_) == 0x1C);
 

@@ -14,8 +14,8 @@
 
 // The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
 // the inlined SetSize allocates through the engine's aligned allocators).
-using DwordArray = lib::AlignedArray<std::uint32_t>;
-using IntArray = lib::AlignedArray<std::int32_t>;
+using DwordArray = std::vector<std::uint32_t>;
+using IntArray = std::vector<std::int32_t>;
 
 enum RegistryType : std::uint8_t {
     kRegInt = 0,

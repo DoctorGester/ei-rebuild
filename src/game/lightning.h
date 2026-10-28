@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
 
@@ -26,7 +27,7 @@ static_assert(sizeof(LightningPoint) == 16);
 
 // An aligned array of LightningPoint (the raw operator new block is kept just before the data, at data[-1]).
 // Its SetSize is the library instantiation's, reached through LightningPointsSetSize (lightning.cpp).
-using LightningPointArray = lib::AlignedArray<LightningPoint>;
+using LightningPointArray = std::vector<LightningPoint>;
 void __fastcall LightningPointsSetSize(LightningPointArray* points, void*, int newSize, int newGrowBy);
 
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a

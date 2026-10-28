@@ -25,6 +25,8 @@
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
 
+#include <vector>
+
 namespace {
 
 
@@ -260,7 +262,7 @@ void CWorldServer::SendFreshObjects() {
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     CPlayer* temporary = players_->CreateSessionPlayer();
     CPlayerServer* state = temporary->Server();
-    lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
+    std::vector<CEngineObject*> objects;
     for (auto* node = fresh.head; node;) {
         auto* next = node->next;
         CEngineObject* object = node->data;
@@ -271,13 +273,13 @@ void CWorldServer::SendFreshObjects() {
             id = static_cast<unsigned>(object->id_);
             hash400::RemoveKey(otherMapObjects_.map, id);
         }
-        objects.SetAtGrow(objects.size, object);
+        lib::SetAtGrow(objects, std::ssize(objects), object);
         node = next;
     }
     state->SendObjectsAdded(&objects);
     state->WriteTo(header);
     PlayerList()->ReleasePlayer(temporary);
-    if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
+    lib::FreeStorage(objects);
     fresh.vtable = mfc::impl::ClientObjectListClass::Vtable();
     fresh.RemoveAll();
 }

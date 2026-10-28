@@ -66,7 +66,7 @@ void Finish(ObjectListIterator& lights, LightList& list) {
         --lights.manager->refCount_;
         lights.manager = nullptr;
     }
-    if (list.data) lib::FreeAligned32(list.data);
+    lib::FreeStorage(list);
 }
 } // namespace
 
@@ -105,7 +105,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         if (!InReach(object, light)) continue;
         if (light->flags_ & kLightRemoved) continue;
         if (light->flags_ & kLightMoving) object->flags_ &= ~kObjectStatic;
-        list.SetAtGrow(list.size, light);
+        lib::SetAtGrow(list, std::ssize(list), light);
     }
 
     // The object's matrix, and its extra scale when it has one.
@@ -150,8 +150,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
         WoundsMaterial* wounds = woundsMaterial;
         TheRenderDevice()->SetMaterial(k == 0 ? wounds : nullptr);
         set = partSets[k];
-        for (int g = 0; g < set->groups.size; ++g) {
-            for (int p = 0; p < set->groups[g]->parts.size; ++p) {
+        for (int g = 0; g < std::ssize(set->groups); ++g) {
+            for (int p = 0; p < std::ssize(set->groups[g]->parts); ++p) {
                 CFigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
                 if (!(object->flags_ & kObjectStatic)) part->flags_ &= ~kPartMoving;

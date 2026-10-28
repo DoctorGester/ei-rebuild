@@ -16,14 +16,15 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
-constinit lib::AlignedArray<VertexPacket> g_movedPositions = /*007C2E60*/ {};
-lib::AlignedArray<VertexPacket>& MovedPositions() { return g_movedPositions; }
-void __cdecl FreeMovedPositions() { g_movedPositions.FreeData(); }
+constinit std::vector<VertexPacket> g_movedPositions = /*007C2E60*/ {};
+std::vector<VertexPacket>& MovedPositions() { return g_movedPositions; }
+void __cdecl FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
 
 void AddOffset(const float* offset, float* target) { *target = *offset + *target; }
@@ -39,18 +40,18 @@ void Fill(ColourArray& a, std::uint32_t value) {
 }
 
 const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
-    lib::AlignedArray<VertexPacket>& moved = MovedPositions();
+    std::vector<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;
-    moved.SetSize(blocks);
-    if (blocks) std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(blocks) * 64);
-    for (int i = 0; i < mesh->offsets_.size; ++i) {
-        const float* offset = &mesh->offsets_.data[i].x;
-        VertexPacket& packet = moved.data[i >> 2];
+    moved.resize(blocks);
+    if (blocks) std::memcpy(moved.data(), mesh->buffers_.vertices, static_cast<std::size_t>(blocks) * 64);
+    for (int i = 0; i < std::ssize(mesh->offsets_); ++i) {
+        const float* offset = &mesh->offsets_[i].x;
+        VertexPacket& packet = moved[i >> 2];
         AddOffset(&offset[0], &packet.block[0][i & 3]);
         AddOffset(&offset[1], &packet.block[1][i & 3]);
         AddOffset(&offset[2], &packet.block[2][i & 3]);
     }
-    return moved.data;
+    return moved.data();
 }
 
 } // namespace
@@ -62,7 +63,7 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
     if (mesh_->flags_ & 0x80) return 1;
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
-        MovedPositions() = lib::AlignedArray<VertexPacket>{};
+        MovedPositions() = std::vector<VertexPacket>{};
         libcrt::AtExit(FreeMovedPositions);
     }
     int drawFlags = 0;
@@ -89,11 +90,11 @@ int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*
 
     const VertexPacket* positions = mesh_->buffers_.vertices;
     int blocks = mesh_->buffers_.vertexCount;
-    if (mesh_->offsets_.size != 0) positions = MovedPositionsOf(mesh_);
+    if (!mesh_->offsets_.empty()) positions = MovedPositionsOf(mesh_);
     CFigureMesh* m = mesh_;
     const MeshBuffers& b = m->buffers_;
     // The new renderer keeps the mesh on the GPU: what the device's draw below draws.
-    const render::MeshSource source{m, nullptr, m->offsets_.size != 0, (meshFlags & 0x100) != 0};
+    const render::MeshSource source{m, nullptr, !m->offsets_.empty(), (meshFlags & 0x100) != 0};
     render::SetMeshSource(&source);
     int result = device->DrawMeshBlocks(positions, blocks, b.normals, b.normalCount, m->colorsA_.data, m->colorsB_.data,
                                         b.texCoords, b.texCoordCount, b.corners, b.cornerCount, b.words, b.wordCount,
