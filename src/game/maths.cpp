@@ -12,7 +12,7 @@ Vector3* Vector3::Construct(float x_, float y_, float z_) {
 // Dot, Length and the squared length in FromAxisAngle use the unrounded forms: the game keeps the
 // sum unrounded in ST0, and DotZYX / LengthXYZ / LengthSquaredXYZ (the same groupings) round it to
 // float. That is the same value at the main thread's 24-bit precision, not on a 53-bit thread.
-float __fastcall Dot(const Vector3& a, const Vector3& b) {
+float Dot(const Vector3& a, const Vector3& b) {
     return DotUnrounded<Sum3::ZYX>(a, b);
 }
 

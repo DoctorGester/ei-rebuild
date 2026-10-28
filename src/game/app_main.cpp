@@ -468,12 +468,11 @@ float CameraSeconds(std::uint32_t milliseconds) {
 // Three calls of the loop take a harness hook (ei/main_loop.h, tests/verify/harness_hooks.h) when
 // one is set: the frame's last camera update is held still while a scenario is frozen; the server's
 // update and the client's tick are followed by the harness's "speed" hold. Otherwise the function itself.
-using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
 void FrameCameraUpdate(CCamera* camera, float seconds) {
-    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) reinterpret_cast<CameraUpdate>(hook)(camera, nullptr, seconds);
+    if (auto hook = ei::mainloop::g_harnessHooks.frameCameraUpdate) hook(camera, nullptr, seconds);
     else camera->Update(seconds);
 }
-// The hook types are __fastcall (include/ei/main_loop.h): the harness's hooks are also game.exe's CALL targets.
+// Stand-ins in the hook types' convention (__fastcall, include/ei/main_loop.h): in game.exe the harness's hooks are CALL targets.
 int __fastcall UpdateServer(void* server, void*) { return static_cast<CWorldServer*>(server)->Update(); }
 int __fastcall RunClientSegment(void* client, void*) { return static_cast<CWorldClient*>(client)->Segment(); }
 ei::mainloop::HarnessHooks::WorldUpdate ServerUpdate() {

@@ -537,8 +537,8 @@ int __fastcall PickLocationRecord(UnitStats* self, void*, int location) {
 } // namespace
 
 // Not declared in a header (unit_stats.cpp, unit_skill_price.cpp).
-std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage);
-int __fastcall SchoolPrice(int from, int to);
+std::uint16_t MaxDamage(const std::uint16_t* damage);
+int SchoolPrice(int from, int to);
 
 EI_RECORD(0x00523CD0, Period20Record, 6, s_period20, UnitStats::Period20);
 EI_RECORD(0x00525DF0, AttributeBaseRecord, 6, s_attributeBase, UnitStats::AttributeBase);

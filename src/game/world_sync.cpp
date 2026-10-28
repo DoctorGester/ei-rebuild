@@ -67,7 +67,7 @@ void FreeAdded() { lib::FreeStorage(g_added); }
 void FreeKept() { lib::FreeStorage(g_kept); }
 void FreeRemoved() { lib::FreeStorage(g_removed); }
 std::uint8_t g_staticsGuard = /*007AFF58*/ {};
-using AtExitFunction = void(__cdecl*)();
+using AtExitFunction = void(*)();
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
 void DiffSets(std::vector<CEngineObject*>* known, std::vector<CEngineObject*>* current, std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* kept,

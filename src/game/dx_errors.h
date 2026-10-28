@@ -29,7 +29,7 @@ protected:
 
 class CDXException final : public CGameException {
 public:
-    // The wvsprintf text of `format` (cdecl, variadic).
+    // The wvsprintf text of `format` (variadic).
     CDXException(const char* format, va_list args);
     // "<text> (0x<result>) <the result's text>" (DirectXErrorText), and the result kept.
     CDXException(long result, const char* format, va_list args);

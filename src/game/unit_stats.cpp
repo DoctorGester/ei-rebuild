@@ -161,7 +161,7 @@ int LockKey::Opens(const LockKey* lock) const {
     return level >= lock->level ? 1 : 0;
 }
 
-std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
+std::uint32_t ResetDamageInfo(DamageInfo* info) {
     constexpr std::uint32_t kLarge = 0x7C23D70A;
     std::memset(info, 0, 0x3C);
     for (float& weight : info->typeWeights) weight = kOne;
@@ -174,7 +174,7 @@ std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     return kLarge;
 }
 
-BOOL __fastcall HasElementalDamage(const DamageInfo* info) {
+BOOL HasElementalDamage(const DamageInfo* info) {
     EI_NAN_AUDIT(info->typeWeights[3], info->typeWeights[4], info->typeWeights[5]);
     if (info->typeWeights[3] == kZero && info->typeWeights[4] == kZero && info->typeWeights[5] == kZero) {
         return 0;
@@ -192,7 +192,7 @@ std::uint32_t DamageWords::ExcessOver(const DamageWords* protection) const {
 }
 
 // The largest of the damage words 1..7 (unsigned).
-std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage) {
+std::uint16_t MaxDamage(const std::uint16_t* damage) {
     std::uint16_t largest = 0;
     for (int i = 1; i <= kDamageWords; ++i)
         if (largest <= damage[i]) largest = damage[i];

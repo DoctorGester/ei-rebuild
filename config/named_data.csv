@@ -196,7 +196,6 @@ address,size,name,file
 007A9794,4,g_readSnapshot,src/game/net_delta.h
 007A9798,4,g_received,src/game/net_delta.h
 007A9B9C,4,g_fatalErrorCount,src/game/app.cpp
-007A9BA0,4,g_fatalErrorHook,src/game/app.cpp
 007A9BD0,16,g_vertices,src/game/particle_render.cpp
 007A9BE0,20,g_sprites,src/game/particle_render.cpp
 007A9BF4,4,g_arraysConstructed,src/game/particle_render.cpp

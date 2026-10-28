@@ -46,7 +46,7 @@ float g_currentU = /*007AF05C*/ {};
 
 // One function-local static array: constructed empty once (its guard bit), destroyed at exit.
 template <typename T>
-void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(__cdecl* onExit)()) {
+void EnsureStatic(std::uint8_t bit, std::vector<T>& array, void(* onExit)()) {
     if (g_guards & bit) return;
     array = std::vector<T>{};
     g_guards |= bit;

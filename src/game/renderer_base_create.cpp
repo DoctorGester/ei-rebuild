@@ -45,7 +45,7 @@ void* CVisualizator::CreateBase(void* /*window*/, options::GameOptions* settings
         game::FatalError(kNoLibraryText);
         std::exit(-1);
     }
-    using GetGraphicsProcessor = CPixelConverter*(__cdecl*)();
+    using GetGraphicsProcessor = CPixelConverter*(*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));
     if (!getProcessor) {

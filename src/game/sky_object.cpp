@@ -112,7 +112,7 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
     if (turns) {
         const Vector3 up{0.0f, 0.0f, 1.0f};
         Quaternion turn;
-        // The world time in ticks (a thiscall on the client glue, `this` not read): whole ticks plus
+        // The world time in ticks: whole ticks plus
         // the fraction of the current one.
         object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(static_cast<double>(GameTime()) * kSkyTurnRate));
     }

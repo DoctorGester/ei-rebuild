@@ -34,7 +34,7 @@ constinit lib::StaticObject<ConsoleStreambuf> g_aiLogBuf = /*007C76D0*/ {};
 namespace {
 
 using console::ConsoleStreambuf;
-using ExitFunction = void(__cdecl*)();
+using ExitFunction = void(*)();
 
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     map.Construct();

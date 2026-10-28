@@ -19,7 +19,7 @@
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-int __fastcall SchoolPrice(int /*from*/, int /*to*/);
+int SchoolPrice(int /*from*/, int /*to*/);
 namespace {
 
 // The hero's statistics (UnitStats in the hero record): reset to the base values, whether a skill record can

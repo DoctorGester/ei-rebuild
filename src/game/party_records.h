@@ -61,7 +61,7 @@ struct NamedPartyRecords {
 // member "Hero" ("Human Hero"), the zone text "gz1g" and the variable gtime = 6.
 void PartyRecordsReset(NamedPartyRecords* list);
 
-// The party manager (party_manager.h). __thiscall. New game: the records reset, then five / four templates.
+// The party manager (party_manager.h). New game: the records reset, then five / four templates.
 struct PartyManager;
 void PartyManagerNewGame(PartyManager* manager);
 void PartyManagerNewGameFour(PartyManager* manager);

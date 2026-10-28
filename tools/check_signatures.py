@@ -154,6 +154,15 @@ def stack_bytes(und):
     return conv, sum(sizes)
 
 
+def arg_bytes(und):
+    """Total bytes of the declared parameters (registers or stack alike), or None when a struct is by value."""
+    m = re.search(r'__(?:thiscall|stdcall|fastcall|cdecl)\s+[^(]*\((.*)\)', und)
+    if not m:
+        return None
+    sizes = [param_size(p) for p in split_params(m.group(1))]
+    return None if None in sizes else sum(sizes)
+
+
 def declarations(map_path=MAP):
     """Qualified function name -> [(undecorated signature, object file)] from the linker map. An inline function's
     copy (flag i) is the linker's pick among every object file that instantiated it: its object file is '' (any)."""
@@ -231,6 +240,7 @@ def main():
 
     problems = checked = unresolved = 0
     kinds = {}
+    recorder_args = {}      # (file, line) of an EI_RECORD -> total parameter bytes of its recorder
     for address, name, kind, rel, line in regs:
         size = sizes.get(address)
         if not size:
@@ -244,6 +254,21 @@ def main():
             unresolved += 1
             continue
         conv, nbytes = sigs.pop()
+        if kind == 'record':
+            totals = {arg_bytes(u) for u, _ in candidates} - {None}
+            if len(totals) == 1:
+                recorder_args[(rel, line)] = totals.pop()
+        if kind == 'replace' and conv == 'cdecl' and pops != {0} and (rel, line) in recorder_args:
+            # A free rewrite in the default convention (no game.exe ABI): the replay passes it the recorded
+            # arguments, so it must take as many bytes of them as the recorder, which the original calls.
+            checked += 1
+            kinds[kind] = kinds.get(kind, 0) + 1
+            totals = {arg_bytes(u) for u, _ in candidates} - {None}
+            if totals and totals != {recorder_args[(rel, line)]}:
+                problems += 1
+                print(f'{rel}:{line} {name} ({kind} {address:08X}): takes {sorted(totals)} bytes of arguments, '
+                      f'its recorder takes {recorder_args[(rel, line)]}')
+            continue
         checked += 1
         kinds[kind] = kinds.get(kind, 0) + 1
         if conv == 'cdecl':

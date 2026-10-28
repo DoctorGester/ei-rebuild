@@ -21,7 +21,7 @@ inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(stat
 // equal elements end up in the same order as in the game (the host's qsort changed 105 image goldens). For the sorts
 // whose elements can compare equal and differ (the sector spiral's distances, the ambience's class weights); the
 // others are std::sort (standalone.md, "The CRT").
-void Qsort(void* base, std::size_t count, std::size_t width, int(__cdecl* compare)(const void*, const void*));
+void Qsort(void* base, std::size_t count, std::size_t width, int (*compare)(const void*, const void*));
 
 // rand / srand: seed * 214013 + 2531011, bits 16-30. The seed is per thread (the game CRT's _tiddata::_holdrand),
 // a thread_local starting at 1. The harness's random trace (tests/verify) sees every draw through the observer: the

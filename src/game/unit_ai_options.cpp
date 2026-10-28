@@ -9,7 +9,7 @@
 #include <bit>
 #include <initializer_list>
 
-std::uint16_t __fastcall MaxDamage(const std::uint16_t*);
+std::uint16_t MaxDamage(const std::uint16_t*);
 namespace {
 constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
 constexpr int kNoKind = 8;

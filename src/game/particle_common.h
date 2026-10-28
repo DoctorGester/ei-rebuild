@@ -49,7 +49,7 @@ inline double GroundHeight(float x, float y) { return TheClientWorld()->RawSurfa
 // x87 "FCOMP; FNSTSW; SHL 0x17; SAR 0x1F" selects: C0 (a < b or unordered) picks `a`.
 inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 
-// The game's debug message (cdecl, one argument; compiled out, other mods may hook it).
+// The game's debug message (one argument; compiled out, other mods may hook it).
 inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
 

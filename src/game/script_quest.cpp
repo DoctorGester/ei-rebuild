@@ -6,7 +6,7 @@
 
 #include <string>
 
-// QStart (the name comes in ECX): the old objectives dropped, the quest named.
+// QStart: the old objectives dropped, the quest named.
 void ScriptQuestStart(const char* name) {
     ScriptQuestObjectives().clear();
     ScriptQuestName() = name;

@@ -5,13 +5,13 @@
 
 #include "maths.h"
 
-// Operator+: `out` = a + b. __fastcall (out in ECX, a in EDX, b on the stack), returns out.
-Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b);
-Vector3* __fastcall NegateVector(Vector3* out, const Vector3& v);
-Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s);
+// Operator+: `out` = a + b; returns out.
+Vector3* AddVectors(Vector3* out, const Vector3& a, const Vector3& b);
+Vector3* NegateVector(Vector3* out, const Vector3& v);
+Vector3* ScaleVector(Vector3* out, const Vector3& v, float s);
 
 // Clamps to [-1, 1]; NaN gives -1.
-float __stdcall ClampUnit(float v);
+float ClampUnit(float v);
 
 // One segment of a uniform cubic B-spline as polynomial coefficients c0 + c1 t + c2 t^2 + c3 t^3.
 struct CubicSegment {

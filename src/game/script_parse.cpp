@@ -282,7 +282,7 @@ const ScriptKeyword* KeywordTable() {
     return kScriptKeywords;
 }
 
-void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
+void ClassifyToken(const char* text, int* id, int* rest) {
     const char* p = text;
     if (IsDigit(*p) || *p == '.' || *p == '-') {
         // Number: digits and at most one '.', after an optional leading '-' or '.'.
@@ -331,7 +331,7 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     }
 }
 
-const char* __fastcall FunctionSignature(int id, int type) {
+const char* FunctionSignature(int id, int type) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         if (k->id != id || !k->function) continue;
         switch (k->function[0]) {
@@ -352,7 +352,7 @@ const char* __fastcall FunctionSignature(int id, int type) {
     return nullptr;
 }
 
-const char* __fastcall KeywordName(int id) {
+const char* KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
         if (k->id == id) return k->name;
     return "Unknown command";
@@ -475,7 +475,7 @@ void AddDefine(std::list<ScriptDefine>* defines, const ScriptDefine* define) {
     defines->insert(before, *define);
 }
 
-void __fastcall ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines) {
+void ApplyDefines(std::string* line, const std::list<ScriptDefine>* defines) {
     for (const ScriptDefine& define : *defines) {
         // Replaces from the start again after each replacement (a value containing its own name
         // never ends; kept).

@@ -404,7 +404,7 @@ struct CRegionMap {
     // (NearbyBlocks), cost / 128; true when one was lowered.
     bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
 
-    // A progress report (stdcall, 0..1) during UpdateBlocks; cleared by it.
+    // A progress report (0..1) during UpdateBlocks; cleared by it.
     using ProgressFn = void(*)(float);
 
     BlockSearch forward;
