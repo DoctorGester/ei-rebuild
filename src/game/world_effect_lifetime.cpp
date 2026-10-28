@@ -29,14 +29,6 @@ EI_REWRITTEN_SPECIAL(0x00677EC0, DeltaField::DeltaField);
 EI_REWRITTEN_SPECIAL(0x0066A300, DeltaField::DeltaField);
 EI_REWRITTEN_SPECIAL(0x00510340, DeltaField::~DeltaField);
 
-void DeltaField::Empty() {
-    snapshot[0].Resize(0);
-    snapshot[1].Resize(0);
-    out[0].Resize(0);
-    out[1].Resize(0);
-}
-EI_REWRITTEN(0x00675F70, DeltaField::Empty);
-
 // --- The effect base -----------------------------------------------------------------------------
 
 CEffect::CEffect() {

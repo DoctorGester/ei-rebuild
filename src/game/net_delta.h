@@ -35,8 +35,6 @@ void __fastcall WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
 void __fastcall WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
 
-// BitStream::GetBit as a function: 0 or 1.
-int __fastcall GetBit(BitStream* reader);
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
 bool __fastcall ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
@@ -58,14 +56,8 @@ struct DeltaField {
     ~DeltaField() = default;
     DeltaField(const DeltaField&) = delete;
     DeltaField& operator=(const DeltaField&) = delete;
-    // Resize(0) on the four streams: sizes and positions 0, buffers kept.
-    void Empty();
 
-    // Rewinds the snapshots, empties the outputs; both channels keep their snapshots unless `channel1Only`.
-    int BeginWriteA(int channel1Only);
     DeltaField* BeginWriteB(int channel1Only);
-    // Rewinds the snapshots and reads `reader` against snapshot 0 or 1.
-    void BeginReadA(int second, BitStream* reader);
     DeltaField* BeginReadB(int second, BitStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.

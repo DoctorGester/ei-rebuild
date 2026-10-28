@@ -9,8 +9,8 @@ readers, each a set of addresses:
   run time (the image; ei_vectors for code literals; game.exe's data holds no code pointer the image reads since
   C20, tools/gen_image_cells.py):
     static init      a call, atexit or store by address of the generated static initialisers / exit functions
-                     (src/standalone/static_init.cpp, static_exit.cpp; C20 batch 2: gen_static_init.py names every
-                     port it can, so what is left are functions in an anonymous namespace)
+                     (src/standalone/static_init.cpp, static_exit.cpp; none since C20 batch 3: gen_static_init.py
+                     names every port and refuses a call by address)
     code literal     the address written in src/ outside a registration (ei::Code<F>(0x...), handler tables,
                      callbacks, src/hook's and src/standalone's own: WinMain for HasCode, ...)
   the harness (verify build):

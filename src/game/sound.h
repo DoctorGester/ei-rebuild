@@ -355,7 +355,6 @@ static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundMa
 
 // A music theme from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {
-    void Assign(const MusicTheme* from);
 
     std::string name;          // allod
     std::int32_t dungeon;       // 0 open land, 1 dungeon
@@ -399,7 +398,6 @@ struct CMusicSystem : CEngineObject {
     void Stop();
     void PlayBriefing(const char* allod);
     void PlayConstructor(const char* allod);
-    void PlayCredits();
     void PlayMainMenu();
     void PlayJingle(const char* name);
     int UpdateMusic();
@@ -419,5 +417,3 @@ int __stdcall SoundDecompressCallback(int state, DecoderPropertyFn set);
 // Miles calls it when a voice's sample ends: the voice is marked finished.
 void __stdcall SoundEndOfSample(miles::Sample* sample);
 
-namespace sound {
-}

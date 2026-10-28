@@ -11,11 +11,6 @@
 
 namespace options {
 
-namespace {
-
-
-} // namespace
-
 // The eighteen strings start empty (the members' own constructors, in the object's order).
 GameOptions::GameOptions() {
     keyStatistics_ = "Statistics Output Settings";
@@ -145,10 +140,6 @@ GameOptions::GameOptions() {
     fogNightStartDistance_ = 50.0f;
     fogDayStartDistance_ = 90.0f;
 }
-
-// The constructor (thiscall; returns the object).
-GameOptions* __fastcall OptionsConstruct(GameOptions* self) { return new (self) GameOptions; }
-EI_REWRITTEN(0x00458870, OptionsConstruct);
 
 // The static initialiser and the exit function it registers, defined on the name (g_options,
 // options_global.cpp) and registered at their addresses (docs/notes/standalone.md, "The static initialisers' objects").

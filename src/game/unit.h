@@ -138,10 +138,6 @@ public:
     int Create() override;
     void Destroy() override;
 
-    void IgnoreThreeArguments(int, int, int);
-    void IgnoreTwoArguments(int, int);
-    void IgnoreArgument(int);
-
     virtual int FiguresLoaded();
     // Plays the unit's animationEntry / secondEntry from frame `time` (client).
     virtual void RestartAnimation(float) {}
@@ -207,8 +203,6 @@ class CUnit : public CMapObject {
 public:
     CUnit();
     ~CUnit() override;
-
-    CItem* CarriedItem(int index) const;
 
     int Create() override;
     void Destroy() override;
@@ -294,9 +288,6 @@ public:
     // Stores the index of prototype record `record` in prototype23C. Returns 1 when `record` lies before the
     // table.
     std::uint32_t SetPrototype23C(const UnitPrototypeRecord* record);
-
-    // Is the active weapon of type 5 or 6 (ranged)?
-    bool HasRangedWeapon();
 
     // Puts an item into the first free weapon (4), quick item (4) or spell (8) slot and takes a reference:
     // returns the slot, 1 if already there (sic), -1 if full, 0 for null (weapons and quick items only).
@@ -534,7 +525,6 @@ inline constexpr float kSlotWeights[kSlotTypes] = /*0073E0FC*/ {10.0f, 30.0f, 15
 
 // One of the three protection layers of a body slot: what each of the seven damage types loses to it.
 struct UnitStatLayer {
-    int Reset();
 
     int layerMask;                      // the layer mask bits of the pieces added (AddArmourLayer)
     float absorb[7];                // per damage type
@@ -547,8 +537,6 @@ static_assert(sizeof(UnitStatLayer) == 0x48);
 
 // One of the six body slots of UnitStats (0 head, 1 body, 2/3 hands, 4/5 legs, as the hit locations).
 struct UnitStatSlot {
-    // Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0.
-    int Reset();
 
     int type;                       // 2 arms, 3 legs; reset to 4
     std::uint32_t vitalMask;        // damage types whose full hit severs the slot
@@ -642,8 +630,6 @@ struct UnitStats {
     bool HealSlots(float scale, float amount);
     // HealSlots(vitals' maximum, amount), then the hit points. Returns 1.
     BOOL Heal(UnitVitals* vitals, float amount);
-    // Working slots regenerate vitals' rate of their maximum; then the hit points. Returns 1.
-    BOOL RegenerateSlots(UnitVitals* vitals);
     // Each used slot's maximum becomes `maxHitPoints` times its share relative to the body's; the current
     // value is clamped to it.
     void SetSlotMaxima(float maxHitPoints);
@@ -812,7 +798,6 @@ static_assert(sizeof(UnitStats) == 0x704);
 struct PartyUnitRecord {
     PartyUnitRecord* Construct();
     void Destruct();
-    PartyUnitRecord* DeletingDestruct(unsigned flags);
     // Releases every item of the four lists, then empties them.
     void ClearItems();
 
@@ -932,8 +917,6 @@ class CParticleSource;
 
 // One effect particle record of the client companion.
 struct EffectParticle {
-    // The assignment (the source referenced, the old one released). Returns this.
-    EffectParticle* Assign(const EffectParticle* other);
     void ReleaseSource();
 
     int type;                   // the effect type

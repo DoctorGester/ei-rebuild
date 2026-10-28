@@ -199,21 +199,6 @@ float CLight::GetIntensityAt(const Vector3* point) {
 }
 EI_REWRITTEN(0x0068D730, CLight::GetIntensityAt);
 
-void CLight::SetLitColors(const float* source, float scale) {
-    // source is a byte layout: colours and +0x40 (float indices 8 and 16).
-    const float* a = source + 8;
-    const float* b = source + 16;
-    litColors_[0][0] = scale * a[0] * color_[0];
-    litColors_[0][1] = a[1] * color_[1] * scale;
-    litColors_[0][2] = scale * a[2] * color_[2];
-    litColors_[0][3] = a[3];
-    litColors_[1][0] = scale * b[0] * color_[0];
-    litColors_[1][1] = b[1] * color_[1] * scale;
-    litColors_[1][3] = kOne;
-    litColors_[1][2] = scale * b[2] * color_[2];
-}
-EI_REWRITTEN(0x0068D280, CLight::SetLitColors);
-
 char* __stdcall SpellCodeByName(const char* name) {
     const SpellTable& spells = TheSpellDatabase().spells;
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>(spells.Count()); ++i) {

@@ -113,10 +113,8 @@ public:
     void Send17();
     void SendObject0A(const CEngineObject* object);                 // id
     void SendPair16(std::uint32_t a, std::uint32_t b);
-    void SendObjects0C(const mfc::CTypedPtrList<CEngineObject>* list);   // the items' ids and charges
     void SendObject14(const CEngineObject* object);                 // the item's id and charge
     void SendText0D(const char* text);
-    void SendText08(const char* text, std::uint32_t value);
     void SendValue15(std::uint32_t value);
     void SendPair18(std::uint32_t a, std::uint32_t b);
     void SendObject43(const CEngineObject* object);                 // id, nothing without an object
@@ -125,7 +123,6 @@ public:
     // the byte: whatever its stack holds goes out. Ours sends 0; the client's handler skips the byte.
     void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // the text is the 2nd argument
-    void SendText(std::uint8_t type, const char* text);
     void WriteTo(CStream* target);                                  // target->CopyFrom(out_)
     void SetDisconnect();                                           // state 4
     void SetFlag70(std::uint8_t value);

@@ -34,10 +34,6 @@ static_assert(sizeof(Vector2) == 8);
 struct Vector3 {
     float x, y, z;
 
-    // A second copy of Construct (scene loader); returns this.
-    Vector3* ConstructScene(float x_, float y_, float z_);
-    void Assign(const Vector3* other);
-
     // The constructor Vector3(x, y, z): callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
     float Length() const;                           // XYZ
@@ -51,8 +47,6 @@ static_assert(sizeof(Vector3) == 12);
 struct Vector4 {
     float x, y, z, w;
 
-    // (p, 1); returns this.
-    Vector4* FromPoint(const Vector3& p);
 };
 static_assert(sizeof(Vector4) == 16);
 
@@ -71,7 +65,6 @@ struct Quaternion {
 
     Quaternion* SetAngleAxis(float angle, const Vector3& axis);
     Quaternion* SetAxisAngle(const Vector3& axis, float angle);
-    void PreMultiplyConjugate(const Quaternion& r); // *this = conj(r) * *this
     void Slerp(float t, const Quaternion& a, const Quaternion& b);  // shortest arc
 
     // The rotation part of the row-major 4x4 matrix `out`

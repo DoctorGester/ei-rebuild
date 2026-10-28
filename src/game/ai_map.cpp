@@ -28,7 +28,6 @@ const BridgeMap::Node* FindBridgeHeight(const BridgeMap* map, short x, short y) 
     return map->Find(static_cast<std::uint32_t>(x * 0x10000 + y));
 }
 
-const BridgeMap* Bridges(const CAIMap* map) { return &map->bridgeHeights; }
 } // namespace
 
 int __stdcall LevelForSizeClass(int sizeClass) {
@@ -84,14 +83,6 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     return true;
 }
 EI_REWRITTEN(0x005B81B0, CAIMap::CanStandAtFromHere);
-
-bool CAIMap::IsPassable(CUnit* unit, int x, int y) {
-    if (unit->GetClassId() != kClassUnit) return true;
-    int reason;
-    if (!CanStandAt(unit, x, y, &reason)) return false;
-    return ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
-}
-EI_REWRITTEN(0x005B79D0, CAIMap::IsPassable);
 
 bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
     if (unit->GetClassId() != kClassUnit) return true;
@@ -149,23 +140,6 @@ float CAIMap::GroundHeight(int x, int y) {
 }
 EI_REWRITTEN(0x005B77F0, CAIMap::GroundHeight);
 
-float CAIMap::GroundHeightAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
-    return static_cast<float>(static_cast<int>(cells[y][x].groundLevel)) / heightScale;
-}
-EI_REWRITTEN(0x005BB960, CAIMap::GroundHeightAt);
-
-float CAIMap::SurfaceHeightAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
-    const AIMapCell& cell = cells[y][x];
-    if (!(cell.flags & kCellBridge)) return static_cast<float>(static_cast<int>(cell.groundLevel)) / heightScale;
-    const auto* node = FindBridgeHeight(Bridges(this), static_cast<short>(x), static_cast<short>(y));
-    return static_cast<float>(node ? static_cast<int>(node->value) : 0) / heightScale;
-}
-EI_REWRITTEN(0x005BBA10, CAIMap::SurfaceHeightAt);
-
 float CAIMap::TopHeightAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return 0.0f;
@@ -194,13 +168,6 @@ float CAIMap::SlopeAt(const Vector3* position) {
     return static_cast<float>(slope) / heightScale;
 }
 EI_REWRITTEN(0x005BC2A0, CAIMap::SlopeAt);
-
-bool CAIMap::IsBridgeAt(const Vector3* position) {
-    int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
-    return (cells[y][x].flags >> 6) & 1;
-}
-EI_REWRITTEN(0x005BBBD0, CAIMap::IsBridgeAt);
 
 bool CAIMap::CellFlag80At(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);

@@ -5,9 +5,3 @@
 
 #include "ei/hook.h"
 
-void ObjectIdMap::ReleaseAll() {
-    for (auto* node = map.First(); node && node->value; node = map.After(node)) node->value->Release();
-    map.Clear();
-    maxId = 0;
-}
-EI_REWRITTEN(0x0047B670, ObjectIdMap::ReleaseAll);

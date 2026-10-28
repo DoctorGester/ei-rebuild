@@ -196,8 +196,6 @@ public:
     // A packet arrived: the round-trip averages take its age; reliable changes it carried count as delivered,
     // removals it carried end their entries (the id goes to the newest freed-id batch).
     void Delivered(SentPacket* packet);
-    // 1 when the peer has been silent for longer than three average round trips (or a value is NaN), else 0.
-    int Silent() const;
     // The packet `sequence` (in the history or the acknowledged list) was acknowledged: Delivered, and it
     // leaves its list.
     void Acknowledge(std::uint16_t sequence);

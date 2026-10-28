@@ -153,27 +153,6 @@ CTexture* CTextureManager::FindOrLoad(int type, const char* name) {
 }
 EI_REWRITTEN(0x00693F10, CTextureManager::FindOrLoad);
 
-bool CTextureManager::ReloadAll() {
-    bool ok = true;
-    ObjectListIteratorOf<CTexture> registered{};
-    for (CTexture* object = registered.First(this); object; object = registered.Next()) {
-        object->flags_ &= ~kTextureLoaded;
-        bool loaded = LoadTexture(object) != 0;
-        ok = loaded && ok;
-    }
-    for (auto* node = cache_.head; node;) {
-        auto* next = node->next;
-        CTexture* texture = node->data;
-        texture->flags_ &= ~kTextureLoaded;
-        bool loaded = LoadTexture(texture) != 0;
-        ok = loaded && ok;
-        node = next;
-    }
-    if (registered.manager) --registered.manager->refCount_;
-    return ok;
-}
-EI_REWRITTEN(0x00693F60, CTextureManager::ReloadAll);
-
 void CTextureManager::TrimCache() {
     const auto overLimit = [this] { return cachedBytes_ > static_cast<int>(videoMemoryTenth_); };
     if (!overLimit()) return;

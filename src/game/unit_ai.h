@@ -89,7 +89,6 @@ void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
 // A move the modes prepare on the stack: where to go and what to look at there.
 struct AIMoveOrder {
     void Clear();
-    AIMoveOrder* Assign(const AIMoveOrder* other);
 
     Vector3 point;
     AILookArray looks;
@@ -342,7 +341,6 @@ public:
     // which the saves write; the harness zeroes the original's alike), then distance, spread 3 and an unset
     // shelter (x = -1313).
     explicit FearMode(std::uint8_t flag);
-    FearMode* Construct(std::uint8_t flag);
     void ClearFields() { std::memset(&distance, 0, sizeof(FearMode) - offsetof(FearMode, distance)); }
     ~FearMode() override;
     int OnShutdown() override;
@@ -477,14 +475,12 @@ float* __fastcall CopyPoint2(float* out, const float* point);
 
 // A call the perception memory heard (CallAllies sends kind 0x1A).
 struct AICallRecord {
-    AICallRecord* DeleteScalar(unsigned flags);
     Vector3 point;
     int kind;
     int hostileMask;                    // sides the hearer turns hostile to (0 for a plain call)
     std::string text;
 
     void Destruct();
-    AICallRecord& operator=(const AICallRecord& other);
 };
 static_assert(offsetof(AICallRecord, text) == 0x14);
 
@@ -816,7 +812,6 @@ struct AIBrain {
     AIMode* FindMode(int type);
     PatrolMode* FindPatrolMode();
     PlayerMode* FindPlayerMode();   // (the Tamed mode is a Player mode too)
-    CUnit* PlayerModeLeader();
     CMapObject* LeaderOrFollowed();
     CMapObject* AggressionEnemy();
     bool IsNearPath(const Vector3* point, float radius);
@@ -890,9 +885,6 @@ struct AIBrain {
     // unless it is an ally, become alerted in alert mode 1, and remember a unit in the perception memory.
     void SetSeen(CMapObject* object);
     void AttackTarget(CMapObject* object);
-    // Action 3 against `object` with the given attack parameters; units of other sides that are not enemies
-    // are not attacked unless the unit has a player.
-    void AttackWith(CMapObject* object, int how, int unknown);
     // Action 5: use something on `object` (kind 0 a point/object, 1 and 2 units, 0x18A95 a special unit use).
     void UseOn(CMapObject* object, int kind, int a, int b);
 

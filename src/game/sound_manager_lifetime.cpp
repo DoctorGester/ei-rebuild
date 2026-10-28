@@ -8,7 +8,6 @@
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
-#include "../lib/stlp_string.h"
 
 #include "ei/hook.h"
 #include "lib/mfc_thread.h"

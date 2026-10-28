@@ -113,12 +113,6 @@ void AssignStates(StateVector* out, const StateVector& source) {
 constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
 
 
-// The Direct3D driver list (an STLport list; fills it).
-stlp::list<DirectDrawDriver>::Node* DriverListEnd() {
-    return DirectDrawDrivers().head;
-}
-const char* CantFindDriverText() { return "Can't find driver by index.\n"; }
-
 } // namespace
 
 // ---- The built-in presets' states -------------------------------------------------------------------
@@ -481,15 +475,3 @@ EI_REWRITTEN_SPECIAL(0x004F0DF0, CTransformPipeline::~CTransformPipeline);
 
 // ---- The driver list --------------------------------------------------------------------------------
 
-// The driver `index` steps from the list's first (a negative index
-// walks backwards from it, through the end node); the end node itself is a fatal error and null.
-DirectDrawDriver* __fastcall DriverAt(int index) {
-    auto* end = DriverListEnd();
-    auto* node = end->next;
-    for (; index > 0; --index) node = node->next;
-    for (; index < 0; ++index) node = node->prev;
-    if (node != end) return &node->data;
-    game::FatalError(CantFindDriverText());
-    return nullptr;
-}
-EI_REWRITTEN(0x004EE6D0, DriverAt);

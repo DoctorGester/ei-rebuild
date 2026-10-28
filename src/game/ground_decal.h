@@ -45,8 +45,6 @@ public:
 
     // The clipping stages; `tri` is clipped in place. ClipFromV runs from v >= 0 on, ClipFromUMax from u <= 1.
     void ClipPlane(DecalVertex* tri);
-    void ClipFromV(DecalVertex* tri);
-    void ClipFromUMax(DecalVertex* tri);
     void Emit(const DecalVertex* tri);
     // Appends one vertex; returns its index.
     std::uint16_t AddVertex(const DecalVertex* v);

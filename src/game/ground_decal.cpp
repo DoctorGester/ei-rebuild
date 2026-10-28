@@ -253,8 +253,6 @@ void DecalBuilder::ClipStage(DecalVertex* tri, int stage) {
 }
 
 void DecalBuilder::ClipPlane(DecalVertex* tri) { ClipStage(tri, 0); }
-void DecalBuilder::ClipFromV(DecalVertex* tri) { ClipStage(tri, 2); }
-void DecalBuilder::ClipFromUMax(DecalVertex* tri) { ClipStage(tri, 3); }
 
 void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c) {
     const Vector3* corners[3] = {a, b, c};
@@ -302,8 +300,6 @@ EI_REWRITTEN(0x004D7F60, DecalBuilder::Touches);
 EI_REWRITTEN(0x004D8780, DecalBuilder::Reserve);
 EI_REWRITTEN(0x004D6C50, DecalBuilder::AddVertex);
 EI_REWRITTEN(0x004D6CF0, DecalBuilder::Emit);
-EI_REWRITTEN(0x004D71D0, DecalBuilder::ClipFromUMax);
-EI_REWRITTEN(0x004D74B0, DecalBuilder::ClipFromV);
 EI_REWRITTEN(0x004D7BD0, DecalBuilder::ClipPlane);
 EI_REWRITTEN(0x004D85F0, DecalBuilder::AddTriangle);
 EI_REWRITTEN(0x004D8490, DecalBuilder::AddTerrainTriangle);

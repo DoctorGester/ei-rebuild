@@ -81,13 +81,6 @@ void TakeObject(BufferCursor* cursor, RefPtr& ref) { AssignCounted(ref, g_curren
 
 // The message base.
 
-void* __fastcall NewRefObject(std::size_t size) {
-    void* object = gamecrt::operator_new(size);
-    static_cast<std::uint32_t*>(object)[1] = 0;
-    return object;
-}
-EI_REWRITTEN(0x00413250, NewRefObject);
-
 Message::Message() {}
 EI_REWRITTEN_SPECIAL(0x004186E0, Message::Message);
 

@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 #include "ei/x87.h"
 #include "lib/stlp_list.h"
-#include "lib/stlp_string.h"
 #include "game_data.h"
 
 #include <cstring>

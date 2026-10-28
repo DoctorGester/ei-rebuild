@@ -172,17 +172,6 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, f
 }
 EI_REWRITTEN(0x0040D9B0, SampleTerrain);
 
-Vector3* CubicCurve3::Evaluate(Vector3* out, float t) const {
-    double z = ((D(t) * c[11] + c[10]) * t + c[9]) * t + c[8];
-    double y = ((D(t) * c[7] + c[6]) * t + c[5]) * t + c[4];
-    double x = ((D(t) * c[3] + c[2]) * t + c[1]) * t + c[0];
-    out->x = static_cast<float>(x);
-    out->y = static_cast<float>(y);
-    out->z = static_cast<float>(z);
-    return out;
-}
-EI_REWRITTEN(0x0040E460, CubicCurve3::Evaluate);
-
 int CCamera::PlaybackStart() {
     if (keys_.size == 0) return 0;
     std::memcpy(&localPosition_, &keys_[0].position, sizeof(Vector3));

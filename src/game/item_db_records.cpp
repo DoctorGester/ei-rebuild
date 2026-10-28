@@ -60,45 +60,9 @@ void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, reach), sizeof(WeaponRecord));
 }
 
-WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
-    Assign(source);
-    CopyOwn(source);
-    return this;
-}
-EI_REWRITTEN(0x006A8FB0, WeaponRecord::AssignWeapon);
-
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), offsetof(ArmorRecord, showsWounds));
 }
-
-// The other kinds' operator=, as the weapon's.
-ArmorRecord* ArmorRecord::AssignArmor(const ArmorRecord* source) {
-    Assign(source);
-    CopyOwn(source);
-    return this;
-}
-EI_REWRITTEN(0x006A9370, ArmorRecord::AssignArmor);
-
-QuickItemRecord* QuickItemRecord::AssignQuick(const QuickItemRecord* source) {
-    Assign(source);
-    CopyOwn(source);
-    return this;
-}
-EI_REWRITTEN(0x006A9770, QuickItemRecord::AssignQuick);
-
-QuestItemRecord* QuestItemRecord::AssignQuest(const QuestItemRecord* source) {
-    Assign(source);
-    CopyOwn(source);
-    return this;
-}
-EI_REWRITTEN(0x006AAE40, QuestItemRecord::AssignQuest);
-
-LootItemRecord* LootItemRecord::AssignLoot(const LootItemRecord* source) {
-    Assign(source);
-    CopyOwn(source);
-    return this;
-}
-EI_REWRITTEN(0x006A9DA0, LootItemRecord::AssignLoot);
 
 MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* source) {
     std::construct_at(&key, source->key);

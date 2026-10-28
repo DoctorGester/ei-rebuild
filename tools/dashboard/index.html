@@ -56,6 +56,10 @@ svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c) }
 footer { color: var(--muted); font-size: 12px }
 #error { color: var(--accent) }
+.regen { display: none; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted) }
+.regen.on { display: flex }
+.regen button { font: inherit; font-size: 13px; color: var(--ink); background: var(--track); border: 1px solid var(--line); border-radius: 4px; padding: 3px 12px; cursor: pointer }
+.regen button:disabled { cursor: default; opacity: .6 }
   .dropzone { display: none; position: fixed; inset: 12px; border: 2px dashed var(--accent); border-radius: 12px;
     background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--ink); font-size: 1.1rem;
     align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
@@ -66,6 +70,7 @@ footer { color: var(--muted); font-size: 12px }
   <header>
     <h1>Evil Islands Rebuild Progress</h1>
     <p class="sub">game.exe 1.06 rebuilt as C++. The port and the standalone exe are done; what is left is cleaning the C++ up until nothing leans on game.exe's code or data layout. Lower is better unless a chart says otherwise. <span id="asof" class="mono"></span></p>
+    <div class="regen" id="regen"><a href="/">Work board</a><button type="button" id="regenbtn">Regenerate</button><span id="regenstate"></span></div>
   </header>
   <div class="summary" id="summary"></div>
   <section>
@@ -327,6 +332,30 @@ document.getElementById('zoomreset').addEventListener('click', () => setZoom(nul
 function showError(message) { document.getElementById('error').textContent = message; }
 
 fetch('data.json').then(r => r.json()).then(render).catch(e => showError('Could not load data.json: ' + e.message));
+
+// Served by the local work board (work.py serve): a Regenerate button that runs tools/dashboard_data.py there.
+// The published page has no /api/dashboard, so the button stays hidden.
+const regen = document.getElementById('regen'), regenBtn = document.getElementById('regenbtn');
+const regenState = document.getElementById('regenstate');
+function showRegen(s, wasRunning) {
+  regen.classList.add('on');
+  regenBtn.disabled = s.running;
+  if (s.running) regenState.textContent = 'Regenerating since ' + s.started.slice(11) + '…';
+  else if (s.exit != null && s.exit !== 0) regenState.textContent = 'Last run failed (exit ' + s.exit + '): ' + s.tail;
+  else regenState.textContent = s.data_mtime ? 'data.json from ' + s.data_mtime.replace('T', ' ') : 'No data.json yet';
+  if (s.running) setTimeout(pollRegen, 2000, true);
+  else if (wasRunning && s.exit === 0) location.reload();
+}
+function pollRegen(wasRunning) {
+  fetch('/api/dashboard').then(r => r.ok ? r.json() : Promise.reject()).then(s => showRegen(s, wasRunning)).catch(() => {});
+}
+regenBtn.addEventListener('click', () => {
+  regenBtn.disabled = true;
+  fetch('/api/dashboard/regenerate', { method: 'POST', headers: { 'X-Work-Board': '1' } })
+    .then(r => r.json()).then(s => showRegen(s, true))
+    .catch(e => { regenBtn.disabled = false; regenState.textContent = 'Could not start: ' + e.message; });
+});
+if (['127.0.0.1', 'localhost'].includes(location.hostname)) pollRegen(false);
 
 // Drop a data.json made by tools/dashboard_data.py anywhere on the page to show it instead.
 let dragDepth = 0;

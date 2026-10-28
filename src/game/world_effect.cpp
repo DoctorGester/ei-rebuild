@@ -74,8 +74,6 @@ void CEffect::MarkChanged() {
     changeStamp_ = ChangeStamp();
 }
 
-void CEffect::UpdateMoving() { moving_ = IsMoving(velocity_); }
-
 int CEffect::Create() {
     Reset();
     SendFull();

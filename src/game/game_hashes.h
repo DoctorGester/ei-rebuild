@@ -36,9 +36,6 @@ using DressedTable = UnitSet::DressedTable;
 using DressedAbi = stlp::HashtableAbi<DressedTraits>;
 
 struct FiguredGroupPair : FiguredGroupsTable::Value {
-    // Pair<const unsigned, FiguredTable>(key, table): the key, then a copy of the
-    // table (its functor bytes, then _M_copy_from). Returns this.
-    FiguredGroupPair* Construct(const std::uint32_t* from, const FiguredTable* table);
 };
 
 // The unit shapes' cache's table (ShapeTable, ai_shape_cache.h).

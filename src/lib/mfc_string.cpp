@@ -125,6 +125,8 @@ void __cdecl DestroyStringAlloc64() { g_stringAlloc64->Destruct(); }
 void __cdecl DestroyStringAlloc128() { g_stringAlloc128->Destruct(); }
 void __cdecl DestroyStringAlloc256() { g_stringAlloc256->Destruct(); }
 void __cdecl DestroyStringAlloc512() { g_stringAlloc512->Destruct(); }
+} // namespace
+
 void __cdecl ConstructStringAlloc64() {
     g_stringAlloc64->Construct(0x50, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc64);
@@ -141,16 +143,15 @@ void __cdecl ConstructStringAlloc512() {
     g_stringAlloc512->Construct(0x210, kStringAllocBlock);
     libcrt::AtExit(DestroyStringAlloc512);
 }
-} // namespace
 
-EI_REPLACE(0x00700718, ConstructStringAlloc64);
-EI_REPLACE(0x00700747, ConstructStringAlloc128);
-EI_REPLACE(0x00700779, ConstructStringAlloc256);
-EI_REPLACE(0x007007AB, ConstructStringAlloc512);
-EI_REPLACE(0x0070073D, DestroyStringAlloc64);
-EI_REPLACE(0x0070076F, DestroyStringAlloc128);
-EI_REPLACE(0x007007A1, DestroyStringAlloc256);
-EI_REPLACE(0x007007D3, DestroyStringAlloc512);
+EI_REWRITTEN(0x00700718, ConstructStringAlloc64);
+EI_REWRITTEN(0x00700747, ConstructStringAlloc128);
+EI_REWRITTEN(0x00700779, ConstructStringAlloc256);
+EI_REWRITTEN(0x007007AB, ConstructStringAlloc512);
+EI_REWRITTEN(0x0070073D, DestroyStringAlloc64);
+EI_REWRITTEN(0x0070076F, DestroyStringAlloc128);
+EI_REWRITTEN(0x007007A1, DestroyStringAlloc256);
+EI_REWRITTEN(0x007007D3, DestroyStringAlloc512);
 #endif
 
 // ---- CString: construction and buffers ----------------------------------------------------------
@@ -761,8 +762,8 @@ namespace shim {
 void __fastcall Destruct(CString* self) { self->~CString(); }
 } // namespace shim
 
-EI_REPLACE_METHOD(0x006E6BCD, CFixedAlloc::Construct);
-EI_REPLACE_METHOD(0x006E6BF5, CFixedAlloc::Destruct);
+EI_REWRITTEN(0x006E6BCD, CFixedAlloc::Construct);
+EI_REWRITTEN(0x006E6BF5, CFixedAlloc::Destruct);
 EI_REWRITTEN(0x006E6C09, CFixedAlloc::FreeAll);
 EI_REWRITTEN(0x006E6C31, CFixedAlloc::Alloc);
 EI_REWRITTEN(0x006E6CC0, CFixedAlloc::Free);
@@ -785,11 +786,9 @@ EI_REWRITTEN(0x00700E17, CString::GetBufferSetLength);
 EI_REWRITTEN(0x00700E6A, CString::LockBuffer);
 EI_REWRITTEN(0x00700E7C, CString::UnlockBuffer);
 EI_REWRITTEN(0x006FDBB7, CString::ReverseFind);
-EI_REWRITTEN(0x00700ECC, CString::FindOneOf);
 EI_REWRITTEN(0x00700EFE, CString::MakeLower);
 EI_REWRITTEN(0x006FD963, CString::Remove);
 EI_REWRITTEN(0x006FDF5F, CString::Format);
-EI_REWRITTEN(0x006FDC12, CString::FormatV);
 EI_REWRITTEN(0x006FE268, ConstructStrings);
 EI_REWRITTEN(0x006FE296, DestructStrings);
 

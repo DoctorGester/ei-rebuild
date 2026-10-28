@@ -21,7 +21,6 @@
 #include "ei/hook.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/stlp_string.h"
 #include "unit_looks.h"
 #include "lib/str.h"
 

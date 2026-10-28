@@ -347,8 +347,6 @@ public:
     // Luminance of the colour, falling off with the squared distance for point lights.
     float GetIntensityAt(const Vector3* point);
 
-    void SetLitColors(const float* source, float scale);
-
     // The range is sqrt(FLT_MAX).
     CLight();
     ~CLight() override;

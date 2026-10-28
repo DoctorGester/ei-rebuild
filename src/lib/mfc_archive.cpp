@@ -278,12 +278,8 @@ int __cdecl WideToMultiByte(char* to, const wchar_t* from, unsigned count) {
     return written;
 }
 
-EI_REWRITTEN(0x00708832, CArchive::Read);
-EI_REWRITTEN(0x00708941, CArchive::Write);
 EI_REWRITTEN(0x007089D1, CArchive::Flush);
 EI_REWRITTEN(0x00708A4D, CArchive::FillBuffer);
-EI_REWRITTEN(0x00708B0F, CArchive::WriteCount);
-EI_REWRITTEN(0x00708B3D, CArchive::ReadCount);
 EI_REWRITTEN(0x006E6214, CArchive::StoreByte);
 EI_REWRITTEN(0x006E6237, CArchive::StoreWord);
 EI_REWRITTEN(0x006E625E, CArchive::StoreDword);

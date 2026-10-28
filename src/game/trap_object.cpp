@@ -71,9 +71,6 @@ int CTrapObject::UpdateTrap() {
 }
 EI_REWRITTEN(0x00529B80, CTrapObject::UpdateTrap);
 
-void CTrapObject::Arm() { flags_ |= kArmed | kArmedFresh; }
-EI_REWRITTEN(0x00529D20, CTrapObject::Arm);
-
 bool CTrapObject::Disarm(const LockKey* key, int) {
     if (!(flags_ & kArmed) || !key->AcceptedByTrap()) return false;
     flags_ &= ~kArmed;
@@ -111,14 +108,5 @@ const char* CTrapObject::GetClassName() { return kTrapName; }
 int CTrapObject::GetClassId() { return kClassTrap; }
 const char* MagicTrap::GetClassName() { return kMagicTrapName; }
 int MagicTrap::GetClassId() { return kClassMagicTrap; }
-
-const char* __fastcall TrapClassName(CTrapObject* self) { return self->CTrapObject::GetClassName(); }
-EI_REWRITTEN(0x00529B00, TrapClassName);
-int __fastcall TrapClassId(CTrapObject* self) { return self->CTrapObject::GetClassId(); }
-EI_REWRITTEN(0x00529B10, TrapClassId);
-const char* __fastcall MagicTrapClassName(MagicTrap* self) { return self->MagicTrap::GetClassName(); }
-EI_REWRITTEN(0x00529F50, MagicTrapClassName);
-int __fastcall MagicTrapClassId(MagicTrap* self) { return self->MagicTrap::GetClassId(); }
-EI_REWRITTEN(0x00529F60, MagicTrapClassId);
 
 EI_REWRITTEN_SPECIAL(0x00529F70, MagicTrap::~MagicTrap);   // deleting

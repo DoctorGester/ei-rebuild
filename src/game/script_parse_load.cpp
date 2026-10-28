@@ -394,7 +394,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     DeleteCmd(sub.cmd);
     return result;
 }
-EI_REPLACE_METHOD(0x004CFBC0, CScript::LoadFunction);
+EI_REWRITTEN(0x004CFBC0, CScript::LoadFunction);
 
 
 BOOL CScript::LoadConditions(ScriptCommands* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
@@ -636,7 +636,7 @@ BOOL CScript::LoadCommands(ScriptCommands* commands, ScriptPos* pos, const Scrip
         commands->Add(*cmd);
     }
 }
-EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
+EI_REWRITTEN(0x004D1330, CScript::LoadCommands);
 // Rebirth's AddNewScriptCommands also patches this function: the keyword table and a hook
 // that would parse a body after commands whose record has flag 1 (no record has), so
 // For and ForIf stay the only ones.
@@ -791,7 +791,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     TokensDestruct(&tokens);
     return 1;
 }
-EI_REPLACE_METHOD(0x004D23A0, CScript::Load);
+EI_REWRITTEN(0x004D23A0, CScript::Load);
 
 BOOL CScript::LoadFile(const char* path) {
     mfc::CString text;

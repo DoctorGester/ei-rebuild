@@ -120,13 +120,6 @@ void PartyUnitRecordElements::Relocate(PartyUnitRecord* to, PartyUnitRecord* fro
     }
 }
 
-PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
-    Destruct();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REWRITTEN(0x00664AC0, PartyUnitRecord::DeletingDestruct);
-
 namespace {
 void __fastcall DestroyPartyMembers(PartyMembers* members) { members->Destruct(); }
 // Slot 2 through the slot's archive type (mfc::impl's).

@@ -731,10 +731,3 @@ void UnitMotion::SaveState(CStream* stream) {
 }
 EI_REWRITTEN(0x005C79B0, UnitMotion::SaveState);
 
-MotionWaypoint* MotionWaypoint::Construct(std::uint32_t xBits, std::uint32_t yBits) {
-    std::memcpy(&x, &xBits, 4);
-    std::memcpy(&y, &yBits, 4);
-    cells = 0;
-    return this;
-}
-EI_REWRITTEN(0x005C6E30, MotionWaypoint::Construct);

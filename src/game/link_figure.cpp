@@ -315,8 +315,6 @@ void CLinkMesh::UpdateScreenRect() {
         if (screenRect_.bottom < part.bottom) screenRect_.bottom = part.bottom;
     }
 }
-void __fastcall LinkMeshUpdateScreenRect(CLinkMesh* self) { self->CLinkMesh::UpdateScreenRect(); }
-EI_REWRITTEN(0x004F45E0, LinkMeshUpdateScreenRect);
 
 bool CLinkMesh::HasPart(const std::string* name) { return ranges_.find(*name) != ranges_.end(); }
 EI_REWRITTEN(0x004F3040, CLinkMesh::HasPart);

@@ -82,10 +82,7 @@ static_assert(sizeof(UseSpotArray) == 0x14);
 class CMapObject : public CObject3D {
 public:
     int ScaleEffectChangedDefault(int /*scaleEffect*/);
-    bool AcceptsAnyAnimation(const void* /*animation*/);
     int AcceptsNoKey(const void* /*key*/);
-    void IgnoreArgument(int);
-    void SetScriptPosition(const Vector3* point);
 
     ~CMapObject() override;
     int Create() override { return CreateMapObject(); }
@@ -297,8 +294,6 @@ public:
     void Destroy() override;  // no map object
     int RunTick() override { return UpdateCompanion(); }
 
-    void HitNothing(int, int);
-    void IgnoreArgument(int);
     int UpdateCompanion();
 
     // The object's effect list changed (`first`: it arrived with the object). The server's is empty.

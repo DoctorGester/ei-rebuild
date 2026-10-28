@@ -1315,16 +1315,6 @@ void SaveListedObjectsEnd(CStream* stream) {
     stream->Write(&more, 1);
 }
 
-void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
-    for (auto* node = list->head; node;) {
-        CEngineObject* object = node->data;
-        node = node->next;
-        SaveListedObject(object, stream);
-    }
-    SaveListedObjectsEnd(stream);
-}
-EI_REWRITTEN(0x0055E8A0, SaveListedObjects);
-
 CLightningManager::CLightningManager() {
     newBolts_.vtable = gameslots::ClientObjectList2Class::Vtable();
     newBolts_.count = 0;

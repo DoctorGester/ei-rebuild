@@ -9,16 +9,6 @@
 
 #undef GetClassName
 
-// CUnit's own GetClassName / GetClassId (unit_update.cpp).
-const char* __fastcall UnitClassName(CUnit* self) { return self->CUnit::GetClassName(); }
-EI_REWRITTEN(0x0052E280, UnitClassName);
-int __fastcall UnitClassId(CUnit* self) { return self->CUnit::GetClassId(); }
-EI_REWRITTEN(0x0052E290, UnitClassId);
-
-// The constructor of the motion's segment part (nothing to construct). Returns it.
-void* __fastcall MotionSegmentConstruct(void* self) { return self; }
-EI_REWRITTEN(0x0052E230, MotionSegmentConstruct);
-
 void CUnit::SetMotionSpeeds(float speed, float turnRate) {
     PathOrder* path = Controller()->Path();
     path->ForgetObject(id_);

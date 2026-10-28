@@ -289,7 +289,6 @@ void terrain::CountAmbientVariants(const char* set) {
         }
     }
 }
-int terrain::AmbientVariants(int soundClass) { return g_soundClasses[soundClass].variants; }
 
 EI_REWRITTEN(0x006CB390, Terrain::PlayAmbience);
 EI_REWRITTEN(0x006CBC00, CWorldClient::AmbienceTimeOfDay);

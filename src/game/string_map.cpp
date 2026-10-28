@@ -1,4 +1,4 @@
-// The debug information panel (on an abstract base): an STLport map<string, string> at +4 with a setter and a
+// The debug information panel (on an abstract base): a map<string, string> at +4 with a setter and a
 // remover, drawn as "key  value" lines (shadowed, 15 pixels apart) into a panel surface of the interface at most
 // twice a second. The map's algorithms and the MFC CFont members are library code. The constructor runs from a
 // static initialiser. See docs/notes/app.md.
@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
-#include "lib/stlp_string.h"
 #include "lib/static_object.h"
 #include "lib/stlp_tree_abi.h"
 #include "library_trees.h"
@@ -25,8 +24,7 @@ namespace strmap {
 
 namespace {
 
-using Node = StringMap::Node;   // 0x28 bytes
-static_assert(sizeof(Node) == 0x28);
+using Node = StringMap::Node;
 
 // STLport (library): the map<string, string> instantiation's pair constructor, insert
 // with a hint, pair destructor and its scalar deleting destructor,
@@ -38,18 +36,17 @@ using Pair = StringMap::Element;
 // Table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void CDebugPanel::Set(const char* key, const char* value) {
-    stlp::string k(key);
+    std::string k(key);
     StringMap& map = entries_;
     Node* it = map.lower_bound(k);
-    if (it == map.end() || stlp::StringAbi::Less(&k, &it->first)) {
-        stlp::string empty;
-        stlp::StringElement::Default(&empty);
+    if (it == map.end() || k < it->first) {
+        std::string empty;
         lib::InPlace<StringMap::Value> pair;
         Pair::Make(pair.Get(), k, empty);
         it = map.InsertUnique<Pair>(it, *pair.Get());
         Pair::Destroy(pair.Get());
     }
-    it->second.Assign(value);   // overwrite, then cut or append
+    it->second.assign(value);
 }
 EI_REWRITTEN(0x004447E0, CDebugPanel::Set);
 
@@ -58,7 +55,7 @@ void CDebugPanel::Remove(const char* key) {
     StringMap& map = entries_;
     Node* it;
     {
-        stlp::string k(key);
+        std::string k(key);
         it = map.find(k);
     }
     if (it != map.end()) map.Erase<Pair>(it);
@@ -66,8 +63,7 @@ void CDebugPanel::Remove(const char* key) {
 EI_REWRITTEN(0x004449A0, CDebugPanel::Remove);
 
 // The destructor (at exit): every node destroyed and freed (_M_erase's loop: the right subtree, the pair's
-// deleting destructor with 0, the node back to the pool), then the header pushed on the 0x28-byte nodes'
-// free list as the pool's deallocate does.
+// deleting destructor with 0, the node back to the pool), then the header back to the pool.
 CDebugPanel::~CDebugPanel() { entries_.Destroy<Pair>(); }
 EI_REWRITTEN_SPECIAL(0x00444690, CDebugPanel::~CDebugPanel);
 
@@ -85,14 +81,15 @@ static_assert(sizeof(CDebugPanel) == 0x44);
 
 namespace {
 void __cdecl DestroyDebugPanel() { g_debugPanel.Destroy(); }
+} // namespace
+
 void __cdecl ConstructDebugPanel() {
     g_debugPanel.Construct();
     libcrt::AtExit(DestroyDebugPanel);
 }
-} // namespace
 
-EI_REPLACE(0x00444660, ConstructDebugPanel);
-EI_REPLACE(0x00444680, DestroyDebugPanel);
+EI_REWRITTEN(0x00444660, ConstructDebugPanel);
+EI_REWRITTEN(0x00444680, DestroyDebugPanel);
 
 // ---- The panel ---------------------------------------------------------------------------------
 
@@ -103,7 +100,7 @@ namespace {
 // The panel's font face.
 const char* FontFace() { return "Courier New"; }
 
-void DrawString(mfc::impl::CDC* dc, const stlp::string& s, RECT* rect) {
+void DrawString(mfc::impl::CDC* dc, const std::string& s, RECT* rect) {
     dc->DrawText(s.data(), static_cast<int>(s.size()), rect, 0x800u);
 }
 

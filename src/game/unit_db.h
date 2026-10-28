@@ -310,8 +310,6 @@ struct SkillDatabase {
     SkillLevelRecord* FindLevel(const char* levelName);
     int IndexOf(const char* levelName) const;
     int IndexOfLevel(const SkillLevelRecord* record);
-    SkillRecord* SkillAt(std::uint32_t index);
-    SkillLevelRecord* LevelAt(std::uint32_t index);
     // Rebirth-patched: the vanilla behaviour. Reads "perks.pdb" of the archive `folder` +
     // `archive`: the skills (chunk 1) and the level records (chunk 2, one chunk 1 each). Returns 1, or what
     // the fatal error report returns when the archive or the file cannot be opened.

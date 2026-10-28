@@ -8,11 +8,10 @@ order, before WinMain.
 Each initialiser is decoded from its instructions by a small symbolic interpreter into operations:
 dword stores (constants, copies, fills), float folds of .rdata constants (x87 sequences: + - * /,
 ln), calls (cdecl, stdcall, thiscall, through an import slot) with their arguments, atexit
-registrations, and the once-only guard bit (`if (flag & bit) skip; flag |= bit`). A call goes to the
-target's address in the image (our rewrite through its jump, or a library port) unless the target is
-not registered anywhere, is referenced from one place only and decodes itself: then it is inlined
-(the compiler's helper halves, `call A; jmp B`). An initialiser registered by a rewrite (0042FAE0) is
-one call to its own address. Anything the interpreter does not know stops the script.
+registrations, and the once-only guard bit (`if (flag & bit) skip; flag |= bit`). A call names the
+target's port (C20 batch 3: nothing is called by address), unless the target is not ported anywhere, is
+referenced from one place only and decodes itself: then it is inlined (the compiler's helper halves,
+`call A; jmp B`). An initialiser registered by a rewrite (0042FAE0) is one call of its own name. Anything the interpreter does not know stops the script.
 
 The result is one template, StaticInitialisers(Do&), that the standalone runs (Run) and the verify
 build's start-up check evaluates against what the original's initialisers left in memory (Check).
@@ -1126,9 +1125,9 @@ def decode_exits(img, decoded):
 # args...)`, `d.AtExit(Fn)`; static_init.h's visitors convert the arguments to the declared parameters. The name is
 # the definition's (its namespaces from the source); a header that declares it in the same namespace is included,
 # otherwise an initialiser's or exit function's `void __cdecl Fn()` is declared at the top of the generated file. A
-# function defined in an anonymous namespace has no name another file can call: while it is registered the call
-# stays by address (CodeAddress), listed by the tool's summary; once its registration is gone the tool stops (move it
-# out of the anonymous namespace). Statements stay in address form until render, so the analyses above (unread
+# function defined in an anonymous namespace has no name another file can call, and a function with no port has no
+# name at all: the tool stops with a problem (move it out of the namespace, port it); nothing is called by address
+# (C20 batch 3). Statements stay in address form until render, so the analyses above (unread
 # objects, stored values, named_data.py) read them unchanged.
 
 MAP_LINE = re.compile(r'^[ \t]*(EI_REPLACE(?:_METHOD|_DISPATCH|_STANDALONE)?|EI_REWRITTEN(?:_SPECIAL)?)\s*\(\s*'
@@ -1138,13 +1137,13 @@ RET = 'ei::short_functions::Ret'   # the exit functions that do nothing (static_
 
 
 class Port:
-    def __init__(self, path, name, registered, offset):
-        self.path, self.name, self.registered, self.offset = path, name, registered, offset
+    def __init__(self, path, name, offset):
+        self.path, self.name, self.offset = path, name, offset
 
 
 class Names:
     """Address -> how the generated code calls it: (expression, header to include or None, declaration or None);
-    None for an address called by address (`by_address`, with why)."""
+    None (with a problem) for an address with no name."""
 
     def __init__(self, exits=()):
         import srcscan
@@ -1160,7 +1159,7 @@ class Names:
                 for m in MAP_LINE.finditer(code):
                     if '#define' in code[code.rfind('\n', 0, m.start()) + 1:m.start()]:
                         continue
-                    self.ports[int(m.group(2), 16)] = Port(p, m.group(3), m.group(1).startswith('EI_REPLACE'), m.start())
+                    self.ports[int(m.group(2), 16)] = Port(p, m.group(3), m.start())
         self.headers = {}   # last name -> [(header, namespaces)] of a declaration at namespace scope
         self.classes = {}   # class name -> [(header, namespaces)]
         for d, _, names in os.walk(os.path.join(ROOT, 'src')):
@@ -1178,7 +1177,7 @@ class Names:
                     if kind == 'class' and path is not None:
                         self.classes.setdefault(name, []).append((p, path))
         self.exits = {fn: name for fn, name, _, _, _ in exits}
-        self.resolved, self.by_address, self.problems = {}, {}, []
+        self.resolved, self.problems = {}, []
 
     def code(self, path):
         if path not in self.sources:
@@ -1203,7 +1202,7 @@ class Names:
             return f'Exit{a:08X}', None, ('ei::static_init', f'void __cdecl Exit{a:08X}();')
         port = self.ports.get(a)
         if port is None:
-            self.by_address[a] = 'no port'
+            self.problems.append(f'{a:08X} is called but has no port: port it')
             return None
         rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
         parts = port.name.split('::')
@@ -1235,11 +1234,8 @@ class Names:
             return None
         full, head, params = defs[0]
         if '' in full:
-            if port.registered:
-                self.by_address[a] = f'{rel}: {port.name} is in an anonymous namespace'
-                return None
-            self.problems.append(f'{rel}: {port.name} ({a:08X}) is in an anonymous namespace and not registered: give '
-                                 'it a name (move it out of the namespace) or register it')
+            self.problems.append(f'{rel}: {port.name} ({a:08X}) is in an anonymous namespace: give it a name (move it '
+                                 'out of the namespace)')
             return None
         expr = '::'.join(full + [last])
         same = [h for h, p in self.headers.get(last, []) if p == full]
@@ -1343,6 +1339,9 @@ def render(decoded, names):
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     headers, declarations = set(), set()
     body = [name_calls(name_operands(line, headers), names, headers, declarations) for line in body]
+    for line in body:
+        if re.search(r'd\.(?:Cdecl|Stdcall|Thiscall|Import|AtExit)\(', line):
+            names.problems.append(f'static initialiser: {line.strip()} calls by address: give the callee a name')
     return (HEADER.replace('@SUMMARY@', summary).replace('@COUNT@', str(len(decoded)))
             .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
             '\n'.join(body) + FOOTER)
@@ -1372,10 +1371,6 @@ def main():
     print(f'{len(decoded)} static initialiser(s) written to {os.path.relpath(OUT, ROOT)} ({sum(LEFT_OUT.values())} '
           f'statement(s) left out), {len(exits)} exit function(s) to {os.path.relpath(OUT_EXIT, ROOT)}, '
           f'{len(unread.splitlines()) - 1} unread object(s) to {os.path.relpath(UNREAD_DATA, ROOT)}')
-    if names.by_address:   # registered (CodeAddress) or not ported: registration_readers.py's static init readers
-        print(f'{len(names.by_address)} function(s) still called by address:')
-        for a, why in sorted(names.by_address.items()):
-            print(f'  {a:08X} {why}')
     return 0
 
 
@@ -1388,8 +1383,7 @@ HEADER = '''\
 // definition's initialiser takes their place) or that nothing reads (config/unread_data.csv) are left out ("n left
 // out"; docs/notes/standalone.md, "Named data (C18)").
 // The standalone image runs them before WinMain (Run in static_init.h). A call or atexit of a ported function names
-// it (d.Call, d.AtExit); one by address goes to CodeAddress's code for it (a registration, or the stub of a function
-// with no port yet).
+// it (d.Call, d.AtExit).
 // tools/gen_static_init.py writes this file from game.exe's initialisers.
 #include "static_init.h"
 
@@ -1405,7 +1399,6 @@ FOOTER = '''
 
 template void StaticInitialisers<Run>(Run&);
 template void StaticInitialisers<Check>(Check&);
-template void StaticInitialisers<Targets>(Targets&);
 
 } // namespace ei::static_init
 '''

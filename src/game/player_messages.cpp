@@ -169,20 +169,6 @@ void CPlayerServer::SendPair16(std::uint32_t a, std::uint32_t b) {
     WriteDword(&out_, b);
 }
 
-void CPlayerServer::SendObjects0C(const mfc::CTypedPtrList<CEngineObject>* list) {
-    WriteByte(&out_, 0x0C);
-    using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-    ObjectList::Node* node = list->head;
-    while (node != nullptr) {
-        ObjectList::Node* next = node->next;
-        const CEngineObject* object = node->data;
-        WriteDword(&out_, ObjectId(object));
-        WriteDword(&out_, ItemCharge(object));
-        node = next;
-    }
-    WriteDword(&out_, 0xFFFFFFFFu);
-}
-
 void CPlayerServer::SendObject14(const CEngineObject* object) {
     WriteByte(&out_, 0x14);
     WriteDword(&out_, ObjectId(object));
@@ -192,12 +178,6 @@ void CPlayerServer::SendObject14(const CEngineObject* object) {
 void CPlayerServer::SendText0D(const char* text) {
     WriteByte(&out_, 0x0D);
     WriteText(&out_, text);
-}
-
-void CPlayerServer::SendText08(const char* text, std::uint32_t value) {
-    WriteByte(&out_, 0x08);
-    WriteText(&out_, text);
-    WriteDword(&out_, value);
 }
 
 void CPlayerServer::SendValue15(std::uint32_t value) {
@@ -232,11 +212,6 @@ void CPlayerServer::SendValue12(std::uint32_t, std::uint32_t value) {
 
 void CPlayerServer::SendText13(std::uint32_t, const char* text) {
     WriteByte(&out_, 0x13);
-    WriteText(&out_, text);
-}
-
-void CPlayerServer::SendText(std::uint8_t type, const char* text) {
-    WriteByte(&out_, type);
     WriteText(&out_, text);
 }
 
@@ -448,17 +423,14 @@ EI_REWRITTEN(0x0066EDA0, CPlayerServer::SendPosition0F);
 EI_REWRITTEN(0x0066EA10, CPlayerServer::Send17);
 EI_REWRITTEN(0x0066EA30, CPlayerServer::SendObject0A);
 EI_REWRITTEN(0x0066EA70, CPlayerServer::SendPair16);
-EI_REWRITTEN(0x0066EAC0, CPlayerServer::SendObjects0C);
 EI_REWRITTEN(0x0066EB40, CPlayerServer::SendObject14);
 EI_REWRITTEN(0x0066EB90, CPlayerServer::SendText0D);
-EI_REWRITTEN(0x0066F1F0, CPlayerServer::SendText08);
 EI_REWRITTEN(0x0066F280, CPlayerServer::SendValue15);
 EI_REWRITTEN(0x0066F2C0, CPlayerServer::SendPair18);
 EI_REWRITTEN(0x0066D6A0, CPlayerServer::SendObject43);
 EI_REWRITTEN(0x0066D6E0, CPlayerServer::SendObject0B);
 EI_REWRITTEN(0x0066D730, CPlayerServer::SendValue12);
 EI_REWRITTEN(0x0066D770, CPlayerServer::SendText13);
-EI_REWRITTEN(0x0066D7B0, CPlayerServer::SendText);
 EI_REWRITTEN(0x0066D230, CPlayerServer::WriteTo);
 EI_REWRITTEN(0x0066D250, CPlayerServer::SetDisconnect);
 EI_REWRITTEN(0x0066D260, CPlayerServer::SetFlag70);

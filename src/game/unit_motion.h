@@ -26,9 +26,6 @@ static_assert(sizeof(MotionPoint) == 0x1C);
 
 // A corner of the path the trajectory is built from: `cells` path cells lead to it.
 struct MotionWaypoint {
-    // The constructor: the corner (x, y) (the floats moved as dwords), no cells. Returns the waypoint.
-    // UnitMotion::Build builds its corners in place.
-    MotionWaypoint* Construct(std::uint32_t xBits, std::uint32_t yBits);
     float x, y;
     int cells;
 };

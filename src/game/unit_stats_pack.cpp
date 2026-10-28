@@ -129,23 +129,6 @@ EI_REWRITTEN(0x00522CE0, UnitStats::Pack);
 
 // --- Resets ----------------------------------------------------------------------------------
 
-int UnitStatLayer::Reset() {
-    ResetLayerExceptUnknown20(*this);
-    return 0;
-}
-EI_REWRITTEN(0x005236A0, UnitStatLayer::Reset);
-
-int UnitStatSlot::Reset() {
-    type = kResetSlotType;
-    vitalMask = 0;
-    kind = 0;
-    maximum = kZero;
-    current = kZero;
-    for (UnitStatLayer& layer : layers) ResetLayerExceptUnknown20(layer);
-    return 0;
-}
-EI_REWRITTEN(0x00523600, UnitStatSlot::Reset);
-
 int UnitStats::Reset() {
     experience = kZero;
     pendingExperience = kZero;

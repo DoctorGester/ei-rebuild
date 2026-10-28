@@ -91,16 +91,6 @@ EI_REWRITTEN(0x0051E300, CObject3DClientSpecific::ShadowInView);
 // The scene pipeline's pop (model.h; Draw and the decal projector call it).
 EI_REWRITTEN(0x0051C110, CTransformPipeline::PopMatrix);
 
-// The identity matrix (DrawShadow's pixel matrix starts from it).
-void __fastcall MatrixSetIdentity(Matrix4* matrix) {
-    std::memset(matrix, 0, sizeof(Matrix4));
-    matrix->m[15] = 1.0f;
-    matrix->m[10] = 1.0f;
-    matrix->m[5] = 1.0f;
-    matrix->m[0] = 1.0f;
-}
-EI_REWRITTEN(0x0051E1C0, MatrixSetIdentity);
-
 // --- The base half's empty slots (the server half keeps them) ---------------------------------------
 
 // Nothing is drawn; 0.
@@ -114,15 +104,6 @@ int CObject3DSpecific::PartsIntersectRect(const tagRECT*) { return 0; }
 EI_REWRITTEN(0x0051ACB0, CObject3DSpecific::PartsIntersectRect);
 int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 EI_REWRITTEN(0x0051ACA0, CObject3DSpecific::PartsContainPoint);
-// The empty destroy step the containers of plain elements call.
-void __fastcall SpecificBaseNothing(CObject3DSpecific*) {}
-EI_REWRITTEN(0x0051AC80, SpecificBaseNothing);
-void __cdecl DestroyNothing() {}
-EI_REWRITTEN(0x0051E830, DestroyNothing);
-// Slots 25 / 26: nothing.
-void CObject3DSpecific::IgnoreArgument(int) {}
-EI_REWRITTEN(0x0051ACC0, CObject3DSpecific::IgnoreArgument);
-EI_REWRITTEN(0x0051ACD0, CObject3DSpecific::IgnoreArgument);
 
 // --- The server half ---------------------------------------------------------------------------------
 
@@ -169,13 +150,6 @@ WoundsMaterial::~WoundsMaterial() {
 EI_REWRITTEN_SPECIAL(0x0051C730, WoundsMaterial::~WoundsMaterial);
 EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 
-// A named texture's destructor: the texture released, the name freed.
-void __fastcall NamedTextureDestruct(NamedTexture* self) {
-    if (self->texture) self->texture->Release();
-    std::destroy_at(&self->name);
-}
-EI_REWRITTEN(0x0051C800, NamedTextureDestruct);
-
 // A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
 NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
@@ -186,9 +160,3 @@ NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
 }
 EI_REWRITTEN(0x0051E430, NamedTexture::Copy);
 
-// ECX = the place, EDX = the stage: a material stage copied into `place` unless it is
-// null (the placement copy the stage vector's growth uses).
-void __fastcall MaterialStageCopy(MaterialStage* place, const MaterialStage* stage) {
-    if (place) new (place) MaterialStage(*stage);
-}
-EI_REWRITTEN(0x0051E970, MaterialStageCopy);

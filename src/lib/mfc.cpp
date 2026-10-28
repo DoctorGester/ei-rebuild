@@ -52,7 +52,6 @@ void __cdecl CString::Format(const char* format, ...) {
     Impl(this)->FormatV(format, arguments);
     va_end(arguments);
 }
-void CString::FormatV(const char* format, va_list arguments) { Impl(this)->FormatV(format, arguments); }
 #ifndef EI_VECTORS_REPLAY
 CString CString::Left(int count) const {
     CString result(kUnset);
@@ -76,7 +75,6 @@ CString CString::Mid(int first, int count) const {
 }
 #endif
 int CString::Remove(char ch) { return Impl(this)->Remove(ch); }
-int CString::FindOneOf(const char* set) const { return Impl(this)->FindOneOf(set); }
 int CString::ReverseFind(char ch) const { return Impl(this)->ReverseFind(ch); }
 #ifndef EI_VECTORS_REPLAY
 int CString::Find(const char* sub) const { return Impl(this)->Find(sub); }
@@ -174,10 +172,6 @@ namespace {
 impl::CArchive* Impl(CArchive* archive) { return reinterpret_cast<impl::CArchive*>(archive); }
 } // namespace
 
-unsigned CArchive::Read(void* buffer, unsigned bytes) { return Impl(this)->Read(buffer, bytes); }
-void CArchive::Write(const void* buffer, unsigned bytes) { Impl(this)->Write(buffer, bytes); }
-unsigned long CArchive::ReadCount() { return Impl(this)->ReadCount(); }
-void CArchive::WriteCount(unsigned long count) { Impl(this)->WriteCount(count); }
 void CArchive::Flush() { Impl(this)->Flush(); }
 
 #ifndef EI_VECTORS_REPLAY

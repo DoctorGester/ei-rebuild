@@ -28,16 +28,3 @@ void Vector3::DivideInPlace(float d) {
 }
 EI_REWRITTEN(0x004679B0, Vector3::DivideInPlace);
 
-Vector4* Vector4::FromPoint(const Vector3& p) {
-    // Copied one dword at a time in the game (no float loads).
-    std::uint32_t v;
-    std::memcpy(&v, &p.x, 4);
-    std::memcpy(&x, &v, 4);
-    std::memcpy(&v, &p.y, 4);
-    std::memcpy(&y, &v, 4);
-    std::memcpy(&v, &p.z, 4);
-    std::memcpy(&z, &v, 4);
-    w = 1.0f;
-    return this;
-}
-EI_REWRITTEN(0x004679D0, Vector4::FromPoint);

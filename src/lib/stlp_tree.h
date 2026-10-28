@@ -70,7 +70,7 @@ struct TreeElement {
 };
 
 // The key order of a map: operator< (signed for int keys, unsigned for pointers and unsigned keys,
-// bytes for stlp::string). Keys without one (MFC's CString, compared with _mbscmp) get an order of
+// bytes for std::string). Keys without one (MFC's CString, compared with _mbscmp) get an order of
 // their own as map's third argument.
 template <typename K>
 struct TreeLess {

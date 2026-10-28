@@ -22,11 +22,12 @@ template <typename K, typename Second>
 using PairTree = stlp::TreeAbi<stlp::map<K, typename Second::Type>,
                                stlp::PairElement<typename stlp::map<K, typename Second::Type>::Value, Second>>;
 
-// The debug panel's entries (string_map.cpp; 0x28-byte nodes).
-using StringPairs = stlp::TreeAbi<stlp::map<stlp::string, stlp::string>>;
+// The debug panel's entries (string_map.cpp).
+using StringPairs = stlp::TreeAbi<stlp::map<std::string, std::string>>;
 
-// The .mob loader's tint lists by name (a local in a branch that never runs): list<16-byte record> values, copied by list(const list&) (a sentinel, then the
-// elements in order) and destroyed with the list (the nodes, then the sentinel).
+// The .mob loader's tint lists by name (a local in a branch that never runs): list<16-byte record> values,
+// copied by list(const list&) (a sentinel, then the elements in order) and destroyed with the list (the nodes,
+// then the sentinel).
 using TintList = stlp::list<stlp::Opaque<16>>;
 struct TintListValue {
     using Type = TintList;

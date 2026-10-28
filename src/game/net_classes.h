@@ -161,9 +161,6 @@ protected:
 
 using MessageFactory = Message* (__fastcall*)();
 
-// Operator new(size) with the CRefObject count cleared; no null check.
-void* __fastcall NewRefObject(std::size_t size);
-
 // ---- The server entries of the lobby ------------------------------------------------------------
 
 class ServerEntryBase : public CRefObject {

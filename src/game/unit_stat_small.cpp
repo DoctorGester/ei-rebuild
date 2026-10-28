@@ -35,12 +35,6 @@ EI_REWRITTEN(0x0052E0D0, AttackParams::ScaleForDifficulty);
 
 // --- Database records ---------------------------------------------------------------------------------
 
-SkillRecord* SkillDatabase::SkillAt(std::uint32_t index) { return RecordAt(skills.begin(), skills.end(), index); }
-EI_REWRITTEN(0x00526FF0, SkillDatabase::SkillAt);
-
-SkillLevelRecord* SkillDatabase::LevelAt(std::uint32_t index) { return RecordAt(levels.begin(), levels.end(), index); }
-EI_REWRITTEN(0x00524FA0, SkillDatabase::LevelAt);
-
 UnitModelRecord* UnitModelTable::At(std::uint32_t index) { return RecordAt(begin, end, index); }
 EI_REWRITTEN(0x00539280, UnitModelTable::At);
 
