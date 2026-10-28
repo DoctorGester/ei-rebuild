@@ -69,23 +69,23 @@ void __cdecl LoadKeyBindings() {
         if (!gameapi::GetKeyNameTextA(k.scan_ << 16, k.name_, 0x1F)) k.name_[0] = 0;
     }
     mfc::CString line;
-    console::CStringArray words;
+    std::vector<std::string> words;
     console::CStdioFile file;
     std::memset(ActionOfScan(), 0, 0x200);
     if (!OpenFile(file, console::CStdioFile::typeText)) return;
     while (file.ReadString(line)) {
         text::SplitWords(line, &words, ' ');
-        if (words.GetSize() <= 1) continue;
+        if (words.size() <= 1) continue;
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (libcrt::Stricmp(g_keyNames[key].file_, words[0]) == 0) {
+            if (libcrt::Stricmp(g_keyNames[key].file_, words[0].c_str()) == 0) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (libcrt::Stricmp(kActionDefinitions[action].name_, words[1]) != 0) continue;
+            if (libcrt::Stricmp(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
             if (known) ActionOfScan()[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }

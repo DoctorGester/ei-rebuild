@@ -45,12 +45,12 @@ int CompareNames(std::string_view a, std::string_view b) {
 void OpenObjectives(CInterface3D* ui) {
     MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
     if (!zone) return;
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
     for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
         text::Split(node->value.key, &parts, '.');
-        if (parts.size != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
-        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
+        if (parts.size() != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
+        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1].c_str());
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);

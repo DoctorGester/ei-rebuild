@@ -106,7 +106,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             return;
         }
         {
-            int first = lines_.GetSize() - visibleLines_;
+            int first = static_cast<int>(lines_.size()) - visibleLines_;
             scroll_ = first < 0 ? 0 : first;
         }
         break;
@@ -119,11 +119,11 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_UP:
     case VK_DOWN:
         if (key == VK_UP) {
-            if (commandIndex_ < commands_.GetSize()) ++commandIndex_;
+            if (commandIndex_ < static_cast<int>(commands_.size())) ++commandIndex_;
         } else if (commandIndex_ >= 0) {
             --commandIndex_;
         }
-        if (commandIndex_ >= 0 && commandIndex_ < commands_.GetSize())
+        if (commandIndex_ >= 0 && commandIndex_ < static_cast<int>(commands_.size()))
             input_ = commands_[commandIndex_];
         else
             input_.clear();
@@ -253,19 +253,19 @@ void ConsoleWindow::OnChar(int key, int, int) {
     case 9:
         return;
     case 13: {   // Enter
-        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size != 0 &&
-                        std::strcmp(input_.c_str(), commands_.data[0]) == 0;
+        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && !commands_.empty() &&
+                        std::strcmp(input_.c_str(), commands_[0].c_str()) == 0;
         if (!repeated) {
-            commands_.InsertAt(0, input_, 1);
-            if (commands_.size > kHistoryDepth) commands_.RemoveAt(commands_.size - 1, 1);
+            commands_.insert(commands_.begin(), input_);
+            if (commands_.size() > kHistoryDepth) commands_.pop_back();
         }
         commandIndex_ = -1;
         input_.clear();
         caret_ = 0;
         anchor_ = 0;
         DrawInput();
-        AddText((mfc::CString(game::consoletexts::Prompt()) + commands_.data[0]) + game::NewLineText());
-        Execute(commands_.data[0]);
+        AddText((game::consoletexts::Prompt() + commands_[0] + game::NewLineText()).c_str());
+        Execute(commands_[0].c_str());
         return;
     }
     case 27:   // Escape
@@ -322,7 +322,8 @@ EI_REWRITTEN(0x005E44A0, ConsoleWindow::OnChar);
 // the area above the input strip and draws the visible lines bottom up, 15 pixels apart, with a
 // "+" at the top right when there is more above and at the bottom right when scrolled back.
 void ConsoleWindow::DrawLines() {
-    if (scroll_ > lines_.GetSize() - visibleLines_) scroll_ = lines_.GetSize() - visibleLines_;
+    const int lineCount = static_cast<int>(lines_.size());
+    if (scroll_ > lineCount - visibleLines_) scroll_ = lineCount - visibleLines_;
     if (scroll_ < 0) scroll_ = 0;
     if (!surface_ || !font_) return;
     CUiSurface* surface = surface_;
@@ -331,18 +332,18 @@ void ConsoleWindow::DrawLines() {
     mfc::impl::CGdiObject* oldFont = dc->SelectFont(font_);
     dc->SetTextColor(kLineText);
     dc->SetBkMode(TRANSPARENT);
-    int line = lines_.GetSize() - scroll_ - 1;
+    int line = lineCount - scroll_ - 1;
     for (int i = 0, y = 0; i < visibleLines_ && line >= 0; ++i, y += kLineHeight, --line) {
         RECT rect{8, height_ - y - 0x2E, width_ - 0x12, height_ - y - 0x1A};
-        const mfc::CString& text = lines_[line];
-        dc->DrawText(text, text.GetLength(), &rect, kDrawLine);
+        const std::string& text = lines_[line];
+        dc->DrawText(text.c_str(), static_cast<int>(text.size()), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
         std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
         dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);
     }
-    if (scroll_ < lines_.GetSize() - visibleLines_) {
+    if (scroll_ < lineCount - visibleLines_) {
         std::string mark = game::consoletexts::More();
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
         dc->DrawText(mark.c_str(), mark.size(), &rect, kDrawMark);

@@ -411,7 +411,7 @@ to which template:
   CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
   (the layout asserts after them went).
   Batch 11: the ui's CStringArray members are `std::vector<std::string>`: CUiTooltip::lines_ (filled by
-  `text::SplitStrings`, Split into a vector), CHudUnitPanel's texts_ / partLabels_, CUiSpin::texts_,
+  `text::Split`), CHudUnitPanel's texts_ / partLabels_, CUiSpin::texts_,
   SaveEntry::stringArrays_, CObjectivesWindow's quests_ / objectiveTexts_, CHelpWindow::lines_, CChatWindow::texts_,
   CTradePanel / CHeroStatsPanel / CSpellMakerPage::texts_, CCampPages::pageTitles_, CMpConnectScreen's allodNames_ /
   texts_, CItemInfoPanel's item and skill texts (the layout asserts and the padding bytes after them went). Chunk::
@@ -457,6 +457,19 @@ to which template:
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
 - Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
   Split / SplitWords / Join's CStringArrays and the locals their callers fill (the quest places' `parts`).
+  The console batch: text::Split / SplitWords / Join, CTextManager::Split and console::Tokenize fill / read a
+  `std::vector<std::string>` (SplitStrings went), and so do their callers' locals (the command line and sysmsg.txt
+  lines, the map database's words, the briefing / objectives / help / global map texts, the key bindings, CreateItem's
+  and CreateSpellFromText's names, the texture's path pieces, the script events' words). The console's command
+  arguments are `console::Arguments` (`std::vector<std::string>`; the handlers take `Arguments*`), ConsoleWindow's
+  commands_ / lines_ are vectors (its offset assert went; it is allocated by sizeof), Execute keeps the command as a
+  std::string (the cheat word's XOR, then cut at the first zero byte as ReleaseBuffer(-1) did) and RunScriptLine
+  builds a std::string, converted to a CString only for RunScriptText. `str::TrimLeft(s, char)` is CString's
+  TrimLeft(TCHAR). The briefing's phrase speaker (`named` in NextPhrase) is empty for a one-word line, where the
+  original read past the array.
+- Members that must stay CStrings for now: the registry's and resources' list out parameters (GetStringArray,
+  GetSectionNames, ListFiles, CIniFile::GetList / GetKeyNames, the List*Names, ListWaveFiles, ListKeys) and the locals
+  they fill (`console::CStringArray`, kept for them), the console's command map keys (`stlp::CStringLess`).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>

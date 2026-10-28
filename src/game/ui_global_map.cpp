@@ -48,7 +48,6 @@
 #include <bit>
 #include <string>
 
-using console::CStringArray;
 
 namespace {
 
@@ -243,7 +242,7 @@ void CGlobalMap::CreateScreen() {
     AddTipRegion(this, 0xF, 0x20D, 0x6B, 0x249, 0x15FF4);
 
     std::string variable;
-    CStringArray parts;
+    std::vector<std::string> parts;
     VariableTable vars;
     // New elements are copied from these (their numbers are uninitialised; every
     // number is overwritten right after).
@@ -283,7 +282,7 @@ void CGlobalMap::CreateScreen() {
             std::memcpy(&value, &node->value.mapped, 4);
             if (value == 0x3F800000) {
                 text::Split(node->value.key, &parts, '.');
-                if (parts.GetSize() == 3) {
+                if (parts.size() == 3) {
                     int n = questCount_;
                     SetPlaceCount(quests_, quests_.size + 1);
                     quests_.data[quests_.size - 1].AssignCopy(questTemplate);
@@ -292,11 +291,11 @@ void CGlobalMap::CreateScreen() {
                     quests_.data[n].zone = i;
                     {
                         mfc::CString title(mfc::CString::kUnset);
-                        quests_.data[n].title = *QuestTitle(&title, parts[2]);
+                        quests_.data[n].title = *QuestTitle(&title, parts[2].c_str());
                     }
                     {
                         Vector3 position;
-                        QuestPosition(&position, parts[2]);
+                        QuestPosition(&position, parts[2].c_str());
                         std::memcpy(&quests_.data[n].position, &position, 12);
                     }
                     CUiMesh* sprite = AddFigure(this, allod->otherNames[kAllodQuestMarker]);

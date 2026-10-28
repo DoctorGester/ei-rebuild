@@ -72,11 +72,11 @@ EI_REWRITTEN(0x005F5700, CInterface3D::ShowFps);
 
 void CInterface3D::OnQuestVariable(const char* name, float value) {
     if (stack_.Start() != stack_.Finish()) ScreenOf(stack_.Finish()[-1])->QuestVariable(name, value);
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     EI_NAN_AUDIT(value);
     if (value != 1.0f) return;
     text::SplitWords(name, &parts, '.');
-    if (parts.GetSize() > kQuestPart) savedText_ = parts[kQuestPart];
+    if (parts.size() > kQuestPart) savedText_ = parts[kQuestPart];
 }
 EI_REWRITTEN(0x005F7FC0, CInterface3D::OnQuestVariable);
 

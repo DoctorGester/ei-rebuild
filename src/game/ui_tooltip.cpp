@@ -64,7 +64,7 @@ CUiTooltip::CUiTooltip(CInterface3D* ui, CUiRegion* region, const char* text, in
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
     if (!text || !*text) return;
-    text::SplitStrings(text, &lines_, kLineSeparator);
+    text::Split(text, &lines_, kLineSeparator);
     width_ = 0;
     height_ = 0;
     lineHeight_ = 0;
@@ -101,7 +101,7 @@ EI_REWRITTEN_SPECIAL(0x0065EAC0, CUiTooltip::~CUiTooltip);   // the input side's
 
 void CUiTooltip::SetText(const char* text) {
     if (!text || !*text) return;
-    text::SplitStrings(text, &lines_, kLineSeparator);
+    text::Split(text, &lines_, kLineSeparator);
     DrawLines();
 }
 EI_REWRITTEN(0x0065E540, CUiTooltip::SetText);

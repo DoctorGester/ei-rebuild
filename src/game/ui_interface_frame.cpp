@@ -7,6 +7,7 @@
 #include "console.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -128,41 +129,41 @@ int Compare(const std::string& word, const char* text) {
 
 void CInterface3D::OnStringEvent(const char* event) {
     if (!event) return;
-    console::CStringArray words;
+    std::vector<std::string> words;
     std::string unused;
     std::string text = event;
     text::SplitWords(text.c_str(), &words, ' ');
-    words.data[0].MakeLower();
+    str::MakeLower(words[0]);
     // Rebirth's NewStringEvents: "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data[0], "gameover") == 0) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words[0].c_str(), "gameover") == 0) {
         GameStopSounds(1);
         GameStopAmbience();
         PlaySound("buttons\\gameover.wav", 0);
-        const char* title = words.size > 1 ? words.data[1].GetString() : "game_over";
-        const char* message = words.size > 2 ? words.data[2].GetString() : "game_over_msg";
+        const char* title = words.size() > 1 ? words[1].c_str() : "game_over";
+        const char* message = words.size() > 2 ? words[2].c_str() : "game_over_msg";
         CMessageBox* window = new CMessageBox(this, title, message, 0x20000, 3, 1);
         PushWindow(window, 1, 1);
         return;
     }
     auto top = [this]() { return stack_.Finish()[-1]; };
-    if (Compare(words.data[0].GetString(), "say") == 0 || Compare(words.data[0].GetString(), "say_block") == 0) {
+    if (Compare(words[0].c_str(), "say") == 0 || Compare(words[0].c_str(), "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
-        if (words.size < 2) return;
-        int number = words.size > 2 ? TextKeyFromName(words.data[2]) : 0;
-        int kind = Compare(words.data[0].GetString(), "say_block") != 0 ? 0x2A : 0x2B;
+        if (words.size() < 2) return;
+        int number = words.size() > 2 ? TextKeyFromName(words[2].c_str()) : 0;
+        int kind = Compare(words[0].c_str(), "say_block") != 0 ? 0x2A : 0x2B;
         if (stack_.Start() != stack_.Finish())
-            ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words.data[1].GetString()));
-    } else if (Compare(words.data[0].GetString(), "tutorial") == 0) {   // queued
-        if (words.size < 2) return;
-        stlp::list<mfc::CString>::Insert(messages_.End(), words.data[1]);
-    } else if (Compare(words.data[0].GetString(), "briefing") == 0) {
-        if (words.size < 2 || stack_.Start() == stack_.Finish()) return;
-        ScreenOf(top())->ShowBriefing(words.data[1].GetString());
-    } else if (Compare(words.data[0].GetString(), "autosave") == 0) {
+            ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words[1].c_str()));
+    } else if (Compare(words[0].c_str(), "tutorial") == 0) {   // queued
+        if (words.size() < 2) return;
+        stlp::list<mfc::CString>::Insert(messages_.End(), words[1]);
+    } else if (Compare(words[0].c_str(), "briefing") == 0) {
+        if (words.size() < 2 || stack_.Start() == stack_.Finish()) return;
+        ScreenOf(top())->ShowBriefing(words[1].c_str());
+    } else if (Compare(words[0].c_str(), "autosave") == 0) {
         pollTop_ = true;
-    } else if (Compare(words.data[0].GetString(), "endofgame") == 0) {
+    } else if (Compare(words[0].c_str(), "endofgame") == 0) {
         if (stack_.Start() != stack_.Finish()) ScreenOf(top())->GameOver(1);
     }
 }

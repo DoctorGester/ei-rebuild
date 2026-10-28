@@ -130,13 +130,13 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     std::string prefix;
     prefix = str::Format(ZoneTopicFormat(), zone->name.c_str());
     BriefingVariables variables(prefix.c_str());
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::uint32_t bits;
         std::memcpy(&bits, &node->value.mapped, 4);
         if (bits != kOneBits) continue;
         text::Split(node->value.key, &parts, '.');
-        if (parts.size != kTopicNameParts) continue;
+        if (parts.size() != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;
         StartDialogue(1, 1);

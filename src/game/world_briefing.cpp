@@ -55,11 +55,11 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     }
     if (missing) return std::construct_at(out, game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
-    console::CStringArray words;
+    std::vector<std::string> words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
-        if (words.GetSize() >= 2 &&
-            gamecrt::mbsicmp(words[1].GetString(),
+        if (words.size() >= 2 &&
+            gamecrt::mbsicmp(words[1].c_str(),
                             game::briefingwords::Hero()) != 0)
             return std::construct_at(out, words[1]);
     }

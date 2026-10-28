@@ -79,15 +79,15 @@ std::string GroupText(const ScriptGroup& group) {
 
 // ---- The commands (the arguments, lower case) ----------------------------------------------
 
-void __fastcall Help(CStringArray* args) {
+void __fastcall Help(Arguments* args) {
     g_gameHelp(args);
     Say("ADDON [command]");
     Say("addon-specific commands");
 }
 
-void AddonDebug(CStringArray* args) {
-    std::string type = args->GetSize() >= 1 ? ((*args)[0]).GetString() : "";
-    int level = args->GetSize() >= 2 ? std::atoi((*args)[1]) : -1;
+void AddonDebug(Arguments* args) {
+    std::string type = !args->empty() ? (*args)[0] : "";
+    int level = args->size() >= 2 ? std::atoi((*args)[1].c_str()) : -1;
     if (type.empty() || type == "help") {
         SayFormat("Usage:\n\taddon debug {type} [level]\n\nSet debug level for type of addon's debugging settings\n"
                   "or show current value if level is not specified\n\nTypes:\n* log      - addon log file (current: %d)\n"
@@ -109,24 +109,24 @@ void AddonDebug(CStringArray* args) {
     }
 }
 
-void __fastcall Addon(CStringArray* args) {
-    if (args->GetSize() == 0 || std::strcmp((*args)[0], "help") == 0) {
+void __fastcall Addon(Arguments* args) {
+    if (args->empty() || std::strcmp((*args)[0].c_str(), "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
             "* addon debug [args]  - set addon's debug settings");
-    } else if (std::strcmp((*args)[0], "info") == 0) {
+    } else if (std::strcmp((*args)[0].c_str(), "info") == 0) {
         SayFormat("Addon core version: 0.12.4.2\nCurrent mod: %s", "No mod is used");
-    } else if (std::strcmp((*args)[0], "debug") == 0) {
-        args->RemoveAt(0, 1);
+    } else if (std::strcmp((*args)[0].c_str(), "debug") == 0) {
+        args->erase(args->begin());
         AddonDebug(args);
     } else {
-        SayFormat("Unknown command: %s", ((*args)[0]).GetString());
+        SayFormat("Unknown command: %s", (*args)[0].c_str());
     }
 }
 
 // execs file: loads a script file into the script loader and runs it.
-void __fastcall Execs(CStringArray* args) {
-    if (TheMissionScript()->LoadFile((*args)[0])) {
+void __fastcall Execs(Arguments* args) {
+    if (TheMissionScript()->LoadFile((*args)[0].c_str())) {
         ScriptTick(TheMissionScript());
         return;
     }
@@ -134,7 +134,7 @@ void __fastcall Execs(CStringArray* args) {
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
-void __fastcall ListGlobals(CStringArray*) {
+void __fastcall ListGlobals(Arguments*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
     auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
     for (int i = 0; i < globals.floats.size; ++i)
@@ -152,14 +152,14 @@ void __fastcall ListGlobals(CStringArray*) {
 }
 
 // drawall n: the draw-all flag becomes (n == 0).
-void __fastcall DrawAll(CStringArray* args) {
-    if (args->GetSize() < 1) return;
-    *kSpectator = std::atoi((*args)[0]) == 0 ? 1 : 0;
+void __fastcall DrawAll(Arguments* args) {
+    if (args->size() < 1) return;
+    *kSpectator = std::atoi((*args)[0].c_str()) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
-void __fastcall NoGui(CStringArray* args) {
-    int mode = args->GetSize() == 1 ? std::atoi((*args)[0]) : -1;
+void __fastcall NoGui(Arguments* args) {
+    int mode = args->size() == 1 ? std::atoi((*args)[0].c_str()) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"
             "nogui 2 - hide GUI and cursor");

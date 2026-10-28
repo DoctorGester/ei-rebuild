@@ -117,7 +117,7 @@ void CHelpWindow::ShowPage() {
     ClearSceneObjects();
 
     CTextManager* texts = TheTextManager();
-    console::CStringArray words;
+    std::vector<std::string> words;
     BOOL found;
     {
         std::string section = (mfc::CString(kTutorialSection) + text_).GetString();
@@ -144,13 +144,13 @@ void CHelpWindow::ShowPage() {
     const char* resume = texts->cursor_;
     if (texts->FindLine(kPositionLine)) {
         texts->Split(&words, 1);
-        if (words.GetSize() > 3) {
-            page.left = std::atoi(words[1]);
-            page.top = std::atoi(words[2]);
-            page.right = std::atoi(words[3]);
+        if (words.size() > 3) {
+            page.left = std::atoi(words[1].c_str());
+            page.top = std::atoi(words[2].c_str());
+            page.right = std::atoi(words[3].c_str());
             int rows = 1;
-            if (words.GetSize() > 4) {
-                rows = std::atoi(words[4]);
+            if (words.size() > 4) {
+                rows = std::atoi(words[4].c_str());
                 rowsGiven = true;
             }
             if (page.right - page.left < 300) page.right = page.left + 300;
@@ -193,12 +193,12 @@ void CHelpWindow::ShowPage() {
     while (texts->FindLine(nullptr)) {
         texts->Split(&words, 1);
         if (Same(words[0], kScreenLine)) break;
-        if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
-            const int top = std::atoi(words[2]);
-            const int bottom = std::atoi(words[4]);
+        if (Same(words[0], kRectangleLine) && words.size() > 4) {
+            const int top = std::atoi(words[2].c_str());
+            const int bottom = std::atoi(words[4].c_str());
             const int shift = TutorialFrameShift(this);
-            const int left = std::atoi(words[1]) + shift;
-            const int right = std::atoi(words[3]) + shift;
+            const int left = std::atoi(words[1].c_str()) + shift;
+            const int right = std::atoi(words[3].c_str()) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
@@ -206,14 +206,14 @@ void CHelpWindow::ShowPage() {
             pulsing_.PushBack(mark);
         } else if (Same(words[0], kTextLine)) {
             std::string picture;
-            if (words.GetSize() > 1) {
-                const char* name = words[1];
+            if (words.size() > 1) {
+                const char* name = words[1].c_str();
                 picture.assign(name, name + std::strlen(name));
             }
             // The next line's first word is the text's key.
             texts->Split(&words, 1);
-            if (words.GetSize() > 0) {
-                const char* key = words[0];
+            if (words.size() > 0) {
+                const char* key = words[0].c_str();
                 const PageEntry entry{std::string(key), picture};
                 entries.PushBack(entry);
             }

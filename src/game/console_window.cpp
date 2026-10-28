@@ -36,23 +36,27 @@ EI_REWRITTEN(0x005E3E90, ConsoleWindow::SetRect);
 
 void ConsoleWindow::SetHistory(int lines) {
     history_ = lines;
-    if (lines_.GetSize() > lines) lines_.RemoveAt(0, lines_.GetSize() - lines);
+    DropOldLines(lines);
     DrawLines();   // clamps the scroll position, draws the visible lines
 }
 EI_REWRITTEN(0x005E3F90, ConsoleWindow::SetHistory);
 
+void ConsoleWindow::DropOldLines(int count) {
+    if (static_cast<int>(lines_.size()) > count) lines_.erase(lines_.begin(), lines_.end() - count);
+}
+
 // The first piece continues the last line, each '\n' starts a new one. A window scrolled
 // back stays on the same lines. Keeps the last history_ lines.
 void ConsoleWindow::AddText(const char* text) {
-    CStringArray pieces;
-    text::Split(text, &pieces, '\n');
-    if (lines_.GetSize() != 0)
-        lines_[lines_.GetSize() - 1] += *pieces.data;   // reads piece 0 unchecked (the original does too)
+    std::vector<std::string> pieces;
+    text::Split(text, &pieces, '\n');   // at least one piece
+    if (!lines_.empty())
+        lines_.back() += pieces[0];
     else
-        lines_.SetAtGrow(lines_.GetSize(), *pieces.data);
-    for (int i = 1; i < pieces.GetSize(); ++i) lines_.SetAtGrow(lines_.GetSize(), pieces[i]);
-    if (scroll_ != 0) scroll_ += pieces.GetSize();
-    if (lines_.GetSize() > history_) lines_.RemoveAt(0, lines_.GetSize() - history_);
+        lines_.push_back(pieces[0]);
+    lines_.insert(lines_.end(), pieces.begin() + 1, pieces.end());
+    if (scroll_ != 0) scroll_ += static_cast<int>(pieces.size());
+    DropOldLines(history_);
     DrawLines();   // clamps the scroll position, draws the visible lines
 }
 EI_REWRITTEN(0x005E4090, ConsoleWindow::AddText);

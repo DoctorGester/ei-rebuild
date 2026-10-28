@@ -23,21 +23,21 @@ const char* AlphaPrefixText() { return "a_"; }
 int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     std::string file;
     std::string alphaPath;
-    console::CStringArray pieces;
+    std::vector<std::string> pieces;
     if ((flags_ & kTextureLoaded) &&
         gamecrt::mbscmp(name_, path) == 0) {
         game::DebugLog(AlreadyLoadedText(), path);
         return 1;
     }
     text::Split(path, &pieces, '\\');
-    file = pieces[pieces.GetSize() - 1];
-    pieces.RemoveAt(pieces.GetSize() - 1, 1);
+    file = pieces.back();
+    pieces.pop_back();
     alphaPath = AlphaPrefixText() + file;
-    pieces.SetAtGrow(pieces.GetSize(), alphaPath);
-    text::Join(&alphaPath, &pieces, '\\');
-    pieces.RemoveAt(pieces.GetSize() - 1, 1);
-    pieces.SetAtGrow(pieces.GetSize(), file);
-    text::Join(&file, &pieces, '\\');
+    pieces.push_back(alphaPath);
+    text::Join(&alphaPath, pieces, '\\');
+    pieces.pop_back();
+    pieces.push_back(file);
+    text::Join(&file, pieces, '\\');
     return LoadBmpFiles(device, file.c_str(), alphaPath.c_str());
 }
 EI_REWRITTEN(0x00690260, CTexture::LoadBmp);

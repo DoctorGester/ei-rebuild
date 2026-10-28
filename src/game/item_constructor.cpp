@@ -12,6 +12,7 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/mfc.h"
+#include "lib/str.h"
 #include "lib/stlp_hash.h"
 #include "game_data.h"
 
@@ -389,7 +390,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     CItemConstructor* constructor = context->ItemConstructor();
     mfc::CString extra;               // the part in brackets: "name[extra]"
     mfc::CString text(name);
-    console::CStringArray parts;      // the name split at '.'
+    std::vector<std::string> parts;      // the name split at '.'
     int bracket = AsText(text).Find('[');
     if (bracket != -1) {
         extra = AsText(text).Right(text.GetLength() - bracket - 1);
@@ -401,10 +402,10 @@ CItem* CItemManager::CreateItem(const char* name) {
         AsText(text).TrimSpaceRight();
     }
     text::Split(text, &parts, '.');
-    for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
+    for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(parts.data[0].GetString(),
+    if (gamecrt::mbscmp(parts[0].c_str(),
                         kSpellContainer) == 0) {
         const char* spellText = extra;
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
@@ -419,7 +420,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
 
     // "prototype[.material]".
-    const char* prototypeName = parts.data[0];
+    const char* prototypeName = parts[0].c_str();
     ItemDatabase& items = TheItemDatabase();
     ItemRecordHead* prototype = items.weapons.Named(prototypeName);
     if (!prototype) prototype = items.armors.Named(prototypeName);
@@ -429,13 +430,13 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (!prototype) {
         // Rebirth's FixCreateItem logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
-            game::FatalError(kNoPrototype, parts.data[0].GetString());
+            game::FatalError(kNoPrototype, parts[0].c_str());
         return nullptr;
     }
     constructor->SetManager(this);
     constructor->BeginCreateItem(prototype->Kind(), -1);
     MaterialRecordHead* material = nullptr;
-    if (parts.size > 1) material = items.materials.Named(parts.data[1]);
+    if (parts.size() > 1) material = items.materials.Named(parts[1].c_str());
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
@@ -456,9 +457,9 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);
-    if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size > 1) {
+    if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size() > 1) {
         int which = static_cast<int>(loot->recordType_);
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts.data[1]));
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts[1].c_str()));
     }
     return item;
 }

@@ -197,18 +197,18 @@ BOOL CTextManager::ReadToHash(std::string* out, BOOL advance) {
 }
 EI_REWRITTEN(0x004DFB80, CTextManager::ReadToHash);
 
-BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
+BOOL CTextManager::Split(std::vector<std::string>* words, BOOL advance) {
     std::string word;
     bool inWord = false;
     const char* p = cursor_;
-    words->SetSize(0, -1);
+    words->clear();
     if (!Inside(this, p)) return 0;
     while (Inside(this, p)) {
         int code = CharCode(p);
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
             if (!word.empty()) {
-                words->SetAtGrow(words->size, word.c_str());
+                words->push_back(word);
                 word.clear();
             }
             break;
@@ -217,7 +217,7 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
             if (inWord) {
                 inWord = false;
                 if (!word.empty()) {
-                    words->SetAtGrow(words->size, word.c_str());
+                    words->push_back(word);
                     word.clear();
                 }
             }
@@ -233,8 +233,8 @@ BOOL CTextManager::Split(console::CStringArray* words, BOOL advance) {
 EI_REWRITTEN(0x004DFCB0, CTextManager::Split);
 
 BOOL CTextManager::FindLine(const char* key) {
-    console::CStringArray keyWords;
-    console::CStringArray lineWords;
+    std::vector<std::string> keyWords;
+    std::vector<std::string> lineWords;
     std::string word;
     if (!key) {
         // The next "#" header line (not a "##" comment).
@@ -250,7 +250,7 @@ BOOL CTextManager::FindLine(const char* key) {
         return 0;
     }
     text::Split(key, &keyWords, ' ');
-    if (keyWords.size <= 1) {
+    if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWord(&word)) {
             if (MbsCmp(word.c_str(), key) == 0) return 1;
@@ -265,14 +265,14 @@ BOOL CTextManager::FindLine(const char* key) {
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
     while (Split(&lineWords, 0)) {
-        if (lineWords.size >= keyWords.size) {
-            int i = 0;
-            if (keyWords.size <= 0) return 1;
+        if (lineWords.size() >= keyWords.size()) {
+            std::size_t i = 0;
+            if (keyWords.empty()) return 1;
             for (;;) {
-                word = lineWords.data[i].GetString();
+                word = lineWords[i];
                 str::MakeLower(word);
-                if (MbsCmp(word.c_str(), keyWords.data[i]) != 0) break;
-                if (++i >= keyWords.size) return 1;
+                if (MbsCmp(word.c_str(), keyWords[i].c_str()) != 0) break;
+                if (++i >= keyWords.size()) return 1;
             }
         }
         std::string next;

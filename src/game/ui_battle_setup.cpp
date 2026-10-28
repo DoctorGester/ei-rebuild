@@ -34,7 +34,6 @@
 #include "lib/mfc_string.h"
 #include "camera.h"
 
-using console::CStringArray;
 
 namespace {
 // The game's save stream's version and a game being loaded (the save stream holds its data).

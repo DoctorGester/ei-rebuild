@@ -19,10 +19,12 @@
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_string.h"
+#include "lib/str.h"
 
 #include <cstring>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace console {
 
@@ -152,50 +154,49 @@ void __fastcall Execute(const char* text) {
         Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
     }
 
-    mfc::CString command;
-    CStringArray args;
+    Arguments args;
     Tokenize(text, &args);
-    if (args.GetSize() == 0) return;
-    command = args[0];
-    args.RemoveAt(0, 1);
+    if (args.empty()) return;
+    std::string command = args[0];
+    args.erase(args.begin());
     bool local = !NetworkGame();
     // Rebirth's AddNewConsoleCommands: addon's commands, registered again on every call like the game's own.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) RegisterAddonCommands();
-    char first = command.GetString()[0];
+    char first = command[0];
     if (first == '@' || first == '#' || first == '$') {
         if (g_cheatEnabled && local) {
-            mfc::CString script = Ops(command).Mid(1);
+            std::string script = str::Mid(command, 1);
             if (first == '@')
-                RunScriptLine(&script, &args, "WorldScript(", ")");
+                RunScriptLine(script, args, "WorldScript(", ")");
             else if (first == '#')
-                RunScriptLine(&script, &args, "WorldScript( ConsoleFloat( ", " ))");
+                RunScriptLine(script, args, "WorldScript( ConsoleFloat( ", " ))");
             else
-                RunScriptLine(&script, &args, "WorldScript( ConsoleString( ", " ))");
+                RunScriptLine(script, args, "WorldScript( ConsoleString( ", " ))");
         }
         return;
     }
 
-    Ops(command).MakeLower();
-    for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeLower();
-    if (Mbscmp(command, "quit") == 0 || Mbscmp(command, "exit") == 0) {
+    str::MakeLower(command);
+    for (std::string& arg : args) str::MakeLower(arg);
+    if (Mbscmp(command.c_str(), "quit") == 0 || Mbscmp(command.c_str(), "exit") == 0) {
         app::QuitGame(0);
         return;
     }
-    if (Command(PublicCommands(), command.GetString())) {
-        (Command(PublicCommands(), command.GetString()))(&args);
+    if (Command(PublicCommands(), command)) {
+        (Command(PublicCommands(), command))(&args);
         return;
     }
     if (!g_cheatEnabled) {
-        char* p = Ops(command).GetBuffer(12);
-        for (; *p; ++p) *p ^= 0x66;
-        Ops(command).ReleaseBuffer(-1);
-        if (std::strcmp(command, game::consoletexts::CheatWord()) == 0) {
+        // The cheat word is kept XORed with 0x66 (up to the first byte that becomes zero).
+        for (char& c : command) c ^= 0x66;
+        command.resize(std::strlen(command.c_str()));
+        if (std::strcmp(command.c_str(), game::consoletexts::CheatWord()) == 0) {
             g_cheatEnabled = true;
             PrintLine("Activated!");
             return;
         }
-    } else if (Command(CheatCommands(), command.GetString())) {
-        if (!NetworkGame()) (Command(CheatCommands(), command.GetString()))(&args);
+    } else if (Command(CheatCommands(), command)) {
+        if (!NetworkGame()) (Command(CheatCommands(), command))(&args);
         return;
     }
     PrintLine("Unknown command");
@@ -204,11 +205,10 @@ EI_REWRITTEN(0x005DC620, Execute);
 
 // States: 0 between tokens, 1 in a token, 2 inside double quotes (which stay in the
 // token). Double-byte characters are taken whole.
-int __fastcall Tokenize(const char* text, CStringArray* out) {
+int Tokenize(const char* text, std::vector<std::string>* out) {
     std::string token;
-    mfc::CString character;
     int state = 0;
-    out->SetSize(0, -1);
+    out->clear();
     const char* p = text;
     for (;;) {
         int c = 0;
@@ -223,7 +223,7 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
             if (state == 1) {
                 state = 0;
                 if (token.size() != 0) {
-                    out->SetAtGrow(out->GetSize(), token);
+                    out->push_back(token);
                     token.clear();
                 }
                 p = gamecrt::mbsinc(p);
@@ -238,17 +238,13 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
         } else if (state == 0) {
             state = 1;
         }
-        if (libcrt::Isleadbyte(static_cast<signed char>(*p))) {
-            Ops(character).AssignChar(p[0]);
-            Ops(character).AppendChar(p[1]);
-        } else {
-            Ops(character).AssignChar(p[0]);
-        }
-        token += character;
+        // The character's bytes (a zero byte ends the text a CString kept).
+        token += p[0];
+        if (libcrt::Isleadbyte(static_cast<signed char>(*p)) && p[1] != '\0') token += p[1];
         p = gamecrt::mbsinc(p);
     }
     if (token.size() != 0) {
-        out->SetAtGrow(out->GetSize(), token);
+        out->push_back(token);
         token.clear();
     }
     return 1;
@@ -256,18 +252,16 @@ int __fastcall Tokenize(const char* text, CStringArray* out) {
 EI_REWRITTEN(0x004DC200, Tokenize);
 
 // The arguments are joined back with single spaces.
-void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
-                              const char* suffix) {
+void RunScriptLine(const std::string& text, const Arguments& args, const char* prefix, const char* suffix) {
     ScriptErrorInfo error{};
-    mfc::CString line(prefix);
-    line += *text;
-    for (int i = 0; i < args->GetSize(); ++i) {
-        Ops(line).AppendText(" ");
-        std::string arg = (*args)[i].GetString();
+    std::string line = prefix + text;
+    for (const std::string& arg : args) {
+        line += ' ';
         line += arg;
     }
-    Ops(line).AppendText(suffix);
-    if (!RunScriptText(&line, 1, &error))
+    line += suffix;
+    mfc::CString script(line.c_str());
+    if (!RunScriptText(&script, 1, &error))
         EndLine(Out() << "Script error: " << error.text.c_str());
 }
 EI_REWRITTEN(0x005DD800, RunScriptLine);

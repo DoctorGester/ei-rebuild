@@ -52,14 +52,14 @@ void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& plac
     reg.GetStringArray(game::questwords::Quest(), game::questwords::QuestPlaces(), &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (std::string& place : places) {
-        console::CStringArray parts;
+        std::vector<std::string> parts;
         str::TrimLeft(place, '{');
         str::TrimRight(place, '}');
         text::Split(place.c_str(), &parts, ';');
-        if (parts.GetSize() == 2) {
-            float x = static_cast<float>(std::atof(parts[0]));
+        if (parts.size() == 2) {
+            float x = static_cast<float>(std::atof(parts[0].c_str()));
             PushPlace(quest, x);
-            float y = static_cast<float>(std::atof(parts[1]));
+            float y = static_cast<float>(std::atof(parts[1].c_str()));
             PushPlace(quest, y);
         }
     }

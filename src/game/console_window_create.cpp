@@ -39,7 +39,7 @@ ConsoleWindow* ConsoleWindow::Construct(CInterface3D* screen) {
     RECT rect = kInitialRect;
     SetRect(&rect);
     history_ = kHistory;
-    if (lines_.GetSize() > kHistory) lines_.RemoveAt(0, lines_.GetSize() - kHistory);
+    DropOldLines(kHistory);
     DrawLines();
     return this;
 }

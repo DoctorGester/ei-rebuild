@@ -49,7 +49,7 @@ void TextOps::TrimRight(char a0) { mfc::CString::TrimRight(a0); }
 namespace {
 
 // Splits "name{a;b}" into the trimmed name (in `text`) and the modifier names (in `codes`).
-void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
+void ParseSpellText(mfc::CString& text, std::vector<std::string>& codes) {
     int brace = Ops(text).Find('{');
     if (brace == -1) {
         Ops(text).TrimLeft();
@@ -77,7 +77,7 @@ itemdb::SpellModifierRecord* FindModifier(const char* name) {
 
 CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     mfc::CString text(source);
-    console::CStringArray codes;
+    std::vector<std::string> codes;
     ParseSpellText(text, codes);
 
     CSpellConstructor* constructor = context_->SpellConstructor();
@@ -92,10 +92,9 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     if (!constructor->BeginConstruct(prototype))
         return game::FatalErrorAs<CSpell>(kCantBegin, text.GetString());
 
-    for (int i = 0; i < codes.GetSize(); ++i) {
-        const mfc::CString& code = codes[i];
-        if (code.GetLength() == 0) continue;
-        constructor->AddModifier(FindModifier(code));
+    for (const std::string& code : codes) {
+        if (code.empty()) continue;
+        constructor->AddModifier(FindModifier(code.c_str()));
     }
 
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);

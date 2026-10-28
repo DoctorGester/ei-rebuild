@@ -199,14 +199,14 @@ constexpr UINT kCriticalBox = 0x30;     // MB_ICONEXCLAMATION
 enum MessageLine { kNeedsDirectX7, kLittleDiskSpace, kInsertDisc };
 constexpr int kMessageLines = 3;
 
-void AppendDefaultMessages(console::CStringArray& messages) {
-    messages.SetAtGrow(messages.size, "This Game requires DX7 in order to run!");
-    messages.SetAtGrow(messages.size, "Not enough free disk space - play on your own risk!");
-    messages.SetAtGrow(messages.size, "Please, insert EI disc 2 in the CD-ROM and press OK");
+void AppendDefaultMessages(std::vector<std::string>& messages) {
+    messages.push_back("This Game requires DX7 in order to run!");
+    messages.push_back("Not enough free disk space - play on your own risk!");
+    messages.push_back("Please, insert EI disc 2 in the CD-ROM and press OK");
 }
 
 // The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
-void LoadSystemMessages(console::CStringArray& messages) {
+void LoadSystemMessages(std::vector<std::string>& messages) {
     gamecrt::CrtFile* file = libcrt::Fopen(".\\res\\sysmsg.txt", "rt");
     if (!file) {
         AppendDefaultMessages(messages);
@@ -218,19 +218,19 @@ void LoadSystemMessages(console::CStringArray& messages) {
     libcrt::Fread(text, 1, length, file);
     libcrt::Fclose(file);
     text::Split(text, &messages, '\n');
-    if (messages.size < kMessageLines) {
-        messages.SetSize(0, -1);
+    if (messages.size() < kMessageLines) {
+        messages.clear();
         AppendDefaultMessages(messages);
     }
     gamecrt::operator_delete(text);
 }
 
-mfc::CString Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
+std::string Tail(const std::string& argument, int prefixLength) { return str::Right(argument, static_cast<int>(argument.size()) - prefixLength); }
 
 // The command line: "-moviepath_<folder>" (the client's flag 0x20 off), "-nocam" (flag 8 off; only while flag
 // 0x10 is off), a ".cam", ".scr", ".mob" or ".mpr" file, "-benchmark_<frames>" and "-devicetarget_<driver>".
 void ReadCommandLine(const char* commandLine) {
-    console::CStringArray arguments;
+    std::vector<std::string> arguments;
     text::Split(commandLine, &arguments, ' ');
     CameraFile() = ".\\camera.cam";
     CommandLineScript().Empty();
@@ -238,11 +238,11 @@ void ReadCommandLine(const char* commandLine) {
     CommandLineMap().Empty();
     CWorldClient* client = TheClientWorld();
     GameOptions* options = options::TheOptions();
-    for (int i = 0; i < arguments.size; ++i) {
-        if (arguments[i].Find("-moviepath_") == 0) {
+    for (std::size_t i = 0; i < arguments.size(); ++i) {
+        if (str::Find(arguments[i], "-moviepath_") == 0) {
             client->flags_ &= ~0x20u;
             {
-                std::string folder = Tail(arguments[i].GetString(), 11).GetString();
+                std::string folder = Tail(arguments[i], 11);
                 MovieFolder() = folder;
             }
             const char* folder = MovieFolder();
@@ -250,28 +250,28 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (gamecrt::mbsicmp(arguments[i].GetString(),
+            if (gamecrt::mbsicmp(arguments[i].c_str(),
                                 "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
             }
-            if (!(client->flags_ & 0x10) && arguments[i].Find(".cam") != -1) {
-                CameraFile() = arguments[i];
+            if (!(client->flags_ & 0x10) && str::Find(arguments[i], ".cam") != -1) {
+                CameraFile() = arguments[i].c_str();
                 continue;
             }
         }
-        if (arguments[i].Find(".scr") != -1) {
-            CommandLineScript() = arguments[i];
-        } else if (arguments[i].Find(".mob") != -1) {
-            CommandLineMob() = arguments[i];
-        } else if (arguments[i].Find(".mpr") != -1) {
-            CommandLineMap() = arguments[i];
-        } else if (arguments[i].Find("-benchmark_") == 0) {
-            std::string frames = Tail(arguments[i].GetString(), 11).GetString();
+        if (str::Find(arguments[i], ".scr") != -1) {
+            CommandLineScript() = arguments[i].c_str();
+        } else if (str::Find(arguments[i], ".mob") != -1) {
+            CommandLineMob() = arguments[i].c_str();
+        } else if (str::Find(arguments[i], ".mpr") != -1) {
+            CommandLineMap() = arguments[i].c_str();
+        } else if (str::Find(arguments[i], "-benchmark_") == 0) {
+            std::string frames = Tail(arguments[i], 11);
             options->numberOfFrames_ = std::atoi(frames.c_str());
             options->createOutputInfo_ = 1;
-        } else if (arguments[i].Find("-devicetarget_") == 0) {
-            std::string driver = Tail(arguments[i].GetString(), 14).GetString();
+        } else if (str::Find(arguments[i], "-devicetarget_") == 0) {
+            std::string driver = Tail(arguments[i], 14);
             options->driverIndex_ = std::atoi(driver.c_str());
         }
     }
@@ -350,12 +350,12 @@ bool FreeDiskSpace(const char* folder, double* freeBytes) {
 // Warns when the data folder's drive has under 300 MB free, and asks for the second disc while the
 // disc folder (when it is not the data folder) is not on a volume with the options' label. False
 // when the player cancels.
-bool CheckDrives(const console::CStringArray& messages) {
+bool CheckDrives(const std::vector<std::string>& messages) {
     std::string discFolder = DiscFolder().GetString();
     std::string dataFolder = TheDataFolder().GetString();
     double freeBytes;
     if (FreeDiskSpace(dataFolder.c_str(), &freeBytes) && freeBytes != 0.0 /*0073C340*/ && freeBytes < 314572800.0 /*0073C358*/) {
-        if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace], "Warning", kWarningBox) == IDCANCEL) return false;
+        if (gameapi::MessageBoxA(nullptr, messages[kLittleDiskSpace].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
     }
     if (gamecrt::mbscmp(dataFolder, discFolder) != 0) {
         char volume[0x400] = {};
@@ -363,7 +363,7 @@ bool CheckDrives(const console::CStringArray& messages) {
         DriveRoot(discFolder.c_str(), parts);
         gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         while (gamecrt::mbscmp(options::TheOptions()->cdLabels_[1], volume) != 0) {
-            if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc], "Warning", kWarningBox) == IDCANCEL) return false;
+            if (gameapi::MessageBoxA(nullptr, messages[kInsertDisc].c_str(), "Warning", kWarningBox) == IDCANCEL) return false;
             gameapi::GetVolumeInformationA(parts.drive, volume, sizeof(volume), nullptr, nullptr, nullptr, nullptr, 0);
         }
     }
@@ -710,10 +710,10 @@ void ShutDown(gamecrt::NewHandler previousHandler) {
 } // namespace
 
 int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int show) {
-    console::CStringArray messages;
+    std::vector<std::string> messages;
     LoadSystemMessages(messages);
     if (GetDxVersion() < 0x700) {
-        gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7], "CRITICAL ERROR", kCriticalBox);
+        gameapi::MessageBoxA(nullptr, messages[kNeedsDirectX7].c_str(), "CRITICAL ERROR", kCriticalBox);
         return kExitDeclined;
     }
     // The classes the chunk archives can hold: 1 the class template, 2 the party record.
