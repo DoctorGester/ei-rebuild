@@ -90,8 +90,11 @@ void SetOriginalWinMainAction(void (*action)());
 
 // Verify build only (tests/vectors/record_*.cpp): in game.exe with EI_VECTORS=1 (the original game, the
 // recorders its only hooks) route `addr` to `recorder`, and store in `orig` a trampoline running the
-// original (its first `stolen` bytes, then a jump back), which the recorder calls and samples.
-#define EI_RECORD(addr, recorder, stolen, orig) \
+// original (its first `stolen` bytes, then a jump back), which the recorder calls and samples. `rewrite` is our
+// function the replays (tests/vectors/replay_*.cpp) call with what this records: the compiler checks the name, and
+// tools/check_signatures.py its stack arguments against the original's RET n.
+#define EI_RECORD(addr, recorder, stolen, orig, rewrite) \
+    using EI_CAT(ei_record_rewrite_, __LINE__) = decltype(&rewrite); \
     static ::ei::HookRegistrar EI_CAT(ei_record_, __LINE__)( \
         addr, reinterpret_cast<void*>(&recorder), #recorder, stolen, reinterpret_cast<void**>(&orig))
 

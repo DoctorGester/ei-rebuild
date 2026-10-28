@@ -212,7 +212,8 @@ on memory layout, so a change of a class's layout is checked like any other chan
   state digest and saves compared field by field. Reach the function from a scenario that has a
   golden, or add one under `tests/scenarios/` (its golden is recorded centrally).
 - **Function vectors** (tests/vectors): a recorder (`EI_RECORD(addr, Recorder, stolenBytes,
-  originalPtr)` in `tests/vectors/record_<family>.cpp`) samples the original's calls in a
+  originalPtr, OurFunction)` in `tests/vectors/record_<family>.cpp`; `OurFunction` is what the replay calls, its
+  stack arguments checked by check_signatures) samples the original's calls in a
   `--no-hooks` run with `EI_VECTORS=1`, and `ei_vectors.exe` (build.cmd) replays them against ours
   without the game. For pure functions and ones that only write an output object. `stolenBytes`
   must cover whole instructions at the function start, at least 5, with no relative operands (no

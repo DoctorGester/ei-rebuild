@@ -2,15 +2,13 @@
 
 For each sampled first-parent commit of main (and the working tree last) it computes, from that
 commit's own files:
-  - ported game code: functions and bytes rewritten (EI_REPLACE*, UI_INPUT_HANDLER / UI_WHEEL_HANDLER)
-    against config/functions.csv minus library and dead code, overall and per address range;
   - lines of code under src/ (game, lib, render, hook) and tests/;
   - cleanup artefacts: At<>/Field<> uses, VCall uses, __asm blocks, float_control pragmas, scenarios;
   - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
     (game data addresses, uses of the exe's MFC / STLport / CRT / imports)
     and the single-byte text sites a UTF-8 switch has to visit;
   - the cleanup track (tools/progress.py's counts over all of src/, so both tools agree): casts,
-    __fastcall shims, registrations, game data addresses, struct names defined twice; and from the
+    __fastcall shims, game data addresses, struct names defined twice; and from the
     generated tables, game.exe's code cells by group, its pointer cells, the named data ranges (C18)
     and the retired vtables (C19).
 
@@ -34,7 +32,6 @@ TRACK = {
     'reinterpret_casts': 'reinterpret_cast',
     'pointer_static_casts': 'static_cast to a pointer type',
     'anonymous_namespaces': 'anonymous namespaces',
-    'registrations': 'EI_REPLACE registrations',
 }
 TRACK_PATTERNS = {key: re.compile(pattern, re.M) for label, pattern in progress.HOOK_ERA_COUNTS
                   for key, name in TRACK.items() if label == name}
@@ -55,8 +52,14 @@ RATCHET = {
 }
 
 
+# A literal address directly inside a registration or a function-to-original map line of an old commit (gone since
+# C20l) is not counted as a raw address, as check_cleanup did not count it then.
+OLD_REGISTRATION = re.compile(r'(?:EI_(?:REWRITTEN|REWRITTEN_SPECIAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|'
+                              r'REPLACE_DISPATCH|REPLACE_STANDALONE)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+
+
 def ratchet_counts(path, text):
-    """check_cleanup's counts for one file (its comment stripping, exemptions and registration rule)."""
+    """check_cleanup's counts for one file (its comment stripping and exemptions; old commits' registrations)."""
     code = check_cleanup.strip_comments(text)
     out = {}
     for key, name in RATCHET.items():
@@ -68,29 +71,13 @@ def ratchet_counts(path, text):
             continue
         n = 0
         for m in rx.finditer(code):
-            if name.startswith('raw game address') and check_cleanup.REGISTRATION.search(code[max(0, m.start() - 40):m.start()]):
+            if name.startswith('raw game address') and OLD_REGISTRATION.search(code[max(0, m.start() - 40):m.start()]):
                 continue
             n += 1
         out[key] = n
     return out
 
-AREAS = [
-    (0x400000, 0x480000, 'Engine base, network, app'),
-    (0x480000, 0x4C0000, 'Script runtime, engine misc'),
-    (0x4C0000, 0x500000, 'Scripts'),
-    (0x500000, 0x540000, 'Units, combat, map objects'),
-    (0x540000, 0x5A0000, 'AI, world, server'),
-    (0x5A0000, 0x5E0000, 'AI paths, world client'),
-    (0x5E0000, 0x640000, 'Interface'),
-    (0x640000, 0x6C0000, 'HUD, items, spells, effects'),
-    (0x6C0000, 0x740000, 'Game code in the CRT/MFC range'),
-]
-
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
-REPLACE = re.compile(r'(?:EI_REPLACE(?:_METHOD|_SHORT|_DISPATCH)?|EI_REWRITTEN(?:_SPECIAL)?)\(\s*0x([0-9A-Fa-f]+)')
-# Standalone-only registrations (the exe's allocator and other library code the hooked game keeps).
-REPLACE_STANDALONE = re.compile(r'EI_REPLACE_STANDALONE\(\s*0x([0-9A-Fa-f]+)')
-HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
 CLEANUP = {
     'offset_access': re.compile(r'\b(?:At|Field)\s*<'),
     'vcall': re.compile(r'\bVCall\b'),
@@ -129,7 +116,6 @@ IMAGE_TIES = [
 ]
 DATA_RANGE = range(0x730000, 0x900000)
 DATA_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
-UNHOOKABLE_BYTES = 5   # a hook needs five bytes: shorter functions are written at standalone time
 
 
 class Tree:
@@ -174,26 +160,16 @@ class Batch:
         return data.decode('utf-8', errors='replace')
 
 
-HEX = re.compile(r'^[0-9A-Fa-f]+$')
-
-
-def addresses(text, column='address'):
-    # Rows that are not addresses (a conflict marker committed by mistake once) are skipped.
-    if not text:
-        return set()
-    return {int(r[column], 16) for r in csv.DictReader(io.StringIO(text)) if HEX.match(r.get(column) or '')}
-
-
 # Per-file numbers keyed by (blob id, path): consecutive commits share most files, so each version
 # of a file is scanned once per run instead of once per commit (~3 s per late commit before).
 FILE_CACHE = {}
 
 
 def file_stats(path, text):
-    """One file's share of measure(): its loc part and lines, rewritten addresses, cleanup counts, standalone
-    counts and data addresses."""
-    replaced, cleanup, standalone, data = set(), defaultdict(int), defaultdict(int), set()
-    standalone_only, track, data_all, structs = set(), {}, set(), set()
+    """One file's share of measure(): its loc part and lines, cleanup counts, standalone counts and data
+    addresses."""
+    cleanup, standalone, data = defaultdict(int), defaultdict(int), set()
+    track, data_all, structs = {}, set(), set()
     part =('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
             if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
     if path.startswith('tests/scenarios') and path.endswith('.txt'):
@@ -206,9 +182,6 @@ def file_stats(path, text):
             track['fastcall_shims'] = progress.fastcall_shims([source])[0]
             data_all = {a for a in (int(m, 16) for m in DATA_LITERAL.findall(source.code)) if a in DATA_RANGE}
             structs = set(STRUCT_DEFINITION.findall(source.code))
-            replaced |= {int(a, 16) for a in REPLACE.findall(code)}
-            replaced |= {int(a, 16) for a in HANDLER.findall(code)}
-            standalone_only |= {int(a, 16) for a in REPLACE_STANDALONE.findall(code)}
             if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
@@ -218,25 +191,14 @@ def file_stats(path, text):
                 if not path.startswith('src/lib/'):
                     for k, rx in STANDALONE.items():
                         standalone[k] += len(rx.findall(code))
-    return (part, text.count('\n'), replaced, dict(cleanup), dict(standalone), data, standalone_only,
-            track, data_all, structs)
+    return part, text.count('\n'), dict(cleanup), dict(standalone), data, track, data_all, structs
 
 
 def measure(tree):
-    sizes = {}
-    for line in (tree.read('src/hook/function_sizes.inc') or '').splitlines():
-        m = re.match(r'\{0x([0-9A-F]+), (\d+)\}', line)
-        if m:
-            sizes[int(m.group(1), 16)] = int(m.group(2))
-    funcs = tree.read('config/functions.csv')
-    if not funcs or not sizes:
+    if not tree.read('config/functions.csv'):   # the early history
         return None
-    game = {int(r['address'], 16) for r in csv.DictReader(io.StringIO(funcs)) if r['kind'] == 'game'}
-    library = addresses(tree.read('config/library.csv'))
-    game -= library | addresses(tree.read('config/dead_code.csv'))
-
-    replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
-    standalone, data, standalone_only = defaultdict(int), set(), set()
+    loc, cleanup = defaultdict(int), defaultdict(int)
+    standalone, data = defaultdict(int), set()
     track, data_all, struct_files = defaultdict(int), set(), defaultdict(int)
     for path in tree.paths:
         if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
@@ -252,49 +214,24 @@ def measure(tree):
             f = file_stats(path, text)
             if key[0]:
                 FILE_CACHE[key] = f
-        (part, lines, replaced_here, counts, stand, data_here, standalone_here,
-         track_here, data_all_here, structs_here) = f
+        part, lines, counts, stand, data_here, track_here, data_all_here, structs_here = f
         for k, n in track_here.items():
             track[k] += n
         data_all |= data_all_here
         for name in structs_here:
             struct_files[name] += 1
-        standalone_only |= standalone_here
         loc[part] += lines
-        replaced |= replaced_here
         for k, n in counts.items():
             cleanup[k] += n
         for k, n in stand.items():
             standalone[k] += n
         data |= data_here
 
-    total = sum(sizes.get(a, 0) for a in game)
-    done = game & replaced
-    patched = {int(m, 16) for m in re.findall(r'^\s*(?:0x)?([0-9A-Fa-f]{8})\b',
-                                              tree.read('docs/rebirth-patched-functions.txt') or '', re.M)}
-    left = game - done
-    standalone.update(
-        data_addresses=len(data), unported_functions=len(left),
-        unported_unhookable=sum(1 for a in left if sizes.get(a, 0) < UNHOOKABLE_BYTES),
-        unported_rebirth_patched=len(left & patched))
+    standalone['data_addresses'] = len(data)
     standalone['image_ties'] = sum(1 for path, rx in IMAGE_TIES if rx.search(COMMENT.sub('', tree.read(path) or '')))
-    # The exe's library code (config/library.csv) with our code at its address: what the standalone image
-    # runs there instead of INT3 (S3 / S6 / S12 / S16).
-    ours = library & (replaced | standalone_only)
-    standalone.update(library_functions=len(library), library_ours=len(ours),
-                      library_bytes=sum(sizes.get(a, 0) for a in library),
-                      library_ours_bytes=sum(sizes.get(a, 0) for a in ours))
-    areas = []
-    for lo, hi, name in AREAS:
-        g = {a for a in game if lo <= a < hi}
-        d = g & done
-        areas.append({'name': name, 'range': f'{lo:06X}-{hi:06X}', 'functions': len(g), 'ported_functions': len(d),
-                      'bytes': sum(sizes.get(a, 0) for a in g), 'ported_bytes': sum(sizes.get(a, 0) for a in d)})
     track.update(data_addresses=len(data_all), structs_defined_twice=sum(1 for n in struct_files.values() if n > 1))
     track.update(generated_tables(tree))
-    return {'functions': len(game), 'ported_functions': len(done), 'bytes': total,
-            'ported_bytes': sum(sizes.get(a, 0) for a in done), 'areas': areas, 'loc': dict(loc),
-            'cleanup': dict(cleanup), 'standalone': dict(standalone), 'track': dict(track)}
+    return {'loc': dict(loc), 'cleanup': dict(cleanup), 'standalone': dict(standalone), 'track': dict(track)}
 
 
 def generated_tables(tree):
@@ -375,7 +312,7 @@ def main():
             m = measure(Tree(sha, batch))
             measured += 1
             if m:
-                print(f'{sha[:7]} {when[:16]} {100 * m["ported_bytes"] / m["bytes"]:.1f}%', file=sys.stderr)
+                print(f'{sha[:7]} {when[:16]}', file=sys.stderr)
         if m:
             m = dict(m, sha=sha, commit=sha[:7], date=when, subject=subject[:80])
             history.append(m)

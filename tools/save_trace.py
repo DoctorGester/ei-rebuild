@@ -11,11 +11,10 @@ usage:
       Writes FILE.plain, the save's plain bytes, and checks them against the file's checksum.
   python tools/save_trace.py diff RUN_A RUN_B [--top N]
       For every <slot>\*.sav of RUN_A's harness_saves (but shot.sav and info.sav) that RUN_B has too: how many plain
-      bytes differ, and by which writes (the first three callers, named from config/functions.csv and the rewrites'
-      EI_REWRITTEN lines), with the dwords that differ (offset in the write: A / B). RUN_A needs savetrace.txt.
+      bytes differ, and by which writes (the first three callers, named from config/functions.csv), with the dwords that differ (offset in the write: A / B). RUN_A needs savetrace.txt.
       The trace's own stack use changes stack leftovers, so compare two traced runs.
 """
-import argparse, bisect, collections, csv, glob, os, re, struct, sys
+import argparse, bisect, collections, csv, glob, os, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -109,14 +108,10 @@ def plain(path):
 
 
 def names():
-    """Function starts and names: config/functions.csv, then the rewrites' names."""
+    """Function starts and names: config/functions.csv."""
     found = {}
     for row in csv.DictReader(open(os.path.join(ROOT, 'config', 'functions.csv'))):
         found[int(row['address'], 16)] = row['name']
-    pattern = re.compile(r'EI_REWRITTEN(?:_SPECIAL)?\(0x([0-9A-Fa-f]{8}),\s*([\w:~]+)')
-    for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True):
-        for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
-            found[int(m.group(1), 16)] = m.group(2)
     starts = sorted(found)
     return starts, [found[s] for s in starts]
 

@@ -167,8 +167,8 @@ void __fastcall ApplyDefinesRecord(mfc::CString* line, const OriginalScriptDefin
 
 } // namespace
 
-EI_RECORD(0x004CF600, ClassifyRecord, 5, s_classify);
-EI_RECORD(0x004D0B10, SignatureRecord, 5, s_signature);
-EI_RECORD(0x004D0BA0, KeywordNameRecord, 6, s_keywordName);
-EI_RECORD(0x004CF7A0, TokenizeRecord, 7, s_tokenize);
-EI_RECORD(0x004D33E0, ApplyDefinesRecord, 6, s_applyDefines);
+EI_RECORD(0x004CF600, ClassifyRecord, 5, s_classify, ClassifyToken);
+EI_RECORD(0x004D0B10, SignatureRecord, 5, s_signature, FunctionSignature);
+EI_RECORD(0x004D0BA0, KeywordNameRecord, 6, s_keywordName, KeywordName);
+EI_RECORD(0x004CF7A0, TokenizeRecord, 7, s_tokenize, CScript::Tokenize);
+EI_RECORD(0x004D33E0, ApplyDefinesRecord, 6, s_applyDefines, ApplyDefines);

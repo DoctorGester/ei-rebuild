@@ -19,8 +19,8 @@ C25d, the proof of each definition when it was made, `--emit` runs it in reverse
     the build's gen_image_cells.py --bytes reads it;
   * a pointer element (TYPES 'P': `const char* const kX[] = /*addr*/ {"a", "b"};`, a struct's pointer field, or
     one pointer `constexpr const char* kX = /*addr*/ "text";`) names a string literal, another named range (qualified
-    or not; or `NAME + k` its element k: _pctype's `kCtypeC + 1`, written by hand), a function of ours with a
-    line in the function-to-original map (EI_REWRITTEN, or a stub of ours reporting it: ei::UnportedSlot), or nullptr;
+    or not; or `NAME + k` its element k: _pctype's `kCtypeC + 1`, written by hand), a function of ours (any other
+    name: the compiler checks it), or nullptr;
   * no address literal of src/ or tests/ (.cpp, .h, .inc; comments blanked) lies inside a named range, a retired vtable
     (config/vtables.csv) or an unread object (config/unread_data.csv). What the image's code does not name,
     nothing reads: the zero bytes are never seen.
@@ -50,14 +50,15 @@ in .rdata must be const.
 --split [KIND ...]: the game data addresses src/ still names (progress.py's count), by kind and by owner area;
 the kinds given also list their addresses.
 
---refs BEGIN [END]: the original's code reaching game.exe's data in [BEGIN, END] (its absolute operands), by function
-and our registration of it: the extent of an object and every function that reads or writes it directly.
+--refs BEGIN [END]: the original's code reaching game.exe's data in [BEGIN, END] (its absolute operands), by function:
+the extent of an object and every function that reads or writes it directly.
 
 --emit ADDRESS TYPE COUNT NAME (C18o): prints the tagged definition of COUNT elements of TYPE (a TYPES key; COUNT
 '4x10' for rows) at ADDRESS from game.exe's bytes as the static initialisers leave them, by the same packing --check
 uses run in reverse (reads game.exe): numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
-string's start as string literals, pointers to a named range's start by its name, to code by our registration's
-function, zero as nullptr. What it cannot name prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
+string's start as string literals, pointers to a named range's start by its name, to a stub of ours reporting an
+unported function (ei::UnportedSlot) by its name, zero as nullptr. What it cannot name (any other code: name the
+function of ours by hand) prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
 it then packs the text back and says where it differs. The declaration is `constexpr` (a string table
 `const char* const`): drop it for a table the code writes. Paste it, run --update.
 
@@ -133,13 +134,11 @@ TYPES = {
 DEF = re.compile(r'(?<![\w:])([\w:]+(?:<(?:[^<>;=(){}]|<[^<>;=(){}]*>)*>)?)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
 TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with no such tag has no definition
 # The initialiser's tokens where its element type holds a pointer: a string literal (adjacent ones joined), a number,
-# a name (`&` optional: another named range, a function of ours with a registration, or nullptr), a named range's
+# a name (`&` optional: another named range, a function of ours, or nullptr), a named range's
 # element `NAME + k` (C18q: _pctype's `kCtypeC + 1`).
 TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
                    r'([fFuUlL]*)|&?\s*((?:::)?[A-Za-z_]\w*(?:::\w+)*)(?:\s*\+\s*(\d+))?')
-# The original of a function our code calls by name (EI_REWRITTEN, C20d), and a function of ours whose body only
-# reports game.exe's unported function (ei::UnportedSlot).
-REWRITTEN = re.compile(r'\bEI_REWRITTEN\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*,\s*&?\s*((?:::)?[A-Za-z_][\w:]*)\s*\)')
+# A function of ours whose body only reports game.exe's unported function (ei::UnportedSlot).
 UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
@@ -290,8 +289,8 @@ Definition.pack_names = _pack_names
 
 
 class Targets:
-    """What a pointer element may name: the named ranges (name -> address) and our functions with game.exe's address
-    in the function-to-original map (name -> addresses; ei/hook.h's EI_REWRITTEN, ei::UnportedSlot)."""
+    """What a pointer element may name: the named ranges (name -> address), and our stubs of game.exe's unported
+    functions (name -> addresses; ei::UnportedSlot). Any other name is a function of ours."""
     def __init__(self, defs, sources):
         self.ranges = {d.name: d.address for d in defs}
         self.element_sizes = {}   # a named range's element size, for `NAME + k`
@@ -301,10 +300,6 @@ class Targets:
                 self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
         self.functions = collections.defaultdict(set)
         for s in sources:
-            for m in REWRITTEN.finditer(s.code):   # also unqualified: the table names it inside its namespace
-                name = m.group(2).lstrip(':')
-                self.functions[name].add(int(m.group(1), 16))
-                self.functions[name.split('::')[-1]].add(int(m.group(1), 16))
             for m in UNPORTED.finditer(s.code):
                 self.functions[m.group(1)].add(int(m.group(2), 16))
 
@@ -349,7 +344,8 @@ def _pack_pointers(self, fmt, img, targets):
     """A type with pointer elements ('P'). A pointer element is not compared as a number: it names what game.exe's
     pointer at that place points at, and the check compares that: a string literal the text at the target (game.exe's
     string literals, in .data), a name of another named range its address, a name of a function of ours the address
-    of its original (EI_REWRITTEN: the code game.exe's pointer called), nullptr a zero. The packed bytes are then
+    of its original where a stub names one (ei::UnportedSlot), else any code (game.exe's pointer called the function
+    this one rewrites; the address is not known since C20l), nullptr a zero. The packed bytes are then
     game.exe's pointer; its offset is in `pointers` (the cells of game.exe's data the range may hold)."""
     values = tokens(self.body)
     if len(values) % len(fmt):
@@ -396,10 +392,10 @@ def _pack_pointers(self, fmt, img, targets):
                 out += struct.pack('<' + code.upper(), v & ((1 << bits) - 1))
             continue
         if img is None:   # no game.exe (--check): the element must name something the check can compare; zero stands in
-            if not (kind == 'text' or kind == 'name' and (v == 'nullptr' or v in targets.ranges or v in targets.functions)
-                    or kind == 'number' and v == 0 or kind == 'element' and v[0] in targets.element_sizes):
+            if not (kind in ('text', 'name') or kind == 'number' and v == 0 or
+                    kind == 'element' and v[0] in targets.element_sizes):
                 self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                                'ours with an original (EI_REWRITTEN, UnportedSlot) or nullptr')
+                                'ours or nullptr')
                 return
             self.pointers.add(len(out))
             out += bytes(4)
@@ -430,11 +426,15 @@ def _pack_pointers(self, fmt, img, targets):
         elif kind == 'name' and v in targets.functions:
             if cell not in targets.functions[v]:
                 where = ', '.join(f'{a:08X}' for a in sorted(targets.functions[v]))
-                self.problem = f'the pointer at {at:08X} is the code {cell:08X}, not {v}\'s registration ({where})'
+                self.problem = f'the pointer at {at:08X} is the code {cell:08X}, not {v}\'s ({where})'
+                return
+        elif kind == 'name':
+            if not TEXT[0] <= cell < TEXT[1]:
+                self.problem = f'the pointer at {at:08X} is {cell:08X}, no code: {v} is no function'
                 return
         else:
             self.problem = (f'the pointer at {at:08X} names {v!r}: no string literal, named range, function of '
-                            'ours with an original (EI_REWRITTEN, UnportedSlot) or nullptr')
+                            'ours or nullptr')
             return
         self.pointers.add(len(out))
         out += struct.pack('<I', cell)
@@ -812,8 +812,9 @@ def short_float(value, code):
 
 
 class Namer:
-    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a function of ours with an
-    original (EI_REWRITTEN), a string literal (the zero-terminated text at a string's start), nullptr."""
+    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a stub of ours reporting
+    an unported function (ei::UnportedSlot), a string literal (the zero-terminated text at a string's start),
+    nullptr."""
     def __init__(self, img, sources):
         defs = definitions(sources)
         targets = Targets(defs, sources)
@@ -848,8 +849,8 @@ class Namer:
         if TEXT[0] <= cell < TEXT[1]:
             names = self.functions.get(cell)
             if names:
-                return names[0], None if len(names) == 1 else f'{cell:08X} has the registrations {", ".join(names)}'
-            return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code with no EI_REWRITTEN line'
+                return names[0], None if len(names) == 1 else f'{cell:08X} has the stubs {", ".join(names)}'
+            return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code: name the function of ours that rewrites it'
         text = self.string_at(cell)
         if text is not None:
             return c_literal(text), None
@@ -1113,24 +1114,18 @@ TEXT = (0x00401000, 0x0073B000)
 
 def refs(img, begin, end):
     """The dwords of game.exe's code section whose value lies in [begin, end] (end included: a loop's end compare),
-    each with the function it sits in (the nearest start of config/functions.csv or of a registration) and our
-    registration of that function. An instruction's absolute operand shows where the original reads or writes the
+    each with the function it sits in (the nearest start of config/functions.csv). An instruction's absolute operand shows where the original reads or writes the
     range: the starts it indexes from, the extent its loops give, and every function that reaches it directly. Some
     hits are no operand (a call's rel32, an immediate): read the instruction where one looks wrong."""
     import bisect
-    sources = srcscan.load_sources()
-    registered = collections.defaultdict(list)
-    for s in sources:
-        for m in REWRITTEN.finditer(s.code):
-            registered[int(m.group(1), 16)].append(f'{m.group(2)} ({s.path})')
     with open(os.path.join(ROOT, 'config', 'functions.csv'), newline='') as f:
-        starts = sorted({int(r['address'], 16) for r in csv.DictReader(f)} | set(registered))
+        rows = {int(r['address'], 16): r['name'] for r in csv.DictReader(f)}
+    starts = sorted(rows)
     for o in range(TEXT[0] - BASE, TEXT[1] - BASE - 3):
         v = struct.unpack_from('<I', img, o)[0]
         if begin <= v <= end:
             fn = starts[bisect.bisect_right(starts, o + BASE) - 1]
-            ours = ', '.join(registered.get(fn, [])) or 'no registration'
-            print(f'{o + BASE:08X} -> {v:08X}  in {fn:08X}: {ours}')
+            print(f'{o + BASE:08X} -> {v:08X}  in {fn:08X}: {rows[fn]}')
     return 0
 
 

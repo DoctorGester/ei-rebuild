@@ -522,28 +522,32 @@ int __fastcall PickLocationRecord(UnitStats* self, void*, int location) {
 
 } // namespace
 
-EI_RECORD(0x00523CD0, Period20Record, 6, s_period20);
-EI_RECORD(0x00525DF0, AttributeBaseRecord, 6, s_attributeBase);
-EI_RECORD(0x00525E10, AttributeWithBonusRecord, 7, s_attributeWithBonus);
-EI_RECORD(0x00527030, SkillBaseRecord, 6, s_skillBase);
-EI_RECORD(0x00526780, WeaponSkillRecord, 7, s_weaponSkill);
-EI_RECORD(0x005259B0, ReduceRecord, 6, s_reduce);
-EI_RECORD(0x00524020, ReduceKind1Record, 6, s_reduceKind1);
-EI_RECORD(0x00522A80, OpensRecord, 7, s_opens);
-EI_RECORD(0x00522B40, ResetDamageRecord, 8, s_resetDamage);
-EI_RECORD(0x00522B80, ElementalRecord, 9, s_elemental);
-EI_RECORD(0x00522AE0, ExcessRecord, 6, s_excess);
-EI_RECORD(0x00522B20, MaxRecord, 6, s_max);
-EI_RECORD(0x00527050, SkillWithBonusRecord, 6, s_skillWithBonus);
-EI_RECORD(0x005267E0, SkillLevelValueRecord, 7, s_skillLevelValue);
-EI_RECORD(0x00524280, Value6E8Record, 6, s_value6E8);
-EI_RECORD(0x00525CD0, Value6E9Record, 6, s_value6E9);
-EI_RECORD(0x00523CB0, StrengthRatioRecord, 9, s_strengthRatio);
-EI_RECORD(0x00523CC0, DexterityRatioRecord, 9, s_dexterityRatio);
-EI_RECORD(0x00528840, GetFactorsRecord, 9, s_getFactors);
-EI_RECORD(0x00527FF0, SchoolPriceRecord, 9, s_schoolPrice);
-EI_RECORD(0x00528050, SkillPriceRecord, 6, s_skillPrice);
-EI_RECORD(0x0051FF00, IndexOfLevelRecord, 6, s_indexOfLevel);
-EI_RECORD(0x005270E0, ProtectionBlockRecord, 5, s_protectionBlock);
-EI_RECORD(0x00527850, WeaponSkillBonusRecord, 7, s_weaponSkillBonus);
-EI_RECORD(0x00525B20, PickLocationRecord, 7, s_pickLocation);
+// Not declared in a header (unit_stats.cpp, unit_skill_price.cpp).
+std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage);
+int __fastcall SchoolPrice(int from, int to);
+
+EI_RECORD(0x00523CD0, Period20Record, 6, s_period20, UnitStats::Period20);
+EI_RECORD(0x00525DF0, AttributeBaseRecord, 6, s_attributeBase, UnitStats::AttributeBase);
+EI_RECORD(0x00525E10, AttributeWithBonusRecord, 7, s_attributeWithBonus, UnitStats::AttributeWithBonus);
+EI_RECORD(0x00527030, SkillBaseRecord, 6, s_skillBase, UnitStats::SkillBase);
+EI_RECORD(0x00526780, WeaponSkillRecord, 7, s_weaponSkill, UnitStats::WeaponSkill);
+EI_RECORD(0x005259B0, ReduceRecord, 6, s_reduce, UnitStats::Reduce);
+EI_RECORD(0x00524020, ReduceKind1Record, 6, s_reduceKind1, UnitStats::ReduceKind1);
+EI_RECORD(0x00522A80, OpensRecord, 7, s_opens, LockKey::Opens);
+EI_RECORD(0x00522B40, ResetDamageRecord, 8, s_resetDamage, ResetDamageInfo);
+EI_RECORD(0x00522B80, ElementalRecord, 9, s_elemental, HasElementalDamage);
+EI_RECORD(0x00522AE0, ExcessRecord, 6, s_excess, DamageWords::ExcessOver);
+EI_RECORD(0x00522B20, MaxRecord, 6, s_max, MaxDamage);
+EI_RECORD(0x00527050, SkillWithBonusRecord, 6, s_skillWithBonus, UnitStats::SkillWithBonus);
+EI_RECORD(0x005267E0, SkillLevelValueRecord, 7, s_skillLevelValue, UnitStats::SkillLevelValue);
+EI_RECORD(0x00524280, Value6E8Record, 6, s_value6E8, UnitStats::Value6E8);
+EI_RECORD(0x00525CD0, Value6E9Record, 6, s_value6E9, UnitStats::Value6E9);
+EI_RECORD(0x00523CB0, StrengthRatioRecord, 9, s_strengthRatio, UnitStats::StrengthRatio);
+EI_RECORD(0x00523CC0, DexterityRatioRecord, 9, s_dexterityRatio, UnitStats::DexterityRatio);
+EI_RECORD(0x00528840, GetFactorsRecord, 9, s_getFactors, UnitStats::GetFactors);
+EI_RECORD(0x00527FF0, SchoolPriceRecord, 9, s_schoolPrice, SchoolPrice);
+EI_RECORD(0x00528050, SkillPriceRecord, 6, s_skillPrice, UnitStats::SkillPrice);
+EI_RECORD(0x0051FF00, IndexOfLevelRecord, 6, s_indexOfLevel, SkillDatabase::IndexOfLevel);
+EI_RECORD(0x005270E0, ProtectionBlockRecord, 5, s_protectionBlock, UnitParams::ProtectionBlock);
+EI_RECORD(0x00527850, WeaponSkillBonusRecord, 7, s_weaponSkillBonus, UnitParams::WeaponSkillBonus);
+EI_RECORD(0x00525B20, PickLocationRecord, 7, s_pickLocation, UnitStats::PickLocation);

@@ -143,5 +143,5 @@ void __fastcall DecompressRecord(CoderState* self, void*, GameBuffer* in, GameBu
 } // namespace
 
 // The save games' callers are ours (world_savefile.cpp).
-EI_RECORD(0x00430450, CompressRecord, 7, s_compress);
-EI_RECORD(0x00430960, DecompressRecord, 7, s_decompress);
+EI_RECORD(0x00430450, CompressRecord, 7, s_compress, CoderState::Compress);
+EI_RECORD(0x00430960, DecompressRecord, 7, s_decompress, CoderState::Decompress);

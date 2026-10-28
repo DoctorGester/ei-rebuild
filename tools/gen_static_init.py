@@ -24,10 +24,9 @@ import capstone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exe_path  # noqa: E402
-import gen_short_functions as short  # noqa: E402
 import rdata_literals as rdata  # noqa: E402
 
-ROOT = short.ROOT
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'src', 'standalone', 'static_init.cpp')
 OUT_EXIT = os.path.join(ROOT, 'src', 'standalone', 'static_exit.cpp')
 SIZES = os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')
@@ -504,11 +503,9 @@ def kind_of(kinds, registered_self):
 
 
 def registered_addresses():
-    """Addresses registered anywhere in src/ but in the exit functions this tool writes (static_exit.cpp)."""
-    regs = short.ported_elsewhere(skip=(OUT_EXIT,))
-    pat = re.compile(r'\bEI_REWRITTEN\(\s*0x([0-9A-Fa-f]+)')
-    text = open(os.path.join(ROOT, 'src', 'game', 'short_functions.cpp'), encoding='utf-8').read()
-    return regs | {int(a, 16) for a in pat.findall(text)}
+    """The functions ported by hand that the initialisers reach (config/static_init_ports.csv): never inlined or
+    decoded, called by name."""
+    return set(ports())
 
 
 SHADOW = {}   # initialiser ported by hand -> (statements, instruction spans, targets) its instructions decode to
@@ -946,7 +943,7 @@ def leave_out(decoded, ranges, exits=None):
                 problems.append(f'{a:08X}: {line.strip()} writes across the end of a named or unread range')
             elif m and CALL.match(m.group(3)):
                 problems.append(f'{a:08X}: {line.strip()} stores a call\'s result into a named range: port the '
-                                'initialiser by hand on the name (EI_REWRITTEN at its address)')
+                                'initialiser by hand on the name (a row of config/static_init_ports.csv)')
             LEFT_OUT[a] = LEFT_OUT.get(a, 0) + 1
         out.append((a, kind, kept, targets, inlined, spans))
     return out, problems
@@ -1120,20 +1117,26 @@ def decode_exits(img, decoded):
 
 # ---- Calls by name (C20) --------------------------------------------------------------------------------------------
 #
-# A call, an atexit or an exit function's call of a function in the function-to-original map (a registration or an
-# EI_REWRITTEN line of src/) is written by the function's name: `d.Call(Fn, args...)`, `d.Call(&Class::Method, object,
-# args...)`, `d.AtExit(Fn)`; static_init.h's visitors convert the arguments to the declared parameters. The name is
-# the definition's (its namespaces from the source); a header that declares it in the same namespace is included,
-# otherwise an initialiser's or exit function's `void __cdecl Fn()` is declared at the top of the generated file. A
-# function defined in an anonymous namespace has no name another file can call, and a function with no port has no
-# name at all: the tool stops with a problem (move it out of the namespace, port it); nothing is called by address
-# (C20 batch 3). Statements stay in address form until render, so the analyses above (unread
-# objects, stored values, named_data.py) read them unchanged.
+# A call, an atexit or an exit function's call of a function ported by hand (config/static_init_ports.csv: address,
+# name, file) is written by the function's name: `d.Call(Fn, args...)`, `d.Call(&Class::Method, object, args...)`,
+# `d.AtExit(Fn)`; static_init.h's visitors convert the arguments to the declared parameters. The csv also lists the
+# initialisers, exit functions and atexit targets ported by hand, which are neither decoded nor inlined
+# (registered_addresses). The csv's name is fully qualified and its file holds the definition; the call is the
+# definition's name, and a header that declares it in the same namespace is included, otherwise an initialiser's or
+# exit function's `void __cdecl Fn()` is declared at the top of the generated file. A function defined in an anonymous
+# namespace has no name another file can call, and a function with no row has no name at all: the tool stops with a
+# problem (move it out of the namespace, add the row; nothing is called by address, C20 batch 3). Statements stay in
+# address form until render, so the analyses above (unread objects, stored values, named_data.py) read them
+# unchanged.
 
-MAP_LINE = re.compile(r'^[ \t]*(EI_REWRITTEN(?:_SPECIAL)?)\s*\(\s*'
-                      r'0[xX]([0-9A-Fa-f]+)\s*,\s*&?\s*([\w:~]+)\s*\)\s*;', re.M)
-SHORT_FUNCTIONS = os.path.join(ROOT, 'src', 'game', 'short_functions.cpp')
+PORTS = os.path.join(ROOT, 'config', 'static_init_ports.csv')
 RET = 'ei::short_functions::Ret'   # the exit functions that do nothing (static_exit.cpp's 'nothing')
+
+
+def ports():
+    """config/static_init_ports.csv: address -> (name, file)."""
+    with open(PORTS, encoding='utf-8', newline='') as f:
+        return {int(r['address'], 16): (r['name'], r['file']) for r in csv.DictReader(f)}
 
 
 class Port:
@@ -1149,17 +1152,7 @@ class Names:
         import srcscan
         self.srcscan = srcscan
         self.sources = {}
-        self.ports = {}
-        for d, _, names in os.walk(os.path.join(ROOT, 'src')):
-            for n in sorted(names):
-                p = os.path.join(d, n)
-                if not n.endswith(('.cpp', '.h')) or os.path.abspath(p) in (OUT, OUT_EXIT, SHORT_FUNCTIONS):
-                    continue
-                code = self.code(p)
-                for m in MAP_LINE.finditer(code):
-                    if '#define' in code[code.rfind('\n', 0, m.start()) + 1:m.start()]:
-                        continue
-                    self.ports[int(m.group(2), 16)] = Port(p, m.group(3), m.start())
+        self.ports = {a: Port(os.path.join(ROOT, *path.split('/')), name, 0) for a, (name, path) in ports().items()}
         self.headers = {}   # last name -> [(header, namespaces)] of a declaration at namespace scope
         self.classes = {}   # class name -> [(header, namespaces)]
         for d, _, names in os.walk(os.path.join(ROOT, 'src')):
@@ -1202,13 +1195,16 @@ class Names:
             return f'Exit{a:08X}', None, ('ei::static_init', f'void __cdecl Exit{a:08X}();')
         port = self.ports.get(a)
         if port is None:
-            self.problems.append(f'{a:08X} is called but has no port: port it')
+            self.problems.append(f'{a:08X} is called but has no port: port it (a row of config/static_init_ports.csv)')
             return None
         rel = os.path.relpath(port.path, ROOT).replace(os.sep, '/')
+        if not os.path.exists(port.path):
+            self.problems.append(f'{rel}: {port.name} ({a:08X}): no such file (config/static_init_ports.csv)')
+            return None
         parts = port.name.split('::')
         last, qual = parts[-1], parts[:-1]
         scope = [x for x in self.scopes(port.path).namespace_at(port.offset) or [] if x]
-        # A method: Class::Method with the class declared in a header (the namespaces nearest the registration's).
+        # A method: Class::Method with the class declared in a header (the csv's qualified name).
         if qual:
             named = [(h, p) for h, p in self.classes.get(qual[-1], []) if (p + qual[-1:])[-len(qual):] == qual]
             found = [(h, p) for h, p in named if len(qual) > 1 or p == scope[:len(p)]] or \
@@ -1216,7 +1212,7 @@ class Names:
             if found:
                 h, p = max(found, key=lambda x: len(x[1]))
                 return '&' + '::'.join(p + [qual[-1], last]), h, None
-        # A free function: its definition in the registration's file.
+        # A free function: its definition in the csv's file.
         code, scopes = self.code(port.path), self.scopes(port.path)
         defs = []
         for m in re.finditer(r'(?<![\w.>~])((?:\w+::)*)' + re.escape(last) + r'\s*\(([^;{}()]*)\)\s*(?:noexcept\s*)?\{',
@@ -1281,25 +1277,22 @@ def render_declarations(declarations):
 
 def render_exits(exits, names):
     kinds = collections.Counter(name for _, name, _, _, _ in exits)
-    functions, nothing, rewritten = [], [], []
+    functions = []
     headers, declarations = set(), set()
     for fn, name, body, size, initialisers in exits:
         by = ', '.join(f'{a:08X}' for a in initialisers[:3]) + (f' and {len(initialisers) - 3} more' if len(initialisers) > 3 else '')
         how = 'atexit at' if initialisers[0] in RUNTIME_SITES else 'atexit by'
         note = f'// {name}, {size} byte(s); {how} {by}'
         if name == 'nothing':   # the initialisers register ei::short_functions::Ret by name
-            nothing += [note, f'EI_REWRITTEN({hexa(fn)}, {RET});']
             continue
         body = name_calls(name_operands(body.replace('\n        ', '\n    '), headers), names, headers, declarations)
         if re.search(r'\bd\.(?:Cdecl|Stdcall|Thiscall)\(0x', body):
             names.problems.append(f'exit function {fn:08X}: {body.strip()} calls by address: give the callee a name')
         functions += [note, f'void __cdecl Exit{fn:08X}() {{', '    Code d;', f'    {body}', '}', '']
-        rewritten.append(f'EI_REWRITTEN({hexa(fn)}, ei::static_init::Exit{fn:08X});')
     summary = ', '.join(f'{n} {k}' for k, n in kinds.most_common())
     return (EXIT_HEADER.replace('@COUNT@', str(len(exits))).replace('@SUMMARY@', summary)
             .replace('@INCLUDES@', includes(headers)).replace('@DECLARATIONS@', render_declarations(declarations)) +
-            '\n'.join(functions) + '\n} // namespace ei::static_init\n\n' + '\n'.join(rewritten) + '\n\n' +
-            '\n'.join(nothing) + '\n')
+            '\n'.join(functions) + '\n} // namespace ei::static_init\n')
 
 
 def load_sizes():
@@ -1309,7 +1302,7 @@ def load_sizes():
 
 def write_sizes(exits):
     """Adds the exit functions' sizes to config/extra_function_sizes.csv and src/hook/function_sizes.inc
-    (the tools' function sizes: tools/check_signatures.py, coverage.py, gen_short_functions.py)."""
+    (the tools' function sizes: tools/check_signatures.py, coverage.py, check_stolen.py)."""
     sizes = load_sizes()
     rows = open(EXTRA_SIZES, encoding='utf-8').read().splitlines()
     listed = {int(r.split(',')[0], 16) for r in rows[1:] if r}
