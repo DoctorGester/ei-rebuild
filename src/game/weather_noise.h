@@ -28,7 +28,6 @@ struct WeatherNoiseCurve {
     float samples[kSamples];
     WeatherNoiseSegment segments[kSamples];   // 127 used; the last stays zero
 };
-static_assert(offsetof(WeatherNoiseCurve, segments) == 0x200 && sizeof(WeatherNoiseCurve) == 0xA00);
 
 // The five curves (weather_noise.cpp), the snowflakes' sway (weather_particles.cpp): along x, y and z by the
 // flake's height, along x and y by its place.

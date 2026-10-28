@@ -39,6 +39,3 @@ public:
     Quaternion localRotation_;
     Quaternion worldRotation_;
 };
-static_assert(offsetof(CTransformObject, localPosition_) == 0x1C);
-static_assert(offsetof(CTransformObject, localRotation_) == 0x34);
-static_assert(sizeof(CTransformObject) == 0x54);

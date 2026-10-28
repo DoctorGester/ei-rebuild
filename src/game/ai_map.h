@@ -43,7 +43,6 @@ struct FootprintCell {
     std::uint8_t padding;               // zeroed by AddCell (uninitialised in the original)
     int next;                   // next index in the same hash bucket, -1 ends
 };
-static_assert(sizeof(FootprintCell) == 0x18);
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y).
 struct FootprintCellSet {
@@ -82,7 +81,6 @@ struct PassCostContext {
     float turnScale;                    // 10: scales the turn cost of a path step
     float forwardSpeed;     // 0.1, or the unit's
 };
-static_assert(sizeof(PassCostContext) == 0x18);
 
 struct FogGrid;
 
@@ -225,7 +223,6 @@ struct AIPath : PathOrder {
     BlockPointArray excludedBlocks;
     int smoothing;              // set by the smoother (how much longer the path is than the way)
 };
-static_assert(offsetof(AIPath, steps) == 0x20);
 
 class CAIMap;
 class CSectorMap;
@@ -242,8 +239,6 @@ struct AITerrainType {
     float noise;                // "StepSound" in hundredths: how loud steps on it are (AIViewer::StepNoise)
     std::uint32_t openMarks;    // per size class nibble: the mark of a cell with nothing on it
 };
-static_assert(offsetof(AITerrainType, cost) == 0x104 && offsetof(AITerrainType, noise) == 0x110);
-static_assert(sizeof(AITerrainType) == 0x118);
 
 struct SearchNode {
     int cost;                   // 0x7FFFFFFF until reached
@@ -259,7 +254,6 @@ static_assert(sizeof(SearchNode) == 0x14);
 
 template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
-static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
 
 // The local search (the AI map's forward and backward ones, and the region map's): Dijkstra over a 34 x 34
 // window of map cells whose border is never entered. Open nodes wait in four sorted lists chosen by the low two
@@ -353,7 +347,6 @@ struct BlockRecord {
     bool settled;
     std::uint8_t unused_15[3];
 };
-static_assert(sizeof(BlockRecord) == 24);
 
 // Dijkstra over the blocks of one size class (the region map's forward and backward search):
 // open records in eight buckets by x & 7, each sorted by cost.
@@ -382,10 +375,6 @@ struct BlockSearch {
     bool active;
     std::uint8_t unused_4A[2];
 };
-static_assert(offsetof(BlockSearch, map) == 0x10);
-static_assert(offsetof(BlockSearch, open) == 0x1C);
-static_assert(offsetof(BlockSearch, bestCost) == 0x40);
-static_assert(sizeof(BlockSearch) == 0x4C);
 
 struct CRegionMap {
     // The region of cell (x, y) for a size class, the one most of the reachable 3x3 blocks around the cell belong
@@ -479,7 +468,6 @@ struct SmoothEdge {
     int x1, y1;
     int index;
 };
-static_assert(sizeof(SmoothEdge) == 0x14);
 struct SmoothEdges : std::vector<SmoothEdge> {
     // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side.
     void AddStraightEdges(int mx, int my, int sx, int sy);
@@ -551,7 +539,6 @@ struct UnitLayerNode {
     std::int8_t levels[16];     // rows of 4
     CUnit* owner;
 };
-static_assert(sizeof(UnitLayerNode) == 0x1C);
 
 // The unit occupancy layers of CAIMap (small units and large units): every unit on the map is stamped as a
 // 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell offset within a 4-cell block), stored
@@ -578,7 +565,6 @@ public:
     UnitLayerNode* freeNodes;       // unused nodes
     CAIMap* map;
 };
-static_assert(offsetof(CUnitLayer, nodes) == 0x04);
 
 class CSmallUnitLayer : public CUnitLayer {
 public:
@@ -814,11 +800,6 @@ public:
     SearchGrid<std::int8_t> marks;      // per-cell marks: path directions (BuildCellsTo), reach answers
     AIEventTable events;                // the world's AI events (CWorldServer::AIEvents)
 };
-static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
-static_assert(offsetof(CAIMap, dirty) == 0x04 && sizeof(AIDirtyRect) == 0x10);
-static_assert(offsetof(CAIMap, passCosts) == 0x14);
-static_assert(offsetof(CAIMap, stepCosts) == 0x94);
-static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

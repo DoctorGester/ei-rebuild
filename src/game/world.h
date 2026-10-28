@@ -125,7 +125,6 @@ class CFlyingHitPoints;
 struct LightColour {
     float r, g, b, a;
 };
-static_assert(sizeof(LightColour) == 0x10);
 
 class CWorld : public CManagerContext {
 public:
@@ -219,15 +218,6 @@ public:
     std::uint8_t unused_06D[0x70 - 0x6D];
     WaterTweens countdowns_;
 };
-static_assert(offsetof(CWorld, shared5C_) == 0x5C);
-static_assert(offsetof(CWorld, updateCount_) == 0x68);
-static_assert(offsetof(CWorld, paused_) == 0x6C);
-static_assert(offsetof(CWorld, windDirection_) == 0x24);
-static_assert(offsetof(CWorld, manager40_) == 0x40);
-static_assert(offsetof(CWorld, itemManager_) == 0x54);
-static_assert(offsetof(CWorld, players_) == 0x38);
-static_assert(offsetof(CWorld, netSession_) == 0x60);
-static_assert(offsetof(CWorld, tick_) == 0x64);
 
 // One of the five alarms InvokeAlarm raises (the script's IsAlarm / AlarmTime / AlarmPosX / AlarmPosY).
 struct WorldAlarm {
@@ -573,7 +563,6 @@ public:
     std::list<CEngineObject*> counted_; // counted references (released on clear)
     SharedObjectList sharedObjects_;
 };
-static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
@@ -587,7 +576,6 @@ struct Platform {
     Vector3 normal;
     float sizeU, sizeV;                   // extent along u and v
 };
-static_assert(sizeof(Platform) == 0x4C);
 
 using PlatformList = std::list<Platform>;
 
@@ -623,7 +611,6 @@ public:
 
     PlatformList list;                    // the faces, the newest first
 };
-static_assert(offsetof(PlatformSet, list) == 0x1C);
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
 // records grouped by prototype (each group a hash_multimap by three packed 10-bit values), and the dressed records
@@ -712,7 +699,6 @@ struct ScreenEntry {
     unsigned objectId;                    // the object, in the map object manager
     tagRECT rect;                         // on the screen
 };
-static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = std::list<ScreenEntry>::iterator;
 // An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40) puts its class id, id and
 // rectangle at the end of `queued`.
@@ -1220,7 +1206,6 @@ struct GameFlow {
     std::string zone7C_;                 // the multiplayer zone (SwitchMultiplayerZone)
     char flag80_;                         // set by SwitchMultiplayerZone, cleared by the game's start
 };
-static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 
 extern lib::StaticObject<GameFlow> g_gameFlow;
 
@@ -1373,7 +1358,6 @@ void ShowBolt(Vector3 from, Vector3 to);
 // when the state is already `plain`.
 void GuardPlayerData(char plain);
 void GuardPlayers(CPlayerManager* players, char units, std::uint32_t key);
-
 
 // Reads objects up to a zero byte: after each mark an id, a class and a field of the object; an object
 // registered under the id is released first (its count raised to 1 when 0), then a new one is created

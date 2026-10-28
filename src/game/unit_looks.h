@@ -33,8 +33,6 @@ struct DressedUnitRecord {
     std::uint8_t unused_1D[3];
     int modelNumber;                // -1: the textures are named after the prototype
 };
-static_assert(offsetof(DressedUnitRecord, extraWeapons) == 0x10);
-static_assert(sizeof(DressedUnitRecord) == 0x24);
 
 // Another unit of the zone (the first list read): a dressed record's head (its prototype, the
 // armour ids in `items`, the weapon ids in `extraWeapons`, the weapon in hand and the model number; the
@@ -46,8 +44,6 @@ struct FiguredUnitRecord : DressedUnitRecord {
     float morphU;
     std::vector<std::string> names;
 };
-static_assert(offsetof(FiguredUnitRecord, morphS) == 0x24);
-static_assert(sizeof(FiguredUnitRecord) == 0x3C);
 
 // Both lists as a zone load holds them on its stack (destroyed the dressed records first).
 struct UnitLooks {

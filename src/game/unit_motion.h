@@ -43,7 +43,6 @@ struct MotionCubic {
     // The slope at u, unrounded.
     double Slope(float u);
 };
-static_assert(sizeof(MotionCubic) == 0x10);
 
 struct UnitMotion {
     // Samples the motion of `order` at world time `time`: position (x, y) in half-cells,

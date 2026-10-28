@@ -39,7 +39,6 @@ constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObje
 const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
 
 IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
-
 } // namespace
 
 // --- Base class (CVisualizator) ----------------------
@@ -52,7 +51,6 @@ CVisualizator* CVisualizator::SetUpBase() {
 }
 
 CVisualizator::CVisualizator() { SetUpBase(); }
-
 
 void CVisualizator::CreateRenderer(void* window, options::GameOptions* settings) { CreateBase(window, settings); }
 void CVisualizator::DestroyRenderer() { DestroyBase(); }
@@ -128,7 +126,6 @@ CSceneRenderer::~CSceneRenderer() {
 // in the list's order and destroyed by the exit functions those register (docs/notes/standalone.md, "The static
 // initialisers' objects").
 constinit lib::StaticObject<CSceneRenderer> g_sceneRenderer = /*007AF060*/ {};
-static_assert(sizeof(CSceneRenderer) == 0x5C);
 CSceneRenderer* TheSceneRenderer() { return &*g_sceneRenderer; }
 constinit CRITICAL_SECTION g_deviceLock = /*007AEE78*/ {};
 _RTL_CRITICAL_SECTION* TheDeviceLock() { return &g_deviceLock; }

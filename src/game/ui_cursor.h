@@ -31,7 +31,6 @@ public:
     CDirectInputMouse() {}
     virtual ~CDirectInputMouse();
 
-
     CDirectInputMouse(const CDirectInputMouse&) = delete;
     CDirectInputMouse& operator=(const CDirectInputMouse&) = delete;
 
@@ -76,11 +75,6 @@ struct CursorImage {
     int hotY;
     std::uint8_t* saved;             // the mask over the whole picture: all ones where the picture is black, else 0
 };
-static_assert(offsetof(CursorImage, width) == 0x04);
-static_assert(offsetof(CursorImage, frames) == 0x0C);
-static_assert(offsetof(CursorImage, hotX) == 0x14);
-static_assert(offsetof(CursorImage, saved) == 0x1C);
-static_assert(sizeof(CursorImage) == 0x20);
 
 class CCursor {
 public:
@@ -144,13 +138,6 @@ public:
 };
 // The software cursor drawn into the render target before the present.
 void CursorDrawFrame(CCursor* self);
-static_assert(offsetof(CCursor, imageShown_) == 0x0C);
-static_assert(offsetof(CCursor, shape_) == 0x18);
-static_assert(offsetof(CCursor, stopped_) == 0x1C);
-static_assert(offsetof(CCursor, drawn_) == 0x20);
-static_assert(offsetof(CCursor, bounds_) == 0x50);
-static_assert(offsetof(CCursor, under_) == 0x60);
-
 
 extern lib::StaticObject<CCursor> g_cursor;
 

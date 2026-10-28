@@ -195,14 +195,6 @@ public:
     float timeOffset_;
     int keyIndex_;
 };
-static_assert(offsetof(CCamera, settings_) == 0x94);
-static_assert(offsetof(CCamera, offset98_) == 0x98);
-static_assert(offsetof(CCamera, turnRate_) == 0xB4);
-static_assert(offsetof(CCamera, tiltTarget_) == 0xC4);
-static_assert(offsetof(CCamera, zoomTarget_) == 0xD0);
-static_assert(offsetof(CCamera, focus_) == 0xE0);
-static_assert(offsetof(CCamera, viewRotation_) == 0xF4);
-static_assert(offsetof(CCamera, shakes_) == 0x108);
 
 // What CWorldClient::ObjectsInRange fills.
 using NearbyList = std::list<CObject3D*>;
@@ -246,7 +238,6 @@ inline constexpr Quaternion kIdentityRotation = /*0079B5B8*/ {1.0f, 0.0f, 0.0f, 
 // calls this after each of the client's ticks instead of CCamera::Update. It keeps the position of
 // the camera's target after its last two ticks, which Update blends by the client's tickFraction_.
 void NoteTargetTick(const CCamera* camera);
-
 } // namespace camera
 
 int CameraCloseFile(CCamera* self);

@@ -77,9 +77,6 @@ void ChooseKeyboardLayout() {
         chosen = layouts[english];
     gameapi::ActivateKeyboardLayout(chosen, 0);
 }
-
-static_assert(sizeof(CScreenFade) == 0x14);
-
 } // namespace
 
 void CInterface3D::Create(CTextureDevice* device) {

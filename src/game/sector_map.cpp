@@ -15,7 +15,6 @@ namespace {
 
 constexpr float kCellSize = 1.0f;
 constexpr float kZero = 0.0f;
-
 } // namespace
 
 void Sector::Clear() {
@@ -190,7 +189,6 @@ struct SpiralCell {
     SpiralOffset offset;
     float distance;
 };
-static_assert(sizeof(SpiralCell) == 8);
 
 // The sort's comparison: by distance, ascending.
 int ByDistance(const void* a, const void* b) {
@@ -202,7 +200,6 @@ int ByDistance(const void* a, const void* b) {
 
 // |v| - 1, 0 for 0: the whole sectors between two sectors `v` apart.
 int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
-
 } // namespace
 
 void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets) {

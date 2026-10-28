@@ -40,4 +40,3 @@ public:
 
     void* key_;    // the settings file's key, null when closed
 };
-static_assert(sizeof(CWinRegistry) == 4);

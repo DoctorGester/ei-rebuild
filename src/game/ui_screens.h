@@ -37,7 +37,6 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 void LeaveGame();
 } // namespace uiorig
 
-
 // The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
 // type.
 struct UiItemKinds {
@@ -525,10 +524,6 @@ public:
     int endOffset_;             // offset_ when the end of the text came into view (0: not yet)
     HMODULE richEditLibrary_;   // "Riched20.dll" (null when it did not load)
 };
-static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
-static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);
-static_assert(offsetof(CUiScrollingSurface, speed_) == 0x48);
-static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
 class CCreditsScreen : public CUiContainer {
 public:

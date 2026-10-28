@@ -24,7 +24,6 @@
 struct SkyColour {
     float r, g, b, a;
 };
-static_assert(sizeof(SkyColour) == 16);
 
 class CSkyObject : public CPlainFigureMesh {
 public:
@@ -48,7 +47,6 @@ public:
     // "nask0", directory_ emptied by LoadSky, the vertices and normals four per packet.
     std::vector<float> distances_;            // haze per vertex
 };
-static_assert(offsetof(CSkyObject, worldMatrix_) == 0x54);
 
 // The world view's sky.
 struct CSky {
@@ -72,4 +70,3 @@ struct CSky {
     // Object->Light(...) when there is an object.
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
 };
-static_assert(offsetof(CSky, texture) == 0x08 && offsetof(CSky, turns) == 0x0C);

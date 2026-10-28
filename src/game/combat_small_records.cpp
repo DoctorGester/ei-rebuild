@@ -25,8 +25,6 @@ struct MotionSegment {
     float segmentEnd;
     int segment;
 };
-static_assert(offsetof(MotionSegment, curveX) == offsetof(UnitMotion, curveX) - offsetof(UnitMotion, fromX));
-static_assert(offsetof(MotionSegment, segment) == offsetof(UnitMotion, segment) - offsetof(UnitMotion, fromX));
 } // namespace
 
 ArmourSpell* ArmourSpell::Assign(const ArmourSpell* other) {

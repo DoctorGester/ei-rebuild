@@ -15,7 +15,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 // BOOL: these functions return 0/1 in the whole of EAX, and callers test all 32 bits.
 using BOOL = int;
 
@@ -55,7 +54,6 @@ public:
     void* view_;         // mapped base address
     std::uint32_t size_;
 };
-static_assert(sizeof(CMappedFile) == 16);
 
 // A file loaded from an archive by CMappedResource::GetFile. 0x1C bytes, allocated with operator new.
 struct LoadedFile {

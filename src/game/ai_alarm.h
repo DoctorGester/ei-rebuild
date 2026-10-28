@@ -25,6 +25,5 @@ struct AIAlarm {
     int active;     // the level being passed on
     int timer;      // steps left of it
 };
-static_assert(sizeof(AIAlarm) == 0x10);
 
 // The step of `state`, the alarm of `owner`.

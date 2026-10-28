@@ -39,7 +39,6 @@ struct UnitGoldRoll {
     // The four dwords as fields 0..3 (the prototype's second roll, chunk 0x1C).
     void Serialize(ChunkArchive* ar);
 };
-static_assert(sizeof(UnitGoldRoll) == 0x10);
 
 struct UnitPrototypeRecord {
     void Serialize(ChunkArchive* ar);

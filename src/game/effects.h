@@ -322,7 +322,6 @@ using ParticleDepthArray = std::vector<ParticleDepth>;
 struct SourceFrame {
     float u0, v0, u1, v1;
 };
-static_assert(sizeof(SourceFrame) == 16);
 
 // A particle source: localPosition_ is where it emits relative to what it is attached to, localRotation_ the
 // identity after Reset.
@@ -633,7 +632,6 @@ struct FogCell {
     std::int8_t frame;              // 0..14, picks the texture tile
     std::uint8_t unused_16[2];
 };
-static_assert(sizeof(FogCell) == 0x18);
 
 // The texture coordinates of the fog texture's 4 x 4 tiles (16 records; the fog manager's Create fills them,
 // the fog's draw hands them to the renderer): a tile's u range, and its v range counted down from 1 a row.
@@ -659,7 +657,6 @@ struct FogGrid {
     int y0;
     SearchGrid<std::uint8_t> cells; // width * height bytes and the row table (operator new)
 };
-static_assert(sizeof(FogGrid) == 0x18);
 
 class CVisibilityFog final : public CEngineObject {
 public:

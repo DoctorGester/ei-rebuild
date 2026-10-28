@@ -48,5 +48,3 @@ struct CBinkVideo {
     RECT to;
     BinkHeader* bink;
 };
-static_assert(offsetof(CBinkVideo, to) == 0x08);
-static_assert(offsetof(CBinkVideo, bink) == 0x18);

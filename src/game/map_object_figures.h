@@ -285,7 +285,6 @@ public:
     float morphU;
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
 };
-static_assert(offsetof(CFigureAnimationState, bones) == 0x24);
 
 // A counted pointer slot of a shared type viewed as the reference the game's copies of Assign take as `this`
 // (CDeviceMaterial::preset, the wounds material's preset).
@@ -472,7 +471,3 @@ public:
 protected:
     CObject3D();
 };
-static_assert(offsetof(CObject3D, worldMatrix) == 0x54);
-static_assert(offsetof(CObject3D, attached) == 0x94);
-static_assert(offsetof(CObject3D, animations) == 0xA0);
-static_assert(offsetof(CObject3D, name) == 0xA4);

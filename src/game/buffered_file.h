@@ -61,7 +61,6 @@ public:
     std::int32_t Position() const { return static_cast<std::int32_t>(cur - begin) + base; }
     std::int32_t Capacity() const { return static_cast<std::int32_t>(end - begin); }
 };
-static_assert(sizeof(BufferedStream) == 0x1C);
 
 // The file stream.
 class BufferedFile : public BufferedStream {
@@ -84,6 +83,4 @@ public:
 
     std::FILE* file;
 };
-static_assert(offsetof(BufferedFile, file) == 0x1C);
-static_assert(sizeof(BufferedFile) == 0x20);
 

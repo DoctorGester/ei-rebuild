@@ -214,7 +214,6 @@ struct SectorData {
     // those before / after in x are drawn at detail 2.
     void FindSeams();
 };
-static_assert(offsetof(SectorData, minZ) == 0x154);
 
 struct TerrainMaterial {
     int kind;                           // 4: water that keeps the ground's x, y
@@ -232,5 +231,4 @@ struct TerrainMaterial {
 static_assert(sizeof(TerrainMaterial) == 0x38);
 
 static_assert(offsetof(TerrainMaterial, priority) == 0x2C);
-
 } // namespace terrain

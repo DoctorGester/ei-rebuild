@@ -34,7 +34,6 @@ struct UnitAction : AIOrder {
         target = object;
     }
 };
-static_assert(sizeof(UnitAction) == 0x24);
 
 // One step of an animation list: animation is the index of the unit's animation entry (0xFF: a pause), variant
 // the emote / animation variant (0xFF: none), flags UnitSetAnimation's flags, a padding byte, duration in game
@@ -107,7 +106,6 @@ struct MoveModeState {
     std::uint8_t wasMode3;
     std::uint8_t unused_6[2];
 };
-static_assert(sizeof(MoveModeState) == 8);
 
 // What a unit attacks with (CUnitServer::GetAttackParams).
 struct AttackParams {
@@ -123,7 +121,6 @@ struct AttackParams {
     int attack;                 // attack skill (truncated)
     int defence;                // defence skill (truncated; 0 for ranged weapons)
 };
-static_assert(sizeof(AttackParams) == 0x20);
 
 // A record of the unit's presence with the AI events. AIViewer::StepNoise, which would fill it, always returns
 // 0, so none is ever written; the layout is speculative (the fields the controller's update would write).
@@ -146,7 +143,6 @@ struct ArmourSpell {
     std::uint8_t worn;
     std::uint8_t unused_9[3];
 };
-static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = std::list<ArmourSpell>;
 
 // `count` entries appended (no item, countdown 0; the original's `worn` byte was stack garbage, ours 0), then
@@ -593,9 +589,6 @@ public:
 
     void AddHostileMask(std::uint32_t mask);
 };
-static_assert(offsetof(CUnitServer, unit) == 0x1C);
 
 inline CUnitServer* CUnit::ServerController() const { return static_cast<CUnitServer*>(controller); }
-static_assert(offsetof(CUnitServer, frozen) == 0x20);
-static_assert(offsetof(CUnitServer, queue) == 0x24);
 

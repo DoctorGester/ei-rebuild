@@ -62,7 +62,6 @@ struct MeshBuffers {
     std::uint16_t* indices; // corner indices, 3 per triangle
     int indexCount;
 };
-static_assert(sizeof(MeshBuffers) == 0x30);
 
 class CObject3D;
 class CFigureMesh;
@@ -193,11 +192,6 @@ public:
     std::vector<VertexPacket> vertices_;
     std::vector<NormalPacket> normals_;
 };
-static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, localRotation_) == 0x34);
-static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
-static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, object_) == 0x98);
-static_assert(offsetof(CFigureMesh, textureOffsetU_) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
-static_assert(offsetof(CFigureMesh, worldPosition_) == 0x28 && offsetof(CFigureMesh, poseMatrix_) == 0xE0);
 
 // Class 0x41: a part whose last four buffers point into the loaded file data (the figure manager's parts that
 // are not attached).

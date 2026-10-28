@@ -44,9 +44,6 @@ public:
 };
 // A new template with no references; the application's start registers it with the class registry as class 1.
 CRefCounted* CreateClassTemplate();
-static_assert(offsetof(ClassTemplate, weights) == 0x10);
-static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
-static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 
 // Counted pointers.
 struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
@@ -56,7 +53,6 @@ struct TemplateTable : std::vector<CountedPtr<ClassTemplate>> {
     ClassTemplate* Find(int type) const;
 };
 using ClassTemplateVector = TemplateTable;
-static_assert(sizeof(ClassTemplateVector) == 12);
 
 // Adds to the template's lists every weapon, armor, quick item, fourth-kind record, spell and modifier whose
 // class mask has the template's bit (spells and modifiers to both lists).

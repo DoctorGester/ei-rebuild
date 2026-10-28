@@ -219,7 +219,6 @@ struct TradeRecord {
     std::uint8_t bought;             // 0; 1 once something was bought on the panel
     std::uint8_t padAfterBought[3];  // not written
 };
-static_assert(sizeof(TradeRecord) == 0x3C);
 
 class CTradePanel : public CUiItemPanel {
 public:

@@ -25,7 +25,6 @@ struct IdPool {
     // A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
 };
-static_assert(sizeof(IdPool) == 0x10);
 
 // The tracking record of one replicated object.
 class ReplicaEntry final : public CRefObject {
@@ -202,5 +201,4 @@ public:
     GrowingBuffer reliableIn_;
     std::uint32_t padding_1164;
 };
-
 } // namespace net

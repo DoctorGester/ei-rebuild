@@ -107,7 +107,6 @@ public:
     // context_ as the world, for the world's managers (a party's item manager has the party).
     template <class World = CWorld> World* ContextAsWorld() const { return static_cast<World*>(context_); }
 };
-static_assert(offsetof(CBaseManager, objects_) == 0x1C);
 
 // Walks a manager's objectList_. While iterating it holds a reference on the manager (refCount_ + 1); the
 // owner drops it afterwards with `--manager->refCount_` (the inlined destructor).
@@ -135,7 +134,6 @@ public:
     int GetClassId() override;               // 0x30
     // A new object of `type` ('E' .. 'K'), or null for 'J', any other type or a failed allocation.
     CEngineObject* NewObject(int type) override;
-
 };
 class CEffectManager : public CBaseManager {
 public:

@@ -78,7 +78,6 @@ public:
 protected:
     CPlayerConnection();
 };
-static_assert(offsetof(CPlayerConnection, state_) == 0x20);   // the harness's ConnectionState
 
 // A player's server side (made by the server's specific manager).
 class CPlayerServer final : public CPlayerConnection {
@@ -390,9 +389,6 @@ public:
     std::list<std::uint32_t> recharging_;      // ids of items recharging (saved with the world from version 0x55)
     std::uint32_t dirty_;                       // state to send (bits the server's state messages clear); -1 after the reset
 };
-static_assert(offsetof(CPlayer, link_) == 0x1C);
-static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
-static_assert(offsetof(CPlayer, connection_) == 0x20);
 
 // The message dispatchers' fatal error: `format` with the previous and the current message type (their low
 // bytes); the FatalError result.

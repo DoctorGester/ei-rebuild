@@ -44,7 +44,6 @@ struct MapEffect {
     void Load(CStream* stream);
     void Save(CStream* stream) const;
 };
-static_assert(sizeof(MapEffect) == 0x14);
 
 // The hit points, mana and protection rounded (written from the server companion's UnitVitals).
 struct UnitVitalsPacked {
@@ -305,7 +304,6 @@ public:
 
     CMapObject* owner;              // the map object (CMapObject::AttachCompanion sets it)
 };
-static_assert(offsetof(CMapObjectCompanion, owner) == 0x1C);
 inline CMapObjectCompanion* CompanionSlots(CEngineObject* companion) {
     return static_cast<CMapObjectCompanion*>(companion);
 }

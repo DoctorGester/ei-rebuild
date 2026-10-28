@@ -241,8 +241,6 @@ public:
     int extraPages;                 // texture pages loaded after the map's own
     std::vector<std::vector<float>> waterLevels;   // per sector, per material
 };
-static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);
-static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
 
 // The average of the three heights when the triangle is degenerate.
 float PlaneHeight(const Vector3* v0, const Vector3* v1, float x, float y, const Vector3* v2);

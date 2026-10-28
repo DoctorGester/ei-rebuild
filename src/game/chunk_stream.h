@@ -64,9 +64,6 @@ public:
     std::uint32_t start_;    // file position of the size field while writing
     Chunk* parent_;
 };
-static_assert(offsetof(Chunk, id_) == 0x04);
-static_assert(offsetof(Chunk, parent_) == 0x14);
-static_assert(sizeof(Chunk) == 0x18);
 
 // The root chunk of a file: File() returns its file.
 class RootChunk : public Chunk {

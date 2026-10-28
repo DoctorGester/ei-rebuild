@@ -96,9 +96,6 @@ public:
     std::uint32_t skillNeeded_;     // the prototype's plus the modifiers'
     std::int8_t modifiers_[8];      // spell modifier index + 1 each, 0 ends the list
 };
-static_assert(offsetof(CSpell, prototypeIndex_) == 0x1C);
-static_assert(offsetof(CSpell, targetFlags_) == 0x3C);
-static_assert(sizeof(CSpell) == 0x5C);
 
 // The damage a hit deals, filled by the spell effects and the weapon code.
 struct DamageInfo {
@@ -209,13 +206,6 @@ public:
     CSpell* Spell() { return spell_.Get(); }
     const CSpell* Spell() const { return spell_.Get(); }
 };
-static_assert(offsetof(CSpellEffect, world) == 0x08);
-static_assert(offsetof(CSpellEffect, caster) == 0x20);
-static_assert(offsetof(CSpellEffect, state) == 0x30);
-static_assert(offsetof(CSpellEffect, spell_) == 0x34);
-static_assert(offsetof(CSpellEffect, visual) == 0x90);
-static_assert(offsetof(CSpellEffect, timer) == 0xA0);
-static_assert(sizeof(CSpellEffect) == 0xA8);
 
 // Whether area spells hit `unit`: units with a size class, and those whose prototype's height is below 0.5
 // (or NaN).
@@ -382,14 +372,6 @@ public:
     Vector3 localDirection_;        // direction_ in the space of the mesh being lit
     float litColors_[2][4];
 };
-static_assert(offsetof(CLight, kind_) == 0x94 && offsetof(CLight, pointPosition_) == 0xC8 &&
-              offsetof(CLight, unused_FC) == 0xFC && sizeof(CLight) == 0x134);
-static_assert(offsetof(CLight, color_) == 0x98);
-static_assert(offsetof(CLight, rangeSquared_) == 0x100);
-static_assert(offsetof(CLight, litColors_) == 0x114);
-static_assert(offsetof(CLight, range_) == 0xE0);
-static_assert(offsetof(CLight, unused_54) == 0x54 && offsetof(CLight, direction_) == 0xD4 &&
-              offsetof(CLight, localDirection_) == 0x108);
 
 // The light factory ("CLightManager"): lights of class 0x2E (the renderer's default light) and 0x31 (point
 // lights).

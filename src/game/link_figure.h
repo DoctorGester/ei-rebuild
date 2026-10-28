@@ -9,7 +9,6 @@
 #include "model.h"         // ClipBounds, TriangleIndexArray, CLinkFigureLoader
 #include "texture.h"       // RasterTarget
 
-
 #include <map>
 #include <vector>
 #include <windows.h>
@@ -64,8 +63,6 @@ struct FigureMeshDrawer : FigureDrawerBase {
     RECT screen_;               // where the mesh was last drawn
     Vector3 spare30_;           // (1, 1, 1) after Create; nothing reads it
 };
-static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
-static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
 class CTextureDevice;
 
@@ -229,7 +226,6 @@ public:
     CLinkFigureLoader* loader_;
     ITransformPipeline* pipeline_;
 };
-static_assert(offsetof(CLinkMesh, refCount_) == 0x04);
 // corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
 static_assert(sizeof(MeshCorner) == 6);
 

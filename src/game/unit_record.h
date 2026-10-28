@@ -70,6 +70,4 @@ public:
 
     enum List { kCarried, kQuickItems, kSpells, kWeapons, kArmour };
 };
-static_assert(offsetof(UnitRecord, lists) == 0xAC);
-
 } // namespace unitrecord

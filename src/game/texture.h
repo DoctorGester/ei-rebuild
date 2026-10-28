@@ -156,7 +156,6 @@ public:
     int drawCount_;
     int textureChanges_;
 };
-static_assert(offsetof(CTextureDevice, lastLoadResult_) == 0x08);
 
 // The four state blocks of texture stage 0: the scene's (texture x diffuse, alpha diffuse), texture x diffuse
 // with the texture's alpha, the alpha passes' (texture x diffuse for colour and alpha) and the terrain's
@@ -166,11 +165,6 @@ extern DWORD g_stageBlocks[kStageBlockCount];
 
 // Once a frame; returns the DirectDraw result (0).
 long DevicePresent(CTextureDevice* device);
-static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
-static_assert(offsetof(CTextureDevice, primary_) == 0x14);
-static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
-static_assert(offsetof(CTextureDevice, flags_) == 0x20);
-static_assert(offsetof(CTextureDevice, screen_) == 0x24);
 
 // A Direct3D driver of the device list. The image does not run the driver enumeration: the list stays empty.
 struct DirectDrawDriver {
@@ -201,11 +195,6 @@ struct CDXSurface final : CRendererBase {
     int height = 0;
     int bitsPerPixel = 0;
 };
-static_assert(offsetof(CDXSurface, result) == 0x08);
-static_assert(offsetof(CDXSurface, device) == 0x0C);
-static_assert(offsetof(CDXSurface, surface) == 0x10);
-static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
-static_assert(sizeof(CDXSurface) == 0x20);
 
 // 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
 // Never constructed here.

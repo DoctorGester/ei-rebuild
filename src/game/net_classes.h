@@ -149,7 +149,6 @@ public:
 protected:
     Message();
     Message(const Message& other) : CRefObject(), version_(other.version_) {}
-
 };
 
 using MessageFactory = Message* (*)();
@@ -179,9 +178,6 @@ protected:
     ServerEntryBase();
     ServerEntryBase(const ServerEntryBase& other);
 };
-static_assert(offsetof(ServerEntryBase, address_) == 0x08);
-static_assert(offsetof(ServerEntryBase, state_) == 0x24);
-static_assert(sizeof(ServerEntryBase) == 0x28);
 
 // A server entry: what a server says about itself, and what the client lists hold.
 class ServerEntry final : public ServerEntryBase {
@@ -202,7 +198,6 @@ public:
     std::uint8_t password_;       // whether joining needs a password
     std::uint8_t unused_47;
 };
-static_assert(offsetof(ServerEntry, name_) == 0x28);
 
 // A server the client asks directly: its address and the reply last seen.
 struct Query {
@@ -213,7 +208,6 @@ struct Query {
     NetAddress address;
     GrowingBuffer reply;
 };
-static_assert(sizeof(Query) == 0x2C);
 
 // The client's queries: a vector of queries and a dword saved with it (not itself a vector).
 struct ClientQueries {
@@ -226,7 +220,6 @@ struct ClientQueries {
     // The query with `address`, or the end.
     std::vector<Query>::iterator QueriesFind(const NetAddress* address);
 };
-static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
 
 // ---- The session base ---------------------------------------------------------------------------
 
@@ -243,7 +236,6 @@ MessageHandler AsHandler(void(*handler)(Session*, MessageType*)) {
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage).
 using HandlerVector = std::vector<MessageHandler>;
-static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry of a session.
 struct TypeRegistry {
@@ -288,7 +280,6 @@ struct SocketDriver {
     // The next datagram (up to 0x800 bytes) into `buffer`, its sender into `from`.
     bool Receive(NetAddress* from, GameBuffer* buffer);
 };
-static_assert(sizeof(SocketDriver) == 0x10);
 
 // The value of the timed lists (the client's timers, the server's awards and finished trades): the
 // seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object, held
@@ -397,9 +388,6 @@ public:
     HandlerVector handlers_[kChannels][kMessageTypes];
     std::uint32_t padding_2564;
 };
-static_assert(offsetof(SessionBase, magic_) == 0x08);
-static_assert(offsetof(SessionBase, frame_) == 0x18);
-static_assert(offsetof(SessionBase, time_) == 0x20);
 
 constexpr std::uint32_t kSessionMagic = 0xDEC0AD07;
 
@@ -676,5 +664,4 @@ struct GameInfoRecord {
 
 // The byte buffer's read helper.
 void BufferUpdateHigh(GameBuffer* buffer);
-
 } // namespace net

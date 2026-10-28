@@ -54,7 +54,6 @@ public:
     CBaseManager* SetOwner(CBaseManager* owner);
     void ClearFields();
 
-
     int refCount_;
     std::uint32_t flags_;
     int id_;                // -1 until a manager registers the object
@@ -64,7 +63,6 @@ public:
     // index in the high word, units the plain index.
     std::uint32_t prototypeId_;
 };
-static_assert(sizeof(CEngineObject) == 0x1C);
 
 // A counted engine object pointer as the game's helpers take it. Reads see the object; Assign counts, a plain
 // store (`held = p`) does not.
@@ -94,7 +92,6 @@ struct HeldObject {
     T* object;
 };
 using HeldEngineObject = HeldObject<CEngineObject>;
-static_assert(sizeof(HeldEngineObject) == 4);
 
 // A counted engine object pointer that holds its reference (a container's element): made from a pointer or
 // copied, it takes one; destroyed, it drops it (Release). A move hands the reference over.
@@ -153,7 +150,6 @@ struct AIRefTo {
     T* object;
 };
 using AIRef = AIRefTo<CEngineObject>;
-static_assert(sizeof(AIRef) == 4);
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }
 

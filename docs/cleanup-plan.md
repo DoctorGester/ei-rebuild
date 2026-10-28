@@ -49,7 +49,7 @@ them per file).
 | Artefact | Becomes | Ticket |
 |---|---|---|
 | hand-built tables (`static void* Vtable()`, `ei::SetVtable`, slot templates and slot calls), `...Hook` / `...Impl` slot shims | real virtual classes | C28 |
-| `offsetof` / `sizeof` asserts | dropped, except where bytes leave the process or come from the data image | C28 |
+| `offsetof` / `sizeof` asserts, `unused_XXX` padding | dropped, except where bytes leave the process or come from a fixed format (saves, packets, resource files, GPU / D3D / DirectDraw structs, function vectors) | C28, C36 |
 | data addresses in code | named globals (the build reads no game.exe since C25c) | C18, C18r, C18t |
 | import table cells, `gameapi::` | typed imports; direct Win32 calls except the routed ones | C18p |
 | `EI_REPLACE` registrations (the code cells went in C20 batch 1, the registrations in batch 6), then the `EI_REWRITTEN` map | nothing: no address map of game.exe's code | C20, C20e-g, C20l (done) |

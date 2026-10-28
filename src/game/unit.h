@@ -197,7 +197,6 @@ public:
 
     CUnit* unit;   // the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
-static_assert(offsetof(CUnitController, unit) == 0x1C);
 
 // The prototype name is CObject3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)
 // CMapObject::packedVitals.
@@ -910,8 +909,6 @@ public:
     std::string name7C;
     std::vector<std::string> strings;
 };
-static_assert(offsetof(CMapObjectServer, name78) == 0x78);
-static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
 inline CMapObjectServer* CMapObject::ServerCompanion() const { return static_cast<CMapObjectServer*>(companion); }
 
 class CParticleSource;

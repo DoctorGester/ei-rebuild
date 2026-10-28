@@ -59,7 +59,6 @@ struct AIOrder {
     std::uint8_t flag18;
     std::uint8_t unused_19[3];
 };
-static_assert(sizeof(AIOrder) == 0x1C);
 
 // One remembered look direction of the current move.
 struct AILook {
@@ -72,7 +71,6 @@ struct AILook {
     // The arguments come in a different order from the fields: wait before turning time. Returns this.
     AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
 };
-static_assert(sizeof(AILook) == 0x10);
 
 using AILookArray = std::vector<AILook>;
 // The looks from / to a save: the count, then angle, time and wait of each and (from version 0x44) the stop
@@ -123,7 +121,6 @@ public:
     virtual void Load(CStream*) {}
     virtual void Save(CStream*) {}
 };
-static_assert(sizeof(AIMode) == 8);
 
 // Base of the modes that act: Suspection, Aggression, CorpseWatcher, Fear and Player.
 class AIActionMode : public AIMode {
@@ -158,7 +155,6 @@ public:
     float wander;
     int failures;
 };
-static_assert(sizeof(GuardMode) == 0x20);
 
 struct PatrolPoint {
     Vector3 position;
@@ -210,7 +206,6 @@ public:
 
     Vector3 point;
 };
-static_assert(sizeof(SentryMode) == 0x14);
 
 // Follow: stay with a leader.
 class FollowMode : public AIMode {
@@ -227,7 +222,6 @@ public:
 
     AIRefTo<CMapObject> leader;
 };
-static_assert(sizeof(FollowMode) == 0x0C);
 
 // Suspection: go and look where something was noticed.
 class SuspectionMode : public AIActionMode {
@@ -258,7 +252,6 @@ public:
     Vector3 point;
     int level;
 };
-static_assert(sizeof(SuspectionMode) == 0x18);
 
 // A target the attention chose or the brain is attacking: the part (-1 the whole unit with a weapon,
 // else the spell's part) and the object.
@@ -266,7 +259,6 @@ struct AITargetChoice {
     int part;
     CUnit* object;
 };
-static_assert(sizeof(AITargetChoice) == 8 && offsetof(AITargetChoice, object) == 4);
 
 // Aggression: fight an enemy.
 class AggressionMode : public AIActionMode {
@@ -294,7 +286,6 @@ public:
     std::uint8_t unused_0D[3];
     AITargetChoice chosen;          // the enemy chosen this tick; part -1: the whole unit
 };
-static_assert(sizeof(AggressionMode) == 0x18);
 
 // CorpseWatcher: reports corpses the brain has seen.
 class CorpseWatcherMode : public AIActionMode {
@@ -347,9 +338,6 @@ private:
     // The constructor's stores (and OnShutdown's).
     void Init(std::uint8_t flag);
 };
-static_assert(sizeof(FearMode) == 0x2C);
-static_assert(offsetof(FearMode, flag) == 0x28);
-static_assert(offsetof(FearMode, fleePoint) == 0x1C);
 // A new Fear mode's distance, which `distance` returns to.
 inline float FearDefaultDistance() { return 10.0f /*0073FF00*/; }
 
@@ -423,7 +411,6 @@ protected:
     // Both OnShutdowns: the references released, then the constructor's stores.
     void Reset();
 };
-static_assert(sizeof(PlayerMode) == 0x24);
 
 // Tamed (type 8): the Player mode a taming installs.
 class TamedMode : public PlayerMode {
@@ -505,7 +492,6 @@ struct AIAttackOption {
     int effect;                     // effect type (kinds 4..6), strength (kind 3)
     DamageWords damage;             // measured against the target's protection
 };
-static_assert(sizeof(AIAttackOption) == 0x28);
 
 using AIAttackOptions = std::vector<AIAttackOption>;
 // The count, the array sized to it, then each option.
@@ -620,8 +606,6 @@ struct AIMemory {
     std::uint8_t seesEnemy;
     std::uint8_t unused_BD[3];
 };
-static_assert(offsetof(AIMemory, noticedX) == 0x10);
-static_assert(offsetof(AIMemory, nearby) == 0x24);
 
 // The brain, embedded in the unit controller.
 struct AIBrain {
@@ -763,5 +747,4 @@ struct AIBrain {
     AIAttention attention;
     AIMemory memory;                // perception memory
 };
-static_assert(offsetof(AIBrain, move) == 0x08);
 

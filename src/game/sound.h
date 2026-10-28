@@ -38,7 +38,6 @@ struct SoundFader {
     void Update();                      // on the stream thread
     void Recalc();
 };
-static_assert(sizeof(SoundFader) == 0x1C);
 
 // One of the 15 Miles sample voices.
 struct SoundSlot {

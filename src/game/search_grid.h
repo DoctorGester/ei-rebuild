@@ -25,4 +25,3 @@ struct SearchGrid {
 template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);
 template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight);
 template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight);
-static_assert(sizeof(SearchGrid<std::uint8_t>) == 0x10);

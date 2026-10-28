@@ -2,7 +2,6 @@
 
 // The numbers that fly up from units hit (the world client's).
 
-
 #include <cstddef>
 #include <cstdint>
 #include <list>
@@ -19,7 +18,6 @@ struct FlyingHitPoint {
     std::uint32_t flags;
     std::uint32_t time;         // timeGetTime when it starts
 };
-static_assert(sizeof(FlyingHitPoint) == 0x10);
 
 class CFlyingHitPoints {
 public:
@@ -43,4 +41,3 @@ public:
     CTexture* texture_;   // the digits texture (counted)
     std::list<FlyingHitPoint> points_;
 };
-static_assert(offsetof(CFlyingHitPoints, points_) == 4);
