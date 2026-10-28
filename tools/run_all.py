@@ -458,6 +458,14 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
     failures = [l[8:] for l in report.splitlines() if l.startswith('FAILED: ')]
+    # ei_launch's own output beside the run's log (C36b: a game that died with no line in ei_hook.log left a report
+    # saying RUNNING and nothing else to tell why).
+    with contextlib.suppress(OSError):
+        with open(os.path.join(out, 'ei_launch.txt'), 'w', encoding='utf8', errors='replace') as f:
+            f.write(f'exit code {proc.returncode}\n{proc.stdout}{proc.stderr}')
+    if result == 'RUNNING' and not failures and proc.returncode not in (TIMEOUT_EXIT, UNKILLABLE_EXIT):
+        failures = [f'the game ended before the harness wrote its result (ei_launch exit code {proc.returncode}; '
+                    'its output in ei_launch.txt)']
     # The per-function totals (verify wrappers, until S21d); the slot stays in the result (the reference cache
     # and the work database's run rows keep its shape), always empty.
     counts = {}
