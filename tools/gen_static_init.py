@@ -549,13 +549,6 @@ NAMED_DATA = os.path.join(ROOT, 'config', 'named_data.csv')
 # order: named_data.py compares that definition at its zero start). The generated files include the headers.
 GENERATED_NAMES = {
     0x007CAEE4: ('lib::g_emptyStaticGuard', 'lib/static_object.h'),
-    0x007C8BC0: ('mfc::impl::g_simpleUserException', 'lib/mfc_static_objects.h'),
-    0x007C90BC: ('mfc::impl::g_baseModuleStateLocal', 'lib/mfc_static_objects.h'),
-    0x007C90C0: ('mfc::impl::g_threadStateLocal', 'lib/mfc_static_objects.h'),
-    0x007CAA84: ('mfc::impl::g_ctl3dThreadLocal', 'lib/mfc_static_objects.h'),
-    0x007CAA88: ('mfc::impl::g_ctl3dStateLocal', 'lib/mfc_static_objects.h'),
-    0x007CAA8C: ('mfc::impl::g_winStateLocal', 'lib/mfc_static_objects.h'),
-    0x007CAA98: ('mfc::impl::g_afxDbcs', 'lib/mfc_static_objects.h'),
 }
 NAMED_ONCE = re.compile(r'\bd\.Once\((0x[0-9A-F]{8}),')
 NAMED_THIS = re.compile(r'(\bd\.Thiscall\(0x[0-9A-F]{8}, )(0x[0-9A-F]{8})\b')
@@ -801,6 +794,20 @@ UNUSED_INITIALISERS = {
     0x0070444E: "MFC's static window wndBottom 007CA9E8 (guard bit 2 of 007CAA24)",
     0x0070448C: "MFC's static window wndTopMost 007CA9A8 (guard bit 4 of 007CAA24)",
     0x007044CA: "MFC's static window wndNoTopMost 007CA968 (guard bit 8 of 007CAA24)",
+    # C14zi: MFC's static state nothing of ours reads any more (no CWnd, threads, handle maps or MFC exceptions).
+    0x0070BEFA: "MFC's _simpleResourceException 007C8C58 (nothing of ours throws or reads it)",
+    0x0070BF32: "MFC's _simpleUserException 007C8BC0 (only AfxThrowUserException threw it, not in our source)",
+    0x0070C1B5: "MFC's _simpleMemoryException 007C8DE8 (nothing of ours throws or reads it)",
+    0x0070B5FB: "wingdix.cpp's exit function for the halftone brush 007C8D40 (made only by code the game never "
+                "reaches)",
+    0x0070D12E: "MFC's afxData 007C90C8 (AUX_DATA: system metrics, colours and cursors only MFC's windows read)",
+    0x007043FA: "MFC's DragList message id 007CAA64 (CWnd's message map entry; the class went in C14zh)",
+    0x0070DC70: "MFC's _afxDBCS 007CAA98 (read only by _AfxCbtFilterHook: no game window is a CWnd)",
+    0x0070CC0C: "the exit function of MFC's thread local _afxThreadState 007C90C0 (nothing fills it)",
+    0x0070CE56: "the exit function of MFC's process local _afxBaseModuleState 007C90BC (nothing fills it)",
+    0x0070D5D8: "the exit function of MFC's thread local _afxCtl3dThread 007CAA84 (nothing fills it)",
+    0x0070D5FE: "the exit function of MFC's process local _afxCtl3dState 007CAA88 (nothing fills it)",
+    0x0070DC27: "the exit function of MFC's process local _afxWinState 007CAA8C (nothing fills it)",
 }
 
 
@@ -1128,10 +1135,14 @@ def decode_exits(img, decoded):
     RUNTIME_SITES.clear()
     dead_ranges = dead_code()
     dead_starts = [b for b, _ in dead_ranges]
+    # The instructions of the initialisers left out whole (UNUSED_INITIALISERS), with the functions they inline.
+    unused = [(x, x + n) for a, _, _, _, _, spans in decoded if a in UNUSED_INITIALISERS for x, n in spans]
 
-    def dead(at):   # a registration inside code nothing runs (config/dead_code.csv, RETIRED_STATICS) never runs
+    def dead(at):   # a registration inside code nothing runs (config/dead_code.csv, RETIRED_STATICS, an unused
+        # initialiser's) never runs
         i = bisect.bisect_right(dead_starts, at) - 1
-        return (i >= 0 and at < dead_ranges[i][1]) or any(b <= at < e for b, (e, _) in RETIRED_STATICS.items())
+        return ((i >= 0 and at < dead_ranges[i][1]) or any(b <= at < e for b, (e, _) in RETIRED_STATICS.items())
+                or any(b <= at < e for b, e in unused))
 
     for fn, sites in runtime_atexits(img, md).items():
         sites = [s for s in sites if not dead(s)]

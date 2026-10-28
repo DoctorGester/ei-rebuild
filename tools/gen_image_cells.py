@@ -133,6 +133,14 @@ UNREAD = [
     (0x00746FF8, 0x00747008, 2, "CWinApp's runtime class record (no class of ours)"),
     (0x00796CD0, 0x00796CE0, 2, "CDib's runtime class record (nothing asks a CDib its class since C14ze; its "
                                 "initialiser 006D4A70 is gen_static_init.py's UNUSED_INITIALISERS)"),
+    (0x007469D8, 0x007469E8, 2, "CWnd's runtime class record (the class went in C14zh)"),
+    (0x00745D20, 0x00745D20, 1, "CObject's runtime class record (its class name; C14zi: no MFC class of ours)"),
+    (0x007468A8, 0x007468B8, 2, "CCmdTarget's runtime class record (C14zi: no MFC class of ours)"),
+    (0x007465D0, 0x007465E0, 2, "CException's runtime class record (C14zi: nothing of ours throws MFC's exceptions)"),
+    (0x00746158, 0x00746168, 2, "CUserException's runtime class record (C14zi: its static exception's initialiser "
+                                "0070BF32 is gen_static_init.py's UNUSED_INITIALISERS)"),
+    (0x00746180, 0x00746190, 2, "CResourceException's runtime class record (C14zi: initialiser 0070BEFA unused)"),
+    (0x007465A0, 0x007465B0, 2, "CMemoryException's runtime class record (C14zi: initialiser 0070C1B5 unused)"),
     (0x00797CC4, 0x00797D94, 27, "the CRT's math function names by code (\"exp\", \"pow\", ...), read by its math error "
                                  "reporting only (_87except, _matherr: not ported; named in crt_x87.cpp until C35h)"),
 ]

@@ -102,7 +102,6 @@ TYPES = {
     'WeatherNoiseCurve': 'f' * (128 + 128 * 4),   # weather_noise.h: the samples, then the segments
     # Pointers ('P', a dword of game.exe's: what it points at is compared, not the address; see Definition.pack).
     'char*': 'P',
-    'CRuntimeClass': 'PiIPPP',   # lib/mfc_runtime_class.h: name, size, schema, create, base, next
     'MaterialKindFile': 'iP',
     'OptionDefinition': 'iPiiii', 'ActionDefinition': 'iPii',   # ui.h: id, name, kind, maximum, group, row / id, name, group, row
     'ScriptParticleType': 'Pii', 'AmbientSoundClass': 'Pififi',   # script.h: name, type, lifetime / terrain_ambience.cpp
@@ -113,7 +112,6 @@ TYPES = {
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection
     'std::size_t': 'I',
     'Ld12': 'H' * 6,                         # crt_format.cpp: a 12-byte long double, six words
-    'HGDIOBJ': 'P',
     'LogicSettings': 'B' * 4 + 'f' * 39 + 'if' + 'f' * 9,   # logic_settings.h: loaded and padding, 39 floats, questsToRespawn, 10 floats
     # Containers a static initialiser zeroes and an exit function frees (C18k): pointers that start null, compared as
     # numbers. A template's arguments do not change the layout: TYPES names the template (element_format).
@@ -126,8 +124,6 @@ TYPES = {
     'lib::StaticObject<std::string>': 'I',
     # console.h: game.exe's ostream and its ios; ours names its streambuf, null until the initialiser attaches it
     'Stream': 'B' * 0x58,
-    'BOOL': 'i',
-    'CThreadLocalObject': 'i', 'CProcessLocalObject': 'I',   # mfc_state.h: a TLS slot, an object made on first use
 }
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
@@ -190,8 +186,6 @@ STATIC_OBJECT_BYTES = {
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,
-    'CSimpleException': 0x98, 'CResourceException': 0x98, 'CUserException': 0x98,
-    'CMemoryException': 0x98, 'AuxData': 0x6C,   # lib/mfc_exception.h, mfc_state.h
 }
 
 

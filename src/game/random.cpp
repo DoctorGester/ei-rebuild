@@ -142,10 +142,9 @@ int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* c
     return 0;
 }
 
-// The game opens the file with MFC's throwing CFile constructor inside TRY / CATCH(CFileException):
-// a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
-// the handle directly, so nothing throws. Kept: when the first search
-// counts exactly one file, rand() % 0 faults as in the game.
+// A failed open, seek or read of the file clears `ok`: Open reports the failure and the seek and read go to the
+// handle directly, so nothing throws. Kept: when the first search counts exactly one file, rand() % 0 faults as in
+// the game.
 void IsaacRandom::Seed() {
     if (g_seedHook) {
         g_seedHook(*this);
