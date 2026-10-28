@@ -10,6 +10,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
+#include <utility>
+#include <vector>
 
 namespace lib {
 
@@ -176,5 +179,12 @@ struct AlignedArray {
     }
 };
 static_assert(sizeof(AlignedArray<int>) == 0x10);
+
+// CArray's SetAtGrow on a vector: grows it to hold `index` (the new elements value-initialised), then sets it.
+template <typename T, typename U>
+void SetAtGrow(std::vector<T>& v, int index, U&& value) {
+    if (index >= std::ssize(v)) v.resize(static_cast<std::size_t>(index) + 1);
+    v[static_cast<std::size_t>(index)] = std::forward<U>(value);
+}
 
 } // namespace lib
