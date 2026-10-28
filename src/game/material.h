@@ -51,7 +51,7 @@ public:
     int Create() override;
     // Empties the deque.
     void Destroy() override;
-    // The name's text (short_functions.cpp)
+    // The name's text
     const char* GetName() override;
     const char* GetClassName() override;   // 11: "CMaterial"
     int GetClassId() override;

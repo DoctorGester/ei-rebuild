@@ -18,6 +18,7 @@
 
 #include <array>
 #include <bit>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -212,7 +213,7 @@ int CVisibilityFog::UpdateCells() {
     KeyVector& dead = g_deadCells;
     if (!(g_deadCellsGuard & 1)) {
         g_deadCellsGuard |= 1;
-        libcrt::AtExit(DestroyDeadCells);
+        std::atexit(DestroyDeadCells);
     }
     dead.clear();
     World();   // called and ignored

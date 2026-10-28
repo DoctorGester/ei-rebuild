@@ -62,10 +62,6 @@ void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, in
 // flag 1) DirectDraw first flips to the GDI surface (a failure is reported through FatalErrorCode: "Can't
 // flip to GDI surface."); the cursor that was set is put back afterwards. Returns MessageBoxA's answer.
 int ShowMessageBox(const char* text, int flags);
-// The operator new handler WinMain installs (_set_new_handler; the previous one is put back when
-// the game ends): "Memory depleted" in the game's message box with the stop icon. Returns 0, so
-// the allocation fails. Only WinMain refers to it, by address (config/extra_function_sizes.csv).
-int OutOfMemory(std::size_t size);
 // WinMain: the application's start-up, main loop and shutdown. Rebirth patches
 // it (NivalRegistry), so the rewrite runs in the vanilla launch only.
 int GameMain(HINSTANCE instance, HINSTANCE previous, char* commandLine, int show);

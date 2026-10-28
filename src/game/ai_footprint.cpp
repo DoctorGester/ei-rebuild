@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -34,7 +35,7 @@ void FreeSpellFootprint() { lib::FreeStorage(g_spellFootprint->cells); }
 
 void ConstructSpellFootprint() {
     g_spellFootprint->Construct();
-    libcrt::AtExit(FreeSpellFootprint);
+    std::atexit(FreeSpellFootprint);
 }
 
 void FootprintCellSet::SetSize(int size) { cells.resize(static_cast<std::size_t>(size)); }

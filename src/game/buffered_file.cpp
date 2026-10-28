@@ -8,6 +8,7 @@
 #include "lib/static_object.h"
 #include "lib/stlp_hash.h"
 
+#include <cstdlib>
 #include <cstring>
 
 namespace {
@@ -210,5 +211,5 @@ void DestroyUnreadSet() { g_unreadSet->Destroy(); }
 
 void ConstructUnreadSet() {
     g_unreadSet->Construct(100, 0, 0, 0);
-    libcrt::AtExit(DestroyUnreadSet);
+    std::atexit(DestroyUnreadSet);
 }

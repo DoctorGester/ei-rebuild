@@ -32,6 +32,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -165,7 +166,7 @@ constexpr float kExitTurnDown = 3.1415927f;
 
 void ConstructLastQuest() {
     g_lastQuest.Construct();
-    libcrt::AtExit(DestroyLastQuest);
+    std::atexit(DestroyLastQuest);
 }
 
 // --- The zone page ----------------------------------------------------------------------

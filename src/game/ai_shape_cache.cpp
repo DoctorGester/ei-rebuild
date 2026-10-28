@@ -13,6 +13,7 @@
 #include "game_hashes.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <new>
 
 namespace {
@@ -74,5 +75,5 @@ void DestroyUnitShapes() { g_unitShapes->Destruct(); }
 
 void ConstructUnitShapes() {
     g_unitShapes->Construct();
-    libcrt::AtExit(DestroyUnitShapes);
+    std::atexit(DestroyUnitShapes);
 }

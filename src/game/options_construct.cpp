@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <new>
 
 namespace options {
@@ -148,7 +149,7 @@ void DestroyGameOptions() { g_options.Destroy(); }
 
 void ConstructGameOptions() {
     g_options.Construct();
-    libcrt::AtExit(DestroyGameOptions);
+    std::atexit(DestroyGameOptions);
 }
 
 } // namespace options

@@ -17,6 +17,7 @@
 #include "lib/static_object.h"
 #include "game/game_slots.h"
 
+#include <cstdlib>
 #include <initializer_list>
 #include <new>
 
@@ -140,9 +141,9 @@ void DestroyClientWorld() { g_clientWorld.Destroy(); }
 
 void ConstructServerWorld() {
     g_serverWorld.Construct();
-    libcrt::AtExit(DestroyServerWorld);
+    std::atexit(DestroyServerWorld);
 }
 void ConstructClientWorld() {
     g_clientWorld.Construct();
-    libcrt::AtExit(DestroyClientWorld);
+    std::atexit(DestroyClientWorld);
 }

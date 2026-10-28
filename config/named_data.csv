@@ -536,7 +536,6 @@ address,size,name,file
 007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
 007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
 007CAA98,4,g_afxDbcs,src/lib/mfc_static_objects.cpp
-007CAAD8,4,g_heapNewHandler,src/lib/crt.cpp
 007CAE90,24,g_sharedLock,src/lib/crt_iostream.cpp
 007CAEC8,4,g_liveIosCount,src/lib/crt_iostream.cpp
 007CAED0,20,g_processorInfo,src/game/sys_info.cpp

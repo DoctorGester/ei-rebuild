@@ -343,7 +343,6 @@ bool CAIMap::FindFreeCellNear(CUnit* unit, const Vector3* from, Vector3* target)
         guard |= 1;
         cache->radius = -1.0f;
         cache->length = 0;
-        libcrt::AtExit([] {});   // nothing to destroy
     }
 
     int sizeClass = unit->sizeClass;

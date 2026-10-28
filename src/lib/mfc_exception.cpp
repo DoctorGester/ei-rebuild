@@ -9,6 +9,7 @@
 #include "static_object.h"
 #include "game/game_data.h"
 
+#include <cstdlib>
 #include <new>
 
 namespace mfc::impl {
@@ -207,15 +208,15 @@ void DestroySimpleNotSupportedException() { g_simpleNotSupportedException.Destro
 
 void ConstructSimpleResourceException() {
     g_simpleResourceException.Construct(FALSE, kIdsResourceException);
-    libcrt::AtExit(DestroySimpleResourceException);
+    std::atexit(DestroySimpleResourceException);
 }
 void ConstructSimpleMemoryException() {
     g_simpleMemoryException.Construct(FALSE, kIdsMemoryException);
-    libcrt::AtExit(DestroySimpleMemoryException);
+    std::atexit(DestroySimpleMemoryException);
 }
 void ConstructSimpleNotSupportedException() {
     g_simpleNotSupportedException.Construct(FALSE, kIdsNotSupportedException);
-    libcrt::AtExit(DestroySimpleNotSupportedException);
+    std::atexit(DestroySimpleNotSupportedException);
 }
 
 } // namespace mfc::impl

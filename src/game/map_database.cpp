@@ -260,5 +260,5 @@ void DestroyMapDatabase() { g_mapDatabase->Destruct(); }
 
 void ConstructMapDatabase() {
     g_mapDatabase->Construct();
-    libcrt::AtExit(DestroyMapDatabase);
+    std::atexit(DestroyMapDatabase);
 }

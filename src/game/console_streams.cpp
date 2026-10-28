@@ -5,6 +5,8 @@
 #include "console.h"
 #include "library_trees.h"
 
+#include <cstdlib>
+
 namespace console {
 
 constinit lib::StaticObject<CommandMap> g_publicCommands = /*007C7B28*/ {};
@@ -39,17 +41,17 @@ using ExitFunction = void(__cdecl*)();
 
 void BuildCommands(lib::StaticObject<console::CommandMap>& map, ExitFunction exit) {
     lib_trees::Commands::Construct(&map.Get());
-    libcrt::AtExit(exit);
+    std::atexit(exit);
 }
 void BuildStreambuf(StreambufObject& buffer, unsigned filter, ExitFunction exit) {
     buffer.Construct(filter);
-    libcrt::AtExit(exit);
+    std::atexit(exit);
 }
 // An ostream on its streambuf (ostream(streambuf*, 1)); destroyed through its ios, ostream's part
 // and then ios's.
 void BuildStream(OStreamObject& stream, StreambufObject& buffer, ExitFunction exit) {
     stream.Construct(&buffer.Get(), 1);
-    libcrt::AtExit(exit);
+    std::atexit(exit);
 }
 void DestroyStream(OStreamObject& stream) {
     stream.ios.DestructOstream();

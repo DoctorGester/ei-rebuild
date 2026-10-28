@@ -12,6 +12,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 #include <memory>
@@ -113,7 +114,7 @@ void DestroyInterface() { g_interface->DestroyBody(); }
 
 void ConstructInterface() {
     g_interface->Construct();
-    libcrt::AtExit(DestroyInterface);
+    std::atexit(DestroyInterface);
 }
 
 void CUiMesh::DestroySprite() {

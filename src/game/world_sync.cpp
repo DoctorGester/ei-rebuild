@@ -21,6 +21,7 @@
 #include "game_hashes.h"
 #include "game_data.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -91,7 +92,7 @@ void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destruct
     if (StaticsGuard() & bit) return;
     StaticsGuard() |= bit;
     array.clear();
-    libcrt::AtExit(destructor);
+    std::atexit(destructor);
 }
 
 const float* PositionOf(CMapObject* object) { return &object->localPosition_.x; }

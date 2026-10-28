@@ -320,7 +320,7 @@ made, and the generators still read game.exe when rerun. What needs no game.exe 
 a hand edit or a new harness route fails), `named_data.py --check` (definitions well formed, csv current, no address
 literal inside a named, retired or unread range, global_objects.csv) and `gen_image_cells.py --check` (retired vtables
 against vtables.csv and the sources, the committed cells' targets). The generated static_init.cpp / static_exit.cpp,
-image_cells.inc and short_functions.cpp are only as fresh as their generator's last run: rerun
+image_cells.inc are only as fresh as their generator's last run: rerun
 it (reads game.exe) after a change that registers or ports what it decodes.
 The harness still runs the original game.exe for goldens and vectors.
 
@@ -787,8 +787,8 @@ kinds given.
       static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
-      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate) and `_pnhHeap`
-      (`g_heapNewHandler` 007CAAD8); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
+      `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
+      (nothing called the handler it held, C35e); `_afxNewHandler` is mfc_handle_map's `g_afxNewHandler` 00796E14, initialised
       `{DefaultNewHandler}` (a pointer element naming our registration at 0070058F). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
       function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
       resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
@@ -1619,8 +1619,8 @@ the `--no-hooks` suite) keeps the registry.
 ### Generated code
 
 - **Short functions** (S2): the game functions under five bytes needed no code of their own once nothing called game.exe;
-  src/game/short_functions.cpp keeps `Ret`, the exit function that does nothing (the initialisers' and the
-  function-local statics' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
+  the exit function that does nothing is not registered at all (C35e: src/game/short_functions.cpp and its `Ret` went; the
+  generator drops the initialisers' atexit of it). tools/gen_short_functions.py, which wrote one map line per short function
   (12 kinds, each compiling to the original's bytes), went with the map (C20l).
 - **Static initialisers** (S3): src/standalone/static_init.cpp by `tools/gen_static_init.py`. A small symbolic
   interpreter decodes each initialiser into stores, copies, fills, float folds (`Log` for FLDLN2 / FYL2X; .rdata

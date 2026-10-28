@@ -16,6 +16,7 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -59,12 +60,12 @@ int CVisibilityFog::Draw(CSceneRenderer* renderer) {
     if (!(g_workArrayGuards & kSpritesConstructed)) {
         g_workArrayGuards |= kSpritesConstructed;
         Sprites().Construct(mfc::impl::SpriteArrayClass::Vtable());
-        libcrt::AtExit(DestroySprites);
+        std::atexit(DestroySprites);
     }
     if (!(g_workArrayGuards & kPointsConstructed)) {
         g_workArrayGuards |= kPointsConstructed;
         std::construct_at(&Points());
-        libcrt::AtExit(FreePoints);
+        std::atexit(FreePoints);
     }
     Sprites().SetSize(kWorkRecords);
     Points().resize(kWorkRecords);

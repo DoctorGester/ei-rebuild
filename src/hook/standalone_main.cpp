@@ -14,6 +14,7 @@
 #include "lib/crt.h"
 #include "render/render.h"
 
+#include <cstdlib>
 #include <mbctype.h>
 #include <windows.h>
 
@@ -255,6 +256,6 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     static_init::RunStaticInitialisers();
     const int result = app::GameMain(GetModuleHandleA(nullptr), nullptr, g_commandLine.data() + g_argumentsAt,
                                      SW_SHOWNORMAL);
-    libcrt::Exit(result);
+    std::exit(result);
     return result;
 }

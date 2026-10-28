@@ -82,7 +82,6 @@ address,name,file
 004DDD4E,SysInfoStaticRegisterExit,src/game/sys_info.cpp
 004DDD60,SysInfoAtExit,src/game/sys_info.cpp
 004DE855,SysInfoStaticGuard,src/game/sys_info.cpp
-004DE87C,SysInfoStaticRegisterEmptyExit,src/game/sys_info.cpp
 004E1C50,DestroyDeadCells,src/game/effects_weather.cpp
 004E2260,FreePoints,src/game/effects_weather_draw.cpp
 004E2280,DestroySprites,src/game/effects_weather_draw.cpp
@@ -291,7 +290,7 @@ address,name,file
 006D7080,ConstructAckDatabase,src/game/database_globals.cpp
 006D70A0,DestroyAckDatabase,src/game/database_globals.cpp
 006D7220,acks::AckDatabase::Construct,src/game/database_construct.cpp
-006E6106,libcrt::imports::WsaStartup,src/lib/crt.cpp
+006E6106,gameapi::WSAStartup,src/lib/gameapi.h
 006E68C9,mfc::impl::CResourceException::CResourceException,src/lib/mfc_exception.cpp
 006E6916,mfc::impl::CUserException::Construct,src/lib/mfc_exception.cpp
 006E695C,mfc::impl::DestroyUserException,src/lib/mfc_exception.cpp

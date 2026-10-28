@@ -12,6 +12,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -586,7 +587,7 @@ void FreeProjectionOutput() {
 }
 void ConstructProjectionOutcodes() {
     mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
-    libcrt::AtExit(DestroyProjectionOutcodes);
+    std::atexit(DestroyProjectionOutcodes);
 }
 
 SectorData* SectorData::Construct() {

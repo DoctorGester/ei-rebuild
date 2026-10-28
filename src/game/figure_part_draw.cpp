@@ -23,6 +23,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -279,7 +280,7 @@ int FigureMeshDrawer::DrawLit(CTextureDevice* device, const FigureLights* lights
     if (!(g_movedPositionsGuard & 1)) {
         g_movedPositionsGuard |= 1;
         MovedPositions() = std::vector<VertexPacket>{};
-        libcrt::AtExit(FreeMovedPositions);
+        std::atexit(FreeMovedPositions);
     }
 
     int visibility = device->pipeline_->ClipTest(&part.Mesh()->box_.bounds);

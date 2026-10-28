@@ -9,6 +9,7 @@
 #include "lib/static_object.h"
 #include "lib/mfc.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -75,7 +76,7 @@ void DestroyClassRegistry() { hash400::ClassRegistryDestruct(&*g_classRegistry);
 
 void ConstructClassRegistry() {
     hash400::ClassRegistryConstruct(&*g_classRegistry);
-    libcrt::AtExit(DestroyClassRegistry);
+    std::atexit(DestroyClassRegistry);
 }
 
 void ChunkArchive::PopChunk() {

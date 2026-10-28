@@ -6,6 +6,8 @@
 #include "static_object.h"
 #include "game/game_data.h"
 
+#include <cstdlib>
+
 namespace mfc::impl {
 
 namespace {
@@ -116,7 +118,7 @@ void DestroyAfxData() { g_afxData->Destruct(); }
 
 void ConstructAfxData() {
     g_afxData->Construct();
-    libcrt::AtExit(DestroyAfxData);
+    std::atexit(DestroyAfxData);
 }
 
 } // namespace mfc::impl
@@ -202,6 +204,6 @@ constinit HGDIOBJ g_afxHalftoneBrush = /*007C8D40*/ {nullptr};
 void AfxWingdixTerm() { AfxDeleteObject(&g_afxHalftoneBrush); }
 
 // atexit's answer would be kept in _afxWingdixTerm, which nothing reads.
-void AfxWingdixTermInit() { libcrt::AtExit(AfxWingdixTerm); }
+void AfxWingdixTermInit() { std::atexit(AfxWingdixTerm); }
 
 } // namespace mfc::impl

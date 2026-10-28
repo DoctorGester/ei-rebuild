@@ -83,7 +83,7 @@ CMappedResource::~CMappedResource() {
 
 void CMappedResource::Destroy() { this->CMappedResource::~CMappedResource(); }
 
-void CMappedResource::Flush() {}   // 4: (short_functions.cpp)
+void CMappedResource::Flush() {}   // 4
 
 BOOL CMappedResource::OpenResource(const char* path, BOOL writable) {
     // Rebirth's ResOverride: addon loads the mod's archives on the first open and records
