@@ -21,6 +21,9 @@ never by hand). `work.py start` set yours running.
   --title "..." --note "..." [--depends <ID>]` (ids: your ticket's prefix plus a letter or number;
   `tickets.py list` shows what exists). Mention them in your report.
 - Leave other tickets' status alone; the coordinator sets done at merge.
+- Merge main once, at the start. Don't merge it again before handing back, even when main moves while
+  you test: hand the branch back as tested; the coordinator merges it into current main, builds, runs the
+  main suites and sends it back to you if anything breaks.
 - If docs/tickets.toml or docs/tickets.md conflicts when you merge main: take main's toml, re-apply
   your few changes with tickets.py, and let it rewrite tickets.md (`python tools/tickets.py`; it also
   drops any status line that came back: the database's status wins).
