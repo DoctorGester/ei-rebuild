@@ -28,7 +28,6 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

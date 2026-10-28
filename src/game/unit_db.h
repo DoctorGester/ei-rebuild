@@ -5,7 +5,6 @@
 // docs/notes/units.md ("Database records").
 
 #include "ei/x87.h"
-#include "game_data.h"
 #include <cstdint>
 #include <string>
 #include "maths.h"

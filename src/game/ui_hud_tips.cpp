@@ -1,7 +1,6 @@
 // The battle screen panels' tooltips: the weapon bar's unit, a quick item's tip
 // and the action column's unit. See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item.h"
 #include "item_db_text.h"
@@ -13,7 +12,6 @@
 #include <string>
 
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

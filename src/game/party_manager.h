@@ -11,7 +11,6 @@
 #include <string>
 #include "lib/hash_map.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -19,9 +19,7 @@
 #include "world.h"
 
 #include "lib/static_object.h"
-#include "lib/crt.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

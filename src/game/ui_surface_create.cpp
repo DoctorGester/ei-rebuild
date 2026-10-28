@@ -8,7 +8,6 @@
 
 #include "base_manager.h"
 #include "dx_surface.h"
-#include "game_strings.h"
 #include "texture.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -17,7 +16,6 @@
 #include <windows.h>
 
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

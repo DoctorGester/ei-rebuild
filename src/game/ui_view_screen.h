@@ -6,7 +6,6 @@
 // docs/notes/ui.md, section 4.
 
 #include "ui.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

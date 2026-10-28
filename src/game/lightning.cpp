@@ -7,7 +7,6 @@
 #include "texture.h"
 
 #include "ei/x87.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

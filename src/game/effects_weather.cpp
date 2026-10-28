@@ -1,6 +1,5 @@
 #include "effects.h"
 #include "texture.h"
-#include "at_exit_functions.h"
 
 #include "core_maths.h"
 #include "random.h"
@@ -9,7 +8,6 @@
 
 #include "ei/x87.h"
 #include "lib/containers.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

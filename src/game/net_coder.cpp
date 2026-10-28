@@ -2,8 +2,6 @@
 // buffer view's slots. See net_coder.h and docs/notes/network.md.
 #include "net_coder.h"
 
-#include "game_data.h"
-
 #include "lib/crt.h"
 
 #include <cstring>

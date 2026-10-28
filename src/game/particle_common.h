@@ -10,11 +10,8 @@
 #include "random.h"
 #include "world.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
-#include "lib/containers.h"
 #include "lib/crt.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>

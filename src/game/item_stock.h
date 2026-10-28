@@ -14,7 +14,6 @@
 #include "lib/hash_map.h"
 #include "engine_object.h"
 #include "item_db.h"
-#include "game_data.h"
 
 class CItem;
 class CParty;

@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include "game_data.h"
 
 namespace net {
 

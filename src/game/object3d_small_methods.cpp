@@ -4,8 +4,6 @@
 
 #include "ai_map.h"   // FootprintPart
 
-#include "lib/crt.h"
-
 namespace {
 constexpr float kFirstFrame = 0.0f;
 

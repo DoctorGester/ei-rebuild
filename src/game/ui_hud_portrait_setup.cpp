@@ -3,7 +3,6 @@
 // client, per player without a live unit) through AddPortrait; ShowFace copies
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
-#include "game_strings.h"
 #include "plugin_fixes.h"
 
 #include "maths.h"

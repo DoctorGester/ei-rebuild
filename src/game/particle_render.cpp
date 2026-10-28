@@ -3,7 +3,6 @@
 // arrays to the renderer. Names are provisional. Floating point follows the original's x87 code: `double`
 // for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "effects.h"
-#include "at_exit_functions.h"
 #include "lib/static_object.h"
 #include "texture.h"
 
@@ -16,7 +15,6 @@
 #include <memory>
 #include <vector>
 #include "model.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

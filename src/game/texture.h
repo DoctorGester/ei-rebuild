@@ -5,7 +5,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 #include "raster_target.h"
 #include "renderer_base.h"
 

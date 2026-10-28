@@ -28,7 +28,6 @@
 #include <new>
 #include <string>
 #include "lib/static_object.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

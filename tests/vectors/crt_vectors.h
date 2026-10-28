@@ -10,8 +10,6 @@
 
 #include "vectors.h"
 
-#include "../../src/lib/crt.h"
-
 namespace ei::vectors::crt {
 
 // Record side. Offers the fixture once (the families whose code calls the character functions call it

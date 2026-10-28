@@ -5,7 +5,6 @@
 #include "party.h"
 #include "ui.h"
 #include "ui_screens.h"
-#include "game_strings.h"
 
 #include "core_transform.h"
 #include "item_db_text.h"

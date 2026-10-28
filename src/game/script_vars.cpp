@@ -17,15 +17,6 @@ int FindName(const std::vector<std::string>& names, const char* name) {
 
 } // namespace
 
-template <typename T>
-int ScriptNamedValues<T>::FindName(const char* name) const {
-    return ::FindName(names, name);
-}
-template int ScriptNamedValues<float>::FindName(const char*) const;
-template int ScriptNamedValues<std::string>::FindName(const char*) const;
-template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
-template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
-
 // The values grow by the other set's value count, the names to the old value count plus the other set's name
 // count; then, for every one of the other set's names, the name and the value with the same index go into the
 // new slots.

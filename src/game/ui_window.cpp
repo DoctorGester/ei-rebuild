@@ -13,7 +13,6 @@
 #include "lib/gameapi.h"
 #include "ui_widescreen.h"
 #include "ei/x87.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstring>

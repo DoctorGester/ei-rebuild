@@ -2,7 +2,6 @@
 // 0x41 and 0x42's constructors, destructors and virtuals, the drawer and owner setters, and the figure
 // manager's constructor and its CreateObject, which gives every new figure a drawer. See figure_mesh.h,
 // figure_manager.h and the "Figure meshes" section of docs/notes/world.md.
-#include "lib/crt.h"
 
 #include "figure_manager.h"
 #include "figure_mesh.h"

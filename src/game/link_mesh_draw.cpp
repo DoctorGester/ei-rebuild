@@ -14,7 +14,6 @@
 #include "lib/crt.h"
 #include "render/render.h"         // MeshChanged
 #include "render/render_state.h"
-#include "game_data.h"
 
 #include <bit>
 #include <cstdlib>

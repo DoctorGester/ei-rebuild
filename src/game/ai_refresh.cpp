@@ -10,7 +10,6 @@
 #include <cstdint>
 
 #include "ei/x87.h"
-#include "game_data.h"
 
 #include <vector>
 #include <list>

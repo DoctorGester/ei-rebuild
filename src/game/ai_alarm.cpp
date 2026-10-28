@@ -4,7 +4,6 @@
 // with gets its controller's alarm raised to the level. See docs/notes/ai.md.
 #include "ai_alarm.h"
 #include "console.h"
-#include "game_strings.h"
 
 #include "combat.h"
 #include "object_diplomacy.h"
@@ -12,7 +11,6 @@
 #include "world.h"
 
 #include <cstdint>
-#include "game_data.h"
 
 namespace {
 

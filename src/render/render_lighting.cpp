@@ -145,8 +145,6 @@ int SceneLightIndex(const Vector3& position) {
     return -1;
 }
 
-Vector3 SceneSunDirection() { return Vector3{g_params.sun[0], g_params.sun[1], g_params.sun[2]}; }
-
 } // namespace detail
 
 } // namespace render

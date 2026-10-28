@@ -3,10 +3,8 @@
 // docs/notes/script.md ("Loader and parser").
 // Rebirth patches the keyword lookups.
 #include "script.h"
-#include "game_strings.h"
 #include "script_parse.h"
 #include "script_addon.h"
-#include "game_data.h"
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"

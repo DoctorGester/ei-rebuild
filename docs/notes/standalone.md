@@ -1143,8 +1143,8 @@ the `--no-hooks` suite) keeps the registry.
     cost and the bits.
   - fmod (_CIfmod 006E95AA, fmod 006E95A0), modf 006EAD0B, floor and ceil alone kept every golden and are the host's
     (std::fmod and so on).
-  - `libcrt::Controlfp` stays the port (SV10k below: the UCRT's differs in the control word and costs time, though the
-    goldens were the same).
+  - _controlfp 006EBBB4 has no port of its own (C20r): its one caller, `SectorData::Light`, sets chop rounding on the x87
+    word and restores it (SV10k below).
   - `gamecrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
     truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
     where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
@@ -1174,21 +1174,12 @@ the `--no-hooks` suite) keeps the registry.
   61,547 / 786,725 cases at 027F. No call site depends on lrint's 0: Usable / the armour layers test > 0, the tornado clamps
   below 0, the armour's int16 store keeps 0; the script ids (a NaN id now takes the next negative id, as 004BD347 does),
   delays, steps and AI cells follow the original. Goldens the same.
-- **_controlfp without the UCRT (SV10k)**: `libcrt::Controlfp` 006EBBB4 is the original's own steps: FNSTCW
-  (`x87::ControlWord`), 006EBC2A (hardware word to the CRT's abstract one: _EM_* in bits 0-4 in the reverse order of
-  the hardware's masks plus denormal in 19, _RC_* in 8-9, _PC_* in 16-17 with 64 bits = 0, _IC in 18), the merge
-  `(abstract & ~mask) | (value & mask)` (returned as is, junk bits of `value` included), 006EBCBC (abstract back to
-  hardware) and FLDCW (`x87::SetControlWord`), the last only when a bit the FPU keeps (0x1F3F) would change. No MXCSR
-  effect, as VC6's. The UCRT's `__control87_2` (0.2-0.4% of the town's / fight's main thread, two calls per lit sector
-  from `SectorData::Light`) is gone from the profile. Checked old against new against the original's own bytes
-  (build/SV10k/equiv.cpp, not checked in: game.exe 006EBBB4..006EBD45 copied into executable memory and called, the
-  UCRT version and the port side by side, built with the image's flags): return value, control word, MXCSR and x87 status
-  after, over every 16-bit start word x 90 masks x 52 values (307M calls), every FPU-kept start word x every abstract
-  word x 8 masks, the callers' sequences (0,0) / (0x300,0x300) / (previous,~0) from every start word, and 2M random
-  calls: the port equals the original in all. The UCRT version (sampled every 64th call) differed from it in the
-  control word in 437k of 4.9M calls, never in the return value or MXCSR (probably start words whose reserved bits the
-  round trip changes, which the UCRT version skipped setting: the original always loads the converted word).
-  Mutations (_PC_53 mapped to 24 bits; the FLDCW test ignoring bit 3, the overflow mask) differ in 69M / 2.9M cases.
+- **_controlfp without the UCRT (SV10k, C20r)**: game.exe's one call outside the CRT, terrain lighting's
+  `_controlfp(_RC_CHOP, _MCW_RC)` and the restore around `SectorData::Light`, is FNSTCW (`x87::ControlWord`), the
+  rounding bits set to chop and FLDCW (`x87::SetControlWord`) when that changes the word, then the saved word loaded
+  back. The original converts the word to the CRT's abstract form and back (006EBBB4 / 006EBC2A / 006EBCBC); the round
+  trip keeps every bit the FPU keeps except a reserved precision 01 (it becomes 64 bits), which nothing sets. The
+  UCRT's `__control87_2` cost 0.2-0.4% of the town and fight under terrain lighting; neither form is in the profile.
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):

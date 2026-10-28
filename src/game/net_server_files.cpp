@@ -4,8 +4,6 @@
 #include "net_messages.h"
 #include "core_refcount.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 
 namespace net {

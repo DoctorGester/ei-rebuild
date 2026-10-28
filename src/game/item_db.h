@@ -7,7 +7,6 @@
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <bit>
 #include <cstddef>
@@ -163,8 +162,6 @@ struct WeaponRecord : ItemRecordHead {
     int Kind() override;                        // 0x3004
     // category..unused_7D and reach..damageTypes: attackBonus and defenceBonus are not copied.
     void CopyOwn(const WeaponRecord* source);
-    // The head's Assign, then CopyOwn's bytes.
-    WeaponRecord* AssignWeapon(const WeaponRecord* source);
     // The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
@@ -187,8 +184,6 @@ struct ArmorRecord : ItemRecordHead {
     int Kind() override;                        // 0x3005
     // category..othersFlags; showsWounds and the rest are not copied.
     void CopyOwn(const ArmorRecord* source);
-    // The head's Assign, then CopyOwn's bytes.
-    ArmorRecord* AssignArmor(const ArmorRecord* source);
     // The head, then the two rows and showsWounds..field1A.
     void Serialize(ChunkArchive* ar);
     float FirstFactor() const { return std::bit_cast<float>(category); }
@@ -218,7 +213,6 @@ struct QuickItemRecord : ItemRecordHead {
     // value70 and attributeBonus..field1B; the category, field17, field18 and text7C are not copied (text7C is
     // constructed empty).
     void CopyOwn(const QuickItemRecord* source);
-    QuickItemRecord* AssignQuick(const QuickItemRecord* source);
     // The head, then category..field18, text7C and attributeBonus..field1B.
     void Serialize(ChunkArchive* ar);
 
@@ -239,7 +233,6 @@ struct QuestItemRecord : ItemRecordHead {
     int Kind() override;                        // 0x3009
     // The category only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
-    QuestItemRecord* AssignQuest(const QuestItemRecord* source);   // the zone list is kept
     // The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
@@ -253,7 +246,6 @@ struct LootItemRecord : ItemRecordHead {
     int Kind() override;                        // 0x3007
     // category, recordType and index.
     void CopyOwn(const LootItemRecord* source);
-    LootItemRecord* AssignLoot(const LootItemRecord* source);
     // The head, then category, recordType, index.
     void Serialize(ChunkArchive* ar);
 

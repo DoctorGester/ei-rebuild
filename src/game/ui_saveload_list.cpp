@@ -4,7 +4,6 @@
 // which this reproduces behind the flag. Rebirth-patched callees: the surface's text, the text extent, the
 // point scaling and the sprite's Place. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md.
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item_db_text.h"       // CTextManager
 #include "ui_gdi.h"
@@ -18,7 +17,6 @@
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

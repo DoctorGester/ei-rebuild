@@ -4,10 +4,8 @@
 #include "ai_map.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include <cstdint>
 #include <memory>
-#include "game_data.h"
 
 #include <cstdlib>
 

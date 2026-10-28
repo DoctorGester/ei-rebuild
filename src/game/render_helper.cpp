@@ -14,7 +14,6 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 
 #include <d3d.h>
 

@@ -7,11 +7,9 @@
 #include "asset_text.h"
 #include "ui_gdi.h"
 
-#include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include <cstdint>
 #include <string>
-#include "game_data.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 

@@ -5,8 +5,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "../lib/crt.h"
-
 #include "ei/rebirth.h"
 
 #include <new>

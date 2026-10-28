@@ -6,7 +6,6 @@
 // ("Interface windows", section 6).
 #include "app.h"
 #include "dx_surface.h"
-#include "game_strings.h"
 
 #include "texture.h"
 #include "ui.h"

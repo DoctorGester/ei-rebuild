@@ -12,9 +12,6 @@
 #include "world.h"
 #include "world_data.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <memory>
 
 CWorld::~CWorld() {

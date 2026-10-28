@@ -16,7 +16,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"

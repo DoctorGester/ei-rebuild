@@ -5,10 +5,8 @@
 #include "net_connection.h"
 #include "core_refcount.h"
 
-#include "lib/crt.h"
 #include "ui.h"
 #include "world_data.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstring>

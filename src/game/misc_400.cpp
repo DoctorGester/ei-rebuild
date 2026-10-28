@@ -5,13 +5,9 @@
 #include "base_manager.h"
 #include "link_figure.h"
 #include "map_object_shadow.h"
-#include "net_coder.h"
 #include "player_client.h"
 #include "unit.h"
 #include "unit_client_models.h"
-
-#include "lib/containers.h"
-#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>

@@ -13,7 +13,6 @@
 #include "../lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
-#include "game_data.h"
 #include "../lib/import_prototypes.h"
 
 #include <list>

@@ -16,7 +16,6 @@
 #include "lib/vecmath.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <d3d.h>

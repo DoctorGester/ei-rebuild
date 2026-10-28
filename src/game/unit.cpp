@@ -7,7 +7,6 @@
 #include "unit_db.h"
 
 #include "ei/x87.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
 

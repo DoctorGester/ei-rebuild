@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "world.h"
 #include "game_strings.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <cstring>

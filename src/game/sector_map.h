@@ -127,4 +127,3 @@ public:
 };
 
 #include "ai_map.h"
-#include "game_data.h"

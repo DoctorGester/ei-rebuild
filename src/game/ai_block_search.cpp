@@ -5,7 +5,6 @@
 #include "ai_map.h"
 
 #include "lib/crt.h"
-#include "game_data.h"
 
 namespace {
 constexpr int kUnreached = 0x7FFFFFFF;

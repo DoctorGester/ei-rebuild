@@ -8,7 +8,6 @@
 #include "party.h"
 
 #include "lib/crt.h"
-#include "game_data.h"
 
 #include <iterator>
 #include <memory>

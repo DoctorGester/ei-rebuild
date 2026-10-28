@@ -3,7 +3,6 @@
 // Magic traps (map objects of class id 0x3B; the zone file's "MagicTrap" records). flags_ bit 0x80000 is
 // "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
 
-#include "lib/crt.h"
 #include <cstdint>
 #include "map_object.h"
 #include "map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints

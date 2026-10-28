@@ -10,7 +10,6 @@
 #include "ground_print.h"
 #include "object_diplomacy.h"
 #include "registry.h"
-#include "world_class_slots.h"
 #include "script.h"
 
 #include "lib/static_object.h"

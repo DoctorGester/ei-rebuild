@@ -4,8 +4,6 @@
 #include "unit.h"
 #include "unit_db.h"
 
-#include "ei/x87.h"
-
 #include <cstdint>
 
 namespace {

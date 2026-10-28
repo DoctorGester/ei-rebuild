@@ -4,7 +4,6 @@
 // the planner builds and the plan of an order. Names provisional.
 
 #include "combat.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

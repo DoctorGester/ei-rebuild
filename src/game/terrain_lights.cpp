@@ -9,7 +9,6 @@
 #include "spell.h"
 
 #include "lib/crt.h"
-#include "game_data.h"
 
 #include <bit>
 #include <cstdint>

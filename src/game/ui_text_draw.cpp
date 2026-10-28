@@ -8,9 +8,7 @@
 #include "ui_widescreen.h"
 #include "app.h"   // app::g_mainWindow
 
-#include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 
 namespace {
 constexpr COLORREF kShadowColour = 0x080808;

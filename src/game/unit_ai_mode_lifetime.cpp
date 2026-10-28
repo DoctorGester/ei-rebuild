@@ -7,8 +7,6 @@
 
 #include "random.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 
 namespace {

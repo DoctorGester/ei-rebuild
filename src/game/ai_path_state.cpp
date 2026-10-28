@@ -5,8 +5,6 @@
 
 #include "net_delta.h"
 
-#include "game_data.h"
-
 #include <cstdint>
 
 namespace {

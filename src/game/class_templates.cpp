@@ -15,7 +15,6 @@
 
 #include <cstring>
 #include "spell.h"
-#include "game_data.h"
 
 namespace {
 

@@ -12,7 +12,6 @@
 #include <string>
 #include "lib/thread.h"
 #include "game_singletons.h"
-#include "game_data.h"
 
 #include <cstdlib>
 

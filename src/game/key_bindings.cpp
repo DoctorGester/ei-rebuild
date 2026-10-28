@@ -4,7 +4,6 @@
 // file's name, Windows' display text) and the actions (0x10-byte entries at Id, name, options group and row;
 // the first is a blank id 0). See docs/notes/ui.md section 8.
 #include "console.h"
-#include "game_strings.h"
 
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
@@ -14,7 +13,6 @@
 #include "text_split.h"
 #include "ui.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstdint>

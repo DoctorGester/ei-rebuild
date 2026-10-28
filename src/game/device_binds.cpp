@@ -2,7 +2,6 @@
 // docs/notes/renderer.md (section 12).
 #include "app.h"
 #include "device.h"
-#include "game_strings.h"
 
 #include "ground_print.h"       // NamedTexture
 #include "game_singletons.h"

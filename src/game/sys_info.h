@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <string>
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <windows.h>
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)

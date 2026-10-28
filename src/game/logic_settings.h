@@ -3,8 +3,6 @@
 // The game's logic settings (a global), read from a registry file at startup by
 // LogicSettings::Load. Field names are the registry keys.
 
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 

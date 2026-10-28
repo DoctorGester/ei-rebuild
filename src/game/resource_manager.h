@@ -13,7 +13,6 @@ struct ArchiveEntry {
 
     ArchiveEntry(const std::string& n, CMappedResource* r) : name(n), resource(r) {}
     ArchiveEntry(const ArchiveEntry& e) : name(e.name), resource(e.resource) {}
-    void AssignFrom(const ArchiveEntry& e) { name = e.name; resource = e.resource; }
 };
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):

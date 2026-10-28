@@ -1,9 +1,6 @@
 // The options object's constructor.
 // More: docs/notes/comments-c22i.md, "options_construct.cpp".
 #include "options.h"
-#include "game_strings.h"
-
-#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstdlib>

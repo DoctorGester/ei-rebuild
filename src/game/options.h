@@ -6,7 +6,6 @@
 // The object starts with eight registry subkey names that the loader passes to the value getters;
 // the values follow.
 
-#include "game_data.h"
 #include "../lib/static_object.h"
 
 #include <cstddef>

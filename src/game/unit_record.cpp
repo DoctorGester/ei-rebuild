@@ -5,9 +5,7 @@
 #include "unit_record.h"
 
 #include "combat.h"
-#include "ei/x87.h"
 #include "lib/crt.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "world.h"
 

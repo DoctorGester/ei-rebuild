@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <new>
 #include <string>
-#include "game_data.h"
 #include "world_glue.h"
 #include "game_singletons.h"
 

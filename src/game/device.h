@@ -4,10 +4,8 @@
 // and the weather draws share. DirectDraw 7 / Direct3D 7 are called through their COM interfaces: they are
 // the boundary the new renderer sits behind (docs/notes/renderer.md, sections 10 and 12).
 
-#include "game_strings.h"
 #include "device_switchover.h"
 #include "texture.h"
-#include "game_data.h"
 
 #include <d3d.h>
 

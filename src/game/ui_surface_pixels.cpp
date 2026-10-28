@@ -5,7 +5,6 @@
 #include "app.h"
 #include "ui.h"
 #include "ui_native.h"
-#include "game_strings.h"
 
 #include "device.h"   // device::SameSurface
 #include "dx_surface.h"
@@ -14,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>

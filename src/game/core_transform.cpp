@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <cmath>

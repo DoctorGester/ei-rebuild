@@ -4,7 +4,6 @@
 // recreated when missing or detached). The pseudo unit's key is ((y + 0x800) << 16) + x; the point's cell is
 // truncated from position * 1 / (cell size * 0.5). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
-#include "at_exit_functions.h"
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
 
@@ -14,7 +13,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include "game_data.h"
 
 namespace {
 

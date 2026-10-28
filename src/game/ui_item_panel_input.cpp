@@ -5,8 +5,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "game_data.h"
-
 void CUiItemPanel::OnLeftDown(int, int x, int y) {
     // The address of the x argument is the topic out-parameter, like the original.
     int topic = x;

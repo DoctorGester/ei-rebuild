@@ -10,7 +10,6 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
-#include "game_data.h"
 
 namespace {
 

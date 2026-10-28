@@ -17,7 +17,6 @@
 #include <utility>
 #include "lib/vecmath.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdlib>

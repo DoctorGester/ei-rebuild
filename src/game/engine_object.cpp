@@ -3,8 +3,6 @@
 
 #include "base_manager.h"
 
-#include "lib/crt.h"
-
 void CEngineObject::CopyFrom(const CEngineObject& other) {
     flags_ = other.flags_;
     type_ = other.type_;

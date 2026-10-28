@@ -8,7 +8,6 @@
 #include "base_manager.h"
 #include "core_transform.h"
 #include "engine_object.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

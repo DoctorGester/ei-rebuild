@@ -17,7 +17,6 @@
 #include "lib/gameapi.h"
 #include <cstddef>
 #include <cstdint>
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstring>

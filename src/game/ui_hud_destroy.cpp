@@ -3,10 +3,6 @@
 // and docs/notes/ui.md.
 #include "ui.h"
 
-#include "lib/containers.h"
-#include "lib/crt.h"
-#include "game_data.h"
-
 CHudWeaponBar::~CHudWeaponBar() = default;
 
 CHudQuickItems::~CHudQuickItems() = default;

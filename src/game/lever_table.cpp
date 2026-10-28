@@ -2,9 +2,6 @@
 // and their index by name. See docs/notes/app.md.
 #include "lever.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <cstdlib>
 
 // The table, empty at the start: built by its static initialiser and destroyed by the exit function it registers.

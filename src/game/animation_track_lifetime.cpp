@@ -4,9 +4,6 @@
 // See docs/notes/map_objects.md.
 #include "map_object_animation.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <cstdint>
 #include <cstring>
 #include <new>

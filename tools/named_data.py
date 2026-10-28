@@ -56,8 +56,7 @@ the extent of an object and every function that reads or writes it directly.
 --emit ADDRESS TYPE COUNT NAME (C18o): prints the tagged definition of COUNT elements of TYPE (a TYPES key; COUNT
 '4x10' for rows) at ADDRESS from game.exe's bytes as the static initialisers leave them, by the same packing --check
 uses run in reverse (reads game.exe): numbers as literals (floats the shortest that round-trips), char array fields and pointers to a
-string's start as string literals, pointers to a named range's start by its name, to a stub of ours reporting an
-unported function (ei::UnportedSlot) by its name, zero as nullptr. What it cannot name (any other code: name the
+string's start as string literals, pointers to a named range's start by its name, zero as nullptr. What it cannot name (any other code: name the
 function of ours by hand) prints as `/*?ADDRESS*/ nullptr` with a line for a person on stderr;
 it then packs the text back and says where it differs. The declaration is `constexpr` (a string table
 `const char* const`): drop it for a table the code writes. Paste it, run --update.
@@ -135,8 +134,6 @@ TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with
 # element `NAME + k` (C18q: _pctype's `kCtypeC + 1`).
 TOKEN = re.compile(r'"((?:\\.|[^"\\\n])*)"|(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
                    r'([fFuUlL]*)|&?\s*((?:::)?[A-Za-z_]\w*(?:::\w+)*)(?:\s*\+\s*(\d+))?')
-# A function of ours whose body only reports game.exe's unported function (ei::UnportedSlot).
-UNPORTED = re.compile(r'\b([A-Za-z_]\w*)\s*\(\s*\)\s*\{\s*(?:ei::)?UnportedSlot\s*\(\s*0[xX]([0-9A-Fa-f]{8})\s*\)\s*;\s*\}')
 NUMBER = re.compile(r'(-?)\s*(0[xX][0-9A-Fa-f]+|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)([fFuUlL]*)')
 LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
 ORIGINAL_READ = re.compile(r'\bOriginalGameData\s*<[^<>()]*>\s*\(\s*$')   # just before a literal
@@ -300,19 +297,14 @@ Definition.pack_names = _pack_names
 
 
 class Targets:
-    """What a pointer element may name: the named ranges (name -> address), and our stubs of game.exe's unported
-    functions (name -> addresses; ei::UnportedSlot). Any other name is a function of ours."""
-    def __init__(self, defs, sources):
+    """What a pointer element may name: the named ranges (name -> address). Any other name is a function of ours."""
+    def __init__(self, defs):
         self.ranges = {d.name: d.address for d in defs}
         self.element_sizes = {}   # a named range's element size, for `NAME + k`
         for d in defs:
             fmt = 'B' if d.type == 'char' else element_format(d.type, d.address)
             if fmt is not None:
                 self.element_sizes[d.name] = sum(code_size(c) for c in codes_of(fmt))
-        self.functions = collections.defaultdict(set)
-        for s in sources:
-            for m in UNPORTED.finditer(s.code):
-                self.functions[m.group(1)].add(int(m.group(2), 16))
 
 
 def tokens(body):
@@ -354,8 +346,7 @@ def c_string(img, address):
 def _pack_pointers(self, fmt, img, targets):
     """A type with pointer elements ('P'). A pointer element is not compared as a number: it names what game.exe's
     pointer at that place points at, and the check compares that: a string literal the text at the target (game.exe's
-    string literals, in .data), a name of another named range its address, a name of a function of ours the address
-    of its original where a stub names one (ei::UnportedSlot), else any code (game.exe's pointer called the function
+    string literals, in .data), a name of another named range its address, a name of a function of ours any code (game.exe's pointer called the function
     this one rewrites; the address is not known since C20l), nullptr a zero. The packed bytes are then
     game.exe's pointer; its offset is in `pointers` (the cells of game.exe's data the range may hold)."""
     values = tokens(self.body)
@@ -433,11 +424,6 @@ def _pack_pointers(self, fmt, img, targets):
             want = targets.ranges[v[0]] + v[1] * targets.element_sizes[v[0]]
             if cell != want:
                 self.problem = (f'the pointer at {at:08X} points at {cell:08X}, not at {v[0]} + {v[1]} ({want:08X})')
-                return
-        elif kind == 'name' and v in targets.functions:
-            if cell not in targets.functions[v]:
-                where = ', '.join(f'{a:08X}' for a in sorted(targets.functions[v]))
-                self.problem = f'the pointer at {at:08X} is the code {cell:08X}, not {v}\'s ({where})'
                 return
         elif kind == 'name':
             if not TEXT[0] <= cell < TEXT[1]:
@@ -680,7 +666,7 @@ def check(update):
     problems = []
     sources = srcscan.load_sources()
     defs = definitions(sources)
-    targets = Targets(defs, sources)
+    targets = Targets(defs)
     for d in defs:
         d.pack(None, targets)
         if d.problem:
@@ -823,20 +809,15 @@ def short_float(value, code):
 
 
 class Namer:
-    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a stub of ours reporting
-    an unported function (ei::UnportedSlot), a string literal (the zero-terminated text at a string's start),
+    """What a pointer of game.exe's data names in an initialiser: a named range (its start), a string literal (the zero-terminated text at a string's start),
     nullptr."""
     def __init__(self, img, sources):
         defs = definitions(sources)
-        targets = Targets(defs, sources)
+        targets = Targets(defs)
         self.img = img
         self.ranges = {}
         for name, address in targets.ranges.items():
             self.ranges.setdefault(address, name)
-        self.functions = collections.defaultdict(list)
-        for name, addresses in targets.functions.items():
-            for a in addresses:
-                self.functions[a].append(name)
 
     def string_at(self, cell):
         """The text at `cell` when it looks like a string's start: the byte before is a terminator (or another
@@ -858,9 +839,6 @@ class Namer:
         if cell in self.ranges:
             return self.ranges[cell], None
         if TEXT[0] <= cell < TEXT[1]:
-            names = self.functions.get(cell)
-            if names:
-                return names[0], None if len(names) == 1 else f'{cell:08X} has the stubs {", ".join(names)}'
             return f'/*?{cell:08X}*/ nullptr', f'{cell:08X} is code: name the function of ours that rewrites it'
         text = self.string_at(cell)
         if text is not None:

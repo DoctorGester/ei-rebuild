@@ -12,8 +12,6 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <list>
 

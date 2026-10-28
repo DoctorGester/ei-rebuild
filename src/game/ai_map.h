@@ -2,7 +2,6 @@
 
 #include "ai_event_table.h"
 #include "engine_object.h"
-#include "game_data.h"
 #include "maths.h"
 #include "search_grid.h"
 #include "sector_map.h"

@@ -3,7 +3,6 @@
 // header's pixel format presets. See texture.h and docs/notes/items_spells.md.
 #include "texture.h"
 
-#include "lib/containers.h"
 #include "lib/crt.h"
 #include <cstring>
 

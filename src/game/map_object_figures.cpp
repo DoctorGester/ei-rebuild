@@ -6,8 +6,6 @@
 #include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"   // CWorld: the figure manager and cache
 
-#include "lib/crt.h"
-
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 

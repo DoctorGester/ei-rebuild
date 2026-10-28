@@ -11,7 +11,6 @@
 #include "logic_settings.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <bit>

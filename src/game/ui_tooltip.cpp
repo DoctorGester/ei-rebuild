@@ -5,14 +5,12 @@
 #include "options.h"
 #include "ui_widescreen.h"
 
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include <string>
 #include "lib/vecmath.h"
 #include "object_tables.h"       // FindCommandByKey
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

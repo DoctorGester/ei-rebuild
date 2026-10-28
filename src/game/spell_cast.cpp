@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 #include "ei/x87.h"
-#include "game_data.h"
 
 #include <cstring>
 #include <iterator>

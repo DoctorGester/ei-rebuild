@@ -20,7 +20,6 @@
 #include "ui.h"
 #include "unit.h"
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

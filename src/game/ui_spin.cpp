@@ -9,8 +9,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
-#include "game_data.h"
-
 namespace {
 
 constexpr int kSurfaceFormat = 5;

@@ -8,13 +8,11 @@
 // can run later. The game is compiled without optimisation (every function keeps a frame and
 // spills ECX). See docs/notes/script.md.
 #include "sys_info.h"
-#include "at_exit_functions.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <intrin.h>

@@ -9,7 +9,6 @@
 
 #include "model.h"
 #include "render/render.h"
-#include "game_data.h"
 
 #include <cstring>
 #include <vector>

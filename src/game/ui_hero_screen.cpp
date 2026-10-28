@@ -23,7 +23,6 @@
 #include <string>
 #include "lib/gameapi.h"
 #include "party.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

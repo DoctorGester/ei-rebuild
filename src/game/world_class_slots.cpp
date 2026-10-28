@@ -1,7 +1,6 @@
 // The constant virtuals and plain getters of the world classes. See world_class_slots.h and
 // docs/notes/world.md.
 #include "world_class_slots.h"
-#include "game_strings.h"
 
 #include "world.h"
 #include "figure_manager.h"

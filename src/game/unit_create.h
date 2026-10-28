@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <string>
 #include "lib/hash_map.h"
-#include "game_data.h"
 
 #include <vector>
 #include <unordered_map>

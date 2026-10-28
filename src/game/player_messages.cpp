@@ -12,11 +12,9 @@
 #include "script.h"
 #include "unit.h"
 
-#include "../lib/crt.h"
 #include "ei/x87.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
-#include "game_data.h"
 
 #include <algorithm>
 #include <bit>

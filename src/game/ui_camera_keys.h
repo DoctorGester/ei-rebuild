@@ -6,7 +6,6 @@
 #include <cstdint>
 
 #include <windows.h>
-#include "game_data.h"
 #include "ui.h"
 
 // The battle camera's input side (one of the battle screen's extra input

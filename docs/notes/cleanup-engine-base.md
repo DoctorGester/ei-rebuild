@@ -3,7 +3,7 @@
 How the engine-base classes are declared after the cleanup (headers: `engine_object.h`, `base_manager.h`, `resource_manager.h`,
 `core_streams.h`, `chunk_stream.h`, `chunk_archive.h`, `core_refcount.h`, `core_transform.h`, `camera.h`) and what is still left. The
 classes themselves (layouts, slots, behaviour) are in `core.md`. The rules for new code are the rewrite guide's (classes are normal C++;
-the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot shims still here are C28's to convert).
+the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's to convert; `ei::SetVtable` is gone, C20r).
 
 ## Conventions used
 
@@ -33,9 +33,7 @@ the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot sh
 
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
-- File-local `SetVtable` copies remain in 18 files (grep `void SetVtable`: ai_unit_shape, figure_factory, lever_object, lightning_start,
-  map_spec*, net_coder, particle_create, resource_stream, script_runtime_helpers, torch_object, ui_camp_create, ui_create_screen, ui_exchange,
-  ui_hero_screen_create, ui_layouts); `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
+- `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
   cleanup.
 - C5 (folded): `UnitStream` and the unit_ai `AIStream` are `CStream` (members `reading_` / `version_`; the verify capture, recording and replay
   streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `CMemoryStream` at 007AFDF8;

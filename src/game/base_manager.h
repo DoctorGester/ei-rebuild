@@ -1,7 +1,6 @@
 #pragma once
 
 #include "engine_object.h"
-#include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

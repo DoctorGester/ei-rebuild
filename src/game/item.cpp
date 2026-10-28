@@ -1,7 +1,6 @@
 #include "item.h"
 
 #include "random.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <climits>

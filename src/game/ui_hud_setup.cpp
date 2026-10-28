@@ -6,10 +6,8 @@
 
 #include "ui_widescreen.h"
 
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "world_data.h"
 
 #include <cmath>

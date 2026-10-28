@@ -5,7 +5,6 @@
 #include "core_maths.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 
 #include <cmath>
 #include <cstring>

@@ -19,7 +19,6 @@
 #include <memory>
 #include <vector>
 #include "render/render.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/static_object.h"
 

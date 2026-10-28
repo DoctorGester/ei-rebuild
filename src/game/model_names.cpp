@@ -1,8 +1,6 @@
 // A length-prefixed name in a model file's data. See model.h.
 #include "model.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 #include <string>
 

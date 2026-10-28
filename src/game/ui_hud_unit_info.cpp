@@ -4,7 +4,6 @@
 // down 15 pixels. See docs/notes/ui.md ("Battle HUD panels").
 #include "combat.h"
 #include "console.h"
-#include "game_strings.h"
 #include "object_tables.h"
 #include "ui.h"
 #include "ui_item_info.h"
@@ -17,7 +16,6 @@
 #include <cstdint>
 #include <string>
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

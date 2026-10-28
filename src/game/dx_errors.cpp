@@ -4,7 +4,6 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 
 #include <algorithm>
 #include <cstdarg>

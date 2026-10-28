@@ -8,11 +8,9 @@
 #include "engine_object.h"
 #include "unit.h"
 
-#include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include "game_data.h"
 
 #include <list>
 #include <vector>

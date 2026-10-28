@@ -13,10 +13,8 @@
 #include "party_records.h"
 #include "ui_cursor.h"
 
-#include "lib/crt.h"
 #include <memory>
 #include <new>
-#include "game_data.h"
 
 #include <cstdlib>
 #include <dinput.h>

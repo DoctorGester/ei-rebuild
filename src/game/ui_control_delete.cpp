@@ -4,9 +4,6 @@
 #include "ui.h"
 #include "ui_screens.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <cstdint>
 
 // --- The controls' destructors (with their deleting destructors and the input sides' copies) --

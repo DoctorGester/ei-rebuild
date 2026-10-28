@@ -2,8 +2,6 @@
 // letting go of the held ones. See effects.h (CParticleManager) and docs/notes/particles.md.
 #include "effects.h"
 
-#include "lib/crt.h"
-
 #include <list>
 
 namespace {

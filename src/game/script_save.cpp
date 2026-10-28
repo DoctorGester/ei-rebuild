@@ -20,8 +20,6 @@ void WriteName(ScriptStream* stream, const std::vector<std::string>& names, std:
     }
 }
 
-int ObjectId(const ScriptObjectRef& ref) { return ref.object ? ref.object->id_ : -1; }
-
 // A ScriptVars: floats, strings, objects, groups.
 void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
     vars->floats.Save(stream);
@@ -63,7 +61,7 @@ template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) cons
 template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
-        WriteInt(stream, ObjectId(values[i]));
+        values[i].Save(stream);
         WriteName(stream, names, i);
     }
 }
@@ -73,7 +71,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) cons
     for (std::size_t i = 0; i < values.size(); ++i) {
         const ScriptGroup& group = values[i];
         WriteInt(stream, static_cast<int>(group.size()));
-        for (const ScriptObjectRef& member : group) WriteInt(stream, ObjectId(member));
+        for (const ScriptObjectRef& member : group) member.Save(stream);
         WriteName(stream, names, i);
     }
 }

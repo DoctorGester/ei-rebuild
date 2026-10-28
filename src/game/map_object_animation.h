@@ -5,9 +5,6 @@
 #include "engine_object.h"
 #include "maths.h"
 
-#include "lib/containers.h"
-#include "lib/crt.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <vector>

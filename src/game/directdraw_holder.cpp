@@ -13,7 +13,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <intrin.h>

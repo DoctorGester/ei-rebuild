@@ -14,10 +14,8 @@
 #include "world_effect.h"
 
 #include "lib/containers.h"
-#include "lib/crt.h"
 
 #include "ei/x87.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <cstring>

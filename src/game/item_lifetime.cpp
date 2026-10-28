@@ -4,7 +4,6 @@
 
 #include "core_refcount.h"
 #include "spell.h"
-#include "../lib/crt.h"
 
 #include <cstring>
 

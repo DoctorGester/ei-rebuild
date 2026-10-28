@@ -11,7 +11,6 @@
 
 #include "ei/hook.h"
 #include "ui.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"

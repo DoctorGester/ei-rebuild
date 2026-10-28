@@ -4,7 +4,6 @@
 
 #include "core_streams.h"
 #include "engine_object.h"
-#include "game_data.h"
 #include "item.h"
 #include "item_db.h"
 #include "lock_key.h"

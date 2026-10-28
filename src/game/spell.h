@@ -10,7 +10,6 @@
 #include "resource_manager.h"
 #include "item_db.h"
 #include "maths.h"
-#include "game_data.h"
 #include "lib/static_object.h"
 #include "lib/hash_map.h"
 #include "game_singletons.h"

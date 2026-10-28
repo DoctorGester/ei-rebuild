@@ -17,7 +17,6 @@
 
 #include "lib/crt.h"
 #include "lib/str.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <bit>

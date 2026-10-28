@@ -451,10 +451,8 @@ void Present();
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
 // The display's gamma ramp (three 256-entry ramps, full scale 65280; null channels identity), applied as
-// the frame goes to the window; captures read the frame before it. GammaRamp copies the lookup in use (256
-// RGBA8 entries).
+// the frame goes to the window; captures read the frame before it.
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue);
-void GammaRamp(std::uint8_t* rgba256);
 // Frames presented on the game window; the verify build's checks of the presented frame against the gamma
 // ramp (after each SetGammaRamp, at a grid of points, when the frame shows one to one).
 struct WindowPresentInfo {

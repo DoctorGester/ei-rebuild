@@ -2,7 +2,6 @@
 // open or a failed read (the game catches the file error) ends with a result of 0 and what was read so far in the
 // text.
 #include "script_parse.h"
-#include "game_strings.h"
 
 #include "lib/file_io.h"
 

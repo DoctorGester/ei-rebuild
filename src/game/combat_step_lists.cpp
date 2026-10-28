@@ -2,8 +2,6 @@
 // emotes, flags, duration, comparison. See combat.h and docs/notes/combat.md.
 #include "combat.h"
 
-#include "lib/crt.h"
-
 #include <bit>
 #include <cstdint>
 

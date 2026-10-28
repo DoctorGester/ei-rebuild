@@ -11,7 +11,6 @@
 
 #include "ei/hook.h"
 #include "random.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>

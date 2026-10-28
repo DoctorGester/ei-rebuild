@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "lib/hash_map.h"
-#include "game_data.h"
 
 using BOOL = int;
 

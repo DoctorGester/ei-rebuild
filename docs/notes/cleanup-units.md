@@ -136,9 +136,9 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   globals are accessors (`TheGameFlow()`, `worlddata::InterfaceManager()`, `WorldServer()`, `SkillDb()`, ...). unit_vitals'
   constants are the `hpVal`, `mpVal` and `damageLevel*` members of `LogicSettings` at 007C53F8. `RecordTable::At` is
   `RecordAt`, `CMap::At` is `ElementAt`; `ei::OffsetPtr(base, offset)` (game_data.h) replaces own `At()` helpers.
-- **Callbacks by function.** `src/game/at_exit_functions.h` declares what function-local statics register with `std::atexit`
-  (`atexit400::DestroyGlobalVector`, `ei::static_init::Exit...`); the eh-vector iterators take
-  `void*` and the functions themselves.
+- **Callbacks by function.** Function-local statics register their exit functions with `std::atexit` themselves
+  (at_exit_functions.h went in C20r: nothing used its declarations); the eh-vector iterators take `void*` and the
+  functions themselves.
 - **Left raw**: no `constexpr uintptr_t kX = 0x00...` in src (tools/progress.py 0, C11 batch 33). game.exe's text
   bounds are `ei::kGameTextBegin / kGameTextEnd` (include/ei/hook.h; game.exe's WinMain is hook.cpp's, for the harness);
   `game::EmptyText()` returns the named `game::kEmptyText` (0079B298, C18).

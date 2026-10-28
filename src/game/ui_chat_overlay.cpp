@@ -11,7 +11,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstring>

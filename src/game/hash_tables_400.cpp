@@ -3,9 +3,6 @@
 // registry. See docs/notes/core.md.
 #include "hash_tables_400.h"
 
-#include "base_manager.h"
-#include "world.h"
-
 namespace hash400 {
 
 } // namespace hash400

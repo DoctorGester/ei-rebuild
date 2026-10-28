@@ -17,7 +17,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
 

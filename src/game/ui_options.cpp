@@ -13,7 +13,6 @@
 #include <cstddef>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "lib/str.h"

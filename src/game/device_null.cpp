@@ -200,7 +200,6 @@ public:
         return D3D_OK;
     }
     void SetViewport(const D3DVIEWPORT7& viewport) { viewport_ = viewport; }
-    const D3DVIEWPORT7& Viewport() const { return viewport_; }
 
     void SetRenderState(DWORD state, DWORD value) { SetState(Entry{false, 0, state, value}); }
     DWORD RenderState(DWORD state) const { return state < kRenderStates ? render_[state] : 0; }

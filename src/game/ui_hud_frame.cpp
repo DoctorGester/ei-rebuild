@@ -18,7 +18,6 @@
 #include <cstring>
 #include "lib/crt.h"
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

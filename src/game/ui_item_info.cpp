@@ -7,7 +7,6 @@
 #include "text_reader.h"
 #include "text_split.h"
 #include "ui_item_info.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "item.h"

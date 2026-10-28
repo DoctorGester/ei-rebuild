@@ -2,7 +2,6 @@
 // docs/notes/ui.md, section 5.
 #include "spell.h"
 #include "ui_camp.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "item.h"
@@ -11,7 +10,6 @@
 
 #include "lib/text_case.h"
 #include "resource_manager.h"
-#include "game_data.h"
 #include "world.h"
 #include "lib/str.h"
 

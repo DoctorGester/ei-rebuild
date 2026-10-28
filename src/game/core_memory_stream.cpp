@@ -3,8 +3,6 @@
 // See core_streams.h and docs/notes/core.md.
 #include "core_streams.h"
 
-#include "lib/crt.h"
-
 #include <intrin.h>
 
 #include <cstring>

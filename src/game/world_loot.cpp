@@ -8,7 +8,6 @@
 #include "player_messages.h"
 #include "party.h"
 
-#include "lib/crt.h"
 #include "effects.h"
 #include <cstdint>
 

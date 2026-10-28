@@ -2,8 +2,6 @@
 // the motion getter, the empty virtual, UnitAction's and AnimationStep's constructors.
 #include "combat.h"
 
-#include "lib/crt.h"
-
 namespace {
 const char* const kServerName = "CUnitServer";
 constexpr int kClassServer = 0x3E;

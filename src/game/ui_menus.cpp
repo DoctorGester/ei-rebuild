@@ -12,7 +12,6 @@
 #include <cstdint>
 
 #include <memory>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

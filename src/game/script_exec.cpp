@@ -34,7 +34,6 @@
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
 #include "bink_video.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
 
@@ -65,8 +64,6 @@ const char* const kKillScriptNotAllowed = "KillScript command not allowed here";
 const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
-
-void* Renderer() { return SceneRenderer(); }
 
 CWorldServer* TheWorld() { return TheServerWorld(); }
 

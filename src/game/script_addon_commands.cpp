@@ -19,7 +19,6 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
 #include "system_text.h"

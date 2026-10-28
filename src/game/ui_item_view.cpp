@@ -7,7 +7,6 @@
 #include "core_refcount.h"
 #include "texture.h"
 #include "ui_item_info.h"
-#include "game_strings.h"
 #include "plugin_fixes.h"
 
 #include "device.h"
@@ -27,7 +26,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cmath>

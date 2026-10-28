@@ -10,7 +10,6 @@
 #include "core_streams.h"
 
 #include "lib/hash_map.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

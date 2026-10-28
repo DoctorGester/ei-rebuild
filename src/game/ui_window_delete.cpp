@@ -11,10 +11,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "core_refcount.h"
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <memory>
 #include <string>
 

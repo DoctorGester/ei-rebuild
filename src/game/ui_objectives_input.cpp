@@ -3,7 +3,6 @@
 // docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
 #include "world_glue.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -13,7 +12,6 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

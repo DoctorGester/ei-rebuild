@@ -14,8 +14,6 @@
 #include <memory>
 #include <new>
 #include <string>
-#include "ei/vcall.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "sector_map.h"
 #include "world.h"

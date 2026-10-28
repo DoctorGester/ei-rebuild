@@ -7,8 +7,6 @@
 #include "core_streams.h"
 #include "net_link.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 
 using netlink::DriverSession;

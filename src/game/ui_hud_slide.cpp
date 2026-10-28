@@ -2,7 +2,6 @@
 // current slide offset, their per-frame updates and their setups. Rebirth patches all of them for its WideScreen layout,
 // reproduced behind the flag (ui_widescreen.h). See ui.h and docs/notes/ui.md, "Battle HUD sliding panels".
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "map_object.h"
@@ -12,7 +11,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include <cstdint>
@@ -20,7 +18,6 @@
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <concepts>

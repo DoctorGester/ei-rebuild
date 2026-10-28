@@ -4,10 +4,7 @@
 #include "acks_db.h"
 #include "item_db.h"
 #include "model.h"
-#include "object_tables.h"
 #include "quest_records.h"
-
-#include "game_data.h"
 
 #include <memory>
 #include <vector>

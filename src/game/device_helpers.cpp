@@ -3,8 +3,6 @@
 // destructors, the device's vertex-buffer batch (never used) and the axis swap matrix. None of them
 // touches DirectDraw or Direct3D except the COM pointer's Release. Most are identical to
 // copies written elsewhere; each says which. See docs/notes/renderer.md (section 12).
-#include "clip.h"            // TLVertex
-#include "core_refcount.h"
 #include "engine_object.h"
 #include "model.h"           // CTransformPipeline
 #include "texture.h"
@@ -12,9 +10,6 @@
 
 #include <unknwn.h>
 
-#include "ei/rebirth.h"
-#include "lib/containers.h"
-#include "lib/crt.h"
 #include "lib/vecmath.h"
 
 #include <cstdint>

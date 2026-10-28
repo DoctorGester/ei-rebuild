@@ -4817,7 +4817,27 @@ title = "Dead-code rescan after the MFC removal (C14p, C14zi, C35m, compiled_vta
 group = "cleanup"
 model = "opus"
 files = ["src/game", "src/lib", "src/standalone"]
-note = "C20q's relocation-graph scan (scratchpad C20m / C20o / C20q scripts) re-run on main after src/lib lost every mfc_* file, mfc.h, compiled_vtable.h and the gamecrt heap (2026-10-28), counting ei_vectors' references. Delete what is dead; list what one small replacement with std / our code would make dead and do the small ones. Also: tools/named_data.py's UNPORTED regex (ei::UnportedSlot is gone from src), unused includes the MFC removal left, tests/coverage rows of deleted files if the tool regenerates cleanly."
+note = "C20q's relocation-graph scan (scratchpad C20m / C20o / C20q scripts) re-run on main after src/lib lost every mfc_* file, mfc.h, compiled_vtable.h and the gamecrt heap (2026-10-28), counting ei_vectors' references. Delete what is dead; list what one small replacement with std / our code would make dead and do the small ones. Also: tools/named_data.py's UNPORTED regex (ei::UnportedSlot is gone from src), unused includes the MFC removal left, tests/coverage rows of deleted files if the tool regenerates cleanly. Done (to review): scan re-run on main (scratchpad C20r: graph over ei_hook + ei_render objects, ei_render no longer all roots; once.py / twice.py name counts incl. include/; incl.py for includes). Deleted: include/ei/vcall.h, at_exit_functions.h, ScriptNamedValues::FindName, CubicCurve3, 5 record Assign* decls, PlainArray, AssignFrom, script_exec Renderer, null device Viewport, render GammaRamp / SceneSunDirection / ui::CurrentPath; libcrt::Controlfp (+ converters) replaced by the x87 word in SectorData::Light; named_data.py UNPORTED; coverage.csv regenerated; 560 unused quoted includes (game_data.h 324, lib/crt.h 105, game_strings.h 57, ...). Image suite --golden 121 the same / 24. Left: render::text and ui canvas pieces only ei_text_check / P2 / P4 use; DLL interface slots; filed C20r1-C20r3."
+
+[[ticket]]
+id = "C20r1"
+title = "The DirectDraw driver list: built empty, destroyed, never read"
+group = "cleanup"
+depends = ["C20q1"]
+note = "C20r scan: g_directDrawDrivers (static_lists.cpp, named range 007AEE64) is only constructed by its static initialiser and destroyed by its exit function (g_driversDestroyed 007AEE60); nothing fills or reads it. With it go DirectDrawDriver (texture.h, its guidValue never used), ConstructDirectDrawDrivers / ConstructDriversList / DestroyDrivers, the named_data rows and the static initialiser's entry (gen_static_init.py, C20q1's area). Check: named_data --check, gen_image_cells --check, image suite --golden."
+
+[[ticket]]
+id = "C20r2"
+title = "Fields nothing reads that C20r left for C36's layout pass"
+group = "cleanup"
+depends = ["C36"]
+note = "C20r's single-use scan (scratchpad C20r once.py): fields written or copied but never read, in structs that still had unused_ pads when C20r ran, so left for after C36: BriefingSpeaker::spareFlag (ui_briefing.h), the save entry's stringArrays_ (ui.h, copied with the entry), the sound manager's midiName / midiNextName / midiArray1E4 / midiArray1F4 (sound.h), CTextureDevice::depthFormats_ (texture.h, never filled), renderer_lines.h spare1C. Re-run once.py on main first: C36 may have taken some. Keep RasterTarget::keyPitch and the DLL interface slots (2DintMMX / 3DfpFPU layouts). Image suite --golden."
+
+[[ticket]]
+id = "C20r3"
+title = "One namespace for the game CRT: gamecrt (rand's observer, Ftol) into libcrt"
+group = "cleanup"
+note = "C20r: crt.h has gamecrt::rand (libcrt::Rand plus the harness's random observer), gamecrt::Ftol (inline, ~150 callers) and SetRandObserver beside libcrt's Rand / Srand / Qsort / Format / Ci* maths. One namespace (libcrt), rand as Rand with the observer inside, is a scripted rename over src/tests; no behaviour change. Check: build verify / release, ei_vectors, image suite --golden."
 
 [[ticket]]
 id = "C14zj"

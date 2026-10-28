@@ -5,8 +5,6 @@
 #include "maths.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
-#include "game_data.h"
 
 #include <cmath>
 #include <cstring>

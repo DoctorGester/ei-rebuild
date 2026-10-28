@@ -3,7 +3,6 @@
 // The page itself is built by ShowPage (Rebirth-patched; its vanilla body is in ui_help_page.cpp). See
 // docs/notes/ui.md.
 #include "ui.h"
-#include "game_strings.h"
 #include "ui_screens.h"
 
 #include "item_db_text.h"

@@ -3,19 +3,15 @@
 // and save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "base_manager.h"
 #include "map_spec.h"
-#include "game_strings.h"
 #include "core_transform.h"
 #include "terrain.h"
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 #include <memory>
 #include <new>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace mapspec {

@@ -11,13 +11,11 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 
 #include <cmath>
 #include <list>
-#include "game_data.h"
 
 void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.

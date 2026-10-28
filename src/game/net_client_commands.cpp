@@ -3,13 +3,10 @@
 // received buffer. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
-#include "game_strings.h"
 #include "core_refcount.h"
 #include "net_coder.h"
 
-#include "lib/crt.h"
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstring>

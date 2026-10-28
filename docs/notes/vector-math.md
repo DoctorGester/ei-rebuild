@@ -49,7 +49,7 @@ Types (src/lib/vecmath.h; aggregates, no constructors, so `{x, y, z}` initialisa
 `Quaternion` (w, x, y, z: w first), `Matrix4` (float m[16], row-major), `MatrixRows` (float m[12]: 3 rows of a 4x4,
 stride 16, `Transform` 00560E10). The hooked members are declared in the structs, their bodies stay in src/game; maths.h
 includes vecmath.h; the free out-of-line originals keep their declarations in maths.h / object_maths.h / core_maths.h.
-Also: `CubicSegment` / `CubicCurve3` (core_maths.h / camera.h, float c[4] / c[12]). Vertex structs with a position:
+Also: `CubicSegment` (core_maths.h, float c[4]). Vertex structs with a position:
 `DecalVertex`, render `Vertex`, `GlobalMapPlace` have a `Vector3` position; clip.h TLVertex, renderer_lines.h,
 effects.h, lightning.h LightningPoint do not yet.
 

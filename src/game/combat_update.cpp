@@ -20,9 +20,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/crt.h"
-
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"

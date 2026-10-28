@@ -4,7 +4,6 @@
 #include "map_object_shadow.h"
 #include "unit_ai.h"
 #include "world_effect.h"
-#include "game_data.h"
 #include "map_object.h"
 
 #include "ai_map.h"

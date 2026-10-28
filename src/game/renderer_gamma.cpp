@@ -6,7 +6,6 @@
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "render/render.h"
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 
 #include <ddraw.h>

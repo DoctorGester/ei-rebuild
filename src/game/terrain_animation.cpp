@@ -7,17 +7,13 @@
 // its depth is negative), the others up and in a circle driven by the world time (its sines per column and
 // row once per call: CircleSines).
 #include "terrain.h"
-#include "address_order.h"
-#include "at_exit_functions.h"
 #include "terrain_sector.h"
 #include "random.h"
 #include "spell.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include "lib/vecmath.h"
 #include "render/render.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <algorithm>

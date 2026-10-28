@@ -5,7 +5,6 @@
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
 #include "device.h"   // the old device's calls
-#include "game_strings.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"

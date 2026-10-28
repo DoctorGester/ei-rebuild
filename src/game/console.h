@@ -3,8 +3,6 @@
 // The developer console: the streambuf that collects console output, the command executor with its two
 // command maps, the "@"/"#"/"$" script lines and the command handlers. See docs/notes/console.md.
 
-#include "game_data.h"
-#include "game_strings.h"
 #include "../lib/gdi.h"
 #include <cstddef>
 #include <cstdint>

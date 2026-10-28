@@ -3,7 +3,6 @@
 // Helpers shared by combat.cpp and combat_actions.cpp (not used elsewhere).
 
 #include "combat.h"
-#include "game_data.h"
 #include "console.h"
 
 class CPlayerServer;

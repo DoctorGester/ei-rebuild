@@ -48,7 +48,6 @@
 #include "ui_flying_hit_points.h"
 #include "unit_client_models.h"
 #include "unit_create.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "system_text.h"
 #include "lib/str.h"

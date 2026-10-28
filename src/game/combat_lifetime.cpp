@@ -5,9 +5,6 @@
 #include "core_refcount.h"
 #include "unit_ai.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <bit>
 #include <cstddef>
 #include <cstdint>

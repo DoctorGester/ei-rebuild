@@ -9,7 +9,6 @@
 #include "text_split.h"
 #include <string>
 #include "lib/str.h"
-#include "game_data.h"
 
 namespace {
 

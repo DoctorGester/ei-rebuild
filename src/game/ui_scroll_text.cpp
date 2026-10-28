@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstring>

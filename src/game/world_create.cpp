@@ -17,11 +17,8 @@
 #include "unit_create.h"
 #include "random.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

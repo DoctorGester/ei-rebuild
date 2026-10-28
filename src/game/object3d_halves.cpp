@@ -6,7 +6,6 @@
 #include "options.h"
 
 #include "figure_mesh.h"        // VertexPacket
-#include "game_data.h"
 #include "ground_decal.h"       // DecalTexCoord
 #include "ground_print.h"       // NamedTexture
 #include "map_object_figures.h"
@@ -14,8 +13,6 @@
 #include "object.h"
 #include "texture.h"
 #include "world_data.h"
-
-#include "lib/crt.h"
 
 #include <cstring>
 #include <memory>

@@ -14,7 +14,6 @@
 #include <string>
 #include "lib/text_case.h"
 
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstdlib>
