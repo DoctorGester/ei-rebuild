@@ -6,15 +6,17 @@ Ghidra left outside any function body, pseudo nodes split after every RET/JMP. E
 another node; fall-through into the next node; vtable -> its slots. Roots: the entry point, any
 pointer stored in .rdata/.data outside a known vtable, references from Rebirth's binaries.
 """
-import bisect, csv, os, re, struct, sys
+import bisect, csv, io, os, re, struct, sys
 import capstone
 
-# It rewrites config/dead_code.csv from scratch, which drops rows added by hand (functions Ghidra
-# never made, coincidental pointers ruled out by reading). Refuse to run with any argument
-# (e.g. --help) so it is never run by accident.
+# config/dead_code.csv also holds rows nobody can derive from the reference graph (functions Ghidra never
+# made, coincidental pointers ruled out by reading, functions only game.exe's own code or a retired vtable
+# slot names, C20g). The tool never removes a row: it keeps every existing row on its line, writes the
+# generated rows (evidence exactly one of the two forms in GENERATED_EVIDENCE) again, inserts newly found
+# ones by address, and lists the kept generated rows it no longer finds dead, to be removed by hand.
 if len(sys.argv) > 1:
     print(__doc__)
-    print('Takes no arguments. Warning: it rewrites config/dead_code.csv and drops hand-added rows.')
+    print('Takes no arguments. It updates config/dead_code.csv: existing rows stay, newly found dead functions are added.')
     sys.exit(0)
 from capstone import x86
 
@@ -212,6 +214,17 @@ for p in EXTRA_BINS:
         if v in realset:
             add(None, ('f', v), f'{os.path.basename(p)}+{off:X}')
 
+GENERATED_EVIDENCE = re.compile(
+    r'no references at all \(no call/jmp, no absolute pointer in code or data\)'
+    r'|referenced only from (dead code [0-9A-F]{8}( [0-9A-F]{8}){0,5}( \.\.\.)?)?(; )?'
+    r'(vtable\(s\) installed only by dead code [0-9A-F]{8}( [0-9A-F]{8})*)?')
+csv_path = os.path.join(R, 'config/dead_code.csv')
+with open(csv_path, newline='') as f:
+    old_lines = f.read().split('\n')
+assert old_lines[0] == 'address,size,name,evidence' and old_lines[-1] == ''
+old = [(next(csv.reader([ln])), ln) for ln in old_lines[1:-1]]
+old_generated = {int(row[0], 16) for row, ln in old if GENERATED_EVIDENCE.fullmatch(row[3])}
+
 live = set()
 stack = list(roots)
 while stack:
@@ -231,20 +244,45 @@ for src, ds in edges.items():
         rev.setdefault(t, set()).add(src)
 dead = [a for a in real if a in funcs and funcs[a]['kind'] == 'game' and ('f', a) not in live
         and a not in lib and a not in patched]
-with open(os.path.join(R, 'config/dead_code.csv'), 'w', newline='') as f:
-    w = csv.writer(f, lineterminator='\n')
-    w.writerow(['address', 'size', 'name', 'evidence'])
-    for a in dead:
-        srcs = sorted(rev.get(('f', a), ()))
-        fs = [f'{x:08X}' for k, x in srcs if k == 'f']
-        vs = [f'{x:08X}' for k, x in srcs if k == 'v']
-        if not srcs:
-            ev = 'no references at all (no call/jmp, no absolute pointer in code or data)'
-        else:
-            parts = []
-            if fs: parts.append('dead code ' + ' '.join(fs[:6]) + (' ...' if len(fs) > 6 else ''))
-            if vs: parts.append('vtable(s) installed only by dead code ' + ' '.join(vs))
-            ev = 'referenced only from ' + '; '.join(parts)
-        w.writerow([f'{a:08X}', gsize.get(a, 0), funcs[a]['name'], ev])
-print(f'{len(dead)} dead game functions ({sum(gsize.get(a, 0) for a in dead):,} bytes) -> config/dead_code.csv;'
-      f' {len([p for p in pseudo if ("f", p) not in live])} dead code chunks outside Ghidra functions')
+
+def generated_row(a):
+    srcs = sorted(rev.get(('f', a), ()))
+    fs = [f'{x:08X}' for k, x in srcs if k == 'f']
+    vs = [f'{x:08X}' for k, x in srcs if k == 'v']
+    if not srcs:
+        ev = 'no references at all (no call/jmp, no absolute pointer in code or data)'
+    else:
+        parts = []
+        if fs: parts.append('dead code ' + ' '.join(fs[:6]) + (' ...' if len(fs) > 6 else ''))
+        if vs: parts.append('vtable(s) installed only by dead code ' + ' '.join(vs))
+        ev = 'referenced only from ' + '; '.join(parts)
+    return [f'{a:08X}', gsize.get(a, 0), funcs[a]['name'], ev]
+
+gen = {a: generated_row(a) for a in dead}
+out = []                        # (address, raw line, or None for a row written from gen)
+for row, ln in old:
+    a = int(row[0], 16)
+    out.append((a, None if a in old_generated and a in gen else ln))   # written again in place, or kept as it is
+seen = {a for a, _ in out}
+added = 0
+for a in gen:
+    if a not in seen:
+        out.insert(next((k for k, (x, _) in enumerate(out) if x > a), len(out)), (a, None))
+        added += 1
+stale = sorted(old_generated - set(gen))
+buf = io.StringIO()
+w = csv.writer(buf, lineterminator='\n')
+with open(csv_path, 'w', newline='') as f:
+    f.write('address,size,name,evidence\n')
+    for a, ln in out:
+        if ln is None:
+            buf.seek(0)
+            buf.truncate()
+            w.writerow(gen[a])
+            ln = buf.getvalue()[:-1]
+        f.write(ln + '\n')
+print(f'{len(gen)} dead game functions found ({sum(gsize.get(a, 0) for a in gen):,} bytes); config/dead_code.csv: {len(old)} rows kept,'
+      f' {added} added (now {len(out)}); {len([p for p in pseudo if ("f", p) not in live])} dead code chunks outside Ghidra functions')
+if stale:
+    print(f'{len(stale)} kept rows with generated evidence are no longer found dead (check, remove by hand):',
+          ' '.join(f'{a:08X}' for a in stale))
