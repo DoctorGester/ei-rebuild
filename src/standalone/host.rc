@@ -1,5 +1,5 @@
 // ei_standalone.exe's one resource: its version information (S18j, C23). The game's own icons, cursors, bitmaps, dialogs
-// and strings are not here: the strings are literals in our code (app_main.cpp, lib/mfc_resource.cpp) and the rest is
+// and strings are not here: the strings are literals in our code (app_main.cpp) and the rest is
 // never loaded. No icon yet (C24).
 #include <winver.h>
 

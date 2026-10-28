@@ -4,7 +4,7 @@
 // layout with the vtable as a plain field (`void* vtable`) gets the compiler's table in place of game.exe's through
 // a tag, a C++ class declaring the same slots whose bodies call the class's functions. Its constructors and
 // destructors store `Tag::Vtable()`; a dispatch through the field reaches the tag's slots. The tag is
-// never an object of its own: only its table is used (mfc_slots.h's CompiledCollection is the collections' tag).
+// never an object of its own: only its table is used.
 
 #include "ei/hook.h"
 
