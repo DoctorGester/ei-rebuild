@@ -80,7 +80,7 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     }
     if (host) record->host_ = 1;
 
-    std::string announcement;   // constructed by the call
+    std::string announcement;
     std::string* formatted = TheInterface()->MessageText(&announcement, 0, name->data());
     self->Announce(formatted->c_str(), nullptr);
 }

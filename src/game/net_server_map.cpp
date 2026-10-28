@@ -61,7 +61,7 @@ void ServerSession::SetMap(const std::string* name) {
     world->RegisterQuests(name->data());
     world->SetNetworkZone(name->data());
     {
-        std::string title, text;   // constructed by the calls
+        std::string title, text;
         const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
         Announce((*TheInterface()->MessageText(&text, 5, mapTitle)).c_str(), nullptr);
     }

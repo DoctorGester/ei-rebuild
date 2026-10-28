@@ -123,7 +123,8 @@ TYPES = {
     'stlp::vector': 'III',         # stlp_vector.h: start, finish, end of storage
     'LineBuffer': 'Iiii',          # renderer_lines.h: an aligned array of line vertices
     # A global constructed by its hand-ported static initialiser (lib/static_object.h): zero storage before it.
-    'lib::StaticObject<mfc::CString>': 'I',
+    # A string's is game.exe's CString, one pointer (ours is a std::string; the range is the original's).
+    'lib::StaticObject<std::string>': 'I',
     'OStreamObject': 'B' * 0x58,   # console.h: an ostream and its ios, zero until the initialiser builds it
     'BOOL': 'i',
     'CThreadLocalObject': 'i', 'CProcessLocalObject': 'I',   # mfc_state.h: a TLS slot, an object made on first use

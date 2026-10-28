@@ -38,7 +38,7 @@ void LockCursorAtCallSite() {
     else TheCursor()->TakeLock();
 }
 
-// The movie list's .ini path: CString concatenation (AFXAPI).
+// The movie list's .ini path: the folder and the file name joined into `a0`.
 std::string* __stdcall ConcatText(std::string* a0, const std::string* a1, const char* a2) { *a0 = *a1 + a2; return a0; }
 
 // Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the

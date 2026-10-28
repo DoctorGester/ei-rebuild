@@ -719,7 +719,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
     if (mob) {
         // The graph chunk of the .mob file.
         {
-            std::string path;   // MapPath constructs it
+            std::string path;
             MapPath(&path, mob);
             mobFile.Open(path, kOpenRead, 1);
         }
@@ -728,7 +728,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, CStream* out) {
         if (found) return found;
     }
     // Otherwise <map without extension>.grp.
-    std::string base;   // MapPath constructs it
+    std::string base;
     MapPath(&base, map);
     int dot = str::ReverseFind(base, '.');
     if (dot > 0) {
@@ -768,7 +768,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     decoder.text.ConstructEmpty();
     decoder.input.ConstructEmpty();
     {
-        std::string path;   // MapPath constructs it
+        std::string path;
         MapPath(&path, mob);
         file.Open(path, kOpenRead, 1);
     }

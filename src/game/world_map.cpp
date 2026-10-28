@@ -60,7 +60,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         aiMap->BeginRefresh();
         bool failed;
         {
-            std::string path;   // MapPath constructs it
+            std::string path;
             MapPath(&path, map);
             failed = aiMap->Load(path.c_str()) == 0;
         }

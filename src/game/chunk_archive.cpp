@@ -190,21 +190,6 @@ void ChunkArchive::LeaveChunk() {
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
 }
 
-template <typename Text>
-void ChunkArchive::CStringField(int id, Text* s) {
-    if (!loading_) {
-        std::string_view text;
-        if constexpr (std::is_same_v<Text, std::string>) text = *s;
-        else text = std::string_view(static_cast<const char*>(*s), static_cast<std::size_t>(s->GetLength()));
-        AppendChild(Current(), id, text.data(), static_cast<std::uint32_t>(text.size() + 1));
-        return;
-    }
-    Ref child;
-    if (FindField(this, id, &child)) *s = TextAt(Data() + child.offset);
-    else *s = game::EmptyText();
-}
-template void ChunkArchive::CStringField(int, std::string*);
-
 // A string field, written with its terminator; read through an inlined assign (the empty
 // string when missing).
 void ChunkArchive::StringField(int id, std::string* s) {

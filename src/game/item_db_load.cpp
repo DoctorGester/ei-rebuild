@@ -143,9 +143,9 @@ void StringListField(ChunkArchive* ar, int id, stlp::vector<std::string>* list) 
 } // namespace
 
 void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
-    ar->CStringField(1, &code);
-    ar->CStringField(2, &text08);
+    ar->StringField(0, &name);
+    ar->StringField(1, &code);
+    ar->StringField(2, &text08);
     ar->Field(3, &price, 4);
     ar->Field(4, &castType, 4);
     ar->Field(5, &mana, 4);
@@ -170,14 +170,14 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
 }
 
 void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
-    ar->CStringField(0, &name);
+    ar->StringField(0, &name);
     ar->Field(1, &code[0], 4);
     ar->Field(2, &price, 4);
     ar->Field(3, &kind, 4);
     ar->Field(4, &mana, 4);
     ar->Field(5, &strength, 4);
     ar->Field(6, &skill, 4);
-    ar->CStringField(7, &text1C);
+    ar->StringField(7, &text1C);
     ar->Field(8, &classMask, 4);
 }
 

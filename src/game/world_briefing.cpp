@@ -66,7 +66,7 @@ std::string* __stdcall BriefingSpeakerInto(std::string* out, const char* briefin
 }
 
 std::string* __stdcall BriefingVariableInto(std::string* out, const char* briefing) {
-    std::string speaker;   // BriefingSpeakerInto constructs it
+    std::string speaker;
     BriefingSpeakerInto(&speaker, briefing);
     if (!IsEmpty(speaker.c_str())) {
         std::string prefix = game::briefingwords::VariablePrefix();
@@ -95,7 +95,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
         }
         LoadZoneQuests(zone.c_str());
     }
-    std::string variable;   // BriefingVariableInto constructs it
+    std::string variable;
     BriefingVariableInto(&variable, briefing);
     player->Party()->variables_.Set(variable.c_str(), 1.0f);
 }
@@ -124,7 +124,7 @@ void __cdecl DestroyQuestFolders() { QuestStrings::Destruct(&g_questFolders); }
 
 void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
-    std::string variable;   // BriefingVariableInto constructs it
+    std::string variable;
     BriefingVariableInto(&variable, briefing);
     player->Party()->variables_.Remove(variable.c_str());
 }

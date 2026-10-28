@@ -302,7 +302,7 @@ bool CheckLoad(Reader& r, char* d, std::size_t n) {
     const int ranId0 = ran0 ? r.Get<std::int32_t>() : 0;
     if (!r.ok()) return true;
 
-    mfc::CString text(source.c_str(), static_cast<int>(source.size()));
+    std::string text = source;
     g_ranWorld = false;
     const int result = s->Load(&text, runWorldScript);
     const Error error = TakeError(s);

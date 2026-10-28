@@ -109,7 +109,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            std::string title, text;   // constructed by the calls
+            std::string title, text;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
             Announce((*TheInterface()->MessageText(&text, 7, mapTitle)).c_str(), nullptr);
         }
@@ -161,7 +161,7 @@ void ServerSession::LeaveZone() {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
-            std::string title, text;   // constructed by the calls
+            std::string title, text;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
             Announce((*TheInterface()->MessageText(&text, 6, mapTitle)).c_str(), nullptr);
         }

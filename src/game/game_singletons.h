@@ -82,7 +82,7 @@ CCamera* TheCamera();   // g_camera
 // The party manager (the parties by key, the named records and the class templates).
 PartyManager* ThePartyManager();   // g_partyManager
 
-// The registry key of the options and the game's folders (CStrings; game_folders.cpp): where the game was started,
+// The registry key of the options and the game's folders (game_folders.cpp): where the game was started,
 // the disc's (the base folder), the text resources' and the data folder (with its trailing backslash; DataFolderText()
 // is its characters for printf-style arguments).
 extern lib::StaticObject<std::string> g_registryRoot;

@@ -1,4 +1,4 @@
-// The registry key of the options and the game's folders: five CStrings, each built empty by its static
+// The registry key of the options and the game's folders: five strings, each built empty by its static
 // initialiser in the list's order and destroyed once by the exit function it registers (a guard bit each).
 // The initialisers and exit functions are registered under their names (docs/notes/standalone.md, "The static
 // initialisers' objects").

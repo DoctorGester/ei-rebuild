@@ -58,7 +58,7 @@ std::uint32_t __cdecl GetDxVersion();
 
 // ---- The application's globals that the static initialisers set ------------------------------------
 
-// The command line's CStrings, built by static initialisers in the list's order and destroyed by the exit
+// The command line's strings, built by static initialisers in the list's order and destroyed by the exit
 // functions they register; the mouse object's pointer, null at the start, released by its exit function.
 constinit lib::StaticObject<std::string> g_movieFolder = /*0079BA0C*/ {};
 constinit lib::StaticObject<std::string> g_commandLineMap = /*0079BA10*/ {};
@@ -83,7 +83,7 @@ void __cdecl DestroyCommandLineMap() { g_commandLineMap.Destroy(); }
 void __cdecl DestroyMovieFolder() { g_movieFolder.Destroy(); }
 } // namespace
 
-// The initialisers: each CString empty (".\capture\" for the movie folder), its exit function registered.
+// The initialisers: each string empty (".\capture\" for the movie folder), its exit function registered.
 void __cdecl ConstructCameraFile() {
     g_cameraFile.Construct();
     libcrt::AtExit(DestroyCameraFile);

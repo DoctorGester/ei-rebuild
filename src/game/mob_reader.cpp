@@ -107,7 +107,7 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
 
 // The scripts' text, plain or encoded.
 void ReadScripts(Chunk* chunk, std::string* scripts, bool encoded) {
-    std::string text;   // the callee constructs it
+    std::string text;
     if (encoded) chunk->ReadEncodedString(&text);
     else chunk->ReadString(&text);
     *scripts = text;
@@ -145,10 +145,9 @@ bool MobFile::Load(void*, int keepIds) {
     records.maxId = 0;
     ZoneDiplomacy zoneDiplomacy;
     ZoneDiplomacy* diplomacy = &zoneDiplomacy;
-    alignas(std::string) std::uint8_t scriptsStorage[sizeof(std::string)];   // destroyed by hand, in order
-    auto* scripts = new (scriptsStorage) std::string();
+    std::string scripts;
 
-    if (ReadChunks(&records, diplomacy, scripts)) {
+    if (ReadChunks(&records, diplomacy, &scripts)) {
         CDiplomacy* table = GameDiplomacy();
         for (int i = 0; i < 32; ++i)
             for (int j = 0; j < 32; ++j) table->SetRelation(i, j, diplomacy->relations[i][j], 1);
@@ -179,8 +178,7 @@ bool MobFile::Load(void*, int keepIds) {
         if (done % step == 0) ShowLoadingMovie(done / step + 1);
     }
 
-    if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
-    std::destroy_at(scripts);
+    if (!(keepIds & 0xFF)) TheMissionScript()->Load(&scripts, 1);
     records.byId.Destroy();
     return true;
 }

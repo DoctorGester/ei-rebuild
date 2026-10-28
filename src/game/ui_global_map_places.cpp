@@ -32,7 +32,7 @@ constexpr const char* kPositionLine = "#position";
 constexpr const char* kQuestEntry = "#quest %s";
 constexpr const char* kMissingNumber = "0";
 
-// The text `prefix` + `name` (empty when there is none), constructed into `out`.
+// The text `prefix` + `name` (empty when there is none), into `out`.
 std::string* PlaceTitle(std::string* out, const char* prefix, const char* name) {
     CTextManager* texts = TheTextManager();
     std::string text;

@@ -116,7 +116,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     auto* fileObject = root->file_.Virtuals();
 
     std::string path;
-    MapPath(&path, file);   // constructs the CString in place
+    MapPath(&path, file);
     int result;
     if (!root->Open(path, 0x8020)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);

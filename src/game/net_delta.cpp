@@ -258,8 +258,8 @@ void DeltaField::WriteStringBoth(const char* text) {
 
 std::uint32_t DeltaField::ReadRaw(void* data, std::uint32_t size) { return delta::g_received->Read(data, size); }
 
-std::string* DeltaField::ReadString(std::string* cstring) {
-    return delta::g_received->ReadString(cstring);
+std::string* DeltaField::ReadString(std::string* text) {
+    return delta::g_received->ReadString(text);
 }
 
 void DeltaField::WriteStreamBoth(BitStream* from) {

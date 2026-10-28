@@ -68,15 +68,8 @@ std::string FirstListNameOf(const NamedRecordTable<Record>& table, std::uint32_t
     return std::string(game::EmptyText());   // ""
 }
 
-// "unhuma" + the item's model name (a virtual call). The model name is destroyed before the prefix.
-std::string HumanFigureName(CItem* item) {
-    alignas(std::string) char model[sizeof(std::string)];
-    std::string& modelName = *new (model) std::string(item->ModelName());
-    std::string prefix = kHumanPrefix;
-    std::string name = prefix + modelName;
-    std::destroy_at(&modelName);
-    return name;
-}
+// "unhuma" + the item's model name (a virtual call).
+std::string HumanFigureName(CItem* item) { return kHumanPrefix + item->ModelName(); }
 
 // The picture name "<format with code and number>" (no null check on the prototype).
 template <typename Record>

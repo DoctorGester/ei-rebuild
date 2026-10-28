@@ -199,12 +199,12 @@ bool CheckApplyDefines(Reader& r, char* d, std::size_t n) {
     const std::string expected = r.String();
     ScriptDefineList defines{nullptr, count ? &nodes[0] : nullptr, count ? &nodes[count - 1] : nullptr,
                              static_cast<int>(count), nullptr, nullptr, 10};
-    mfc::CString line(before.c_str());
+    std::string line = before;
     ApplyDefines(&line, &defines);
-    const bool ok = expected == static_cast<const char*>(line);
+    const bool ok = expected == line;
     if (!ok)
         std::snprintf(d, n, "\"%.100s\" with %u defines: ours \"%.100s\", original \"%.100s\"", before.c_str(), count,
-                      static_cast<const char*>(line), expected.c_str());
+                      line.c_str(), expected.c_str());
     for (ScriptDefineList::Node& node : nodes) ScriptDefineElements::Destruct(&node.data, 1);
     return ok;
 }
@@ -239,4 +239,4 @@ void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
 }
 
 // CScript::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
-int __fastcall scriptparse::ReadTextFile(const char*, mfc::CString*) { std::abort(); } // namespace scriptaddon
+int __fastcall scriptparse::ReadTextFile(const char*, std::string*) { std::abort(); } // namespace scriptaddon

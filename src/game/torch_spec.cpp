@@ -86,7 +86,7 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     field->ReadDelta(colours_[0], 0xC);
     field->ReadDelta(colours_[1], 0xC);
     {
-        std::string read;   // constructed by the read
+        std::string read;
         name_ = *field->ReadString(&read);
     }
     SetLightSlot(lightKind_, colours_[0], values_[0]);

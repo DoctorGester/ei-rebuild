@@ -36,11 +36,10 @@ public:
     static void operator delete(void* block);
     static void operator delete(void*, void*) noexcept {}
 
-    // Bytes up to a zero or a failed read into a CString constructed at `out`.
+    // Bytes up to a zero or a failed read, into `out`.
     std::string* ReadString(std::string* out);
-    // A text (mfc::CString or std::string) read as ReadString reads it.
-    template <typename Text>
-    void ReadInto(Text* out);
+    // A text read as ReadString reads it, assigned to `out`.
+    void ReadInto(std::string* out);
 
     // Reads a block WriteSized wrote (a two-byte size word, two more bytes when its bit 0 is set; the size is
     // the word / 2) into `to`: `to` cleared, sought to 0, then given the block.

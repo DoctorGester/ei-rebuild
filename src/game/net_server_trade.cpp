@@ -40,7 +40,7 @@ PartyMessage* FindPartnerOffer(const stlp::CountedRefListOf<PartyMessage>& list,
 void TellPartner(ServerSession* self, PartyMessage* offer, int text) {
     CRefObject* partner = offer->partner_.ptr;
     const char* name = offer->player_.Get()->name_.data();
-    std::string line;   // constructed by the call
+    std::string line;
     std::string* formatted = TheInterface()->MessageText(&line, text, name);
     self->Announce(formatted->c_str(), partner);
 }

@@ -38,7 +38,7 @@ constexpr int kNumbersKind = 6;
 constexpr std::uint32_t kTextureKeep = 0x40000;   // CEngineObject::flags_ of the digits' texture
 
 const char* NumbersName() { return "numbers"; }
-const char* FiguresResource() { return options::TheOptions()->resourcesPath_.c_str(); } // a CString
+const char* FiguresResource() { return options::TheOptions()->resourcesPath_.c_str(); }
 UnitDatabase* Units() { return &unitdb::Database(); }
 
 // One section into `table`: each key's hour gets its colour, the hours since the previous key

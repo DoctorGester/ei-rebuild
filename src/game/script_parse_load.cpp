@@ -650,7 +650,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
         std::string result, line;
         ScriptDefine define;
         const char* keyword = "#define";
-        char* p = mfc::ImplOf(*text).LockBuffer();
+        char* p = text->data();   // cut into lines in place (LockBuffer)
         while (*p) {
             char* start = p;
             while (*p && *p != '\n') ++p;
@@ -674,7 +674,6 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
             }
             result = (result + line) + "\n";   // "\n"
         }
-        mfc::ImplOf(*text).UnlockBuffer();
         *text = result;
         ScriptDefinesDestruct(&defines);
     }

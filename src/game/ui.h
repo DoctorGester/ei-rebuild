@@ -128,7 +128,7 @@ public:
     // 0x5D one more value; from 0x5F a CString.
     void LoadState(CStream* stream);
     // The text of message `id` (0-12: "lmp_player_connected" .. "reserved_02"; others an empty key) from
-    // the text table, formatted with `value` unless 0, constructed into `out`.
+    // the text table, formatted with `value` unless 0, into `out`.
     std::string* MessageText(std::string* out, int id, const char* value);
     // Without `force`, takes the next queued message into the current text or returns when there is
     // none. A non-empty text opens the message window over the others, unless the option is off and it

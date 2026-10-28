@@ -10,7 +10,6 @@
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "resource.h"
-#include "string_arg.h"
 
 // The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
 // the inlined SetSize allocates through the engine's aligned allocators).

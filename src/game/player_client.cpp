@@ -75,12 +75,6 @@ const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
 void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
-// A CString the stream reader constructs in place (CStream::ReadString), destroyed at the end of the scope.
-struct TextBuffer {
-    std::string text;
-    std::string* Get() { return &text; }
-};
-
 const char* QuestPrefix() { return "q."; }
 
 void* EmptyListVtable() { return mfc::impl::ItemListClass::Vtable(); }   // the CPtrList passed to it
@@ -193,18 +187,14 @@ int CPlayerClient::ReceiveMessages() {
     return DispatchMessages() != 0 ? 1 : 0;
 }
 
-void* CPlayerClient::ReadText(void* out) {
+std::string* CPlayerClient::ReadText(std::string* out) {
     in_.ReadString(out);
     return out;
 }
 
 int CPlayerClient::OnSetVariable() {
     std::string name;
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        name = *text.Get();
-    }
+    in_.ReadString(&name);
     std::uint32_t value;
     in_.Read(&value, 4);
     NamedFloatTable& variables = Owner()->Party()->variables_;
@@ -219,11 +209,7 @@ int CPlayerClient::OnSetVariable() {
 
 int CPlayerClient::OnDeleteVariable() {
     std::string name;
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        name = *text.Get();
-    }
+    in_.ReadString(&name);
     Owner()->Party()->variables_.Remove(name.c_str());
     if (IsQuestVariable(name)) {
         TheInterface()->OnQuestVariable(name.c_str(), 0.0f);
@@ -233,18 +219,18 @@ int CPlayerClient::OnDeleteVariable() {
 }
 
 int CPlayerClient::OnZoneChange() {
-    TextBuffer zone;
-    ReadText(zone.Get());
+    std::string zone;
+    ReadText(&zone);
     int entrance;
     in_.Read(&entrance, 4);
-    TheGameFlow()->RequestZoneChange((*zone.Get()).c_str(), entrance);
+    TheGameFlow()->RequestZoneChange(zone.c_str(), entrance);
     return 1;
 }
 
 int CPlayerClient::OnJingle() {
-    TextBuffer name;
-    in_.ReadString(name.Get());
-    TheMusicSystem()->PlayJingle((*name.Get()).c_str());
+    std::string name;
+    in_.ReadString(&name);
+    TheMusicSystem()->PlayJingle(name.c_str());
     return 1;
 }
 
@@ -442,9 +428,9 @@ int CPlayerClient::OnPathMarker() {
 }
 
 int CPlayerClient::OnStringEvent() {
-    TextBuffer text;
-    ReadText(text.Get());
-    TheInterface()->OnStringEvent((*text.Get()).c_str());
+    std::string text;
+    ReadText(&text);
+    TheInterface()->OnStringEvent(text.c_str());
     return 1;
 }
 
@@ -524,11 +510,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&header, sizeof(header));
     Vector3 scale;
     in_.Read(&scale, sizeof(scale));
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        secondName = *text.Get();
-    }
+    in_.ReadString(&secondName);
     if (!in_.ok_) return 0;
     char model[kTextSize];
     char textureFrom[kTextSize];
@@ -544,11 +526,7 @@ int CPlayerClient::OnNewObject() {
         in_.ReadText(part, kTextSize);
         parts[i] = part;
     }
-    {
-        TextBuffer text;
-        in_.ReadString(text.Get());
-        scriptName = *text.Get();
-    }
+    in_.ReadString(&scriptName);
     int prototypeValue;
     in_.Read(&prototypeValue, 4);
 

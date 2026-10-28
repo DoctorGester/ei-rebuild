@@ -1249,7 +1249,7 @@ struct GameFlow {
     // field is active. Nothing without an active client session.
     void UpdateMultiplayerVariable();
     // The multiplayer start zone for the client session's game type: "bz2mpg".."bz4mpg" for
-    // 1..3, else "bz1mpg"; constructed into `out`, returned.
+    // 1..3, else "bz1mpg"; into `out`, returned.
     std::string* MultiplayerZoneInto(std::string* out);
     // Starts a multiplayer game: the party manager is reset, a single party record gets the unit id
     // 0x3B9AF5CE, the party outside a game is sent to the start zone with "z.MPGame1" = 1 and
@@ -1438,7 +1438,7 @@ inline constexpr int kSaveLastUncompressedVersion = /*00790264*/ 100;
 inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
-// section "briefing <name>" that is not "Hero"), or "", constructed into `out`. The briefing's
+// section "briefing <name>" that is not "Hero"), or "", into `out`. The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
 std::string* __stdcall BriefingSpeakerInto(std::string* out, const char* briefing);
 std::string* __stdcall BriefingVariableInto(std::string* out, const char* briefing);
