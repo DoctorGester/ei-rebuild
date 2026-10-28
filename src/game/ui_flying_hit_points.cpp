@@ -79,7 +79,7 @@ struct QuadBuffer {
         }
     }
     void Draw(CSceneRenderer* renderer) {
-        renderer->DrawTriangles(vertices, vertexCount, indices, static_cast<unsigned>(indexCount));
+        renderer->device_->DrawTlTriangles(vertices, vertexCount, indices, indexCount);
     }
 };
 
@@ -113,19 +113,14 @@ void CFlyingHitPoints::Add(int target, int amount, std::uint32_t flags) {
 int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
     std::string text;
     DWORD now = gameapi::timeGetTime();
-    // The render target's size (both stay unset without a primary surface).
-    std::uint32_t targetWidth = 0, targetHeight = 0;
-    if (renderer->device_->primary_) {
-        targetWidth = static_cast<std::uint32_t>(renderer->device_->renderTarget_->width);
-        targetHeight = static_cast<std::uint32_t>(renderer->device_->renderTarget_->height);
-    }
+    const RECT& screen = renderer->device_->screen_;
     if (!texture_) return 0;
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
     points_.remove_if([now](const FlyingHitPoint& point) { return static_cast<int>(now - point.time) > kLifetime; });
     if (!options::g_options->drawFlyingHp_) return 1;
 
-    const float width = static_cast<float>(targetWidth), height = static_cast<float>(targetHeight);
+    const float width = static_cast<float>(screen.right), height = static_cast<float>(screen.bottom);
     for (const FlyingHitPoint& point : points_) {
         // The age as a fraction of the lifetime, stored as float.
         float age = static_cast<float>(static_cast<float>(static_cast<int>(now - point.time)) * kPerMillisecond);

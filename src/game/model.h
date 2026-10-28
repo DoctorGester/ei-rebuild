@@ -254,64 +254,6 @@ private:
     CRenderPreset* presets_[kPresetCount] = {};   // counted
 };
 
-// The scene renderer's base class ("CVisualizator" in the game's messages); CSceneRenderer is its only one.
-class CVisualizator {
-public:
-    // Sets the render state's fog colour (render/render_state.h) to `colour`.
-    virtual int SetFogColourState(std::uint32_t colour) = 0;
-    virtual ~CVisualizator();
-    virtual void CreateRenderer(void* window, options::GameOptions* settings);
-    virtual void DestroyRenderer();
-    virtual int BeginScene() = 0;
-    virtual int EndScene() = 0;
-    virtual std::uint32_t FrameTime() = 0;
-    // SetBaseColour (the renderer's version also tints the device object). Sets the draw colour.
-    virtual void SetColour(std::uint32_t colour);
-    virtual int SetBlend(render::Blend source, render::Blend dest) = 0;
-    virtual int SetTexture(int stage, CTexture* texture) = 0;
-    virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices,
-                              unsigned indexCount) = 0;
-    virtual int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
-                              CTexture* textureA, CTexture* textureB) = 0;
-    virtual int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen) = 0;
-    virtual void DrawLineList(LineBatch* lines) = 0;
-    virtual int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length,
-                          float offset, float slant) = 0;
-    virtual int DrawSprites(int unknown, void* points, void* sprites) = 0;
-    virtual int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX,
-                                    const Vector3* axisY) = 0;
-    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) = 0;
-    virtual bool SetGamma(float brightness, float contrast, float gamma) = 0;
-    virtual void GetGamma(float* brightness, float* contrast, float* gamma) const = 0;
-    virtual bool RestoreSurfaces() = 0;
-
-    // The base's part of the renderer's creation: a new transform pipeline, then 2DintMMX.dll loaded and its
-    // GetGraphicsProcessor() kept (fatal when missing, or without MMX). Returns the graphics processor.
-    void* CreateBase(void* window, options::GameOptions* settings);
-    // The base constructor's work: flags_, pipeline_ and sun_ cleared.
-    CVisualizator* SetUpBase();
-    // Drops the sun (telling the transform object), the pipeline and 2DintMMX.dll.
-    void DestroyBase();
-    // colour_ = `colour`, and the transform object's ambient from it.
-    void SetBaseColour(std::uint32_t colour);
-    // The sun becomes `light` (counted; the old one released) and goes to the transform object (AddSun).
-    void SetSun(CLight* light);
-    // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
-    void SetSunAndAmbient(CLight* light, float r, float g, float b);
-
-    std::uint32_t flags_;            // bit 0: the software cursor option; bit 1 set by the creation
-    CTransformPipeline* pipeline_;   // counted
-    CPixelConverter* graphicsProcessor_;   // 2DintMMX.dll's GetGraphicsProcessor()
-    void* graphicsLibrary_;          // the HMODULE of 2DintMMX.dll
-    std::uint32_t fogColour_;        // also the colour the frame is cleared with
-    std::uint32_t colour_;           // the draw colour
-    // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
-    CLight* sun_;
-
-protected:
-    CVisualizator();
-};
-
 // The ambient colour (r, g, b in 0..1) SetBaseColour last gave the transform object: 3DfpFPU's object
 // is one for every renderer, and its LightMesh lit the figure parts with it; the parts lit on the GPU
 // take it from here.
@@ -351,89 +293,108 @@ struct HeldDevice {
     CTextureDevice* device;
 };
 
-// The scene renderer (the global renderer object, &g_sceneRenderer.Get()).
-class CSceneRenderer : public CVisualizator {
+// The scene renderer (the global renderer object, &g_sceneRenderer.Get(); "CVisualizator" in the game's messages).
+class CSceneRenderer final {
 public:
-    int SetFogColourState(std::uint32_t colour) override;
-    ~CSceneRenderer() override;
-    void CreateRenderer(void* window, options::GameOptions* settings) override;
-    void DestroyRenderer() override;
+    CSceneRenderer() = default;
+    ~CSceneRenderer();
+    CSceneRenderer(const CSceneRenderer&) = delete;
+    CSceneRenderer& operator=(const CSceneRenderer&) = delete;
+
+    // Sets the render state's fog colour (render/render_state.h) to `colour`.
+    int SetFogColourState(std::uint32_t colour);
+    void CreateRenderer(void* window, options::GameOptions* settings);
+    // Drops the sun, the pipeline, 2DintMMX.dll, the helper and the device object.
+    void DestroyRenderer();
     // 0 unless flags_ bit 0 is set. Updates the frame statistics, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.
-    int BeginScene() override;
+    int BeginScene();
     // Flushes the device's batches and ends the scene, then shows "FPS", "num verts" and "num trias" on the
     // debug panel. Returns 1.
-    int EndScene() override;
-    std::uint32_t FrameTime() override { return frameTime_; }
-    // Sets the colour the next draws are tinted with (also the device object's colour_) and the ambient
-    // from it (SetBaseColour).
-    void SetColour(std::uint32_t colour) override;
+    int EndScene();
+    std::uint32_t FrameTime() const { return frameTime_; }
+    // Sets the colour the next draws are tinted with (colour_ and the device object's colour_) and the transform
+    // object's ambient from it.
+    void SetColour(std::uint32_t colour);
     // Sets SRCBLEND, then DESTBLEND.
-    int SetBlend(render::Blend source, render::Blend dest) override;
+    int SetBlend(render::Blend source, render::Blend dest);
     // Binds `texture` (a texture object, or null) to stage `stage`.
-    int SetTexture(int stage, CTexture* texture) override;
-    // Draws pre-transformed vertices (D3DTLVERTEX) as an indexed triangle list with the current state.
-    int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount) override;
+    int SetTexture(int stage, CTexture* texture);
     // Draws `figure` (a CFigureMesh) through its drawer's lit draw with `lights`, the drawing context
     // `material`, `alpha`, `screen` (or null) and two textures, unless it is hidden (flags bit 0x80).
     int DrawFigureLit(CFigureMesh* figure, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen, CTexture* textureA,
-                      CTexture* textureB) override;
+                      CTexture* textureB);
     // Draws `figure` through its drawer unless it is hidden (flags bit 0x80); `alpha` reaches the mesh
     // draw, `screen` (or null) gets the rectangle drawn, `material` (null, or an interface sprite's material)
     // is passed on.
-    int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen) override;
-    void DrawLineList(LineBatch* lines) override;
+    int DrawFigure(CFigureMesh* figure, CMaterial* material, int alpha, tagRECT* screen);
+    void DrawLineList(LineBatch* lines);
     // Draws a strip along `points` (a lightning segment's aligned points) of `width` with the bound texture:
     // `visibility` the bounds' clip result, the texture's `length` and `offset` along it (0 and 0: untextured
     // lengthwise), `slant` 0.25 at every call known.
     int DrawStrip(const std::vector<LightningPoint>* points, float width, int visibility, float length, float offset,
-                  float slant) override;
+                  float slant);
     // Draws sprites facing the view with the bound texture: `points` an aligned array of centres and sizes
     // (x, y, z, size), `sprites` an array of their colours and texture rectangles. The first argument is 0
     // at every call known.
-    int DrawSprites(int unknown, void* points, void* sprites) override;
+    int DrawSprites(int unknown, void* points, void* sprites);
     // The selection marker under a selected unit (the draw pass): a flat green arrow of half-transparent
     // 0x8000FF00, 0.3 above `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the
     // device's flat geometry draw as six triangles of two vertex blocks.
-    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY) override;
+    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY);
     // A black rectangle (left, top, right, bottom in screen pixels) of `alpha` over the current blend state,
     // with `outline` a white frame. Returns 1.
-    int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline) override;
+    int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
     // The primary surface's gamma ramp from the options' brightness, contrast and gamma (kept for GetGamma);
     // false without a device or DDCAPS2_PRIMARYGAMMA, else whether SetGammaRamp succeeded.
-    bool SetGamma(float brightness, float contrast, float gamma) override;
-    void GetGamma(float* brightness, float* contrast, float* gamma) const override;
+    bool SetGamma(float brightness, float contrast, float gamma);
+    void GetGamma(float* brightness, float* contrast, float* gamma) const;
     // After a switch back (WM_ACTIVATE): a full-screen device gets its cooperative level and display mode
     // back, then every surface and the texture manager are restored. False without a device object.
-    bool RestoreSurfaces() override;
-    // Unused: the matrix stacks filled again for `screen` and a field of view (0: the camera's).
-    virtual void SetView(const tagRECT* screen, float fieldOfView);
+    bool RestoreSurfaces();
 
     // Makes sure the texture in `holder` is loaded and binds it to `stage`.
     int BindHeldTexture(int stage, HeldTexture* holder);
     // The fog (and clear) colour from r, g, b in 0..1 (each rounded to the nearest integer), stored and set
     // through SetFogColourState.
     void SetFogColour(float r, float g, float b);
+    // The sun becomes `light` (counted; the old one released) and goes to the transform object (AddSun).
+    void SetSun(CLight* light);
+    // SetSun, then the colour from r, g, b in 0..1, packed as SetFogColour packs them.
+    void SetSunAndAmbient(CLight* light, float r, float g, float b);
 
-    HeldDevice device_;              // the device object
-    CRenderHelper* helper_;          // counted
+    std::uint32_t flags_ = 0;                  // bit 0: the software cursor option; bit 1 set by the creation
+    CTransformPipeline* pipeline_ = nullptr;   // counted
+    CPixelConverter* graphicsProcessor_ = nullptr;   // 2DintMMX.dll's GetGraphicsProcessor()
+    void* graphicsLibrary_ = nullptr;          // the HMODULE of 2DintMMX.dll
+    std::uint32_t fogColour_ = 0;              // also the colour the frame is cleared with
+    std::uint32_t colour_ = 0;                 // the draw colour
+    // The sun (counted; set together with the ambient colour, the client's lighting moves it every frame).
+    CLight* sun_ = nullptr;
+    HeldDevice device_ = {};                   // the device object
+    CRenderHelper* helper_ = nullptr;          // counted
     // The display settings SetGamma last applied, as given.
-    float brightness_;
-    float contrast_;
-    float gamma_;
+    float brightness_ = 0.0f;
+    float contrast_ = 0.0f;
+    float gamma_ = 0.0f;
     // The frame statistics (milliseconds; BeginScene / EndScene).
-    std::uint32_t frameTime_;        // the last frame's
-    std::uint32_t shortestFrame_;
-    std::uint32_t longestFrame_;     // (under 1000)
-    std::uint32_t averageFrame_;     // over the last second's worth of frames
-    std::uint32_t totalTime_;
-    std::uint32_t frameCount_;
-    std::uint32_t frameStart_;       // timeGetTime at this frame's BeginScene
-    std::uint32_t lastFrameStart_;   // the previous frame's (the creation: its time)
-    std::uint32_t windowTime_;       // the time and frames toward the average
-    std::uint32_t windowFrames_;
+    std::uint32_t frameTime_ = 0;              // the last frame's
+    std::uint32_t shortestFrame_ = 0;
+    std::uint32_t longestFrame_ = 0;           // (under 1000)
+    std::uint32_t averageFrame_ = 0;           // over the last second's worth of frames
+    std::uint32_t totalTime_ = 0;
+    std::uint32_t frameCount_ = 0;
+    std::uint32_t frameStart_ = 0;             // timeGetTime at this frame's BeginScene
+    std::uint32_t lastFrameStart_ = 0;         // the previous frame's (the creation: its time)
+    std::uint32_t windowTime_ = 0;             // the time and frames toward the average
+    std::uint32_t windowFrames_ = 0;
 
-    CSceneRenderer();
+private:
+    // The creation's first step: a new transform pipeline, then 2DintMMX.dll loaded and its GetGraphicsProcessor()
+    // kept (fatal when missing, or without MMX).
+    void LoadPipelineAndConverter(const options::GameOptions* settings);
+    // Drops the sun (telling the transform object), the pipeline and 2DintMMX.dll.
+    void ReleasePipelineAndConverter();
 };
 
 

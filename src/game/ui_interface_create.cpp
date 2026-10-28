@@ -79,15 +79,8 @@ void ChooseKeyboardLayout() {
 
 void CInterface3D::Create(CTextureDevice* device) {
     renderer_ = device;
-    // (Without a primary surface the original game stores uninitialised stack memory in both.)
-    int width = 0;
-    int height = 0;
-    if (device->primary_) {
-        width = device->renderTarget_->width;
-        height = device->renderTarget_->height;
-    }
-    width_ = width;
-    height_ = height;
+    width_ = device->screen_.right;
+    height_ = device->screen_.bottom;
 
     // The scale: what a 75-point font is high here, in pixels / 100.
     if (!CreateFont(fonts_[0], kMeasureSize)) return;
@@ -97,7 +90,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     const float scale = static_cast<float>(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01
     fonts_[0].reset();
     for (int i = 0; i < 3; ++i) {
-        float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f;   // 1 / 800
+        float size = static_cast<float>(width_ * kFontShares[i]) / scale * 0.00125f;   // 1 / 800
         if (!CreateFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 

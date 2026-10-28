@@ -52,7 +52,7 @@ Offset access, `VCall`, byte offset arithmetic, per-file vector struct and `Slot
 (4 byte arithmetic, renderer ticket). Duplicate forwarders stay 0. Every new virtual call must be checked in the release objects (dumpbin):
 none may be devirtualised.
 
-- `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `primary_`, `renderTarget_` width / height, `screen_`,
+- `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `screen_`,
   `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted
   with `delete` (`CDib` is a real class).
 - `app_registry`: prototypes and counted pointers are `CRefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM

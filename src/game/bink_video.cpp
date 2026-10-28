@@ -84,7 +84,7 @@ void ReleaseLoadingHolder() {
     if (g_loadingHolder) g_loadingHolder->Release();
 }
 
-unsigned CBinkVideo::Frame(char toPrimary) {
+unsigned CBinkVideo::Frame() {
     if (!options::g_options->video_) return 0;   // movies off
     BinkHeader* binkHandle = this->bink;
     if (!binkHandle) return 0;
@@ -96,9 +96,7 @@ unsigned CBinkVideo::Frame(char toPrimary) {
         render::MovieFrame(this, frame.data(), static_cast<int>(binkHandle->width), static_cast<int>(binkHandle->height));
         gameapi::BinkNextFrame(binkHandle);
     }
-    Surface* surfaceHolder = this->holder;
-    Surface* target = toPrimary ? surfaceHolder->device->primary_ : surfaceHolder->device->renderTarget_;
-    if (target != surfaceHolder) render::MovieBlit(this, ToRender(to));
+    render::MovieBlit(this, ToRender(to));
     const BinkHeader* header = this->bink;
     return static_cast<int>(header->lastFrame) < static_cast<int>(header->frames) ? 1u : 0u;
 }
@@ -178,12 +176,9 @@ char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char s
         gameapi::BinkDoFrame(bink);
         CopyFrame(bink, &frame);
         render::MovieFrame(&g_movieKey, frame.data(), width, height);
-        Surface* primary = holder->device->primary_;
-        if (primary != holder) {
-            if (clearScreen) render::Fill(ToRender(screen), 0);
-            render::MovieBlit(&g_movieKey, ToRender(to));
-            PresentMovieFrame();
-        }
+        if (clearScreen) render::Fill(ToRender(screen), 0);
+        render::MovieBlit(&g_movieKey, ToRender(to));
+        PresentMovieFrame();
         if (bink->lastFrame != bink->frames) gameapi::BinkNextFrame(bink);
         start = now;
     }
@@ -242,15 +237,10 @@ void ShowLoadingMovie(int progress) {
     }
     g_cursor->TakeLock();
     bink = g_loadingBink;
-    Surface* holder = g_loadingHolder;
-    RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
-    Surface* primary = holder->device->primary_;
-    if (primary != holder) {
-        const void* key = &g_loadingScreen;   // the loading movie in the new renderer
-        if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);
-        render::MovieBlit(key, ToRender(g_loadingScreen));
-        PresentMovieFrame();
-    }
+    const void* key = &g_loadingScreen;   // the loading movie in the new renderer
+    if (decoded) render::MovieFrame(key, frame.data(), static_cast<int>(bink->width), static_cast<int>(bink->height));
+    render::MovieBlit(key, ToRender(g_loadingScreen));
+    PresentMovieFrame();
     g_cursor->ReleaseLock();
 }
 

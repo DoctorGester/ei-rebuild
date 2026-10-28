@@ -240,7 +240,7 @@ provides; setting "i.onspellconstr" / "i.onitemconstr" without one crashes the o
 DeconstructItem, the trade / repair grid and maker Builds (ui_camp_make, ui_camp_deals, ui_gallery_deals), the repair
 grid's draw (page 6; ui_camp_deals, ui_gallery_deals), the trade panel's click and RestoreRecord (ui_trade_hold,
 ui_trade_restore, ui_gallery_deals: vanilla buys only with "give 0 exp" typed while the camp is open; given in the battle
-it did not show in the camp), FindPaths and MayTravel (ui_gallery_deals: "z.gz1g" / "z.gz2g" set to 2 before `screen 4`,
+it did not show in the camp), FindPaths (ui_gallery_deals: "z.gz1g" / "z.gz2g" set to 2 before `screen 4`,
 then a click on gz2g's area at (140, 277) opens the objectives window with the ways), CGlobalMap::Close (ui_camp). Not
 reached: a link click (regions 3 and up: a "z.<way>" = 2 way of kind 2 with a figure; it travels at once), the repair
 grid with an item in it (only a worn item is offered, and no script command or key wears one). The map's camp button
@@ -879,9 +879,9 @@ with no Lock (DirectPixels).
 A window surface's draw (CUiSurface::Blit; called by CUiWindow's surface pass and the interface's draw for
 the backdrop and the frame rate surface): when the surface exists and is shown (flags_ bit 4), the part of
 its screen rectangle (rect_) inside the screen (the interface's width_ and height_) is blitted from the
-surface (holder_) onto the render target (the holder's device object's renderTarget_): with the matching
+surface (holder_) onto the screen: with the matching
 source rectangle, or the whole surface stretched when bit 2 is set; with the source colour key background_
-when bit 1 is set. Nothing when the surface is the render target itself. The new renderer (src/render)
+when bit 1 is set. The new renderer (src/render)
 takes the blit (render::SurfaceBlit); the holder has no DirectDraw surface, only the new renderer's memory
 (the original's Blt is gone with the DirectDraw fallback). A native surface (ui_native.h) can draw its
 canvas instead. See docs/notes/renderer.md and docs/notes/ui-native.md.

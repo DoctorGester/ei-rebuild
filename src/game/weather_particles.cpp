@@ -302,14 +302,7 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
 }
 
 void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
-    CTextureDevice* device = renderer->device_;
-    TLVertex* data = vertices.data();
-    const int count = std::ssize(vertices);
-    if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
-    render::TlDraw(device, data, render::kFvfTextured, count, indices.data(), vertexCount, render::Primitive::TriangleList);
-    device->vertexCount_ += count;
-    device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(vertexCount) / 3u);
-    device->drawCount_ += 1;
+    renderer->device_->DrawTlTriangles(vertices.data(), std::ssize(vertices), indices.data(), vertexCount);
 }
 
 int CRainSnow::DrawRain(CSceneRenderer* renderer) {

@@ -1,4 +1,4 @@
-// The scene renderer's lifetime and small slots (the renderer; its base class, owns +0x04.. +0x1C):
+// The scene renderer's lifetime and small members:
 // constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
 // figure draws, the line list draw, the gamma getter, the surfaces' restore after a
 // switch back, and the device object's counted holder (docs/notes/renderer.md).
@@ -38,22 +38,18 @@ const char* NullTextureText() { return "Final loading data to NULL texture!\n"; 
 
 } // namespace
 
-// --- Base class (CVisualizator) ----------------------
+// --- The renderer -----------------------------------
 
-CVisualizator* CVisualizator::SetUpBase() {
-    pipeline_ = nullptr;
-    flags_ = 0;
-    sun_ = nullptr;
-    return this;
+CSceneRenderer::~CSceneRenderer() {
+    CTextureDevice* device = device_;
+    device_ = nullptr;
+    if (device) device->Release();
+    // The helper's member destructor: released, the pointer left as it is.
+    if (helper_ && --helper_->refs_ == 0) delete helper_;
+    ReleasePipelineAndConverter();
 }
 
-CVisualizator::CVisualizator() { SetUpBase(); }
-
-void CVisualizator::CreateRenderer(void* window, options::GameOptions* settings) { CreateBase(window, settings); }
-void CVisualizator::DestroyRenderer() { DestroyBase(); }
-void CVisualizator::SetColour(std::uint32_t colour) { SetBaseColour(colour); }
-
-void CVisualizator::DestroyBase() {
+void CSceneRenderer::ReleasePipelineAndConverter() {
     CLight* sun = sun_;
     sun_ = nullptr;
     if (sun) sun->Release();
@@ -66,10 +62,7 @@ void CVisualizator::DestroyBase() {
     graphicsProcessor_ = nullptr;
 }
 
-// The member destructor of pipeline_ then finds it null.
-CVisualizator::~CVisualizator() { DestroyBase(); }
-
-void CVisualizator::SetBaseColour(std::uint32_t colour) {
+void CSceneRenderer::SetColour(std::uint32_t colour) {
     colour_ = colour;
     ITransformPipeline* transform = pipeline_->transform_;
     // Each byte (as a 64-bit integer) times the float constant, stored as the float argument.
@@ -80,11 +73,12 @@ void CVisualizator::SetBaseColour(std::uint32_t colour) {
     g_transformAmbientColour[1] = green * kInverseColourScale;
     g_transformAmbientColour[2] = blue * kInverseColourScale;
     transform->SetAmbient(g_transformAmbientColour[0], g_transformAmbientColour[1], g_transformAmbientColour[2]);
+    device_->colour_ = colour;
 }
 
 const float* TransformAmbientColour() { return g_transformAmbientColour; }
 
-void CVisualizator::SetSun(CLight* light) {
+void CSceneRenderer::SetSun(CLight* light) {
     CLight* old = sun_;
     sun_ = light;
     if (light) ++light->refCount_;
@@ -92,30 +86,13 @@ void CVisualizator::SetSun(CLight* light) {
     if (pipeline_ && pipeline_->transform_) pipeline_->transform_->AddSun(sun_);
 }
 
-void CVisualizator::SetSunAndAmbient(CLight* light, float r, float g, float b) {
+void CSceneRenderer::SetSunAndAmbient(CLight* light, float r, float g, float b) {
     SetSun(light);
     // Each product is stored as a float, then it is rounded to the nearest integer.
     const std::uint32_t red = static_cast<std::uint32_t>(x87::fistp(r * kColourScale));
     const std::uint32_t green = static_cast<std::uint32_t>(x87::fistp(g * kColourScale));
     const std::uint32_t blue = static_cast<std::uint32_t>(x87::fistp(b * kColourScale));
     SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
-}
-
-// --- The renderer -----------------------------------
-
-// The renderer.
-
-CSceneRenderer::CSceneRenderer() {
-    device_ = nullptr;
-    helper_ = nullptr;
-}
-
-CSceneRenderer::~CSceneRenderer() {
-    CTextureDevice* device = device_;
-    device_ = nullptr;
-    if (device) device->Release();
-    // The helper's member destructor: released, the pointer left as it is.
-    if (helper_ && --helper_->refs_ == 0) delete helper_;
 }
 
 // The scene renderer and the device's lock, zero at the start: built by their static initialisers
@@ -140,7 +117,7 @@ void ConstructDeviceLock() {
 }
 
 void CSceneRenderer::DestroyRenderer() {
-    DestroyBase();
+    ReleasePipelineAndConverter();
     flags_ &= ~2u;
     CRenderHelper* helper = helper_;
     helper_ = nullptr;
@@ -159,11 +136,6 @@ int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     bound = surface;
     ++device->textureChanges_;
     return 1;
-}
-
-void CSceneRenderer::SetColour(std::uint32_t colour) {
-    SetBaseColour(colour);
-    device_->colour_ = colour;
 }
 
 void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }

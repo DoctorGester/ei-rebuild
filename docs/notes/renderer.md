@@ -133,7 +133,7 @@ texturing. Textures use the .mmp file's own mip levels (not a box filter of leve
 | Pass state | per pass of a mesh (material technique 004EB550, or two textures 004EB370): blend, alpha test, depth, culling, specular, fog, texture factor, two stages, filters, addressing, bound holders (CTextureDevice::stageSurfaces_) | `device_draw.cpp` -> `render::MeshPass` (section 5); per terrain page (blend, depth, culling: the pipeline) at `render::TerrainPage` | drawn |
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | the sun's shadow map (R16j, section 13): which object a mesh belongs to, which objects cast, the sun; the game's 64x64 shadow textures (2DintMMX) and decals are neither made nor drawn (R16i; their code deleted in R26), their projection (the shadow's sphere) still runs | `world_client_draw.cpp` (00569E40 `render::ShadowSun`, 0056AFE0 `BeginCaster` / `EndCaster`), `map_object_shadow.cpp` (0051CE60 `CastsShadow`) | drawn (the map only) |
-| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
+| Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`CTextureDevice::DrawTlTriangles`, `renderer_strip.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
 | Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices | `DrawParticles` (after the fog pass) -> `render::TlDraw` | drawn |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
@@ -400,11 +400,12 @@ no stand-in for any of them (R27c):
   object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
   depth, 2DintMMX's converter, the transform pipeline, the stages' bound holders and the draws' state. Its constructor
   reads CPUID (MMX required), loads 2DintMMX, starts the new renderer (`render::StartPresenting`: the Direct3D 11
-  device), makes the primary and the render target two holders without pixels of the screen's width, height and bits
-  (`GameTargetSize`, the screen copies and the `if (primary_) renderTarget_->width` reads see the screen) and sets the
-  main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passed DDSCL_FPUSETUP). The
+  device) and sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passed DDSCL_FPUSETUP). The
   options' driver, refresh rate and depth / stencil bits choose nothing. No display mode list (nothing read it), no
-  video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7).
+  video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7). Where the game read the primary's
+  or the render target's size (`GameTargetSize`, the cursor's bounds, the interface's size, the sprites' clip and the
+  hit points' screen) it reads `screen_` (R27f); the screenshot and the movie recorder copy the renderer's last frame
+  at the screen's size and depth (`CaptureScreen`, surface_capture.cpp).
 - What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
   the material presets take every stage of their states (`CRenderHelper::Record`: eight stages, every texture
   operation); the texture manager loads textures up to their size (`limitTo512_` 0: 4096-pixel textures) and caches
@@ -426,12 +427,11 @@ no stand-in for any of them (R27c):
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
   that rectangle is in physical pixels), stretched over it, `Present(1, 0)`. The movie players and the loading screen
   go through 004EF610 as before.
-- Surfaceless holders are the same only when they are one holder (pointer compare) in 005FDA80 (window blits:
-  otherwise every window was skipped), the three movie players' "not the primary itself" checks and
-  CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once. The movie holders
-  (`bink_video.cpp` `NewMovieHolder`): 00784756 (`g_deviceNamed`) is written by the game start (00456E35) from the
-  options' driver index, 0 for the default driver, so the holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the game's error box); each
-  Bink frame is copied into memory the renderer owns (`render::MovieFrame`). Pictures loaded with the video-memory flag
+- The original's "is this holder the primary / render target" checks (005FDA80's window blits, the three movie
+  players, CUiSurface::CaptureScreen) are gone: no holder stands for the screen. 00504780 (restore after a lost
+  device) returns at once. Each Bink frame is copied into memory the renderer owns (`render::MovieFrame`); the
+  original's 00784756, written by the game start (00456E35) from the options' driver index, only chose the movie
+  holder's memory kind and is gone. Pictures loaded with the video-memory flag
   (004F0060) get the renderer's memory as the system-memory ones do (surface.cpp).
 - The harness shows windows without activating them; without DirectDraw nothing activates the game window, so the
   game's active flag (0079BC5C) and the renderer's bit 0 stay 0 and no frame is drawn. The harness sends one WM_ACTIVATE

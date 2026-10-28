@@ -39,8 +39,7 @@ struct ChannelLayout {
 };
 
 // A surface or texture holder, counted: the interface windows', the software cursor's and the movies' surfaces, the
-// textures, the screen's stand-ins (the device object's primary_ and renderTarget_, no pixels). Its pixels are the
-// renderer's memory for it, or the texture the renderer decoded for it.
+// textures. Its pixels are the renderer's memory for it, or the texture the renderer decoded for it.
 struct Surface final : CRendererBase {
     // No pixels yet; the maker sets the size.
     explicit Surface(CTextureDevice* device);

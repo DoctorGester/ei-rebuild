@@ -1,7 +1,6 @@
-// Reading a surface back into a bitmap (dib.h): the screenshots (Scroll Lock,
-// ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The game locks the
-// surface for reading and copies its rows from the last to the first, as a .bmp keeps them; no
-// holder has a DirectDraw surface, so the rows come from the new renderer's last frame.
+// Reading the screen back into a bitmap (dib.h): the screenshots (Scroll Lock, ui_interface_keys.cpp) and the movie
+// recorder's frames (app_frame.cpp). The rows come from the new renderer's last frame, copied from the last to the
+// first, as a .bmp keeps them.
 #include "dib.h"
 
 #include "texture.h"
@@ -31,10 +30,10 @@ int BytesPerPixel(int bits) {
 
 } // namespace
 
-// The bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
-// channel masks the surface would have had (ScreenFormat), rows bottom-up, the part of the
-// rectangle outside the frame black. Null (logged) when the new renderer has no frame.
-CDib* CaptureSurfaceRect(Surface* self, const RECT* rect) {
+// The bitmap is made from the new renderer's last frame (render::ReadFrame), in the screen's depth and channel masks
+// (ScreenFormat), rows bottom-up, the part of the screen outside the frame black. Null (logged) when the new renderer
+// has no frame.
+CDib* CaptureScreen(const CTextureDevice* device) {
     int frameWidth = 0, frameHeight = 0;
     std::vector<std::uint8_t> frame;
     if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
@@ -43,21 +42,19 @@ CDib* CaptureSurfaceRect(Surface* self, const RECT* rect) {
         logged = true;
         return nullptr;
     }
-    const PixelFormat format = ScreenFormat(self->bitsPerPixel);
-    const int width = rect->right - rect->left, height = rect->bottom - rect->top;
-    auto* dib = new CDib(width, height, self->bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
+    const int bitsPerPixel = device->bitsPerPixel_;
+    const PixelFormat format = ScreenFormat(bitsPerPixel);
+    const int width = device->screen_.right, height = device->screen_.bottom;
+    auto* dib = new CDib(width, height, bitsPerPixel, format.redMask, format.greenMask, format.blueMask);
     std::uint8_t* out = dib->AllocateBits();
-    const int pixelBytes = BytesPerPixel(self->bitsPerPixel);
+    const int pixelBytes = BytesPerPixel(bitsPerPixel);
     if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;
     const std::size_t rowBytes = static_cast<std::size_t>(width) * pixelBytes;
     for (int row = height - 1; row >= 0; --row, out += rowBytes) {
         std::memset(out, 0, rowBytes);
-        const int y = rect->top + row;
-        if (y < 0 || y >= frameHeight) continue;
-        for (int x = 0; x < width; ++x) {
-            const int fx = rect->left + x;
-            if (fx < 0 || fx >= frameWidth) continue;
-            const std::uint8_t* bgr = &frame[(static_cast<std::size_t>(y) * frameWidth + fx) * 3];
+        if (row >= frameHeight) continue;
+        for (int x = 0; x < width && x < frameWidth; ++x) {
+            const std::uint8_t* bgr = &frame[(static_cast<std::size_t>(row) * frameWidth + x) * 3];
             if (pixelBytes == 2) {
                 const std::uint16_t pixel = static_cast<std::uint16_t>(((bgr[2] >> 3) << 11) | ((bgr[1] >> 2) << 5) | (bgr[0] >> 3));
                 std::memcpy(out + x * 2, &pixel, 2);
@@ -68,9 +65,4 @@ CDib* CaptureSurfaceRect(Surface* self, const RECT* rect) {
         }
     }
     return dib;
-}
-
-CDib* CaptureSurface(Surface* self) {
-    const RECT whole = {0, 0, self->width, self->height};
-    return CaptureSurfaceRect(self, &whole);
 }

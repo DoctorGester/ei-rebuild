@@ -180,7 +180,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
-    CreateBase(window, settings);
+    LoadPipelineAndConverter(settings);
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
     CTextureDevice* device = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen_ != 0,
                                                 settings->resolutionX_, settings->resolutionY_, settings->colourDepth_);
@@ -215,49 +215,4 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     SetColour(ambient);
 
     CreateHelper(this, settings);
-}
-
-void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
-    CTransformPipeline* pipeline = pipeline_;
-    MatrixStack* stacks = pipeline->stacks_;
-    for (int i = 15; i >= 0; --i) stacks[i].count = 0;
-    const CCamera* cam = &g_camera.Get();
-    float zNear, zFar, fov;
-    zNear = cam->nearDistance_;
-    zFar = cam->farDistance_;
-    fov = cam->fieldOfView_;
-    // Any field of view but 0 replaces the camera's.
-    EI_NAN_AUDIT(fieldOfView);
-    if (fieldOfView != 0.0f) fov = fieldOfView;
-    const int width = screen->right - screen->left;
-    const int height = screen->bottom - screen->top;
-    Matrix4 m;
-    ProjectionMatrix(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
-    StackPush(stacks[kProjection], &m);
-    ViewportMatrix(&m, screen);
-    StackPush(stacks[kViewport], &m);
-    AxisSwapMatrix(&m);
-    StackPush(stacks[kAxisSwap], &m);
-    // Unlike the creation, only the viewport and axis swap products are inlined; the rest go
-    // through the pipeline's own push.
-    StackPush(stacks[kStackA], StackTop(stacks[kViewport]));
-    StackPush(stacks[kStackA], StackTop(stacks[kAxisSwap]));
-    StackPush(stacks[kStackA], StackTop(stacks[kProjection]));
-    StackPush(stacks[kStackB], StackTop(stacks[kViewport]));
-    StackPush(stacks[kStackB], StackTop(stacks[kAxisSwap]));
-    pipeline_->PushMatrix(StackTop(pipeline_->stacks_[kProjection])->m, kStackB);
-    for (int stack : kSwapStacks) {
-        pipeline = pipeline_;
-        pipeline->PushMatrix(pipeline->Top(kAxisSwap)->m, stack);
-        pipeline = pipeline_;
-        pipeline->PushMatrix(pipeline->Top(kProjection)->m, stack);
-    }
-    Matrix4 transposed;
-    std::memcpy(&transposed, pipeline_->Top(kProjection), sizeof(Matrix4));
-    Transpose(transposed.m);
-    Matrix4 copy;
-    std::memcpy(&copy, &transposed, sizeof(Matrix4));
-    pipeline_->transform_->SetProjection(copy.m);
-    pipeline_->transform_->SetViewportSize(static_cast<float>(screen->right - screen->left),
-                                           static_cast<float>(screen->bottom - screen->top));
 }
