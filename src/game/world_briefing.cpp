@@ -52,17 +52,23 @@ std::string* __stdcall BriefingSpeakerInto(std::string* out, const char* briefin
         std::string section = prefix + briefing;
         missing = texts->CTextManager::Open(section.c_str()) == 0;
     }
-    if (missing) *out = game::EmptyText(); return out;
+    if (missing) {
+        *out = game::EmptyText();
+        return out;
+    }
     // The first "#show" line whose second word is not "Hero" names the speaker.
     std::vector<std::string> words;
     while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
         if (words.size() >= 2 &&
             gamecrt::mbsicmp(words[1].c_str(),
-                            game::briefingwords::Hero()) != 0)
-            *out = words[1]; return out;
+                            game::briefingwords::Hero()) != 0) {
+            *out = words[1];
+            return out;
+        }
     }
-    *out = game::EmptyText(); return out;
+    *out = game::EmptyText();
+    return out;
 }
 
 std::string* __stdcall BriefingVariableInto(std::string* out, const char* briefing) {
@@ -288,7 +294,10 @@ std::string* __stdcall SessionMapNameInto(std::string* out) {
         peer = client->map_;
     else if (Active(server) && Active(server->map_.Get()))
         peer = server->map_.Get();
-    if (!peer) *out = game::EmptyText(); return out;
+    if (!peer) {
+        *out = game::EmptyText();
+        return out;
+    }
     name = peer->text_.data();
     CTextManager* texts = TheTextManager();
     int found;

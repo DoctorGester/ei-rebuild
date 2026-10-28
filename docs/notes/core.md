@@ -474,6 +474,26 @@ to which template:
   went; the trees allocate by sizeof). RunScriptText takes a `const std::string&` and CInterface3D::TextExtent a
   `std::string_view`. `TextSources::FindText` is `FindKeyText`: windows.h's FindText macro renamed the call but not
   the declaration once console.h stopped coming first in text_reader.cpp.
+- The whole-tree pass (batches 15-18 at once): no `mfc::CString` is left in src/game but CStdioFile::ReadString's
+  local (MFC's ReadLine fills a CString of src/lib). A one-off script, kept out of the repository, retyped every
+  declaration and then ran c14_strings.py's diagnostic rules over the verify build; its shapes: `kUnset` storage
+  becomes a plain `std::string` (the callee assigns), `std::construct_at(out, a)` / `new (out) mfc::CString(a)` in a
+  function taking `mfc::CString* out` (or a `void* out` it built a CString in) becomes `*out = a`, raw
+  `alignas` storage a local whose address the call takes (its `std::destroy_at` goes), by-value parameters
+  `const std::string&` (`std::string` where the body changes them), `mfc::operator+(a, b)` -> `a + b`, the CString
+  overloads beside std::string ones went (asset_text's, record_members'). So the folders and command-line globals
+  (`lib::StaticObject<std::string>`; named_data.py still counts game.exe's range as one CString pointer), the out
+  parameters (`std::string*`: Chunk / CStream / DeltaField ReadString, the title and zone getters, TypeName,
+  MapPath ...), CItem's name virtuals, the sorts over `std::string*`, PersonTextMap (its node grew: the 0x18 assert
+  went), MpStringVector, the script's Load / QualifyName / ApplyDefines / AddParameter / ReadTextFile and the
+  registry getters are std::string. ChunkArchive::CStringField went (StringField writes the same bytes for text
+  without zero bytes); CStream::ReadInto is not a template. Left for the bridge: src/lib's MFC (CFileFind's
+  returns, CStdioFile, `stlp::CStringFloatTraits`: NamedFloatTable is still a hash_map<CString, float>, its
+  operator[] takes a std::string), mfc::CString itself, and tests' Original* layouts (record_script*.cpp,
+  script_original.h, record_stats.cpp, harness views).
+- Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
+  at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
+  body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.
 - To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
