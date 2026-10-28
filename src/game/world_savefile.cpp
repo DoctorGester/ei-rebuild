@@ -6,13 +6,11 @@
 #include "core_streams.h"
 #include "net_coder.h"
 #include "object.h"
+#include "save_versions.h"
 
 #include <cstring>
 
 namespace {
-
-constexpr int kVersionChecksum = 0x6B;    // above: a checksum of the uncompressed data
-constexpr int kVersionFlag = 0x71;        // above: a byte saying whether the data is compressed
 
 // The stream's format version, compared signed.
 int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
@@ -121,7 +119,7 @@ bool SaveFileRead(CMemoryStream* out, unsigned magic, int minimum, int maximum, 
         LocalBuffer plain;
         std::uint32_t stored = 0;
         if (VersionOf(file) > kVersionChecksum) file->ReadValue(stored);
-        if (VersionOf(file) > kVersionFlag) file->ReadValue(compressed);
+        if (VersionOf(file) > kVersionCompressedFlag) file->ReadValue(compressed);
         int start = static_cast<int>(file->Position());
         int size = static_cast<int>(file->Size()) - start;
         if (compressed) {

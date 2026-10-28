@@ -231,8 +231,6 @@ constexpr float kCaveReverbTime = 3.0f;
 // The LightingFreq option counts milliseconds; the terrain counts frames of this many.
 constexpr int kFrameMilliseconds = 66;
 // Terrain flags the options and the cave decide.
-constexpr std::uint32_t kLandscapeWaves = 0x01;
-constexpr std::uint32_t kLandscapeSelfShadowing = 0x10;
 constexpr int kCave = 1;
 
 // A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
@@ -1049,7 +1047,7 @@ int CWorldClient::LoadZone(CStream* block) {
     FitGrid(secondGrid_, terrain);
     if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
     if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
-    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;
+    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSunShadows;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         HeldTexture* holder = &skyDome_->texture;

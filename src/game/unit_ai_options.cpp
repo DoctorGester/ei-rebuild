@@ -5,6 +5,7 @@
 #include "combat.h"
 #include "object_tables.h"
 #include "spell.h"
+#include "save_versions.h"
 
 #include <bit>
 #include <initializer_list>
@@ -54,7 +55,7 @@ double AIAttackOption::Weight() const {
 }
 
 void AIAttackOption::Load(CStream* stream) {
-    if (stream->version_ < 0x5A) {
+    if (stream->version_ < kVersionSpellOptions) {
         stream->ReadValue(part);
         std::uint32_t dropped;
         stream->ReadValue(dropped);

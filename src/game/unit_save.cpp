@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "save_versions.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -21,9 +22,6 @@
 namespace {
 constexpr std::uint32_t kFlag800000 = 0x800000;     // flags_, cleared by Load
 
-constexpr int kVersionFightAtWill = 0x49;
-constexpr int kVersionPrototypeNames = 0x4D;
-constexpr int kVersionSecondName = 0x6A;
 
 
 // The index of prototype record `record` (one of the table's), or -1 without one.

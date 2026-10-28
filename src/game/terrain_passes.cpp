@@ -20,7 +20,6 @@ using terrain::SectorData;
 namespace {
 
 constexpr float kSectorCells = 32.0f;   // a sector's width in cells
-constexpr std::uint32_t kLit = 4;       // SectorAt's stage: the sector is lit (and so built)
 constexpr int kProjectStack = 1;        // the pipeline stack on-screen vertices are projected with
 
 // The squared-distance limits of the levels of detail 0 and 1.
@@ -32,7 +31,7 @@ template <typename Visit>
 bool ForVisibleSectors(Terrain* terrain, Visit visit) {
     for (int row = 0; row < std::ssize(terrain->visibleColumnFirst); ++row) {
         for (int column = terrain->visibleColumnFirst[row]; column <= terrain->visibleColumnLast[row]; ++column) {
-            SectorData* sector = terrain->SectorAt(column, terrain->visibleRowFirst + row, kLit, 1);
+            SectorData* sector = terrain->SectorAt(column, terrain->visibleRowFirst + row, kSectorLit, 1);
             if (sector && !visit(sector)) return false;
         }
     }
@@ -89,7 +88,7 @@ void SectorData::FindSeams() {
     // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
     // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
     const auto coarser = [&](int nx, int ny, int detail) {
-        const SectorData* neighbour = owner->SectorAt(nx, ny, kLit, 0);
+        const SectorData* neighbour = owner->SectorAt(nx, ny, kSectorLit, 0);
         return neighbour && neighbour->detail == detail && neighbour->IsDrawn();
     };
     if (detail == 0) {

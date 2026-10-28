@@ -9,6 +9,7 @@
 
 #include "game_singletons.h"
 #include "world.h"
+#include "save_versions.h"
 
 #include <cstdint>
 #include <cstring>
@@ -274,7 +275,7 @@ void CScript::LoadState(CStream* stream) {
     stream->ReadValue(fileCount_);
     g_streamedScript = nullptr;
 
-    if (StreamVersion(stream) < 0x57) return;
+    if (StreamVersion(stream) < kVersionScriptAreas) return;
     areas_.resize(ReadCount(stream));
     for (ScriptArea& area : areas_) {
         stream->ReadValue(area.id);

@@ -56,6 +56,23 @@ struct LandscapeLight {
 
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but vertices
 // can be displaced sideways, so a point may lie in a neighbouring cell. The client world's Setup makes it.
+// Terrain::landscapeFlags.
+enum LandscapeFlag : std::uint32_t {
+    kLandscapeWaves = 0x01,
+    kLandscapeAnimatedTiles = 0x02,
+    kLandscapeEdgeFade = 0x04,      // the light fades out at the map's edges
+    kLandscapeAmbience = 0x08,      // the ambient sounds play
+    kLandscapeSunShadows = 0x10,
+    kLandscapeAll = 0xFFFF,         // a loaded map's
+};
+
+// What of a sector is built (SectorData::built; the stages Terrain::SectorAt asks for).
+enum SectorStage : std::uint32_t {
+    kSectorLoaded = 1,   // the vertex positions
+    kSectorBuilt = 2,    // the geometry
+    kSectorLit = 4,
+};
+
 class Terrain final : public CTransformObject {
 public:
     Terrain();
@@ -144,7 +161,7 @@ public:
     // Null outside the map or where the sector has no such layer.
     const Vector3* VertexAt(int ix, int iy, int layer);
 
-    // Sector (sx, sy) when it has any of the `wanted` stages built (1 loaded, 2 geometry, 4 lit), else
+    // Sector (sx, sy) when it has any of the `wanted` stages (SectorStage) built, else
     // null. Sectors live in an LRU cache: a hit moves to the front (stamped with the frame); with `create`
     // a missing sector is loaded (the least recently used one reused when older than 240 frames, older ones
     // freed) and the wanted stages are built.
@@ -167,15 +184,14 @@ public:
     // Flag 8: the 3x3 sectors around the listener vote a sound class, weighted by distance; up to three
     // classes play a looping circle.wav and random one-shots (ambient\<set>\<class>\<time of day>\<n>.wav).
     void PlayAmbience();
-    // Clears flag 8 and stops the three loops.
+    // Clears kLandscapeAmbience and stops the three loops.
     void StopAmbience();
     // Slides the decal quad along the builder's slope until its lowest point meets the lowest ground vertex
     // of the cells under it (one cell of margin), then hands those cells' ground triangles to the builder.
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
     Matrix4 drawMatrix;             // rotation, position in the last column
-    // 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds, 0x10 sun shadows.
-    std::uint32_t landscapeFlags;
+    std::uint32_t landscapeFlags;   // LandscapeFlag
     Matrix4 worldMatrix;            // rows; position in the last row
     std::vector<CTexture*> pageTextures;     // held
     std::vector<CMaterial*> pageMaterials;   // held ("Wood")

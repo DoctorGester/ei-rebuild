@@ -4,6 +4,7 @@
 
 #include "core_streams.h"
 #include "unit.h"
+#include "save_versions.h"
 
 #include <cstring>
 #include <memory>
@@ -11,7 +12,6 @@
 #include <string>
 
 namespace {
-constexpr std::uint32_t kBaseScaleVersion = 0x4E;   // base scale saved after this version
 
 // A string read up to its terminator.
 std::string ReadText(CStream* stream) {
@@ -37,7 +37,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
     stream->ReadValue(flags);
     flags_ = flags;
     name2 = ReadText(stream);
-    if (stream->version_ > kBaseScaleVersion) stream->ReadValue(baseScale);
+    if (stream->version_ > kVersionBaseScale) stream->ReadValue(baseScale);
 }
 
 void CMapObject::SaveMapObject(CStream* stream) {

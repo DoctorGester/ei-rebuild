@@ -17,6 +17,7 @@
 #include "../lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
+#include "save_versions.h"
 
 #include <bit>
 #include <cmath>
@@ -215,7 +216,7 @@ void CEffectArrow::Load(CStream* s) {
     s->ReadValue(lightRange_);
     s->ReadValue(particleType_);
     s->ReadValue(particleSize_);
-    if (static_cast<int>(s->version_) < 0x43) return;
+    if (static_cast<int>(s->version_) < kVersionMissileCaster) return;
     s->ReadValue(casterId_);
     s->ReadValue(fromCaster_);
 }

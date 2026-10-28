@@ -5,6 +5,7 @@
 
 #include "world.h"
 #include "game_singletons.h"
+#include "save_versions.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +13,6 @@
 #include <list>
 
 namespace {
-constexpr int kStopFlagVersion = 0x44;      // looks carry their stop flag from this file version on
 
 // Each object's counted reference (its id) of a memory list.
 void SaveObjectList(std::list<CUnit*>& list, CStream* stream) {
@@ -34,7 +34,7 @@ void LoadLooks(std::vector<AILook>* looks, CStream* stream) {
         stream->ReadValue(look.angle);
         stream->ReadValue(look.time);
         stream->ReadValue(look.wait);
-        if (stream->version_ >= kStopFlagVersion) stream->ReadValue(look.stopFirst);
+        if (stream->version_ >= kVersionLookStopFlag) stream->ReadValue(look.stopFirst);
     }
 }
 

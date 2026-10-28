@@ -14,6 +14,7 @@
 #include <string>
 #include "world.h"
 #include "lib/str.h"
+#include "save_versions.h"
 
 #include <cstdlib>
 #include <new>
@@ -208,7 +209,7 @@ void CCamera::Load(CStream* stream) {
     stream->ReadValue(savedFlags);
     int target = 0;
     stream->ReadValue(target);
-    if (static_cast<int>(stream->version_) < 0x6F) stream->Read(views_, 0xC0);
+    if (static_cast<int>(stream->version_) < kVersionCameraViews) stream->Read(views_, 0xC0);
     else stream->Read(&views_[4], 0x60);
     if (static_cast<std::uint8_t>(savedFlags) & kFollowing) {
         if (target != -1) flags_ |= kFollowing;

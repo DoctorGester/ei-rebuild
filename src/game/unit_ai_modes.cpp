@@ -19,6 +19,7 @@
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
 #include "lib/static_object.h"
+#include "save_versions.h"
 
 namespace {
 constexpr int kPriority = 50;
@@ -191,7 +192,7 @@ void GuardMode::Load(CStream* stream) {
     stream->ReadValue(radius);
     stream->ReadValue(wander);
     stream->ReadValue(point);
-    if (stream->version_ >= 0x66) stream->ReadValue(failures);
+    if (stream->version_ >= kVersionGuardFailures) stream->ReadValue(failures);
 }
 
 void GuardMode::Save(CStream* stream) {
@@ -249,7 +250,7 @@ void PatrolMode::Load(CStream* stream) {
             stream->ReadValue(look.angle);
             stream->ReadValue(look.time);
             stream->ReadValue(look.wait);
-            if (stream->version_ >= 0x44) stream->ReadValue(look.stopFirst);
+            if (stream->version_ >= kVersionLookStopFlag) stream->ReadValue(look.stopFirst);
         }
     }
     stream->ReadValue(current);
@@ -550,9 +551,9 @@ void FearMode::Load(CStream* stream) {
     stream->ReadValue(distance);
     stream->ReadValue(spread);
     stream->ReadValue(shelter);
-    if (stream->version_ >= 0x53) {
+    if (stream->version_ >= kVersionFearFlag) {
         stream->ReadValue(flag);
-        if (stream->version_ >= 0x70) stream->ReadValue(fleePoint);
+        if (stream->version_ >= kVersionFleePoint) stream->ReadValue(fleePoint);
     }
 }
 

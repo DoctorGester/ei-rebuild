@@ -14,6 +14,7 @@
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
+#include "save_versions.h"
 
 #include <bit>
 #include <algorithm>
@@ -438,14 +439,14 @@ void AIBrain::Load(CStream* stream) {
     if (callRadius == settings.callForHelpRadiusDefault)
         callRadius = settings.callForHelpRadius;
     stream->ReadValue(alwaysUpdated);
-    if (stream->version_ < 0x4B) return;
+    if (stream->version_ < kVersionAttackOptions) return;
     attention.healWeight = 0.0f;
     LoadAttackOptions(&attention.weapons, stream);
-    if (stream->version_ >= 0x5A) {
+    if (stream->version_ >= kVersionSpellOptions) {
         LoadAttackOptions(&attention.spells, stream);
         stream->ReadValue(attention.healWeight);
     }
-    if (stream->version_ < 0x71) return;
+    if (stream->version_ < kVersionAlarmSlot) return;
     stream->ReadValue(alarmSlot);
 }
 

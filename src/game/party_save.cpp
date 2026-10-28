@@ -11,6 +11,7 @@
 #include "unit.h"
 
 #include "lib/crt.h"
+#include "save_versions.h"
 
 #include <cstdint>
 #include <cstring>
@@ -48,11 +49,9 @@ void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manag
 }
 
 // Versions of the save format that added fields (compared signed).
-constexpr int kVersionRecordFlags = 0x51;
 constexpr int kVersionRecord77C = 0x5B;
 constexpr int kVersionRecord780 = 0x61;
 constexpr int kVersionRecordText6 = 0x6B;
-constexpr int kVersionPartyKey = 0x6B;   // the key follows +0x50 above this version
 
 int Version(const CStream* stream) { return static_cast<int>(stream->version_); }
 

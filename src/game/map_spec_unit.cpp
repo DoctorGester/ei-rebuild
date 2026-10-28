@@ -20,6 +20,7 @@
 #include "world_data.h"
 #include "game_singletons.h"
 #include "world.h"
+#include "save_versions.h"
 
 namespace mapspec {
 
@@ -308,7 +309,7 @@ void Behaviour::Read(CStream* stream) {
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
-    if (static_cast<std::int32_t>(stream->version_) >= 0x53) {
+    if (static_cast<std::int32_t>(stream->version_) >= kVersionUnitAlarm) {
         StreamRead(stream, &alarm, 4);
         return;
     }

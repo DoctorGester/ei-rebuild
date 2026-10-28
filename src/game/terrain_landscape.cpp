@@ -107,7 +107,6 @@ constexpr int kExtraClass = 0xF;
 constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
 constexpr float kMarginPixels = 8.0f;
 constexpr double kByteScale = 255.0;
-constexpr std::uint32_t kLowFlags = 0xFFFF;
 
 // The map file's extension.
 constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
@@ -524,7 +523,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     terrain::CountAmbientVariants(ambientSet.c_str());
 
     const int sectors = sectorsY * sectorsX;
-    landscapeFlags |= kLowFlags;
+    landscapeFlags |= kLandscapeAll;
     waterLevels.resize(sectors);
     for (int i = 0; i < sectorsY * sectorsX; ++i) {
         waterLevels[i].assign(materials.size(), 0.0f);
