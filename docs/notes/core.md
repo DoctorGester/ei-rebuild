@@ -45,7 +45,7 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 
 ## Reference counting
 
-File `core_refcount.cpp`, `refptr_copies.cpp`, `deleting_destructors_400.cpp`.
+File `core_refcount.cpp`, `refptr_copies.cpp`.
 
 - `CRefCounted` (vtable 0073BB68: 16-bit count at +4, copy-on-share flag at +6 bit 0, detached flag at
   +7 bit 7, slot 0 deleting destructor, slot 1 Serialize). `CRefObject` (0073BB58) derives from it
@@ -57,9 +57,8 @@ File `core_refcount.cpp`, `refptr_copies.cpp`, `deleting_destructors_400.cpp`.
 - The compiler emitted ~100 out-of-line copies of these helpers all over 0x400000-0x480000 (21 of
   `Destroy`, 21 of the 28-byte release, 9 `RefPtrShareReturn`, ...): all in `refptr_copies.cpp`, verified
   with the same dry run. The release copies cannot have a trampoline (short jump at +4); one copy of
-  their identical 28-byte body is made when the DLL loads. 33 scalar deleting destructors that only
-  call their body share one template in `deleting_destructors_400.cpp`, `DeletingDestructor<body>` with the body
-  rewrite as its argument (a member pointer or a __fastcall function).
+  their identical 28-byte body is made when the DLL loads. The scalar deleting destructors that only call their
+  body (the counted pointer holders, the sessions, the network messages) are their classes' C++ virtual destructors.
 - Kept: Release / RefPtr helpers test the pointer for null after already using it (omitted, same
   behaviour); `Destroy` leaves the pointer set.
 
@@ -269,7 +268,7 @@ to which template:
   the alignment was not kept). `lib::FreeStorage(v)` frees the storage (`v = {}` / clear() keep it); `lib::SetAtGrow(v, i,
   x)` grows to i + 1. A record holding a vector in an `mfc::CArray` needs typed elements (construct_at, destroy_n and
   `mfc::MoveElements` to relocate), never a byte view (`Bytes<N>`); a raw-lifetime owner
-  (operator_new + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
+  (`::operator new` + Construct / DestructBody) constructs its vectors with std::construct_at. resize() value-initialises the
   new slots where the original kept stale ones: a site that reads a slot before writing it differs. named_data.py formats
   a vector global by the container it replaced (ALIGNED_ARRAY_VECTORS: the 40 game.exe addresses of aligned arrays).
   C14h: the last aligned arrays are vectors too (the scene loader's, the figure mesh / link figure / party / unit / ui item
@@ -575,7 +574,7 @@ to which template:
   stlp::vector). C14n retyped most of these (next section).
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
   construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
-  `Construct()` on `operator_new_as` storage, a record in an stlp container) is built and destroyed by hand with
+  `Construct()` on a raw block, a record in an stlp container) is built and destroyed by hand with
   `std::construct_at` / `std::destroy_at`. Destroying a std::list twice frees its sentinel twice; an element loop
   before a destroy_at of the vector destroys the elements twice (two such were in the script's output: the hero
   screen's voices and the exchange screen's names).

@@ -62,9 +62,8 @@ makes every site show, not a `static_assert` or `[[deprecated]]` in the header. 
   hit numbers, the console, the cursor images, the sectors, the figure models, the part sets, the regions);
   `count` plain elements are `new T[count]` / `delete[]` (the AI grids: `AllocateGrid` / `FreeGrid`), a buffer
   that grows a `std::vector<T>(count)`. A block of a byte count other than its type's (a DIB header with its
-  masks, a CPlex with its elements, an .mmp file) is `::operator new(bytes)`. Left (C14z's area): the script's
-  MFC records and the vtable-tagged record arrays (a unit's carried items, the player and party reference
-  arrays) through `gamecrt::operator_new_array` / `operator_delete`.
+  masks, a CPlex with its elements, an .mmp file) is `::operator new(bytes)`. crt.h has no heap wrappers left
+  (C35m deleted gamecrt::operator_new / operator_new_as / operator_new_array / operator_delete).
 - A deleting destructor through slot 0 is `delete p` on the object's own type when its class (or a base)
   declares the virtual destructor (CEngineObject's slot 0): no upcast to CEngineObject first.
 

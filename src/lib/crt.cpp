@@ -10,9 +10,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <intrin.h>
-#include <corecrt_startup.h>
-#include <malloc.h>
-#include <new>
 
 namespace gamecrt {
 

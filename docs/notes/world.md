@@ -319,7 +319,7 @@ Facts a worker needs that the code comments do not say:
   entry; `LoadMapObjects` / `LoadMobFile` return what `FatalError` returns on failure (LoadMobFile treats non-zero as
   success); `SetZoneExits` re-reads the source size each iteration; SEH frames of the loaders are not reproduced.
 - `LoadSave`: shared-object elements are copied from a local whose first three dwords are never written; the player list
-  iterator comes from the heap (`operator_new(8)`), as in `SaveWorld`. `LoadSavedMapObjects` marks every part changed when
+  iterator comes from the heap (`operator new(8)`), as in `SaveWorld`. `LoadSavedMapObjects` marks every part changed when
   any change was saved (tests `1 << i`, not `changed & bit`) and uses the object before its null test. `SyncPlayer` passes
   0066EC10 a dword whose upper bytes are the dirty flags. `CreateUnits` places a unit near the requested position, not near
   its line position.

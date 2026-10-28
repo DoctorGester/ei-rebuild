@@ -862,8 +862,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
 - **Engine objects** (batch 2: CMusicSystem, CMaterial): CEngineObject's default slots are defined
   (engine_object.cpp: the destructor clears the owner, CopyFrom is CopyFromImpl, 5 / 9 / 10 empty, 6 returns 0), so a
   derived class with a C++ constructor gets the compiler's vtable; the constructor calls ClearFields. Slot 0 is the
-  virtual destructor: the compiler's scalar deleting destructor runs the destructor and the class's
-  `operator delete` (declare one that calls gamecrt::operator_delete: the global one is not the game's heap). The
+  virtual destructor: the compiler's scalar deleting destructor runs the destructor and the global
+  `operator delete` (the host's heap, as every allocation in the image). The
   destructor body leaves out the members' destructors (C++ runs them after it). The registrations: Construct is
   `new (this) X()`, the destructor bodies call `this->X::~X()` (qualified: no dispatch), slots 11 / 12 overrides
   with shims calling them qualified. windows.h's GetClassName macro renames slot 11 in a file that includes it in

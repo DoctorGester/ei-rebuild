@@ -1,7 +1,7 @@
 #pragma once
 
-// The game's statically linked C runtime and MFC helpers (config/library.csv): the heap, rand, the formatting and the
-// maths as the game's CRT has them.
+// The game's statically linked C runtime (config/library.csv): rand, the formatting and the maths as the game's CRT
+// has them. The heap is the host's new / delete.
 
 #include <cstdarg>
 #include <cstddef>
@@ -10,15 +10,6 @@
 #include <string>
 
 namespace gamecrt {
-
-// The raw blocks the script's MFC records still take (script.h, script_*.cpp, the tag headers): the host's
-// operator new / delete. Everything else is new / delete.
-inline void* operator_new(std::size_t size) { return ::operator new(size); }
-// operator_new for one T, typed as T: the caller runs the constructor body on it.
-template <class T> T* operator_new_as() { return static_cast<T*>(operator_new(sizeof(T))); }
-// operator_new for `count` T (nothing constructed); the size is count * sizeof(T) in 32 bits.
-template <class T> T* operator_new_array(std::size_t count) { return static_cast<T*>(operator_new(count * sizeof(T))); }
-inline void operator_delete(void* p) { ::operator delete(p); }
 
 int rand();
 // The harness's random trace (tests/verify) sees every rand() draw: the value and rand's return address. Null: none.
