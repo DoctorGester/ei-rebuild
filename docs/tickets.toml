@@ -5081,3 +5081,11 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C36a"]
 note = "Found by C36a. Members named unused_* in in-process types that are written and never read (SearchNode::unused_13, Ref::unused_01, SectorBox::unused_2C, TerrainMaterial::unused_28, ...): grep each, drop the written-only ones with their writes; keep any in file / save / packet / chunk records or read by the vectors from game.exe memory, and list them with the reason. Skip the R27 files (device*, dx_surface*, texture*, ui_surface_*, pixel_formats, renderer_gamma, directdraw_holder, src/render). Goldens must stay the same."
+
+[[ticket]]
+id = "C20z1"
+title = "Unused scalar parameters left from stack-popped thiscall arguments (~41: int unused, char unused, ...)"
+group = "cleanup"
+model = "sonnet"
+depends = ["C20p"]
+note = "Found by C20p. ~41 functions in src keep an unused scalar parameter (LookFrom(from, to, int unused), GetPosition(out, int unused), Disarm(key, int unused), MayTravel(int unused), UpdateRegionTips(CSceneRenderer* unused), bink PlayVideo(..., int unused), ...). Drop each with its call-site arguments, unless it is a virtual override, a function-pointer table type, an EI_RECORD signature or the harness's game.exe side (list those). Skip the R27 files. Goldens must stay the same."
