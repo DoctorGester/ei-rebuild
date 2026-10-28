@@ -172,14 +172,14 @@ EI_REWRITTEN_SPECIAL(0x0051C710, WoundsMaterial::~WoundsMaterial);
 // A named texture's destructor: the texture released, the name freed.
 void __fastcall NamedTextureDestruct(NamedTexture* self) {
     if (self->texture) self->texture->Release();
-    self->name.~string();
+    std::destroy_at(&self->name);
 }
 EI_REWRITTEN(0x0051C800, NamedTextureDestruct);
 
 // A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
 NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
-    new (&name) stlp::string(other->name);
+    std::construct_at(&name, other->name);
     texture = other->texture;
     if (texture) ++texture->refCount_;
     return this;

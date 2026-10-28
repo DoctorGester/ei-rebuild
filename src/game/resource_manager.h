@@ -7,14 +7,13 @@
 
 // An archive opened by a resource manager, kept in open order.
 struct ArchiveEntry {
-    stlp::string name;               // path passed to AddArchive
+    std::string name;                // path passed to AddArchive
     CMappedResource* resource;
 
-    ArchiveEntry(const stlp::string& n, CMappedResource* r) : name(n), resource(r) {}
+    ArchiveEntry(const std::string& n, CMappedResource* r) : name(n), resource(r) {}
     ArchiveEntry(const ArchiveEntry& e) : name(e.name), resource(e.resource) {}
-    void AssignFrom(const ArchiveEntry& e) { name.AssignFrom(e.name); resource = e.resource; }
+    void AssignFrom(const ArchiveEntry& e) { name = e.name; resource = e.resource; }
 };
-static_assert(sizeof(ArchiveEntry) == 16);
 
 // Base of the managers that load their data from archives (CTextureManager, CFigureManager, ...):
 // CBaseManager's archive slots (16-22) over a list of open archives, and a 26th slot, the folder

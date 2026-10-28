@@ -39,7 +39,7 @@ public:
     int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
-    FigureModel* FindModel(const stlp::string* name);
+    FigureModel* FindModel(const std::string* name);
     // Sets the animation found by name in model `modelName` on `figure`; 0 when it cannot.
     int SetFigureAnimation(CFigureAnimationState* figure, const char* modelName, const FigureAnimation* animation);
     // The menus' button rectangles from "menus.reg" into `rects`; 1, or FatalError's result when the file or an
@@ -67,7 +67,7 @@ public:
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
-    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> models_;   // the cached models by name
+    stlp::hash_map<std::string, FigureModel*, stlp::StringHash> models_;    // the cached models by name
 };
 static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);
 

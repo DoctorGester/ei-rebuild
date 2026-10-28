@@ -158,7 +158,7 @@ BOOL CSpellContainer::Build() {
     spell->skillNeeded_ = static_cast<std::uint32_t>(proto->skill);
     spell->prototypeId_ = static_cast<std::uint32_t>(index & 0xFF) << 16;
 
-    if (!codes_.empty()) codes_.Assign("");
+    if (!codes_.empty()) codes_.clear();
 
     for (SpellModifierNode* node = modifiers_.First(); node != modifiers_.End(); node = node->next) {
         const itemdb::SpellModifierRecord* modifier = node->data;
@@ -212,7 +212,7 @@ BOOL CSpellContainer::Build() {
         itemdb::SpellModifierTable& modifiers = itemdb::TheSpellDatabase().modifiers;
         int modifierIndex = modifiers.IndexOf(modifiers.FindByCode(modifier->code));
         char code = static_cast<char>(modifierIndex + 1);
-        codes_.Append(&code, &code + 1);   // push_back
+        codes_.push_back(code);
     }
 
     float area = spell->radius_;

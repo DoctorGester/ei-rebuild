@@ -105,7 +105,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
 
 namespace {
 
-using LoadedFiles = stlp::vector<stlp::string>;
+using LoadedFiles = stlp::vector<std::string>;
 LoadedFiles& QuestFiles() { return g_questFiles; }
 
 } // namespace
@@ -113,11 +113,11 @@ LoadedFiles& QuestFiles() { return g_questFiles; }
 // The quest text files (world.h) and the quest folders (QuestFolders, below): empty at the start, as the static
 // initialisers leave them; the exit functions they register destroy them
 // (docs/notes/standalone.md, "The static initialisers' objects").
-constinit stlp::vector<stlp::string> g_questFiles = /*007AFDD0*/ {};
-constinit stlp::vector<stlp::string> g_questFolders = /*007AFDC0*/ {};
+constinit stlp::vector<std::string> g_questFiles = /*007AFDD0*/ {};
+constinit stlp::vector<std::string> g_questFolders = /*007AFDC0*/ {};
 
 namespace {
-using QuestStrings = stlp::VectorAbi<stlp::string, stlp::StringElement>;
+using QuestStrings = stlp::VectorAbi<std::string, stlp::ObjectElement<std::string>>;
 } // namespace
 
 void __cdecl DestroyQuestFiles() { QuestStrings::Destruct(&g_questFiles); }
@@ -137,7 +137,7 @@ void UnloadQuestTexts() {
     CTextManager* texts = TheTextManager();
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
-    for (stlp::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
+    for (std::string* file = files.begin(); file != files.end(); ++file) texts->RemoveSource(file->data());
     // erase(begin(), end()) moves nothing and destroys them all.
     files.clear();
 }
@@ -171,17 +171,17 @@ void ShareQuestFile(const char* path, const char* name) {
     source.ReadBytes(to, static_cast<unsigned>(size));
     data->cur = to + size;
     data->Commit();
-    stlp::string listed(name);
+    std::string listed(name);
     net::GameServer()->ShareFile(&listed, data);
 }
 
 // The path of the maps folder's file `file` (LoadZoneQuests's).
-stlp::string MapFilePath(const std::string& file) {
+std::string MapFilePath(const std::string& file) {
     mfc::CString folder;
     modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuestsPath);
     MapsFolder(&folder);
     std::string full = (folder + file).GetString();
-    return stlp::string(full.c_str());
+    return std::string(full.c_str());
 }
 
 } // namespace
@@ -200,11 +200,11 @@ bool __stdcall LoadZoneQuests(const char* zone) {
         found = find.FindFile(pattern, 0) != 0;
     }
     if (!found) return false;
-    stlp::string path = MapFilePath(file);
+    std::string path = MapFilePath(file);
     if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
     // A file already loaded is not loaded again.
     LoadedFiles& files = QuestFiles();
-    stlp::string* listed = files.begin();
+    std::string* listed = files.begin();
     while (listed != files.end() && !(*listed == path)) ++listed;
     if (listed == files.end()) {
         files.push_back(path);
@@ -239,10 +239,10 @@ namespace {
 
 
 // The quest folders registered so far.
-using StringVector = stlp::vector<stlp::string>;
+using StringVector = stlp::vector<std::string>;
 StringVector& QuestFolders() { return g_questFolders; }
 
-bool Equal(const stlp::string& s, const char* text) {
+bool Equal(const std::string& s, const char* text) {
     std::size_t length = std::strlen(text);
     return s.size() == length && std::memcmp(s.data(), text, length) == 0;
 }
@@ -257,7 +257,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     StringVector& folders = QuestFolders();
-    for (stlp::string* s = folders.begin(); s != folders.end(); ++s)
+    for (std::string* s = folders.begin(); s != folders.end(); ++s)
         if (Equal(*s, folder)) return;
     bool registered;
     {
@@ -274,12 +274,12 @@ void GameFlow::RegisterQuests(const char* folder) {
         std::string path = base + game::briefingwords::MapList();
         TheMapDatabase()->Load(path.c_str());
     }
-    stlp::string name(folder);
+    std::string name(folder);
     if (folders.Finish() != folders.EndOfStorage()) {
-        new (folders.Finish()) stlp::string(name);
+        new (folders.Finish()) std::string(name);
         ++folders.Finish();
     } else {
-        folders.InsertOverflow<stlp::StringElement>(folders.Finish(), name, 1);
+        folders.InsertOverflow<stlp::ObjectElement<std::string>>(folders.Finish(), name, 1);
     }
 }
 

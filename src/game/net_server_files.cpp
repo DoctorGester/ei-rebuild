@@ -22,7 +22,7 @@ constexpr std::int32_t kChunkSize = static_cast<std::int32_t>(FileChunkMessage::
 // listed already: a file message (chunk count, size, name) with a chunk message (the file, its index, up to
 // 64 bytes) per 64 bytes. The vector is first filled with one shared chunk (a copy per element when shared,
 // as RefPtr copies are), whose elements are then filled in turn.
-void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
+void ServerSession::ShareFile(const std::string* name, GameBuffer* data) {
     for (RefNode* node = files_.First(); node != files_.End(); node = node->next)
         if (files_.At(node)->name_ == *name) return;
 
@@ -31,7 +31,7 @@ void ServerSession::ShareFile(const stlp::string* name, GameBuffer* data) {
     BufferUpdateHigh(data);
     std::int32_t size = data->PositionOf(data->high);
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
-    if (name != &file->name_) file->name_.AssignFrom(*name);
+    if (name != &file->name_) file->name_ = *name;
     file->size_ = size;
     file->chunkCount_ = static_cast<std::uint16_t>(chunkCount);
 

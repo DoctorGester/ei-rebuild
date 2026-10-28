@@ -90,9 +90,9 @@ struct NotOlder {
 using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
 
 struct ByTextIgnoringCase {
-    bool operator()(const stlp::string& a, const stlp::string& b) const { return libcrt::Stricmp(a.data(), b.data()) < 0; }
+    bool operator()(const std::string& a, const std::string& b) const { return libcrt::Stricmp(a.data(), b.data()) < 0; }
 };
-using TopicSort = stlp::Sort<stlp::string, ByTextIgnoringCase, stlp::StringElement>;
+using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase, stlp::ObjectElement<std::string>>;
 
 struct ByName {
     bool operator()(const mfc::CString& a, const mfc::CString& b) const { return CompareNames(a.GetString(), b.GetString()) < 0; }
@@ -157,10 +157,10 @@ SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEn
     return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
 }
 
-void __fastcall TopicIntroSort(stlp::string* first, stlp::string* last, int, int depth, int) {
+void __fastcall TopicIntroSort(std::string* first, std::string* last, int, int depth, int) {
     TopicSort::IntroLoop(first, last, depth, ByTextIgnoringCase());
 }
-void __fastcall TopicFinalSort(stlp::string* first, stlp::string* last, int) {
+void __fastcall TopicFinalSort(std::string* first, std::string* last, int) {
     TopicSort::FinalInsertionSort(first, last, ByTextIgnoringCase());
 }
 

@@ -19,16 +19,16 @@ namespace net {
 // message is held (else empty), the number of clients, the maximum and whether a password is set.
 void ServerSession::Describe(RefPtr* out) {
     auto* entry = NewCounted<ServerEntry>();
-    if (&name_ != &entry->name_) entry->name_.AssignFrom(name_);
+    if (&name_ != &entry->name_) entry->name_ = name_;
     entry->kind_ = kind_;
-    stlp::string* description = &entry->description_;
-    description->Assign(game::EmptyText());
+    std::string* description = &entry->description_;
+    description->assign(game::EmptyText());
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
         mfc::CString title(mfc::CString::kUnset);
         const char* text = *SessionMapNameInto(&title);
-        description->Assign(text);   // inlined: overwrite, then cut or append
+        description->assign(text);   // inlined: overwrite, then cut or append
     }
 
     entry->players_ = static_cast<std::uint8_t>(ClientCount());

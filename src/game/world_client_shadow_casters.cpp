@@ -104,7 +104,7 @@ double TopOf(const CObject3D* object, const Vector3& scale) {
 const LinkPartRanges* RangesOf(const CLinkMesh* figure, const char* name) {
     const std::size_t length = std::strlen(name);
     for (auto* node = figure->ranges_.Root(); node;) {
-        const stlp::string& key = node->first;
+        const std::string& key = node->first;
         const std::size_t n = (std::min)(key.size(), length);
         int c = std::memcmp(key.data(), name, n);
         if (c == 0) c = key.size() < length ? -1 : key.size() > length ? 1 : 0;

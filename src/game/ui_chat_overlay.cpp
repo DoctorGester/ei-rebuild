@@ -46,7 +46,7 @@ int TextWidth(CInterface3D* ui, const std::string& text, int font) {
 void SendSay(const std::string& text) {
     auto* say = net::NewCounted<net::SayMessage>();
     // A failed allocation is not checked from here on.
-    say->text_.Assign(text.c_str());   // overwrite, then cut or append
+    say->text_ = text;
     net::GameClient()->AddTimed(say, kSayLifetime);
 }
 } // namespace

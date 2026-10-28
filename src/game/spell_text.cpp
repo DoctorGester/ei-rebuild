@@ -69,7 +69,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
 
 // The modifier record named `name` (find_or_insert with a null record).
 itemdb::SpellModifierRecord* FindModifier(const char* name) {
-    stlp::string key(name);
+    std::string key(name);
     return stlp::NamedSlot<itemdb::SpellModifierRecord>(ModifierNameMap(), key);
 }
 
@@ -86,7 +86,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     itemdb::SpellRecord* prototype;
     {
-        stlp::string key(text.GetString());
+        std::string key(text.GetString());
         prototype = stlp::NamedSlot<itemdb::SpellRecord>(SpellNameMap(), key);
     }
     if (!constructor->BeginConstruct(prototype))

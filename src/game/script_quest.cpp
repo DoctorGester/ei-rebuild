@@ -50,7 +50,7 @@ EI_REWRITTEN(0x004BAE10, ScriptQuestAddObjective);
 
 // The key, then a {key, null} pair copied from it; the pair is destroyed before the key.
 QuestRecord* QuestDatabase::FindQuest(const char* name) {
-    stlp::string key(name);
+    std::string key(name);
     QuestIndex::Pair pair{key, nullptr};
     return questsByName.FindOrInsert(pair)->value;
 }

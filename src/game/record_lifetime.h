@@ -20,6 +20,6 @@ void DestroyVector(stlp::vector<T>& vector) {
 // The deleting destructors of the figure maps' pairs, whose only
 // member with a destructor is the leading string key (its storage back
 // to the node pool): mfc::impl::ScalarDeleting<&DestructLeadingString>::Delete. Returns the pair.
-inline void __fastcall DestructLeadingString(stlp::string* pair) { pair->~string(); }
+inline void __fastcall DestructLeadingString(std::string* pair) { std::destroy_at(pair); }
 
 } // namespace records

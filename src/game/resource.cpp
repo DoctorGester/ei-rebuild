@@ -140,7 +140,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
 
     // Already loaded: share it.
     {
-        stlp::string key(name);
+        std::string key(name);
         if (auto* node = filesByName_.Find(key)) {
             LoadedFile* file = node->value;
             ++file->refCount;
@@ -157,11 +157,10 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     if (image_) return image_ + entry.offset;
 
     auto* file = gamecrt::operator_new_as<LoadedFile>();
-    new (&file->name) stlp::string();
-    stlp::string::Reserve(file->name, 8);
+    std::construct_at(&file->name);
     {
-        stlp::string requested(name);
-        file->name.Assign(requested.data(), requested.data() + requested.size());
+        std::string requested(name);
+        file->name.assign(requested.data(), requested.data() + requested.size());
     }
     file->refCount = 1;
     file->size = entry.size;
@@ -173,7 +172,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
         if (static_cast<std::uint32_t>(libcrt::Read(fd_, file->data, bytes)) == bytes) {
             if (size) *size = bytes;
             {
-                stlp::string key(file->name);
+                std::string key(file->name);
                 filesByName_[key] = file;
             }
             filesByData_[file->data] = file;
@@ -182,7 +181,7 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     }
 
     // Read failed. file->data leaks here (kept).
-    file->name.~string();
+    std::destroy_at(&file->name);
     gamecrt::operator_delete(file);
     return nullptr;
 }
@@ -212,7 +211,7 @@ bool CMappedResource::CloseFile(void* data) {
     filesByData_.Erase(byData);
     filesByName_.Erase(filesByName_.Find(file->name));
     gamecrt::operator_delete(file->data);
-    file->name.~string();
+    std::destroy_at(&file->name);
     gamecrt::operator_delete(file);
     return true;
 }
@@ -223,7 +222,7 @@ void CMappedResource::FreeAllFiles() {
         LoadedFile* file = node->value;
         gamecrt::operator_delete(file->data);
         if (file) {
-            file->name.~string();
+            std::destroy_at(&file->name);
             gamecrt::operator_delete(file);
         }
     });

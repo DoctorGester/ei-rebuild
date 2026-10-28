@@ -372,7 +372,7 @@ int TableIndex(const Table& table, const Record* record) {
 // The table index of a loot item's second name part.
 int LootTableIndex(int which, const char* name) {
     if (which < 0 || which > 4) return 0;
-    stlp::string key(name);
+    std::string key(name);
     ItemDatabase& items = TheItemDatabase();
     SpellDatabase& spells = TheSpellDatabase();
     switch (which) {

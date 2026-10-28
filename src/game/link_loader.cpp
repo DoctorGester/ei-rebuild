@@ -15,24 +15,24 @@
 #include <cstring>
 #include <new>
 
-void __fastcall ReadLinkString(stlp::string* out, const char** cursor) {
+void __fastcall ReadLinkString(std::string* out, const char** cursor) {
     std::uint32_t length;
     std::memcpy(&length, *cursor, 4);
     *cursor += 4;
     if (length == 0) return;
     const char* text = *cursor;
     const void* zero = std::memchr(text, 0, length);
-    out->Assign(text, zero ? static_cast<const char*>(zero) : text + length);
+    out->assign(text, zero ? static_cast<const char*>(zero) : text + length);
     *cursor += length;
 }
 EI_REWRITTEN(0x004DB9C0, ReadLinkString);
 
-stlp::string* CLinkMesh::CopyName(stlp::string* out) const { return new (out) stlp::string(name_); }
+std::string CLinkMesh::CopyName() const { return name_; }
 EI_REWRITTEN(0x004F7370, CLinkMesh::CopyName);
 
 namespace {
 
-using Cache = stlp::map<stlp::string, CLinkMesh*>;
+using Cache = stlp::map<std::string, CLinkMesh*>;
 
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr double kSameMorph = 1e-5;           // squared distance of the coefficients
@@ -48,7 +48,7 @@ struct CachedMesh {
 using CacheElement = stlp::PairElement<Cache::Value, CachedMesh>;
 
 // A part record at `data` into `mesh`: FIG / FIG8 or the older kind.
-void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const stlp::string* name, const char* data, float s,
+void LoadPartRecord(CLinkFigureLoader* loader, CLinkMesh* mesh, const std::string* name, const char* data, float s,
                     float t, float u) {
     std::uint32_t tag;
     std::memcpy(&tag, data, 4);
@@ -82,7 +82,7 @@ bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
 }
 
 // The first cached mesh named `name` with close coefficients, or null.
-CLinkMesh* FindCached(const Cache& cache, const stlp::string* name, float s, float t, float u) {
+CLinkMesh* FindCached(const Cache& cache, const std::string* name, float s, float t, float u) {
     Cache::Node* last = cache.upper_bound(*name);
     for (Cache::Node* n = cache.lower_bound(*name); n != last; n = Cache::Next(n))
         if (SameMorph(n->second, s, t, u)) return n->second;
@@ -90,8 +90,8 @@ CLinkMesh* FindCached(const Cache& cache, const stlp::string* name, float s, flo
 }
 
 // Adds `mesh` to the cache under `name` (the node's reference).
-void AddToCache(Cache* cache, const stlp::string* name, CLinkMesh* mesh) {
-    Cache::Value value{stlp::string(*name), mesh};
+void AddToCache(Cache* cache, const std::string* name, CLinkMesh* mesh) {
+    Cache::Value value{std::string(*name), mesh};
     if (mesh) ++mesh->refCount_;
     cache->InsertEqual<CacheElement>(value);   // multimap insert_equal
     if (mesh) --mesh->refCount_;   // the value's reference; the node keeps one
@@ -109,7 +109,7 @@ void EraseNodes(Cache::Node* node) {
         EraseNodes(node->right);
         Cache::Node* left = node->left;
         ReleaseMesh(node->second);
-        node->first.~string();
+        std::destroy_at(&node->first);
         stlp::deallocate(node, sizeof(Cache::Node));
         node = left;
     }
@@ -125,17 +125,16 @@ int CLinkFigureLoader::CacheBytes() {
     return bytes;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
+CLinkMesh* CLinkFigureLoader::LoadFigure(const std::string* name, const stlp::vector<std::string>* parts, float s,
                                      float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
     if (!mesh) return MakeFigure(name, parts, s, t, u);
     FigureModel* set;
     {
-        stlp::string meshName;
-        mesh->CopyName(&meshName);
+        std::string meshName = mesh->CopyName();
         set = FindFigureSet(&meshName);
     }
-    for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
+    for (const std::string* part = parts->begin(); part != parts->end(); ++part) {
         if (mesh->HasPart(part)) continue;
         const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
         if (!set) {
@@ -147,7 +146,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::v
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadLink(const stlp::string* name, float s, float t, float u, bool fresh) {
+CLinkMesh* CLinkFigureLoader::LoadLink(const std::string* name, float s, float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
     return mesh ? mesh : LoadLinkFile(name, s, t, u);
 }
@@ -158,12 +157,11 @@ void CLinkFigureLoader::ClearCache() {
     cache_.ResetToEmpty();
 }
 
-bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) {
+bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const std::string* name) {
     if (mesh->HasPart(name)) return true;
     FigureModel* set;
     {
-        stlp::string meshName;
-        mesh->CopyName(&meshName);
+        std::string meshName = mesh->CopyName();
         set = FindFigureSet(&meshName);
     }
     const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
@@ -176,28 +174,26 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
 
 CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u) {
     if (mesh && mesh->refCount_ > 2) {
-        stlp::string meshName;
-        mesh->CopyName(&meshName);
+        std::string meshName = mesh->CopyName();
         return LoadLink(&meshName, s, t, u, false);
     }
     if (!mesh) return nullptr;
-    stlp::vector<stlp::string> names;
+    stlp::vector<std::string> names;
     mesh->CollectPartNames(&names);
     mesh->SetMorph(s, t, u);
     FigureModel* set;
     {
-        stlp::string meshName;
-        mesh->CopyName(&meshName);
+        std::string meshName = mesh->CopyName();
         set = FindFigureSet(&meshName);
     }
-    for (stlp::string* part = names.begin(); part != names.end(); ++part)
+    for (std::string* part = names.begin(); part != names.end(); ++part)
         RemorphPart(mesh, set, part, s, t, u);
     names.clear();
     names.FreeStorage();
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, float t, float u) {
+CLinkMesh* CLinkFigureLoader::LoadLinkFile(const std::string* name, float s, float t, float u) {
     CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
     CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
     FigureModel* set = FindFigureSet(name);
@@ -205,8 +201,8 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
     if (set) {
         data = FileData(set->mesh, name->data());
     } else {
-        stlp::string file(*name);
-        file.Append(".lnk", ".lnk" + 4);
+        std::string file(*name);
+        file.append(".lnk", ".lnk" + 4);
         data = FindInArchives(archives_, file.data());
     }
     if (!data) {
@@ -216,10 +212,8 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
     std::uint32_t count;
     std::memcpy(&count, data, 4);
     const char* cursor = data + 4;
-    stlp::string part;
-    stlp::string::Reserve(part, 8);
-    stlp::string unused;
-    stlp::string::Reserve(unused, 8);
+    std::string part;
+    std::string unused;
     for (; count != 0; --count) {
         ReadLinkString(&part, &cursor);
         ReadLinkString(&unused, &cursor);
@@ -233,12 +227,12 @@ CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, fl
     return mesh;
 }
 
-CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
+CLinkMesh* CLinkFigureLoader::MakeFigure(const std::string* name, const stlp::vector<std::string>* parts, float s,
                                          float t, float u) {
     CLinkMesh* memory = gamecrt::operator_new_as<CLinkMesh>();
     CLinkMesh* mesh = memory ? new (memory) CLinkMesh(this, name, s, t, u) : nullptr;
     FigureModel* set = FindFigureSet(name);
-    for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
+    for (const std::string* part = parts->begin(); part != parts->end(); ++part) {
         if (!set) {
             LoadArchivePart(mesh, part, s, t, u);
         } else if (const char* data = FileData(set->mesh, part->data())) {
@@ -249,13 +243,12 @@ CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::v
     return mesh;
 }
 
-int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u) {
+int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const std::string* name, float s, float t, float u) {
     const char* data;
     {
-        stlp::string file;
-        mesh->CopyName(&file);
-        file.Append(name->data(), name->data() + name->size());
-        file.Append(".fig", ".fig" + 4);
+        std::string file = mesh->CopyName();
+        file.append(name->data(), name->data() + name->size());
+        file.append(".fig", ".fig" + 4);
         data = FindInArchives(archives_, file.data());
     }
     if (!data) return 0;
@@ -263,7 +256,7 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const stlp::string* name
     return 1;
 }
 
-FigureModel* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
+FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
     if (auto* found = figureSets_.Find(*name)) return found->value;
     // "<name>" plus each suffix in a 512-byte buffer (strcpy / strcat, no length check).
     char path[512];
@@ -291,7 +284,7 @@ namespace {
 void ClearArchives(LinkArchiveNode* head) {
     for (LinkArchiveNode* n = head->next; n != head;) {
         LinkArchiveNode* next = n->next;
-        n->name.~string();
+        std::destroy_at(&n->name);
         stlp::deallocate(n, sizeof(LinkArchiveNode));
         n = next;
     }
@@ -326,16 +319,15 @@ CLinkFigureLoader::~CLinkFigureLoader() {
 EI_REWRITTEN_SPECIAL(0x004F6BD0, CLinkFigureLoader::~CLinkFigureLoader);
 EI_REWRITTEN_SPECIAL(0x004F6A30, CLinkFigureLoader::~CLinkFigureLoader);
 
-bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t,
+bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const std::string* name, float s, float t,
                                     float u) {
     const char* data;
     if (set) {
         data = FileData(set->mesh, name->data());
     } else {
-        stlp::string file;
-        mesh->CopyName(&file);
-        file.Append(name->data(), name->data() + name->size());
-        file.Append(".fig", ".fig" + 4);
+        std::string file = mesh->CopyName();
+        file.append(name->data(), name->data() + name->size());
+        file.append(".fig", ".fig" + 4);
         data = FindInArchives(archives_, file.data());
     }
     if (!data) return false;

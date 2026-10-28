@@ -97,7 +97,7 @@ void FlatColours(Part& part) {
     part.coloursWritten = true;
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
-        stlp::string s(name);
+        std::string s(name);
         CFigureMesh* mesh = part.Mesh();
         part.figure->FlatColours(&s, mesh->flatColour_, mesh->flatSpecular_, &part.Colours(), &part.Speculars());
         return;
@@ -161,7 +161,7 @@ void Light(Part& part) {
     if (CLight* sun = worlddata::SceneSun()) part.device->pipeline_->transform_->AddSun(sun);
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
-        stlp::string s(name);
+        std::string s(name);
         part.figure->LightPart(&s, part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
     } else {
         Fill(part.Colours(), part.material->GpuLitColour());
@@ -229,7 +229,7 @@ void DrawThroughFigure(Part& part) {
     CFigureMesh* mesh = part.Mesh();
     bool moved = mesh->offsets_.size != 0;
     const char* name = MeshName(mesh);
-    stlp::string s(name);
+    std::string s(name);
     mesh = part.Mesh();
     std::uint32_t u = OffsetBits(mesh->textureOffsetU_);
     std::uint32_t v = OffsetBits(mesh->textureOffsetV_);
@@ -253,7 +253,7 @@ void DrawThroughFigure(Part& part) {
     render::SetMeshSource(nullptr);
 
     if (part.rect) {
-        stlp::string key(MeshName(part.Mesh()));
+        std::string key(MeshName(part.Mesh()));
         LinkHeaderMap::Node* node = nullptr;
         node = lib_trees::FindLinkHeader(&part.figure->headers_, &key);
         RECT* own = &part.node->screen_;

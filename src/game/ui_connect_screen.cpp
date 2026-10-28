@@ -486,8 +486,8 @@ void CMpConnectScreen::EditAddress() {
     }
     boxText_[0] = '\0';
     if (row > 0 && static_cast<unsigned>(row) < entries_.size()) {
-        stlp::string text;
-        CopyText(boxText_, entry.address.ToString(&text)->data());
+        std::string text = entry.address.ToString();
+        CopyText(boxText_, text.data());
     }
     OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }

@@ -22,10 +22,9 @@ struct DecalTexCoord;
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
     NamedTexture* Copy(const NamedTexture* other);
-    stlp::string name;
+    std::string name;
     CTexture* texture;      // counted
 };
-static_assert(sizeof(NamedTexture) == 0x10);
 
 // A scorch mark and the base of the other two.
 class GroundPrint {
@@ -89,10 +88,6 @@ public:
     lib::AlignedArray<std::uint16_t> indices_;
 };
 static_assert(offsetof(GroundPrint, position_) == 0x08 && offsetof(GroundPrint, life_) == 0x1C);
-static_assert(offsetof(GroundPrint, texture_) == 0x20 && offsetof(GroundPrint, uvOffset_) == 0x30);
-static_assert(offsetof(GroundPrint, lit_) == 0x48 && offsetof(GroundPrint, colour_) == 0x54);
-static_assert(offsetof(GroundPrint, positions_) == 0x5C && offsetof(GroundPrint, indices_) == 0x7C);
-static_assert(sizeof(GroundPrint) == 0x8C);
 
 class Footprint : public GroundPrint {
 public:
@@ -108,7 +103,6 @@ public:
     float scale_;                   // the unit's footprint scale (only saved)
     int kind_;                      // -1, or the blood print's kind it was made with
 };
-static_assert(offsetof(Footprint, scale_) == 0x8C && sizeof(Footprint) == 0x94);
 
 // A blood print. Spreads for half its life (at most 45 ticks), turning.
 class BloodPrint : public GroundPrint {
@@ -132,5 +126,3 @@ public:
     int kind_;                      // tile >> 16
     std::uint8_t fresh_;            // a hit's blood (not a death's): footprints ignore it
 };
-static_assert(offsetof(BloodPrint, spin_) == 0x8C && offsetof(BloodPrint, kind_) == 0x94);
-static_assert(offsetof(BloodPrint, fresh_) == 0x98 && sizeof(BloodPrint) == 0x9C);

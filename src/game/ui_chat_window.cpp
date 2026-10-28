@@ -188,14 +188,14 @@ void CChatWindow::ShowPlayers() {
         net::PlayerMessage* player = PlayerOf(*p);
         UnitPrototypeRecord* prototype;
         {
-            prototype = unitdb::PrototypeNamed(stlp::string(player->text_));
+            prototype = unitdb::PrototypeNamed(std::string(player->text_));
             // EI_Plugin's Fixes: an unknown prototype becomes the first one that is no creature.
             if (!prototype && pluginfixes::Enabled())
                 prototype = pluginfixes::FallbackPrototype();
         }
         UnitModelRecord* figure;
         {
-            stlp::string key(prototype->modelName.c_str());
+            std::string key(prototype->modelName.c_str());
             figure = unitdb::ModelNamed(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character

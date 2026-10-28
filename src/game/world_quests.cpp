@@ -239,7 +239,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     text::Split(name, &parts, '.');
     QuestBriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
-        stlp::string key(parts[2]);
+        std::string key(parts[2]);
         record = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
     }
     CPlayer* player = nullptr;

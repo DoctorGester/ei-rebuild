@@ -341,21 +341,6 @@ static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
 static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
 static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8);
 
-// An entry of a sound set (the sets are the values of a map keyed by a unit prototype's name).
-struct UnitSoundEntry {
-    const char* name;
-    const char* sound;             // what the interface plays
-    std::uint8_t unused_08[0x28 - 0x08];
-    std::uint32_t flags;           // (the hero screen's voice takes entries with 0x2282 set)
-};
-static_assert(sizeof(UnitSoundEntry) == 0x2C);
-// A sound set (the map's value).
-struct UnitSoundBank {
-    std::uint8_t unused_000[0x1AC];
-    stlp::vector<UnitSoundEntry> entries;
-};
-static_assert(offsetof(UnitSoundBank, entries) == 0x1AC);
-
 // --- Multiplayer connection screen --------------------------------------------------------------
 // The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
 // the entry that hosts a new game. Regions: 0 connect / host, 1 back, 2 ask the master server, 3 add / forget an

@@ -111,7 +111,7 @@ void CWorldClient::SetUpGraphics(CTextureDevice* device) {
     }
     CLinkFigureLoader* loader;
     {
-        stlp::string resource(FiguresResource());
+        std::string resource(FiguresResource());
         loader = new CLinkFigureLoader(TheRenderDevice(), &resource);
     }
     CLinkFigureLoader* old = figureLoader_;

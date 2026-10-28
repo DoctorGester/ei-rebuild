@@ -71,10 +71,10 @@ struct NetAddress {
     // This address from "host[:port]" (an IPv4 number or a host name looked up); `defaultPort` unless the
     // text names one. False when the host is unknown.
     bool Parse(const char* text, int defaultPort);
-    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds) in `out`.
-    stlp::string* Format(stlp::string* out, int resolve) const;
+    // "a.b.c.d:port" (or, with `resolve`, "hostname:port" when the look-up succeeds).
+    std::string Format(int resolve) const;
     // Format without the look-up.
-    stlp::string* ToString(stlp::string* out) const;
+    std::string ToString() const;
 };
 static_assert(sizeof(NetAddress) == 0x10);
 
@@ -204,18 +204,15 @@ public:
     void Write(BufferCursor* cursor) override;
     void Read(BufferCursor* cursor) override;
 
-    stlp::string name_;
+    std::string name_;
     std::uint32_t kind_;          // the game kind (4: none)
-    stlp::string description_;       // the current map's title
+    std::string description_;        // the current map's title
     std::uint8_t players_;
     std::uint8_t maxPlayers_;
     std::uint8_t password_;       // whether joining needs a password
     std::uint8_t unused_47;
 };
 static_assert(offsetof(ServerEntry, name_) == 0x28);
-static_assert(offsetof(ServerEntry, description_) == 0x38);
-static_assert(offsetof(ServerEntry, players_) == 0x44);
-static_assert(sizeof(ServerEntry) == 0x48);
 
 // A server the client asks directly: its address and the reply last seen.
 struct Query {
@@ -482,29 +479,29 @@ public:
     bool Admit(const NetAddress* from, std::uint8_t** password, std::uint8_t* reason) override;
 
     // Switches the server to map `name`.
-    void SetMap(const stlp::string* name);
+    void SetMap(const std::string* name);
     // Queues a map message for each zone that follows the current map.
     void QueueMapList();
     // When the held map message names `name`: drops it and queues "name_3" instead.
-    bool FinishMap(const stlp::string* name);
-    RefNode** FindVariable(RefNode** out, const stlp::string* name);
-    RefNode** FindOrAddVariable(RefNode** out, const stlp::string* name);
-    void SetVariable(const stlp::string* name, float value);      // zero removes it
-    void RaiseVariable(const stlp::string* name, float value);    // to the larger value
-    void RemoveVariable(const stlp::string* name);
-    double GetVariable(const stlp::string* name);                 // 0 when missing
+    bool FinishMap(const std::string* name);
+    RefNode** FindVariable(RefNode** out, const std::string* name);
+    RefNode** FindOrAddVariable(RefNode** out, const std::string* name);
+    void SetVariable(const std::string* name, float value);       // zero removes it
+    void RaiseVariable(const std::string* name, float value);     // to the larger value
+    void RemoveVariable(const std::string* name);
+    double GetVariable(const std::string* name);                  // 0 when missing
     // The zone completion command ("<zone>_3"): the clients'
     // shares of the zone's two values and the host's items, then the map state is dropped.
-    void CompleteZone(const stlp::string* zone);
+    void CompleteZone(const std::string* zone);
     // The zone leaving command ("<zone>_2"): the host's items with the final award, then
     // the map state is dropped and the world's map cleared.
     void LeaveZone();
     // Queues the host's item awards of the briefing `entry` (and, with `withFinal`, the final award).
     void AwardHost(const QuestBriefingRecord* entry, bool withFinal);
     // Queues an award message for `connection` (60 s delay); destroys `text`.
-    void QueueAward(CRefObject* connection, int kind, float value, stlp::string text);
+    void QueueAward(CRefObject* connection, int kind, float value, std::string text);
     // Lists `data` under `name` (unless listed) as a file message with 64-byte chunk messages.
-    void ShareFile(const stlp::string* name, GameBuffer* data);
+    void ShareFile(const std::string* name, GameBuffer* data);
     // Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
     // Sends the master server this game's record: the name, the played map's title (empty without a map), the
@@ -519,7 +516,7 @@ public:
     TradeMessage* FindTrade(const PartyMessage* offer, const PartyMessage* other);
     int LeaderId();                                       // the first host's id, -1
     void SetPassword(const char* text);
-    Connection* FindGuestConnection(const stlp::string* name);
+    Connection* FindGuestConnection(const std::string* name);
     Connection* FindConnectionBySerial(int serial);
     PlayerMessage* FindPlayer(int id);
     void AnnounceToGuests(int kind, const char* text);
@@ -552,8 +549,8 @@ public:
     stlp::CountedRefListOf<TradeMessage> trades_;
     CountedTimedList finishedTrades_;   // {delay, trade}: done trades, kept 60 s
     stlp::list<NetAddress> banned_;
-    stlp::string name_;
-    stlp::string mapName_;
+    std::string name_;
+    std::string mapName_;
     std::uint32_t maxPlayers_;          // 8; set by the creator
     std::uint32_t kind_;                // the constructor's argument: the game kind
     char password_[0x14];               // the join password (empty: none)
@@ -566,9 +563,6 @@ static_assert(offsetof(ServerSession, players_) == 0x2590);
 static_assert(offsetof(ServerSession, bindings_) == 0x25A4);
 static_assert(offsetof(ServerSession, banned_) == 0x25C4);
 static_assert(offsetof(ServerSession, name_) == 0x25C8);
-static_assert(offsetof(ServerSession, maxPlayers_) == 0x25E0);
-static_assert(offsetof(ServerSession, password_) == 0x25E8);
-static_assert(sizeof(ServerSession) == 0x2600);
 
 // ---- The client base and the game client ----------------------------------------------------------
 
@@ -704,8 +698,8 @@ static_assert(offsetof(ClientSession, parties_) == 0x2620);
 
 // The game announcement the server builds and the client reads in its entry.
 struct GameInfoRecord {
-    stlp::string name;
-    stlp::string description;
+    std::string name;
+    std::string description;
     std::uint8_t players;
     std::uint8_t maxPlayers;
     std::uint8_t kind;           // the server's kind_ (ServerEntry::kind_)
@@ -717,7 +711,6 @@ struct GameInfoRecord {
     void Write(GameBuffer* buffer) const;
     int Read(GameBuffer* buffer);           // 1 unless the buffer ran short
 };
-static_assert(sizeof(GameInfoRecord) == 0x28);
 
 // The byte buffer's read helpers.
 GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, unsigned size);

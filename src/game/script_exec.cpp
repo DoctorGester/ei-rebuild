@@ -261,12 +261,12 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
 }
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
-    stlp::string text(Text(cmd, 0));
+    std::string text(Text(cmd, 0));
     ServerPointer()->SetVariable(&text, cmd->floatArgs.data[1]);
 }
 
 void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
-    stlp::string text(Text(cmd, 0));
+    std::string text(Text(cmd, 0));
     if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs.data[1]);
     else ServerPointer()->RemoveVariable(&text);
 }

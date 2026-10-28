@@ -15,11 +15,10 @@
 
 // A Direct3D device of the driver, as IDirect3D7::EnumDevices lists them.
 struct Direct3DDeviceRecord {
-    stlp::string name;          // e.g. "Direct3D HAL"
-    stlp::string description;
+    std::string name;           // e.g. "Direct3D HAL"
+    std::string description;
     D3DDEVICEDESC7 desc;
 };
-static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRecord, desc) == 0x18);
 
 namespace device {
 

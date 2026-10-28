@@ -381,19 +381,17 @@ void AnnounceHost(const char* zone) {
     if (libcrt::imports::GetHostName(host, sizeof(host)) != 0) return;
     net::NetAddress address{};
     address.Parse(host, kHostPort);
-    stlp::string text;
-    std::string formatted = address.ToString(&text)->data();
+    std::string formatted = address.ToString();
     net::HostMessage* record = net::NewCounted<net::HostMessage>();
     RefPtr& slot = net::GameServer()->hostInfo_;
     if (record != slot.ptr) {
         slot.Destroy();
         slot.Share(record);
     }
-    const char* text1 = formatted.c_str();
     net::HostMessage* shared = net::GameServer()->hostInfo_.Get();
-    shared->address_.Assign(text1);
+    shared->address_ = formatted;
     shared = net::GameServer()->hostInfo_.Get();
-    shared->zone_.Assign(zone);
+    shared->zone_.assign(zone);
     net::GameServer()->AnnounceToGuests(kServerMessageZone, zone);
 }
 
@@ -906,7 +904,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : kServerName;
-    net::GameServer()->name_.Assign(shown);
+    net::GameServer()->name_.assign(shown);
     net::GameServer()->maxPlayers_ = value25E0;
     if (password && *password) net::GameServer()->SetPassword(password);
     net::GameServer()->SetPublic(unlisted == 0);
@@ -1006,7 +1004,7 @@ struct EntryPicks {
 
 void __cdecl DestroyZoneTable() { recordvec::ZoneTableVector::Destruct(&g_zoneTable); }
 
-void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* exclude) {
+void __stdcall PickZones(stlp::vector<std::string>* out, int id, const char* exclude) {
     const ZoneTable& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
@@ -1031,12 +1029,12 @@ void __stdcall PickZones(stlp::vector<stlp::string>* out, int id, const char* ex
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
         unsigned pick = ((&IsaacRandom::Global()))->Next() % static_cast<unsigned>(group.count);
-        stlp::string name(group.items[pick]->first.c_str());
+        std::string name(group.items[pick]->first.c_str());
         if (out->Finish() != out->EndOfStorage()) {
-            new (out->Finish()) stlp::string(name);
+            new (out->Finish()) std::string(name);
             ++out->Finish();
         } else {
-            out->InsertOverflow<stlp::StringElement>(out->Finish(), name, 1);
+            out->InsertOverflow<stlp::ObjectElement<std::string>>(out->Finish(), name, 1);
         }
     }
 }
@@ -1532,11 +1530,11 @@ void GameFlow::AfterServerStart() {
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->members_.size == 1) {
         const std::string* names = GlobalParty()->members_.data->texts;
-        LocalLogin()->text_.Assign(names[5].c_str());
-        LocalLogin()->name_.Assign(names[0].c_str());
+        LocalLogin()->text_.assign(names[5].c_str());
+        LocalLogin()->name_.assign(names[0].c_str());
     } else {
-        LocalLogin()->text_.Assign(kDefaultHeroName);
-        LocalLogin()->name_.Assign(kDefaultPartyName);
+        LocalLogin()->text_.assign(kDefaultHeroName);
+        LocalLogin()->name_.assign(kDefaultPartyName);
     }
     LocalLogin()->state_ = 1;
 }
@@ -1579,9 +1577,9 @@ std::uint32_t ValueBits(const net::VariableMessage* record) {
 void GameFlow::UpdateFromServer() {
     if (!Active(net::GameClient())) return;
     if (CTextManager* texts = TheTextManager()) {
-        for (const stlp::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
+        for (const std::string* file = g_questFiles.begin(); file != g_questFiles.end(); ++file)
             texts->RemoveSource(file->data());
-        g_questFiles.EraseRange<stlp::StringElement>(g_questFiles.begin(), g_questFiles.end());
+        g_questFiles.EraseRange<stlp::ObjectElement<std::string>>(g_questFiles.begin(), g_questFiles.end());
     }
     auto* clientWorld = TheClientWorld();
     CPlayer* player = ClientWorldLocalView(clientWorld)->player_;

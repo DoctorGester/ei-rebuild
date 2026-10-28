@@ -188,12 +188,10 @@ static_assert(offsetof(CTextureDevice, pipeline_) == 0xAC);
 struct DirectDrawDriver {
     GUID guidValue;             // unset for the primary display driver
     GUID* guid;                 // for DirectDrawCreateEx: &guidValue, or null (the primary display driver)
-    stlp::string name;
-    stlp::string description;
+    std::string name;
+    std::string description;
     HMONITOR monitor;
 };
-static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDriver, description) == 0x20);
-static_assert(sizeof(DirectDrawDriver) == 0x30);
 extern lib::StaticObject<stlp::list<DirectDrawDriver>> g_directDrawDrivers;
 inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() { return *g_directDrawDrivers; }
 // Past the last: a fatal error and null.

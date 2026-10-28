@@ -105,7 +105,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
 
         FigureModel* figureModel;
         {
-            stlp::string modelName(model, model + std::strlen(model));
+            std::string modelName(model, model + std::strlen(model));
             figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
@@ -237,13 +237,13 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         // The figure gets the piece (its slot 4 loads it unless it has it).
         bool loaded;
         {
-            stlp::string key(partName, partName + std::strlen(partName));
+            std::string key(partName, partName + std::strlen(partName));
             loaded = current->LoadPart(&key);
         }
         if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
         const LinkHeaderMap::Node* node;
         {
-            stlp::string key(partName, partName + std::strlen(partName));
+            std::string key(partName, partName + std::strlen(partName));
             node = lib_trees::FindLinkHeader(&current->headers_, &key);
         }
         const LinkPartHeader& piece = node->second;
@@ -281,7 +281,7 @@ int CObject3D::LoadParts(const char* model, const PartNameArray* names, std::uin
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* cached;
     {
-        stlp::string key(model, model + std::strlen(model));
+        std::string key(model, model + std::strlen(model));
         cached = manager->FindModel(&key);
     }
     name = model;
@@ -302,22 +302,22 @@ constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
 // The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the game
 // sizes it with helper calls and assigns each name).
-void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
+void FillPieceNames(stlp::vector<std::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {
-        auto* start = stlp::allocate_as<stlp::string>(static_cast<std::size_t>(count));
+        auto* start = stlp::allocate_as<std::string>(static_cast<std::size_t>(count));
         pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
             const char* text = ((*names)[i]).GetString();
-            new (&start[i]) stlp::string(text, text + std::strlen(text));
+            std::construct_at(&start[i], text, text + std::strlen(text));
         }
         pieces.Finish() = start + count;
         pieces.EndOfStorage() = pieces.Finish();
     }
 }
 
-void FreePieceNames(stlp::vector<stlp::string>& pieces) {
-    for (stlp::string& piece : pieces) piece.~string();
+void FreePieceNames(stlp::vector<std::string>& pieces) {
+    for (std::string& piece : pieces) std::destroy_at(&piece);
     pieces.FreeStorage();
 }
 
@@ -334,14 +334,14 @@ int CObject3D::MakeFigure(const char* model, PartNameArray* names, std::uint32_t
     }
     if (names->size == 0 && animation) {
         animation->CollectBoneNames(names);
-        stlp::string key(model, model + std::strlen(model));
+        std::string key(model, model + std::strlen(model));
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
     } else {
-        stlp::vector<stlp::string> pieces;
+        stlp::vector<std::string> pieces;
         FillPieceNames(pieces, names);
         {
-            stlp::string key(model, model + std::strlen(model));
+            std::string key(model, model + std::strlen(model));
             CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
             CLinkMesh* old = figure;
             figure = made;

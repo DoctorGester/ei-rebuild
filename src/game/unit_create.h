@@ -25,7 +25,7 @@ struct UnitNpcRecord;
 // The unit prototype table: the records and an index by prototype name.
 struct UnitPrototypeTable {
     UnitPrototypeRecord* At(std::uint32_t index);
-    using NameIndex = stlp::hash_map<stlp::string, UnitPrototypeRecord*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<std::string, UnitPrototypeRecord*, stlp::StringHash>;
 
     // The record named `name` (an unknown name gets a null entry), or null.
     UnitPrototypeRecord* FindByName(const char* name);
@@ -39,7 +39,7 @@ static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 
 // The NPC prototype table (records of statistics for named creatures), laid out the same way.
 struct NpcPrototypeTable {
-    using NameIndex = stlp::hash_map<stlp::string, UnitNpcRecord*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<std::string, UnitNpcRecord*, stlp::StringHash>;
 
     UnitNpcRecord* FindByName(const char* name);
 

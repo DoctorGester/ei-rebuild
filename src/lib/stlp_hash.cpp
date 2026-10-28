@@ -18,10 +18,10 @@ TableWithDword* __fastcall ConstructTableWithDword(TableWithDword* self) {
     return self;
 }
 
-std::uint32_t __fastcall HashString(const string* s) { return s->Hash(); }
+std::uint32_t __fastcall HashString(const std::string* s) { return HashChars(s->data(), s->data() + s->size()); }
 
 void* RecordsByName::Named(const char* name) {
-    string key(name);
+    std::string key(name);
     StringKeyed<4> obj(key);
     void* record;
     std::memcpy(&record, byName.FindOrInsert(obj).mapped, sizeof(record));

@@ -7,6 +7,7 @@
 #include "stlp.h"
 
 #include <cstdint>
+#include <string>
 
 namespace stlp {
 
@@ -56,14 +57,13 @@ static_assert(sizeof(StringPair) == 0x18);
 struct StringListPair {
     // pair(const string&, const list&): the string copied, then list(const list&)
     // inlined: a sentinel, then insert(end(), first, last), one node per element in order.
-    StringListPair* Construct(const string& first, const list<void*>& second);
+    StringListPair* Construct(const std::string& first, const list<void*>& second);
     // ~pair (plain RET): the list's nodes and sentinel back to the pool (the nodes in
     // order), then the string's block.
     void Destruct();
 
-    string key;
+    std::string key;
     list<void*> mapped;
 };
-static_assert(sizeof(StringListPair) == 0x10);
 
 } // namespace stlp

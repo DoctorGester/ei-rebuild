@@ -41,8 +41,6 @@ ServerSession::ServerSession(std::uint32_t kind) {
     trades_.Construct();
     finishedTrades_.Construct();
     banned_.Construct();
-    stlp::string::Reserve(name_, 8);
-    stlp::string::Reserve(mapName_, 8);
     magic_ = kSessionMagic;
     RegisterMessageTypes();
 

@@ -50,7 +50,7 @@ EI_REWRITTEN(0x004250A0, RefPtr::CopyShared);
 
 // Queues an award message for `connection` on the pending awards with a 60 second delay. `text` is the
 // caller's string (made in the argument slot), destroyed here as the callee destroys a by-value argument.
-void ServerSession::QueueAward(CRefObject* connection, int kind, float value, stlp::string text) {
+void ServerSession::QueueAward(CRefObject* connection, int kind, float value, std::string text) {
     auto* award = NewCounted<AwardMessage>();
     CRefObject* previous = award->connection_.ptr;
     award->connection_.ptr = connection;
@@ -60,7 +60,7 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, st
     std::memcpy(&award->value_, &value, 4);
 
     // The text, assigned in place (string::operator= inlined: overwrite, then cut or append).
-    award->text_.AssignFrom(text);
+    award->text_ = text;
 
     RefPtr shared;
     shared.Share(award);
@@ -95,12 +95,12 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
         if (count() != 0) {
             do {
                 const char* item = items.begin()[i].GetString();
-                QueueAward(connection, 2, 0.0f, stlp::string(item));
+                QueueAward(connection, 2, 0.0f, std::string(item));
                 ++i;
             } while (i < count());
         }
     }
-    if (withFinal) QueueAward(connection, 4, 0.0f, stlp::string(game::EmptyText()));
+    if (withFinal) QueueAward(connection, 4, 0.0f, std::string(game::EmptyText()));
 }
 
 // The zone completion command ("<zone>_3"). Announces the current map's title (text 7)
@@ -108,7 +108,7 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
 // its share of the entry's two values (exp as kind 0, money as kind 1, divided by the number of
 // clients, at least 1) and the host's items with the final award. Then drops the map message and
 // empties queuedMaps_, variables_ and files_, and queues the following zones
-void ServerSession::CompleteZone(const stlp::string* zone) {
+void ServerSession::CompleteZone(const std::string* zone) {
     auto* holder = &map_;
     if (IsLive(holder->ptr)) {
         {
@@ -120,7 +120,7 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
 
     QuestBriefingRecord* entry;
     {
-        stlp::string key = stlp::Plus(*zone, game::ZoneSuffix3Text());
+        std::string key = *zone + game::ZoneSuffix3Text();
         entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), key);
     }
     if (entry) {
@@ -138,8 +138,8 @@ void ServerSession::CompleteZone(const stlp::string* zone) {
         for (ClientNode* node = sentinel->next; node != sentinel;) {
             CRefObject* connection = node->connection;
             const char* empty = game::EmptyText();
-            QueueAward(connection, 0, award0, stlp::string(empty));
-            QueueAward(connection, 1, award1, stlp::string(empty));
+            QueueAward(connection, 0, award0, std::string(empty));
+            QueueAward(connection, 1, award1, std::string(empty));
             node = node->next;
             sentinel = clients_;
         }
@@ -171,8 +171,8 @@ void ServerSession::LeaveZone() {
 
         QuestBriefingRecord* entry;
         {
-            stlp::string key = stlp::Plus(holder->Get()->text_, game::ZoneSuffix1Text());
-            stlp::string lookup(key.data());
+            std::string key = holder->Get()->text_ + game::ZoneSuffix1Text();
+            std::string lookup(key.data());
             entry = stlp::NamedSlot<QuestBriefingRecord>(worlddata::QuestBriefings(), lookup);
         }
         if (entry) AwardHost(entry, true);

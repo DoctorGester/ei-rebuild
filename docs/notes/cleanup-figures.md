@@ -36,7 +36,7 @@ How the figure meshes (`figure_*.cpp / .h`), the link figures (`link_*.cpp`) and
 - `CFigureCache` is gone: CWorld slot 23 (vtable +0x5C) is `FigureLoader()` returning `CLinkFigureLoader*` (model.h; party.h's slot 23 is
   named the same, still null there). MakeFigure (00516DA0) calls `LoadLink` (slot 4) / `LoadFigure` (slot 3) and SetFigureScale (00517700)
   calls `Remorph` (slot 6) with the scale as floats and `fresh` false (x87 float load / store is exact except for a signalling NaN, which a
-  figure scale never is). `PieceNames` is the loader's `stlp::vector<stlp::string>`.
+  figure scale never is). `PieceNames` is the loader's `stlp::vector<std::string>`.
 - `CountedRef<T>` has `Assign` defined in object3d_lifetime.cpp for the three types the game's copies hold: 00519580
   `CountedRef<CLinkMesh>` (the figure), 0051E570 `CountedRef<WoundsMaterial>`, 0051E4F0 `CountedRef<CRenderPreset>` (0051C3D0 ShowWounds
   calls 0051E570 for the wounds material and 0051E4F0 for its preset; 0051AF70 DestroyClient calls 0051E570). `CountOf` / `DeleteCounted`

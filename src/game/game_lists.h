@@ -42,8 +42,8 @@ inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object
 void DestroySharedObject(SharedObject* p);
 // The sound manager's wave records: the name an empty string with room for 8 bytes (after the zero fill);
 // its buffer freed.
-inline void InitWave(WaveRecord* p) { stlp::StringElement::Default(&p->name); }
-inline void DestroyWave(WaveRecord* p) { stlp::StringElement::Destroy(&p->name); }
+inline void InitWave(WaveRecord* p) { std::construct_at(&p->name); }
+inline void DestroyWave(WaveRecord* p) { std::destroy_at(&p->name); }
 
 using EngineObjects = ListAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, gamearrays::ReleaseOnly>>;
 using ObjectRefElements = EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>;

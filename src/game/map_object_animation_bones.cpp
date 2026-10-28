@@ -278,7 +278,7 @@ void CFigureAnimationState::Rescale(float s, float t, float u) {
     FigureModel* model;
     {
         const char* name = owner->name.c_str();
-        stlp::string key(name, name + std::strlen(name));
+        std::string key(name, name + std::strlen(name));
         model = FigureManagerOf(this)->FindModel(&key);
     }
     for (auto* node = bones.head; node;) {

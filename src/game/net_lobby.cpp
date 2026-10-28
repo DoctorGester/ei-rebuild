@@ -47,8 +47,7 @@ void LogLine(const char* text) {
 // "<text><address>\n" and a flush; the address string is freed again.
 void LogAddressLine(const char* text, const NetAddress* address) {
     if (!g_netLog) return;
-    stlp::string s;
-    address->ToString(&s);
+    std::string s = address->ToString();
     g_netLog->Put(text)->Put(s.data())->PutChar('\n')->Flush();
 }
 

@@ -27,7 +27,7 @@ namespace {
 int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* name) {
     FigureModel* model;
     {
-        stlp::string key(name);
+        std::string key(name);
         model = FindModel(&key);
     }
 

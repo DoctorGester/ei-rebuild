@@ -19,7 +19,7 @@ namespace {
 
 // The search the original inlines in each function: the first node whose variable's name has the
 // same bytes as `name`, else the sentinel.
-RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const stlp::string* name) {
+RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const std::string* name) {
     RefNode* node = list.First();
     for (; node != list.End(); node = node->next)
         if (list.At(node)->name_ == *name) break;
@@ -29,13 +29,13 @@ RefNode* FindNode(const stlp::SharedRefListOf<VariableMessage>& list, const stlp
 } // namespace
 
 // The variable named `name` (its list node), or the sentinel.
-RefNode** ServerSession::FindVariable(RefNode** out, const stlp::string* name) {
+RefNode** ServerSession::FindVariable(RefNode** out, const std::string* name) {
     *out = FindNode(variables_, name);
     return out;
 }
 
 // The variable named `name`, made (value 0) at the front of the list when missing.
-RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* name) {
+RefNode** ServerSession::FindOrAddVariable(RefNode** out, const std::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) {
         *out = node;
@@ -49,14 +49,14 @@ RefNode** ServerSession::FindOrAddVariable(RefNode** out, const stlp::string* na
     RefNode* first = variables_.First();
 
     // The name, assigned in place (string::operator= inlined: overwrite, then cut or append).
-    stlp::string* to = &variables_.At(first)->name_;
-    if (name != to) to->AssignFrom(*name);
+    std::string* to = &variables_.At(first)->name_;
+    if (name != to) *to = *name;
     *out = first;
     return out;
 }
 
 // Sets the variable; a zero value removes it instead. A set bumps the version and takes the next serial.
-void ServerSession::SetVariable(const stlp::string* name, float value) {
+void ServerSession::SetVariable(const std::string* name, float value) {
     EI_NAN_AUDIT(value);
     if (value != 0.0f /*0073B858*/) {
         RefNode* found;
@@ -75,7 +75,7 @@ void ServerSession::SetVariable(const stlp::string* name, float value) {
 
 // Raises the variable to `value` (the larger of the two; `value` when either is NaN),
 // made when missing; a result of zero (or NaN) removes it.
-void ServerSession::RaiseVariable(const stlp::string* name, float value) {
+void ServerSession::RaiseVariable(const std::string* name, float value) {
     RefNode* found;
     FindOrAddVariable(&found, name);
     VariableMessage* variable = variables_.At(found);
@@ -99,13 +99,13 @@ void ServerSession::RaiseVariable(const stlp::string* name, float value) {
 }
 
 // Removes the variable when it exists.
-void ServerSession::RemoveVariable(const stlp::string* name) {
+void ServerSession::RemoveVariable(const std::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) variables_.Erase(node);
 }
 
 // The variable's value, 0 when missing (returned unrounded in ST0).
-double ServerSession::GetVariable(const stlp::string* name) {
+double ServerSession::GetVariable(const std::string* name) {
     RefNode* node = FindNode(variables_, name);
     if (node != variables_.End()) return variables_.At(node)->value_;
     return 0.0f /*0073B858*/;

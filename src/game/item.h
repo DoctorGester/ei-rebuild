@@ -447,7 +447,6 @@ namespace console {
 class CStringArray;
 } // namespace console
 namespace stlp {
-class string;
 template <typename T> class vector;
 } // namespace stlp
 
@@ -457,4 +456,4 @@ template <typename T> class vector;
 void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out);
 
 // The same names for a packed item id, appended to an STLport vector of strings.
-void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out);
+void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<std::string>* out);

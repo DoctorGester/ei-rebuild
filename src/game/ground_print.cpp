@@ -87,7 +87,6 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
     visible_ = visible;
     growth_ = 0.0f;
     life_ = static_cast<std::int16_t>(life);
-    stlp::string::Reserve(texture_.name, 8);
     texture_.texture = nullptr;
     uvAngle_ = 0.0f;
     angle_ = 0.0f;
@@ -102,7 +101,7 @@ GroundPrint::GroundPrint(std::uint8_t visible, int life, float alphaScale, int l
 }
 
 void GroundPrint::SetTexture(const char* name) {
-    texture_.name.Assign(name, name + std::strlen(name));
+    texture_.name.assign(name, name + std::strlen(name));
     CTextureManager* textures = TheTextureManager();
     AssignCounted(&texture_.texture, textures->FindTexture(name));
     if (texture_.texture) return;
@@ -267,7 +266,7 @@ void GroundPrint::Destruct() {
     texCoords_.FreeData();
     positions_.FreeData();
     if (texture_.texture) texture_.texture->Release();
-    texture_.name.~string();
+    std::destroy_at(&texture_.name);
 }
 
 GroundPrint* GroundPrint::DeletingDestruct(unsigned flags) {

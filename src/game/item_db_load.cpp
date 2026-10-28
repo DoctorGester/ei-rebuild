@@ -38,7 +38,7 @@ void LoadIndexed(itemdb::NamedRecordTable<Record>* table, CStream* source, int f
         archive.SerializeQuestItems(field, &table->records, nullptr);
     archive.Close(source);
     for (Record* record = table->records.begin(); record != table->records.end(); ++record) {
-        stlp::string name(record->text04.c_str());
+        std::string name(record->text04.c_str());
         stlp::NamedSlot<Record>(table->names, name) = record;
     }
 }
@@ -134,13 +134,13 @@ namespace {
 
 // A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
 // to the field count first.
-void StringListField(ChunkArchive* ar, int id, stlp::vector<stlp::string>* list) {
+void StringListField(ChunkArchive* ar, int id, stlp::vector<std::string>* list) {
     if (!ar->EnterChunk(id)) return;
     int count;
     if (ar->loading_) {
-        list->EraseRange<stlp::StringElement>(list->begin(), list->end());
+        list->EraseRange<stlp::ObjectElement<std::string>>(list->begin(), list->end());
         count = ar->CountChunks(1);
-        list->ResizeDefault<stlp::StringElement>(static_cast<unsigned>(count));
+        list->ResizeDefault<stlp::ObjectElement<std::string>>(static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(list->size());
     }

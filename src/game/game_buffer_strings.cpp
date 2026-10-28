@@ -36,7 +36,7 @@ void WriteInline(GameBuffer* buffer, const void* from, std::uint32_t size) {
 
 } // namespace
 
-bool GameBuffer::ReadString(stlp::string* s, int maxLength) {
+bool GameBuffer::ReadString(std::string* s, int maxLength) {
     std::uint32_t word = 0;
     auto* bytes = reinterpret_cast<std::uint8_t*>(&word);
     ReadInline(this, bytes, 1);
@@ -50,14 +50,14 @@ bool GameBuffer::ReadString(stlp::string* s, int maxLength) {
     const char* first = reinterpret_cast<const char*>(cur);
     const char* last = first + length;
     // string::assign(first, last), inlined: overwrite and cut, or overwrite and append the rest.
-    s->Assign(first, last);
+    s->assign(first, last);
     cur = reinterpret_cast<std::uint8_t*>(const_cast<char*>(first)) + length;
     Commit();
     return true;
 }
 EI_REWRITTEN(0x004DA200, GameBuffer::ReadString);
 
-void GameBuffer::WriteString(const stlp::string* s) {
+void GameBuffer::WriteString(const std::string* s) {
     const auto length = static_cast<std::uint32_t>(s->size());
     if (static_cast<int>(length) >= 0x80) {
         std::uint32_t header = length * 2 + 1;

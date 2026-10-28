@@ -450,9 +450,9 @@ const char* NoFunctionText() { return "Loaded 3D transform library have no funct
 // The processor's CPUID function 1 into the globals (as the renderer does again). A throw unwinds the
 // folder's string, the stacks (from the last) and the base, and `new` frees the memory.
 CTransformPipeline::CTransformPipeline(const char* folder) {
-    stlp::string path(folder);
+    std::string path(folder);
     ReadProcessorInfo();
-    library_ = gameapi::LoadLibraryA(stlp::Plus(path, TransformLibraryName()).data());
+    library_ = gameapi::LoadLibraryA((path + TransformLibraryName()).data());
     game::DebugLog(LibraryLoadedText());
     if (!library_) ThrowGameError(NoLibraryText());
 

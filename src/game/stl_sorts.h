@@ -10,15 +10,13 @@
 #include "world.h"
 
 #include <cstdint>
+#include <string>
 
 namespace net {
 class FileChunkMessage;
 }
 namespace mfc {
 class CString;
-}
-namespace stlp {
-class string;
 }
 
 namespace stl_sorts {
@@ -84,11 +82,11 @@ SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEn
 // A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
 // texts. A copy allocates (string's copy constructor, the swap's string(first, last)), so
 // every copy, assignment (assign(first, last)) and destruction is STLport's
-// (stlp::StringElement); the partition takes the pivot by value and frees it before it
+// (stlp::ObjectElement<std::string>); the partition takes the pivot by value and frees it before it
 // returns. The comparison object is empty (the caller passes the person's id in its slot).
 // __introsort_loop, __final_insertion_sort.
-void __fastcall TopicIntroSort(stlp::string* first, stlp::string* last, int tag, int depth, int comp);
-void __fastcall TopicFinalSort(stlp::string* first, stlp::string* last, int comp);
+void __fastcall TopicIntroSort(std::string* first, std::string* last, int tag, int depth, int comp);
+void __fastcall TopicFinalSort(std::string* first, std::string* last, int comp);
 
 // The multiplayer hero screen's figure names (ui_hero_screen_create.cpp, a vector<CString>) by
 // CString's operator< (_mbscmp). Copies only share the strings.

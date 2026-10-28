@@ -46,7 +46,7 @@ std::int32_t Length(GameBuffer* b) {
 bool NetAddress::Parse(const char* text, int defaultPort) {
     std::memset(this, 0, sizeof(*this));
     family = 2;
-    stlp::string s(text, text + std::strlen(text));
+    std::string s(text, text + std::strlen(text));
     const std::size_t npos = 0xFFFFFFFFu /*0073BDE8*/;
     int number = defaultPort;
     std::size_t colon = npos;
@@ -64,12 +64,12 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
         std::size_t n = s.size() - first;
         if (n >= npos) n = npos;
         {
-            stlp::string digits(s.data() + first, s.data() + first + n);
+            std::string digits(s.data() + first, s.data() + first + n);
             number = std::atoi(digits.data());
         }
         std::size_t m = s.size() < colon ? s.size() : colon;
-        stlp::string host(s.data(), s.data() + m);
-        s.Assign(host.data(), host.data() + host.size());
+        std::string host(s.data(), s.data() + m);
+        s.assign(host.data(), host.data() + host.size());
     }
     ip = libcrt::imports::InetAddr(s.data());
     if (ip == 0xFFFFFFFFu) {
@@ -83,7 +83,7 @@ bool NetAddress::Parse(const char* text, int defaultPort) {
 EI_REWRITTEN(0x00440440, NetAddress::Parse);
 
 // The look-up is given the whole sockaddr.
-stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
+std::string NetAddress::Format(int resolve) const {
     char text[0x400];
     bool named = false;
     if (static_cast<std::uint8_t>(resolve)) {
@@ -99,9 +99,7 @@ stlp::string* NetAddress::Format(stlp::string* out, int resolve) const {
         auto* bytes = reinterpret_cast<const std::uint8_t*>(&ip);
         gamecrt::sprintf(text, "%i.%i.%i.%i:%i", bytes[0], bytes[1], bytes[2], bytes[3], value & 0xFFFF);
     }
-    // Made in `out` (raw storage): a block of length + 1 bytes, the text, the terminator.
-    new (out) stlp::string(text, text + std::strlen(text));
-    return out;
+    return text;
 }
 EI_REWRITTEN(0x00440690, NetAddress::Format);
 

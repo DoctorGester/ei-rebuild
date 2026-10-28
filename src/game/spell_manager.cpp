@@ -138,7 +138,6 @@ CSpellContainer::CSpellContainer() {
     ClearFields();
     modifiers_.Construct();
     // The code string: empty, with room for 8 bytes.
-    stlp::string::Reserve(codes_, 8);
     CSpellContainer::Create();
 }
 EI_REWRITTEN_SPECIAL(0x0068BA80, CSpellContainer::CSpellContainer);

@@ -85,16 +85,16 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
 EI_REWRITTEN(0x006AD900, QuestBriefingRecord::Serialize);
 
 void QuestRecord::Destruct() {
-    text.~string();
+    std::destroy_at(&text);
     places.FreeStorage();
-    name.~string();
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x006AF4D0, QuestRecord::Destruct);
 
 void QuestBriefingRecord::Destruct() {
-    text.~string();
+    std::destroy_at(&text);
     for (int i = 5; i >= 0; --i) records::DestroyVector(lists[i]);
-    name.~string();
+    std::destroy_at(&name);
 }
 EI_REWRITTEN(0x006AF5A0, QuestBriefingRecord::Destruct);
 
@@ -106,55 +106,55 @@ using NameElement = stlp::ObjectElement<mfc::CString>;
 } // namespace
 
 void QuestRecord::CopyConstruct(const QuestRecord* source) {
-    new (&name) stlp::string(source->name);
+    std::construct_at(&name, source->name);
     exp = source->exp;
     field2 = source->field2;
     money = source->money;
     zone = source->zone;
     order = source->order;
     places.CopyConstruct<PlaceElement>(source->places);
-    new (&text) stlp::string(source->text);
+    std::construct_at(&text, source->text);
 }
 
 void QuestRecord::AssignQuest(const QuestRecord* source) {
-    name.AssignFrom(source->name);
+    name = source->name;
     exp = source->exp;
     field2 = source->field2;
     money = source->money;
     zone = source->zone;
     order = source->order;
     places.AssignVector<PlaceElement>(source->places);
-    text.AssignFrom(source->text);
+    text = source->text;
 }
 
 void QuestRecord::ConstructDefault() {
-    stlp::StringElement::Default(&name);
+    std::construct_at(&name);
     places.ConstructEmpty();
-    stlp::StringElement::Default(&text);
+    std::construct_at(&text);
 }
 
 void QuestBriefingRecord::CopyConstruct(const QuestBriefingRecord* source) {
-    new (&name) stlp::string(source->name);
+    std::construct_at(&name, source->name);
     exp = source->exp;
     money = source->money;
     for (int i = 0; i < 6; ++i) lists[i].CopyConstruct<NameElement>(source->lists[i]);
-    new (&text) stlp::string(source->text);
+    std::construct_at(&text, source->text);
     specials = source->specials;
 }
 
 void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
-    name.AssignFrom(source->name);
+    name = source->name;
     exp = source->exp;
     money = source->money;
     for (int i = 0; i < 6; ++i) lists[i].AssignVector<NameElement>(source->lists[i]);
-    text.AssignFrom(source->text);
+    text = source->text;
     specials = source->specials;
 }
 
 void QuestBriefingRecord::ConstructDefault() {
-    stlp::StringElement::Default(&name);
+    std::construct_at(&name);
     for (CStringVector& list : lists) list.ConstructEmpty();
-    stlp::StringElement::Default(&text);
+    std::construct_at(&text);
 }
 
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {

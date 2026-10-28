@@ -275,7 +275,7 @@ to which template:
   arrays (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`, `DwordBuffer`; 00452AF0, 0044FBB0, 0044F410, 0044F1D0,
   0044F1B0), `CUiRegion::points_`, unit_skins' texture set bytes. The animation / figure loader copies (0044F1B0-00454A30)
   are in aligned_arrays.cpp (element types `Blob<K>`).
-- STLport `stlp::string`, `vector`, `hash_map`, `list`, `map`: `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+- STLport `vector`, `hash_map`, `list`, `map` (and `stlp::string`, the lib's and the debug panel's): `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
   next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static `__fastcall`
   forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's 004E1530 / 004E1550 / 004E1590 /
   004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` / `Finish` / `EndOfStorage` references for code that inlines
@@ -410,6 +410,17 @@ to which template:
   `std::vector<std::string>`: the HUD tooltips' `labels_` (CHudWeaponBar, CHudQuickItems, CHudSpellColumn,
   CHudActionColumn; the classes are allocated by `new`, so their sizes follow) and COptionsWindow::groupNames_
   (the layout asserts after them went).
+- stlp::string is std::string in src/game (batch 12, 491 -> 8 uses outside src/lib): the members, locals,
+  parameters, the vectors (`stlp::vector<std::string>`, policy `stlp::ObjectElement<std::string>`), the trees and hash
+  maps keyed by name (stlp_hash.h's `StringKeyTraits` / `StringListTraits` / `NamedSlot` and `stlp::StringHash` hash a
+  std::string the same way: `h = 5 * h + c` over signed chars, so bucket and iteration order are kept; trees order by
+  `operator<`, unsigned bytes like STLport's memcmp). Out parameters that built a string in raw storage return it now
+  (`NetAddress::Format` / `ToString`, `CLinkMesh::CopyName`). Left: the debug panel (debug_panel.h's StringMap,
+  string_map.cpp, library_trees.h's StringPairs), and src/lib's own (stlp::string itself, StringAbi, stlp_pair.h's
+  StringDwordPair / StringPair, stlp_vector.cpp's vector<string>): for the bridge batch. The records that grew lost
+  their size asserts; every node or block size that was a literal now is a sizeof (the animation caches' and the figure manager's
+  hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
+  `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
 - Members that must stay CStrings for now: stlp::vector<CString> (CStringVector) members and CStringArrays
   (mfc::CStringArray and console::CStringArray: the console's history and lines, every command's arguments, Split /
   SplitWords / Join, the ui's label and text arrays, the map specs' name lists).

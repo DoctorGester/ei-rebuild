@@ -83,7 +83,7 @@ EI_REWRITTEN(0x0041A140, ServerSession::SetPassword);
 
 // The connection of the first player whose name starts with `name` (case-insensitive)
 // and whose connection is not also the host's; null without one.
-Connection* ServerSession::FindGuestConnection(const stlp::string* name) {
+Connection* ServerSession::FindGuestConnection(const std::string* name) {
     const std::size_t length = name->size();
     for (RefNode* node = players_.First(); node != players_.End(); node = node->next) {
         PlayerMessage* player = players_.At(node);

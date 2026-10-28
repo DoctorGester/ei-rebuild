@@ -45,8 +45,8 @@ using UnitItems = mfc::CTypedPtrList<CItem>;
 UnitPrototypeRecord* UnitPrototypeTable::FindByName(const char* name) {
     // The key is built twice (a string, then the pair it would insert) and both freed
     // afterwards; the pool sees the same allocations in the same order.
-    stlp::string key(name);
-    stlp::string pairKey(key);
+    std::string key(name);
+    std::string pairKey(key);
     UnitPrototypeRecord* record = byName[pairKey];
     return record;
 }

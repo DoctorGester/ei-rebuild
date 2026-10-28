@@ -240,8 +240,8 @@ TextSources::Node** TextSources::Erase(Node** out, Node* pos) {
     Node* prev = pos->prev;
     prev->next = next;
     next->prev = prev;
-    pos->data.name.~string();   // the storage freed
-    if (pos) libcrt::NodeDeallocate(pos, 0x18);   // checked only here, after using the node (always true)
+    std::destroy_at(&pos->data.name);   // the storage freed
+    if (pos) libcrt::NodeDeallocate(pos, sizeof(Node));   // checked only here, after using the node (always true)
     *out = next;
     return out;
 }

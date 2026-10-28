@@ -45,22 +45,20 @@ std::uint32_t TakeDword(BufferCursor* cursor) {
 void ServerSession::AnnounceToMaster() {
     GrowingBuffer buffer;
     GameInfoRecord info;
-    stlp::string& name = info.name;
-    stlp::string& description = info.description;
-    stlp::string::Reserve(name, 8);
-    stlp::string::Reserve(description, 8);
+    std::string& name = info.name;
+    std::string& description = info.description;
 
-    name.AssignFrom(name_);
+    name = name_;
     info.hasPassword = password_[0] != 0;
     info.masterKey = masterKey_;
     info.kind = static_cast<std::uint8_t>(kind_);
     const char* empty = game::EmptyText();
-    description.Assign(empty);
+    description.assign(empty);
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefCounted::kDetached)) {
         mfc::CString title(mfc::CString::kUnset);
         const char* text = *SessionMapNameInto(&title);
-        description.Assign(text);
+        description.assign(text);
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);

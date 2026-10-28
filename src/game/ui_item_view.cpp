@@ -56,7 +56,7 @@ template <typename Object>
 Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (__fastcall* make)(const char*)) {
     typename ItemObjectCache<Object>::Node* node;
     {
-        stlp::string key(name);
+        std::string key(name);
         node = cache->map.find(key);
     }
     if (node != cache->map.end()) {
@@ -67,7 +67,7 @@ Object* CachedObject(ItemObjectCache<Object>* cache, const char* name, Object* (
     if (!object) return nullptr;
     std::uint32_t time = gameapi::timeGetTime();
     {
-        stlp::string key(name);
+        std::string key(name);
         ItemCacheEntry<Object>& value = cache->map.Subscript(key);
         value.object = object;
         value.lastUse = time;
@@ -362,12 +362,12 @@ bool SameText(const char* a, const char* b) {
 void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CString* texture) {
     UnitPrototypeRecord* unit;
     {
-        stlp::string key(prototype);
+        std::string key(prototype);
         unit = unitdb::PrototypeTable().byName.Subscript(key);   // an unknown name gets a null entry
     }
     UnitModelRecord* figure;
     {
-        stlp::string key(unit->modelName.c_str());
+        std::string key(unit->modelName.c_str());
         figure = unitdb::ModelNamed(key);
     }
     std::string sex;

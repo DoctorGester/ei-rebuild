@@ -42,7 +42,7 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), mfc::CString(game::EmptyText())).GetString();
         const char* text = name.c_str();
-        quest->name.Assign(text);
+        quest->name.assign(text);
     }
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
     quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
@@ -90,7 +90,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         std::string name = reg.GetString(section, game::questwords::Name(), mfc::CString(game::EmptyText())).GetString();
-        briefing->name.Assign(name.c_str());
+        briefing->name.assign(name.c_str());
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));
@@ -110,9 +110,9 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
 }
 
 void ConstructBriefing(QuestBriefingRecord* briefing) {
-    stlp::StringElement::Default(&briefing->name);
+    std::construct_at(&briefing->name);
     for (int i = 0; i < 6; ++i) List(briefing, i)->ConstructEmpty();
-    stlp::StringElement::Default(&briefing->text);
+    std::construct_at(&briefing->text);
 }
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
@@ -154,9 +154,9 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 
     lib::InPlace<QuestRecord> questStorage;   // built and destroyed below
     QuestRecord* quest = questStorage.Get();
-    stlp::StringElement::Default(&quest->name);
+    std::construct_at(&quest->name);
     quest->places.ConstructEmpty();
-    stlp::StringElement::Default(&quest->text);
+    std::construct_at(&quest->text);
     {
         console::CStringArray places;
         ReadQuest(reg, quest, places);

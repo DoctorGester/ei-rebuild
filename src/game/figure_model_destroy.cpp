@@ -59,7 +59,7 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
     });
     // clear().
     table.ClearWith([](Node* n) {
-        n->key.~string();
+        std::destroy_at(&n->key);
         if (n) Deallocate(n, sizeof(Node));
     });
 
@@ -71,8 +71,8 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 
     // The hash_map's destructor.
     table.ClearWith([&table](Node* n) {
-        n->key.~string();
-        stlp::deallocate(n, 20);
+        std::destroy_at(&n->key);
+        stlp::deallocate(n, sizeof(Node));
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     DeallocatePointers(buckets.Start(), static_cast<int>(buckets.EndOfStorage() - buckets.Start()));
@@ -84,7 +84,7 @@ EI_REWRITTEN(0x005AE5D0, mfc::impl::ScalarDeleting<&records::DestructLeadingStri
 // The figure manager's destructor: every cached model destroyed and freed, the base's clean-up, the model map
 // cleared and its buckets freed (the map's inline destructor), then the base destructor.
 CFigureManager::~CFigureManager() {
-    using Node = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>::Node;
+    using Node = stlp::hash_map<std::string, FigureModel*, stlp::StringHash>::Node;
     CFigureManager* manager = this;
     auto& table = manager->models_;
     ForEachNode(table, [](Node* node) {
@@ -95,8 +95,8 @@ CFigureManager::~CFigureManager() {
     });
     manager->CResourceManager::Destroy();   // the base's clean-up
     table.ClearWith([](Node* n) {
-        n->key.~string();
-        stlp::deallocate(n, 20);
+        std::destroy_at(&n->key);
+        stlp::deallocate(n, sizeof(Node));
     });
     stlp::vector<Node*>& buckets = Buckets(table);
     if (buckets.Start())

@@ -170,14 +170,14 @@ namespace {
 using Archives = stlp::list<recordlist::LinkArchive>;
 } // namespace
 
-int CLinkFigureLoader::AddArchive(const stlp::string* path) {
+int CLinkFigureLoader::AddArchive(const std::string* path) {
     for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next)
         if (n->name == *path) return 1;
 
     Archives::InsertDefault<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_));
     LinkArchiveNode* node = archives_->prev;
     // The new string is empty (with room for 8 bytes): STLport's assign appends the whole path.
-    if (&node->name != path && path->size() != 0) node->name.Append(path->data(), path->data() + path->size());
+    if (&node->name != path && path->size() != 0) node->name.append(path->data(), path->data() + path->size());
 
     CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
     CMappedResource* resource = memory ? new (memory) CMMIOResource() : nullptr;

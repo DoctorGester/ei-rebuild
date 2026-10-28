@@ -229,7 +229,7 @@ template <typename R>
 struct PrintElement {
     static void Construct(R* to, const R& from) { new (to) R(from); }
     static void Assign(R& to, const R& from) {
-        to.name.AssignFrom(from.name);
+        to.name = from.name;
         std::memcpy(Values(to), Values(from), sizeof(R) - offsetof(R, look2));
     }
     static void Default(R* p) { new (p) R(); }

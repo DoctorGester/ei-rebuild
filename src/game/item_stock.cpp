@@ -335,7 +335,7 @@ itemdb::SpellRecord* FindSpellPrototype(const char* name) {
 }
 
 // Created null when missing.
-itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const stlp::string& name) {
+itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const std::string& name) {
     return stlp::NamedSlot<itemdb::SpellModifierRecord>(stock->modifierMap, name);
 }
 
@@ -382,7 +382,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         char letters[2] = {m->code[0], m->code[1]};
         switch (ModifierKind(m)) {
         case 'a': case 'd': case 'e': case 'm': case 'r': case 't': {
-            stlp::string key(letters, letters + 1);
+            std::string key(letters, letters + 1);
             Modifier* held = ModifierSlot(this, key);
             // Replaced when the held one's strength is less.
             if (held) EI_NAN_AUDIT(ModifierFactor(held), ModifierFactor(m));
@@ -390,7 +390,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
             break;
         }
         case 'f': case 'i': {
-            stlp::string key(letters, letters + 2);
+            std::string key(letters, letters + 2);
             ModifierSlot(this, key) = m;
             break;
         }
@@ -506,7 +506,7 @@ void LoadMapped(CStream* stream, mfc::CString& name, unsigned& count, Map& map, 
         ReadName(stream, name);
         Record* record;
         {
-            stlp::string key(name.GetString());
+            std::string key(name.GetString());
             record = stlp::NamedSlot<Record>(map, key);
         }
         if (record) AddUnique(list, record);

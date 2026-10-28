@@ -252,7 +252,7 @@ public:
 
     const itemdb::SpellRecord* prototype_;
     SpellModifierList modifiers_;
-    stlp::string codes_;            // modifier index + 1 per modifier
+    std::string codes_;             // modifier index + 1 per modifier
     CSpell spell_;
     std::string name_;             // always empty
 };

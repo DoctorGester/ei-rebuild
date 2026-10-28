@@ -195,7 +195,7 @@ void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 
 // The model table: the records and an index by name, as the prototype tables.
 struct UnitModelTable {
-    using NameIndex = stlp::hash_map<stlp::string, UnitModelRecord*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<std::string, UnitModelRecord*, stlp::StringHash>;
 
     // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
@@ -211,7 +211,7 @@ static_assert(offsetof(UnitModelTable, byName) == 0x0C && sizeof(UnitModelTable)
 
 // The level record table, laid out the same way.
 struct UnitLevelTable {
-    using NameIndex = stlp::hash_map<stlp::string, UnitLevelRecord*, stlp::StringHash>;
+    using NameIndex = stlp::hash_map<std::string, UnitLevelRecord*, stlp::StringHash>;
 
     // As UnitModelTable::FindByName.
     UnitLevelRecord* FindByName(const char* name);
@@ -251,13 +251,13 @@ extern lib::StaticObject<UnitDatabase> g_unitDatabase;
 namespace unitdb {
 inline UnitDatabase& Database() { return *g_unitDatabase; }
 // The record named `name` (an unknown name gets a null entry), or null.
-inline UnitPrototypeRecord* PrototypeNamed(const stlp::string& name) { return PrototypeTable().byName.Subscript(name); }
+inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return PrototypeTable().byName.Subscript(name); }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
     return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().begin));
 }
-inline UnitModelRecord* ModelNamed(const stlp::string& name) { return Database().models.byName.Subscript(name); }
+inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName.Subscript(name); }
 } // namespace unitdb
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records

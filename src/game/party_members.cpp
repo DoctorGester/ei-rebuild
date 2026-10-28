@@ -175,7 +175,7 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
             list->RemoveRange(0, 1);
         }
     }
-    auto* npc = unitdb::NpcTable().byName[stlp::string(record->texts[5].c_str())];
+    auto* npc = unitdb::NpcTable().byName[std::string(record->texts[5].c_str())];
     if (!npc) return 0;
 
     const CStringVector& spellNames = npc->startSpells;

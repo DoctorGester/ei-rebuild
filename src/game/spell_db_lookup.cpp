@@ -6,7 +6,7 @@
 // The key is built, copied into a (key, null) pair and handed to the index's find_or_insert.
 template <typename Record>
 Record* itemdb::CodeIndexedTable<Record>::FindByCode(const char* code) {
-    stlp::string key(code);
+    std::string key(code);
     typename decltype(byCode)::Pair pair{key, nullptr};
     return byCode[pair.key];
 }

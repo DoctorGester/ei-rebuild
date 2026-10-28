@@ -29,12 +29,10 @@ void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, 
 // What a unit says: an acks.db entry with its sound file name.
 struct SpeechRecord {
     int chance;                     // eligible when at least the roll (0..99)
-    stlp::string sound;             // the sound file
-    stlp::string text;
-    stlp::string name;              // named speeches
+    std::string sound;              // the sound file
+    std::string text;
+    std::string name;               // named speeches
 };
-static_assert(offsetof(SpeechRecord, name) == 0x1C);
-static_assert(sizeof(SpeechRecord) == 0x28);
 
 struct ClientSpeech {
     const SpeechRecord* id;         // (compared with lastSpeech)
@@ -317,6 +315,6 @@ static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
 void __fastcall CollectArmourPartNames(const UnitPrototypeRecord* prototype, const stlp::vector<std::uint32_t>* armourIds,
                                        const stlp::vector<std::uint32_t>* weaponIds,
-                                       stlp::vector<stlp::string>* names, stlp::vector<stlp::string>* plainNames);
+                                       stlp::vector<std::string>* names, stlp::vector<std::string>* plainNames);
 
 inline CUnitClientSpecific* CUnit::ClientController() const { return static_cast<CUnitClientSpecific*>(controller); }
