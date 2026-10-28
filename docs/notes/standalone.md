@@ -84,7 +84,7 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   ei_launch reports a game that ended by itself while its report still says RUNNING (`FAILED: the game ended ...`).
 - **What the image could still reach without code**: nothing by address (our code calls by name; game.exe's data
   holds no code pointer in the image since C20). The unported slots of compiled tables (`ei::UnportedSlot`, MFC's
-  classes never made or never called virtually) say why at the class (mfc_window.h).
+  classes never made or never called virtually) say why at the class (none is left since C14ze / C14zh).
 - **Suite.** `run_all` / `work.py test` run the image by default: install `standalone` (the vanilla data) and
   `standalone-rebirth` (the Rebirth data, the flags of `config/ei_rebirth_standalone.ini`, which are the 41 a Rebirth
   launch with addon turns on; refresh it when addon.dll or EI_Plugin.ini change). Always our renderer (no display
@@ -330,7 +330,7 @@ What C25a named or dropped of its list, still the code's form:
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
   .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
 - **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
-  mfc_window.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
+  mfc_static_objects.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
   function_sizes.inc); static_init.cpp calls it.
 - **Named**: OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
@@ -501,7 +501,7 @@ kinds given.
     base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
     (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
     create function it points at had to be ours (the check compares the registration): the ten that were unported
-    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's, C14ze the GDI, DC, CWinThread and CMapPtrToPtr records: their cells are gen_image_cells.py's UNREAD) are small ports registered at their
+    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's, C14ze the GDI, DC, CWinThread and CMapPtrToPtr records, C14zh CWnd's: their cells are gen_image_cells.py's UNREAD) are small ports registered at their
     addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
     the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
     (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
@@ -777,14 +777,16 @@ kinds given.
       generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
       (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's) and the 11 MFC globals only the
       initialisers and exit functions reach (lib/mfc_static_objects.{h,cpp}): the exit guards of the temporary objects'
-      fixed allocators and of the four static windows (007C8BB8, 007C9138, 007CAAA0, 007CAA24), _simpleUserException
+      fixed allocators (007C8BB8, 007C9138, 007CAAA0), _simpleUserException
       007C8BC0 (`lib::StaticObject<CSimpleException>`), the thread / process locals 007C90BC, 007C90C0, 007CAA84,
       007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
       _AfxCbtFilterHook 00704BE6, is not ported). C18r added the objects hand code reads too, whose initialisers are
       plain library calls: the temporary objects' fixed allocators (g_tempDCAlloc 007C8D18 and g_tempGdiObjectAlloc
       007C8CF0 went in C14ze with the GDI classes, guard byte 007C8BB8 too; the temporary windows' 007CA940 and menus' 007CAAA8 went in C20o: their classes were
-      never made, tools/gen_static_init.py's UNUSED_INITIALISERS leaves both initialisers and exit functions out) and the four
-      static windows (g_wndTop 007CAA28, g_wndBottom 007CA9E8, g_wndTopMost 007CA9A8, g_wndNoTopMost 007CA968).
+      never made, tools/gen_static_init.py's UNUSED_INITIALISERS leaves both initialisers and exit functions out). MFC's
+      four static windows (wndTop 007CAA28, wndBottom 007CA9E8, wndTopMost 007CA9A8, wndNoTopMost 007CA968, guard byte
+      007CAA24) were CWnds nothing read: C14zh deleted the class and listed their four initialisers (00704410,
+      0070444E, 0070448C, 007044CA) in UNUSED_INITIALISERS.
     - **The MFC and CRT objects (C18r, 41 -> 6)**: the CRT's allocator state is named in crt.cpp: STLport's node
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
@@ -1354,7 +1356,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     out_of_range tables 0073B994 / 0073BE8C (batch 21), the GDI and DC classes (mfc_gdi: CDC and its three subclasses, CTempDC, CPen, CRgn,
     CTempGdiObject; CGdiObject 007463D4 and CBrush 007463C4 are stored by game code too), CHandleMap 0074685C (its
     deleting destructor needs the handle map's destructor body), the thread, window, menu and application classes
-    and the module / thread state records (mfc_thread, mfc_window, mfc_state), CCmdUI / CTestCmdUI,
+    and the module / thread state records (mfc_thread, mfc_state), CCmdUI / CTestCmdUI,
     CCommandLineInfo, CRecentFileList, 00746E60 and type_info 007472B0 (the RTTI type descriptors point at it).
 - **Batch 21's families** (2026-10-22): the rest of the MFC library kind and stlp's out_of_range: 36 rows (retired
   524 -> 560), 2,154 -> 1,696 code cells, game data addresses 936 -> 918 (no library vtable is named in src/ any more).
@@ -1373,7 +1375,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **CHandleMap** (mfc_handle_map.cpp, gone in C14ze): HandleMapTable (one slot) over the ported destructor, DeleteTemp and
     CMapPtrToPtr::GetNextAssoc (the image's maps are never destroyed; DeleteTemp deletes each temporary object
     through its slot 1, the CTempDC / CTempGdiObject destructors above).
-  - **Windows and threads**: mfc_window.h's CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
+  - **Windows and threads** (all gone: CWinThread and CCmdTarget in C14ze, CWnd and mfc_window in C14zh): CmdTargetTable declares CCmdTarget's 20 slots (3-19 unported; 4 and 10
     the class's own); WndTable (CWnd: 46 slots, only the destructor ported; CTempWnd, CMenu and CTempMenu went in C20o, never made) and WinThreadTable (31 slots; gone in C14ze: the
     game's threads are lib::StartThread's, lib/thread.h). Retired with no class of ours:
     CWinApp, CCommandLineInfo, CRecentFileList, CCmdUI, CTestCmdUI, _AFX_WIN_STATE and the six state records

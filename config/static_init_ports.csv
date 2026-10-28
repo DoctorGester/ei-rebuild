@@ -277,9 +277,7 @@ address,name,file
 006E695C,mfc::impl::DestroyUserException,src/lib/mfc_exception.cpp
 006E6AEA,mfc::impl::CMemoryException::CMemoryException,src/lib/mfc_exception.cpp
 00700674,mfc::impl::AfxClassInit,src/lib/mfc_state.cpp
-007043FA,mfc::impl::RegisterDragListMessage,src/lib/mfc_window.cpp
-00704546,mfc::impl::CWnd::Construct,src/lib/mfc_window.cpp
-00704FE3,mfc::impl::DestroyStaticWindow,src/lib/mfc_window.cpp
+007043FA,mfc::impl::RegisterDragListMessage,src/lib/mfc_static_objects.cpp
 0070B5F0,mfc::impl::AfxWingdixTerm,src/lib/mfc_state.cpp
 0070B600,mfc::impl::AfxWingdixTermInit,src/lib/mfc_state.cpp
 0070BEFA,mfc::impl::ConstructSimpleResourceException,src/lib/mfc_exception.cpp

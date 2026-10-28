@@ -593,7 +593,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0074685C,1,.?AVCHandleMap@@,lib,006E6D08 00703617,006E6CEC,CHandleMap,-,"stored only by game.exe's 006E6D08 / 00703617, which no code of ours calls (no handle maps since C14ze)"
 0074689C,3,.?AVCMapPtrToPtr@@,lib,007002C2 00700375,0070D128,CMapPtrToPtr,-,"stored only by game.exe's 007002C2 / 00700375, which no code of ours calls (no handle maps since C14ze)"
 007469A0,4,.?AVCCmdUI@@,lib,007041D4,007041FA,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"
-00746DA8,46,.?AVCWnd@@,lib,00704508 00704546 00704FE3,0070D35D,CWnd,src/lib/mfc_window.h,"CWnd (MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost)"
+00746DA8,46,.?AVCWnd@@,lib,00704508 00704546 00704FE3,0070D35D,CWnd,-,"MFC's four static windows wndTop, wndBottom, wndTopMost, wndNoTopMost: stored only by game.exe's constructor / destructor 00704508 / 00704546 / 00704FE3, which no code of ours calls (the class went in C14zh)"
 00746E88,4,.?AVCTestCmdUI@@,lib,00705EA0,00705EB9,CTestCmdUI,-,"stored only by game.exe's 00705EA0, which no code of ours calls"
 00746FB0,3,.?AVCPtrArray@@,lib,006FFC8E 006FFCC1,0070D624,CPtrArray,-,"stored only by game.exe's MFC constructor / destructor 006FFC8E / 006FFCC1, which no code of ours calls"
 00746FE8,3,.?AVCPtrList@@,lib,006FFED9 00700048,0070D62A,CPtrList,-,"stored only by game.exe's MFC constructor / destructor 006FFED9 / 00700048, which no code of ours calls"

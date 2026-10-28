@@ -17,15 +17,12 @@ struct CRuntimeClass {
     CRuntimeClass* nextClass;       // the module state's class list; AfxClassInit links it
 };
 
-// The create function of CWnd's record: operator new, the default constructor; null when out of memory.
-void* __stdcall CreateCWnd();
 
 inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {"CObject", 0x4, 0xFFFF, nullptr, nullptr, nullptr};
 inline constexpr CRuntimeClass kClassCException = /*007465D0*/ {"CException", 0x8, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCCmdTarget = /*007468A8*/ {"CCmdTarget", 0x1c, 0xFFFF, nullptr, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCMemoryException = /*007465A0*/ {"CMemoryException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
 inline constexpr CRuntimeClass kClassCResourceException = /*00746180*/ {"CResourceException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
-inline constexpr CRuntimeClass kClassCWnd = /*007469D8*/ {"CWnd", 0x3c, 0xFFFF, &CreateCWnd, &kClassCCmdTarget, nullptr};
 inline constexpr CRuntimeClass kClassCUserException = /*00746158*/ {"CUserException", 0x98, 0xFFFF, nullptr, &kClassCException, nullptr};
 
 } // namespace mfc::impl

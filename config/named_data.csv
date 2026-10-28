@@ -48,7 +48,6 @@ address,size,name,file
 007465A0,24,kClassCMemoryException,src/lib/mfc_runtime_class.h
 007465D0,24,kClassCException,src/lib/mfc_runtime_class.h
 007468A8,24,kClassCCmdTarget,src/lib/mfc_runtime_class.h
-007469D8,24,kClassCWnd,src/lib/mfc_runtime_class.h
 00783E30,4,g_gamePort,src/game/net_classes.h
 00783E34,4,g_remoteRate,src/game/net_session_tick.cpp
 00783E38,4,g_localRate,src/game/net_session_tick.cpp
@@ -478,12 +477,7 @@ address,size,name,file
 007C90BC,4,g_baseModuleStateLocal,src/lib/mfc_static_objects.cpp
 007C90C0,4,g_threadStateLocal,src/lib/mfc_static_objects.cpp
 007C90C8,108,g_afxData,src/lib/mfc_state.cpp
-007CA968,60,g_wndNoTopMost,src/lib/mfc_window.cpp
-007CA9A8,60,g_wndTopMost,src/lib/mfc_window.cpp
-007CA9E8,60,g_wndBottom,src/lib/mfc_window.cpp
-007CAA24,1,g_staticWindowsExitGuards,src/lib/mfc_static_objects.cpp
-007CAA28,60,g_wndTop,src/lib/mfc_window.cpp
-007CAA64,4,g_dragListMessage,src/lib/mfc_window.cpp
+007CAA64,4,g_dragListMessage,src/lib/mfc_static_objects.cpp
 007CAA84,4,g_ctl3dThreadLocal,src/lib/mfc_static_objects.cpp
 007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
 007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
