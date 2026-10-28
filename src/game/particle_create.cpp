@@ -11,8 +11,6 @@
 #include "ei/x87.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "core_transform.h"
 
@@ -797,10 +795,6 @@ int CParticleSource::Create() {
 
 // --- Factory and destructor ----------------------------------------------------------------------
 
-namespace {
-
-} // namespace
-
 // A source never attached emits distance / emitSpacing tries (each a GlobalRandom draw) from the emission point
 // it was allocated with, so the memory comes zeroed.
 void* CParticleSource::operator new(std::size_t size) noexcept { return gamecrt::operator_new_zeroed(size); }
@@ -810,13 +804,6 @@ CParticleSource::CParticleSource(int type) {
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     std::memset(static_cast<void*>(&clip), 0, offsetof(CParticleSource, particles) - offsetof(CParticleSource, clip));
-    ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
-    particles.count = 0;
-    particles.free = nullptr;
-    particles.tail = nullptr;
-    particles.head = nullptr;
-    particles.blocks = nullptr;
-    particles.blockSize = 10;
     // The frame rectangle array and the texture holder only zero their fields.
     texture = nullptr;
     Reset();
@@ -832,13 +819,7 @@ CEngineObject* CParticleManager::NewObject(int type) {
 CParticleSource::~CParticleSource() {
     Clear();
     if (texture) texture->Release();
-    ei::SetVtable(&particles, mfc::impl::ClientListClass::Vtable());
-    particles.count = 0;
-    particles.free = nullptr;
-    particles.tail = nullptr;
-    particles.head = nullptr;
-    mfc::PlexFreeDataChain(particles.blocks);
-    particles.blocks = nullptr;
+    particles.clear();
 }
 
 const char* CParticleSource::GetClassName() { return "CParticle"; }

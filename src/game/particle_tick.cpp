@@ -15,6 +15,7 @@
 #include "world.h"
 
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -29,7 +30,6 @@ inline double D(float f) { return f; }
 
 constexpr std::uint32_t kFarBits = 0x47C35000;     // 100000.0f
 constexpr std::uint32_t kNearBits = 0xC7C35000;    // -100000.0f
-
 
 void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, sizeof(f)); }
 
@@ -79,17 +79,13 @@ void RestorePrevious(Particle* p) {
 
 // The head of the free list, or a fresh 0x64-byte particle when it is empty.
 Particle* CParticleManager::AcquireParticle() {
-    if (freeParticles.count == 0) return gamecrt::operator_new_as<Particle>();
-    mfc::CTypedPtrList<Particle>::Node* node = freeParticles.head;
-    Particle* p = node->data;
-    freeParticles.head = node->next;
-    if (node->next) node->next->prev = nullptr;
-    else freeParticles.tail = nullptr;
-    freeParticles.FreeNode(node);
+    if (freeParticles.empty()) return gamecrt::operator_new_as<Particle>();
+    Particle* p = freeParticles.front();
+    freeParticles.pop_front();
     return p;
 }
 
-void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
+void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.push_back(p); }
 
 // A newly emitted particle: alive, its "prev" fields equal to the current ones, inside
 // the bounds, appended to the list.
@@ -97,7 +93,7 @@ void CParticleSource::AddParticle(Particle* p) {
     p->dead = 0;
     SavePrevious(p);
     GrowBounds(boundsMin, boundsMax, p->pos);
-    particles.AddTail(p);
+    particles.push_back(p);
 }
 
 namespace {
@@ -174,12 +170,12 @@ struct TickSteps {
     // the pool first, but (as in the original) is still updated and counted in the bounds.
     void UpdateParticles() {
         CParticleManager* pool = s->Manager();
-        mfc::CTypedPtrList<Particle>::Node* node = s->particles.head;
-        while (node) {
-            mfc::CTypedPtrList<Particle>::Node* next = node->next;
-            Particle* p = node->data;
+        auto node = s->particles.begin();
+        while (node != s->particles.end()) {
+            auto next = std::next(node);
+            Particle* p = *node;
             if (p->dead) {
-                s->particles.RemoveAt(node);
+                s->particles.erase(node);
                 pool->ReleaseParticle(p);
             }
             SavePrevious(p);
@@ -211,13 +207,13 @@ struct TickSteps {
         int emitted = 0;
         if (tries > 0) {
             for (int i = 0; i < tries; ++i) {
-                if (s->particles.count >= s->maxParticles) break;
+                if (std::ssize(s->particles) >= s->maxParticles) break;
                 std::uint32_t roll = IsaacRandom::Global().Next();
                 if (static_cast<int>(roll % 100) < s->emitChance) EmitOne(emitted++);
             }
             if (emitted != 0) return;
         }
-        if (s->emitChance > 50 && tries > 0 && s->particles.count < s->maxParticles) EmitOne(0);
+        if (s->emitChance > 50 && tries > 0 && std::ssize(s->particles) < s->maxParticles) EmitOne(0);
     }
 
     // Centre and half extents of the bounds.
@@ -265,8 +261,8 @@ int CParticleSource::RunTick() {
 
     if (!attachedTo) {
         if (flags_ & 4) return 1;
-        return particles.count != 0;
+        return !particles.empty();
     }
     if (flags_ & 1) return 1;
-    return particles.count != 0;
+    return !particles.empty();
 }

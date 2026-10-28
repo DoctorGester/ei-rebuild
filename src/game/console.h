@@ -70,7 +70,7 @@ public:
     Stream& operator<<(int value);        // "%d"
     Stream& operator<<(long value);       // "%ld"
     Stream& operator<<(unsigned value);   // "%u"
-    // "%.6g" through the game's sprintf (VC6's formatting). A float is printed as the double it widens to.
+    // "%.6g" through str::Format (VC6's float digits). A float is printed as the double it widens to.
     Stream& operator<<(double value);
     Stream& Flush();
 

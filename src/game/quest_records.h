@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -22,14 +23,6 @@ struct QuestRecord {
     // string field 4 the text, 5 money, 6 the order, chunk 7 the places (one field 1 per float; loading
     // empties the vector and fills it with that many zeros first).
     void Serialize(ChunkArchive* ar);
-    // The compiler's destructor. The text, the places' storage, the name.
-    void Destruct();
-    // The copy constructor: each member copied in order (the places
-    // copy-constructed). operator= (inlined in the vector's code): each member assigned. The vector's
-    // resize(n) temporary: empty strings with room for 8 bytes, no places.
-    void CopyConstruct(const QuestRecord* source);
-    void AssignQuest(const QuestRecord* source);
-    void ConstructDefault();
 
     std::string name;
     float exp;
@@ -45,13 +38,6 @@ struct QuestBriefingRecord {
     // Reads or writes the record: string field 0 the name, 1 exp, 2 money, chunk 3 the given items, string
     // field 4 the text, chunks 5-9 the other lists (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
-    // The compiler's destructor. The text, the lists from the last (each string, then the storage), the name.
-    void Destruct();
-    // The copy constructor, operator= (inlined in the vector's code) and the vector's
-    // resize(n) temporary (empty strings with room for 8 bytes, empty lists), as the quest's.
-    void CopyConstruct(const QuestBriefingRecord* source);
-    void AssignBriefing(const QuestBriefingRecord* source);
-    void ConstructDefault();
 
     // The lists (lists[k]): item names given and taken, quest variables ("a.b.<quest>") given and
     // completed, zone variables raised to 1 and set to 2 (CWorldServer::CompleteBriefing).
@@ -77,7 +63,7 @@ struct QuestBriefingTable {
     // records). False for null or a name already there.
     bool Add(const QuestBriefingRecord* record);
 
-    stlp::vector<QuestBriefingRecord> records;
+    std::vector<QuestBriefingRecord> records;
     Index index;
 };
 
@@ -104,7 +90,7 @@ struct QuestDatabase {
     // find_or_insert on a {name, null} pair) leaves a null entry for a missing name.
     QuestRecord* FindQuest(const char* name);
 
-    stlp::vector<QuestRecord> quests;
+    std::vector<QuestRecord> quests;
     QuestIndex questsByName;
     QuestBriefingTable briefings;
 };

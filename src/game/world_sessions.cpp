@@ -63,7 +63,6 @@ void ReleaseCounted(CRefObject* object) {
 
 } // namespace
 
-
 CPlayerSource::~CPlayerSource() {}
 
 // A new helper with the same pending link (counted).
@@ -87,8 +86,8 @@ CWorldHandle::~CWorldHandle() { ReleaseCounted(pendingLink_); }
 CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
 
 void CClientHandle::TakeNew(JoinedLinks* links) {
-    for (auto* node = links->head; node; node = node->next) ReleaseCounted(node->data);
-    links->RemoveAll();
+    for (auto node = links->begin(); node != links->end(); ++node) ReleaseCounted(*node);
+    links->clear();
 }
 
 // ---- netlink::DriverSession -----------------------------------------------------------------------
@@ -129,7 +128,6 @@ DriverSession::~DriverSession() {
 }
 
 } // namespace netlink
-
 
 void CWorld::OpenSession() { netSession_.ShareAssign(new DriverSession()); }
 

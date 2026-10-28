@@ -80,20 +80,13 @@ void AIBrain::ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, con
 // --- The corpse list ---------------------------------------------------------------
 
 // RemoveHead of the corpse list returning the element as a counted reference. It copies the head's object
-// into a counted local, unlinks the node, destroys the element in place (inlined: released, cleared), frees
-// the node (the last one frees every block), then copies the local into `out` and drops the local.
+// into a counted local, releases the list's reference and removes the head, then copies the local into `out`
+// and drops the local.
 AIRefTo<CUnit>* CountedUnits::PopHead(AIRefTo<CUnit>* out) {
-    Node* old = head;
-    CUnit* value = old->data;
+    CUnit* value = front();
     if (value) ++value->refCount_;
-    head = old->next;
-    if (head) head->prev = nullptr;
-    else tail = nullptr;
-    if (old->data) old->data->Release();
-    old->data = nullptr;
-    old->next = free;
-    free = old;
-    if (--count == 0) RemoveAll();   // the list is empty: nothing left to destroy
+    if (value) value->Release();
+    pop_front();
     out->object = nullptr;
     if (value) {
         ++value->refCount_;
@@ -116,9 +109,9 @@ void AIBrain::Think() {
 
     CUnit* unit = owner->unit;
     memory.seesEnemy = 0;
-    for (auto* node = memory.visible.head; node;) {
-        CUnit* other = node->data;
-        node = node->next;
+    for (auto node = memory.visible.begin(); node != memory.visible.end();) {
+        CUnit* other = *node;
+        ++node;
         if (unit->IsHostileTo(other) && IsGone(other) == 0) {
             memory.seesEnemy = 1;
             break;
@@ -138,9 +131,9 @@ void AIBrain::Think() {
             bestPriority = priority;
         }
     }
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         if (mode == current) continue;
         int priority = mode->Evaluate(this);
         if (priority > bestPriority) {
@@ -178,13 +171,8 @@ void AIBrain::Think() {
     seen.Reset();
 
     // The corpses seen this tick are forgotten (RemoveAll with element destruction).
-    for (auto* node = memory.corpses.head; node; node = node->next) DestructRef(&node->data);
-    memory.corpses.count = 0;
-    memory.corpses.free = nullptr;
-    memory.corpses.tail = nullptr;
-    memory.corpses.head = nullptr;
-    mfc::PlexFreeDataChain(memory.corpses.blocks);
-    memory.corpses.blocks = nullptr;
+    for (auto node = memory.corpses.begin(); node != memory.corpses.end(); ++node) DestructRef(&*node);
+    memory.corpses.clear();
 
     switch (action) {
     case kActionNone:
@@ -225,27 +213,27 @@ void AIBrain::Think() {
 // --- Mode lookups --------------------------------------------------------------------------------
 
 AIMode* AIBrain::FindMode(int type) {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         if (mode->GetType() == type) return mode;
     }
     return nullptr;
 }
 
 PatrolMode* AIBrain::FindPatrolMode() {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         if (mode->GetType() == kModePatrol) return static_cast<PatrolMode*>(mode);
     }
     return nullptr;
 }
 
 PlayerMode* AIBrain::FindPlayerMode() {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         if (mode->GetType() == kModePlayer) return static_cast<PlayerMode*>(mode);
     }
     return nullptr;
@@ -259,9 +247,9 @@ CMapObject* AIBrain::LeaderOrFollowed() {
 }
 
 CMapObject* AIBrain::AggressionEnemy() {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         if (mode->GetType() == kModeAggression) {
             if (mode && current == mode) return static_cast<AggressionMode*>(mode)->enemy;
             return nullptr;
@@ -314,9 +302,9 @@ std::uint32_t AIBrain::SetOwner(CUnitServer* newOwner) {
 }
 
 void AIBrain::OnObjectDeleted(CEngineObject* object) {
-    for (auto* node = modes.head; node;) {
-        AIMode* mode = node->data;
-        node = node->next;
+    for (auto node = modes.begin(); node != modes.end();) {
+        AIMode* mode = *node;
+        ++node;
         mode->OnObjectDeleted(object);
     }
     if (target == object && target) target.Reset();

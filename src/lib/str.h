@@ -5,8 +5,8 @@
 //   - Find / ReverseFind / FindOneOf return an int position, -1 when absent (the multibyte CRT's _mbschr,
 //     _mbsstr, _mbsrchr, _mbspbrk, as CString searched).
 //   - Mid / Left / Right clamp a start or count outside the text instead of throwing.
-//   - Format prints with the game CRT's vsprintf (crt_format.cpp: its digits, "1.#INF", three-digit exponents)
-//     and keeps the text up to the first zero byte.
+//   - Format prints with the game CRT's printf (crt_format.cpp: VC6's float digits, "1.#INF", three-digit
+//     exponents; the rest the host's) and keeps the text up to the first zero byte.
 //   - MakeLower, Remove and the trims step through the text as the multibyte CRT does; the white space of
 //     TrimLeft / TrimRight is _ismbcspace's.
 //   - Buffer / CutAtNull / SetLength stand for GetBuffer / ReleaseBuffer(-1) / GetBufferSetLength: the

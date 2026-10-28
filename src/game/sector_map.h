@@ -10,6 +10,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
+#include <vector>
 
 class CAIMap;
 class CMapObject;
@@ -46,14 +48,11 @@ struct Sector {
     // Puts record `index` on the free list.
     void FreeOccluder(int index);
 
-    mfc::CTypedPtrList<CMapObject> objects;      // non-unit objects
-    mfc::CTypedPtrList<CUnit> units;
+    std::list<CMapObject*> objects;      // non-unit objects
+    std::list<CUnit*> units;
     int freeOccluder;                            // head of the free records (-1 none)
-    mfc::CArray<SectorOccluder> occluders;       // (mfc_slots.h's SectorOccluderArrayClass)
+    std::vector<SectorOccluder> occluders;       // (mfc_slots.h's SectorOccluderArrayClass)
 };
-static_assert(sizeof(Sector) == 0x54);
-static_assert(offsetof(Sector, freeOccluder) == 0x3C);
-static_assert(offsetof(Sector, occluders) == 0x40);
 
 // CArray<Sector>'s element functions: the constructor (sector_map.cpp) constructs
 // (zeroed, then each sector's constructor), the destructor destroys.
@@ -92,14 +91,14 @@ static_assert(sizeof(SpiralOffset) == 4);
 // square of sectors ordered by distance, the number of offsets within each distinct
 // distance and the tree that finds a distance's place among them.
 // Defined, built and destroyed in sector_spiral.cpp.
-extern lib::StaticObject<mfc::CArray<int>> g_spiralLengths;
+extern lib::StaticObject<std::vector<int>> g_spiralLengths;
 extern lib::StaticObject<RadiusTree> g_spiralRadii;
-extern lib::StaticObject<mfc::CArray<SpiralOffset>> g_spiralOffsets;
-inline mfc::CArray<int>* SpiralLengthArray() { return &*g_spiralLengths; }
+extern lib::StaticObject<std::vector<SpiralOffset>> g_spiralOffsets;
+inline std::vector<int>* SpiralLengthArray() { return &*g_spiralLengths; }
 inline RadiusTree* SpiralRadiusTree() { return &*g_spiralRadii; }
-inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets; }
+inline std::vector<SpiralOffset>* SpiralOffsetArray() { return &*g_spiralOffsets; }
 // What the spiral's static initialiser does, on any three constructed tables (sector_map.cpp).
-void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets);
+void BuildSectorSpiralAt(std::vector<int>* lengths, RadiusTree* tree, std::vector<SpiralOffset>* offsets);
 
 // The AI map's sector map (one virtual: the destructor).
 class CSectorMap {
@@ -113,7 +112,7 @@ public:
 
     // Fills `result` (cleared first) with the units within `radius` of `position`,
     // nearest sectors first; each match is inserted at the head of the list.
-    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
+    void FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius);
 
     // Moves `object` to `position`, re-stamping its footprint (restored on failure) and
     // moving it between sector lists when it crosses into another sector. Rebirth's FixMoveObject
@@ -121,7 +120,7 @@ public:
     bool Move(CMapObject* object, const Vector3* position);
 
     // The unit list of sector (sx, sy), null outside the map.
-    mfc::CTypedPtrList<CUnit>* UnitsAt(int sx, int sy);
+    std::list<CUnit*>* UnitsAt(int sx, int sy);
 
     // Unregisters `object` from the sector it was added to and clears its footprint.
     bool Remove(CMapObject* object);

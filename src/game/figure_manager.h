@@ -15,7 +15,6 @@
 
 #undef GetClassName
 
-
 void* CreateFigureObject(int classId);
 
 // The menus' button rectangles (menus.reg): the main menu's six (new game, load, exit, options, credits,

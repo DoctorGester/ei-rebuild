@@ -171,7 +171,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
 void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     unit_ = unit;
     ClearSceneObjects();
-    actions_.SetSize(0, -1);
+    actions_.clear();
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0, 1, 0);

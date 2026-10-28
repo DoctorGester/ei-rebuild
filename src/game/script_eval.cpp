@@ -29,7 +29,6 @@
 #include "lib/nan_audit.h"
 #include "lib/stlp.h"
 #include "random.h"
-#include "game_lists.h"
 #include "game_singletons.h"
 
 #include <bit>
@@ -124,7 +123,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 }
 
 } // namespace
-
 
 void SSCCmd::PrepareArguments(CScript* script, ScriptVars* vars) {
     SetParameters(&localBindings, vars);
@@ -239,7 +237,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xE2: { // GetMoney
         StoreBits(result, kZero);
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = static_cast<float>(id == 0xE1 ? player->items_.count : player->Party()->Money());
+        if (player) *result = static_cast<float>(id == 0xE1 ? std::ssize(player->items_) : player->Party()->Money());
         return;
     }
     case 0xE3: { // WasLooted
@@ -607,16 +605,15 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
 
 namespace {
 
-
 inline void GroupDestruct(ScriptGroup* a0) { a0->DestructBody(); }
 
 // What a unit sees: the AI brain's visible list.
 void InsertSeen(ScriptGroup* group, CUnitServer* controller) {
     const auto& visible = controller->Brain()->memory.visible;
-    for (auto* node = visible.head; node;) {
-        auto* current = node;
-        node = current->next;
-        group->Insert(current->data);
+    for (auto node = visible.begin(); node != visible.end();) {
+        auto current = node;
+        node = std::next(current);
+        group->Insert(*current);
     }
 }
 

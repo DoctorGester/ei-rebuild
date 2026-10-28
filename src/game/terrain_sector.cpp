@@ -12,6 +12,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -47,22 +48,21 @@ double Zero() { return 0.0 /*0073B858 f*/; }
 constexpr std::uint32_t kSectorMagic = 0xCF4BF774;
 constexpr int kVertices = 33 * 33;      // per layer
 
-
 // Element helpers (DestroyRecords is in terrain_lights.cpp): the flag arrays' instantiation.
-constexpr auto ConstructFlagArrays = mfc::impl::ConstructElementsAt<mfc::impl::ByteArrays>;
-constexpr auto DestroyFlagArrays = mfc::impl::DestructElementsAt<mfc::impl::ByteArrays>;
 
 } // namespace
 
 // The sector's CArray element policies. The records start zeroed (inlined) and release their lights when
-// dropped; the flag arrays go through helpers that match the loops inlined in their SetSize(0) (the CByteArray
-// destructor through its vtable); the tile lists are vectors, moved where the CArray relocates them.
+// dropped; the flag arrays and the tile lists are vectors, moved where the CArray relocates them.
 void RecordElements::Construct(SectorVertex* records, int count) {
     std::memset(static_cast<void*>(records), 0, sizeof(SectorVertex) * count);
 }
 void RecordElements::Destruct(SectorVertex* records, int count) { DestroyRecords(records, count); }
-void FlagArrayElements::Construct(FlagArray* arrays, int count) { ConstructFlagArrays(arrays, count); }
-void FlagArrayElements::Destruct(FlagArray* arrays, int count) { DestroyFlagArrays(arrays, count); }
+void FlagArrayElements::Construct(FlagArray* arrays, int count) {
+    for (; count--; ++arrays) std::construct_at(arrays);
+}
+void FlagArrayElements::Destruct(FlagArray* arrays, int count) { std::destroy_n(arrays, count); }
+void FlagArrayElements::Relocate(FlagArray* to, FlagArray* from, int count) { mfc::MoveElements(to, from, count); }
 void TileListElements::Construct(TileList* lists, int count) {
     for (; count--; ++lists) std::construct_at(lists);
 }
@@ -111,7 +111,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     perPage = textures;
 
     char name[0x100];
-    gamecrt::sprintf(name, "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
+    std::snprintf(name, sizeof(name), "%s%3.3i%3.3i%s", prefix, sectorX, sectorY, kSectorExtension);
     using GetFileFn = void*(__thiscall*)(void*, const char*, std::uint32_t*);
     std::uint32_t size = 0;
     const std::uint8_t* file = static_cast<const std::uint8_t*>(
@@ -156,11 +156,11 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
     }
 
     // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
-    vertices.SetSize(hasWater ? 2 * kVertices : kVertices);
+    vertices.resize(hasWater ? 2 * kVertices : kVertices);
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
     const std::uint8_t* src = data;
-    SectorPosition* out = vertices.data;
+    SectorPosition* out = vertices.data();
     for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
         double x0 = static_cast<double>(sx) * One() * SectorCells();
         double y = static_cast<double>(sy) * One() * SectorCells();
@@ -192,7 +192,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                         out->x = static_cast<float>(x);
                         out->y = static_cast<float>(y);
                     } else {
-                        std::memcpy(out, &vertices.data[vi].x, 8);
+                        std::memcpy(out, &vertices[vi].x, 8);
                     }
                 }
                 x += One();
@@ -213,7 +213,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* tiles = s.data;
     const std::uint8_t* src = s.data;
     SectorVertex* rec = s.records.data;
-    const SectorPosition* vin = s.vertices.data;
+    const SectorPosition* vin = s.vertices.data();
     std::memcpy(&s.minZ, "\xca\xf2\x49\x71", 4);    // 1e30
     s.maxZ = 0.0f;
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
@@ -360,7 +360,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                         entry->v = static_cast<float>(VOne() - uv[r3 * 3 + c3 + 9]);
                     }
                 }
-                std::uint8_t& flags = s.tileFlags[quarter].data[page].data[count];
+                std::uint8_t& flags = s.tileFlags[quarter].data[page][count];
                 flags = row == 0 ? 1 : (row == 15 ? 2 : 0);
                 if (col == 0) flags |= 4;
                 else if (col == 15) flags |= 8;
@@ -426,7 +426,7 @@ void SectorData::Build() {
         tiles[q].SetSize(pageCount);
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
-            tileFlags[q].data[k].SetSize(c, -1);   // CByteArray::SetSize
+            tileFlags[q].data[k].resize(c);   // CByteArray::SetSize
             tiles[q].data[k].resize(c * 9);
         }
     }
@@ -445,14 +445,14 @@ void SectorData::Build() {
             unsigned id = records.data[kVertices + i].waterMaterial;
             if (id == 0xFFFF) continue;
             int k = 0;
-            while (k < waterMaterials.size && waterMaterials.data[k] != id) ++k;
-            if (k == waterMaterials.size)
-                waterMaterials.SetAtGrow(waterMaterials.size, static_cast<std::uint8_t>(id));   // CByteArray
+            while (k < std::ssize(waterMaterials) && waterMaterials[k] != id) ++k;
+            if (k == std::ssize(waterMaterials))
+                lib::SetAtGrow(waterMaterials, std::ssize(waterMaterials), static_cast<std::uint8_t>(id));   // CByteArray
         }
         if (hasWater) {
             mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
-            for (int k = 0; k < waterMaterials.size; ++k) {
-                int id = waterMaterials.data[k];
+            for (int k = 0; k < std::ssize(waterMaterials); ++k) {
+                int id = waterMaterials[k];
                 std::memcpy(&levels.data[id], &owner->materials[id].level, 4);
             }
             ApplyWaterLevels();
@@ -465,16 +465,16 @@ void SectorData::ApplyWaterLevels() {
     mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
     for (;;) {
         int k = 0;
-        for (; k < waterMaterials.size; ++k) {
-            float v = levels.data[waterMaterials.data[k]];
+        for (; k < std::ssize(waterMaterials); ++k) {
+            float v = levels.data[waterMaterials[k]];
             EI_NAN_AUDIT(v);
             if (v != Zero()) break;     // FCOMP; TEST AH,0x40
         }
-        if (k == waterMaterials.size) return;
-        unsigned id = waterMaterials.data[k];
+        if (k == std::ssize(waterMaterials)) return;
+        unsigned id = waterMaterials[k];
         double level = levels.data[id];
         SectorVertex* rec = records.data + kVertices;
-        float* z = &vertices.data[kVertices].z;
+        float* z = &vertices[kVertices].z;
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
                 rec->position.z = static_cast<float>(level + rec->position.z);
@@ -557,21 +557,17 @@ std::uint8_t g_freed = /*007C88C9*/ {};
 std::uint8_t& Freed() { return g_freed; }
 // The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
 // exit.
-static_assert(sizeof(FlagArray) == 0x14);
 constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
 FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
 void DestroyProjectionOutcodes() {
     if (Freed() & 4) return;
     Freed() = static_cast<std::uint8_t>(Freed() | 4);
-    mfc::impl::DestructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
+    g_projectionOutcodes.Destroy();
 }
 constexpr int kProjectionVertices = 0x330;
 
-
 constexpr int kQuarterCells = 16;
 constexpr int kRow = 33;
-
-
 
 } // namespace
 
@@ -586,15 +582,15 @@ void FreeProjectionOutput() {
     lib::FreeStorage(g_projectionOutput);
 }
 void ConstructProjectionOutcodes() {
-    mfc::impl::ConstructArrayOf<mfc::impl::ByteArrayClass>(*g_projectionOutcodes);
+    g_projectionOutcodes.Construct();
     std::atexit(DestroyProjectionOutcodes);
 }
 
 SectorData* SectorData::Construct() {
     box = SectorBox{};
     for (SectorBox& quarter : quarters) quarter = SectorBox{};
-    waterMaterials.Construct(mfc::impl::ByteArrayClass::Vtable());
-    vertices.Construct(mfc::impl::Vector3ArrayClass::Vtable());
+    std::construct_at(&waterMaterials);
+    std::construct_at(&vertices);
     records.Construct(recordarrays::SectorVertexArrayClass::Vtable());
     std::construct_at(&tileTextures);
     std::construct_at(&waterTiles);
@@ -622,7 +618,7 @@ SectorData* SectorData::Construct() {
     hasSpecular = 0;
     ProjectionInput().resize(kProjectionVertices);
     ProjectionOutput().resize(kProjectionVertices);
-    ProjectionOutcodes().SetSize(std::ssize(ProjectionInput()), -1);
+    ProjectionOutcodes().resize(std::ssize(ProjectionInput()));
     return this;
 }
 
@@ -642,10 +638,8 @@ void SectorData::DestructBody() {
     lib::FreeStorage(tileTextures);
     records.vtable = recordarrays::SectorVertexArrayClass::Vtable();
     records.FreeData();   // each record's light list released
-    vertices.vtable = mfc::impl::Vector3ArrayClass::Vtable();
-    vertices.FreeData();
-    waterMaterials.vtable = mfc::impl::ByteArrayClass::Vtable();   // ~CByteArray
-    waterMaterials.FreeData();
+    std::destroy_at(&vertices);
+    std::destroy_at(&waterMaterials);
 }
 
 int SectorData::Project(CTransformPipeline* pipeline) {
@@ -659,12 +653,12 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
-                    const SectorPosition& p = vertices.data[layer * kVertices + corner + row * kRow + column];
+                    const SectorPosition& p = vertices[layer * kVertices + corner + row * kRow + column];
                     std::memcpy(in, &p, sizeof(Vector3));
                     ++in;
                 }
         const int count = static_cast<int>(in - ProjectionInput().data());
-        const int mode = pipeline->ProjectTerrain(ProjectionInput().data(), ProjectionOutput().data(), ProjectionOutcodes().data,
+        const int mode = pipeline->ProjectTerrain(ProjectionInput().data(), ProjectionOutput().data(), ProjectionOutcodes().data(),
                                                   count, BoundsOf(quarters[q]));
         quarterMode[q] = mode;
         if (mode == -1 || mode == kCulled) {
@@ -672,7 +666,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             continue;
         }
         const ProjectionVertex* out = ProjectionOutput().data();
-        const std::uint8_t* outcode = ProjectionOutcodes().data;
+        const std::uint8_t* outcode = ProjectionOutcodes().data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {

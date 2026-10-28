@@ -45,7 +45,7 @@ const UiKeyName* KeyNamesEnd() { return KeyNamesBegin() + kUiKeyNameCount; }
 // --- Save/load window ----------------------------------------------------------------------------
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
-    const char* folder = entries_.begin()[index].folder_.c_str();
+    const char* folder = entries_[index].folder_.c_str();
     if (text::CompareIgnoringCase(folder, game::menukeytexts::QuickSave()) == 0) return true;
     if (text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveA()) == 0) return true;
     return text::CompareIgnoringCase(folder, game::menukeytexts::AutoSaveB()) == 0;
@@ -127,7 +127,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyRight:
         if (editable) {
             nameTyped_ = true;
-            name = entries_.begin()[selected_].title_;
+            name = entries_[selected_].title_;
             cursor_ = name.size();
         }
         if (key == kKeyEnd)
@@ -223,9 +223,14 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         interface_->PlaySound(game::OkSoundText(), 0);
         int code = keyOfScan_[pressed->scan_];
-        OptionBinding* other = bindings_.begin();
-        while (other != bindings_.end() && other->action_->id_ != code) ++other;
-        if (other != bindings_.end() && other != nullptr && other != binding) {
+        OptionBinding* other = nullptr;
+        for (OptionBinding& b : bindings_) {
+            if (b.action_->id_ == code) {
+                other = &b;
+                break;
+            }
+        }
+        if (other && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             CMessageBox* box = new CMessageBox(interface_, game::menukeytexts::KeyMapped(), game::menukeytexts::KeyMappedText(), 0x10000, 3, 1);
             std::string format;

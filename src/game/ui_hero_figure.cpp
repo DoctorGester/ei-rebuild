@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/text_case.h"
 
 #include <cstdint>
@@ -21,8 +20,6 @@
 namespace {
 
 const char* const kHeroName = "Hero";
-// CArray<record*> (the party's records handed to the client world).
-void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
@@ -46,7 +43,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 } // namespace
 
 void CMpHeroScreen::ChooseFigure(const char* prototype) {
-    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     auto* player = LocalPlayerData();
     // The attributes and height to keep (copied as dwords).
     float strength = kDefaultAttribute;
@@ -60,9 +57,9 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
         dexterity = stats->stat18;
         height = first->height;
         intelligence = stats->stat20;
-        int size = records.size;
-        records.SetSize(size + 1, -1);
-        records.data[size] = first;
+        int size = std::ssize(records);
+        records.resize(size + 1);
+        records[size] = first;
         GameRemoveUnitsOf(&records);
     }
     player->Clear(1, 0);
@@ -112,5 +109,4 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     voiceScroll_->SetMaximum(count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
     voiceScroll_->SetPosition(0);
     if (mode_ == kModeNewHero) DrawVoices();
-    if (records.data) gamecrt::operator_delete(records.data);
 }

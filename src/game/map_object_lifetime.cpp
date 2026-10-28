@@ -44,7 +44,6 @@ constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
 constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
 constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 
-
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
@@ -79,7 +78,6 @@ void DestroyArray(AnimationSteps& array, void* vtable) {
 }
 } // namespace
 
-
 void CObject3D::ClearBounds() {
     std::memset(&bounds, 0, sizeof(bounds));
     std::memset(unused_150, 0, sizeof(unused_150));
@@ -93,13 +91,6 @@ void CObject3D::SetUpObject3D() {
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
-    effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
-    effectSources.count = 0;
-    effectSources.free = nullptr;
-    effectSources.tail = nullptr;
-    effectSources.head = nullptr;
-    effectSources.blocks = nullptr;
-    effectSources.blockSize = 10;
     std::memset(&parts, 0, sizeof(parts));
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
@@ -131,17 +122,7 @@ void CObject3D::TearDownObject3D() {
     }
     lib::FreeStorage(pendingParts);
     lib::FreeStorage(parts);
-    // The part list: emptied, its blocks freed.
-    effectSources.vtable = mfc::impl::Object3DListClass::Vtable();
-    mfc::CPlex* blocks = effectSources.blocks;
-    effectSources.count = 0;
-    effectSources.free = nullptr;
-    effectSources.tail = nullptr;
-    effectSources.head = nullptr;
-    mfc::PlexFreeDataChain(blocks);
-    effectSources.blocks = nullptr;
 }
-
 
 CMapObject::CMapObject() { SetUpMapObject(); }
 
@@ -173,16 +154,6 @@ CMapObject::~CMapObject() {
 CUnit::CUnit() {
     // The unit's motion: two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
-    m->points.data = nullptr;
-    m->points.growBy = 0;
-    m->points.maxSize = 0;
-    m->points.size = 0;
-    m->points.vtable = mfc::impl::MotionPointsClass::Vtable();
-    m->waypoints.data = nullptr;
-    m->waypoints.growBy = 0;
-    m->waypoints.maxSize = 0;
-    m->waypoints.size = 0;
-    m->waypoints.vtable = mfc::impl::MotionWaypointArrayClass::Vtable();
     mfc::impl::ConstructArrayOf<mfc::impl::FloatArrayClass>(m->stepSpeeds);
     SetVtable(&m->stepSpeeds, mfc::impl::ArgFloatArrayClass::Vtable());
     // (The segment part's constructor only returns it.)
@@ -256,8 +227,6 @@ CUnit::~CUnit() {
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
     DestroyArray(m->stepSpeeds, mfc::impl::FloatArrayClass::Vtable());
-    mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(m->waypoints);
-    mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(m->points);
 }
 
 CMapObjectServer::CMapObjectServer() {
@@ -326,14 +295,16 @@ CUnitServer::~CUnitServer() {
     mfc::impl::DestructHeader<mfc::impl::AttackOptionArrayClass>(&b->attention.weapons);
     mfc::impl::DestructArrayOf<recordarrays::BehaviourArrayClass>(mfc::impl::ArrayAs<recordarrays::Behaviours>(b->alarmRecords));
     if (AIMode* current = b->current) BrainObject8CDestroy(current);
-    gamelists::OwnedRefs::Destruct<gameslots::OwnedRefListClass>(mfc::impl::ListAs<gamelists::OwnedRefs>(&b->modes));
+    for (AIMode*& mode : b->modes) DestroyOwned(mode);   // the owned modes released
+    b->modes.clear();
     BrainArrayDestroy(&b->seen);
     BrainArrayDestroy(&b->target);
     Brain14Destroy(&b->move.looks);
     idleAnimation.DestructSteps();
     moveAnimation.DestructSteps();
-    SetVtable(&armourSpells, gameslots::ArmourSpellListClass::Vtable());
-    mfc::impl::ListAs<gamelists::Holders>(&armourSpells)->RemoveAll();
+    for (ArmourSpell& spell : armourSpells)
+        if (spell.item) spell.item->Release();
+    armourSpells.clear();
     if (CEngineObject* leader = followedLeader) leader->Release();
     if (CMapObject* target = action2.target) target->Release();
     action2.target = nullptr;
@@ -342,8 +313,6 @@ CUnitServer::~CUnitServer() {
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, mfc::impl::AnimationStepsClass::Vtable());
     DestroyArray(currentPlan.animation, mfc::impl::AnimationStepsClass::Vtable());
-    motion.excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
-    if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.cells);
     mfc::impl::DestructList<mfc::impl::CellListClass>(motion.steps);
     DestroyArray(queue, mfc::impl::AnimationStepsClass::Vtable());

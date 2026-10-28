@@ -91,7 +91,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
         }
         return;
     }
-    if (region >= exits_.size + kRegionFirstExit) return;
+    if (region >= std::ssize(exits_) + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
     if (twoButtons_ != 0 && exits_[exit].flag_) {
         interface_->PlaySound(EnterSound(), 0);
@@ -197,7 +197,7 @@ CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
 
 void CObjectivesWindow::SelectExit(int index) {
     nearestExit_ = index;
-    for (int i = 0; i < exits_.size; ++i) {
+    for (int i = 0; i < std::ssize(exits_); ++i) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         if (i == index) {
             marker->SetScale(markerScale_ * kNearestScale);
@@ -238,12 +238,12 @@ void CObjectivesWindow::Update() {
     blinkTime_ = static_cast<float>(time);
     const std::uint32_t slow = gamecrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = gamecrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = exits_.size + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
+    for (int i = std::ssize(exits_) + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;
         place->flatColour_ = fast << 24 | 0xFF0000u;
     }
-    for (int i = 0; i < exits_.size; ++i) {
+    for (int i = 0; i < std::ssize(exits_); ++i) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         marker->flags_ |= kPlainColour;
         marker->flatColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;

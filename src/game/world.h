@@ -111,15 +111,13 @@ struct MapObjectIdMap {
 
 // Walks the world's player list; the list object is reference counted while an iterator holds it.
 struct PlayerIterator : ObjectListIteratorOf<CPlayer> {
-    PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, nullptr}} {}
+    PlayerIterator() : ObjectListIteratorOf<CPlayer>{{nullptr, {}}} {}
 
     // Drops the list's count without releasing it.
     ~PlayerIterator() {
         if (manager) --manager->refCount_;
     }
 };
-static_assert(sizeof(PlayerIterator) == 8);
-
 
 class CFlyingHitPoints;
 
@@ -243,7 +241,7 @@ static_assert(sizeof(WorldAlarm) == 16);
 // The world the missiles find while they load.
 inline CWorldServer* g_loadingProjectileWorld = /*007C84EC*/ {nullptr};
 // The world server's missiles (the spells being applied), counted.
-using ProjectileList = mfc::CTypedPtrList<CSpellEffect>;
+using ProjectileList = std::list<CSpellEffect*>;
 
 using WorldStream = CStream;
 
@@ -277,10 +275,9 @@ struct SharedObject {
     // object is appended with a reference.
     void Load(WorldStream* stream);
 };
-static_assert(sizeof(SharedObject) == 0x20);
 using SharedObjectList = mfc::CList<SharedObject>;
 
-using RecordPtrArray = mfc::CArray<PartyUnitRecord*>;
+using RecordPtrArray = std::vector<PartyUnitRecord*>;
 
 class CWorldServer : public CWorld {
 public:
@@ -406,7 +403,7 @@ public:
     void UpdatePlayerTimes(float offset);
     // Puts a new entry at the head of the shared-object list: `id`, the session player's field for that id in a
     // multiplayer game (else -1), `value`, and references to the objects of `objects`. `unused` is ignored.
-    void AddSharedObject(int id, int unused, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects);
+    void AddSharedObject(int id, int unused, std::uint32_t value, const std::list<CItem*>* objects);
     // Before a save: every living unit refills its controller's slots and runs the controller's matching
     // virtual with 0.
     void PrepareSave();
@@ -500,7 +497,7 @@ public:
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(std::vector<CItem*>* items, mfc::CTypedPtrList<CItem>* list);
+    void TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);
@@ -592,16 +589,10 @@ public:
     // The zone header SendFreshObjects sends to a temporary player.
     CMemoryStream zoneHeader_;
     ProjectileList projectiles_;
-    mfc::CTypedPtrList<CEngineObject> counted_; // counted references (released on clear)
+    std::list<CEngineObject*> counted_; // counted references (released on clear)
     SharedObjectList sharedObjects_;
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
-static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
-static_assert(offsetof(CWorldServer, loaded_) == 0x100);
-static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
-static_assert(offsetof(CWorldServer, climate_) == 0xDC);
-static_assert(offsetof(CWorldServer, exits_) == 0xEC);
-static_assert(offsetof(CWorldServer, updateMap_) == 0x104);
 
 // One walkable platform (bridge, deck) the client tests positions against.
 struct Platform {
@@ -617,9 +608,8 @@ struct Platform {
 };
 static_assert(sizeof(Platform) == 0x4C);
 
-using PlatformList = mfc::CList<Platform>;
-using PlatformNode = PlatformList::Node;
-static_assert(sizeof(PlatformNode) == 0x54);
+using PlatformList = std::list<Platform>;
+using PlatformNode = PlatformList::iterator;
 
 // The client world's platform set: the engine's CBridgeManager (class 0x34) with the CList of the platform faces
 // (AddFace adds at the head).
@@ -654,17 +644,20 @@ public:
     PlatformList list;                    // the faces, the newest first
 };
 static_assert(offsetof(PlatformSet, list) == 0x1C);
-static_assert(sizeof(PlatformSet) == 0x38);
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
 // records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
 // records by prototype. All three maps hash a key to itself.
-namespace recordvec { struct FiguredUnitElement; struct DressedUnitElement; }
-namespace gamehash { struct FiguredTableElement; }
+namespace gamehash {
+struct FiguredTableElement;
+// The records in the tables: copied and destroyed by their own members.
+using FiguredUnitElement = stlp::ObjectElement<FiguredUnitRecord>;
+using DressedUnitElement = stlp::ObjectElement<DressedUnitRecord>;
+} // namespace gamehash
 struct UnitSet {
-    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, recordvec::FiguredUnitElement>>;
+    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, gamehash::FiguredUnitElement>>;
     using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
-    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, recordvec::DressedUnitElement>>;
+    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, gamehash::DressedUnitElement>>;
 
     // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -687,8 +680,7 @@ static_assert(sizeof(UnitSet) == 0x28);
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
 // of names; then a count and per dressed record the prototype, the two arrays, the byte and a dword.
 // Both vectors are resized to the counts.
-void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
-                              stlp::vector<DressedUnitRecord>* dressed);
+void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids: an STLport list of counted pointers per 16x16 cell.
 struct SectorCellObjects : stlp::list<CMapObject*> {
@@ -725,29 +717,20 @@ struct SectorGrid {
 };
 static_assert(offsetof(SectorGrid, width_) == 0x10);
 
-// The functor of the for_each over the footprints: {x, y, scale}, handed back by value.
-struct RadiusFunctor {
-    // For_each over the footprint list's nodes [first, last): a footprint is made visible when
-    // hypot(position - (x, y)) <= its scale_ * scale. Writes {x, y, scale} to this and returns it.
-    RadiusFunctor* Mark(stlp::list<Footprint>::Node* first, stlp::list<Footprint>::Node* last, float x, float y,
-                        float scale);
-    float x, y, scale;
-};
 struct ReleaseIdentified {
     // An object with a positive id is released and true; false otherwise.
     bool Test(CMapObject* object);
     std::uint8_t unused;
 };
 // The client's pending map from an object id to its node in the pending list.
-struct PendingIndex : std::unordered_map<std::uint32_t, mfc::CList<CMapObject*>::Node*> {
-    int Lookup(const std::uint32_t* key, mfc::CList<CMapObject*>::Node** value) const;
+struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> {
+    int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
 };
 using PendingMap = PendingIndex;
 template <std::size_t N>
 struct OpaqueRecord {
     std::uint8_t bytes[N];
 };
-
 
 // The worlds' counted helpers: player sources (player_source.h; Query false, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (TakeNew).
@@ -798,7 +781,6 @@ struct HitCollector {
                                CMapObjectManager* manager);
     ScreenHits* hits;
 };
-
 
 class CLightningManager;
 // The visibility fog's manager ("CVisFogManager", class id 0x60): a counted object and a CList.
@@ -855,7 +837,7 @@ public:
     void MoveObject(CMapObject* object, const float* position) override;
     virtual void MoveObject2(CMapObject* object, const float* position);   // the second grid's move
 
-    void BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed);
+    void BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed);
     // Draws the world view. Returns 1. Rebirth's LandscapeDrawRadius sets the terrain's draw distance (100 in
     // the game).
     int Render();
@@ -1069,7 +1051,7 @@ public:
     MapObjectList objects_;               // every filed object (one reference each)
     // The objects answering IsSynchronised, with their nodes by id in dynamicNodes_ and the highest id
     // in dynamicMaxId_ (Segment drops those whose update returns 0).
-    mfc::CList<CMapObject*> dynamicObjects_;
+    std::list<CMapObject*> dynamicObjects_;
     PendingMap dynamicNodes_;             // id -> its node in dynamicObjects_
     int dynamicMaxId_;
     std::list<ScreenEntry> screenEntries_;   // the window rectangles of the frame
@@ -1100,15 +1082,9 @@ public:
     CEffectMoshka* bird_;                 // the bird following the party (SummonBird), owned
     CFlyingHitPoints* numbers_;           // owned
     // Segment ticks the ground prints and colours the blood prints by the light.
-    stlp::list<BloodPrint> bloodPrints_;
-    stlp::list<Footprint> footprints_;
-    stlp::list<GroundPrint> scorchMarks_;
-    // Erase(pos) of the three lists: the node unlinked, its print destroyed, the node deleted (operator
-    // delete: the nodes are over 128 bytes); *out the node that followed it. Return out.
-    static void** EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
-    static void** EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
-    static void** EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
-                                             stlp::list<GroundPrint>::Node* pos);
+    std::list<BloodPrint> bloodPrints_;
+    std::list<Footprint> footprints_;
+    std::list<GroundPrint> scorchMarks_;
     int lightLevelsCountdown_;            // time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtrTo<CClientHandle> handle_;      // the client's player source
     CSoundManager* sounds_;               // the sound manager (owned; the client controller's hit sounds)
@@ -1154,13 +1130,6 @@ public:
     std::string windowTitle_;
     std::string pausedTitle_;
 };
-static_assert(offsetof(CWorldClient, nextClientObjectId_) == 0x84);
-static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
-static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
-static_assert(offsetof(CWorldClient, objects_) == 0xB8);
-static_assert(offsetof(CWorldClient, dynamicObjects_) == 0xBC);
-static_assert(offsetof(CWorldClient, dynamicNodes_) == 0xD8);
-static_assert(offsetof(CWorldClient, exits_) == 0x8C);
 
 // Orders screen entries (their objects by objectId) by distance along the view's depth axis; dead and
 // living objects are separated first.
@@ -1324,11 +1293,11 @@ extern lib::StaticObject<GameFlow> g_gameFlow;
 // A multiplayer hero record (the saved parties' entries below, the hero screens' records): its party
 // (CParty) and file name.
 struct MpHeroRecord {
-    MpHeroRecord* Assign(const MpHeroRecord* other);
-    MpHeroRecord* Construct();
-    void Destruct();
-    MpHeroRecord* DeletingDestruct(unsigned flags);
-    static MpHeroRecord* CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
+    // A copy copies the party (CParty's copy constructor and Assign, which read the source non-const).
+    MpHeroRecord();
+    MpHeroRecord(const MpHeroRecord& other);
+    MpHeroRecord& operator=(const MpHeroRecord& other);
+    ~MpHeroRecord();
     // Writes the party to `folder` + file: a file name with no '.' or with anything but digits before
     // the last one is deleted instead. Otherwise the old file is moved to `folder` + "temp.mp", the
     // party saved (with its variables) into a memory stream and that written as a save file (magic
@@ -1354,9 +1323,12 @@ struct SavedParties {
     void Destruct();
     SavedParties* Construct();
     void Select(const MpHeroRecord* hero);
+    // Room for one more record the way the original's vector grew: doubled, the old records copied before the
+    // new one is made. A record's copy loads its party again, which draws object ids and random numbers.
+    void ReserveOne();
 
     std::string folder_;
-    stlp::vector<MpHeroRecord> entries_;
+    std::vector<MpHeroRecord> entries_;
     MpHeroRecord outsideGame_;
     MpHeroRecord* OutsideGame() { return &outsideGame_; }
 };
@@ -1457,7 +1429,6 @@ inline stlp::list<CMapObject*>* FrameDeferredUnits() { return &*g_deferredUnits;
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }
 inline CItemManager* WorldItemManager() { return TheServerWorld()->itemManager_; }
 inline CMapObjectManager* WorldObjectManager() { return TheServerWorld()->manager40_; }
-
 
 // A lightning strike from `from` to `to`, as a script line on the queue: one time in four only a
 // thunder sound, otherwise a point light at the middle, a sound and two bolts.

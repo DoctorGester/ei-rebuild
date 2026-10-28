@@ -2,9 +2,8 @@
 
 // STLport's list<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). One
 // pointer to the sentinel node the constructor allocates (its next is the first element, its prev the last; an
-// empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. The
-// game's instantiations of the members below are in stlp_list.cpp through the
-// ListAbi shims: one body for every element type, the element's copy and destruction supplied by an element policy.
+// empty list's sentinel points at itself). Nodes are next, prev, then the element, from the node allocator. One
+// body for every element type (the ListAbi shims), the element's copy and destruction supplied by an element policy.
 
 #include "stlp_alloc.h"
 
@@ -15,7 +14,7 @@ namespace stlp {
 
 // How an instantiation copies an element into a new node (_M_create_node) and destroys one (erase,
 // clear): T's own copy constructor and destructor. Holders whose copy the game writes as functions
-// of the holder (RefPtr's Share, ...) get policies of their own (stlp_list.cpp).
+// of the holder (RefPtr's Share, ...) get policies of their own (stlp_list_refs.h).
 template <typename T>
 struct Element {
     static void Copy(T* to, const T& from) { new (to) T(from); }
@@ -229,9 +228,5 @@ typename list<T>::Node* AsNode(Node* node) {
     static_assert(sizeof(Node) == sizeof(typename list<T>::Node));
     return reinterpret_cast<typename list<T>::Node*>(node);
 }
-
-// remove(value) of a list<int> (the light factory's lit ids): every element equal
-// to *value (read again for each node) erased.
-void ListRemoveInt(list<int>* self, const int& value);
 
 } // namespace stlp

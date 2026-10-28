@@ -6,7 +6,6 @@
 
 #include "core_maths.h"
 #include "core_streams.h"
-#include "record_lifetime.h"
 
 #include "lib/mfc.h"
 

@@ -101,7 +101,7 @@ public:
 
     int listed_;
     int portraits_;
-    stlp::vector<CRefObject*> players_;       // counted PlayerMessage records
+    std::vector<CountedPtr<CRefObject>> players_;   // PlayerMessage records
     std::vector<std::string> texts_;
 };
 
@@ -228,7 +228,7 @@ public:
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself
     std::uint8_t unused_18D[3];
-    mfc::CArray<CUnit*> party_;
+    std::vector<CUnit*> party_;
     CUnit* leader_;                  // the unit the camera follows (the hero speaker)
     CUnit* person_;                  // the person the dialogue is with
     CUnit* third_;                   // or null
@@ -262,7 +262,7 @@ public:
     CChatWindow* chat_;              // a network client's only
     std::vector<int> people_;       // ids of the local player's objects that are text keys
     float markPhase_;                // kept below 1
-    stlp::vector<BriefingSpeaker> speakers_;
+    std::vector<BriefingSpeaker> speakers_;
     int chatActive_;                 // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).

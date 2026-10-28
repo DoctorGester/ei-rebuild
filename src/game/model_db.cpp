@@ -1,7 +1,7 @@
 // Databases read at startup from database.res (prints.db, acks.db) and the world's water level changes.
 #include "acks_db.h"
 #include "model.h"
-#include "record_vectors.h"
+#include "chunk_archive.h"
 #include "terrain.h"
 
 #include "lib/crt.h"
@@ -9,41 +9,11 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
-#include <type_traits>
+#include <vector>
 
 // The rest of the archive is in chunk_archive.cpp.
 
 namespace {
-
-// The body shared by the vector serialisers (one instantiation per record type, `Abi` the vector's
-// instantiation: its element policy destroys a record, ResizeDefault is its resize(n)). Loading destroys the
-// old records, resizes to the number of record chunks and reads each; saving writes the records in order.
-// prints.db records serialise through their vtable, acks.db records by a direct call.
-template <typename Abi>
-void SerializeArray(ChunkArchive* ar, int id, typename Abi::Vector* v) {
-    using Record = std::remove_pointer_t<decltype(v->begin())>;
-    if (!ar->EnterChunk(id)) return;
-    int count;
-    if (ar->loading_) {
-        // erase(begin(), end()): the tail copy is empty; the old records are destroyed in order.
-        Record* end = v->end();
-        for (Record* p = v->begin(); p != end; ++p) Abi::Element::Destroy(p);
-        v->Finish() = v->Start();
-        count = ar->CountChunks(1);
-        v->template ResizeDefault<typename Abi::Element>(static_cast<unsigned>(count));
-    } else {
-        count = static_cast<int>(v->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        Record* record = v->begin() + i;
-        if (ar->EnterChunk(1)) {
-            record->Serialize(ar);
-            ar->LeaveChunk();
-        }
-    }
-    ar->LeaveChunk();
-}
 
 // Fields 1-3 of chunk `id`, four bytes each, if the chunk is present.
 void TripleChunk(ChunkArchive* ar, int id, void* first, void* second, void* third) {
@@ -58,20 +28,20 @@ void TripleChunk(ChunkArchive* ar, int id, PrintLook* look) { TripleChunk(ar, id
 
 } // namespace
 
-void ChunkArchive::SerializePrints(int id, stlp::vector<PrintRecord>* records, void*) {
-    SerializeArray<recordvec::PrintVector>(this, id, records);
+void ChunkArchive::SerializePrints(int id, std::vector<PrintRecord>* records, void*) {
+    RecordChunks(this, id, records, &PrintRecord::Serialize);
 }
-void ChunkArchive::SerializePrints2(int id, stlp::vector<PrintRecord2>* records, void*) {
-    SerializeArray<recordvec::Print2Vector>(this, id, records);
+void ChunkArchive::SerializePrints2(int id, std::vector<PrintRecord2>* records, void*) {
+    RecordChunks(this, id, records, &PrintRecord2::Serialize);
 }
-void ChunkArchive::SerializeAcks(int id, stlp::vector<acks::UnitAcks>* records, void*) {
-    SerializeArray<recordvec::UnitAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks(int id, std::vector<acks::UnitAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::UnitAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks2(int id, stlp::vector<acks::ModelAcks>* records, void*) {
-    SerializeArray<recordvec::ModelAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks2(int id, std::vector<acks::ModelAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::ModelAcks::Serialize);
 }
-void ChunkArchive::SerializeAcks3(int id, stlp::vector<acks::ExtraAcks>* records, void*) {
-    SerializeArray<recordvec::ExtraAcksVector>(this, id, records);
+void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void*) {
+    RecordChunks(this, id, records, &acks::ExtraAcks::Serialize);
 }
 
 // ---- prints.db records ----------------------------------------------------------------------------
@@ -98,26 +68,26 @@ void PrintRecord2::Serialize(ChunkArchive* ar) {
 
 void WaterTweens::SetTarget(int key, float target, int steps) {
     if (steps < 1) steps = 1;
-    int count = size;
+    int count = std::ssize(*this);
     for (int i = 0; i < count; ++i) {
-        if (data[i].key != key) continue;
-        data[i].step = (target - data[i].value) / steps;
-        data[i].steps = steps;
+        if ((*this)[i].key != key) continue;
+        (*this)[i].step = (target - (*this)[i].value) / steps;
+        (*this)[i].steps = steps;
         return;
     }
     // A new entry; every field is overwritten below.
-    SetSize(count + 1, -1);
-    TweenEntry& e = data[size - 1];
+    resize(count + 1);
+    TweenEntry& e = (*this)[std::ssize(*this) - 1];
     e.key = key;
     e.value = 0.0f;
     e.steps = steps;
-    e.step = (target - data[count].value) / steps;
+    e.step = (target - (*this)[count].value) / steps;
 }
 
 bool WaterTweens::Tick() {
     bool moving = false;
-    for (int i = 0; i < size; ++i) {
-        TweenEntry* e = &data[i];
+    for (int i = 0; i < std::ssize(*this); ++i) {
+        TweenEntry* e = &(*this)[i];
         EI_NAN_AUDIT(e->value);
         if (e->steps > 0) {
             --e->steps;
@@ -125,9 +95,9 @@ bool WaterTweens::Tick() {
             e->value = e->step + e->value;
         } else if (e->value == 0.0f) {
             // Finished and back at zero: remove it.
-            int after = size - i - 1;
+            int after = std::ssize(*this) - i - 1;
             if (after != 0) std::memmove(e, e + 1, static_cast<unsigned>(after) << 4);
-            --size;
+            pop_back();
             --i;
         }
     }
@@ -135,21 +105,21 @@ bool WaterTweens::Tick() {
 }
 
 void WaterTweens::Save(CStream* stream) const {
-    int count = size;
+    int count = std::ssize(*this);
     stream->Write(&count, 4);
-    for (int i = 0; i < size; ++i) stream->Write(&data[i], 16);
+    for (int i = 0; i < std::ssize(*this); ++i) stream->Write(&(*this)[i], 16);
 }
 
 void WaterTweens::ReadEntries(CStream* stream, int unread) {
     int count = unread;
     stream->Read(&count, 4);
-    SetSize(count, -1);
-    for (int i = 0; i < size; ++i) stream->Read(&data[i], 16);
+    resize(count);
+    for (int i = 0; i < std::ssize(*this); ++i) stream->Read(&(*this)[i], 16);
 }
 
 void WaterTweens::Load(CStream* stream, Terrain* terrain) {
     ReadEntries(stream, 0);
-    for (int i = 0; i < size; ++i) terrain->SetWaterLevel(data[i].key, data[i].value);
+    for (int i = 0; i < std::ssize(*this); ++i) terrain->SetWaterLevel((*this)[i].key, (*this)[i].value);
 }
 
 void WaterTweens::LoadEntries(CStream* stream) {

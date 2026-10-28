@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 #undef GetClassName
@@ -34,9 +35,7 @@ struct UnitPrototypeTable {
     // The record named `name` (an unknown name gets a null entry), or null.
     UnitPrototypeRecord* FindByName(const char* name);
 
-    UnitPrototypeRecord* begin;
-    UnitPrototypeRecord* end;
-    UnitPrototypeRecord* endOfStorage;
+    std::vector<UnitPrototypeRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
@@ -47,13 +46,10 @@ struct NpcPrototypeTable {
 
     UnitNpcRecord* FindByName(const char* name);
 
-    UnitNpcRecord* begin;
-    UnitNpcRecord* end;
-    UnitNpcRecord* endOfStorage;
+    std::vector<UnitNpcRecord> records;
     NameIndex byName;
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
-
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
@@ -116,6 +112,11 @@ inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
 }
 
 namespace unitdb {
+// Record `index` of a table's records, or null past the end.
+template <typename T>
+T* RecordAt(std::vector<T>& records, std::uint32_t index) {
+    return index < records.size() ? &records[index] : nullptr;
+}
 UnitPrototypeTable& PrototypeTable();   // the unit database's first table
 NpcPrototypeTable& NpcTable();          // its second
 } // namespace unitdb

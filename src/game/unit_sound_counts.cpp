@@ -29,14 +29,13 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     static_cast<CSoundManager*>(sounds)->ListWaveFiles(&files, kSoundPattern);
     for (std::string& file : files) str::MakeLower(file);
 
-    int modelCount = static_cast<int>(models.end - models.begin);
-    for (int m = 0; m < modelCount; ++m) {
-        UnitModelRecord* model = &models.begin[m];
+    for (UnitModelRecord& record : models.records) {
+        UnitModelRecord* model = &record;
         std::size_t names = static_cast<std::size_t>(model->soundNames.size());
         model->soundCounts.resize(names, 0);
         for (std::size_t n = 0; n < names; ++n) {
             model->soundCounts[n] = 0;
-            std::string& name = model->soundNames.begin()[n];
+            std::string& name = model->soundNames[n];
             str::MakeLower(name);
             for (const std::string& file : files) {
                 if (StartsWith(file.c_str(), name.c_str())) ++model->soundCounts[n];

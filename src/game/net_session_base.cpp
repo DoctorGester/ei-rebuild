@@ -6,30 +6,10 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "lib/stlp.h"
-#include "record_vectors.h"
 
 #include <cstring>
 
 namespace net {
-
-void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    v->PushDefault<recordvec::ReplicatedElement>();
-    Replicated* last = v->end() - 1;
-    last->object = static_cast<Message*>(object);
-    last->priority = priority;
-}
-
-void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    if (v->end() != v->EndOfStorage()) {
-        ++v->Finish();   // the element's default constructor does nothing
-    } else {
-        Replicated value{};   // the original passes an uninitialised local; it is overwritten below
-        v->InsertOverflow<recordvec::ReplicatedElement>(v->end(), value, 1);
-    }
-    Replicated* last = v->end() - 1;
-    last->object = static_cast<Message*>(object);
-    last->priority = priority;
-}
 
 int TypeRegistry::TypeOf(const std::uint32_t* key) const {
     auto node = byVtable.find(*key);

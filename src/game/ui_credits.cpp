@@ -31,13 +31,6 @@ constexpr UINT kSetFontSmoothing = 0x4B;        // SPI_SETFONTSMOOTHING
 
 void CCreditsScreen::OnMessageResult(int) { player_.Close(); }
 
-// --- a script line's destructor ------------------------------------------------------------------
-
-void TitleLine::Destroy() {
-    std::destroy_at(&style);
-    std::destroy_at(&text);
-}
-
 // --- the frame -----------------------------------------------------------------------------------
 
 BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
@@ -46,10 +39,10 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
         nextLineAt_ = 0.0f;
         textSurface_->Freeze(0, 0);
         headerSurface_->Freeze(0, 0);
-        if (currentLine_ == lines_.End()) {
+        if (currentLine_ == lines_.end()) {
             finished_ = true;
         } else {
-            const TitleLine& line = currentLine_->data;
+            const TitleLine& line = *currentLine_;
             textSurface_->Load(archive_.Get(), line.style.c_str());
             textSurface_->Start(0.0f, 0);
             if (line.scroll) {
@@ -64,7 +57,7 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
                 nextLineAt_ = GameTime() + line.speed;
             }
             textSurface_->Freeze(1, 0);
-            currentLine_ = currentLine_->next;
+            ++currentLine_;
         }
     }
     if (!player_.Frame(app::MovieMode() != 1) && finished_) {
@@ -80,7 +73,7 @@ BOOL CCreditsScreen::Draw(CSceneRenderer* pass) {
 // --- the close -----------------------------------------------------------------------------------
 
 void CCreditsScreen::OnClose() {
-    lines_.ClearWith([](TitleLine* line) { line->Destroy(); });
+    lines_.clear();
     gameapi::SystemParametersInfoA(kSetFontSmoothing, static_cast<UINT>(fontSmoothing_), nullptr, 0);
     SceneRenderer()->fogColour_ = static_cast<std::uint32_t>(savedDisplay_);
     app::g_interfaceHasScreen = 1;

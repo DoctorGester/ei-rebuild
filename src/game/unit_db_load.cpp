@@ -6,12 +6,12 @@
 
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "lib/crt.h"
-#include "record_vectors.h"      // recordvec::SkillLevelVector
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <string>
+#include <vector>
 
 namespace {
 // The chunks of units.udb and perks.pdb.
@@ -30,30 +30,21 @@ using dbfile::LocalResource;
 // The tables' vector serialisers (id, vector, unused; ChunkArchive::SerializeUnitLevels / SerializeModels /
 // SerializePrototypes / SerializeNpcs, unit_db.cpp).
 template <typename Record>
-using SerializeTable = void (ChunkArchive::*)(int, stlp::vector<Record>*, void*);
-
-// Every record of [begin, end) entered into the name index under its name (operator[]; a record of a name
-// seen before replaces the earlier one).
-template <typename Record, typename Index>
-void IndexNames(Record* begin, Record* const& end, Index* index) {
-    for (Record* record = begin; record != end; ++record) {
-        std::string key(record->name.c_str());
-        auto& slot = (*index)[key];
-        slot = reinterpret_cast<std::remove_reference_t<decltype(slot)>>(record);
-    }
-}
+using SerializeTable = void (ChunkArchive::*)(int, std::vector<Record>*, void*);
 
 // One pass over the file: an archive of its own opened for loading, the table's records read as chunk `id`
-// and, after the archive is closed, entered into the name index. `levels` is the serialisers' unused third
-// argument.
-template <typename Record, typename Index>
-void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, void* table, void* levels, Record*& begin,
-               Record*& end, Index* index) {
+// and, after the archive is closed, each entered into the name index under its name (operator[]; a record of
+// a name seen before replaces the earlier one). `levels` is the serialisers' unused third argument.
+template <typename Table, typename Record>
+void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, Table& table, void* levels) {
     ChunkArchive archive;
     archive.Open(stream, 1, 1);
-    (archive.*serialize)(id, static_cast<stlp::vector<Record>*>(table), levels);
+    (archive.*serialize)(id, &table.records, levels);
     archive.Close(stream);
-    IndexNames(begin, end, index);
+    for (Record& record : table.records) {
+        std::string key(record.name.c_str());
+        table.byName[key] = &record;
+    }
 }
 
 } // namespace
@@ -91,27 +82,26 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     CMemoryStream* stream = &local;
     FillStream(*stream, data, size);
 
-    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, &levels, &levels, levels.begin, levels.end, &levels.byName);
-    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, &models, &levels, models.begin, models.end, &models.byName);
-    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, &prototypes, &levels, prototypes.begin, prototypes.end,
-              &prototypes.byName);
-    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, &npcs, &levels, npcs.begin, npcs.end, &npcs.byName);
+    LoadTable(stream, kLevelsChunk, &ChunkArchive::SerializeUnitLevels, levels, &levels);
+    LoadTable(stream, kModelsChunk, &ChunkArchive::SerializeModels, models, &levels);
+    LoadTable(stream, kPrototypesChunk, &ChunkArchive::SerializePrototypes, prototypes, &levels);
+    LoadTable(stream, kNpcsChunk, &ChunkArchive::SerializeNpcs, npcs, &levels);
 
     resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
-    for (int i = 0; i < static_cast<int>(prototypes.end - prototypes.begin); ++i) {
-        UnitModelRecord* model = models.FindByName(prototypes.begin[i].modelName.c_str());
-        const int index = model ? static_cast<int>(model - models.begin) : -1;
+    for (int i = 0; i < static_cast<int>(prototypes.records.size()); ++i) {
+        UnitModelRecord* model = models.FindByName(prototypes.records[i].modelName.c_str());
+        const int index = model ? static_cast<int>(model - models.records.data()) : -1;
         (&prototypes)->At(static_cast<std::uint32_t>(i))->modelIndex = index;
     }
     // Every model slot's level record by its name.
-    for (int i = 0; i < static_cast<int>(models.end - models.begin); ++i) {
+    for (int i = 0; i < static_cast<int>(models.records.size()); ++i) {
         for (int slot = 0; slot < kModelSlots; ++slot) {
             const auto at = static_cast<std::uint32_t>(i);
             UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName.c_str());
-            const int index = level ? static_cast<int>(level - levels.begin) : -1;
+            const int index = level ? static_cast<int>(level - levels.records.data()) : -1;
             models.At(at)->slots[slot].levelIndex = index;
         }
     }
@@ -141,15 +131,15 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
         if (ar.EnterChunk(kSkillLevelsChunk)) {
             int count;
             if (ar.loading_) {
-                recordvec::SkillLevelVector::Clear(&levels);
+                levels.clear();
                 count = ar.CountChunks(kRecordChunk);
-                levels.ResizeDefault<recordvec::SkillLevelVector::Element>(static_cast<std::uint32_t>(count));
+                levels.resize(static_cast<std::uint32_t>(count));
             } else {
                 count = static_cast<int>(levels.size());
             }
             for (int i = 0; i < count; ++i) {
                 ar.Current()->occurrence = i + 1;
-                ar.SkillLevelChunk(kRecordChunk, levels.begin() + i);
+                ar.SkillLevelChunk(kRecordChunk, &levels[i]);
             }
             ar.LeaveChunk();
         }

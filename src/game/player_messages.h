@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <vector>
 
 class CPlayer;
@@ -62,7 +63,7 @@ public:
     virtual void UnitChanged(CUnit*) {}     // client (the unit's controller); server empty
     virtual void ResetState() {}            // server and client versions
     virtual void Leave() {}                 // server (state 3, flushed); client empty
-    virtual void ItemsGiven(const mfc::CTypedPtrList<CItem>*, int) {}   // server; client empty
+    virtual void ItemsGiven(const std::list<CItem*>*, int) {}   // server; client empty
     virtual void ItemsTaken() {}            // server (message 0x17); client empty
     virtual void ItemTaken(CEngineObject*) {}   // server (message 0x0A); client empty
     virtual void LeaderDied() {}            // the player's leader died: server; client empty
@@ -93,7 +94,7 @@ public:
     void ForgetSentObjects() override { ReleaseSentObjects(); }
     void ResetState() override { ClearServerState(); }
     void Leave() override { LeaveAndFlush(); }
-    void ItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag) override { SendItemsGiven(items, flag); }
+    void ItemsGiven(const std::list<CItem*>* items, int flag) override { SendItemsGiven(items, flag); }
     void ItemsTaken() override { Send17(); }
     void ItemTaken(CEngineObject* item) override { SendObject0A(item); }
     void LeaderDied() override { OnLeaderDied(); }
@@ -148,7 +149,7 @@ public:
     void SendItems();
     // For a joined player (state 1): message 0x05, a stream with the given items' spells and then the items,
     // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
-    void SendItemsGiven(const mfc::CTypedPtrList<CItem>* items, int flag);
+    void SendItemsGiven(const std::list<CItem*>* items, int flag);
     // Message 0x60: the world's pause flag, possessedId_, the party units (partyUnits_) by id and whether the
     // client should refresh the party (refreshPending_: 1 when a unit of the player has a level at most 2, 2
     // when a party unit fights or is the enemy of a hostile neighbour), then the objects shared with a
@@ -298,8 +299,7 @@ BOOL IsPrintableText(const char* text, int maxLength, int minLength);
 double UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
 // The walk orders' formation: one unit gets (0, 0, 0); several get the unit vector (x, y, 0) from the units'
 // 2D centroid to each (unnormalised when it is zero). `offsets` is sized to the units.
-void FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
-
+void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets);
 
 // A world player (CPlayer). The harness's digest reads its fields (tests/verify/harness_digest.cpp), hence the
 // layout asserts.
@@ -341,7 +341,7 @@ public:
     // null.
     BOOL IsLeader(const CEngineObject* unit);
     // The connection's ItemsGiven, then every item of `items` counted and appended to the given items.
-    void GiveItems(const mfc::CTypedPtrList<CItem>* items, int flag);
+    void GiveItems(const std::list<CItem*>* items, int flag);
     // The connection's ItemsTaken, then every given item taken off the head and released.
     void TakeAllItems();
     // 1 when a given loot item (0x3009) has `kind` (CItemLoot::kind_), or an item a unit of the player
@@ -381,14 +381,14 @@ public:
     TimedObjectMap knownTimed_;                 // timed objects (effects) sent to the client
     int maxTimedId_;
     PartyStorage party_;                        // an embedded CParty
-    mfc::CTypedPtrList<CItem> items_;           // items given to the player (counted)
+    std::list<CItem*> items_;           // items given to the player (counted)
     int partyId_;                               // the party's key in the party manager; sent with the client's login
     int sessionKind100_;                        // 3: the client runs a setup on the controllers of new units
     std::uint32_t lastScreen_;                  // the session kind before the last game-state message (5: the camp)
     std::uint8_t godMode_;                      // the script's GodMode(player, on); the combat code tests it
     int logTraffic_;                            // logs the size of every flush
     int lastTick_;                              // -1 after Create; the world tick last saved or restored for the player
-    mfc::CList<std::uint32_t> recharging_;      // ids of items recharging (saved with the world from version 0x55)
+    std::list<std::uint32_t> recharging_;      // ids of items recharging (saved with the world from version 0x55)
     std::uint32_t dirty_;                       // state to send (bits the server's state messages clear); -1 after the reset
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);

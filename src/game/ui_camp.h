@@ -35,7 +35,6 @@ inline constexpr int kBodySlotX[7] = /*00741EC4*/ {250, 250, 250, 550, 550, 550,
 inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450, 250};
 inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 
-
 // Every text section "pers <name>" gives its first line to the key of <name> (inserted, or replaced).
 void LoadPersonTexts(PersonTextMap* map);
 
@@ -236,10 +235,6 @@ public:
 // perks the hero may learn, each with its price.
 
 struct TradeRow {
-    void Destroy();
-    TradeRow* DeleteThis(int flags);
-    TradeRow* CopyConstruct(const TradeRow* from);
-
     std::string name;
     std::string key;                // the perk's record name (perk rows)
     std::string nextKey;            // the next level's record name (held perks below 3)
@@ -249,7 +244,7 @@ struct TradeRow {
     std::uint8_t unused_15[3];
 };
 
-using TradeRows = stlp::vector<TradeRow>;
+using TradeRows = std::vector<TradeRow>;
 
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
 // `index`).
@@ -323,7 +318,7 @@ public:
     TradeRows schools_;              // six
     TradeRows science_;              // one
     int experience_;                 // experience the hero can spend
-    stlp::vector<TradeRecord> records_;           // one per party member
+    std::vector<TradeRecord> records_;            // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
     float holdTime_;                 // from -0.5 s
     std::vector<std::string> texts_; // the titles
@@ -428,7 +423,6 @@ public:
     // first lists.
     void DebugFill() override;
 
-
     int page_;
     bool fromHeroScreen_;            // opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // the spell constructor's pages are offered
@@ -436,7 +430,7 @@ public:
     std::uint8_t unused_197;
     ClassTemplate* constructor_;     // the constructor's class template ("constr.current"), or null
     // A unit per party record, null for other classes.
-    mfc::CArray<CUnit*> heroes_;
+    std::vector<CUnit*> heroes_;
     int hero_;                       // the hero shown
     // The constructors' parts and what they made.
     CParty* itemParts_[3];

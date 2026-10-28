@@ -3,7 +3,6 @@
 #include "ui_camera_keys.h"
 #include "ui_view_screen.h"
 
-
 #include "camera.h"
 #include "maths.h"
 #include "player_client.h"
@@ -12,19 +11,14 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace {
-
-// The orders' unit list (CArray<CUnit*>).
-void* OrderUnitsVtable() { return mfc::impl::UnitPtrArrayClass::Vtable(); }
-// CDWordArray's vtable.
-void* DwordArrayVtable() { return mfc::impl::IntArrayClass::Vtable(); }
 
 constexpr int kVkControl = 0x11;
 constexpr int kVkSpace = 0x20;
@@ -45,14 +39,12 @@ float TurnAngle() {
 // Freed with Release (the vtable written back, the data deleted).
 struct OneUnit {
     explicit OneUnit(CUnit* unit) {
-        units.SetSize(1, -1);
-        units.data[0] = unit;
+        units.resize(1);
+        units[0] = unit;
     }
     ~OneUnit() {
-        units.vtable = OrderUnitsVtable();
-        units.FreeData();
     }
-    mfc::CArray<CUnit*> units{OrderUnitsVtable(), nullptr, 0, 0, 0};
+    std::vector<CUnit*> units{};
 };
 
 } // namespace
@@ -86,13 +78,10 @@ void CViewScreen::OnClose() { TheCamera()->flags_ |= CCamera::kFree; }
 // --- UnitPickInput ------------------------------------------------------------------------------
 
 UnitPickInput::UnitPickInput(CInterface3D* ui) : UiInputSide(ui) {
-    picked_ = UiDwordArray{DwordArrayVtable(), nullptr, 0, 0, 0};
+    picked_ = UiDwordArray{};
 }
 
-UnitPickInput::~UnitPickInput() {
-    picked_.vtable = DwordArrayVtable();
-    if (picked_.data) gamecrt::operator_delete(picked_.data);
-}
+UnitPickInput::~UnitPickInput() = default;
 
 void UnitPickInput::OnLeftDown(int, int x, int y) {
     CWorldClient* world = TheClientWorld();
@@ -100,23 +89,23 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
     CUnit* unit = world->UnitAt2(&point);
     if (!interface_->ctrlDown_) {
         if (unit) {
-            int n = picked_.size;
-            picked_.SetSize(n + 1, -1);
-            picked_.data[n] = static_cast<std::uint32_t>(unit->id_);
+            int n = std::ssize(picked_);
+            picked_.resize(n + 1);
+            picked_[n] = static_cast<std::uint32_t>(unit->id_);
             world->Select(unit);
             return;
         }
         Vector3 ground;
         world->PickGround(&ground, x, y);
-        for (int i = 0; i < picked_.size; ++i) {
-            auto* member = GameFindClientUnit(picked_.data[i]);
+        for (int i = 0; i < std::ssize(picked_); ++i) {
+            auto* member = GameFindClientUnit(picked_[i]);
             if (!member) continue;
             OneUnit order(member);
             world->LocalView()->SendWalk(&order.units, &ground, 0);
         }
     } else if (unit) {
-        for (int i = 0; i < picked_.size; ++i) {
-            auto* member = GameFindClientUnit(picked_.data[i]);
+        for (int i = 0; i < std::ssize(picked_); ++i) {
+            auto* member = GameFindClientUnit(picked_[i]);
             if (!member) continue;
             OneUnit order(member);
             world->LocalView()->SendAttack(&order.units, unit, kAttackHow, 0);
@@ -125,12 +114,7 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
 }
 
 void UnitPickInput::OnRightDown(int, int, int) {
-    if (picked_.data) {
-        gamecrt::operator_delete(picked_.data);
-        picked_.data = nullptr;
-    }
-    picked_.maxSize = 0;
-    picked_.size = 0;
+    lib::FreeStorage(picked_);
     TheClientWorld()->Deselect(nullptr);
 }
 

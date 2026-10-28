@@ -37,7 +37,6 @@ SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return unit->meshes.data[ind
 // The figure's registry (registry.cpp); its integers are read with GetInt2.
 using Registry = CFileRegistry;
 
-
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (the DwordMap layout): its GetAssocAt,
 // InitHashTable and NewAssoc.
 using SeenMap = DwordMap;
@@ -118,7 +117,6 @@ bool IsMinusOne(float v) {
     return bits == 0xBF800000u;
 }
 
-
 // The registry's values for one material group (the texture section and its mapping) and the
 // group's faces' texture coordinates moved into the mapping, once each.
 struct GroupStrings {
@@ -196,13 +194,13 @@ void RecordMaterial(FakeUnitScene* unit, int meshIndex, const std::string& group
 
     const auto typeId = static_cast<std::uint32_t>(type);
     const auto valueId = static_cast<std::uint32_t>(value);
-    int count = links->size;
+    int count = std::ssize(*links);
     int i = 0;
     for (; i < count; ++i) {
         if ((*links)[i].value == valueId && (*links)[i].id == typeId) break;
     }
     if (i == count) {
-        links->SetSize(count + 1, -1);
+        links->resize(count + 1);
         (*links)[count].id = typeId;
         (*links)[count].value = valueId;
     }

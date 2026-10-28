@@ -24,6 +24,7 @@
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
 
+#include <cstdio>
 #include <cstring>
 #include <new>
 #include <string>
@@ -286,9 +287,9 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
             if (SameName(plain, kHair)) {
                 int hair = prototype->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, "hr.%.2d.armor%.2d", hair, armour->number);
+                std::snprintf(text, sizeof(text), "hr.%.2d.armor%.2d", hair, armour->number);
             } else {
-                gamecrt::sprintf(text, "%s.armor%.2d", plain, armour->number);
+                std::snprintf(text, sizeof(text), "%s.armor%.2d", plain, armour->number);
             }
             std::string name(text);
             names->push_back(name);
@@ -304,7 +305,7 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
             if (SameName(plain, kHair)) {
                 int hair = prototype->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, "hr.%.2d", hair);
+                std::snprintf(text, sizeof(text), "hr.%.2d", hair);
                 std::string name(text);
                 plainNames->push_back(name);
             } else {

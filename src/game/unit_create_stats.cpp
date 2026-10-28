@@ -576,7 +576,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
         UnitOrNull(object)->SetPrototype23C(prototype);
     }
     UnitPrototypeRecord* record = unitdb::PrototypeTable().FindByName(name);
-    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().begin) : 0xFFFFFFFFu;
+    object->prototypeId_ = record ? static_cast<std::uint32_t>(record - unitdb::PrototypeTable().records.data()) : 0xFFFFFFFFu;
     return 1;
 }
 

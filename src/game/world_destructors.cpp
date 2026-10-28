@@ -7,7 +7,6 @@
 #include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
-#include "record_lifetime.h"
 #include "registry.h"
 #include "script.h"
 #include "sector_map.h"
@@ -28,14 +27,6 @@
 void RefPtrRelease(RefPtr* self);
 
 namespace {
-
-// The client's ground print lists: each print's destructor (the client's copies of GroundPrint's).
-struct PrintElement {
-    template <typename P>
-    static void Destroy(P* print) {
-        print->Destruct();
-    }
-};
 
 // A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
 // cells' lists (their vector deleting destructor), then the row pointers.
@@ -58,21 +49,6 @@ struct SharedObjectElements {
                 if (CEngineObject* object = objects.data[i]) object->Release();
             gamecrt::operator_delete(objects.data);
         }
-    }
-};
-// A counted object: released through Release.
-struct ReleasedElements {
-    static void Construct(CEngineObject**, int) {}
-    static void Destruct(CEngineObject** slot, int count) {
-        for (; count > 0; --count, ++slot)
-            if (*slot) (*slot)->Release();
-    }
-};
-// A missile: its counted pointer released.
-struct ProjectileElements {
-    static void Construct(CSpellEffect**, int) {}
-    static void Destruct(CSpellEffect** slot, int count) {
-        for (; count > 0; --count, ++slot) ReleaseCounted(*slot);
     }
 };
 // A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
@@ -125,8 +101,6 @@ void CScript::Destruct() {
 
 CWorld::~CWorld() {
     CWorld::Destroy();
-    countdowns_.vtable = mfc::impl::CountdownArrayClass::Vtable();
-    countdowns_.FreeData();
     netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
@@ -134,39 +108,32 @@ CWorld::~CWorld() {
 }
 
 CParticleManager::CParticleManager() {
-    mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
     maxHeldId_ = 0;
     ParticleManagerClearQuietStart(this);
 }
 
 CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
-    freeParticles.vtable = mfc::impl::ClientListClass::Vtable();
-    freeParticles.RemoveAll();
+    freeParticles.clear();
 }
 
 Sector::~Sector() {
     Clear();
-    occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
-    occluders.FreeData();
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.RemoveAll();
-    objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    objects.RemoveAll();
+    units.clear();
+    objects.clear();
 }
 
 CWorldClient::~CWorldClient() {
     CWorldClient::Destroy();
     handle_.Destroy();
-    scorchMarks_.Release<PrintElement>();
-    footprints_.Release<PrintElement>();
-    bloodPrints_.Release<PrintElement>();
+    scorchMarks_.clear();
+    footprints_.clear();
+    bloodPrints_.clear();
     secondGrid_.Resize(1, 1);
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
-    dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    dynamicObjects_.RemoveAll();
+    dynamicObjects_.clear();
     objects_.Destroy();
     DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();
@@ -177,8 +144,9 @@ CWorldClient::~CWorldClient() {
 CWorldServer::~CWorldServer() {
     CWorldServer::Destroy();
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
-    DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
-    DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
+    ReleaseAndClear(counted_);
+    for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
+    projectiles_.clear();
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();

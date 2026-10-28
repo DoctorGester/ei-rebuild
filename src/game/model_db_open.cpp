@@ -31,8 +31,8 @@ constexpr int kExtraAcksChunk = 3;
 // Every record of `records` filed in `index` under its name (the index's operator[]: a record of
 // a name seen before replaces the earlier one).
 template <typename Record, typename Index, typename Name>
-void FileRecords(const stlp::vector<Record>& records, Index& index, Name name) {
-    for (Record* record = records.begin(); record != records.end(); ++record) index[name(*record)] = record;
+void FileRecords(std::vector<Record>& records, Index& index, Name name) {
+    for (Record& record : records) index[name(record)] = &record;
 }
 
 // The speech lists of a unit's record by ack kind, in the order they are entered: the

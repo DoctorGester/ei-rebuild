@@ -4,7 +4,6 @@
 #include "map_object_figures.h"   // FigureBone
 
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
@@ -12,9 +11,6 @@
 #include <new>
 
 namespace {
-
-constexpr int kChildBlockSize = 10;
-
 
 // The mesh is a counted engine object (its release virtual).
 void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
@@ -24,13 +20,6 @@ void ReleaseMesh(CFigureMesh* mesh) { mesh->Release(); }
 // The names are members (empty strings before the body).
 FigureBone::FigureBone() {
     ClearFields();
-    children.vtable = mfc::impl::BoneListClass::Vtable();
-    children.count = 0;
-    children.free = nullptr;
-    children.tail = nullptr;
-    children.head = nullptr;
-    children.blocks = nullptr;
-    children.blockSize = kChildBlockSize;
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     CreateBone();
 }
@@ -41,7 +30,7 @@ int FigureBone::CreateBone() {
     name2 = "none";
     name3 = "none";
     parent = nullptr;
-    children.RemoveAll();
+    children.clear();
     mesh = nullptr;
     pose = nullptr;
     animator = nullptr;
@@ -74,8 +63,7 @@ void FigureBone::DestroyBone() {
 FigureBone::~FigureBone() {
     DestroyBone();   // its reset empties the matrices here, the same SetSize
     // The child list's destructor: its vtable, RemoveAll again.
-    children.vtable = mfc::impl::BoneListClass::Vtable();
-    children.RemoveAll();
+    children.clear();
 }
 
 int FigureBone::Create() { return CreateBone(); }

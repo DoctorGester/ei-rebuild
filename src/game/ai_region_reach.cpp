@@ -20,14 +20,12 @@ namespace {
 
 // A function-local static CArray<{int x, y}>, destroyed at exit by its exit function.
 using PointArray = BlockPointArray;
-static_assert(sizeof(BlockPointArray) == 0x14);
-void DestroyPoints(BlockPointArray& points) { mfc::impl::DestructArrayOf<mfc::impl::PointArrayClass>(points); }
 
 constinit lib::StaticObject<BlockPointArray> g_blocks = /*007C2EE0*/ {};
 PointArray& Blocks() { return *g_blocks; }
 std::uint8_t g_blocksGuard = /*007C2EF4*/ {};
 std::uint8_t& BlocksGuard() { return g_blocksGuard; }
-void DestroyBlocks() { DestroyPoints(*g_blocks); }
+void DestroyBlocks() { g_blocks.Destroy(); }
 
 // LabelRegions' function-local statics: the flood queue (guard bit 0 of g_floodGuard) and its second list (bit 1).
 constinit lib::StaticObject<BlockPointArray> g_floodSecond = /*007C2EF8*/ {};
@@ -36,9 +34,8 @@ PointArray& FloodQueue() { return *g_floodQueue; }
 PointArray& FloodSecond() { return *g_floodSecond; }
 std::uint8_t g_floodGuard = /*007C2F24*/ {};
 std::uint8_t& FloodGuard() { return g_floodGuard; }
-void DestroyFloodQueue() { DestroyPoints(*g_floodQueue); }
-void DestroyFloodSecond() { DestroyPoints(*g_floodSecond); }
-
+void DestroyFloodQueue() { g_floodQueue.Destroy(); }
+void DestroyFloodSecond() { g_floodSecond.Destroy(); }
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
@@ -49,7 +46,6 @@ int BlocksHigh(const CRegionMap* map) { return map->edges[0].height; }
 // The direction steps of block directions 0..7 (the tables from their index 1).
 const int* StepX() { return DirectionDx() + 1; }
 const int* StepY() { return DirectionDy() + 1; }
-
 
 } // namespace
 
@@ -118,23 +114,18 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     PointArray& blocks = Blocks();
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
-        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&blocks);
+        g_blocks.Construct();
         std::atexit(DestroyBlocks);
     }
-    if (blocks.data) {
-        gamecrt::operator_delete(blocks.data);
-        blocks.data = nullptr;
-    }
-    blocks.maxSize = 0;
-    blocks.size = 0;
+    lib::FreeStorage(blocks);
     for (int yy = by - 1; yy < by + 2; ++yy) {
         if (yy < 0 || yy >= BlocksHigh(this)) continue;
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
-            int n = blocks.size;
-            blocks.SetSize(n + 1, -1);
-            blocks.data[n].x = xx;
-            blocks.data[n].y = yy;
+            int n = std::ssize(blocks);
+            blocks.resize(n + 1);
+            blocks[n].x = xx;
+            blocks[n].y = yy;
         }
     }
 
@@ -143,8 +134,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         return regionRows[yy][xx] == static_cast<std::uint16_t>(region);
     };
     bool any = false;
-    for (int k = 0; k < blocks.size; ++k)
-        if (inRegion(blocks.data[k].x, blocks.data[k].y)) {
+    for (int k = 0; k < std::ssize(blocks); ++k)
+        if (inRegion(blocks[k].x, blocks[k].y)) {
             any = true;
             break;
         }
@@ -164,8 +155,8 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
 
     std::uint8_t** cellRows = cells[sizeClass].rows;
     bool found = false;
-    for (int k = 0; k < blocks.size; ++k) {
-        int xx = blocks.data[k].x, yy = blocks.data[k].y;
+    for (int k = 0; k < std::ssize(blocks); ++k) {
+        int xx = blocks[k].x, yy = blocks[k].y;
         std::uint8_t cell = cellRows[yy][xx];
         if (search->CostAt((cell & 0xF) + xx * 8, (cell >> 4) + yy * 8) < kUnreached && inRegion(xx, yy)) {
             found = true;
@@ -185,15 +176,15 @@ void CRegionMap::LabelRegions() {
     PointArray& second = FloodSecond();
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
-        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&queue);
+        g_floodQueue.Construct();
         std::atexit(DestroyFloodQueue);
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
-        mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(&second);
+        g_floodSecond.Construct();
         std::atexit(DestroyFloodSecond);
     }
-    queue.SetSize(0, -1);
+    queue.clear();
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
@@ -202,10 +193,10 @@ void CRegionMap::LabelRegions() {
             for (int bx = 0; bx < BlocksWide(this); ++bx) {
                 if (grid.rows[by][bx] != 0) continue;
                 grid.rows[by][bx] = static_cast<std::uint16_t>(label);
-                int n = queue.size;
-                queue.SetSize(n + 1, -1);
-                queue.data[n].x = bx;
-                queue.data[n].y = by;
+                int n = std::ssize(queue);
+                queue.resize(n + 1);
+                queue[n].x = bx;
+                queue[n].y = by;
                 FloodRegionFrom(sizeClass, &queue, &second, label);
                 ++label;
             }
@@ -361,8 +352,8 @@ bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, i
                                  BlockPointArray* excluded) {
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
-    const BlockPoint* points = excluded->data;
-    for (int i = 0; i < excluded->size; ++i) {
+    const BlockPoint* points = excluded->data();
+    for (int i = 0; i < std::ssize(*excluded); ++i) {
         Exclude(forward, points[i].x, points[i].y);
         Exclude(backward, points[i].x, points[i].y);
     }
@@ -606,29 +597,24 @@ void CRegionMap::FloodRegionFrom(int sizeClass, BlockPointArray* frontier, Block
     std::int16_t** edgeRows = edges[sizeClass].rows;
     std::uint16_t** regionRows = regions[sizeClass].rows;
     for (;;) {
-        if (next->data) {
-            gamecrt::operator_delete(next->data);
-            next->data = nullptr;
-        }
-        next->maxSize = 0;
-        next->size = 0;
+        lib::FreeStorage(*next);
         // Every open edge (word >= 0) of a frontier block leads to a neighbour; an unlabelled one
         // takes the label and joins the next frontier.
-        for (int i = 0; i < frontier->size; ++i) {
-            int bx = frontier->data[i].x, by = frontier->data[i].y;
+        for (int i = 0; i < std::ssize(*frontier); ++i) {
+            int bx = (*frontier)[i].x, by = (*frontier)[i].y;
             for (int dir = 0; dir < 8; ++dir) {
                 if (edgeRows[by][bx * 8 + dir] < 0) continue;
                 int nx = bx + dx[dir], ny = by + dy[dir];
                 std::uint16_t& region = regionRows[ny][nx];
                 if (region != 0) continue;
                 region = static_cast<std::uint16_t>(label);
-                int n = next->size;
-                next->SetSize(n + 1, -1);
-                next->data[n].x = nx;
-                next->data[n].y = ny;
+                int n = std::ssize(*next);
+                next->resize(n + 1);
+                (*next)[n].x = nx;
+                (*next)[n].y = ny;
             }
         }
-        if (next->size == 0) return;
+        if (next->empty()) return;
         PointArray* swap = frontier;
         frontier = next;
         next = swap;

@@ -5,7 +5,6 @@
 #include "combat.h"
 #include "core_refcount.h"
 #include "game_arrays.h"
-#include "game_lists.h"
 #include "map_object_figures.h"
 #include "object_diplomacy.h"
 #include "player_messages.h"
@@ -38,8 +37,10 @@
 #include "lib/mfc_array.h"
 
 #include <cstring>
+#include <list>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -67,7 +68,7 @@ constexpr int kSharedObjectNodeSize = 0x28;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-using IdArray = mfc::CArray<int>;
+using IdArray = std::vector<int>;
 
 // MFC CArray of counted item pointers (SharedObject::objects, world.h).
 using ObjectPtrArray = CountedPtrs<CItem>;
@@ -77,7 +78,7 @@ static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
 // A player's MFC list of plain dwords (CPlayer::recharging_) and of objects (CPlayer::items_); only the head and
 // the node layout are read here.
-using DwordList = mfc::CList<std::uint32_t>;
+using DwordList = std::list<std::uint32_t>;
 
 // A dword written through a stack copy, as most scalars are.
 template <typename T>
@@ -131,7 +132,6 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
         player->Server()->SetVariable(name, std::bit_cast<std::uint32_t>(value));
     }
 }
-
 
 void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
     for (;;) {
@@ -188,22 +188,17 @@ namespace {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     IdArray stranded;
-    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
-    stranded.data = nullptr;
-    stranded.growBy = 0;
-    stranded.maxSize = 0;
-    stranded.size = 0;
     for (auto node = world->objects_.map.begin(); node != world->objects_.map.end(); ++node) {
         CUnit* unit = UnitOrNull(node->second);
         if (!unit) continue;
         if (world->AIMap()->CanLeaveCell(unit)) continue;
         int id = unit->id_;
-        int index = stranded.size;
-        stranded.SetSize(index + 1, -1);
-        stranded.data[index] = id;
+        int index = std::ssize(stranded);
+        stranded.resize(index + 1);
+        stranded[index] = id;
     }
-    for (int i = 0; i < stranded.size; ++i) {
-        CUnit* unit = world->FindUnit(stranded.data[i]);
+    for (int i = 0; i < std::ssize(stranded); ++i) {
+        CUnit* unit = world->FindUnit(stranded[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             world->Sectors()->Remove(unit);
             float* position = &unit->localPosition_.x;   // x, y, z
@@ -216,11 +211,9 @@ void RelocateStrandedUnits(CWorldServer* world) {
             world->Sectors()->Add(unit);
             unit->ServerController()->ResyncWithUnit();
         } else {
-            world->RemoveObject(stranded.data[i]);
+            world->RemoveObject(stranded[i]);
         }
     }
-    stranded.vtable = mfc::impl::IntArrayClass::Vtable();
-    if (stranded.data) gamecrt::operator_delete(stranded.data);
 }
 
 // The players' part of the save (in the player list's order).
@@ -239,17 +232,17 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             if (id == -1) break;
             CItem* object = FindItem(items, id);
             if (!object) continue;
-            player->items_.AddTail(object);
+            player->items_.push_back(object);
             ++object->refCount_;
         }
         stream->Read(&player->godMode_, 1);
         if (stream->version_ >= kVersionPlayerLists) {
             DwordList& ids = player->recharging_;
             int count = ReadValue<int>(stream);
-            for (int i = 0; i < count; ++i) ids.AddTail(0);
-            for (auto* node = ids.head; node;) {
-                auto* next = node->next;
-                stream->Read(&node->data, 4);
+            for (int i = 0; i < count; ++i) ids.push_back(0);
+            for (auto node = ids.begin(); node != ids.end();) {
+                auto next = std::next(node);
+                stream->Read(&*node, 4);
                 node = next;
             }
         }
@@ -375,12 +368,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 missile->flags6_ = 0;
                 missile->flags7_ = 0;
                 missile->Load(stream);
-                auto& list = projectiles_;
-                ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
-                AssignCounted(node->data, missile);
-                if (list.tail) list.tail->next = node;
-                else list.head = node;
-                list.tail = node;
+                AssignCounted(projectiles_.emplace_back(), missile);
             }
 
             AIEvents()->Load(stream);
@@ -397,11 +385,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id < 0) break;
                 CEngineObject* item = itemManager_->FindObject(id);
                 if (!item) continue;
-                auto* node = counted_.NewNode(nullptr, counted_.head);
-                HeldEngineObject::Of(&node->data)->Assign(item);
-                if (counted_.head) counted_.head->prev = node;
-                else counted_.tail = node;
-                counted_.head = node;
+                auto node = counted_.emplace(counted_.begin());
+                HeldEngineObject::Of(&*node)->Assign(item);
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
@@ -491,18 +476,18 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
         stream->Write(&player->partyId_, 4);
         player->Party()->SaveParty(stream, 1);
         stream->Write(&player->sessionKind100_, 4);
-        for (auto* node = player->items_.head; node;) {
-            auto* next = node->next;
-            WriteCopy(stream, node->data->id_);
+        for (auto node = player->items_.begin(); node != player->items_.end();) {
+            auto next = std::next(node);
+            WriteCopy(stream, (*node)->id_);
             node = next;
         }
         WriteCopy(stream, -1);
         WriteCopy(stream, player->godMode_);
         DwordList& ids = player->recharging_;
-        WriteCopy(stream, ids.count);
-        for (auto* node = ids.head; node;) {
-            auto* next = node->next;
-            stream->Write(&node->data, 4);
+        WriteCopy(stream, std::ssize(ids));
+        for (auto node = ids.begin(); node != ids.end();) {
+            auto next = std::next(node);
+            stream->Write(&*node, 4);
             node = next;
         }
     }
@@ -574,9 +559,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         WriteCopy(stream, node->second->id_);
     WriteCopy(stream, -1);
 
-    for (auto* node = projectiles_.head; node;) {
-        auto* next = node->next;
-        CSpellEffect* missile = node->data;
+    for (auto node = projectiles_.begin(); node != projectiles_.end();) {
+        auto next = std::next(node);
+        CSpellEffect* missile = *node;
         WriteCopy(stream, static_cast<std::uint8_t>(1));
         missile->Save(stream);
         node = next;
@@ -590,9 +575,9 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     stream->Write(&cave_, 4);
     countdowns_.Save(stream);
 
-    for (auto* node = counted_.head; node;) {
-        auto* next = node->next;
-        WriteCopy(stream, node->data->id_);
+    for (auto node = counted_.begin(); node != counted_.end();) {
+        auto next = std::next(node);
+        WriteCopy(stream, (*node)->id_);
         node = next;
     }
     WriteCopy(stream, -1);
@@ -679,7 +664,7 @@ void SharedObject::Load(WorldStream* stream) {
     }
 }
 
-void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, const mfc::CTypedPtrList<CItem>* objects) {
+void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, const std::list<CItem*>* objects) {
     // The session player record's serial in a multiplayer game, else -1.
     int player = -1;
     net::ServerSession* session = net::GameServer();
@@ -705,17 +690,12 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     entry.objectId = id;
     entry.player = player;
     entry.money = value;
-    for (auto* it = objects->head; it;) {
-        auto* next = it->next;
-        Append(entry.objects, it->data);
+    for (auto it = objects->begin(); it != objects->end();) {
+        auto next = std::next(it);
+        Append(entry.objects, *it);
         it = next;
     }
 }
-
-namespace {
-
-
-} // namespace
 
 void CWorldServer::PrepareSave() {
     for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node) {

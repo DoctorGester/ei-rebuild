@@ -30,10 +30,10 @@ void AIPath::LoadPath(CStream* stream) {
     stream->Read(&flag6F, 1);
     BlockPointArray* excluded = &excludedBlocks;
     stream->Read(&count, 4);
-    excluded->SetSize(count, -1);
-    for (int i = 0; i < excluded->size; ++i) {
-        stream->Read(&excluded->data[i].x, 4);
-        stream->Read(&excluded->data[i].y, 4);
+    excluded->resize(count);
+    for (int i = 0; i < std::ssize(*excluded); ++i) {
+        stream->Read(&(*excluded)[i].x, 4);
+        stream->Read(&(*excluded)[i].y, 4);
     }
     stream->Read(&smoothing, 4);
 }
@@ -51,12 +51,12 @@ void AIPath::SavePath(CStream* stream) {
     stream->Write(&flag6E, 1);
     stream->Write(&flag6F, 1);
     const BlockPointArray* excluded = &excludedBlocks;
-    count = excluded->size;
+    count = std::ssize(*excluded);
     stream->Write(&count, 4);
-    for (int i = 0; i < excluded->size; ++i) {
-        int x = excluded->data[i].x;
+    for (int i = 0; i < std::ssize(*excluded); ++i) {
+        int x = (*excluded)[i].x;
         stream->Write(&x, 4);
-        int y = excluded->data[i].y;
+        int y = (*excluded)[i].y;
         stream->Write(&y, 4);
     }
     int smoothingCopy = smoothing;

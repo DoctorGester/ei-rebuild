@@ -12,7 +12,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstdint>
@@ -34,8 +33,6 @@ const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 // A list on the stack (CPtrList, blocks of 10).
 void InitList(AIObjectList& list) {
     list = {};
-    list.vtable = mfc::impl::PtrListClass::Vtable();
-    list.blockSize = 10;
 }
 
 // The player controls the unit directly (its player's server connection in state 2).
@@ -108,9 +105,9 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     }
     brain->memory.FindEnemiesNear(unit, &candidates, &point, radius);
     // Only enemies that could notice the unit (1.1 x the larger of their sight and hearing).
-    for (auto* node = candidates.head; node;) {
-        auto* next = node->next;
-        auto* other = node->data;
+    for (auto node = candidates.begin(); node != candidates.end();) {
+        auto next = std::next(node);
+        auto* other = *node;
         CUnitServer* control = other->ServerController();
         float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
@@ -119,7 +116,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         double limit = static_cast<double>(reach) * kReachScale;
         double dy = static_cast<double>(other->localPosition_.y) - unit->localPosition_.y;
         double dx = static_cast<double>(other->localPosition_.x) - unit->localPosition_.x;
-        if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.RemoveAt(node);
+        if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.erase(node);
         node = next;
     }
     AddPartyTargets(brain, &candidates);
@@ -134,9 +131,9 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             AIObjectList party;
             InitList(party);
             CollectParty(brain, &party);
-            for (auto* node = party.head; node;) {
-                auto* other = node->data;
-                node = node->next;
+            for (auto node = party.begin(); node != party.end();) {
+                auto* other = *node;
+                ++node;
                 if (other == unit) continue;
                 AIBrain* theirs = other->ServerController()->Brain();
                 auto* mode = theirs->FindPlayerMode();
@@ -148,7 +145,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
                 }
                 theirs->action = AIBrain::kActionNone;
             }
-            party.RemoveAll();
+            party.clear();
         }
         AITargetChoice now{-1, nullptr};
         brain->attention.CurrentAttack(brain, &now);
@@ -158,7 +155,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
             target = nullptr;
         }
     }
-    candidates.RemoveAll();
+    candidates.clear();
 }
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
@@ -167,33 +164,33 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     CUnit* unit = brain->owner->unit;
     TheServerWorld()->Sectors()->FindUnitsInRadius(PositionOf(unit), &nearby,
                                GameLogicSettings().playerCallForHelp);
-    for (auto* node = nearby.head; node;) {
-        auto* other = node->data;
-        node = node->next;
+    for (auto node = nearby.begin(); node != nearby.end();) {
+        auto* other = *node;
+        ++node;
         if (other == unit || other->player != unit->player) continue;
         AIBrain* theirs = other->ServerController()->Brain();
         auto* foe = static_cast<CUnit*>(theirs->target.object);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
             foe->GetClassId() != kClassUnit)
             continue;
-        if (targets->Find(foe)) continue;
-        targets->AddTail(foe);
+        if (lib::Contains(*targets, foe)) continue;
+        targets->push_back(foe);
     }
-    nearby.RemoveAll();
+    nearby.clear();
 }
 
 void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
-    party->RemoveAll();
+    party->clear();
     CUnit* unit = brain->owner->unit;
     if (!unit) return;
-    party->AddTail(unit);
+    party->push_back(unit);
     CPlayer* player = unit->player;
     if (!player) return;
     // The chain of leaders above the unit.
     for (const CUnit* member = unit;;) {
         CUnit* above = LeaderOf(member);
-        if (!above || party->Find(above)) break;
-        party->AddTail(above);
+        if (!above || lib::Contains(*party, above)) break;
+        party->push_back(above);
         member = above;
     }
     // Everyone following someone listed, until nobody is added.
@@ -203,8 +200,8 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
         for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
             CUnit* member = node->second;
             CUnit* followed = LeaderOf(member);
-            if (!party->Find(followed) || party->Find(member)) continue;
-            party->AddTail(member);
+            if (!lib::Contains(*party, followed) || lib::Contains(*party, member)) continue;
+            party->push_back(member);
             added = true;
         }
     } while (added);

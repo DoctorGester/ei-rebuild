@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace net {
 
@@ -20,9 +21,8 @@ class BindingMessage;
 class FileMessage;
 class PlayerMessage;
 
-// An STLport vector of counted pointers (start, finish, end of storage), as the file and party
-// messages embed it.
-using RefVector = stlp::vector<RefPtr>;
+// The party message's member messages (each holds a reference).
+using RefVector = std::vector<CountedRefPtr>;
 
 // ---- Client to server ---------------------------------------------------------------------------
 
@@ -322,7 +322,7 @@ public:
     std::uint16_t unused_0E;
     std::int32_t size_;          // in bytes
     std::string name_;
-    RefVector chunks_;           // the chunk messages (not sent)
+    std::vector<SharedRefPtr> chunks_;   // the chunk messages (not sent)
 };
 
 // Type 12: 64 bytes of a shared file.

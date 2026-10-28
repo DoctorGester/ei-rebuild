@@ -1002,7 +1002,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **Derived instantiations** (the motion's 0073EB9C / 0073EB90, which the unit's constructor stores, over
     0073EBA8 / 0073EBB4, which the destructors and 00556D70 store): the derived tag (MotionPointsClass,
     MotionWaypointArrayClass) derives from the base's and only names its own table; its destructor ends in the
-    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do.
+    base's, which stores the base's table, as game.exe's 00532E30 / 00532E50 do. (C14m made the motion's arrays
+    std::vector and those tags went; ScriptFloatValuesClass over ScriptFloatsClass is a derived tag still in use.)
   - **Slot 0** is `ObjectRuntimeClass()` (mfc_coll.cpp: ei_vectors links it, not mfc_slots.cpp).
   - CUnit's carried array's table field is `void*` (unit.h); the code sets every one of these tables through its tag.
   - The other ~150 container tables can go the same way, a tag at a time: replace the tag's `Vtable()` by deriving
@@ -1686,7 +1687,7 @@ the `--no-hooks` suite) keeps the registry.
 - **Locale** (C26, C34, C35b): the host CRT's "C" locale, never changed. The original's text manager Create 004DED20
   called setlocale(LC_CTYPE, the "Font CharSet" option, "english" -> "English_United States.1252") and
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
-  the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's _output takes the C
+  the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's Format takes the C
   locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
   AfxFormatString1 copies bytes. ei_vectors checks the game's recorded point and class words against that
   ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
@@ -1717,16 +1718,30 @@ the `--no-hooks` suite) keeps the registry.
   `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
   table before the host's terminators. rand / srand: the seed is a thread_local in the image
   (`libcrt::RandState()`, which the harness's digest and randtrace read; the image has no _getptd 006F00D1).
-- **Formatting** (crt_format.cpp): sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F are VC6's
-  `_output` (the `__lookuptable` state machine copied from 007476D0, `%I64`, `%Z`, "(null)"). Floats are not "17
-  correct digits": `$I10_OUTPUT` builds them from a 12-byte long double (96-bit `__ld12mul` with truncated partial
-  products, the exe's power-of-ten tables 0079AE60 / 0079AFC0), then `_fptostr` rounds half up; three exponent digits;
-  "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0. The decimal point is the
-  host's LC_NUMERIC one ("."). C26 tried the host's printf: the crt vectors differ (3 of 258 records: "%g" / "%.6g"
-  of FLT_MAX "3.40282e+38" for VC6's "3.40282e+038", infinity "inf" for "1.#INF") and so do six image goldens
-  (combat, combat_more, sound, unit_ai_cast, unit_ai_corpse, unit_ai_heal: the console's "skill=3.40282e+038"
-  attack line), so _output stays. atof and sscanf are the host CRT's (C26: goldens and the atof vectors the
-  same); callers use std::atof / sscanf_s.
+- **Formatting** (crt_format.cpp, C35c): one printf of ours, `libcrt::Format` (the full text) behind `str::Format` /
+  `str::FormatV` (CString::Format's: the text up to the first zero byte); sprintf 006E8715, vsprintf 006ECC47,
+  fprintf 006EAEB0 and printf 006E955F have no entry of their own (gamecrt::sprintf and libcrt::Vsprintf went in C35c:
+  a call with a literal format and no float conversion is `std::snprintf` into its buffer, the console's "%.6g" and
+  the script's FloatToStr "%.*f" are str::Format). The format is read with VC6 `_output`'s state machine (the
+  `__lookuptable` copied from 007476D0), so a malformed conversion prints its characters as VC6 did and the host never
+  sees one (the UCRT's invalid-parameter handler would end the game on a run-time format from the game's texts).
+  Each integer, character and string conversion is the host's `snprintf` of the same flags, width and precision, with
+  VC6's sizes spelled for the host ('l' and "ll" are 32 bits, "I64" 64; %C / %S wide unless 'h'; %Z narrow unless
+  'w', the host's bare %Z is wide; %p as "%.8X"; an integer's precision stops at 511); %n is ours (the UCRT refuses
+  it). Floats are VC6's own: not "17 correct digits": `$I10_OUTPUT` builds them from a 12-byte long double (96-bit
+  `__ld12mul` with truncated partial products, the exe's power-of-ten tables 0079AE60 / 0079AFC0), then `_fptostr`
+  rounds half up (the UCRT rounds exact ties to even: "%.2f" of 0.125); three exponent digits; "1#INF" / "1#IND" /
+  "1#QNAN" / "1#SNAN" ("%.2f" of infinity is "1.#J"); -0 prints as 0; the sign and padding as `_output` writes them.
+  The decimal point is '.'. C26 tried the host's printf for everything: the crt vectors differ (3 of 258 records: "%g"
+  / "%.6g" of FLT_MAX "3.40282e+38" for VC6's "3.40282e+038", infinity "inf" for "1.#INF") and so do six image
+  goldens (combat, combat_more, sound, unit_ai_cast, unit_ai_corpse, unit_ai_heal: the console's
+  "skill=3.40282e+038" attack line), so the float side stays. Checked old against new (C35c, the scratch equiv.cpp,
+  not checked in: main's whole `_output` and the new Format side by side on 2.2M random formats of flags, widths,
+  precisions, `*`, sizes, types and broken conversions, with random, small and pointer arguments): the same bytes, count
+  and %n stores. Known differences, no format of ours or of the game's texts has them: wide text with a character
+  above 0xFF (no byte in the C locale) writes nothing for the conversion where VC6 wrote the padding and the
+  characters before it; %B (no conversion) writes nothing where VC6 wrote the previous conversion's text again.
+  atof and sscanf are the host CRT's (C26: goldens and the atof vectors the same); callers use std::atof / sscanf_s.
 - **Files** (C35a: no CRT copy left): every open goes through the game's import slots, so the harness's save /
   install redirection and a mod's hooks apply. `lib::OpenFile` (src/lib/file_io.h; fopen's r / w / a, +, b / t) opens
   with CreateFileA and hands the handle to the host as a descriptor and `std::FILE*` (`_open_osfhandle`, `_fdopen`);
@@ -1796,7 +1811,7 @@ the `--no-hooks` suite) keeps the registry.
 - **Exceptions**: no file of ours: _CxxThrowException 006E7819 and MSVC 6's std::exception (vtable 00747290) went with
   crt_except.cpp (C20m), nothing calls them; the pointer throws are the compiler's ("Named data (C18)").
 - Not ported (no callers): acos / asin / fmod's plain forms. The old iostream (streambuf, ios, ostream; C35d):
-  the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through the game's sprintf. The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
+  the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through str::Format "%.6g". The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
   run: the image's atexit, streams and crash filter are ours / the host's.
 
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
@@ -1845,7 +1860,8 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release, held engine objects, CString); game records
   in record_lists, the connection's in library_net_lists. Where the original copies uninitialised stack bytes into a
   default element, ours copies zeros (every caller overwrites them).
-- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h).
+- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h;
+  all but stlp_vector gone with C14n, the records' vectors are std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
 - **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `StringFloatTraits`, `StringListTraits`,
@@ -1873,7 +1889,7 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 The global constructors only static initialisers call (the six databases, logic settings 005CDFC0, SavedParties,
 both worlds: database_construct.cpp, world_construct.cpp), the exit callees (database_destruct.cpp, the worlds'
 and Terrain / Sector / particle manager destructors in world_destructors.cpp), record destructors / copies /
-assignments (record_lifetime.h: `DestroyVector`, `AsCString`, `LeadingStringDelete`), the database resets
+assignments (record_lifetime.h, gone with C14n), the database resets
 (database_reset.cpp) and the script lists' by-value copies (game_lists). Bodies that are library rows are called
 through the library's address or inlined from lib/, never registered on the game side. Quirks kept: the link queue's
 stream copy 00479410 reads the new block's uninitialised bytes into the source; 004CC0C0 copies a command's float

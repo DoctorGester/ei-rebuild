@@ -7,11 +7,11 @@
 #include "unit.h"
 #include "world.h"
 
+#include <list>
 #include <new>
 #include <string>
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -29,7 +29,6 @@ constexpr std::uint32_t kFlag40 = 0x40;
 constexpr std::uint32_t kArmed = 0x80000;
 constexpr std::uint32_t kArmedFresh = 0x100000;
 constexpr float kTriggerRadius = 1.0f;
-constexpr int kBlockSize = 10;
 } // namespace
 
 BOOL LockKey::AcceptedByTrap() const { return 1; }
@@ -49,12 +48,12 @@ int CTrapObject::UpdateTrap() {
     Update();
     if (!(flags_ & kArmed)) return 0;
     if (!WorldContext()->IsServer()) return 0;
-    mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
+    std::list<CUnit*> units{};
     auto* world = ServerWorld();
     world->Sectors()->FindUnitsInRadius(&localPosition_, &units, kTriggerRadius);
-    if ((flags_ & kArmedFresh) && units.count == 0) {
+    if ((flags_ & kArmedFresh) && units.empty()) {
         flags_ &= ~kArmedFresh;
-    } else if (units.count != 0) {
+    } else if (!units.empty()) {
         std::string line;
         float x = localPosition_.x;
         float y = localPosition_.y;
@@ -63,7 +62,7 @@ int CTrapObject::UpdateTrap() {
         TheMissionScript()->Load(&line, 1);
         flags_ &= ~kArmed;
     }
-    units.RemoveAll();
+    units.clear();
     return 0;
 }
 

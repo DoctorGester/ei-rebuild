@@ -40,7 +40,6 @@ Sampler g_smooth(kFamily, "PathSmoother::Smooth", kVariableSize, 32, 3);
 // Paths longer than this are not kept (the records hold every cell twice).
 constexpr int kMaxCells = 1024;
 
-
 // ---- @PathTables ---------------------------------------------------------------------------------
 
 void PutArray(Writer& w, const void* data, int size, std::uint32_t elementSize) {
@@ -86,9 +85,9 @@ void OfferTables() {
     }
     const SmoothTable* tables = ei::OriginalGameData<const SmoothTable[kSmoothTableCount]>(0x007C3058);
     for (int i = 0; i < kSmoothTableCount; ++i) {
-        PutArray(w, tables[i].copies.data, tables[i].copies.size, kSmoothCopySize);
-        PutArray(w, tables[i].steps.data, tables[i].steps.size, kSmoothStepSize);
-        PutArray(w, tables[i].chained.data, tables[i].chained.size, kSmoothStepSize);
+        PutArray(w, tables[i].copies.data(), std::ssize(tables[i].copies), kSmoothCopySize);
+        PutArray(w, tables[i].steps.data(), std::ssize(tables[i].steps), kSmoothStepSize);
+        PutArray(w, tables[i].chained.data(), std::ssize(tables[i].chained), kSmoothStepSize);
     }
     g_tables.OfferBytes(w, ControlWord());
 }
@@ -164,8 +163,8 @@ void EnsureSaved(const CAIMap* map) {
     body.Put(map->passCosts);
     body.Put(map->passCostsAlt);
     body.Put(map->stepCosts);
-    PutArray(body, map->climbLarge.data, map->climbLarge.size, 4);
-    PutArray(body, map->climbSmall.data, map->climbSmall.size, 4);
+    PutArray(body, map->climbLarge.data(), std::ssize(map->climbLarge), 4);
+    PutArray(body, map->climbSmall.data(), std::ssize(map->climbSmall), 4);
     body.Put(map->heightScale);
     PutGrid(body, map->cells.width, map->cells.height, map->cells.data, 1, sizeof(AIMapCell));
     PutGrid(body, map->waterDepth.width, map->waterDepth.height, map->waterDepth.data, 1, 1);

@@ -16,12 +16,11 @@
 
 #include <bit>
 #include <cstring>
+#include <list>
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 namespace {
-
 
 constexpr int kKindSinglePlayer = 1;
 constexpr std::uint32_t kSpellAreaFlag = 0x20000000;     // targetFlags_: also hits the target itself
@@ -29,7 +28,7 @@ constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
-using UnitList = mfc::CTypedPtrList<CUnit>;
+using UnitList = std::list<CUnit*>;
 
 // The prototype index in the packed id.
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
@@ -41,23 +40,6 @@ bool IsHostileType(int type) {
     case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x26: return true;
     default: return false;
     }
-}
-
-void RemoveNode(UnitList& list, UnitList::Node* node) {
-    if (node == list.head) list.head = node->next;
-    else node->prev->next = node->next;
-    if (node == list.tail) list.tail = node->prev;
-    else node->next->prev = node->prev;
-    node->next = list.free;
-    list.free = node;
-    if (--list.count == 0) list.RemoveAll();
-}
-
-void Unlink(UnitList& list, UnitList::Node* node) {
-    if (node == list.head) list.head = node->next;
-    else node->prev->next = node->next;
-    if (node == list.tail) list.tail = node->prev;
-    else node->next->prev = node->prev;
 }
 
 } // namespace
@@ -77,15 +59,8 @@ void CWorldServer::CreateMissile(CSpell* spell, CUnit* caster, Vector3 from, CMa
     missile->flags7_ = 0;
     missile->Init(this, spell, caster, &from, target, &end, static_cast<std::uint8_t>(extra));
     if (missile->Update()) {
-        auto& list = projectiles_;
-        ProjectileList::Node* node = projectiles_.NewNode(list.tail, nullptr);
-        CSpellEffect* old = node->data;
-        node->data = missile;
-        if (missile) ++missile->refs_;
-        if (old && --old->refs_ == 0) delete old;
-        if (list.tail) list.tail->next = node;
-        else list.head = node;
-        list.tail = node;
+        projectiles_.push_back(missile);   // a new node (no previous object), counted
+        ++missile->refs_;
     }
     CUnit* victim = UnitOrNull(target);
     if (victim && caster) {
@@ -114,13 +89,6 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     // Several targets: the units around the caster (or `from`), the requested target first.
     CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
     UnitList units;
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.count = 0;
-    units.free = nullptr;
-    units.tail = nullptr;
-    units.head = nullptr;
-    units.blocks = nullptr;
-    units.blockSize = 10;
     if (caster) {
         if (CPlayer* owner = caster->player) heroes = owner->Server();
     }
@@ -133,30 +101,20 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     float radius = spell->range_;
     Sectors()->FindUnitsInRadius(&center, &units, radius);
     if (CUnit* targetUnit = UnitOrNull(target)) {
-        UnitList::Node* found = nullptr;
-        for (UnitList::Node* node = units.head; node; node = node->next)
-            if (node->data == target) {
-                found = node;
-                break;
-            }
-        if (found) RemoveNode(units, found);
-        UnitList::Node* node = units.NewNode(nullptr, units.head);
-        node->data = targetUnit;
-        if (units.head) units.head->prev = node;
-        else units.tail = node;
-        units.head = node;
+        if (auto found = std::ranges::find(units, target); found != units.end()) units.erase(found);
+        units.push_front(targetUnit);
     }
 
     while (targets > 0) {
-        if (!units.head) break;
+        if (units.empty()) break;
         CUnit* best = nullptr;
-        UnitList::Node* bestNode = nullptr;
+        UnitList::iterator bestNode{};
         std::uint32_t bestBits = kFarAway;
-        for (UnitList::Node* node = units.head; node;) {
-            UnitList::Node* next = node->next;
-            CUnit* unit = node->data;
+        for (auto node = units.begin(); node != units.end();) {
+            auto next = std::next(node);
+            CUnit* unit = *node;
             if (unit->IsDead()) {
-                RemoveNode(units, node);
+                units.erase(node);
             } else if (unit == target) {
                 best = unit;
                 bestNode = node;
@@ -179,8 +137,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
             node = next;
         }
         if (!best) break;
-        Unlink(units, bestNode);
-        units.FreeNode(bestNode);
+        units.erase(bestNode);
 
         bool hit;
         if (!caster) {
@@ -189,10 +146,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
             hit = heroes->partyUnits_.Contains(best) != 0;
         } else {
             // The units the caster's AI sees (its brain's visible list), else diplomacy says.
-            UnitList::Node* friends =
-                caster->ServerController()->Brain()->memory.visible.head;
-            while (friends && friends->data != best) friends = friends->next;
-            if (friends) {
+            if (lib::Contains(caster->ServerController()->Brain()->memory.visible, best)) {
                 hit = true;
             } else {
                 int casterSide = caster->side;
@@ -209,6 +163,5 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
         --targets;
     }
 
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.RemoveAll();
+    units.clear();
 }

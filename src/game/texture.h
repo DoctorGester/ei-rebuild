@@ -126,7 +126,6 @@ public:
     // (0x5550), 1:5:5:5, 4:4:4:4 and 8:8:8:8 by their ids.
     void BuildFormatTable();
 
-
     IDirect3D7* d3d_;
     IDirect3DDevice7* d3dDevice_;
     CDXSurface* depth_;         // restored with the primary
@@ -208,9 +207,6 @@ static_assert(offsetof(CDXSurface, device) == 0x0C);
 static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
-
-
-
 
 // 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
 // Never constructed here.
@@ -416,7 +412,7 @@ public:
     // Deletes the oldest cached textures while the cache holds more than videoMemoryTenth_ (signed).
     void TrimCache();
 
-    mfc::CTypedPtrList<CTexture> cache_;   // released textures kept for reuse
+    std::list<CTexture*> cache_;   // released textures kept for reuse
     int cachedBytes_;           // the cached textures' CTexture::uploadResult_
     std::uint32_t videoMemoryTenth_;
     CTexture* shadowRenderSurface_;   // counted

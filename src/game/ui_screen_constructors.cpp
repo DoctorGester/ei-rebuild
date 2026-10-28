@@ -10,14 +10,11 @@
 #include "lib/stlp.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 #include <new>
 #include <string>
 
 namespace {
-
-void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable(); }
 
 constexpr std::uint32_t kEditField = 4;   // the message box's flag: an edit field instead of the text
 
@@ -45,11 +42,6 @@ CMessageBox::CMessageBox(CInterface3D* ui, const char* titleKey, const char* tex
 
 CObjectivesWindow::CObjectivesWindow(CInterface3D* ui) : CUiContainer(ui) {
     exitDistances_ = nullptr;
-    exits_.vtable = ObjectiveExitsVtable();
-    exits_.data = nullptr;
-    exits_.growBy = 0;
-    exits_.maxSize = 0;
-    exits_.size = 0;
 }
 
 // --- The portraits panel ------------------------------------------------------------------------------
@@ -62,7 +54,4 @@ CHudPortraits::CHudPortraits(CInterface3D* ui, CBattleScreen* owner) : CUiWindow
 
 // --- Its destructor -----------------------------------------------------------------------------------
 
-CHudPortraits::~CHudPortraits() {
-    for (HudPortraitSlot* slot = slots_.begin(); slot != slots_.end(); ++slot) slot->~HudPortraitSlot();
-    slots_.FreeStorage();
-}
+CHudPortraits::~CHudPortraits() {}

@@ -61,38 +61,13 @@ struct MapRecordArrayClass final
 // ListAbi::SerializeThrough's element functions: how each loader builds the temporary (Init), assigns the new
 // element from it (Assign) and destroys it (Destroy).
 
-// Engine object pointers: the new object gains a reference, the old one is released.
-inline void InitObjectPtr(CEngineObject** p) { *p = nullptr; }
-inline void AssignObjectPtr(CEngineObject** to, CEngineObject* const* from) { HeldEngineObject::Of(to)->Assign(*from); }
+// Script object references: the new object gains a reference, the old one is released.
 inline void InitObjectRef(ScriptObjectRef* p) { p->object = nullptr; }
 inline void AssignObjectRef(ScriptObjectRef* to, const ScriptObjectRef* from) {
     gamearrays::ReleaseAndClear(to);
     to->Construct(*from);
 }
 inline void ReleaseObjectRef(ScriptObjectRef* p) { gamearrays::ReleaseOnly(&p->object); }
-// A magic trap's victims: unless the same object, the old one released and cleared, the new one counted.
-inline void AssignVictim(ScriptObjectRef* to, const ScriptObjectRef* from) {
-    CEngineObject* object = from->object;
-    if (object == to->object) return;
-    gamearrays::ReleaseAndClear(to);
-    if (object) ++object->refCount_;
-    to->object = object;
-}
-// Counted pointers: the owner's (ShareAssign) and the plain ones (Assign).
-inline void InitRef(RefPtr* p) { p->ptr = nullptr; }
-inline void ShareAssignRef(RefPtr* to, const RefPtr* from) { to->ShareAssign(from->ptr); }
-inline void AssignRef(RefPtr* to, const RefPtr* from) { to->Assign(from->ptr); }
-
-inline void InitArmourSpell(ArmourSpellRecord* p) {
-    p->object = nullptr;
-    p->value = 0;
-}
-inline void AssignArmourSpell(ArmourSpellRecord* to, const ArmourSpellRecord* from) {
-    HeldEngineObject::Of(&to->object)->Assign(from->object);
-    to->value = from->value;
-    to->flag = from->flag;
-}
-inline void ReleaseArmourSpell(ArmourSpellRecord* p) { gamearrays::ReleaseOnly(&p->object); }
 
 // The script's effects: copied as bytes (particle sources, lightnings) or by the FX source's
 // assignment; destroyed by their destructors (the object leaves the world's timed objects).
@@ -151,7 +126,6 @@ inline void AssignSharedObject(SharedObject* to, const SharedObject* from) {
 
 inline void AssignWave(WaveRecord* to, const WaveRecord* from) { to->Assign(from); }
 
-using ArmourSpells = ListAbi<ArmourSpellRecord>;
 // The FX sources: zero fill, no sound, the name empty (game.exe's CList<ScriptFxSource>::NewNode and its
 // ConstructElements).
 using FxSourceElements = EachElements<ScriptFxSource, InitFxSource, nullptr>;
@@ -163,12 +137,7 @@ using DefineNodes = ListAbi<ScriptDefine, ScriptDefineElements>;
 using SharedObjectNodes = ListAbi<SharedObject, EachElements<SharedObject, InitSharedObject, nullptr>>;
 
 using mfc::impl::ListTemporary;
-using EngineObjectsThrough = ListTemporary<gamelists::EngineObjects, InitObjectPtr, AssignObjectPtr, gamearrays::ReleaseOnly>;
 using ObjectRefsThrough = ListTemporary<gamelists::ObjectRefs, InitObjectRef, AssignObjectRef, ReleaseObjectRef>;
-using VictimsThrough = ListTemporary<gamelists::ObjectRefs, InitObjectRef, AssignVictim, ReleaseObjectRef>;
-using OwnedRefsThrough = ListTemporary<gamelists::OwnedRefs, InitRef, ShareAssignRef, gamelists::DestroyRef>;
-using RefsThrough = ListTemporary<gamelists::Refs, InitRef, AssignRef, gamelists::ReleaseRef>;
-using ArmourSpellsThrough = ListTemporary<ArmourSpells, InitArmourSpell, AssignArmourSpell, ReleaseArmourSpell>;
 using ParticleSourcesThrough =
     ListTemporary<gamelists::ParticleSources, InitParticleSource, CopyParticleSource, gamelists::DestroyParticleSource>;
 using FxSourcesThrough = ListTemporary<FxSourceNodes, InitFxSource, AssignFxSource, gamelists::DestroyFxSource>;
@@ -188,27 +157,10 @@ using WavesThrough = ListTemporary<gamelists::Waves, gamelists::InitWave, Assign
 
 using mfc::impl::CompiledCollection;
 
-// Counted pointer lists of the world server: the connections AcceptNewPlayers takes.
-struct RefListAClass final
-    : CompiledCollection<RefListAClass, &gamelists::Refs::Destruct<RefListAClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
-struct ItemObjectListClass final
-    : CompiledCollection<ItemObjectListClass, &gamelists::EngineObjects::Destruct<ItemObjectListClass>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
-struct ClientObjectList2Class final
-    : CompiledCollection<ClientObjectList2Class, &gamelists::EngineObjects::Destruct<ClientObjectList2Class>, &EngineObjectsThrough::Abi::SerializeThrough<EngineObjectsThrough>> {};
 struct ObjectRefListClass final
     : CompiledCollection<ObjectRefListClass, &gamelists::ObjectRefs::Destruct<ObjectRefListClass>, &ObjectRefsThrough::Abi::SerializeThrough<ObjectRefsThrough>> {};
-// A magic trap's victims (counted references).
-struct VictimListClass final
-    : CompiledCollection<VictimListClass, &gamelists::ObjectRefs::Destruct<VictimListClass>, &VictimsThrough::Abi::SerializeThrough<VictimsThrough>> {};
-struct RefListBClass final
-    : CompiledCollection<RefListBClass, &gamelists::Refs::Destruct<RefListBClass>, &RefsThrough::Abi::SerializeThrough<RefsThrough>> {};
-struct OwnedRefListClass final
-    : CompiledCollection<OwnedRefListClass, &gamelists::OwnedRefs::Destruct<OwnedRefListClass>, &OwnedRefsThrough::Abi::SerializeThrough<OwnedRefsThrough>> {};
 struct SharedObjectListClass final
     : CompiledCollection<SharedObjectListClass, &gamelists::SharedObjects::Destruct<SharedObjectListClass>, &SharedObjectsThrough::Abi::SerializeThrough<SharedObjectsThrough>> {};
-// The armour spells (12-byte records holding an engine object).
-struct ArmourSpellListClass final
-    : CompiledCollection<ArmourSpellListClass, &gamelists::Holders::Destruct<ArmourSpellListClass>, &ArmourSpellsThrough::Abi::SerializeThrough<ArmourSpellsThrough>> {};
 struct WaveListClass final
     : CompiledCollection<WaveListClass, &gamelists::Waves::Destruct<WaveListClass>, &WavesThrough::Abi::SerializeThrough<WavesThrough>> {};
 

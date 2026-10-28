@@ -5,9 +5,9 @@
 
 #include "model.h"   // ChunkArchive
 
+#include "lib/containers.h"
+#include "lib/crt.h"
 #include "lib/text_case.h"
-#include "record_lifetime.h"
-#include "record_vectors.h"
 
 #include <memory>
 #include <string>
@@ -180,57 +180,20 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
 
 void ChunkArchive::SerializeStrings(int id, std::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
 
-namespace {
-
-// A vector of records as chunk `id`: one chunk 1 per record. Loading destroys the records (the
-// original erases them through stlp::copy of an empty range first), empties the vector and resizes
-// it to the count of chunks 1. Each record's chunk is the next occurrence (set before entering it);
-// the vector's start is read before entering.
-template <typename Record, typename Destroy, typename Abi>
-void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, Destroy destroy, void (Abi::*resize)(std::size_t),
-                      void (Record::*serialize)(ChunkArchive*)) {
-    if (!ar->EnterChunk(id)) return;
-    int count;
-    if (ar->loading_) {
-        for (Record* record = records->begin(); record != records->end(); ++record) destroy(record);
-        records->Finish() = records->Start();
-        count = ar->CountChunks(1);
-        (static_cast<Abi*>(records)->*resize)(static_cast<std::size_t>(count));
-    } else {
-        count = static_cast<int>(records->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        ar->Current()->occurrence = i + 1;
-        Record* first = records->begin();
-        if (ar->EnterChunk(1)) {
-            (first[i].*serialize)(ar);
-            ar->LeaveChunk();
-        }
-    }
-    ar->LeaveChunk();
+void ChunkArchive::SerializePrototypes(int id, std::vector<UnitPrototypeRecord>* records, void*) {
+    RecordChunks(this, id, records, &UnitPrototypeRecord::Serialize);
 }
 
-void DestroyLevelName(UnitLevelRecord* record) { std::destroy_at(&record->name); }
-
-} // namespace
-
-void ChunkArchive::SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitPrototypeRecord* r) { unitdb::DestroyPrototypeRecord(r); },
-                     &recordvec::UnitPrototypeVector::ResizeDefault, &UnitPrototypeRecord::Serialize);
+void ChunkArchive::SerializeNpcs(int id, std::vector<UnitNpcRecord>* records, void*) {
+    RecordChunks(this, id, records, &UnitNpcRecord::Serialize);
 }
 
-void ChunkArchive::SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitNpcRecord* r) { unitdb::DestroyNpcRecord(r); }, &recordvec::UnitNpcVector::ResizeDefault,
-                     &UnitNpcRecord::Serialize);
+void ChunkArchive::SerializeModels(int id, std::vector<UnitModelRecord>* records, void*) {
+    RecordChunks(this, id, records, &UnitModelRecord::Serialize);
 }
 
-void ChunkArchive::SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void*) {
-    SerializeRecords(this, id, records, [](UnitModelRecord* r) { unitdb::DestroyModelRecord(r); },
-                     &recordvec::UnitModelVector::ResizeDefault, &UnitModelRecord::Serialize);
-}
-
-void ChunkArchive::SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void*) {
-    SerializeRecords(this, id, records, DestroyLevelName, &recordvec::UnitLevelVector::ResizeDefault, &UnitLevelRecord::Serialize);
+void ChunkArchive::SerializeUnitLevels(int id, std::vector<UnitLevelRecord>* records, void*) {
+    RecordChunks(this, id, records, &UnitLevelRecord::Serialize);
 }
 
 // --- The skill database --------------------------------------------------------------------------
@@ -262,48 +225,14 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x17, &exclusionGroup);
 }
 
-void SkillRecord::Destruct() {
-    std::destroy_at(&statNames);
-    std::destroy_at(&field1);
-    std::destroy_at(&name);
-}
-
-void SkillLevelRecord::Destruct() {
-    std::destroy_at(&requiredSkillName);
-    std::destroy_at(&requiredLevelName);
-    std::destroy_at(&name);
-    std::destroy_at(&field0);
-}
-
+// Both vectors emptied and their storage freed.
 void SkillDatabase::Reset() {
-    for (SkillLevelRecord* p = levels.begin(); p != levels.end(); ++p) p->Destruct();
-    levels.FreeStorage();
-    for (SkillRecord* p = skills.begin(); p != skills.end(); ++p) p->Destruct();
-    skills.FreeStorage();
-    skills.Start() = skills.Finish() = skills.EndOfStorage() = nullptr;
-    levels.Start() = levels.Finish() = levels.EndOfStorage() = nullptr;
+    lib::FreeStorage(levels);
+    lib::FreeStorage(skills);
 }
 
-void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void*) {
-    if (!EnterChunk(id)) return;
-    int count;
-    if (loading_) {
-        for (SkillRecord* record = skills->begin(); record != skills->end(); ++record) record->Destruct();
-        skills->Finish() = skills->Start();
-        count = CountChunks(1);
-        skills->ResizeDefault<recordvec::SkillVector::Element>(static_cast<std::uint32_t>(count));
-    } else {
-        count = static_cast<int>(skills->size());
-    }
-    for (int i = 0; i < count; ++i) {
-        Current()->occurrence = i + 1;
-        SkillRecord* first = skills->begin();
-        if (EnterChunk(1)) {
-            (first + i)->Serialize(this);
-            LeaveChunk();
-        }
-    }
-    LeaveChunk();
+void ChunkArchive::SerializeSkills(int id, std::vector<SkillRecord>* skills, void*) {
+    RecordChunks(this, id, skills, &SkillRecord::Serialize);
 }
 
 void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {

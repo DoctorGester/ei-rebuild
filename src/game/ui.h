@@ -545,7 +545,6 @@ public:
     virtual void RedrawTips() { RedrawRegionTips(); }
     virtual void Update() {}
 
-
     // The first region containing the screen point, or -1.
     int RegionAt(int x, int y) const;
     BOOL ContainsPoint(int x, int y) const;
@@ -687,18 +686,15 @@ public:
     CItemScreen* owner_;
 };
 
-
 // Option 17 of the options window: the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
 // The console's "debuginfo" rectangle.
 strmap::CDebugPanel* DebugInfoPanel();
 
-
 // The in-game key bindings.
 inline const signed char* KeyActions() { return g_keyActions; }
 inline signed char* KeyActionTable() { return g_keyActions; }
 constexpr int kKeyActionCount = 0x200;
-
 
 // --- Battle screen and its HUD panels ---
 // The battle screen owns a row of panel windows and forwards mouse events to the panel whose rectangle
@@ -713,7 +709,7 @@ class CHudUnitPanel;
 class CBattleScreen;
 class CUiScrollText;
 
-using UiDwordArray = mfc::CArray<std::uint32_t>;
+using UiDwordArray = std::vector<std::uint32_t>;
 
 // The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
 namespace uidevice {
@@ -820,7 +816,7 @@ public:
     int shownCount_;                 // sprites added (the shown entries)
     int selected_;
     CUnit* unit_;
-    mfc::CArray<Entry> entries_;
+    std::vector<Entry> entries_;
     int regionItem_[8];
     std::vector<std::string> labels_;   // the tooltip's labels
 };
@@ -902,9 +898,9 @@ public:
 struct HudPortraitSlot {
     int lastHitPoints_;              // lowest hit points seen (a drop flashes the portrait)
     float flash_;                    // 1 after a hit, fading out
-    Quaternion restA_;               // the face's rest orientation is restA_ * restB_
-    Quaternion current_;             // the face's orientation, eased towards the rest one
-    Quaternion restB_;
+    Quaternion restA_{1.0f, 0.0f, 0.0f, 0.0f};     // the face's rest orientation is restA_ * restB_
+    Quaternion current_{1.0f, 0.0f, 0.0f, 0.0f};   // the face's orientation, eased towards the rest one
+    Quaternion restB_{1.0f, 0.0f, 0.0f, 0.0f};
     int wobbleKind_;                 // 0 none, 1 nod (about x), 2 shake (y), 3 turn to target
     float wobbleTime_;               // starts negative (a delay)
     std::string faceName_;
@@ -914,7 +910,7 @@ struct HudPortraitSlot {
     std::string modelPrefix_;       // the face model is prefix + build + suffix,
     std::string modelSuffix_;       // build "th", "me" or "fa"
     float build_;                    // the unit's build the model was chosen for
-    Quaternion wobbleTarget_;
+    Quaternion wobbleTarget_{1.0f, 0.0f, 0.0f, 0.0f};
     float wobbleSpeed_;
     bool hasPlayer_;                 // a multiplayer player without a unit here (no bars)
     std::uint8_t unused_71[3];
@@ -949,8 +945,7 @@ public:
     CBattleScreen* owner_;
     int count_;
     std::uint8_t unused_150[0x158 - 0x150];
-    // One per portrait (appended, ranges erased: with recordvec::HudPortraitSlotElement).
-    stlp::vector<HudPortraitSlot> slots_;
+    std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
 
 #undef GetClassName
@@ -1414,7 +1409,7 @@ public:
     // Polled every frame by the interface until it answers true. After a new game (hasHero_): the camera
     // follows the first party unit and the autosave "savea" when the option is on.
     bool PollShown();
-    void OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled);
+    void OnItemsPicked(std::list<CItem*>* items, int money, int crippled);
     // A network client instead empties the top panel's page-0 text.
     void OnUnitLeft(CUnit* unit);
     // The count and ids of the selected party units, the map's zoom, the server flag (a byte), the local
@@ -1439,7 +1434,7 @@ public:
     void CloseScreen() override { Close(); }
     void MessageResult(int result) override { OnMessageResult(result); }
     void ItemsPicked(void* items, int money, int crippled) override {
-        OnItemsPicked(static_cast<mfc::CTypedPtrList<CItem>*>(items), money, crippled);
+        OnItemsPicked(static_cast<std::list<CItem*>*>(items), money, crippled);
     }
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
@@ -1469,7 +1464,7 @@ public:
     };
 
     int spare_;                      // nothing reads it
-    mfc::CArray<CUnit*> party_;      // shown as portraits
+    std::vector<CUnit*> party_;      // shown as portraits
     // The pending action: what the next click on the view does (SelectUnit), its spell, quick item
     // or action button, and the player's item id (mode 6) or the action (7, 8).
     int pendingAction_;
@@ -1571,7 +1566,6 @@ public:
 };
 
 
-
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
 struct UiWordToken;
@@ -1608,7 +1602,7 @@ static_assert(offsetof(UiWordToken, text_) == 0x08);
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-using UiTokenArray = mfc::CArray<UiTextToken*>;
+using UiTokenArray = std::vector<UiTextToken*>;
 // A laid out line of a scrolling text: the fields DrawLines reads (the record's size is not known).
 struct UiTextLine {
     int height_;                     // pixels
@@ -1646,7 +1640,7 @@ public:
 
     RECT textRect_;                  // the text's rectangle (surface coordinates)
     UiTokenArray tokens_;
-    mfc::CArray<UiTextLine*> lines_; // the laid out lines
+    std::vector<UiTextLine*> lines_; // the laid out lines
     int align_;                      // 1: left aligned (else justified)
 
 private:
@@ -1686,9 +1680,6 @@ struct SaveEntry {
     // Text "zone " + zone_ (its first line), else "save_camp"; text "allod " + map_, else "Unknown".
     std::string ZoneTitle() const;
     std::string AllodTitle() const;
-    SaveEntry* Assign(const SaveEntry* from);
-    SaveEntry* CopyConstruct(const SaveEntry* from);
-    void Destruct();
 
     std::string title_;
     std::string folder_;            // under saves\ ("saveq" quick, "savea" / "saveb" automatic, "save<n>")
@@ -1750,7 +1741,7 @@ public:
 
     void CreateScreen() override;
 
-    int EntryCount() const { return static_cast<int>(entries_.end() - entries_.begin()); }
+    int EntryCount() const { return static_cast<int>(entries_.size()); }
     void TakeSelectedTitle();
 
     // In a save window the edit keys edit the save's name (the first edit of an ordinary save takes over its
@@ -1764,7 +1755,7 @@ public:
     // "saveq", "savea" or "saveb"; no bound check.
     bool IsReservedSave(int index);
 
-    stlp::vector<SaveEntry> entries_;
+    std::vector<SaveEntry> entries_;
     int selected_;
     int firstVisible_;               // list scroll position
     bool isSave_;                    // save (not load) window
@@ -1931,7 +1922,7 @@ public:
     int listZones_;                  // list the zones of the zone's allod with quests
     int zoneIndex_;
     std::string shownZone_;
-    mfc::CArray<ObjectiveExit> exits_;
+    std::vector<ObjectiveExit> exits_;
     int nearestExit_;
     int selectedQuest_;              // row of the quest named by the current-quest global
     int shownQuest_;                 // the row ShowQuest last showed (-1: none)
@@ -1949,12 +1940,6 @@ inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
 // A key binding row of the options window.
 struct OptionBinding {
-    void Destroy() {
-        std::destroy_at(&keysText_);
-        std::destroy_at(&name_);
-        std::destroy_at(&keys_);
-    }
-
     const ActionDefinition* action_;
     // The keys bound to the action (BuildBindings keeps at most one).
     std::vector<const UiKeyName*> keys_;
@@ -2019,7 +2004,7 @@ public:
     signed char keyOfScan_[0x200];   // the key code bound to each scan code
     int selectedRow_;
     int group_;                      // the option group shown
-    stlp::vector<OptionBinding> bindings_;
+    std::vector<OptionBinding> bindings_;
     std::vector<OptionSetting> settings_;
     OptionRow rows_[14];
     bool waitingForKey_;             // a key binding row waits for the new key
@@ -2142,12 +2127,15 @@ private:
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
-    void Destroy();
+    ChatLine() = default;
+    ChatLine(const ChatLine&) = delete;
+    ChatLine& operator=(const ChatLine&) = delete;
+    ~ChatLine();   // the surface deleted
 
     std::string text;          // AddLine leaves it empty
     std::string name;          // the line's text without its colour codes
-    std::uint32_t time;         // timeGetTime when it was added
-    CUiSurface* surface;
+    std::uint32_t time = 0;     // timeGetTime when it was added
+    CUiSurface* surface = nullptr;
 };
 
 // The in-game chat overlay: the interface's root window, updated after the top window every frame; in a
@@ -2176,7 +2164,7 @@ public:
     void Update() override;
     void Redraw() override;
 
-    stlp::list<ChatLine> lines_;
+    std::list<ChatLine> lines_;
     bool chatOpen_;                  // a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unused_14D[3];
     std::string typed_;

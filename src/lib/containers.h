@@ -4,6 +4,7 @@
 // vectors). MFC's CArray / CList / CTypedPtrList are in mfc.h, STLport's vector / hash_map in
 // stlp.h. Which original instantiation each address belongs to: docs/notes/core.md, "Shared containers".
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -18,6 +19,12 @@ namespace lib {
 template <typename T>
 void FreeStorage(std::vector<T>& v) {
     std::vector<T>().swap(v);
+}
+
+// CList::Find as a test: whether `c` holds `value`.
+template <typename C, typename T>
+bool Contains(const C& c, const T& value) {
+    return std::ranges::find(c, value) != std::ranges::end(c);
 }
 
 // CArray's SetAtGrow on a vector: grows it to hold `index` (the new elements value-initialised), then sets it.

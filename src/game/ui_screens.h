@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,6 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 // Leaves the running game for the main menu (the game object global).
 void LeaveGame();
 } // namespace uiorig
-
 
 
 // The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
@@ -110,7 +110,6 @@ public:
     void OnMouseMove(int flags, int x, int y);
     BOOL OnWheel(int keys, short delta, int x, int y);
 
-
     // Settles the pending scroll on release.
     void SettleScroll();
 
@@ -131,7 +130,7 @@ public:
         int filter_;                // 0 items, 1 spells, 2 armour
         MpStringVector* figures_;   // the figure strips: the figure names
     };
-    mfc::CArray<CItem*> list_;          // the visible items
+    std::vector<CItem*> list_;          // the visible items
     UiPtrArray<CItem>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
 };
@@ -326,11 +325,6 @@ public:
 
 // An entry of the connection screen's list.
 struct MpAddressEntry {
-    MpAddressEntry* CopyConstruct(const MpAddressEntry* other);
-    // Every field; the padding is not copied. Returns this.
-    MpAddressEntry* AssignFrom(const MpAddressEntry& other);
-    void Destroy();
-
     std::string name;             // the server's name
     std::string description;      // the current map's title
     int players;
@@ -343,14 +337,7 @@ struct MpAddressEntry {
     bool password;                 // joining needs a password
 };
 
-struct MpAddresses : stlp::vector<MpAddressEntry> {
-    void PushDefault();
-    // One inserted before `pos` (the tail moved up by assignment); returns it.
-    MpAddressEntry* InsertDefault(MpAddressEntry* pos);
-    // [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
-    MpAddressEntry* Erase(MpAddressEntry* first, MpAddressEntry* last);
-};
-using MpAddressList = MpAddresses;
+using MpAddressList = std::vector<MpAddressEntry>;
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
 // and left as it is for the next draw's titles; Create's texts take it too.
@@ -472,7 +459,6 @@ public:
 inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
 inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
 
-
 // --- In-game escape menu ----------------------------------------------------------------------
 // Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit
 // (message box), 4 options.
@@ -501,8 +487,6 @@ public:
 // --- Credits ------------------------------------------------------------------------------------
 // The titles window (main menu region 4). A line of the titles' script:
 struct TitleLine {
-    void Destroy();
-
     bool scroll;                // the first word is "#scroll"
     std::uint8_t unused_1[3];
     float speed;                // the second word (atof): the scroll speed, or the seconds shown
@@ -581,9 +565,9 @@ public:
     CUiSurface* headerSurface_;
     int fontSmoothing_;         // passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
     lib::InPlace<CMappedResource> archive_;   // "outro.res" (built and destroyed by hand)
-    stlp::list<TitleLine> lines_;
+    std::list<TitleLine> lines_;
     float nextLineAt_;          // game time the current line ends (0 from Build and for scrolls)
-    stlp::list<TitleLine>::Node* currentLine_;   // the next line (the sentinel at the end)
+    std::list<TitleLine>::iterator currentLine_;   // the next line (end() at the end)
     std::string name_;         // ("Titles")
     CBinkVideo player_;         // the movie player
     bool fromGame_;             // opened in a game (pending value 0xCCCCCCCC) or the menu
@@ -591,7 +575,6 @@ public:
     std::uint8_t unused_1F6[2];
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
-
 
 // --- Main menu ----------------------------------------------------------------------------------
 // The main menu (CreateScreen id 2). Regions 0-5 from the menus.reg "MainMenu" rectangles; the stones are the object

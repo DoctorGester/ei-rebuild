@@ -23,7 +23,6 @@ struct VertexPacket;
 
 // A texture by name. The device binds it by looking the texture up again by name.
 struct NamedTexture {
-    NamedTexture* Copy(const NamedTexture* other);
     std::string name;
     CTexture* texture;      // counted
 };
@@ -35,10 +34,9 @@ public:
     // texture, turned by the same quarter; white, lit as the terrain says.
     GroundPrint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
                 int lifetime);
-    // The texture name copied into a block of its own and the texture counted; the three geometry arrays'
-    // headers as they are (the copy shares their blocks).
-    GroundPrint(const GroundPrint& other);
+    GroundPrint(const GroundPrint&) = delete;
     GroundPrint& operator=(const GroundPrint&) = delete;
+    virtual ~GroundPrint();   // the texture released
 
     // One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.
@@ -55,10 +53,6 @@ public:
     // texture coordinates; then the flat draw with the colour's alpha from alpha_ and the lit flag as the
     // specular alpha. Returns 1 when not visible, else the draw's result.
     int Draw();
-    // Only reached from the constructors' unwinding.
-    void Destruct();
-    // The print freed when bit 0 of `flags` is set; returns this.
-    GroundPrint* DeletingDestruct(unsigned flags);
 
 protected:
     // The members the three constructors share before their own parts: everything cleared, the
@@ -97,7 +91,6 @@ public:
     // the left foot's half); `kind` -1 "footprints", else "footprints<kind + 1>" (a blood print's kind).
     Footprint(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale, int life,
               int lifetime, std::uint32_t tile, float scale, int visible, int kind);
-    Footprint(const Footprint& other);
 
     void Load(CStream* stream) override;   // GroundPrint's, then scale_, kind_
     void Save(CStream* stream) override;   // the same order
@@ -115,7 +108,6 @@ public:
     // angle (rand() twice).
     BloodPrint(float x, float y, float halfSize, float fullSize, float alphaScale, int life, int lifetime,
                std::uint32_t tile, std::uint32_t colour, std::uint8_t fresh);
-    BloodPrint(const BloodPrint& other);
 
     // While spreading (spreadTicks_ counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin_; then GroundPrint's tick.

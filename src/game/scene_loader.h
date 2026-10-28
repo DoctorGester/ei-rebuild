@@ -176,12 +176,12 @@ struct SceneNode {
     Quaternion rotation;
     Vector3 restPivot;
     Quaternion restRotation;
-    mfc::CArray<NodeRotationKey> rotationKeys;
-    mfc::CArray<NodePositionKey> positionKeys;
+    std::vector<NodeRotationKey> rotationKeys;
+    std::vector<NodePositionKey> positionKeys;
     mfc::CArray<NodeMorphKey, NodeMorphKeyElements> morphKeys;
-    mfc::CArray<Vector3> normals;                               // version 0x1468FCCA only
+    std::vector<Vector3> normals;                               // version 0x1468FCCA only
     NodeFrameArray frames;              // the loader copies them to the figures' bone links
-    mfc::CArray<SceneNode*> children;
+    std::vector<SceneNode*> children;
 };
 static_assert(offsetof(SceneNode, name) == 0x04);
 
@@ -336,7 +336,7 @@ struct TextureLinkRecord {
     std::uint32_t id;
     std::uint32_t value;
 };
-using TextureLinkArray = mfc::CArray<TextureLinkRecord>;
+using TextureLinkArray = std::vector<TextureLinkRecord>;
 // Zero-filled, the name empty; destroyed by the record's destructor.
 struct TextureNameElements {
     static void Construct(TextureNameRecord* elements, int count) {
@@ -350,7 +350,6 @@ struct TextureNameElements {
 };
 using TextureNameArray = mfc::CArray<TextureNameRecord, TextureNameElements>;
 using TextureNameRecords = mfc::impl::ArrayAbi<TextureNameRecord, TextureNameElements>;
-static_assert(sizeof(TextureLinkArray) == 0x14);
 // The scene loader's {id, name} array.
 struct TextureNameArrayClass final
     : mfc::impl::CompiledCollection<TextureNameArrayClass, &TextureNameRecords::Destruct<TextureNameArrayClass>,

@@ -40,8 +40,9 @@ int CSoundManager::CreateBody() {
 
 // The list's RemoveHead (inlined), then the archive's deleting destructor.
 void CSoundManager::ClearWaveSources() {
-    while (waveSources.count != 0) {
-        CMappedResource* source = waveSources.RemoveHead();
+    while (!waveSources.empty()) {
+        CMappedResource* source = waveSources.front();
+        waveSources.pop_front();
         delete source;
     }
 }
@@ -56,15 +57,15 @@ int CSoundManager::AddWaveSource(const char* path) {
         delete source;
         return 0;
     }
-    waveSources.AddTail(source);
+    waveSources.push_back(source);
     return 1;
 }
 
 // From the map's ambient sounds.
 void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source) {
-    for (auto* node = waveSources.head; node != nullptr;) {
-        CMappedResource* current = node->data;
-        node = node->next;
+    for (auto node = waveSources.begin(); node != waveSources.end();) {
+        CMappedResource* current = *node;
+        ++node;
         void* data = current->GetFile(name, size);
         if (data != nullptr) {
             if (source != nullptr) *source = current;
@@ -79,9 +80,9 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 void CSoundManager::ListWaveFiles(std::vector<std::string>* out, const char* pattern) {
     out->clear();
     std::vector<std::string> names;
-    for (auto* node = waveSources.head; node != nullptr;) {
-        CMappedResource* source = node->data;
-        node = node->next;
+    for (auto node = waveSources.begin(); node != waveSources.end();) {
+        CMappedResource* source = *node;
+        ++node;
         source->ListFiles(&names, pattern);
         out->insert(out->end(), names.begin(), names.end());
     }
@@ -149,14 +150,12 @@ void ConstructFader(SoundFader& fader) {
 
 } // namespace
 
-
 // The stream reader, the strings and the archive are members the compiler constructs (here before the body;
 // the game constructs the stream reader first and the archive between the registries).
 CSoundManager::CSoundManager() {
     ClearFields();
     soundRegistry.Construct();
     registry0CC.Construct();
-    ConstructList(waveSources, mfc::impl::SoundListClass::Vtable());
     musicFader.volume = kFullVolume;
     musicFader.Recalc();
     musicFader.SetHold(0);
@@ -180,8 +179,7 @@ CSoundManager::~CSoundManager() {
     gameapi::DeleteCriticalSection(&midiLock);
     gameapi::DeleteCriticalSection(&streamLock);
     gameapi::DeleteCriticalSection(&nameLock);
-    waveSources.vtable = mfc::impl::SoundListClass::Vtable();
-    waveSources.RemoveAll();
+    waveSources.clear();
     registry0CC.Destroy();
     soundRegistry.Destroy();
 }
@@ -240,7 +238,6 @@ int SoundOption() { return options::TheOptions()->audio_; }
 constexpr int kStreamRate = 44100;
 constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
 constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
-
 
 // The stream thread's (StreamThread).
 constexpr std::uint32_t kStreamPeriodMs = 100;

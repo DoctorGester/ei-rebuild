@@ -2,7 +2,6 @@
 // looks. See docs/notes/world.md ("Client maps", the unit set). The set's three STLport hash_maps are walked
 // with the game's iterator helpers, so the order matches theirs.
 #include "core_streams.h"
-#include "record_vectors.h"
 #include "world.h"
 
 #include <bit>
@@ -102,12 +101,12 @@ void GetIds(CStream* stream, UnitIdList& list) {
 
 } // namespace
 
-void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
-                              stlp::vector<DressedUnitRecord>* dressed) {
+void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);
-    figured->ResizeDefault<recordvec::FiguredUnitVector::Element>(count);
-    for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
+    figured->resize(count);
+    for (FiguredUnitRecord& looks : *figured) {
+        FiguredUnitRecord* record = &looks;
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);
         GetIds(stream, record->extraWeapons);
@@ -123,8 +122,9 @@ void ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
             stream->ReadInto(&record->names[i]);
     }
     Get(stream, &count, 4);
-    dressed->ResizeDefault<recordvec::DressedUnitVector::Element>(count);
-    for (DressedUnitRecord* record = dressed->begin(); record != dressed->end(); ++record) {
+    dressed->resize(count);
+    for (DressedUnitRecord& looks : *dressed) {
+        DressedUnitRecord* record = &looks;
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->items);
         GetIds(stream, record->extraWeapons);

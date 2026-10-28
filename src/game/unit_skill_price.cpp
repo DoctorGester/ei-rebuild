@@ -28,8 +28,8 @@ double Worth(int value) {
 } // namespace
 
 int SkillDatabase::IndexOfLevel(const SkillLevelRecord* record) {
-    for (const SkillLevelRecord* level = levels.begin(); level != levels.end(); ++level)
-        if (level == record) return static_cast<int>(level - levels.begin());
+    for (const SkillLevelRecord& level : levels)
+        if (&level == record) return static_cast<int>(&level - levels.data());
     return -1;
 }
 

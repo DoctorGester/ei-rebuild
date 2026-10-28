@@ -27,6 +27,7 @@
 
 #include <bit>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr float kZero = 0.0f;
@@ -98,7 +99,6 @@ CPlayerServer* PlayerMessages(CPlayer* player) { return player->Server(); }
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 } // namespace
 
-
 namespace {
 void TellParty(CUnit* unit, int message) {
     if (unit->player) PlayerMessages(unit->player)->SendObject0B(unit, message);
@@ -111,7 +111,7 @@ void ClearAction(UnitAction* order) {
     order->modifier = 0;
 }
 
-using UnitPtrList = mfc::CTypedPtrList<CUnit>;
+using UnitPtrList = std::list<CUnit*>;
 } // namespace
 
 // --- Small helpers -----------------------------------------------------------------------------
@@ -251,27 +251,15 @@ void TakeOver(CUnitServer* self) {
     self->action2.Reset();
 }
 
-void InitPtrList(UnitPtrList* list) {
-    std::memset(list, 0, sizeof(*list));
-    list->vtable = mfc::impl::PtrListClass::Vtable();
-    list->blockSize = 10;
-}
-
-void DestroyPtrList(UnitPtrList* list) {
-    list->vtable = mfc::impl::PtrListClass::Vtable();
-    list->RemoveAll();
-}
 } // namespace
 
 bool CUnitServer::StartMove() {
     CWorldServer* world = ServerWorld();
     UnitPtrList lifted;
-    InitPtrList(&lifted);
     orderStopped = 0;
     TakeOver(this);
     LeaveMoveMode(this);
     if (ChangeMoveMode()) {
-        DestroyPtrList(&lifted);
         return true;
     }
     // Already there: the order is done and the next one starts.
@@ -285,7 +273,6 @@ bool CUnitServer::StartMove() {
         action.Reset();
         if (action2.kind == kOrderEmpty) Idle();
         bool result = StartQueuedOrder();
-        DestroyPtrList(&lifted);
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
@@ -293,10 +280,10 @@ bool CUnitServer::StartMove() {
     CAIMap* map = ServerWorld()->AIMap();
     unit->altPassCosts = map->CellFlag80At(&unit->localPosition_);
     bool found = PathTo(&action.point, action.point.z);
-    for (UnitPtrList::Node* node = lifted.head; node;) {
-        UnitPtrList::Node* current = node;
-        node = node->next;
-        world->Sectors()->Add(current->data);
+    for (auto node = lifted.begin(); node != lifted.end();) {
+        CUnit* current = *node;
+        ++node;
+        world->Sectors()->Add(current);
     }
     bool arrived = false;
     if (action.param) {
@@ -312,14 +299,12 @@ bool CUnitServer::StartMove() {
         else ReportPath(&motion, found);
     }
     if (!arrived && found) {
-        DestroyPtrList(&lifted);
         return true;
     }
     orderStopped = 1;
     action.Reset();
     if (action2.kind == kOrderEmpty) Idle();
     StartQueuedOrder();
-    DestroyPtrList(&lifted);
     return false;
 }
 

@@ -11,12 +11,12 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <string>
 
 namespace {
@@ -29,9 +29,8 @@ constexpr int kWheelMask = kWheelTicks - 1;
 
 // The records' pool (a CList<AIEvent> whose nodes hold them) and the free list (chained through
 // AIEvent::next).
-static_assert(sizeof(mfc::CList<AIEvent>) == 0x1C);
-constinit lib::StaticObject<mfc::CList<AIEvent>> g_eventPool = /*007C43A8*/ {};
-mfc::CList<AIEvent>& AIEventPool() { return *g_eventPool; }
+constinit lib::StaticObject<std::list<AIEvent>> g_eventPool = /*007C43A8*/ {};
+std::list<AIEvent>& AIEventPool() { return *g_eventPool; }
 AIEvent*& FreeEvents() { return g_freeEvents; }
 
 void PushFree(AIEvent* event) {
@@ -41,18 +40,13 @@ void PushFree(AIEvent* event) {
 
 } // namespace
 
-void AIEventPoolDestruct(mfc::CList<AIEvent>* pool) {
-    pool->vtable = mfc::impl::StaticListClass::Vtable();
-    pool->RemoveAll();
-}
-
 namespace {
 // The pool's static initialiser (0x400 nodes a block) and the exit function it registers.
-void DestroyEventPool() { AIEventPoolDestruct(&*g_eventPool); }
+void DestroyEventPool() { g_eventPool.Destroy(); }
 } // namespace
 
 void ConstructEventPool() {
-    mfc::impl::ConstructListHeader<mfc::impl::StaticListClass>(&*g_eventPool, 0x400);
+    g_eventPool.Construct();
     std::atexit(DestroyEventPool);
 }
 
@@ -113,7 +107,8 @@ void AIEventTable::Load(CStream* stream) {
         if (event) {
             FreeEvents() = event->next;
         } else {
-            event = &AIEventPool().AddHead(AIEvent{})->data;
+            AIEventPool().push_front(AIEvent{});
+            event = &AIEventPool().front();
         }
         event->next = nullptr;
         event->prev = nullptr;
@@ -174,8 +169,6 @@ constexpr const char* kNormalFile = "normal.dat";
 constexpr const char* kCantOpenNormal = "CAIMap::Load.\n Can't open file \"normal.dat\"";
 constexpr std::size_t kNormalTableSize = 0x1000;
 std::uint8_t g_normalTable[kNormalTableSize] = /*007C43C4*/ {};   // the 4096 bytes of normal.dat
-
-
 
 } // namespace
 

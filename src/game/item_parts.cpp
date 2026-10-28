@@ -1,9 +1,9 @@
 // Weapon model parts: the names of the figure parts a weapon is drawn with.
 #include "item.h"
 
-#include "lib/crt.h"
 #include "lib/stlp.h"
 
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -47,7 +47,7 @@ constexpr PartSpan kPartsByType[] = {List(kSword), List(kAxe),  List(kDagger),  
 // Calls add(name) for each part of the weapon prototype `record` (not null), in the game's order.
 template <typename Add> void ForEachPart(const WeaponRecord* head, Add add) {
     char number[8];
-    gamecrt::sprintf(number, "%.2d", head->number);
+    std::snprintf(number, sizeof(number), "%.2d", head->number);
     std::uint32_t type = static_cast<std::uint32_t>(head->type);
     if (type >= sizeof(kPartsByType) / sizeof(kPartsByType[0])) return;
     const PartSpan& list = kPartsByType[type];

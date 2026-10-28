@@ -1,6 +1,5 @@
 // The options window's settings and key bindings and its slider's layout
 // (ui.h: COptionsWindow, CUiSlider; docs/notes/ui.md "Objectives, save/load, options").
-#include "record_vectors.h"
 #include "ui.h"
 
 #include "item_db_text.h"
@@ -142,20 +141,6 @@ void ShownName(std::string* out, const char* prefix, const char* name) {
         *out = name;
 }
 
-// A blank binding row appended like the original's push_back of a temporary: in place while there is
-// room, else through the instantiation's own _M_insert_overflow. (The original's temporary leaves the
-// action pointer unset; it is written right after.)
-void AppendBlankBinding(stlp::vector<OptionBinding>& bindings) {
-    OptionBinding* at = bindings.Finish();
-    if (at != bindings.EndOfStorage()) {
-        new (at) OptionBinding{};
-        bindings.Finish() = at + 1;
-        return;
-    }
-    OptionBinding blank{};
-    bindings.InsertOverflow<recordvec::OptionBindingElement>(at, blank, 1);
-    // `blank` has no key storage; its strings go with it.
-}
 } // namespace
 
 void COptionsWindow::RefreshRows() {
@@ -289,13 +274,11 @@ void COptionsWindow::BuildSettings() {
 }
 
 void COptionsWindow::BuildBindings() {
-    for (OptionBinding& binding : bindings_) binding.Destroy();
-    bindings_.Finish() = bindings_.Start();
+    bindings_.clear();
 
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition* action = &kActionDefinitions[i + 1];
-        AppendBlankBinding(bindings_);
-        OptionBinding& binding = bindings_.back();
+        OptionBinding& binding = bindings_.emplace_back();
         binding.action_ = action;
         ShownName(&binding.name_, TextActionPrefix(), action->name_);
 
@@ -333,9 +316,9 @@ void COptionsWindow::CommitBinding() {
     if (!binding) return;
     const int boundAction = keyOfScan_[pressedKey_->scan_];
     OptionBinding* other = nullptr;
-    for (OptionBinding* b = bindings_.begin(); b != bindings_.end(); ++b) {
-        if (b->action_->id_ == boundAction) {
-            other = b;
+    for (OptionBinding& b : bindings_) {
+        if (b.action_->id_ == boundAction) {
+            other = &b;
             break;
         }
     }

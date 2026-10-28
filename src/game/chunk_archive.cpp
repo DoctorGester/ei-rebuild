@@ -19,7 +19,6 @@ using Ref = ChunkArchive::Ref;
 using Stack = ChunkArchive::Stack;
 using SavedList = ChunkArchive::SavedList;
 using LoadedObjects = ChunkArchive::LoadedObjects;
-using RefElement = ChunkArchive::RefElement;
 
 namespace {
 
@@ -80,7 +79,7 @@ void ConstructClassRegistry() {
 }
 
 void ChunkArchive::PopChunk() {
-    Stack::Erase<RefElement>(stack_.End()->prev);
+    stack_.pop_back();
 }
 
 bool ChunkArchive::NextChild(const Ref* parent, std::int32_t* cursor, Ref* out) {
@@ -183,9 +182,9 @@ void ChunkArchive::LeaveChunk() {
     }
     // Writing: the chunk becomes a child of its parent (its content was written right after the
     // parent's, 5 bytes on to leave room for the header), then the stream is cut back to the parent.
-    Stack::Node* node = stack_.End()->prev;
-    const std::uint8_t* content = Data() + node->data.offset;   // taken before the parent's resize
-    AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
+    Ref* chunk = Current();
+    const std::uint8_t* content = Data() + chunk->offset;   // taken before the parent's resize
+    AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
     PopChunk();
     Ref* parent = Current();
     dataStream_.Resize(static_cast<std::uint32_t>(parent->size + parent->offset));
@@ -265,12 +264,10 @@ CRefCounted* ChunkArchive::ObjectRef(int id) {
 // ---- An archive on the stack ----------------------------------------------------------------------
 
 ChunkArchive::ChunkArchive() {
-    stack_.Construct();
     version_ = 1;
 }
 
 ChunkArchive::~ChunkArchive() {
-    stack_.Release<RefElement>();
 }
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
@@ -317,7 +314,7 @@ bool WriteStreamChunk(CStream* out, int id, CMemoryStream* from) {
 }
 
 void ChunkArchive::Open(CStream* stream, int loading, int version) {
-    stack_.ClearWith([](Ref*) {});
+    stack_.clear();
     CMemoryStream* index = &indexStream_;
     CMemoryStream* data = &dataStream_;
     index->Clear();
@@ -414,9 +411,9 @@ void ChunkArchive::Close(CStream* stream) {
                 PopChunk();
             } else {
                 // LeaveChunk inlined, with pop_back and ResizeToCurrent.
-                Stack::Node* node = stack_.End()->prev;
-                const std::uint8_t* content = Data() + node->data.offset;
-                AppendChild(&node->prev->data, node->data.id, content, static_cast<std::uint32_t>(node->data.size));
+                Ref* chunk = Current();
+                const std::uint8_t* content = Data() + chunk->offset;
+                AppendChild(Parent(), chunk->id, content, static_cast<std::uint32_t>(chunk->size));
                 PopChunk();
                 ResizeToCurrent();
             }
@@ -431,5 +428,5 @@ void ChunkArchive::Close(CStream* stream) {
     loaded_.clear();
     numbers_.clear();
     saved_.clear();
-    stack_.Clear<RefElement>();
+    stack_.clear();
 }

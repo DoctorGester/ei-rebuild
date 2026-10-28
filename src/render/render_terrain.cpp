@@ -111,7 +111,7 @@ const SectorVertex* WaterAbove(const SectorData* s, int index) {
 
 PageVertex MakeVertex(const SectorData* s, int index, const TileVertex& e) {
     const SectorVertex& record = s->records.data[index];
-    PageVertex v{s->vertices.data[index], e.u, e.v, record.normal, -1.0f};
+    PageVertex v{s->vertices[index], e.u, e.v, record.normal, -1.0f};
     if (index < kWaterRecords) {
         v.loss = 0.0f;
         if (const SectorVertex* water = WaterAbove(s, index)) {
@@ -171,14 +171,14 @@ PageSource SourceOf(const SectorData* s, int page) {
     PageSource src;
     src.records = s->records.data;
     src.recordCount = s->records.size;
-    src.positions = s->vertices.data;
-    src.positionCount = s->vertices.size;
+    src.positions = s->vertices.data();
+    src.positionCount = std::ssize(s->vertices);
     for (int q = 0; q < 4; ++q) {
         if (s->tiles[q].data && page < s->tiles[q].size) {
             src.lists[q] = s->tiles[q].data[page].data();
             src.listSizes[q] = std::ssize(s->tiles[q].data[page]);
         }
-        if (s->tileFlags[q].data && page < s->tileFlags[q].size) src.edges[q] = s->tileFlags[q].data[page].data;
+        if (s->tileFlags[q].data && page < s->tileFlags[q].size) src.edges[q] = s->tileFlags[q].data[page].data();
     }
     src.animated = s->animated.data();
     src.animatedCount = std::ssize(s->animated);
@@ -246,7 +246,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
             int tiles = std::ssize(list) / 9;
             const std::uint8_t* edges = nullptr;
             if (seams && s->tileFlags[quarter].data && page < s->tileFlags[quarter].size)
-                edges = s->tileFlags[quarter].data[page].data;
+                edges = s->tileFlags[quarter].data[page].data();
             for (int t = 0; t < tiles; ++t) {
                 const TileVertex* tile = list.data() + t * 9;
                 if (std::binary_search(animated.begin(), animated.end(), tile)) out.animatedTiles = true;
@@ -255,7 +255,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
                 for (int k = 0; k < perTile; ++k) {
                     const TileVertex& e = tile[entries[k]];
                     std::ptrdiff_t index = e.vertex - s->records.data;
-                    if (index < 0 || index >= s->records.size || index >= s->vertices.size) {
+                    if (index < 0 || index >= s->records.size || index >= std::ssize(s->vertices)) {
                         ok = false;
                         break;
                     }
@@ -879,7 +879,7 @@ std::vector<std::uint32_t> g_gridIndices;
 GpuPool g_casterPool(sizeof(TerrainCasterVertex), 1u << 15, 3u << 16, "ei-terrain-casters");
 
 void BuildCaster(const SectorData* s, SectorCaster& c) {
-    const Vector3* v = s->vertices.data;
+    const Vector3* v = s->vertices.data();
     c.vertices.resize(static_cast<std::size_t>(kWaterRecords));
     double lo[3] = {1e30, 1e30, 1e30}, hi[3] = {-1e30, -1e30, -1e30};
     auto at = [&](int x, int y) { return v[std::clamp(y, 0, 32) * 33 + std::clamp(x, 0, 32)]; };
@@ -918,7 +918,7 @@ void BuildCaster(const SectorData* s, SectorCaster& c) {
 } // namespace
 
 void ShadowTerrainSector(const SectorData* s) {
-    if (!s || !Active() || !(s->built & 1) || !s->vertices.data || s->vertices.size < kWaterRecords) return;
+    if (!s || !Active() || !(s->built & 1) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
     StatsTimer timer(&FrameStats::shadowMs);
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;
@@ -926,10 +926,10 @@ void ShadowTerrainSector(const SectorData* s) {
     if (c.seen == FrameNumber() && !c.vertices.empty()) return;
     c.seen = FrameNumber();
     c.cast = false;
-    if (c.positions != s->vertices.data || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
+    if (c.positions != s->vertices.data() || c.sx != s->sx || c.sy != s->sy || c.rebuilt != rebuilt || c.vertices.empty()) {
         FpuGuard fpu;
         BuildCaster(s, c);
-        c.positions = s->vertices.data;
+        c.positions = s->vertices.data();
         c.sx = s->sx;
         c.sy = s->sy;
         c.rebuilt = rebuilt;

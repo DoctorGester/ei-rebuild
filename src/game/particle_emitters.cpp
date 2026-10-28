@@ -298,7 +298,7 @@ int CParticleSource::EmitLightning(Particle* p, int) {
     p->color = 0xFFFFFFFF;
     if (points[0].bolt.emitted < std::ssize(elements) * 2) return EmitAlongBolt(this, p, points);
     p->state = 0;
-    if (particles.count < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);
+    if (std::ssize(particles) < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);
     return EmitSpark(this, p);
 }
 
@@ -398,7 +398,6 @@ constexpr float kGlowAlpha[16] = /*0078AA78*/ {0.0f, 0.15f, 0.3f, 0.45f, 0.6f, 0
                                             1.0f, 1.0f};
 constexpr std::int32_t kDustAlpha[16] = /*0078AAD8*/ {0, 64, 144, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 128, 64};
 
-
 // x87 select through FCOMP; SHL/SAR of the status word: `a` when a < b (or unordered), else `b`.
 float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
@@ -440,7 +439,7 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
 // 0x2039: on its first update (life -10) the particle's lifetime is set from its
 // position in the emission (frameTimer * 8 / particle count + 7); the alpha follows kGlowAlpha.
 int CParticleSource::UpdateGlow(Particle* p) {
-    if (p->life == -10) p->life = p->frameTimer * 8 / particles.count + 7;
+    if (p->life == -10) p->life = p->frameTimer * 8 / std::ssize(particles) + 7;
     if (--p->life < 0) return 0;
     int opacity = x87::fistp(static_cast<float>(D(kGlowAlpha[p->life]) * D(EI_BYTE)));
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);

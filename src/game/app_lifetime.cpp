@@ -84,24 +84,21 @@ CDirectInputMouse::~CDirectInputMouse() {
 // ---- The party manager ----------------------------------------------------------------------------
 
 void PartyManager::Destruct() {
-    for (ClassTemplate** p = templates.begin(); p != templates.end(); ++p) ReleaseCounted(*p);
-    templates.FreeStorage();
+    std::destroy_at(&templates);
     std::destroy_at(&records.text10);
     std::destroy_at(&records.text0C);
-    for (PartyRecord** p = records.records.begin(); p != records.records.end(); ++p) ReleaseCounted(*p);
-    records.records.FreeStorage();
-    for (PartyManagerEntry* entry = entries.begin(); entry != entries.end(); ++entry) entry->Destruct();
-    entries.FreeStorage();
+    std::destroy_at(&records.records);
+    std::destroy_at(&entries);
     parties.Destroy();   // every node deleted, then the buckets freed
 }
 
 PartyManager* PartyManager::Construct() {
     parties.InitZeroedBuckets(100);
-    new (&entries) stlp::vector<PartyManagerEntry>();
-    new (&records.records) stlp::vector<PartyRecord*>();
+    std::construct_at(&entries);
+    std::construct_at(&records.records);
     std::construct_at(&records.text0C);
     std::construct_at(&records.text10);
-    new (&templates) stlp::vector<ClassTemplate*>();
+    std::construct_at(&templates);
     return this;
 }
 

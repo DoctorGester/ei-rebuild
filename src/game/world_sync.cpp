@@ -15,7 +15,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
 
 #include "ei/x87.h"
 #include "game_hashes.h"
@@ -23,6 +22,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <vector>
 
@@ -154,23 +154,15 @@ CEngineObject** CollectMapObjects(CWorldServer* world, CPlayer* player, CPlayerS
     auto& units = player->units_;
     for (auto node = units.begin(); node != units.end() && node->second; ++node) {
         CUnit* unit = node->second;
-        mfc::CTypedPtrList<CUnit> heard;
-        heard.vtable = mfc::impl::PtrListClass::Vtable();
-        heard.head = nullptr;
-        heard.tail = nullptr;
-        heard.count = 0;
-        heard.free = nullptr;
-        heard.blocks = nullptr;
-        heard.blockSize = 10;
+        std::list<CUnit*> heard;
         auto* controller = unit->ServerController();
         float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = perception >= minimum ? perception : minimum;   // branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         world->Sectors()->FindUnitsInRadius(&unit->localPosition_, &heard, radius);
-        for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
-        heard.vtable = mfc::impl::PtrListClass::Vtable();
-        heard.RemoveAll();
+        for (auto entry = heard.begin(); entry != heard.end(); ++entry) *out++ = *entry;
+        heard.clear();
     }
     return out;
 }
@@ -260,7 +252,6 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
     if (mode != 0 && (player->dirty_ & kDirtyLeave) && mode != kModeGone) state->SendGameTime();
     return state->Flush();
 }
-
 
 int CWorldServer::SendZone(CPlayer* player) {
     CMemoryStream message;

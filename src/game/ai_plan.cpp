@@ -199,9 +199,9 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int x = bad->data.x;
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
-                int size = excluded->size;
-                excluded->SetSize(size + 1, -1);
-                BlockPoint* data = excluded->data;
+                int size = std::ssize(*excluded);
+                excluded->resize(size + 1);
+                BlockPoint* data = excluded->data();
                 data[size].x = x;
                 data[size].y = y;
                 retried = PlanLongPath(unit, fromX, fromY, toX, toY, path, retry, maxCells);

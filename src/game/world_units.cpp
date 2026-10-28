@@ -158,8 +158,8 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
     }
     script = worlddata::ScriptBeginText();
 
-    for (int i = 0; i < records->size; ++i) {
-        auto* record = records->data[i];
+    for (int i = 0; i < std::ssize(*records); ++i) {
+        auto* record = (*records)[i];
         message->prototype = record->texts[5];
         message->texture = record->texts[2];
         message->behaviour[0].type = 4;
@@ -256,8 +256,8 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
     // Followers follow their leaders.
     if (sessionKind_ == kKindSinglePlayer) {
-        for (int i = 0; i < records->size; ++i) {
-            auto* record = records->data[i];
+        for (int i = 0; i < std::ssize(*records); ++i) {
+            auto* record = (*records)[i];
             CUnit* unit = FindUnit(static_cast<int>(record->unitId));
             if (!unit) continue;
             CUnitServer* controller = unit->ServerController();

@@ -1,6 +1,5 @@
 // The server list reply: a compressed run of {address, GameInfoRecord} turned into the
 // client base's server entries. See net_classes.h and docs/notes/network.md.
-#include "library_containers.h"
 #include "net_classes.h"
 #include "net_coder.h"
 #include "net_messages.h"

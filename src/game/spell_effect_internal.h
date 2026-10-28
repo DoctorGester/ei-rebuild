@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace spellfx {
 
@@ -45,7 +46,6 @@ constexpr int kWorldSlotGridHeight = 27;
 constexpr int kWorldSlotGroundHeight = 28;
 
 constexpr std::uint32_t kPointLightFlags = 0x840;
-constexpr int kPtrListBlockSize = 10;
 
 // Volumes and radii the casts pass as immediates.
 constexpr float kVolume = 10.0f;
@@ -57,7 +57,6 @@ inline float ConstAt(const float& constant) { return *reinterpret_cast<const vol
 inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
-
 
 // Footprints of the walls and clouds, along a direction or a disc, then stamped into / cleared from the AI
 // map.
@@ -284,17 +283,15 @@ inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
 // Every unit within the radius of the effect's position that IsSpellTarget accepts gets the
 // effect's damage (a CPtrList of blocks of 10 on the stack, walked node by node).
 inline void HitAreaTargets(CSpellEffect* e) {
-    mfc::CTypedPtrList<CUnit> units;
-    mfc::impl::ConstructListHeader<mfc::impl::PtrListClass>(&units, kPtrListBlockSize);
+    std::list<CUnit*> units;
     DamageInfo hit;
     e->GetDamage(&hit);
     e->world->Sectors()->FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
-    for (auto* node = units.head; node;) {
-        CUnit* unit = node->data;
-        node = node->next;
+    for (auto node = units.begin(); node != units.end();) {
+        CUnit* unit = *node;
+        ++node;
         if (static_cast<std::uint8_t>(IsSpellTarget(unit))) e->HitUnit(&hit, unit);
     }
-    mfc::impl::DestructList<mfc::impl::PtrListClass>(units);
 }
 
 inline float GroundPlus(CSpellEffect* e, int slot, const Vector3& at, const float* add) {

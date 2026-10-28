@@ -9,6 +9,7 @@
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 
+#include <cstdio>
 #include <cstring>
 #include <new>
 #include <string>
@@ -286,7 +287,7 @@ BOOL CMappedFile::Open(const char* path, BOOL writable) {
     if (file_ == INVALID_HANDLE_VALUE) {
         gameapi::GetLastError();
         char message[256];
-        gamecrt::sprintf(message, "CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
+        std::snprintf(message, sizeof(message), "CMappedFile::Open().\nUnable to open file \"%s\".\n", path);
         game::DebugLog(message);
         return false;
     }

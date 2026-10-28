@@ -84,15 +84,18 @@ void SavedParties::SaveAll() {
 
 SavedParties* SavedParties::Construct() {
     std::construct_at(&folder_);
-    entries_.ConstructEmpty();
-    outsideGame_.Construct();
+    std::construct_at(&entries_);
+    std::construct_at(&outsideGame_);
     return this;
 }
 
+void SavedParties::ReserveOne() {
+    if (entries_.size() == entries_.capacity()) entries_.reserve(entries_.empty() ? 1 : 2 * entries_.size());
+}
+
 void SavedParties::Destruct() {
-    outsideGame_.Destruct();
-    for (MpHeroRecord& entry : entries_) entry.Destruct();
-    entries_.FreeStorage();
+    std::destroy_at(&outsideGame_);
+    std::destroy_at(&entries_);
     std::destroy_at(&folder_);
 }
 

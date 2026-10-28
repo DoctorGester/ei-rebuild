@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -163,8 +164,8 @@ const volatile double kPerDegree = 1.0 / 180.0;
 // cost uphill and on the level, the flat cost over sin^2 + 1 downhill. The larger size classes take
 // no step steeper than 40 degrees; size class 0 takes any up to 60 at the flat cost.
 void BuildClimbTables(CAIMap& map) {
-    map.climbLarge.SetSize(kClimbSteps);
-    map.climbSmall.SetSize(kClimbSteps);
+    map.climbLarge.resize(kClimbSteps);
+    map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
         const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
         const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPi)));
@@ -439,7 +440,7 @@ int CAIMap::LoadTerrain(const char* path) {
     for (int sectorY = 0; sectorY < description.header.sectorsY; ++sectorY) {
         for (int sectorX = 0; sectorX < description.header.sectorsX; ++sectorX) {
             char file[432];
-            gamecrt::sprintf(file, "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
+            std::snprintf(file, sizeof(file), "%s%3.3i%3.3i%s", str::Buffer(name, 0), sectorX, sectorY, kSectorExtension);
             std::uint32_t size;
             void* sector = archive.File(file, &size);
             if (!sector) return Fatal(("Unable to locate resource: " + std::string(file)).c_str());

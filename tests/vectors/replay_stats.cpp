@@ -151,21 +151,11 @@ EI_VECTOR_CHECK("MaxDamage", MaxCall, CheckMax);
 
 constexpr std::uint32_t kMostLevelRecords = 4096;
 
-// Points a skill database vector at `first`..`last` (its start and finish pointers, written as
-// bytes: the vector has no setter; the records are never constructed or destroyed).
-template <typename T>
-void PointVector(stlp::vector<T>& vector, T* first, T* last) {
-    T* const range[2] = {first, last};
-    std::memcpy(&vector, range, sizeof(range));
-}
-
-// The stand-in's level records: `count` zeroed records, the skill database's level table on them.
-std::vector<unsigned char> g_levels;
+// The stand-in's level records: `count` zeroed records in the skill database's level table.
 SkillLevelRecord* Levels(std::uint32_t count) {
-    g_levels.assign((count ? count : 1) * sizeof(SkillLevelRecord), 0);
-    auto* first = reinterpret_cast<SkillLevelRecord*>(g_levels.data());
-    PointVector(SkillDb()->levels, first, first + count);
-    return first;
+    std::vector<SkillLevelRecord>& levels = SkillDb()->levels;
+    levels.assign(count, SkillLevelRecord{});
+    return levels.data();
 }
 
 // The level table holding the record a LevelView names (none when the table did not have it).
@@ -185,25 +175,11 @@ bool PutLevel(const LevelView& view, char* d, std::size_t n) {
 }
 
 // The stand-in's skill records 0..count-1 (count at most 8): skill i's first stat name is the one
-// letter letters[i]. The records are raw bytes, never constructed; each stat name vector points at its
-// g_skillNames string.
-alignas(4) unsigned char g_skillRecords[8 * sizeof(SkillRecord)];
-std::string g_skillNames[8];
+// letter letters[i].
 void PutSkills(const char* letters, std::uint32_t count) {
-    struct VectorView {   // the stat name vector's three pointers
-        const void* start;
-        const void* finish;
-        const void* eos;
-    };
-    static_assert(sizeof(VectorView) == sizeof(SkillRecord::statNames));
-    std::memset(g_skillRecords, 0, sizeof(g_skillRecords));
-    for (std::uint32_t i = 0; i < count; ++i) {
-        g_skillNames[i].assign(1, letters[i]);
-        const VectorView names = {&g_skillNames[i], &g_skillNames[i] + 1, &g_skillNames[i] + 1};
-        std::memcpy(g_skillRecords + i * sizeof(SkillRecord) + offsetof(SkillRecord, statNames), &names, sizeof(names));
-    }
-    auto* first = reinterpret_cast<SkillRecord*>(g_skillRecords);
-    PointVector(SkillDb()->skills, first, first + count);
+    std::vector<SkillRecord>& skills = SkillDb()->skills;
+    skills.assign(count, SkillRecord{});
+    for (std::uint32_t i = 0; i < count; ++i) skills[i].statNames.assign(1, std::string(1, letters[i]));
 }
 
 UnitStats& ZeroStats() {

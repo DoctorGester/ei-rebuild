@@ -42,17 +42,11 @@ void ConstructList(mfc::CList<T>& list, void* vtable) {
     list.blockSize = kListBlockSize;
 }
 
-// The ground print lists' sentinels come from operator new (their nodes are larger than the node
-// allocator's 128 bytes).
-static_assert(sizeof(stlp::list<GroundPrint>::Node) > 128);
-
 } // namespace
 
 PlatformSet::PlatformSet() {
     ClearFields();
-    ConstructList(list, mfc::impl::PlatformListClass::Vtable());
 }
-
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
@@ -60,8 +54,6 @@ CWorldServer::CWorldServer() {
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();
-    ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
-    ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
     ResetState();
 }
@@ -71,7 +63,6 @@ CWorldClient::CWorldClient() {
     countedA0_.Construct(gameslots::ClientObjectPtrArrayClass::Vtable());
     heroes_.Construct();
     objects_.Construct();
-    ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());
     dynamicMaxId_ = 0;
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
@@ -81,9 +72,6 @@ CWorldClient::CWorldClient() {
     secondGrid_.unknown08_ = 1;
     secondGrid_.unknown0C_ = 1;
     secondGrid_.Allocate();
-    bloodPrints_.Construct();
-    footprints_.Construct();
-    scorchMarks_.Construct();
     handle_.ptr = nullptr;
     flags_ |= kClientFlags;
     debugFlags_ = kClientDebugFlags;

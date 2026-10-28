@@ -222,9 +222,9 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 } // namespace
 
 // `others` and `dressed` are vectors of unit records; the dressed units (the second argument) come first.
-void CWorldClient::BuildUnitSkins(stlp::vector<FiguredUnitRecord>* others, stlp::vector<DressedUnitRecord>* dressed) {
-    for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
-    for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
+void CWorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::vector<DressedUnitRecord>* dressed) {
+    for (DressedUnitRecord& r : *dressed) DressUnit(this, &r);
+    for (FiguredUnitRecord& r : *others) FigureUnit(this, &r);
 }
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records: [0] the body

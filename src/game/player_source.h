@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <list>
 
 namespace netlink {
 class NetLink;
@@ -17,7 +18,7 @@ class NetLink;
 
 // The list slot 6 appends the new connections to, counted (the server world's AcceptNewPlayers'
 // local, a CTypedPtrList of links).
-using JoinedLinks = mfc::CTypedPtrList<netlink::NetLink>;
+using JoinedLinks = std::list<netlink::NetLink*>;
 
 class CPlayerSource : public CRefObject {
 public:

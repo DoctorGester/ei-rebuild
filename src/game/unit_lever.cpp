@@ -14,16 +14,12 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/mfc_slots.h"
 
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include "game_data.h"
-
-namespace {
-
-} // namespace
 
 void Lever::SetState(int wanted, float duration) {
     // A negative duration takes the model's default.
@@ -48,13 +44,13 @@ void Lever::SetState(int wanted, float duration) {
 
     auto* world = ServerWorld();
     if (!world->IsServer()) return;
-    mfc::CTypedPtrList<CUnit> around{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    std::list<CUnit*> around{};
     CSectorMap* sectors = world->Sectors();
     float reach = bounds.radius + 0.5f;
     sectors->FindUnitsInRadius(&localPosition_, &around, reach);
-    for (auto* node = around.head; node;) {
-        auto* next = node->next;
-        sectors->Remove(node->data);
+    for (auto node = around.begin(); node != around.end();) {
+        auto next = std::next(node);
+        sectors->Remove(*node);
         node = next;
     }
     CAIMap* map = world->AIMap();
@@ -82,9 +78,9 @@ void Lever::SetState(int wanted, float duration) {
     map->EndRefresh();
     map->refreshUnits = true;
 
-    for (auto* node = around.head; node;) {
-        auto* next = node->next;
-        CUnit* unit = node->data;
+    for (auto node = around.begin(); node != around.end();) {
+        auto next = std::next(node);
+        CUnit* unit = *node;
         if (!map->CanLeaveCell(unit)) {
             Vector3* at = &unit->localPosition_;
             Vector3 free = {at->x, at->y, at->z};
@@ -95,17 +91,12 @@ void Lever::SetState(int wanted, float duration) {
         sectors->Add(unit);
         node = next;
     }
-    around.RemoveAll();
+    around.clear();
 }
 
 void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     // out->RemoveAll().
-    if (out->data) {
-        gamecrt::operator_delete(out->data);
-        out->data = nullptr;
-    }
-    out->maxSize = 0;
-    out->size = 0;
+    lib::FreeStorage(*out);
     const LeverRecord* record = TheLeverTable().Named(name.c_str());
     if (!record || record->spotCount == 0) return;
     const Quaternion& facing = localRotation_;
@@ -131,6 +122,6 @@ void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
         at.x = axis.x * across * distance + at.x;
         at.y = axis.y * across * distance + at.y;
         at.z = axis.z * across * distance + at.z;
-        out->SetAtGrow(out->size, at);
+        lib::SetAtGrow(*out, std::ssize(*out), at);
     }
 }

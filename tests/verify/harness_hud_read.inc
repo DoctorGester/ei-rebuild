@@ -10,8 +10,8 @@
 std::string HudStateOf(void* window, const std::string& argument) {
     auto* battle = static_cast<CBattleScreen*>(window);
     Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", window, battle->pendingAction_,
-        battle->pendingSlot_, battle->pendingItem_, battle->party_.size);
-    for (int i = 0; i < battle->party_.size && i < 8; ++i) {
+        battle->pendingSlot_, battle->pendingItem_, std::ssize(battle->party_));
+    for (int i = 0; i < std::ssize(battle->party_) && i < 8; ++i) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];
@@ -24,14 +24,14 @@ std::string HudStateOf(void* window, const std::string& argument) {
     if (quickPanel) {
         for (int r = 0; r < 4; ++r) {
             int entry = quickPanel->regionItem_[r];
-            if (entry >= 0 && entry < quickPanel->entries_.size && quickPanel->entries_[entry].own) ++own;
+            if (entry >= 0 && entry < std::ssize(quickPanel->entries_) && quickPanel->entries_[entry].own) ++own;
         }
         const int* items = quickPanel->regionItem_;
         Log("harness: hudstate: quick panel unit %p, %d entries (%d own), highlight %d, regions %d %d %d %d %d %d %d %d",
-            quickPanel->unit_, quickPanel->entries_.size, own, quickPanel->selected_, items[0], items[1], items[2],
+            quickPanel->unit_, std::ssize(quickPanel->entries_), own, quickPanel->selected_, items[0], items[1], items[2],
             items[3], items[4], items[5], items[6], items[7]);
         // The player's quest items in the top row: the id a lever's lock matches (SetScience).
-        for (int e = 0; e < quickPanel->entries_.size; ++e) {
+        for (int e = 0; e < std::ssize(quickPanel->entries_); ++e) {
             const CHudQuickItems::Entry& entry = quickPanel->entries_[e];
             if (!entry.own && entry.item && entry.item->type_ == 0x3009)
                 Log("harness: hudstate: quick panel entry %d: quest item id %u (object %d)", e,

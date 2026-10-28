@@ -35,11 +35,10 @@
 #include <cmath>
 #include <cstring>
 #include <iterator>
+#include <list>
 #include <memory>
 #include <new>
 #include <string>
-
-
 
 // ---- Heights -------------------------------------------------------------------------------------
 
@@ -55,8 +54,8 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
 }
 
 float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         float dx = point->x - p.x;
         float dy = point->y - p.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
@@ -78,8 +77,8 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
 }
 
 bool PlatformSet::Contains(float x, float y) {
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         float dx = x - p.x;
         float dy = y - p.y;
         EI_NAN_AUDIT(p.radius, dx, dy);
@@ -101,8 +100,8 @@ bool PlatformSet::Contains(float x, float y) {
 void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height) {
     *height = 0.0f;
     *normal = {0.0f, 0.0f, 1.0f};
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
         if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y})) continue;
         float a = x - p.origin.x;
@@ -238,8 +237,8 @@ void CWorldClient::CreateExitMarkers() {
 BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit) {
     BOOL result = 1;
     int living = 0;
-    inExit->SetSize(0);
-    for (int i = 0; i < records->size; ++i) {
+    inExit->clear();
+    for (int i = 0; i < std::ssize(*records); ++i) {
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
             FindUnit(static_cast<int>(record->unitId));
@@ -250,8 +249,8 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
             result = 0;
             continue;
         }
-        const int last = inExit->size;
-        inExit->SetSize(last + 1);
+        const int last = std::ssize(*inExit);
+        inExit->resize(last + 1);
         (*inExit)[last] = record;
     }
     return living != 0 ? result : 0;
@@ -338,20 +337,10 @@ float SelectLess(float a, float b, float ifLess, float otherwise) {
     return a >= b ? otherwise : ifLess;
 }
 
-// One effect list: the records whose tick returns 0 are erased (through the list's own erase).
+// One print list ticked: the prints whose tick returns 0 are erased.
 template <typename T>
-using EraseFn = void**(*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
-template <typename T>
-void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
-    auto* head = list.head;
-    for (auto* node = head->next; node != head;) {
-        auto* current = node;
-        node = node->next;
-        if (current->data.Tick() == 0) {
-            void* out;
-            erase(&list, nullptr, &out, current);
-        }
-    }
+void RunEffects(std::list<T>& list) {
+    for (auto it = list.begin(); it != list.end();) it = it->Tick() == 0 ? list.erase(it) : std::next(it);
 }
 
 void EndWalk(ObjectListIterator& it) {
@@ -361,33 +350,10 @@ void EndWalk(ObjectListIterator& it) {
     }
 }
 
-// erase(pos) of a print list (nodes from operator new).
-template <typename T>
-void** ErasePrint(void** out, typename stlp::list<T>::Node* pos) {
-    auto* next = pos->next;
-    auto* prev = pos->prev;
-    prev->next = next;
-    next->prev = prev;
-    pos->data.GroundPrint::Destruct();
-    gamecrt::operator_delete(pos);
-    *out = next;
-    return out;
-}
-
 } // namespace
 
-void** CWorldClient::EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos) {
-    return ErasePrint<BloodPrint>(out, pos);
-}
-void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos) {
-    return ErasePrint<Footprint>(out, pos);
-}
-void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
-    return ErasePrint<GroundPrint>(out, pos);
-}
-
 int CWorldClient::Segment() {
-    ObjectListIterator objectsIt{nullptr, nullptr};
+    ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun_;
     if (frames == 10) {
         TheInterface()->OnStringEvent(worlddata::AutosaveEventText());
@@ -422,16 +388,16 @@ int CWorldClient::Segment() {
     if (!paused_) {
         ++tick_;
         // The objects (dynamicObjects_) whose update returns 0 leave dynamicNodes_ and the list.
-        for (auto* node = dynamicObjects_.head; node;) {
-            auto* current = node;
-            node = node->next;
-            CMapObject* object = current->data;
+        for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+            auto current = node;
+            ++node;
+            CMapObject* object = *current;
             int done = object->RunTick();
             if (done != 0) continue;
             auto key = static_cast<std::uint32_t>(object->id_);
-            mfc::CList<CMapObject*>::Node* position = nullptr;
+            std::list<CMapObject*>::iterator position{};
             if (dynamicNodes_.Lookup(&key, &position)) {
-                dynamicObjects_.RemoveAt(position);
+                dynamicObjects_.erase(position);
                 hash400::RemoveKey(dynamicNodes_, key);
             }
         }
@@ -443,19 +409,19 @@ int CWorldClient::Segment() {
         if (static_cast<int>(std::ssize(TheInterface()->stack_)) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
-            for (auto* node = dynamicObjects_.head; node;) {
-                auto* current = node;
-                node = node->next;
-                current->data->AdvanceTime(now);
+            for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+                auto current = node;
+                ++node;
+                (*current)->AdvanceTime(now);
             }
         }
     }
     if (particleManager_) particleManager_->TickSources(static_cast<char>(paused_));
     if (!paused_) {
-        // The three print lists (std::list, sentinel head): finished ones (tick returns 0) go.
-        RunEffects(bloodPrints_, &EraseBloodPrint);
-        RunEffects(footprints_, &EraseFootprint);
-        RunEffects(scorchMarks_, &EraseScorchMark);
+        // The three print lists: finished ones (tick returns 0) go.
+        RunEffects(bloodPrints_);
+        RunEffects(footprints_);
+        RunEffects(scorchMarks_);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
             if (lightLevelsCountdown_ <= 0) {
@@ -463,8 +429,7 @@ int CWorldClient::Segment() {
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();
-                for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
-                    BloodPrint& effect = node->data;
+                for (BloodPrint& effect : bloodPrints_) {
                     float level = sun->GetIntensityAt(&worlddata::kOrigin);
                     ObjectListIteratorOf<CLight> lights{};
                     for (CLight* light = lights.First(ClientLightManager()); light; light = lights.Next()) {

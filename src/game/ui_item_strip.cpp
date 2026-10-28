@@ -17,9 +17,6 @@
 
 namespace {
 
-
-
-
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
     CUiRegion* region = window->AddRegion();
     region->SetRect(left, top, right, bottom);
@@ -114,7 +111,7 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     // The scroll arrows (sprites 0 and 1) show their dim frame while the strip can move that way.
     const float dim = 0.1953125f;
     SceneMesh(0)->textureOffsetU_ = position_[tab_] > 0.0f /*0073B858*/ ? dim : 0.0f;
-    SceneMesh(1)->textureOffsetU_ = static_cast<float>(list_.size - 7) > position_[tab_] ? dim : 0.0f;
+    SceneMesh(1)->textureOffsetU_ = static_cast<float>(std::ssize(list_) - 7) > position_[tab_] ? dim : 0.0f;
 
     SceneMesh(9)->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
@@ -126,13 +123,13 @@ BOOL CForwardingStrip::Draw(CSceneRenderer* pass) {
     CItem* shown[8];
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
-        if (index < 0 || index >= list_.size) {
+        if (index < 0 || index >= std::ssize(list_)) {
             shown[i] = nullptr;
             continue;
         }
         ItemCell cell;
-        cell.item = list_.data[index];
-        shown[i] = list_.data[index];
+        cell.item = list_[index];
+        shown[i] = list_[index];
         cell.size = 100.0f;
         cell.mode = mode_;
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;

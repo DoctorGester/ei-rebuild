@@ -76,16 +76,8 @@ struct ObjectPtrArrayBaseClass
     : mfc::impl::CompiledCollection<ObjectPtrArrayBaseClass, &ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>, &ObjectPtrs::Serialize> {};
 
 // The global arrays the static initialisers construct.
-// The particles' draw order (CArray<ParticleDepth>, effects.h).
-struct ParticleDepthArrayClass final
-    : mfc::impl::CompiledCollection<ParticleDepthArrayClass, &mfc::impl::ArrayHeader<ParticleDepthArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
-struct SpiralOffsetArrayClass final
-    : mfc::impl::CompiledCollection<SpiralOffsetArrayClass, &mfc::impl::ArrayHeader<SpiralOffsetArrayClass>::Destruct, &mfc::impl::Plain4::Serialize> {};
 struct ObjectiveArrayClass final
     : mfc::impl::CompiledCollection<ObjectiveArrayClass, &Objectives::Destruct<ObjectiveArrayClass>, &Objectives::Serialize> {};
-// The AI path smoother's node pool (CArray<SmoothNode>, ai_map.h SmoothPool).
-struct SmoothNodeArrayClass final
-    : mfc::impl::CompiledCollection<SmoothNodeArrayClass, &mfc::impl::ArrayHeader<SmoothNodeArrayClass>::Destruct, &mfc::impl::Plain8::Serialize> {};
 
 struct GroupArrayClass final
     : mfc::impl::CompiledCollection<GroupArrayClass, &Groups::Destruct<GroupArrayClass>, &Groups::Serialize> {};

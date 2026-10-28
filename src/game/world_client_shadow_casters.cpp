@@ -261,8 +261,8 @@ void HandOverTerrainCasters(CWorldClient* world) {
     const int firstY = (std::max)(sector(area.y0, terrain->sectorsY) - 1, 0), lastY = sector(area.y1, terrain->sectorsY);
     for (int sx = firstX; sx <= lastX; ++sx)
         for (int sy = firstY; sy <= lastY; ++sy) {
-            const Terrain::SectorCache::Node* node = terrain->sectorGrid[sx][sy];
-            if (node && node->data) render::ShadowTerrainSector(node->data);
+            const Terrain::SectorCache::iterator node = terrain->sectorGrid[sx][sy];
+            if (node != Terrain::SectorCache::iterator{} && *node) render::ShadowTerrainSector(*node);
         }
 }
 

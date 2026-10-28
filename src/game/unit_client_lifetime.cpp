@@ -71,15 +71,6 @@ CUnitClientSpecific::~CUnitClientSpecific() {
     }
     ReleaseFace(this);   // with null; the release test after it finds null
     blinks = 0;
-    // The speech queue: every node, then the header, freed (no destructors).
-    for (ClientSpeechNode* node = speech->next; node != speech;) {
-        ClientSpeechNode* next = node->next;
-        stlp::deallocate(node, sizeof(ClientSpeechNode));
-        node = next;
-    }
-    speech->next = speech;
-    speech->prev = speech;
-    stlp::deallocate(speech, sizeof(ClientSpeechNode));
     motion.steps.vtable = mfc::impl::CellListClass::Vtable();
     motion.steps.RemoveAll();
 }
@@ -92,10 +83,6 @@ CUnitClientSpecific::CUnitClientSpecific() {
     motion.steps.head = nullptr;
     motion.steps.blocks = nullptr;
     motion.steps.blockSize = kStepBlockSize;
-    auto* header = stlp::allocate_as<ClientSpeechNode>();
-    speech = header;
-    header->next = header;
-    header->prev = header;
     faceTexture = nullptr;
     fadeIn = 1.0f;
 }

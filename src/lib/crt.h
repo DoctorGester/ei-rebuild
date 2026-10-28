@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace gamecrt {
 
@@ -38,7 +39,6 @@ int rand();
 using RandObserver = void (*)(int value, const void* caller);
 void SetRandObserver(RandObserver observer);
 void srand(unsigned seed);
-int sprintf(char* buffer, const char* format, ...);
 
 // acos: the C entry of the body behind _CIacos; the result is left unrounded.
 double acos(double c);
@@ -96,7 +96,9 @@ void NodeDeallocate(void* p, std::size_t bytes);
 void* NodeRefill(std::size_t bytes);
 char* NodeChunkAlloc(std::size_t size, int* count);
 
-int Vsprintf(char* buffer, const char* format, va_list args);
+// The game's printf text of `format` (crt_format.cpp; str::Format is its CString form), every byte written (a %c of
+// 0 too): the format read as MSVC 6's _output reads it, the floats with its digits, the rest the host's.
+std::string Format(const char* format, va_list args);
 
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of the domain: the

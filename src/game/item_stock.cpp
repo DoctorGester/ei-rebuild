@@ -32,17 +32,6 @@ namespace {
 using CandidateElement = stlp::PlainElement<StockMaterial*>;
 using MaterialElement = stlp::PlainElement<StockMaterial>;
 
-// The output list of counted spells (list<CSpell*>): an element is referenced while it is held.
-struct HeldSpell {
-    static void Copy(CSpell** to, CSpell* const& from) {
-        *to = from;
-        if (from) ++from->refCount_;
-    }
-    static void Destroy(CSpell** p) {
-        if (*p) (*p)->Release();
-    }
-};
-
 using stock::CandidateVector;
 using stock::Candidates;
 using stock::TakenMaterials;
@@ -111,24 +100,6 @@ StockMaterial* DrawMaterial(const itemdb::ItemRecordHead* prototype) {
     return nullptr;
 }
 
-void ClearSpellList(StockSpellList& list) {
-    StockSpellListNode* head = list.head;
-    StockSpellListNode* node = head->next;
-    while (node != head) {
-        StockSpellListNode* next = node->next;
-        if (node->data) node->data->Release();
-        stlp::PushSmallNode(node);
-        node = next;
-    }
-    head->next = head;
-    head->prev = head;
-}
-
-void DestroySpellList(StockSpellList& list) {
-    ClearSpellList(list);
-    stlp::deallocate(list.head, sizeof(StockSpellListNode));
-}
-
 // The random spell of a weapon or armor: half the time, when the material allows magic, one of the spells
 // generated for the item's level, if within the power limit.
 void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) {
@@ -139,13 +110,10 @@ void AddSpell(ItemStock* stock, CItemConstructor* ctor, StockSpellList& spells) 
     float levels[8];
     for (float& l : levels) l = level;
     stock->GenerateSpells(&spells, levels, 0);
-    unsigned count = 0;
-    for (StockSpellListNode* n = spells.head->next; n != spells.head; n = n->next) ++count;
+    unsigned count = static_cast<unsigned>(spells.size());
     if (count == 0) return;
     unsigned index = count > 1 ? IsaacRandom::Global().Next() % count : 0;
-    StockSpellListNode* node = spells.head->next;
-    for (unsigned i = 0; i < index; ++i) node = node->next;
-    CSpell* spell = node->data;
+    CSpell* spell = *std::next(spells.begin(), index);
     float spellPower = spell->manaCost_;
     EI_NAN_AUDIT(spellPower, power);
     if (spellPower <= power) ctor->SetSpellObject(spell);
@@ -208,7 +176,6 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         }
 
         StockSpellList spellList;
-        spellList.Construct();
         if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
@@ -216,7 +183,6 @@ void ItemStock::GenerateItems(StockPrototypeVector* prototypes, int minCount, in
         if (item->type_ == 0x3006 && item->GetCategory() == 8)
             item->count_ = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
-        DestroySpellList(spellList);
     }
     candidates.clear();
 }
@@ -334,7 +300,8 @@ void ClearModifierList(SpellModifierList& list) { list.clear(); }
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
     spellMap.clear();
     modifierMap.clear();
-    for (SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
+    for (const SpellRecipe& listed : *recipes) {
+        const SpellRecipe* recipe = &listed;
         if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
         itemdb::SpellRecord* spell = stock::SpellsByName()[recipe->spell];   // keyed by the recipe's spell name
         if (!spell) continue;
@@ -347,7 +314,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         }
         if (!offered) continue;
         StockRecipeList* entries = &spellMap[recipe->spell];
-        entries->insert(entries->end(), recipe);   // the recipe lists hold raw record pointers
+        entries->insert(entries->end(), const_cast<SpellRecipe*>(recipe));   // the recipe lists hold raw record pointers
     }
 
     for (Modifier** p = modifiers.data(); p != modifiers.data() + modifiers.size(); ++p) {
@@ -423,10 +390,7 @@ void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigne
                     if (budget < ModifierLevel(repeated) + reached) break;
                 }
             }
-            CSpell* spell = spellManager->CreateSpell(prototype, &chosen);
-            if (spell) ++spell->refCount_;
-            StockSpellList::Insert<HeldSpell>(out->End(), spell);
-            if (spell) spell->Release();
+            out->emplace_back(spellManager->CreateSpell(prototype, &chosen));
         }
     }
 }
@@ -620,28 +584,24 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     PartyOf(this)->SpellManager();   // (fetched and not used)
     FillSpellMaps(stock::ScrollSpellRecipes());
     StockSpellList list;
-    list.Construct();
     for (int tries = 0;;) {
-        ClearSpellList(list);
+        list.clear();
         GenerateSpells(&list, scrollLevels, 0x32);
-        unsigned count = 0;
-        for (StockSpellListNode* n = list.head->next; n != list.head; n = n->next) ++count;
-        if (count >= static_cast<unsigned>(spells.size())) break;
+        if (list.size() >= spells.size()) break;
         if (++tries >= kScrollTries) break;
     }
     itemdb::QuickItemRecord* prototype = itemdb::TheItemDatabase().quickItems.Named(game::SpellContainerText());
-    for (StockSpellListNode* n = list.head->next; n != list.head; n = n->next) {
+    for (CSpell* spell : list) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3008, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
-        ctor->SetSpellObject(n->data);
+        ctor->SetSpellObject(spell);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
         Output(out, item);
     }
-    DestroySpellList(list);
 }
 
 // --- The stock's lists filled by the class template ------------------------------

@@ -90,6 +90,35 @@ struct HeldObject {
 using HeldEngineObject = HeldObject<CEngineObject>;
 static_assert(sizeof(HeldEngineObject) == 4);
 
+// A counted engine object pointer that holds its reference (a container's element): made from a pointer or
+// copied, it takes one; destroyed, it drops it (Release). A move hands the reference over.
+template <typename T>
+class HeldPtr {
+public:
+    HeldPtr() = default;
+    HeldPtr(T* object) : object_(object) {
+        if (object_) ++object_->refCount_;
+    }
+    HeldPtr(const HeldPtr& other) : HeldPtr(other.object_) {}
+    HeldPtr(HeldPtr&& other) noexcept : object_(other.object_) { other.object_ = nullptr; }
+    HeldPtr& operator=(HeldPtr other) noexcept {
+        T* old = object_;
+        object_ = other.object_;
+        other.object_ = old;
+        return *this;
+    }
+    ~HeldPtr() {
+        if (object_) object_->Release();
+    }
+
+    T* get() const { return object_; }
+    operator T*() const { return object_; }
+    T* operator->() const { return object_; }
+
+private:
+    T* object_ = nullptr;
+};
+
 // A counted reference (released through Release). The AI's reference fields and the effects' figures hold one;
 // Assign / Reset count, a plain store (`ref = p`) does not. The bodies are counted_ref.cpp's.
 template <typename T>
@@ -118,3 +147,11 @@ AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }
+
+// A list or vector of counted object pointers emptied: each released (head first), then cleared.
+template <typename Container>
+void ReleaseAndClear(Container& objects) {
+    for (auto* object : objects)
+        if (object) object->Release();
+    objects.clear();
+}

@@ -11,6 +11,9 @@
 
 #include "game_singletons.h"
 
+#include <iterator>
+#include <list>
+
 namespace {
 constexpr std::uint32_t kFlagTalking = 0x800000;      // the server unit's flags_ while it speaks
 constexpr int kKindTalking = 0x2B;
@@ -20,9 +23,6 @@ constexpr int kQueuedDelay = 3;
 constexpr std::uint32_t kRepeatAfter = 5000;          // ms before the same speech plays again
 constexpr int kSpeechPriority = 1;
 constexpr int kSpeechVolume = 100;
-
-// The queue is list<ClientSpeech>: its insert, its erase.
-using SpeechList = stlp::list<ClientSpeech>;
 
 // The kinds a queued speech gives way to: (new kind, queued kind).
 bool Replaces(int kind, int queued) {
@@ -61,15 +61,8 @@ void SetTalking(int unitId, bool talking) {
 
 // Erases the queued speeches `filter` picks.
 template <typename Pick>
-void EraseWhere(ClientSpeechNode*& queue, Pick pick) {
-    ClientSpeechNode* end = queue;
-    for (ClientSpeechNode* node = end->next; node != end;) {
-        ClientSpeechNode* next = node->next;
-        if (pick(&node->value)) {
-            SpeechList::Erase(stlp::AsNode<ClientSpeech>(node));
-        }
-        node = next;
-    }
+void EraseWhere(std::list<ClientSpeech>& queue, Pick pick) {
+    for (auto it = queue.begin(); it != queue.end();) it = pick(&*it) ? queue.erase(it) : std::next(it);
 }
 } // namespace
 
@@ -89,7 +82,7 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     EraseWhere(speech, [&](const ClientSpeech* queued) { return replacing.Replaced(queued) & 0xFF; });
     SpeechFilter finishing{unit->id_, 0};
     EraseWhere(speech, [&](const ClientSpeech* queued) { return finishing.Finished(queued); });
-    bool empty = speech->next == speech;
+    bool empty = speech.empty();
     if (!empty && !Important(kind)) return;
     ClientSpeech said{};
     said.id = record;
@@ -106,21 +99,15 @@ void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
             speechSound = said.sound;
         }
     }
-    SpeechList::Insert(stlp::AsNode<ClientSpeech>(speech), said);
+    speech.push_back(said);
 }
 
 void CUnitClientSpecific::StopSpeech() {
-    for (ClientSpeechNode* node = speech->next; node != speech; node = node->next) {
-        if (node->value.talking) SetTalking(unit->id_, false);
-        TheSoundManager()->StopSound(node->value.sound);
+    for (const ClientSpeech& queued : speech) {
+        if (queued.talking) SetTalking(unit->id_, false);
+        TheSoundManager()->StopSound(queued.sound);
     }
-    for (ClientSpeechNode* node = speech->next; node != speech;) {
-        ClientSpeechNode* next = node->next;
-        stlp::deallocate(node, sizeof(ClientSpeechNode));
-        node = next;
-    }
-    speech->next = speech;
-    speech->prev = speech;
+    speech.clear();
 }
 
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {

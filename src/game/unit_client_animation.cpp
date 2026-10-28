@@ -91,7 +91,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
 void CUnitClientSpecific::RestartAnimation(float time) {
     if (unit->flags_ & kFlagFrozen) return;
     CFigureAnimationState* state = unit->Object3D()->animation;
-    state->queue.RemoveAll();
+    state->queue.clear();
     if (unit->secondEntry == kModeSpecialIdle) {
         StartIdleAnimation(1);
     } else {

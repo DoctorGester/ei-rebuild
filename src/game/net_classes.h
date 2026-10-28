@@ -219,17 +219,16 @@ static_assert(sizeof(Query) == 0x2C);
 
 // The client's queries: a vector of queries and a dword saved with it (not itself a vector).
 struct ClientQueries {
-    stlp::vector<Query> list;
-    std::uint32_t extra;
+    std::vector<Query> list;
+    std::uint32_t extra = 0;
 
     // The queries in a chunk archive (chunk 1 of chunks 1: field 1 the
     // address, 2 the reply's length, 3 the reply), then field 2 the extra dword.
     void Serialize(ChunkArchive* archive);
     // The query with `address`, or the end.
-    Query* QueriesFind(const NetAddress* address);
+    std::vector<Query>::iterator QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
-ClientQueries* ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
 
@@ -325,13 +324,12 @@ struct Replicated {
     std::uint8_t priority;     // 0..10
     std::uint8_t unused_05[3];
 };
-using ReplicatedVector = stlp::vector<Replicated>;
-static_assert(sizeof(ReplicatedVector) == 12);
+using ReplicatedVector = std::vector<Replicated>;
 
-// Appends one {object, priority}: through the out-of-line push_back of a default element, or inline (the same
-// with the grow path), then storing into the new last element.
-void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority);
-void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority);
+// Appends one {object, priority}.
+inline void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
+    v->push_back({static_cast<Message*>(object), priority, {}});
+}
 
 // Packets (the datagram's first byte): -1 master, 0 update, 1 leave, 3 get info (ping), 4 login, 5 info, 6
 // accepted, 7 rejected; each goes to its handler slot with the sender and a cursor after that byte.

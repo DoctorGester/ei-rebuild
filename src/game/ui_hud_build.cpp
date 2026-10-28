@@ -16,7 +16,6 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 #include <cstdint>
 #include <string>
@@ -29,7 +28,6 @@ float Pi() { return 3.1415927f /*007423F8*/; }
 float TexelStep() { return 0.00390625f /*0073EEB8*/; }
 // The layout y the columns' bottom button sits at (490).
 float ColumnBottom() { return 490.0f /*00742948*/; }
-
 
 constexpr std::uint32_t kPlainFlag = 0x100;        // CUiMesh::flags_: drawn in flatColour_
 constexpr std::uint32_t kWhite = 0xFFFFFFFF;
@@ -182,7 +180,6 @@ void CHudWeaponBar::AddWeapon(const char* model, const char* image) {
 // panel offset, so here it is the body's first step.
 CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
     widescreen::EnterRightPanel();   // addon's 10023477; 1002348E at the end
-    entries_.Construct(mfc::impl::QuickEntryArrayClass::Vtable());
     const int shift = widescreen::EdgeShift();
     rect_ = {520 + shift, 500, 720 + shift, 600};   // WideScreen
     // The bottom row (the unit's items), then the top row (the player's), each from the right.
@@ -195,7 +192,7 @@ CHudQuickItems::CHudQuickItems(CInterface3D* ui, CBattleScreen* owner) : CUiWind
         regions_[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
-    entries_.SetSize(0, -1);
+    entries_.clear();
     unit_ = nullptr;
     const int ids[] = {7, 8, 9, 10, 11, 12, 13, 21, 22, 26, 27, 28};
     AddLabels(&labels_, ids);
@@ -266,14 +263,13 @@ void CHudSpellColumn::AddSpell(const char* model, const char* image) {
 // --- Action column ---------------------------------------------------------------------------------------------
 
 CHudActionColumn::CHudActionColumn(CInterface3D* ui, CBattleScreen* owner) : CUiWindow(ui), owner_(owner) {
-    actions_.Construct(mfc::impl::IntArrayClass::Vtable());
     // WideScreen (addon's handler): the panel offset from here on, the rectangle less the shift.
     widescreen::EnterLeftPanel();
     const int shift = widescreen::EdgeShift();
     rect_ = {-shift, 250, 40 - shift, 510};
     for (int y = 470; y > 230; y -= kStep) AddRegion()->SetRect(0, y, 40, y + kStep);
     ClearSceneObjects();
-    actions_.SetSize(0, -1);
+    actions_.clear();
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_[i]->SetTip(0, 1, 0);
@@ -294,9 +290,9 @@ void CHudActionColumn::AddAction(const char* model, const char* image, int actio
     float y = ColumnBottom() - static_cast<float>(count_ * kStep);
     sprite->Place(20.0f - static_cast<float>(widescreen::EdgeShift()), y, 40.0f);   // WideScreen
     MakePlain(sprite);
-    int place = actions_.size;
-    actions_.SetSize(place + 1, -1);
-    actions_.data[place] = static_cast<std::uint32_t>(action);
+    int place = std::ssize(actions_);
+    actions_.resize(place + 1);
+    actions_[place] = static_cast<std::uint32_t>(action);
     int index = count_;
     count_ = index + 1;
     CUiMesh* button = Sprite(this, index);

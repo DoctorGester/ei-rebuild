@@ -206,15 +206,9 @@ void EmptyDeferred() {
 
 // Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
-void DrawLightEffects(stlp::list<T>& list) {
-    typename stlp::list<T>::Node* head = list.head;
-    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) {
-        GroundPrint* print = &node->data;
-        print->Draw();
-    }
+void DrawLightEffects(std::list<T>& list) {
+    for (GroundPrint& print : list) print.Draw();
 }
-template <typename T>
-bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
 
 } // namespace
 
@@ -491,7 +485,7 @@ int CWorldClient::DrawPass() {
     }
 
     // Light effects (three lists of the client, each behind its setting).
-    if (!ListEmpty(bloodPrints_) || !ListEmpty(footprints_) || !ListEmpty(scorchMarks_)) {
+    if (!bloodPrints_.empty() || !footprints_.empty() || !scorchMarks_.empty()) {
         ApplyStateBlock(renderer, g_stageBlocks[kAlphaPassBlock]);
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);

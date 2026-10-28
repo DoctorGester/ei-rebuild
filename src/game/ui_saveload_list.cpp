@@ -74,7 +74,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     RECT dateRect{190, 11, 265, 32};
     int y = kFirstRowY;
     for (unsigned index = static_cast<unsigned>(firstVisible_); index < static_cast<unsigned>(EntryCount()); ++index) {
-        const SaveEntry& entry = entries_.begin()[index];
+        const SaveEntry& entry = entries_[index];
         if (static_cast<int>(index) == selected_) {
             const char* title = (isSave_ && nameTyped_ ? name_ : entry.title_).c_str();
             surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
@@ -114,11 +114,11 @@ void CSaveLoadWindow::RefreshListVanilla() {
 
     // The selected save's details: the allod, the zone, the game's day and time, the folder.
     if (selected_ < 0 || static_cast<unsigned>(selected_) >= static_cast<unsigned>(EntryCount()) ||
-        entries_.begin()[selected_].broken_) {
+        entries_[selected_].broken_) {
         UiSurfaceReleaseDC(surface);
         return;
     }
-    const SaveEntry& entry = entries_.begin()[selected_];
+    const SaveEntry& entry = entries_[selected_];
     RECT detailRect{340, 260, 590, 284};
     std::string line;
     line = str::Format(kPlainFormat, entry.AllodTitle().c_str());

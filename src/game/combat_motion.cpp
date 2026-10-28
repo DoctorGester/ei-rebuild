@@ -33,6 +33,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -57,8 +58,6 @@ constexpr int kMessageCannotDo = 0x0E;
 constexpr int kMessagePartial = 0x01;
 
 // --- Helpers --------------------------------------------------------------------------------------
-
-inline void PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 CAIMap* ServerAIMap() { return TheServerWorld()->AIMap(); }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
@@ -171,7 +170,7 @@ struct LocalMotionOrder : PathOrder {
 };
 static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
-using UnitList = mfc::CTypedPtrList<CUnit>;
+using UnitList = std::list<CUnit*>;
 
 // A player's party, walked like the original's hash_map iteration.
 using PartyMap = CPlayer::UnitMap;
@@ -573,14 +572,7 @@ bool CUnitServer::PathTo(const Vector3* point, float range) {
 void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) {
     CWorldServer* world = ContextOf(this);
     CPlayer* player = unit->player;
-    for (UnitList::Node* node = list->head; node; node = node->next) {
-    }
-    list->count = 0;
-    list->free = nullptr;
-    list->tail = nullptr;
-    list->head = nullptr;
-    PlexFreeDataChain(list->blocks);
-    list->blocks = nullptr;
+    list->clear();
     if (!player || player->sessionKind100_ != 1) return;
     // Away from the point: the units near it that are not in the player's group are lifted off the sector map
     // and stay in the list.
@@ -591,19 +583,15 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
         CSectorMap* sectors = world->Sectors();
         sectors->FindUnitsInRadius(point, list, 4.0f);
         const ScriptGroup* group = &player->Server()->partyUnits_;
-        for (UnitList::Node* node = list->head; node;) {
-            UnitList::Node* current = node;
-            node = node->next;
-            CUnit* other = current->data;
+        for (auto node = list->begin(); node != list->end();) {
+            UnitList::iterator  current = node;
+            ++node;
+            CUnit* other = *current;
             if (group->Contains(other) == 0) {
                 sectors->Remove(other);
                 continue;
             }
-            if (current == list->head) list->head = current->next;
-            else current->prev->next = current->next;
-            if (current == list->tail) list->tail = current->prev;
-            else current->next->prev = current->prev;
-            list->FreeNode(current);
+            list->erase(current);
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
@@ -616,11 +604,8 @@ void CUnitServer::LiftNearby(UnitList* list, const Vector3* point, char moving) 
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
-        auto* added = list->NewNode(list->tail, nullptr);
-        added->data = member;
-        if (list->tail) list->tail->next = added;
-        else list->head = added;
-        list->tail = added;
+        auto added = list->emplace(list->end());
+        *added = member;
         ServerSectors()->Remove(member);
     }
 }
@@ -813,8 +798,8 @@ void CUnitServer::ResetController() {
     IdleSteps(this).extra = -1;
     boredTicks = 0;
     // The armour spell list emptied, each element's item released.
-    for (auto* node = armourSpells.head; node; node = node->next)
-        if (node->data.item) node->data.item->Release();
-    armourSpells.RemoveAll();
+    for (auto node = armourSpells.begin(); node != armourSpells.end(); ++node)
+        if (node->item) node->item->Release();
+    armourSpells.clear();
     actionDone = nullptr;
 }

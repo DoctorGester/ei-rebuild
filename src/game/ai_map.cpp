@@ -106,7 +106,7 @@ bool CAIMap::CanLeaveCell(CUnit* unit) {
     if (x < 0 || y < 0 || x >= cells.width || y >= cells.height) return false;
     int sizeClass = unit->sizeClass;
     const ClimbTable& table = sizeClass == 0 ? climbSmall : climbLarge;
-    const int* climbCost = table.data + table.size / 2;
+    const int* climbCost = table.data() + std::ssize(table) / 2;
     int here = cells[y][x].groundLevel;
     for (const auto& o : kOffsets) {
         int nx = o[0] + x, ny = y + o[1];
@@ -165,7 +165,7 @@ constexpr std::uint32_t kOccluderChain = 0x80;
 // 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency` bits 5-6.
 const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
     const CSectorMap& sectors = map->sectorMap;
-    return sectors.sectors.data[(y / 32) * sectors.width + x / 32].occluders.data;
+    return sectors.sectors.data[(y / 32) * sectors.width + x / 32].occluders.data();
 }
 } // namespace
 
@@ -304,8 +304,8 @@ std::int32_t SpiralKey(std::uint32_t node) {
     return key;
 }
 std::uint32_t SpiralMask() { return static_cast<std::uint32_t>(SpiralRadiusTree()->mask); }
-const int* SpiralLengthTable() { return SpiralLengthArray()->data; }
-const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data->x; }
+const int* SpiralLengthTable() { return SpiralLengthArray()->data(); }
+const std::int16_t* SpiralOffsets() { return &SpiralOffsetArray()->data()->x; }
 
 SpiralCache g_findFreeSpiral = /*007C2F48*/ {};   // FindFreeCellNear's function-local static
 std::uint8_t g_findFreeGuard = /*007C2F50*/ {};

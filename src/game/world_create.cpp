@@ -23,7 +23,6 @@
 #include <cstring>
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 namespace {
 
@@ -72,7 +71,7 @@ int CWorld::Create() {
 
     shared5C_.ShareAssign(new CWorldHandle());
     IsaacRandom::Global().Init();
-    countdowns_.RemoveAll();
+    countdowns_.clear();
     return 1;
 }
 
@@ -81,7 +80,6 @@ CWorld::CWorld() {
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
     netSession_.ptr = nullptr;
-    countdowns_.Construct(mfc::impl::CountdownArrayClass::Vtable());
     players_ = nullptr;
     manager3C_ = nullptr;
     manager40_ = nullptr;

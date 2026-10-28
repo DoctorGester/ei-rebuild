@@ -1,7 +1,6 @@
 // The client's trade offer (called by the party screens after a change): one member
 // message per party member, kept in our PartyMessage. See net_messages.h and docs/notes/network.md.
 #include "core_streams.h"
-#include "library_containers.h"
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "game_lists.h"
@@ -12,10 +11,9 @@
 
 #include "lib/crt.h"
 #include "lib/stlp.h"
-#include "lib/stlp_vector_refs.h"
-#include "record_vectors.h"
 
 #include <cstring>
+#include <vector>
 
 namespace net {
 
@@ -29,20 +27,9 @@ void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
 }
 CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
 
-void PushBack(RefVector* v, const RefPtr* value) {
-    if (v->end() != v->EndOfStorage()) {
-        libcontainers::ConstructRefPtr(v->end(), value);
-        ++v->Finish();
-    } else {
-        v->InsertOverflow<stlp::CountedRefElement>(v->end(), *value, 1);
-    }
-}
-
-} // namespace
-
 // The first element in [first, last) whose member stream holds the same bytes as
-// `message`'s (sizes through slot 4, then a byte compare). The last argument is not used.
-RefPtr* FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message, std::uint32_t) {
+// `message`'s (sizes through slot 4, then a byte compare).
+RefVector::iterator FindSameMessage(RefVector::iterator first, RefVector::iterator last, PartyMemberMessage* message) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
         CMemoryStream* element = StreamOf(first->ptr);
@@ -55,6 +42,8 @@ RefPtr* FindSameMessage(RefPtr* first, RefPtr* last, PartyMemberMessage* message
     return first;
 }
 
+} // namespace
+
 // Rebuilds the member messages of our offer from our party: one per
 // item of the party. Each gives its spell's id, type and packed id and the spell's Save,
 // or -1 without a spell, then the item's type and packed id and its own Save. A message equal to
@@ -65,19 +54,15 @@ void ClientPublishParty(ClientSession* self) {
     // Read again at each use.
     auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
-    RefVector* messages = &state()->members_;
-
     // A copy of the old messages, then the list emptied.
-    RefVector previous;
-    previous.CopyConstruct<stlp::CountedRefElement>(*messages);
-    state()->members_.EraseRange<stlp::CountedRefElement>(state()->members_.begin(), state()->members_.end());
+    RefVector previous = state()->members_;
+    state()->members_.clear();
     state()->money_ = static_cast<std::uint32_t>(party->Money());
 
     std::uint32_t scratch = 0;
     for (int i = 0; i < std::ssize(party->items_); ++i) {
         auto* message = NewCounted<PartyMemberMessage>();
-        RefPtr ref;
-        ref.FromRawCounted(message);
+        CountedRefPtr ref(message);
         CStream* stream = &message->stream_;
         CItem* item = party->items_[i];
         stream->Clear();
@@ -94,25 +79,19 @@ void ClientPublishParty(ClientSession* self) {
         WriteDword(stream, &scratch, item->prototypeId_);
         item->Save(stream);
 
-        RefPtr* same = FindSameMessage(previous.begin(), previous.end(), message, scratch);
+        auto same = FindSameMessage(previous.begin(), previous.end(), message);
         PartyMessage* current = state();
         if (same != previous.end()) {
-            PushBack(&current->members_, same);
-            if (same + 1 != previous.end()) stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>(same + 1, previous.end(), same);
-            --previous.Finish();
-            RefPtrRelease(previous.end());   // With flags 0
+            current->members_.push_back(*same);
+            previous.erase(same);
         } else {
-            PushBack(&current->members_, &ref);
+            current->members_.push_back(ref);
         }
-        if (ref.ptr) ref.ptr->Release();
     }
 
     ++state()->revision_;
     state()->accepted_ = 0;
     ++state()->version_;
-    for (RefPtr* p = previous.begin(); p != previous.end(); ++p)
-        if (p->ptr) p->ptr->Release();
-    stlp::deallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()) * 4);
 }
 
 // The received offer that pairs with ours: its partner is our
@@ -146,7 +125,7 @@ void ClientApplyParty(ClientSession* self) {
     if (!remote) return;
     auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CRefObject* message = remote->members_.begin()[i].ptr;
+        CRefObject* message = remote->members_[i].ptr;
         if (!message || (message->flags7_ & CRefObject::kDetached)) return;
         if (StreamOf(message)->Size() == 0) return;
     }
@@ -154,10 +133,9 @@ void ClientApplyParty(ClientSession* self) {
     CParty* party = self->parties_[1].Get();
     party->Clear(1, 0);
     party->Money() = static_cast<int>(remote->money_);
-    stlp::vector<CEngineObject*> items;
-    items.ConstructEmpty();
+    std::vector<CEngineObject*> items;   // each holds a reference
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CStream* stream = StreamOf(remote->members_.begin()[i].ptr);
+        CStream* stream = StreamOf(remote->members_[i].ptr);
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t type, packedId;
@@ -174,15 +152,8 @@ void ClientApplyParty(ClientSession* self) {
         CEngineObject* item = party->ItemManager()->CreateObject(static_cast<int>(type), -1);
         item->prototypeId_ = packedId;
         item->Load(stream);
-        CEngineObject* held = item;
         if (item) ++item->refCount_;
-        if (items.Finish() != items.EndOfStorage()) {
-            if (items.Finish()) HeldEngineObject::Of(items.Finish())->Construct(&held);
-            ++items.Finish();
-        } else {
-            items.InsertOverflow<recordvec::EngineObjectRefElement>(items.Finish(), held, 1);
-        }
-        if (held) held->Release();
+        items.push_back(item);
     }
     for (std::uint32_t i = 0; i < count(); ++i) party->AddItem(static_cast<CItem*>(items[i]), 1, 1);
 
@@ -194,9 +165,8 @@ void ClientApplyParty(ClientSession* self) {
             stlp::list<TradeRecord>::Erase<recordlist::TradeElement>(node);
         node = next;
     }
-    for (CEngineObject** p = items.begin(); p != items.end(); ++p)
-        if (*p) (*p)->Release();
-    stlp::deallocate(items.begin(), static_cast<std::size_t>(items.EndOfStorage() - items.begin()) * 4);
+    for (CEngineObject* item : items)
+        if (item) item->Release();
 }
 
 } // namespace net

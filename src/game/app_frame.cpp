@@ -21,6 +21,7 @@
 #include "game_singletons.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -74,7 +75,7 @@ void FrameStep(bool draw, bool cursor) {
     TheCursor()->ReleaseLock();
     if (!app::g_recordingFrames) return;
     char path[256];
-    gamecrt::sprintf(path, "%sshot%.4d.bmp", MovieFolder().c_str(), g_movieFrame);
+    std::snprintf(path, sizeof(path), "%sshot%.4d.bmp", MovieFolder().c_str(), g_movieFrame);
     lib::File file;
     if (!file.Open(path, lib::File::modeCreate | lib::File::modeWrite)) {
         game::FatalError("Can't open file \"%s\" to write movie frame.\n", path);   // "Can't open file (%s) to write movie"

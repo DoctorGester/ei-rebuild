@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 class CStream;
 class CWorld;
@@ -72,8 +73,8 @@ struct UnitMotion {
     void LoadState(CStream* stream);
     void SaveState(CStream* stream);
 
-    mfc::CArray<MotionPoint> points;
-    mfc::CArray<MotionWaypoint> waypoints;
+    std::vector<MotionPoint> points;
+    std::vector<MotionWaypoint> waypoints;
     mfc::CArray<float> stepSpeeds;            // per step: AIPath step speed (1/512 units)
     float speedScale;
     float baseTurnRate;                     // radians per tick
@@ -92,8 +93,3 @@ struct UnitMotion {
     float segmentEnd;
     int segment;                            // index of its first point, -1 none
 };
-static_assert(offsetof(UnitMotion, speedScale) == 0x3C);
-static_assert(offsetof(UnitMotion, fromX) == 0x50);
-static_assert(offsetof(UnitMotion, curveX) == 0x78);
-static_assert(offsetof(UnitMotion, segment) == 0xA0);
-static_assert(sizeof(UnitMotion) == 0xA4);

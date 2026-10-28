@@ -23,6 +23,7 @@
 
 #include "asset_text.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 #include "lib/mfc_slots.h"
@@ -36,8 +37,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -60,14 +63,14 @@ float ExperiencePenalty() { return GameLogicSettings().lostXp; }
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
 // The use order's unit list.
-using UnitArray = mfc::CArray<CUnit*>;
+using UnitArray = std::vector<CUnit*>;
 
 CUnit* FindUnit(int id) { return TheServerWorld()->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists).
-void AddCounted(mfc::CTypedPtrList<CUnit>& list, CUnit* object) {
-    list.AddTail(object);
+void AddCounted(std::list<CUnit*>& list, CUnit* object) {
+    list.push_back(object);
     ++object->refCount_;
 }
 
@@ -148,13 +151,13 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    mfc::CTypedPtrList<CUnit>& known = revived->ServerController()->Brain()->memory.seenCorpses;
-    for (auto* node = dead->ServerController()->Brain()->memory.seenCorpses.head; node;) {
-        CUnit* object = node->data;
-        node = node->next;
-        if (object && object->GetClassId() == kClassUnit && !known.Find(object)) AddCounted(known, object);
+    std::list<CUnit*>& known = revived->ServerController()->Brain()->memory.seenCorpses;
+    for (auto node = dead->ServerController()->Brain()->memory.seenCorpses.begin(); node != dead->ServerController()->Brain()->memory.seenCorpses.end();) {
+        CUnit* object = *node;
+        ++node;
+        if (object && object->GetClassId() == kClassUnit && !lib::Contains(known, object)) AddCounted(known, object);
     }
-    if (!known.Find(dead)) AddCounted(known, dead);
+    if (!lib::Contains(known, dead)) AddCounted(known, dead);
 }
 
 // --- Message 0x36, a use order --------------------------------------------------------
@@ -173,11 +176,6 @@ AIPath* AIPath::Construct() {
     cells = {};
     cells.vtable = PathCellListVtable();
     cells.blockSize = 0x80;
-    excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
-    excludedBlocks.data = nullptr;
-    excludedBlocks.size = 0;
-    excludedBlocks.maxSize = 0;
-    excludedBlocks.growBy = 0;
     Clear();
     return this;
 }
@@ -215,14 +213,14 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 
 int CPlayerServer::OnUseOrder() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
+    UnitArray units{};
     int count = 0;
     in.Read(&count, 4);
     for (int i = 0; i < count; ++i) {
         int id = 0;
         in.Read(&id, 4);
         CUnit* unit = FindUnit(id);
-        if (unit && !(unit->flags_ & kFlagBlocked)) units.SetAtGrow(units.size, unit);
+        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
     int flag = 0, kind = 0, value = 0, objectId = 0;
     in.Read(&flag, 4);
@@ -233,7 +231,7 @@ int CPlayerServer::OnUseOrder() {
     CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId));
 
     CUnit* chosen = nullptr;
-    if (units.size >= 2) {
+    if (std::ssize(units) >= 2) {
         AIPath path;
         path.Construct();
         AIOrder order;
@@ -244,11 +242,11 @@ int CPlayerServer::OnUseOrder() {
         order.AimPoint(&aim);
         CUnit* first = nullptr;
         bool accepted = false;
-        while (units.size != 0) {
+        while (!units.empty()) {
             float best = kFarAway;
             CUnit* nearest = nullptr;
             int nearestIndex = 0;
-            for (int i = 0; i < units.size; ++i) {
+            for (int i = 0; i < std::ssize(units); ++i) {
                 double distance = UseOrderDistanceSquared(&aim, PositionOf(units[i]));
                 EI_NAN_AUDIT(distance, best);
                 if (distance < best) {
@@ -277,13 +275,13 @@ int CPlayerServer::OnUseOrder() {
                 accepted = true;
                 break;
             }
-            units.RemoveAt(nearestIndex, 1);
+            units.erase(units.begin() + nearestIndex);
         }
         if (!accepted) chosen = first;
         if (order.target) order.target->Release();   // the counted reference's reset
         order.target = nullptr;
         path.Destruct();
-    } else if (units.size == 1) {
+    } else if (std::ssize(units) == 1) {
         chosen = units[0];
     }
 
@@ -292,8 +290,6 @@ int CPlayerServer::OnUseOrder() {
         if (PlayerMode* mode = brain->FindPlayerMode())
             mode->CommandUse(brain, object, kind, value, flag != 0);
     }
-    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    if (units.data) gamecrt::operator_delete(units.data);
     return 1;
 }
 
@@ -310,7 +306,7 @@ int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
-using PointArray = mfc::CArray<Vector3>;
+using PointArray = std::vector<Vector3>;
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
@@ -321,7 +317,7 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
         int id = 0;
         in.Read(&id, 4);
         CUnit* unit = FindUnit(id);
-        if (unit && !(unit->flags_ & kFlagBlocked)) units->SetAtGrow(units->size, unit);
+        if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(*units, std::ssize(*units), unit);
     }
 }
 // The arrays' inlined destructors: the vtable back, the storage freed.
@@ -334,47 +330,45 @@ void FreeArray(mfc::CArray<T>* array, void* vtable) {
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
-    PointArray offsets{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
+    UnitArray units{};
+    PointArray offsets{};
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
     in.Read(&run, 4);
     in.Read(&to, sizeof(to));
     FormationOffsets(&units, &offsets);
-    for (int i = 0; i < units.size; ++i) {
+    for (int i = 0; i < std::ssize(units); ++i) {
         AIBrain* brain = units[i]->ServerController()->Brain();
         if (PlayerMode* mode = brain->FindPlayerMode())
-            (mode->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
+            (mode->*command)(brain, &to, std::ssize(units) > 1, run != 0, &offsets[i]);
     }
-    FreeArray(&offsets, mfc::impl::Vector3ArrayClass::Vtable());
-    FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());
     return 1;
 }
 
 } // namespace
 
-void FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
-    int count = units->size;
+void FormationOffsets(const std::vector<CUnit*>* units, std::vector<Vector3>* offsets) {
+    int count = std::ssize(*units);
     if (count < 1) return;
     if (count == 1) {
-        offsets->SetSize(1, -1);
-        offsets->data[0] = Vector3{0.0f, 0.0f, 0.0f};
+        offsets->resize(1);
+        (*offsets)[0] = Vector3{0.0f, 0.0f, 0.0f};
         return;
     }
     float sumX = 0.0f;
     float sumY = 0.0f;
     for (int i = 0; i < count; ++i) {
-        const Vector3* at = PositionOf(units->data[i]);
+        const Vector3* at = PositionOf((*units)[i]);
         sumX = static_cast<float>(static_cast<double>(sumX) + at->x);
         sumY = static_cast<float>(static_cast<double>(sumY) + at->y);
     }
     float n = static_cast<float>(count);
     float centreX = static_cast<float>(static_cast<double>(sumX) / n);
     float centreY = static_cast<float>(static_cast<double>(sumY) / n);
-    offsets->SetSize(count, -1);
-    for (int i = 0; i < units->size; ++i) {
-        const Vector3* at = PositionOf(units->data[i]);
+    offsets->resize(count);
+    for (int i = 0; i < std::ssize(*units); ++i) {
+        const Vector3* at = PositionOf((*units)[i]);
         float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
         float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
         double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
@@ -383,7 +377,7 @@ void FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* of
             dx = static_cast<float>(dx * inverse);
             dy = static_cast<float>(dy * inverse);
         }
-        offsets->data[i] = Vector3{dx, dy, 0.0f};
+        (*offsets)[i] = Vector3{dx, dy, 0.0f};
     }
 }
 
@@ -516,20 +510,19 @@ int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
+    UnitArray units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
     in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
     if (CMapObject* object = TheServerWorld()->FindObject(static_cast<unsigned>(objectId))) {
-        for (int i = 0; i < units.size; ++i) {
+        for (int i = 0; i < std::ssize(units); ++i) {
             AIBrain* brain = units[i]->ServerController()->Brain();
             if (PlayerMode* mode = brain->FindPlayerMode())
                 mode->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
-    FreeArray(&units, mfc::impl::UnitPtrArrayClass::Vtable());
     return 1;
 }
 
@@ -574,10 +567,9 @@ int CPlayerServer::OnLogin() {
     if (login.version != kClientVersion) {
         int length = 0x100;
         char format[0x100];
-        char text[0x140];
         auto* world = player->ServerWorld();
         world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
-        gamecrt::sprintf(text, format, 1, 0);
+        const std::string text = str::Format(format, 1, 0);
         std::uint8_t type = kMessageError;
         out_.Write(&type, 1);
         out_.WriteString(text);

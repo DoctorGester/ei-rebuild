@@ -18,7 +18,7 @@
 namespace stlp {
 
 // A value of a dword key (hashed as itself) and a T whose copy and destruction are an element
-// policy's (Construct(T*, const T&), Destroy(T*): stlp_vector.h's policies, record_vectors.h's).
+// policy's (Construct(T*, const T&), Destroy(T*): stlp_vector.h's policies).
 template <typename T>
 struct DwordKeyedObject {
     std::uint32_t key;

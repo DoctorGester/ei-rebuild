@@ -25,7 +25,6 @@
 
 namespace {
 
-
 const char* const kValuePair = "%s %d/%d";
 const char* const kMoveKey = "move_%d";
 const char* const kSpeedLine = "%s %.1f %s";
@@ -45,7 +44,6 @@ constexpr int kLevelDifferenceLimit = 25;
 
 // The world's night level, unrounded.
 double WorldDayTime(CWorld* a0) { return a0->NightLevel(); }
-
 
 // The speed shown: (a constant * speed) * a constant unrounded, the speed of the mode (mode 3) for a
 // unit outside the group, else from the current one.
@@ -76,14 +74,13 @@ struct Panel {
 // Whether `unit` is not in the group (the battle screen's party).
 bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
     CBattleScreen* group = self->owner_;
-    int count = group->party_.size;
-    CUnit** units = group->party_.data;
+    int count = std::ssize(group->party_);
+    CUnit** units = group->party_.data();
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;
     }
     return true;
 }
-
 
 } // namespace
 
@@ -152,7 +149,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         auto* prototype = unitIn->GetPrototype();
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
-        if (group->party_.size > 0) {
+        if (!group->party_.empty()) {
             CUnit* leader = group->party_[0];
             int difference = unitIn->Level() - leader->Level();
             if (difference > kLevelDifferenceLimit) {

@@ -252,13 +252,15 @@ to which template:
   steps), 005B16D0 (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 / 00453E00 (scene
   corner records), 0044F7E0 (bone morph frames), 00474DB0 (scene mesh groups), the IndexArray (`CArray<uint32_t>`, 0073C800)
   SetAtGrow / Add / destructor 004773F0 / 00476640 / 00476780; 005C4C20 (the path smoother's node pool) is
-  `CArray<SmoothNode>::SetSize`.
+  `CArray<SmoothNode>::SetSize`. Since C14m the plain-element ones of these (RecordPtrArray, the particle arrays, the
+  motion's points, the trap's victims and others) are `std::vector`; see "MFC CArray and CList to std (C14m)" below
+  for what is still mfc::CArray.
 - `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize) with NewNode / FreeNode /
   RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore / InsertAfter / RemoveAt / Find / FindIndex.
   `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's nodes: data zeroed, nothing destroyed; vtable 0073D454;
   `ProjectileList` with FreeNode 0059C810 forwarded). The combat / ai_refresh / magic_trap / world_quests / script lists,
   BlockCostList, the sound cache (`WaveList`, CSoundManager +0x854), ScriptDefineList / ScriptList and ai_plan's region /
-  waypoint lists are aliases.
+  waypoint lists are aliases. Since C14m every CTypedPtrList and the plain-element CLists are `std::list` (C14m below).
 - `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk (`Next`)
   and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable / NewAssoc
   (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
@@ -574,8 +576,7 @@ to which template:
   record_lists, the `*Element` structs: records without real special members), counted or held elements
   (`CEngineObject*`, `CMapObject*` with HeldObject, `CSpell*`, RefPtr), lists held as a raw sentinel pointer
   (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables / maps (their bucket vector is
-  stlp::vector). A std container inside a kept record is handled by the record's policy (record_members.h's
-  CopyMember / AssignMember / DefaultMember overloads for std::vector; destroy_at in the record's Destroy).
+  stlp::vector). C14n retyped most of these (next section).
 - Lifetimes: a container member of a class with a real constructor and destructor is the compiler's (no
   construct_at / destroy_at, no clear before the end). A container in raw storage (a StaticObject, a class built by
   `Construct()` on `operator_new_as` storage, a record in an stlp container) is built and destroyed by hand with
@@ -636,6 +637,65 @@ to which template:
   them; the hash_map class, the string / dword traits, NamedSlot, RecordsByName, the pairs (stlp_pair.h / .cpp),
   HashString and LowerBoundDwords went. The tests' game.exe view (exe_objects.h `HashTable`) walks like a std map
   (begin / end, `->first` / `->second`) so harness_digest_read.inc reads both sides with one loop.
+
+## Containers: the kept vectors and lists (C14n)
+
+- What C14b kept for "the original's element policy" is std now: the records got real special members or none
+  (the compiler's), and the policies (record_vectors.h, record_members.h, record_lifetime.h,
+  library_containers.h, lib/stlp_vector_refs.h, the record lists' print and title policies) are gone. Since S21
+  the layout only matters for the tests' game.exe views (tests/vectors' `OriginalVector` in record_stats.cpp).
+- Counted elements are RAII types: `CountedPtr<T>` (CRefCounted's refs_, core_refcount.h), `CountedRefPtr` /
+  `SharedRefPtr` (a RefPtr holding a plain reference / owning a share: copy FromRawCounted / Share, destroy the
+  plain release / Destroy) and `HeldPtr<T>` (CEngineObject's refCount_ and Release, engine_object.h). A move hands
+  the reference over, so a reallocation takes and drops none. A SharedRefPtr copy of a copy-on-share object is a
+  clone, as STLport's fill insert made it (the file message's chunks).
+- The record databases' tables hold their records in a `std::vector` member (`records`); the chunk serializers
+  share `RecordChunks` (chunk_archive.h: chunk `id` with one chunk 1 per record, `occurrence` set before each).
+- A copy with side effects keeps the original's copies: a saved hero's (MpHeroRecord) copy loads its party again,
+  drawing object ids and random numbers, so `SavedParties::ReserveOne` doubles the storage before a record is
+  added (STLport's growth, the old records copied before the new one) and the new-hero record at capacity is a
+  blank's copy. Without it the multiplayer goldens differ (the hero's #unit and the random state).
+- Value-initialised elements (`emplace_back()`, `resize`) zero what the original left as stack bytes (save
+  entries, connect list rows, trade rows, bindings); the fields are written before they are read.
+- Lists done: the titles' lines, the chat overlay's lines (ChatLine owns its surface), the ground prints (prints
+  built in place with emplace_back; GroundPrint has a virtual destructor and no copy), the unit's speech queue,
+  the item stock's spells. Still stlp::list (C14s, C14t): the CMapObject* sector lists and their grids, the
+  net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
+  stream queues; the bucket vectors inside stlp_hash.h's hashtable go with it (C14q).
+
+## MFC CArray and CList to std (C14m)
+
+- Batch 1: every `mfc::CArray` / `mfc::CList` / `mfc::CTypedPtrList` with plain elements (the default PlainElements:
+  zero-filled, nothing destroyed; their elements are trivially copyable, so std's copy and value-init are the same
+  bytes) is `std::vector` / `std::list`. Scripts in the ticket's scratch folder did it (not committed): a retype, a
+  diagnostics-driven fixer, an idiom pass (AddTail + NewNode linking -> emplace / push_back, the inlined unlink +
+  FreeNode -> erase, Find -> `lib::Contains` / `std::ranges::find`, `head->data` -> front(), PlexFreeDataChain after
+  field resets -> clear()), then hand fixes. Kept as mfc for batch 2: the containers with an element policy
+  (EachElements / OriginalElements / ListAbi / ArrayAbi: the script's records, the scene loader, the map database,
+  AI records, CountedPtrs, SharedObjectList) and their CompiledCollection tags.
+- Counted elements in a retyped plain list (the world's counted items, the trap's victims, the armour spells' items,
+  the AI's owned modes): the release (or DestroyOwned) is explicit before erase / clear; the original's
+  DestructElements did nothing, so the counts are what they were. `ReleaseAndClear(c)` (engine_object.h) releases and
+  clears a list of engine objects.
+- Writes that compile on any pointer and corrupt a std container: `mfc::impl::ConstructHeader` / `DestructHeader` /
+  `ConstructListHeader`, `ei::SetVtable`, memset / memcpy over a struct holding one, a reinterpret_cast to an MFC list
+  type (world_party's counted AddTail was one). C14m found them with temporary `= delete` overloads for std::vector /
+  std::list and a forced-include check that static_asserts memset / memcpy / memmove destinations are trivially
+  copyable; repeat both on the next retype. Neither sees an explicit `(void*)` / `static_cast<void*>` argument (the
+  particles' sprite array went through ConstructHeader that way), so grep those too. A function taking a container
+  as `void*` (CSceneRenderer::DrawSprites' point and sprite arrays) needs every caller's container retyped together:
+  the lightning glow's records stayed an MFC array and crashed it.
+- "No node" is a value-initialised iterator (`{}`): ObjectListIterator's position, the terrain's sector grid entries
+  (`SectorCache::iterator`, `new ...[n]()` / `delete[]`), PendingMap values.
+- Lifetimes as C14b: members of real classes are the compiler's; raw-storage owners (`Construct()` / `DestructBody()`,
+  SceneNode, SectorData, LocalPath) use construct_at / destroy_at; list globals are `lib::StaticObject<std::list<T>>`
+  (the AI event pool, the AI's candidates). named_data's STATIC_OBJECT_BYTES has the std keys (vector 0x14, list 0x1C
+  of game.exe's bytes).
+- The harness reads game.exe's MFC layouts through tests/verify/exe_objects.h's `Vector<T>` / `List<T>` views (data(),
+  size(), begin() / end()), so harness_digest_read.inc and harness_hud_read.inc read both sides with the same std calls.
+- Gone with it: the vtable helpers of the retyped containers, 65 CompiledCollection tags (mfc_slots.h, game_slots.h,
+  game_arrays.h) and their Through / element helpers, gamelists' Refs / OwnedRefs / Holders / EngineObjects,
+  CountedEngineList.
 
 ## Open items
 

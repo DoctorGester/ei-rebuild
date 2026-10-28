@@ -71,8 +71,8 @@ struct LineBatch {
 // their clip outcodes (an MFC CByteArray built by a static initialiser).
 extern std::vector<ProjectedPoint> g_lineProjected;
 inline std::vector<ProjectedPoint>& LineProjected() { return g_lineProjected; }
-extern lib::StaticObject<mfc::CArray<std::uint8_t>> g_lineOutcodes;
-inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
+extern lib::StaticObject<std::vector<std::uint8_t>> g_lineOutcodes;
+inline std::vector<std::uint8_t>& LineOutcodes() { return *g_lineOutcodes; }
 
 // Draws the points as a connected line strip in `colour`.
 long DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

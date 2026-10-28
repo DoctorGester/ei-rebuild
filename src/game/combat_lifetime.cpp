@@ -15,12 +15,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr std::uint32_t kNoAnimationKey = 0x666DEAD;
 constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38
-constexpr int kBlockSize = 10;
-
 
 // A step list's constructor (also with the derived vtable written after it): no steps; `extra` is left as it
 // was.
@@ -43,20 +42,17 @@ void InitAction(UnitAction& action) {
 }
 
 // The empty CList of counted object references the memory keeps (blocks of 10).
-void InitObjectList(mfc::CTypedPtrList<CUnit>& list) {
+void InitObjectList(std::list<CUnit*>& list) {
     list = {};
-    list.vtable = gameslots::VictimListClass::Vtable();
-    list.blockSize = kBlockSize;
 }
 
 // Its destructor: the vtable, each element released and cleared, then RemoveAll.
-void DestroyObjectList(mfc::CTypedPtrList<CUnit>& list) {
-    list.vtable = gameslots::VictimListClass::Vtable();
-    for (auto* node = list.head; node; node = node->next) {
-        if (node->data) node->data->Release();
-        node->data = nullptr;
+void DestroyObjectList(std::list<CUnit*>& list) {
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
     }
-    list.RemoveAll();
+    list.clear();
 }
 
 constexpr SpiralCache kEmptySightCache{0, -1.0f};
@@ -75,8 +71,6 @@ CUnitServer::CUnitServer() {
     followedLeader = nullptr;
     followsLeader = 0;
     armourSpells = {};
-    armourSpells.vtable = gameslots::ArmourSpellListClass::Vtable();
-    armourSpells.blockSize = kBlockSize;
     moveAnimationKey = kNoAnimationKey;
     InitSteps(moveAnimation);
     moveAnimation.SetSize(0, -1);
@@ -93,8 +87,7 @@ CUnitServer::CUnitServer() {
 // --- AIPath -------------------------------------------------------------------------------------
 
 void AIPath::Destruct() {
-    excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
-    if (excludedBlocks.data) gamecrt::operator_delete(excludedBlocks.data);
+    lib::FreeStorage(excludedBlocks);
     cells.vtable = PathCellListVtable();
     cells.RemoveAll();
     steps.vtable = PathCellListVtable();
@@ -130,8 +123,6 @@ AIBrain* AIBrain::Construct() {
     target = nullptr;
     seen = nullptr;
     modes = {};
-    modes.vtable = gameslots::OwnedRefListClass::Vtable();
-    modes.blockSize = kBlockSize;
     current = nullptr;
     alarmRecords = {};
     alarmRecords.vtable = recordarrays::BehaviourArrayClass::Vtable();   // the same virtuals

@@ -15,9 +15,9 @@
 #include "game_data.h"
 #include "../lib/import_prototypes.h"
 
-
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -184,7 +184,7 @@ struct CSoundManager : CEngineObject {
     CFileRegistry soundRegistry;
     CMappedResource archive074;
     CFileRegistry registry0CC;
-    mfc::CTypedPtrList<CMappedResource> waveSources;   // the archives LoadSample looks in
+    std::list<CMappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
     miles::Sample* streamSample;

@@ -88,6 +88,11 @@ namespace {
 // ---- @PathTables ----------------------------------------------------------------------------------
 
 template <typename T>
+void FillArray(std::vector<T>& array, const std::uint8_t* bytes, std::uint32_t count) {
+    array.resize(count);
+    if (count) std::memcpy(array.data(), bytes, count * sizeof(T));
+}
+template <typename T>
 void FillArray(mfc::CArray<T>& array, const std::uint8_t* bytes, std::uint32_t count) {
     array.data = nullptr;
     array.size = array.maxSize = static_cast<int>(count);
@@ -109,8 +114,8 @@ const std::uint8_t* GetArray(Reader& r, std::uint32_t elementSize, std::uint32_t
 }
 
 template <typename T>
-bool SameArray(const mfc::CArray<T>& a, const mfc::CArray<T>& b) {
-    return a.size == b.size && (a.size == 0 || std::memcmp(a.data, b.data, a.size * sizeof(T)) == 0);
+bool SameArray(const std::vector<T>& a, const std::vector<T>& b) {
+    return a.size() == b.size() && (a.empty() || std::memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0);
 }
 
 // The game's tables into the stand-in; then the smoother's tables as ours builds them, against the
@@ -126,23 +131,15 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
         else std::memcpy(ei::ReplayGameData(range.address, range.size), bytes, range.size);
     }
     // The three CArrays, in the record's order, into ours.
-    void* const named[kTableArrayCount] = {&*g_spiralLengths, &g_spiralRadii->keys, &*g_spiralOffsets};
     const std::uint32_t arrays = r.Get<std::uint32_t>();
     for (std::uint32_t i = 0; i < arrays && r.ok(); ++i) {
         const Range range = r.Get<Range>();
         std::uint32_t count = 0;
         const std::uint8_t* bytes = GetArray(r, range.size, &count);
         if (!bytes && count) break;
-        if (i >= kTableArrayCount) continue;
-        auto& array = *static_cast<mfc::CArray<std::uint8_t>*>(named[i]);
-        array.vtable = nullptr;
-        array.data = nullptr;
-        array.size = array.maxSize = static_cast<int>(count);
-        array.growBy = 0;
-        if (count) {
-            array.data = static_cast<std::uint8_t*>(gamecrt::operator_new(count * range.size));
-            std::memcpy(array.data, bytes, count * range.size);
-        }
+        if (i == 0) FillArray(*g_spiralLengths, bytes, count);
+        else if (i == 1) FillArray(g_spiralRadii->keys, bytes, count);
+        else if (i == 2) FillArray(*g_spiralOffsets, bytes, count);
     }
     SmoothTable* tables = g_smoothTables.Get();
     for (int i = 0; i < kSmoothTableCount && r.ok(); ++i) {
@@ -164,8 +161,8 @@ bool CheckTables(Reader& r, char* d, std::size_t n) {
             SameArray(ours[i].chained, tables[i].chained))
             continue;
         std::snprintf(d, n, "smoother table %d: ours %d copies %d steps %d chained, the game's %d / %d / %d", i,
-                      ours[i].copies.size, ours[i].steps.size, ours[i].chained.size, tables[i].copies.size,
-                      tables[i].steps.size, tables[i].chained.size);
+                      std::ssize(ours[i].copies), std::ssize(ours[i].steps), std::ssize(ours[i].chained), std::ssize(tables[i].copies),
+                      std::ssize(tables[i].steps), std::ssize(tables[i].chained));
         return false;
     }
     return true;
@@ -260,11 +257,7 @@ void CopyGrid(SearchGrid<T>& grid, const Grid& from) {
     if (!from.bytes.empty()) std::memcpy(grid.data, from.bytes.data(), from.bytes.size());
 }
 
-void FillClimb(ClimbTable& table, const std::vector<int>& values) {
-    table.data = static_cast<int*>(gamecrt::operator_new(values.size() * sizeof(int) + 4));
-    if (!values.empty()) std::memcpy(table.data, values.data(), values.size() * sizeof(int));
-    table.size = table.maxSize = static_cast<int>(values.size());
-}
+void FillClimb(ClimbTable& table, const std::vector<int>& values) { table.assign(values.begin(), values.end()); }
 
 // A fresh map with the saved map's sizes and tables (the grids' content is copied per record). The
 // old one is left behind (the replay runs a few maps).
@@ -364,10 +357,9 @@ void EmptyList(PathCellList& list) {
 }
 
 void ReadPath(Reader& r, AIPath& path) {
-    std::memset(&path, 0, sizeof(path));
+    path.excludedBlocks.clear();
     EmptyList(path.steps);
     EmptyList(path.cells);
-    path.excludedBlocks.vtable = mfc::impl::PointArrayClass::Vtable();
     path.motionOrder = r.Get<MotionOrder>();
     ReadCells(r, path.steps);
     ReadCells(r, path.cells);
@@ -380,9 +372,8 @@ void ReadPath(Reader& r, AIPath& path) {
     path.flag6F = r.Get<bool>();
     const std::uint32_t excluded = r.Get<std::uint32_t>();
     if (excluded && excluded < 0x10000) {
-        path.excludedBlocks.data = static_cast<BlockPoint*>(gamecrt::operator_new(excluded * sizeof(BlockPoint)));
-        path.excludedBlocks.size = path.excludedBlocks.maxSize = static_cast<int>(excluded);
-        for (std::uint32_t i = 0; i < excluded; ++i) path.excludedBlocks.data[i] = r.Get<BlockPoint>();
+        path.excludedBlocks.resize(excluded);
+        for (std::uint32_t i = 0; i < excluded; ++i) path.excludedBlocks[i] = r.Get<BlockPoint>();
     }
     path.smoothing = r.Get<std::int32_t>();
 }
@@ -424,7 +415,7 @@ std::string DescribePath(const std::vector<std::uint8_t>& bytes) {
     char text[256];
     std::snprintf(text, sizeof(text), "order %d (%g,%g) steps %d cells %d target (%g,%g) flags %d%d%d%d excluded %d smoothing %d",
                   p.motionOrder.kind, p.motionOrder.x, p.motionOrder.y, p.steps.count, p.cells.count, p.targetX,
-                  p.targetY, p.reached, p.failed, p.flag6E, p.flag6F, p.excludedBlocks.size, p.smoothing);
+                  p.targetY, p.reached, p.failed, p.flag6E, p.flag6F, std::ssize(p.excludedBlocks), p.smoothing);
     return text;
 }
 

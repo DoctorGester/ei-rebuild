@@ -97,7 +97,7 @@ void Loader::AddMap() {
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
         if (text::CompareIgnoringCase(allod.name, allodName) != 0) continue;
-        allod.maps.SetAtGrow(allod.maps.size, map_);
+        lib::SetAtGrow(allod.maps, std::ssize(allod.maps), map_);
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;

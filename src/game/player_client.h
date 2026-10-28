@@ -28,10 +28,10 @@ public:
     // The local view's orders, queued for the server (out_), each a type byte and a payload; all return 1.
     // Units go as their ids (-1 for a null entry).
     // 0x30 walk / 0x3A go to: the units, `run`, the point.
-    int SendWalk(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
-    int SendGoTo(const mfc::CArray<CUnit*>* units, const Vector3* to, int run);
+    int SendWalk(const std::vector<CUnit*>* units, const Vector3* to, int run);
+    int SendGoTo(const std::vector<CUnit*>* units, const Vector3* to, int run);
     // 0x31 attack: the units, `ctrl`, `how`, the target's id.
-    int SendAttack(const mfc::CArray<CUnit*>* units, CEngineObject* target, int how, int ctrl);
+    int SendAttack(const std::vector<CUnit*>* units, CEngineObject* target, int how, int ctrl);
     // 0x33 / 0x32 cast spell `slot` of `caster` on `target` / at `point`, with the low byte of `ctrl`.
     int SendCastOnUnit(int slot, CUnit* caster, CEngineObject* target, int ctrl);
     int SendCastAtPoint(int slot, CUnit* caster, const Vector3* point, int ctrl);
@@ -53,7 +53,7 @@ public:
     // (CPlayerServer::OnUseOrder).
     int SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag);
     // 0x36 for `units` on a dead `target`: `flag`, kind 0x18A95, value -1.
-    int SendUseDead(const mfc::CArray<CUnit*>* units, CEngineObject* target, int flag);
+    int SendUseDead(const std::vector<CUnit*>* units, CEngineObject* target, int flag);
     // 0x50: the player's party saved without its variables (CParty::SaveParty, which draws an ISAAC key) as
     // a sized block.
     int SendPartyUpdate();

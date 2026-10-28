@@ -26,10 +26,8 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
-#include "record_lifetime.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
-#include "record_vectors.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
@@ -53,8 +51,6 @@ constexpr int kVisibleRows = 16;
 
 // --- Helpers -------------------------------------------------------------------------------------
 
-// An entry copy-constructed in place (the list's STLport vector).
-void EntryConstruct(SaveEntry* at, const SaveEntry* from) { stlp::ConstructCopyAt<SaveEntry, recordvec::SaveEntryElement>(at, from); }
 // The entry is a folder.
 BOOL IsDirectory(const lib::FileFind& find) { return find.MatchesMask(0x10ul); }
 std::string FilePath(const lib::FileFind& find) { return find.GetFilePath(); }
@@ -74,16 +70,6 @@ struct LocalFileStream {
     void WriteText(std::string_view text) {
         Stream()->WriteString(text);
     }
-};
-
-// An entry being built (the original's stack temporaries): empty strings and string arrays; the other fields
-// keep whatever the stack held, like the original.
-struct LocalEntry {
-    SaveEntry e;
-    LocalEntry() {}
-    explicit LocalEntry(const SaveEntry& from) { e.Assign(&from); }
-    LocalEntry(const LocalEntry&) = delete;
-    LocalEntry& operator=(const LocalEntry&) = delete;
 };
 
 CDXSurface* HolderOf(CTexture* texture) { return texture->surface_; }
@@ -113,7 +99,7 @@ void CSaveLoadWindow::ShowPicture() {
     SceneMesh(3)->visible_ = 0;
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entries_.begin() + selected;
+    SaveEntry* entry = entries_.data() + selected;
     if (entry->broken_) return;
     if (isSave_ && selected == 0) {
         // The new save: the game's picture.
@@ -185,7 +171,7 @@ void SaveEntry::MakeTitle(int) {
 void CSaveLoadWindow::SaveGame() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    SaveEntry* entry = entries_.begin() + selected;
+    SaveEntry* entry = entries_.data() + selected;
     double space = app::DiskFreeSpace(DataFolderText());
     // 0 means unknown: no check.
     EI_NAN_AUDIT(space);
@@ -212,14 +198,14 @@ void CSaveLoadWindow::SaveGame() {
         info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
-        entries_.begin()->title_ = name_;
+        entries_.data()->title_ = name_;
     else if (selected_ == 0)
-        entries_.begin()->title_.clear();
+        entries_.data()->title_.clear();
     else
-        entries_.begin()->title_ = entry->title_;
+        entries_.data()->title_ = entry->title_;
     mfc::impl::CTime now;
-    entries_.begin()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;
-    SaveEntry* first = entries_.begin();
+    entries_.data()->savedAt_ = mfc::impl::CTime::CurrentTime(&now)->time;
+    SaveEntry* first = entries_.data();
     info.Stream()->WriteHeader(kInfoMagic, kInfoVersion);
     float gameTime = first->gameTime_;
     info.Write(&gameTime, 4);
@@ -257,7 +243,7 @@ void CSaveLoadWindow::FillEntries() {
     std::string pattern;
     pattern = str::Format(game::savewords::SavePattern(), DataFolderText());
     lib::FileFind find;
-    entries_.EraseRange<recordvec::SaveEntryElement>(entries_.begin(), entries_.end());
+    entries_.clear();
     int highest = 0;     // the highest number after "save" in the folder names
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern);
@@ -265,14 +251,8 @@ void CSaveLoadWindow::FillEntries() {
         found = find.FindNext();
         more = found;
         if (find.IsDots() || !IsDirectory(find)) continue;
-        LocalEntry fresh;
-        if (entries_.end() != entries_.EndOfStorage()) {
-            EntryConstruct(entries_.end(), &fresh.e);
-            ++entries_.Finish();
-        } else {
-            entries_.InsertOverflow<recordvec::SaveEntryElement>(entries_.end(), fresh.e, 1);
-        }
-        SaveEntry* entry = entries_.end() - 1;
+        // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
+        SaveEntry* entry = &entries_.emplace_back();
         entry->folder_ = FileName(find);
         lib::FileFind infoFind;
         BOOL hasInfo;
@@ -315,8 +295,8 @@ void CSaveLoadWindow::FillEntries() {
         }
     }
     find.Close();
-    SaveEntry* first = entries_.begin();
-    SaveEntry* end = entries_.end();
+    SaveEntry* first = entries_.data();
+    SaveEntry* end = first + entries_.size();
     if (first != end) {
         int depth = 0;
         for (int n = static_cast<int>(end - first); n != 1; n >>= 1) ++depth;
@@ -325,22 +305,8 @@ void CSaveLoadWindow::FillEntries() {
     }
 
     if (isSave_) {
-        // The new save first (STLport's insert at begin(), inlined by the original).
-        LocalEntry fresh;
-        SaveEntry* at = entries_.begin();
-        if (entries_.end() == entries_.EndOfStorage()) {
-            entries_.InsertOverflow<recordvec::SaveEntryElement>(at, fresh.e, 1);
-        } else if (at == entries_.end()) {
-            if (entries_.end()) entries_.end()->CopyConstruct(&fresh.e);
-            ++entries_.Finish();
-        } else {
-            EntryConstruct(entries_.end(), entries_.end() - 1);
-            ++entries_.Finish();
-            LocalEntry copy(fresh.e);
-            stl_sorts::SaveCopyBackward(at, entries_.end() - 2, entries_.end() - 1);
-            at->Assign(&copy.e);
-        }
-        SaveEntry* entry = entries_.begin();
+        // The new save first.
+        SaveEntry* entry = &*entries_.emplace(entries_.begin());
         entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         entry->zone_ = LocalPlayerZone();
@@ -497,38 +463,6 @@ std::string SaveEntry::AllodTitle() const {
     return title;
 }
 
-SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
-    title_ = from->title_;
-    folder_ = from->folder_;
-    savedAt_ = from->savedAt_;
-    gameTime_ = from->gameTime_;
-    map_ = from->map_;
-    zone_ = from->zone_;
-    stringArrays_[0] = from->stringArrays_[0];
-    stringArrays_[1] = from->stringArrays_[1];
-    broken_ = from->broken_;
-    return this;
-}
-
-SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
-    std::construct_at(&title_);
-    std::construct_at(&folder_);
-    std::construct_at(&map_);
-    std::construct_at(&zone_);
-    std::construct_at(&stringArrays_[0]);
-    std::construct_at(&stringArrays_[1]);
-    return Assign(from);
-}
-
-void SaveEntry::Destruct() {
-    std::destroy_at(&stringArrays_[1]);
-    std::destroy_at(&stringArrays_[0]);
-    std::destroy_at(&zone_);
-    std::destroy_at(&map_);
-    std::destroy_at(&folder_);
-    std::destroy_at(&title_);
-}
-
 void CSaveLoadWindow::Confirm() {
     if (selected_ < 0) return;
     if (!isSave_) {
@@ -552,20 +486,20 @@ void CSaveLoadWindow::AskDelete() {
 void CSaveLoadWindow::LoadSelected() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
-    if (entries_.begin()[selected].broken_) return;
+    if (entries_.data()[selected].broken_) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
     TheInterface()->ShowStatusText(notice.c_str());
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
-    Flow()->RequestLoad(entries_.begin()[selected_].folder_.c_str(), 0);
+    Flow()->RequestLoad(entries_.data()[selected_].folder_.c_str(), 0);
 }
 
 void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     std::string folder;
-    folder = str::Format(kFolderFormat, DataFolderText(), entries_.begin()[selected].folder_.c_str());
+    folder = str::Format(kFolderFormat, DataFolderText(), entries_[selected].folder_.c_str());
     lib::FileFind find;
     BOOL more = find.FindFile((folder + kEveryFile));
     while (more) {

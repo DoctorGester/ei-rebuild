@@ -65,14 +65,9 @@ void QuestUnguardedInsertionSort(std::string* first, std::string* last, void* ta
 // The save / load list (ui_saveload.cpp) by the saved time (+0x08, signed), the newest first: the
 // comparison is !(a < b) (a.savedAt < b.savedAt is the less), so equal times compare true both ways (not a strict
 // weak ordering: with two saves of the same time the unguarded scans can leave the range, in the
-// game as here). A SaveEntry copy allocates (its strings and string lists), so every copy, assignment and
-// destruction is STLport's (stlp::Held, SaveEntryOps): the copy constructor, operator=
-// (inlined in the helpers, the same calls) and the destructor. __introsort_loop,
-// __final_insertion_sort; copy_backward
-// (first, last, result end), returning the first element written.
+// game as here). __introsort_loop, __final_insertion_sort.
 void SaveIntroSort(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp);
 void SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
-SaveEntry* SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result);
 
 // A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
 // texts. A copy allocates (string's copy constructor, the swap's string(first, last)), so

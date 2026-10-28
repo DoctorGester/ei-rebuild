@@ -29,6 +29,7 @@
 #include "render/render.h"
 
 #include <bit>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 #include "game_data.h"
@@ -480,7 +481,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         AssignTexture(&texture, TheTextureManager()->NewShadowTexture());
         if (!texture) return game::FatalError("Can't create texture for shadow rendering!\n");
         char name[0x100];
-        gamecrt::sprintf(name, "SR%d", object->id_);
+        std::snprintf(name, sizeof(name), "SR%d", object->id_);
         texture->name_ = name;
         flags_ |= kFlagRefresh;
     }

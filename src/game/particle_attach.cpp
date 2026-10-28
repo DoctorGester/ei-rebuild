@@ -22,7 +22,6 @@ constexpr std::uint32_t kBoundsSphere = 1;      // CObject3D::boundsFlags: radiu
 const char* const kPartNames[13] = {nullptr, "hd", "hd", "lh2", "rh2", "ll2", "rl2", "bd",
                                     "body00", "body01", "body02", "body03", "body04"};
 
-
 void SetPosition(Vector3* out, const float* p) {
     out->x = p[0];
     out->y = p[1];
@@ -32,13 +31,9 @@ void SetPosition(Vector3* out, const float* p) {
 } // namespace
 
 void CParticleSource::ReleaseAllParticles() {
-    while (particles.count != 0) {
-        auto* node = particles.head;
-        Particle* p = node->data;
-        particles.head = node->next;
-        if (particles.head) particles.head->prev = nullptr;
-        else particles.tail = nullptr;
-        particles.FreeNode(node);
+    while (!particles.empty()) {
+        Particle* p = particles.front();
+        particles.pop_front();
         Manager()->ReleaseParticle(p);
     }
 }

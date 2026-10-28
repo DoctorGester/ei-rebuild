@@ -12,6 +12,8 @@
 #include "lib/mfc.h"
 #include "game/game_slots.h"
 
+#include <list>
+
 void ScriptGroup::DestructBody() {
     ei::SetVtable(this, mfc::impl::ObjectRefArrayClass::Vtable());   // CArray<ScriptObjectRef>'s base vtable
     if (!data) return;
@@ -56,7 +58,7 @@ bool CAIMap::MoveInSectors(CMapObject* object, const Vector3* position) {
     return Sectors(this)->Move(object, position);
 }
 
-void CAIMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius) {
+void CAIMap::FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius) {
     Sectors(this)->FindUnitsInRadius(position, result, radius);
 }
 

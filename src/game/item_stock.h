@@ -13,6 +13,7 @@
 
 #include "lib/stlp.h"
 #include "lib/hash_map.h"
+#include "engine_object.h"
 #include "item_db.h"
 #include "game_data.h"
 
@@ -41,8 +42,7 @@ using StockMaterialVector = std::vector<StockMaterial>;
 // map's lists hold recipe pointers.
 using StockList = std::list<CItem*>;
 using StockListNode = StockList::iterator;
-using StockSpellList = stlp::list<CSpell*>;
-using StockSpellListNode = StockSpellList::Node;
+using StockSpellList = std::list<HeldPtr<CSpell>>;
 using StockRecipeList = std::list<void*>;
 
 using StockStringVector = std::vector<std::string>;
@@ -51,7 +51,7 @@ using StockStringVector = std::vector<std::string>;
 using SpellRecipe = itemdb::SpellListRecord;
 
 // A vector of spell recipes (the spell database's lists for weapons, armors and scrolls).
-using SpellRecipeVector = stlp::vector<SpellRecipe>;
+using SpellRecipeVector = std::vector<SpellRecipe>;
 
 // The recipe map (ItemStock::spellMap): recipe lists by spell name, walked in STLport's order (the spells are
 // offered in it, with the random rolls).

@@ -2,7 +2,6 @@
 // each archive closed (CloseResource) and deleted, then the map destroyed. See docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
-#include "record_lifetime.h"
 
 #include "lib/crt.h"
 #include "lib/stlp.h"

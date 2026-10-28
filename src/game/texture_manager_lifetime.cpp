@@ -7,8 +7,8 @@
 
 #include "lib/crt.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 
+#include <list>
 #include <new>
 #include <string>
 
@@ -16,7 +16,6 @@
 
 namespace {
 
-constexpr int kListBlockSize = 10;
 constexpr const char* kClassName = "CTextureManager";
 constexpr const char* kFolder = "textures";
 
@@ -33,8 +32,6 @@ std::uint32_t CreateFlag(int type) {
 } // namespace
 
 CTextureManager::CTextureManager() {
-    cache_ = mfc::CTypedPtrList<CTexture>{mfc::impl::TextureListClass::Vtable(), nullptr, nullptr, 0,
-                                          nullptr, nullptr, kListBlockSize};
     shadowRenderSurface_ = nullptr;
     device_ = nullptr;
     cachedBytes_ = 0;
@@ -48,13 +45,13 @@ static void ReleaseTextures(CTextureManager* manager) {
     CTexture* shadow = manager->shadowRenderSurface_;
     manager->shadowRenderSurface_ = nullptr;
     if (shadow) shadow->Release();
-    for (auto* node = manager->cache_.head; node;) {
-        CTexture* texture = node->data;
-        node = node->next;
+    for (auto node = manager->cache_.begin(); node != manager->cache_.end();) {
+        CTexture* texture = *node;
+        ++node;
         texture->Destroy();
         if (texture) delete texture;
     }
-    manager->cache_.RemoveAll();
+    manager->cache_.clear();
     manager->cachedBytes_ = 0;
     DeleteComposedTextures();
     CTextureDevice* device = manager->device_;
@@ -86,8 +83,7 @@ CTextureManager::~CTextureManager() {
     CResourceManager::Destroy();
     SetDevice(nullptr);
     // The members' destructors: both counted pointers are empty by now; the cache's.
-    cache_.vtable = mfc::impl::TextureListClass::Vtable();
-    cache_.RemoveAll();
+    cache_.clear();
 }
 
 CEngineObject* CTextureManager::CreateObject(int type, int id) {

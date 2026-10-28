@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cstdint>
@@ -28,16 +27,15 @@ SIZE TextExtent(CInterface3D* ui, const std::string& text, int font) {
 }
 
 void Append(UiTokenArray& tokens, UiTextToken* token) {
-    int index = tokens.size;
-    tokens.SetSize(index + 1, -1);
-    tokens.data[index] = token;
+    int index = std::ssize(tokens);
+    tokens.resize(index + 1);
+    tokens[index] = token;
 }
 
 bool IsFormat(const char* token) {
     return token[0] == '\n' || (token[0] == kEscape && (token[1] == 'C' || token[1] == 'F'));
 }
 } // namespace
-
 
 int CUiScrollText::NextToken(const std::string* text, int pos, std::string* out) {
     int length = text->size();
@@ -104,7 +102,7 @@ void CUiScrollText::Tokenize(const std::string* text) {
                 format->colour_ = colour;
             } else if (t[1] == 'F') {
                 format->font_ = t[2] - '0';
-                format->newline_ = tokens_.size != 0;
+                format->newline_ = !tokens_.empty();
                 font = t[2] - '0';
             }
             pos = NextToken(text, pos, &token);
@@ -135,7 +133,7 @@ void CUiScrollText::DrawLines(int scroll) {
     CUiSurface* surface = !surfaces_.empty() ? surfaces_[0] : nullptr;
     UiSurfaceGetDC(surface);
     surface->Clear();
-    int lineCount = lines_.size;
+    int lineCount = std::ssize(lines_);
     if (lineCount <= 0) {
         UiSurfaceReleaseDC(surface);
         return;
@@ -144,11 +142,11 @@ void CUiScrollText::DrawLines(int scroll) {
     // The first line reaching `scroll`, and how far above the surface its top lies.
     int above = 0;
     int line = 0;
-    while (line < lineCount && above < scroll) above += lines_.data[line++]->height_;
+    while (line < lineCount && above < scroll) above += lines_[line++]->height_;
     --line;
     if (line < 0) line = 0;
     int offset = 0;
-    if (scroll != 0) offset = above - lines_.data[line]->height_ - scroll;
+    if (scroll != 0) offset = above - lines_[line]->height_ - scroll;
 
     // The fonts' heights (the extent of the sample text in fonts 0-2).
     int heights[kMeasuredFonts];
@@ -161,11 +159,11 @@ void CUiScrollText::DrawLines(int scroll) {
     // itself and token 0 are not looked at), else font 1 in the default colour.
     COLORREF colour = kDefaultColour;
     int font = kDefaultFont;
-    int first = lines_.data[line]->firstToken_;
-    if (tokens_.data[first]->type_ != kFormatType) {
+    int first = lines_[line]->firstToken_;
+    if (tokens_[first]->type_ != kFormatType) {
         for (int k = first; k > 0; --k) {
-            if (tokens_.data[k]->type_ == kFormatType) {
-                auto* format = tokens_.data[k]->AsFormat();
+            if (tokens_[k]->type_ == kFormatType) {
+                auto* format = tokens_[k]->AsFormat();
                 colour = format->colour_;
                 font = format->font_;
                 break;
@@ -177,29 +175,29 @@ void CUiScrollText::DrawLines(int scroll) {
     row.top = offset;
     int drawn = 0;
     do {
-        const UiTextLine* record = lines_.data[line];
+        const UiTextLine* record = lines_[line];
         row.bottom = row.top + record->height_;
         int begin = record->firstToken_;
-        int end = line == lines_.size - 1 ? tokens_.size : lines_.data[line + 1]->firstToken_;
+        int end = line == std::ssize(lines_) - 1 ? std::ssize(tokens_) : lines_[line + 1]->firstToken_;
 
         int wordsWidth = 0;
         for (int t = begin; t < end; ++t)
-            if (tokens_.data[t]->type_ == kWordType) wordsWidth += tokens_.data[t]->AsWord()->width_;
+            if (tokens_[t]->type_ == kWordType) wordsWidth += tokens_[t]->AsWord()->width_;
         // Left aligned (a third of the font's height apart), or justified over the width. The
         // last token is read before the count is checked, as in the original. (A font above 2
         // reads past `heights`; the original reads its other stack slots there.)
         int gap;
-        const UiTextToken* last = align_ != kAlignLeft ? tokens_.data[end - 1] : nullptr;
+        const UiTextToken* last = align_ != kAlignLeft ? tokens_[end - 1] : nullptr;
         if (align_ == kAlignLeft ||
             (last->type_ == kFormatType && last->AsFormat()->newline_) || end - begin < 2 ||
-            end == tokens_.size)
+            end == std::ssize(tokens_))
             gap = heights[font] / 3;
         else
             gap = (textRect_.right - textRect_.left - wordsWidth) / (end - begin - 1);
 
         RECT word = row;
         for (int t = begin; t < end; ++t) {
-            UiTextToken* token = tokens_.data[t];
+            UiTextToken* token = tokens_[t];
             if (token->type_ == kFormatType) {
                 auto* format = token->AsFormat();
                 colour = format->colour_;
@@ -210,11 +208,11 @@ void CUiScrollText::DrawLines(int scroll) {
                 word.left += w->width_ + gap;
             }
         }
-        int height = lines_.data[line]->height_;
+        int height = lines_[line]->height_;
         row.top += height;
         drawn += height;
         ++line;
-    } while (drawn < textRect_.bottom - textRect_.top - offset && line < lines_.size);
+    } while (drawn < textRect_.bottom - textRect_.top - offset && line < std::ssize(lines_));
     UiSurfaceReleaseDC(surface);
 }
 
@@ -240,13 +238,11 @@ void LayOut(CUiScrollText* self) { self->Layout(); }
 // The scroll bar's tables with its own drawing and layout.
 CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth)
     : CUiScrollbar(ui, rect, depth, 0, kScrollSpeed) {
-    tokens_.Construct(mfc::impl::TokenPtrArrayClass::Vtable());   // CArray<UiTextToken*>
-    lines_.Construct(mfc::impl::LinePtrArrayClass::Vtable());   // CArray<UiTextLine*>
     AddSurface(new CUiSurface(interface_, &rect, kSurfaceFormat));
     CUiScrollbar::SetRect(&rect);
     PlaceText(rect);
     DeleteTokens();
-    tokens_.SetSize(0, -1);
+    tokens_.clear();
     TokenizeText(this, text);
     LayOut(this);
     SetPosition(0);
@@ -255,8 +251,8 @@ CUiScrollText::CUiScrollText(CInterface3D* ui, const char* text, RECT rect, floa
 }
 
 void CUiScrollText::DeleteTokens() {
-    for (int i = 0; i < tokens_.size; ++i)
-        if (UiTextToken* token = tokens_.data[i]) delete token;
+    for (int i = 0; i < std::ssize(tokens_); ++i)
+        if (UiTextToken* token = tokens_[i]) delete token;
 }
 
 void CUiScrollText::PlaceText(const RECT& rect) {
@@ -268,13 +264,9 @@ void CUiScrollText::PlaceText(const RECT& rect) {
 
 CUiScrollText::~CUiScrollText() {
     DeleteTokens();
-    tokens_.SetSize(0, -1);
-    for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
-    lines_.SetSize(0, -1);
-    lines_.vtable = mfc::impl::LinePtrArrayClass::Vtable();
-    lines_.FreeData();
-    tokens_.vtable = mfc::impl::TokenPtrArrayClass::Vtable();
-    tokens_.FreeData();
+    tokens_.clear();
+    for (int i = 0; i < std::ssize(lines_); ++i) gamecrt::operator_delete(lines_[i]);
+    lines_.clear();
 }
 
 void CUiScrollText::AddText(const char* text) {
@@ -308,7 +300,7 @@ BOOL CUiScrollText::Draw(CSceneRenderer* pass) {
 
 void CUiScrollText::Clear() {
     DeleteTokens();
-    tokens_.SetSize(0, -1);
+    tokens_.clear();
 }
 
 void CUiScrollText::Layout() {
@@ -320,19 +312,19 @@ void CUiScrollText::Layout() {
         std::string sample = FontSampleText();
         heights[f] = TextExtent(interface_, sample, f).cy;
     }
-    for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
-    lines_.SetSize(0, -1);
+    for (int i = 0; i < std::ssize(lines_); ++i) gamecrt::operator_delete(lines_[i]);
+    lines_.clear();
 
-    for (int t = 0; t < tokens_.size; ++t) {
+    for (int t = 0; t < std::ssize(tokens_); ++t) {
         // (The original does not check the allocation.)
         auto* line = gamecrt::operator_new_as<UiTextLine>();
         int height = heights[font];
         line->firstToken_ = t;
         line->height_ = height;
-        lines_.Add(line);
+        lines_.push_back(line);
         int x = 0;
-        for (; t < tokens_.size && x < width; ++t) {
-            UiTextToken* token = tokens_.data[t];
+        for (; t < std::ssize(tokens_) && x < width; ++t) {
+            UiTextToken* token = tokens_[t];
             if (token->type_ == kFormatType) {
                 auto* format = token->AsFormat();
                 if (format->newline_) {

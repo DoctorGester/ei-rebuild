@@ -31,21 +31,17 @@ const char* ModelName(const CFigureAnimationState* state) { return state->owner-
 // The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     if (FigureManagerOf(state)->SetFigureAnimation(state, ModelName(state), animation)) return;
-    for (auto* node = state->bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = state->bones.begin(); node != state->bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         CFigureAnimationState::AnimateBone(bone, state->current);
     }
 }
 
 // The queue's RemoveHead (inlined by the original).
 FigureAnimation* PopQueued(CFigureAnimationState* state) {
-    auto* node = state->queue.head;
-    FigureAnimation* animation = node->data;
-    state->queue.head = node->next;
-    if (state->queue.head) state->queue.head->prev = nullptr;
-    else state->queue.tail = nullptr;
-    state->queue.FreeNode(node);
+    FigureAnimation* animation = state->queue.front();
+    state->queue.pop_front();
     return animation;
 }
 } // namespace
@@ -58,15 +54,15 @@ void CFigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation*
 }
 
 void CFigureAnimationState::Play(FigureAnimation* animation) {
-    for (auto* node = bones.head; node;) {
-        FigureBone* bone = node->data;
-        node = node->next;
+    for (auto node = bones.begin(); node != bones.end();) {
+        FigureBone* bone = *node;
+        ++node;
         bone->pose = AnimatorOf(bone);
     }
     if (!FigureManagerOf(this)->SetFigureAnimation(this, ModelName(this), animation)) {
-        for (auto* node = bones.head; node;) {
-            FigureBone* bone = node->data;
-            node = node->next;
+        for (auto node = bones.begin(); node != bones.end();) {
+            FigureBone* bone = *node;
+            ++node;
             AnimateBone(bone, animation);
         }
     }
@@ -74,14 +70,14 @@ void CFigureAnimationState::Play(FigureAnimation* animation) {
     current = animation;
 }
 
-void* CFigureAnimationState::Queue(FigureAnimation* animation) { return queue.AddTail(animation); }
+void CFigureAnimationState::Queue(FigureAnimation* animation) { queue.push_back(animation); }
 
 void CFigureAnimationState::SetTime(float frame) {
     EI_NAN_AUDIT(time, frame);
     if (time != frame) changed = 1;   // FCOMP; TEST AH,0x40
     const FigureAnimation* before = current;
     time = frame;
-    if (!current && queue.count != 0) {
+    if (!current && !queue.empty()) {
         current = PopQueued(this);
         time = 0.0f;
     }
@@ -90,7 +86,7 @@ void CFigureAnimationState::SetTime(float frame) {
         if (frames >= time) break;             // on while below the frame reached, or NaN
         time = static_cast<float>(time - frames);
         if (onEnd) onEnd(owner);
-        if (queue.count != 0) {
+        if (!queue.empty()) {
             current = PopQueued(this);
         } else if ((current->key & kKeyEndMask) != kKeyLoops) {
             time = static_cast<float>(x87::FromUnsigned(current->frameCount));

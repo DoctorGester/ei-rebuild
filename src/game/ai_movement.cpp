@@ -11,9 +11,9 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 
 #include <cstring>
+#include <list>
 #include "game_data.h"
 
 // The unit shape cache. Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
@@ -32,16 +32,14 @@ constexpr int kExpensive = 12000;           // cost above which a step is flagge
 } // namespace
 
 CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
-    mfc::CTypedPtrList<CUnit> nearby{};
-    nearby.vtable = mfc::impl::PtrListClass::Vtable();
-    nearby.blockSize = 10;
+    std::list<CUnit*> nearby{};
     float unitHeight = unit->standingHeight;
     sectorMap.FindUnitsInRadius(position, &nearby, 10.0f);
 
     CUnit* blocker = nullptr;
-    for (auto* node = nearby.head; node;) {
-        CUnit* other = node->data;
-        node = node->next;
+    for (auto node = nearby.begin(); node != nearby.end();) {
+        CUnit* other = *node;
+        ++node;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
         double dy = static_cast<double>(position->y) - other->localPosition_.y;
@@ -80,8 +78,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             break;
         }
     }
-    nearby.vtable = mfc::impl::PtrListClass::Vtable();
-    nearby.RemoveAll();
+    nearby.clear();
     return blocker;
 }
 
@@ -93,7 +90,7 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->shift = sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->costs = passCosts;
-    out->climb = climb.data + climb.size / 2;
+    out->climb = climb.data() + std::ssize(climb) / 2;
     return out->climb;
 }
 
@@ -102,7 +99,7 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
     // the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
     const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
-    const int* climb = climbTable.data + climbTable.size / 2;
+    const int* climb = climbTable.data() + std::ssize(climbTable) / 2;
         PassCostContext context;
     CostContext(unit->sizeClass, &context);
 
