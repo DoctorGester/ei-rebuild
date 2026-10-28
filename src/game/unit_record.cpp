@@ -26,10 +26,9 @@ CItemManager* TheFactory() { return TheServerWorld()->itemManager_; }
 CSpellManager* SpellOwner() { return TheServerWorld()->manager4C_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
-    const mfc::CStringArray& quick = record.lists[UnitRecord::kQuickItems];
-    for (int i = 0; i < quick.size; ++i) unit->AddQuickItem(CreateItem(factory, quick.data[i]));
-    const mfc::CStringArray& carried = record.lists[UnitRecord::kCarried];
-    for (int i = 0; i < carried.size; ++i) unit->AddCarried(CreateItem(factory, carried.data[i]));
+    for (const std::string& name : record.lists[UnitRecord::kQuickItems])
+        unit->AddQuickItem(CreateItem(factory, name.c_str()));
+    for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name.c_str()));
 }
 
 } // namespace
@@ -85,13 +84,10 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.valuesE0[i].base = s.valuesE0[i].current = r.valuesE0[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    const mfc::CStringArray& spells = lists[kSpells];
-    for (int i = 0; i < spells.size; ++i) unit->AddSpell(factory->CreateSpellItem(spells.data[i], SpellOwner()));
+    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name.c_str(), SpellOwner()));
     AddItems(*this, unit, factory);
-    const mfc::CStringArray& armour = lists[kArmour];
-    for (int i = 0; i < armour.size; ++i) unit->EquipArmour(CreateItem(factory, armour.data[i]));
-    const mfc::CStringArray& weapons = lists[kWeapons];
-    for (int i = 0; i < weapons.size; ++i) unit->AddWeapon(CreateItem(factory, weapons.data[i]));
+    for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name.c_str()));
+    for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name.c_str()));
 }
 EI_REWRITTEN(0x00477B00, UnitRecord::ApplyTo);
 

@@ -301,7 +301,6 @@ EI_REWRITTEN(0x0046C900, BehaviourChunk::Write);
 
 UnitSpec::UnitSpec() {
     VectorConstruct(behaviour, sizeof(Behaviour), 5, BehaviourConstruct, BehaviourDestruct);
-    for (mfc::CStringArray& list : record.lists) list.Construct();
     record.applyStats = 0;
     kind = 5;
     prototype = "none";
@@ -314,7 +313,6 @@ EI_REWRITTEN_SPECIAL(0x0046C010, UnitSpec::UnitSpec);
 // The prototype's name goes with the members, after the behaviour records (the original frees it
 // before them).
 UnitSpec::~UnitSpec() {
-    for (int i = 4; i >= 0; --i) record.lists[i].Destruct();
     VectorDestruct(behaviour, sizeof(Behaviour), 5, BehaviourDestruct);
 }
 EI_REWRITTEN_SPECIAL(0x0046C140, UnitSpec::~UnitSpec);

@@ -118,7 +118,6 @@ EI_REWRITTEN_SPECIAL(0x00676080, CEffectSound::~CEffectSound);
 
 
 CEffectSoundSeq::CEffectSoundSeq() {
-    names_.Construct();
     sound_ = -1;
     Reset();
 }
@@ -127,14 +126,12 @@ EI_REWRITTEN_SPECIAL(0x00676760, CEffectSoundSeq::CEffectSoundSeq);
 CEffectSoundSeq::~CEffectSoundSeq() {
     Reset();
     Reset();   // again, the virtual
-    names_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x00676980, CEffectSoundSeq::~CEffectSoundSeq);
 EI_REWRITTEN_SPECIAL(0x00676960, CEffectSoundSeq::~CEffectSoundSeq);
 
 
 CEffectAmbientSound::CEffectAmbientSound() {
-    names_.Construct();
     sound_ = -1;
     Reset();
 }
@@ -143,7 +140,6 @@ EI_REWRITTEN_SPECIAL(0x00677510, CEffectAmbientSound::CEffectAmbientSound);
 CEffectAmbientSound::~CEffectAmbientSound() {
     Reset();
     Reset();   // again, the virtual
-    names_.Destruct();
 }
 EI_REWRITTEN_SPECIAL(0x006776E0, CEffectAmbientSound::~CEffectAmbientSound);
 EI_REWRITTEN_SPECIAL(0x006776C0, CEffectAmbientSound::~CEffectAmbientSound);

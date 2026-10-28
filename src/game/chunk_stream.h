@@ -10,6 +10,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 class Chunk {
 public:
@@ -53,8 +55,8 @@ public:
     mfc::CString* ReadString(mfc::CString* out);
     mfc::CString* ReadEncodedString(mfc::CString* out);
     void WriteString(std::uint32_t id, mfc::CString text);
-    void ReadStringArray(mfc::CStringArray* array);
-    void WriteStringArray(std::uint32_t id, mfc::CStringArray* array);
+    void ReadStringArray(std::vector<std::string>* array);
+    void WriteStringArray(std::uint32_t id, const std::vector<std::string>* array);
 
     std::uint32_t id_;
     std::int32_t consumed_;  // bytes of the chunk read or written so far, header included

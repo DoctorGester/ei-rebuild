@@ -68,16 +68,16 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
     }
     int hairStyle = prototype ? prototype->hair : 1;
 
-    mfc::CStringArray* parts = &message->parts;
+    std::vector<std::string>& parts = message->parts;
     for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
         const char* part = worlddata::HeroPartText(n);
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
                 scratch.Format(worlddata::HairFormat(), hairStyle);
-                parts->SetAtGrow(parts->size, scratch);
+                parts.push_back(scratch.GetString());
             }
         } else {
-            parts->SetAtGrow(parts->size, part);
+            parts.push_back(part);
         }
     }
 }
@@ -168,7 +168,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         message->side = 0;
         message->parentIname = record->texts[3];
         message->skinTexture = record->texts[4];
-        message->parts.SetSize(0, -1);
+        message->parts.clear();
         const char* prototypeName = record->texts[5].c_str();
         int type = PrototypeObjectClass(prototypeName);
         message->parentId = type;
@@ -332,7 +332,9 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     auto companionTexts = [spec](CMapObjectServer* companion) {
         companion->name78 = spec->parentIname;
         companion->name7C = spec->skinTexture;
-        companion->strings.Copy(spec->parts);
+        mfc::CStringArray& strings = companion->strings;
+        strings.SetSize(0, -1);
+        for (const std::string& part : spec->parts) strings.SetAtGrow(strings.GetSize(), part);
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
@@ -473,11 +475,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
             objectManager->ApplyPrototype(object, unitSpec->prototype.c_str());
             objectManager->GiveStartingEquipment(unit, unitSpec->prototype.c_str());
-            const mfc::CStringArray& worn = unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems];
-            for (int i = 0; i < worn.size; ++i) {
-                const char* name = worn.data[i];
-                unit->AddQuickItem(ItemFactory()->CreateItem(name));
-            }
+            for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])
+                unit->AddQuickItem(ItemFactory()->CreateItem(name.c_str()));
             unitSpec->record.ApplyTo(unit);
             // The model's six values (UnitModelRecord) go to the unit.
             const char* prototypeName = unitSpec->prototype.c_str();
@@ -535,7 +534,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         auto* sound = static_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = timedManager->CreateObjectAs<CEffectAmbientSound>(kTimedAmbientSound, base.id);
-            ambient->names_.Copy(sound->sounds);
+            ambient->names_ = sound->sounds;
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
             ambient->radius_ = static_cast<float>(sound->radius);
@@ -544,10 +543,10 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             return timed(ambient);
         }
         auto* plain = timedManager->CreateObjectAs<CEffectSound>(kTimedSound, base.id);
-        if (sound->sounds.size < 1) {
+        if (sound->sounds.empty()) {
             mfc::impl::MessageBoxText(worlddata::NoWaveNameText(), 0, 0);
         } else {
-            const char* wave = sound->sounds.data[0];
+            const char* wave = sound->sounds[0].c_str();
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }
         Copy(&plain->localPosition_, &base.position, 12);

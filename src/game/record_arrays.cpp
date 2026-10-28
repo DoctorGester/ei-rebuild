@@ -33,12 +33,12 @@ void InitTheme(MusicTheme* p) {
     std::construct_at(&p->name);
     std::construct_at(&p->briefing);
     std::construct_at(&p->constructor);
-    p->calm.Construct();
-    p->combat.Construct();
+    std::construct_at(&p->calm);
+    std::construct_at(&p->combat);
 }
 void __fastcall DestroyTheme(MusicTheme* p) {
-    p->combat.Destruct();
-    p->calm.Destruct();
+    std::destroy_at(&p->combat);
+    std::destroy_at(&p->calm);
     std::destroy_at(&p->constructor);
     std::destroy_at(&p->briefing);
     std::destroy_at(&p->name);
@@ -49,6 +49,10 @@ void ThemeElements::Relocate(MusicTheme* to, MusicTheme* from, int count) {
         std::construct_at(&target->name, std::move(source->name));
         std::construct_at(&target->briefing, std::move(source->briefing));
         std::construct_at(&target->constructor, std::move(source->constructor));
+        std::construct_at(&target->calm, std::move(source->calm));
+        std::construct_at(&target->combat, std::move(source->combat));
+        std::destroy_at(&source->combat);
+        std::destroy_at(&source->calm);
         std::destroy_at(&source->constructor);
         std::destroy_at(&source->briefing);
         std::destroy_at(&source->name);

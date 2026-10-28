@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class CStream;
 class CEngineObject;
@@ -192,7 +193,7 @@ public:
     std::uint8_t unused_6F;
     std::string parentIname;
     std::string skinTexture;    // (chunk B008) the texture swapped onto the figure ("none": none)
-    mfc::CStringArray parts;
+    std::vector<std::string> parts;
 };
 
 // A flame (chunk BBBF0000).
@@ -236,14 +237,14 @@ public:
     LeverSetup lever;
 };
 
-// The zone's player table (DiplomacyConstruct): the relation of every pair of the 32 players (1
+// The zone's player table: the relation of every pair of the 32 players (1
 // by default, 0 with itself, 2 hostile) and their names.
 struct ZoneDiplomacy {
+    ZoneDiplomacy();
+
     std::int32_t relations[32][32];
-    mfc::CStringArray names;
+    std::vector<std::string> names;
 };
-static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
-static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
 // The effect records' base.
 class EffectSpec : public Spec {
@@ -312,7 +313,7 @@ public:
     void Apply() override;
     void Save() override;           // chunk CC01
 
-    mfc::CStringArray sounds;     // (none made without any)
+    std::vector<std::string> sounds;   // (none made without any)
     std::int32_t volume;         // (10; chunk CC04) the sound's volume
     std::int32_t radius;         // (15; chunk CC0B) the sound's radius
     std::int32_t unused_70;
@@ -341,7 +342,6 @@ public:
     unitrecord::UnitRecord record;   // the statistics and item lists (applied to the unit by the world server)
 };
 
-ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);
 // The records of a .mob file by id (a local of the zone loader) and the largest id read.
 struct MobRecords {
     stlp::hash_map<std::int32_t, Spec*, stlp::IntHash> byId;

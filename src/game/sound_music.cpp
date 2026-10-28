@@ -45,10 +45,10 @@ std::uint32_t CalmDelay() {
 }
 
 // One name of a theme list: the only one, or one at random.
-const mfc::CString& PickName(const SoundNameArray& names) {
-    std::uint32_t n = static_cast<std::uint32_t>(names.size);
-    if (n == 1) return names.data[0];
-    return names.data[IsaacRandom::Global().Next() % n];
+const std::string& PickName(const SoundNameArray& names) {
+    std::uint32_t n = static_cast<std::uint32_t>(names.size());
+    if (n == 1) return names[0];
+    return names[IsaacRandom::Global().Next() % n];
 }
 
 // Waits for the stream thread to take up a request (state 2 -> 1), then asks it to stop after
@@ -90,8 +90,8 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     to.dungeon = theme.dungeon;
     to.briefing = theme.briefing;
     to.constructor = theme.constructor;
-    to.calm.Copy(theme.calm);
-    to.combat.Copy(theme.combat);
+    to.calm.assign(theme.calm.data, theme.calm.data + theme.calm.GetSize());
+    to.combat.assign(theme.combat.data, theme.combat.data + theme.combat.GetSize());
 }
 
 const mfc::CString& TextPath() { return TheTextFolder(); }
@@ -267,7 +267,7 @@ int CMusicSystem::UpdateMusic() {
         if (gameapi::timeGetTime() >= calmDue) {
             calmDue = 0;
             const MusicTheme& t = themes[theme];
-            if (t.calm.size != 0) {
+            if (!t.calm.empty()) {
                 std::string track;
                 track = PickName(t.calm);
                 track += kMp3;

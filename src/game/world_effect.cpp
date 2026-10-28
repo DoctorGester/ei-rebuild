@@ -59,12 +59,12 @@ int CEffect::Receive(int update, BitStream* reader) {
 
 void CEffect::Reset() { ClearBase(this); }
 
-void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream) {
+void ReadSavedStrings(std::vector<std::string>* array, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
         mfc::CString text(mfc::CString::kUnset);   // constructed by the read
-        array->SetAtGrow(array->size, *stream->ReadString(&text));
+        array->push_back(stream->ReadString(&text)->GetString());
     }
 }
 EI_REWRITTEN(0x006773A0, ReadSavedStrings);
@@ -186,7 +186,7 @@ void CEffectSoundSeq::Reset() {
     volume_ = 0.0f;
     radius_ = 0.0f;
     name_ = EmptyCString();
-    names_.SetSize(0, -1);
+    names_.clear();
     noFade_ = 0;
 }
 
@@ -203,9 +203,9 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
     field->WriteStringBoth(name_.c_str());
-    int count = names_.size;
+    int count = static_cast<int>(names_.size());
     field->WriteDelta(&count, 4);
-    for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
+    for (const std::string& name : names_) field->WriteStringBoth(name.c_str());
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
     field->WriteFloat16x3(&velocity_.x);
@@ -228,12 +228,9 @@ void CEffectSoundSeq::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
     Write(stream, &velocity_, 12);
     Write(stream, name_.c_str(), static_cast<std::uint32_t>(std::strlen(name_.c_str()) + 1));
-    int count = names_.size;
+    int count = static_cast<int>(names_.size());
     Write(stream, &count, 4);
-    for (int i = 0; i < names_.size; ++i) {
-        const char* name = names_[i];
-        Write(stream, name, static_cast<std::uint32_t>(std::strlen(name) + 1));
-    }
+    for (const std::string& name : names_) Write(stream, name.c_str(), static_cast<std::uint32_t>(name.size() + 1));
     WriteCopy(stream, &volume_);
     WriteCopy(stream, &radius_);
     Write(stream, &noFade_, 1);
@@ -245,7 +242,7 @@ double CEffectSoundSeq::Radius() { return radius_; }
 void CEffectAmbientSound::Reset() {
     ClearBase(this);
     if (sound_ != -1) sound_ = TheSoundManager()->RemoveEmitter(sound_);
-    names_.SetSize(0, -1);
+    names_.clear();
     volume_ = 0.0f;
     radius_ = 0.0f;
     minInterval_ = 0;
@@ -268,10 +265,10 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     // The count is read into the low byte of the argument slot that held `field`.
     std::uint32_t countSlot = reinterpret_cast<std::uintptr_t>(field);
     field->ReadDelta(&countSlot, 1);
-    names_.SetSize(static_cast<int>(countSlot & 0xFF), -1);
-    for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
+    names_.resize(countSlot & 0xFF);
+    for (std::string& name : names_) {
         mfc::CString text(mfc::CString::kUnset);   // constructed by the read
-        names_[i] = *field->ReadString(&text);
+        name = field->ReadString(&text)->GetString();
     }
     field->ReadFloat16(&volume_);
     field->ReadFloat16(&radius_);
@@ -286,9 +283,9 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
 void CEffectAmbientSound::Pack(DeltaField* field) {
     Vector3 position = localPosition_;
     field->WritePosition(&position);
-    std::uint8_t count = static_cast<std::uint8_t>(names_.size);
+    std::uint8_t count = static_cast<std::uint8_t>(names_.size());
     field->WriteDelta(&count, 1);
-    for (int i = 0; i < names_.size; ++i) field->WriteStringBoth(names_[i]);
+    for (const std::string& name : names_) field->WriteStringBoth(name.c_str());
     field->WriteFloat16(Bits(volume_));
     field->WriteFloat16(Bits(radius_));
     int value = minInterval_;
@@ -308,12 +305,9 @@ void CEffectAmbientSound::Load(CStream* stream) {
 
 void CEffectAmbientSound::Save(CStream* stream) {
     Write(stream, &localPosition_, 12);
-    int count = names_.size;
+    int count = static_cast<int>(names_.size());
     Write(stream, &count, 4);
-    for (int i = 0; i < names_.size; ++i) {
-        const char* name = names_[i];
-        Write(stream, name, static_cast<std::uint32_t>(std::strlen(name) + 1));
-    }
+    for (const std::string& name : names_) Write(stream, name.c_str(), static_cast<std::uint32_t>(name.size() + 1));
     WriteCopy(stream, &volume_);
     WriteCopy(stream, &radius_);
     WriteCopy(stream, &minInterval_);

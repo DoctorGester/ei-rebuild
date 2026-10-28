@@ -102,7 +102,6 @@ void ReadPlayers(Chunk* parent, ZoneDiplomacy* diplomacy) {
     chunk.ReadHeader();
     chunk.ReadBytes(diplomacy->relations, sizeof(diplomacy->relations));
     chunk.ReadHeader();
-    diplomacy->names.SetSize(0, -1);
     chunk.ReadStringArray(&diplomacy->names);
 }
 
@@ -145,9 +144,8 @@ bool MobFile::Load(void*, int keepIds) {
     MobRecords records;
     records.byId.InitBuckets(100);
     records.maxId = 0;
-    lib::InPlace<ZoneDiplomacy> diplomacyStorage;
-    auto* diplomacy = diplomacyStorage.Get();
-    DiplomacyConstruct(diplomacy);
+    ZoneDiplomacy zoneDiplomacy;
+    ZoneDiplomacy* diplomacy = &zoneDiplomacy;
     alignas(mfc::CString) std::uint8_t scriptsStorage[sizeof(mfc::CString)];   // destroyed by hand, in order
     auto* scripts = new (scriptsStorage) mfc::CString();
 
@@ -184,7 +182,6 @@ bool MobFile::Load(void*, int keepIds) {
 
     if (!(keepIds & 0xFF)) TheMissionScript()->Load(scripts, 1);
     std::destroy_at(scripts);
-    diplomacy->names.Destruct();
     records.byId.Destroy();
     return true;
 }

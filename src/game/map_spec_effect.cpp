@@ -213,9 +213,7 @@ EI_REWRITTEN(0x0046DD70, LightSpec::Apply);
 
 
 SoundSpec::SoundSpec() {
-    sounds.Construct();
     kind = 3;
-    sounds.SetSize(0, -1);
     volume = 10;
     radius = 15;
     unused_70 = 1;
@@ -227,7 +225,7 @@ SoundSpec::SoundSpec() {
 }
 EI_REWRITTEN_SPECIAL(0x0046DE70, SoundSpec::SoundSpec);
 
-SoundSpec::~SoundSpec() { sounds.Destruct(); }
+SoundSpec::~SoundSpec() = default;
 EI_REWRITTEN_SPECIAL(0x0046DF70, SoundSpec::~SoundSpec);
 EI_REWRITTEN_SPECIAL(0x0046DF50, SoundSpec::~SoundSpec);
 
@@ -265,7 +263,6 @@ void SoundSpec::OnChunk() {
     case 0xCC07: maxInterval = c.ReadInt(); break;
     case 0xCC08: ReadInto(c, comment); break;
     case 0xCC0A:
-        sounds.SetSize(0, -1);
         c.ReadStringArray(&sounds);
         break;
     case 0xCC0B: radius = c.ReadInt(); break;
@@ -279,12 +276,12 @@ EI_REWRITTEN(0x0046E190, SoundSpec::OnChunk);
 void SoundSpec::Apply() {
     if (!object) {
         Notify("efcu2", "sound");
-        if (sounds.size > 0) MakeEffect(this);
+        if (!sounds.empty()) MakeEffect(this);
         return;
     }
     std::memcpy(&Transform()->localPosition_, &position, 12);
     if (effect) TheServerWorld()->RemoveTimedObject(id);
-    if (sounds.size > 0) MakeEffect(this);
+    if (!sounds.empty()) MakeEffect(this);
     else effect = nullptr;
 }
 EI_REWRITTEN(0x0046E380, SoundSpec::Apply);
