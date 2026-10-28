@@ -127,7 +127,7 @@ struct GroupStrings {
     mfc::CString& section;
 };
 
-void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
+void MapGroup(FakeUnitScene* unit, Registry& reg, const std::vector<std::string>& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
     CMaterial* helperRecord = &unit->helpers.data[helper];   // ElementAt
     {
@@ -234,7 +234,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
     mfc::CString groupName;
     mfc::CString mapping;
     mfc::CString section;
-    console::CStringArray sections;
+    std::vector<std::string> sections;
     Registry reg;
     reg.Construct();
     if (!reg.Open(*path)) {

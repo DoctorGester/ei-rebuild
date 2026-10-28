@@ -15,6 +15,7 @@
 #include "game_singletons.h"
 
 #include <string>
+#include <vector>
 
 #undef GetClassName
 
@@ -301,8 +302,8 @@ public:
     CSpell* CreateSpellFromText(const char* text);
 
     // `this` is not used.
-    void ListSpellNames(mfc::CStringArray* names);
-    void ListModifierNames(mfc::CStringArray* names);
+    void ListSpellNames(std::vector<std::string>* names);
+    void ListModifierNames(std::vector<std::string>* names);
 
     // By the high half of a packed id.
     stlp::hash_map<std::uint32_t, SpellSequence*, stlp::IntHash> sequences_;

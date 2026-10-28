@@ -433,10 +433,10 @@ struct CItemManager : CResourceManager {
 
     // `names` resized to the table's record count and filled with the records' names: the materials' keys,
     // the others' text04.
-    void ListMaterialNames(mfc::CStringArray* names);
-    void ListWeaponNames(mfc::CStringArray* names);
-    void ListArmorNames(mfc::CStringArray* names);
-    void ListQuickItemNames(mfc::CStringArray* names);
+    void ListMaterialNames(std::vector<std::string>* names);
+    void ListWeaponNames(std::vector<std::string>* names);
+    void ListArmorNames(std::vector<std::string>* names);
+    void ListQuickItemNames(std::vector<std::string>* names);
 };
 static_assert(sizeof(CItemManager) == CItemManager::kSize);
 

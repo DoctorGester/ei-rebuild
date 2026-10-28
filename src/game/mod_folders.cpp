@@ -288,12 +288,10 @@ void* GetFile(CMappedResource* res, const char* name, std::uint32_t* size) {
     return data;
 }
 
-void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* pattern) {
+void ListFiles(const CMappedResource* res, std::vector<std::string>* out, const char* pattern) {
     Lock lock;
     // 100201FD: each listing goes to a scratch array (ListFiles refills it) and is appended to `out`.
-    mfc::CStringArray names;
-    names.Construct();
-    names.SetSize(0, -1);
+    std::vector<std::string> names;
     ResTables& tables = Tables();
     auto overridden = tables.overridden.find(res);
     if (overridden != tables.overridden.end()) {
@@ -301,15 +299,14 @@ void ListFiles(const CMappedResource* res, mfc::CStringArray* out, const char* p
         if (mods != tables.modArchives.end()) {
             for (const CMappedResource* mod : mods->second) {
                 mod->ListFilesPlain(&names, pattern);
-                out->Append(names);
+                out->insert(out->end(), names.begin(), names.end());
             }
         }
     }
     if (tables.ignored.count(res) == 0) {
         res->ListFilesPlain(&names, pattern);
-        out->Append(names);
+        out->insert(out->end(), names.begin(), names.end());
     }
-    names.Destruct();
 }
 
 const std::vector<std::string>& FigureArchives() { return Config().figures; }

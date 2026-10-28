@@ -83,34 +83,35 @@ bool NameHas(const itemdb::ItemRecordHead* record, const char* word) {
 } // namespace
 
 void CCampPages::DebugFill() {
-    console::CStringArray names;
-    console::CStringArray materials;
+    std::vector<std::string> names;
+    std::vector<std::string> materials;
     ItemDatabase()->ListMaterialNames(&materials);
+    const int materialCount = static_cast<int>(materials.size());
 
     if (CParty* items = itemParts_[0]) {
         items->Clear(1, 0);
 
         ItemDatabase()->ListWeaponNames(&names);
-        for (int i = 0; i < names.size; ++i) {
+        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             AddNamed(items, InstructionWeapon(), static_cast<std::uint32_t>(i), kInstructionCount);
             CResourceManager* manager = items->ItemManager();
             CItemConstructor* maker = items->ItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
-            AddInMaterials(items, manager, maker, weapon, kWeaponClass, materials.size);
+            AddInMaterials(items, manager, maker, weapon, kWeaponClass, materialCount);
         }
 
         ItemDatabase()->ListArmorNames(&names);
-        for (int i = 0; i < names.size; ++i) {
+        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             CResourceManager* manager = items->ItemManager();
             itemdb::ItemRecordHead* armor = itemdb::ArmorAt(static_cast<std::uint32_t>(i));
             if (NameHas(armor, PrototypeWord())) continue;
             AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
             CItemConstructor* maker = items->ItemConstructor();
-            AddInMaterials(items, manager, maker, armor, kArmorClass, materials.size);
+            AddInMaterials(items, manager, maker, armor, kArmorClass, materialCount);
         }
 
         ItemDatabase()->ListQuickItemNames(&names);
-        for (int i = 0; i < names.size; ++i) {
+        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             itemdb::ItemRecordHead* quick = itemdb::QuickItemAt(static_cast<std::uint32_t>(i));
             if (NameHas(quick, WandWord()))
                 AddNamed(items, InstructionQuickItem(), static_cast<std::uint32_t>(i), kInstructionCount);
@@ -119,10 +120,10 @@ void CCampPages::DebugFill() {
         // "Material.<name>" (CString + "." + name, two operator+), twenty each,
         // the record index left as made.
         ItemDatabase()->ListMaterialNames(&names);
-        for (int i = 0; i < names.size; ++i) {
+        for (int i = 0; i < static_cast<int>(names.size()); ++i) {
             std::string name = MaterialWord();
             name += Dot();
-            name += names.data[i];
+            name += names[i];
             auto* item = items->ItemManager()->CreateItem(name.c_str());
             item->count_ = kMaterialCount;
             AddCounted(items, item);
@@ -132,10 +133,10 @@ void CCampPages::DebugFill() {
     if (CParty* spells = spellParts_[0]) {
         spells->Clear(1, 0);
         SpellDatabase()->ListModifierNames(&names);
-        for (int i = 0; i < names.size; ++i)
+        for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, RuneItem(), static_cast<std::uint32_t>(i), kInstructionCount);
         SpellDatabase()->ListSpellNames(&names);
-        for (int i = 0; i < names.size; ++i)
+        for (int i = 0; i < static_cast<int>(names.size()); ++i)
             AddNamed(spells, PrototypeItem(), static_cast<std::uint32_t>(i), kInstructionCount);
     }
 }

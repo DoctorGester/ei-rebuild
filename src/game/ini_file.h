@@ -6,13 +6,10 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "../lib/mfc.h"
 #include "registry.h"
-
-namespace console {
-class CStringArray;
-}
 
 class CIniFile {
 public:
@@ -22,13 +19,13 @@ public:
 
     // The key names of `section` (the part before '=', trimmed) into `out` (emptied
     // first). Returns 0 for an empty or unreadable section.
-    BOOL GetKeyNames(const char* section, console::CStringArray* out);
+    BOOL GetKeyNames(const char* section, std::vector<std::string>* out);
 
     // The value (at most 1023 characters), or `defaultValue`.
     mfc::CString GetString(const char* section, const char* key, const char* defaultValue);
     // Appends the items of the value split at `separator` (trimmed) to `out`. Returns 0
     // when the value is empty.
-    BOOL GetList(const char* section, const char* key, mfc::CStringArray* out, char separator);
+    BOOL GetList(const char* section, const char* key, std::vector<std::string>* out, char separator);
 
     BOOL GetIntArray(const char* section, const char* key, DwordArray* out);
 

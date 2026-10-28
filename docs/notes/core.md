@@ -432,6 +432,17 @@ to which template:
   (`TopicCount()`) and SkinRequest::textures (CTextureManager::DrawLayers takes the vector; the requests are plain
   locals, `SkinRequest request{}`, not raw storage destroyed by hand), WeaponModelParts' out parameter. CBriefingScreen and SkinRequest lost the
   layout asserts after the new members.
+  Batch 13: the list out parameters are `std::vector<std::string>*`: CFileRegistry::GetSectionNames / GetStringArray,
+  CMappedResource::ListFiles / ListFilesPlain and modfolders::ListFiles, CIniFile::GetList / GetKeyNames (ini_file.cpp's
+  TextOps view went), TextSources / CTextManager::ListKeys, CSoundManager::ListWaveFiles, the item and spell
+  List*Names, FindListedName's list, and their callers' locals (the AI map's terrain sections and map name, the
+  figure registry's sections, the music themes' sections and calm / combat lists, the quest places and briefing lists,
+  the terrain's map list, the person texts' keys, the sound counts' files, the class templates (their by-pointer
+  List* wrappers went), the camp debug fill, the light tables' keys and hour, the movie list in PlayMovies, whose
+  path is a std::string now). The clears and appends keep the CStringArray calls' order: ListFilesPlain empties its
+  out parameter, modfolders::ListFiles and GetList append to it, so with Rebirth's ResOverride a reused scratch
+  vector (ListWaveFiles, TextSources::ListKeys) grows over the archives as game.exe's array did. `str::TrimLeft(s,
+  char)` is CString::TrimLeft(TCHAR) (the quest places' braces).
 - stlp::string is std::string in src/game (the stlp batch beside batch 12, 491 -> 0 uses outside src/lib): the members, locals,
   parameters, the vectors (`stlp::vector<std::string>`, policy `stlp::ObjectElement<std::string>`), the trees and hash
   maps keyed by name (stlp_hash.h's `StringKeyTraits` / `StringListTraits` / `NamedSlot` and `stlp::StringHash` hash a
@@ -445,7 +456,7 @@ to which template:
   hash nodes `deallocate(n, 20)`, the blood prints' list nodes 164, the text sources' nodes 0x18, the string vectors'
   `capacity * 12`): a literal size with a string-holding element frees into the wrong pool list.
 - Members that must stay CStrings for now: the console's (console::CStringArray history, lines and command arguments),
-  Split / SplitWords / Join's CStringArrays and the locals their callers fill, the registry's and resources' list out parameters (GetStringArray, GetSectionNames, ListFiles).
+  Split / SplitWords / Join's CStringArrays and the locals their callers fill (the quest places' `parts`).
   To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>

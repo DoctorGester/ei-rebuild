@@ -38,9 +38,8 @@ void LockCursorAtCallSite() {
     else TheCursor()->TakeLock();
 }
 
-// The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the video player.
+// The movie list's .ini path: CString concatenation (AFXAPI).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return std::construct_at(a0, *a1 + a2); }
-mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return std::construct_at(a0, *a1 + *a2); }
 
 // Fills the device object's screen rectangle of the primary surface with black (a colour-fill Blt under the
 // render lock, taken twice) and keeps the result in the device's lastLoadResult_. The primary is a holder
@@ -106,8 +105,7 @@ EI_REWRITTEN(0x00458010, FrameStep);
 // Plays the movies listed under `section` in the .ini under the movie folder setting (each
 // from the movie directory), clearing the screen before and, with `clearAfter`, after each.
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
-    mfc::CStringArray list;
-    list.Construct();
+    std::vector<std::string> list;
     lib::InPlace<CIniFile> iniStorage;   // built and destroyed through the game's own calls
     CIniFile* ini = iniStorage.Get();
     ini->Construct();
@@ -117,17 +115,14 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();
-    for (int i = 0; i < list.size; ++i) {
+    for (const std::string& movie : list) {
         {
-            mfc::CString dir(mfc::CString::kUnset);
-            mfc::CString full(mfc::CString::kUnset);
-            ConcatText(&dir, &TheDiscFolder(), "Movies\\");
-            PlayMovie(*ConcatString(&full, &dir, &list.data[i]), 0, 1, 0, 0, static_cast<char>(a), b);
+            const std::string full = TheDiscFolder().GetString() + std::string("Movies\\") + movie;
+            PlayMovie(full.c_str(), 0, 1, 0, 0, static_cast<char>(a), b);
         }
         if (clearAfter) ClearScreen();
     }
     ini->Destruct();
-    list.Destruct();
 }
 EI_REWRITTEN(0x00458270, PlayMovies);
 

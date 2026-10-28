@@ -202,7 +202,7 @@ int ReadTerrainTypes(CAIMap& map) {
     if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     Registry registry;
     if (!registry.file.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
-    console::CStringArray sections;
+    std::vector<std::string> sections;
     registry.file.GetSectionNames(&sections);
 
     map.materials.SetSize(kTerrainTypes);
@@ -215,19 +215,20 @@ int ReadTerrainTypes(CAIMap& map) {
         type.smell = 1.0f;
         type.noise = 1.0f;
     }
-    for (int i = 0; i < sections.size; ++i) {
-        const int index = std::atoi(sections[i].GetBuffer(0));
+    for (const std::string& sectionName : sections) {
+        const char* const section = sectionName.c_str();
+        const int index = std::atoi(section);
         {
-            std::string name = registry.file.GetString(sections[i], "Name", mfc::CString("")).GetString();
+            std::string name = registry.file.GetString(section, "Name", mfc::CString("")).GetString();
             const char* text = str::Buffer(name, 0);
             std::memcpy(map.materials.ElementAt(index).name, text, std::strlen(text) + 1);
         }
         AITerrainType& type = map.materials[index];
-        type.cost = registry.file.GetInt2(sections[i], "CostMul", -1);
-        type.speed = registry.file.GetInt2(sections[i], "Speed", -1);
-        type.look = static_cast<float>(registry.file.GetInt2(sections[i], "StepLook", 100)) * kHundredth;
-        type.smell = static_cast<float>(registry.file.GetInt2(sections[i], "StepSmell", 100)) * kHundredth;
-        type.noise = static_cast<float>(registry.file.GetInt2(sections[i], "StepSound", 100)) * kHundredth;
+        type.cost = registry.file.GetInt2(section, "CostMul", -1);
+        type.speed = registry.file.GetInt2(section, "Speed", -1);
+        type.look = static_cast<float>(registry.file.GetInt2(section, "StepLook", 100)) * kHundredth;
+        type.smell = static_cast<float>(registry.file.GetInt2(section, "StepSmell", 100)) * kHundredth;
+        type.noise = static_cast<float>(registry.file.GetInt2(section, "StepSound", 100)) * kHundredth;
     }
     registry.file.Close();
     archive.Close(file);
@@ -424,9 +425,9 @@ int CAIMap::LoadTerrain(const char* path) {
     std::string full = path;
     // (The original also builds the path without its extension here and never uses it.)
     if (!archive.Open(full)) return 0;
-    console::CStringArray maps;
+    std::vector<std::string> maps;
     archive.Get()->ListFiles(&maps, "*.mp");
-    std::string name = maps[0].Left(maps[0].Find('.')).GetString();
+    std::string name = str::Left(maps[0], str::Find(maps[0], '.'));
 
     MapDescription description;
     if (const int result = ReadDescription(archive, full, name, description); result != 1) return result;

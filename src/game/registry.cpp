@@ -167,13 +167,13 @@ const std::uint8_t* CFileRegistry::FindData(const char* section, const char* key
 }
 EI_REWRITTEN(0x006946D0, CFileRegistry::FindData);
 
-BOOL CFileRegistry::GetSectionNames(console::CStringArray* out) {
+BOOL CFileRegistry::GetSectionNames(std::vector<std::string>* out) {
     const std::uint8_t* root = data_;
     int count = U16(root + 4);
-    out->SetSize(count, -1);
+    out->resize(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         const std::uint8_t* record = data_ + U32(root + 8 + 6 * i);
-        (*out)[i] = mfc::CString(Chars(record + 4), U16(record + 2));
+        (*out)[i].assign(Chars(record + 4), U16(record + 2));
     }
     return 1;
 }
@@ -247,11 +247,11 @@ BOOL CFileRegistry::GetFloatArray(const char* section, const char* key, DwordArr
 }
 EI_REWRITTEN(0x00695600, CFileRegistry::GetFloatArray);
 
-BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console::CStringArray* out) {
+BOOL CFileRegistry::GetStringArray(const char* section, const char* key, std::vector<std::string>* out) {
     int isScalar;
     const std::uint8_t* value = FindData(section, key, kRegArray | kRegString, &isScalar);
     if (!value) {
-        out->SetSize(0, -1);
+        out->clear();
         return 0;
     }
     int count;
@@ -261,12 +261,10 @@ BOOL CFileRegistry::GetStringArray(const char* section, const char* key, console
         count = U16(value);
         value += 2;
     }
-    out->SetSize(count, -1);
+    out->resize(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         std::uint16_t length = U16(value);
-        mfc::CString text(Chars(value + 2), length);
-        text::FromAssetText(&text);
-        (*out)[i] = text;
+        (*out)[i] = text::FromAssetText(std::string_view(Chars(value + 2), length));
         value += length + 2;
     }
     return 1;

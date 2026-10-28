@@ -85,17 +85,15 @@ EI_REWRITTEN(0x006B8960, CSoundManager::LoadWaveFile);
 
 // Rebirth redirects its ListFiles call; this is the vanilla body. From the unit database's sound counts, on
 // the game's main thread.
-void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
-    out->SetSize(0, -1);
-    mfc::CStringArray names;
-    names.Construct();
+void CSoundManager::ListWaveFiles(std::vector<std::string>* out, const char* pattern) {
+    out->clear();
+    std::vector<std::string> names;
     for (auto* node = waveSources.head; node != nullptr;) {
         CMappedResource* source = node->data;
         node = node->next;
         source->ListFiles(&names, pattern);
-        for (int i = 0; i < names.size; ++i) out->SetAtGrow(out->size, names[i]);
+        out->insert(out->end(), names.begin(), names.end());
     }
-    names.Destruct();
 }
 EI_REWRITTEN(0x006B7110, CSoundManager::ListWaveFiles);
 

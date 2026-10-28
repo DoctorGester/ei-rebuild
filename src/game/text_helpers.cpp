@@ -35,10 +35,10 @@ EI_REWRITTEN(0x00445D20, TextTokenizer::Start);
 int __fastcall RemoveCarriageReturns(mfc::CString* text) { return text->Remove('\r'); }
 EI_REWRITTEN(0x004461E0, RemoveCarriageReturns);
 
-mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name) {
-    for (int i = 0; i < names->size; ++i) {
-        if (gamecrt::mbsicmp(names->data[i].GetString(), name.GetString()) == 0) {
-            std::construct_at(out, names->data[i]);
+mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name) {
+    for (const std::string& listed : *names) {
+        if (gamecrt::mbsicmp(listed.c_str(), name.GetString()) == 0) {
+            std::construct_at(out, listed.c_str());
             return out;
         }
     }

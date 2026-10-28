@@ -77,8 +77,8 @@ struct LocalTheme {
     std::int32_t dungeon = 0;
     std::string briefing;
     std::string constructor;
-    console::CStringArray calm;
-    console::CStringArray combat;
+    std::vector<std::string> calm;
+    std::vector<std::string> combat;
 };
 
 // Appends a copy of `theme` to the music system's themes.
@@ -90,8 +90,8 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     to.dungeon = theme.dungeon;
     to.briefing = theme.briefing;
     to.constructor = theme.constructor;
-    to.calm.assign(theme.calm.data, theme.calm.data + theme.calm.GetSize());
-    to.combat.assign(theme.combat.data, theme.combat.data + theme.combat.GetSize());
+    to.calm = theme.calm;
+    to.combat = theme.combat;
 }
 
 const mfc::CString& TextPath() { return TheTextFolder(); }
@@ -124,13 +124,13 @@ int CMusicSystem::LoadThemes() {
     credits = reg.GetString(common, "Credits", mfc::CString(game::EmptyText()));
     mainMenu = reg.GetString(common, "MainMenu", mfc::CString(game::EmptyText()));
     {
-        console::CStringArray sections;
+        std::vector<std::string> sections;
         reg.GetSectionNames(&sections);
-        for (int i = 0; i < sections.size; ++i) {
-            const char* section = sections.data[i];
+        for (const std::string& name : sections) {
+            const char* section = name.c_str();
             if (CompareNoCase(section, "common") == 0) continue;
             LocalTheme read;
-            read.name = sections.data[i];
+            read.name = name;
             read.dungeon = 0;
             read.briefing = reg.GetString(section, "Briefing", mfc::CString(game::EmptyText()));
             read.constructor = reg.GetString(section, "Constructor", mfc::CString(game::EmptyText()));

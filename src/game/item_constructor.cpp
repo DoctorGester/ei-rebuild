@@ -523,11 +523,11 @@ namespace {
 // The lists' loop: the array takes the table's count, then every element the name of the record
 // with its index (the count is read again for each; a record out of range would be read at null).
 template <typename Record, typename NameOf>
-void ListRecordNames(const NamedRecordTable<Record>& table, mfc::CStringArray* names, NameOf nameOf) {
-    names->SetSize(static_cast<int>(table.Count()), -1);
-    for (int i = 0; i < names->size; ++i) {
+void ListRecordNames(const NamedRecordTable<Record>& table, std::vector<std::string>* names, NameOf nameOf) {
+    names->resize(table.Count());
+    for (std::size_t i = 0; i < names->size(); ++i) {
         const Record* record = table.At(static_cast<std::uint32_t>(i));
-        names->data[i] = *nameOf(record);
+        (*names)[i] = *nameOf(record);
     }
 }
 
@@ -535,12 +535,12 @@ const std::string* HeadName(const ItemRecordHead* record) { return &record->text
 
 } // namespace
 
-void CItemManager::ListMaterialNames(mfc::CStringArray* names) {
+void CItemManager::ListMaterialNames(std::vector<std::string>* names) {
     ListRecordNames(TheItemDatabase().materials, names, [](const MaterialRecordHead* record) { return &record->key; });
 }
-void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames(TheItemDatabase().weapons, names, HeadName); }
-void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames(TheItemDatabase().armors, names, HeadName); }
-void CItemManager::ListQuickItemNames(mfc::CStringArray* names) {
+void CItemManager::ListWeaponNames(std::vector<std::string>* names) { ListRecordNames(TheItemDatabase().weapons, names, HeadName); }
+void CItemManager::ListArmorNames(std::vector<std::string>* names) { ListRecordNames(TheItemDatabase().armors, names, HeadName); }
+void CItemManager::ListQuickItemNames(std::vector<std::string>* names) {
     ListRecordNames(TheItemDatabase().quickItems, names, HeadName);
 }
 EI_REWRITTEN(0x006AD260, CItemManager::ListMaterialNames);

@@ -5,6 +5,7 @@
 #include "lib/mfc.h"
 
 #include <string>
+#include <vector>
 
 // Splits a CString at a separator string. The credits screen is the only user: it walks
 // the lines of the titles text.
@@ -27,4 +28,4 @@ int __fastcall RemoveCarriageReturns(mfc::CString* text);
 // (`name` is passed by value and destroyed here). Constructs `out` as the entry of
 // `names` that equals `name` ignoring case (_mbsicmp), or as `name` itself when there is none.
 // Returns `out`.
-mfc::CString* __fastcall FindListedName(mfc::CString* out, const mfc::CStringArray* names, mfc::CString name);
+mfc::CString* __fastcall FindListedName(mfc::CString* out, const std::vector<std::string>* names, mfc::CString name);
