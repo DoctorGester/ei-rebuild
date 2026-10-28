@@ -367,9 +367,9 @@ and the 256-entry alpha ramp (texture_clouds.hlsl `ps_clouds`: white, alpha ramp
 from its words (`ps_frame`, into an R8UI texture, kept by words in render_compose.cpp: at most 4): the layers' hash,
 the 3 x 3 smoothing in the 1024 cells' order, the octaves' bilinear sums and the byte store, integer for integer as
 the CPU code did. The step joins the texture's recipe (it covers the whole texture, so it replaces the last), so a new
-device draws the clouds again. Frames against the memory textures (main before R28b, captures at one frozen moment):
-see the ticket's report; ui_global_map_pick's `map`, ui_saveload's `save` / `load` / `load2`, ui_quicksave's, and
-render_loose_bmp's `world`.
+device draws the clouds again. Frames against the memory textures (4K, at one frozen moment): ui_saveload's `save` /
+`load` / `load2`, ui_quicksave's and render_loose_bmp's `world` the same pixel for pixel; ui_global_map_pick's `map`
+0.005% of the pixels over 8, at most 10 (the clouds' 8-bit alpha): the noise is the CPU code's.
 
 Scenarios: render_present*, render_movie_present, render_titles_present, ui_saveload, render_blink. Dead / not functions: 00693DE0,
 0068F860 (reached only from unreferenced 00691D50),
