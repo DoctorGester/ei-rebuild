@@ -1,16 +1,21 @@
-"""Checks that every hooked or forwarded game function is declared with the stack arguments the
-original pops (its RET n).
+"""Checks the declarations where game.exe's code meets ours against the original's stack arguments (its RET n).
 
-Four bugs so far came from declaring a function with too few stack arguments or misreading them:
-the caller and callee then disagree on the stack and the game crashes later, far from the cause.
-For every EI_REWRITTEN / EI_ORIGINAL / EI_RECORD in src/ and tests/, this takes
-the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
+Since C20 nothing of ours calls game.exe's code or is called by it at run time, so a signature is free to
+differ from the original's (a string_view for a const char*) wherever the two do not meet. They still meet in
+three places, which this checks (a declaration with too few stack arguments, or misread ones, leaves caller and
+callee disagreeing on the stack and crashes far from the cause):
+- the EI_RECORD recorders (tests/vectors/record_*.cpp): in game.exe, with EI_VECTORS=1, the original calls them;
+- the EI_ORIGINAL forwarders (tests/verify, tests/vectors): our harness calls the original through them;
+- the EI_REWRITTEN functions at an address a recorder records (the vectors' replays call them with the
+  arguments recorded from the original, tests/vectors/replay_*.cpp): the recorded call frame must fit them.
+Every other EI_REWRITTEN function is not checked (`--all` checks them too, for an audit).
+This takes the C++ declaration from build/verify/ei_hook.map (undecorated with undname), computes how many
 bytes of stack arguments the calling convention leaves for the callee to pop, and compares that
 with the RET n instructions of the original function in game.exe.
 
 Argument ORDER is not checked (that needs reading the disassembly); counts are.
 
-usage: python tools/check_signatures.py   (after build.cmd verify; needs capstone and undname on PATH,
+usage: python tools/check_signatures.py [--all]   (after build.cmd verify; needs capstone and undname on PATH,
                                            i.e. run from a VS developer prompt or via build.cmd's vcvars)
 exit code 1 when a mismatch is found
 """
@@ -220,14 +225,25 @@ def candidates_for(by_name, name, kind, rel, key):
     return candidates
 
 
+def checked_registrations(regs, everything=False):
+    """The registrations whose signature must match the original's: recorders, forwarders and the rewrites at the
+    recorded addresses (the vectors' replays call those with recorded arguments); `everything` adds every rewrite."""
+    recorded = {address for address, _, kind, _, _ in regs if kind == 'record'}
+    return [r for r in regs if r[2] != 'replace' or everything or r[0] in recorded]
+
+
 def main():
+    everything = '--all' in sys.argv[1:]
     data = open(exe_path.resolve(), 'rb').read()
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     sizes = load_sizes()
     by_name = declarations()
     regs = registrations()
+    total = len(regs)
+    regs = checked_registrations(regs, everything)
 
     problems = checked = unresolved = 0
+    kinds = {}
     for address, name, kind, rel, line in regs:
         size = sizes.get(address)
         if not size:
@@ -242,6 +258,7 @@ def main():
             continue
         conv, nbytes = sigs.pop()
         checked += 1
+        kinds[kind] = kinds.get(kind, 0) + 1
         if conv == 'cdecl':
             if pops != {0}:
                 problems += 1
@@ -253,8 +270,9 @@ def main():
             problems += 1
             print(f'{rel}:{line} {name} ({kind} {address:08X}): declared __{conv} with {nbytes} bytes of stack '
                   f'arguments, the original pops {sorted(pops)}')
-    print(f'{checked} declarations checked against RET n, {unresolved} not resolved (overloads, templates, '
-          f'lambdas), {problems} problem(s)')
+    by_kind = ', '.join(f'{n} {k}' for k, n in sorted(kinds.items()))
+    print(f'{checked} declarations checked against RET n ({by_kind}; {total} registrations in all), {unresolved} not '
+          f'resolved (overloads, templates, lambdas), {problems} problem(s)')
     return 1 if problems else 0
 
 

@@ -1500,7 +1500,7 @@ C28a-p, one family per commit; the order is in C28's ticket note). How a family 
   `__fastcall` shim that calls it (party_lifetime.cpp's DestroyPartyInPlace at 006611D0).
 - The function-to-original map: virtuals are `EI_REWRITTEN(addr, X::Virtual)`; constructors and destructors, which
   have no address to take, are `EI_REWRITTEN_SPECIAL(addr, X::X)` / `(addr, X::~X)` (include/ei/hook.h). The
-  original's scalar deleting destructor is tagged with the destructor's name too: check_signatures accepts a
+  original's scalar deleting destructor is tagged with the destructor's name too: check_signatures (for a recorded address) accepts a
   destructor tag whose original pops 4 more (the flags argument).
 - game.exe's tables stay in config/vtables.csv; their rows name the real class and its header (every row: all are
   retired; gen_image_cells.py --check fails on a row without one, so a find_vtables.py rerun's new row needs a
@@ -1675,7 +1675,8 @@ the `--no-hooks` suite) keeps the registry.
   for a constructor or destructor). A line leaves `{address, &Fn, file, line}` in the DLL's `.eiorg` section, which
   nothing reads at run time, so the compiler checks the name and the function's own copy stays in the image.
   check_registrations (build.cmd) reads `.eiorg`: one EI_REWRITTEN per address. The tools read the map from the
-  sources: check_signatures.registrations() (check_signatures), coverage.py, save_trace.py, ui_census_report.py,
+  sources: check_signatures.registrations() (check_signatures checks only the rewrites at an address a recorder
+  records, C20j; a signature elsewhere is free), coverage.py, save_trace.py, ui_census_report.py,
   named_data.py (a pointer element naming a function of ours), gen_static_init (MAP_LINE: calls by name),
   gen_short_functions.ported_elsewhere (a rewrite: no generated short function, and gen_static_init neither inlines
   nor decodes it), progress.py's / dashboard_data.py's rewritten counts and check_cleanup (an address in the line is
