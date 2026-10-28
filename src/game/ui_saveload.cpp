@@ -7,7 +7,6 @@
 #include "lib/mfc_time.h"
 #include "core_streams.h"
 #include "lib/text_case.h"
-#include "stl_sorts.h"
 #include "ui.h"
 #include "game_strings.h"
 
@@ -24,6 +23,7 @@
 #include "lib/crt.h"
 #include "lib/file_io.h"
 #include "lib/gameapi.h"
+#include "lib/intro_sort.h"
 #include "lib/mfc.h"
 #include "render/render.h"
 #include "game_flow_data.h"
@@ -245,11 +245,9 @@ void CSaveLoadWindow::FillEntries() {
     lib::FileFind find;
     entries_.clear();
     int highest = 0;     // the highest number after "save" in the folder names
-    int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern);
     while (more) {
-        found = find.FindNext();
-        more = found;
+        more = find.FindNext();
         if (find.IsDots() || !IsDirectory(find)) continue;
         // A new entry (the original copies a stack temporary whose numbers are left as the stack held them).
         SaveEntry* entry = &entries_.emplace_back();
@@ -295,14 +293,11 @@ void CSaveLoadWindow::FillEntries() {
         }
     }
     find.Close();
-    SaveEntry* first = entries_.data();
-    SaveEntry* end = first + entries_.size();
-    if (first != end) {
-        int depth = 0;
-        for (int n = static_cast<int>(end - first); n != 1; n >>= 1) ++depth;
-        stl_sorts::SaveIntroSort(first, end, nullptr, depth * 2, found);
-        stl_sorts::SaveFinalSort(first, end, found);
-    }
+    // The newest first: the order is "not older than" (!(a < b)), so saves of the same time compare true both ways
+    // (not a strict weak ordering: the game's sort, whose unguarded scans can then run off the range as in the
+    // game, and the order it leaves such saves in).
+    lib::IntroSort(entries_.data(), entries_.data() + entries_.size(),
+                   [](const SaveEntry& a, const SaveEntry& b) { return !(a.savedAt_ < b.savedAt_); });
 
     if (isSave_) {
         // The new save first.

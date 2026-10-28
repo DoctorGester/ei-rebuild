@@ -23,7 +23,7 @@ ALLOWED = {
     'src/lib/import_table.h',            # ... their table (gameapi.h)
     'src/lib/import_prototypes.h',       # ... its members' types where the SDK has none (import_table.h)
     'src/lib/rebirth.cpp',               # the Rebirth flags (HARNESS_SHARED)
-    'src/lib/stlp_algo.h',               # STLport's sort, as game.exe's (harness_address_order.cpp)
+    'src/lib/intro_sort.h',              # the game's sort (harness_address_order.cpp)
     'src/standalone/image_data.cpp',     # GameData's shift (HARNESS_SHARED)
     'src/standalone/image_cells.inc',    # ... its cells
 }

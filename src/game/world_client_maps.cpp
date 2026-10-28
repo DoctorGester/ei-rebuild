@@ -28,7 +28,6 @@
 #include "model.h"
 #include "sound.h"
 #include "spell.h"
-#include "stl_sorts.h"
 #include "terrain.h"
 #include "texture.h"
 #include "unit.h"
@@ -45,6 +44,7 @@
 #include "lib/nan_audit.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
+#include "lib/intro_sort.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "player_client.h"
@@ -374,23 +374,11 @@ CMapObject* Pick(CWorldClient* client, const POINT* point, Collect collect) {
     (functor.*collect)(screen.begin(), screen.end(), &hits, point->x, point->y, manager);
     if (hits.empty()) return nullptr;
 
-    // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level inlined.
-    const float* plane = ScenePipeline()->Top(CTransformPipeline::kViewStack)->m;
-    CMapObjectManager* objects = client->MapObjectManager();
-    ScreenEntry* first = hits.data();
-    ScreenEntry* last = hits.data() + hits.size();
-    if (first != last) {
-        int count = static_cast<int>(last - first);
-        int depth = 0;
-        for (int n = count; n != 1; n >>= 1) ++depth;
-        if (count > 16) {
-            stl_sorts::ScreenIntroSort(first, last, nullptr, depth * 2, plane, objects);
-            stl_sorts::ScreenInsertionSort(first, first + 16, plane, objects);
-            stl_sorts::ScreenUnguardedInsertionSort(first + 16, last, nullptr, plane, objects);
-        } else {
-            stl_sorts::ScreenInsertionSort(first, last, plane, objects);
-        }
-    }
+    // Front to back (DepthLess with the top of the view stack); hits at the same depth keep the game's sort's
+    // order, and the first that takes the click wins.
+    DepthLess depth{ScenePipeline()->Top(CTransformPipeline::kViewStack)->m, client->MapObjectManager()};
+    lib::IntroSort(hits.data(), hits.data() + hits.size(),
+                   [depth](const ScreenEntry& a, const ScreenEntry& b) { return depth.Less(&a, &b); });
     ScreenEntry*& cursor = client->hitCursor_;
     for (cursor = hits.data(); cursor != hits.data() + hits.size(); ++cursor) {
         if (CMapObject* object = manager->FindMapObject(cursor->objectId)) return object;

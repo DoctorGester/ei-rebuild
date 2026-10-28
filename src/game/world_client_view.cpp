@@ -9,7 +9,6 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "object_tables.h"
-#include "lib/stlp_algo.h"
 #include "lib/containers.h"
 #include "terrain.h"
 
@@ -256,49 +255,6 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return GroundHeightAt(px, py);
     });
-}
-
-// ---- Draw list sorting ---------------------------------------------------------------------------
-
-namespace {
-
-template <typename Less>
-using PtrSort = stlp::Sort<CMapObject*, Less>;
-
-struct ByModel {
-    bool operator()(CMapObject* a, CMapObject* b) const {
-        UnitOrderLess less;
-        return less.Less(a, b);
-    }
-};
-
-struct ByModelUse {
-    bool operator()(CMapObject* a, CMapObject* b) const {
-        ModelUseLess less;
-        return less.Less(a, b) != 0;
-    }
-};
-
-} // namespace
-
-void IntroSortByModel(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
-    PtrSort<ByModel>::IntroLoop(first, last, depthLimit, ByModel());
-}
-
-void FinalSortByModel(CMapObject** first, CMapObject** last, int) {
-    PtrSort<ByModel>::FinalInsertionSort(first, last, ByModel());
-}
-
-void IntroSortByModelUse(CMapObject** first, CMapObject** last, void*, int depthLimit, int) {
-    PtrSort<ByModelUse>::IntroLoop(first, last, depthLimit, ByModelUse());
-}
-
-void FinalSortByModelUse(CMapObject** first, CMapObject** last, int) {
-    PtrSort<ByModelUse>::FinalInsertionSort(first, last, ByModelUse());
-}
-
-BOOL ModelUseLess::Less(CMapObject* a, CMapObject* b) {
-    return ModelOf(b)->touchTime < ModelOf(a)->touchTime;
 }
 
 // ---- The frame's draw lists (world.h) ------------------------------------------------------------

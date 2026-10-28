@@ -147,7 +147,7 @@ global `vector<CEngineObject*>` (`FrameObjects(list)`, 007AF508 + 0x10 * list: 0
 visible lists 007AF568 (class 0x52), 578 (units 0x50), 588 (0x5D), 598 (other), 5A8 (0x54); shadow lists 007AF518 .. 558),
 walks the sector grid calling `CollectVisible` 0056A990 (units are queued on the deferred list 007AF5B4 on the first pass,
 then it runs for that list and for +0xB4), sorts 007AF508 by model use clearing flag 0x400 on the first max(10, n/8), sorts
-visible and shadow lists with `UnitOrderLess` and draws them. `CollectVisible`: type 0x32 heroes with a text-key id are
+visible and shadow lists by model (00574300; ours `address_order::DrawBefore`) and draws them. `CollectVisible`: type 0x32 heroes with a text-key id are
 skipped unless `withScripted`; the object matrix (+0x54, from the quaternion by 004D9AA0) is pushed on the device's object
 stack and the bounding volume (+0x124) tested with 004F16A0 (2 = outside); in view: flag 0x20, the view-space position at
 +0x28 (3x3 part of the view matrix only), class and touched-model lists; out of view: flag cleared and, when the shadow
@@ -161,10 +161,10 @@ c z + d, iterate z = height(x, y) from half the terrain's height range (+0x114) 
 (00565790 / 005659D0) sort the screen entries with `DepthLess`. The first height result stays unrounded (forwarder to
 006C8680 declared `double`).
 
-**Sorts**: `PtrSort` reproduces STLport (median of three, unguarded Hoare partition, recursion on the right part, heap sort
-at the depth limit (00577FC0 / 00577730, 00577E90 / 005782F0), insertion sort of the first 16 then unguarded): 005740D0 /
-00574390 by model (`UnitOrderLess`), 00573D50 / 00573F10 by model use. The original's recursive call lands on our verify
-wrapper, so every recursion level is checked. **Rare Rebirth crash** (`docs/open-questions.md`): `UnitOrderLess`'s last test
+**Sorts**: `lib::IntroSort` (lib/intro_sort.h) reproduces STLport (median of three, unguarded Hoare partition, recursion on
+the right part, heap sort at the depth limit (00577FC0 / 00577730, 00577E90 / 005782F0), insertion sort of the first 16
+then unguarded): 005740D0 / 00574390 by model (comparator 00574300), 00573D50 / 00573F10 by model use; objects with equal
+keys keep its order. **Rare Rebirth crash** (`docs/open-questions.md`): 00574300's last test
 is "less or unordered", so an object with a NaN view depth (+0x30) makes `Less(x, x)` true and STLport's unguarded partition
 walks off the vector; the rewrite behaves exactly like the original, crash included (the verify logs "not orderable" and
 sends NaN ranges to the original alone). The NaN depths were heap leftovers: the constructor leaves +0x28 and objects

@@ -9,9 +9,9 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include "stl_sorts.h"
 #include "game_data.h"
 
 namespace net {
@@ -351,12 +351,11 @@ void Connection::CollectChanges() {
     g_currentSession->CollectReplicated(&target);
     Replicated* item = items.data();
     Replicated* end = item + items.size();
-    if (item != end) {
-        int depth = 0;
-        for (std::int32_t n = static_cast<std::int32_t>(items.size()); n != 1; n >>= 1) ++depth;
-        stl_sorts::ReplicatedIntroSort(item, end, nullptr, depth * 2, target);
-        stl_sorts::ReplicatedFinalSort(item, end, target);
-    }
+    // By the object's address. An object is listed at most once per priority (only the server's file chunks are
+    // priority 1, and a file's chunks are listed for one request), so entries with the same object are equal.
+    std::sort(item, end, [](const Replicated& a, const Replicated& b) {
+        return reinterpret_cast<std::uintptr_t>(a.object) < reinterpret_cast<std::uintptr_t>(b.object);
+    });
 
     // Merge the sorted list with byObject_ (both ordered by object pointer).
     auto node = byObject_.begin();

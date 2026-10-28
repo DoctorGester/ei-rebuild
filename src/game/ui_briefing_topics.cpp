@@ -1,10 +1,10 @@
 // The briefing / base screen's topics: a person's topics from the "b." variables and a topic's
 // title (CBriefingScreen, ui_briefing.h). See docs/notes/ui.md, "Briefing / base screen".
-#include "stl_sorts.h"
 #include "ui_briefing.h"
 
 #include "item_db_text.h"
 
+#include "lib/intro_sort.h"
 #include "lib/text_case.h"
 #include "text_split.h"
 #include "game_singletons.h"
@@ -72,11 +72,12 @@ void CBriefingScreen::FindTopics(int personId) {
         found.Get().push_back(std::string(text, text + std::strlen(text)));
     }
     std::vector<std::string>& list = found.Get();
-    if (IsMultiplayerClient() && list.begin() != list.end()) {
-        int depth = 0;
-        for (int n = static_cast<int>(list.end() - list.begin()); n != 1; n >>= 1) ++depth;
-        stl_sorts::TopicIntroSort(list.data(), list.data() + list.size(), 0, depth * 2, personId);
-        stl_sorts::TopicFinalSort(list.data(), list.data() + list.size(), personId);
+    if (IsMultiplayerClient()) {
+        // By the text ignoring case: topics that differ only in case (or reached through two spellings of the
+        // person's name) keep the game's sort's order.
+        lib::IntroSort(list.data(), list.data() + list.size(), [](const std::string& a, const std::string& b) {
+            return text::CompareIgnoringCase(a.data(), b.data()) < 0;
+        });
     }
     topics_.clear();
     for (std::string* topic = list.data(); topic != list.data() + list.size(); ++topic) topics_.push_back(*topic);

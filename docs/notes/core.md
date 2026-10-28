@@ -588,7 +588,7 @@ to which template:
   game.exe's 4-byte list ranges for the std::list StaticObjects (ours are 8 bytes, zero storage).
 - What the inlined STLport bodies did is the std member: reserve / push_back / resize / erase(begin, end) / the
   list's clear and destructor walks. `std::next(end())` is no way to the first node (`head->next` came out of the
-  script as that; fixed to begin()). The STLport sorts replicated in stl_sorts take pointers: vectors pass `data()`.
+  script as that; fixed to begin()). lib::IntroSort takes pointers: vectors pass `data()`.
   The hash_map's operator[] builds its value in place (`new (&n->value) Value()`), so a value holding a std::vector
   (RenderPresetRecord) is constructed, not assigned over raw memory. StringListPair (the item stock's recipe map) is
   a std::list.
@@ -806,7 +806,7 @@ to which template:
 
 - No STLport container is left and neither is its node allocator: stlp.h, stlp.cpp, stlp_alloc.h, stlp_list.h and
   stlp_list_refs.h are gone, with libcrt::NodeAllocate / NodeDeallocate / NodeRefill / NodeChunkAlloc and their data
-  cells. Only lib/stlp_algo.h (STLport's introsort, whose order of equal keys is behaviour) keeps the name.
+  cells. The last, stlp_algo.h's sort, is lib/intro_sort.h since C14zc (standalone.md, "STLport").
 - The sessions' message lists are `std::list<SharedRefTo<T>>` (copied with Share, released as the owner) and
   `std::list<CountedRefTo<T>>` (a plain reference), core_refcount.h's SharedRefPtr / CountedRefPtr read typed with
   `Get()`. An insert of a raw-held pointer is `emplace_back(object)`: the element's constructor is the policy's copy.

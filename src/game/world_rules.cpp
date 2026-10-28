@@ -32,7 +32,7 @@ float Variable(CPlayer* player, const char* name) { return player->Party()->vari
 
 // ---- Sorting predicates --------------------------------------------------------------------------
 
-bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
+bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) const {
     CMapObject* first = manager->FindMapObject(a->objectId);
     CMapObject* second = manager->FindMapObject(b->objectId);
     if (!first || !second) return false;
@@ -50,9 +50,6 @@ bool DepthLess::Less(const ScreenEntry* a, const ScreenEntry* b) {
     }
     return first->IsDead() == 0;
 }
-
-// Texture and figure by name, then the view depth (address_order::DrawBefore, address_order.cpp).
-bool UnitOrderLess::Less(CMapObject* a, CMapObject* b) { return address_order::DrawBefore(a, b); }
 
 // ---- Game interface glue -------------------------------------------------------------------------
 

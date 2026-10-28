@@ -1887,7 +1887,7 @@ The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's cons
 - Not ported, unreached: CString Delete / Insert / Replace / MakeReverse / FreeExtra / Span* / AnsiToOem / wide
   constructors / FormatMessage; CPtrList, CPtrArray (S5a).
 
-### STLport (S9-S12g; only src/lib/stlp_algo.h is left)
+### STLport (S9-S12g; none left since C14zc)
 
 The containers were ported one body per member over an element policy; since C14t every container is std and the
 node allocator (`__node_alloc`, libcrt::NodeAllocate, its free lists at 0079B224) is gone with stlp.h / stlp.cpp /
@@ -1902,11 +1902,18 @@ stlp_alloc.h.
 - **tree** (stlp_tree, stlp_tree_abi, stlp_tree_mbs, net_connection_trees, library_trees: gone with C14c / C14q;
   the maps are std::map, the CString keys' `_mbscmp` order is `str::MbsLess`).
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
-- **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
-  reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
-  temporaries; registered sorts in src/game/stl_sorts.cpp). Comparator facts: the save list sorts by `!(a < b)`
-  (newest first; equal times compare true both ways), the objectives' quest sort looks names up in the quest map
-  (adding missing ones), the picking hits use `DepthLess`.
+- **pair** (stlp_pair: gone).
+- **sort** (C14zc): `lib::IntroSort` (src/lib/intro_sort.h: STLport's introsort, median of three, unguarded partition
+  and inserts, heap sort at the depth limit, insertion sort of the first 16) wherever equal elements can differ and
+  their order shows: the draw lists by `address_order::DrawBefore` and the touched models by last use (which keep
+  flag 0x400; world_client_draw.cpp), the particles by depth, the picking hits (`DepthLess`), the connection screen's
+  servers, the save list (`!(a < b)`: equal times compare true both ways, not a strict weak ordering), the
+  objectives' quests (looks both names up, adding missing ones; a name without a record is before itself) and the
+  briefing topics (`_stricmp`); the harness's draw-list sort in game.exe (harness_address_order.cpp) is the same
+  template. `std::sort` where equal elements are identical: the client's file chunks (one message per index, or the
+  same data), CollectChanges's replicated objects (one entry per object and priority), the battle screen's ids, the
+  hero screen's names (`str::MbsLess`). The element copies no longer follow STLport's (heap layout is no longer
+  kept). libcrt::Qsort is the CRT's quicksort, a different algorithm, and shares nothing with it.
 - Unregistered twins with the same instructions (no code of ours calls them): 00429DB0, 004FAF10, 0042B3C0,
   0042B3F0, 00404D50, 005E1560, 00457940, 004FC0C0, 004217C0; "unreviewed family" rows 005F8E90, 005F92A0,
   005F94B0, 005FB810.
@@ -1925,7 +1932,7 @@ arguments as dwords (ours through the FPU: only a signalling NaN differs).
 ### Rules from real bugs
 
 - A NaN in a sort key makes a comparator irreflexive and STLport's unguarded scans run off the array: the draw list
-  sort crashed in UnitOrderLess::Less (S17a: a shadow-only object's never-written view depth); CObject3D::Construct
+  sort crashed in its comparator 00574300 (S17a: a shadow-only object's never-written view depth); CObject3D::Construct
   now zeroes it. Any comparator over a never-set float needs the same care.
 - A stolen-byte count must cover whole instructions (`MOV [ESP+0],0` is eight bytes); check_stolen.py checks the
   recorders' counts.

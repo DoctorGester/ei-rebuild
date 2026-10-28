@@ -15,7 +15,7 @@ namespace address_order {
 // the object's id (signed), then the address.
 bool ObjectBefore(const CEngineObject* a, const CEngineObject* b);
 
-// The draw lists' order (UnitOrderLess::Less): the first part set's texture (null first,
+// The draw lists' order: the first part set's texture (null first,
 // then by name), then the figure (null first, then by name and morph weights), then the view depth.
 // Objects with the same keys keep the sort's own order.
 bool DrawBefore(CEngineObject* a, CEngineObject* b);

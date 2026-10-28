@@ -472,7 +472,7 @@ def run_once(name, install, folder, root, build, take_slot, clock, game_env, hel
 # (tests/verify/exe_objects.h) and reaches our classes only through tests/verify/image (image/image_side.h, functions
 # that name no class of ours), which the image runs alone: tests/verify/* takes no file of that folder, and
 # HARNESS_IMAGE_ONLY leaves out the image's start-up. So no header of src/game, src/render or src/lib is in the key
-# but game_data.h (GameData's shift, 0 in game.exe), lib/stlp_algo.h (the draw lists' sort, as STLport's) and
+# but game_data.h (GameData's shift, 0 in game.exe), lib/intro_sort.h (the draw lists' sort, the game's) and
 # lib/gameapi.h (game.exe's import slots); tools/check_harness_key.py checks it. Nothing else of src/ runs in game.exe
 # (its static initialisers build host state only).
 HARNESS_SOURCES = ('tests/verify/*', 'src/hook/*', 'tools/launcher/*', 'config/harness/**/*')

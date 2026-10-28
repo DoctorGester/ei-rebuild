@@ -7,7 +7,7 @@
 #include "image/image_side.h"
 
 #include "../../src/hook/log.h"
-#include "../../src/lib/stlp_algo.h"
+#include "../../src/lib/intro_sort.h"
 #include "ei/hook.h"
 
 #include <windows.h>
@@ -141,20 +141,15 @@ bool DrawBefore(CEngineObject* a, CEngineObject* b) {
     return objectA->worldPosition_.z < objectB->worldPosition_.z;
 }
 
-// Sorted with STLport's sort as the original (lib/stlp_algo.h).
-struct DrawLess {
-    bool operator()(CEngineObject* a, CEngineObject* b) const { return DrawBefore(a, b); }
-};
-using DrawSort = stlp::Sort<CEngineObject*, DrawLess>;
-
+// Sorted with the game's sort, as the image sorts its draw lists (lib/intro_sort.h).
 // 005740D0 (ECX first, EDX last; the value type, the depth limit and the comparator on the stack, RET 0xC).
 void __fastcall IntroSortForOriginal(CEngineObject** first, CEngineObject** last, void*, int depthLimit, int) {
-    DrawSort::IntroLoop(first, last, depthLimit, DrawLess());
+    lib::IntroSortLoop(first, last, depthLimit, DrawBefore);
 }
 
 // 00574390 (ECX first, EDX last, the comparator on the stack, RET 4).
 void __fastcall FinalSortForOriginal(CEngineObject** first, CEngineObject** last, int) {
-    DrawSort::FinalInsertionSort(first, last, DrawLess());
+    lib::FinalInsertionSort(first, last, DrawBefore);
 }
 
 struct Site {

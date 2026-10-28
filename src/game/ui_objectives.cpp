@@ -3,7 +3,6 @@
 // zone's allod in which the player has quests and shows one of them. See docs/notes/ui.md.
 // Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
 // stack, static_cast<float> where it stores to a float.
-#include "stl_sorts.h"
 #include "world_glue.h"
 #include "text_reader.h"
 #include "ui.h"
@@ -23,6 +22,7 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
+#include "lib/intro_sort.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "game_data.h"
@@ -97,17 +97,17 @@ void PushBack(ZoneNames* v, const std::string& x) {
     v->push_back(x);
 }
 
-void SortStrings(std::string* first, std::string* last) {
-    if (first == last) return;
-    int depth = 0;
-    for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++depth;
-    stl_sorts::QuestIntroSort(first, last, nullptr, depth * 2, 0);
-    if (last - first > 16) {
-        stl_sorts::QuestInsertionSort(first, first + 16, 0);
-        stl_sorts::QuestUnguardedInsertionSort(first + 16, last, nullptr, 0);
-    } else {
-        stl_sorts::QuestInsertionSort(first, last, 0);
-    }
+// The zone's quests (the names of the "q.<zone>.<quest>" variables) by their quest record's order, the highest
+// first, and a name without a record before all (also before itself, so not a strict weak ordering: the game's
+// sort, whose unguarded scans can then run off the range as in the game). Every comparison looks both names up,
+// the first argument's first (FindQuest adds a null entry for a new name). Quests of the same order keep the
+// game's sort's order.
+void SortQuests(std::string* first, std::string* last) {
+    lib::IntroSort(first, last, [](const std::string& a, const std::string& b) {
+        const QuestRecord* quest = TheQuestDatabase().FindQuest(a.c_str());
+        const QuestRecord* other = TheQuestDatabase().FindQuest(b.c_str());
+        return !quest || (other && static_cast<unsigned>(quest->order) > static_cast<unsigned>(other->order));
+    });
 }
 
 
@@ -307,7 +307,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             selectedQuest_ = -1;
             LastQuest().clear();
         } else {
-            SortStrings(found.data(), found.data() + found.size());
+            SortQuests(found.data(), found.data() + found.size());
             for (std::string* s = found.data(); s != found.data() + found.size(); ++s) {
                 quests.push_back(s->c_str());
                 const char* current = listZones_ == 0 ? LastQuest().c_str()

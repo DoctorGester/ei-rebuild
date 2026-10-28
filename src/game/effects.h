@@ -319,15 +319,6 @@ struct ParticleDepth {
 
 using ParticleDepthArray = std::vector<ParticleDepth>;
 
-// The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first).
-void IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
-                                 int compare);
-void FinalSortByDepth(ParticleDepth* first, ParticleDepth* last, int compare);
-void MakeHeapByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int compare,
-                                void* distanceTag);
-void PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, ParticleDepth* result,
-                               ParticleDepth value, int compare, void* distanceTag);
-
 // One texture frame's UV rectangle.
 struct SourceFrame {
     float u0, v0, u1, v1;
