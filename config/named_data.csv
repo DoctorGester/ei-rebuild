@@ -63,7 +63,6 @@ address,size,name,file
 007465A0,24,kClassCMemoryException,src/lib/mfc_runtime_class.h
 007465D0,24,kClassCException,src/lib/mfc_runtime_class.h
 007466B8,24,kClassCWinThread,src/lib/mfc_runtime_class.h
-007467D8,24,kClassCArchiveException,src/lib/mfc_runtime_class.h
 00746870,24,kClassCMapPtrToPtr,src/lib/mfc_runtime_class.h
 007468A8,24,kClassCCmdTarget,src/lib/mfc_runtime_class.h
 007469D8,24,kClassCWnd,src/lib/mfc_runtime_class.h

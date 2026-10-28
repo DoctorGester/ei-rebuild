@@ -16,7 +16,7 @@ void* __stdcall CreateCWnd();           // CWnd: operator new, the default const
 
 inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {"CObject", 0x4, 0xFFFF, nullptr, nullptr, nullptr};
 inline constexpr CRuntimeClass kClassCException = /*007465D0*/ {"CException", 0x8, 0xFFFF, nullptr, &kClassCObject, nullptr};
-inline constexpr CRuntimeClass kClassCArchiveException = /*007467D8*/ {"CArchiveException", 0x10, 0xFFFF, nullptr, &kClassCException, nullptr};
+
 inline constexpr CRuntimeClass kClassCGdiObject = /*00746098*/ {"CGdiObject", 0x8, 0xFFFF, &CreateCGdiObject, &kClassCObject, nullptr};
 inline constexpr CRuntimeClass kClassCBitmap = /*00746018*/ {"CBitmap", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};
 inline constexpr CRuntimeClass kClassCBrush = /*00746058*/ {"CBrush", 0x8, 0xFFFF, nullptr, &kClassCGdiObject, nullptr};

@@ -115,6 +115,7 @@ UNREAD = [
     (0x007471B0, 0x007471E8, 4, "CTempMenu's and CMenu's runtime class records (the classes went in C20o)"),
     (0x00796EE8, 0x00796EF8, 2, "CStringArray's runtime class record (the class went in C14i; its initialiser "
                                 "0070BE81 is gen_static_init.py's UNUSED_INITIALISERS)"),
+    (0x007467D8, 0x007467E8, 2, "CArchiveException's runtime class record (the class went in C14r: nothing throws it)"),
     (0x00796F20, 0x00796F30, 2, "CWordArray's runtime class record (the class went in C14zb; its initialiser "
                                 "0070BEC9 is gen_static_init.py's UNUSED_INITIALISERS)"),
     (0x00797140, 0x00797150, 2, "CDWordArray's runtime class record (the class went in C14zb; its initialiser "

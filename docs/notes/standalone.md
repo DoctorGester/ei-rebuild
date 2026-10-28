@@ -1266,9 +1266,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **The party** (party_lifetime.cpp): PartyBaseClass (0074306C) and PartyClass (00743000) over a
     PartyContextClass that declares the manager context's slots 13-26 as the worlds' (world.h) with the base's
     bodies (every getter null; 24 the party's copy of an item); the party overrides Create / Destroy, its class name
-    and id and the item and spell getters. Its unit records' CArray is PartyMemberArrayClass (00742FF4), a
-    CompiledCollection whose Serialize goes through a mfc::impl::CArchive member (mfc.h's CArray takes mfc.h's
-    CArchive).
+    and id and the item and spell getters. Its unit records are a std::vector (PartyMemberArrayClass 00742FF4 is a
+    game.exe-only row of config/vtables.csv).
   - **The player connections** (player_messages.h, player_client.h): CPlayerConnection (007431E0; slots 13 / 23
     pure, the others empty), CPlayerClient (00743180), CPlayerServer (00743280) and the world player CPlayer
     (00743104) are real C++ classes since C28k; the sides' slots call their named bodies.
@@ -1688,7 +1687,7 @@ the `--no-hooks` suite) keeps the registry.
   `_setmbcp(_MB_CP_LOCALE)`; ours does neither (the text is UTF-8, section 4, U5), and the standalone's start-up sets
   the host's `_MB_CP_SBCS` (no lead bytes). Nothing reads the locale state: crt_format.cpp's Format takes the C
   locale's decimal point '.', no lead bytes in a format and a wide character's low byte (wctomb's "C" branch); MFC's
-  AfxFormatString1 copies bytes. ei_vectors checks the game's recorded point and class words against that
+  resource strings are copied as bytes. ei_vectors checks the game's recorded point and class words against that
   ("@CrtFormatLocale": the point is '.', no lead-byte bit, the digits of ASCII are '0'-'9').
 - **Strings and characters** (C26, C34, C35b): no CRT function of ours. Callers use std::strcmp / strncmp / strncpy
   (_mbscmp, _mbsncmp, strcmp, strncpy), `str::Compare` for std::string / string_view texts (strcmp's order up to
@@ -1696,7 +1695,7 @@ the `--no-hooks` suite) keeps the registry.
   _mbsicmp by the UTF-8 table), `LowerInPlace` (_mbslwr), `ToLower` / `ToUpper` (ASCII) and `IsDigit` / `IsSpace` /
   `IsAlpha` (no class past ASCII; a negative char has none). _mbsinc is p + 1; _ismbblead and isleadbyte answered 0,
   so the double-byte branches went (the console's tokens, the text reader's characters, the word wrap, the chat
-  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). str.h's searches and trims
+  overlay, _output's format bytes, MFC's path walks, str's trims). str.h's searches and trims
   (C35i) are std::strchr / strstr / strrchr / strpbrk and text::IsSpace where CString called _mbschr / _mbsstr /
   _mbsrchr / _mbspbrk / _ismbcspace: with no lead bytes those are the byte functions (strchr takes the char's byte,
   also of _tcschr's sign-extended char) and ASCII's white space (a negative char has none). Checked old against new
@@ -1853,20 +1852,19 @@ the `--no-hooks` suite) keeps the registry.
 ### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (the
-  archive exception's file name, the archive's string operators, CTime::Format, the resource strings:
-  mfc_resource.h `LoadResourceString` / `AfxFormatString1`); the static initialisers of CString's four fixed
+- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (CTime::Format, the resource
+  strings: mfc_resource.h `LoadResourceString`); the static initialisers of CString's four fixed
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
   is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
 - **Collections**: none of MFC's are left (C14zb): the game's CArray / CList / CWordArray / CDWordArray / CByteArray
   instantiations are std::vector / std::list, their vtables game.exe-only rows of config/vtables.csv, and CArchive
   went with their Serialize slots (C14r). CPlex (mfc.h, mfc.cpp) stays for CMapPtrToPtr and CFixedAlloc.
-- **Archives, exceptions** (S8, S8b): mfc_exception (the archive, memory and resource throws; the four static
-  exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time
-  (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive over a
-  lib::File and the CString operators; only the collections' Serialize slots take one, and nothing builds one), mfc_resource (AfxLoadString through LoadStringA on the module state's null resource handle,
-  AfxFormatStrings: "%0" reads the pointer before the array, as the original).
+- **Exceptions** (S8, S8b): mfc_exception (the memory and resource throws; the three static exceptions;
+  CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time (host `_mktime32` / `_localtime32_s` /
+  `strftime`, VC6's time() from GetLocalTime), mfc_resource (AfxLoadString over the table of the four strings
+  something loads). CArchive and CArchiveException went in C14r with the collections' Serialize slots (nothing built
+  an archive); the harness's crash report reads a CArchiveException only in game.exe's runs.
 - **Windows, GDI, state**: AfxMessageBox has no owner and the module's file name as title (the image shows
   ei_standalone.exe). CDC (0x10 bytes), CPen, CFont, CGdiObject; handle maps (mfc_handle_map: CMapPtrToPtr, whose
   association has no hash field; CHandleMap::FromHandle) are thread_local per thread and never freed; with no

@@ -589,7 +589,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 007467C0,1,.?AVAFX_MODULE_STATE@@,lib,0070CC32 0070CCB0,0070CC95,AFX_MODULE_STATE,-,"stored only by game.exe's 0070CC32 / 0070CCB0, which no code of ours calls (mfc_state.cpp ImageModuleState is a plain record)"
 007467C8,1,.?AVAFX_MODULE_THREAD_STATE@@,lib,0070CD6E 0070CDA8,0070CD8D,AFX_MODULE_THREAD_STATE,-,"an MFC state object: stored only by game.exe's 0070CD6E / 0070CDA8, which no code of ours calls"
 007467D0,1,.?AV_AFX_BASE_MODULE_STATE@@,lib,0070CEC9,0070CF26,_AFX_BASE_MODULE_STATE,-,"an MFC state object: stored only by game.exe's 0070CEC9, which no code of ours calls"
-00746808,5,.?AVCArchiveException@@,lib,006E6BA1 0070A835,0070CF46,CArchiveException,src/lib/mfc_exception.h,CArchiveException
+00746808,5,.?AVCArchiveException@@,lib,006E6BA1 0070A835,0070CF46,CArchiveException,-,CArchiveException; stored only by game.exe (nothing of ours throws it since C14r)
 0074685C,1,.?AVCHandleMap@@,lib,006E6D08 00703617,006E6CEC,CHandleMap,src/lib/mfc_handle_map.h,"CHandleMap (the image's DC and GDI object maps, mfc_gdi.cpp)"
 0074689C,3,.?AVCMapPtrToPtr@@,lib,007002C2 00700375,0070D128,CMapPtrToPtr,src/lib/mfc_handle_map.h,CMapPtrToPtr (the handle maps' maps)
 007469A0,4,.?AVCCmdUI@@,lib,007041D4,007041FA,CCmdUI,-,"stored only by game.exe's 007041D4, which no code of ours calls"

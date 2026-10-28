@@ -24,16 +24,6 @@ constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8D
 // ReportError's message buffer.
 constexpr unsigned kReportLength = 512;
 
-// GetErrorMessage of the archive exception: prompt `base` + cause with the file's name.
-BOOL CauseMessage(unsigned base, int cause, const std::string& fileName, char* error, unsigned maxError, unsigned* helpContext) {
-    const unsigned prompt = base + static_cast<unsigned>(cause);
-    if (helpContext) *helpContext = prompt;
-    const std::string name = fileName.empty() ? LoadResourceString(kIdsUnnamedFile) : fileName;
-    const std::string message = AfxFormatString1(prompt, name.c_str());
-    gameapi::lstrcpynA(error, message.c_str(), static_cast<int>(maxError));
-    return TRUE;
-}
-
 } // namespace
 
 int CException::ReportError(unsigned type, unsigned error) {
@@ -47,7 +37,7 @@ int CException::ReportError(unsigned type, unsigned error) {
 const CRuntimeClass* CResourceException::GetRuntimeClass() const { return &kClassCResourceException; }
 const CRuntimeClass* CUserException::GetRuntimeClass() const { return &kClassCUserException; }
 const CRuntimeClass* CMemoryException::GetRuntimeClass() const { return &kClassCMemoryException; }
-const CRuntimeClass* CArchiveException::GetRuntimeClass() const { return &kClassCArchiveException; }
+
 
 void CSimpleException::InitString() {
     initialized = TRUE;
@@ -68,19 +58,9 @@ void DeleteException(CException* exception) {
     if (exception->autoDelete > 0 && exception) delete exception;
 }
 
-CArchiveException::~CArchiveException() {}
-
-BOOL CArchiveException::GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) {
-    return CauseMessage(kIdpArchiveNone, cause, fileName, error, maxError, helpContext);
-}
 
 void DestroyUserException(CUserException* self) { self->~CUserException(); }
 
-void ThrowArchiveException(int cause, const char* fileName) {
-    auto* exception = new CArchiveException(cause);
-    if (exception && fileName) exception->fileName = fileName;
-    throw reinterpret_cast<::CArchiveException*>(exception);
-}
 
 void ThrowMemoryException() {
     throw reinterpret_cast<::CMemoryException*>(&g_simpleMemoryException.Get());

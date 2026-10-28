@@ -61,9 +61,8 @@ void ScriptFxSource::Load(ScriptStream*) EI_UNLINKED("ScriptFxSource::Load")
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 
-// The library's exceptions and resources (mfc_archive.cpp).
+// The library's exceptions, runtime classes and resources (mfc_exception.cpp, mfc_state.cpp, mfc_resource.cpp).
 int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
-void mfc::impl::ThrowArchiveException(int, const char*) EI_UNLINKED("mfc::impl::ThrowArchiveException")
 void mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
 int mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
 

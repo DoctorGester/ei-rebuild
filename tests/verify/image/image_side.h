@@ -291,10 +291,4 @@ std::string Check();
 std::string CheckChatWrap(const std::string& text);
 } // namespace utf8text
 
-// ---- the crash report (harness_crash.cpp; image/harness_crash_image.cpp)
-
-// The file name of a thrown CArchiveException* (`exception` the pointer thrown) into `out`, as the image holds it (a
-// std::string). No C++ objects, so that the caller's __try can call it.
-void ArchiveExceptionFileName(const void* exception, char* out, std::size_t size);
-
 } // namespace ei::verify::image

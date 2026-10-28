@@ -131,7 +131,7 @@ trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
 Verification: `PartyUnitRecord::Construct`, `ConstructPartyUnitRecords` (stdcall: zero, then construct each), CParty /
 CItemConstructor / CSpellConstructor::Construct are S on seeded scratch (the party's variable map: bucket count and
 emptiness); Destruct, ClearItems, `PartyMemberArray::SetSize` (CParty +0x2C, MFC CArray<PartyUnitRecord>, vtable 00742FF4),
-`Serialize` (= `mfc::CArray::Serialize` with a minimal `mfc::CArchive`; vtable slot only, no caller), CParty
+`Serialize` (MFC's CArray::Serialize: a vtable slot only, no caller; gone with CArchive), CParty
 destructor / Create / Destroy / Clear (RET 8) and `CSpellManager::Construct` (an empty map of
 193 buckets at +0xBC) are O. Record Load / Save, `LoadParty` / `SaveParty` (RET 8; the flag covers the variables; SaveParty
 draws the ISAAC key for +0x50, restored between runs), `Assign`, the copy constructor (`party_save.cpp`): saves S into a scratch
