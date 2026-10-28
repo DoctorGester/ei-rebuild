@@ -9,7 +9,6 @@
 #include "../../src/game/map_spec.h"
 #include "../../src/game/material.h"
 #include "../../src/game/net_delta.h"
-#include "../../src/game/record_arrays.h"
 #include "../../src/game/script.h"
 #include "../../src/game/sector_map.h"
 #include "../../src/game/terrain_sector.h"

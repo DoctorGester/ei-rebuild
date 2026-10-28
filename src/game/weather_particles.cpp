@@ -135,10 +135,10 @@ void Put(CRainSnow& layer, float x, float y, float z) {
 void Project(CRainSnow& layer, CSceneRenderer* renderer) {
     layer.positions.resize((layer.particleCount + 3) >> 2);
     layer.projected.resize(std::ssize(layer.positions) * 4);
-    layer.outcodes.SetSize(std::ssize(layer.positions) * 4, -1);
+    layer.outcodes.resize(std::ssize(layer.positions) * 4);
     CTransformPipeline* pipeline = renderer->pipeline_;
     pipeline->transform_->ProjectClipped(pipeline->Top(CTransformPipeline::kClipStack), layer.positions.data(),
-                                         layer.projected.data(), layer.outcodes.data, std::ssize(layer.positions));
+                                         layer.projected.data(), layer.outcodes.data(), std::ssize(layer.positions));
 }
 
 void SetCorner(TLVertex& vertex, const Vector4& projected) { std::memcpy(&vertex, &projected, sizeof(projected)); }
@@ -203,7 +203,7 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
             const float y = static_cast<float>(static_cast<float>(row) * cell + fall * frame.wind.y +
                                        static_cast<float>(Jitter(cycle, kJitterY)) * cell * kJitterScale);
             const float bottom = static_cast<float>(Jitter(cycle, kJitterZ)) * kJitterHeight * kJitterScale + z;
-            frames.data[drops] = static_cast<std::uint8_t>(cycle & 3);
+            frames[drops] = static_cast<std::uint8_t>(cycle & 3);
 
             // The drop's base lies across the direction the cell is seen in, more or less.
             if (std::abs(b) > std::abs(a)) {
@@ -222,10 +222,10 @@ int CRainSnow::BuildRain(CSceneRenderer* renderer) {
     Project(*this, renderer);
 
     vertices.resize(particleCount);
-    const std::uint8_t* frameOf = frames.data;
+    const std::uint8_t* frameOf = frames.data();
     int used = 0;
     for (int first = 0; first < particleCount; first += 3, ++frameOf) {
-        const std::uint8_t* codes = outcodes.data + first;
+        const std::uint8_t* codes = outcodes.data() + first;
         if (codes[0] != 0 || codes[1] != 0 || codes[2] != 0) continue;
         const Vector4* corners = projected.data() + first;
         EI_NAN_AUDIT(corners[0].z);
@@ -273,17 +273,17 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
             const float placeY = static_cast<float>(std::fmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
             y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(gamecrt::Ftol(placeY)), placeY) + y);
             Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
-            frames.data[flakes] = static_cast<std::uint8_t>(cycle & 3);
+            frames[flakes] = static_cast<std::uint8_t>(cycle & 3);
             ++flakes;
         }
     }
     Project(*this, renderer);
 
     vertices.resize(particleCount * 3);
-    const std::uint8_t* frameOf = frames.data;
+    const std::uint8_t* frameOf = frames.data();
     int used = 0;
     for (int flake = 0; flake < particleCount; ++flake, ++frameOf) {
-        if (outcodes.data[flake] != 0) continue;
+        if (outcodes[flake] != 0) continue;
         TLVertex* triangle = vertices.data() + used;
         for (int corner = 0; corner < 3; ++corner) SetCorner(triangle[corner], projected[flake]);
         // A triangle around the point, in the projection's units.
@@ -305,7 +305,7 @@ void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
     gameapi::EnterCriticalSection(TheDeviceLock());
     device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
-        D3DPT_TRIANGLELIST, D3DFVF_TLVERTEX, data, static_cast<DWORD>(count), indices.data, static_cast<DWORD>(vertexCount), 0);
+        D3DPT_TRIANGLELIST, D3DFVF_TLVERTEX, data, static_cast<DWORD>(count), indices.data(), static_cast<DWORD>(vertexCount), 0);
     gameapi::LeaveCriticalSection(TheDeviceLock());
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(vertexCount) / 3u);

@@ -10,8 +10,6 @@
 #include "unit_ai.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
-#include "record_arrays.h"
 
 namespace {
 

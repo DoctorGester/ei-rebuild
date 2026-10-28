@@ -7,7 +7,6 @@
 #include "object_tables.h"
 #include "quest_records.h"
 
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <memory>

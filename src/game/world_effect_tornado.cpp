@@ -15,7 +15,6 @@
 #include "game_singletons.h"
 
 #include "../lib/crt.h"
-#include "../lib/mfc_slots.h"
 #include "ei/x87.h"
 
 #include <cmath>

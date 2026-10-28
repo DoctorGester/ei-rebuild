@@ -36,7 +36,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
   original memory layout; goldens don't depend on it either. Keep game.exe's byte layout only where
   bytes leave the process (save files, network packets) or come from game.exe's data image (until
   C18/C25 finish), and say so where you do. The hand-built tables still in the code (`static void*
-  Vtable()`, `ei::SetVtable`, the slot templates of engine_object_class.h, mfc_slots.h and
+  Vtable()`, `ei::SetVtable`, the slot templates of engine_object_class.h and
   compiled_vtable.h) are C28's to convert: add no new ones.
 - `src/lib/`: shared compatibility code. `crt.h` (the game's own CRT: operator new/delete, string
   functions, file I/O), `mfc.h` (CString, CFile, CFileFind, CArray, CList, CTypedPtrList, CPlex),

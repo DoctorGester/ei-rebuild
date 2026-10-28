@@ -4,7 +4,6 @@
 #include "ai_map.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 namespace {

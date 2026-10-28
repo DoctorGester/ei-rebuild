@@ -27,10 +27,8 @@
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cstring>

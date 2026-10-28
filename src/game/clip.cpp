@@ -9,7 +9,6 @@
 #include <cstring>
 #include <vector>
 #include "game_data.h"
-#include "lib/mfc_coll.h"
 #include "lib/static_object.h"
 
 namespace {

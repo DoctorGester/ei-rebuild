@@ -9,7 +9,6 @@
 
 #include "lib/compiled_vtable.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstring>

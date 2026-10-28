@@ -14,12 +14,10 @@ constexpr int kPartItems = 5;     // MarkChanged part
 } // namespace
 
 CItem* CUnit::TakeRandomItem() {
-    if (carriedCount != 0) {
-        // CArray::RemoveAt(0) inlined: the rest move down (no memmove when it was the only one).
-        CItem* item = carried[0];
-        int rest = carriedCount - 1;
-        if (rest != 0) std::memmove(carried, carried + 1, rest * sizeof(CItem*));
-        --carriedCount;
+    if (!carried.empty()) {
+        // The first carried item, the rest moved down.
+        CItem* item = carried.front();
+        carried.erase(carried.begin());
         MarkChanged(kPartItems);
         return item;
     }

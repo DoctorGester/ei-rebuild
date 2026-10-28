@@ -60,13 +60,8 @@ void CUnit::ReleaseUnit() {
     ReleaseSlots(weapons, 4);
     ReleaseSlots(spells, 8);
     ReleaseSlots(armor, 7);
-    for (int i = 0; i < carriedCount; ++i) carried[i]->Release();
-    if (carried) {
-        gamecrt::operator_delete(carried);
-        carried = nullptr;
-    }
-    carriedCapacity = 0;
-    carriedCount = 0;
+    for (CItem* item : carried) item->Release();
+    carried.clear();
 }
 
 void CUnit::DestroyUnit() {

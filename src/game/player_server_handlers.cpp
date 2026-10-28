@@ -26,7 +26,6 @@
 #include "lib/str.h"
 #include "lib/mfc.h"
 #include "lib/text_case.h"
-#include "lib/mfc_slots.h"
 
 #include "ei/x87.h"
 #include "game_data.h"

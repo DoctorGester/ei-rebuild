@@ -6,15 +6,11 @@
 #include "ai_grids.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
 
 #include <cstdint>
 #include <vector>
 #include "unit_ai.h"
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
-#include "record_arrays.h"
 
 CAIMap::CAIMap() {
     footprint.hashed = true;

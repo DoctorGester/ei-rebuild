@@ -14,7 +14,6 @@
 #include "lib/crt.h"
 #include "world_glue.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cstdint>

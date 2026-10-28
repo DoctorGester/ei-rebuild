@@ -495,8 +495,8 @@ kinds given.
     array where the original read the neighbouring .rdata; no database has one).
   - **Pointers to game.exe's records** (C18e): MFC's 41 CRuntimeClass records are named as one piece
     (lib/mfc_runtime_class.h: the 36 in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
-    the serializable ones in .data, which AfxClassInit links into the module state's list: CWordArray /
-    CDWordArray / CByteArray in mfc_coll.cpp, CDib in game/dib.cpp (CStringArray's 00796EE8 went in C14i), `constinit CRuntimeClass g_classCDib`; TYPES has
+    the serializable one in .data, which AfxClassInit links into the module state's list: CDib in game/dib.cpp
+    (CStringArray's 00796EE8 went in C14i, CWordArray's / CDWordArray's / CByteArray's in C14zb), `constinit CRuntimeClass g_classCDib`; TYPES has
     `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
     base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
     (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
@@ -1346,10 +1346,10 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: MFC's CWordArray, CDWordArray, CByteArray (mfc_coll.cpp's
-    ArrayTable) and CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the simple
-    exceptions (CResourceException, CUserException, CMemoryException, CNotSupportedException) and
-    CArchiveException (mfc_exception.cpp); std::exception (file `-`: no class of ours). CPtrArray,
+  - **The library kind**: MFC's CMapPtrToPtr (mfc_handle_map.cpp), slot 0 returning our CRuntimeClass record; the
+    simple exceptions (CResourceException, CUserException, CMemoryException) (mfc_exception.cpp); std::exception
+    (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector) and CArchiveException
+    (C14r: nothing throws it) are retired the same way. CPtrArray,
     CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
   - **Left**: the camp's panels (ui_camp_create.cpp, C15's area), the map spec chunk readers (C21), STLport's
@@ -1859,17 +1859,9 @@ The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's cons
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
   is mfc_gdi.h's (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0). 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
-- **Collections**: mfc_coll (one `PlainArray` for CWordArray / CDWordArray / CByteArray). CArray (mfc_array, `ArrayAbi<T, Policy>`): the element policy is what
-  the instantiation's ConstructElements does after MFC's memset (nothing, an inlined constructor, or
-  `EachElements<T, Init, Destroy>`). CList / CMap / CPlex (mfc_list: `ListAbi`, `MapAbi`, HashKey `key >> 4`); node
-  sizes from each NewNode's CPlex::Create. FreeDataChain returns 0: the original leaves the caller's EAX, which
-  AIPath::Reset 005C7D50 returns.
-- **Slots only the exe's vtables reach** (mfc_slots, game_slots; S6a, S6c, S6d): scalar deleting destructors
-  (`ScalarDelete<&Destruct>`), Serialize as afxtempl's with raw-byte SerializeElements (`SerializeCArray / CList /
-  CMap<Abi>`, `SerializeCListThrough<ListTemporary<...>>` for lists whose loader goes through a temporary). The
-  element policy must be the one the instantiation's inlined SetSize / NewNode uses, which is not always its
-  destructor's (00450570). Quirks kept: a loaded list's elements borrow the source's references; a wave record's
-  load frees the source's name buffer; the token and wave loads leak each element's temporary block.
+- **Collections**: none of MFC's are left (C14zb): the game's CArray / CList / CWordArray / CDWordArray / CByteArray
+  instantiations are std::vector / std::list, their vtables game.exe-only rows of config/vtables.csv, and CArchive
+  went with their Serialize slots (C14r). CPlex (mfc.h, mfc.cpp) stays for CMapPtrToPtr and CFixedAlloc.
 - **Archives, exceptions** (S8, S8b): mfc_exception (the archive, memory and resource throws; the four static
   exceptions; CSimpleException 0x98 bytes; ReportError / GetErrorMessage), mfc_time
   (host `_mktime32` / `_localtime32_s` / `strftime`, VC6's time() from GetLocalTime), mfc_archive (CArchive over a
@@ -2276,8 +2268,9 @@ state, which the image replaces with its own (mfc_gdi.cpp).
 ### lib/mfc_runtime_class.h
 
 MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 36 here (const, in .rdata)
-and the serializable ones (CByteArray, CDWordArray, CWordArray in mfc_coll.cpp, CDib in game/dib.cpp; CStringArray's
-went in C14i) in .data, where the static initialisers link them into the module state's class list (AfxClassInit
+and the serializable one (CDib in game/dib.cpp; CStringArray's went in C14i, CByteArray's, CDWordArray's and
+CWordArray's in C14zb: tools/gen_image_cells.py's UNREAD) in .data, where the static initialisers link it into the
+module state's class list (AfxClassInit
 writes m_pNextClass). Each record names its base's record and its create function (ours, registered at the game's
 address: the pointers are compared by tools/named_data.py, "Pointer elements"). The hierarchy is one piece: a
 record's base is a named range, and game.exe's data holds no pointer into a named range, so CObject's record (the
@@ -2297,15 +2290,6 @@ that deletes it). The image has a stand-in module state with the members used so
 is registered at its library address (mfc_state.cpp); in the image nothing fills the locals (the handle maps are
 thread_local, mfc_gdi.cpp), so their destructors find an empty slot or object.
 
-### lib/mfc_slots.h: the collections' compiler-made vtables
-
----- Compiler-made vtables ------------------------------------------------------------------- The collection
-templates keep the vtable as a plain field (mfc.h): an instantiation's Class tag names the table its constructor
-and destructor store (`Class::Vtable()`). A tag that is a CompiledCollection is a C++ class whose vtable the
-compiler makes in place of game.exe's table (docs/notes/standalone.md, "Compiler-made vtables"): CObject's three
-slots (GetRuntimeClass, the destructor `Destroy`, Serialize (`Store`)) over the header's layout. Our code calls the
-header's functions by name; the slots are what a dispatch through the table reaches. A tag derived from another is
-the derived instantiation's (its destructor ends in the base's, which stores the base's table).
 
 ### lib/mfc_try.h: why TRY / CATCH works across the two C++ runtimes
 

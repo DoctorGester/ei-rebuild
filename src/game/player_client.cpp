@@ -26,7 +26,6 @@
 #include "console.h"
 #include "map_object.h"
 #include "map_object_figures.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include "ei/x87.h"

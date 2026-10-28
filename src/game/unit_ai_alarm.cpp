@@ -11,8 +11,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cmath>

@@ -27,7 +27,7 @@ shim, stub or workaround lands.
 ## Classes (C28)
 
 - Hand-built tables: `static void* Vtable()` accessors, `ei::SetVtable`, the slot templates of
-  `engine_object_class.h`, `mfc_slots.h` and `compiled_vtable.h`, slot calls by number, and the
+  `engine_object_class.h` and `compiled_vtable.h`, slot calls by number, and the
   `__declspec(novtable)` classes whose constructors store a table. They become real virtual classes.
 - `...Hook` / `__fastcall Fn(T* self, void*)` shims and `...Impl` slot bodies, which only existed
   because a pointer to a virtual member could not be registered.

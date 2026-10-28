@@ -21,7 +21,6 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "lib/mfc_list.h"
 #include "game_data.h"
 
 #include <cstdint>

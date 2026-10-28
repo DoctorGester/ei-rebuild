@@ -21,8 +21,6 @@
 #include "core_streams.h"
 #include "map_object.h"
 #include "lib/containers.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <list>

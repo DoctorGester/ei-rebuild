@@ -12,7 +12,6 @@
 #include "effects.h"
 #include "lib/mfc.h"
 
-#include "lib/mfc_list.h"
 #include "game_singletons.h"
 
 #include <list>

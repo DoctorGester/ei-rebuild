@@ -3,11 +3,9 @@
 #include "world.h"    // CWorld
 
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
 
 #include "ei/rebirth.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <concepts>
 #include <bit>

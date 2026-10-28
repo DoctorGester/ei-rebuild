@@ -15,7 +15,6 @@
 #include "random.h"
 
 #include "lib/crt.h"
-#include "record_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"

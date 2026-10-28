@@ -7,7 +7,6 @@
 #include "map_object_figures.h"
 #include "map_spec.h"
 #include "core_streams.h"
-#include "record_arrays.h"
 #include "unit.h"
 
 #include "lib/static_object.h"
@@ -17,8 +16,6 @@
 #include <initializer_list>
 #include <new>
 #include <string>
-#include "lib/mfc_slots.h"
-#include "lib/mfc_array.h"
 #include "world_data.h"
 #include "ei/vcall.h"
 #include "game_data.h"

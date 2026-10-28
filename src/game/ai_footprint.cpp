@@ -2,7 +2,6 @@
 // them into the occluder grid, and refreshing passability around them.
 #include "ai_map.h"
 #include "ai_unit_layer.h"
-#include "record_arrays.h"
 
 #include "ei/x87.h"
 #include "lib/crt.h"

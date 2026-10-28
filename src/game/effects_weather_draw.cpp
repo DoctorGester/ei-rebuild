@@ -108,7 +108,7 @@ constexpr float kTile = 0.25f;
 void CRainSnow::PrepareBuffers() {
     positions.resize(kDrops);
     vertices.resize(kDropVertices);
-    frames.SetSize(kDrops, -1);
+    frames.resize(kDrops);
 
     offsets.resize(2 * kRings + 1);
     for (int i = 0; i < kRings; ++i) {
@@ -127,6 +127,6 @@ void CRainSnow::PrepareBuffers() {
         vertex.v = 1.0f - (1.0f - corner.v) * kTile;
     }
 
-    indices.SetSize(kDropVertices, -1);
-    for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
+    indices.resize(kDropVertices);
+    for (int i = 0; i < std::ssize(indices); ++i) indices[i] = static_cast<std::uint16_t>(i);
 }

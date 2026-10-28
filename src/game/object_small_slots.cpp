@@ -5,7 +5,6 @@
 #include "unit_client_models.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
 
 namespace {
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;

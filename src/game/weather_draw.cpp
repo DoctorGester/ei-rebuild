@@ -18,7 +18,7 @@ namespace {
 void HandOver(CRainSnow* weather, CSceneRenderer* renderer) {
     int count = std::ssize(weather->vertices);
     TLVertex* vertices = weather->vertices.data();
-    std::uint16_t* indices = weather->indices.data;
+    std::uint16_t* indices = weather->indices.data();
     if (count <= 0 || !vertices || !indices) return;
     render::TlDraw(renderer->device_, vertices, 0x1C4, count, indices, count, 4);
 }

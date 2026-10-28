@@ -79,7 +79,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C388,3,,game,0045D8B0 0045E020 0045E090 0045E1E0 0045E250 0046C290 0046E680,007005E3,ArrayBaseClass,-,CArray (the base vtable the element arrays' destructors restore (patrols; motion records)); stored only by game.exe (ours is a std::vector)
 0073C394,3,,game,0045D8B0 0045E090 0046C290 00545BA0 00557890,007005E3,PatrolArrayClass,-,CArray (patrols; 32 bytes with a waypoint array at +0xC); stored only by game.exe (ours is a std::vector)
 0073C3A0,3,,game,0045E180 0046EFD0,007005E3,WaypointArrayClass,-,CArray (a patrol's waypoints; derived from ArrayBaseClass); stored only by game.exe (ours is a std::vector)
-0073C3D0,3,,game,0045E6F0 0045FBD0 004600D0 00460720 004608D0 005911C0 00596E70 005B3C30 005C1760 005EB8C0 005EB910 005F6130 00635080 006379E0 0063F300 0063F490,007005E3,IntArrayClass,src/lib/mfc_slots.h,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables)
+0073C3D0,3,,game,0045E6F0 0045FBD0 004600D0 00460720 004608D0 005911C0 00596E70 005B3C30 005C1760 005EB8C0 005EB910 005F6130 00635080 006379E0 0063F300 0063F490,007005E3,IntArrayClass,-,CArray (CArray<int> / CDWordArray-like: the zone and quest id lists; the climb tables); stored only by game.exe (ours is a std::vector)
 0073C3DC,3,,game,0045E6F0 0045E820 0045FBD0,007005E3,AllodArrayClass,-,CArray (the map database's allods); stored only by game.exe (ours is a std::vector)
 0073C3E8,3,,game,0041BC40 0045E6F0 0045E820 00460130,007005E3,MapRecordArrayClass,-,CArray<MapRecord> (the map database's maps); stored only by game.exe (ours is a std::vector)
 0073C3F4,3,,game,00460130 00460490 00460970 00460A80 0056FFE0 0057BDF0 0058AAD0,007005E3,ExitArrayClass,-,CArray (a zone's exits; the table the exit arrays' destructor 00460490 restores); stored only by game.exe (ours is a std::vector)
@@ -169,7 +169,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D3C4,3,,game,004BE430 004C88C0 004CB650,007005E3,ScriptAreaArrayClass,-,CArray (the script's areas); stored only by game.exe (ours is a std::vector)
 0073D3D0,3,,game,004BF540 004BF7E0 004BF900 004BFA50 004C18E0 004C54A0 004C69B0 004C7530 004C7560 004C7640 004CA810,007005E3,CommandArrayClass,-,CArray (a command block); stored only by game.exe (ours is a std::vector)
 0073D3DC,3,,game,004BF540 004BF900 004BFA50 004C17C0 004C69B0 004C7640 004CA810 004CEB20,007005E3,ScriptCommandsClass,-,CArray (CArray<SSCCmd> of a script block; derived from CommandArrayClass); stored only by game.exe (ours is a std::vector)
-0073D3E8,3,,game,004BF640 004BF760 004BF7E0 004C18E0 004C5180 004C54A0 004CB050 004CCF70 004CD080 004D41C0 0052E2C0 0052E310 005711E0 005755C0 00575690 005BF7D0 005BF890,007005E3,FloatArrayClass,src/lib/mfc_slots.h,CArray<float> (step speeds; the radius tree's keys 007C2FD8; the terrain's level arrays)
+0073D3E8,3,,game,004BF640 004BF760 004BF7E0 004C18E0 004C5180 004C54A0 004CB050 004CCF70 004CD080 004D41C0 0052E2C0 0052E310 005711E0 005755C0 00575690 005BF7D0 005BF890,007005E3,FloatArrayClass,-,CArray<float> (step speeds; the radius tree's keys 007C2FD8; the terrain's level arrays); stored only by game.exe (ours is a std::vector)
 0073D3F4,3,,game,004BF640 004BF780 004C4840 004C54A0 004CD0A0 004D41C0,007005E3,ArgObjectsBaseClass,-,CArray (a script command's object arguments); stored only by game.exe (ours is a std::vector)
 0073D400,3,,game,004BF640 004BF7A0 004C4B30 004CD0C0 004D41C0,007005E3,ArgGroupsBaseClass,-,CArray (a script command's group arguments); stored only by game.exe (ours is a std::vector)
 0073D40C,3,,game,004BF640 004BF7C0 004C4E20 004CD290 004D41C0,007005E3,BindingsBaseClass,-,CArray (a script command's bindings); stored only by game.exe (ours is a std::vector)
@@ -247,7 +247,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073E98C,5,,game,0052D1D0,0052D610,CTorchObjectClientSpec,src/game/torch_client_spec.h,the tail of 0073E954 (a byte match)
 0073EA8C,5,,game,0052E110 0052E310,0052E2A0,CUnit,src/game/unit.h,
 0073EAA0,57,,game,0052E310,0052E740,CUnit,src/game/unit.h,the tail of 0073EA8C (0052E310 calls slot 5 through the table's memory)
-0073EB84,3,,game,0052E110 0052E310 005331C0,007005E3,CarriedArrayClass,src/lib/mfc_slots.h,CArray (a unit's carried objects)
+0073EB84,3,,game,0052E110 0052E310 005331C0,007005E3,CarriedArrayClass,-,CArray (a unit's carried objects); stored only by game.exe (ours is a std::vector)
 0073EB90,3,,game,0052E110 00556810,007005E3,MotionWaypointArrayClass,-,CArray (a unit motion's waypoints; derived from 0073EBB4); stored only by game.exe (ours is a std::vector)
 0073EB9C,3,,game,0052E110 0054E250,007005E3,MotionPointsClass,-,CArray (a unit motion's points; derived from 0073EBA8); stored only by game.exe (ours is a std::vector)
 0073EBA8,3,,game,0052E240 0052E2C0 0052E310 00533540 0054E250 00556D70,007005E3,MotionPointArrayClass,-,CArray (a unit motion's points); stored only by game.exe (ours is a std::vector)
@@ -562,7 +562,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,CFile,-,"stored only by game.exe's constructors / destructor 00701036 / 0070106C / 0070108B / 0070112B, which no code of ours calls (the game's files are lib::File since C14d)"
 00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,-,"stored only by game.exe's 006E6335 / 0070108B / 00701BD4 / 007031D5, which no code of ours calls (a failed file call throws lib::FileError since C14d)"
 00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,CFileFind,-,"stored only by game.exe's constructor / destructor 006E6370 / 006E63AD, which no code of ours calls (lib::FileFind since C14d)"
-00745F78,3,.?AVCWordArray@@,lib,006FEE9A 006FEECD,0070BEC3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
+00745F78,3,.?AVCWordArray@@,lib,006FEE9A 006FEECD,0070BEC3,WordArrayTable,-,CWordArray; stored only by game.exe (ours is a std::vector)
 007461B0,29,.?AVCDC@@,lib,00708CD7 00708E0C,0070BF7B,CDC,src/lib/mfc_gdi.h,CDC
 0074624C,29,.?AVCClientDC@@,lib,00709DCD 00709E3F,0070BF81,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"
 007462C4,29,.?AVCWindowDC@@,lib,00709E81 00709EF3,0070BF87,CWindowDC,-,"stored only by game.exe's constructor / destructor 00709E81 / 00709EF3, which no code of ours calls"
@@ -575,9 +575,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0074646C,5,.?AVCResourceException@@,lib,006E68C9 006E690F,0070BEF4,CResourceException,src/lib/mfc_exception.h,CResourceException (_simpleResourceException)
 00746484,5,.?AVCUserException@@,lib,006E6916 006E695C,0070BF2C,CUserException,src/lib/mfc_exception.h,CUserException (_simpleUserException)
 0074649C,3,.?AVCRgn@@,lib,0070B7D6,0070BFD1,CRgn,-,"stored only by game.exe's 0070B7D6 and the CRgn destructor, which no code of ours calls"
-007464B8,3,.?AVCDWordArray@@,lib,006FF23A 006FF26D,0070C12A,DWordArrayTable,src/lib/mfc_coll.cpp,CDWordArray
+007464B8,3,.?AVCDWordArray@@,lib,006FF23A 006FF26D,0070C12A,DWordArrayTable,-,CDWordArray; stored only by game.exe (ours is a std::vector)
 007464F0,24,.?AVCStdioFile@@,lib,00701B79 00701BAB 00701BD4 00701C6D,0070C15B,CStdioFile,-,"stored only by game.exe's constructors / destructor 00701B79 / 00701BAB / 00701BD4 / 00701C6D, which no code of ours calls (lib::TextFile since C14d)"
-00746560,3,.?AVCByteArray@@,lib,006FF5EA 006FF61D,0070C178,ByteArrayTable,src/lib/mfc_coll.cpp,CByteArray (the terrain sectors' water materials)
+00746560,3,.?AVCByteArray@@,lib,006FF5EA 006FF61D,0070C178,ByteArrayTable,-,CByteArray (the terrain sectors' water materials); stored only by game.exe (ours is a std::vector)
 007465F8,5,.?AVCMemoryException@@,lib,006E6AEA 006E6B30,0070C1AF,CMemoryException,src/lib/mfc_exception.h,CMemoryException (_simpleMemoryException)
 00746610,5,.?AVCNotSupportedException@@,lib,006E6B37 006E6B7D,0070C1E7,CNotSupportedException,-,"stored only by game.exe's constructor / destructor 006E6B37 / 006E6B7D, which no code of ours calls (_simpleNotSupportedException's initialiser 0070C1ED is gen_static_init.py's UNUSED_INITIALISERS: only CStdioFile threw it)"
 00746650,26,.?AVCMemFile@@,lib,0070ADD9 0070AE25 0070AE9E,0070C253,CMemFile,-,"stored only by game.exe's constructors / destructor 0070ADD9 / 0070AE25 / 0070AE9E, which no code of ours calls"

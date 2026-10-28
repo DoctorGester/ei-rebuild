@@ -611,14 +611,12 @@ REVIEWED_NEAR = {
     0x0079B978: ('0079B930', 'the debug panel (CDebugPanel, 0x44 bytes)'),
     0x0079BC30: ('0079BC2C', 'the protection check list (an STLport list: one head pointer)'),
     0x0079BEE0: ('0079BED8', 'the options 0079BC70 (GameOptions, 0x26C bytes) end at 0079BEDC; 0079BED8 is its master server CString'),
-    0x0079BF28: ('0079BF1C', 'the map database 0079BF00 (CMapDatabase, 0x28 bytes); 0079BF1C is its maps array data'),
     0x0079C1C0: ('0079C1AC', 'the lever table 0079C1A0 (0x20 bytes); 0079C1AC is a member'),
     0x007A9698: ('007A9694', 'the lightning noise loaded flag (dword)'),
     0x007A9750: ('007A9748', 'the sort scratch guard byte (the scratch array is below it)'),
     0x007A9788: ('007A9784', 'the select timeout 007A9778 (8 bytes) and the snapshot flags 007A9780 / 007A9784 (dwords)'),
     0x007A9BA8: ('007A9BA4', 'a dword read directly'),
     0x007A9C2C: ('007A9BFC', "the bag's ball sizes (12 floats, particle_emitters.cpp's g_bagSizes) end at 007A9C2C"),
-    0x007A9C64: ('007A9C5C', "the particles' draw order 007A9C50 (CArray<ParticleDepth>, 0x14 bytes: its constructor 00498E60) ends at 007A9C64; 007A9C5C is its maxSize"),
     0x007AA5E8: ('007AA5D8', 'the party manager 007AA5A0 (PartyManager, 0x44 bytes); 007AA5D8 is its class template vector'),
     0x007AA624: ('007AA620', 'the saving script pointer (dword; the CString 007AA61C below it is 4 bytes)'),
     0x007AA880: ('007AA868', 'a decal vertex (DecalVertex, 0x14 bytes)'),
@@ -634,7 +632,6 @@ REVIEWED_NEAR = {
     0x007C2DDC: ('007C2D60', 'the received memory stream (CMemoryStream, 0x28 bytes)'),
     0x007C2E78: ('007C2E70', 'the part draw guard byte (the moved positions array 007C2E60 is below it)'),
     0x007C2F28: ('007C2F24', 'the flood queue guard byte (the queue 007C2F10 is below it)'),
-    0x007C3010: ('007C3008', "the sector spiral's offsets 007C2FF8 (CArray<SpiralOffset>, 0x14 bytes: its constructor 005C18C0) end at 007C300C; 007C3008 is their growBy"),
     0x007C5530: ('007C552C', 'the loading movie screen RECT 007C5520 (16 bytes)'),
     0x007C5568: ('007C5560', 'a flag byte (read directly)'),
     0x007C7B44: ('007C7B38', 'the cheat command map (an STLport map, 0xC bytes)'),
@@ -795,6 +792,12 @@ UNUSED_INITIALISERS = {
     0x00700779: "CString's allocator of 256 characters 007C8B30",
     0x007007AB: "CString's allocator of 512 characters 007C8B08",
     0x0070BE81: "CStringArray's runtime class 00796EE8, linked into the module state's class list",
+    0x0070BEC9: "CWordArray's runtime class 00796F20, linked into the module state's class list (the class went in "
+                "C14zb)",
+    0x0070C130: "CDWordArray's runtime class 00797140, linked into the module state's class list (the class went in "
+                "C14zb)",
+    0x0070C17E: "CByteArray's runtime class 00797198, linked into the module state's class list (the class went in "
+                "C14zb)",
     0x0070C1ED: "MFC's _simpleNotSupportedException 007C8D50 (only CStdioFile threw it; the game's text files are "
                 "lib::TextFile since C14d)",
 }

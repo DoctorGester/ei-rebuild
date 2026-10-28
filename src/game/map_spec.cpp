@@ -14,7 +14,6 @@
 #include <memory>
 #include <new>
 #include <string>
-#include "lib/mfc_slots.h"
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "game_singletons.h"

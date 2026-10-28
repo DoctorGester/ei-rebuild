@@ -33,5 +33,5 @@ void CUnit::CollectItems(std::list<CItem*>* items, std::list<CSpell*>* itemSpell
     AddSlots(items, itemSpells, armor, 7);
     AddSlots(items, itemSpells, quickItems, 4);
     AddSlots(items, itemSpells, spells, 8);
-    for (int i = 0; i < carriedCount; ++i) AddItem(items, itemSpells, carried[i]);
+    for (CItem* item : carried) AddItem(items, itemSpells, item);
 }

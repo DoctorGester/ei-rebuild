@@ -16,7 +16,6 @@
 #include "../../src/game/sector_map.h"
 #include "../../src/game/unit.h"
 #include "../../src/lib/crt.h"
-#include "../../src/lib/mfc_slots.h"
 #include "game/game_data.h"
 
 #include <windows.h>
