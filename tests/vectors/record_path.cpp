@@ -13,7 +13,6 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/game/game_data.h"
 #include "../../src/game/sector_map.h"
-#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 
 #include "ei/hook.h"
@@ -32,6 +31,7 @@ namespace {
 
 using namespace ei::vectors;
 using namespace ei::vectors::path;
+namespace exe = ei::verify::exe;
 
 Sampler g_tables(kFamily, "@PathTables", kVariableSize, 1);
 Sampler g_maps(kFamily, "@AIMap", kVariableSize, 64);
@@ -111,15 +111,55 @@ void OfferTables() {
 
 // ---- @AIMap and the differences from it ------------------------------------------------------------
 
+// game.exe's AI map and region map (ai_map.h's CAIMap and CRegionMap as game.exe lays them out; this records in
+// game.exe, so nothing of ours is read): the members the recorder reads, the rest padding.
+template <class T>
+struct OriginalGrid {   // SearchGrid
+    T* data;
+    T** rows;
+    int width, height;
+};
+static_assert(sizeof(OriginalGrid<int>) == 0x10);
+struct OriginalRegionMap {
+    std::uint8_t unknown0[0x11C];
+    OriginalGrid<std::int16_t> edges[8];     // +0x11C: per size class 8 edge words per block
+    OriginalGrid<std::uint8_t> cells[8];     // +0x19C: the representative cell
+    OriginalGrid<std::uint16_t> regions[8];  // +0x21C: the region per block
+};
+static_assert(offsetof(OriginalRegionMap, cells) == 0x19C && offsetof(OriginalRegionMap, regions) == 0x21C &&
+              sizeof(OriginalRegionMap) == 0x29C);
+struct OriginalAIMap {
+    std::uint8_t unknown0[0x14];
+    int passCosts[16];                       // +0x14
+    int passCostsAlt[16];                    // +0x54
+    int stepCosts[16];                       // +0x94
+    exe::Array<int> climbLarge;              // +0xD4
+    exe::Array<int> climbSmall;              // +0xE8
+    std::uint8_t unknownFC[0x24];
+    float heightScale;                       // +0x120
+    std::uint8_t unknown124[0xD0];
+    OriginalGrid<std::int8_t> waterDepth;    // +0x1F4
+    std::uint8_t unknown204[0x20F4];
+    OriginalRegionMap regionMap;             // +0x22F8
+    std::uint8_t unknown2594[0x104];
+    OriginalGrid<AIMapCell> cells;           // +0x2698
+    std::uint8_t unknown26A8[0x10];
+    OriginalGrid<std::int8_t> marks;         // +0x26B8
+};
+static_assert(offsetof(OriginalAIMap, passCosts) == 0x14 && offsetof(OriginalAIMap, stepCosts) == 0x94);
+static_assert(offsetof(OriginalAIMap, climbSmall) == 0xE8 && offsetof(OriginalAIMap, heightScale) == 0x120);
+static_assert(offsetof(OriginalAIMap, waterDepth) == 0x1F4 && offsetof(OriginalAIMap, regionMap) == 0x22F8);
+static_assert(offsetof(OriginalAIMap, cells) == 0x2698 && offsetof(OriginalAIMap, marks) == 0x26B8);
+
 // The region map's grids in the order @AIMap stores them: per size class the edge words, the
 // representative cells and the regions.
 struct GridView {
     const void* data;
     std::uint32_t bytes;
 };
-std::vector<GridView> RegionGrids(const CAIMap* map) {
+std::vector<GridView> RegionGrids(const OriginalAIMap* map) {
     std::vector<GridView> grids;
-    const CRegionMap& r = map->regionMap;
+    const OriginalRegionMap& r = map->regionMap;
     for (int c = 0; c < 8; ++c) {
         grids.push_back({r.edges[c].data, static_cast<std::uint32_t>(r.edges[c].width * r.edges[c].height * 8 * 2)});
         grids.push_back({r.cells[c].data, static_cast<std::uint32_t>(r.cells[c].width * r.cells[c].height)});
@@ -128,7 +168,7 @@ std::vector<GridView> RegionGrids(const CAIMap* map) {
     return grids;
 }
 
-std::vector<std::uint8_t> RegionBytes(const CAIMap* map) {
+std::vector<std::uint8_t> RegionBytes(const OriginalAIMap* map) {
     std::vector<std::uint8_t> bytes;
     for (const GridView& g : RegionGrids(map)) {
         const auto* p = static_cast<const std::uint8_t*>(g.data);
@@ -137,13 +177,13 @@ std::vector<std::uint8_t> RegionBytes(const CAIMap* map) {
     return bytes;
 }
 
-std::uint32_t CellBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->cells.width * m->cells.height * sizeof(AIMapCell)); }
-std::uint32_t WaterBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->waterDepth.width * m->waterDepth.height); }
-std::uint32_t MarkBytes(const CAIMap* m) { return static_cast<std::uint32_t>(m->marks.width * m->marks.height); }
+std::uint32_t CellBytes(const OriginalAIMap* m) { return static_cast<std::uint32_t>(m->cells.width * m->cells.height * sizeof(AIMapCell)); }
+std::uint32_t WaterBytes(const OriginalAIMap* m) { return static_cast<std::uint32_t>(m->waterDepth.width * m->waterDepth.height); }
+std::uint32_t MarkBytes(const OriginalAIMap* m) { return static_cast<std::uint32_t>(m->marks.width * m->marks.height); }
 
 // The map as saved: what identifies it in the game, and its content.
 struct Saved {
-    const CAIMap* map = nullptr;
+    const OriginalAIMap* map = nullptr;
     const void* identity[5] = {};
     int sizes[6] = {};
     std::uint64_t id = 0;
@@ -152,8 +192,8 @@ struct Saved {
 Saved g_saved;
 SRWLOCK g_mapLock = SRWLOCK_INIT;
 
-void Identify(const CAIMap* map, const void* (&identity)[5], int (&sizes)[6]) {
-    const CRegionMap& r = map->regionMap;
+void Identify(const OriginalAIMap* map, const void* (&identity)[5], int (&sizes)[6]) {
+    const OriginalRegionMap& r = map->regionMap;
     const void* ids[5] = {map, map->cells.data, map->waterDepth.data, map->marks.data, r.edges[0].data};
     const int s[6] = {map->cells.width, map->cells.height, map->waterDepth.width, map->waterDepth.height, r.edges[0].width, r.edges[0].height};
     std::memcpy(identity, ids, sizeof(ids));
@@ -167,7 +207,7 @@ void PutGrid(Writer& w, int width, int height, const void* data, std::uint32_t p
 }
 
 // Saves `map` (and offers it as @AIMap) unless it is the one saved. Under g_mapLock.
-void EnsureSaved(const CAIMap* map) {
+void EnsureSaved(const OriginalAIMap* map) {
     const void* identity[5];
     int sizes[6];
     Identify(map, identity, sizes);
@@ -180,13 +220,13 @@ void EnsureSaved(const CAIMap* map) {
     body.Put(map->passCosts);
     body.Put(map->passCostsAlt);
     body.Put(map->stepCosts);
-    PutArray(body, map->climbLarge.data(), std::ssize(map->climbLarge), 4);
-    PutArray(body, map->climbSmall.data(), std::ssize(map->climbSmall), 4);
+    PutArray(body, map->climbLarge.data, map->climbLarge.size, 4);
+    PutArray(body, map->climbSmall.data, map->climbSmall.size, 4);
     body.Put(map->heightScale);
     PutGrid(body, map->cells.width, map->cells.height, map->cells.data, 1, sizeof(AIMapCell));
     PutGrid(body, map->waterDepth.width, map->waterDepth.height, map->waterDepth.data, 1, 1);
     PutGrid(body, map->marks.width, map->marks.height, map->marks.data, 1, 1);
-    const CRegionMap& r = map->regionMap;
+    const OriginalRegionMap& r = map->regionMap;
     for (int c = 0; c < 8; ++c) {
         PutGrid(body, r.edges[c].width, r.edges[c].height, r.edges[c].data, 8, 2);
         PutGrid(body, r.cells[c].width, r.cells[c].height, r.cells[c].data, 1, 1);
@@ -215,7 +255,7 @@ void EnsureSaved(const CAIMap* map) {
 }
 
 // The map a search runs on: the saved map's id and the differences from it.
-void PutCallMap(Writer& w, const CAIMap* map, std::uint8_t planes = kCallAll) {
+void PutCallMap(Writer& w, const OriginalAIMap* map, std::uint8_t planes = kCallAll) {
     AcquireSRWLockExclusive(&g_mapLock);
     EnsureSaved(map);
     w.Put(g_saved.id);
@@ -233,7 +273,7 @@ void PutCallMap(Writer& w, const CAIMap* map, std::uint8_t planes = kCallAll) {
     ReleaseSRWLockExclusive(&g_mapLock);
 }
 
-UnitState StateOf(CUnit* unit) {
+UnitState StateOf(exe::CUnit* unit) {
     auto s = Zeroed<UnitState>();
     s.classId = unit->GetClassId();
     std::memcpy(s.position, &unit->localPosition_, sizeof(s.position));
@@ -242,17 +282,17 @@ UnitState StateOf(CUnit* unit) {
     s.standingHeight = unit->standingHeight;
     s.altPassCosts = unit->altPassCosts;
     // game.exe's CUnit::GetMoveSpeeds (0052F920; no side effects): the recording runs the original (H30).
-    ei::verify::OriginalCode<void(__thiscall*)(CUnit*, float*, float*)>(0x0052F920)(unit, &s.forwardSpeed, &s.backwardSpeed);
+    ei::verify::OriginalCode<void(__thiscall*)(exe::CUnit*, float*, float*)>(0x0052F920)(unit, &s.forwardSpeed, &s.backwardSpeed);
     return s;
 }
 
-std::vector<std::uint8_t> MarksOf(const CAIMap& map) {
+std::vector<std::uint8_t> MarksOf(const OriginalAIMap& map) {
     const auto* p = reinterpret_cast<const std::uint8_t*>(map.marks.data);
     return std::vector<std::uint8_t>(p, p + MarkBytes(&map));
 }
 
 // What the search changed in the marks.
-void PutMarksAfter(Writer& w, const std::vector<std::uint8_t>& before, const CAIMap& map) {
+void PutMarksAfter(Writer& w, const std::vector<std::uint8_t>& before, const OriginalAIMap& map) {
     PutDiff(w, before.data(), reinterpret_cast<const std::uint8_t*>(map.marks.data), MarkBytes(&map), 1);
 }
 
@@ -280,8 +320,8 @@ bool Small(const OriginalPath* path) { return path->cells.count <= kMaxCells && 
 
 // A FindPath being recorded on this thread: the sector map's Remove takes its map.
 struct PendingFind {
-    const CAIMap* map;
-    const CEngineObject* unit;
+    const OriginalAIMap* map;
+    const exe::CEngineObject* unit;
     Writer state;
     std::vector<std::uint8_t> marks;   // the marks when the map was taken
     bool captured = false;
@@ -290,14 +330,14 @@ struct PendingFind {
 thread_local PendingFind* t_find = nullptr;
 
 // 005BB350: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6).
-using FindPathFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, const Vector3*, OriginalPath*, float, float);
+using FindPathFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::CUnit*, const Vector3*, OriginalPath*, float, float);
 FindPathFn s_findPath;
-bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* target, OriginalPath* path, float range,
+bool __fastcall FindPathRecord(OriginalAIMap* self, void*, exe::CUnit* unit, const Vector3* target, OriginalPath* path, float range,
                                float minDistance) {
     OfferTables();
     Writer head;
     head.Put(StateOf(unit));
-    head.Put<std::int32_t>(ei::OriginalGameData<CWorldServer>(0x007AFF60).tick_);   // game.exe's world
+    head.Put<std::int32_t>(ei::OriginalGameData<exe::CWorldServer>(0x007AFF60).tick_);   // game.exe's world
     head.Put(*target);
     head.Put(range);
     head.Put(minDistance);
@@ -323,9 +363,9 @@ bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* 
 }
 
 // 005C1010: PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,[ESP+0x10] (7). The capture point above.
-using RemoveFn = bool(__fastcall*)(CSectorMap*, void*, CEngineObject*);
+using RemoveFn = bool(__fastcall*)(void*, void*, exe::CEngineObject*);
 RemoveFn s_remove;
-bool __fastcall RemoveRecord(CSectorMap* self, void*, CEngineObject* object) {
+bool __fastcall RemoveRecord(void* self, void*, exe::CEngineObject* object) {
     bool result = s_remove(self, nullptr, object);
     PendingFind* pending = t_find;
     if (pending && !pending->captured && object == pending->unit) {
@@ -337,9 +377,9 @@ bool __fastcall RemoveRecord(CSectorMap* self, void*, CEngineObject* object) {
 }
 
 // 005B9C90: PUSH -1; PUSH 0x00727B90 (7).
-using PlanFn = bool(__fastcall*)(CAIMap*, void*, CUnit*, int, int, int, int, OriginalPath*, int, int);
+using PlanFn = bool(__fastcall*)(OriginalAIMap*, void*, exe::CUnit*, int, int, int, int, OriginalPath*, int, int);
 PlanFn s_plan;
-bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int fromY, int toX, int toY, OriginalPath* path,
+bool __fastcall PlanRecord(OriginalAIMap* self, void*, exe::CUnit* unit, int fromX, int fromY, int toX, int toY, OriginalPath* path,
                            int retry, int maxCells) {
     OfferTables();
     if (t_find) ++t_find->plans;
@@ -365,9 +405,9 @@ bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int from
 
 // 005C46C0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xE0 (9). The original's rebuilt cells have stale stack
 // in their second dwords (SV7d2): only x and y are kept.
-using SmoothFn = int(__fastcall*)(PathSmoother*, void*, CUnit*, CAIMap*, OriginalCells*, int, float);
+using SmoothFn = int(__fastcall*)(void*, void*, exe::CUnit*, OriginalAIMap*, OriginalCells*, int, float);
 SmoothFn s_smooth;
-int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map, OriginalCells* path,
+int __fastcall SmoothRecord(void* self, void*, exe::CUnit* unit, OriginalAIMap* map, OriginalCells* path,
                             int startDirection, float fraction) {
     OfferTables();
     if (path->count > kMaxCells) return s_smooth(self, nullptr, unit, map, path, startDirection, fraction);
