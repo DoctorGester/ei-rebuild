@@ -21,7 +21,7 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Get / release DC (start and end of drawing) | 005FDC00 / 005FDC60 (`ui_surface_dc.cpp`: a memory DC on the DIB) | about 57 sites in 38 files | CPU |
 | Screen copy into a surface | 005FD3D0 `CaptureScreen` → `render::CopyFrameTo` (staging readback to the CPU) | escape-menu backdrop (`ui_interface_draw.cpp:151/161`), global-map pick picture (`ui_global_map_places.cpp:182`), save game (`ui_saveload.cpp:591`) | GPU → CPU readback |
 | Greyscale, (2r+4g+b)/16 | 005FE440 (`ui_surface_pixels.cpp`) | escape-menu backdrop (`ui_interface_draw.cpp:154`) | CPU |
-| Save picture | 005FD440 `Rgb565Copy` (CPU stretch with the (2x+1)·src/(2·size) rule) | escape-menu `block5C_` (256x192), QuickSave 006570E0, SaveGame 00655550 | CPU, reads pixels |
+| Save picture | 005FD440 `Rgb565Copy` (CPU stretch with the (2x+1)·src/(2·size) rule) | escape-menu `screenCopy_` (256x192), QuickSave 006570E0, SaveGame 00655550 | CPU, reads pixels |
 | Pixel read | 005FD240 `PixelAt` | global-map click (`ui_global_map_input.cpp:128`) and FindPaths (`ui_global_map_paths.cpp:171`): zone = (pixel>>4)&0xF − 1 | CPU, reads pixels |
 | Swap / freeze | 005FD7A0 `SwapContents`, 005FD760 `Freeze` | camp, menus, backdrop mode 3/4; N0: also every window's `ShowSurfaces` 006002C0 on each show and hide | CPU memcpy |
 | RichEdit text | 0065F020 `CUiScrollingSurface::RenderText` (EM_FORMATRANGE into the DIB) | titles / credits | CPU, keep |

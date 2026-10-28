@@ -18,7 +18,7 @@ netlink::NetLink* ActiveLink(CPlayer* session) {
 }
 
 void PumpSources(CWorldClient* world) {
-    if (CWorldHandle* source = world->shared5C_.Get()) source->Pump();
+    if (CWorldHandle* source = world->worldHandle_.Get()) source->Pump();
     if (CClientHandle* source = world->handle_.Get()) source->Pump();
     if (netlink::DriverSession* session = world->netSession_.Get()) session->PumpDrivers(net::g_gameClient);
 }

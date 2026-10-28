@@ -45,23 +45,23 @@ void ChunkArchive::SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records,
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
-PrintRecord::PrintRecord() : look2{}, look3{} {}
-PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), look2(from.look2), look3(from.look3) {}
-PrintRecord2::PrintRecord2() : look2{}, look3{}, unreadChunk{} {}
-PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), look2(from.look2), look3(from.look3) {
+PrintRecord::PrintRecord() : dryLook{}, wetLook{} {}
+PrintRecord::PrintRecord(const PrintRecord& from) : name(from.name), dryLook(from.dryLook), wetLook(from.wetLook) {}
+PrintRecord2::PrintRecord2() : dryLook{}, wetLook{}, unreadChunk{} {}
+PrintRecord2::PrintRecord2(const PrintRecord2& from) : name(from.name), dryLook(from.dryLook), wetLook(from.wetLook) {
     std::memcpy(unreadChunk, from.unreadChunk, sizeof(unreadChunk));
 }
 
 void PrintRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
-    TripleChunk(ar, 2, &look2);
-    TripleChunk(ar, 3, &look3);
+    TripleChunk(ar, 2, &dryLook);
+    TripleChunk(ar, 3, &wetLook);
 }
 
 void PrintRecord2::Serialize(ChunkArchive* ar) {
     ar->StringField(1, &name);
-    TripleChunk(ar, 2, &look2);
-    TripleChunk(ar, 3, &look3);
+    TripleChunk(ar, 2, &dryLook);
+    TripleChunk(ar, 3, &wetLook);
     TripleChunk(ar, 10, unreadChunk);
 }
 

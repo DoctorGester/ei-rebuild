@@ -179,13 +179,13 @@ int CPlayerServer::OnFollow() {
     return 1;
 }
 
-int CPlayerServer::OnUnitFlag438() {
+int CPlayerServer::OnFightAtWill() {
     int id;
     g_receivedMessages->Read(&id, 4);
     CUnit* unit = FindUnit(player_, id);
     std::int8_t value = 0;
     g_receivedMessages->Read(&value, 1);
-    if (unit) unit->SetUnknown438(value);
+    if (unit) unit->SetFightAtWill(value);
     return 1;
 }
 

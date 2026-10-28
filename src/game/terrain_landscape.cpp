@@ -415,9 +415,6 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     if (!archive.OpenResource(name, 0)) return 0;
     std::vector<std::string> files;
     archive.ListFiles(&files, "*.mp");
-    int dot = str::ReverseFind(name, '.');
-    if (dot > 0) textFC = str::Left(name, dot);
-    else textFC = name;
     // (An archive without a map file is not tested for either.)
     const std::string& first = files[0];
     mapName = str::Left(first, str::Find(first, '.'));

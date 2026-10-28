@@ -121,7 +121,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
         return nullptr;
     }
     if ((IsTextKey(unit->id_) & 0xFF) && unit->moveMode < 2) kind = PartyKind(kind);
-    auto* prototype = unit->GetPrototype23C();
+    auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
 
     if (kind == 0x25 || kind == 0x26) {
@@ -177,7 +177,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
 
 const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
-    auto* prototype = unit->GetPrototype23C();
+    auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return nullptr;
     UnitAcks* record = g_ackDatabase->units.Find(prototype->name);
     if (!record) return nullptr;

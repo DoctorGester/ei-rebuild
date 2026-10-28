@@ -86,13 +86,11 @@ int UiObjectClassId(CEngineObject*) { return kUiObjectId; }
 int CWorldServer::IsServer() { return 1; }
 
 const char* CWorldClient::TexturePath() { return texturePath_.c_str(); }
-CMaterialManager* CWorldClient::MaterialManager() { return manager188_; }
+CMaterialManager* CWorldClient::MaterialManager() { return materialManager_; }
 CTextureManager* CWorldClient::TextureManager() { return textureManager_; }
-CBaseManager* CWorldClient::ClientLightManager() { return manager190_; }
-CBaseManager* CWorld::FigureManager() { return manager3C_; }
+CBaseManager* CWorldClient::ClientLightManager() { return lightFactory_; }
+CBaseManager* CWorld::FigureManager() { return figureManager_; }
 CParticleManager* CWorldClient::ClientParticleManager() { return particleManager_; }
-CEngineObject* CWorldClient::ClientManager194() { return manager194_; }
-CEngineObject* CWorldClient::ClientManager198() { return manager198_; }
 
 void CWorldClient::MoveObject(CMapObject* object, const float* position) {
     objectGrid_.Move(object, position);

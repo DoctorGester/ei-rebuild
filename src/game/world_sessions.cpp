@@ -1,4 +1,4 @@
-// The worlds' player sources (player_source.h): the base's destructor, CWorld::shared5C_ (CWorldHandle) and
+// The worlds' player sources (player_source.h): the base's destructor, CWorld::worldHandle_ (CWorldHandle) and
 // netSession_ (netlink::DriverSession): their clones, shutdowns and destructors, and CWorld::OpenSession. The
 // session's lists: drivers owning (RefPtr::Destroy), holders plain (Release).
 #include "world.h"

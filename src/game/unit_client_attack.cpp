@@ -44,9 +44,9 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         const itemdb::WeaponRecord* record = itemdb::WeaponAt(PrototypeIndex(weapon));
         // The bonus is stored to a float before the weapon's figure is added; _ftol truncates.
         float bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));
-        out->attack = static_cast<int>(static_cast<double>(WeaponStat84(weapon)) + bonus);
+        out->attack = static_cast<int>(static_cast<double>(WeaponAttackBonus(weapon)) + bonus);
         bonus = static_cast<float>(params->WeaponSkillBonus(out->weaponType, record));
-        out->defence = static_cast<int>(static_cast<double>(WeaponStat88(weapon)) + bonus);
+        out->defence = static_cast<int>(static_cast<double>(WeaponDefenceBonus(weapon)) + bonus);
     } else {
         // The packed parameters (bytes).
         out->damageMin = params->damage;

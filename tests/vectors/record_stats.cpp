@@ -328,29 +328,29 @@ double __fastcall SkillLevelValueRecord(UnitStats* self, void*, int index) {
 }
 
 // 00524280 and 00525CD0: the level bytes at +0x6E8 / +0x6E9, the level records from 0x3E / 0x41.
-Recorded<LevelCall> g_value6E8("UnitStats::Value6E8", 2), g_value6E9("UnitStats::Value6E9", 2);
-double(__fastcall* s_value6E8)(UnitStats*);
-double(__fastcall* s_value6E9)(UnitStats*);
-double __fastcall Value6E8Record(UnitStats* self) {
+Recorded<LevelCall> g_scaledStrength("UnitStats::Value6E8", 2), g_backstabFactor("UnitStats::Value6E9", 2);
+double(__fastcall* s_scaledStrength)(UnitStats*);
+double(__fastcall* s_backstabFactor)(UnitStats*);
+double __fastcall ScaledStrengthRecord(UnitStats* self) {
     auto v = Zeroed<LevelCall>();
     v.strength = self->strength;
     v.level = self->skillLevels[0x6E8 - 0x6D3];
     if (v.level != 0) v.record = LevelOf(v.level + 0x3Eu);
     std::uint16_t cw = ControlWord();
-    double result = s_value6E8(self);
+    double result = s_scaledStrength(self);
     v.result = result;
-    g_value6E8.sampler.Offer(v, cw, v.level != 0 ? 1 : 0);
+    g_scaledStrength.sampler.Offer(v, cw, v.level != 0 ? 1 : 0);
     return result;
 }
-double __fastcall Value6E9Record(UnitStats* self) {
+double __fastcall BackstabFactorRecord(UnitStats* self) {
     auto v = Zeroed<LevelCall>();
     v.setting = OriginalLogicSettings().backstabAdd;
     v.level = self->skillLevels[0x6E9 - 0x6D3];
     if (v.level != 0) v.record = LevelOf(v.level + 0x41u);
     std::uint16_t cw = ControlWord();
-    double result = s_value6E9(self);
+    double result = s_backstabFactor(self);
     v.result = result;
-    g_value6E9.sampler.Offer(v, cw, v.level != 0 ? 1 : 0);
+    g_backstabFactor.sampler.Offer(v, cw, v.level != 0 ? 1 : 0);
     return result;
 }
 
@@ -554,8 +554,8 @@ EI_RECORD(0x00522AE0, ExcessRecord, 6, s_excess, DamageWords::ExcessOver);
 EI_RECORD(0x00522B20, MaxRecord, 6, s_max, MaxDamage);
 EI_RECORD(0x00527050, SkillWithBonusRecord, 6, s_skillWithBonus, UnitStats::SkillWithBonus);
 EI_RECORD(0x005267E0, SkillLevelValueRecord, 7, s_skillLevelValue, UnitStats::SkillLevelValue);
-EI_RECORD(0x00524280, Value6E8Record, 6, s_value6E8, UnitStats::Value6E8);
-EI_RECORD(0x00525CD0, Value6E9Record, 6, s_value6E9, UnitStats::Value6E9);
+EI_RECORD(0x00524280, ScaledStrengthRecord, 6, s_scaledStrength, UnitStats::ScaledStrength);
+EI_RECORD(0x00525CD0, BackstabFactorRecord, 6, s_backstabFactor, UnitStats::BackstabFactor);
 EI_RECORD(0x00523CB0, StrengthRatioRecord, 9, s_strengthRatio, UnitStats::StrengthRatio);
 EI_RECORD(0x00523CC0, DexterityRatioRecord, 9, s_dexterityRatio, UnitStats::DexterityRatio);
 EI_RECORD(0x00528840, GetFactorsRecord, 9, s_getFactors, UnitStats::GetFactors);

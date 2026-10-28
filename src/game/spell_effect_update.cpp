@@ -266,7 +266,7 @@ void Clairvoyance(CSpellEffect* e, std::list<CUnit*>& units) {
     if (IsUnit(e->caster)) {
         auto* player = e->caster->player;
         if (player) {
-            ScriptGroup* group = &ServerOf(player)->group50F8_;
+            ScriptGroup* group = &ServerOf(player)->possessedGroup_;
             e->world->aiMap_.sectorMap.FindUnitsInRadius(&e->position, &units, e->Spell()->radius_);
             for (auto node = units.begin(); node != units.end();) {
                 CUnit* unit = *node;
@@ -297,7 +297,7 @@ void Possession(CSpellEffect* e) {
     if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CMapObject* target = e->target;
         CUnitServer* server = ControllerOf(TargetUnit(e));
-        ScriptGroup* group = &ServerOf(player)->group50F8_;
+        ScriptGroup* group = &ServerOf(player)->possessedGroup_;
         group->Insert(target);
         group->InsertAll(&server->brain.memory.visible);
         group->InsertAll(&server->brain.memory.seenCorpses);

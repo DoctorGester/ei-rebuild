@@ -25,9 +25,9 @@ struct LeverRecord {
     std::uint32_t spotCount;    // field 2
     float farScale;             // field 3: the spots' distance factor when scale.z is 1
     std::uint32_t duration;     // field 4: a state change's default ticks
-    std::string text20;         // fields 5-7
+    std::string unreadTextFirst;   // field 5; nothing reads it
     std::string sound;          // played while the lever moves
-    std::string text28;
+    std::string unreadTextLast;    // field 7; nothing reads it
 };
 
 // The lever table: the records and their index by model name.

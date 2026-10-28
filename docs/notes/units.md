@@ -41,7 +41,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   byte). UnitPrototypeRecord +0x50 is `level` (CUnit::Level without a text key). World heights: CWorld slots 29 / 30.
   unit_update.cpp is clean (C10; its `_ftol` `__asm` and float_control stay).
 - ST0 results are `double` (the original returns floats unrounded and 00532A20 truncates `Reduce` with `_ftol`): UnitStats
-  Period20, AttributeWithBonus, SkillWithBonus, Value6E8, Value6E9, Value6E9Arg, Reduce, ReduceKind1, CUnit MoveSpeed2,
+  Period20, AttributeWithBonus, SkillWithBonus, ScaledStrength, BackstabFactor, BackstabFactorArg, Reduce, ReduceKind1, CUnit MoveSpeed2,
   MoveSpeedFor, ScaledValue, BaseSpeed, ModeSpeed, TotalItemWeight, AnimationRatio, UnitParams::Period. UnitStats level
   values are unsigned dwords the original loads with FILD of a zero-extended qword (volatile int64 here). `unit*.cpp` use
   `float_control(precise, on)`.

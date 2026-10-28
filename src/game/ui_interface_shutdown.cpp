@@ -72,8 +72,8 @@ void CInterface3D::Shutdown() {
     backdrop_ = nullptr;
     DeleteSurface(secondBackdrop_);
     secondBackdrop_ = nullptr;
-    if (block5C_) delete[] block5C_;
-    block5C_ = nullptr;
+    if (screenCopy_) delete[] screenCopy_;
+    screenCopy_ = nullptr;
     strmap::g_debugPanel->Release();
     if (root_) {
         delete root_;

@@ -30,7 +30,7 @@ const char* PrototypeItem() { return "Prototype"; }
 
 // The item and spell managers (their name lists).
 CItemManager* ItemDatabase() { return g_clientWorld->itemManager_; }
-CSpellManager* SpellDatabase() { return g_clientWorld->manager4C_; }
+CSpellManager* SpellDatabase() { return g_clientWorld->spellManager_; }
 
 constexpr int kWeaponClass = 0x3004;
 constexpr int kArmorClass = 0x3005;

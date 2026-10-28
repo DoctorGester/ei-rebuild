@@ -42,8 +42,8 @@ CCamera::CCamera() {
         std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
         view.pitch = DefaultPitch();
     }
-    std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
-    std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
+    std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
     turnResponse_ = 1.0f / 3.0f;
     tiltResponse_ = 1.0f / 3.0f;
@@ -199,7 +199,7 @@ void CCamera::Load(CStream* stream) {
     stream->Read(&viewRotation_, 16);
     stream->Read(&pitch_, 4);
     stream->Read(&distance_, 4);
-    stream->Read(&offset98_, 0x1C);
+    stream->Read(&panVelocity_, 0x1C);
     stream->Read(&turnRate_, 12);
     stream->Read(&tiltRate_, 12);
     stream->Read(&zoomRate_, 12);
@@ -215,8 +215,8 @@ void CCamera::Load(CStream* stream) {
     }
     targetId_ = target;
     if (target != -1) {
-        std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
-        std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&panTarget_, &camera::kZeroVector, sizeof(Vector3));
+        std::memcpy(&panVelocity_, &camera::kZeroVector, sizeof(Vector3));
     }
 }
 
@@ -227,7 +227,7 @@ void CCamera::Save(CStream* stream) {
     stream->Write(&viewRotation_, 16);
     stream->Write(&pitch_, 4);
     stream->Write(&distance_, 4);
-    stream->Write(&offset98_, 0x1C);
+    stream->Write(&panVelocity_, 0x1C);
     stream->Write(&turnRate_, 12);
     stream->Write(&tiltRate_, 12);
     stream->Write(&zoomRate_, 12);

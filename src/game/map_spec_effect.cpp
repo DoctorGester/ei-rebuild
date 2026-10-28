@@ -19,7 +19,7 @@ namespace mapspec {
 void EffectNotify(const std::string& kind, const std::string& family);
 namespace {
 
-CBaseManager* Effects() { return g_serverWorld->manager48_; }
+CBaseManager* Effects() { return g_serverWorld->timedObjectManager_; }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);

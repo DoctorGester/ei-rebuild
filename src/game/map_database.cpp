@@ -96,8 +96,8 @@ void Loader::AddMap() {
     if (Is(Word(3), game::mapwords::Game())) Map().kind = 0;
     else if (Is(Word(3), game::mapwords::Brief())) Map().kind = 2;
     else if (Is(Word(3), game::mapwords::Edge())) Map().kind = 1;
-    Map().setting2C = 1;   // the weather
-    Map().setting30 = 0;   // no cave
+    Map().climate = 1;   // the weather
+    Map().cave = 0;   // no cave
     Map().restricted = false;
     Map().cage = false;
 }
@@ -143,10 +143,10 @@ bool Loader::MapLine(const char* word) {
     } else if (Is(word, game::mapwords::Weather())) {
         Split();
         if (Count() > 0) {
-            if (Is(Word(0), game::NoneText())) Map().setting2C = 0;
-            else if (Is(Word(0), game::mapwords::Snow())) Map().setting2C = 2;
-            else if (Is(Word(0), game::mapwords::Tornado())) Map().setting2C = 3;
-            else Map().setting2C = 1;
+            if (Is(Word(0), game::NoneText())) Map().climate = 0;
+            else if (Is(Word(0), game::mapwords::Snow())) Map().climate = 2;
+            else if (Is(Word(0), game::mapwords::Tornado())) Map().climate = 3;
+            else Map().climate = 1;
         }
     } else if (Is(word, game::mapwords::Cage())) {
         Map().cage = true;
@@ -160,7 +160,7 @@ bool Loader::MapLine(const char* word) {
         }
     } else if (Is(word, game::mapwords::Sky())) {
         Split();
-        if (Count() > 0) Map().setting30 = Is(Word(0), game::mapwords::Cave()) ? 1 : 0;
+        if (Count() > 0) Map().cave = Is(Word(0), game::mapwords::Cave()) ? 1 : 0;
     } else if (Is(word, game::mapwords::Exit())) {
         AddExit();
     } else {

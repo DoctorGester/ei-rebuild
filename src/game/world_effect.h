@@ -178,7 +178,7 @@ public:
     int type_;                 // particle type 0x2000..
     float size_;
     float alpha_;              // copied to the source
-    float param164_;           // copied to the source
+    float typeParam_;           // copied to the source
     int attachedTo_;           // object id, -1: none
     Vector3 target_;           // moves towards it
     HeldObject<CParticleSource> source_;   // reference counted

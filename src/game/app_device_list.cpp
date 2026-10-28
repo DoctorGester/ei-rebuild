@@ -12,9 +12,9 @@ void LeverRecord::Archive(ChunkArchive* archive) {
     archive->Field(2, &spotCount, 4);
     archive->Field(3, &farScale, 4);
     archive->Field(4, &duration, 4);
-    archive->StringField(5, &text20);
+    archive->StringField(5, &unreadTextFirst);
     archive->StringField(6, &sound);
-    archive->StringField(7, &text28);
+    archive->StringField(7, &unreadTextLast);
 }
 
 void ChunkArchive::SerializeLevers(int id, std::vector<LeverRecord>* list, int /*unused*/) {

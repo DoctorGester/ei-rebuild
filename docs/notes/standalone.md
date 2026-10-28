@@ -693,7 +693,7 @@ kinds given.
   - **The remaining objects** (C18, 2026-10-22; 247 -> 130):
     - **Singletons' fields read as members**: what was left of the client / server worlds', the scene renderer's and
       the camera's fields (managers, tick and its fraction, terrain, scripts, diplomacy, flags, wind, platforms) is
-      read through the object (`g_clientWorld->manager3C_`); the accessors that need world.h are out of line in
+      read through the object (`g_clientWorld->figureManager_`); the accessors that need world.h are out of line in
       world_singletons.cpp (game_singletons.h declares them; replay_path.cpp defines CurrentWorldTick for the path
       vectors). TheMatrixDevice was the scene pipeline (ScenePipeline()), 007AFDB0 the origin (worlddata::kOrigin),
       007C5488 / 007C548C the logic settings' considerModifier / considerLogBase. Check a lone address with

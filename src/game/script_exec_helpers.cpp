@@ -20,8 +20,8 @@
 
 namespace {
 
-// The world's manager of timed objects (spells and effects; CWorld::manager48_).
-CBaseManager* EffectManager() { return g_serverWorld->manager48_; }
+// The world's manager of timed objects (spells and effects; CWorld::timedObjectManager_).
+CBaseManager* EffectManager() { return g_serverWorld->timedObjectManager_; }
 
 ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data(); }
 int LightCount(CScript* script) { return static_cast<int>(script->pointLights_.size()); }

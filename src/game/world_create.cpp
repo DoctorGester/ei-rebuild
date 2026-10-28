@@ -2,7 +2,7 @@
 // of their base). See docs/notes/combat.md ("Rewritten"), the managers.
 // The world's paths are taken from the command line globals; every manager is made, referenced and
 // attached to the world (ThisWorld with the world, or the base); a 0x0C-byte helper goes into a
-// counted pointer (shared5C_); then the ISAAC generator is seeded and countdowns_ set up.
+// counted pointer (worldHandle_); then the ISAAC generator is seeded and countdowns_ set up.
 #include "world.h"
 #include "model.h"   // TweenArray (countdowns_)
 #include "world_data.h"
@@ -51,22 +51,22 @@ int CWorld::Create() {
 
     players_ = MakeNew<CPlayerManager>();
     Attach(players_, this);
-    manager40_ = MakeNew<CMapObjectManager>();
-    Attach(manager40_, this);
-    manager3C_ = MakeNew<CFigureManager>();
-    Attach(manager3C_, this);
-    manager48_ = MakeNew<CEffectManager>();
-    Attach(manager48_, this);
-    manager50_ = MakeNew<CSpellConstructor>();
-    manager50_->Create();
-    manager4C_ = MakeNew<CSpellManager>();
-    Attach(manager4C_, this);
-    manager58_ = MakeNew<CItemConstructor>();
-    manager58_->Create();
+    objectManager_ = MakeNew<CMapObjectManager>();
+    Attach(objectManager_, this);
+    figureManager_ = MakeNew<CFigureManager>();
+    Attach(figureManager_, this);
+    timedObjectManager_ = MakeNew<CEffectManager>();
+    Attach(timedObjectManager_, this);
+    spellConstructor_ = MakeNew<CSpellConstructor>();
+    spellConstructor_->Create();
+    spellManager_ = MakeNew<CSpellManager>();
+    Attach(spellManager_, this);
+    itemConstructor_ = MakeNew<CItemConstructor>();
+    itemConstructor_->Create();
     itemManager_ = MakeNew<CItemManager>();
     Attach(itemManager_, this);
 
-    shared5C_.ShareAssign(new CWorldHandle());
+    worldHandle_.ShareAssign(new CWorldHandle());
     g_random.Init();
     countdowns_.clear();
     return 1;
@@ -75,17 +75,17 @@ int CWorld::Create() {
 CWorld::CWorld() {
     ClearFields();
     figureLoader_ = nullptr;
-    shared5C_.ptr = nullptr;
+    worldHandle_.ptr = nullptr;
     netSession_.ptr = nullptr;
     players_ = nullptr;
-    manager3C_ = nullptr;
-    manager40_ = nullptr;
-    manager44_ = nullptr;
-    manager48_ = nullptr;
-    manager4C_ = nullptr;
-    manager50_ = nullptr;
+    figureManager_ = nullptr;
+    objectManager_ = nullptr;
+    specificManager_ = nullptr;
+    timedObjectManager_ = nullptr;
+    spellManager_ = nullptr;
+    spellConstructor_ = nullptr;
     itemManager_ = nullptr;
-    manager58_ = nullptr;
+    itemConstructor_ = nullptr;
     timeBase_ = 0.0f;
     secondsPerTick_ = 0.0f;
 }

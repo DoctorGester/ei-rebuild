@@ -30,8 +30,6 @@ int FigureBone::CreateBone() {
     mesh = nullptr;
     pose = nullptr;
     animator = nullptr;
-    counted54 = nullptr;
-    counted58 = nullptr;
     position = kTrackDefaultPosition;
     rotation = kTrackDefaultRotation;
     matrices.clear();
@@ -48,10 +46,6 @@ void FigureBone::DestroyBone() {
     pose = nullptr;
     if (animator) animator->Release();
     animator = nullptr;
-    if (counted54) counted54->Release();
-    counted54 = nullptr;
-    if (counted58) counted58->Release();
-    counted58 = nullptr;
     CreateBone();
 }
 

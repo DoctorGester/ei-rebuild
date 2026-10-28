@@ -537,7 +537,7 @@ int CPlayerClient::OnNewObject() {
     in_.Read(&prototypeValue, 4);
 
     auto* world = player_->WorldContext();
-    CMapObject* created = world->manager40_->CreateObjectAs<CMapObject>(header.type, header.id);
+    CMapObject* created = world->objectManager_->CreateObjectAs<CMapObject>(header.type, header.id);
     if (created == nullptr) return 0;
     CMapObject* object = created;
     CObject3D* figure = object;
@@ -556,7 +556,7 @@ int CPlayerClient::OnNewObject() {
         unit->defaultScale.y = modelRecord->height;
         unit->defaultScale.z = 0.0f;
         std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
-        unit->SetPrototype23CIndex(prototypeValue);
+        unit->SetSecondPrototypeIndex(prototypeValue);
     }
     if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;
     if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags_ |= kFlagCow;

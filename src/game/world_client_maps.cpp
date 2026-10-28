@@ -140,7 +140,7 @@ CUnit* FirstUnitHit(CWorldClient* client, CMapObject* object) {
     while (object->GetClassId() != world::kClassUnit) {
         do {
             if (++client->hitCursor_ == client->hits_.data() + client->hits_.size()) return nullptr;
-            object = client->manager40_->FindMapObject(client->hitCursor_->objectId);
+            object = client->objectManager_->FindMapObject(client->hitCursor_->objectId);
         } while (!object);
     }
     return static_cast<CUnit*>(object);
@@ -482,9 +482,9 @@ void CWorldClient::ClearMaps() {
     });
     SessionPlayerClear(session_);
     if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
-    manager3C_->FreeSpares();
-    manager40_->FreeSpares();
-    manager44_->FreeSpares();
+    figureManager_->FreeSpares();
+    objectManager_->FreeSpares();
+    specificManager_->FreeSpares();
 }
 
 CMapObject* CWorldClient::PickAt(const POINT* point) { return Pick(this, point, &HitCollector::CollectBounds); }
@@ -505,7 +505,7 @@ CUnit* CWorldClient::UnitAt2(const POINT* point) {
 
 void CWorldClient::UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out) {
     for (std::list<ScreenEntry>::iterator node = screenEntries_.begin(); node != screenEntries_.end(); ++node) {
-        CMapObject* object = manager40_->FindMapObject(node->objectId);
+        CMapObject* object = objectManager_->FindMapObject(node->objectId);
         if (!object) continue;
         if (!object->Object3D()->attached->PartsIntersectRect(rect)) continue;
         out->push_back(object);
@@ -537,7 +537,7 @@ void CWorldClient::CreatePartyUnits(const std::vector<PartyUnitRecord*>* party, 
         if (!unit) return;   // (leaving the loop is the same as returning here)
         UnitPrototypeRecord* prototype = g_unitDatabase->prototypes.FindByName(record->texts[5]);
         unit->prototypeId_ = static_cast<std::uint32_t>(prototype ? prototype - g_unitDatabase->prototypes.records.data() : -1);
-        unit->SetPrototype23CByName(record->texts[6].c_str());
+        unit->SetSecondPrototypeByName(record->texts[6].c_str());
         unit->flags_ |= 0x4000000;
         if (!unit->MakeFigure(record->texts[2], &parts, 1)) return;
         CObject3DClientSpecific* figure = unit->Object3D()->ClientSpecific();
@@ -689,7 +689,7 @@ void CWorldClient::Destroy() {
     skyDome_ = nullptr;
     DeleteOwned(bird_);
     ReleaseItemsAndSpells();
-    countedA0_.clear();
+    exitMarkers_.clear();
     bloodPrints_.clear();
     footprints_.clear();
     scorchMarks_.clear();
@@ -722,8 +722,8 @@ void CWorldClient::Destroy() {
     DeleteOwned(arrayManager_);
     DropAndDelete(particleManager_);
     DropAndDelete(terrain_);
-    DropAndDelete(manager190_);
-    DropAndDelete(manager188_);
+    DropAndDelete(lightFactory_);
+    DropAndDelete(materialManager_);
     DropAndDelete(textureManager_);
     DeleteOwned(music_);
     DropAndDelete(sounds_);
@@ -731,7 +731,7 @@ void CWorldClient::Destroy() {
 }
 
 void CWorldClient::ResetZoneObjects() {
-    countedA0_.clear();
+    exitMarkers_.clear();
     // The second grid's cells emptied (each object released).
     SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
@@ -745,7 +745,7 @@ void CWorldClient::ResetZoneObjects() {
 
 void CWorldClient::Deselect(CMapObject* object) {
     std::list<int>& selected = selectedIds_;
-    auto* objects = manager40_;
+    auto* objects = objectManager_;
     if (!object) {
         for (std::list<int>::iterator node = selected.begin(); node != selected.end(); ++node) {
             CMapObject* found = objects->FindMapObject(static_cast<unsigned>((*node)));
@@ -813,14 +813,14 @@ int CWorldClient::Create() {
     ++terrain_->refCount_;
     zoneName_ = worlddata::GipathText();
 
-    manager44_ = NewCounted<CClientSpecificManager>();
-    manager44_->Init(this);
+    specificManager_ = NewCounted<CClientSpecificManager>();
+    specificManager_->Init(this);
     textureManager_ = NewCounted<CTextureManager>();
     textureManager_->CBaseManager::Init(this);
-    manager188_ = NewCounted<CMaterialManager>();
-    manager188_->Init(this);
-    manager190_ = NewCounted<CLightFactory>();
-    manager190_->Init(this);
+    materialManager_ = NewCounted<CMaterialManager>();
+    materialManager_->Init(this);
+    lightFactory_ = NewCounted<CLightFactory>();
+    lightFactory_->Init(this);
 
     auto* manager = new CParticleManager();
     particleManager_ = manager;
@@ -907,9 +907,9 @@ void CWorldClient::ReleaseItemsAndSpells() {
 int CWorldClient::LoadItemsAndSpells(CStream* block) {
     ReleaseItemsAndSpells();
     if (block->Size() != 0) {
-        manager4C_->Load(block);
+        spellManager_->Load(block);
         itemManager_->Load(block);
-        manager4C_->LoadObjects(block);
+        spellManager_->LoadObjects(block);
         itemManager_->LoadObjects(block);
         ReferenceItemsAndSpells();
     }

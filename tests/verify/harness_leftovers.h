@@ -23,7 +23,7 @@
 //
 // Heap blocks whose constructors leave fields (SV7b2, SV7d3, SV7d4): the objects of the two factories
 // (CServerSpecificManager::NewObject 004D6970: CUnitServer's waitFrame, which ResolveBlocker
-// reads; CMapObjectManager::CreateObject 00512730: a unit's levels4C8 and motion turn fields) are
+// reads; CMapObjectManager::CreateObject 00512730: a unit's exposure and motion turn fields) are
 // allocated zeroed (each operator new call redirected), and so are the Suspection and Fear modes
 // (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /
 // 005D2850 from ApplyBehaviour 005D6630 and the script zero their fields first): Evaluate 005D1E90

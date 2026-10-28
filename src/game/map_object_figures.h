@@ -149,8 +149,6 @@ struct FigureBone : CEngineObject {
     CFigureMesh* mesh;                      // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
     AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
-    CEngineObject* counted54;               // counted (released by DestroyBone)
-    CEngineObject* counted58;               // counted
     Vector3 offset;                         // the place relative to the parent
     float morphS;                           // the figure's morph coefficients
     float morphT;

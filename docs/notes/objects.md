@@ -136,7 +136,7 @@ Rewritten (grep the address; the per-function table is gone). Facts a worker nee
 - OnLeaderDied 0066F4C0 (slot 20, from CUnitServer::RunTick when the dead unit IsLeader): single player 0x09 + 0x0B (hero id,
   0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54
   `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into
-  the new one's; flag70_ 1, lastPosition_.z -1313 (hero_death)).
+  the new one's; partyDeployed_ 1, lastPosition_.z -1313 (hero_death)).
 - OnUseOrder 00670310 (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path
   end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint
   (ui_battle_commands' dead-wolf clicks). Server handlers 0x02 refresh party 0066FAA0, 0x03 take exit, 0x05 joined, 0x06 leave to
@@ -171,7 +171,7 @@ is listed twice).
 
 Kept: the login's two 64-byte text buffers are sent with uninitialised bytes after the texts (ours zeroes them); 0x06's flag
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its
-`manager40_` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
+`objectManager_` (the client world's empty 00566310 / 00566320 are not called) and a figure or state that cannot be read returns 0
 with the object made and unreleased; OnLeaderDied in a network game with a party of more than one record reads two
 uninitialised stack ids (ours: -1, no object); the 0x36 unit array is `CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt
 in library.csv); the AIPath is destroyed through 00546100; CPlayer::Clear's unit loop stops at the first map entry without a

@@ -615,8 +615,8 @@ struct PrintRecord {
     virtual void Serialize(ChunkArchive* ar);
 
     std::string name;
-    PrintLook look2;             // chunk 2
-    PrintLook look3;             // chunk 3
+    PrintLook dryLook;           // chunk 2
+    PrintLook wetLook;           // chunk 3 (while it rains or snows)
 };
 
 // The second record type of prints.db.
@@ -628,13 +628,13 @@ struct PrintRecord2 {
     virtual void Serialize(ChunkArchive* ar);
 
     std::string name;
-    PrintLook look2;             // chunk 2
-    PrintLook look3;             // chunk 3
+    PrintLook dryLook;           // chunk 2
+    PrintLook wetLook;           // chunk 3 (while it rains or snows)
     std::uint32_t unreadChunk[3];   // chunk 10
 };
 
-inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.look3 : r.look2; }
-inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.look3 : r.look2; }
+inline const PrintLook& LookOf(const PrintRecord& r, bool second) { return second ? r.wetLook : r.dryLook; }
+inline const PrintLook& LookOf(const PrintRecord2& r, bool second) { return second ? r.wetLook : r.dryLook; }
 
 // prints.db (loaded at startup), indexed by the ground's surface class (Terrain::SurfaceClass): chunk 1
 // blood and bloody footprints, chunk 2 footprints, chunk 3 scorch marks; each table is followed by a

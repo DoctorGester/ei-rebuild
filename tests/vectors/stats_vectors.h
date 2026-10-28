@@ -76,8 +76,8 @@ struct LevelView {
     std::uint32_t value;
     std::int32_t exponent;
 };
-// SkillLevelValue (`index` the skill, `level` its level byte), Value6E8 (strength, the byte at
-// +0x6E8) and Value6E9 (`setting` the setting backstabAdd, the byte at +0x6E9).
+// SkillLevelValue (`index` the skill, `level` its level byte), ScaledStrength (strength, the level byte of
+// skill 21) and BackstabFactor (`setting` the setting backstabAdd, the level byte of skill 22).
 struct LevelCall {
     std::int32_t index;
     float strength, setting;

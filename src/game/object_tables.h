@@ -65,8 +65,8 @@ struct MapRecord {
     int sizeX = 0;          // "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY = 0;
     int kind = 0;           // 0 game, 1 edge, 2 brief (2: the zone has a script folder)
-    int setting2C = 0;      // CWorldServer::SetClimate when the zone starts
-    int setting30 = 0;      // CWorldServer::SetCave
+    int climate = 0;      // CWorldServer::SetClimate when the zone starts
+    int cave = 0;      // CWorldServer::SetCave
     bool restricted = false;   // "#restrict x y radius": the camera stays in that circle
     float restrictX = 0.0f;
     float restrictY = 0.0f;

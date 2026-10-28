@@ -337,11 +337,11 @@ void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
 // Each manager's line is under its class name.
 void CWorldClient::HideManagers() {
     debugFlags_ &= ~kShowManagers;
-    RemoveDebugLine(manager3C_->GetClassName());
-    RemoveDebugLine(manager40_->GetClassName());
+    RemoveDebugLine(figureManager_->GetClassName());
+    RemoveDebugLine(objectManager_->GetClassName());
     RemoveDebugLine(textureManager_->GetClassName());
     RemoveDebugLine(particleManager_->GetClassName());
-    RemoveDebugLine(manager190_->GetClassName());
+    RemoveDebugLine(lightFactory_->GetClassName());
 }
 
 void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }
@@ -505,7 +505,7 @@ int CWorldClient::DrawPass() {
     if (!selected.empty() && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
         g_sceneRenderer->SetTexture(0, nullptr);
-        CMapObjectManager* manager = manager40_;
+        CMapObjectManager* manager = objectManager_;
         for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
             std::list<int>::iterator next = std::next(node);
             int id = (*node);

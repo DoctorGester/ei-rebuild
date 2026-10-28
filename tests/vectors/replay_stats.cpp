@@ -215,29 +215,29 @@ bool CheckSkillLevelValue(const LevelCall& v, char* d, std::size_t n) {
 }
 EI_VECTOR_CHECK("UnitStats::SkillLevelValue", LevelCall, CheckSkillLevelValue);
 
-bool CheckValue6E8(const LevelCall& v, char* d, std::size_t n) {
+bool CheckScaledStrength(const LevelCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
     stats.strength = v.strength;
-    stats.skillLevels[0x6E8 - 0x6D3] = v.level;
+    stats.skillLevels[21] = v.level;
     if (!PutLevel(v.record, d, n)) return false;
-    double result = stats.Value6E8();
+    double result = stats.ScaledStrength();
     if (Same(result, v.result)) return true;
     std::snprintf(d, n, "strength %g level %u: ours %.17g, original %.17g", v.strength, v.level, result, v.result);
     return false;
 }
-EI_VECTOR_CHECK("UnitStats::Value6E8", LevelCall, CheckValue6E8);
+EI_VECTOR_CHECK("UnitStats::Value6E8", LevelCall, CheckScaledStrength);
 
-bool CheckValue6E9(const LevelCall& v, char* d, std::size_t n) {
+bool CheckBackstabFactor(const LevelCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();
-    stats.skillLevels[0x6E9 - 0x6D3] = v.level;
+    stats.skillLevels[22] = v.level;
     g_logicSettings.backstabAdd = v.setting;
     if (!PutLevel(v.record, d, n)) return false;
-    double result = stats.Value6E9();
+    double result = stats.BackstabFactor();
     if (Same(result, v.result)) return true;
     std::snprintf(d, n, "setting %g level %u: ours %.17g, original %.17g", v.setting, v.level, result, v.result);
     return false;
 }
-EI_VECTOR_CHECK("UnitStats::Value6E9", LevelCall, CheckValue6E9);
+EI_VECTOR_CHECK("UnitStats::Value6E9", LevelCall, CheckBackstabFactor);
 
 bool CheckStrengthRatio(const RatioCall& v, char* d, std::size_t n) {
     UnitStats& stats = ZeroStats();

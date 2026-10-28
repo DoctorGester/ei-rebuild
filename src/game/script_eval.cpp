@@ -629,7 +629,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
             (*result)->clear();
             break;
         }
-        **result = player->Server()->group50F8_;
+        **result = player->Server()->possessedGroup_;
         const auto& units = player->units_;
         for (auto node = units.begin(); node != units.end(); ++node) {
             CUnit* unit = node->second;

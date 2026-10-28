@@ -282,7 +282,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     records[size] = first;
     GameCreatePartyUnits(&records, flag);
     auto* unit = GameFindClientUnit(player->members_.data()->unitId);
-    unit->SetPrototype23C(unit->GetPrototype());
+    unit->SetSecondPrototype(unit->GetPrototype());
     previewModel_ = unit;
     if (unit) {
         FigureAnimation* animation = unit->FindSkillAnimation(kPreviewAnimation);

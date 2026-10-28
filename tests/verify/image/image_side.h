@@ -94,7 +94,7 @@ const char* DataFolder();                       // the data folder's text, may b
 void SetFixedSeed(void (*fill)(std::uint32_t* results));
 int TextKey(const char* name);                  // TextKeyFromName
 void* LocalWorldPlayer(int player);             // CWorldServer::GetPlayer
-void* WorldShared5C();                          // the server world's shared5C_
+void* WorldHandle();                          // the server world's worldHandle_
 const char* ServerZoneName();                   // the server world's zone, may be null
 void* PickAt2(void* world, int x, int y);       // CWorldClient::PickAt2, as its CEngineObject
 void* UnitAt(void* world, int x, int y);        // CWorldClient::UnitAt, as its CEngineObject

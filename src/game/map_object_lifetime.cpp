@@ -121,7 +121,7 @@ CUnit::CUnit() {
 
 void CUnit::Reset() {
     scriptName.clear();
-    prototype23C = -1;
+    secondPrototype = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
     SetBits(unitRadius, kThreeQuarters);

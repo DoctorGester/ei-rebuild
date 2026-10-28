@@ -143,15 +143,15 @@ int WeaponDamageType(std::uint32_t packedId) {
     return 6;
 }
 
-float WeaponStat84(std::uint32_t packedId) {
+float WeaponAttackBonus(std::uint32_t packedId) {
     return WeaponOf(packedId)->attackBonus;
 }
 
-float WeaponStat88(std::uint32_t packedId) {
+float WeaponDefenceBonus(std::uint32_t packedId) {
     return WeaponOf(packedId)->defenceBonus;
 }
 
-int ArmorFieldB8(std::uint32_t index) {
+int ArmorLayer(std::uint32_t index) {
     ArmorRecord* armor = ArmorAt(index);
     return armor ? static_cast<int>(armor->layer) : 0;
 }

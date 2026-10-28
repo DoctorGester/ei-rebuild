@@ -132,7 +132,7 @@ int CUnitClientSpecific::FootstepSound(int terrain, std::string* out) {
 
 int CUnitClientSpecific::ActionSound(const FigureAnimation* animation, float from, float to, std::string* out,
                                      std::uint8_t miss) {
-    const auto* prototype = unit->GetPrototype23C();
+    const auto* prototype = unit->GetSecondPrototype();
     if (!prototype) return 0;
     const UnitModelRecord* model = ModelOf(prototype);
     int frame = animation->soundFrame;

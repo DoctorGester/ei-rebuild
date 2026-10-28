@@ -17,7 +17,7 @@
 CWorld::~CWorld() {
     CWorld::Destroy();
     netSession_.Destroy();
-    shared5C_.Destroy();
+    worldHandle_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
         if (--loader->refCount_ == 0) delete loader;
 }
@@ -48,7 +48,7 @@ CWorldClient::~CWorldClient() {
     secondGrid_.Free();
     objectGrid_.Free();
     dynamicObjects_.clear();
-    countedA0_.clear();
+    exitMarkers_.clear();
     exits_.clear();
 }
 

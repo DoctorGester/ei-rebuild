@@ -570,7 +570,7 @@ struct AIMemory {
     // visible list's head (both counted); each logged.
     void ForceSee(CUnit* self, CUnit* object);
     void SeeCorpse(CUnit* self, CUnit* corpse);
-    // The unit's exposure to the living hostile units nearby into `out` (CUnit::levels4C8): per kind the
+    // The unit's exposure to the living hostile units nearby into `out` (CUnit::exposure): per kind the
     // smallest distance / range ratio, at most 3 (a zero range counts 3). [0] sight (scaled by the line of
     // sight between the eyes, only within range), [4], [1], [2] three other ranges; [3] stays 3.
     void MeasureExposure(CUnitServer* self, float* out);

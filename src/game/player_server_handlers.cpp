@@ -174,9 +174,9 @@ void CPlayerServer::OnLeaderDied() {
         g_serverWorld->AddSharedObject(oldId, oldId, static_cast<std::uint32_t>(lost), &player->items_);
         player->TakeAllItems();
     }
-    if (flag70_) {
+    if (partyDeployed_) {
         g_serverWorld->CollectParty(player, nullptr);
-        flag70_ = 0;
+        partyDeployed_ = 0;
     }
     if (std::ssize(party->members_) == 1) {
         PartyUnitRecord& record = party->members_[0];
@@ -193,9 +193,9 @@ void CPlayerServer::OnLeaderDied() {
     }
     SendParty();
     lastPosition_.z = kUnknownZ;
-    if (!flag70_) {
+    if (!partyDeployed_) {
         g_serverWorld->Redeploy(player, nullptr, 1);
-        flag70_ = 1;
+        partyDeployed_ = 1;
     }
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
@@ -385,9 +385,9 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
             if (!IsMultiplayerClient()) return;
         }
     }
-    if (flag70_) {
+    if (partyDeployed_) {
         g_serverWorld->CollectParty(player, nullptr);
-        flag70_ = 0;
+        partyDeployed_ = 0;
     }
     state_ = 3;
     party->entrance_ = static_cast<std::uint32_t>(entrance);
@@ -408,9 +408,9 @@ void CPlayerServer::LeaveToZone(std::string_view zone, int entrance) {
 
 void CPlayerServer::LeaveAndFlush() {
     if (state_ == 1) {
-        if (flag70_) {
+        if (partyDeployed_) {
             g_serverWorld->CollectParty(player_, nullptr);
-            flag70_ = 0;
+            partyDeployed_ = 0;
         }
         if (GameMode() == 2) SendParty();
     }
@@ -490,9 +490,9 @@ int CPlayerServer::OnNewParty() {
 int CPlayerServer::OnResume() {
     if (state_ != 4) return 0;
     state_ = 1;
-    if (!flag70_) {
+    if (!partyDeployed_) {
         g_serverWorld->Redeploy(player_, nullptr, 1);
-        flag70_ = 1;
+        partyDeployed_ = 1;
     }
     return 1;
 }
@@ -603,7 +603,7 @@ void CPlayerServer::SendPartyUpdate() {
 }
 
 void CPlayerServer::ResendParty() {
-    if (state_ != 1 || !flag70_) return;
+    if (state_ != 1 || !partyDeployed_) return;
     CPlayer* player = player_;
     console::EndLine(console::g_netLogOut << kResendingParty << player->playerId_);
     g_serverWorld->SyncPartyRecords(player);

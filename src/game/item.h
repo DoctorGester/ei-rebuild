@@ -293,8 +293,8 @@ float WeaponMinDamage(std::uint32_t packedId);
 float WeaponMaxDamage(std::uint32_t packedId);
 float WeaponAttack(std::uint32_t packedId);
 int WeaponDamageType(std::uint32_t packedId);    // first non-zero weight, else 6
-float WeaponStat84(std::uint32_t packedId);
-float WeaponStat88(std::uint32_t packedId);
+float WeaponAttackBonus(std::uint32_t packedId);
+float WeaponDefenceBonus(std::uint32_t packedId);
 
 // The base figure (skeleton) a weapon prototype (by index) is animated with, into `out` (emptied first):
 // "basesword", "baseaxe", "basedagger", "basepike", "baseclub" with the prototype's number as "%.2d"
@@ -315,7 +315,7 @@ void WeaponRecordModelName(std::string* out, const itemdb::WeaponRecord* weapon,
                                       const itemdb::MaterialRecordHead* material);
 
 // The armour prototype's layer by prototype index; 0 if out of range.
-int ArmorFieldB8(std::uint32_t index);
+int ArmorLayer(std::uint32_t index);
 
 // --- Item construction -------------------------------------------------
 

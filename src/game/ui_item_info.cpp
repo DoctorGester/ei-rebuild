@@ -208,7 +208,7 @@ void AttributeLines(Writer& w, UnitStats* stats, int index) {
     switch (index) {
     case 0:
         line("%s %d%%", 0, Ftol(stats->StrengthRatio() * kPercentScale));
-        line("%s %d", 1, Ftol(stats->Value6E8()));
+        line("%s %d", 1, Ftol(stats->ScaledStrength()));
         w.Down();
         break;
     case 1:
@@ -316,9 +316,9 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     w.Text(w.line);
     int own = Ftol(WeaponPrototypeSkillBonus(PackedIdOf(weapon)));
     if (str::Compare(info->text, "defense") == 0)
-        own += Ftol(WeaponStat88(PackedIdOf(weapon)));
+        own += Ftol(WeaponDefenceBonus(PackedIdOf(weapon)));
     else
-        own += Ftol(WeaponStat84(PackedIdOf(weapon)));
+        own += Ftol(WeaponAttackBonus(PackedIdOf(weapon)));
     w.line = str::Format("%d", own);
     w.Value(w.line);
     sum += own;
@@ -470,11 +470,11 @@ void CItemInfoPanel::DescribeItem() {
             w.Text(w.line);
             w.Down();
             w.Number(20, static_cast<int>(PrototypeOf(item)->category));
-            w.Number(38, Ftol(WeaponStat84(PackedIdOf(item))));
+            w.Number(38, Ftol(WeaponAttackBonus(PackedIdOf(item))));
             if (weapon->GetType() == 5 || weapon->GetType() == 6)
                 w.Number(10, FtolOf(weapon->reach_));
             else
-                w.Number(39, Ftol(WeaponStat88(PackedIdOf(item))));
+                w.Number(39, Ftol(WeaponDefenceBonus(PackedIdOf(item))));
             goto tail;
         }
     }
@@ -634,7 +634,7 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
     w.School(record->castType);
-    bool known = record->bytes78[3] != 0;
+    bool known = record->allowedModifiers[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(record->damage) : 0);
     float power = record->speed;
     EI_NAN_AUDIT(power);
@@ -689,7 +689,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.draw->GetDC();
     w.Head(name, kindText);
     if (CSpell* spell = SpellOf(item)) {
-        bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
+        bool known = SpellPrototypeOf(spell)->allowedModifiers[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
         DurationLine(w, spell->duration_);
         w.Down();
@@ -723,7 +723,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Number(7, FtolOf(spell->manaCost_));
     w.Number(14, static_cast<int>(spell->skillNeeded_));
     w.School(SpellPrototypeOf(spell)->castType);
-    bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
+    bool known = SpellPrototypeOf(spell)->allowedModifiers[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(spell->damage_) : 0);
     float power = spell->speed_;
     EI_NAN_AUDIT(power);
@@ -826,7 +826,7 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
                               Ftol(stats->SkillWithBonus(static_cast<std::uint32_t>(index))));
             else if (index == 2)
                 w.line = str::Format("%s %d%%", w.Skill(7).c_str(),
-                              Ftol(stats->Value6E9() * kPercentScale));
+                              Ftol(stats->BackstabFactor() * kPercentScale));
             else
                 drawn = false;
             if (drawn) {

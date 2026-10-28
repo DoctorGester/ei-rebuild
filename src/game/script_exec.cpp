@@ -80,7 +80,7 @@ bool ServerActive() {
 
 CPlayerManager* TheEvents() { return g_serverWorld->players_; }
 
-CSpellManager* TheSpellManager() { return g_serverWorld->manager4C_; }
+CSpellManager* TheSpellManager() { return g_serverWorld->spellManager_; }
 
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return &state->brain; }

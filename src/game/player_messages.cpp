@@ -53,7 +53,7 @@ constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
     {0x31, &CPlayerServer::OnAttack}, {0x32, &CPlayerServer::OnCastAtPoint}, {0x33, &CPlayerServer::OnCastAtObject},
     {0x34, &CPlayerServer::OnWantedWeapon}, {0x35, &CPlayerServer::OnMoveStyle}, {0x36, &CPlayerServer::OnUseOrder},
     {0x37, &CPlayerServer::OnMessage37}, {0x38, &CPlayerServer::OnUnitLookup}, {0x39, &CPlayerServer::OnFollow},
-    {0x3A, &CPlayerServer::OnGoTo}, {0x3B, &CPlayerServer::OnUnitFlag438}, {0x40, &CPlayerServer::OnLastPosition},
+    {0x3A, &CPlayerServer::OnGoTo}, {0x3B, &CPlayerServer::OnFightAtWill}, {0x40, &CPlayerServer::OnLastPosition},
     {0x50, &CPlayerServer::OnPartyUpdate},
 };
 
@@ -237,7 +237,7 @@ void CPlayerServer::WriteTo(CStream* target) { target->CopyFrom(&out_); }
 
 void CPlayerServer::SetDisconnect() { state_ = 4; }
 
-void CPlayerServer::SetFlag70(std::uint8_t value) { flag70_ = value; }
+void CPlayerServer::SetPartyDeployed(std::uint8_t value) { partyDeployed_ = value; }
 
 // --- Party records -------------------------------------------------------------------------------
 
@@ -270,11 +270,11 @@ void CPlayerServer::ClearServerState() {
     lastPosition_.y = 0.0f;
     lastPosition_.z = 0.0f;
     spare_ = -1;
-    group50F8_.clear();
+    possessedGroup_.clear();
     partyUnits_.clear();
     possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
-    flag70_ = 0;
+    partyDeployed_ = 0;
     placements_.clear();
     compressor_.Reset();
     decompressor_.Reset();
@@ -314,11 +314,11 @@ int CPlayerServer::GetClassId() { return 0x3B; }
 void CPlayerServer::ReleaseSentObjects() {
     ReleaseAll(sentObjects_);
     ReleaseAll(sentTimed_);
-    group50F8_.clear();
+    possessedGroup_.clear();
     partyUnits_.clear();
 }
 
-void CPlayerServer::ClearGroup50F8() { group50F8_.clear(); }
+void CPlayerServer::ClearPossessedGroup() { possessedGroup_.clear(); }
 
 void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const float* point, int kind, int flag,
                                     std::uint32_t limitBits) {

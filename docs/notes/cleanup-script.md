@@ -14,7 +14,7 @@ How the mission script runtime (`script_reset.cpp`, `script_save.cpp`, `script_b
   asks.
 - A unit's controller (+0x240) is `CUnit::controller`; the addon's death test is `CMapObject::IsDead` (slot 55, a real virtual call: `jmp
   [eax+0DCh]`); CreatePointLight's light comes from `CBaseManager::CreateObject` (slot 23, `[vtable+5Ch]`) of the world's timed-object manager
-  (`WorldServer()->manager48_`, 007AFFA8).
+  (`WorldServer()->timedObjectManager_`, 007AFFA8).
 - Console: the interface is `CInterface3D` (`SetConsoleRect`, `SetDebugInfoRect`, `SetConsoleHistory`, `ShowFps`, `ConsoleAddText`, `fade_->Start`),
   the debug display switches are `CWorldClient::Show* / Hide*`, the world is `WorldServer()` (`LootDeadUnits`; players through the shared
   `WorldGetPlayer`), a player is `CPlayer` (`Server()`, `Party()->members_` / `variables_` / `Money()`, `logTraffic_` +0x10C), the local player is

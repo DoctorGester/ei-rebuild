@@ -25,7 +25,6 @@ constexpr int kListBlockSize = 10;
 // The client's flags after construction.
 constexpr std::uint32_t kClientFlags = 0x3DC0;
 constexpr std::uint32_t kClientDebugFlags = 0xB;
-constexpr int kClientConstant228 = 10;
 
 } // namespace
 
@@ -56,13 +55,10 @@ CWorldClient::CWorldClient() {
     debugFlags_ = kClientDebugFlags;
     worldValue_ = -1;
     camera_ = nullptr;
-    constant228_ = kClientConstant228;
-    manager188_ = nullptr;
+    materialManager_ = nullptr;
     particleManager_ = nullptr;
     textureManager_ = nullptr;
-    manager190_ = nullptr;
-    manager194_ = nullptr;
-    manager198_ = nullptr;
+    lightFactory_ = nullptr;
     listManager_ = nullptr;
     arrayManager_ = nullptr;
     sounds_ = nullptr;
@@ -71,13 +67,11 @@ CWorldClient::CWorldClient() {
     session_ = nullptr;
     skyDome_ = nullptr;
     bird_ = nullptr;
-    for (int& value : constants7C4_) value = 0;
     cursor_ = nullptr;
     appName_ = "EvilIslands";
     windowClass_ = "EvilIslandsClass";
     windowTitle_ = "EvilIslands";
     pausedTitle_ = "EvilIslands Paused";
-    constant6E8_ = 0;
 }
 
 // ---- The two worlds -------------------------------------------------------------------------------

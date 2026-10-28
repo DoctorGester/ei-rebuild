@@ -16,7 +16,7 @@
 namespace {
 
 constexpr std::uint8_t kWalk = 0x30, kAttack = 0x31, kCastAtPoint = 0x32, kCastOnUnit = 0x33,
-                       kWeapon = 0x34, kMoveMode = 0x35, kFollow = 0x39, kGoTo = 0x3A, kFlag438 = 0x3B,
+                       kWeapon = 0x34, kMoveMode = 0x35, kFollow = 0x39, kGoTo = 0x3A, kFightAtWill = 0x3B,
                        kFlag10 = 0x10, kUseOrder = 0x36, kTakeExit = 0x03, kLeave04 = 0x04,
                        kJoined = 0x05, kGoToZone = 0x06, kResume = 0x09, kPartyUpdate = 0x50;
 constexpr int kStateBetweenZones = 3, kStateJoining = 2;
@@ -137,9 +137,9 @@ int CPlayerClient::SetMoveMode(CUnit* unit, int mode) {
     return 1;
 }
 
-int CPlayerClient::SetUnitFlag438(CUnit* unit, int value) {
-    unit->SetUnknown438(value);
-    WriteType(out_, kFlag438);
+int CPlayerClient::SetUnitFightAtWill(CUnit* unit, int value) {
+    unit->SetFightAtWill(value);
+    WriteType(out_, kFightAtWill);
     int id = unit->id_;
     out_.Write(&id, 4);
     std::uint8_t byte = static_cast<std::uint8_t>(value);

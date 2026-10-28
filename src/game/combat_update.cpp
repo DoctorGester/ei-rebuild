@@ -164,7 +164,7 @@ int CUnitServer::RunTick() {
         TickItemSpells();
         if (unit->player != nullptr) {
             // A party unit: its perception memory, and now and then a bored remark.
-            brain.memory.MeasureExposure(this, unit->levels4C8);
+            brain.memory.MeasureExposure(this, unit->exposure);
             unit->MarkChanged(0xC);
             int& bored = boredTicks;
             ++bored;
@@ -469,7 +469,7 @@ void CUnitServer::TickAction() {
         PopFinishedSteps();
         ShowCurrentStep();
         if (plan.isCast != 0 && unit->GetPrototypeModel()->castEffect != 0) {
-            auto* objects = g_serverWorld->manager48_;
+            auto* objects = g_serverWorld->timedObjectManager_;
             auto* particle = objects->CreateObjectAs<CEffectParticle>(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;

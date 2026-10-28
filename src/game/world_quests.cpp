@@ -521,8 +521,8 @@ void CWorldServer::StoreParty(std::vector<PartyUnitRecord*>* list, CParty* party
             entry.id = unit->id_;
             std::memcpy(entry.position, &unit->localPosition_.x, sizeof(entry.position));
             std::memcpy(entry.rotation, &unit->localRotation_, sizeof(entry.rotation));
-            entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
-            entry.value24 = unit->activeWeapon;
+            entry.moveMode = static_cast<std::uint32_t>(unit->moveMode2);
+            entry.weapon = unit->activeWeapon;
             placements->push_back(entry);
         }
         if (!unit->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);

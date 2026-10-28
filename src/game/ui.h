@@ -230,7 +230,7 @@ public:
     int backdropMode_;               // the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_;
     CUiSurface* secondBackdrop_;
-    void* block5C_;                  // freed by the shutdown with operator delete (writer not identified)
+    void* screenCopy_;               // the 256x192 5:6:5 copy of the screen the escape menu saves with (SavePicture); operator delete[]
     std::uint8_t serverFlag_;        // the server flag kept for the first window (PushWindow)
     CUiSurface* statusSurface_;      // only while ShowStatusText runs
     int mouseX_;

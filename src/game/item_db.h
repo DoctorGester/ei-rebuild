@@ -27,7 +27,7 @@ namespace itemdb {
 // A spell prototype: the fields the camp's spell maker reads.
 struct SpellRecord {
     // Fields 0-2 the strings, 3-15 price..needsSight (not school), 16 / 17 the id lists, 18 icon, 19 school,
-    // 20 bytes78, 21 skill, 22 classMask, 23-27 extraValues.
+    // 20 allowedModifiers, 21 skill, 22 classMask, 23-27 extraValues.
     void Serialize(ChunkArchive* ar);
 
     std::string name;
@@ -51,13 +51,13 @@ struct SpellRecord {
     std::uint32_t castTime;             // CSpell::castTime_ (CUnitServer::CastValue: ticks of the cast animation)
     int needsSight;                    // needs a line of sight to its target
     int skill;                          // the school skill it needs
-    std::vector<int> list48;           // (chunk 16)
-    std::vector<int> list54;           // (chunk 17)
+    std::vector<int> unreadIdListA;    // archive chunk 16; nothing reads it
+    std::vector<int> unreadIdListB;    // archive chunk 17; nothing reads it
     std::uint32_t icon;                 // the number of its picture and figure ("spell%04d", "prototype%04d")
     std::uint32_t extraValues[5];       // fields 23-27 (nothing reads them)
     // which modifiers it accepts, one byte per kind by code letter: 'r', 't', 'a', 'e', 'd'; the item info
     // shows the level when the 'e' byte is set.
-    std::uint8_t bytes78[5];
+    std::uint8_t allowedModifiers[5];
     std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
@@ -90,7 +90,7 @@ struct SpellModifierRecord {
     float mana;                         // added to the spell's
     float strength;                     // the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // added to the spell's
-    std::string text1C;
+    std::string unreadText;             // archive field 7; nothing reads it
     std::uint32_t classMask;            // bit (class - 1): the class templates that may use it
 };
 
@@ -166,8 +166,8 @@ struct WeaponRecord : ItemRecordHead {
     std::uint8_t unreadFields[11];      // archive fields 0x16 (8 bytes) and 0x1B (3); nothing reads them
     std::uint8_t skillBonus[2];         // the wielder's weapon skill bonus (skill 0 / 1)
     std::uint8_t unused_7D[0x84 - 0x7D];
-    float attackBonus;                  // added to the wielder's attack (WeaponStat84)
-    float defenceBonus;                 // added to the wielder's defence (WeaponStat88; 0 for types 5, 6)
+    float attackBonus;                  // added to the wielder's attack (WeaponAttackBonus)
+    float defenceBonus;                 // added to the wielder's defence (WeaponDefenceBonus; 0 for types 5, 6)
     std::uint32_t reach;                // CItemWeapon::reach_ (float bits)
     float damage;                       // minimum damage (times the material's damageFactor)
     float damageSpread;                 // maximum damage = damage + spread
@@ -195,7 +195,7 @@ struct ArmorRecord : ItemRecordHead {
     std::uint32_t othersFlags;
     std::uint8_t showsWounds;           // 0: the piece hides the wounds of the parts it covers
     std::uint8_t unused_B5[3];
-    std::uint32_t layer;                // the lower one's texture goes first (ArmorFieldB8)
+    std::uint32_t layer;                // the lower one's texture goes first (ArmorLayer)
     std::uint8_t unreadFields[11];      // archive fields 0x19 (3 bytes) and 0x1A (8); nothing reads them
     std::uint8_t unused_C7[1];
 };

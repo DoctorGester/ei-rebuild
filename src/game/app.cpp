@@ -261,7 +261,7 @@ int StartFirstMap() {
         return game::FatalError("Can't load map \"%s\".\n", map.c_str());
     world->SetGameResult(1);
     CWorldClient* client = &g_clientWorld.Get();
-    client->SetPlayer(g_serverWorld->shared5C_.Get());
+    client->SetPlayer(g_serverWorld->worldHandle_.Get());
     client->LocalView()->sendParty_ = 0;
     g_serverWorld->sessionKind_ = 7;
     if (cmdScript.size() == 0) return 1;

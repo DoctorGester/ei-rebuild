@@ -23,8 +23,8 @@ public:
     int Create() override;
 
     virtual CWorld* ThisWorld() { return nullptr; }                      // the world (returns this)
-    virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's manager48_ (the client's Segment ticks its objects)
-    virtual CBaseManager* FigureManager() { return nullptr; }            // the world's manager3C_
+    virtual CBaseManager* TimedObjectManager() { return nullptr; }       // the world's timedObjectManager_ (the client's Segment ticks its objects)
+    virtual CBaseManager* FigureManager() { return nullptr; }            // the world's figureManager_
     virtual CItemConstructor* ItemConstructor() { return nullptr; }
     virtual CSpellConstructor* SpellConstructor() { return nullptr; }
     virtual CItemManager* ItemFactory() { return nullptr; }

@@ -94,11 +94,11 @@ BOOL CSpellContainer::AddModifier(itemdb::SpellModifierRecord* modifier) {
 int CSpellContainer::AllowsModifier(const itemdb::SpellModifierRecord* modifier) {
     if (!prototype_ || !modifier) return 0;
     switch (Letter(modifier, 0)) {
-    case 'a': return prototype_->bytes78[2];
-    case 'd': return prototype_->bytes78[4];
-    case 'e': return prototype_->bytes78[3];
-    case 'r': return prototype_->bytes78[0];
-    case 't': return prototype_->bytes78[1];
+    case 'a': return prototype_->allowedModifiers[2];
+    case 'd': return prototype_->allowedModifiers[4];
+    case 'e': return prototype_->allowedModifiers[3];
+    case 'r': return prototype_->allowedModifiers[0];
+    case 't': return prototype_->allowedModifiers[1];
     default: return 1;
     }
 }

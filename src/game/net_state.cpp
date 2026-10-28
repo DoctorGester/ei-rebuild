@@ -141,7 +141,7 @@ void CUnit::WriteNetState() {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(12)) {
-        field->WriteDelta(unit->levels4C8, 0x14);
+        field->WriteDelta(unit->exposure, 0x14);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {
@@ -349,7 +349,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(12)) {
-        field->ReadDelta(unit->levels4C8, 0x14);
+        field->ReadDelta(unit->exposure, 0x14);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {

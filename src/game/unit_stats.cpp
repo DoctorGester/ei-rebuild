@@ -26,8 +26,10 @@ constexpr int kDamageWords = 7;   // words 1..7 of a damage / protection block
 constexpr float kPointEight = std::bit_cast<float>(0x3F4CCCCDu);    // 0.8
 
 // Skill levels 21 and 22 index the level table from these bases.
-constexpr int kLevelBase6E8 = 0x3E;
-constexpr int kLevelBase6E9 = 0x41;
+constexpr int kScaledStrengthSkill = 21;   // skillLevels[21] and [22]: the two skills these read
+constexpr int kBackstabSkill = 22;
+constexpr int kScaledStrengthLevelBase = 0x3E;
+constexpr int kBackstabLevelBase = 0x41;
 
 // The stat range GetFactors divides by (a static initialiser: 35 - 15).
 constexpr float kFactorStatRange = /*007AF280*/ 20.0f;
@@ -93,11 +95,11 @@ double UnitStats::SkillLevelValue(int index) {
     return kZero;
 }
 
-double UnitStats::Value6E8() {
+double UnitStats::ScaledStrength() {
     double scaledStrength = strength * kTwelve;   // kept on the FPU stack
-    std::uint8_t level = skillLevels[0x6E8 - 0x6D3];
+    std::uint8_t level = skillLevels[kScaledStrengthSkill];
     if (level != 0) {
-        const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E8);
+        const ::SkillLevelRecord* record = LevelRecord(level + kScaledStrengthLevelBase);
         if (record) {
             return (record->Value() * kPercent + kOne) * scaledStrength;
         }
@@ -105,11 +107,11 @@ double UnitStats::Value6E8() {
     return (kZero * kPercent + kOne) * scaledStrength;
 }
 
-double UnitStats::Value6E9() {
+double UnitStats::BackstabFactor() {
     double base = g_logicSettings.backstabAdd;
-    std::uint8_t level = skillLevels[0x6E9 - 0x6D3];
+    std::uint8_t level = skillLevels[kBackstabSkill];
     if (level != 0) {
-        const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E9);
+        const ::SkillLevelRecord* record = LevelRecord(level + kBackstabLevelBase);
         if (record) {
             return record->Value() * kPercent + base;
         }
@@ -117,7 +119,7 @@ double UnitStats::Value6E9() {
     return kZero * kPercent + base;
 }
 
-double UnitStats::Value6E9Arg(int) { return Value6E9(); }
+double UnitStats::BackstabFactorArg(int) { return BackstabFactor(); }
 
 double UnitStats::Reduce(float value) {
     double taken = kZero;   // accumulated on the FPU stack

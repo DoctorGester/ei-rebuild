@@ -228,10 +228,10 @@ int CWorldClient::UpdateLighting() {
 }
 
 void CWorldClient::UpdateExitMarkers() {
-    if (exits_.size() != countedA0_.size()) return;
+    if (exits_.size() != exitMarkers_.size()) return;
     NamedFloatTable* variables = &session_->Party()->variables_;
     for (int i = 0; i < std::ssize(exits_); ++i) {
-        CParticleSource* marker = countedA0_[i];
+        CParticleSource* marker = exitMarkers_[i];
         if (!marker) continue;
         std::string name("z.");
         name += exits_[i].target;

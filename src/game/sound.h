@@ -168,8 +168,6 @@ struct CSoundManager : CEngineObject {
     CResourceStream streamReader;       // reads the music stream's files
     std::string soundPath;             // ending in a backslash
     CFileRegistry soundRegistry;
-    CMappedResource archive074;
-    CFileRegistry registry0CC;
     std::list<CMappedResource*> waveSources;   // the archives LoadSample looks in
     // The MP3 music stream, filled on the stream thread.
     volatile std::int32_t streamState;  // 0 idle, 1 playing, 2 switching to nextName
@@ -206,8 +204,6 @@ struct CSoundManager : CEngineObject {
     HANDLE streamThread;                // when the MP3 stream opened (lib::StartThread)
     // The MIDI sequence.
     std::int32_t midiState;
-    void* midiData1D0;                  // Miles memory (AIL_mem_alloc_lock)
-    void* midiData1D4;                  // Miles memory
     miles::Sequence* midiSequence;
     SoundFader midiFader;
     CRITICAL_SECTION midiLock;

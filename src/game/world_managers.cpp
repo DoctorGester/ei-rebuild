@@ -50,20 +50,20 @@ void CWorld::Destroy() {
         if (objects.manager) --objects.manager->refCount_;
     }
     DeleteManager(players_);
-    DropShared(&shared5C_);
+    DropShared(&worldHandle_);
     DropShared(&netSession_);
-    DeleteManager(manager40_);
-    DeleteManager(manager3C_);
+    DeleteManager(objectManager_);
+    DeleteManager(figureManager_);
     if (CLinkFigureLoader* loader = figureLoader_) {
         figureLoader_ = nullptr;
         if (--loader->refCount_ == 0) delete loader;
     }
-    DeleteManager(manager44_);
-    DeleteManager(manager58_);
+    DeleteManager(specificManager_);
+    DeleteManager(itemConstructor_);
     DeleteManager(itemManager_);
-    DeleteManager(manager50_);
-    DeleteManager(manager4C_);
-    DeleteManager(manager48_);
+    DeleteManager(spellConstructor_);
+    DeleteManager(spellManager_);
+    DeleteManager(timedObjectManager_);
 }
 
 // ---- The managers' own small virtuals -------------------------------------

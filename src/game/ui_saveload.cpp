@@ -87,7 +87,7 @@ private:
 };
 
 // The escape menu's 256x192 5:6:5 copy of the screen, or null.
-const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
+const void* SavePicture(CInterface3D* ui) { return ui->screenCopy_; }
 
 constexpr const char* kQuickFolder = "saveq";
 constexpr const char* kAutoFolderA = "savea";
