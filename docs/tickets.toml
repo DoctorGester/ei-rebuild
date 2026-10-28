@@ -678,6 +678,13 @@ group = "renderer"
 model = "opus"
 note = "Done 2026-10-22: a unit's meshes (kDrawUnit, render::BeginCaster(object, true)) compare from the unit's nearest depth in the sun map (PrepareShadows FigureFronts: least over its parts' model-space boxes through their light matrices), a plane facing the light with no slope or normal offset, on every face: no self shadow, every nearer caster shadows the whole unit evenly; sun side by figure_light's N.L. Static objects keep the face-normal rule (bz1g shop unchanged). Crops build/R16i2/crop_*.png (before main | after: bz1g noon/night creatures, hero, townsman, gate shadow, shop night/noon, zone1 boar). Image --golden 145 pass, 121 the same / 24 without a golden. Lost: casters within a unit's own depth (intertwined units)."
 
+[[ticket]]
+id = "R26"
+title = "Renderer failure is fatal: no fallback paths, the classic shadow texture / decal path deleted"
+group = "renderer"
+model = "opus"
+note = "User 2026-10-28: 'If renderer fails to start, the game shouldn't start either, same for all other paths which depend on that, no fallbacks.' Today render sets g_failed and goes on drawing nothing (render.cpp:126 sokol panic, :419 / :480 device or shaders, render_window.cpp:230 / :253 swap chain) and the game keeps its classic paths behind render::Active() / ClassicShadowSkipped(). Do: (1) a failure to start the device, shaders, blit pipeline or swap chain, a sokol panic, or a device loss whose recovery fails ends the game through game::FatalError with the reason (log it too); device-lost recovery itself stays, it is not a fallback. (2) Delete g_failed / Active() and every branch that only runs when the renderer is off. (3) map_object_shadow.cpp: the 64x64 shadow texture (MakeTexture, NewShadowTexture, the raster / blur, scratch buffers and their atexit frees, the SR%d names, DrawFlatBlocks) and TextureParts / PartGroup texture state go; keep ShadowCastStrength + CastsShadow; replace ShadowInView's decal-projection sphere with the renderer's own caster test (ShadowCasterArea) if the goldens allow, else keep only the sphere; move what is left next to the frame lists (world_client_draw.cpp) and delete the file if it ends up tiny. (4) Grep for other game-side code that only feeds the old DDraw / D3D7 draw (classic textures, flat draws, 2DintMMX shadow helpers) and remove it or list it. Goldens hold no frames (no-render-flags rule) but must stay the same; the image suite's render checks (render_stats / ShadowState) must still pass."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
