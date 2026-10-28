@@ -13,6 +13,7 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -141,16 +142,16 @@ void CInterface3D::Create(CTextureDevice* device) {
     pollTop_ = false;
 
     // The help topics seen: "topic count" lines.
-    console::CStdioFile file;
+    lib::TextFile file;
     bool opened;
     {
         std::string path = TheDataFolder() + game::TutorialIniText();
-        opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
+        opened = file.Open(path, "r") != 0;
     }
     if (opened) {
         std::string line;
         std::vector<std::string> words;
-        while (file.ReadString(line)) {
+        while (file.ReadLine(line)) {
             text::SplitWords(line.c_str(), &words, ' ');
             if (words.size() <= 1) continue;
             const char* count = words[1].c_str();

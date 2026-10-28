@@ -3,6 +3,7 @@
 #include "camera.h"
 
 #include "core_maths.h"
+#include "lib/file_io.h"
 #include "lib/mfc.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -58,12 +59,12 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     worldPosition_.z = z;
 }
 
-void CTransformObject::SaveTransform(mfc::CFileVirtuals* file) {
+void CTransformObject::SaveTransform(lib::File* file) {
     file->Write(&localPosition_, 12u);
     file->Write(&localRotation_, 16u);
 }
 
-void CTransformObject::LoadTransform(mfc::CFileVirtuals* file) {
+void CTransformObject::LoadTransform(lib::File* file) {
     file->Read(&localPosition_, 12u);
     file->Read(&localRotation_, 16u);
 }

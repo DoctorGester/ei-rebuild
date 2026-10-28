@@ -4,6 +4,7 @@
 #include "ei/x87.h"
 #include "console.h"
 
+#include "lib/file_io.h"
 #include "../lib/crt.h"
 #include "player_client.h"
 #include "text_split.h"
@@ -197,10 +198,10 @@ void ListVar(Arguments* args) {
     if (!player) return PrintLine("Wrong player number");
 
     std::string line;
-    CStdioFile file;
+    lib::TextFile file;
     mfc::BOOL writing = 0;
     if (args->size() > 1) {
-        writing = file.Open((*args)[1], CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr);
+        writing = file.Open((*args)[1], "w");
         if (!writing)   // "Cannot open file <name> for writing"
             EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for writing");
     }
@@ -226,12 +227,12 @@ void LoadVar(Arguments* args) {
 
     std::string line;
     std::vector<std::string> parts;
-    CStdioFile file;
-    if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
+    lib::TextFile file;
+    if (!file.Open((*args)[1], "r")) {   // "Cannot open file <name> for reading"
         EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for reading");
         return;
     }
-    while (file.ReadString(line)) {
+    while (file.ReadLine(line)) {
         text::Split(line.c_str(), &parts, ' ');
         if (parts.size() > 1) {
             const char* name = parts[0].c_str();
@@ -259,12 +260,12 @@ void Exec(Arguments* args) {
     std::string name = (*args)[0];
     str::TrimLeft(name, '"');
     str::TrimRight(name, '"');
-    CStdioFile file;
-    if (!file.Open(name, CStdioFile::typeText, nullptr)) {   // "Cannot open file <name> for reading"
+    lib::TextFile file;
+    if (!file.Open(name, "r")) {   // "Cannot open file <name> for reading"
         EndLine(Out() << "Cannot open file " << (*args)[0].c_str() << " for reading");
         return;
     }
-    while (file.ReadString(line)) console::Execute(line.c_str());
+    while (file.ReadLine(line)) console::Execute(line.c_str());
     file.Close();
 }
 
@@ -368,7 +369,7 @@ void Net(Arguments* args) {
 // Every speech of the list that has a text, as two lines: "#say <name>" and
 // the text. The lines go through the file's WriteString slot.
 namespace {
-void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech) {
+void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
     line = str::Format("#say %s\n", speech.name.data());
     file->WriteString(line.c_str());
@@ -377,13 +378,13 @@ void WriteSpeech(CStdioFile* file, std::string& line, const SpeechRecord& speech
 }
 } // namespace
 
-void WriteSpeechLines(CStdioFile* file, const acks::SpeechList* list) {
+void WriteSpeechLines(lib::TextFile* file, const acks::SpeechList* list) {
     if (!list) return;
     std::string line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
 }
 
-void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list) {
+void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list) {
     if (!list) return;
     std::string line;
     for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
@@ -393,12 +394,12 @@ void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeech
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
 void GenerateAcks(Arguments*) {
-    CStdioFile file;
+    lib::TextFile file;
     {
         std::string path = *GameDataPathString() + "scenack.txt";
-        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+        if (!file.Open(path, "w")) return;
     }
-    CStdioFile* out = &file;
+    lib::TextFile* out = &file;
     acks::AckDatabase& database = acks::Database();
     for (acks::UnitAcks& record : database.units.records) {
         for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);

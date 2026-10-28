@@ -37,7 +37,7 @@ RollTowards 00401B50, Rotate(axis, angle) 00401E50, TurnUpTowards 00401F00, SetH
 - `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five
   methods above, shared by ~90 vtables; slot 14 is overridden by 00516370 in the unit classes
-  (writes the world rotation only). Slots 16 / 17 take an MFC `CFile*` and call its slot 14 / 13.
+  (writes the world rotation only). Slots 16 / 17 take a `lib::File*` and Write / Read it (the original: an MFC `CFile*`, its slots 14 / 13).
 - The camera's quaternion products in `ApplyView` and `Update` add the terms in different orders; each is written out separately.
 - Float rules: plain C++ (rule 7). `SetBSpline`'s 1/6 factor was distributed by `/fp:fast` and gave
   different results at 24 bit, so that function keeps `float_control(precise, on)`. Values the
@@ -103,14 +103,15 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
   capacity. Slots 1 Read 004A5380, 2 Write 004A53F0 (grows to twice the need), 3 Seek 004A5490 (also stores
   pending bits), 4 Size, 5 Position, 6 Clear 00417350, 7 CopyFrom 004A55D0. `Resize` 004A54D0 keeps the
   contents (1.5x + 0x10), `SetSize` 004A5570 is exact and drops them.
-- `FileStream` (0073C8D8, 0x1C): a CStream over an MFC `CFile` at +0xC; each slot calls the CFile's own
-  virtual (MFC 4.2: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close). The
-  save code builds these on the stack. Defined in `net_link.h`.
+- `FileStream` (0073C8D8, 0x1C): a CStream over a `lib::File` (src/lib/file_io.h; the original: an MFC `CFile` at
+  +0xC, each slot calling the CFile's virtual: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19
+  Close). The save code builds these on the stack. Defined in `net_link.h`. Open takes MFC's CFile open flags
+  (lib::File's names: `modeCreate | modeWrite` to save, `modeRead` to load).
 - `Chunk` (vtable 0073BE94, 0x18: vtable, id, consumed, size, start, parent; not the models'
   `ChunkArchive`): slot 0 a handler called for every chunk `ForEachChild` reads (empty in the base),
   slot 1 the file (base asks its parent). Sizes include the 8-byte header; every byte read or
-  written is counted in the chunk and all its parents. `RootChunk` (0073BE9C, CFile at +0x18; the .mob
-  loader uses vtable 0073FAD4) owns the file: Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
+  written is counted in the chunk and all its parents. `RootChunk` (0073BE9C, the original's CFile at +0x18; the .mob
+  loader uses vtable 0073FAD4) owns the file (a `lib::File`): Open 0042D160, constructor 0042D1C0, Destruct 0042D270.
   `ChunkArchive` is a different format over two memory streams (below).
 - `ChunkArchive` (0x74, constructor 0053A7B0): +0 index stream, +0x28 data stream, +0x54 version (1),
   +0x5C hash_map of loaded objects (ours: `loaded_`, key -> object, plus `numbers_`, object -> its number by first save, while saving; the original shared one map), +0x70 list of objects to save; class tables 0079B284 (class id ->
@@ -131,10 +132,10 @@ WriteString 0042C820, ReadStringArray 0042CA20, WriteStringArray 0042CB80; RootC
 `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField 004093A0, StringField 00409470, StreamField 00409640,
 SaveObjectRef 0040A440, ObjectRef 0040A5A0).
 
-- Recorded-file verify (chunks, FileStream, transform save / load): ours runs with the CFile's vtable swapped for a
-  recorder, the original on a byte copy whose CFile replays the log; calls, bytes, chunk chains and outputs compared
-  (over 256 calls / 256 KB skipped; checks do not nest). Memory streams are deep-copied only for the two CMemoryStream
-  vtables; other stream classes run ours only.
+- The saves (FileStream, the chunks, the transforms' files) are checked by the goldens' decoded saves and, for
+  C14d's move to lib::File, byte for byte: every file the image suite's runs leave in harness_saves (the saves, info
+  and shot files, the texture cache, keyboard.ini, tutorial.ini) the same as main's runs of the same scenario
+  (the image's saves are byte-for-byte repeatable: two scenarios' autosaves at the same point are identical).
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
   through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
   the parent without a null check; `CMemoryStream`'s destructor leaves the freed pointer;
@@ -659,7 +660,7 @@ to which template:
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
   their last reference); the map must end empty.
 - A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
-  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
+  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a lib::File (0 when that fails),
   the keys (a `std::vector<CameraKey>`) resized to length / 36 and filled with one read. With the second
   argument above 1 and below the key count, the first key among that many that is more than 500 time units
   after its predecessor gives its position and rotation to every key before it. Side by side on the camera

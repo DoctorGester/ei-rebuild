@@ -11,11 +11,6 @@ namespace mfc::impl {
 
 namespace {
 
-mfc::CFileVirtuals* Virtuals(CFile* file) { return reinterpret_cast<mfc::CFileVirtuals*>(file); }
-
-void** Start(CArchive* ar) { return reinterpret_cast<void**>(&ar->bufferStart); }
-void** Max(CArchive* ar) { return reinterpret_cast<void**>(&ar->bufferMax); }
-
 unsigned Available(const CArchive* ar) { return static_cast<unsigned>(ar->bufferMax - ar->bufferCur); }
 
 } // namespace
@@ -37,29 +32,24 @@ unsigned CArchive::Read(void* buffer, unsigned count) {
         unsigned got = 0;
         unsigned read;
         do {
-            read = Virtuals(file)->Read(to, want);
+            read = file->Read(to, want);
             to += read;
             got += read;
             want -= read;
         } while (read > 0 && want > 0);
         left -= got;
         if (got == whole) {
-            if (!directBuffer) {
-                want = left > bufferSize ? left : bufferSize;
-                unsigned char* at = bufferStart;
-                unsigned have = 0;
-                do {
-                    read = Virtuals(file)->Read(at, want);
-                    at += read;
-                    want -= read;
-                    have += read;
-                } while (read > 0 && want > 0 && have < left);
-                bufferCur = bufferStart;
-                bufferMax = bufferStart + have;
-            } else {
-                Virtuals(file)->GetBufferPtr(bufferRead, bufferSize, Start(this), Max(this));
-                bufferCur = bufferStart;
-            }
+            want = left > bufferSize ? left : bufferSize;
+            unsigned char* at = bufferStart;
+            unsigned have = 0;
+            do {
+                read = file->Read(at, want);
+                at += read;
+                want -= read;
+                have += read;
+            } while (read > 0 && want > 0 && have < left);
+            bufferCur = bufferStart;
+            bufferMax = bufferStart + have;
             part = Available(this) < left ? Available(this) : left;
             std::memcpy(to, bufferCur, part);
             bufferCur += part;
@@ -83,63 +73,45 @@ void CArchive::Write(const void* buffer, unsigned count) {
     if (left == 0) return;
     Flush();
     const unsigned whole = left - left % bufferSize;
-    Virtuals(file)->Write(from, whole);
+    file->Write(from, whole);
     from += whole;
     left -= whole;
-    if (directBuffer) {
-        Virtuals(file)->GetBufferPtr(bufferWrite, bufferSize, Start(this), Max(this));
-        bufferCur = bufferStart;
-    }
     std::memcpy(bufferCur, from, left);
     bufferCur += left;
 }
 
-// Loading: the file goes back over what the buffer has not handed out. Storing: the buffer is written
-// (or committed to the file's own buffer, and a new one taken).
+// Loading: the file goes back over what the buffer has not handed out. Storing: the buffer is written.
 void CArchive::Flush() {
     if (IsLoading()) {
-        if (bufferMax != bufferCur) Virtuals(file)->Seek(static_cast<long>(bufferCur - bufferMax), FILE_CURRENT);
+        if (bufferMax != bufferCur) file->Seek(static_cast<long>(bufferCur - bufferMax), FILE_CURRENT);
         bufferCur = bufferMax;
         return;
     }
-    if (!directBuffer) {
-        if (bufferCur != bufferStart)
-            Virtuals(file)->Write(bufferStart, static_cast<unsigned>(bufferCur - bufferStart));
-    } else {
-        if (bufferCur != bufferStart)
-            Virtuals(file)->GetBufferPtr(bufferCommit, static_cast<unsigned>(bufferCur - bufferStart), nullptr, nullptr);
-        Virtuals(file)->GetBufferPtr(bufferWrite, bufferSize, Start(this), Max(this));
-    }
+    if (bufferCur != bufferStart) file->Write(bufferStart, static_cast<unsigned>(bufferCur - bufferStart));
     bufferCur = bufferStart;
 }
 
 void CArchive::FillBuffer(unsigned needed) {
     const unsigned unused = Available(this);
     const unsigned total = needed + unused;
-    if (!directBuffer) {
-        if (bufferCur > bufferStart) {
-            if (static_cast<int>(unused) > 0) {
-                std::memmove(bufferStart, bufferCur, unused);
-                bufferCur = bufferStart;
-                bufferMax = bufferStart + unused;
-            }
-            unsigned have = unused;
-            unsigned want = bufferSize - unused;
-            unsigned char* at = bufferStart + unused;
-            unsigned read;
-            do {
-                read = Virtuals(file)->Read(at, want);
-                have += read;
-                at += read;
-                want -= read;
-            } while (read > 0 && want > 0 && have < needed);
+    if (bufferCur > bufferStart) {
+        if (static_cast<int>(unused) > 0) {
+            std::memmove(bufferStart, bufferCur, unused);
             bufferCur = bufferStart;
-            bufferMax = bufferStart + have;
+            bufferMax = bufferStart + unused;
         }
-    } else {
-        if (unused != 0) Virtuals(file)->Seek(-static_cast<long>(unused), FILE_CURRENT);
-        Virtuals(file)->GetBufferPtr(bufferRead, bufferSize, Start(this), Max(this));
+        unsigned have = unused;
+        unsigned want = bufferSize - unused;
+        unsigned char* at = bufferStart + unused;
+        unsigned read;
+        do {
+            read = file->Read(at, want);
+            have += read;
+            at += read;
+            want -= read;
+        } while (read > 0 && want > 0 && have < needed);
         bufferCur = bufferStart;
+        bufferMax = bufferStart + have;
     }
     if (Available(this) < total) ThrowArchiveException(CArchiveException::endOfFile, nullptr);
 }

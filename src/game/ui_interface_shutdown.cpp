@@ -9,6 +9,7 @@
 #include "ui_cursor.h"
 #include "ui_gdi.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -48,11 +49,11 @@ void CInterface3D::Shutdown() {
     app::PumpMessages();
     app::g_interfaceHasScreen = 0;
 
-    console::CStdioFile file;
+    lib::TextFile file;
     bool opened;
     {
         std::string path = TheDataFolder() + game::TutorialIniText();
-        opened = file.Open(path, console::CStdioFile::modeCreate | console::CStdioFile::modeWrite, nullptr) != 0;
+        opened = file.Open(path, "w") != 0;
     }
     if (opened) {
         std::string line;

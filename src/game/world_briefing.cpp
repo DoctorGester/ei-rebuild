@@ -9,6 +9,7 @@
 #include "game_strings.h"
 
 #include "buffered_file.h"
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "console.h"
 #include "item_db_text.h"
@@ -192,12 +193,12 @@ bool LoadZoneQuests(const char* zone) {
     std::string file = std::string(zone) + kQuestFileSuffix;
     bool found;
     {
-        mfc::CFileFind find;
+        lib::FileFind find;
         std::string folder;
         modfolders::SelectMaps(file.c_str(), modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
         std::string pattern = folder.c_str() + file;
-        found = find.FindFile(pattern, 0) != 0;
+        found = find.FindFile(pattern) != 0;
     }
     if (!found) return false;
     std::string path = MapFilePath(file);

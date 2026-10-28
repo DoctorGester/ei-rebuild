@@ -9,6 +9,7 @@
 #include "unit_db.h"
 #include "item_db_text.h"
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -590,8 +591,8 @@ union BlankHeroRecord {
 // The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
 int HighestFileNumber(std::string_view pattern) {
     int highest = 0;
-    mfc::CFileFind find;
-    if (find.FindFile(pattern, 0)) {
+    lib::FileFind find;
+    if (find.FindFile(pattern)) {
         int more;
         do {
             more = find.FindNext();

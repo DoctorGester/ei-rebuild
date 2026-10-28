@@ -8,6 +8,7 @@
 #include "record_lists.h"
 #include "world.h"   // CWorldHandle (CreatePair)
 
+#include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -59,29 +60,29 @@ void BufferPut(GameBuffer* b, const void* from, unsigned size) {
 
 // FileStream
 
-FileStream::FileStream() { new (file_.Get()) mfc::CFile(); }
+FileStream::FileStream() = default;
 
 FileStream::FileStream(const FileStream&) : FileStream() {}
 
-FileStream::~FileStream() { file_->~CFile(); }
+FileStream::~FileStream() = default;
 
 std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {
-    std::uint32_t read = File()->Read(buffer, size);
+    std::uint32_t read = file_.Read(buffer, size);
     ok_ = static_cast<std::uint8_t>(ok_ & (read == size ? 1 : 0));
     return read;
 }
 
-void FileStream::Write(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }
+void FileStream::Write(const void* buffer, std::uint32_t size) { file_.Write(buffer, size); }
 
-long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }
+long FileStream::SeekFrom(long position) { return file_.Seek(position, FILE_BEGIN); }
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
-std::uint32_t FileStream::Size() { return File()->GetLength(); }
-std::uint32_t FileStream::Position() { return File()->GetPosition(); }
+std::uint32_t FileStream::Size() { return file_.GetLength(); }
+std::uint32_t FileStream::Position() { return file_.GetPosition(); }
 
 long FileStream::Restart() {
     ok_ = 1;
-    return File()->Seek(0L, 0u);
+    return file_.Seek(0L, FILE_BEGIN);
 }
 void FileStream::Clear() { Restart(); }
 

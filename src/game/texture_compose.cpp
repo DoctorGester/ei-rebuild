@@ -8,6 +8,7 @@
 #include "game_strings.h"
 #include "unit_client_models.h"
 
+#include "lib/file_io.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -27,7 +28,7 @@ const char* const kMmp = ".mmp";
 const char* const kCantWrite = "Can't open file \"%s\" to write result texture.\n";    // "Can't open file \"%s\" to write result texture.\n"
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
-constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeWrite
+constexpr unsigned kWriteCreate = lib::File::modeCreate | lib::File::modeWrite;
 
 
 // The aligned byte allocation.
@@ -57,7 +58,7 @@ std::string CachePath(const std::string& name) { return TheDataFolder() + kTextu
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
-bool CacheMatches(mfc::CFile& file, MmpHeader& header, ReadBuffer& buffer, const SkinRequest* request) {
+bool CacheMatches(lib::File& file, MmpHeader& header, ReadBuffer& buffer, const SkinRequest* request) {
     file.Read(&header, sizeof(MmpHeader));
     int size = static_cast<int>(header.extraSize);
     buffer.data = AllocBytes(size);
@@ -114,7 +115,7 @@ int ConversionKind(std::uint32_t format) {
 
 // Writes the levels: the image converted to 16 bits, then `mipCount - 1` times halved and
 // converted again. Frees the three blocks.
-void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image, int kind, unsigned mipCount) {
+void WriteLevels(lib::File& file, const MmpHeader& header, std::uint32_t* image, int kind, unsigned mipCount) {
     unsigned width = header.width;
     unsigned height = header.height;
     std::uint16_t* converted = NewAligned<std::uint16_t>(height * width * 2);
@@ -179,15 +180,15 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
     ReadBuffer buffer;
-    mfc::CFile file;
+    lib::File file;
     *out = *name;
-    if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+    if (file.Open(path, lib::File::modeRead)) {
         if (CacheMatches(file, header, buffer, request)) return 1;
     } else if (gamecrt::mbscmp(name->c_str(),
                                fallback->c_str()) != 0) {
         *out = *fallback;
         path = CachePath((*fallback).c_str());
-        if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
+        if (file.Open(path, lib::File::modeRead)) {
             if (CacheMatches(file, header, buffer, request)) return 1;
             *out = *name;
             path = CachePath((*name).c_str());
@@ -213,7 +214,7 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     header.mipCount = mipCount;
     header.extraSize = static_cast<std::uint32_t>(std::ssize(request->layers));
     int kind = ConversionKind(format);
-    if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, path.c_str());
+    if (!file.Open(path, kWriteCreate)) return game::FatalError(kCantWrite, path.c_str());
     file.Write(&header, sizeof(MmpHeader));
     if (header.extraSize != 0) file.Write(request->layers.data(), header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);

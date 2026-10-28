@@ -200,12 +200,12 @@ add_executable(ei_vectors
     src/lib/crt.cpp
     src/lib/crt_format.cpp
     src/lib/crt_locale_data.cpp
+    src/lib/file_io.cpp
     src/lib/hash_map.cpp
     src/lib/mfc.cpp
     src/lib/mfc_archive.cpp
     src/lib/mfc_array.cpp
     src/lib/mfc_coll.cpp
-    src/lib/mfc_file.cpp
     src/lib/mfc_list.cpp
     src/lib/rebirth.cpp
     src/lib/stlp.cpp

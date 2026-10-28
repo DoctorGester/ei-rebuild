@@ -6,7 +6,7 @@
 // name at start, else the game's. - ResOverride (25 sites): the mod's config.reg [Res] lists archives that
 // come before (or, with '-', instead of) the game's twelve archives, plus extra figure and texture archives;
 // every CMappedResource::GetFile and ListFiles goes through addon (its vtable slot and all their calls). -
-// MoviesPatch (the BinkOpen import), CameraPatch (the camera path's CFile::Open), StreamPatch (the stream
+// MoviesPatch (the BinkOpen import), CameraPatch (the camera path's file open), StreamPatch (the stream
 // file's path): the mod's Movies\, Camera\ and Stream\ copy of the file when there is one.
 // More: docs/notes/comments-c22i.md, "mod_folders.h".
 

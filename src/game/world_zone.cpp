@@ -113,19 +113,19 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
 int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     mapspec::MobFile rootChunk;
     mapspec::MobFile* root = &rootChunk;
-    auto* fileObject = root->file_.Virtuals();
+    auto* fileObject = &root->file_;
 
     std::string path;
     MapPath(&path, file);
     int result;
-    if (!root->Open(path, 0x8020)) {
+    if (!root->Open(path, lib::File::modeRead | lib::File::shareDenyWrite)) {
         result = game::FatalError(game::zonetexts::CantOpenObjects(), file);
     } else {
         bool read = root->Load(this, keepIds);
         fileObject->Close();
         result = read ? 1 : game::FatalError(game::zonetexts::CantReadObjects(), file);
     }
-    return result;   // the CFile destroyed with the root
+    return result;   // the file closed with the root
 }
 
 int CWorldServer::LoadMobFile(const char* file) {

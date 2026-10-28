@@ -18,10 +18,6 @@ struct CTime {
     // CTime(year, month, day, hour, minute, second, dst): mktime of those (month from 1, the year
     // in full; dst -1 lets mktime decide). Returns this.
     CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
-    // CTime(const SYSTEMTIME&, dst): 0 before 1900.
-    CTime* ConstructSystemTime(const SYSTEMTIME& at, int dst);
-    // CTime(const FILETIME&, dst): the UTC file time as local time; 0 when it does not convert.
-    CTime* ConstructFileTime(const FILETIME& at, int dst);
     // CTime::GetCurrentTime into `out` (returned).
     static CTime* CurrentTime(CTime* out);
     // strftime of the local time into at most 127 characters (empty when it does not fit).

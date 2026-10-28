@@ -6,7 +6,6 @@
 #include "game_data.h"
 #include "game_strings.h"
 #include "../lib/mfc.h"
-#include "../lib/mfc_file.h"
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
 #include "../lib/str.h"
@@ -24,30 +23,9 @@ class CInterface3D;
 class CUiContainer;
 class CUiSurface;
 namespace acks { struct Speeches; struct EnvironmentSpeeches; }
+namespace lib { class TextFile; }
 
 namespace console {
-
-// MFC CStdioFile as a local: opened and closed like the C++ class.
-class CStdioFile {
-public:
-    enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
-    CStdioFile();
-    CStdioFile(const char* name, unsigned flags);
-    ~CStdioFile();
-    CStdioFile(const CStdioFile&) = delete;
-    CStdioFile& operator=(const CStdioFile&) = delete;
-    mfc::BOOL Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error);
-    // The next line into `line`; false at the end of the file.
-    mfc::BOOL ReadString(std::string& line);
-    // A line with its line end into `buffer` (at most size - 1 characters); null at the end
-    // of the file. A read error throws a CFileException*.
-    char* ReadString(char* buffer, unsigned size);
-    void WriteString(const char* text);
-    void Close();
-
-private:
-    mfc::impl::CStdioFile file_;
-};
 
 // The game's (pre-standard) ostream. Only the inline float output touches a member: x_floatused.
 class GameOStream : public libcrt::Ostream {
@@ -245,8 +223,8 @@ void Fps(Arguments* args);
 void Rate(Arguments* args);
 void LocalRate(Arguments* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
-void WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
-void WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);
+void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list);
+void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpeeches* list);
 } // namespace commands
 
 } // namespace console

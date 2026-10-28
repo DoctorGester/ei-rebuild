@@ -8,7 +8,6 @@
 #include "ui.h"
 
 #include "../lib/crt.h"
-#include "lib/mfc_file.h"
 #include "lib/compiled_vtable.h"
 #include "lib/crt_iostream.h"
 
@@ -26,18 +25,6 @@
 namespace console {
 
 // ---- Helpers ------------------------------------------------------------------------------------
-
-CStdioFile::CStdioFile() = default;
-CStdioFile::CStdioFile(const char* name, unsigned flags) : file_(name, flags) {}
-CStdioFile::~CStdioFile() = default;
-mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
-    return file_.Open(std::string(name).c_str(), flags, error);
-}
-// MFC's CStdioFile::ReadString(CString&), into a string.
-mfc::BOOL CStdioFile::ReadString(std::string& line) { return file_.ReadLine(line); }
-char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
-void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
-void CStdioFile::Close() { file_.Close(); }
 
 GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
 GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }

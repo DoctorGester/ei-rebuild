@@ -102,7 +102,15 @@ UNREAD = [
     (0x007932F4, 0x007932FC, 3, '"War", "Magic", "Islands", read by the dead 00602190 only'),
     # The CRuntimeClass records of MFC classes no code of ours makes any more (they were named ranges until then):
     # each record's class name and base class (kClassCObject 00745D20).
+    (0x00745DB0, 0x00745DC0, 2, "CFile's runtime class record (the class went in C14d: lib::File)"),
+    (0x00745EC0, 0x00745ED0, 2, "CFileFind's runtime class record (the class went in C14d: lib::FileFind)"),
+    (0x007464C8, 0x007464D8, 2, "CStdioFile's runtime class record (the class went in C14d: lib::TextFile)"),
+    (0x00746628, 0x00746638, 2, "CMemFile's runtime class record (no class of ours since S8; its base CFile's went "
+                                "in C14d)"),
+    (0x00746570, 0x00746580, 2, "CNotSupportedException's runtime class record (the class went in C14d: only "
+                                "CStdioFile threw it)"),
     (0x00746778, 0x00746788, 2, "CUIntArray's runtime class record (the class went in C20o)"),
+    (0x00746820, 0x00746830, 2, "CFileException's runtime class record (the class went in C14d: lib::FileError)"),
     (0x007469B0, 0x007469C0, 2, "CTempWnd's runtime class record (the class went in C20o)"),
     (0x007471B0, 0x007471E8, 4, "CTempMenu's and CMenu's runtime class records (the classes went in C20o)"),
     (0x00796EE8, 0x00796EF8, 2, "CStringArray's runtime class record (the class went in C14i; its initialiser "

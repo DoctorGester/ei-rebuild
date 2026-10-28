@@ -1,9 +1,8 @@
 #pragma once
 
-// MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp), and
-// AFX_EXCEPTION_LINK's chain (docs/notes/standalone.md section 2). The classes keep the exe's slots (real C++
-// classes since; a file name is a std::string), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
-// the game's name, so a handler of ours catches it by that name.
+// MFC 4.2's exception classes as the game's copy throws them (except.cpp, arcex.cpp; docs/notes/standalone.md
+// section 2). The classes keep the exe's slots (real C++ classes; a file name is a std::string), and a throw is this
+// compiler's `throw` of a pointer to mfc_try.h's class of the game's name.
 
 #include "mfc.h"
 #include "mfc_object.h"
@@ -75,37 +74,10 @@ public:
     using CSimpleException::CSimpleException;
     const CRuntimeClass* GetRuntimeClass() const override;
 };
-class CNotSupportedException final : public CSimpleException {
-public:
-    using CSimpleException::CSimpleException;
-    const CRuntimeClass* GetRuntimeClass() const override;
-};
 
 // CException::Delete (called as fastcall): an auto-delete exception is deleted. The flag
 // is read before the pointer is tested.
 void DeleteException(CException* exception);
-
-// CFileException. The causes are MFC's CFileException::none ... endOfFile.
-class CFileException final : public CException {
-public:
-    enum Cause {
-        none = 0, generic, fileNotFound, badPath, tooManyOpenFiles, accessDenied, invalidFile, removeCurrentDir,
-        directoryFull, badSeek, hardIO, sharingViolation, lockViolation, diskFull, endOfFile
-    };
-
-    // An empty exception (cause none, no OS error) as CFile's constructors build it on the stack, or the thrown one
-    // (AfxThrowFileException).
-    explicit CFileException(int causeValue = none, long osErrorValue = -1) : cause(causeValue), osError(osErrorValue) {}
-    ~CFileException() override;
-    const CRuntimeClass* GetRuntimeClass() const override;
-    // Prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has
-    // none); the help context is that prompt's id. Always TRUE.
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
-
-    int cause;
-    long osError;       // m_lOsError (-1: none)
-    std::string fileName;
-};
 
 // CArchiveException.
 class CArchiveException final : public CException {
@@ -115,7 +87,8 @@ public:
     explicit CArchiveException(int causeValue) : cause(causeValue) {}
     ~CArchiveException() override;
     const CRuntimeClass* GetRuntimeClass() const override;
-    // As CFileException's, with AFX_IDP_ARCH_NONE + cause.
+    // Prompt AFX_IDP_ARCH_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has none); the
+    // help context is that prompt's id. Always TRUE.
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
 
     int cause;
@@ -125,29 +98,11 @@ public:
 // _simpleUserException's destructor (reached by the generated exit function).
 void DestroyUserException(CUserException* self);
 
-// CFileException::OsErrorToException: a Win32 error code as a cause (generic for the rest).
-int OsErrorToException(long osError);
-// AfxThrowFileException: a new CFileException thrown as a pointer.
-void ThrowFileException(int cause, long osError, const char* fileName);
-// CFileException::ThrowOsError: nothing for 0, else the error's cause thrown.
-void ThrowOsError(long osError, const char* fileName);
 // AfxThrowArchiveException.
 void ThrowArchiveException(int cause, const char* fileName);
-// AfxThrowNotSupportedException: MFC's one static CNotSupportedException (not auto-deleted).
-void ThrowNotSupported();
 // AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
 __declspec(noreturn) void ThrowMemoryException();
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).
 __declspec(noreturn) void ThrowResourceException();
 
 } // namespace mfc::impl
-
-namespace mfc {
-
-// AFX_EXCEPTION_LINK's two library functions (the link is mfc_try.h's ExceptionLink).
-ExceptionLink* ConstructExceptionLink(ExceptionLink* link);
-void TryCleanup();
-// The calling thread's chain of links: the address of its top (AFX_EXCEPTION_CONTEXT::m_pLinkTop).
-ExceptionLink** ExceptionLinkTop();
-
-} // namespace mfc
