@@ -726,9 +726,30 @@ to which template:
   behaviours, the map database (allods, maps, zone exits), the shared objects, unit placements, the wave cache
   (std::list, the name map holds iterators), music themes, delta fields, step speeds, the spiral's radius tree, the
   client companion's effect particles and sounds, map effects, skin layers, the fog manager's list. Still mfc
-  (follow-up tickets): the script's records, the terrain sectors and water levels, the sector map's sectors, the
+  (follow-up tickets): the terrain sectors and water levels, the sector map's sectors, the
   terrain's byte arrays, the camp's global map records, PartyMembers, AnimationSteps; then
   CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList.
+- Batch 3 (C14z): the script (script.h). Every record has real special members: object references are
+  `ScriptObjectRef{HeldPtr<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
+  ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only
+  `ScriptEffect<T>` whose reset is ScriptDropEffect (the timed object removed, the reference released); a nested
+  call owns its command (`std::unique_ptr<SSCCmd>`, deep-copied). CScript has a constructor (256 point light slots,
+  one temporary group and one temporary reference, then ScriptReset) and a destructor (ScriptReset, then the
+  members); the world builds its two scripts with construct_at / destroy_at. Tokens are a `std::list<ScriptToken>`
+  and a parse position (ScriptPos) its const_iterator; "Unexpected end of file" reports the list's back().line.
+  Behaviour notes: references are released by the containers' destructors, so the order of Release calls within one
+  clear can differ from the original's (no count reaches 0 earlier than before); a run left unfinished
+  (RunCommands) copies the instance's values only, as the game does.
+- The script's vector recorders read game.exe's script through script_original.h's views (exe::Vector / List); the
+  load records hold the variables' and arrays' sizes, and the replay (replay_script_load.cpp) builds a real CScript:
+  as many empty blocks as the record's counts (new blocks are hashed after them) and a token list whose first token
+  carries the tail's line.
+- Gone with it: game_arrays.h / .cpp, game_lists.h / .cpp, game_slots.h, record_arrays.cpp and the script half of
+  record_arrays.h, script_array.h, script_arrays.cpp, script_copy.cpp, script_destroy.cpp, script_parse_arrays.cpp,
+  script_vars_append.cpp, lib/mfc_array.cpp (CArray<CString>'s Serialize), 30 CompiledCollection tags (the script's,
+  mfc_slots.h's ScriptArea / ScriptIfThen / Arg* / Bindings / StringArray ones), the Construct / Destruct / Assign /
+  CopyAt / CopyFrom helpers of every script record, addon's ArgumentsSetSize. config/vtables.csv keeps the 40 tables
+  as stored only by game.exe.
 - A record that hands its references on without releasing them (the shared objects' items given at loot: the
   original frees the node and leaks the references) uses `HeldPtr::release()`.
 - An element whose destructor needs a complete type its header only declares (EffectParticle's CParticleSource)

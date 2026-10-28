@@ -100,10 +100,6 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
     }
 }
 
-// The script's string arrays' Serialize: the count, then the strings.
-template <>
-void Strings::Serialize(CArchive* ar);
-
 // ---- Compiler-made vtables -------------------------------------------------------------------
 // An instantiation's Class tag names the table its constructor and destructor store. See
 // docs/notes/standalone.md, "The image's source files".
@@ -154,30 +150,6 @@ struct IntArrayClass final
 // CArray<float> (the motions' step speeds, the radius tree's keys, the terrain's level arrays)
 struct FloatArrayClass final
     : CompiledCollection<FloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &Plain4::Serialize> {};
-// The script commands' float arguments (a CArray<float> subclass)
-struct ArgFloatArrayClass final
-    : CompiledCollection<ArgFloatArrayClass, &ArrayHeader<FloatArrayClass>::Destruct, &Plain4::Serialize> {};
-// The script's float variables
-struct ScriptFloatsClass
-    : CompiledCollection<ScriptFloatsClass, &ArrayHeader<ScriptFloatsClass>::Destruct, &Plain4::Serialize> {};
-// The float values of the script's variables (ScriptVars, ScriptNamedValues<float>; base ScriptFloatsClass)
-struct ScriptFloatValuesClass final : ScriptFloatsClass {
-    static void* Vtable() { return CompiledVtable<ScriptFloatValuesClass>(); }
-};
-// A script area's parts
-struct ScriptAreaClass
-    : CompiledCollection<ScriptAreaClass, &ArrayHeader<ScriptAreaClass>::Destruct, &Plain20::Serialize> {};
-// The array a script area element holds (base ScriptAreaClass)
-struct ScriptAreaPartsClass final : ScriptAreaClass {
-    static void* Vtable() { return CompiledVtable<ScriptAreaPartsClass>(); }
-};
-// The script's if-then blocks
-struct ScriptIfThenArrayClass
-    : CompiledCollection<ScriptIfThenArrayClass, &ArrayHeader<ScriptIfThenArrayClass>::Destruct, &Plain8::Serialize> {};
-// A definition's if-then pairs as the parser builds them (ScriptIfThens; base ScriptIfThenArrayClass)
-struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
-    static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
-};
 // A unit's animation steps
 struct AnimationStepsClass
     : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &AnimationSteps::Serialize> {};
@@ -188,9 +160,6 @@ struct AnimationStepsCopyClass final : AnimationStepsClass {
 // The AI map's cell rows
 struct CellRowArrayClass final
     : CompiledCollection<CellRowArrayClass, &ArrayHeader<CellRowArrayClass>::Destruct, &Plain4::Serialize> {};
-// The script's string arrays (game.exe's CArray<CString>; std::string elements)
-struct StringArrayClass final
-    : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
 
 // The animation list's copy constructor of the steps' array alone: the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
@@ -204,23 +173,6 @@ inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(con
 // Arrays whose elements need nothing.
 // A trap's circles (map_spec, magic_trap).
 // A trap's points.
-// A script command's object arguments (script_destroy).
-struct ArgObjectsBaseClass
-    : CompiledCollection<ArgObjectsBaseClass, &ArrayHeader<ArgObjectsBaseClass>::Destruct, &Plain4::Serialize> {};
-// A script command's object arguments, the derived class (script_copy).
-struct ArgObjectsClass final : ArgObjectsBaseClass {
-    static void* Vtable() { return CompiledVtable<ArgObjectsClass>(); }
-};
-// A script command's group arguments.
-struct ArgGroupsBaseClass
-    : CompiledCollection<ArgGroupsBaseClass, &ArrayHeader<ArgGroupsBaseClass>::Destruct, &Plain4::Serialize> {};
-// A script command's group arguments, the derived class.
-struct ArgGroupsClass final : ArgGroupsBaseClass {
-    static void* Vtable() { return CompiledVtable<ArgGroupsClass>(); }
-};
-// A script command's bindings.
-struct BindingsBaseClass
-    : CompiledCollection<BindingsBaseClass, &ArrayHeader<BindingsBaseClass>::Destruct, &Plain12::Serialize> {};
 // A map object's effects.
 // A map object's effect sounds.
 // A 3D object's frames.
@@ -241,8 +193,5 @@ struct SmoothStepArrayClass final
 // The terrain's CByteArray elements (Serialize).
 struct TerrainByteArraysClass final
     : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
-// The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
-struct ScriptAreaArrayClass final
-    : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};
 
 } // namespace mfc::impl

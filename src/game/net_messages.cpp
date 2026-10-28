@@ -4,7 +4,6 @@
 // More: docs/notes/comments-c22i.md, "net_messages.cpp".
 #include "net_messages.h"
 #include "asset_text.h"
-#include "game_lists.h"
 #include "net_connection.h"
 
 #include "lib/crt.h"

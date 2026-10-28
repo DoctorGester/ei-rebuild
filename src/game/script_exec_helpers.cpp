@@ -9,7 +9,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "game_arrays.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
@@ -22,60 +21,11 @@
 
 namespace {
 
-
-
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
-// CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.
-void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
-    constexpr int kSize = sizeof(ScriptAreaPart);
-    if (newSize == 0) {
-        if (parts->data) {
-            gamecrt::operator_delete(parts->data);
-            parts->data = nullptr;
-        }
-        parts->maxSize = 0;
-        parts->size = 0;
-        return;
-    }
-    if (!parts->data) {
-        parts->data = gamecrt::operator_new_array<ScriptAreaPart>(newSize);
-        std::memset(parts->data, 0, newSize * kSize);
-        parts->maxSize = newSize;
-        parts->size = newSize;
-        return;
-    }
-    if (newSize <= parts->maxSize) {
-        if (newSize > parts->size) std::memset(&parts->data[parts->size], 0, (newSize - parts->size) * kSize);
-        parts->size = newSize;
-        return;
-    }
-    int grow = parts->growBy;
-    if (grow == 0) {
-        grow = parts->size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 1024) grow = 1024;
-    }
-    int newMax = parts->maxSize + grow;
-    if (newSize >= newMax) newMax = newSize;
-    auto* data = gamecrt::operator_new_array<ScriptAreaPart>(newMax);
-    std::memcpy(data, parts->data, parts->size * kSize);
-    std::memset(&data[parts->size], 0, (newSize - parts->size) * kSize);
-    gamecrt::operator_delete(parts->data);
-    parts->data = data;
-    parts->size = newSize;
-    parts->maxSize = newMax;
-}
-
-void AddPart(mfc::CArray<ScriptAreaPart>* parts, const ScriptAreaPart& part) {
-    int at = parts->size;
-    SetPartCount(parts, at + 1);
-    parts->data[at] = part;
-}
-
-ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data; }
-int LightCount(CScript* script) { return script->pointLights_.size; }
+ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data(); }
+int LightCount(CScript* script) { return static_cast<int>(script->pointLights_.size()); }
 
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
 // the y and z differences are rounded to float first (the goldens depend on it).
@@ -93,46 +43,34 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
 } // namespace
 
 
-void ScriptAreaParts::AddRect(float x1, float y1, float x2, float y2) {
+void ScriptArea::AddRect(float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
     part.isRect = 1;
     part.x = x1;
     part.y = y1;
     part.x2OrRadiusSquared = x2;
     part.y2 = y2;
-    AddPart(this, part);
+    parts.push_back(part);
 }
 
-void ScriptAreaParts::AddRound(float x, float y, float radius) {
+void ScriptArea::AddRound(float x, float y, float radius) {
     ScriptAreaPart part = {};
     part.isRect = 0;
     part.x = x;
     part.y = y;
     part.x2OrRadiusSquared = radius * radius;
-    AddPart(this, part);
+    parts.push_back(part);
 }
 
+// Every area with the id.
 void CScript::DeleteArea(int id) {
-    // CArray of areas (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
-    constexpr int kAreaSize = sizeof(ScriptArea);
-    for (int i = 0; i < areas_.size; ++i) {
-        ScriptArea* areas = areas_.data;
-        if (areas[i].id != id) continue;
-        int after = areas_.size - i - 1;
-        gamearrays::DestroyArea(&areas[i]);   // the parts freed
-        if (after) {
-            areas = areas_.data;
-            std::memmove(&areas[i], &areas[i + 1], after * kAreaSize);
-        }
-        --areas_.size;
-        --i;   // the next area moved into this slot
-    }
+    std::erase_if(areas_, [id](const ScriptArea& area) { return area.id == id; });
 }
 
 // ---- Point lights -------------------------------------------------------------------------------
 
 void CScript::CreatePointLight(const SSCCmd* cmd) {
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     int id = x87::fistp(f[0]);
     // The light with this id is replaced, else the first free slot is used (one with the id after
     // a free slot is not found).
@@ -140,20 +78,15 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     for (; i < LightCount(this); ++i) {
         ScriptPointLight* light = &Lights(this)[i];
         if (!light->object) break;
-        if (light->id == id) {
-            TheServerWorld()->RemoveTimedObject(Lights(this)[i].object->id_);
-            Lights(this)[i].object->Release();
-            break;
-        }
+        if (light->id == id) break;
     }
-    Lights(this)[i].moving = 0;
-    Lights(this)[i].id = id;
-    Lights(this)[i].removeWhenDone = 0;
     ScriptPointLight* slot = &Lights(this)[i];
-    slot->object = EffectManager()->CreateObjectAs<CEffectPointLight>(0x4B, -1);
-    CEffectPointLight* object = Lights(this)[i].object;
-    ++object->refCount_;
-    f = cmd->floatArgs.data;
+    slot->object.reset();
+    slot->moving = 0;
+    slot->id = id;
+    slot->removeWhenDone = 0;
+    slot->object = ScriptEffect<CEffectPointLight>(EffectManager()->CreateObjectAs<CEffectPointLight>(0x4B, -1));
+    CEffectPointLight* object = slot->object.get();
     const float scale = 0.003921569f /*0073C36C*/;   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
@@ -166,7 +99,6 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
     object->localPosition_.z = f[3];
     std::memcpy(&object->range_, &f[4], 4);   // radius
     TheServerWorld()->AddTimedObject(object);
-    slot = &Lights(this)[i];
     slot->step.x = 0.0f;
     slot->step.y = 0.0f;
     slot->step.z = 0.0f;
@@ -174,7 +106,7 @@ void CScript::CreatePointLight(const SSCCmd* cmd) {
 }
 
 void CScript::MovePointLight(const SSCCmd* cmd) {
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     int id = x87::fistp(f[0]);
     int i = 0;
     for (;; ++i) {
@@ -190,13 +122,10 @@ void CScript::MovePointLight(const SSCCmd* cmd) {
 }
 
 void CScript::DeletePointLight(const SSCCmd* cmd) {
-    int id = x87::fistp(cmd->floatArgs.data[0]);
-    for (int i = 0; i < LightCount(this); ++i) {
-        ScriptPointLight* light = &Lights(this)[i];
-        if (!light->object || light->id != id) continue;
-        TheServerWorld()->RemoveTimedObject(light->object->id_);
-        Lights(this)[i].object->Release();
-        Lights(this)[i].object = nullptr;
+    int id = x87::fistp(cmd->floatArgs[0]);
+    for (ScriptPointLight& light : pointLights_) {
+        if (!light.object || light.id != id) continue;
+        light.object.reset();
         return;
     }
 }
@@ -207,8 +136,8 @@ namespace {
 // its string argument, its float argument.
 using QuestObjective = ScriptQuestObjective;
 
-QuestObjective* QuestObjectives() { return ScriptQuestObjectives().data; }
-int QuestObjectiveCount() { return ScriptQuestObjectives().size; }
+QuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
+int QuestObjectiveCount() { return static_cast<int>(ScriptQuestObjectives().size()); }
 std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
 
 // operator+(const CString&, const CString&), constructing the result in `out`.
@@ -305,19 +234,16 @@ void ScriptQuestFinish(CScript* script) {
 // Each built empty by its static initialiser in the list's order (the objectives, then the name), which
 // registers the exit function that destroys it (docs/notes/standalone.md, "The static
 // initialisers' objects").
-constinit lib::StaticObject<mfc::CArray<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
+constinit lib::StaticObject<std::vector<ScriptQuestObjective>> g_scriptQuestObjectives = /*007AA608*/ {};
 constinit lib::StaticObject<std::string> g_scriptQuestName = /*007AA61C*/ {};
 
 namespace {
-void DestroyScriptQuestObjectives() {
-    gamearrays::Objectives::Destruct<gamearrays::ObjectiveArrayClass>(
-        reinterpret_cast<gamearrays::Objectives::Array*>(&*g_scriptQuestObjectives));
-}
+void DestroyScriptQuestObjectives() { g_scriptQuestObjectives.Destroy(); }
 void DestroyScriptQuestName() { g_scriptQuestName.Destroy(); }
 } // namespace
 
 void ConstructScriptQuestObjectives() {
-    mfc::impl::ConstructArrayOf<gamearrays::ObjectiveArrayClass>(*g_scriptQuestObjectives);
+    g_scriptQuestObjectives.Construct();
     std::atexit(DestroyScriptQuestObjectives);
 }
 void ConstructScriptQuestName() {

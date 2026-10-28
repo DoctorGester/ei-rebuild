@@ -13,7 +13,6 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
-#include "game_arrays.h"
 #include "lib/mfc_coll.h"
 #include "lib/static_object.h"
 #include "game_data.h"

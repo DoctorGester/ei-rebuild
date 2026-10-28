@@ -2,7 +2,6 @@
 // cell to a neighbour when that makes the path cheaper, counting step costs and turns. Its 81 transition tables
 // are built once by a static initialiser. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
-#include "game_arrays.h"
 
 #include "ei/x87.h"
 #include "lib/crt.h"

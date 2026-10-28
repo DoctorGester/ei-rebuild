@@ -7,11 +7,8 @@
 #include "world.h"
 #include "world_effect.h"
 #include "game_singletons.h"
-#include "game_slots.h"
 
 #include "ei/x87.h"
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 #include "lib/text_case.h"
 
 #include <climits>
@@ -100,96 +97,63 @@ constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
 
-// The id saved for an effect object: -1 for none.
-int ObjectId(const CEngineObject* object) { return object ? object->id_ : -1; }
-
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
-// The effect object saved under `id` (-1: none), with a reference taken (the slot's effect class).
+// The effect object saved under `id` (-1: none), as the slot's effect class.
 template <class T>
-T* ReadObject(ScriptStream* stream) {
+ScriptEffect<T> ReadObject(ScriptStream* stream) {
     int id;
     stream->Read(&id, 4);
-    if (id == -1) return nullptr;
-    auto* object = EffectManager()->FindObjectAs<T>(id);
-    if (object) ++object->refCount_;
-    return object;
+    if (id == -1) return {};
+    return ScriptEffect<T>(EffectManager()->FindObjectAs<T>(id));
 }
 
 std::size_t Length(const char* s) { return std::strlen(s); }
 
-// Takes the effect object out of the world's timed objects and drops the reference to it.
-template <class T>
-void DropEffect(T** slot) {
-    if (T* object = *slot) {
-        TheServerWorld()->RemoveTimedObject(object->id_);
-        (*slot)->Release();
-    }
-    *slot = nullptr;
+// The first element of `list` with the id, null when none.
+template <typename T>
+T* FindId(std::list<T>& list, int id) {
+    for (T& element : list)
+        if (element.id == id) return &element;
+    return nullptr;
 }
 
 } // namespace
 
-// ---- Element destructors ----------------------------------------------------------------------------
-// One body for each element type: the effect object dropped (DropEffect).
-
-void ScriptPointLight::ScriptPointLightDestruct() { DropEffect(&object); }
-void ScriptLightning::ScriptLightningDestruct() { DropEffect(&object); }
-void ScriptParticleSource::ScriptParticleSourceDestruct() { DropEffect(&object); }
-// The FX source's destructor body (the sound dropped, then the name).
-void ScriptFxSource::ScriptFxSourceDestruct() {
-    DropEffect(&object);
-    std::destroy_at(&name);
+// Takes the effect object out of the world's timed objects and drops the reference to it.
+void ScriptDropEffect(CEngineObject* object) {
+    TheServerWorld()->RemoveTimedObject(object->id_);
+    object->Release();
 }
-
-// DestructElements<ScriptLightning>.
-void ScriptLightningElementsDestruct(ScriptLightning* first, int count) {
-    for (; count != 0; --count, ++first) DropEffect(&first->object);
-}
-
 
 // CreateFX(x, y, z, volume, radius, name), a sound played once.
 void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     sound->localPosition_ = {f[0], f[1], f[2]};
     std::memcpy(&sound->volume_, &f[3], 4);
     std::memcpy(&sound->radius_, &f[4], 4);
     sound->looping_ = 0;
-    const char* name = cmd->stringArgs.data[0].c_str();
+    const char* name = cmd->stringArgs[0].c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
     TheServerWorld()->AddTimedObject(sound);
 }
 
-// CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
-// list's NewNode's (zeroed, the name empty); the list append then copies a stack temporary over it
-// whose object is null, whose name is empty and whose other fields were never written. Every field
-// is written below except, for CreateFXSource, spread, the delays and the countdown: the tick
-// counts such a source down and replaces its sound at zero, so a zero countdown would
+// CreateFXSource / CreateRandomizedFXSource (script.h). A new source is appended empty. Every field
+// is written below except, for CreateFXSource, spread, the delays and the countdown (stack residue in the
+// game): the tick counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
 void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     int id = x87::RoundToInt(f[0]);
     if (id < 0) id = nextFxId_--;
 
-    mfc::CList<ScriptFxSource>& list = fxSources_;
-    ScriptFxSource* source = nullptr;
-    for (auto* node = list.head; node; node = node->next) {
-        if (node->data.id == id) {
-            source = &node->data;
-            break;
-        }
-    }
+    ScriptFxSource* source = FindId(fxSources_, id);
     if (source) {
-        DropEffect(&source->object);
+        source->object.reset();
     } else {
-        auto* node = mfc::impl::NewNodeAs<gameslots::FxSourceNodes>(&list, list.tail, nullptr);
-        node->data.object = nullptr;
-        node->data.countdown = INT_MAX;
-        if (list.tail) list.tail->next = node;
-        else list.head = node;
-        list.tail = node;
-        source = &node->data;
+        source = &fxSources_.emplace_back();
+        source->countdown = INT_MAX;
     }
 
     source->id = id;
@@ -198,10 +162,9 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     source->position.z = f[3];
     std::memcpy(&source->volume, &f[4], 4);
     std::memcpy(&source->radius, &f[5], 4);
-    source->name = cmd->stringArgs.data[0];
+    source->name = cmd->stringArgs[0];
 
     if (cmd->id != kCommandCreateFxSource) {
-        source->object = nullptr;
         source->minDelay = x87::RoundToInt(f[6]);
         source->maxDelay = x87::RoundToInt(f[7]);
         source->countdown = 0;
@@ -210,7 +173,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
         return;
     }
     auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
-    source->object = sound;
+    source->object = ScriptEffect<CEffectSound>(sound);
     sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     std::memcpy(&sound->volume_, &source->volume, 4);
     std::memcpy(&sound->radius_, &source->radius, 4);
@@ -218,27 +181,19 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     std::memcpy(sound->name_, name, Length(name) + 1);
     TheServerWorld()->AddTimedObject(sound);
     source->idle = 0;
-    ++source->object->refCount_;
 }
 
 // CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
 void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
-    mfc::CList<ScriptLightning>& list = lightning_;
-    auto* node = mfc::impl::NewNodeAs<mfc::impl::LightningList>(&list, list.tail, nullptr);
-    node->data.object = nullptr;
-    node->data.id = -1;
-    if (list.tail) list.tail->next = node;
-    else list.head = node;
-    list.tail = node;
+    ScriptLightning& lightning = lightning_.emplace_back();
 
-    const float* f = cmd->floatArgs.data;
-    if (f[0] >= 0.0f) node->data.id = static_cast<int>(f[0]);
-    else node->data.id = nextParticleId_--;   // also NaN
+    const float* f = cmd->floatArgs.data();
+    if (f[0] >= 0.0f) lightning.id = static_cast<int>(f[0]);
+    else lightning.id = nextParticleId_--;   // also NaN
 
     auto* bolt = EffectManager()->CreateObjectAs<CEffectLightning>(kClassLightning, -1);
-    node->data.object = bolt;
-    ++bolt->refCount_;
+    lightning.object = ScriptEffect<CEffectLightning>(bolt);
     Vector3 to{f[4], f[5], f[6]};
     Vector3 from{f[1], f[2], f[3]};
     bolt->SetEnds(&from, &to, f[7]);
@@ -248,7 +203,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
 void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
-    std::string name = cmd->stringArgs.data[0].c_str();
+    std::string name = cmd->stringArgs[0].c_str();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
         if (text::CompareIgnoringCase(kScriptParticleTypes[i].name, name.c_str()) == 0) {
@@ -260,38 +215,21 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     int particleType = type->type;
     int lifetime = type->lifetime;
 
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     int id = x87::RoundToInt(f[0]);
     if (id < 0) id = nextParticleId_--;
 
-    mfc::CList<ScriptParticleSource>& list = particles_;
-    ScriptParticleSource* source = nullptr;
-    for (auto* node = list.head; node; node = node->next) {
-        if (node->data.id == id) {
-            source = &node->data;
-            break;
-        }
-    }
-    if (source) {
-        DropEffect(&source->object);
-    } else {
-        // The temporary copied over the element has all fields written below.
-        auto* node = mfc::impl::NewNodeAs<mfc::impl::ParticleSourceList>(&list, list.tail, nullptr);
-        node->data.object = nullptr;
-        if (list.tail) list.tail->next = node;
-        else list.head = node;
-        list.tail = node;
-        source = &node->data;
-    }
+    ScriptParticleSource* source = FindId(particles_, id);
+    if (source) source->object.reset();
+    else source = &particles_.emplace_back();
 
     auto* particles = EffectManager()->CreateObjectAs<CEffectParticle>(kClassParticles, -1);
     particles->type_ = particleType;
     particles->localPosition_ = {f[1], f[2], f[3]};
-    ++particles->refCount_;
+    source->object = ScriptEffect<CEffectParticle>(particles);
     std::memcpy(&particles->size_, &f[4], 4);
     TheServerWorld()->AddTimedObject(particles);
 
-    source->object = particles;
     source->id = id;
     source->deleteAfterMove = 0;
     source->moving = 0;
@@ -303,15 +241,8 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
 // MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
 void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
-    const float* f = cmd->floatArgs.data;
-    int id = x87::RoundToInt(f[0]);
-    ScriptParticleSource* source = nullptr;
-    for (auto* node = particles_.head; node; node = node->next) {
-        if (node->data.id == id) {
-            source = &node->data;
-            break;
-        }
-    }
+    const float* f = cmd->floatArgs.data();
+    ScriptParticleSource* source = FindId(particles_, x87::RoundToInt(f[0]));
     if (!source) return;
     source->moving = 1;
     source->deleteAfterMove = x87::RoundToInt(f[5]);
@@ -324,8 +255,8 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
 }
 
 
-void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
-    WriteInt(stream, ObjectId(object));
+void ScriptPointLight::Save(ScriptStream* stream) const {
+    WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     WriteInt(stream, removeWhenDone);
     WriteInt(stream, moving);
@@ -333,8 +264,8 @@ void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
     stream->Write(&step, 12);
 }
 
-void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const {
-    WriteInt(stream, ObjectId(object));
+void ScriptParticleSource::Save(ScriptStream* stream) const {
+    WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     WriteInt(stream, deleteAfterMove);
     WriteInt(stream, moving);
@@ -343,8 +274,8 @@ void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const 
     WriteInt(stream, lifetime);
 }
 
-void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
-    WriteInt(stream, ObjectId(object));
+void ScriptFxSource::Save(ScriptStream* stream) const {
+    WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
     stream->WriteString(name);
     stream->Write(&position, 12);
@@ -357,13 +288,13 @@ void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, countdown);
 }
 
-void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
-    WriteInt(stream, ObjectId(object));
+void ScriptLightning::Save(ScriptStream* stream) const {
+    WriteInt(stream, object.SavedId());
     WriteInt(stream, id);
 }
 
 
-void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
+void ScriptPointLight::Load(ScriptStream* stream) {
     object = ReadObject<CEffectPointLight>(stream);
     stream->Read(&id, 4);
     stream->Read(&removeWhenDone, 4);
@@ -372,7 +303,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
     stream->Read(&step, 12);
 }
 
-void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
+void ScriptFxSource::Load(ScriptStream* stream) {
     object = ReadObject<CEffectSound>(stream);
     stream->Read(&id, 4);
     stream->ReadInto(&name);

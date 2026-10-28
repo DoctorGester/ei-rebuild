@@ -1,113 +1,39 @@
 // Small allocation helpers of the script runtime: the parser's new command blocks and WorldScript
-// block, the area lookup that creates missing areas, the temporary object references of the
-// evaluator and SSCCmd::Clear. See script.h and docs/notes/script.md.
-// The list appends build a temporary element on the stack that is copied into the new node or array
-// slot. Both temporaries are empty, so the copies leave the new element
-// empty; their uninitialised +0x14 word is copied too and then overwritten by the id, which is not
-// reproduced. The temporaries own nothing, so their destruction is a no-op and is left out.
+// block, the area lookup that creates missing areas and the temporary object references of the
+// evaluator. See script.h and docs/notes/script.md.
 #include "script.h"
-
-#include "lib/crt.h"
-#include "record_arrays.h"
-#include "lib/mfc.h"
-
-#include "game_slots.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_list.h"
 
 #include <cstdint>
 
 namespace {
 
-// ---- Original code (MFC template instantiations, config/library.csv) ------------------------------
-
-// CList<ScriptDecl>::NewNode (prev, next); the element is constructed.
-using BlockList = mfc::CList<ScriptDecl>;
-BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList::Node* next) {
-    return mfc::impl::NewNodeAs<mfc::impl::CommandBlockList>(list, prev, next);
-}
-// CArray<ScriptArea>::SetSize (size, growBy); CArray<ScriptAreaPart>::Copy.
-// SetSize of SSCCmd's arrays (size, growBy): strings, object pointers, group pointers,
-// bindings (both arrays), nested calls (dropped elements delete their command).
-
-
-// CList::AddTail of an empty ScriptDecl: the node after the tail,
-// the empty temporary's commands copied in, linked; the id is the list's count (the
-// field right after the tail) with `idBits`.
-ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
-    ScriptCommands empty;
-    empty.vtable = mfc::impl::ScriptCommandsClass::Vtable();
-    empty.data = nullptr;
-    empty.size = empty.maxSize = empty.growBy = 0;
-    BlockList::Node* node = NewBlockNode(list, list->tail, nullptr);
-    ScriptDecl* block = &node->data;
-    block->commands.CopyFrom(empty);
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
-    block->id = static_cast<int>(static_cast<std::uint32_t>(list->count) | idBits);
-    return block;
+// An empty block at the end of `list`; its id is the list's new count with `idBits`.
+ScriptDecl* AppendBlock(std::list<ScriptDecl>* list, std::uint32_t idBits) {
+    ScriptDecl& block = list->emplace_back();
+    block.id = static_cast<int>(static_cast<std::uint32_t>(list->size()) | idBits);
+    return &block;
 }
 
 } // namespace
 
-// CScript::NewCommandList.
 ScriptDecl* CScript::NewCommandList() {
     return AppendBlock(&blocks_, 0);
 }
 
-// CScript::NewWorldScript.
 ScriptDecl* CScript::NewWorldScript() {
     return AppendBlock(&worldBlocks_, 0x80000000u);
 }
 
-// CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
-// constructs the slot), the empty temporary's parts are copied in and the last
-// slot gets the id.
-ScriptAreaParts* CScript::FindArea(int id) {
-    auto& areas = areas_;
-    for (int i = 0; i < areas.size; ++i) {
-        if (areas.data[i].id == id) return &areas.data[i].parts;
-    }
-    mfc::CArray<ScriptAreaPart> empty{mfc::impl::ScriptAreaPartsClass::Vtable(), nullptr, 0, 0, 0};
-    int index = areas.size;
-    mfc::impl::ArrayAs<mfc::impl::ScriptAreas>(areas).SetSize(index + 1, -1);
-    areas.data[index].parts.Copy(empty);
-    areas.data[areas.size - 1].id = id;
-    return &areas.data[areas.size - 1].parts;
+// A linear search by id; when absent an empty area with the id is appended.
+ScriptArea* CScript::FindArea(int id) {
+    for (ScriptArea& area : areas_)
+        if (area.id == id) return &area;
+    ScriptArea& area = areas_.emplace_back();
+    area.id = id;
+    return &area;
 }
 
-// CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
-// CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
-// it is empty; the element is constructed and then assigned null (released if set).
+// A null reference at the end of the temporaries.
 ScriptObjectRef* CScript::NewTempObject() {
-    static_assert(sizeof(ScriptTempObjects::Node) == 0xC);
-    auto& list = tempObjects_;
-    ScriptTempObjects::Node* node = list.NewNode(list.tail, nullptr);   // the element zeroed
-    ScriptObjectRef* ref = &node->data;
-    if (ref->object) ref->object->Release();
-    ref->object = nullptr;
-    if (list.tail) list.tail->next = node;
-    else list.head = node;
-    list.tail = node;
-    return ref;
-}
-
-// SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
-// their SetSize(0, -1).
-void ScriptCmdClear(SSCCmd* cmd) {
-    cmd->id = 0;
-    if (cmd->floatArgs.data) {
-        gamecrt::operator_delete(cmd->floatArgs.data);
-        cmd->floatArgs.data = nullptr;
-    }
-    cmd->floatArgs.maxSize = 0;
-    cmd->floatArgs.size = 0;
-    cmd->stringArgs.SetSize(0, -1);
-    cmd->objectArgs.SetSize(0, -1);
-    cmd->groupArgs.SetSize(0, -1);
-    cmd->localBindings.SetSize(0, -1);
-    cmd->globalBindings.SetSize(0, -1);
-    mfc::impl::ArrayAs<recordarrays::SubCalls>(cmd->subCalls).SetSize(0, -1);
-    cmd->calledScript = nullptr;
+    return &tempObjects_.emplace_back();
 }

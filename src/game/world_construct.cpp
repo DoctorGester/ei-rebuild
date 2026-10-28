@@ -13,9 +13,7 @@
 #include "world_class_slots.h"
 #include "script.h"
 
-#include "lib/mfc_slots.h"
 #include "lib/static_object.h"
-#include "game/game_slots.h"
 
 #include <cstdlib>
 #include <initializer_list>
@@ -38,8 +36,8 @@ PlatformSet::PlatformSet() {
 
 CWorldServer::CWorldServer() {
     Messages()->Construct();
-    MainScript()->Construct();
-    SecondScript()->Construct();
+    std::construct_at(MainScript());
+    std::construct_at(SecondScript());
     diplomacy_.Reset();
     ResetState();
 }

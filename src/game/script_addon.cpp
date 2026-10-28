@@ -169,35 +169,6 @@ const Built& Build() {
     return built;
 }
 
-// addon's CArray SetSize(n) for the argument arrays (10022686 floats, 1002259F strings, 10022755
-// object and group pointers): MFC's, through the game's heap, except that a full array grows to
-// size + growBy elements, growBy 0 meaning 4 (its clamp of size / 8 always gives 4).
-template <typename T>
-void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
-    using Elements = mfc::PlainElements<T>;
-    if (n <= a.size) {
-        Elements::Destruct(a.data + n, a.size - n);
-        if (n == 0) {
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-            a.maxSize = 0;
-        }
-        a.size = n;
-        return;
-    }
-    if (a.maxSize < n) {
-        int grow = a.growBy != 0 ? a.growBy : 4;
-        int newMax = a.size + grow;
-        if (newMax < n) newMax = n;
-        T* data = gamecrt::operator_new_array<T>(static_cast<unsigned>(newMax));
-        mfc::CArray<T>::Relocate(data, a.data, a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.maxSize = newMax;
-    }
-    Elements::Construct(a.data + a.size, n - a.size);
-    a.size = n;
-}
 
 } // namespace
 
@@ -276,10 +247,10 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
             }
             ++p;
         } while (*p);
-        if (floats) ArgumentsSetSize(cmd->floatArgs, cmd->floatArgs.size - floats);
-        if (strings) ArgumentsSetSize(cmd->stringArgs, cmd->stringArgs.size - strings);
-        if (objects) ArgumentsSetSize(cmd->objectArgs, cmd->objectArgs.size - objects);
-        if (groups) ArgumentsSetSize(cmd->groupArgs, cmd->groupArgs.size - groups);
+        cmd->floatArgs.resize(cmd->floatArgs.size() - floats);
+        cmd->stringArgs.resize(cmd->stringArgs.size() - strings);
+        cmd->objectArgs.resize(cmd->objectArgs.size() - objects);
+        cmd->groupArgs.resize(cmd->groupArgs.size() - groups);
         return;
     }
     if (optional) {
@@ -288,32 +259,18 @@ void SignatureStep(SSCCmd* cmd, const char** signature, int tokenId) {
     }
     --p;
     switch (*p) {
-    case 's': {
-        std::string empty;
-        empty = "";
-        int n = cmd->stringArgs.size;
-        ArgumentsSetSize(cmd->stringArgs, n + 1);
-        cmd->stringArgs.data[n] = empty.c_str();
+    case 's':
+        cmd->stringArgs.emplace_back();
         break;
-    }
-    case 'o': {
-        int n = cmd->objectArgs.size;
-        ArgumentsSetSize(cmd->objectArgs, n + 1);
-        cmd->objectArgs.data[n] = nullptr;
+    case 'o':
+        cmd->objectArgs.push_back(nullptr);
         break;
-    }
-    case 'g': {
-        int n = cmd->groupArgs.size;
-        ArgumentsSetSize(cmd->groupArgs, n + 1);
-        cmd->groupArgs.data[n] = nullptr;
+    case 'g':
+        cmd->groupArgs.push_back(nullptr);
         break;
-    }
-    case 'f': {
-        int n = cmd->floatArgs.size;
-        ArgumentsSetSize(cmd->floatArgs, n + 1);
-        cmd->floatArgs.data[n] = 0.0f;
+    case 'f':
+        cmd->floatArgs.push_back(0.0f);
         break;
-    }
     }
 }
 

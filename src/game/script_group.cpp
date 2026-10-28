@@ -1,18 +1,13 @@
 // Script object references and groups (sets of object references). See script.h.
 #include "script.h"
-#include "game_arrays.h"
 #include "unit.h"
 #include "combat.h"
 #include "world.h"
 
-#include "lib/crt.h"
-#include "lib/mfc_array.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
 #include <list>
 
 namespace {
@@ -21,24 +16,6 @@ namespace {
 CEngineObject* FindObject(int id) { return TheServerWorld()->FindObject(static_cast<unsigned>(id)); }
 
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
-
-void AddRef(CEngineObject* object) {
-    if (object) ++object->refCount_;
-}
-
-// Release and clear one slot, as the inlined ScriptObjectRef destructor does.
-void Clear(ScriptObjectRef* slot) {
-    if (slot->object) slot->object->Release();
-    slot->object = nullptr;
-}
-
-// Store `object` in `slot` after releasing what it held (Reset, then add a reference).
-void Store(ScriptObjectRef* slot, CEngineObject* object) {
-    Clear(slot);
-    AddRef(object);
-    slot->object = object;
-}
-
 
 // The members' order (the game's qsort by object address, unsigned; ours ScriptGroup::After, by id). The live
 // objects' ids are unique, so only copies of one reference are equal and any sort gives the game's qsort's order.
@@ -53,17 +30,6 @@ bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     return x->id_ > y->id_;
 }
 
-void ScriptObjectRef::Reset() { Clear(this); }
-
-void ScriptObjectRef::Assign(CEngineObject* newObject) { Store(this, newObject); }
-
-CEngineObject* ScriptObjectRef::Construct(const ScriptObjectRef& other) {
-    CEngineObject* o = other.object;
-    object = o;
-    AddRef(o);
-    return o;
-}
-
 CUnit* ScriptObjectRef::AsUnit() const {
     return UnitOrNull(object);
 }
@@ -74,20 +40,13 @@ CUnitServer* ScriptObjectRef::GetUnitPerception() const {
 }
 
 void ScriptObjectRef::ReleaseIfDeleted() {
-    if (object && (object->flags_ & kDeleted)) {
-        object->Release();
-        object = nullptr;
-    }
+    if (object && (object->flags_ & kDeleted)) object = nullptr;
 }
 
 void ScriptObjectRef::Load(ScriptStream* stream) {
     int id;
     stream->Read(&id, 4);
-    if (id == -1) {
-        Clear(this);
-        return;
-    }
-    Store(this, FindObject(id));
+    object = id == -1 ? nullptr : FindObject(id);
 }
 
 void ScriptObjectRef::Save(ScriptStream* stream) const {
@@ -96,203 +55,126 @@ void ScriptObjectRef::Save(ScriptStream* stream) const {
     stream->Write(&id, 4);
 }
 
-void ScriptGroup::SetSize(int newSize, int newGrowBy) { mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*this).SetSize(newSize, newGrowBy); }
-
-void ScriptGroup::Resize(int newSize) {
-    if (newSize == 0) {
-        if (data) {
-            for (int i = 0; i < size; ++i) Clear(&data[i]);
-            gamecrt::operator_delete(data);
-            data = nullptr;
-        }
-        maxSize = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = gamecrt::operator_new_array<ScriptObjectRef>(newSize);
-        for (int i = 0; i < newSize; ++i) data[i].object = nullptr;
-        maxSize = newSize;
-        size = newSize;
-        return;
-    }
-    if (newSize <= maxSize) {
-        if (size < newSize) {
-            for (int i = size; i < newSize; ++i) data[i].object = nullptr;
-        } else if (newSize < size) {
-            for (int i = newSize; i < size; ++i) Clear(&data[i]);
-        }
-        size = newSize;
-        return;
-    }
-    int grow = growBy;
-    if (grow == 0) {
-        grow = size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 0x400) grow = 0x400;
-    }
-    int newMax = maxSize + grow;
-    if (newSize >= newMax) newMax = newSize;
-    auto* fresh = gamecrt::operator_new_array<ScriptObjectRef>(newMax);
-    for (int i = 0; i < size; ++i) fresh[i] = data[i];
-    for (int i = size; i < newSize; ++i) fresh[i].object = nullptr;
-    gamecrt::operator_delete(data);
-    data = fresh;
-    size = newSize;
-    maxSize = newMax;
-}
-
-// The merges walk both arrays in member order (After). Each source element is read before
-// the destination slot is released (it matters only if `this` is a or b).
+// The merges walk both groups in member order (After) and write the result from the front of `this`, which is
+// sized first. Each source element is read before the destination slot is written (it matters only if `this`
+// is a or b).
 void ScriptGroup::Union(const ScriptGroup& a, const ScriptGroup& b) {
-    int aSize = a.size, bSize = b.size;
-    Resize(aSize + bSize);
-    int out = 0, i = 0, j = 0;
-    if (aSize > 0) {
-        do {
-            if (j >= bSize) {
-                while (i < aSize) {
-                    CEngineObject* x = a.data[i++].object;
-                    Store(&data[out++], x);
-                }
-                break;
+    const std::size_t aSize = a.size(), bSize = b.size();
+    resize(aSize + bSize);
+    std::size_t out = 0, i = 0, j = 0;
+    while (i < aSize) {
+        if (j >= bSize) {
+            while (i < aSize) {
+                CEngineObject* x = a[i++].object;
+                (*this)[out++].object = x;
             }
-            CEngineObject* x = a.data[i].object;
-            CEngineObject* y = b.data[j].object;
-            if (x == y) {
-                Store(&data[out++], x);
-                ++i;
-                ++j;
-            } else if (After(x, y)) {
-                Store(&data[out++], y);
-                ++j;
-            } else {
-                Store(&data[out++], x);
-                ++i;
-            }
-        } while (i < aSize);
+            break;
+        }
+        CEngineObject* x = a[i].object;
+        CEngineObject* y = b[j].object;
+        if (x == y) {
+            (*this)[out++].object = x;
+            ++i;
+            ++j;
+        } else if (After(x, y)) {
+            (*this)[out++].object = y;
+            ++j;
+        } else {
+            (*this)[out++].object = x;
+            ++i;
+        }
     }
     while (j < bSize) {
-        CEngineObject* y = b.data[j++].object;
-        Store(&data[out++], y);
+        CEngineObject* y = b[j++].object;
+        (*this)[out++].object = y;
     }
-    SetSize(out, -1);
+    resize(out);
 }
 
 void ScriptGroup::Difference(const ScriptGroup& a, const ScriptGroup& b) {
-    int aSize = a.size, bSize = b.size;
-    Resize(aSize);
-    int out = 0, i = 0, j = 0;
-    if (aSize > 0) {
-        do {
-            if (j >= bSize) {
-                while (i < aSize) {
-                    CEngineObject* x = a.data[i++].object;
-                    Store(&data[out++], x);
-                }
-                break;
+    const std::size_t aSize = a.size(), bSize = b.size();
+    resize(aSize);
+    std::size_t out = 0, i = 0, j = 0;
+    while (i < aSize) {
+        if (j >= bSize) {
+            while (i < aSize) {
+                CEngineObject* x = a[i++].object;
+                (*this)[out++].object = x;
             }
-            CEngineObject* x = a.data[i].object;
-            CEngineObject* y = b.data[j].object;
-            if (x == y) {
-                ++i;
-                ++j;
-            } else if (After(x, y)) {
-                ++j;
-            } else {
-                Store(&data[out++], x);
-                ++i;
-            }
-        } while (i < aSize);
+            break;
+        }
+        CEngineObject* x = a[i].object;
+        CEngineObject* y = b[j].object;
+        if (x == y) {
+            ++i;
+            ++j;
+        } else if (After(x, y)) {
+            ++j;
+        } else {
+            (*this)[out++].object = x;
+            ++i;
+        }
     }
-    SetSize(out, -1);
+    resize(out);
 }
 
 void ScriptGroup::Intersection(const ScriptGroup& a, const ScriptGroup& b) {
-    int aSize = a.size, bSize = b.size;
-    Resize(aSize > bSize ? aSize : bSize);
-    int out = 0, i = 0, j = 0;
-    if (aSize > 0) {
-        do {
-            if (j >= bSize) break;
-            CEngineObject* x = a.data[i].object;
-            CEngineObject* y = b.data[j].object;
-            if (x == y) {
-                Store(&data[out++], x);
-                ++i;
-                ++j;
-            } else if (After(x, y)) {
-                ++j;
-            } else {
-                ++i;
-            }
-        } while (i < aSize);
+    const std::size_t aSize = a.size(), bSize = b.size();
+    resize(aSize > bSize ? aSize : bSize);
+    std::size_t out = 0, i = 0, j = 0;
+    while (i < aSize && j < bSize) {
+        CEngineObject* x = a[i].object;
+        CEngineObject* y = b[j].object;
+        if (x == y) {
+            (*this)[out++].object = x;
+            ++i;
+            ++j;
+        } else if (After(x, y)) {
+            ++j;
+        } else {
+            ++i;
+        }
     }
-    SetSize(out, -1);
+    resize(out);
 }
 
-void ScriptGroup::Sort() { std::sort(data, data + size, MemberBefore); }
+void ScriptGroup::Sort() { std::sort(begin(), end(), MemberBefore); }
 
 int ScriptGroup::IndexOf(const ScriptObjectRef& ref) const {
     CEngineObject* o = ref.object;
-    for (int i = 0; i < size; ++i)
-        if (data[i].object == o) return i;
+    for (std::size_t i = 0; i < size(); ++i)
+        if ((*this)[i].object == o) return static_cast<int>(i);
     return -1;
 }
 
 void ScriptGroup::Remove(CEngineObject* object) {
-    int i = 0;
-    for (; i < size; ++i)
-        if (data[i].object == object) break;
-    if (i >= size) return;
-    // RemoveAt(i, 1).
-    int after = size - i - 1;
-    Clear(&data[i]);
-    if (after != 0) std::memmove(&data[i], &data[i + 1], after * 4);
-    --size;
+    auto at = std::find_if(begin(), end(), [object](const ScriptObjectRef& ref) { return ref.object == object; });
+    if (at != end()) erase(at);
 }
 
+// A binary search for the place in member order; nothing when the object is there.
 void ScriptGroup::Insert(CEngineObject* object) {
-    int oldSize = size;
-    int low = 0;
-    int high = oldSize - 1;
     if (!object) return;
-    if (high >= 0) {
-        do {
-            int middle = (high + low) / 2;
-            CEngineObject* current = data[middle].object;
-            if (object == current) return;
-            if (After(object, current)) low = middle + 1;
-            else high = middle - 1;
-        } while (high - low >= 0);
+    int low = 0;
+    int high = static_cast<int>(size()) - 1;
+    while (high - low >= 0) {
+        int middle = (high + low) / 2;
+        CEngineObject* current = (*this)[middle].object;
+        if (object == current) return;
+        if (After(object, current)) low = middle + 1;
+        else high = middle - 1;
     }
-    // InsertAt(low, object).
-    Resize(oldSize + 1);
-    ScriptObjectRef* d = data;
-    if (low < oldSize) std::memmove(&d[low + 1], &d[low], (oldSize - low) * 4);
-    d[low].object = nullptr;
-    ++object->refCount_;
-    d[low].object = object;
+    insert(begin() + low, ScriptObjectRef{object});
 }
 
 void ScriptGroup::RemoveDeleted() {
-    int i = 0;
-    if (size <= 0) return;
-    do {
-        ScriptObjectRef* slot = &data[i];
-        if (slot->object && (slot->object->flags_ & kDeleted)) {
-            slot->object->Release();
-            slot->object = nullptr;
-        }
-        if (data[i].object) {
-            ++i;
-        } else {
-            int after = size - i - 1;
-            Clear(&data[i]);
-            if (after != 0) std::memmove(&data[i], &data[i + 1], after * 4);
-            --size;
-        }
-    } while (i < size);
+    std::size_t i = 0;
+    while (i < size()) {
+        ScriptObjectRef& slot = (*this)[i];
+        slot.ReleaseIfDeleted();
+        if (slot.object) ++i;
+        else erase(begin() + static_cast<std::ptrdiff_t>(i));
+    }
 }
 
 void ScriptGroup::InsertAll(const std::list<CUnit*>* list) {
@@ -300,34 +182,28 @@ void ScriptGroup::InsertAll(const std::list<CUnit*>* list) {
 }
 
 void ScriptGroup::CopyToList(std::list<CUnit*>* list) const {
-    for (auto node = list->begin(); node != list->end(); ++node) {
-        if (*node) (*node)->Release();
-        *node = nullptr;
+    for (CUnit*& unit : *list) {
+        if (unit) unit->Release();
+        unit = nullptr;
     }
     list->clear();
-    for (int i = 0; i < size; ++i) {
-        CEngineObject* object = data[i].object;
-        AddRef(object);   // a new node's element is null: nothing to release
+    for (const ScriptObjectRef& ref : *this) {
+        CEngineObject* object = ref.object;
+        if (object) ++object->refCount_;
         list->push_back(static_cast<CUnit*>(object));
     }
 }
 
 BOOL ScriptGroup::Contains(CEngineObject* object) const {
-    for (int i = 0; i < size; ++i)
-        if (data[i].object == object) return 1;
+    for (const ScriptObjectRef& ref : *this)
+        if (ref.object == object) return 1;
     return 0;
 }
 
 void ScriptGroup::Load(ScriptStream* stream) {
     int count;
     stream->Read(&count, 4);
-    Resize(count);
-    for (int i = 0; i < count; ++i) {
-        ScriptObjectRef* slot = &data[i];
-        int id;
-        stream->Read(&id, 4);
-        if (id == -1) Clear(slot);
-        else Store(slot, FindObject(id));
-    }
-    std::sort(data, data + size, MemberBefore);
+    resize(static_cast<std::size_t>(count));
+    for (ScriptObjectRef& slot : *this) slot.Load(stream);
+    Sort();
 }

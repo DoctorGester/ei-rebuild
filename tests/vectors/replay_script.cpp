@@ -13,9 +13,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <new>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -123,19 +122,14 @@ EI_VECTOR_CHECK_BYTES("KeywordName", CheckKeywordName);
 
 // A CScript the lexer can run on: it reads no member, it only reports errors (CScript::Error).
 CScript* NoScript() {
-    alignas(8) static unsigned char bytes[sizeof(CScript)];
-    static CScript* const script = [] {
-        auto* s = reinterpret_cast<CScript*>(bytes);
-        std::construct_at(&s->ErrorText());
-        return s;
-    }();
-    return script;
+    static CScript script;
+    return &script;
 }
 
 bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     const std::uint32_t length = r.Get<std::uint32_t>();
     const unsigned char* bytes = r.Bytes(length);
-    const std::int32_t blockSize = r.Get<std::int32_t>();
+    r.Get<std::int32_t>();   // the token list's block size
     const std::int32_t expected = r.Get<std::int32_t>();
     ReportedError error0;
     if (!expected) {
@@ -151,7 +145,7 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     if (!bytes || !r.ok()) return true;   // RunBytes reports the short payload
 
     const std::string source(reinterpret_cast<const char*>(bytes), length);
-    ScriptTokenList tokens{nullptr, nullptr, nullptr, 0, nullptr, nullptr, blockSize};
+    ScriptTokenList tokens;
     g_error = ReportedError();
     const BOOL result = NoScript()->Tokenize(source, &tokens);
 
@@ -159,24 +153,23 @@ bool CheckTokenize(Reader& r, char* d, std::size_t n) {
     std::uint32_t first = count0;   // the first token that differs
     std::uint32_t index = 0;
     const char* firstText = "";
-    for (const ScriptTokenList::Node* node = tokens.head; node; node = node->next, ++index) {
-        all = TokenHash(node->data.text.c_str(), node->data.line, all);
-        if (first == count0 && (index >= count0 || static_cast<std::uint32_t>(TokenHash(node->data.text.c_str(), node->data.line)) != each0[index])) {
+    for (const ScriptToken& token : tokens) {
+        all = TokenHash(token.text.c_str(), token.line, all);
+        if (first == count0 && (index >= count0 || static_cast<std::uint32_t>(TokenHash(token.text.c_str(), token.line)) != each0[index])) {
             first = index;
-            firstText = node->data.text.c_str();
+            firstText = token.text.c_str();
         }
+        ++index;
     }
-    bool ok = result == expected && static_cast<std::uint32_t>(tokens.count) == count0 && all == all0 && first == count0;
+    bool ok = result == expected && tokens.size() == count0 && all == all0 && first == count0;
     if (ok && !expected)
         ok = g_error.reported && g_error.code == error0.code && g_error.line == error0.line &&
              std::strcmp(g_error.text, error0.text) == 0;
     if (!ok)
         std::snprintf(d, n, "%u bytes: ours %d with %d tokens, original %d with %u; first difference at token %u (ours \"%.40s\"); "
                       "error ours %d line %d \"%.60s\", original %d line %d \"%.60s\"",
-                      length, result, tokens.count, expected, count0, first, firstText, g_error.code, g_error.line,
+                      length, result, static_cast<int>(tokens.size()), expected, count0, first, firstText, g_error.code, g_error.line,
                       g_error.text, error0.code, error0.line, error0.text);
-    for (ScriptTokenList::Node* node = tokens.head; node; node = node->next) std::destroy_at(&node->data.text);
-    mfc::PlexFreeDataChain(tokens.blocks);
     return ok;
 }
 EI_VECTOR_CHECK_BYTES("CScript::Tokenize", CheckTokenize);
@@ -184,25 +177,19 @@ EI_VECTOR_CHECK_BYTES("CScript::Tokenize", CheckTokenize);
 bool CheckApplyDefines(Reader& r, char* d, std::size_t n) {
     const std::string before = r.String();
     const std::uint32_t count = r.Get<std::uint32_t>();
-    std::vector<ScriptDefineList::Node> nodes(count);
+    ScriptDefineList defines;
     for (std::uint32_t i = 0; i < count; ++i) {
-        const std::string name = r.String();
-        const std::string value = r.String();
-        std::construct_at(&nodes[i].data.name, name.c_str());
-        std::construct_at(&nodes[i].data.value, value.c_str());
-        nodes[i].prev = i ? &nodes[i - 1] : nullptr;
-        nodes[i].next = i + 1 < count ? &nodes[i + 1] : nullptr;
+        std::string name = r.String();
+        std::string value = r.String();
+        defines.push_back({std::move(name), std::move(value)});
     }
     const std::string expected = r.String();
-    ScriptDefineList defines{nullptr, count ? &nodes[0] : nullptr, count ? &nodes[count - 1] : nullptr,
-                             static_cast<int>(count), nullptr, nullptr, 10};
     std::string line = before;
     ApplyDefines(&line, &defines);
     const bool ok = expected == line;
     if (!ok)
         std::snprintf(d, n, "\"%.100s\" with %u defines: ours \"%.100s\", original \"%.100s\"", before.c_str(), count,
                       line.c_str(), expected.c_str());
-    for (ScriptDefineList::Node& node : nodes) ScriptDefineElements::Destruct(&node.data, 1);
     return ok;
 }
 EI_VECTOR_CHECK_BYTES("ApplyDefines", CheckApplyDefines);

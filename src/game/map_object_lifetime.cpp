@@ -8,10 +8,8 @@
 #include "core_transform.h"
 #include "effects.h"       // CParticleSource
 #include "engine_object.h"
-#include "game_lists.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
-#include "game_arrays.h"
 #include "record_arrays.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
@@ -28,7 +26,6 @@
 #include "lib/mfc_list.h"
 #include "game_data.h"
 #include "lib/mfc_slots.h"
-#include "game/game_slots.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 

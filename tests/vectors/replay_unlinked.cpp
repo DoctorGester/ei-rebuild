@@ -6,7 +6,6 @@
 #include "../../src/game/console.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/figure_mesh.h"
-#include "../../src/game/game_arrays.h"
 #include "../../src/game/map_spec.h"
 #include "../../src/game/material.h"
 #include "../../src/game/net_delta.h"
@@ -37,14 +36,8 @@ namespace {
 #define EI_UNLINKED(what) \
     { Unlinked(what); }
 
-// game_arrays.cpp's other element types.
-void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
-
-// game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
-void ScriptPointLight::ScriptPointLightDestruct() EI_UNLINKED("ScriptPointLight::ScriptPointLightDestruct")
-void ScriptParticleSource::ScriptParticleSourceDestruct() EI_UNLINKED("ScriptParticleSource::ScriptParticleSourceDestruct")
-void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::ScriptFxSourceDestruct")
-void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
+// The script effects' drop (script_effects.cpp needs the world).
+void ScriptDropEffect(CEngineObject*) EI_UNLINKED("ScriptDropEffect")
 
 // record_arrays.cpp's other element types.
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
@@ -66,9 +59,8 @@ CEngineObject* CBaseManager::FindObject(unsigned) const EI_UNLINKED("CBaseManage
 std::string* CStream::ReadString(std::string*) EI_UNLINKED("CStream::ReadString")
 void CStream::WriteString(std::string_view) EI_UNLINKED("CStream::WriteString")
 void CWorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
-void ScriptPointLight::ScriptPointLightLoad(ScriptStream*) EI_UNLINKED("ScriptPointLight::ScriptPointLightLoad")
-void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSource::ScriptFxSourceLoad")
-void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
+void ScriptPointLight::Load(ScriptStream*) EI_UNLINKED("ScriptPointLight::Load")
+void ScriptFxSource::Load(ScriptStream*) EI_UNLINKED("ScriptFxSource::Load")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: the node allocator (stlp.cpp), srand (random.cpp), acos (quaternion.cpp).

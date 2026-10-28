@@ -1,14 +1,17 @@
 # Mission script engine (0x004B0000-0x004D8000), text reader (0x004DEFC0-0x004DFFFF) and the rest of 0x00480000-0x00500000
 
-Files (`src/game/`): `script.h` (every layout with offset asserts, including the whole `CScript`, 0x1F8 bytes),
-`script_*.cpp` (group, vars, eval, parse, parse_load, parse_arrays, exec, exec_run, exec_helpers, save, load, vars_append,
-copy, destroy, arrays, blocks, reset, cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)), `text_reader.cpp`.
+Files (`src/game/`): `script.h` (the records, std containers with their own special members, and `CScript`),
+`script_*.cpp` (group, vars, eval, parse, parse_load, exec, exec_run, exec_helpers, save, load, construct, blocks, reset,
+cleanup, effects, quest, unit_modes, addon* (Rebirth, `rebirth.md`)), `text_reader.cpp`.
 Verify: `tests/verify/verify_script*.cpp` (+ `script_compare.h`), `verify_text_reader.cpp`. Scenarios: `script_parse`,
 `script_exec`, `script_copy`, `script_fx`, `script_quest`, `world_load` (save / load round trip), `console`, `effects`,
 `particles`, `zone_gz2g_traps`. Nothing rewritten here lies in Rebirth's patched range 0x004CF4A2-0x004D460C except where
 marked "Rebirth".
 
 ## Data structures
+
+The layouts below are game.exe's (the harness and the vector recorders read them through views). Ours hold the same
+records in std containers (core.md, "MFC CArray and CList to std", batch 3).
 
 - Value types (numbering used everywhere): 1 float, 2 string (CString), 3 object, 4 group.
 - `ScriptObjectRef` (4 bytes): counted reference to a world object (`refCount_` at +4; Release is slot 4); a world object
@@ -181,10 +184,10 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
 Every rewritten function carries its address in its source comment (grep the address); the per-function tables that used to
 be here are gone. Where things live: `script_eval.cpp` (SetParameters / CalcParameters / CalcFloat / CalcObject / CalcGroup;
 CalcGroup is there for Rebirth's AddNewScriptCommands), `script_parse*.cpp` and `script_blocks.cpp` (tokens, lexer,
-loaders, defines, qualified names), `script_arrays.cpp` (parser arrays), `script_exec*.cpp` (Execute 004B6760, bind calls,
-ScriptTick 004BF000, FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars_append.cpp` (savers, loaders,
-appends, copies), `script_destroy.cpp` / `script_cleanup.cpp` / `script_reset.cpp` (constructors, destructors,
-ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
+loaders, defines, qualified names), `script_exec*.cpp` (Execute 004B6760, bind calls, ScriptTick 004BF000,
+FreeTemporaries), `script_load.cpp` / `script_save.cpp` / `script_vars.cpp` (savers, loaders, the variables' appends and
+lookups), `script_group.cpp` (the groups' set operations), `script_construct.cpp` / `script_cleanup.cpp` /
+`script_reset.cpp` (CScript's constructor and destructor, ScriptReset, PurgeDeletedObjects, ResetZone), `script_effects.cpp` (CreateFX, CreateLightning, particle sources, point
 lights), `script_quest.cpp` (QStart, QObj, QFinish, `QuestTable::Find`), `script_unit_modes.cpp` (the unit mode commands),
 the object references, groups and variables at 004B24B0-004B3940, areas 004B1ED0-004BCF30, the text reader below.
 

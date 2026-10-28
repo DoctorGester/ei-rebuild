@@ -4,7 +4,6 @@
 #include "options.h"
 #include "object_tables.h"
 #include "script.h"
-#include "game_arrays.h"
 #include "game_strings.h"
 #include "script_addon.h"
 
@@ -34,15 +33,12 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_list.h"
-#include "game_lists.h"
 #include "bink_video.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/text_case.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <bit>
@@ -70,9 +66,6 @@ const char* MoviesFolder() { return "Movies\\"; }
 float ColourScale() { return 0.003921569f /*0073C36C*/; }
 int ConfiguredTimeSpeed() { return options::TheOptions()->defaultTimeScale_; }
 
-using ParticleList = mfc::CList<ScriptParticleSource>;
-using FxSourceList = mfc::CList<ScriptFxSource>;
-using LightningList = mfc::CList<ScriptLightning>;
 void* Renderer() { return SceneRenderer(); }
 
 CWorldServer* TheWorld() { return TheServerWorld(); }
@@ -101,12 +94,12 @@ PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode
 UnitStats* StatsOf(CUnitServer* state) { return &state->stats; }
 Vector3* Position(CEngineObject* object) { return &ObjectSlots(object)->localPosition_; }
 
-CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
+CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs[i]->object; }
 CMapObject* MapObjectArg(const SSCCmd* cmd, int i) { return ObjectSlots(Arg(cmd, i)); }
-const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs.data[i].c_str(); }
+const char* Text(const SSCCmd* cmd, int i) { return cmd->stringArgs[i].c_str(); }
 
 CUnitServer* UnitStateArg(const SSCCmd* cmd) {
-    CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+    CUnit* unit = cmd->objectArgs[0]->AsUnit();
     return unit ? UnitState(unit) : nullptr;
 }
 
@@ -116,8 +109,8 @@ Lever* LeverArg(const SSCCmd* cmd) {
 }
 
 ScriptParticleSource* FindParticle(CScript* script, int id) {
-    for (auto* node = script->particles_.head; node; node = node->next)
-        if (node->data.id == id) return &node->data;
+    for (ScriptParticleSource& source : script->particles_)
+        if (source.id == id) return &source;
     return nullptr;
 }
 
@@ -141,19 +134,14 @@ void RunBody(ScriptRun* run, CScript* script, ScriptDecl* body) {
     run->sleepStart = sleepStart;
 }
 
-void SetLoopCounter(const SSCCmd* cmd, int i) {
-    ScriptObjectRef* element = &cmd->groupArgs.data[0]->data[i];
-    ScriptObjectRef* counter = cmd->objectArgs.data[0];
-    counter->Reset();
-    counter->Construct(*element);
-}
+void SetLoopCounter(const SSCCmd* cmd, int i) { *cmd->objectArgs[0] = (*cmd->groupArgs[0])[static_cast<std::size_t>(i)]; }
 
 int& ForDepth(CScript* script) { return script->forDepth_; }
 
 void SetCP(const SSCCmd* cmd, bool fast) {
     CMapObject* object = ObjectSlots(Arg(cmd, 0));   // a unit or another map object
     if (!object) return;
-    const float* f = cmd->floatArgs.data;
+    const float* f = cmd->floatArgs.data();
     CAIMap* map = TheAIMap();
     if (fast) {
         map->SetRefreshUnits(0);
@@ -199,7 +187,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
 }
 
 void GiveSkill(const SSCCmd* cmd) {
-    CUnitServer* state = cmd->objectArgs.data[0]->GetUnitPerception();
+    CUnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
     if (!state) return;
     // The skill names in the order they are tested; science goes to
     // SetScience, the others to SetSkill with their index.
@@ -209,7 +197,7 @@ void GiveSkill(const SSCCmd* cmd) {
     for (int i = 0; i < 9; ++i) {
         if (text::CompareIgnoringCase(Text(cmd, 0), kNames[i]) != 0) continue;
         CUnit* owner = state->unit;
-        int value = Ftol(cmd->floatArgs.data[0]);
+        int value = Ftol(cmd->floatArgs[0]);
         UnitStats* stats = StatsOf(state);
         if (i == 0) stats->RaiseAttribute(kIndex[i], value, owner);
         else stats->RaiseSkill(kIndex[i], value, owner);
@@ -217,7 +205,7 @@ void GiveSkill(const SSCCmd* cmd) {
 }
 
 void RedeployParty(const SSCCmd* cmd) {
-    CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]));
+    CPlayer* player = TheWorld()->GetPlayer(Ftol(cmd->floatArgs[0]));
     if (!player) return;
     CPlayerServer* state = player->Server();
     std::vector<UnitPlacement> slots;
@@ -234,7 +222,7 @@ void RedeployParty(const SSCCmd* cmd) {
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
-    if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]))) return;
+    if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs[0]))) return;
     CParty* from = Parties()->Find(Text(cmd, 0));
     CParty* to = Parties()->Find(Text(cmd, 1));
     if (!from || !to) return;
@@ -249,18 +237,18 @@ void CopyLoot(const SSCCmd* cmd, bool replace) {
 
 void GSSetVarMultiplayer(const SSCCmd* cmd) {
     std::string text(Text(cmd, 0));
-    ServerPointer()->SetVariable(&text, cmd->floatArgs.data[1]);
+    ServerPointer()->SetVariable(&text, cmd->floatArgs[1]);
 }
 
 void GSVarMultiplayer(const SSCCmd* cmd, bool setMax) {
     std::string text(Text(cmd, 0));
-    if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs.data[1]);
+    if (setMax) ServerPointer()->RaiseVariable(&text, cmd->floatArgs[1]);
     else ServerPointer()->RemoveVariable(&text);
 }
 
 void PlayMovie(const SSCCmd* cmd) {
     std::string path = *GameBasePathString() + MoviesFolder();
-    std::string file = path + cmd->stringArgs.data[0];
+    std::string file = path + cmd->stringArgs[0];
     ::PlayMovie(file.c_str(), 0, 1, 1, 1, 1, 1);
 }
 
@@ -268,7 +256,7 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
     CSpell* spell = TheSpellManager()->CreateSpellFromText(Text(cmd, 0));
     if (spell) ++spell->refCount_;
     if (spell) {
-        const float* f = cmd->floatArgs.data;
+        const float* f = cmd->floatArgs.data();
         Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CMapObject* target = MapObjectArg(cmd, 0);
@@ -290,7 +278,7 @@ void UnitModes(const SSCCmd* cmd) {
     brain->RemoveModesOfType(4);
     brain->RemoveModesOfType(5);
     brain->RemoveModesOfType(7);
-    switch (Round(cmd->floatArgs.data[0])) {
+    switch (Round(cmd->floatArgs[0])) {
     case 0:
         brain->AddMode(new FearMode(1));
         brain->AddMode(new SuspectionMode());
@@ -322,16 +310,16 @@ void UnitModes(const SSCCmd* cmd) {
 
 BOOL ScriptRun::Execute(CScript* script) {
     ++ticks;
-    if (index >= block->commands.size) return 0;
+    if (index >= std::ssize(block->commands)) return 0;
     vars.RemoveDeletedObjects();
     int cont = 1;
-    while (index < block->commands.size) {
+    while (index < std::ssize(block->commands)) {
         if (!cont) return 1;
-        SSCCmd* cmd = &block->commands.data[index];
-        cmd->SetParameters(&cmd->localBindings, &vars);
-        cmd->SetParameters(&cmd->globalBindings, script->Globals());
-        for (int i = 0; i < cmd->subCalls.size; ++i)
-            cmd->CalcParameters(script, &vars, &cmd->subCalls.data[i]);
+        SSCCmd* cmd = &block->commands[index];
+        cmd->SetParameters(cmd->localBindings, &vars);
+        cmd->SetParameters(cmd->globalBindings, script->Globals());
+        for (int i = 0; i < std::ssize(cmd->subCalls); ++i)
+            cmd->CalcParameters(script, &vars, &cmd->subCalls[i]);
         cont = 1;
         bool done = false;
         if (scriptaddon::Enabled()) {
@@ -339,7 +327,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             done = scriptaddon::Dispatch(&call);
         }
 
-        const float* f = cmd->floatArgs.data;
+        const float* f = cmd->floatArgs.data();
         switch (done ? -1 : cmd->id) {
         case 0x07: {   // Sleep(ticks): counts this run's Execute calls from the first one
             if (sleepStart < 0) sleepStart = ticks;
@@ -355,15 +343,13 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (IsZero(f[0])) cont = 0;
             break;
         case 0xB9: {   // SleepUntilIdle(unit): while the brain has an action
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (unit && UnitState(unit)->Brain()->action != 0) cont = 0;
             break;
         }
         case 0x08: {   // a declared script: start an instance with the call's arguments
             int which = Ftol(f[0]);
-            auto* definition = &script->Scripts().data[which];
-            auto* node = script->instances_.PushHead(definition);
-            ScriptDefinition* instance = &node->data;
+            ScriptDefinition* instance = &script->instances_.emplace_front(script->Scripts()[static_cast<std::size_t>(which)]);
             instance->BindCall(cmd);
             instance->index = 0;   // the killed flag
             break;
@@ -374,7 +360,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case kCmdFor: {   // For(counter, group)(body): the group's members from last to first
             ++ForDepth(script);
-            for (int i = cmd->groupArgs.data[0]->size - 1; i >= 0; --i) {
+            for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
                 RunBody(this, script, cmd->calledScript);
             }
@@ -384,16 +370,16 @@ BOOL ScriptRun::Execute(CScript* script) {
         case kCmdForIf: {   // ForIf(counter, group, condition)(body)
             ++ForDepth(script);
             const ScriptSubCall* condition = nullptr;
-            for (int i = 0; i < cmd->subCalls.size; ++i) {
-                if (cmd->subCalls.data[i].type == kScriptFloat) {
-                    condition = &cmd->subCalls.data[i];
+            for (int i = 0; i < std::ssize(cmd->subCalls); ++i) {
+                if (cmd->subCalls[i].type == kScriptFloat) {
+                    condition = &cmd->subCalls[i];
                     break;
                 }
             }
-            for (int i = cmd->groupArgs.data[0]->size - 1; i >= 0; --i) {
+            for (int i = static_cast<int>(cmd->groupArgs[0]->size()) - 1; i >= 0; --i) {
                 SetLoopCounter(cmd, i);
                 if (condition) cmd->CalcParameters(script, &vars, condition);
-                if (!IsZero(cmd->floatArgs.data[0])) RunBody(this, script, cmd->calledScript);
+                if (!IsZero(cmd->floatArgs[0])) RunBody(this, script, cmd->calledScript);
             }
             --ForDepth(script);
             break;
@@ -402,21 +388,17 @@ BOOL ScriptRun::Execute(CScript* script) {
             ScriptVars* globals = script->Globals();
             switch (Ftol(f[1])) {
             case 0:
-                std::memcpy(&globals->floats.values.data[Ftol(f[0])], &f[2], 4);
+                std::memcpy(&globals->floats.values[Ftol(f[0])], &f[2], 4);
                 break;
             case 1:
-                globals->strings.values.data[Ftol(f[0])] = cmd->stringArgs.data[0];
+                globals->strings.values[Ftol(f[0])] = cmd->stringArgs[0];
                 break;
             case 2: {
-                ScriptObjectRef* value = cmd->objectArgs.data[0];
-                ScriptObjectRef* slot = &globals->objects.values.data[Ftol(f[0])];
-                slot->Reset();
-                slot->Construct(*value);
+                globals->objects.values[static_cast<std::size_t>(Ftol(f[0]))] = *cmd->objectArgs[0];
                 break;
             }
             case 3: {
-                ScriptGroup* value = cmd->groupArgs.data[0];
-                globals->groups.values.data[Ftol(f[0])].CopyFrom(*value);
+                globals->groups.values[static_cast<std::size_t>(Ftol(f[0]))] = *cmd->groupArgs[0];
                 break;
             }
             default:
@@ -426,12 +408,12 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
 
         case 0x22:   // AddObject(group, object)
-            cmd->groupArgs.data[0]->Insert(Arg(cmd, 0));
+            cmd->groupArgs[0]->Insert(Arg(cmd, 0));
             break;
         case 0x23: {   // RemoveObject(group, object)
-            ScriptGroup* group = cmd->groupArgs.data[0];
-            int at = group->IndexOf(*cmd->objectArgs.data[0]);
-            if (at >= 0) mfc::impl::ArrayAs<gamearrays::ObjectRefs>(*group).RemoveAt(at, 1);
+            ScriptGroup* group = cmd->groupArgs[0];
+            int at = group->IndexOf(*cmd->objectArgs[0]);
+            if (at >= 0) group->erase(group->begin() + at);
             break;
         }
 
@@ -448,14 +430,9 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0x11: {   // DeleteParticleSource(id)
             int id = Round(f[0]);
-            for (ParticleList::Node* node = script->particles_.head; node;) {
-                ParticleList::Node* current = node;
-                node = node->next;
-                if (current->data.id == id) {
-                    mfc::impl::RemoveAtAs<gamelists::ParticleSources>(&script->particles_, current);
-                    break;
-                }
-            }
+            auto& list = script->particles_;
+            auto at = std::find_if(list.begin(), list.end(), [id](const ScriptParticleSource& source) { return source.id == id; });
+            if (at != list.end()) list.erase(at);
             break;
         }
         case 0x12: {   // AttachParticleSource(id, objectId)
@@ -475,21 +452,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x1A: {   // DeleteLightning(id): every lightning with the id
-            for (LightningList::Node* node = script->lightning_.head; node;) {
-                LightningList::Node* current = node;
-                node = node->next;
-                if (current->data.id == Ftol(f[0])) mfc::impl::RemoveAtAs<gamelists::Lightnings>(&script->lightning_, current);
-            }
+            std::erase_if(script->lightning_, [f](const ScriptLightning& bolt) { return bolt.id == Ftol(f[0]); });
             break;
         }
         case 0x19: {   // DeleteFXSource(id): the first one with the id
             int id = Round(f[0]);
-            for (FxSourceList::Node* node = script->fxSources_.head; node; node = node->next) {
-                if (node->data.id == id) {
-                    mfc::impl::RemoveAtAs<gamelists::FxSources>(&script->fxSources_, node);
-                    break;
-                }
-            }
+            auto& list = script->fxSources_;
+            auto at = std::find_if(list.begin(), list.end(), [id](const ScriptFxSource& source) { return source.id == id; });
+            if (at != list.end()) list.erase(at);
             break;
         }
 
@@ -640,14 +610,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x36: {   // SetPlayer(unit, player)
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             unit->SetHostileMask(TheDiplomacy()->GetHostileMask(Ftol(f[0])));
             unit->SetSide(Ftol(f[0]));
             break;
         }
         case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             int player = Ftol(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | unit->relationsA;
@@ -677,19 +647,19 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x83: {   // AddUnitUnderControl(player, unit)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (player && unit) unit->SetPlayer(player);
             break;
         }
         case 0x84: {   // RemoveUnitFromControl(player, unit)
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (unit) unit->SetPlayer(nullptr);
             break;
         }
         case 0x42:   // SetSpellAggression(unit, value): does nothing
             break;
         case 0xAE: {   // RemoveQuestItem(unit, id): the first quest item with the id
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             int count = unit->carriedCount;
             int id = Ftol(f[0]);
@@ -703,14 +673,14 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0xAF: {   // GiveUnitQuestItem(unit, item)
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             CItem* item = TheWorld()->CreateItemNamed(Text(cmd, 0));
             if (item && item->GetClassId() == kClassQuestItem) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)
-            CUnit* unit = cmd->objectArgs.data[0]->AsUnit();
+            CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             CItem* spell = TheWorld()->CreateSpellNamed(Text(cmd, 0));
             if (!spell) break;
@@ -725,7 +695,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xCE:     // GiveStrength(unit, value)
         case 0xCF:     // GiveDexterity
         case 0xD0: {   // GiveIntelligence
-            CUnitServer* state = cmd->objectArgs.data[0]->GetUnitPerception();
+            CUnitServer* state = cmd->objectArgs[0]->GetUnitPerception();
             if (!state) break;
             CUnit* owner = state->unit;
             int value = Ftol(f[0]);
@@ -992,7 +962,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x87: {   // RemoveUnitFromParty(player, party.unit)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            std::string name = cmd->stringArgs.data[0];
+            std::string name = cmd->stringArgs[0];
             CParty* records = PartyForScript(player, &name);
             if (records) {
                 if (cmd->id == 0x86)
@@ -1006,8 +976,8 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x9D: {   // CopyStats(player, from, to)
             CPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            std::string from = cmd->stringArgs.data[0];
-            std::string to = cmd->stringArgs.data[1];
+            std::string from = cmd->stringArgs[0];
+            std::string to = cmd->stringArgs[1];
             CParty* fromRecords = PartyForScript(player, &from);
             CParty* toRecords = PartyForScript(player, &to);
             PartyUnitRecord* source = fromRecords->Find(TextKeyFromName(from.c_str()));
@@ -1032,7 +1002,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         }
         case 0x9C: {   // SetCurrentParty(player, name)
             if (TheWorld()->GetPlayer(Ftol(f[0])))
-                Parties()->text0C = cmd->stringArgs.data[0];
+                Parties()->text0C = cmd->stringArgs[0];
             break;
         }
         case 0xE0:   // AddLoot(player, from, to)
@@ -1108,10 +1078,10 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xD9:   // QObjSeeUnit
         case 0xDA:   // QObjKillUnit
         case 0xDB:   // QObjKillGroup
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs.data[0], 0.0f);
+            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], 0.0f);
             break;
         case 0xDC:   // QObjUse(name, value)
-            ScriptQuestAddObjective(cmd->id, cmd->stringArgs.data[0], f[0]);
+            ScriptQuestAddObjective(cmd->id, cmd->stringArgs[0], f[0]);
             break;
 
         default:   // functions, sections and commands without effect here

@@ -9,7 +9,6 @@
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
-#include "game/game_slots.h"
 
 #include <bit>
 #include <cstddef>

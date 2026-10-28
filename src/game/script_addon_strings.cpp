@@ -30,13 +30,12 @@ namespace {
 // Sends a chat line from the server (second argument 0).
 
 
-const std::string& Arg(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
+const std::string& Arg(Call* call, int i) { return call->cmd->stringArgs[i]; }
 
 // 10010D8F: every string argument appended in order (each by its length).
 std::string Joined(Call* call) {
     std::string text;
-    const mfc::CArray<std::string>& strings = call->cmd->stringArgs;
-    for (int i = 0; i < strings.size; ++i) text += strings.data[i];
+    for (const std::string& part : call->cmd->stringArgs) text += part;
     return text;
 }
 
@@ -55,7 +54,7 @@ std::string CaseConverted(const char* text, bool upper) {
 
 // The object's id in decimal ("%I64d" of the sign-extended id).
 bool GetObjectStringID(Call* call) {
-    CEngineObject* object = call->cmd->objectArgs.data[0]->object;
+    CEngineObject* object = call->cmd->objectArgs[0]->object;
     if (!object) return InvalidArguments("GetObjectStringID");
     char text[64];
     std::snprintf(text, sizeof(text), "%d", object->id_);
@@ -67,8 +66,8 @@ bool GetObjectStringID(Call* call) {
 // cut. The scan stops at index 0 without looking at it, so "100" with no decimals becomes "1".
 bool FloatToStr(Call* call) {
     float value;
-    Store(&value, call->cmd->floatArgs.data[0]);
-    int digits = call->cmd->floatArgs.size >= 2 ? Ftol(call->cmd->floatArgs.data[1]) : 3;
+    Store(&value, call->cmd->floatArgs[0]);
+    int digits = std::ssize(call->cmd->floatArgs) >= 2 ? Ftol(call->cmd->floatArgs[1]) : 3;
     if (digits > 8) digits = 8;
     else if (digits < 0) digits = 0;
     std::string text = str::Format("%.*f", digits, static_cast<double>(value));
@@ -100,7 +99,7 @@ bool StrLen(Call* call) {
 
 // One of the strings, by the game generator's next value modulo their count.
 bool RandStr(Call* call) {
-    std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size);
+    std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(call->cmd->stringArgs.size());
     *call->StringResult() = Arg(call, static_cast<int>(index));
     return true;
 }
@@ -116,8 +115,8 @@ bool StrHas(Call* call) {
 bool StrMid(Call* call) {
     const std::string& string = Arg(call, 0);
     int length = text::CharacterCount(string);
-    int start = Ftol(call->cmd->floatArgs.data[0]);
-    int count = Ftol(call->cmd->floatArgs.data[1]);
+    int start = Ftol(call->cmd->floatArgs[0]);
+    int count = Ftol(call->cmd->floatArgs[1]);
     if (start < 0) start += length + 1;
     if (count == 0) count = length;
     else if (count < 0) return true;

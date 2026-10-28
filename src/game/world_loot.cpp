@@ -13,7 +13,6 @@
 #include "lib/mfc.h"
 
 #include "lib/mfc_list.h"
-#include "game_lists.h"
 #include "game_singletons.h"
 
 #include <list>

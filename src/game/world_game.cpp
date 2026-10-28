@@ -16,7 +16,6 @@
 #include "ui_screens.h"
 #include "world.h"
 #include "game_flow_data.h"
-#include "game_slots.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -52,7 +51,6 @@
 #include "ei/rebirth.h"
 #include "party_manager.h"
 #include "party_records.h"
-#include "game_arrays.h"
 #include "bink_video.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"

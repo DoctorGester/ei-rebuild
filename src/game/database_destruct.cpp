@@ -2,8 +2,6 @@
 // (src/standalone/static_exit.cpp), so they run at a normal exit in the hook build too. Each destroys the
 // members from the last: a table's name index, then its records. The constructors are database_construct.cpp's.
 #include "acks_db.h"
-#include "game_arrays.h"
-#include "game_slots.h"
 #include "item_db.h"
 #include "model.h"
 #include "object_tables.h"

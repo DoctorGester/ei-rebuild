@@ -187,7 +187,7 @@ STATIC_OBJECT_BYTES = {
     # game.exe's CArrays are 0x14 bytes and its CLists 0x1C; ours (std::vector 12, std::list 8) start zero all the same
     'std::vector<int>': 0x14, 'std::vector<std::uint8_t>': 0x14, 'std::vector<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'std::vector<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
     'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'std::vector<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
-    'std::list<AIEvent>': 0x1C, 'FlagArray': 0x14, 'mfc::CArray<ScriptQuestObjective>': 0x14,
+    'std::list<AIEvent>': 0x1C, 'FlagArray': 0x14, 'std::vector<ScriptQuestObjective>': 0x14,
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,

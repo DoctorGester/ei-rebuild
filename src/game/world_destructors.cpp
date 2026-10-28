@@ -3,8 +3,6 @@
 // containers are the library's (lib/mfc.h CArray / CList, std::vector, lib/stlp.h
 // hash_map). See docs/notes/standalone.md.
 #include "effects.h"
-#include "game_arrays.h"
-#include "game_lists.h"
 #include "ground_print.h"
 #include "model.h"
 #include "registry.h"
@@ -18,26 +16,12 @@
 
 #include "lib/crt.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
-#include "game/record_arrays.h"
-#include "game/game_slots.h"
 
 #include <memory>
 
 void RefPtrRelease(RefPtr* self);
 
 namespace {
-
-// A script container destroyed by its instantiation's destructor (`Abi` over the element's policy,
-// `Class` the vtable it writes back).
-template <typename Abi, typename Class, typename Container>
-void DestroyScriptList(Container& list) {
-    Abi::template Destruct<Class>(reinterpret_cast<typename Abi::List*>(&list));
-}
-template <typename Abi, typename Class, typename Container>
-void DestroyScriptArray(Container& array) {
-    Abi::template Destruct<Class>(reinterpret_cast<typename Abi::Array*>(&array));
-}
 
 template <typename T>
 T* DeleteIf(T* self, unsigned flags) {
@@ -46,26 +30,6 @@ T* DeleteIf(T* self, unsigned flags) {
 }
 
 } // namespace
-
-// (The server's second script inlines it): the reset, the error text,
-// then the containers last to first (the variables through ScriptVarsDestruct).
-void CScript::Destruct() {
-    ScriptReset(this);
-    std::destroy_at(&errorText_);
-    DestroyScriptList<gamelists::ObjectRefs, gameslots::ObjectRefListClass>(tempObjects_);
-    DestroyScriptList<gamelists::Groups, gameslots::GroupListClass>(tempGroups_);
-    DestroyScriptArray<gamearrays::Areas, mfc::impl::ScriptAreaArrayClass>(areas_);
-    DestroyScriptList<gamelists::Decls, gameslots::DeclListClass>(worldBlocks_);
-    DestroyScriptList<gamelists::Runs, gameslots::RunListClass>(runs_);
-    DestroyScriptList<gamelists::Definitions, gameslots::DefinitionListClass>(instances_);
-    ScriptVarsDestruct(&globals_);
-    DestroyScriptArray<gamearrays::Definitions, recordarrays::DefinitionArrayClass>(definitions_);
-    DestroyScriptList<gamelists::Decls, gameslots::DeclListClass>(blocks_);
-    DestroyScriptList<gamelists::Lightnings, gameslots::LightningListClass>(lightning_);
-    DestroyScriptList<gamelists::FxSources, gameslots::FxSourceListClass>(fxSources_);
-    DestroyScriptList<gamelists::ParticleSources, gameslots::ParticleSourceListClass>(particles_);
-    DestroyScriptArray<gamearrays::PointLights, gamearrays::PointLightArrayClass>(pointLights_);
-}
 
 CWorld::~CWorld() {
     CWorld::Destroy();
@@ -112,8 +76,8 @@ CWorldServer::~CWorldServer() {
     for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
     projectiles_.clear();
     diplomacy_.Reset();
-    SecondScript()->Destruct();
-    MainScript()->Destruct();
+    std::destroy_at(SecondScript());
+    std::destroy_at(MainScript());
     Messages()->Destroy();
     exits_.clear();
 }

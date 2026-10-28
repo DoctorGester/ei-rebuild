@@ -45,36 +45,21 @@ constexpr std::uint32_t kMaxLoadPayload = 0x4000;
 inline void PutText(Writer& w, const exe::CString& s) { w.PutString(static_cast<const char*>(s)); }
 inline void PutText(Writer& w, const std::string& s) { w.PutString(s.c_str()); }
 
-// An array's element count and a list's walk, on game.exe's views and ours.
-template <typename A>
-std::size_t Size(const A& a) {
-    if constexpr (requires { a.GetSize(); }) return static_cast<std::size_t>(a.GetSize());
-    else return a.size();
-}
-template <typename List, typename Fn>
-void ForEach(const List& list, Fn fn) {
-    if constexpr (requires { list.begin(); }) {
-        for (const auto& element : list) fn(element);
-    } else {
-        for (auto* node = list.head; node; node = node->next) fn(node->data);
-    }
-}
-
 // An array's size and, for plain elements, its bytes.
 template <typename A>
 void PutSize(Writer& w, const A& a) {
-    w.Put<std::int32_t>(static_cast<std::int32_t>(Size(a)));
+    w.Put<std::int32_t>(static_cast<std::int32_t>(a.size()));
 }
 template <typename A>
 void PutPlain(Writer& w, const A& a) {
     PutSize(w, a);
-    if (Size(a)) w.PutBytes(&a[0], Size(a) * sizeof(a[0]));
+    if (a.size()) w.PutBytes(&a[0], a.size() * sizeof(a[0]));
 }
 
 template <typename A>
 void PutTexts(Writer& w, const A& a) {
     PutSize(w, a);
-    for (std::size_t i = 0; i < Size(a); ++i) PutText(w, a[i]);
+    for (std::size_t i = 0; i < a.size(); ++i) PutText(w, a[i]);
 }
 
 // A variable set: names and values per type (floats bit for bit, strings as text, objects and groups
@@ -104,13 +89,13 @@ void PutCmd(Writer& w, const Cmd& c) {
     PutPlain(w, c.floatArgs);
     PutTexts(w, c.stringArgs);
     PutSize(w, c.objectArgs);
-    for (std::size_t i = 0; i < Size(c.objectArgs); ++i) w.Put<std::uint8_t>(c.objectArgs[i] ? 1 : 0);
+    for (std::size_t i = 0; i < c.objectArgs.size(); ++i) w.Put<std::uint8_t>(c.objectArgs[i] ? 1 : 0);
     PutSize(w, c.groupArgs);
-    for (std::size_t i = 0; i < Size(c.groupArgs); ++i) w.Put<std::uint8_t>(c.groupArgs[i] ? 1 : 0);
+    for (std::size_t i = 0; i < c.groupArgs.size(); ++i) w.Put<std::uint8_t>(c.groupArgs[i] ? 1 : 0);
     PutPlain(w, c.localBindings);
     PutPlain(w, c.globalBindings);
     PutSize(w, c.subCalls);
-    for (std::size_t i = 0; i < Size(c.subCalls); ++i) {
+    for (std::size_t i = 0; i < c.subCalls.size(); ++i) {
         const auto& s = c.subCalls[i];
         w.Put<std::int32_t>(s.type);
         w.Put<std::int32_t>(s.argIndex);
@@ -123,21 +108,20 @@ void PutCmd(Writer& w, const Cmd& c) {
 template <typename A>
 void PutCmds(Writer& w, const A& a) {
     PutSize(w, a);
-    for (std::size_t i = 0; i < Size(a); ++i) PutCmd(w, a[i]);
+    for (std::size_t i = 0; i < a.size(); ++i) PutCmd(w, a[i]);
 }
 
 // The blocks of `list` after its first `skip`: count, then id and commands each.
 template <typename List>
 void PutBlocksAfter(Writer& w, const List& list, std::size_t skip) {
-    std::size_t count = 0;
-    ForEach(list, [&](const auto&) { ++count; });
+    const std::size_t count = list.size();
     w.Put(static_cast<std::uint32_t>(count > skip ? count - skip : 0));
     std::size_t i = 0;
-    ForEach(list, [&](const auto& block) {
-        if (i++ < skip) return;
+    for (const auto& block : list) {
+        if (i++ < skip) continue;
         w.Put<std::int32_t>(block.id);
         PutCmds(w, block.commands);
-    });
+    }
 }
 
 // The definitions after a load: the pairs a definition had before (`skip`, by index) are left out. game.exe's
@@ -145,13 +129,13 @@ void PutBlocksAfter(Writer& w, const List& list, std::size_t skip) {
 template <typename A>
 void PutDefinitionsAfter(Writer& w, const A& a, const std::vector<int>& skip) {
     PutSize(w, a);
-    for (std::size_t i = 0; i < Size(a); ++i) {
+    for (std::size_t i = 0; i < a.size(); ++i) {
         const auto& d = a[i];
         w.Put<std::int32_t>(d.index);
         PutText(w, d.name);
         PutText(w, d.params);
         PutSize(w, d.ifThen);
-        for (std::size_t k = i < skip.size() ? static_cast<std::size_t>(skip[i]) : 0; k < Size(d.ifThen); ++k) {
+        for (std::size_t k = i < skip.size() ? static_cast<std::size_t>(skip[i]) : 0; k < d.ifThen.size(); ++k) {
             PutBlockRef(w, d.ifThen[k].conditions);
             PutBlockRef(w, d.ifThen[k].commands);
         }

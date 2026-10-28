@@ -11,9 +11,7 @@
 
 #include "lib/crt.h"
 #include "lib/mfc_slots.h"
-#include "game_lists.h"
 #include "record_arrays.h"
-#include "game/game_slots.h"
 
 namespace {
 

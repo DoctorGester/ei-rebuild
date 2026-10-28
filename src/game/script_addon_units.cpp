@@ -10,8 +10,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "lib/mfc.h"
-#include "lib/mfc_list.h"
 #include "random.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -35,7 +33,7 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) { return unit->GetP
 // The unit's parameters: the 7-value block filled from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
-ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
+ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs[i]; }
 
 // CMapObject::IsDead of any object: 0 alive, 1 dead (addon's handler).
 int DeathState(CEngineObject* unit) { return ObjectSlots(unit)->IsDead(); }
@@ -94,7 +92,7 @@ bool GetPlayerOfUnit(Call* call) {
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* what = call->cmd->stringArgs.size == 0 ? "max" : call->cmd->stringArgs.data[0].c_str();
+    const char* what = std::ssize(call->cmd->stringArgs) == 0 ? "max" : call->cmd->stringArgs[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
@@ -118,7 +116,7 @@ bool GetUnitExp(Call* call) {
 // the unit's parameters compute.
 bool GetArmor(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const float* f = call->cmd->floatArgs.data;
+    const float* f = call->cmd->floatArgs.data();
     int kind = Ftol(f[0]);
     int part = Ftol(f[1]);
     *call->FloatResult() = 0.0f;
@@ -140,7 +138,7 @@ bool GetArmor(Call* call) {
 // NearestUnit(x, y, radius, filter): the nearest object of the sector map's ones within radius
 // that passes the filter (strictly nearer each time).
 bool NearestUnit(Call* call) {
-    const float* f = call->cmd->floatArgs.data;
+    const float* f = call->cmd->floatArgs.data();
     float x, y, radius;
     Store(&x, f[0]);
     Store(&y, f[1]);
@@ -157,21 +155,21 @@ bool NearestUnit(Call* call) {
             radius = distance;
         }
     });
-    call->ObjectResult()->Assign(best);
+    call->ObjectResult()->object = best;
     return true;
 }
 
 // UnitsNearPoint(x, y, radius, filter): every object of the sector map's ones within radius that
 // passes the filter.
 bool UnitsNearPoint(Call* call) {
-    const float* f = call->cmd->floatArgs.data;
+    const float* f = call->cmd->floatArgs.data();
     float x, y, radius;
     Store(&x, f[0]);
     Store(&y, f[1]);
     Store(&radius, f[2]);
     int filter = TruncateX87(f[3]);
     bool units = (filter & 1) != 0, others = ((filter >> 1) & 1) != 0, living = ((filter >> 2) & 1) != 0;
-    call->GroupResult()->SetSize(0, -1);
+    call->GroupResult()->clear();
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
         if (PassesFilter(object, units, others, living)) call->GroupResult()->Insert(object);
     });
@@ -181,17 +179,16 @@ bool UnitsNearPoint(Call* call) {
 // A member of the group, by the game generator's next value modulo its size (an empty group
 // leaves the result empty).
 bool RandObj(Call* call) {
-    ScriptGroup* group = call->cmd->groupArgs.data[0];
-    int size = group->size;
-    if (size) {
-        std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(size);
-        call->ObjectResult()->Assign(group->data[index].object);
+    ScriptGroup* group = call->cmd->groupArgs[0];
+    if (!group->empty()) {
+        std::uint32_t index = IsaacRandom::Global().Next() % static_cast<std::uint32_t>(group->size());
+        *call->ObjectResult() = (*group)[index];
     }
     return true;
 }
 
 bool PlayerExists(Call* call) {
-    Store(call->FloatResult(), GetPlayer(Ftol(call->cmd->floatArgs.data[0])) ? 1.0f : 0.0f);
+    Store(call->FloatResult(), GetPlayer(Ftol(call->cmd->floatArgs[0])) ? 1.0f : 0.0f);
     return true;
 }
 
@@ -206,7 +203,7 @@ bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity
 // GetSkill(unit, name): a skill byte of the unit's data.
 bool GetSkill(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs.data[0].c_str();
+    const char* name = call->cmd->stringArgs[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
@@ -226,7 +223,7 @@ bool GetSkill(Call* call) {
 // GetPerk(unit, name): a perk byte of the unit's data (+0x8B3 + the perk's index).
 bool GetPerk(Call* call) {
     auto* data = UnitData(ObjectArg(call, 0));
-    const char* name = call->cmd->stringArgs.data[0].c_str();
+    const char* name = call->cmd->stringArgs[0].c_str();
     *call->FloatResult() = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
     static const char* const kPerks[] = {"sword", "axe", "dagger", "spear", "hammer", "bow", "crossbow",
@@ -271,9 +268,9 @@ bool GetObjectTypeID(Call* call) {
 // whose class id is one of the (truncated) arguments.
 bool GetObjectsOnMap(Call* call) {
     ScriptGroup* group = call->GroupResult();
-    group->SetSize(0, -1);
-    const mfc::CArray<float>& classes = call->cmd->floatArgs;
-    bool all = classes.size == 1 && classes.data[0] == -1.0f;
+    group->clear();
+    const std::vector<float>& classes = call->cmd->floatArgs;
+    bool all = classes.size() == 1 && classes[0] == -1.0f;
     ForWorldObjects([&](CEngineObject* object) {
         if (!object) return;
         if (all) {
@@ -281,8 +278,8 @@ bool GetObjectsOnMap(Call* call) {
             return;
         }
         int id = object->GetClassId();
-        for (int i = 0; i < call->cmd->floatArgs.size; ++i)
-            if (id == Ftol(call->cmd->floatArgs.data[i])) {
+        for (int i = 0; i < std::ssize(call->cmd->floatArgs); ++i)
+            if (id == Ftol(call->cmd->floatArgs[i])) {
                 call->GroupResult()->Insert(object);
                 return;
             }

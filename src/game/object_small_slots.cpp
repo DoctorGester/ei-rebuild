@@ -1,7 +1,6 @@
 // Small virtual slots of the map objects' companions and the client controller. See unit.h,
 // unit_client_models.h, map_object.h and docs/notes/map_objects.md.
 #include "map_object.h"
-#include "game_arrays.h"
 #include "unit.h"
 #include "unit_client_models.h"
 

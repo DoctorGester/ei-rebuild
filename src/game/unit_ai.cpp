@@ -18,7 +18,6 @@
 #include "world.h"
 #include "world_data.h"
 #include "lib/mfc_array.h"
-#include "game_arrays.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"

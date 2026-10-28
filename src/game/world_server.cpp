@@ -100,7 +100,7 @@ bool CWorldServer::IsObjectShared(int objectId, int playerId) {
 }
 
 void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
-    group->SetSize(0, -1);
+    group->clear();
     int player = SharedListPlayer(playerId);
     for (const SharedObject& current : sharedObjects_) {
         if (current.player != player && current.player != -1) continue;   // -1: every player

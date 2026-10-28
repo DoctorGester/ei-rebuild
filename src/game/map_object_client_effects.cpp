@@ -4,7 +4,6 @@
 
 #include "effects.h"
 #include "map_object.h"
-#include "game_arrays.h"
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "base_manager.h"
@@ -14,7 +13,6 @@
 #include "unit.h"
 
 #include "console.h"
-#include "game_lists.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 

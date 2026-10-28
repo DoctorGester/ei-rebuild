@@ -8,7 +8,6 @@
 #include "script.h"
 
 #include "../lib/crt.h"
-#include "../lib/mfc.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -67,12 +66,11 @@ std::string ObjectText(const ScriptObjectRef& ref) {
 }
 // A group: "empty" or the objects joined by ", ".
 std::string GroupText(const ScriptGroup& group) {
-    int count = group.size;
-    if (count == 0) return "empty";
+    if (group.empty()) return "empty";
     std::string text;
-    for (int i = 0; i < count; ++i) {
-        if (i > 0) text += ", ";
-        text += ObjectText(group.data[i]);
+    for (const ScriptObjectRef& member : group) {
+        if (!text.empty()) text += ", ";
+        text += ObjectText(member);
     }
     return text;
 }
@@ -136,17 +134,17 @@ void Execs(Arguments* args) {
 // listgvar: the global script variables (floats, strings, objects, groups).
 void ListGlobals(Arguments*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
-    auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
-    for (int i = 0; i < globals.floats.values.size; ++i)
-        SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values.data[i]));
-    for (int i = 0; i < globals.strings.values.size; ++i)
+    auto name = [](const std::vector<std::string>& names, int i) { return names[static_cast<std::size_t>(i)].c_str(); };
+    for (int i = 0; i < std::ssize(globals.floats.values); ++i)
+        SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values[i]));
+    for (int i = 0; i < std::ssize(globals.strings.values); ++i)
         SayFormat("%s : string = \"%s\"", name(globals.strings.names, i), name(globals.strings.values, i));
-    for (int i = 0; i < globals.objects.values.size; ++i) {
-        std::string text = ObjectText(globals.objects.values.data[i]);
+    for (int i = 0; i < std::ssize(globals.objects.values); ++i) {
+        std::string text = ObjectText(globals.objects.values[i]);
         SayFormat("%s : object = %s", name(globals.objects.names, i), text.c_str());
     }
-    for (int i = 0; i < globals.groups.values.size; ++i) {
-        std::string text = GroupText(globals.groups.values.data[i]);
+    for (int i = 0; i < std::ssize(globals.groups.values); ++i) {
+        std::string text = GroupText(globals.groups.values[i]);
         SayFormat("%s : group = %s", name(globals.groups.names, i), text.c_str());
     }
 }

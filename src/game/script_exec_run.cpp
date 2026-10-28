@@ -2,7 +2,6 @@
 // instance's if-then pairs, running a command block, freeing evaluation
 // temporaries and the per-tick driver. See script.h and docs/notes/script.md.
 #include "script.h"
-#include "game_lists.h"
 
 #include "base_manager.h"
 #include "random.h"
@@ -10,13 +9,7 @@
 #include "world_effect.h"
 
 #include "ei/x87.h"
-#include "lib/static_object.h"
-#include "lib/crt.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_list.h"
-#include "game_arrays.h"
-#include "lib/mfc.h"
 #include "game_singletons.h"
 
 #include <bit>
@@ -24,9 +17,6 @@
 #include <cstring>
 
 namespace {
-
-using RunList = mfc::CList<ScriptRun>;
-using InstanceList = mfc::CList<ScriptDefinition>;
 
 // FatalError formats of ScriptBindCall ("Wrong number of script %s float / string / object / group
 // parameters").
@@ -43,18 +33,6 @@ bool IsZero(float value) {
     EI_NAN_AUDIT(value);
     return value == 0.0f;
 }
-
-// ---- Original code ------------------------------------------------------------------------------
-
-// CArray<ScriptObjectRef> DestructElements (releases each reference).
-void DestructRefs(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::DestructElements(a0, a1); }
-// ScriptVars constructor / destructor and the value arrays' Copy.
-// The run list's NewNode(prev, next): a node from the free list, its ScriptRun
-// constructed.
-RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node* next) {
-    return mfc::impl::NewNodeAs<gamelists::Runs>(list, prev, next);
-}
-// ScriptVars::operator= (all eight arrays).
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_).
 CBaseManager* EffectManager() { return TheServerWorld()->manager48_; }
@@ -77,37 +55,14 @@ float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
     return static_cast<float>(x87::FromUnsigned(random) * (static_cast<double>(radius) - negative) * std::bit_cast<double>(kRandomScaleBits) + negative + origin);
 }
 
-// The particle source list as the tick's inlined RemoveAt sees it: destroying an element drops its
-// effect object. Same layout as CScript::particles_.
-struct ParticleSourceElements {
-    static void Construct(ScriptParticleSource*, int) {}
-    static void Destruct(ScriptParticleSource* sources, int count) {
-        for (int i = 0; i < count; ++i) sources[i].ScriptParticleSourceDestruct();
-    }
-};
-using ParticleSources = mfc::CList<ScriptParticleSource, ParticleSourceElements>;
-static_assert(sizeof(ParticleSources::Node) == 0x2C);
-struct ParticleSourcesAbi {
-    using List = ParticleSources;
-    using Node = ParticleSources::Node;
-};
-
 void RespawnFxSources(CScript* script) {
-    auto* next = script->fxSources_.head;
-    while (next) {
-        ScriptFxSource& fx = next->data;
-        next = next->next;
+    for (ScriptFxSource& fx : script->fxSources_) {
         if (fx.idle) continue;
         if (--fx.countdown > 0) continue;
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(IsaacRandom::Global().Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
-        if (fx.object) {
-            TheServerWorld()->RemoveTimedObject(fx.object->id_);
-            fx.object->Release();
-        }
-        fx.object = nullptr;
+        fx.object.reset();
         auto* sound = EffectManager()->CreateObjectAs<CEffectSound>(kClassSound, -1);
-        fx.object = sound;
         float yOffset = FxOffset(fx.spread, IsaacRandom::Global().Next());
         float x = FxOffsetPlus(fx.spread, IsaacRandom::Global().Next(), fx.position.x);
         float y = yOffset + fx.position.y;
@@ -117,7 +72,7 @@ void RespawnFxSources(CScript* script) {
         sound->localPosition_.z = z;
         std::memcpy(&sound->volume_, &fx.volume, 4);
         std::memcpy(&sound->radius_, &fx.radius, 4);
-        ++sound->refCount_;
+        fx.object = ScriptEffect<CEffectSound>(sound);
         const char* name = fx.name.c_str();
         std::memcpy(sound->name_, name, std::strlen(name) + 1);
         TheServerWorld()->AddTimedObject(sound);
@@ -125,38 +80,27 @@ void RespawnFxSources(CScript* script) {
 }
 
 void UpdatePointLights(CScript* script) {
-    mfc::CArray<ScriptPointLight>& lights = script->pointLights_;
-    for (int i = 0; i < lights.size; ++i) {
-        ScriptPointLight* light = &lights.data[i];
-        if (!light->object || !light->moving) continue;
-        int count = light->steps;
-        light->steps = count - 1;
+    for (ScriptPointLight& light : script->pointLights_) {
+        if (!light.object || !light.moving) continue;
+        int count = light.steps;
+        light.steps = count - 1;
         if (count <= 0) {
-            light = &lights.data[i];
-            light->moving = 0;
-            if (!light->removeWhenDone) continue;
-            light = &lights.data[i];
-            TheServerWorld()->RemoveTimedObject(light->object->id_);
-            lights.data[i].object->Release();
-            lights.data[i].object = nullptr;
+            light.moving = 0;
+            if (light.removeWhenDone) light.object.reset();
             continue;
         }
-        light = &lights.data[i];
-        Vector3& position = light->object->localPosition_;
-        position.x = position.x + light->step.x;
-        position.y = position.y + light->step.y;
-        position.z = position.z + light->step.z;
-        EffectMoved(lights.data[i].object);
+        Vector3& position = light.object->localPosition_;
+        position.x = position.x + light.step.x;
+        position.y = position.y + light.step.y;
+        position.z = position.z + light.step.z;
+        EffectMoved(light.object.get());
     }
 }
 
 void UpdateParticleSources(CScript* script) {
-    ParticleSources& list = *mfc::impl::ListAs<ParticleSourcesAbi>(&script->particles_);
-    auto* next = list.head;
-    while (next) {
-        ParticleSources::Node* node = next;
-        ScriptParticleSource& source = node->data;
-        next = next->next;
+    auto& list = script->particles_;
+    for (auto node = list.begin(); node != list.end();) {
+        ScriptParticleSource& source = *node;
         int lifetime = source.lifetime;
         bool remove = lifetime == 0;
         if (lifetime > 0) source.lifetime = lifetime - 1;
@@ -168,25 +112,16 @@ void UpdateParticleSources(CScript* script) {
                 position.x = source.step.x + position.x;
                 position.y = source.step.y + position.y;
                 position.z = source.step.z + position.z;
-                EffectMoved(source.object);
+                EffectMoved(source.object.get());
             } else {
                 source.moving = 0;
                 if (source.deleteAfterMove) remove = true;
             }
         }
-        // RemoveAt: unlink, drop the effect, free the node; the last
-        // node drops every effect and frees all blocks.
-        if (remove) list.RemoveAt(node);
+        // Removing the source drops its effect.
+        if (remove) node = list.erase(node);
+        else ++node;
     }
-}
-
-// CList::RemoveAt's unlink of `node` (the node is freed separately).
-template <typename T>
-void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
-    if (node == list.head) list.head = node->next;
-    else node->prev->next = node->next;
-    if (node == list.tail) list.tail = node->prev;
-    else node->next->prev = node->prev;
 }
 
 } // namespace
@@ -194,40 +129,33 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 // ---- Script instances ---------------------------------------------------------------------------
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
-    if (call->floatArgs.size - 1 != vars.floats.values.size) {
+    if (call->floatArgs.size() - 1 != vars.floats.values.size()) {
         game::FatalError(kWrongFloatCount, name.c_str());
         return;
     }
-    if (call->stringArgs.size - 1 != vars.strings.values.size) {
+    if (call->stringArgs.size() - 1 != vars.strings.values.size()) {
         game::FatalError(kWrongStringCount, name.c_str());
         return;
     }
-    if (call->objectArgs.size != vars.objects.values.size) {
+    if (call->objectArgs.size() != vars.objects.values.size()) {
         game::FatalError(kWrongObjectCount, name.c_str());
         return;
     }
-    if (call->groupArgs.size != vars.groups.values.size) {
+    if (call->groupArgs.size() != vars.groups.values.size()) {
         game::FatalError(kWrongGroupCount, name.c_str());
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
-    for (int i = 1; i < call->floatArgs.size; ++i) std::memcpy(&vars.floats.values.data[i - 1], &call->floatArgs.data[i], 4);
-    for (int i = 1; i < call->stringArgs.size; ++i) vars.strings.values.data[i - 1] = call->stringArgs.data[i];
-    for (int i = 0; i < call->objectArgs.size; ++i) {
-        const ScriptObjectRef* value = call->objectArgs.data[i];
-        ScriptObjectRef* slot = &vars.objects.values.data[i];
-        if (slot->object) slot->object->Release();
-        slot->object = nullptr;
-        slot->object = value->object;
-        if (slot->object) ++slot->object->refCount_;
-    }
-    for (int i = 0; i < call->groupArgs.size; ++i) vars.groups.values.data[i].CopyFrom(*call->groupArgs.data[i]);
+    for (std::size_t i = 1; i < call->floatArgs.size(); ++i) std::memcpy(&vars.floats.values[i - 1], &call->floatArgs[i], 4);
+    for (std::size_t i = 1; i < call->stringArgs.size(); ++i) vars.strings.values[i - 1] = call->stringArgs[i];
+    for (std::size_t i = 0; i < call->objectArgs.size(); ++i) vars.objects.values[i] = *call->objectArgs[i];
+    for (std::size_t i = 0; i < call->groupArgs.size(); ++i) vars.groups.values[i] = *call->groupArgs[i];
 }
 
 void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
-    for (int i = 0; i < conditions->commands.size; ++i) {
+    for (SSCCmd& condition : conditions->commands) {
         float result;
-        conditions->commands.data[i].CalcFloat(script, &instance->vars, &result);
+        condition.CalcFloat(script, &instance->vars, &result);
         ScriptFreeTemporaries(script);
         if (IsZero(result)) return;
     }
@@ -235,131 +163,68 @@ void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
 }
 
 void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
-    lib::InPlace<ScriptRun> storage;
-    auto* run = storage.Get();
-    run->block = nullptr;
-    run->index = 0;
-    run->ticks = 0;
-    run->killFlag = nullptr;
-    run->vars.ScriptVarsConstruct();
-    run->block = block;
+    ScriptRun run;
+    run.block = block;
     if (instance) {
+        // The values only: the run's variables have no names.
         ScriptVars& from = instance->vars;
-        run->vars.floats.values.Copy(from.floats.values);
-        run->vars.strings.values.CopyFrom(from.strings.values);
-        run->vars.objects.values.CopyFrom(from.objects.values);
-        run->vars.groups.values.CopyFrom(from.groups.values);
+        run.vars.floats.values = from.floats.values;
+        run.vars.strings.values = from.strings.values;
+        run.vars.objects.values = from.objects.values;
+        run.vars.groups.values = from.groups.values;
+        run.killFlag = &instance->index;
     }
-    run->index = 0;
-    run->ticks = 0;
-    run->sleepStart = -1;
-    run->killFlag = &instance->index;
-    if (run->Execute(this)) {
-        // Not finished: a copy goes to the head of the run list (AddHead with an inlined NewNode).
-        // The kill flag (the instance pointer) is cleared before the copy.
-        run->killFlag = nullptr;
-        RunList& runs = runs_;
-        RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
-        node->data.ScriptRunAssign(run);
-        if (runs.head) runs.head->prev = node;
-        else runs.tail = node;
-        runs.head = node;
+    if (run.Execute(this)) {
+        // Not finished: it goes to the head of the run list, its kill flag cleared.
+        run.killFlag = nullptr;
+        runs_.push_front(std::move(run));
     }
-    ScriptVarsDestruct(&run->vars);
 }
 
+// A new run at the head of the run list, not executed yet.
 void CScript::RunWorldScript(ScriptDecl* block) {
-    CScript* script = this;
-    lib::InPlace<ScriptRun> storage;
-    auto* run = storage.Get();
-    run->block = nullptr;
-    run->index = 0;
-    run->ticks = 0;
-    run->killFlag = nullptr;
-    run->vars.ScriptVarsConstruct();
-    run->block = block;
-    run->index = 0;
-    run->ticks = 0;
-    run->sleepStart = -1;
-    // A new run at the head of the run list, not executed yet.
-    RunList& runs = script->runs_;
-    RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
-    ScriptRun* copy = &node->data;
-    copy->block = run->block;
-    copy->index = run->index;
-    copy->ticks = run->ticks;
-    copy->sleepStart = run->sleepStart;
-    copy->killFlag = run->killFlag;
-    copy->vars.ScriptVarsAssign(&run->vars);
-    if (runs.head) runs.head->prev = node;
-    else runs.tail = node;
-    runs.head = node;
-    ScriptVarsDestruct(&run->vars);
+    ScriptRun& run = runs_.emplace_front();
+    run.block = block;
 }
 
 void ScriptFreeTemporaries(CScript* script) {
     if (script->forDepth_ > 0) return;
-    // Temporary groups: all but one freed, the last one emptied.
-    ScriptTempGroups& groups = script->tempGroups_;
-    while (groups.count > 1) {
-        ScriptGroup group;
-        groups.PopTail(&group);
-        group.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-        if (group.data) {
-            DestructRefs(group.data, group.size);
-            gamecrt::operator_delete(group.data);
-        }
-    }
-    groups.tail->data.SetSize(0, -1);
-    // Temporary object references.
-    ScriptTempObjects& objects = script->tempObjects_;
-    while (objects.count > 1) {
-        ScriptObjectRef ref;
-        objects.PopTail(&ref);
-        if (ref.object) ref.object->Release();
-        ref.object = nullptr;
-    }
-    ScriptObjectRef* last = &objects.tail->data;
-    if (last->object) last->object->Release();
-    last->object = nullptr;
+    // All but the first of each kind dropped, the first emptied.
+    auto& groups = script->tempGroups_;
+    groups.resize(1);
+    groups.front().clear();
+    auto& objects = script->tempObjects_;
+    objects.resize(1);
+    objects.front().object = nullptr;
 }
 
 void ScriptTick(CScript* script) {
     if (!script->loaded_) return;
 
     // Waiting runs: continue each; a run that had already ended is removed.
-    RunList& runs = script->runs_;
-    RunList::Node* nextRun = runs.head;
-    while (nextRun) {
-        RunList::Node* node = nextRun;
-        nextRun = nextRun->next;
-        if (node->data.Execute(script)) continue;
-        Unlink(runs, node);
-        mfc::impl::FreeNodeAs<gamelists::Runs>(&runs, node);
+    auto& runs = script->runs_;
+    for (auto run = runs.begin(); run != runs.end();) {
+        auto next = std::next(run);
+        if (!run->Execute(script)) runs.erase(run);
+        run = next;
     }
 
     // Script instances: every if-then pair until the instance is killed; killed instances are
     // removed.
-    InstanceList& instances = script->instances_;
-    InstanceList::Node* nextInstance = instances.head;
-    while (nextInstance) {
-        InstanceList::Node* node = nextInstance;
-        nextInstance = nextInstance->next;
-        ScriptDefinition* instance = &node->data;
+    auto& instances = script->instances_;
+    for (auto instance = instances.begin(); instance != instances.end();) {
+        auto next = std::next(instance);
         instance->vars.RemoveDeletedObjects();
-        for (int i = 0; i < instance->ifThen.size; ++i) {
-            instance->ifThen.data[i].Run(script, instance);
+        for (const ScriptIfThen& pair : instance->ifThen) {
+            pair.Run(script, &*instance);
             if (instance->index != 0) break;
         }
-        if (instance->index == 0) continue;
-        Unlink(instances, node);
-        mfc::impl::FreeNodeAs<gamelists::Definitions>(&instances, node);
+        if (instance->index != 0) instances.erase(instance);
+        instance = next;
     }
 
     // Global variables: drop deleted objects.
-    ScriptVars* globals = script->Globals();
-    for (int i = 0; i < globals->objects.values.size; ++i) globals->objects.values.data[i].ReleaseIfDeleted();
-    for (int i = 0; i < globals->groups.values.size; ++i) globals->groups.values.data[i].RemoveDeleted();
+    script->Globals()->RemoveDeletedObjects();
 
     RespawnFxSources(script);
     UpdatePointLights(script);

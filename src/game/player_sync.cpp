@@ -9,7 +9,6 @@
 
 #include "base_manager.h"
 #include "combat.h"
-#include "game_arrays.h"
 #include "map_object.h"
 #include "net_link.h"
 #include "party.h"
@@ -23,7 +22,6 @@
 
 #include "lib/crt.h"
 
-#include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -279,14 +277,14 @@ int CPlayerServer::SendPartyState() {
             refreshPending_ = 1;
     }
 
-    int count = partyUnits_.size;
+    int count = static_cast<int>(partyUnits_.size());
     WriteByte(&out_, kMessagePartyState);
     WriteByte(&out_, player->ServerWorld()->paused_ != 0 ? 1 : 0);
     WriteDword(&out_, possessedId_);
     WriteDword(&out_, static_cast<std::uint32_t>(count));
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);
     for (int i = 0; i < count; ++i) {
-        auto* unit = partyUnits_.data[i].AsUnit();
+        auto* unit = partyUnits_[static_cast<std::size_t>(i)].AsUnit();
         if (refreshPending_ != 2 && !unit->IsDead()) {
             if (unit->ServerController()->IsFighting()) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
@@ -303,18 +301,10 @@ int CPlayerServer::SendPartyState() {
 
     // The objects shared with the hero of a multiplayer client that plays one.
     ScriptGroup shared;
-    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&shared);
-    shared.vtable = mfc::impl::ScriptGroupClass::Vtable();
     if (IsMultiplayerClient() && player->Party()->members_.size == 1)
         TheServerWorld()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
-    int sharedCount = shared.size;
-    WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
-    for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));
-    shared.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-    if (shared.data != nullptr) {
-        for (int i = 0; i < shared.size; ++i) shared.data[i].Reset();
-        gamecrt::operator_delete(shared.data);
-    }
+    WriteDword(&out_, static_cast<std::uint32_t>(shared.size()));
+    for (const ScriptObjectRef& member : shared) WriteDword(&out_, static_cast<std::uint32_t>(member.AsUnit()->id_));
     return 1;
 }
 
@@ -377,12 +367,7 @@ int CPlayerServer::ReceiveMessages() {
 
 void CPlayerServer::UpdatePartyUnits() {
     ScriptGroup known;
-    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&known);
-    known.vtable = mfc::impl::ScriptGroupClass::Vtable();
-    ScriptGroup party;
-    mfc::impl::ConstructHeader<mfc::impl::ObjectRefArrayClass>(&party);
-    party.vtable = mfc::impl::ScriptGroupClass::Vtable();
-    party.CopyFrom(group50F8_);
+    ScriptGroup party = group50F8_;
     CPlayer::UnitMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
         for (auto node = units.begin(); node != units.end() && node->second; ++node) {
@@ -396,24 +381,7 @@ void CPlayerServer::UpdatePartyUnits() {
         for (auto node = units.begin(); node != units.end() && node->second; ++node)
             known.CopyToList(&node->second->ServerController()->Brain()->memory.seenCorpses);
     } else {
-        partyUnits_.SetSize(party.size, -1);
-        for (int i = 0; i < party.size; ++i) {
-            ScriptObjectRef copy;
-            party.CopyAt(&copy, i);
-            partyUnits_.data[i].Reset();
-            partyUnits_.data[i].Construct(copy);
-            copy.Reset();
-        }
+        partyUnits_ = party;
         possessedId_ = kNoPartyCopy;
-    }
-    party.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-    if (party.data != nullptr) {
-        gamearrays::ObjectRefs::DestructElements(party.data, party.size);
-        gamecrt::operator_delete(party.data);
-    }
-    known.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-    if (known.data != nullptr) {
-        for (int i = 0; i < known.size; ++i) known.data[i].DestroyElement(0);
-        gamecrt::operator_delete(known.data);
     }
 }

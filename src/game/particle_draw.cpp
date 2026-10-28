@@ -11,7 +11,6 @@
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "camera.h"
-#include "game_arrays.h"
 #include "lib/static_object.h"
 
 #include <cstdlib>
