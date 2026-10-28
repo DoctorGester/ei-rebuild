@@ -16,17 +16,14 @@
 #include "lib/crt.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
-#include "lib/mfc_list.h"
 #include "lib/text_case.h"
 
 #include <cstring>
 #include <list>
 #include <vector>
 #include "ei/x87.h"
-#include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 namespace {
 

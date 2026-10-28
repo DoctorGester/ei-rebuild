@@ -4,14 +4,12 @@
 #include "options.h"
 #include "game_strings.h"
 #include "mod_folders.h"
-#include "record_arrays.h"
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
 
 #include "lib/mfc_thread.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cstring>

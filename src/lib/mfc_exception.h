@@ -1,8 +1,8 @@
 #pragma once
 
 // MFC 4.2's exception classes as the game's copy throws them (except.cpp, arcex.cpp; docs/notes/standalone.md
-// section 2). The classes keep the exe's slots (real C++ classes; a file name is a std::string), and a throw is this
-// compiler's `throw` of a pointer to mfc_try.h's class of the game's name.
+// section 2). The classes keep the exe's slots (real C++ classes), and a throw is this compiler's `throw` of a pointer
+// to mfc_try.h's class of the game's name.
 
 #include "mfc.h"
 #include "mfc_object.h"
@@ -13,7 +13,6 @@
 
 #include <cstddef>
 #include <new>
-#include <string>
 
 namespace mfc::impl {
 
@@ -79,27 +78,11 @@ public:
 // is read before the pointer is tested.
 void DeleteException(CException* exception);
 
-// CArchiveException.
-class CArchiveException final : public CException {
-public:
-    enum Cause { none = 0, generic, readOnly, endOfFile, writeOnly, badIndex, badClass, badSchema };
-
-    explicit CArchiveException(int causeValue) : cause(causeValue) {}
-    ~CArchiveException() override;
-    const CRuntimeClass* GetRuntimeClass() const override;
-    // Prompt AFX_IDP_ARCH_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's text when it has none); the
-    // help context is that prompt's id. Always TRUE.
-    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
-
-    int cause;
-    std::string fileName;
-};
 
 // _simpleUserException's destructor (reached by the generated exit function).
 void DestroyUserException(CUserException* self);
 
-// AfxThrowArchiveException.
-void ThrowArchiveException(int cause, const char* fileName);
+
 // AfxThrowMemoryException: MFC's one static CMemoryException (not auto-deleted).
 __declspec(noreturn) void ThrowMemoryException();
 // AfxThrowResourceException: MFC's one static CResourceException (not auto-deleted).

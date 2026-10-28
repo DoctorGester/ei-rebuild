@@ -17,8 +17,7 @@ namespace {
 constexpr int kPartEquipment = 5;
 constexpr int kPartStats = 4;
 
-constexpr int kCarriedGrowMin = 4;
-constexpr int kCarriedGrowMax = 0x400;
+
 
 void ReleaseSlots(CUnit* unit, CItem** slots, int count) {
     for (int i = 0; i < count; ++i) {
@@ -72,64 +71,20 @@ void CUnit::ReleaseAllItems() {
     Controller()->ClearOuterArmourLayers();
     ReleaseSlots(this, quickItems, 4);
     ReleaseSlots(this, spells, 8);
-    for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(carriedCount); ++i) carried[i]->Release();
-    if (carried) {
-        gamecrt::operator_delete(carried);
-        carried = nullptr;
-    }
-    carriedCapacity = 0;
-    carriedCount = 0;
+    for (CItem* item : carried) item->Release();
+    carried.clear();
 }
 
 void CUnit::AddCarried(CItem* item) {
     ++item->refCount_;
-    int count = carriedCount;
-    int size = count + 1;
-    // CArray::SetSize(size), inlined.
-    if (size == 0) {
-        if (carried) {
-            gamecrt::operator_delete(carried);
-            carried = nullptr;
-        }
-        carriedCapacity = 0;
-        carriedCount = 0;
-    } else if (!carried) {
-        carried = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(size));
-        std::memset(carried, 0, static_cast<std::size_t>(size) * 4);
-        carriedCapacity = size;
-        carriedCount = size;
-    } else if (size <= carriedCapacity) {
-        if (size > count) std::memset(carried + count, 0, static_cast<std::size_t>(size - count) * 4);
-        carriedCount = size;
-    } else {
-        int grow = carriedGrowBy;
-        if (grow == 0) {
-            grow = count / 8;
-            if (grow < kCarriedGrowMin) {
-                grow = kCarriedGrowMin;
-            } else if (grow > kCarriedGrowMax) {
-                grow = kCarriedGrowMax;
-            }
-        }
-        int capacity = carriedCapacity + grow;
-        if (!(size < capacity)) capacity = size;
-        auto* grown = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(capacity));
-        std::memcpy(grown, carried, static_cast<std::size_t>(carriedCount) * 4);
-        std::memset(grown + carriedCount, 0, static_cast<std::size_t>(size - carriedCount) * 4);
-        gamecrt::operator_delete(carried);
-        carried = grown;
-        carriedCount = size;
-        carriedCapacity = capacity;
-    }
-    carried[count] = item;
+    carried.push_back(item);
     MarkChanged(kPartEquipment);
 }
 
 int CUnit::RemoveCarried(int index) {
     carried[index]->Release();
-    int after = carriedCount - index - 1;
-    if (after != 0) std::memmove(&carried[index], &carried[index + 1], static_cast<std::size_t>(after) * 4);
-    return --carriedCount;
+    carried.erase(carried.begin() + index);
+    return static_cast<int>(std::ssize(carried));
 }
 
 void CUnit::SendEquipment() {

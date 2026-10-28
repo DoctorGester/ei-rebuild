@@ -198,8 +198,8 @@ BOOL CPlayer::HasLoot(int kind) {
         if ((*node)->type_ == kItemQuest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return 1;
     for (auto node = units_.begin(); node != units_.end() && node->second != nullptr; ++node) {
         CUnit* unit = node->second;
-        for (int i = 0; i < unit->carriedCount; ++i)
-            if (ItemWord4C(unit->carried[i]) == static_cast<std::uint32_t>(kind)) return 1;
+        for (CItem* item : unit->carried)
+            if (ItemWord4C(item) == static_cast<std::uint32_t>(kind)) return 1;
     }
     return 0;
 }

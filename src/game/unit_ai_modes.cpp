@@ -18,9 +18,7 @@
 #include <cstring>
 #include "game_singletons.h"
 #include "lib/mfc.h"
-#include "lib/mfc_list.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 #include "logic_settings.h"
 #include "lib/static_object.h"
 

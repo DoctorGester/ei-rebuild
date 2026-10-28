@@ -495,11 +495,7 @@ public:
     CItem* quickItems[4];
     CItem* spells[8];
     CItemArmor* armor[7];           // a piece per armour type
-    void* carriedVtable;            // the vtable of the carried items' CArray (CarriedArrayClass)
-    CItem** carried;                // CArray of further items
-    int carriedCount;
-    int carriedCapacity;
-    int carriedGrowBy;              // (0: an eighth of the count, 4..1024)
+    std::vector<CItem*> carried;    // further items, each holding a reference
     float actionSpeeds[6];          // per action kind (ActionSpeed; from the model record)
     float levels4C8[5];             // any at most 2 (or NaN) asks for a party refresh
 };

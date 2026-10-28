@@ -8,7 +8,6 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "game_data.h"
-#include "record_arrays.h"
 
 #include <new>
 

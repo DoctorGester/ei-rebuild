@@ -10,7 +10,6 @@
 #include "engine_object.h"
 #include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
-#include "record_arrays.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
 #include "spell.h"         // CLightFactory
@@ -22,10 +21,7 @@
 #include "lib/mfc.h"
 
 #include "ei/vcall.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_list.h"
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
@@ -122,11 +118,6 @@ CUnit::CUnit() {
     m->Clear();
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
-    carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
-    carried = nullptr;
-    carriedGrowBy = 0;
-    carriedCapacity = 0;
-    carriedCount = 0;
     controller = nullptr;
     player = nullptr;
     Reset();
@@ -165,12 +156,7 @@ void CUnit::Reset() {
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));
     std::memset(spells, 0, sizeof(spells));
-    if (carried) {
-        gamecrt::operator_delete(carried);
-        carried = nullptr;
-    }
-    carriedCapacity = 0;
-    carriedCount = 0;
+    carried.clear();
     altPassCosts = 0;
     MapObject()->NetState()->Reset();
     fightAtWill = 1;
@@ -182,8 +168,6 @@ CUnit::~CUnit() {
     ReleaseUnit();
     DestroyMapObject();
     Reset();
-    carriedVtable = mfc::impl::CarriedArrayClass::Vtable();
-    if (carried) gamecrt::operator_delete(carried);
 }
 
 CMapObjectServer::CMapObjectServer() {

@@ -730,8 +730,14 @@ to which template:
   movable), the global map's zones, links and quests, the party's records (PartyUnitRecord: member initializers for its
   defaults, the destructor releases its items, the move assignment releases first, so erase drops a record as the
   original's Destruct + relocate did) and AnimationSteps (combat.md). Scripts: scratch c14za (g1.py, g2_party.py,
-  g3_steps.py, g5_includes.py; checks.py runs the guards and the memset check together). Still mfc after C14z:
-  CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList (C14zb).
+  g3_steps.py, g5_includes.py; checks.py runs the guards and the memset check together).
+- Batch 5 (C14zb): the last MFC collections. The rain / snow layer's outcodes, frames and indices (CByteArray /
+  CWordArray) and the unit's carried items (an inlined CArray<CItem*> with its own vtable field) are std::vector.
+  Gone: mfc.h's CArray / CList and element policies (PlainElements, MoveElements), lib/mfc_array.h, mfc_list.h /
+  .cpp, mfc_slots.h (CompiledCollection, ScalarDeleting, ListTemporary, the Int / Float / Carried array tags),
+  mfc_coll.h / .cpp (CWordArray / CDWordArray / CByteArray, their runtime classes and Link initialisers: gen_static_init.py's
+  UNUSED_INITIALISERS), game/record_arrays.h. CPlex's CreatePlex / FreePlexChain moved to mfc.cpp. Scripts: scratch
+  c14zb (sub.py with g1_weather.spec / g1b.spec, g2_delete.py, g3_config.py, g4_vtables.py).
 - Batch 3 (C14z): the script (script.h). Every record has real special members: object references are
   `ScriptObjectRef{HeldPtr<CEngineObject>}` (a ScriptGroup is a `std::vector<ScriptObjectRef>`, still kept sorted by
   ScriptGroup::After); the effects (point lights, particle / FX / lightning sources) hold a move-only
@@ -764,9 +770,9 @@ to which template:
   the AI's owned modes): the release (or DestroyOwned) is explicit before erase / clear; the original's
   DestructElements did nothing, so the counts are what they were. `ReleaseAndClear(c)` (engine_object.h) releases and
   clears a list of engine objects.
-- Writes that compile on any pointer and corrupt a std container: `mfc::impl::ConstructHeader` / `DestructHeader` /
-  `ConstructListHeader`, `ei::SetVtable`, memset / memcpy over a struct holding one, a reinterpret_cast to an MFC list
-  type (world_party's counted AddTail was one). C14m found them with temporary `= delete` overloads for std::vector /
+- Writes that compile on any pointer and corrupt a std container: `ei::SetVtable`, memset / memcpy over a struct
+  holding one, a reinterpret_cast to an MFC list type (world_party's counted AddTail was one; C14m-C14za also had
+  mfc::impl::ConstructHeader / DestructHeader / ConstructListHeader, gone in C14zb). C14m found them with temporary `= delete` overloads for std::vector /
   std::list and a forced-include check that static_asserts memset / memcpy / memmove destinations are trivially
   copyable; repeat both on the next retype. Neither sees an explicit `(void*)` / `static_cast<void*>` argument (the
   particles' sprite array went through ConstructHeader that way), so grep those too. A function taking a container

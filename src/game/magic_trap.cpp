@@ -17,7 +17,6 @@
 #include <list>
 #include <new>
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

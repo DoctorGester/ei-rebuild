@@ -9,6 +9,6 @@
 class CObject {};
 class CException : public CObject {};
 class CSimpleException : public CException {};
-class CArchiveException : public CException {};
+
 class CMemoryException : public CSimpleException {};
 class CResourceException : public CSimpleException {};

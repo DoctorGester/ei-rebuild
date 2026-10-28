@@ -195,9 +195,7 @@ add_executable(ei_vectors
     src/lib/file_io.cpp
     src/lib/hash_map.cpp
     src/lib/mfc.cpp
-    src/lib/mfc_archive.cpp
-    src/lib/mfc_coll.cpp
-    src/lib/mfc_list.cpp
+
     src/lib/rebirth.cpp
     src/lib/str.cpp
     src/lib/text_case.cpp)

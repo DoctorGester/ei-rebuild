@@ -81,10 +81,10 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
         if (CItem* item = cunit->GetQuickItem(slot)) Append(drops, item);
         cunit->RemoveQuickItem(slot);
     }
-    for (int i = 0; i < cunit->carriedCount; ++i) {
-        if (CItem* item = cunit->carried[i]) Append(drops, item);
+    for (CItem* item : cunit->carried) {
+        if (item) Append(drops, item);
     }
-    while (cunit->carriedCount != 0) cunit->RemoveCarried(0);
+    while (!cunit->carried.empty()) cunit->RemoveCarried(0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
             CItemArmor* armour = cunit->WornItem(slot);

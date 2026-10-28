@@ -9,7 +9,6 @@
 #include "item_db.h"
 #include "item_db_text.h"
 #include "net_coder.h"
-#include "record_arrays.h"
 #include "sound.h"
 #include "net_session.h"
 #include "ui.h"
@@ -44,7 +43,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
-#include "lib/mfc_array.h"
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"

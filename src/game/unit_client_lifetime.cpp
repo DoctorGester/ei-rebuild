@@ -6,7 +6,6 @@
 #include "texture.h"   // CTexture
 
 #include "game_data.h"
-#include "lib/mfc_slots.h"
 
 namespace {
 constexpr int kNone = -1;

@@ -15,7 +15,6 @@
 #include "unit.h"
 
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstddef>

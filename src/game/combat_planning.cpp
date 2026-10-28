@@ -20,9 +20,6 @@
 
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 
 #include "game_data.h"
 #include "game_singletons.h"

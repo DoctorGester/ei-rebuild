@@ -25,8 +25,6 @@ constexpr int kVersionField438 = 0x49;
 constexpr int kVersionPrototypeNames = 0x4D;
 constexpr int kVersionSecondName = 0x6A;
 
-constexpr int kCarriedGrowMin = 4;
-constexpr int kCarriedGrowMax = 0x400;
 
 // The index of prototype record `record` (one of the table's), or -1 without one.
 int PrototypeIndexOf(const UnitPrototypeRecord* record) {
@@ -73,49 +71,8 @@ void ReadItems(CUnit* unit, CStream* stream, CItemArmor** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = AsArmor(ReadItem(unit, stream));
 }
 
-void ZeroSlots(CItem** slots, int count) {
-    for (int i = 0; i < count; ++i) slots[i] = nullptr;
-}
 
-// CArray::SetSize of the carried items, inlined.
-void SetCarriedSize(CUnit* unit, int size) {
-    if (size == 0) {
-        if (unit->carried) {
-            gamecrt::operator_delete(unit->carried);
-            unit->carried = nullptr;
-        }
-        unit->carriedCapacity = 0;
-        unit->carriedCount = 0;
-        return;
-    }
-    if (!unit->carried) {
-        unit->carried = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(size));
-        ZeroSlots(unit->carried, size);
-        unit->carriedCapacity = size;
-        unit->carriedCount = size;
-        return;
-    }
-    if (size <= unit->carriedCapacity) {
-        if (size > unit->carriedCount) ZeroSlots(unit->carried + unit->carriedCount, size - unit->carriedCount);
-        unit->carriedCount = size;
-        return;
-    }
-    int grow = unit->carriedGrowBy;
-    if (grow == 0) {
-        grow = unit->carriedCount / 8;
-        if (grow < kCarriedGrowMin) grow = kCarriedGrowMin;
-        else if (grow > kCarriedGrowMax) grow = kCarriedGrowMax;
-    }
-    int capacity = grow + unit->carriedCapacity;
-    if (size >= capacity) capacity = size;
-    auto* items = gamecrt::operator_new_array<CItem*>(static_cast<std::size_t>(capacity));
-    std::memcpy(items, unit->carried, static_cast<std::size_t>(unit->carriedCount) << 2);
-    ZeroSlots(items + unit->carriedCount, size - unit->carriedCount);
-    gamecrt::operator_delete(unit->carried);
-    unit->carried = items;
-    unit->carriedCount = size;
-    unit->carriedCapacity = capacity;
-}
+
 
 // The unit's new owner: on a server world, player `id` (null when there is none).
 CPlayer* PlayerById(CUnit* unit, int id) {
@@ -166,7 +123,7 @@ void CUnit::LoadUnit(CStream* stream) {
     stream->Read(&relationsB, 4);
     int count;
     stream->Read(&count, 4);
-    SetCarriedSize(this, count);
+    carried.resize(static_cast<std::size_t>(count > 0 ? count : 0));
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
     stream->Read(&standingHeight, 4);
 
@@ -217,8 +174,8 @@ void CUnit::SaveUnit(CStream* stream) {
     WriteItemIds(stream, armor, 7);
     stream->Write(levels4C8, sizeof(levels4C8));
     WriteCopy(stream, relationsB);
-    WriteCopy(stream, carriedCount);
-    WriteItemIds(stream, carried, carriedCount);
+    WriteCopy(stream, static_cast<int>(std::ssize(carried)));
+    WriteItemIds(stream, carried.data(), static_cast<int>(std::ssize(carried)));
     WriteCopy(stream, standingHeight);
     stream->Write(&fightAtWill, 4);
 

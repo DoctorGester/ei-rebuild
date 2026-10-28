@@ -9,7 +9,6 @@
 
 #include "ei/x87.h"
 #include "lib/containers.h"
-#include "lib/mfc_coll.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -138,9 +137,7 @@ void CRainSnow::Start(int newMode, float duration) {
 CRainSnow::CRainSnow() {
     ClearFields();
     texture = nullptr;
-    outcodes.Construct();
-    frames.Construct();
-    indices.Construct();
+
     world = nullptr;
     sound = 0;
     Clear();
@@ -148,9 +145,7 @@ CRainSnow::CRainSnow() {
 
 CRainSnow::~CRainSnow() {
     Clear();
-    indices.Destruct();
-    frames.Destruct();
-    outcodes.Destruct();
+
     if (texture) texture->Release();
 }
 

@@ -17,7 +17,6 @@
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
-#include "lib/mfc_coll.h"
 #include "lib/hash_map.h"
 #include "game_data.h"
 
@@ -614,10 +613,10 @@ public:
     // The draws' work arrays.
     std::vector<Vector4> projected;       // the positions projected (four per packet)
     std::vector<VertexPacket> positions;  // the particles' corners (w not written)
-    mfc::impl::CByteArray outcodes;             // a clip outcode per position
-    mfc::impl::CByteArray frames;               // a texture frame (0..3) per particle
+    std::vector<std::uint8_t> outcodes;   // a clip outcode per position
+    std::vector<std::uint8_t> frames;     // a texture frame (0..3) per particle
     std::vector<TLVertex> vertices;       // what is drawn (colours never written)
-    mfc::impl::CWordArray indices;              // 0, 1, 2, ... (filled elsewhere)
+    std::vector<std::uint16_t> indices;   // 0, 1, 2, ... (filled elsewhere)
     std::vector<int> offsets;             // the grid's 81 cell offsets (filled elsewhere)
     int particleCount;              // positions built by the last draw
     Vector3 wind;

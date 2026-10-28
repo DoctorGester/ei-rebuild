@@ -11,7 +11,6 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/static_object.h"
-#include "lib/mfc_slots.h"
 
 #include <cstddef>
 #include <cstdint>

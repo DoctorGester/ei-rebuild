@@ -661,7 +661,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xAE: {   // RemoveQuestItem(unit, id): the first quest item with the id
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
-            int count = unit->carriedCount;
+            int count = std::ssize(unit->carried);
             int id = Ftol(f[0]);
             for (int i = 0; i < count; ++i) {
                 CItemQuest* item = AsQuest(unit->carried[i]);

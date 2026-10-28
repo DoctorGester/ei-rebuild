@@ -9,8 +9,6 @@
 
 #include "lib/mfc.h"
 
-#include "lib/mfc_list.h"
-#include "lib/mfc_slots.h"
 
 #include <cstring>
 #include <list>

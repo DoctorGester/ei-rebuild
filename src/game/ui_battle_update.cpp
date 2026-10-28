@@ -35,10 +35,8 @@
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
-#include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 
 // --- the quick item panel's unit -----------------------------------------------------------------
 
@@ -204,7 +202,7 @@ void RebuildClientParty(CBattleScreen* screen) {
                 } else {
                     party->resize(n + 1);
                     std::memmove(party->data() + 1, party->data(), static_cast<std::size_t>(n) * 4);
-                    mfc::PlainElements<CUnit*>::Construct(party->data(), 1);
+
                 }
                 (*party)[0] = unit;
                 cameraFirst = true;
