@@ -912,15 +912,15 @@ void __stdcall Ret4(std::uint32_t);   // src/game/short_functions.cpp
 } // namespace ei::short_functions
 using ei::short_functions::Ret4;
 // The original's no-op element callbacks: Create stores TickNone instead, so nothing in the image calls these
-// any more; registered so the image keeps code at the addresses.
-EI_REPLACE_SHORT(0x00485530, Ret4);
-EI_REPLACE_SHORT(0x00492FB0, Ret4);
-EI_REPLACE_SHORT(0x00493DD0, Ret4);
-EI_REPLACE_SHORT(0x00494A00, Ret4);
-EI_REPLACE_SHORT(0x00494DF0, Ret4);
-EI_REPLACE_SHORT(0x004950A0, Ret4);
-EI_REPLACE_SHORT(0x00495310, Ret4);
-EI_REPLACE_SHORT(0x004957D0, Ret4);
-EI_REPLACE_SHORT(0x00495A20, Ret4);
-EI_REPLACE_SHORT(0x00496260, Ret4);
-EI_REPLACE_SHORT(0x004965D0, Ret4);
+// any more; kept in the function-to-original map (nothing reads their addresses).
+EI_REWRITTEN(0x00485530, Ret4);
+EI_REWRITTEN(0x00492FB0, Ret4);
+EI_REWRITTEN(0x00493DD0, Ret4);
+EI_REWRITTEN(0x00494A00, Ret4);
+EI_REWRITTEN(0x00494DF0, Ret4);
+EI_REWRITTEN(0x004950A0, Ret4);
+EI_REWRITTEN(0x00495310, Ret4);
+EI_REWRITTEN(0x004957D0, Ret4);
+EI_REWRITTEN(0x00495A20, Ret4);
+EI_REWRITTEN(0x00496260, Ret4);
+EI_REWRITTEN(0x004965D0, Ret4);

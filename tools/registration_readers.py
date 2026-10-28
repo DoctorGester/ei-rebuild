@@ -189,6 +189,16 @@ def measure():
     return regs
 
 
+def read_addresses():
+    """The set of addresses something reads (any reader of `measure`), whether a registration is there or not
+    (gen_short_functions.py asks for the short functions)."""
+    regs = registrations()
+    out = set()
+    for table in (literal_readers(regs), harness_readers(), text_readers()):
+        out |= {a for a, readers in table.items() if readers}
+    return out
+
+
 def excluded(r, exclude, exclude_names):
     return any(re.search(x, r.path) for x in exclude) or any(re.search(x, r.name) for x in exclude_names)
 

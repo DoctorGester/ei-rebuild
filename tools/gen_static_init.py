@@ -507,7 +507,7 @@ def kind_of(kinds, registered_self):
 def registered_addresses():
     """Addresses registered anywhere in src/ but in the exit functions this tool writes (static_exit.cpp)."""
     regs = short.ported_elsewhere(skip=(OUT_EXIT,))
-    pat = re.compile(r'\bEI_REPLACE_SHORT\(\s*0x([0-9A-Fa-f]+)')
+    pat = re.compile(r'\b(?:EI_REPLACE_SHORT|EI_REWRITTEN)\(\s*0x([0-9A-Fa-f]+)')
     text = open(os.path.join(ROOT, 'src', 'game', 'short_functions.cpp'), encoding='utf-8').read()
     return regs | {int(a, 16) for a in pat.findall(text)}
 

@@ -27,11 +27,7 @@ namespace {
 
 // Base vtables the inlined destructors write.
 
-// DestructElements (first, count): CString, ScriptObjectRef (each released), ScriptGroup.
-void __stdcall DestructStrings(void* a0, int a1) { mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a0), a1); }
-// Element destructors (flags; 0 = in place): a group and a nested call (its command destroyed and deleted).
-// Out-of-line CArray destructors: CString arrays, object references and the ScriptVars floats.
-void __fastcall NamesDestruct(void* a0) { ScriptNamesDestruct(static_cast<mfc::CArray<mfc::CString>*>(a0)); }
+// Out-of-line CArray destructors: object references.
 inline void __fastcall RefArrayDestruct(void* a0) { static_cast<ScriptGroup*>((void*)a0)->DestructBody(); }
 
 template <typename T>
@@ -46,10 +42,10 @@ void FreePlain(mfc::CArray<T>* a, void* vtable) {
     if (a->data) gamecrt::operator_delete(a->data);
 }
 
-void FreeStrings(mfc::CArray<mfc::CString>* a) {
+void FreeStrings(mfc::CArray<std::string>* a) {
     SetBaseVtable(a, mfc::impl::StringArrayClass::Vtable());
     if (a->data) {
-        DestructStrings(a->data, a->size);
+        mfc::PlainElements<std::string>::Destruct(a->data, a->size);
         gamecrt::operator_delete(a->data);
     }
 }
@@ -79,17 +75,17 @@ EI_REWRITTEN(0x004BE090, ScriptVarsDestruct);
 
 void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     ScriptVars& vars = definition->vars;
-    NamesDestruct(&vars.groupNames);
+    ScriptNamesDestruct(&vars.groupNames);
     SetBaseVtable(&vars.groups, gamearrays::GroupArrayClass::Vtable());
     if (vars.groups.data) {
         gamearrays::Groups::DestructElements(vars.groups.data, vars.groups.size);
         gamecrt::operator_delete(vars.groups.data);
     }
-    NamesDestruct(&vars.objectNames);
+    ScriptNamesDestruct(&vars.objectNames);
     RefArrayDestruct(&vars.objects);
-    NamesDestruct(&vars.stringNames);
+    ScriptNamesDestruct(&vars.stringNames);
     FreeStrings(&vars.strings);
-    NamesDestruct(&vars.floatNames);
+    ScriptNamesDestruct(&vars.floatNames);
     mfc::impl::DestructHeader<mfc::impl::ScriptFloatsClass>(&vars.floats);
     FreePlain(&definition->ifThen, mfc::impl::ScriptIfThenArrayClass::Vtable());
     std::destroy_at(&definition->params);

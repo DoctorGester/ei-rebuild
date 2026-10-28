@@ -182,7 +182,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0].GetString(), stringArgs.data[1].GetString()) == 0);
+        *result = FromBool(gamecrt::mbscmp(stringArgs.data[0].c_str(), stringArgs.data[1].c_str()) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];
@@ -450,14 +450,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x80: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
         if (server) {
-            const char* name = stringArgs.data[0];
+            const char* name = stringArgs.data[0].c_str();
             stlp::string key(name);
             *result = static_cast<float>(server->GetVariable(&key));
             return;
         }
         StoreBits(result, kZero);
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = player->Party()->variables_.Get(stringArgs.data[0]);
+        if (player) *result = player->Party()->variables_.Get(stringArgs.data[0].c_str());
         return;
     }
     case 0xA2:   // IsCameraPlaying
@@ -574,18 +574,18 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0x85: { // GetObjectByName
-        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs.data[0]));
+        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs.data[0].c_str()));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
-                           stringArgs.data[0].GetString(), "GetObjectByName");
+                           stringArgs.data[0].c_str(), "GetObjectByName");
         Store(*result, o);
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs.data[0]));
+        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs.data[0].c_str()));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
-                           stringArgs.data[0].GetString(), "GetObjectByID");
+                           stringArgs.data[0].c_str(), "GetObjectByID");
         Store(*result, o);
         return;
     }

@@ -947,8 +947,8 @@ public:
     // (the text after the second dot) gets the visibility level `value`; a value of 2 (or NaN) with a
     // <name> without a dot summons the bird (as SummonBird).
     void OnQuestVariable(const char* name, float value);
-    // The party variable of an object's name: "q.<local player's name>.<name>", constructed in `out`.
-    mfc::CString* ObjectVariableName(mfc::CString* out, const char* name);
+    // The party variable of an object's name: "q.<the local player's zone>.<name>".
+    std::string ObjectVariableName(const char* name);
     // Every filed object with a name gets the visibility level of its variable (ObjectVariableName) in the
     // local session's variables; run when the party variables arrive.
     void ApplyObjectVariables();

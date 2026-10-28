@@ -42,7 +42,7 @@ int& DrawAllUnits() { return options::TheOptions()->drawVisibleOnly_; }
 
 CPlayer* GetPlayer(int number) { return TheServerWorld()->GetPlayer(number); }
 const float* Floats(Call* call) { return call->cmd->floatArgs.data; }
-const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i]; }
+const char* Text(Call* call, int i) { return call->cmd->stringArgs.data[i].c_str(); }
 CEngineObject* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]->object; }
 
 // The float bits of `value` as the dword the player messages take.

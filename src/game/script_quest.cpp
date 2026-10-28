@@ -33,9 +33,8 @@ void __fastcall ScriptQuestStart(const char* name) {
 
 // The QObj* commands (type, text, with the value on the stack). Appends
 // {type, text, value}; the text goes through a temporary copy.
-void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value) {
-    std::string copy;
-    copy = *text;
+void __fastcall ScriptQuestAddObjective(int type, const std::string& text, float value) {
+    std::string copy = text;
     mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;
     mfc::impl::ArrayAs<gamearrays::Objectives>(objectives).SetSize(at + 1, -1);   // new ones an empty text

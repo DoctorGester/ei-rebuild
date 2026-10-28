@@ -377,7 +377,7 @@ std::uint32_t HashVars(const ScriptVars& v) {
     h.Add(static_cast<std::uint32_t>(v.floats.GetSize()));
     for (int i = 0; i < v.floats.GetSize(); ++i) h.Add(FloatBits(v.floats[i]));
     h.Add(static_cast<std::uint32_t>(v.strings.GetSize()));
-    for (int i = 0; i < v.strings.GetSize(); ++i) h.AddText(v.strings[i]);
+    for (int i = 0; i < v.strings.GetSize(); ++i) h.AddText(Text(v.strings[i]));
     h.Add(static_cast<std::uint32_t>(v.objects.GetSize()));
     for (int i = 0; i < v.objects.GetSize(); ++i) h.Add(static_cast<std::uint32_t>(IdOf(v.objects[i].object)));
     h.Add(static_cast<std::uint32_t>(v.groups.GetSize()));
@@ -429,11 +429,11 @@ void ReadScript(CScript* s, Builder& b) {
     // text), objects (the id) and groups (a hash of the sorted ids).
     const ScriptVars& g = s->globals_;
     auto field = [&b](const char* kind, const auto& names, int v, Kind type, std::uint32_t value) {
-        if (v < names.GetSize()) b.Add(Intern(std::string(kind) + "." + static_cast<const char*>(names[v])), -1, type, value);
+        if (v < names.GetSize()) b.Add(Intern(std::string(kind) + "." + Text(names[v])), -1, type, value);
         else b.Add(Intern(std::string(kind) + "#"), v, type, value);
     };
     for (int v = 0; v < g.floats.GetSize(); ++v) field("global", g.floatNames, v, Kind::Float, FloatBits(g.floats[v]));
-    for (int v = 0; v < g.strings.GetSize(); ++v) field("gstring", g.stringNames, v, Kind::Bits, TextHash(g.strings[v]));
+    for (int v = 0; v < g.strings.GetSize(); ++v) field("gstring", g.stringNames, v, Kind::Bits, TextHash(Text(g.strings[v])));
     for (int v = 0; v < g.objects.GetSize(); ++v)
         field("gobject", g.objectNames, v, Kind::Int, static_cast<std::uint32_t>(IdOf(g.objects[v].object)));
     for (int v = 0; v < g.groups.GetSize(); ++v) {

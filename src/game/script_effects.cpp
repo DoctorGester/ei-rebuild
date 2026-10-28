@@ -158,7 +158,7 @@ void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     std::memcpy(&sound->volume_, &f[3], 4);
     std::memcpy(&sound->radius_, &f[4], 4);
     sound->looping_ = 0;
-    const char* name = cmd->stringArgs.data[0];
+    const char* name = cmd->stringArgs.data[0].c_str();
     std::memcpy(sound->name_, name, Length(name) + 1);
     TheServerWorld()->AddTimedObject(sound);
 }
@@ -250,7 +250,7 @@ void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
 // CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
 void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
-    std::string name = cmd->stringArgs.data[0].GetString();
+    std::string name = cmd->stringArgs.data[0].c_str();
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
         if (libcrt::Stricmp(kScriptParticleTypes[i].name, name.c_str()) == 0) {

@@ -1,5 +1,5 @@
 // Constructors and destructors of the script's variable arrays: one type's values with their names
-// (ScriptNamedValues), single CString / reference / group arrays, and the ScriptRun destructor.
+// (ScriptNamedValues), single string / reference / group arrays, and the ScriptRun destructor.
 // The compiler inlined the CArray destructors: each writes only its base vtable, destroys the
 // elements and frees the storage; data pointers, sizes and capacities are left as they were. See
 // script.h and docs/notes/script.md.
@@ -29,10 +29,10 @@ void FreePlain(mfc::CArray<T>* a, void* baseVtable) {
     if (a->data) gamecrt::operator_delete(a->data);
 }
 
-void FreeStrings(mfc::CArray<mfc::CString>* a) {
+void FreeStrings(mfc::CArray<std::string>* a) {
     a->vtable = mfc::impl::StringArrayClass::Vtable();
     if (a->data) {
-        mfc::impl::DestructStrings(reinterpret_cast<mfc::impl::CString*>(a->data), a->size);
+        mfc::PlainElements<std::string>::Destruct(a->data, a->size);
         gamecrt::operator_delete(a->data);
     }
 }
@@ -62,7 +62,7 @@ ScriptNamedValues<T>* Construct(ScriptNamedValues<T>* vars, void* valuesVtable) 
 ScriptNamedValues<float>* __fastcall ScriptFloatsConstruct(ScriptNamedValues<float>* vars) {
     return Construct(vars, mfc::impl::ScriptFloatValuesClass::Vtable());
 }
-ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsConstruct(ScriptNamedValues<mfc::CString>* vars) {
+ScriptNamedValues<std::string>* __fastcall ScriptStringsConstruct(ScriptNamedValues<std::string>* vars) {
     return Construct(vars, gamearrays::ScriptStringValuesClass::Vtable());
 }
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsConstruct(ScriptNamedValues<ScriptObjectRef>* vars) {
@@ -77,7 +77,7 @@ void __fastcall ScriptFloatsDestruct(ScriptNamedValues<float>* vars) {
     FreePlain(&vars->values, mfc::impl::ScriptFloatsClass::Vtable());
 }
 
-void __fastcall ScriptStringsDestruct(ScriptNamedValues<mfc::CString>* vars) {
+void __fastcall ScriptStringsDestruct(ScriptNamedValues<std::string>* vars) {
     FreeStrings(&vars->names);
     FreeStrings(&vars->values);
 }
@@ -87,7 +87,7 @@ void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars) 
     FreeRefs(&vars->values);
 }
 
-void __fastcall ScriptNamesDestruct(mfc::CArray<mfc::CString>* names) { FreeStrings(names); }
+void __fastcall ScriptNamesDestruct(mfc::CArray<std::string>* names) { FreeStrings(names); }
 
 void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
 

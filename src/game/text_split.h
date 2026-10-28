@@ -1,7 +1,7 @@
 #pragma once
 
 // Text helpers: splitting a text into a CStringArray at a separator, joining
-// one, and replacing a character in a CString. See docs/notes/script.md ("Leftovers").
+// one, and replacing a character in a string. See docs/notes/script.md ("Leftovers").
 
 #include "console.h"
 
@@ -18,6 +18,6 @@ int __fastcall SplitWords(const char* text, console::CStringArray* array, char s
 int __fastcall ReplaceChar(std::string* string, char from, char to);
 // (ECX out, EDX array; `separator` on the stack). `out` becomes the array's strings with
 // `separator` between them (the exe's empty string for an empty array). Returns 1.
-int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator);
+int __fastcall Join(std::string* out, const mfc::CStringArray* parts, char separator);
 
 } // namespace text
