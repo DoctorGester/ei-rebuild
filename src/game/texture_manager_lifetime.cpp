@@ -83,5 +83,5 @@ CEngineObject* CTextureManager::CreateObject(int type, int id) {
 }
 
 const char* CTextureManager::ClassName() { return kClassName; }
-ClassId CTextureManager::GetClassId() { return kClassTextureManager; }
+ClassId CTextureManager::GetClassId() { return ClassId::TextureManager; }
 const char* CTextureManager::GetFolderName() { return kFolder; }

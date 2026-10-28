@@ -128,6 +128,6 @@ CLightning::CLightning() {
 CLightning::~CLightning() { CLightning::Destroy(); }
 
 const char* CLightning::ClassName() { return "CLightning"; }
-ClassId CLightning::GetClassId() { return kClassLightning; }
+ClassId CLightning::GetClassId() { return ClassId::Lightning; }
 
 CEngineObject* CLightningManager::NewObject(int /*type*/) { return new CLightning(); }

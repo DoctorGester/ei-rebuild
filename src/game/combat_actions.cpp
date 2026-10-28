@@ -306,7 +306,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     }
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         TriggerItemSpells(0);
-        if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit);
+        if (attacker && attacker->GetClassId() == ClassId::Unit) DiplomacyOf(world)->OnAttack(attacker, unit);
         brain.SetSeen(attacker);
         unit->flags_ |= 0x80000;
         PropagateHostility();
@@ -323,7 +323,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         } else if (unit->player) {
             attacker->ServerController()->voice.Raise(kRemarkKill);
         }
-        if (attacker->GetClassId() == kClassUnit) {
+        if (attacker->GetClassId() == ClassId::Unit) {
             CUnitServer* theirs = attacker->ServerController();
             WitnessMurder(&brain.memory.nearby, unit, attacker);
             WitnessMurder(&theirs->brain.memory.nearby, attacker, attacker);

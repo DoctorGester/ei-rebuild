@@ -118,7 +118,7 @@ bool CSpell::IsOffensive() {
 bool CSpell::CanAffect(const CUnit* caster, CMapObject* target) const {
     std::uint32_t flags = targetFlags_ & 0xFFFF;
     if (flags == 0) return true;
-    if (!target || target->GetClassId() != kClassUnit) return false;
+    if (!target || target->GetClassId() != ClassId::Unit) return false;
 
     // The target is a unit (tested above).
     const CUnit* unit = static_cast<const CUnit*>(target);

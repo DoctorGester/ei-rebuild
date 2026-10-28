@@ -234,7 +234,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 if (auto* player = g_serverWorld->GetPlayer(0)) {
                     for (auto& node : player->items_) {
                         CItem* item = node;
-                        if (item->GetClassId() != kClassItemQuest) continue;
+                        if (item->GetClassId() != ClassId::ItemQuest) continue;
                         texts->FormatItemName(item, &name);
                         line = str::Format(NameLine(), label, name);
                         add();

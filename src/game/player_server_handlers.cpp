@@ -192,7 +192,7 @@ void CPlayerServer::OnLeaderDied() {
     for (auto node = dead->ServerController()->brain.memory.seenCorpses.begin(); node != dead->ServerController()->brain.memory.seenCorpses.end();) {
         CUnit* object = *node;
         ++node;
-        if (object && object->GetClassId() == kClassUnit && !lib::Contains(known, object)) AddCounted(known, object);
+        if (object && object->GetClassId() == ClassId::Unit && !lib::Contains(known, object)) AddCounted(known, object);
     }
     if (!lib::Contains(known, dead)) AddCounted(known, dead);
 }

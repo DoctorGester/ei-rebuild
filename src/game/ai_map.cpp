@@ -68,7 +68,7 @@ int BridgeHeights::HeightAt(short x, short y) const {
 
 bool CAIMap::CanStandAt(CUnit* unit, int x, int y, int* reason) {
     if (x < 0 || x >= cells.width || y < 0 || y >= cells.height) return false;
-    if (unit->GetClassId() == kClassUnit) {
+    if (unit->GetClassId() == ClassId::Unit) {
         int level = x87::fistp((2.0f - unit->standingHeight) * 16.0f);
         if (level < 0) level = 0;
         *reason = 1;
@@ -100,12 +100,12 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
 }
 
 bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
-    if (unit->GetClassId() != kClassUnit) return true;
+    if (unit->GetClassId() != ClassId::Unit) return true;
     sectorMap.Remove(unit);
     int y = WorldToCell(position->y);
     int x = WorldToCell(position->x);
     bool passable = true;
-    if (unit->GetClassId() == kClassUnit) {
+    if (unit->GetClassId() == ClassId::Unit) {
         int reason;
         passable = CanStandAt(unit, x, y, &reason) &&
                    ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;

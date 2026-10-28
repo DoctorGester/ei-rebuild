@@ -72,8 +72,8 @@ void CUnit::ScaleEffectChanged(int value) {
 }
 
 void CUnit::SetStats(const UnitStats* stats) {
-    int classId = controller->GetClassId();
-    if (classId != kClassUnitServer) return;
+    ClassId classId = controller->GetClassId();
+    if (classId != ClassId::UnitServer) return;
     ServerController()->SetStats(stats);
 }
 
@@ -88,7 +88,7 @@ float* CUnit::StandPoint(float* out) {
     CWorld* world = WorldOf(this);
     double height;
     if (params.movementKind == kMovesOnWater) {
-        if (controller->GetClassId() == kClassUnitServer) {
+        if (controller->GetClassId() == ClassId::UnitServer) {
             height = world->SurfaceHeightAt(x, y) + localPosition_.z;
         } else {
             height = world->SurfaceHeightAt(x, y) + heightOffset;
@@ -108,7 +108,7 @@ void CUnit::PlaceOnGround(float offset) {
     heightOffset = offset;
     CWorld* world = WorldOf(this);
     if (params.movementKind == kMovesOnWater) {
-        if (controller->GetClassId() == kClassUnitServer) {
+        if (controller->GetClassId() == ClassId::UnitServer) {
             localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + localPosition_.z);
         } else {
             localPosition_.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
@@ -143,7 +143,7 @@ const char* CUnit::GetName() { return scriptName.c_str(); }
 void CUnit::Load(CStream* stream) { LoadUnit(stream); }
 void CUnit::Save(CStream* stream) { SaveUnit(stream); }
 const char* CUnit::ClassName() { return kUnitClassName; }
-ClassId CUnit::GetClassId() { return kClassUnit; }
+ClassId CUnit::GetClassId() { return ClassId::Unit; }
 bool CUnit::IsSynchronised() { return true; }
 Vector3* CUnit::EyePoint(Vector3* out) {
     StandPoint(&out->x);

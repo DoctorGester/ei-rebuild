@@ -84,7 +84,7 @@ CUnitServer* UnitStateArg(const SSCCmd* cmd) {
 
 Lever* LeverArg(const SSCCmd* cmd) {
     CEngineObject* object = Arg(cmd, 0);
-    return object && object->GetClassId() == kClassLever ? static_cast<Lever*>(object) : nullptr;
+    return object && object->GetClassId() == ClassId::Lever ? static_cast<Lever*>(object) : nullptr;
 }
 
 ScriptParticleSource* FindParticle(CScript* script, int id) {
@@ -583,7 +583,7 @@ BOOL ScriptRun::Execute(CScript* script) {
 
         case 0x32: {   // BlockUnit(unit, on): flags_ bit 0x800000
             CEngineObject* unit = Arg(cmd, 0);
-            if (!unit || unit->GetClassId() != kClassUnit) break;
+            if (!unit || unit->GetClassId() != ClassId::Unit) break;
             if (IsZero(f[0])) unit->flags_ &= ~0x800000u;
             else unit->flags_ |= 0x800000u;
             break;
@@ -655,7 +655,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CUnit* unit = cmd->objectArgs[0]->AsUnit();
             if (!unit) break;
             CItem* item = g_serverWorld->CreateItemNamed(Text(cmd, 0));
-            if (item && item->GetClassId() == kClassItemQuest) unit->AddCarried(item);
+            if (item && item->GetClassId() == ClassId::ItemQuest) unit->AddCarried(item);
             break;
         }
         case 0xB3: {   // GiveUnitSpell(unit, spell)

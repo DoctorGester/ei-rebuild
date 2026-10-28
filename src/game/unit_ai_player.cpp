@@ -169,7 +169,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, CountedUnits* targets) {
         AIBrain* theirs = &other->ServerController()->brain;
         auto* foe = static_cast<CUnit*>(theirs->target.object);
         if (!foe || foe->player == unit->player || theirs->action != AIBrain::kActionAttack ||
-            foe->GetClassId() != kClassUnit)
+            foe->GetClassId() != ClassId::Unit)
             continue;
         if (lib::Contains(*targets, foe)) continue;
         targets->push_back(foe);

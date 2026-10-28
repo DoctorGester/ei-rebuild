@@ -40,8 +40,8 @@
 namespace {
 
 int ShadowSwitch(ClassId classId) {
-    if (classId == kClassUnit) return options::g_options->unitShadow_;
-    if (classId == kClassTree) return options::g_options->floraShadow_;
+    if (classId == ClassId::Unit) return options::g_options->unitShadow_;
+    if (classId == ClassId::Tree) return options::g_options->floraShadow_;
     return options::g_options->buildingShadow_;
 }
 constexpr Vector3 kDefaultLight = /*007AF230*/ {};   // a static initialiser: zeros

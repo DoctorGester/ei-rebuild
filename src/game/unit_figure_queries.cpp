@@ -100,7 +100,7 @@ double CUnit::BodyExtent() {
 double CUnit::GroundHeight(float x, float y) {
     auto* world = World();
     if (params.movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
+    if (controller->GetClassId() == ClassId::UnitServer) return world->SurfaceHeightAt(x, y) + localPosition_.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
 

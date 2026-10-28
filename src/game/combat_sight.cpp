@@ -63,7 +63,7 @@ std::uint32_t Bits(float f) { return std::bit_cast<std::uint32_t>(f); }
 // An x87 compare as the original reads it (false for a NaN).
 bool Greater(double a, double b) { return a > b; }
 
-bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
+bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return unit->GetWeapon(unit->activeWeapon); }
 

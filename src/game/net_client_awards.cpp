@@ -81,7 +81,7 @@ void ClientSession::ApplyAwards() {
                 std::list<CItem*>::iterator  current = position;
                 ++position;
                 CEngineObject* owned = *current;
-                if (owned->GetClassId() == kClassItemQuest) player->TakeItem(owned->id_);
+                if (owned->GetClassId() == ClassId::ItemQuest) player->TakeItem(owned->id_);
             }
             break;
         default:

@@ -21,6 +21,10 @@
 
 namespace ei::verify::digest {
 
+// An object's class id as an int: the original's objects return one, the image's a ClassId.
+template <typename Object>
+int ClassOf(Object* object) { return static_cast<int>(object->GetClassId()); }
+
 // The class ids the digest tells apart (CEngineObject::GetClassId).
 constexpr int kClassMapObjectServer = 0x39;     // CMapObjectServer, a map object's server half
 constexpr int kClassUnitServer = 0x3E;          // CUnitServer, a unit's controller (UnitController)

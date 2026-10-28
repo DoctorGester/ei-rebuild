@@ -254,8 +254,8 @@ int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* name
         }
     }
     LoadParts(model, names);
-    int classId = GetClassId();
-    if ((classId == kClassBuilding || GetClassId() == kClassUnit) && animation) {
+    ClassId classId = GetClassId();
+    if ((classId == ClassId::Building || GetClassId() == ClassId::Unit) && animation) {
         animation->Play(nullptr);
         animation->UpdatePose();
     }

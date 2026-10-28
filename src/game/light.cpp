@@ -93,7 +93,7 @@ void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vect
 int CLight::Create() { return 1; }
 void CLight::Destroy() { flags_ &= ~kFlagDestroyed; }
 const char* CLight::ClassName() { return "CLight"; }
-ClassId CLight::GetClassId() { return kClassLight; }
+ClassId CLight::GetClassId() { return ClassId::Light; }
 
 // --- CLightFactory -------------------------------------------------------------------------------
 
@@ -125,4 +125,4 @@ CEngineObject* CLightFactory::CreateObject(int type, int id) {
 }
 
 const char* CLightFactory::ClassName() { return "CLightManager"; }
-ClassId CLightFactory::GetClassId() { return kClassLightFactory; }
+ClassId CLightFactory::GetClassId() { return ClassId::LightFactory; }

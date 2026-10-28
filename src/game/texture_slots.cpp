@@ -55,7 +55,7 @@ void DropSurface(CTexture* texture) {
 
 const char* CTexture::GetName() { return name_.c_str(); }
 const char* CTexture::ClassName() { return "CTexture"; }
-ClassId CTexture::GetClassId() { return kClassTexture; }
+ClassId CTexture::GetClassId() { return ClassId::Texture; }
 
 int CTexture::Create() {
     name_.clear();

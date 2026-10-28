@@ -150,7 +150,7 @@ int CPlayerServer::SendObjectsAdded(const std::vector<CEngineObject*>* objects) 
     CEngineObject* const* next = objects->data();
     for (int i = 0; i < std::ssize(*objects); ++i) {
         auto* object = NextAs<CMapObject>(next);
-        bool isUnit = object->GetClassId() == kClassUnit;
+        bool isUnit = object->GetClassId() == ClassId::Unit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id_), static_cast<std::uint32_t>(object->type_),
                                    object->prototypeId_, object->flags_};
         WriteByte(&out_, kMessageObjectAdded);

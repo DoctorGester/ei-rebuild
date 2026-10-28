@@ -553,7 +553,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     if (!prototype) {
         vitals.Reset();
-        if (object->GetClassId() != kClassUnit) {
+        if (object->GetClassId() != ClassId::Unit) {
             SetDefaults(&vitals, nullptr);
             object->SetServerData(&vitals);
         } else {
@@ -567,7 +567,7 @@ int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& nam
         return 1;
     }
     const UnitModelRecord* model = ModelOf(prototype);
-    if (object->GetClassId() == kClassUnit) {
+    if (object->GetClassId() == ClassId::Unit) {
         BuildFromPrototype(&vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;

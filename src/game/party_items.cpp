@@ -165,7 +165,7 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
 void CParty::RemoveQuestItems() {
     for (int i = std::ssize(items_) - 1; i >= 0; --i) {
         CItem* item = items_[i];
-        if (item->GetClassId() == kClassItemQuest) RemoveItem(item, 1);
+        if (item->GetClassId() == ClassId::ItemQuest) RemoveItem(item, 1);
     }
 }
 

@@ -84,7 +84,7 @@ void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CIte
     // Quest items move from the array to the list: in single player only those whose
     // description names this zone or whose id an object asks for; otherwise all of them.
     for (int i = 0; i < std::ssize(*items); ++i) {
-        if (ItemAt(items, i)->GetClassId() != kClassItemQuest) continue;
+        if (ItemAt(items, i)->GetClassId() != ClassId::ItemQuest) continue;
         CItem* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
         if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {

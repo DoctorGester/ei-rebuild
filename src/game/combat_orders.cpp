@@ -92,7 +92,7 @@ void CUnitServer::FinishCast() {
     CSpell* spell;
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
-        if (!item || item->GetClassId() != kClassItemQuick) return;
+        if (!item || item->GetClassId() != ClassId::ItemQuick) return;
         if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return;
         carrier = item;
         spell = item->spell_;
@@ -211,7 +211,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const Vector3* point, int ru
     if (source & kQuickItemSource) {
         std::uint32_t slot = source & ~kQuickItemSource;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetClassId() == kClassItemQuick &&
+        if (item && item->GetClassId() == ClassId::ItemQuick &&
             (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion) &&
             item->GetCategory() == kCategoryPotion) {
             CWorldServer* world = ServerWorld();

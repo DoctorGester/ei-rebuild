@@ -28,9 +28,9 @@ int Setting(const int& setting) { return static_cast<const volatile int&>(settin
 
 // The switch for the class of `object`.
 int ShadowSwitchOf(CObject3D* object) {
-    int classId = object->GetClassId();
-    if (classId == kClassUnit) return Setting(options::g_options->unitShadow_);
-    if (classId == kClassTree) return Setting(options::g_options->floraShadow_);
+    ClassId classId = object->GetClassId();
+    if (classId == ClassId::Unit) return Setting(options::g_options->unitShadow_);
+    if (classId == ClassId::Tree) return Setting(options::g_options->floraShadow_);
     return Setting(options::g_options->buildingShadow_);
 }
 
@@ -92,7 +92,7 @@ void CObject3DServer::Destroy() { object = nullptr; }
 
 // Class name and id.
 const char* CObject3DServer::ClassName() { return kServerClassName; }
-ClassId CObject3DServer::GetClassId() { return kClassObject3DServer; }
+ClassId CObject3DServer::GetClassId() { return ClassId::Object3DServer; }
 
 // The part virtuals: no parts; 0.
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }

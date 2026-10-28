@@ -363,7 +363,7 @@ void AIBrain::UpdateAttack() {
         }
     } else if (target->IsDead() != 0) {
         giveUp = true;
-    } else if (target->GetClassId() == kClassUnit && memory.IsEnemy(owner->unit, target) == 0) {
+    } else if (target->GetClassId() == ClassId::Unit && memory.IsEnemy(owner->unit, target) == 0) {
         giveUp = true;
     }
     if (giveUp) {
@@ -413,13 +413,13 @@ void AIBrain::UseOn(CMapObject* object, int kind, int a, int b) {
         owner->OrderUse(object, a, b);
         return;
     case kSourceSteal:
-        if (object->GetClassId() == kClassUnit) owner->OrderSteal(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSteal(object, b);
         return;
     case kSourceTame:
-        if (object->GetClassId() == kClassUnit) owner->OrderTame(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderTame(object, b);
         return;
     case kSourceSearchBody:
-        if (object->GetClassId() == kClassUnit) owner->OrderSearchBody(object, b);
+        if (object->GetClassId() == ClassId::Unit) owner->OrderSearchBody(object, b);
         return;
     default:
         return;

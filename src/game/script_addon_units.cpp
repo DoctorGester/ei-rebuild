@@ -272,7 +272,7 @@ bool GetObjectsOnMap(Call* call) {
             call->GroupResult()->Insert(object);
             return;
         }
-        int id = object->GetClassId();
+        int id = static_cast<int>(object->GetClassId());
         for (int i = 0; i < std::ssize(call->cmd->floatArgs); ++i)
             if (id == Ftol(call->cmd->floatArgs[i])) {
                 call->GroupResult()->Insert(object);

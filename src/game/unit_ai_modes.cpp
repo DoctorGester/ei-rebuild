@@ -413,7 +413,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
             }
         }
         if (!enemy) return kNoPriority;
-        if (enemy->IsDead() == 0 && enemy->GetClassId() == kClassUnit) {
+        if (enemy->IsDead() == 0 && enemy->GetClassId() == ClassId::Unit) {
             if (brain->memory.IsEnemy(brain->owner->unit, enemy) == 0) return kNoPriority;
             chosen.part = -1;
             chosen.object = static_cast<CUnit*>(enemy.object);   // a unit (tested above)
@@ -664,7 +664,7 @@ void PlayerMode::CommandAttack(AIBrain* brain, CMapObject* object, int how, int 
         if (object) ++object->refCount_;
         target = object;
     }
-    if (brain->owner->unit->player == nullptr && object->GetClassId() == kClassUnit &&
+    if (brain->owner->unit->player == nullptr && object->GetClassId() == ClassId::Unit &&
         brain->memory.IsEnemy(brain->owner->unit, object) == 0)
         return;
     brain->action = AIBrain::kActionAttack;

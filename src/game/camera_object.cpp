@@ -84,7 +84,7 @@ void ConstructCamera() {
 }
 
 const char* CCamera::ClassName() { return "CCamera"; }
-ClassId CCamera::GetClassId() { return kClassCamera; }
+ClassId CCamera::GetClassId() { return ClassId::Camera; }
 
 int CCamera::Create() {
     targetId_ = -1;

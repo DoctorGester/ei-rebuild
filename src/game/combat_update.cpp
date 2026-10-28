@@ -582,7 +582,7 @@ void CUnitServer::RefreshItemSpells() {
         std::list<CItem*>::iterator current = node;
         ++node;
         CItem* item = *current;
-        if (item->GetClassId() != kClassItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
+        if (item->GetClassId() != ClassId::ItemWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         items.erase(current);
     }
     std::list<ArmourSpell>* list = &armourSpells;

@@ -1972,7 +1972,7 @@ bool ExeUnitFaceHalves(std::vector<void*>* halves) {
     if (!world->objects_.head) return false;
     for (auto* node = world->objects_.First(); node != world->objects_.End(); node = node->next) {
         exe::CMapObject* object = node->data;
-        if (!object || object->GetClassId() != digest::kClassUnit) continue;
+        if (!object || digest::ClassOf(object) != digest::kClassUnit) continue;
         auto* half = reinterpret_cast<exe::CUnitClientSpecific*>(static_cast<exe::CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
     }

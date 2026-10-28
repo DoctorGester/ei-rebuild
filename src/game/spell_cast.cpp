@@ -245,7 +245,7 @@ CSpellConstructor::~CSpellConstructor() {
 }
 
 const char* CSpellConstructor::ClassName() { return "CSpellConstructor"; }
-ClassId CSpellConstructor::GetClassId() { return kClassSpellConstructor; }
+ClassId CSpellConstructor::GetClassId() { return ClassId::SpellConstructor; }
 
 int CSpellConstructor::Create() {
     CSpellContainer* container = container_;

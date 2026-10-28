@@ -542,7 +542,7 @@ int CPlayerClient::OnNewObject() {
     CMapObject* object = created;
     CObject3D* figure = object;
     object->name = model;
-    bool isUnit = created->GetClassId() == kClassUnit;
+    bool isUnit = created->GetClassId() == ClassId::Unit;
     created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
     object->baseScale = scale;
@@ -683,7 +683,7 @@ CPlayerClient::~CPlayerClient() {
 }
 
 const char* CPlayerClient::ClassName() { return "CPlayerClient"; }
-ClassId CPlayerClient::GetClassId() { return kClassPlayerClient; }
+ClassId CPlayerClient::GetClassId() { return ClassId::PlayerClient; }
 
 // --- The party state ---------------------------------------------------------------------
 

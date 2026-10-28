@@ -293,7 +293,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
             const std::list<HeldPtr<CMapObject>>& list = grid.rows_[y][x];
             for (CMapObject* object : list) {
                 if (!object || !object->attached) continue;
-                const bool unit = object->GetClassId() == kClassUnit;
+                const bool unit = object->GetClassId() == ClassId::Unit;
                 if (!(flags & (unit ? 0x80u : 0x40u))) continue;
                 if (unit && !allUnits && !(object->flags_ & kFlagAlwaysDrawn)) continue;
                 CObject3DClientSpecific* half = object->ClientSpecific();

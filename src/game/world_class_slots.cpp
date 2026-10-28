@@ -31,31 +31,31 @@ constexpr const char* kFiguresFolderName = "figures";
 } // namespace
 
 const char* CWorldClient::ClassName() { return kWorldClientName; }
-ClassId CWorldClient::GetClassId() { return kClassWorldClient; }
+ClassId CWorldClient::GetClassId() { return ClassId::WorldClient; }
 
 const char* CWorldServer::ClassName() { return kWorldServerName; }
-ClassId CWorldServer::GetClassId() { return kClassWorldServer; }
+ClassId CWorldServer::GetClassId() { return ClassId::WorldServer; }
 
 const char* PlatformSet::ClassName() { return kBridgeManagerName; }
-ClassId PlatformSet::GetClassId() { return kClassPlatformSet; }
+ClassId PlatformSet::GetClassId() { return ClassId::PlatformSet; }
 
 const char* CParticleManager::ClassName() { return kParticleManagerName; }
-ClassId CParticleManager::GetClassId() { return kClassParticleManager; }
+ClassId CParticleManager::GetClassId() { return ClassId::ParticleManager; }
 
 const char* CTextManager::ClassName() { return kTextManagerName; }
-ClassId CTextManager::GetClassId() { return kClassTextManager; }
+ClassId CTextManager::GetClassId() { return ClassId::TextManager; }
 
 const char* Terrain::ClassName() { return kTerrainName; }
-ClassId Terrain::GetClassId() { return kClassTerrain; }
+ClassId Terrain::GetClassId() { return ClassId::Terrain; }
 
 const char* CLightningManager::ClassName() { return kLightningManagerName; }
-ClassId CLightningManager::GetClassId() { return kClassLightningManager; }
+ClassId CLightningManager::GetClassId() { return ClassId::LightningManager; }
 
 const char* ClientArrayManager::ClassName() { return kVisFogManagerName; }
-ClassId ClientArrayManager::GetClassId() { return kClassClientArrayManager; }
+ClassId ClientArrayManager::GetClassId() { return ClassId::ClientArrayManager; }
 
 const char* CFigureManager::ClassName() { return kFigureManagerName; }
-ClassId CFigureManager::GetClassId() { return kClassFigureManager; }
+ClassId CFigureManager::GetClassId() { return ClassId::FigureManager; }
 const char* CFigureManager::GetFolderName() { return kFiguresFolderName; }
 
 const char* I3DFigureClassName(CEngineObject*) { return kI3DFigureName; }

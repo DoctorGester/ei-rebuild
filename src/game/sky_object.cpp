@@ -46,7 +46,7 @@ CSkyObject::CSkyObject() {
 CSkyObject::~CSkyObject() {  }
 
 const char* CSkyObject::ClassName() { return kClassName; }
-ClassId CSkyObject::GetClassId() { return kClassSkyObject; }
+ClassId CSkyObject::GetClassId() { return ClassId::SkyObject; }
 
 void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour light) {
     const std::uint32_t r = Truncate(ambient.r * kColourScale);

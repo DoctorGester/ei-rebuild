@@ -107,7 +107,7 @@ Next StartLightStrike(CSpellEffect* e) {
     Vector3 top = e->targetPoint;
     top.z = top.z + ConstAt(worlddata::StrikeHeight());
     float power = Power(e);
-    auto* bolt = CreateObject<CEffectLightning>(e, kClassEffectLightning);
+    auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(&top, &e->position, power * ConstAt(worlddata::StrikeWidth()));
     e->SetVisual(bolt);
 
@@ -184,7 +184,7 @@ Next StartLightWall(CSpellEffect* e, const Vector3& from) {
     b.z = span.z + e->targetPoint.z;
     a.z = GroundPlus(e, kRawSurfaceHeight, a, ConstPtr(worlddata::OneRef()));
     b.z = GroundPlus(e, kRawSurfaceHeight, b, ConstPtr(worlddata::OneRef()));
-    auto* bolt = CreateObject<CEffectLightning>(e, kClassEffectLightning);
+    auto* bolt = CreateObject<CEffectLightning>(e, ClassId::EffectLightning);
     bolt->SetEnds(&a, &b, 0.0f);
     e->SetVisual(bolt);
     e->position = centre;
@@ -260,7 +260,7 @@ Next StartVisionFog(CSpellEffect* e) {
     if (!e->caster || !e->target) return Next::Done;
     int targetId = e->target->id_;
     int casterId = e->caster->id_;
-    auto* shown = CreateObject<CEffectShowVisibility>(e, kClassEffectShowVisibility);
+    auto* shown = CreateObject<CEffectShowVisibility>(e, ClassId::EffectShowVisibility);
     shown->SetUnits(casterId, targetId);
     SetPosition(shown, &kZeroVector);
     e->SetVisual(shown);
@@ -272,7 +272,7 @@ Next StartVisionFog(CSpellEffect* e) {
 // 0x18: healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
-    if (e->target->GetClassId() != kClassUnit) return Next::Done;   // no null check
+    if (e->target->GetClassId() != ClassId::Unit) return Next::Done;   // no null check
     // Controller Heal (the amount's bits are pushed, MOV/PUSH).
     CUnit* unit = TargetUnit(e);
     unit->Controller()->Heal(e->Spell()->damage_);
@@ -338,7 +338,7 @@ Next StartTeleport(CSpellEffect* e) {
 // 0x24: charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
 Next StartCharm(CSpellEffect* e) {
-    if (e->target->GetClassId() != kClassUnit) return Next::Leave;   // no null check
+    if (e->target->GetClassId() != ClassId::Unit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
     CUnitServer* tamed = ControllerOf(TargetUnit(e));
     CUnitServer* tamer = ControllerOf(e->caster);
@@ -450,7 +450,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
 
 void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3* color, float range) {
-    auto* arrow = CreateObject<CEffectArrow>(this, kClassEffectArrow);
+    auto* arrow = CreateObject<CEffectArrow>(this, ClassId::EffectArrow);
     if (!arrow) return;
     arrow->lightColor_ = *color;
     arrow->lightRange_ = range;
@@ -469,7 +469,7 @@ void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget
 
 CEffectParticle* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
                                               const Vector3* velocity, CEngineObject* attachTo) {
-    int classId = (particleType == 0x2010 || particleType == 0x2014) ? kClassEffectWall : kClassEffectParticle;
+    ClassId classId = (particleType == 0x2010 || particleType == 0x2014) ? ClassId::EffectWall : ClassId::EffectParticle;
     auto* particle = CreateObject<CEffectParticle>(this, classId);   // a CEffectWall for the walls
     particle->type_ = particleType;
     SetPosition(particle, at);
@@ -492,7 +492,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
     Vector3 to = boltTarget->localPosition_;
     HeightPlusProduct(world, kGridHeight, to.x, to.y, &boltTarget->bounds.boxMax.z,
                       ConstPtr(worlddata::TargetHeight()), &to.z);
-    auto* bolt = CreateObject<CEffectLightning>(this, kClassEffectLightning);
+    auto* bolt = CreateObject<CEffectLightning>(this, ClassId::EffectLightning);
     bolt->SetEnds(from, &to, power * ConstAt(worlddata::BoltWidthScale()));
     bolt->SetObjects(source ? source->id_ : -1, boltTarget->id_);
     bolt->SetFlag(static_cast<unsigned char>(flag));
@@ -502,7 +502,7 @@ void CSpellEffect::CreateLightning(const Vector3* from, CMapObject* boltTarget, 
 
 void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
                                float hearing) {
-    auto* effect = CreateObject<CEffectSound>(this, kClassEffectSound);
+    auto* effect = CreateObject<CEffectSound>(this, ClassId::EffectSound);
     SetPosition(effect, at);
     effect->noFade_ = 1;
     effect->radius_ = hearing;
@@ -517,7 +517,7 @@ void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, co
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
     std::string name;
-    auto* effect = CreateObject<CEffectSoundSeq>(this, kClassEffectSoundSeq);
+    auto* effect = CreateObject<CEffectSoundSeq>(this, ClassId::EffectSoundSeq);
     SetPosition(effect, at);
     effect->SetVelocity(velocity);
     effect->radius_ = hearing;
@@ -538,7 +538,7 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
 }
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
-    auto* effect = CreateObject<CEffectPointLight>(this, kClassEffectPointLight);
+    auto* effect = CreateObject<CEffectPointLight>(this, ClassId::EffectPointLight);
     effect->color_ = *color;
     SetPosition(effect, at);
     effect->range_ = range;

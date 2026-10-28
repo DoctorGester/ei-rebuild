@@ -63,7 +63,7 @@ constexpr int kWeaponCrossbow = 6;
 
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
 
-bool IsUnit(CMapObject* object) { return object && object->GetClassId() == kClassUnit; }
+bool IsUnit(CMapObject* object) { return object && object->GetClassId() == ClassId::Unit; }
 bool IsCastKind(int kind) { return kind == kOrderCastAt || kind == kOrderCastOn; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCastAt || kind == kOrderCastOn || kind == kOrderUse; }
 
@@ -581,7 +581,7 @@ void CUnitServer::ExecuteOrder() {
                 int location = plan->hitLocation;
                 auto* defender = victim->ServerController();
                 int backstab = unit->IsBehind(victim) & 0xFF;
-                if (victim->GetClassId() == kClassUnit && defender->moveMode2.onGuard) backstab = 0;
+                if (victim->GetClassId() == ClassId::Unit && defender->moveMode2.onGuard) backstab = 0;
                 CItemWeapon* weapon = ActiveWeapon(unit);
                 if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) backstab = 0;
                 BuildAttackHit(&pendingHit, backstab, location, calledShot);

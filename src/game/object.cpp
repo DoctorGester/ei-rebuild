@@ -13,4 +13,4 @@ CHoover::~CHoover() {}
 
 int CHoover::Create() { return 1; }
 const char* CHoover::ClassName() { return kHooverName; }
-ClassId CHoover::GetClassId() { return kClassHoover; }
+ClassId CHoover::GetClassId() { return ClassId::Hoover; }

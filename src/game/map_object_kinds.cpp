@@ -3,10 +3,10 @@
 
 namespace {
 template <ClassId Id> constexpr const char* kName = nullptr;
-template <> constexpr const char* kName<kClassTree> = "CTree";
-template <> constexpr const char* kName<kClassStone> = "CStone";
-template <> constexpr const char* kName<kClassBuilding> = "CBuilding";
-template <> constexpr const char* kName<kClassStuffObject> = "CStuffObject";
+template <> constexpr const char* kName<ClassId::Tree> = "CTree";
+template <> constexpr const char* kName<ClassId::Stone> = "CStone";
+template <> constexpr const char* kName<ClassId::Building> = "CBuilding";
+template <> constexpr const char* kName<ClassId::StuffObject> = "CStuffObject";
 } // namespace
 
 template <ClassId Id>
@@ -29,7 +29,7 @@ ClassId PlainMapObject<Id>::GetClassId() {
     return Id;
 }
 
-template class PlainMapObject<kClassTree>;
-template class PlainMapObject<kClassStone>;
-template class PlainMapObject<kClassBuilding>;
-template class PlainMapObject<kClassStuffObject>;
+template class PlainMapObject<ClassId::Tree>;
+template class PlainMapObject<ClassId::Stone>;
+template class PlainMapObject<ClassId::Building>;
+template class PlainMapObject<ClassId::StuffObject>;

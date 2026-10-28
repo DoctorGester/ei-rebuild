@@ -19,8 +19,8 @@ public:
 
 // Kept: the map object kinds are the class names (one instance of PlainMapObject per class id).
 // Constructor, destructor, deleting destructor and two more virtuals.
-using CTree = PlainMapObject<kClassTree>;
-using CStone = PlainMapObject<kClassStone>;
-using CBuilding = PlainMapObject<kClassBuilding>;
-using CStuffObject = PlainMapObject<kClassStuffObject>;
+using CTree = PlainMapObject<ClassId::Tree>;
+using CStone = PlainMapObject<ClassId::Stone>;
+using CBuilding = PlainMapObject<ClassId::Building>;
+using CStuffObject = PlainMapObject<ClassId::StuffObject>;
 

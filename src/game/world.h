@@ -669,7 +669,7 @@ public:
 
 // A window rectangle of the frame (the client's screen list and hit vector).
 struct ScreenEntry {
-    int classId;
+    ClassId classId;
     unsigned objectId;                    // the object, in the map object manager
     tagRECT rect;                         // on the screen
 };

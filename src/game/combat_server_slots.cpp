@@ -8,7 +8,7 @@ const char* const kServerName = "CUnitServer";
 
 // Class name and id.
 const char* CUnitServer::ClassName() { return kServerName; }
-ClassId CUnitServer::GetClassId() { return kClassUnitServer; }
+ClassId CUnitServer::GetClassId() { return ClassId::UnitServer; }
 
 void CUnitServer::MoveFactorsChanged() { UpdateMoveFactors(); }
 

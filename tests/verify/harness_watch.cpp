@@ -167,7 +167,7 @@ Watched FindUnit() {
     if (!c->objects_.head) return found;
     for (auto* n = c->objects_.First(); n != c->objects_.End(); n = n->next) {
         exe::CMapObject* object = n->data;
-        if (object && static_cast<unsigned>(object->id_) == g_id && object->GetClassId() == digest::kClassUnit) {
+        if (object && static_cast<unsigned>(object->id_) == g_id && digest::ClassOf(object) == digest::kClassUnit) {
             found.unit = object;
             found.flags = &object->flags_;
             found.rotation = reinterpret_cast<std::uint32_t*>(&object->localRotation_);

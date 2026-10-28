@@ -140,7 +140,7 @@ CRainSnow::~CRainSnow() {
 }
 
 const char* CRainSnow::ClassName() { return "CWeather"; }
-ClassId CRainSnow::GetClassId() { return kClassRainSnow; }
+ClassId CRainSnow::GetClassId() { return ClassId::RainSnow; }
 
 // --- Visibility fog -----------------------------------------------------------------------------
 
@@ -271,4 +271,4 @@ int CVisibilityFog::Create() {
     return 1;
 }
 const char* CVisibilityFog::ClassName() { return "CVisibilityFog"; }
-ClassId CVisibilityFog::GetClassId() { return kClassVisibilityFog; }
+ClassId CVisibilityFog::GetClassId() { return ClassId::VisibilityFog; }

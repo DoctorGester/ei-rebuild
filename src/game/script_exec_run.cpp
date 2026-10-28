@@ -56,7 +56,7 @@ void RespawnFxSources(CScript* script) {
         int minDelay = fx.minDelay;
         fx.countdown = static_cast<int>(g_random.Next() % static_cast<std::uint32_t>(fx.maxDelay - minDelay + 1)) + minDelay;
         fx.object.reset();
-        auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(kClassEffectSound, -1);
+        auto* sound = g_serverWorld->timedObjectManager_->CreateObjectAs<CEffectSound>(ClassId::EffectSound, -1);
         float yOffset = FxOffset(fx.spread, g_random.Next());
         float x = FxOffsetPlus(fx.spread, g_random.Next(), fx.position.x);
         float y = yOffset + fx.position.y;

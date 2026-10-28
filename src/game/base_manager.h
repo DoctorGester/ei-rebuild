@@ -57,6 +57,7 @@ public:
     // the manager becomes its owner and it is created. Null when NewObject fails.
     virtual CEngineObject* CreateObject(int type, int id);
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
+    template <class T> T* CreateObjectAs(ClassId type, int id) { return CreateObjectAs<T>(static_cast<int>(type), id); }
     // An object without references leaves the manager: unregistered, destroyed, without owner, then kept as a
     // spare. Returns RemoveObject's 0 (nothing meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);

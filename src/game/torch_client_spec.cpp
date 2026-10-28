@@ -168,4 +168,4 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
 
 int CTorchObjectClientSpec::RunTick() { return 1; }
 const char* CTorchObjectClientSpec::ClassName() { return ClassNameText(); }
-ClassId CTorchObjectClientSpec::GetClassId() { return kClassTorchObjectClientSpec; }
+ClassId CTorchObjectClientSpec::GetClassId() { return ClassId::TorchObjectClientSpec; }

@@ -85,17 +85,17 @@ CItemLoot::CItemLoot() = default;
 CItemSpell::CItemSpell() = default;
 
 const char* CItemWeapon::ClassName() { return "CItemWeapon"; }
-ClassId CItemWeapon::GetClassId() { return kClassItemWeapon; }
+ClassId CItemWeapon::GetClassId() { return ClassId::ItemWeapon; }
 const char* CItemArmor::ClassName() { return "CItemArmor"; }
-ClassId CItemArmor::GetClassId() { return kClassItemArmor; }
+ClassId CItemArmor::GetClassId() { return ClassId::ItemArmor; }
 const char* CItemQuick::ClassName() { return "CItemQuick"; }
-ClassId CItemQuick::GetClassId() { return kClassItemQuick; }
+ClassId CItemQuick::GetClassId() { return ClassId::ItemQuick; }
 const char* CItemQuest::ClassName() { return "CItemQuest"; }
-ClassId CItemQuest::GetClassId() { return kClassItemQuest; }
+ClassId CItemQuest::GetClassId() { return ClassId::ItemQuest; }
 const char* CItemLoot::ClassName() { return "CItemLoot"; }
-ClassId CItemLoot::GetClassId() { return kClassItemLoot; }
+ClassId CItemLoot::GetClassId() { return ClassId::ItemLoot; }
 const char* CItemSpell::ClassName() { return "CItemSpell"; }
-ClassId CItemSpell::GetClassId() { return kClassItemSpell; }
+ClassId CItemSpell::GetClassId() { return ClassId::ItemSpell; }
 
 // --- The item manager's Create and factory -------------------------------------------------
 

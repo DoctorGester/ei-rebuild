@@ -173,7 +173,7 @@ int CSysInfo::Create() {
 }
 
 const char* CSysInfo::ClassName() { return SysInfoClassNameText(); }
-ClassId CSysInfo::GetClassId() { return kClassSysInfo; }
+ClassId CSysInfo::GetClassId() { return ClassId::SysInfo; }
 
 // The global's destructor (registered with atexit by the static initialiser).
 void SysInfoAtExit() { g_sysInfo.Destroy(); }

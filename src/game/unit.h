@@ -488,7 +488,7 @@ public:
 };
 
 inline CUnit* UnitOrNull(CEngineObject* object) {
-    return object && object->GetClassId() == kClassUnit ? static_cast<CUnit*>(object) : nullptr;
+    return object && object->GetClassId() == ClassId::Unit ? static_cast<CUnit*>(object) : nullptr;
 }
 
 // The object registered under a unit's id (the party's and the players' unit ids, a unit's speech), or null; taken as
