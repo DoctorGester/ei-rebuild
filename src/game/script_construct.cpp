@@ -46,10 +46,10 @@ CScript* CScript::Construct() {
     ConstructList(&lightning_, gameslots::LightningListClass::Vtable());
     ConstructList(&blocks_, gameslots::DeclListClass::Vtable());
     ConstructArray(&definitions_, recordarrays::DefinitionArrayClass::Vtable());
-    ScriptFloatsConstruct(NamedValues(&globals_.floats));
-    ScriptStringsConstruct(NamedValues(&globals_.strings));
-    ScriptObjectsConstruct(NamedValues(&globals_.objects));
-    ScriptGroupsConstruct(NamedValues(&globals_.groups));
+    ScriptFloatsConstruct(&globals_.floats);
+    ScriptStringsConstruct(&globals_.strings);
+    ScriptObjectsConstruct(&globals_.objects);
+    ScriptGroupsConstruct(&globals_.groups);
     ConstructList(&instances_, gameslots::DefinitionListClass::Vtable());
     ConstructList(&runs_, gameslots::RunListClass::Vtable());
     ConstructList(&worldBlocks_, gameslots::DeclListClass::Vtable());

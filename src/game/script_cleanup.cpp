@@ -34,8 +34,8 @@ void RemoveAll(mfc::CList<T>& list, Destroy destroy) {
 
 // The group variables (names, then values) of a removed instance or run.
 void DestroyGroupVariables(ScriptVars& vars) {
-    ScriptNamesDestruct(&vars.groupNames);
-    mfc::impl::DestructArrayOf<gamearrays::GroupArrayClass>(mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups));
+    ScriptNamesDestruct(&vars.groups.names);
+    mfc::impl::DestructArrayOf<gamearrays::GroupArrayClass>(mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups.values));
 }
 
 } // namespace
@@ -66,9 +66,9 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         auto* instance = element.Get();
         ScriptVars& vars = instance->vars;
         DestroyGroupVariables(vars);
-        ScriptObjectsDestruct(NamedValues<ScriptObjectRef>(&vars.objects));
-        ScriptStringsDestruct(NamedValues<std::string>(&vars.strings));
-        ScriptFloatsDestruct(NamedValues(&vars.floats));
+        ScriptObjectsDestruct(&vars.objects);
+        ScriptStringsDestruct(&vars.strings);
+        ScriptFloatsDestruct(&vars.floats);
         mfc::impl::DestructHeader<mfc::impl::ScriptIfThenArrayClass>(&instance->ifThen);
         std::destroy_at(&instance->params);
         std::destroy_at(&instance->name);
@@ -78,17 +78,17 @@ void __fastcall ScriptDropInstancesAndRuns(CScript* script) {
         script->runs_.PopHead(element.Get());
         ScriptVars& vars = element.Get()->vars;
         DestroyGroupVariables(vars);
-        ScriptNamesDestruct(&vars.objectNames);
-        vars.objects.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
-        if (vars.objects.data) {
-            gamearrays::ObjectRefs::DestructElements(vars.objects.data, vars.objects.size);
-            gamecrt::operator_delete(vars.objects.data);
+        ScriptNamesDestruct(&vars.objects.names);
+        vars.objects.values.vtable = mfc::impl::ObjectRefArrayClass::Vtable();
+        if (vars.objects.values.data) {
+            gamearrays::ObjectRefs::DestructElements(vars.objects.values.data, vars.objects.values.size);
+            gamecrt::operator_delete(vars.objects.values.data);
         }
-        ScriptNamesDestruct(&vars.stringNames);
-        ScriptNamesDestruct(&vars.strings);
-        ScriptNamesDestruct(&vars.floatNames);
-        vars.floats.vtable = mfc::impl::ScriptFloatsClass::Vtable();
-        if (vars.floats.data) gamecrt::operator_delete(vars.floats.data);
+        ScriptNamesDestruct(&vars.strings.names);
+        ScriptNamesDestruct(&vars.strings.values);
+        ScriptNamesDestruct(&vars.floats.names);
+        vars.floats.values.vtable = mfc::impl::ScriptFloatsClass::Vtable();
+        if (vars.floats.values.data) gamecrt::operator_delete(vars.floats.values.data);
     }
 }
 

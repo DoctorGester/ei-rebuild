@@ -27,15 +27,15 @@ int FindName(const mfc::CArray<std::string>& names, const char* name) {
 
 
 void ScriptVars::ResetValues() {
-    for (int i = 0; i < floats.size; ++i) floats.data[i] = 0.0f;
-    for (int i = 0; i < strings.size; ++i) strings.data[i] = game::EmptyText();
-    for (int i = 0; i < objects.size; ++i) {
-        ScriptObjectRef* slot = &objects.data[i];
+    for (int i = 0; i < floats.values.size; ++i) floats.values.data[i] = 0.0f;
+    for (int i = 0; i < strings.values.size; ++i) strings.values.data[i] = game::EmptyText();
+    for (int i = 0; i < objects.values.size; ++i) {
+        ScriptObjectRef* slot = &objects.values.data[i];
         if (slot->object) slot->object->Release();
         slot->object = nullptr;
     }
-    for (int g = 0; g < groups.size; ++g) {
-        ScriptGroup& group = groups.data[g];
+    for (int g = 0; g < groups.values.size; ++g) {
+        ScriptGroup& group = groups.values.data[g];
         if (group.data) {
             ScriptObjectRef* slot = group.data;
             for (int n = group.size; n != 0; --n, ++slot) {
@@ -52,34 +52,34 @@ void ScriptVars::ResetValues() {
 EI_REWRITTEN(0x004B35E0, ScriptVars::ResetValues);
 
 BOOL ScriptVars::HasVariable(const char* name) const {
-    if (FindName(floatNames, name) >= 0) return 1;
-    if (FindName(stringNames, name) >= 0) return 1;
-    if (FindName(objectNames, name) >= 0) return 1;
-    if (FindName(groupNames, name) >= 0) return 1;
+    if (FindName(floats.names, name) >= 0) return 1;
+    if (FindName(strings.names, name) >= 0) return 1;
+    if (FindName(objects.names, name) >= 0) return 1;
+    if (FindName(groups.names, name) >= 0) return 1;
     return 0;
 }
 EI_REWRITTEN(0x004B36D0, ScriptVars::HasVariable);
 
 BOOL ScriptVars::FindVariable(const char* name, int* index, int* type) const {
     *type = kScriptFloat;
-    *index = FindName(floatNames, name);
+    *index = FindName(floats.names, name);
     if (*index >= 0) return 1;
     *type = kScriptString;
-    *index = FindName(stringNames, name);
+    *index = FindName(strings.names, name);
     if (*index >= 0) return 1;
     *type = kScriptObject;
-    *index = FindName(objectNames, name);
+    *index = FindName(objects.names, name);
     if (*index >= 0) return 1;
     *type = kScriptGroup;
-    int found = FindName(groupNames, name);
+    int found = FindName(groups.names, name);
     *index = found;
     return found >= 0;
 }
 EI_REWRITTEN(0x004B37D0, ScriptVars::FindVariable);
 
 void ScriptVars::RemoveDeletedObjects() {
-    for (int i = 0; i < objects.size; ++i) objects.data[i].ReleaseIfDeleted();
-    for (int g = 0; g < groups.size; ++g) groups.data[g].RemoveDeleted();
+    for (int i = 0; i < objects.values.size; ++i) objects.values.data[i].ReleaseIfDeleted();
+    for (int g = 0; g < groups.values.size; ++g) groups.values.data[g].RemoveDeleted();
 }
 EI_REWRITTEN(0x004B3940, ScriptVars::RemoveDeletedObjects);
 
@@ -93,47 +93,47 @@ BOOL ScriptDefinition::AddParameter(const mfc::CString* parameterName, int type)
     const char* text = *parameterName;
     switch (type) {
     case kScriptFloat:
-        if (FindName(vars.floatNames, text) >= 0) {
+        if (FindName(vars.floats.names, text) >= 0) {
             result = 0;
         } else {
-            vars.floats.SetSize(vars.floats.size + 1, -1);
+            vars.floats.values.SetSize(vars.floats.values.size + 1, -1);
             std::string temp = text;
-            vars.floatNames.SetAtGrow(vars.floatNames.size, temp);
+            vars.floats.names.SetAtGrow(vars.floats.names.size, temp);
             result = 1;
         }
         letter = "f";
         break;
     case kScriptString:
-        if (FindName(vars.stringNames, text) >= 0) {
+        if (FindName(vars.strings.names, text) >= 0) {
             result = 0;
         } else {
-            vars.strings.SetSize(vars.strings.size + 1, -1);
+            vars.strings.values.SetSize(vars.strings.values.size + 1, -1);
             std::string temp = text;
-            vars.stringNames.SetAtGrow(vars.stringNames.size, temp);
+            vars.strings.names.SetAtGrow(vars.strings.names.size, temp);
             result = 1;
         }
         letter = "s";
         break;
     case kScriptObject:
-        if (FindName(vars.objectNames, text) >= 0) {
+        if (FindName(vars.objects.names, text) >= 0) {
             result = 0;
         } else {
-            mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects).SetSize(vars.objects.size + 1, -1);
+            mfc::impl::ArrayAs<gamearrays::ObjectRefs>(vars.objects.values).SetSize(vars.objects.values.size + 1, -1);
             std::string temp = text;
-            vars.objectNames.SetAtGrow(vars.objectNames.size, temp);
+            vars.objects.names.SetAtGrow(vars.objects.names.size, temp);
             result = 1;
         }
         letter = "o";
         break;
     case kScriptGroup:
-        if (FindName(vars.groupNames, text) >= 0) {
+        if (FindName(vars.groups.names, text) >= 0) {
             result = 0;
         } else {
-            mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups).SetSize(vars.groups.size + 1, -1);
+            mfc::impl::ArrayAs<gamearrays::Groups>(vars.groups.values).SetSize(vars.groups.values.size + 1, -1);
             std::string temp = text;
-            int at = vars.groupNames.size;
-            vars.groupNames.SetSize(at + 1, -1);
-            vars.groupNames.data[at] = temp;
+            int at = vars.groups.names.size;
+            vars.groups.names.SetSize(at + 1, -1);
+            vars.groups.names.data[at] = temp;
             result = 1;
         }
         letter = "g";
@@ -155,16 +155,16 @@ void SSCCmd::SetParameters(const ScriptBindings* bindings, ScriptVars* vars) {
         const ScriptBinding& b = bindings->data[k];
         switch (b.type) {
         case kScriptFloat:
-            std::memcpy(&floatArgs.data[b.argIndex], &vars->floats.data[b.varIndex], sizeof(float));
+            std::memcpy(&floatArgs.data[b.argIndex], &vars->floats.values.data[b.varIndex], sizeof(float));
             break;
         case kScriptString:
-            vars->strings.CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);
+            vars->strings.values.CopyTo(b.varIndex, &stringArgs.data[b.argIndex]);
             break;
         case kScriptObject:
-            objectArgs.data[b.argIndex] = &vars->objects.data[b.varIndex];
+            objectArgs.data[b.argIndex] = &vars->objects.values.data[b.varIndex];
             break;
         case kScriptGroup:
-            groupArgs.data[b.argIndex] = &vars->groups.data[b.varIndex];
+            groupArgs.data[b.argIndex] = &vars->groups.values.data[b.varIndex];
             break;
         default:
             game::FatalError("SSCCmd::SetParameters, unknown parameter type");

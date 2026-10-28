@@ -35,14 +35,14 @@ int ObjectId(const ScriptObjectRef& ref) { return ref.object ? ref.object->id_ :
 // A ScriptVars as the definition and run savers write it: floats, strings and objects inline (the
 // pieces of their savers; objects through ScriptObjectRef::Save), groups through the group saver.
 void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
-    NamedValues(&vars->floats)->Save(stream);
-    NamedValues(&vars->strings)->Save(stream);
-    WriteInt(stream, vars->objects.size);
-    for (int i = 0; i < vars->objects.size; ++i) {
-        vars->objects.data[i].Save(stream);
-        WriteName(stream, vars->objectNames, i);
+    vars->floats.Save(stream);
+    vars->strings.Save(stream);
+    WriteInt(stream, vars->objects.values.size);
+    for (int i = 0; i < vars->objects.values.size; ++i) {
+        vars->objects.values.data[i].Save(stream);
+        WriteName(stream, vars->objects.names, i);
     }
-    NamedValues(&vars->groups)->Save(stream);
+    vars->groups.Save(stream);
 }
 
 // A list's count, then each element through its saver `save`.
@@ -167,10 +167,10 @@ void CScript::SaveState(ScriptStream* stream) {
     for (int i = 0; i < scripts.size; ++i) scripts.data[i].Save(stream);
 
     const ScriptVars& globals = globals_;
-    NamedValues(&globals.floats)->Save(stream);
-    NamedValues(&globals.strings)->Save(stream);
-    NamedValues(&globals.objects)->Save(stream);
-    NamedValues(&globals.groups)->Save(stream);
+    globals.floats.Save(stream);
+    globals.strings.Save(stream);
+    globals.objects.Save(stream);
+    globals.groups.Save(stream);
 
     // Instances (copies of definitions) and runs.
     WriteList(stream, instances_, &ScriptDefinition::Save);

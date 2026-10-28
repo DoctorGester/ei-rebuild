@@ -42,19 +42,20 @@ static_assert(sizeof(OriginalScriptDefineList::Node) == 0x10);
 
 // A variable set: game.exe's string arrays hold CStrings where ours hold std::strings (the array headers are
 // alike, so ScriptVars' layout is too).
+template <typename Value>
+struct OriginalNamedValues {
+    mfc::CArray<Value> values;
+    mfc::CArray<mfc::CString> names;
+};
 struct OriginalScriptVars {
-    mfc::CArray<float> floats;
-    mfc::CArray<mfc::CString> floatNames;
-    mfc::CArray<mfc::CString> strings;
-    mfc::CArray<mfc::CString> stringNames;
-    mfc::CArray<ScriptObjectRef> objects;
-    mfc::CArray<mfc::CString> objectNames;
-    mfc::CArray<ScriptGroup> groups;
-    mfc::CArray<mfc::CString> groupNames;
+    OriginalNamedValues<float> floats;
+    OriginalNamedValues<mfc::CString> strings;
+    OriginalNamedValues<ScriptObjectRef> objects;
+    OriginalNamedValues<ScriptGroup> groups;
 };
 static_assert(sizeof(OriginalScriptVars) == sizeof(ScriptVars) &&
-              offsetof(OriginalScriptVars, stringNames) == offsetof(ScriptVars, stringNames) &&
-              offsetof(OriginalScriptVars, groupNames) == offsetof(ScriptVars, groupNames));
+              offsetof(OriginalScriptVars, strings) == offsetof(ScriptVars, strings) &&
+              offsetof(OriginalScriptVars, groups) == offsetof(ScriptVars, groups));
 
 inline const OriginalScriptVars& OriginalGlobals(CScript* script) {
     return *reinterpret_cast<const OriginalScriptVars*>(script->Globals());

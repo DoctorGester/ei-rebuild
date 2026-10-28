@@ -101,11 +101,11 @@ int CWorldServer::Update() {
     ScriptGroup heroes;
     InitGroup(&heroes);
     ScriptVars& globals = MainScript()->globals_;
-    auto& names = globals.groupNames;
+    auto& names = globals.groups.names;
     for (int i = 0; i < names.size; ++i) {
         if (gamecrt::mbscmp(names.data[i].c_str(), worlddata::HeroesGroupText()) == 0) {
             lib::InPlace<ScriptGroup> storage;
-            ScriptGroup* group = globals.groups.CopyAt(storage.Get(), i);
+            ScriptGroup* group = globals.groups.values.CopyAt(storage.Get(), i);
             heroes.CopyFrom(*group);
             storage.Get()->DestructBody();
             break;

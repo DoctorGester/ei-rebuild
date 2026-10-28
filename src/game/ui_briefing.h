@@ -266,9 +266,7 @@ public:
     CChatWindow* chat_;              // a network client's only
     stlp::vector<int> people_;       // ids of the local player's objects that are text keys
     float markPhase_;                // kept below 1
-    BriefingSpeaker* speakers_;
-    BriefingSpeaker* speakersEnd_;
-    BriefingSpeaker* speakersCapacity_;
+    stlp::vector<BriefingSpeaker> speakers_;
     int chatActive_;                 // the chat window takes the input
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).

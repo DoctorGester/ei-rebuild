@@ -38,14 +38,14 @@ void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from) {
 
 // ScriptVars::operator= as inlined into ScriptRun::operator= and out of line.
 void AssignVars(ScriptVars* to, const ScriptVars* from) {
-    CopyFloats(&to->floats, &from->floats);
-    to->floatNames.CopyFrom(from->floatNames);
-    to->strings.CopyFrom(from->strings);
-    to->stringNames.CopyFrom(from->stringNames);
-    to->objects.CopyFrom(from->objects);
-    to->objectNames.CopyFrom(from->objectNames);
-    to->groups.CopyFrom(from->groups);
-    to->groupNames.CopyFrom(from->groupNames);
+    CopyFloats(&to->floats.values, &from->floats.values);
+    to->floats.names.CopyFrom(from->floats.names);
+    to->strings.values.CopyFrom(from->strings.values);
+    to->strings.names.CopyFrom(from->strings.names);
+    to->objects.values.CopyFrom(from->objects.values);
+    to->objects.names.CopyFrom(from->objects.names);
+    to->groups.values.CopyFrom(from->groups.values);
+    to->groups.names.CopyFrom(from->groups.names);
 }
 
 } // namespace
@@ -253,33 +253,33 @@ EI_REWRITTEN(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 // ScriptVars' copy constructor: names, string values (through GetAt), objects through the
 // reference helpers, groups assigned from GetAt copies.
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
-    InitArray(&floats, mfc::impl::ScriptFloatValuesClass::Vtable());
-    CopyFloats(&floats, &other->floats);
-    floatNames.CopyConstruct(&other->floatNames);
-    CopyConstructStrings(&strings, &other->strings);
-    stringNames.CopyConstruct(&other->stringNames);
+    InitArray(&floats.values, mfc::impl::ScriptFloatValuesClass::Vtable());
+    CopyFloats(&floats.values, &other->floats.values);
+    floats.names.CopyConstruct(&other->floats.names);
+    CopyConstructStrings(&strings.values, &other->strings.values);
+    strings.names.CopyConstruct(&other->strings.names);
 
-    InitArray(&objects, mfc::impl::ScriptGroupClass::Vtable());
-    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects).SetSize(other->objects.size, -1);
-    for (int i = 0; i < other->objects.size; ++i) {
+    InitArray(&objects.values, mfc::impl::ScriptGroupClass::Vtable());
+    mfc::impl::ArrayAs<gamearrays::ObjectRefs>(objects.values).SetSize(other->objects.values.size, -1);
+    for (int i = 0; i < other->objects.values.size; ++i) {
         ScriptObjectRef value;
-        other->objects.CopyAt(&value, i);
-        ScriptObjectRef* slot = &objects.data[i];
+        other->objects.values.CopyAt(&value, i);
+        ScriptObjectRef* slot = &objects.values.data[i];
         slot->Reset();
         slot->Construct(value);
         value.Reset();
     }
-    objectNames.CopyConstruct(&other->objectNames);
+    objects.names.CopyConstruct(&other->objects.names);
 
-    InitArray(&groups, gamearrays::ScriptGroupValuesClass::Vtable());
-    mfc::impl::ArrayAs<gamearrays::Groups>(groups).SetSize(other->groups.size, -1);
-    for (int i = 0; i < other->groups.size; ++i) {
+    InitArray(&groups.values, gamearrays::ScriptGroupValuesClass::Vtable());
+    mfc::impl::ArrayAs<gamearrays::Groups>(groups.values).SetSize(other->groups.values.size, -1);
+    for (int i = 0; i < other->groups.values.size; ++i) {
         ScriptGroup copy;
-        other->groups.CopyAt(&copy, i);
-        groups.data[i].CopyFrom(copy);
+        other->groups.values.CopyAt(&copy, i);
+        groups.values.data[i].CopyFrom(copy);
         copy.DestructBody();
     }
-    groupNames.CopyConstruct(&other->groupNames);
+    groups.names.CopyConstruct(&other->groups.names);
     return this;
 }
 EI_REWRITTEN(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
@@ -287,14 +287,14 @@ EI_REWRITTEN(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 // ScriptVars' default constructor: each array's base constructor
 // (all fields 0, base vtable) then its derived vtable, in member order; returns the set.
 ScriptVars* ScriptVars::ScriptVarsConstruct() {
-    InitArray(&floats, mfc::impl::ScriptFloatValuesClass::Vtable());
-    InitArray(&floatNames, gamearrays::ScriptStringValuesClass::Vtable());
-    InitArray(&strings, gamearrays::ScriptStringValuesClass::Vtable());
-    InitArray(&stringNames, gamearrays::ScriptStringValuesClass::Vtable());
-    InitArray(&objects, mfc::impl::ScriptGroupClass::Vtable());
-    InitArray(&objectNames, gamearrays::ScriptStringValuesClass::Vtable());
-    InitArray(&groups, gamearrays::ScriptGroupValuesClass::Vtable());
-    InitArray(&groupNames, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&floats.values, mfc::impl::ScriptFloatValuesClass::Vtable());
+    InitArray(&floats.names, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&strings.values, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&strings.names, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&objects.values, mfc::impl::ScriptGroupClass::Vtable());
+    InitArray(&objects.names, gamearrays::ScriptStringValuesClass::Vtable());
+    InitArray(&groups.values, gamearrays::ScriptGroupValuesClass::Vtable());
+    InitArray(&groups.names, gamearrays::ScriptStringValuesClass::Vtable());
     return this;
 }
 EI_REWRITTEN(0x004C00D0, ScriptVars::ScriptVarsConstruct);

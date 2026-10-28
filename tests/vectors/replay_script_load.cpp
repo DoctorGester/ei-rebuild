@@ -53,19 +53,19 @@ void ReadTexts(Reader& r, mfc::CArray<std::string>* a) {
 // PutVars' set: objects null, groups empty (the loader reads neither).
 void ReadVars(Reader& r, ScriptVars* v) {
     v->ScriptVarsConstruct();
-    ReadShape(r, &v->floats, mfc::impl::ScriptFloatValuesClass::Vtable());
-    if (v->floats.size > 0) {
-        if (const unsigned char* p = r.Bytes(static_cast<std::size_t>(v->floats.size) * 4))
-            std::memcpy(v->floats.data, p, static_cast<std::size_t>(v->floats.size) * 4);
+    ReadShape(r, &v->floats.values, mfc::impl::ScriptFloatValuesClass::Vtable());
+    if (v->floats.values.size > 0) {
+        if (const unsigned char* p = r.Bytes(static_cast<std::size_t>(v->floats.values.size) * 4))
+            std::memcpy(v->floats.values.data, p, static_cast<std::size_t>(v->floats.values.size) * 4);
     }
-    ReadTexts(r, &v->floatNames);
-    ReadTexts(r, &v->strings);
-    ReadTexts(r, &v->stringNames);
-    ReadShape(r, &v->objects, mfc::impl::ScriptGroupClass::Vtable());
-    ReadTexts(r, &v->objectNames);
-    ReadShape(r, &v->groups, gamearrays::ScriptGroupValuesClass::Vtable());
-    for (int i = 0; i < v->groups.size; ++i) v->groups.data[i].vtable = mfc::impl::ScriptGroupClass::Vtable();
-    ReadTexts(r, &v->groupNames);
+    ReadTexts(r, &v->floats.names);
+    ReadTexts(r, &v->strings.values);
+    ReadTexts(r, &v->strings.names);
+    ReadShape(r, &v->objects.values, mfc::impl::ScriptGroupClass::Vtable());
+    ReadTexts(r, &v->objects.names);
+    ReadShape(r, &v->groups.values, gamearrays::ScriptGroupValuesClass::Vtable());
+    for (int i = 0; i < v->groups.values.size; ++i) v->groups.values.data[i].vtable = mfc::impl::ScriptGroupClass::Vtable();
+    ReadTexts(r, &v->groups.names);
 }
 
 void InitBlocks(mfc::CList<ScriptDecl>* list, int count) {

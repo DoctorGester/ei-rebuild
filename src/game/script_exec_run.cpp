@@ -195,34 +195,34 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 // ---- Script instances ---------------------------------------------------------------------------
 
 void ScriptDefinition::BindCall(const SSCCmd* call) {
-    if (call->floatArgs.size - 1 != vars.floats.size) {
+    if (call->floatArgs.size - 1 != vars.floats.values.size) {
         game::FatalError(kWrongFloatCount, name.c_str());
         return;
     }
-    if (call->stringArgs.size - 1 != vars.strings.size) {
+    if (call->stringArgs.size - 1 != vars.strings.values.size) {
         game::FatalError(kWrongStringCount, name.c_str());
         return;
     }
-    if (call->objectArgs.size != vars.objects.size) {
+    if (call->objectArgs.size != vars.objects.values.size) {
         game::FatalError(kWrongObjectCount, name.c_str());
         return;
     }
-    if (call->groupArgs.size != vars.groups.size) {
+    if (call->groupArgs.size != vars.groups.values.size) {
         game::FatalError(kWrongGroupCount, name.c_str());
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
-    for (int i = 1; i < call->floatArgs.size; ++i) std::memcpy(&vars.floats.data[i - 1], &call->floatArgs.data[i], 4);
-    for (int i = 1; i < call->stringArgs.size; ++i) vars.strings.data[i - 1] = call->stringArgs.data[i];
+    for (int i = 1; i < call->floatArgs.size; ++i) std::memcpy(&vars.floats.values.data[i - 1], &call->floatArgs.data[i], 4);
+    for (int i = 1; i < call->stringArgs.size; ++i) vars.strings.values.data[i - 1] = call->stringArgs.data[i];
     for (int i = 0; i < call->objectArgs.size; ++i) {
         const ScriptObjectRef* value = call->objectArgs.data[i];
-        ScriptObjectRef* slot = &vars.objects.data[i];
+        ScriptObjectRef* slot = &vars.objects.values.data[i];
         if (slot->object) slot->object->Release();
         slot->object = nullptr;
         slot->object = value->object;
         if (slot->object) ++slot->object->refCount_;
     }
-    for (int i = 0; i < call->groupArgs.size; ++i) vars.groups.data[i].CopyFrom(*call->groupArgs.data[i]);
+    for (int i = 0; i < call->groupArgs.size; ++i) vars.groups.values.data[i].CopyFrom(*call->groupArgs.data[i]);
 }
 EI_REWRITTEN(0x004BB6A0, ScriptDefinition::BindCall);
 
@@ -248,10 +248,10 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     run->block = block;
     if (instance) {
         ScriptVars& from = instance->vars;
-        run->vars.floats.Copy(from.floats);
-        run->vars.strings.CopyFrom(from.strings);
-        run->vars.objects.CopyFrom(from.objects);
-        run->vars.groups.CopyFrom(from.groups);
+        run->vars.floats.values.Copy(from.floats.values);
+        run->vars.strings.values.CopyFrom(from.strings.values);
+        run->vars.objects.values.CopyFrom(from.objects.values);
+        run->vars.groups.values.CopyFrom(from.groups.values);
     }
     run->index = 0;
     run->ticks = 0;
@@ -364,8 +364,8 @@ void __fastcall ScriptTick(CScript* script) {
 
     // Global variables: drop deleted objects.
     ScriptVars* globals = script->Globals();
-    for (int i = 0; i < globals->objects.size; ++i) globals->objects.data[i].ReleaseIfDeleted();
-    for (int i = 0; i < globals->groups.size; ++i) globals->groups.data[i].RemoveDeleted();
+    for (int i = 0; i < globals->objects.values.size; ++i) globals->objects.values.data[i].ReleaseIfDeleted();
+    for (int i = 0; i < globals->groups.values.size; ++i) globals->groups.values.data[i].RemoveDeleted();
 
     RespawnFxSources(script);
     UpdatePointLights(script);

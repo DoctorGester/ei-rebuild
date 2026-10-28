@@ -137,17 +137,17 @@ void __fastcall Execs(CStringArray* args) {
 void __fastcall ListGlobals(CStringArray*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
     auto name = [](const mfc::CArray<std::string>& names, int i) { return names.data[i].c_str(); };
-    for (int i = 0; i < globals.floats.size; ++i)
-        SayFormat("%s : float = %f", name(globals.floatNames, i), static_cast<double>(globals.floats.data[i]));
-    for (int i = 0; i < globals.strings.size; ++i)
-        SayFormat("%s : string = \"%s\"", name(globals.stringNames, i), name(globals.strings, i));
-    for (int i = 0; i < globals.objects.size; ++i) {
-        std::string text = ObjectText(globals.objects.data[i]);
-        SayFormat("%s : object = %s", name(globals.objectNames, i), text.c_str());
+    for (int i = 0; i < globals.floats.values.size; ++i)
+        SayFormat("%s : float = %f", name(globals.floats.names, i), static_cast<double>(globals.floats.values.data[i]));
+    for (int i = 0; i < globals.strings.values.size; ++i)
+        SayFormat("%s : string = \"%s\"", name(globals.strings.names, i), name(globals.strings.values, i));
+    for (int i = 0; i < globals.objects.values.size; ++i) {
+        std::string text = ObjectText(globals.objects.values.data[i]);
+        SayFormat("%s : object = %s", name(globals.objects.names, i), text.c_str());
     }
-    for (int i = 0; i < globals.groups.size; ++i) {
-        std::string text = GroupText(globals.groups.data[i]);
-        SayFormat("%s : group = %s", name(globals.groupNames, i), text.c_str());
+    for (int i = 0; i < globals.groups.values.size; ++i) {
+        std::string text = GroupText(globals.groups.values.data[i]);
+        SayFormat("%s : group = %s", name(globals.groups.names, i), text.c_str());
     }
 }
 
