@@ -494,6 +494,9 @@ to which template:
 - Rule from this pass: the rules' column is where MSVC points, not where the expression starts: a C2440 '=' column
   at the right-hand side (find the `=` before it on the line), a 'return' column past the keyword in a one-line
   body, and a method's receiver that is a cast (`const_cast<T*>(x)->GetBuffer(0)`) starts at the cast keyword.
+  A rewrite that turns one statement into two (`return std::construct_at(out, a);` -> `*out = a; return out;`)
+  braces them where the statement was an if's body: unbraced, the return ran always (BriefingSpeakerInto, 8 MP
+  goldens).
 - To read game.exe's objects where our layout differs, a recorder declares game.exe's layout itself
   (record_stats.cpp's `OriginalSkill*`, script_original.h), never our header with a sizeof stride. Record such a
   change once (`EI_VECTORS=1`, `--no-hooks --vanilla-only` on scenarios that reach it, `vectors.py merge <runs>
