@@ -363,7 +363,7 @@ void CBriefingScreen::MarkPeople() {
         std::uint32_t bits;
         std::memcpy(&bits, &node->value.mapped, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->value.key, &parts, '.');
+        text::Split(node->value.key.c_str(), &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (Compare(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
         int id = TextKeyFromName(parts[1].c_str());

@@ -41,13 +41,8 @@ CStdioFile::~CStdioFile() { file_.Destruct(); }
 mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
     return file_.Open(std::string(name).c_str(), flags, error);
 }
-// MFC's CStdioFile::ReadString(CString&) reads into a CString of src/lib's MFC; the line is its text.
-mfc::BOOL CStdioFile::ReadString(std::string& line) {
-    mfc::CString read;
-    const mfc::BOOL found = file_.ReadLine(mfc::ImplOf(read));
-    line = read.GetString();
-    return found;
-}
+// MFC's CStdioFile::ReadString(CString&), into a string.
+mfc::BOOL CStdioFile::ReadString(std::string& line) { return file_.ReadLine(line); }
 char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadString(buffer, size); }
 void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
 void CStdioFile::Close() { file_.Close(); }

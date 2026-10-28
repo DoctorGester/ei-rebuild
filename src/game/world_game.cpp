@@ -1757,7 +1757,7 @@ void GameFlow::BuildZoneTable() {
     }
     while (more) {
         more = find.FindNext();
-        std::string name = find.GetTitle().GetString();
+        std::string name = find.GetTitle();
         str::MakeLower(name);
         RegisterQuests(name.c_str());
         UnloadQuestTexts();

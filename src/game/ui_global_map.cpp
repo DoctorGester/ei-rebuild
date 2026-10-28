@@ -281,7 +281,7 @@ void CGlobalMap::CreateScreen() {
             std::uint32_t value;
             std::memcpy(&value, &node->value.mapped, 4);
             if (value == 0x3F800000) {
-                text::Split(node->value.key, &parts, '.');
+                text::Split(node->value.key.c_str(), &parts, '.');
                 if (parts.size() == 3) {
                     int n = questCount_;
                     SetPlaceCount(quests_, quests_.size + 1);

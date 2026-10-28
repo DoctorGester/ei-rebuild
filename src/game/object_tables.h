@@ -145,19 +145,19 @@ struct CMapDatabase {
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
 
-// The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies):
-// STLport's hashtable over pair<CString, float> (stlp_hash.h; its members are in
-// stlp_hash.cpp), nodes {next, key, value}, with the named-variable members the game adds.
-struct NamedFloatTable : stlp::hashtable<stlp::CStringFloatTraits> {
+// The game's hash_map<CString, float> (the party's and players' variables, the briefing's copies) with std::string
+// keys: STLport's hashtable over pair<string, float> (stlp_hash.h; game.exe's hash and bucket order), nodes {next,
+// key, value}, with the named-variable members the game adds.
+struct NamedFloatTable : stlp::hashtable<stlp::StringFloatTraits> {
     // hash_map(): 100 buckets.
     void ConstructDefault() { Construct(100, 0, 0, 0); }
     // operator[]: the value under `key`, a new zero one when absent.
     float& operator[](const std::string& key) {
-        stlp::CStringFloat entry(key);
+        stlp::StringFloat entry(key);
         return FindOrInsert(entry).mapped;
     }
 
-    // Value stored under `name` (_mbscmp), 0 if absent. Builds a CString of the name first, as the game does.
+    // Value stored under `name`, 0 if absent. Builds a string of the name first, as the game does.
     float Get(const char* name);
     // Stores `value` under `name`; a zero value (or NaN: the game's FCOMP
     // test) removes the entry instead. Nothing for an empty name.

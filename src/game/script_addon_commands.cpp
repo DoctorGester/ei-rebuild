@@ -215,7 +215,7 @@ bool GSListPlayerVars(Call* call) {
     const NamedFloatTable& variables = player->Party()->variables_;
     for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         std::string line;
-        line = str::Format("%s = %f", node->value.key.GetString(), static_cast<double>(node->value.mapped));
+        line = str::Format("%s = %f", node->value.key.c_str(), static_cast<double>(node->value.mapped));
         (console::Out() << line.c_str() << "\n").Flush();
     }
     return true;

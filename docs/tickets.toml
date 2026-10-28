@@ -2957,7 +2957,7 @@ title = "C14 maps: stlp::hash_map, map, set to std types, keeping iteration orde
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "Child of C14 (user 2026-10-22: scripted mechanical rewrite, checked by both suites; hand work only where goldens differ). Write the rewrite as a script under tools/ (one rule per call shape), run it, build, run both suites; fix by hand only the sites that differ. Classes are normal C++ (rewrite-guide.md). After C27. 57 hash_map uses: where order is visible (goldens differ), keep an order-compatible map; the rest std::unordered_map. Sort stability where equal elements show (objectives list)."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C14d"
@@ -2965,7 +2965,7 @@ title = "C14 archives: CFile/CArchive to our own small stream, with a save round
 group = "cleanup"
 model = "opus"
 depends = ["C14c"]
-note = "Child of C14 (user 2026-10-22: scripted mechanical rewrite, checked by both suites; hand work only where goldens differ). Write the rewrite as a script under tools/ (one rule per call shape), run it, build, run both suites; fix by hand only the sites that differ. Classes are normal C++ (rewrite-guide.md). After C27. Saves and network messages keep their byte encoding; add a check that writes a save and compares its bytes with the original's."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C28a"
@@ -3455,7 +3455,7 @@ title = "C14 string bridge: the last mfc::CString users (NamedFloatTable keys, s
 group = "cleanup"
 model = "opus"
 depends = ["C14a"]
-note = "Left by C14a's whole-tree pass (2026-10-28): src/game has one CString (CStdioFile::ReadString's local for MFC's ReadLine). Left: NamedFloatTable is stlp::hashtable<stlp::CStringFloatTraits> (src/lib stlp_hash.h; keys hashed and compared as CStrings; operator[] takes a std::string and builds the CString key): move it to a std::string key with the same hash and bucket order (StringKeyTraits); CFileFind::GetFilePath / GetFileName return CStrings (callers take GetString()); CStdioFile / impl::CStdioFile ReadLine into a std::string; then mfc::CString lives only inside src/lib's MFC (CFile names, CArchive, impl::CStringArray) and tests' Original* layouts (record_script*.cpp, script_original.h, script_load_vectors.h PutText, record_stats.cpp, harness views), which read game.exe's objects and stay. Counts after C14a (code lines, comments masked): src/game 1, src/lib 291, tests/vectors 55, tests/verify 17."
+note = "Left by C14a's whole-tree pass (2026-10-28): src/game has one CString (CStdioFile::ReadString's local for MFC's ReadLine). Left: NamedFloatTable is stlp::hashtable<stlp::CStringFloatTraits> (src/lib stlp_hash.h; keys hashed and compared as CStrings; operator[] takes a std::string and builds the CString key): move it to a std::string key with the same hash and bucket order (StringKeyTraits); CFileFind::GetFilePath / GetFileName return CStrings (callers take GetString()); CStdioFile / impl::CStdioFile ReadLine into a std::string; then mfc::CString lives only inside src/lib's MFC (CFile names, CArchive, impl::CStringArray) and tests' Original* layouts (record_script*.cpp, script_original.h, script_load_vectors.h PutText, record_stats.cpp, harness views), which read game.exe's objects and stay. Counts after C14a (code lines, comments masked): src/game 1, src/lib 291, tests/vectors 55, tests/verify 17. C14g done (to review): NamedFloatTable is hashtable<StringFloatTraits> (std::string key, HashChars over the bytes, == : game.exe's buckets and order); mfc.h's CFileFind GetFilePath/GetFileName/GetTitle and CTime::Format return std::string; impl::CStdioFile::ReadLine reads into a std::string (console.cpp's CString went); mfc::CString keeps ctors, assignments, GetLength, const char* (tests' Original* layouts); gone: CStringFloat(Traits), ImplOf, kUnset, CFileFindVirtuals, the std::string bridges and operator+, Format/Find/Mid/Trim/... members (and replay_mfc.cpp's), mfc_array.h's unused StringsAndArray. Code lines naming CString (comments masked) before/after: src/game 1/0, src/lib 291/208 (the rest src/lib's own impl::CString), tests/vectors 56/36, tests/verify 18/18 (exe::CString views; harness_utf8_image tests impl::CString). Image suite --golden: 121 the same."
 
 [[ticket]]
 id = "C14h"
@@ -3463,7 +3463,7 @@ title = "C14 aligned arrays, the rest: the kept lib::AlignedArray declarations a
 group = "cleanup"
 model = "opus"
 depends = ["C14a", "C14b"]
-note = "C14e left lib::AlignedArray where C14a's files (scene_loader, ui_item_info) reach it: figure.h parts, figure_mesh vertices/normals/colours/packets, link_figure colours/speculars, sky_object packets, the figure part draws' ColourArray, party.h PartyItemArray, unit.h weapons/quickItems/armor/spells, world.h items, ui.h UiPtrArray, ui_camp UiItemList, the ui equip/hero lists, scene_bones/meshes/weld and skin_rewind (74 lines, 28 files in src). After C14a merges, rerun C14e's retype_aligned.py (path in C14e's report) with SKIP / KEEP emptied, hand-fix, then delete the dead helpers: mfc_array.h AlignedArrays / FreeAlignedData, mfc_slots.h AlignedAt8Records / AlignedAt8ArrayClass (after C14b), game_arrays.h BlocksAt8 / BlocksAt4 and aligned_arrays.cpp (tests/vectors/replay_unlinked.cpp references ArrayAt8Free / ArrayAt4Free), and replace the remaining AlignedArray<T>::Allocate raw blocks (renderer_lines, particle_emitters, render_helper matrix stack, texture_compose, link_figure packets) with vectors. Also terrain_sector.h SectorVertex pack(1) if its CArray Serialize writes no file. Checks: verify/release, image suite goldens the same."
+note = "User 2026-10-28: replace the usage code with std or small code of ours first, then delete the old container / MFC piece when nothing but the tests' game.exe views uses it; don't retype the library's internals."
 
 [[ticket]]
 id = "C20p"
@@ -3472,12 +3472,21 @@ group = "cleanup"
 note = "C20n dropped the modifiers (script in the scratchpad, kept ones listed by rule), which leaves: (1) the 'void*' second parameter of the old thiscall-as-fastcall shims (T* self, void*, ...) is now a plain unused parameter in ~600 functions: drop it with its call sites (the calls pass nullptr); (2) comments that say __fastcall / ECX / EDX / RET n for functions that no longer carry them (tools/comments.py REGISTER_RX); (3) tools/progress.py fastcall_shims counts '__fastcall Fn(T* self, void*)' and now reads 0: make it count the (T* self, void*) shape without the keyword, or retire the line; (4) tools/gen_static_init.py still writes 'void __cdecl Fn()' (harmless default, but keep it matching)."
 
 [[ticket]]
+id = "C14i"
+title = "Delete mfc_string: src/lib's MFC on std::string"
+group = "cleanup"
+model = "opus"
+depends = ["C20o"]
+files = ["src/lib/mfc_string.h", "src/lib/mfc_string.cpp"]
+note = "User 2026-10-28: don't retype MFC's internals. Replace the usage code first: each place that uses an MFC class (CFile / CStdioFile / CFileFind, CArchive, CTime, CWnd text, GDI, resources, exceptions) calls std or a small simple helper of ours instead; when a piece of src/lib's MFC has no user left, delete it. mfc_string goes once only the tests' game.exe views (a local layout struct) still need its layout. Same approach for the other MFC / STLport tickets (C14c, C14d, C14m, C14n, C14h)."
+
+[[ticket]]
 id = "C14m"
 title = "C14 MFC arrays and lists: CArray, CList / CTypedPtrList to std::vector / std::list, with C28o's collection tags"
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "C14b moved the STLport vectors and lists (stlp::vector 314 -> 141 lines, stlp::list 177 -> 108); the MFC containers were not touched: CArray 427 lines / 130 files, CList 141 / 54, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens."
+note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. C14b moved the STLport vectors and lists (stlp::vector 314 -> 141 lines, stlp::list 177 -> 108); the MFC containers were not touched: CArray 427 lines / 130 files, CList 141 / 54, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens."
 
 [[ticket]]
 id = "C14n"
@@ -3485,7 +3494,7 @@ title = "C14 the kept STLport vectors and lists: record element policies, counte
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
+note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
 
 [[ticket]]
 id = "S"

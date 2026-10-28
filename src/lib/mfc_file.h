@@ -94,7 +94,7 @@ struct CStdioFile : CFile {
     void Flush();
     void Close();
     void WriteString(const char* text);
-    BOOL ReadLine(CString& text);                               // (slot 22: ReadString(CString&))
+    BOOL ReadLine(std::string& text);                           // (slot 22: ReadString(CString&), into a string)
     char* ReadString(char* buffer, unsigned size);
 };
 static_assert(sizeof(CStdioFile) == 0x14);
