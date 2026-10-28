@@ -212,7 +212,7 @@ Not hooked: 0040ECD0 (camera file load, Rebirth-patched, `CameraPatch`), 0040C7E
 - Dead (config/dead_code.csv): 00431070-00432D20 (a RIPEMD-like key exchange and stream cipher),
   00402310, 00402780 (radix sort), 0042E700 / 0042F4C0 / 0042F890, 0047A710-0047ACA0 (Huffman builder),
   the 3DS readers at 004A0350-004A4800 and more found by scanning aligned starts after a RET. A
-  rerun of `tools/find_dead_code.py` drops hand-added rows that only coincidental dwords keep alive.
+  rerun of `tools/find_dead_code.py` keeps these hand-added rows (C20k).
 
 ## MFC CString: Mid and Right
 

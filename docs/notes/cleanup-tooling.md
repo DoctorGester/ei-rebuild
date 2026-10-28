@@ -16,7 +16,7 @@ build; the list and why each runs are in build.cmd). The others are run by hand 
 | `check_registrations.py` | two `EI_REWRITTEN` lines of one address (reads the built DLL's `.eiorg`) |
 | `check_cleanup.py` | per file, the counts of offset access (`At<>` / `Field<>`), `VCall`, `__asm`, `float_control`, raw game addresses and `*At` views may only go down (`config/cleanup_baseline.csv`; a new file starts at zero; `--update` after a cleanup) |
 | `progress.py` | rewritten / verified numbers plus the cleanup artefact counts (below) |
-| `find_dead_code.py` | rewrites `config/dead_code.csv` from scratch (drops hand-added rows; refuses arguments) |
+| `find_dead_code.py` | updates `config/dead_code.csv`: keeps every hand-added row, rewrites its own generated rows in place, never removes (prints generated rows no longer dead); refuses arguments |
 
 ## `progress.py` cleanup artefacts
 
