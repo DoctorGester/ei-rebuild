@@ -9,6 +9,7 @@
 #include "lib/crt.h"
 
 #include <cstddef>
+#include <cstdio>
 #include <cstdint>
 
 // The abstract stream. Flag bits as GameBuffer's: 0 the window holds unwritten bytes, 3 an error.
@@ -82,7 +83,7 @@ public:
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
 
-    gamecrt::CrtFile* file;
+    std::FILE* file;
 };
 static_assert(offsetof(BufferedFile, file) == 0x1C);
 static_assert(sizeof(BufferedFile) == 0x20);

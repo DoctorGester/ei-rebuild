@@ -107,24 +107,6 @@ double acos(double c);
 // truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
 inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
-int write(int fd, const void* buffer, unsigned count);
-
-struct CrtFile;
-std::size_t fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file);
-// The _fileno macro (the host CRT's, libcrt::Fileno).
-int fileno(const CrtFile* file);
-
-// _finddata_t (VC6: 32-bit times, local time through FileTimeToLocalFileTime).
-struct FindData {
-    std::uint32_t attrib;       // 0 for FILE_ATTRIBUTE_NORMAL
-    std::int32_t createTime;    // -1 when the file system has none
-    std::int32_t accessTime;
-    std::int32_t writeTime;
-    std::uint32_t size;         // the low 32 bits
-    char name[260];
-};
-static_assert(sizeof(FindData) == 0x118);
-
 // The handler operator new calls when the heap is exhausted (nonzero: try again; _set_new_handler sets it).
 using NewHandler = int(__cdecl*)(std::size_t);
 
@@ -214,9 +196,6 @@ char* NodeChunkAlloc(std::size_t size, int* count);
 gamecrt::NewHandler SetNewHandler(gamecrt::NewHandler handler);
 
 int Vsprintf(char* buffer, const char* format, va_list args);
-// The game's stdin, stdout and stderr (index 0..2). In the image a CrtFile* is the host's FILE*: these three
-// stand for the host's own streams (crt_file.cpp's HostFile), nothing reads their bytes.
-gamecrt::CrtFile* GameStream(int index);
 
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE. Out of the domain: the
@@ -240,29 +219,6 @@ using ExitFunction = void(__cdecl*)();
 ExitFunction OnExit(ExitFunction function);
 int AtExit(ExitFunction function);
 void Exit(int code);
-
-// Files (src/lib/crt_file.cpp; image only, like the heap). A file is opened as VC6's _sopen opens it, through
-// the game's import slots (CreateFileA, GetFileType: a mod's or the harness's redirection applies), then
-// handed to the host CRT as a descriptor (_open_osfhandle) and, for fopen, a stream (_fdopen): the CrtFile*
-// is the host's FILE*, and reads, writes, seeks and text-mode translation are the host CRT's (the same as
-// VC6's for the ANSI text mode). A bad descriptor or stream fails with -1 / 0 as in VC6's release CRT. errno
-// is the host's (nothing in the game reads it).
-int Open(const char* path, int flags, ...);
-int Read(int fd, void* buffer, unsigned count);
-int Write(int fd, const void* buffer, unsigned count);
-long Lseek(int fd, long offset, int origin);
-int Close(int fd);
-long Filelength(int fd);
-int Access(const char* path, int mode);
-long Findfirst(const char* pattern, gamecrt::FindData* data);
-gamecrt::CrtFile* Fopen(const char* path, const char* mode);
-int Fclose(gamecrt::CrtFile* file);
-int Fseek(gamecrt::CrtFile* file, long offset, int origin);
-long Ftell(gamecrt::CrtFile* file);
-std::size_t Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
-std::size_t Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file);
-int Fflush(gamecrt::CrtFile* file);
-int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
 

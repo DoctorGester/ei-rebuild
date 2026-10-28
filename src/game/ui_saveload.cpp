@@ -21,6 +21,7 @@
 #include "world.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -449,7 +450,7 @@ void QuickSave(const char* slot, char stepFrame) {
 void QuickLoad(const char* slot) {
     if (IsMultiplayerClient()) return;
     std::string folder = SlotFolder(slot);
-    if (libcrt::Access(folder.c_str(), 0) == -1) return;
+    if (!lib::FileExists(folder.c_str())) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
     TheInterface()->ShowStatusText(notice.c_str());

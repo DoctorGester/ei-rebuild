@@ -89,14 +89,6 @@ const int* CaseFoldTable() {
 
 double acos(double c) { return libcrt::CiAcos(c); }
 
-#ifndef EI_VECTORS_REPLAY
-int write(int fd, const void* buffer, unsigned count) { return libcrt::Write(fd, buffer, count); }
-#endif
-
-std::size_t fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file) {
-    return libcrt::Fwrite(from, size, count, file);
-}
-
 } // namespace gamecrt
 
 namespace game {

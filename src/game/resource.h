@@ -119,7 +119,7 @@ public:
     // ListFiles without Rebirth's ResOverride (see GetFilePlain).
     void ListFilesPlain(std::vector<std::string>* names, const char* pattern) const;
 
-    int fd_;                    // CRT file descriptor, -1 when closed
+    void* handle_;               // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
     char* image_;                // archive image when opened with OpenFromMemory
     std::uint32_t writable_;
     stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;

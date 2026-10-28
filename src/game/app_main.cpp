@@ -29,6 +29,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -48,7 +49,9 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <io.h>
 #include <string>
 
 using options::GameOptions;
@@ -194,16 +197,16 @@ void AppendDefaultMessages(std::vector<std::string>& messages) {
 
 // The lines of .\res\sysmsg.txt, or the built-in three when the file is missing or shorter.
 void LoadSystemMessages(std::vector<std::string>& messages) {
-    gamecrt::CrtFile* file = libcrt::Fopen(".\\res\\sysmsg.txt", "rt");
+    std::FILE* file = lib::OpenFile(".\\res\\sysmsg.txt", "rt");
     if (!file) {
         AppendDefaultMessages(messages);
         return;
     }
-    const std::size_t length = static_cast<std::size_t>(libcrt::Filelength(gamecrt::fileno(file)));
+    const std::size_t length = static_cast<std::size_t>(_filelength(_fileno(file)));
     char* text = gamecrt::operator_new_array<char>(length);
     std::memset(text, 0, length);
-    libcrt::Fread(text, 1, length, file);
-    libcrt::Fclose(file);
+    std::fread(text, 1, length, file);
+    std::fclose(file);
     text::Split(text, &messages, '\n');
     if (messages.size() < kMessageLines) {
         messages.clear();

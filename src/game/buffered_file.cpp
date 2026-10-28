@@ -4,6 +4,7 @@
 #include "net_classes.h"
 
 #include "lib/crt.h"
+#include "lib/file_io.h"
 #include "lib/static_object.h"
 #include "lib/stlp_hash.h"
 
@@ -164,32 +165,32 @@ std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
 
 int BufferedFile::ReadAtFile(std::int32_t position, void* to, std::uint32_t size) {
     if (!file) return 0;
-    if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
-    return static_cast<int>(libcrt::Fread(to, 1, size, file));
+    if (std::fseek(file, position, kSeekSet) != 0) return 0;
+    return static_cast<int>(std::fread(to, 1, size, file));
 }
 
 int BufferedFile::WriteAtFile(std::int32_t position, const void* from, std::uint32_t size) {
     if (!file) return 0;
-    if (libcrt::Fseek(file, position, kSeekSet) != 0) return 0;
-    return static_cast<int>(gamecrt::fwrite(from, 1, size, file));
+    if (std::fseek(file, position, kSeekSet) != 0) return 0;
+    return static_cast<int>(std::fwrite(from, 1, size, file));
 }
 
 void BufferedFile::Close() {
     ReleaseBlock();
-    if (file) libcrt::Fclose(file);
+    if (file) std::fclose(file);
     file = nullptr;
 }
 
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();
     flags = newFlags;
-    file = libcrt::Fopen(path, mode);
+    file = lib::OpenFile(path, mode);
     if (!file) {
         flags |= kFlagError;
         return;
     }
-    libcrt::Fseek(file, 0, kSeekEnd);
-    long size = libcrt::Ftell(file);
+    std::fseek(file, 0, kSeekEnd);
+    long size = std::ftell(file);
     flags &= ~kFlagUnwritten;
     auto* block = gamecrt::operator_new_array<std::uint8_t>(kWindowBytes);
     end = block + kWindowBytes;

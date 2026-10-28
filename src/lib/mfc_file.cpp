@@ -63,20 +63,8 @@ const char* FileUrlPrefix() { return "file://"; }
 const char g_chNil[1] = /*007C8BA8*/ {""};
 const char* ChNil() { return g_chNil; }
 
-// ---- The CRT stream calls of CStdioFile -----------------------------------------------------------
-// The game's FILE* is the host CRT's (crt_file.cpp): these are the host's.
-
-FILE* Host(gamecrt::CrtFile* stream) { return reinterpret_cast<FILE*>(stream); }
-
-int OpenOsfhandle(HANDLE file, int flags) { return _open_osfhandle(reinterpret_cast<intptr_t>(file), flags); }
-gamecrt::CrtFile* Fdopen(int fd, const char* mode) { return reinterpret_cast<gamecrt::CrtFile*>(_fdopen(fd, mode)); }
+// _doserrno: the Win32 error of the host CRT's last failed call.
 long DosErrno() { return static_cast<long>(_doserrno); }
-int Fputs(const char* text, gamecrt::CrtFile* stream) { return std::fputs(text, Host(stream)); }
-char* Fgets(char* buffer, int size, gamecrt::CrtFile* stream) { return std::fgets(buffer, size, Host(stream)); }
-void Clearerr(gamecrt::CrtFile* stream) { std::clearerr(Host(stream)); }
-int Fflush(gamecrt::CrtFile* stream) { return std::fflush(Host(stream)); }
-bool AtEnd(gamecrt::CrtFile* stream) { return std::feof(Host(stream)) != 0; }
-bool Failed(gamecrt::CrtFile* stream) { return std::ferror(Host(stream)) != 0; }
 // _fullpath into a caller's buffer: GetFullPathNameA, null when it fails or does not fit (an empty
 // path is the current directory, through the image's GetCurrentDirectoryA, in UTF-8).
 char* Fullpath(char* out, const char* path, std::size_t size) {
@@ -556,8 +544,8 @@ BOOL CStdioFile::Open(const char* path, unsigned flags, CFileException* error) {
         mode[length++] = 't';
     }
     mode[length] = '\0';
-    const int descriptor = OpenOsfhandle(handle, descriptorFlags);
-    if (descriptor != -1) stream = Fdopen(descriptor, mode);
+    const int descriptor = _open_osfhandle(reinterpret_cast<intptr_t>(handle), descriptorFlags);
+    if (descriptor != -1) stream = _fdopen(descriptor, mode);
     if (!stream) {
         if (error) {
             error->osError = DosErrno();
@@ -571,27 +559,27 @@ BOOL CStdioFile::Open(const char* path, unsigned flags, CFileException* error) {
 
 unsigned CStdioFile::Read(void* buffer, unsigned count) {
     if (count == 0) return 0;
-    const unsigned read = static_cast<unsigned>(libcrt::Fread(buffer, 1, count, stream));
-    if (read == 0 && !AtEnd(stream)) ThrowFileException(CFileException::generic, DosErrno(), fileName);
-    if (Failed(stream)) {
-        Clearerr(stream);
+    const unsigned read = static_cast<unsigned>(std::fread(buffer, 1, count, stream));
+    if (read == 0 && !std::feof(stream)) ThrowFileException(CFileException::generic, DosErrno(), fileName);
+    if (std::ferror(stream)) {
+        std::clearerr(stream);
         ThrowFileException(CFileException::generic, DosErrno(), fileName);
     }
     return read;
 }
 
 void CStdioFile::Write(const void* buffer, unsigned count) {
-    if (gamecrt::fwrite(buffer, 1, count, stream) != count) ThrowFileException(CFileException::generic, DosErrno(), fileName);
+    if (std::fwrite(buffer, 1, count, stream) != count) ThrowFileException(CFileException::generic, DosErrno(), fileName);
 }
 
 void CStdioFile::WriteString(const char* text) {
-    if (Fputs(text, stream) == EOF) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
+    if (std::fputs(text, stream) == EOF) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
 }
 
 char* CStdioFile::ReadString(char* buffer, unsigned size) {
-    char* result = Fgets(buffer, static_cast<int>(size), stream);
-    if (!result && !AtEnd(stream)) {
-        Clearerr(stream);
+    char* result = std::fgets(buffer, static_cast<int>(size), stream);
+    if (!result && !std::feof(stream)) {
+        std::clearerr(stream);
         ThrowFileException(CFileException::generic, DosErrno(), fileName);
     }
     return result;
@@ -606,10 +594,10 @@ BOOL CStdioFile::ReadLine(std::string& text) {
     text.clear();
     char* result;
     for (;;) {
-        result = Fgets(chunk, kChunk + 1, stream);
+        result = std::fgets(chunk, kChunk + 1, stream);
         if (!result) {
-            if (!AtEnd(stream)) {
-                Clearerr(stream);
+            if (!std::feof(stream)) {
+                std::clearerr(stream);
                 ThrowFileException(CFileException::generic, DosErrno(), fileName);
             }
             break;
@@ -623,23 +611,23 @@ BOOL CStdioFile::ReadLine(std::string& text) {
 }
 
 long CStdioFile::Seek(long offset, unsigned from) {
-    if (libcrt::Fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName);
-    return libcrt::Ftell(stream);
+    if (std::fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName);
+    return std::ftell(stream);
 }
 
 unsigned long CStdioFile::GetPosition() const {
-    const long position = libcrt::Ftell(stream);
+    const long position = std::ftell(stream);
     if (position == -1) ThrowFileException(CFileException::invalidFile, DosErrno(), fileName);
     return static_cast<unsigned long>(position);
 }
 
 void CStdioFile::Flush() {
-    if (stream && Fflush(stream) != 0) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
+    if (stream && std::fflush(stream) != 0) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
 }
 
 void CStdioFile::Close() {
     int failed = 0;
-    if (stream) failed = libcrt::Fclose(stream);
+    if (stream) failed = std::fclose(stream);
     handle = kNoFile;
     closeOnDelete = FALSE;
     stream = nullptr;
@@ -647,7 +635,7 @@ void CStdioFile::Close() {
 }
 
 void CStdioFile::Abort() {
-    if (stream && closeOnDelete) libcrt::Fclose(stream);
+    if (stream && closeOnDelete) std::fclose(stream);
     handle = kNoFile;
     stream = nullptr;
     closeOnDelete = FALSE;

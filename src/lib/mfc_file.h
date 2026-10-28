@@ -7,6 +7,8 @@
 #include "mfc_time.h"
 #include "game/game_data.h"
 
+#include <cstdio>
+
 namespace mfc::impl {
 
 // CFileStatus (0x118 bytes): what CFile::GetStatus fills in.
@@ -74,7 +76,7 @@ static_assert(sizeof(CFile) == 0x10);
 
 // CStdioFile (0x14 bytes): a CFile with a CRT stream over its handle.
 struct CStdioFile : CFile {
-    gamecrt::CrtFile* stream;
+    std::FILE* stream;
 
     static void* Vtable();
 
