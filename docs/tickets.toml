@@ -3472,6 +3472,15 @@ group = "cleanup"
 note = "C20n dropped the modifiers (script in the scratchpad, kept ones listed by rule), which leaves: (1) the 'void*' second parameter of the old thiscall-as-fastcall shims (T* self, void*, ...) is now a plain unused parameter in ~600 functions: drop it with its call sites (the calls pass nullptr); (2) comments that say __fastcall / ECX / EDX / RET n for functions that no longer carry them (tools/comments.py REGISTER_RX); (3) tools/progress.py fastcall_shims counts '__fastcall Fn(T* self, void*)' and now reads 0: make it count the (T* self, void*) shape without the keyword, or retire the line; (4) tools/gen_static_init.py still writes 'void __cdecl Fn()' (harmless default, but keep it matching)."
 
 [[ticket]]
+id = "C14i"
+title = "Delete mfc_string: src/lib's MFC on std::string"
+group = "cleanup"
+model = "opus"
+depends = ["C20o"]
+files = ["src/lib/mfc_string.h", "src/lib/mfc_string.cpp"]
+note = "User 2026-10-28: mfc_string.h/.cpp is still 924 lines (78 functions: MFC's CString implementation, PchNil, Format, the refcounted buffer). After C14g nothing in src/game uses it (15 game files only include it or name PchNil in comments); its users are src/lib's own MFC (mfc.cpp/h, mfc_archive, mfc_coll, mfc_exception, mfc_gdi, mfc_resource, mfc_time, mfc_window), static_init/static_exit and tests/vectors/replay_mfc.cpp. Retype those internals to std::string (CArchive's string read/write keeps its byte format), drop the stale includes, then delete mfc_string.*; the tests' game.exe CString views (exe::CString, Original* layouts) become a small local layout struct. Scripted where it pays; one-off scripts in the scratchpad."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
