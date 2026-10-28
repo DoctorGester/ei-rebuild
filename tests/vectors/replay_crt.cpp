@@ -19,16 +19,11 @@ void free(void* p) { std::free(p); }
 
 namespace ei::vectors::crt {
 
-void SkipNegativeClasses(Reader& r) {
-    if (r.Get<std::uint8_t>()) r.Get<NegativeClasses>();
-}
-
 namespace {
 
-// The game's isdigit, isspace and tolower answer every ASCII byte as text::IsDigit, IsSpace and ToLower do (past
-// ASCII the game's answers are its code page's, ours UTF-8's: no class, no case).
+// The game's isdigit, isspace and tolower answer every ASCII byte as text::IsDigit, IsSpace and ToLower do.
 bool CheckCtype(Reader& r, char* detail, std::size_t detailSize) {
-    int digit[256], space[256], lower[256];
+    int digit[0x80], space[0x80], lower[0x80];
     for (int& v : digit) v = r.Get<std::int32_t>();
     for (int& v : space) v = r.Get<std::int32_t>();
     for (int& v : lower) v = r.Get<std::int32_t>();

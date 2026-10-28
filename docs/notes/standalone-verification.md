@@ -137,7 +137,8 @@ check, another payload size, or no files.
 - MFC and CRT in the replay: replay_mfc.cpp (CString / CPlex on the replay heap), replay_crt.cpp (the replay's heap;
   "@GameCrtCtype" checks text_case.h's ASCII classes and case against the game's; the code under test calls
   text_case.h, C35b). Finding (SV4b): isdigit / isspace of a negative char
-  read heap memory before the locale's table, so the answers vary between runs; such records carry the answers given.
+  read heap memory before the locale's table, so the answers vary between runs; no record carries them (C35j: no
+  script record has a byte past ASCII, and the fixture records ASCII only).
 
 Families: `maths` (vectors, quaternions, matrices, CubicSegment::Evaluate via its live copy 004E5660,
 CTransformPipeline::PushMatrix), `random` (IsaacRandom Next / Refill / Range), `stats` (SV4a, SV4d; unit statistics, damage, skill
