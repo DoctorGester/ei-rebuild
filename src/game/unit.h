@@ -200,7 +200,7 @@ public:
 static_assert(offsetof(CUnitController, unit) == 0x1C);
 
 // The prototype name is CObject3D::name, the figure's build its scale.y, the packed vitals (hit points, mana)
-// CMapObject::packedVitals. CFakeUnit derives from it and shares these bodies.
+// CMapObject::packedVitals.
 class CUnit : public CMapObject {
 public:
     CUnit();

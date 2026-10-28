@@ -46,7 +46,7 @@ constexpr std::uint32_t kKeyKindBits = 0xFFFF8000;     // must match exactly
 // none.
 int ThirdHalfOf(int classId) {
     switch (classId) {
-    case 0x32: case 0x33: case 0x34: case 0x39:
+    case 0x32: case 0x33: case 0x34:
         return kUnitHalf;
     case 0x3A:
         return kTorchHalf;

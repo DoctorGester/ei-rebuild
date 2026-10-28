@@ -76,7 +76,7 @@ Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
     return Add(Scale(diff, u), lower);
 }
 
-// The older 6-corner layout (non-FIG files), as for the bones (figure.h, BoneMorphBox):
+// The older 6-corner layout (non-FIG files), as for the bones (six corners per bone):
 // lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
 // with the same unrounded upper z when `keepZ`.
 Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {

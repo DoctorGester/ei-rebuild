@@ -1,7 +1,6 @@
 // The material (CMaterial) and the material manager (CMaterialManager): material.h. See
 // docs/notes/items_spells.md ("Materials").
 #include "material.h"
-#include "scene_loader.h"   // scene::InitHelper
 
 #include "game_strings.h"
 #include "mod_folders.h"
@@ -46,9 +45,6 @@ CMaterial::CMaterial() {
     ResetFields(this);
     entries.PopAll();
 }
-
-// A fake unit's helper built in its array's storage (scene_loader.h's HelperElements).
-void scene::InitHelper(CMaterial* p) { new (p) CMaterial(); }
 
 // The names go after the body (name3, name2, then name after the deque in the game).
 CMaterial::~CMaterial() {

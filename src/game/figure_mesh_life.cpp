@@ -8,7 +8,6 @@
 #include "figure_mesh.h"
 #include "item.h"
 #include "link_figure.h"
-#include "scene_loader.h"   // InitFigurePart
 
 #include <cstring>
 #include <memory>
@@ -125,10 +124,6 @@ CPlainFigureMesh::CPlainFigureMesh() {
 
 CPlainFigureMesh::~CPlainFigureMesh() {
 }
-
-// CPlainFigureMesh's constructor, as the scene's figure records inline it: the shared
-// constructor, then zeros over the mesh's six arrays and the class 0x42 vtable.
-void scene::InitFigurePart(CPlainFigureMesh* p) { new (p) CPlainFigureMesh(); }
 
 // --- Small virtuals ----------------------------------------------------------------------------
 

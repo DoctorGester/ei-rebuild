@@ -104,29 +104,6 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
 template <>
 void Strings::Serialize(CArchive* ar);
 
-// The count, then (when there are any) key and value of each association, bucket by bucket. Loading
-// reads each pair and sets it (operator[]).
-template <typename K, typename V>
-void MapAbi<K, V>::Serialize(CArchive* ar) {
-    if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(this->count));
-        if (this->count == 0) return;
-        for (std::uint32_t bucket = 0; bucket < this->hashSize; ++bucket)
-            for (Assoc* assoc = this->table[bucket]; assoc; assoc = assoc->next) {
-                ar->Write(&assoc->key, sizeof(K));
-                ar->Write(&assoc->value, sizeof(V));
-            }
-    } else {
-        for (unsigned long n = ar->ReadCount(); n--;) {
-            K key;
-            V value;
-            ar->Read(&key, sizeof(K));
-            ar->Read(&value, sizeof(V));
-            this->ElementAt(key) = value;
-        }
-    }
-}
-
 // ---- Compiler-made vtables -------------------------------------------------------------------
 // An instantiation's Class tag names the table its constructor and destructor store. See
 // docs/notes/standalone.md, "The image's source files".
@@ -211,9 +188,6 @@ struct AiLookArrayClass
 struct AiLookRecordArrayClass final : AiLookArrayClass {
     static void* Vtable() { return CompiledVtable<AiLookRecordArrayClass>(); }
 };
-// A figure's bone links
-struct BoneLinkArrayClass final
-    : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &KeyFrames::Serialize> {};
 // The base vtable the element arrays' destructors restore (patrols, motion records)
 struct ArrayBaseClass
     : CompiledCollection<ArrayBaseClass, &ArrayHeader<ArrayBaseClass>::Destruct, &Plain20::Serialize> {};
@@ -249,9 +223,6 @@ struct BlockCostListClass final
 // The AI plan's waypoint lists
 struct WaypointListClass final
     : CompiledCollection<WaypointListClass, &PtrList::Destruct<WaypointListClass>, &List12::Serialize> {};
-// The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-struct DwordMapClass final
-    : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &Map32::Serialize> {};
 
 // The animation list's copy constructor of the steps' array alone: the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
@@ -259,18 +230,6 @@ inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(con
     Array::Copy(*source);
     return this;
 }
-
-// ---- Element policies of the owned-element arrays ------------------------------------------------
-
-template <std::size_t Size>
-using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
-
-using SceneObjects = DeletedThroughObject<0x1C>;
-using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
-
-// The scene's object records: CMap<DWORD, DWORD>s built, destroyed through slot 1.
-using DwordMap = CMap<std::uint32_t, std::uint32_t>;
-using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
@@ -320,35 +279,10 @@ struct SectorOccluderArrayClass final
 struct SmoothStepArrayClass final
     : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &Plain36::Serialize> {};
 
-// A model or animation file's arrays (the loader's).
-struct IndexArrayClass final
-    : CompiledCollection<IndexArrayClass, &ArrayHeader<IndexArrayClass>::Destruct, &Plain4::Serialize> {};
-
-// Maps whose elements need nothing.
-// LoadFigureRegistry's map.
-struct FigureRegistryMapClass final
-    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &Map32::Serialize> {};
-// IndexMeshCorners' maps.
-struct CornerMapAClass final
-    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &Map64x64::Serialize> {};
-struct CornerMapBClass final
-    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &Map64x32::Serialize> {};
-struct CornerMapCClass final
-    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &Map32::Serialize> {};
-
 // Arrays whose elements own something.
-// A fake unit's 20-byte CObject elements (FakeUnitConstruct).
-struct FakeUnitBoneArraysClass final
-    : CompiledCollection<FakeUnitBoneArraysClass, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, &OwnedBoneLinkArrays::Serialize> {};
-// The scene loader's 0x1C-byte CObject elements (SceneInfo::Load).
-struct SceneObjectArrayClass final
-    : CompiledCollection<SceneObjectArrayClass, &SceneObjects::Destruct<SceneObjectArrayClass>, &OwnedDwordMaps::Serialize> {};
 // The terrain's CByteArray elements (Serialize).
 struct TerrainByteArraysClass final
     : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
-// The scene loader's 20-byte morph keys (a frame and a point vector).
-struct MorphKeyArrayClass final
-    : CompiledCollection<MorphKeyArrayClass, &ArrayHeader<MorphKeyArrayClass>::Destruct, &Plain20::Serialize> {};
 // Patrols (32 bytes, a waypoint array at +0xC).
 struct PatrolArrayClass
     : CompiledCollection<PatrolArrayClass, &OwnedPatrols::Destruct<PatrolArrayClass>, &OwnedPatrols::Serialize> {};

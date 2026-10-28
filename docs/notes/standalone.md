@@ -601,11 +601,11 @@ kinds given.
       below).
       C18j named particle_callbacks' kSpinAngle 007A9BF8 (2 pi; the product with the satellite's rate is
       `static_cast<float>` so the compiler's fold keeps the original's 24-bit FMUL), particle_create's
-      kIdentityRotation 007A9C30, face_normal's kDegenerateNormal 007A9C98, weather_particles' five scalars
+      kIdentityRotation 007A9C30, weather_particles' five scalars
       007AED98-007AEDA8 and its seed tables 0078DEA4 / 0078DF24, and weather_noise's five sway curves
       007ABB98-007AED98 (one type, WeatherNoiseCurve; the draw evaluates a segment through MotionCubic).
       C18l named the camera's pi / 2, zero vector and identity rotation (camera.h: 0079B2A4, 0079B5C8, 0079B5B8),
-      the scene loader's zero vector 0079B9B0 (scene_loader.h), the angle constants and unit vectors of ground_print
+      the angle constants and unit vectors of ground_print
       (007C8998 / 007C899C), sound_manager (007C8808), terrain_* (007C8908, 007C8930, 007C8964, the wave scales
       007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
       ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
@@ -934,7 +934,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (4 bytes at +0x4DC: the skin is 8-aligned in the original), overriding 2, 3, 11, 12 and adding slot 62
     (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
     after the bone block now, a free order only). No scenario makes a fake unit (class 0x39; coverage: dead), so
-    only the builds check it. CUnit's slot bodies stay registered at their addresses until C20.
+    only the builds checked it; C35l deleted it. CUnit's slot bodies stay registered at their addresses until C20.
 - **Batch 6's families**: the figure classes 0x41 (CSharedFigureMesh, 0073FBF0), 0x42 (CPlainFigureMesh, 0073C1C4: the
   factory's attached parts and the scene loader's figure records 00453240) and 0x43 (CUiMesh, "CI3DFigure", 0073FC48),
   and the scene's meshes (scene::SceneMesh, "CFakeFigure", 0073C274): 4 rows, 6,855 -> 6,767 code cells. Next: the
@@ -959,7 +959,6 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **ei_vectors** links record_arrays.cpp but not the figure or scene files: the element constructors that need the
     classes' vtables (InitFigurePart, InitSceneMesh) are defined next to the classes and stubbed in
     tests/vectors/replay_unlinked.cpp.
-  - **SceneMesh** (no scenario makes a fake unit's scene: builds only) overrides 2 (1), 3, 7, 11, 12, 16, 17 (empty).
   - Registrations whose only reader was a retired table's code cell became EI_REWRITTEN
     (`registration_readers.py --drop --only`), batch 5's sky ones with them.
 - **Batch 7's families**: the figure factory's other classes AnimationTrack (0x300B, 0073D9D8), FigureBone (0x300C,

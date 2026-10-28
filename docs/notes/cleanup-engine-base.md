@@ -35,7 +35,7 @@ the `__declspec(novtable)` classes, `ei::SetVtable` stores and `...Hook` slot sh
 
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
-- File-local `SetVtable` copies remain in 18 files (grep `void SetVtable`: ai_unit_shape, fake_unit, figure_factory, lever_object, lightning_start,
+- File-local `SetVtable` copies remain in 18 files (grep `void SetVtable`: ai_unit_shape, figure_factory, lever_object, lightning_start,
   map_spec*, net_coder, particle_create, resource_stream, script_runtime_helpers, torch_object, ui_camp_create, ui_create_screen, ui_exchange,
   ui_hero_screen_create, ui_layouts); `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
   cleanup.

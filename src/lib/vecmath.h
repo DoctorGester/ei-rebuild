@@ -280,9 +280,6 @@ __forceinline float DistanceXYZ(const Vector3& a, const Vector3& b) { return Dis
 __forceinline float DistanceZYX(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZYX>(a, b); }
 __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Distance<Sum3::ZXY>(a, b); }
 
-// Quaternions: the products stay written out at each site (their term orders vary, V1 notes).
-__forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
-
 // The rotated Y axis of q as Quaternion::AxisY and the game's inlined copies of it compute it: (2(yx - wz), (w^2
 // - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition (FADD ST0, ST0), each component
 // rounded to float (they store it before negating), nothing stored before that. Precise: /fp:fast had turned

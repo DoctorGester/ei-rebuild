@@ -1,8 +1,7 @@
 # World objects, scenes, options, players and shared helpers (00440000-00480000, 0065F4B0-00671280)
 
 Code: `object.*` (CEngineObject helpers, CTransformObject / CHoover constructor bodies, unit and figure getters, CMemoryStream),
-`object_diplomacy.*`, `object_maths.*`, `object_tables.*`, `lightning*.cpp`, `scene_*.cpp` (fake unit scenes), `fake_unit.cpp`,
-`figure_slots.cpp`, `options*.cpp`, `app.*`, `map_database.*`, `map_spec*.cpp`, `unit_record.*`,
+`object_diplomacy.*`, `object_maths.*`, `object_tables.*`, `lightning*.cpp`, `options*.cpp`, `app.*`, `map_database.*`, `map_spec*.cpp`, `unit_record.*`,
 `hoover_loot.cpp`, `player*.cpp`, `party.h`. Verify: `tests/verify/verify_<file>.cpp`. Scenarios: `objects_more.txt` (lightning
 bolts, power 5 / 0 / -7, then the lightning spell on a wolf); every other scenario loads zone1, which reaches scene, options, map
 database, unit record and (via 0058B750 every world tick) player message code. Network, table and application functions of the
@@ -13,9 +12,9 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
 | Range | Contents |
 |---|---|
 | 00440000-00446000 | network sessions, debug text overlay, STLport helpers |
-| 004466D0-00446C10 | CFakeUnit (0073BFE8, id 0x50, 64 slots; embeds four CArrays, vtables 0073C0E4..0073C108) |
+| 004466D0-00446C10 | CFakeUnit (0073BFE8, class 0x39) and its scene loader (00446C10-00471B10 and callees): dead in game.exe, deleted from ours (C35l; config/dead_code.csv) |
 | 00447F50-0044C470 | .anm / .bon loading and splitting, CArray instantiations; 0044C470 `DebugLog` stub (81 callers) |
-| 0044F000-00455400, 00453240-00454A70 | CArray / CMap template instantiations; CFigure / CFakeFigure helpers |
+| 0044F000-00455400, 00453240-00454A70 | CArray / CMap template instantiations; CFigure helpers |
 | 004554B0-00455980 | CDiplomacy; CEngineObject base (destructor body, ManagerContext, SetOwner; Release in base_manager.cpp) |
 | 00456440, 00457D40, 00458220 | WinMain, window procedure, message pump |
 | 0045B210-0045C560, 0045D5B0-00460BA0 | game options (global 0079BC70); map database (map.txt / map_LMP.txt), name -> float tables |
@@ -34,10 +33,10 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   manager; the manager's +0xAC (`CBaseManager::context_`) is what `ManagerContext` returns (00455950 calls its slot 13). Base vtable
   0073B8E0 (13 slots), restored by 00455930. `ObjectListIterator` {manager, position} walks a manager's CPtrList at +0x34 (00404920
   / 00404960); the world object manager is the pointer at 007AFFA0.
-- CFakeUnit and CUnit (0073EA8C, 77 slots) share: slot 7 GetName (+0x238 CString), 29 / 43 true, 31 / 56 / 57 / 58 forward to the
+- CUnit (0073EA8C, 77 slots): slot 7 GetName (+0x238 CString), 29 / 43 true, 31 / 56 / 57 / 58 forward to the
   controller at +0x240 (its slots 20, 42, 53, 31), 47 forwards to +0x170 slot 19, 54 returns +0x278 ("large unit"), 55 +0x274 (skip
   unit layers), 59 calls 0052F920, 60 float +0x328, 61 assigns the name. CFigure slot 7 GetName = +0x120 (also CSkyObject,
-  CI3DFigure), CFakeFigure slot 7 = +0x94. CUnit +0x244 hostile mask (bit p: hostile to player p; set by 0052E970, or-ed by
+  CI3DFigure). CUnit +0x244 hostile mask (bit p: hostile to player p; set by 0052E970, or-ed by
   0052E940, both also set flags_ 0x80000), +0x24C party (members in a hash_map at +0x40). CMapObjectVirtuals slots 30
   ApplyBaseScale, 34 TakePrototype, 61 SetScriptName; `CUnit::modelHeight` (+0xF4).
 - CDiplomacy (global 007C2BC4, 0x100 bytes): `allied_[32]` (+0), `hostile_[32]` (+0x80), bit q of row p; relation codes 0 allied, 1
@@ -51,20 +50,12 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   0056A252) draws and drops them; slot 2 (004689D0) runs the Rebirth-patched 00468A00 once. Callers: script `CreateLightning`
   (004BCFF0) and the weather create a client object (class 0x4D, setter 0067A6B0) whose update 0067A8F0 calls `SetEndpoints` every
   frame while the bolt follows units.
-- **Scene loader**: `LoadFakeUnitScene` (00446C10, `__stdcall`, from CFakeUnit slot 62 at 00446BA0) opens the .amf scene, loads it
-  through `SceneInfo::Load` (00471B10), requires one top-level node, reads the figure's .reg (`Ini's\<name>.reg` for scenes under
-  `scenes\`), links nodes, builds one 0x220-byte figure per mesh (unit +0x530), the skeleton (00448A40), bone links (+0x558) and
-  textures from the .reg. Floats the original copies through the FPU go through `FpuCopyBits`, products it keeps there through
-  small naked helpers. Scene layouts (C10; the scene_*.cpp files have no offsets left, three keep x87 `__asm`): the bone is
-  figure.h's CAnimationNode (ctor 00506710; rotationKeys_ +0x44 = position keys, axis-angle, rotation; translationKeys_ +0x58
-  with the step to the next key; morphFrames_ elements 00452E20 / 00452DF0; position_ +0x110 also holds the rest position in
-  the parent's frame); scene_loader.h declares SceneNode (16-bit signed key frames, NodeMorphKeyElements 00454F30 / 00453700,
-  NodeFrame records copied to the bone links), SceneMesh (engine object, GetName slot 7; positions as the file's bits),
-  SceneHelper, SceneSkin, FakeUnitScene (skin +0x4E0, figures / meshes / bone links / helpers +0x530..+0x56C), the .reg
-  records and the array views. The loader's figures are CFigureMesh (+0x120 name_; colorsA_ / colorsB_ four entries per
-  block). mfc.h `CFileVirtuals`: CFile vtable 00745DF4 slots 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close.
-  Still copied as bits: the morph key frame, file records, helper vectors. A port bug in BuildBone 004492F0 (point j read
-  from `data + j * 12` on a 12-byte element pointer) was fixed in C10.
+- **Fake unit and scene loader** (CFakeUnit, class 0x39, vtable 0073BFE8; `LoadFakeUnitScene` 00446C10, `SceneInfo::Load`
+  00471B10): dead in game.exe (no shipped data makes a class 0x39 object, nothing calls slot 62, no .amf exists; reasoning in
+  standalone-verification.md, SV5c), so C35l deleted it from ours with its helpers, the skeleton bones (CAnimationNode),
+  the array and map classes only it used, and the data it read (the zero vectors and identity rotations, now
+  config/unread_data.csv). The map object factory makes nothing for class 0x39: `CMapObjectManager::NewObject` returns null as
+  for any unknown class, and `CreateMapObject` returns null with it. The original's functions are rows of config/dead_code.csv.
 - **Options**: ~120 values under HKCU\<path>\<subkey> through the game's registry helper (006972A0-006988A0); the writer uses the
   setter matching each getter (00697D40 int, 00697CA0 dword, 00697E80 floats as REG_BINARY bits, 00697FC0 strings). 00458870
   (constructor; `options_construct.cpp`, A-E2) runs from a static initializer before the hooks exist: ours is compared at
@@ -86,13 +77,7 @@ here is gone. Files: `object.cpp` (CEngineObject ManagerContext / SetOwner / Des
 Reset, GetRelation, GetHostileMask, ReadFrom, WriteTo, SetRelation, OnAttack), `object_maths.cpp`, `object_tables.cpp`
 (TextKeyFromName, IsTextKey, CMapDatabase FindMap / FindAllod, NamedFloatTable Get / Set / Remove / CopyPrefixed / Load /
 Save (`core.md`), FindCommandByKey), `lightning*.cpp` (noise key, segments, bounds, animation, registration, draw, glow; the
-textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" go through 00500A00), `scene_loader.cpp` / `scene_*.cpp`
-(SceneInfo::Load 00471B10: the figure registry's .reg texture mappings and material types, mesh corners, bones, welding,
-normals, bounds, relative frames, skeleton, node hierarchy; LoadFakeUnitScene 00446C10), `fake_unit.cpp` (scene load is slot
-62: 00446C10, then a class 0x45 object per figure from the world's slot 21, 0059F390), `skin_rewind.cpp` (A-U9:
-CAnimationNode ResetPose / Rewind, SceneSkin::Rewind; ResetPose: the pose of the first rotation key is parent rotation * key
-(Hamilton), position = parent pose + position_ turned by the parent, root alone, pointsB_ = pointsA_, key cursors 0; 00508A30
-inside 00508990's Ghidra body is unreferenced), `figure_slots.cpp` (and aligned_arrays.cpp, deleted by C14h), `options*.cpp` (GameOptions
+textures "SmtgLight" / "Lightning" or "DemonLight" / "DemonLightning" go through 00500A00), `options*.cpp` (GameOptions
 LoadFromRegistry over 0x26C bytes, SaveToRegistry, defaults, destructor), `map_database.cpp` (CMapDatabase::Load 0045EA20:
 map.txt / map-LMP.txt through the text manager 007AF788; its directives described there), `unit_record.cpp` /
 `hoover_loot.cpp` (UnitRecord::ApplyTo: controller +0x270, +0x8A8 blocks; a dead unit's loot), `app.cpp` (WindowProc, DispatchInput,
@@ -268,15 +253,6 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   the buffer pointer without freeing it and ConstructBase leaves the positions uninitialised (only used from constructors).
 - Lightning: Animate reads the curve value before the first one (0079C1F4) when the segment has no points; SampleNoise caps the
   keys added per call at 100 but leaves the key time behind by the rest.
-- Scenes: LoadFakeUnitScene passes the scene flags to 00448A40 as a dword minus one whose upper word is uninitialised (ours 0;
-  consumers read the low word) and builds three CStrings, a CStringArray and a CFileRegistry it never uses; the scene loader
-  allocates one CMap per material group and never uses them; the skipped records read only names, keys, normals and morph keys.
-  LoadFigureRegistry: a mapping with X, Y, Width or Height missing (-1) logs "CorrectMappings ..." (message box with debug flag
-  0x10000 of 007AF5C0) and gives (0, 0, 0, 0); the material type of the last group name carries over to a mesh without groups;
-  the coordinate map's operator[] is inlined twice. BuildBone: a pivot not (0, 0, 0) is fatal ("node %s have NONULL pivot"); the
-  morph frame array is sized twice. IndexMeshCorners: maps walked with GetNextAssoc inlined; the sorts are std::sort by the original
-  comparators' orders (no two elements compare equal and differ). 00449030 without a root node (-1) copies the rest pose of the element before the node array.
-  CFakeUnit's destructor walks the figure array after SetSize(0, -1) (never).
 - Options: "Joystick" always defaults to and is written as 0; "LightingFreq" is read under two subkeys into two fields; light
   colours convert 0..1 <-> 0..255 with a truncating `_ftol`; camera flips are stored as -1 / 1 floats; "Difficulty Level" goes to
   both +0x250 and +0x254 and is written from +0x254. Map database: the map index continues from the last map of the earlier file
@@ -313,15 +289,10 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   `CLightningManager::Create` (004689D0, slot 2): the noise table loaded on the first call (flag
   007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningNoiseOriginal`), then
   the base manager's Create.
-- CFakeUnit (0073BFE8): slot 2 00446AF0 (the skin created and given the unit, then `CUnit::CreateUnit`), slot
-  11 004468D0 ("CFakeUnit").
-- CUnit slots the fake unit shares: 31 004467F0 (the hit passed to the controller's slot 20), 56 00446850 (the
-  controller's ObjectDeleted), 59 004468B0 (the forward one of `GetMoveSpeeds`), 61 00446830 (the script name
-  assigned; returns the CString).
 - Checks: the names, ids, CHoover's Create and the forward speed side by side; the rest ours only (they free,
   create or make one call that must not run twice). All are reached through vtables; which scenarios call them
   was not established (no run).
-- Three more (class_slots.cpp): 004467C0 (slot 47 of the unit, the fake unit and nine other map object
+- Three more (class_slots.cpp): 004467C0 (slot 47 of the unit and nine other map object
   classes, RET 4: the mode handed to the companion's slot 19, `SetLightMode`; EAX passed on), 00446810 (the
   unit's slot 58: a tail jump to the controller's slot 31, `RefreshWounds`, now declared with its int result)
   and 00446870 (slot 57: a tail jump to the controller's slot 53, declared as `MoveFactorsChanged`; the
@@ -332,10 +303,6 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   (00462300, 00462330, 00462360, 00462390) returning an empty text, 21 (004623C0) zeroes the caller's ItemUse;
   every class but the quest item keeps slot 21. Side by side (the original into the caller's result, ours into
   a local). Slot 16 (004622F0) is four bytes.
-- small_accessors.cpp: 00471A90 (a Vector3 from three parts, a second copy of 00401DE0) and the scene
-  helper's vector setters 00471AB0 / 00471AD0 / 00471AF0 (+0x20, +0x30, +0x40), which `SceneInfo::Load` calls
-  per helper; side by side. The loader is rewritten (scene_loader.cpp), so the hooks fire only if it still
-  calls them through the exe.
 - `LoadLightningNoise` (00468A00, lightning_load.cpp; Rebirth-patched, so vanilla launch only): `<text
   folder>gfx.res` opened in an archive of its own (0 when that fails, no message), `lightning.dat` fetched
   (missing: the fatal error "Unable to open file gfx.res\lightning.dat"), copied into a memory stream and read

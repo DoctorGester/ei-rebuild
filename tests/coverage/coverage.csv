@@ -1319,7 +1319,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00445D30,TextTokenizer::Next,src/game/text_helpers.cpp,270,golden,0,2,render_titles_present ui_main_menu,,
 00445FC0,DestroyTokenWord,src/game/library_containers.cpp,8,unreached,32,0,,,
 004461E0,RemoveCarriageReturns,src/game/text_helpers.cpp,8,golden,0,2,render_titles_present ui_main_menu,,
-004466D0,FakeUnitConstruct,src/game/fake_unit.cpp,213,dead,0,0,,,
 004467C0,CMapObject::SetVisibilityModeImpl,src/game/class_slots.cpp,19,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 004467F0,CUnit::TakeHitImpl,src/game/class_slots.cpp,29,golden,0,20,combat combat_more effects_bow net_pair_quest +15,,rebirth_flags
 00446810,UnitRefreshWounds,src/game/class_slots.cpp,11,golden,0,124,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +7
@@ -1332,35 +1331,11 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 004468A0,UnitGetValue328,src/game/object.cpp,7,golden,0,18,combat combat_more effects_bow levers_key +13,,rebirth_flags
 004468B0,UnitForwardSpeed,src/game/class_slots.cpp,26,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 004468D0,FakeUnitGetClassName,src/game/class_slots.cpp,6,dead,0,0,,,
-004468E0,FakeUnitClassId,src/game/fake_unit.cpp,6,dead,0,0,,,
-004468F0,scene::FakeUnitScene::DeleteScalar,src/game/fake_unit.cpp,30,dead,0,0,,,
-00446910,FakeUnitDestruct,src/game/fake_unit.cpp,466,dead,0,0,,,
 00446AF0,FakeUnitCreate,src/game/class_slots.cpp,35,dead,0,0,,,
-00446B20,FakeUnitDestroy,src/game/fake_unit.cpp,116,dead,0,0,,,
-00446BA0,FakeUnitLoadScene,src/game/fake_unit.cpp,112,dead,0,0,,,
-00446C10,LoadFakeUnitScene,src/game/scene_loader.cpp,4909,dead,0,0,,,
-00447F50,FindListedName,src/game/text_helpers.cpp,170,unreached,680,0,,,
 004489D0,CrossProduct,src/game/object_maths.cpp,57,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 00448A10,ScaleVector,src/game/object_maths.cpp,33,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00448A40,BuildSkeleton,src/game/scene_skeleton.cpp,1507,dead,0,0,,,
-00449030,FindRootNode,src/game/scene_skeleton.cpp,396,dead,0,0,,,
-004491C0,CopyRestPose,src/game/scene_skeleton.cpp,116,dead,0,0,,,
-00449240,BuildRootBone,src/game/scene_skeleton.cpp,168,dead,0,0,,,
-004492F0,BuildBone,src/game/scene_bones.cpp,3893,dead,0,0,,,
 0044A230,SubtractVectors,src/game/object_maths.cpp,33,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-0044A2A0,ParseMaterial,src/game/scene_material.cpp,1285,dead,0,0,,,
-0044B980,LoadFigureRegistry,src/game/scene_registry.cpp,2787,dead,0,0,,,
-0044C480,MemberAt8C,src/game/figure_slots.cpp,7,unreached,14,0,,,
-0044C490,NamedRecordDestruct,src/game/figure_slots.cpp,8,unreached,16,0,,,
-0044C4A0,WeldMeshVertices,src/game/scene_weld.cpp,1892,dead,0,0,,,
 0044CC10,SubtractVectors2,src/game/object_maths.cpp,24,unreached,144,0,,,
-0044CF00,CompareCornerRecords,src/game/scene_meshes.cpp,84,unreached,168,0,,,
-0044CF60,CompareWordPairs,src/game/scene_meshes.cpp,58,unreached,116,0,,,
-0044CFF0,IndexMeshCorners,src/game/scene_meshes.cpp,3327,dead,0,0,,,
-0044DCF0,ComputeMeshNormals,src/game/scene_normals.cpp,1728,dead,0,0,,,
-0044E3B0,PackMeshPositions,src/game/scene_normals.cpp,1250,dead,0,0,,,
-0044E8A0,ComputeMeshBounds,src/game/scene_normals.cpp,704,dead,0,0,,,
-0044EB60,MakeFrameRelative,src/game/scene_bone_frames.cpp,1603,dead,0,0,,,
 0044F1B0,ArrayFree1,src/game/aligned_arrays.cpp,17,golden,0,100,camera combat combat_more console +86,,rebirth_flags render_movie render_terrain +7
 0044F1D0,Vectors::SetSize,src/game/aligned_arrays.cpp,266,golden,0,27,app_record boot levers_key net_pair_join +20,,harness_disk_full net_second_master render_terrain_seams
 0044F2E0,Vectors::Add,src/game/aligned_arrays.cpp,297,unreached,1782,0,,,
@@ -1447,13 +1422,8 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00453100,Qwords::SetSize,src/game/aligned_arrays.cpp,263,golden,0,108,app_record camera combat combat_more +96,,rebirth_flags render_movie render_terrain +5
 00453210,FigureParts::DestructElements,src/lib/mfc_array.cpp,42,unreached,168,0,,,
 00453240,FigureParts::ConstructElements,src/game/record_arrays.cpp,412,unreached,1648,0,,,
-004533E0,ClearRecord38,src/game/figure_slots.cpp,18,golden,0,27,app_record boot levers_key net_pair_join +20,,harness_disk_full net_second_master render_terrain_seams
 00453400,CTransformObject::ConstructBase,src/game/core_transform.cpp,62,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 00453440,FigureGetName,src/game/object.cpp,7,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-00453450,FigureClassName,src/game/figure_slots.cpp,6,unreached,12,0,,,
-00453460,FigureClassId,src/game/figure_slots.cpp,6,unreached,12,0,,,
-00453470,FigureDelete,src/game/figure_slots.cpp,30,unreached,60,0,,,
-00453490,ClearArray,src/game/figure_slots.cpp,16,golden,0,121,app_record boot camera combat +107,,harness_disk_full net_second_master rebirth_flags +7
 004534A0,ArrayFree5,src/game/aligned_arrays.cpp,17,unreached,102,0,,,
 004534C0,OwnedBoneLinkArrays::DestructElements,src/lib/mfc_array.cpp,40,unreached,160,0,,,
 004534F0,BoneLinkArrays::ConstructElements,src/lib/mfc_array.cpp,81,unreached,324,0,,,
@@ -1479,20 +1449,13 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00454210,Map32::InitHashTable,src/lib/mfc_list.cpp,101,unreached,404,0,,,
 00454280,Map32::NewAssoc,src/lib/mfc_list.cpp,91,unreached,364,0,,,
 004542E0,Map32::GetAssocAt,src/lib/mfc_list.cpp,54,unreached,216,0,,,
-00454360,NamedRecordDelete,src/game/figure_slots.cpp,30,unreached,60,0,,,
 00454380,ArrayAt8Free,src/game/aligned_arrays.cpp,18,unreached,108,0,,,
 004543A0,CFigureMesh::DeletingDestructPlainMesh,src/game/figure_mesh_life.cpp,30,unreached,60,0,,,
 004543C0,ArrayAt4Free,src/game/aligned_arrays.cpp,18,unreached,108,0,,,
-004543E0,SceneNode::Destruct,src/game/scene_loader.cpp,293,unreached,586,0,,,
 00454510,CFigureMesh::DestructPlainMesh,src/game/figure_mesh_life.cpp,144,golden,0,4,magic_traps_victims ui_camp_make unit_ai_corpse unit_cast_at,,
 004545A0,AllocateQwords,src/game/aligned_arrays.cpp,27,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 004545C0,SceneMeshes::ConstructElements,src/game/record_arrays.cpp,470,unreached,1880,0,,,
-004547A0,FakeFigureAnswerOne,src/game/figure_slots.cpp,6,unreached,12,0,,,
 004547C0,FakeFigureGetName,src/game/object.cpp,7,unreached,42,0,,,
-004547F0,FakeFigureClassName,src/game/figure_slots.cpp,6,unreached,12,0,,,
-00454800,FakeFigureClassId,src/game/figure_slots.cpp,6,unreached,12,0,,,
-00454810,SceneMesh::DeletingDestruct,src/game/scene_loader.cpp,30,unreached,60,0,,,
-00454830,SceneMesh::Destruct,src/game/scene_loader.cpp,409,unreached,818,0,,,
 004549D0,ArrayFree6,src/game/aligned_arrays.cpp,17,golden,0,119,app_record boot camera combat +106,,net_second_master rebirth_flags render_movie +6
 004549F0,ArrayFree7,src/game/aligned_arrays.cpp,17,unreached,102,0,,,
 00454A10,ArrayFree8,src/game/aligned_arrays.cpp,17,unreached,102,0,,,
@@ -1500,8 +1463,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00454A50,ArrayHeader<FaceGroupArrayClass>::Construct,src/game/record_arrays.cpp,23,unreached,92,0,,,
 00454A70,SerializeCArray<FaceGroups>,src/game/record_arrays.cpp,472,unreached,1888,0,,,
 00454CC0,ScalarDelete<&scene::FaceGroupArrayDestruct>,src/game/record_arrays.cpp,30,unreached,120,0,,,
-00454CE0,FaceGroupArrayDestruct,src/game/scene_loader.cpp,163,unreached,326,0,,,
-00454DB0,FaceGroup::ConstructElements,src/game/scene_loader.cpp,142,unreached,284,0,,,
 00454E40,Materials::ConstructElements,src/game/record_arrays.cpp,134,unreached,536,0,,,
 00454F30,Plain20::ConstructElements,src/lib/mfc_array.cpp,78,unreached,312,0,,,
 00454F80,SceneNodes::ConstructElements,src/game/record_arrays.cpp,458,unreached,1832,0,,,
@@ -1809,8 +1770,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00471AB0,CMaterial::SetDiffuse,src/game/small_accessors.cpp,24,unreached,144,0,,,
 00471AD0,CMaterial::SetAmbient,src/game/small_accessors.cpp,24,unreached,144,0,,,
 00471AF0,CMaterial::SetSpecular,src/game/small_accessors.cpp,24,unreached,144,0,,,
-00471B10,SceneInfo::Load,src/game/scene_loader.cpp,12595,dead,0,0,,,
-00474C50,FaceGroup::Assign,src/game/scene_loader.cpp,31,unreached,62,0,,,
 00474C80,Qwords::Copy,src/game/aligned_arrays.cpp,290,unreached,1740,0,,,
 00474DB0,FaceGroups::SetSize,src/game/record_arrays.cpp,384,unreached,1536,0,,,
 00474F30,ArrayHeader<FilePointArrayClass>::Destruct,src/lib/mfc_array.cpp,21,unreached,84,0,,,
@@ -2223,7 +2182,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 0049A010,CCloudNoise::SetRamp,src/game/global_map_clouds.cpp,127,golden,0,7,frames_basic render_cpuwindows render_present ui_camp +2,,ui_widescreen_screens
 0049A090,CCloudNoise::MakeLayerImpl,src/game/global_map_clouds.cpp,385,golden,0,7,frames_basic render_cpuwindows render_present ui_camp +2,,ui_widescreen_screens
 0049A220,CCloudNoise::GenerateImpl,src/game/global_map_clouds.cpp,842,golden,0,7,frames_basic render_cpuwindows render_present ui_camp +2,,ui_widescreen_screens
-0049AEC0,MeshFace::ComputeNormal,src/game/face_normal.cpp,417,unreached,1668,0,,,
 0049B140,LineBatch::AddPoint,src/game/line_batch.cpp,389,unreached,1556,0,,,
 0049B490,ei::static_init::Exit0049B490,src/standalone/static_exit.cpp,20,golden,0,30,app_record boot levers_key magic_traps_victims +24,,net_second_master render_terrain_seams
 0049B4B0,DeviceDrawLineStrip,src/game/renderer_lines.cpp,509,unreached,1018,0,,,
@@ -2233,8 +2191,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 0049B780,LineBatch::Draw,src/game/line_batch.cpp,292,unreached,1168,0,,,
 0049E790,Quaternion::SetAngleAxis,src/game/quaternion.cpp,98,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0049E800,Quaternion::SetAxisAngle,src/game/quaternion.cpp,98,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
-0049E870,Quaternion::PreMultiplyConjugate,src/game/quaternion.cpp,221,dead,0,0,,,
-0049E950,MultiplyByConjugate,src/game/quaternion.cpp,217,dead,0,0,,,
 0049ECC0,Quaternion::FromAxisAngle,src/game/maths.cpp,96,golden,0,127,app_record boot camera combat +110,256 records,harness_disk_full net_second_master rebirth_flags +10
 0049ED20,Quaternion::Slerp,src/game/quaternion.cpp,306,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 0049EE70,IsaacRandom::Refill,src/game/random.cpp,728,golden,0,127,app_record boot camera combat +110,8 records,harness_disk_full net_second_master rebirth_flags +10
@@ -3337,20 +3293,7 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 00505260,lib::AlignedArray<std::uint32_t>::Construct,src/game/renderer_lifetime.cpp,16,golden,0,27,app_record boot levers_key net_pair_join +20,,harness_disk_full net_second_master render_terrain_seams
 00505270,lib::AlignedArray<SpriteSortRecord*>::SetSize,src/game/renderer_sprites.cpp,263,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 00505380,ArrayFree1,src/game/aligned_arrays.cpp,17,golden,0,100,camera combat combat_more console +86,,rebirth_flags render_movie render_terrain +7
-005064C0,CAnimationNode::SetMorph,src/game/figure.cpp,592,unreached,1184,0,,,
-00506710,CAnimationNode::Construct,src/game/animation_node_lifetime.cpp,418,unreached,2508,0,,,
-005068C0,CAnimationNode::DestructBody,src/game/animation_node_lifetime.cpp,389,unreached,2334,0,,,
 00506C70,MultiplyQuaternions,src/game/skin_quaternion.cpp,134,golden,0,12,net_pair_join net_pair_kick net_pair_leave net_pair_master +6,,net_second_master ui_widescreen_more
-00507C50,CAnimationNode::AttachMeshes,src/game/skin_rewind.cpp,232,dead,0,0,,,
-00507E80,CAnimationNode::ResetPose,src/game/skin_rewind.cpp,826,dead,0,0,,,
-005081C0,CAnimationNode::Rewind,src/game/skin_rewind.cpp,125,dead,0,0,,,
-00508700,SceneSkin::Construct,src/game/scene_skin_lifetime.cpp,176,dead,0,0,,,
-005087B0,SceneSkin::Destruct,src/game/scene_skin_lifetime.cpp,180,dead,0,0,,,
-00508870,SceneSkin::Create,src/game/scene_skin_lifetime.cpp,103,dead,0,0,,,
-005088E0,SceneSkin::Clear,src/game/scene_skin_lifetime.cpp,67,dead,0,0,,,
-00508930,SceneSkin::SetOwner,src/game/scene_skin_lifetime.cpp,9,dead,0,0,,,
-00508990,SceneSkin::Rewind,src/game/skin_rewind.cpp,148,dead,0,0,,,
-00508BF0,SceneSkin::BindMeshes,src/game/skin_rewind.cpp,25,dead,0,0,,,
 00509F40,ArrayFree1,src/game/aligned_arrays.cpp,17,golden,0,100,camera combat combat_more console +86,,rebirth_flags render_movie render_terrain +7
 00509F60,ArrayFree1,src/game/aligned_arrays.cpp,17,golden,0,100,camera combat combat_more console +86,,rebirth_flags render_movie render_terrain +7
 0050A090,ArrayFree1,src/game/aligned_arrays.cpp,17,golden,0,100,camera combat combat_more console +86,,rebirth_flags render_movie render_terrain +7
@@ -5400,7 +5343,6 @@ address,name,file,size,status,risk,scenarios,golden,vector,reached_by
 005ACE80,LoadMenuRects,src/game/menu_rects.cpp,1612,golden,0,127,app_record boot camera combat +110,,harness_disk_full net_second_master rebirth_flags +10
 005AD520,Str4::Find,src/lib/stlp_hash.cpp,116,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
 005AD640,stlp::AllocProxyConstruct,src/lib/stlp_vector.cpp,21,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
-005AD870,ClearArray,src/game/figure_slots.cpp,16,golden,0,119,app_record camera combat combat_more +106,,net_second_master rebirth_flags render_movie +6
 005AD880,Vector4::Reserve,src/lib/stlp_vector.cpp,580,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
 005ADAD0,Vector4::FillInsert,src/lib/stlp_vector.cpp,314,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams
 005ADC10,Str4::FindOrInsert,src/lib/stlp_hash.cpp,167,golden,0,31,app_record boot levers_key magic_traps_victims +24,,harness_disk_full net_second_master render_terrain_seams

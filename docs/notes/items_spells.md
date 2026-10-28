@@ -426,7 +426,7 @@ CMaterial constructor (names "none", alpha 1, an empty deque; colours unwritten;
 body, slot 0, NewObject (slot 14), NewMaterial (slot 23, flags_ 8, the table's colours for type_; O), FillMaterial (RET 8; S),
 slots 25 "materials", 11, 12 (P).
 
-CMaterial (0x9C) is also the scene loader's helper record (SceneHelper, 00454E40 constructs arrays of them). The manager's
+CMaterial (0x9C). The manager's
 table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is entered with the key's bits in all 17 dwords
 (the original's default pair), and its Create 0068E640 (Rebirth-patched) fills it. The deque (16-byte elements, no writer
 found) is `stlp::deque<T>` now; its instantiations went to library.csv. Not hookable: 0068DCF0 (slot 7, 4 bytes). Differs:

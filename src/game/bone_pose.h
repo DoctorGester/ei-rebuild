@@ -1,6 +1,6 @@
 #pragma once
 
-// The vector turn the skeleton code inlines (FigureBone::Place, CAnimationNode::ResetPose):
+// The vector turn the skeleton code inlines (FigureBone::Place):
 // `v` turned by the unit quaternion `q` as
 // (w^2 - u.u) v + 2w (u x v) + 2 (u.v) u, with the game's helpers' rounding: the dot products
 // summed z, y, x, each scaled term rounded (the dot-product and cross-product helpers),

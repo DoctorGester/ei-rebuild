@@ -30,8 +30,7 @@ public:
     virtual CItemManager* ItemFactory() { return nullptr; }
     virtual CMapObjectManager* MapObjectManager() { return nullptr; }
     virtual CPlayerManager* PlayerList() { return nullptr; }
-    // The side-specific halves' manager (the client's is a CClientSpecificManager; it makes
-    // the class 0x45 objects of CFakeUnit's figures).
+    // The side-specific halves' manager (the client's is a CClientSpecificManager).
     virtual CBaseManager* SpecificManager() { return nullptr; }
     virtual CSpellManager* SpellManager() { return nullptr; }
     virtual CLinkFigureLoader* FigureLoader() { return nullptr; }        // the figure loader (model.h)

@@ -1,11 +1,9 @@
-// Small virtual slots of the early classes: the lightning manager, CFakeUnit, and the CUnit slots the fake unit
-// shares. See docs/notes/objects.md.
+// Small virtual slots of the early classes: the lightning manager, the CUnit slots and the item bases. See docs/notes/objects.md.
 #include "game_strings.h"
 #include "item.h"
 #include "lightning.h"
 #include "map_object.h"
 #include "object.h"
-#include "scene_loader.h"
 #include "spell.h"
 #include "unit.h"
 
@@ -21,8 +19,6 @@
 
 namespace {
 
-const char* const kFakeUnitName = "CFakeUnit";
-
 int g_lightningNoiseLoaded = /*007A9694*/ {};
 
 } // namespace
@@ -37,18 +33,7 @@ int CLightningManager::Create() {
     return CBaseManager::Create();
 }
 
-// ---- CFakeUnit --------------------------------------------------------------------------------
-
-// (Create): the skin created and given the unit, then the unit's own Create.
-int scene::FakeUnitScene::Create() {
-    skin.Create();
-    skin.SetOwner(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this)));
-    return CreateUnit();
-}
-
-const char* scene::FakeUnitScene::GetClassName() { return kFakeUnitName; }
-
-// ---- CUnit slots shared with the fake unit ----------------------------------------------------
+// ---- CUnit slots ----------------------------------------------------------------------------
 
 void CUnit::ReceiveHit(DamageInfo* hit, CUnit* attacker, CUnit* caster) {
     Controller()->TakeHit(hit, attacker, caster);
@@ -62,7 +47,7 @@ int CUnit::ForgetObject(CEngineObject* object) {
 
 void CUnit::SetScriptName(const char* newName) { scriptName = newName; }
 
-// Of the unit, the fake unit and nine other map object classes: the visibility mode is handed to the companion
+// Of the unit and nine other map object classes: the visibility mode is handed to the companion
 // (the client's shows or hides the object's light); whatever it returns is passed on.
 int CMapObject::SetVisibilityMode(int mode) {
     companion->SetLightMode(mode);

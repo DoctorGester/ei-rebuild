@@ -12,7 +12,6 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "scene_loader.h"
 #include "ui.h"   // CUiMesh
 
 #include <cstddef>

@@ -1,4 +1,4 @@
-// CPlex and the game's CList<T> / CMap<K, V> instantiations whose elements need nothing of the game
+// CPlex and the game's CList<T> instantiations whose elements need nothing of the game
 // (mfc_list.h); our code calls them by name. The groups
 // were found by comparing the instructions of every instantiation (addresses
 // masked); each node size is the one its NewNode passes to CPlex::Create.

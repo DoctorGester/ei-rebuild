@@ -56,8 +56,8 @@ call site since R9b2: game.exe runs only the original).
 - Static initialisers (run before the hooks): 0045E820, 004632A0 (lever table constructor); 00444740 (debug
   panel) and 00458870 (GameOptions) are ported and compared at WinMain's entry (A-E2).
 - Dead: 00442F00, the animation exporter's writer and six unreferenced functions.
-- The fake unit scene loader (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 ->
-  00471B10) and 00477B00 (applies a unit record to a new unit, from 005927C0) are in `objects.md`.
+- 00477B00 (applies a unit record to a new unit, from 005927C0) is in `objects.md`. The fake unit scene loader
+  (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 -> 00471B10) is dead and gone (C35l).
 
 ## A-E1: the leftovers of 0x00440000-0x00480000
 
