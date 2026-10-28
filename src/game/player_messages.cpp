@@ -26,9 +26,9 @@ namespace {
 void VariableSet(NamedFloatTable* table, std::string_view name, std::uint32_t bits) { table->Set(name, std::bit_cast<float>(bits)); }
 double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
-void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
-void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
-void WriteDword(BitStream* out, std::uint32_t value) { Write(out, &value, 4); }
+void Write(CMemoryStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
+void WriteByte(CMemoryStream* out, std::uint8_t value) { Write(out, &value, 1); }
+void WriteDword(CMemoryStream* out, std::uint32_t value) { Write(out, &value, 4); }
 
 std::uint32_t ObjectId(const CEngineObject* object) { return static_cast<std::uint32_t>(object->id_); }
 
@@ -255,7 +255,7 @@ constexpr HandlerEntry<CPlayerServer> kServerHandlers[] = {
 };
 
 // The sent-object arrays emptied: every object released, the block freed.
-void ReleaseAll(PlayerObjectArray& objects) {
+void ReleaseAll(std::vector<CEngineObject*>& objects) {
     // The data pointer is read once, the size after every release.
     CEngineObject** element = objects.data();
     for (int i = 0; i < std::ssize(objects); ++i) (*element++)->Release();
@@ -351,7 +351,7 @@ void CPlayerServer::SendPathMessage(CEngineObject* unit, PathOrder* path, const 
     path->WriteState(delta);
     delta->EndField();
     out_.EndBits();
-    BitStream& written = field.out[0];
+    CMemoryStream& written = field.out[0];
     written.Seek(0);
     std::uint8_t* data = written.data_;
     out_.Write(data, written.Size());

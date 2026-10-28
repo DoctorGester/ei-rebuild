@@ -32,7 +32,7 @@ inline constexpr int kBodySlotY[7] = /*00741EE0*/ {150, 300, 450, 150, 350, 450,
 inline constexpr float kGlobalMapFullTurn = /*007C8020*/ 6.2831855f;
 
 // Every text section "pers <name>" gives its first line to the key of <name> (inserted, or replaced).
-void LoadPersonTexts(PersonTextMap* map);
+void LoadPersonTexts(std::map<int, std::string>* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen starts a
 // selection box (0 or less: never).
@@ -198,8 +198,6 @@ struct TradeRow {
     bool learnable;                  // set on the learnable list (not written in the others)
 };
 
-using TradeRows = std::vector<TradeRow>;
-
 // A party member's statistics as the trade panel keeps them (filled from the local player's unit record
 // `index`).
 struct TradeRecord {
@@ -266,10 +264,10 @@ public:
     int recordIndex_;
     int learnableTop_;               // first learnable row shown
     int perkTop_;                    // first held perk shown
-    TradeRows learnable_;
-    TradeRows perks_;
-    TradeRows schools_;              // six
-    TradeRows science_;              // one
+    std::vector<TradeRow> learnable_;
+    std::vector<TradeRow> perks_;
+    std::vector<TradeRow> schools_;              // six
+    std::vector<TradeRow> science_;              // one
     int experience_;                 // experience the hero can spend
     std::vector<TradeRecord> records_;            // one per party member
     int heldRegion_;                 // the school / science row held after a purchase
@@ -487,8 +485,6 @@ public:
     int selected_;                   // -1
 };
 
-// A party's or trader's items.
-using UiItemList = std::vector<CItem*>;
 // The 4 x 4 grid of item cells on the constructors' first pages.
 class CTradeGrid : public CUiItemPanel {
 public:
@@ -496,13 +492,13 @@ public:
     BOOL Draw(CSceneRenderer* pass) override { return DrawGrid(pass); }
     int DrawGrid(CSceneRenderer* pass);
     // `spells` chooses the price kinds (0/1 for the spell constructor, 4/5 for the item one).
-    void Build(UiItemList* bought, UiItemList* sold, char spells, char flag);
+    void Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, char spells, char flag);
     // Regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor, 0x11 for the
     // spell one), 8-15 the sold list (0x1D / 0x0C / 0x12).
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    UiItemList* bought_;
-    UiItemList* sold_;
+    std::vector<CItem*>* bought_;
+    std::vector<CItem*>* sold_;
     int buyKind_;
     int sellKind_;
     char flag_;
@@ -512,13 +508,13 @@ public:
 class CRepairGrid : public CUiItemPanel {
 public:
     using CUiItemPanel::CUiItemPanel;
-    void Build(UiItemList* items);
+    void Build(std::vector<CItem*>* items);
     // Each item's model in its cell (depth 2^(3 - row) * 6), its count and its repair price.
     BOOL Draw(CSceneRenderer* pass) override;
     // Topic 0x19 on the 16 cells.
     CItem* ItemAt(int x, int y, int* topic) override;
 
-    UiItemList* items_;
+    std::vector<CItem*>* items_;
 };
 
 // The quick item strip of the hero panels: eight cells along the top (camp) or the bottom of the screen.

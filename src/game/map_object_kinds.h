@@ -19,6 +19,7 @@ public:
     int GetClassId() override;
 };
 
+// Kept: the map object kinds are the class names (one instance of PlainMapObject per class id).
 // Constructor, destructor, deleting destructor; slots 11 / 12.
 using CTree = PlainMapObject<0x52>;
 using CStone = PlainMapObject<0x53>;

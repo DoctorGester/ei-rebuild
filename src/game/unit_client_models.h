@@ -66,8 +66,6 @@ struct SkinLayer {
     int slot = -1;
 };
 
-using SkinLayerArray = std::vector<SkinLayer>;
-
 // What the texture manager composes a skin from: the layers as bytes in 32-byte aligned storage, the layer
 // texture names, and a flag (0x100 detailed, 0x80 simple).
 struct SkinRequest {
@@ -121,7 +119,7 @@ public:
 
     // The skin layers: `detailed`: the unit's own skin (0x32) and its seven armour slots; else two layers,
     // armour slot 0 and the weapon in hand.
-    void BuildSkinLayers(int detailed, SkinLayerArray* out);
+    void BuildSkinLayers(int detailed, std::vector<SkinLayer>* out);
 
     // Composes the unit's skin texture through the texture manager from the skin layers and the textures
     // "<prototype>skin_<nn>.mmp" and "<prototype><armour or weapon texture>.mmp", named "mo<id>p" /

@@ -49,7 +49,7 @@ void CUnit::AdvanceTime(float time) {
 }
 
 int CMapObject::SetVisibilityLevel(float level) {
-    CMapObjectVirtuals* slots = this;
+    CMapObject* slots = this;
     EI_NAN_AUDIT(level);
     if (level == 0.0f) return slots->SetVisibilityMode(0);
     if (level == kOne) return slots->SetVisibilityMode(1);

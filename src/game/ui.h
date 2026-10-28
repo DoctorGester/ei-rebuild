@@ -277,9 +277,6 @@ public:
 
 extern lib::StaticObject<CInterface3D> g_interface;
 
-template <typename T>
-using UiPtrArray = std::vector<T*>;
-
 class CUiRegion;
 struct CUiTooltip;
 
@@ -570,11 +567,11 @@ public:
     CEngineObject* blackMaterial_;            // given to every sprite (AddSprite)
     CEngineObject* whiteMaterial_;
     CEngineObject* heldObject_;               // released by the destructor (writer not identified)
-    UiPtrArray<CTexture> objects_;            // the referenced textures
-    UiPtrArray<CEngineObject> sceneObjects_;
-    UiPtrArray<CUiSurface> surfaces_;
-    UiPtrArray<CUiRegion> regions_;
-    UiPtrArray<CUiModel> models_;
+    std::vector<CTexture*> objects_;            // the referenced textures
+    std::vector<CEngineObject*> sceneObjects_;
+    std::vector<CUiSurface*> surfaces_;
+    std::vector<CUiRegion*> regions_;
+    std::vector<CUiModel*> models_;
 };
 // The verify build's interface census (tests/verify/ui_census.cpp) is told which window owns each
 // surface: AddSurface (`added`), RemoveSurfaceAt, ClearSurfaces and the destructor. Null otherwise.
@@ -658,8 +655,6 @@ class CHudPortraits;
 class CHudUnitPanel;
 class CBattleScreen;
 class CUiScrollText;
-
-using UiDwordArray = std::vector<std::uint32_t>;
 
 // The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
 namespace uidevice {
@@ -838,7 +833,7 @@ public:
     int count_;                      // buttons added
     int selected_;
     CUnit* unit_;
-    UiDwordArray actions_;           // the buttons' actions (0 science, -1 follow)
+    std::vector<std::uint32_t> actions_;           // the buttons' actions (0 science, -1 follow)
     std::vector<std::string> labels_;   // the tooltip's labels
 };
 
@@ -987,7 +982,6 @@ struct UiPointF {
     float x;
     float y;
 };
-using UiPointArray = std::vector<UiPointF>;
 
 // Map (615..800 x 0..165). Regions: 0 the sling button, 1 the round map, 2 the map area, 3 and 4 the two
 // view buttons, 5 a button above them, 6 the whole panel.
@@ -1036,8 +1030,8 @@ public:
     float zoom_;                     // 1 .. zoomMax_ (the view buttons change it)
     float zoomMax_;
     float halfSide_;                 // 80: half the map's side in layout units (a click's offset over it)
-    UiPointArray viewPolygon_;       // the round map's outline in map units (the disc's corners)
-    UiPointArray visibleArea_;       // the outline in world units, clipped to the world
+    std::vector<UiPointF> viewPolygon_;       // the round map's outline in map units (the disc's corners)
+    std::vector<UiPointF> visibleArea_;       // the outline in world units, clipped to the world
     int sliding_;                    // set when the sling button (or its key) starts the slide
     int offset_;                     // current slide offset in pixels (to the right)
     int travel_;                     // full slide distance
@@ -1257,7 +1251,7 @@ public:
     // The window's own surfaces, then every enabled child's.
     void ShowChildren(int show);
 
-    UiPtrArray<CUiWindow> children_;
+    std::vector<CUiWindow*> children_;
     std::vector<UiInputSide*> inputs_;        // extra input sides
 
 private:
@@ -1268,8 +1262,6 @@ private:
 inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContainer*>(window); }
 
 // --- Battle screen ---
-// The battle screen's "pers" texts by text key id.
-using PersonTextMap = std::map<int, std::string>;
 
 // The in-game screen (CreateScreen id 1); its Create builds the HUD panels as children in order: weapon
 // bar, quick items, spell column, action column, portraits, unit panel, map, clock, movement panel, message
@@ -1394,15 +1386,13 @@ public:
     int KeyUp(int k, int r, int f) override { return OnKeyUp(k, r, f), 0; }
     int Wheel(int f, int d, int x, int y) override { return OnWheel(f, d, x, y); }
 
-    // The client's party ids: players with a unit, the camera's player, the others.
-    using IdVector = std::vector<int>;
     struct PartyIds {
         // Both id vectors hold the same ids in the same order (the camera's id is not compared).
         bool Equals(const PartyIds& other) const;
 
-        IdVector withUnit;
+        std::vector<int> withUnit;
         int camera;
-        IdVector without;
+        std::vector<int> without;
     };
 
     int spare_;                      // nothing reads it
@@ -1435,8 +1425,8 @@ public:
     int pressX_;                     // where the button went down on the view (screen)
     int pressY_;
     RECT selectionBox_;              // the box
-    UiDwordArray heroes_;            // ids of the heroes shown (saved with the game)
-    PersonTextMap personTexts_;      // the "pers" texts by person
+    std::vector<std::uint32_t> heroes_;            // ids of the heroes shown (saved with the game)
+    std::map<int, std::string> personTexts_;      // the "pers" texts by person
     int questSound_;                 // the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // a hero id was added (new game)
     PartyIds clientParty_;           // the client's party ids last built
@@ -1533,7 +1523,6 @@ struct UiWordToken : UiTextToken {
 inline UiFormatToken* UiTextToken::AsFormat() { return static_cast<UiFormatToken*>(this); }
 inline const UiFormatToken* UiTextToken::AsFormat() const { return static_cast<const UiFormatToken*>(this); }
 inline UiWordToken* UiTextToken::AsWord() { return static_cast<UiWordToken*>(this); }
-using UiTokenArray = std::vector<UiTextToken*>;
 // A laid out line of a scrolling text: the fields DrawLines reads (the record's size is not known).
 struct UiTextLine {
     int height_;                     // pixels
@@ -1570,7 +1559,7 @@ public:
     void DrawLines(int scroll);
 
     RECT textRect_;                  // the text's rectangle (surface coordinates)
-    UiTokenArray tokens_;
+    std::vector<UiTextToken*> tokens_;
     std::vector<UiTextLine*> lines_; // the laid out lines
     int align_;                      // 1: left aligned (else justified)
 

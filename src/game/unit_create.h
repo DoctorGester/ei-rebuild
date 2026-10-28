@@ -38,12 +38,11 @@ struct UnitPrototypeTable {
 
 // The NPC prototype table (records of statistics for named creatures), laid out the same way.
 struct NpcPrototypeTable {
-    using NameIndex = std::unordered_map<std::string, UnitNpcRecord*>;
 
     UnitNpcRecord* FindByName(std::string_view name);
 
     std::vector<UnitNpcRecord> records;
-    NameIndex byName;
+    std::unordered_map<std::string, UnitNpcRecord*> byName;
 };
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC

@@ -56,9 +56,6 @@ public:
     lib::File file_;
 };
 
-// The loopback link's queue.
-using StreamQueue = std::list<CMemoryStream>;
-
 class NetLink : public CRefObject {
 public:
     ~NetLink() override;
@@ -111,7 +108,7 @@ public:
     // Two links joined to each other; the first goes to the player's link, the second is returned.
     static LoopbackLink* CreatePair(CWorldHandle* player);
 
-    StreamQueue queue_;
+    std::list<CMemoryStream> queue_;
     LoopbackLink* peer_;         // counted
 };
 
@@ -175,7 +172,7 @@ public:
     int OnShutdown() override;          // both lists emptied
     DriverSession* Clone() override;    // drivers shared, holders counted
     bool Query() override { return true; }
-    void TakeNew(JoinedLinks* joined) override;   // the live holders' links appended
+    void TakeNew(std::list<netlink::NetLink*>* joined) override;   // the live holders' links appended
 
     std::list<SharedRefTo<DriverLink>> drivers_;    // owning
     std::list<CountedRefTo<DriverLink>> holders_;   // plain holders (released, not detached)

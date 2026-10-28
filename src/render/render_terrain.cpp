@@ -242,7 +242,7 @@ void BuildPage(const SectorData* s, int page, int lod, bool seams, CachedPage& o
         range.firstIndex = static_cast<std::uint32_t>(out.indices.size());
         const auto& lists = s->tiles[quarter];
         if (page < std::ssize(lists) && !lists[page].empty()) {
-            const terrain::TileList& list = lists[page];
+            const std::vector<terrain::TileVertex>& list = lists[page];
             int tiles = std::ssize(list) / 9;
             const std::uint8_t* edges = nullptr;
             if (seams && page < std::ssize(s->tileFlags[quarter]))

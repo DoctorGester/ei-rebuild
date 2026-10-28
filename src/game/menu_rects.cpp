@@ -50,7 +50,7 @@ int CFigureManager::LoadMenuRects(RECT* rects) {
         reg->Destroy();
         return result;
     }
-    IntArray values;
+    std::vector<std::int32_t> values;
     for (const MenuRect& entry : kRects) {
         values.clear();
         reg->GetIntArray(entry.section, entry.name, &values);

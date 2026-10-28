@@ -20,15 +20,12 @@ namespace {
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
 
-using ObjectList = std::list<CEngineObject*>;
-using GivenItems = std::list<CItem*>;
-
 } // namespace
 
 bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
-    GivenItems items;
-    GivenItems second;
-    ObjectList third;
+    std::list<CItem*> items;
+    std::list<CItem*> second;
+    std::list<CEngineObject*> third;
     int gold;
     // The early returns empty the lists without their destructors' bookkeeping; the others destroy them.
     auto abandon = [&]() {
@@ -50,7 +47,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
 
     if (unit->flags_ & kFlagSharedLoot) {
         // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
-        SharedObjectList& list = sharedObjects_;
+        std::list<SharedObject>& list = sharedObjects_;
         auto node = std::ranges::find(list, unit->id_, &SharedObject::objectId);
         if (node == list.end()) {
             abandon();
@@ -82,7 +79,7 @@ bool CWorldServer::Loot(CUnit* unit, CPlayer* player) {
             }
         }
         if (first) {
-            GivenItems quest;
+            std::list<CItem*> quest;
             for (auto node = items.begin(); node != items.end();) {
                 auto next = std::next(node);
                 CItem* item = *node;

@@ -44,7 +44,8 @@ public:
     RefPtrTo<Message> object_;   // the object (null once it is gone)
 };
 
-// A counted reference to a replica entry (the connection's maps' values, a sent item's entry).
+// A counted reference to a replica entry (the connection's maps' values, a sent item's entry). Kept: the name of
+// the reference type of the replication code.
 using EntryRef = CountedPtr<ReplicaEntry>;
 
 // One item of a history entry: what a packet carried for one entry.
@@ -83,7 +84,6 @@ struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
 };
-using FreedIds = std::vector<FreedId>;
 
 // An object received from the peer (the value of records_): its share (copied with Share, released as its owner).
 struct Record {
@@ -99,8 +99,6 @@ struct AttachedId {
 
 class Connection final : public CRefObject {
 public:
-    using EntryMap = std::map<ReplicaEntry*, EntryRef>;
-    using RecordMap = std::map<std::int32_t, Record>;
 
     explicit Connection(std::uint32_t id);
     // Every container copied.
@@ -177,14 +175,14 @@ public:
     double clock_;                      // seconds since the connection started
     std::uint32_t updateBudget_;        // 220: bytes per update
     IdPool idPools_[kMessageTypes];     // one per message type
-    std::list<FreedIds> freedIds_;     // batches of ids returned to the pools later
+    std::list<std::vector<FreedId>> freedIds_;     // batches of ids returned to the pools later
     float freedTimer_;
     std::map<std::int32_t, EntryRef> bySentId_;    // type << 16 | id -> entry
     std::map<CRefObject*, EntryRef> byObject_;     // object -> entry
-    std::array<EntryMap, 11> priorities_;          // per priority: entry -> entry
+    std::array<std::map<ReplicaEntry*, EntryRef>, 11> priorities_;          // per priority: entry -> entry
     std::list<SentPacket> history_;    // packets sent, waiting for an acknowledgement
     std::list<SentPacket> acknowledged_;   // lost packets, kept a while for late acknowledgements
-    RecordMap records_;                 // objects received (key type << 16 | id)
+    std::map<std::int32_t, Record> records_;                 // objects received (key type << 16 | id)
     std::map<CRefObject*, AttachedId> attached_;   // received object -> (type, id)
     std::uint16_t headerSequence_;      // sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // sequence of the next reliable chunk expected

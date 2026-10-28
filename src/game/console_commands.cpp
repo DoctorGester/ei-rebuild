@@ -35,10 +35,10 @@ namespace {
 
 
 // Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const Arguments* args, int i, const char* text) { return str::Compare((*args)[i], text) == 0; }
+bool ArgIs(const std::vector<std::string>* args, int i, const char* text) { return str::Compare((*args)[i], text) == 0; }
 // "1"/"on" and "0"/"off".
-bool ArgOn(const Arguments* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
-bool ArgOff(const Arguments* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
+bool ArgOn(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
+bool ArgOff(const std::vector<std::string>* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
 
 CPlayer* GetPlayer(int id) { return TheServerWorld()->GetPlayer(id); }
 CPlayer* LocalPlayer() {
@@ -58,7 +58,7 @@ void SetConsoleRect(int left, int top, int right, int bottom) {
 
 } // namespace
 
-void Help(Arguments*) {
+void Help(std::vector<std::string>*) {
     static constexpr const char* kLines[] = {
         "Commands are:",
         "HELP",
@@ -86,7 +86,7 @@ void Help(Arguments*) {
 }
 
 // Debuginfo l<eft>|r<ight>|lt|lefttop|rt|righttop.
-void DebugInfo(Arguments* args) {
+void DebugInfo(std::vector<std::string>* args) {
     if (!args->empty()) {
         if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
             return SetDebugInfoRect(10, 10, 0x122, 0x24E);
@@ -101,7 +101,7 @@ void DebugInfo(Arguments* args) {
 }
 
 // Console l<eft>|r<ight>|t<op>|b<ottom>|c<enter>|f<ullscreen> (800x600 coordinates).
-void ConsolePos(Arguments* args) {
+void ConsolePos(std::vector<std::string>* args) {
     if (!args->empty()) {
         if (ArgIs(args, 0, "left") || ArgIs(args, 0, "l"))
             return SetConsoleRect(0, 0, 0xC8, 0x258);
@@ -120,13 +120,13 @@ void ConsolePos(Arguments* args) {
 }
 
 // History <lines>.
-void History(Arguments* args) {
+void History(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("Invalid parameters");
     TheInterface()->SetConsoleHistory(str::ToInt((*args)[0]));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
-void Filter(Arguments* args) {
+void Filter(std::vector<std::string>* args) {
     if (args->empty()) {
         static constexpr const char* kLabels[] = {"AI: ", "\nEVENT: ", "\nGRAPHICS: ", "\nRPG: ", "\nUNITACKS: ", "\nNET: "};
         Stream& os = g_consoleOut;
@@ -156,7 +156,7 @@ void Filter(Arguments* args) {
 }
 
 // Show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
-void Show(Arguments* args) {
+void Show(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("Invalid number of parameters for command \"show\"");
     void (CWorldClient::*on)();
     void (CWorldClient::*off)();
@@ -181,7 +181,7 @@ void Show(Arguments* args) {
 
 // Listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
-void ListVar(Arguments* args) {
+void ListVar(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("usage: listvar [Nplayer] <[output file name]>");
     CPlayer* player;
     if (IsMultiplayerClient())
@@ -211,7 +211,7 @@ void ListVar(Arguments* args) {
 }
 
 // Loadvar <player> <file>: sets the variables of each "name value" line.
-void LoadVar(Arguments* args) {
+void LoadVar(std::vector<std::string>* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
     CPlayer* player = GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
@@ -237,7 +237,7 @@ void LoadVar(Arguments* args) {
 }
 
 // "Current FPS: " 1000 / last frame time (printed as float).
-void LastFps(Arguments*) {
+void LastFps(std::vector<std::string>*) {
     auto* timer = SceneRenderer();
     Stream& os = g_consoleOut << "Current FPS: ";
     unsigned ms = timer->FrameTime();
@@ -247,7 +247,7 @@ void LastFps(Arguments*) {
 
 // Exec <file>: runs each line of the file as a console command. Quotes around the name
 // are trimmed (the message names the argument as given).
-void Exec(Arguments* args) {
+void Exec(std::vector<std::string>* args) {
     std::string line;
     if (args->empty()) return PrintLine("usage: exec<ute> [input file name]");
     std::string name = (*args)[0];
@@ -263,7 +263,7 @@ void Exec(Arguments* args) {
 }
 
 // Give <player> money <n> | exp <n> (shared by the party) | assortment.
-void Give(Arguments* args) {
+void Give(std::vector<std::string>* args) {
     std::string unused1;
     std::string unused2;
     if (args->size() < 2) {
@@ -299,7 +299,7 @@ namespace {
 // join / server: a party with one member ("F", "Human Hero", `extra`) on the stack, handed
 // to the game flow's request 5 / 6 with the map name.
 template <void (GameFlow::*Request)(const char*, CParty*)>
-void RequestWithParty(Arguments* args, const char* extra) {
+void RequestWithParty(std::vector<std::string>* args, const char* extra) {
     CParty party;
     party.AddMember("F", "Human Hero", extra);
     std::string map = (*args)[0];
@@ -308,37 +308,37 @@ void RequestWithParty(Arguments* args, const char* extra) {
 } // namespace
 
 // join <map>: the flow's request 5 with a party of one ("Hercules").
-void Join(Arguments* args) {
+void Join(std::vector<std::string>* args) {
     if (args->size() != 1) return PrintLine("Join has 1 parameter, server name");
     RequestWithParty<&GameFlow::RequestPartyZone5>(args, "Hercules");
 }
 
 // server <map>: "Starting up a server", then the flow's request 6 with a party of one ("Serv").
-void HostServer(Arguments* args) {
+void HostServer(std::vector<std::string>* args) {
     if (args->size() != 1) return PrintLine("Join has 1 parameter, map name");
     PrintLine("Starting up a server");
     RequestWithParty<&GameFlow::RequestPartyZone6>(args, "Serv");
 }
 
-void MemUsage(Arguments*) {}
+void MemUsage(std::vector<std::string>*) {}
 
 // disconnect, any arguments: the client world's local player disconnects.
-void Disconnect(Arguments*) { TheGameFlow()->DisconnectClient(); }
+void Disconnect(std::vector<std::string>*) { TheGameFlow()->DisconnectClient(); }
 
-void LootAll(Arguments*) {
+void LootAll(std::vector<std::string>*) {
     PrintLine("Looting...");
     TheServerWorld()->LootDeadUnits();
 }
 
 // Fadeout <milliseconds>.
-void FadeOut(Arguments* args) {
+void FadeOut(std::vector<std::string>* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
     TheInterface()->fade_->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
 
 // Net client|server|time 0/1 (traffic and timing output), net zone <name>.
-void Net(Arguments* args) {
+void Net(std::vector<std::string>* args) {
     if (args->size() != 2) {
         PrintLine("net client 0/1 - show client traffic");
         PrintLine("net server 0/1 - show server traffic");
@@ -371,7 +371,7 @@ void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& spe
 }
 } // namespace
 
-void WriteSpeechLines(lib::TextFile* file, const acks::SpeechList* list) {
+void WriteSpeechLines(lib::TextFile* file, const acks::Speeches* list) {
     if (!list) return;
     std::string line;
     for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
@@ -386,7 +386,7 @@ void WriteEnvironmentSpeechLines(lib::TextFile* file, const acks::EnvironmentSpe
 // Generateacks. Writes <data folder>scenack.txt: for every record of the three ack
 // tables, each speech list its kind map names (in the map's order; a list that serves several
 // kinds is written once per kind), and after a unit record's lists its environment speeches.
-void GenerateAcks(Arguments*) {
+void GenerateAcks(std::vector<std::string>*) {
     lib::TextFile file;
     {
         std::string path = *GameDataPathString() + "scenack.txt";
@@ -406,7 +406,7 @@ void GenerateAcks(Arguments*) {
 }
 
 // Days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
-void Days(Arguments* args) {
+void Days(std::vector<std::string>* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
             signed char c = (*args)[i].c_str()[k];
@@ -451,14 +451,14 @@ void Days(Arguments* args) {
     for (const char* line : kUsage) PrintLine(line);
 }
 
-void PartyResend(Arguments*) {
+void PartyResend(std::vector<std::string>*) {
     if (CPlayer* player = GetPlayer(0)) player->Server()->ResendParty();
 }
 
 namespace {
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
 // name (quotes stripped) the server command.
-void KickOrBan(Arguments* args, int windowMode, int command) {
+void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
     int count = static_cast<int>(args->size());
     if (count == 0) {
         net::ClientSession* server = net::g_gameClient;
@@ -479,13 +479,13 @@ void KickOrBan(Arguments* args, int windowMode, int command) {
 } // namespace
 
 // Kick [name].
-void Kick(Arguments* args) { KickOrBan(args, 1, 2); }
+void Kick(std::vector<std::string>* args) { KickOrBan(args, 1, 2); }
 
 // Ban [name].
-void Ban(Arguments* args) { KickOrBan(args, 2, 3); }
+void Ban(std::vector<std::string>* args) { KickOrBan(args, 2, 3); }
 
 // Fps 1|on|0|off (anything else: nothing).
-void Fps(Arguments* args) {
+void Fps(std::vector<std::string>* args) {
     if (args->size() < 1) return PrintLine("Invalid number of parameters for command \"FPS\"");
     if (ArgOn(args, 0)) TheInterface()->ShowFps(1);
     else if (ArgOff(args, 0)) TheInterface()->ShowFps(0);
@@ -493,7 +493,7 @@ void Fps(Arguments* args) {
 
 namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
-void SetRate(Arguments* args, int* rate, const char* usage) {
+void SetRate(std::vector<std::string>* args, int* rate, const char* usage) {
     if (args->size() != 1) return PrintLine(usage);
     int value = str::ToInt((*args)[0]);
     if (value < 500) value = 500;
@@ -503,9 +503,9 @@ void SetRate(Arguments* args, int* rate, const char* usage) {
 } // namespace
 
 // Rate <bytes per second>.
-void Rate(Arguments* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
+void Rate(std::vector<std::string>* args) { SetRate(args, &net::g_remoteRate, "Rate has one parameter - connection rate in bytes per second"); }
 
 // Localrate <bytes per second>.
-void LocalRate(Arguments* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
+void LocalRate(std::vector<std::string>* args) { SetRate(args, &net::g_localRate, "LocalRate has one parameter - connection rate in bytes per second"); }
 
 } // namespace console::commands

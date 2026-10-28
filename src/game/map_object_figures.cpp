@@ -138,7 +138,7 @@ void CObject3D::SetFigureScale(const float* newScale) {
         for (int i = 0; i < std::ssize(parts); ++i) {
             auto* part = parts[i];
             const char* pieceName = part->GetName();
-            LinkHeaderMap::const_iterator piece;
+            std::map<std::string, LinkPartHeader>::const_iterator piece;
             {
                 std::string key(pieceName);
                 piece = figure->headers_.find(key);

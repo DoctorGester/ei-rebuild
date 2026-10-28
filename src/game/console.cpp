@@ -150,7 +150,7 @@ void Execute(const char* text) {
         Command(r.cheat ? CheatCommands() : PublicCommands(), name) = r.handler;
     }
 
-    Arguments args;
+    std::vector<std::string> args;
     Tokenize(text, &args);
     if (args.empty()) return;
     std::string command = args[0];
@@ -238,7 +238,7 @@ int Tokenize(const char* text, std::vector<std::string>* out) {
 }
 
 // The arguments are joined back with single spaces.
-void RunScriptLine(const std::string& text, const Arguments& args, const char* prefix, const char* suffix) {
+void RunScriptLine(const std::string& text, const std::vector<std::string>& args, const char* prefix, const char* suffix) {
     ScriptErrorInfo error{};
     std::string line = prefix + text;
     for (const std::string& arg : args) {

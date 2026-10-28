@@ -75,13 +75,13 @@ std::string GroupText(const ScriptGroup& group) {
 
 // ---- The commands (the arguments, lower case) ----------------------------------------------
 
-void Help(Arguments* args) {
+void Help(std::vector<std::string>* args) {
     g_gameHelp(args);
     Say("ADDON [command]");
     Say("addon-specific commands");
 }
 
-void AddonDebug(Arguments* args) {
+void AddonDebug(std::vector<std::string>* args) {
     std::string type = !args->empty() ? (*args)[0] : "";
     int level = args->size() >= 2 ? str::ToInt((*args)[1]) : -1;
     if (type.empty() || type == "help") {
@@ -105,7 +105,7 @@ void AddonDebug(Arguments* args) {
     }
 }
 
-void Addon(Arguments* args) {
+void Addon(std::vector<std::string>* args) {
     if (args->empty() || str::Compare((*args)[0], "help") == 0) {
         Say("Welcome to Evil Islands Addon Engine v0.12.4.2\n\nAvailable commands:\n"
             "* addon info          - show detailed information about addon\n"
@@ -121,7 +121,7 @@ void Addon(Arguments* args) {
 }
 
 // execs file: loads a script file into the script loader and runs it.
-void Execs(Arguments* args) {
+void Execs(std::vector<std::string>* args) {
     if (TheMissionScript()->LoadFile((*args)[0].c_str())) {
         ScriptTick(TheMissionScript());
         return;
@@ -130,7 +130,7 @@ void Execs(Arguments* args) {
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
-void ListGlobals(Arguments*) {
+void ListGlobals(std::vector<std::string>*) {
     const ScriptVars& globals = TheMissionScript()->globals_;
     auto name = [](const std::vector<std::string>& names, int i) { return names[static_cast<std::size_t>(i)].c_str(); };
     for (int i = 0; i < std::ssize(globals.floats.values); ++i)
@@ -148,13 +148,13 @@ void ListGlobals(Arguments*) {
 }
 
 // drawall n: the draw-all flag becomes (n == 0).
-void DrawAll(Arguments* args) {
+void DrawAll(std::vector<std::string>* args) {
     if (args->size() < 1) return;
     *kSpectator = str::ToInt((*args)[0]) == 0 ? 1 : 0;
 }
 
 // nogui 0|1|2: GUI and cursor shown / GUI hidden / both hidden.
-void NoGui(Arguments* args) {
+void NoGui(std::vector<std::string>* args) {
     int mode = args->size() == 1 ? str::ToInt((*args)[0]) : -1;
     if (static_cast<unsigned>(mode) > 2) {
         Say("Hide or show GUI in game missions\n\nnogui 0 - show all (default)\nnogui 1 - hide GUI but show cursor\n"

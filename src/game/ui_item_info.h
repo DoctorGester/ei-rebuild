@@ -68,11 +68,10 @@ struct ItemCacheEntry {
 // used objects beyond that.
 template <typename Object>
 struct ItemObjectCache {
-    using Map = std::map<std::string, ItemCacheEntry<Object>>;
-
-    Map map;
+    std::map<std::string, ItemCacheEntry<Object>> map;
     std::uint32_t limit = 50;
 };
+// Kept: the screens' two named caches of the one template.
 using ItemModelCache = ItemObjectCache<CUiMesh>;        // the models (CUiMesh)
 using ItemTextureCache = ItemObjectCache<CTexture>;     // the model textures (ItemFigureTexture's)
 // Every cached object released, in key order (the hero screen's model and texture caches).
@@ -226,7 +225,7 @@ public:
     CItem* Item() { return FirstItem(); }
     CParty* ItemParty() { return itemParty_.Get(); }
 
-    PartyStorage itemParty_;         // the described item's list: an embedded CParty, built and destroyed by this panel
+    lib::InPlace<CParty> itemParty_;         // the described item's list: an embedded CParty, built and destroyed by this panel
     int x_;                          // layout position of the surface
     int y_;
     std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"

@@ -580,25 +580,23 @@ void CUnitServer::TickItemSpells() {
 }
 
 namespace {
-// The lists RefreshItemSpells uses.
-using UnitItems = std::list<CItem*>;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {
-    UnitItems items{};
+    std::list<CItem*> items{};
     std::list<CSpell*> others{};
     unit->CollectItems(&items, &others);
     // Weapons other than the one in use do not count.
     for (auto node = items.begin(); node != items.end();) {
-        UnitItems::iterator current = node;
+        std::list<CItem*>::iterator current = node;
         ++node;
         CItem* item = *current;
         if (item->GetClassId() != kClassWeapon || item == unit->GetWeapon(unit->activeWeapon)) continue;
         items.erase(current);
     }
-    ArmourSpellList* list = &armourSpells;
+    std::list<ArmourSpell>* list = &armourSpells;
     for (ArmourSpell& entry : armourSpells) entry.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the previous
     // item's spell (like the original).

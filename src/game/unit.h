@@ -938,8 +938,6 @@ struct EffectSoundRecord {
 void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
                                 const char* suffix);
 
-using EffectParticleArray = std::vector<EffectParticle>;
-
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific"); its owner is a unit for IsDead
 // / IsOverkilled.
 class CMapObjectClientSpecific : public CMapObjectCompanion {
@@ -993,7 +991,7 @@ public:
 
     std::uint32_t lightStateA;          // cleared by Construct, Create and Destroy; nothing reads it
     std::uint32_t lightStateB;          // the same
-    EffectParticleArray particles;  // the effect particles
+    std::vector<EffectParticle> particles;  // the effect particles
     std::vector<EffectSoundRecord> sounds;        // the looping effect sounds
     HeldObject<CLight> light;       // counted
     int endSound;           // the end sound's handle (-1 none)

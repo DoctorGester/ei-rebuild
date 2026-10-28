@@ -67,7 +67,7 @@ const char* MotivationFormat() { return "Unit %i new motivation %s with power of
 // --- Helpers -------------------------------------------------------------------------------------
 
 AIRefTo<CUnit>* AIBrain::PopCorpse(AIRefTo<CUnit>* out) { return memory.corpses.PopHead(out); }
-void AIBrain::ChooseTarget(AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, int a, int b) {
+void AIBrain::ChooseTarget(AITargetChoice* choice, CountedUnits* candidates, const Vector3* from, int a, int b) {
     // `a` is read as a byte.
     attention.Choose(this, choice, candidates, from, static_cast<std::uint8_t>(a) != 0, b);
 }

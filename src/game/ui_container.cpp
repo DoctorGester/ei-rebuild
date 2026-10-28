@@ -14,7 +14,7 @@ std::uint32_t FrameMilliseconds() { return SceneRenderer()->FrameTime(); }
 // --- Construction and destruction --------------------------------------------------------------
 
 CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
-    children_ = UiPtrArray<CUiWindow>{};
+    children_ = std::vector<CUiWindow*>{};
 }
 
 CUiContainer::~CUiContainer() {

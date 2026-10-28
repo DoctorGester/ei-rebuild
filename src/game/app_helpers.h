@@ -15,10 +15,7 @@ namespace app {
 
 extern std::uint8_t g_movieMode;   // app_helpers.cpp
 
-// The copy protection's check list (an STLport list of bytes, 1 passed / 0 failed; built empty by
-// a static initialiser, freed at exit; static_lists.cpp). Nothing adds to it.
-using ProtectionCheckList = std::list<std::uint8_t>;
-inline ProtectionCheckList& ProtectionChecks() { return *g_protectionChecks; }
+inline std::list<std::uint8_t>& ProtectionChecks() { return *g_protectionChecks; }
 
 double DiskFreeSpace(const char* path);
 bool QuitGame(int exitCode);

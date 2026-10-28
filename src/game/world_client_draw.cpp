@@ -163,17 +163,17 @@ void DrawEach(FrameList list, Draw draw) {
 }
 // The drawn objects' three figure draw virtuals with the scene context; their results are ignored. The
 // new renderer learns which object the meshes of a figure draw belong to (its shadow map's casters).
-constexpr auto kDraw = [](CMapObjectVirtuals* object) {
+constexpr auto kDraw = [](CMapObject* object) {
     render::BeginCaster(object, false);
     object->DrawFigure(TheSceneRenderer());
     render::EndCaster();
 };
-constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
+constexpr auto kDrawUnit = [](CMapObject* object) {
     render::BeginCaster(object, true);
     object->DrawCollectDirty(TheSceneRenderer());
     render::EndCaster();
 };
-constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(TheSceneRenderer()); };
+constexpr auto kDrawShadow = [](CMapObject* object) { object->DrawFigureShadow(TheSceneRenderer()); };
 
 // Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
@@ -393,7 +393,7 @@ int CWorldClient::DrawPass() {
     rangeLastY_ = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
 
     int touched = 0;
-    SectorList* sector = &objectGrid_.rows_[sy0][sx0];
+    std::list<HeldPtr<CMapObject>>* sector = &objectGrid_.rows_[sy0][sx0];
     while (sector) {
         touched += CollectVisible(sector, view, animTime, now, 0, 0);
         std::uint32_t x = ++rangeX_;
@@ -508,9 +508,8 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 15, 0);
         TheSceneRenderer()->SetTexture(0, nullptr);
         CMapObjectManager* manager = manager40_;
-        using Node = std::list<int>::iterator;
-        for (Node node = selected.begin(); node != selected.end();) {
-            Node next = std::next(node);
+        for (std::list<int>::iterator node = selected.begin(); node != selected.end();) {
+            std::list<int>::iterator next = std::next(node);
             int id = (*node);
             auto* object = manager->FindObjectAs<CMapObject>(static_cast<unsigned>(id));
             if (object) {

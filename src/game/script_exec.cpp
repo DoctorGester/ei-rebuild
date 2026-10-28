@@ -82,8 +82,6 @@ CPlayerManager* TheEvents() { return TheServerWorld()->players_; }
 
 CSpellManager* TheSpellManager() { return TheServerWorld()->manager4C_; }
 
-using PtrList = std::list<CUnit*>;
-
 CUnitServer* UnitState(CUnit* unit) { return unit->ServerController(); }
 AIBrain* BrainOf(CUnitServer* state) { return state->Brain(); }
 PatrolMode* PatrolOf(CUnitServer* state) { return BrainOf(state)->FindPatrolMode(); }
@@ -159,7 +157,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     }
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
-    PtrList units;
+    std::list<CUnit*> units;
     float radius = object->bounds.radius + object->bounds.radius;
     map->FindUnitsInRadius(Position(object), &units, radius);
     for (auto pos = units.begin(); pos != units.end();) {

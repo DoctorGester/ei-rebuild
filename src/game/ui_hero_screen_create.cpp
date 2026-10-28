@@ -56,10 +56,6 @@ float MenuTurn() { return kMenuTilt * 1.2f /*0073CDF4*/; }
 // The saved heroes' reload (Rebirth-patched).
 SavedParties* Heroes() { return &TheSavedParties(); }
 
-// The screen's vectors as the library's: the figures' prototype names, and the voices.
-using NameList = MpStringVector;
-using VoiceList = MpVoiceVector;
-
 CUiContainer* AsContainer(CMpHeroScreen* screen) { return screen; }
 
 CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
@@ -71,11 +67,11 @@ CUiScrollbar* NewScrollbar(CInterface3D* ui, RECT rect) { return new CUiScrollba
 CUiEditField* NewEditField(CInterface3D* ui, RECT rect) { return new CUiEditField(ui, rect); }
 
 // By name (_mbscmp). Names that compare equal are the same text.
-void SortNames(NameList& names) { std::sort(names.begin(), names.end(), str::MbsLess()); }
+void SortNames(std::vector<std::string>& names) { std::sort(names.begin(), names.end(), str::MbsLess()); }
 
 // A figure the new hero can take: its voice (when the creature's record has the flag) and its
 // prototype's name.
-void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* prototype, const std::string& label,
+void AddFigure(std::vector<MpVoiceEntry>& voices, std::vector<std::string>& names, const UnitPrototypeRecord* prototype, const std::string& label,
                bool voiced) {
     if (voiced) voices.push_back(MpVoiceEntry{prototype->name, label});
     names.push_back(prototype->name);
@@ -222,10 +218,10 @@ void CMpHeroScreen::CreateScreen() {
     std::string label;
     texts->GetString("lmp_male_voice", &male);
     texts->GetString("lmp_female_voice", &female);
-    NameList& men = defaults_;
-    NameList& women = names_;
-    VoiceList& maleVoices = voiceLists_[0];
-    VoiceList& femaleVoices = voiceLists_[1];
+    std::vector<std::string>& men = defaults_;
+    std::vector<std::string>& women = names_;
+    std::vector<MpVoiceEntry>& maleVoices = voiceLists_[0];
+    std::vector<MpVoiceEntry>& femaleVoices = voiceLists_[1];
     const NpcPrototypeTable& creatures = g_unitDatabase->npcs;
     const int count = static_cast<int>(creatures.records.size());
     for (int i = 0; i < count; ++i) {
@@ -279,7 +275,7 @@ void CMpHeroScreen::CreateScreen() {
     }
 
     // The two figure strips: the men on top, the women below.
-    auto figureStrip = [this](int index, NameList& names, char top) {
+    auto figureStrip = [this](int index, std::vector<std::string>& names, char top) {
         figureStrips_[index] = new CFigureStrip(interface_, this);
         AsContainer(this)->AddChild(figureStrips_[index]);
         figureStrips_[index]->SetupFigures(&names, top, 0);

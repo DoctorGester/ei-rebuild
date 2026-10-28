@@ -40,8 +40,8 @@ constexpr int kSectorAge = 240;
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
-    SectorCache::iterator node = sectorGrid[sx][sy];
-    if (node != SectorCache::iterator{}) {
+    std::list<terrain::SectorData*>::iterator node = sectorGrid[sx][sy];
+    if (node != std::list<terrain::SectorData*>::iterator{}) {
         SectorData* sector = *node;
         if (sector->lastUsed < frame) {
             sector->lastUsed = frame;
@@ -465,8 +465,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
     sectorsX = header.sectorsX;
     sectorsY = header.sectorsY;
-    sectorGrid = new SectorCache::iterator*[static_cast<std::size_t>(sectorsX)];
-    for (int i = 0; i < sectorsX; ++i) sectorGrid[i] = new SectorCache::iterator[static_cast<std::size_t>(sectorsY)]();
+    sectorGrid = new std::list<terrain::SectorData*>::iterator*[static_cast<std::size_t>(sectorsX)];
+    for (int i = 0; i < sectorsX; ++i) sectorGrid[i] = new std::list<terrain::SectorData*>::iterator[static_cast<std::size_t>(sectorsY)]();
     width = static_cast<float>(sectorsX * kSectorCells);
     height = static_cast<float>(sectorsY * kSectorCells);
     heightRange = header.heightRange;

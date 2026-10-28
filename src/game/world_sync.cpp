@@ -56,10 +56,6 @@ constexpr int kModeGone = 4;
 constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind_
 constexpr int kKindNoRangeTest = 3;
 
-// A function-static aligned pointer array ({data, size, capacity, growBy}; the data block is freed through the
-// pointer stored before it).
-using StaticPtrArray = std::vector<CEngineObject*>;
-
 // SyncPlayer's four function statics (their guard bits) and their atexit destructors.
 constinit std::vector<CEngineObject*> g_collected = /*007AFF48*/ {};
 constinit std::vector<CEngineObject*> g_added = /*007AFF38*/ {};
@@ -74,13 +70,13 @@ std::uint8_t g_staticsGuard = /*007AFF58*/ {};
 using AtExitFunction = void(__cdecl*)();
 
 // Compares the ids in `known` with the objects in `current`; fills `added`, `kept` and `removed`.
-void DiffSets(PlayerObjectArray* known, StaticPtrArray* current, StaticPtrArray* added, StaticPtrArray* kept,
-              StaticPtrArray* removed) {
+void DiffSets(std::vector<CEngineObject*>* known, std::vector<CEngineObject*>* current, std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* kept,
+              std::vector<CEngineObject*>* removed) {
     ::DiffObjectSets(known, current, added, kept, removed);
 }
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
-void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
+void InitStatic(std::uint8_t bit, std::vector<CEngineObject*>& array, AtExitFunction destructor) {
     if (g_staticsGuard & bit) return;
     g_staticsGuard |= bit;
     array.clear();
@@ -213,7 +209,7 @@ int CWorldServer::SyncPlayer(CPlayer* player) {
         if (player->dirty_ & kDirtyCountdowns) state->SendState73(&countdowns_);
 
         // Map objects: room for seven entries per world object.
-        StaticPtrArray& collected = g_collected;
+        std::vector<CEngineObject*>& collected = g_collected;
         collected.resize(static_cast<int>(objects_.map.size()) * 7);
         CEngineObject** end = CollectMapObjects(this, player, state, collected.data());
         collected.resize(static_cast<int>(end - g_collected.data()));

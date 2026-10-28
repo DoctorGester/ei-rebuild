@@ -41,9 +41,6 @@ constexpr int kStackWorld = 1;                      // the pipeline's matrix sta
 constexpr int kStackView = 2;
 constexpr int kStackObject = 3;
 
-// The light list being collected: aligned storage of light pointers.
-using LightList = FigureLights;
-
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
     const Vector3& at = light->localPosition_;
@@ -60,7 +57,7 @@ bool PartTooFar(const CFigureMesh* part) {
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.
-void Finish(ObjectListIterator& lights, LightList& list) {
+void Finish(ObjectListIterator& lights, std::vector<CLight*>& list) {
     if (lights.manager) {
         --lights.manager->refCount_;
         lights.manager = nullptr;
@@ -93,7 +90,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, tagRECT* dirty) {
     if (object->animation) object->animation->UpdatePose();
 
     // The lights within reach (the list starts with room for 16).
-    LightList list;
+    std::vector<CLight*> list;
     list.reserve(0x10);
     ObjectListIteratorOf<CLight> lights{};
     CLight* light = lights.First(TheLightFactory());

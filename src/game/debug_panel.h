@@ -18,8 +18,6 @@ class CUiSurface;
 
 namespace strmap {
 
-using StringMap = std::map<std::string, std::string>;
-
 // The vtable has two slots and no destructor, over the abstract one.
 class CDebugPanel {
 public:
@@ -41,7 +39,7 @@ public:
     // Shows the panel (its surface made when missing, drawn at once) or hides it.
     void Show(std::uint8_t show);
 
-    StringMap entries_;          // key -> value
+    std::map<std::string, std::string> entries_;          // key -> value
     CInterface3D* ui_;
     CUiSurface* surface_;        // the panel surface (0x38 bytes), while shown
     gdi::Font font_;

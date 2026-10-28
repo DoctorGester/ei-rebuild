@@ -91,7 +91,6 @@ struct HeldObject {
 
     T* object;
 };
-using HeldEngineObject = HeldObject<CEngineObject>;
 
 // A counted engine object pointer that holds its reference (a container's element): made from a pointer or
 // copied, it takes one; destroyed, it drops it (Release). A move hands the reference over.
@@ -149,6 +148,7 @@ struct AIRefTo {
 
     T* object;
 };
+// Kept: names the one instance of the AI reference template that the units use.
 using AIRef = AIRefTo<CEngineObject>;
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }

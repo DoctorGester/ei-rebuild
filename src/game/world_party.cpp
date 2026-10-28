@@ -39,26 +39,17 @@ constexpr int kKindNetwork = 4;
 constexpr int kGameResultLost = 2;
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
-using ObjectList = std::list<CItem*>;
-
-// The player's carried items (CParty::items_): an aligned array of item pointers.
-using ItemArray = PartyItemArray;
-
-// CArray<int>, and the CArray of record pointers CreateUnits takes.
-using IdArray = std::vector<int>;
-using RecordArray = RecordPtrArray;
-
 const MapRecord* FindZone(const std::string& name) {
     return TheMapDatabase()->FindMap(name);
 }
 
 // AddTail through the game's out-of-line NewNode.
-void AddTail(ObjectList& list, CItem* object) {
+void AddTail(std::list<CItem*>& list, CItem* object) {
     auto node = list.emplace(list.end());
     *node = object;
 }
 
-bool Contains(const IdArray& ids, int id) {
+bool Contains(const std::vector<int>& ids, int id) {
     for (int i = 0; i < std::ssize(ids); ++i)
         if (ids[i] == id) return true;
     return false;
@@ -72,13 +63,13 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     return found;
 }
 
-CItem* ItemAt(const ItemArray* items, int i) { return (*items)[i]; }
+CItem* ItemAt(const std::vector<CItem*>* items, int i) { return (*items)[i]; }
 
 } // namespace
 
-void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
+void CWorldServer::TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list) {
     // The quest ids this zone's objects ask for, each once.
-    IdArray wanted{};
+    std::vector<int> wanted{};
     for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
         CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
@@ -103,9 +94,9 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
 }
 
 void CWorldServer::RestorePlayerItems(CPlayer* player) {
-    ObjectList taken;
+    std::list<CItem*> taken;
     if (sessionKind_ != kKindNetwork) {
-        ItemArray* items = &player->Party()->items_;
+        std::vector<CItem*>* items = &player->Party()->items_;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
             for (int i = 0; i < std::ssize(*items); ++i) AddTail(taken, ItemAt(items, i));
@@ -119,7 +110,7 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
             for (auto node = taken.begin(); node != taken.end();) {
                 auto next = std::next(node);
                 CItem* item = *node;
-                ObjectList one;
+                std::list<CItem*> one;
                 CItem* fresh = DuplicateItem(item);
                 fresh->count_ = item->count_;
                 AddTail(one, fresh);
@@ -140,7 +131,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     CParty* party = player->Party();
-    RecordArray records{};
+    std::vector<PartyUnitRecord*> records{};
     for (int i = 0; i < std::ssize(party->members_); ++i) {
         int index = std::ssize(records);
         records.resize(index + 1);
@@ -200,7 +191,7 @@ namespace {
 
 // CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
 void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
-    HeldEngineObject::Of(&list->emplace_back(nullptr))->Assign(object);
+    HeldObject<CEngineObject>::Of(&list->emplace_back(nullptr))->Assign(object);
 }
 
 } // namespace

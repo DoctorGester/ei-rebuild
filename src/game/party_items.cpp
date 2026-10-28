@@ -17,26 +17,26 @@ namespace {
 bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
 // Appends `item` to `list` (SetSize(count + 1) and store, inlined).
-void Append(PartyItemArray& list, CItem* item) {
+void Append(std::vector<CItem*>& list, CItem* item) {
     int index = std::ssize(list);
     list.resize(index + 1);
     list[index] = item;
 }
 
 // Removes the element at `index`, closing the gap.
-void RemoveAt(PartyItemArray& list, int index) { list.erase(list.begin() + index); }
+void RemoveAt(std::vector<CItem*>& list, int index) { list.erase(list.begin() + index); }
 
 // The world's spell manager (the item's manager context).
 CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
 
-CItem* AddEntry(PartyItemArray& list, CItem* item) {
+CItem* AddEntry(std::vector<CItem*>& list, CItem* item) {
     CItem* entry = item->Clone(SpellManagerOf(item));
     ++entry->refCount_;
     Append(list, entry);
     return entry;
 }
 
-void RemoveEntry(PartyItemArray& list, CItem* entry) {
+void RemoveEntry(std::vector<CItem*>& list, CItem* entry) {
     for (int i = 0; i < std::ssize(list); ++i) {
         if (list[i] != entry) continue;
         entry->Release();
@@ -187,7 +187,7 @@ void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 
 namespace {
 // One running sum over the lists, in this order.
-void AddListWeight(float& weight, const PartyItemArray& list) {
+void AddListWeight(float& weight, const std::vector<CItem*>& list) {
     for (int i = 0; i < std::ssize(list); ++i) {
         if (list[i]) weight += list[i]->Weight();
     }

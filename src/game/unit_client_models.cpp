@@ -116,8 +116,6 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 }
 
 namespace {
-// The figure parts it collects.
-using PartArray = FigurePartArray;
 
 } // namespace
 
@@ -146,7 +144,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
             if (hair == -1) continue;
             part = str::Format("hr.%.2d", hair);
         }
-        PartArray parts;
+        std::vector<CFigureMesh*> parts;
         unit->CollectPartsByPrefix(part.c_str(), &parts);
         if (std::ssize(parts) == 1) {
             // One part of that name: replaced only when it is not the plain part already.
@@ -313,7 +311,7 @@ void CollectArmourPartNames(const UnitPrototypeRecord* prototype, const std::vec
 
 // --- Skin -------------------------------------------------------------------------------------
 
-void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
+void CUnitClientSpecific::BuildSkinLayers(int detailed, std::vector<SkinLayer>* out) {
     const itemdb::ArmorTable& armours = itemdb::TheItemDatabase().armors;
     if (!detailed) {
         out->assign(kSimpleLayers, SkinLayer{});
@@ -422,7 +420,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
 
 void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
     CTextureManager* textureManager = TheTextureManager();
-    SkinLayerArray layers;
+    std::vector<SkinLayer> layers;
     void* result;
     {
         std::string unitKey;

@@ -25,7 +25,6 @@ public:
         std::string key;
         float value;
     };
-    using Iterator = std::list<Element>::iterator;
 
     AddonStringMap() { Init(kMinBuckets); }
 
@@ -33,10 +32,10 @@ public:
     // list, then moved into its bucket by _Insert).
     Element& Find(const std::string& key) {
         std::size_t bucket = Bucket(key);
-        for (Iterator it = Begin(bucket); it != End(bucket); ++it)
+        for (std::list<Element>::iterator it = Begin(bucket); it != End(bucket); ++it)
             if (it->key == key) return *it;
         list_.push_front(Element{key, 0.0f});
-        Iterator node = list_.begin();
+        std::list<Element>::iterator node = list_.begin();
         Insert(node);
         return *node;
     }
@@ -65,17 +64,17 @@ private:
         mask_ = buckets - 1;
         maxIndex_ = buckets;
     }
-    Iterator Begin(std::size_t bucket) { return vec_[2 * bucket]; }
-    Iterator End(std::size_t bucket) {
+    std::list<Element>::iterator Begin(std::size_t bucket) { return vec_[2 * bucket]; }
+    std::list<Element>::iterator End(std::size_t bucket) {
         if (vec_[2 * bucket] == list_.end()) return list_.end();
         return std::next(vec_[2 * bucket + 1]);
     }
 
     // _Insert: `node` is already in the list. The bucket is scanned from its end; a new key ends
     // up in front of the bucket's first element, or at the end of the list for an empty bucket.
-    bool Insert(Iterator node) {
+    bool Insert(std::list<Element>::iterator node) {
         std::size_t bucket = Bucket(node->key);
-        Iterator where = End(bucket);
+        std::list<Element>::iterator where = End(bucket);
         while (where != Begin(bucket)) {
             --where;
             if (where->key != node->key) continue;   // still too high in the bucket
@@ -87,7 +86,7 @@ private:
         CheckSize();
         return true;
     }
-    void InsertBucket(Iterator node, Iterator where, std::size_t bucket) {
+    void InsertBucket(std::list<Element>::iterator node, std::list<Element>::iterator where, std::size_t bucket) {
         if (vec_[2 * bucket] == list_.end()) {
             vec_[2 * bucket] = node;
             vec_[2 * bucket + 1] = node;
@@ -105,9 +104,9 @@ private:
         for (int i = 0; i < 3 && buckets < 0x1FFFFFFF; ++i) buckets *= 2;
         Init(buckets);
         if (list_.empty()) return;
-        Iterator last = std::prev(list_.end());
+        std::list<Element>::iterator last = std::prev(list_.end());
         for (;;) {
-            Iterator first = list_.begin();
+            std::list<Element>::iterator first = list_.begin();
             bool done = first == last;
             Insert(first);
             if (done) break;
@@ -115,7 +114,7 @@ private:
     }
 
     std::list<Element> list_;
-    std::vector<Iterator> vec_;
+    std::vector<std::list<Element>::iterator> vec_;
     std::size_t mask_ = 0;
     std::size_t maxIndex_ = 0;
 };

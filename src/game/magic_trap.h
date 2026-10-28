@@ -64,13 +64,11 @@ public:
     // Nothing without units or a spell; nothing either (the countdown kept) when singleTarget finds none.
     void CastAtUnits(std::list<CUnit*>* units);
 
-    using UnitList = std::list<CUnit*>;
-
     std::uint32_t sides;            // bit per unit side that sets it off
     CSpell* spell;                  // a counted reference; null: none
-    TrapArea area;
-    TrapPoints points;              // where it casts ({x, y})
-    UnitList inside;                // the units inside: counted references
+    std::vector<TrapCircle> area;
+    std::vector<TrapPoint> points;              // where it casts ({x, y})
+    std::list<CUnit*> inside;                // the units inside: counted references
     int period;                     // 0: casts at newcomers; else ticks between casts
     int countdown;
     int singleTarget;               // cast at one unit only
@@ -78,5 +76,5 @@ public:
 
 // `out` becomes the living units whose side has its bit in `sides` within each circle of `area` (from the
 // world's sector map); a unit in two circles is appended twice.
-void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
+void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out);

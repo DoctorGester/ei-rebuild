@@ -97,7 +97,7 @@ bool Connection::Tick(double dt) {
     freedTimer_ = static_cast<float>(freedTime);
     if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
         freedTimer_ = 0.0f;
-        FreedIds& oldest = freedIds_.front();
+        std::vector<FreedId>& oldest = freedIds_.front();
         for (FreedId* e = oldest.data(); e != oldest.data() + oldest.size(); ++e) {
             auto id = static_cast<std::uint16_t>(e->id);
             std::vector<std::uint16_t>& pool = idPools_[e->type].free;
@@ -140,7 +140,7 @@ void Connection::Delivered(SentPacket* packet) {
             item->entry->version_ = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            EntryMap& tree = priorities_[entry->flags_ >> 1];
+            std::map<ReplicaEntry*, EntryRef>& tree = priorities_[entry->flags_ >> 1];
             auto found = tree.find(entry);
             if (found != tree.end()) {
                 entry = item->entry;
@@ -149,7 +149,7 @@ void Connection::Delivered(SentPacket* packet) {
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
-                FreedIds& batch = freedIds_.back();   // the newest batch
+                std::vector<FreedId>& batch = freedIds_.back();   // the newest batch
                 batch.push_back(value);
                 tree.erase(found);
             }

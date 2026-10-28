@@ -9,9 +9,6 @@
 #include <cstdint>
 
 namespace {
-// The order the player's check is asked about before an attack (AIOrder; cleared, then made an
-// attack (3, 6) on the target inline).
-using AttackOrder = AIOrder;
 
 } // namespace
 
@@ -28,7 +25,7 @@ void AIAttention::CurrentAttack(AIBrain* brain, AITargetChoice* choice) {
 }
 
 void AIAttention::LookAround(AIBrain* brain, int unused) {
-    AIObjectList candidates{};
+    CountedUnits candidates{};
     AITargetChoice best{-1, nullptr};
     Vector3 from = *&brain->owner->unit->localPosition_;
     brain->ChooseTarget(&best, &candidates, &from, 1, unused);
@@ -43,7 +40,7 @@ void AIAttention::LookAround(AIBrain* brain, int unused) {
                 brain->target.Assign(chosen);
                 int flags = 0x1C;
                 if (brain->owner->unit->player) {
-                    AttackOrder order{};
+                    AIOrder order{};
                     order.kind = 3;
                     order.source = 6;
                     ++chosen->refCount_;

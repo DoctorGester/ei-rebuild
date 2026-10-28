@@ -22,7 +22,6 @@ struct Speeches : std::vector<SpeechRecord> {
     // when there is none. A null list answers null too.
     const SpeechRecord* Pick(int roll) const;
 };
-using SpeechList = Speeches;
 
 // A speech that also depends on the surroundings: eligible when the world's environment flags for the unit
 // (CWorldClient::EnvironmentFlags) include all of `environment`.
@@ -42,7 +41,7 @@ struct AckRecordHead {
     std::string name;
     // By ack kind. The kinds are below 0x33, so STLport's 193 buckets walked them ascending, as this does (the
     // acks dump, GenerateAcks, lists them so).
-    std::map<int, SpeechList*> speeches;
+    std::map<int, Speeches*> speeches;
 };
 
 // Table 0: per unit prototype name.
@@ -53,9 +52,9 @@ struct UnitAcks {
     void Serialize(ChunkArchive* ar);
 
     AckRecordHead head;
-    SpeechList lists[33];                                   // the speech lists the map points into
+    Speeches lists[33];                                   // the speech lists the map points into
     EnvironmentSpeeches environmentSpeeches;                // kind 0x29
-    SpeechList namedSpeeches;                               // by SpeechRecord::name
+    Speeches namedSpeeches;                               // by SpeechRecord::name
 };
 
 // Table 1: per unit model name (the fallback of kinds 0x2E..0x32).
@@ -64,7 +63,7 @@ struct ModelAcks {
     void Serialize(ChunkArchive* ar);
 
     AckRecordHead head;
-    SpeechList lists[5];
+    Speeches lists[5];
 };
 
 // Table 2: per unit prototype name, kinds 0x2A..0x2D.
@@ -73,7 +72,7 @@ struct ExtraAcks {
     void Serialize(ChunkArchive* ar);
 
     AckRecordHead head;
-    SpeechList lists[2];
+    Speeches lists[2];
 };
 
 // A table: the records and the index by name.

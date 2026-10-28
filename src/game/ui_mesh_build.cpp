@@ -19,10 +19,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_), the two colour arrays
-// (colorsA_, colorsB_) and the 16-bit indices.
-using IndexArray = std::vector<std::uint16_t>;
-
 // The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {
     mesh->normals_.resize(1);
@@ -47,12 +43,12 @@ void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
 
 // Appends index `value` (the array's SetSize to size + 1, then the store, or its SetAtGrow; the
 // original mixes both).
-void AppendBySize(IndexArray* indices, CUiMesh* mesh, int value) {
+void AppendBySize(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) {
     int at = std::ssize(mesh->indices_);
     indices->resize(at + 1);
     mesh->indices_[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices_), static_cast<std::uint16_t>(value)); }
+void AppendByGrow(std::vector<std::uint16_t>* indices, CUiMesh* mesh, int value) { lib::SetAtGrow(*indices, std::ssize(mesh->indices_), static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {

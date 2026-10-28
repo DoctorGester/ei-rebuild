@@ -40,7 +40,7 @@ float* StackTop(CTransformPipeline* device, int index) {
 }
 
 
-void PushBack(FrameQueue& v, CMapObject* const& value) {
+void PushBack(std::vector<CMapObject*>& v, CMapObject* const& value) {
     v.push_back(value);
 }
 
@@ -68,7 +68,7 @@ CObject3DClientSpecific* ModelOf(CMapObject* object) {
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(SectorList* list, const Matrix4* view, float animTime, std::uint32_t now,
+int CWorldClient::CollectVisible(std::list<HeldPtr<CMapObject>>* list, const Matrix4* view, float animTime, std::uint32_t now,
                                  char animateUnits, char withScripted) {
     CTransformPipeline* device = Device();
     int touched = 0;

@@ -29,7 +29,7 @@ void ReadText(CStream* stream, Text& text) {
 }
 
 // A list's count, then each item's id (-1 for an empty entry).
-void WriteItemIds(CStream* stream, const PartyItemArray& list) {
+void WriteItemIds(CStream* stream, const std::vector<CItem*>& list) {
     WriteValue(stream, std::ssize(list));
     for (int i = 0; i < std::ssize(list); ++i) {
         const CItem* item = list[i];
@@ -38,7 +38,7 @@ void WriteItemIds(CStream* stream, const PartyItemArray& list) {
 }
 
 // Releases what the list holds, then reads a count and that many ids, each resolved in `manager` and counted.
-void ReadItemIds(CStream* stream, PartyItemArray& list, CBaseManager* manager) {
+void ReadItemIds(CStream* stream, std::vector<CItem*>& list, CBaseManager* manager) {
     for (int i = 0; i < std::ssize(list); ++i) list[i]->Release();
     int count;
     stream->Read(&count, sizeof(count));

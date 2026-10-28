@@ -55,10 +55,7 @@ AIEventTable* AIEventsOf(CWorldServer* world) { return world->AIEvents(); }
 
 float AbsBits(float v) { return std::bit_cast<float>(std::bit_cast<std::uint32_t>(v) & 0x7FFFFFFFu); }
 
-// An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
-using UnitList = std::list<CUnit*>;
-
-bool ListContains(const UnitList* list, const CUnit* unit) {
+bool ListContains(const std::list<CUnit*>* list, const CUnit* unit) {
     for (auto node = list->begin(); node != list->end(); ++node)
         if (*node == unit) return true;
     return false;
@@ -248,7 +245,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     return frontStored > kZero ? 0x800000 : 0x400000;
 }
 
-void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murderer) {
+void CUnitServer::WitnessMurder(std::list<CUnit*>* witnesses, CUnit* victim, CUnit* murderer) {
     CWorldServer* world = ServerWorld();
     CDiplomacy* diplomacy = DiplomacyOf(unit->ServerWorld());
     int side = unit->side;
@@ -262,7 +259,7 @@ void CUnitServer::WitnessMurder(UnitList* witnesses, CUnit* victim, CUnit* murde
         other->flags_ |= 0x2000000;
         CUnitServer* controller = other->ServerController();
         AIEventsOf(world)->Update(controller, &controller->brain.memory);
-        UnitList* watched = &controller->brain.memory.visible;
+        std::list<CUnit*>* watched = &controller->brain.memory.visible;
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
             auto added = watched->emplace(watched->end());

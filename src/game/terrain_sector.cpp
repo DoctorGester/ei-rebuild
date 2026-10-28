@@ -513,21 +513,17 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
 
 namespace {
 
-// The projection buffers every sector shares (allocated by the first constructor): positions in,
-// projected positions and outcodes out (16-byte vertices; the input's fourth float is not written).
-using ProjectionVertex = Vector4;
-static_assert(sizeof(ProjectionVertex) == 16);
-using ProjectionBuffer = std::vector<ProjectionVertex>;
-constinit std::vector<ProjectionVertex> g_projectionInput = /*007C88F8*/ {};
-constinit std::vector<ProjectionVertex> g_projectionOutput = /*007C88E8*/ {};
+static_assert(sizeof(Vector4) == 16);
+constinit std::vector<Vector4> g_projectionInput = /*007C88F8*/ {};
+constinit std::vector<Vector4> g_projectionOutput = /*007C88E8*/ {};
 
 // The exit functions their static initialisers register: each frees its buffer, once (a guard bit each in
 // g_freed; bit 4 is the outcodes' destructor's).
 std::uint8_t g_freed = /*007C88C9*/ {};
 // The projected vertices' outcodes (a CByteArray): built empty by its static initialiser, destroyed once at
 // exit.
-constinit lib::StaticObject<FlagArray> g_projectionOutcodes = /*007C88D0*/ {};
-FlagArray& ProjectionOutcodes() { return *g_projectionOutcodes; }
+constinit lib::StaticObject<std::vector<std::uint8_t>> g_projectionOutcodes = /*007C88D0*/ {};
+std::vector<std::uint8_t>& ProjectionOutcodes() { return *g_projectionOutcodes; }
 void DestroyProjectionOutcodes() {
     if (g_freed & 4) return;
     g_freed = static_cast<std::uint8_t>(g_freed | 4);
@@ -591,7 +587,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
         if (quarterMode[q] == kCulled) continue;
         const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
         const int layers = hasWater != 0 ? 2 : 1;
-        ProjectionVertex* in = g_projectionInput.data();
+        Vector4* in = g_projectionInput.data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
@@ -607,7 +603,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             quarterMode[q] = kCulled;
             continue;
         }
-        const ProjectionVertex* out = g_projectionOutput.data();
+        const Vector4* out = g_projectionOutput.data();
         const std::uint8_t* outcode = ProjectionOutcodes().data();
         for (int layer = 0; layer < layers; ++layer)
             for (int row = 0; row <= kQuarterCells; row += rowStep)

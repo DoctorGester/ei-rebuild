@@ -132,7 +132,7 @@ float RingSize(int type, int power) {
 int FeebleMindChooser(int, int previous) { return previous != 0 ? 1 : 0; }
 
 // Is there a record of `type` other than `index`?
-bool OtherRecordOfType(const EffectParticleArray& particles, int index, int type) {
+bool OtherRecordOfType(const std::vector<EffectParticle>& particles, int index, int type) {
     for (int i = 0; i < std::ssize(particles); ++i)
         if (i != index && particles[i].type == type) return true;
     return false;
@@ -178,7 +178,7 @@ void PlayEffectSound(bool play, EffectSoundRecord* record, const float* position
     }
     if (kind == kFeebleMind) {
         if (record->handle == -1) {
-            SoundNameArray names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
+            std::vector<std::string> names{"magic\\FeebleMind\\start.wav", "magic\\FeebleMind\\circle.wav"};
             record->handle = sounds->AddSequence(&names, 0, position,
                                                  SoundNear(), SoundFar(), 0, -1, FeebleMindChooser);
             // The folder is empty here: the original plays the bare suffix.

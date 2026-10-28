@@ -8,10 +8,10 @@
 
 namespace {
 
-void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
+void WriteInt(CStream* stream, int value) { stream->Write(&value, 4); }
 
 // Variable i's name, or a single zero byte when the name array is shorter.
-void WriteName(ScriptStream* stream, const std::vector<std::string>& names, std::size_t i) {
+void WriteName(CStream* stream, const std::vector<std::string>& names, std::size_t i) {
     if (i < names.size()) {
         stream->WriteString(names[i]);
     } else {
@@ -21,7 +21,7 @@ void WriteName(ScriptStream* stream, const std::vector<std::string>& names, std:
 }
 
 // A ScriptVars: floats, strings, objects, groups.
-void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
+void WriteVars(CStream* stream, const ScriptVars* vars) {
     vars->floats.Save(stream);
     vars->strings.Save(stream);
     vars->objects.Save(stream);
@@ -30,19 +30,19 @@ void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
 
 // A list's count, then each element's Save.
 template <typename Container>
-void WriteList(ScriptStream* stream, const Container& list) {
+void WriteList(CStream* stream, const Container& list) {
     WriteInt(stream, static_cast<int>(list.size()));
     for (const auto& element : list) element.Save(stream);
 }
 
 } // namespace
 
-void ScriptDecl::Save(ScriptStream* stream) const {
+void ScriptDecl::Save(CStream* stream) const {
     stream->Write(&id, 4);
     WriteList(stream, commands);
 }
 
-template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
+template <> void ScriptNamedValues<float>::Save(CStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         stream->Write(&values[i], 4);
@@ -50,7 +50,7 @@ template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
     }
 }
 
-template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) const {
+template <> void ScriptNamedValues<std::string>::Save(CStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         stream->WriteString(values[i]);
@@ -58,7 +58,7 @@ template <> void ScriptNamedValues<std::string>::Save(ScriptStream* stream) cons
     }
 }
 
-template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const {
+template <> void ScriptNamedValues<ScriptObjectRef>::Save(CStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         values[i].Save(stream);
@@ -66,7 +66,7 @@ template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) 
     }
 }
 
-template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const {
+template <> void ScriptNamedValues<ScriptGroup>::Save(CStream* stream) const {
     WriteInt(stream, static_cast<int>(values.size()));
     for (std::size_t i = 0; i < values.size(); ++i) {
         const ScriptGroup& group = values[i];
@@ -77,7 +77,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) cons
 }
 
 // A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
-void ScriptDefinition::Save(ScriptStream* stream) const {
+void ScriptDefinition::Save(CStream* stream) const {
     stream->Write(&index, 4);
     stream->WriteString(name);
     stream->WriteString(params);
@@ -91,7 +91,7 @@ void ScriptDefinition::Save(ScriptStream* stream) const {
 
 // A run (CScript::runs_). Its instance is found by the address of the killed flag (the instance's
 // index) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
-void ScriptRun::Save(ScriptStream* stream) const {
+void ScriptRun::Save(CStream* stream) const {
     WriteInt(stream, block->id);
     stream->Write(&index, 4);
     stream->Write(&ticks, 4);
@@ -109,7 +109,7 @@ void ScriptRun::Save(ScriptStream* stream) const {
     WriteVars(stream, &vars);
 }
 
-void CScript::SaveState(ScriptStream* stream) {
+void CScript::SaveState(CStream* stream) {
     g_streamedScript = this;
 
     WriteList(stream, pointLights_);

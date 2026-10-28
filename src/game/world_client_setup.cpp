@@ -43,7 +43,7 @@ UnitDatabase* Units() { return &unitdb::Database(); }
 // One section into `table`: each key's hour gets its colour, the hours since the previous key
 // (in file order; hour 0 before the first) are stepped linearly from that key's colour. The
 // accumulated colour stays unrounded between the steps (FPU stack), each stored as a float.
-void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour, DwordArray& values, const char* section,
+void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour, std::vector<std::uint32_t>& values, const char* section,
                LightColour* table) {
     keys.clear();
     ini.GetKeyNames(section, &keys);
@@ -80,7 +80,7 @@ void ReadTable(CIniFile& ini, std::vector<std::string>& keys, std::string& hour,
 int CWorldClient::LoadLights(const char* file) {
     std::vector<std::string> keys;
     std::string hour;
-    DwordArray values{};
+    std::vector<std::uint32_t> values{};
     CIniFile ini;   // the empty path, freed at the end
     {
         std::string folder = TheDataFolder() + ConfigFolder();

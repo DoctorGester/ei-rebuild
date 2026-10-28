@@ -124,7 +124,7 @@ void ArmourSpell::Save(CStream* stream) const {
     WriteCopy(stream, countdown);
 }
 
-void LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
+void LoadArmourSpells(std::list<ArmourSpell>* list, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {

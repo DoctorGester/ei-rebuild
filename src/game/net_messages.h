@@ -19,9 +19,6 @@ class BindingMessage;
 class FileMessage;
 class PlayerMessage;
 
-// The party message's member messages (each holds a reference).
-using RefVector = std::vector<CountedRefPtr>;
-
 // ---- Client to server ---------------------------------------------------------------------------
 
 // Type 5: the local player's login, kept by the client; the server makes a player record and a binding of it.
@@ -141,7 +138,7 @@ public:
 
     static Message* Create();
 
-    RefVector members_;              // PartyMemberMessages
+    std::vector<CountedRefPtr> members_;              // PartyMemberMessages
     std::uint32_t money_ = 0;        // the offered party's money (CParty::Money)
     std::uint8_t accepted_ = 0;      // the partner's offer is accepted
     std::uint8_t unused_1D[3];

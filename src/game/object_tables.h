@@ -52,9 +52,6 @@ struct ZoneExit {
     void Write(CStream* stream) const;
 };
 
-// A map record's exits and the worlds' copies of the current zone's.
-using ZoneExits = std::vector<ZoneExit>;
-
 // One map/zone entry: +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
     std::string name;
@@ -75,7 +72,7 @@ struct MapRecord {
     float restrictY = 0.0f;
     float restrictRadius = 0.0f;
     bool cage = false;      // "#cage": a base where the party does not walk to the people
-    ZoneExits exits;
+    std::vector<ZoneExit> exits;
 };
 
 // The map database loaded from map.txt / map_LMP.txt (a global).

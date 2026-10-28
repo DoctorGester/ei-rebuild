@@ -21,7 +21,7 @@ constexpr int kNumberShift = 22;
 
 // The first of `parts` that `matches`, or null.
 template <typename Match>
-CFigureMesh* FirstPart(const FigurePartArray& parts, Match matches) {
+CFigureMesh* FirstPart(const std::vector<CFigureMesh*>& parts, Match matches) {
     for (int i = 0; i < std::ssize(parts); ++i) {
         CFigureMesh* part = parts[i];
         if (matches(part)) return part;
@@ -30,9 +30,9 @@ CFigureMesh* FirstPart(const FigurePartArray& parts, Match matches) {
 }
 
 // Removes entry `index`, moving the ones after it down.
-void RemoveAt(FigurePartArray& parts, int index) { parts.erase(parts.begin() + index); }
+void RemoveAt(std::vector<CFigureMesh*>& parts, int index) { parts.erase(parts.begin() + index); }
 
-int IndexOf(const FigurePartArray& parts, const CFigureMesh* part) {
+int IndexOf(const std::vector<CFigureMesh*>& parts, const CFigureMesh* part) {
     for (int i = 0; i < std::ssize(parts); ++i)
         if (parts[i] == part) return i;
     return -1;

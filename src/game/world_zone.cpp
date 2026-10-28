@@ -43,7 +43,7 @@ constexpr const char* kNoExit = "none";
 // The unit record AddUnitToServer builds on its stack: a CParty (party.h) given one member; CreateUnits takes a
 // pointer to the member's 0x784-byte record.
 struct UnitRecordBuilder {
-    PartyStorage storage;
+    lib::InPlace<CParty> storage;
 
     CParty* Party() { return storage.Get(); }
     void Construct() { new (Party()) CParty(); }
@@ -58,7 +58,7 @@ struct UnitRecordBuilder {
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
-void CWorldServer::SetZoneExits(const ZoneExits* source) {
+void CWorldServer::SetZoneExits(const std::vector<ZoneExit>* source) {
     exits_ = {};
     for (const ZoneExit& from : *source) {
         if (str::Compare(from.target, game::kEmptyText) == 0) continue;   // leads nowhere
@@ -74,7 +74,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     UnitRecordBuilder builder;
     builder.Construct();
     builder.Fill(game::kEmptyText, prototype, name);
-    RecordPtrArray records;
+    std::vector<PartyUnitRecord*> records;
     PartyUnitRecord* record = builder.Record();
     records.resize(1);
     records[0] = record;

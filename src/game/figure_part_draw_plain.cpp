@@ -20,8 +20,6 @@
 
 namespace {
 
-using ColourArray = std::vector<std::uint32_t>;
-
 constinit std::vector<VertexPacket> g_movedPositions = /*007C2E60*/ {};
 void FreeMovedPositions() { lib::FreeStorage(g_movedPositions); }
 std::uint8_t g_movedPositionsGuard = /*007C2E70*/ {};   // bit 0: constructed
@@ -34,7 +32,7 @@ void TickTime(float* out) {
     *out = static_cast<float>(static_cast<double>(world->tick_) + world->tickFraction_);
 }
 
-void Fill(ColourArray& a, std::uint32_t value) {
+void Fill(std::vector<std::uint32_t>& a, std::uint32_t value) {
     for (int i = 0; i < std::ssize(a); ++i) a[i] = value;
 }
 

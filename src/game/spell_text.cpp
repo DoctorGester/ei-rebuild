@@ -18,8 +18,8 @@ const char* const kCantBegin = "Can't begin spell construction with prototype \"
 const char* const kCantEnd = "Can't end spell construction\n";
 
 // The spells and modifiers by name; operator[] files a missing name with a null record.
-itemdb::SpellTable::CodeIndex& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
-itemdb::SpellModifierTable::CodeIndex& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }
+std::unordered_map<std::string, itemdb::SpellRecord*>& SpellNameMap() { return itemdb::TheSpellDatabase().spells.byCode; }
+std::unordered_map<std::string, itemdb::SpellModifierRecord*>& ModifierNameMap() { return itemdb::TheSpellDatabase().modifiers.byCode; }
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
 

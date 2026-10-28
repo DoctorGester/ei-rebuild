@@ -34,10 +34,6 @@ float PortraitDelay(std::uint32_t random) {
     return static_cast<float>(x87::FromUnsigned(random) * (-6.984919588798148e-11 /*00742760*/));
 }
 
-// The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize);
-// its data is freed with operator delete.
-using OrderUnits = std::vector<CUnit*>;
-
 inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
 
 // A sprite's scale and opacity; the HUD's quick item slots.
@@ -91,7 +87,7 @@ void CBattleScreen::ToggleMember(int index) {
     if (IsMultiplayerClient()) return;
     if (index >= std::ssize(*party)) return;
 
-    UiDwordArray chosen{};
+    std::vector<std::uint32_t> chosen{};
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         lib::SetAtGrow(chosen, std::ssize(chosen), member ? (member->flags_ & kFlagSelected) : 0);
@@ -149,7 +145,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
-    OrderUnits units{};
+    std::vector<CUnit*> units{};
     for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -168,7 +164,7 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
-    OrderUnits units{};
+    std::vector<CUnit*> units{};
     for (int i = 0; i < std::ssize(*party); ++i) {
         auto* member = (*party)[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;

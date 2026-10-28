@@ -45,8 +45,6 @@ struct Sprite {               // 8 bytes
     std::uint32_t color;      // ARGB
     const float* uv;          // the texture rectangle: u0, v0, u1, v1
 };
-using PointArray = std::vector<SpritePoint>;
-using SpriteArray = std::vector<Sprite>;
 
 // --- The statics ---------------------------------------------------------------------------------
 
@@ -373,8 +371,8 @@ int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, in
 // then left as it is).
 int CSceneRenderer::DrawSprites(int additiveArgument, void* pointArray, void* spriteArray) {
     const char additive = static_cast<char>(additiveArgument);   // only its low byte counts
-    const auto* points = static_cast<const PointArray*>(pointArray);
-    const auto* sprites = static_cast<const SpriteArray*>(spriteArray);
+    const auto* points = static_cast<const std::vector<SpritePoint>*>(pointArray);
+    const auto* sprites = static_cast<const std::vector<Sprite>*>(spriteArray);
     CTransformPipeline* pipeline = pipeline_;
     ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();

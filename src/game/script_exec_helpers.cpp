@@ -131,11 +131,7 @@ void CScript::DeletePointLight(const SSCCmd* cmd) {
 
 namespace {
 
-// One objective added by the QObj* commands (script.h ScriptQuestObjectives): the command id (0xD7-0xDD),
-// its string argument, its float argument.
-using QuestObjective = ScriptQuestObjective;
-
-QuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
+ScriptQuestObjective* QuestObjectives() { return ScriptQuestObjectives().data(); }
 int QuestObjectiveCount() { return static_cast<int>(ScriptQuestObjectives().size()); }
 std::string& QuestName() { return ScriptQuestName(); }   // QStart's name
 
@@ -185,7 +181,7 @@ void ScriptQuestFinish(CScript* script) {
             quest = QuestName().c_str();
             tail = str::Format("GSSetVar(0,\"q.%s.%s.%i\",1)\n)\n)\n", quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
-        const QuestObjective& objective = QuestObjectives()[i];
+        const ScriptQuestObjective& objective = QuestObjectives()[i];
         const char* argument = objective.text.c_str();
         switch (objective.type) {
         case 0xD7:   // QObjArea

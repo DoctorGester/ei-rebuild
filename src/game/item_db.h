@@ -295,9 +295,6 @@ struct NamedRecordTable {
         std::destroy_at(&records);
     }
 
-    // The materials are filed under their key.
-    using NameIndex = std::unordered_map<std::string, Record*>;
-
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
     Record* At(std::uint32_t index) { return index < Count() ? &records[index] : nullptr; }
@@ -312,8 +309,10 @@ struct NamedRecordTable {
     Record* Named(const char* name) { return names[std::string(name)]; }
 
     std::vector<Record> records;
-    NameIndex names;
+    // The materials are filed under their key.
+    std::unordered_map<std::string, Record*> names;
 };
+// Kept: the item database's tables are named instances of the table templates, used by name across the game.
 using MaterialTable = NamedRecordTable<MaterialRecordHead>;
 using WeaponTable = NamedRecordTable<WeaponRecord>;
 using ArmorTable = NamedRecordTable<ArmorRecord>;
@@ -343,10 +342,10 @@ struct CodeIndexedTable {
     // Null when there is none (a null record is filed under a new code).
     Record* Named(const char* code) { return byCode[std::string(code)]; }
 
-    using CodeIndex = std::unordered_map<std::string, Record*>;
     std::vector<Record> records;
-    CodeIndex byCode;
+    std::unordered_map<std::string, Record*> byCode;
 };
+// Kept: named instances of the table template, as the item tables above.
 using SpellTable = CodeIndexedTable<SpellRecord>;
 using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 

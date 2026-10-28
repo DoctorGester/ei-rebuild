@@ -8,8 +8,6 @@
 
 namespace {
 
-using NodeList = std::list<UnitLayerNode>;
-
 // A node from the free list, or a new one appended to the layer's list. The original copies an
 // uninitialised stack element into a new node's data (MFC AddTail of a default element); the
 // fields are written before the node is used, so ours leaves NewNode's zeros.
@@ -18,7 +16,7 @@ UnitLayerNode* TakeNode(CUnitLayer* layer) {
         layer->freeNodes = node->next;
         return node;
     }
-    NodeList& nodes = layer->nodes;
+    std::list<UnitLayerNode>& nodes = layer->nodes;
     auto added = nodes.emplace(nodes.end());
     return &*added;
 }

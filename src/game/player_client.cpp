@@ -71,7 +71,7 @@ const char* TextNoHandler() { return "Packet has no handler prevID=%x curID=%x\n
 const char* TextHandlerFailed() { return "Error during parsing update prevID=%x curID=%x\n"; }
 const char* TextUnknownType() { return "Wrong packet ID prevID=%x curID=%x\n"; }
 
-void WriteByte(BitStream* out, std::uint8_t value) { out->Write(&value, 1); }
+void WriteByte(CMemoryStream* out, std::uint8_t value) { out->Write(&value, 1); }
 
 const char* QuestPrefix() { return "q."; }
 
@@ -692,13 +692,11 @@ namespace {
 constexpr std::uint32_t kUnitInClientParty = 0x400000;
 constexpr int kSessionKindSingle = 1;
 
-// The client's party unit ids (hash_set<int>): insert, find, clear.
-using IntSet = std::unordered_set<int>;
 // Built by the static initialiser and destroyed by the exit function it registers (docs/notes/standalone.md).
-constinit lib::StaticObject<IntSet> g_partyIdSet = /*007C8370*/ {};
-IntSet& PartyIdSet() { return *g_partyIdSet; }
+constinit lib::StaticObject<std::unordered_set<int>> g_partyIdSet = /*007C8370*/ {};
+std::unordered_set<int>& PartyIdSet() { return *g_partyIdSet; }
 void DestroyPartyIdSet() { g_partyIdSet.Destroy(); }
-int ReadDword(BitStream* in) {
+int ReadDword(CMemoryStream* in) {
     int value;
     in->Read(&value, 4);
     return value;
@@ -747,7 +745,7 @@ int CPlayerClient::OnPartyState() {
 
 // --- Messages appended to the received stream -----------------------------------------------
 
-void CPlayerClient::AppendReceived(BitStream* source) {
+void CPlayerClient::AppendReceived(CMemoryStream* source) {
     const std::uint32_t position = in_.Position();
     in_.Seek(in_.Size());
     in_.EndBits();

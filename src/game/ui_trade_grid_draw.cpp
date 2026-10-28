@@ -38,7 +38,7 @@ void ClearDepth(CTextureDevice* renderer, RECT* rect, float z) {
 
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, UiItemList* list, CUiSurface* surface, std::string& text, float yOffset,
+void DrawItems(CTradeGrid* grid, CSceneRenderer* pass, std::vector<CItem*>* list, CUiSurface* surface, std::string& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
     CItem** items = list->data();
     int count = std::ssize(*list);

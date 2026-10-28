@@ -42,7 +42,7 @@ CWorldHandle::~CWorldHandle() { ReleaseCounted(pendingLink_); }
 
 CClientHandle* CClientHandle::Clone() { return new CClientHandle(); }
 
-void CClientHandle::TakeNew(JoinedLinks* links) {
+void CClientHandle::TakeNew(std::list<netlink::NetLink*>* links) {
     for (auto node = links->begin(); node != links->end(); ++node) ReleaseCounted(*node);
     links->clear();
 }

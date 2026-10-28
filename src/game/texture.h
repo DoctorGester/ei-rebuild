@@ -211,8 +211,6 @@ public:
 CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
-using ByteBuffer = std::vector<std::uint8_t>;
-
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.
 struct MmpHeader {
@@ -305,7 +303,7 @@ public:
     std::uint32_t width_;
     std::uint32_t height_;
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
-    ByteBuffer extra_;       // the .mmp file's extra block
+    std::vector<std::uint8_t> extra_;       // the .mmp file's extra block
     PixelFormat format_;
     CDXSurface* surface_;       // counted
     std::uint32_t spare64_;     // nothing reads it
@@ -343,7 +341,7 @@ public:
     int LoadTextureFrom(CTexture* texture, const char* directory);
     // From <data path>textures\ on disk, else from the archives. Returns 0 (and an empty buffer) when neither
     // has the file.
-    int LoadMmpExtra(const char* name, ByteBuffer* out);
+    int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
     // A texture the game fills on the CPU, in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.

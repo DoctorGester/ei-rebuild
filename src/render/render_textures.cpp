@@ -315,12 +315,11 @@ void Retire(Texture& t) {
 }
 
 std::unordered_map<const void*, SurfaceMemory> g_memory;   // by holder
-// The memory as the texture was last made from it. A memory texture is converted again when the game marked
-// its memory written since (g_textureMarks) and it differs (compared once a frame); a window surface only
-// where the game marked it written (render::SurfaceWritten, g_written) and that part differs.
-using Snapshots = std::unordered_map<const void*, std::vector<std::uint8_t>>;
-Snapshots g_snapshots;          // by holder: window surfaces
-Snapshots g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
+// The snapshots hold the memory as the texture was last made from it. A memory texture is converted again when the
+// game marked its memory written since (g_textureMarks) and it differs (compared once a frame); a window surface
+// only where the game marked it written (render::SurfaceWritten, g_written) and that part differs.
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_snapshots;          // by holder: window surfaces
+std::unordered_map<const void*, std::vector<std::uint8_t>> g_textureSnapshots;   // by holder: textures (the save / load screen's pictures)
 std::unordered_map<const void*, Rect> g_written;   // by holder: marked written since its window texture was read
 #if defined(EI_RENDER_VALIDATION)
 int g_missedWrites = 0;
@@ -332,7 +331,7 @@ std::size_t MemoryBytes(const SurfaceMemory& m) {
 }
 
 // The memory of `holder` differs from its snapshot (GdiFlush first: GDI may still hold drawing for it).
-bool MemoryChanged(const Snapshots& snapshots, const void* holder, const SurfaceMemory& m) {
+bool MemoryChanged(const std::unordered_map<const void*, std::vector<std::uint8_t>>& snapshots, const void* holder, const SurfaceMemory& m) {
     GdiFlush();
     auto it = snapshots.find(holder);
     if (it == snapshots.end() || it->second.size() != MemoryBytes(m)) return true;
@@ -341,7 +340,7 @@ bool MemoryChanged(const Snapshots& snapshots, const void* holder, const Surface
 }
 
 // Keeps the memory of `holder` as its texture was just made from it, or forgets it when that failed.
-void TakeSnapshot(Snapshots& snapshots, const void* holder, const SurfaceMemory& m, bool made) {
+void TakeSnapshot(std::unordered_map<const void*, std::vector<std::uint8_t>>& snapshots, const void* holder, const SurfaceMemory& m, bool made) {
     if (!made) {
         snapshots.erase(holder);
         return;

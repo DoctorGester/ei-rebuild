@@ -127,7 +127,7 @@ TYPES = {
 # `T name[dims] = /*address*/ {` (T may be a template instantiation: `lib::AlignedArray<TLVertex> g_x = /*addr*/ {};`), for one pointer `const char* const name = /*address*/ "text";`, for one number
 # `constexpr float kX = /*address*/ 0.5f;` (a .data object a static initialiser sets, C18j). A pointer
 # type's `*` (and a const after it) joins the element type: `const char* const kX[]` is a table of `char*`.
-DEF = re.compile(r'(?<![\w:])([\w:]+(?:<(?:[^<>;=(){}]|<[^<>;=(){}]*>)*>)?)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
+DEF = re.compile(r'(?<![\w:])([\w:]+(?:<(?:[^<>;=(){}]|<(?:[^<>;=(){}]|<[^<>;=(){}]*>)*>)*>)?)(\s*\*\s*(?:const\s+)?|\s+)(\w+)\s*((?:\[[^\]]*\]\s*)*)=\s*/\*([0-9A-F]{8})\*/\s*([{"]|-?[\d.])')
 TAGGED = re.compile(r'=\s*/\*[0-9A-F]{8}\*/\s*(?:[{"]|-?[\d.])')   # a file with no such tag has no definition
 # The initialiser's tokens where its element type holds a pointer: a string literal (adjacent ones joined), a number,
 # a name (`&` optional: another named range, a function of ours, or nullptr), a named range's
@@ -171,15 +171,15 @@ ALIGNED_ARRAY_VECTORS = {
 # (std containers in place of the game's).
 STATIC_OBJECT_BYTES = {
     # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
-    'std::list<std::uint8_t>': 4, 'SectorList': 4,
+    'std::list<std::uint8_t>': 4, 'std::list<HeldPtr<CMapObject>>': 4,
     'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
-    'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,
+    'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'std::unordered_set<int>': 0x14,
     'CCursor': 0xB8, 'CInterface3D': 0xB0, 'GameFlow': 0x84, 'options::GameOptions': 0x26C,
     # game.exe's CArrays are 0x14 bytes and its CLists 0x1C; ours (std::vector 12, std::list 8) start zero all the same
     'std::vector<int>': 0x14, 'std::vector<std::uint8_t>': 0x14, 'std::vector<std::uint16_t>': 0x14, 'RadiusTree': 0x1C, 'std::vector<SpiralOffset>': 0x14, 'SmoothPool': 0x1C,
-    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'std::vector<FogSprite>': 0x14, 'SpriteArray': 0x14, 'ParticleSpriteArray': 0x14, 'BlockPointArray': 0x14, 'AIObjectList': 0x1C, 'ParticleDepthArray': 0x14, 'UnitShapeCache': 0x1C,
-    'std::list<AIEvent>': 0x1C, 'FlagArray': 0x14, 'std::vector<ScriptQuestObjective>': 0x14,
+    'SmoothTable[81]': 0x12FC, 'CSysInfo': 0x108, 'std::vector<FogSprite>': 0x14, 'std::vector<SpriteRecord>': 0x14, 'std::vector<ParticleSprite>': 0x14, 'std::vector<BlockPoint>': 0x14, 'CountedUnits': 0x1C, 'std::vector<ParticleDepth>': 0x14, 'UnitShapeCache': 0x1C,
+    'std::list<AIEvent>': 0x1C, 'std::vector<ScriptQuestObjective>': 0x14,
     'CommandMap': 0xC, 'ConsoleStreambuf': 0x454,   # game.exe's streambuf (ours has no lock or get area)
     'CCamera': 0x308, 'CSceneRenderer': 0x5C, 'CWorldServer': 0x12E7C, 'CWorldClient': 0x7E4, 'CMapDatabase': 0x28,
     'CDebugPanel': 0x44, 'CMemoryStream': 0x28, 'GameBuffer': 0x1C, 'GrowingBuffer': 0x1C, 'ChunkArchive::ClassRegistry': 0x28,

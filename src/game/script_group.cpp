@@ -43,13 +43,13 @@ void ScriptObjectRef::ReleaseIfDeleted() {
     if (object && (object->flags_ & kDeleted)) object = nullptr;
 }
 
-void ScriptObjectRef::Load(ScriptStream* stream) {
+void ScriptObjectRef::Load(CStream* stream) {
     int id;
     stream->Read(&id, 4);
     object = id == -1 ? nullptr : FindObject(id);
 }
 
-void ScriptObjectRef::Save(ScriptStream* stream) const {
+void ScriptObjectRef::Save(CStream* stream) const {
     int id = -1;
     if (object) id = object->id_;
     stream->Write(&id, 4);
@@ -200,7 +200,7 @@ BOOL ScriptGroup::Contains(CEngineObject* object) const {
     return 0;
 }
 
-void ScriptGroup::Load(ScriptStream* stream) {
+void ScriptGroup::Load(CStream* stream) {
     int count;
     stream->Read(&count, 4);
     resize(static_cast<std::size_t>(count));

@@ -78,12 +78,10 @@ struct DeferredSound {
     std::int32_t samplePosition;
 };
 
-using SoundNameArray = std::vector<std::string>;
-
 // An ambient emitter (16): plays one of its names at random intervals while the listener is within `outerRadius`.
 struct SoundEmitter {
     std::int32_t active;
-    SoundNameArray names;
+    std::vector<std::string> names;
     Vector3 position;
     float innerRadius;
     float outerRadius;
@@ -100,7 +98,7 @@ unsigned __stdcall StreamThreadEntry(void* manager);
 // position.
 struct SoundSequence {
     std::int32_t active;
-    SoundNameArray names;
+    std::vector<std::string> names;
     std::int32_t handle;        // current sound
     Vector3 position;
     float nearDistance;
@@ -130,9 +128,6 @@ struct WaveRecord {
     std::int32_t size = 0;      // bytes
     std::int32_t uses = 0;      // voices playing it
 };
-using WaveList = std::list<WaveRecord>;
-using WaveNode = WaveList::iterator;
-using WaveCache = std::unordered_map<std::string, WaveNode>;
 // Miles' ASISTAGE (mss.h): the ASI codec's stream functions and the handles of the attributes it reports.
 struct AsiStage {
     void*(__stdcall* open)(void* user, void* read, int size);       // ASI_stream_open
@@ -226,8 +221,8 @@ struct CSoundManager : CEngineObject {
     std::uint32_t emitterTick;
     SoundSequence sequences[8];
     std::int32_t cacheBytes;            // bytes held by the wave cache
-    WaveList cacheList;                 // the cached waves, most recently used first
-    WaveCache cache;                    // wave name -> its cache list node
+    std::list<WaveRecord> cacheList;                 // the cached waves, most recently used first
+    std::unordered_map<std::string, std::list<WaveRecord>::iterator> cache;                    // wave name -> its cache list node
     DeferredMap deferred;
     std::int32_t enabled;
     std::int32_t spare;                 // 0 after Reset; nothing reads it
@@ -251,12 +246,12 @@ struct CSoundManager : CEngineObject {
     int SetSoundPosition(int handle, const float* position, float nearDist, float farDist);
     int StopSound(int handle);
     void SetListener(const float* position, const float* axis);
-    int AddEmitter(const SoundNameArray* names, const float* position, float inner, float outer, int minInterval,
+    int AddEmitter(const std::vector<std::string>* names, const float* position, float inner, float outer, int minInterval,
                    int maxInterval);
     void MoveEmitter(int index, const float* position, float inner, float outer, int minInterval,
                      int maxInterval);
     int RemoveEmitter(int index);
-    int AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist, float farDist,
+    int AddSequence(const std::vector<std::string>* names, int priority, const float* position, float nearDist, float farDist,
                     int random, int count, int(*chooser)(int, int));
     int MoveSequence(std::uint32_t id, const float* position);
     int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);
@@ -337,8 +332,8 @@ struct MusicTheme {
     std::int32_t dungeon = 0;   // 0 open land, 1 dungeon
     std::string briefing;
     std::string constructor;
-    SoundNameArray calm;        // CalmOpen / CalmDungeon
-    SoundNameArray combat;      // Combat
+    std::vector<std::string> calm;        // CalmOpen / CalmDungeon
+    std::vector<std::string> combat;      // Combat
 };
 
 // Picks the music for the game state.

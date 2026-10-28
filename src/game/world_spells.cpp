@@ -25,8 +25,6 @@ constexpr std::uint32_t kSpellNoTargetFlag = 0x20000;
 constexpr std::uint32_t kFlagFought = 0x80000;           // flags_ of both sides of a hostile spell
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
-using UnitList = std::list<CUnit*>;
-
 // The prototype index in the packed id.
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
@@ -85,7 +83,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
 
     // Several targets: the units around the caster (or `from`), the requested target first.
     CPlayerServer* heroes = nullptr;   // the caster's player state: its party's units are friends
-    UnitList units;
+    std::list<CUnit*> units;
     if (caster) {
         if (CPlayer* owner = caster->player) heroes = owner->Server();
     }
@@ -105,7 +103,7 @@ void CWorldServer::CastSpell(CSpell* spell, CUnit* caster, const Vector3* from, 
     while (targets > 0) {
         if (units.empty()) break;
         CUnit* best = nullptr;
-        UnitList::iterator bestNode{};
+        std::list<CUnit*>::iterator bestNode{};
         std::uint32_t bestBits = kFarAway;
         for (auto node = units.begin(); node != units.end();) {
             auto next = std::next(node);

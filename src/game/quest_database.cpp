@@ -22,9 +22,6 @@
 
 namespace {
 
-// The quest registry (registry.cpp).
-using Registry = CFileRegistry;
-
 std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
@@ -32,7 +29,7 @@ std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &b
 void PushPlace(QuestRecord* quest, float value) { quest->places.push_back(value); }
 
 // The "quest" section into the quest record.
-void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& places) {
+void ReadQuest(CFileRegistry& reg, QuestRecord* quest, std::vector<std::string>& places) {
     quest->field2 = 0;
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
@@ -62,7 +59,7 @@ void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& plac
 // Adds the quest unless its name is indexed with a record already; the index is rebuilt over the
 // whole vector after the push_back (it may have moved the records).
 void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
-    QuestDatabase::QuestIndex& map = db->questsByName;
+    std::unordered_map<std::string, QuestRecord*>& map = db->questsByName;
     auto found = map.find(quest->name);
     if (found != map.end() && found->second != nullptr) return;
     db->quests.push_back(*quest);
@@ -72,7 +69,7 @@ void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
 
 void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
     QuestBriefingTable* briefings = &db->briefings;
-    QuestBriefingTable::Index& map = briefings->index;
+    std::unordered_map<std::string, QuestBriefingRecord*>& map = briefings->index;
     auto found = map.find(briefing->name);
     if (found != map.end() && found->second != nullptr) return;
     briefings->records.push_back(*briefing);
@@ -82,7 +79,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 
 // A briefing's name, exp and money (the "complete" briefing's name is assigned with the
 // C-string assignment, the others' with the range one: the same result).
-void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char* section) {
+void ReadBriefingHeader(CFileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
         briefing->name.assign(name.c_str());
@@ -93,7 +90,7 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
 
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
-void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
+void ReadListInline(CFileRegistry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
     std::vector<std::string> strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
     std::vector<std::string>* v = List(briefing, list);
@@ -106,7 +103,7 @@ void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingR
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
-void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadReceiveBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     briefing->specials = 0;
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReceive());
     for (int i = 0; i < 6; ++i) ReadListInline(reg, game::questwords::BriefingReceive(), i, briefing);
@@ -115,7 +112,7 @@ void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* 
 
 // "briefing reject": the item lists read inline (cleared first), the others by ReadStringList; added by
 // QuestBriefingTable::Add (also unless the name is there).
-void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadRejectBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingReject());
     ReadListInline(reg, game::questwords::BriefingReject(), 0, briefing);
     ReadListInline(reg, game::questwords::BriefingReject(), 1, briefing);
@@ -124,7 +121,7 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by ReadStringList.
-void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+void ReadCompleteBriefing(CFileRegistry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, game::questwords::BriefingComplete());
     for (int i = 0; i < 6; ++i) ReadStringList(&reg, game::questwords::BriefingComplete(), game::questwords::ListKey(i), List(briefing, i));
     db->briefings.Add(briefing);
@@ -134,7 +131,7 @@ void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord*
 
 bool QuestDatabase::LoadRegistry(const void* image) {
     QuestDatabase* db = this;
-    Registry reg;
+    CFileRegistry reg;
     reg.Construct();
     if (!reg.Attach(image)) {
         reg.Destroy();

@@ -62,8 +62,6 @@ float ExperiencePenalty() { return g_logicSettings.lostXp; }
 // The AI map's cell size factors: a half-cell coordinate times both is world units.
 float CellScaleA() { return 1.0f /*0074326C*/; }
 float CellScaleB() { return 0.5f /*0073B86C*/; }
-// The use order's unit list.
-using UnitArray = std::vector<CUnit*>;
 
 CUnit* FindUnit(int id) { return TheServerWorld()->FindUnit(id); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->localPosition_; }
@@ -209,7 +207,7 @@ Vector3* AIOrder::AimPoint(Vector3* out) const {
 
 int CPlayerServer::OnUseOrder() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{};
+    std::vector<CUnit*> units{};
     int count = 0;
     in.Read(&count, 4);
     for (int i = 0; i < count; ++i) {
@@ -302,11 +300,10 @@ int g_nextRecordObjectId = /*00794E3C*/ 1000000013;
 constexpr std::uint8_t kMessageZone = 0x08;
 constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
 constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer::dirty_
-using PointArray = std::vector<Vector3>;
 
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
-void ReadUnits(CMemoryStream& in, UnitArray* units) {
+void ReadUnits(CMemoryStream& in, std::vector<CUnit*>* units) {
     int count = 0;
     in.Read(&count, 4);
     for (int i = 0; i < count; ++i) {
@@ -320,8 +317,8 @@ void ReadUnits(CMemoryStream& in, UnitArray* units) {
 using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
 int MoveUnits(MoveCommand command) {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{};
-    PointArray offsets{};
+    std::vector<CUnit*> units{};
+    std::vector<Vector3> offsets{};
     ReadUnits(in, &units);
     int run = 0;
     Vector3 to{};
@@ -500,7 +497,7 @@ int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
 
 int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
-    UnitArray units{};
+    std::vector<CUnit*> units{};
     ReadUnits(in, &units);
     int ctrl = 0, how = 0, objectId = 0;
     in.Read(&ctrl, 4);

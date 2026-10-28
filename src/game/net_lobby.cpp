@@ -28,15 +28,10 @@ namespace net {
 
 namespace {
 
-// The nodes of the servers list and the server's pending joins.
-using ServerNode = std::list<SharedRefTo<ServerEntry>>::iterator;
-using JoinNode = std::list<PendingJoin>::iterator;
-ServerEntry* EntryOf(ServerNode node) { return node->Get(); }
+ServerEntry* EntryOf(std::list<SharedRefTo<ServerEntry>>::iterator node) { return node->Get(); }
 
 constexpr std::uint32_t kNever = 0x7E967699;   // 1e38f
 constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
-
-using QueryList = std::vector<Query>;
 
 
 // "<text>\n" and a flush.
@@ -55,14 +50,14 @@ void SetBits(float& f, std::uint32_t bits) { std::memcpy(&f, &bits, 4); }
 bool SameAddress(const NetAddress* a, const NetAddress* b) { return std::memcmp(a, b, sizeof(NetAddress)) == 0; }
 
 // The servers list node whose entry has `address`, or the end.
-ServerNode FindServer(ClientBase* self, const NetAddress* address) {
+std::list<SharedRefTo<ServerEntry>>::iterator FindServer(ClientBase* self, const NetAddress* address) {
     auto end = self->servers_.end();
     auto node = self->servers_.begin();
     while (node != end && !SameAddress(&EntryOf(node)->address_, address)) ++node;
     return node;
 }
 // The query with `address`, or the end.
-QueryList::iterator FindQuery(ClientQueries& v, const NetAddress* address) {
+std::vector<Query>::iterator FindQuery(ClientQueries& v, const NetAddress* address) {
     return std::find_if(v.list.begin(), v.list.end(), [address](const Query& q) { return SameAddress(&q.address, address); });
 }
 
@@ -112,7 +107,7 @@ ServerEntryBase::ServerEntryBase() {
     state_ = kLocal;
 }
 
-QueryList::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+std::vector<Query>::iterator ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
 
 // A buffer's length (its highest position brought up to date first).
 std::int32_t BufferLength(GameBuffer* b) {
@@ -278,7 +273,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // Removes a connection; when none is left the connection to the host is lost.
-void ClientBase::RemoveClient(ClientList::iterator node) {
+void ClientBase::RemoveClient(std::list<SharedRefTo<Connection>>::iterator node) {
     if (node == clients_.end()) return;
     SessionBase::RemoveClient(node);
     if (!clients_.empty()) return;
@@ -302,7 +297,7 @@ void ClientBase::Refresh() {
     }
     std::uint32_t& index = nextQuery_;
     ++index;
-    QueryList& v = queries_.list;
+    std::vector<Query>& v = queries_.list;
     if (index >= static_cast<std::uint32_t>(v.size())) index = 0;
     if (index < static_cast<std::uint32_t>(v.size())) SendPing(&v[index].address);
     if (alwaysAsk_.ip != 0) {
@@ -314,7 +309,7 @@ void ClientBase::SetAlwaysAsk(const NetAddress* address) { alwaysAsk_ = *address
 
 // Each server not yet listed is listed with an entry read from its saved reply (or an empty entry), as asked.
 void ClientBase::SetQueries(const ClientQueries* from) {
-    QueryList& v = queries_.list;
+    std::vector<Query>& v = queries_.list;
     v = from->list;
     queries_.extra = from->extra;
     if (v.empty()) return;
@@ -355,7 +350,7 @@ void ClientBase::SetQueries(const ClientQueries* from) {
 // A new query is added and pinged (3, the session time); the server is listed (an empty entry) or
 // marked as asked.
 void ClientBase::Ask(const NetAddress* address) {
-    QueryList& v = queries_.list;
+    std::vector<Query>& v = queries_.list;
     if (FindQuery(queries_, address) == v.end()) {
         v.emplace_back().address = *address;
         GrowingBuffer b;
@@ -388,7 +383,7 @@ void ClientBase::Ask(const NetAddress* address) {
 }
 
 void ClientBase::Forget(const NetAddress* address) {
-    QueryList& v = queries_.list;
+    std::vector<Query>& v = queries_.list;
     auto q = FindQuery(queries_, address);
     if (q != v.end()) v.erase(q);
     auto node = servers_.begin();
@@ -523,7 +518,7 @@ bool ServerBase::Admit(const NetAddress*, std::uint8_t**, std::uint8_t*) { retur
 // becomes a connection (with the id and rate of its join), then counts.
 bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     if (SessionBase::OnUpdate(from, cursor)) return true;
-    JoinNode node = joins_.begin();
+    std::list<PendingJoin>::iterator node = joins_.begin();
     while (node != joins_.end() && !SameAddress(&node->address, from)) ++node;
     if (node == joins_.end()) return false;
     PendingJoin& join = *node;
@@ -535,7 +530,7 @@ bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
 // Ages the pending joins (dropping those older than the join timeout, logged), then
 // the session's receive step.
 void ServerBase::Tick(double dt) {
-    JoinNode node = joins_.begin();
+    std::list<PendingJoin>::iterator node = joins_.begin();
     while (node != joins_.end()) {
         float& age = node->age;
         double sum = static_cast<double>(age) + dt;
@@ -584,7 +579,7 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
         return;
     }
 
-    JoinNode node = joins_.begin();
+    std::list<PendingJoin>::iterator node = joins_.begin();
     while (node != joins_.end() && !SameAddress(&node->address, from)) ++node;
     if (node != joins_.end()) {
         PendingJoin& join = *node;

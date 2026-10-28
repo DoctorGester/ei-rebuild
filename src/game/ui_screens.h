@@ -50,8 +50,6 @@ struct UiItemKinds {
     static bool IsBuildable(const CItem* item);
 };
 
-using MpStringVector = std::vector<std::string>;
-
 // --- Camp item strip ------------------------------------------------------------------------
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens: six tab regions
 // choose a category, two arrows scroll it, the strip itself shows `visible_` slots. Created by the camp screen and
@@ -72,10 +70,10 @@ public:
     // For the camp's three strips and the exchange window's: the background texture "Inventory02" (`top`) or "Inventory01", the
     // strip built, the arrows' tips 0x4FB0 / 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine
     // slots and the source list.
-    void Setup(UiPtrArray<CItem>* source, char top);
+    void Setup(std::vector<CItem*>* source, char top);
     // The figure strips (the hero screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs, the six tab buttons' sprites (scene objects 2..7) hidden.
-    void SetupFigures(MpStringVector* names, char top, char noArrowTips);
+    void SetupFigures(std::vector<std::string>* names, char top, char noArrowTips);
     void SetSlots(int slots);
     // Lays the strip out along the top edge (`top`: y 0, scale 8) or the bottom (y 500, scale 4): the scroll state cleared, nine
     // regions (arrows, six tab buttons, the items), the ends' and tab buttons' sprites, the highlight frame, the background
@@ -125,10 +123,10 @@ public:
     int hovered_;               // -1
     union {
         int filter_;                // 0 items, 1 spells, 2 armour
-        MpStringVector* figures_;   // the figure strips: the figure names
+        std::vector<std::string>* figures_;   // the figure strips: the figure names
     };
     std::vector<CItem*> list_;          // the visible items
-    UiPtrArray<CItem>* source_; // all the items (a party's item list, PartyItemArray)
+    std::vector<CItem*>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
 };
 
@@ -183,7 +181,6 @@ struct MpVoiceEntry {
     std::string file;
     std::string name;
 };
-using MpVoiceVector = std::vector<MpVoiceEntry>;
 // Opened by the main menu's Multiplayer button (region 5). Modes: 9 hero list, 10 new hero (portrait, name and voice),
 // 11 new hero's statistics. The heroes are records in a global vector.
 class CMpHeroScreen : public CItemScreen {
@@ -238,7 +235,7 @@ public:
     void DrawVoices();
     // The hero list's surface (0): ten rows of names from heroTop_, the selection frame on the selected hero.
     void DrawHeroList();
-    MpVoiceVector& Voices() { return *voices_; }
+    std::vector<MpVoiceEntry>& Voices() { return *voices_; }
     void CallShowHero(int index);
 
     // On the statistics page the experience lines on surface 2; then what is under the mouse for the description panel, the
@@ -299,16 +296,16 @@ public:
     CHeroQuickStrip* spellPanel_;
     CUiItemStrip* figureStrips_[2]; // the figures of defaults_ (voices voiceLists_[0]) and of names_ (voiceLists_[1])
     CTradePanel* tradePanel_;
-    MpStringVector defaults_;   // the men's figures; its first entry goes to ChooseFigure for a new hero
-    MpStringVector names_;      // the women's figures
+    std::vector<std::string> defaults_;   // the men's figures; its first entry goes to ChooseFigure for a new hero
+    std::vector<std::string> names_;      // the women's figures
     float turn_;                // the preview's turn
     int rotating_;              // 0, 1 or 2 while a rotate arrow is held
     CUiEditField* renameEdit_;  // the hero list's rename edit window (focused_ while renaming)
     CUiEditField* nameEdit_;    // the new hero's name edit window
     CUiScrollbar* voiceScroll_;
     std::string text_;
-    MpVoiceVector voiceLists_[2];   // voices_ points at one of them
-    MpVoiceVector* voices_;     // voiceLists_[0] or [1]
+    std::vector<MpVoiceEntry> voiceLists_[2];   // voices_ points at one of them
+    std::vector<MpVoiceEntry>* voices_;     // voiceLists_[0] or [1]
     int voiceTop_;
     int voiceIndex_;
     int voiceSound_;
@@ -333,8 +330,6 @@ struct MpAddressEntry {
     int state;                     // net::ServerEntryBase::State (1: asked directly, forgettable)
     bool password;                 // joining needs a password
 };
-
-using MpAddressList = std::vector<MpAddressEntry>;
 
 // The colour the connect list's texts and its line are drawn in: set per row and for the details by the list draw
 // and left as it is for the next draw's titles; Create's texts take it too.
@@ -413,7 +408,7 @@ public:
     void RebuildList();
 
     float refreshTimer_;           // seconds since the last refresh (0.5 s period)
-    MpAddressList entries_;
+    std::vector<MpAddressEntry> entries_;
     int selected_;                 // row
     net::NetAddress selectedAddress_;   // the selected row's address (0: row 0)
     int scrollTop_;                // the first row shown
@@ -668,5 +663,5 @@ public:
     CUiItemStrip* figures_;          // the players (figure strip)
     CTradeGrid* grid_;               // the two offers (mode 5)
     CUiEditField* moneyField_;       // the money offered
-    MpStringVector names_;           // the figure strip's names
+    std::vector<std::string> names_;           // the figure strip's names
 };

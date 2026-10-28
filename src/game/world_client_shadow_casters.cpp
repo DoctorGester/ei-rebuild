@@ -200,7 +200,7 @@ const HighestObject& Highest(const CWorldClient* world) {
     const SectorGrid& grid = world->objectGrid_;
     for (std::uint32_t y = 0; y < grid.height_; ++y)
         for (std::uint32_t x = 0; x < grid.width_; ++x) {
-            const SectorList& cell = grid.rows_[y][x];
+            const std::list<HeldPtr<CMapObject>>& cell = grid.rows_[y][x];
             for (const CMapObject* object : cell) {
                 if (!object || !object->attached || (object->bounds.flags & kBoundsValid) != kBoundsValid) continue;
                 const Vector3& scale = object->ClientSpecific()->figureScale;
@@ -260,8 +260,8 @@ void HandOverTerrainCasters(CWorldClient* world) {
     const int firstY = (std::max)(sector(area.y0, terrain->sectorsY) - 1, 0), lastY = sector(area.y1, terrain->sectorsY);
     for (int sx = firstX; sx <= lastX; ++sx)
         for (int sy = firstY; sy <= lastY; ++sy) {
-            const Terrain::SectorCache::iterator node = terrain->sectorGrid[sx][sy];
-            if (node != Terrain::SectorCache::iterator{} && *node) render::ShadowTerrainSector(*node);
+            const std::list<terrain::SectorData*>::iterator node = terrain->sectorGrid[sx][sy];
+            if (node != std::list<terrain::SectorData*>::iterator{} && *node) render::ShadowTerrainSector(*node);
         }
 }
 
@@ -291,7 +291,7 @@ void HandOverOutsideCasters(CWorldClient* world) {
     const std::uint32_t firstY = cell(area.y0, grid.height_), lastY = cell(area.y1, grid.height_);
     for (std::uint32_t y = firstY; y <= lastY; ++y)
         for (std::uint32_t x = firstX; x <= lastX; ++x) {
-            const SectorList& list = grid.rows_[y][x];
+            const std::list<HeldPtr<CMapObject>>& list = grid.rows_[y][x];
             for (CMapObject* object : list) {
                 if (!object || !object->attached) continue;
                 const bool unit = object->GetClassId() == kClassUnit;

@@ -44,7 +44,7 @@ std::uint32_t Bits(const float& f) {
 
 // The snapshot read against was consumed to its end (stream slots 5 and 4, in that order).
 bool SnapshotReadToEnd() {
-    BitStream* snapshot = delta::g_readSnapshot;
+    CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }

@@ -30,8 +30,6 @@ void ReadLinkString(std::string* out, const char** cursor) {
 
 namespace {
 
-using Cache = std::multimap<std::string, CLinkMesh*>;
-
 constexpr std::uint32_t kFigTag = 0x474946;   // "FIG": a FIG / FIG8 record, else the older one
 constexpr double kSameMorph = 1e-5;           // squared distance of the coefficients
 
@@ -70,7 +68,7 @@ bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
 }
 
 // The first cached mesh named `name` with close coefficients, or null.
-CLinkMesh* FindCached(const Cache& cache, const std::string* name, float s, float t, float u) {
+CLinkMesh* FindCached(const std::multimap<std::string, CLinkMesh*>& cache, const std::string* name, float s, float t, float u) {
     auto [first, last] = cache.equal_range(*name);
     for (auto n = first; n != last; ++n)
         if (SameMorph(n->second, s, t, u)) return n->second;
@@ -78,7 +76,7 @@ CLinkMesh* FindCached(const Cache& cache, const std::string* name, float s, floa
 }
 
 // Adds `mesh` to the cache under `name`, after the entries of the same name; the entry holds a reference.
-void AddToCache(Cache* cache, const std::string* name, CLinkMesh* mesh) {
+void AddToCache(std::multimap<std::string, CLinkMesh*>* cache, const std::string* name, CLinkMesh* mesh) {
     if (mesh) ++mesh->refCount_;
     cache->emplace(*name, mesh);
 }

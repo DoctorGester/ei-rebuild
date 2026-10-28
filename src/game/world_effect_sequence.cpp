@@ -45,7 +45,7 @@ Chooser ChooserFor(int count, bool withFirst) {
 }
 
 bool SnapshotReadToEnd() {
-    BitStream* snapshot = delta::g_readSnapshot;
+    CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     return position == snapshot->Size();
 }
@@ -62,7 +62,7 @@ void CEffectSoundSeq::Start(int update) {
         sounds->SetSoundPosition(sound_, &localPosition_.x, volume_, radius_);
         return;
     }
-    SoundNameArray list;
+    std::vector<std::string> list;
     const std::string& first = name_;
     const std::vector<std::string>& others = names_;
     bool withFirst = str::Compare(first, "") != 0;

@@ -67,7 +67,6 @@ public:
 // its Create, Rebirth-patched). A real virtual class: the compiler makes its vtable.
 class CMaterialManager : public CResourceManager {
 public:
-    using ColorTable = std::unordered_map<unsigned, MaterialColors>;
 
     CMaterialManager();
     ~CMaterialManager() override;
@@ -90,7 +89,7 @@ public:
     // into `material`; 1, or 0 for a null material.
     int FillMaterial(CMaterial* material, unsigned key);
 
-    ColorTable colors_;
+    std::unordered_map<unsigned, MaterialColors> colors_;
 };
 
 // A kind the manager's Create enters and its file (material.cpp's kMaterialKindFiles).

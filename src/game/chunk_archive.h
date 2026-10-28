@@ -70,22 +70,16 @@ public:
         void Reset();
     };
     static_assert(sizeof(Ref) == 0x10);
-    using Stack = std::list<Ref>;
-    using SavedList = std::list<CRefCounted*>;
 
     // While loading: key -> the object the index names (by the key its record is stored under).
     // (walked in STLport's order by Close: the objects nobody took are deleted in that order)
     using LoadedObjects = lib::HashMap<std::uint32_t, CRefCounted*>;
-    // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
-    // instead of the object's address.
-    using SavedNumbers = std::unordered_map<const CRefCounted*, std::uint32_t>;
 
     // The classes an archive can hold: Close writes an object's class id (found by its vtable) to the index,
     // Open creates the object with the class's factory.
     using Factory = CRefCounted*(__cdecl*)();
     struct ClassRegistry {
-        using ClassIdMap = std::unordered_map<std::uint32_t, std::int32_t>;
-        ClassIdMap classIds;     // vtable -> class id
+        std::unordered_map<std::uint32_t, std::int32_t> classIds;     // vtable -> class id
         std::unordered_map<std::uint32_t, Factory> factories;    // class id -> factory
     };
     static ClassRegistry& Registry();
@@ -188,12 +182,14 @@ public:
 
     CMemoryStream indexStream_;    // chunk 0
     CMemoryStream dataStream_;     // the chunk data (chunk 2 while loading the records)
-    Stack stack_;                  // the last chunk is the current one
+    std::list<Ref> stack_;                  // the last chunk is the current one
     std::int32_t version_;         // 1 when constructed; field 2 of the root chunk
     std::uint8_t loading_;         // Open stores the low byte of its argument
     LoadedObjects loaded_;
-    SavedNumbers numbers_;
-    SavedList saved_;              // the objects whose records Close writes
+    // While saving: the objects already listed -> their number by first save (1, 2, ...), written as the key
+    // instead of the object's address.
+    std::unordered_map<const CRefCounted*, std::uint32_t> numbers_;
+    std::list<CRefCounted*> saved_;              // the objects whose records Close writes
 };
 
 // A vector of records as chunk `id`, one chunk 1 per record (the record's occurrence): loading empties the

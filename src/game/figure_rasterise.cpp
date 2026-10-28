@@ -19,8 +19,6 @@
 
 namespace {
 
-using IntPoint = RasterTriangle::Point;
-using PointArray = std::vector<IntPoint>;
 constinit std::vector<RasterTriangle::Point> g_texturePoints = /*007C2E00*/ {};
 void FreeTexturePoints() { lib::FreeStorage(g_texturePoints); }
 std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
@@ -28,12 +26,12 @@ std::uint8_t g_texturePointsGuard = /*007C2E10*/ {};
 
 } // namespace
 
-int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, RasterTarget* target) {
+int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const RasterTriangle::Point* points, RasterTarget* target) {
     const MeshBuffers& buffers = buffers_;
-    PointArray& uv = g_texturePoints;
+    std::vector<RasterTriangle::Point>& uv = g_texturePoints;
     if (!(g_texturePointsGuard & 1)) {
         g_texturePointsGuard |= 1;
-        uv = PointArray{};
+        uv = std::vector<RasterTriangle::Point>{};
         std::atexit(FreeTexturePoints);
     }
     uv.resize(buffers.texCoordCount);
@@ -47,8 +45,8 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
         for (int k = 0; k < 3; ++k) {
             std::uint16_t corner = buffers.indices[t + k];
             const MeshCorner& record = buffers.corners[corner];
-            std::memcpy(&target->corners[k].screen, &points[record.position], sizeof(IntPoint));
-            std::memcpy(&target->corners[k].texture, &g_texturePoints[record.texCoord], sizeof(IntPoint));
+            std::memcpy(&target->corners[k].screen, &points[record.position], sizeof(RasterTriangle::Point));
+            std::memcpy(&target->corners[k].texture, &g_texturePoints[record.texCoord], sizeof(RasterTriangle::Point));
         }
         rasteriser->RasteriseTriangle(target);
     }

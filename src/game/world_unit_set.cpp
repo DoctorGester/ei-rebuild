@@ -56,7 +56,7 @@ void UnitSet::Write(CStream* stream) {
         DressedUnitRecord* record = &looks;
         std::uint32_t key = record->prototype;   // two bytes written
         Put(stream, &key, 2);
-        auto counted = [stream](const UnitIdList& list) {
+        auto counted = [stream](const std::vector<std::uint32_t>& list) {
             std::uint32_t n = static_cast<std::uint32_t>(list.size());
             PutWord(stream, n);
             n = static_cast<std::uint32_t>(list.size());
@@ -79,7 +79,7 @@ namespace {
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
 // A counted dword array: the count, the vector resized (new entries 0), the data.
-void GetIds(CStream* stream, UnitIdList& list) {
+void GetIds(CStream* stream, std::vector<std::uint32_t>& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
     std::uint32_t zero = 0;

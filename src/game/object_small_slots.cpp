@@ -17,7 +17,7 @@ bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
     return false;
 }
 
-void CMapObject::FreeArray(UseSpotArray* array, int) {
+void CMapObject::FreeArray(std::vector<Vector3>* array, int) {
     lib::FreeStorage(*array);
 }
 

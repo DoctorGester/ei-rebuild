@@ -148,7 +148,7 @@ void PushSolid(const void* holder, CanvasState& canvas, const Rect& rect, std::u
     Push(std::move(op));
 }
 
-std::uint32_t CanvasColour(ui::Colour colour, const CanvasState& canvas) { return ui::Quantise(colour, canvas.format); }
+std::uint32_t CanvasColour(std::uint32_t colour, const CanvasState& canvas) { return ui::Quantise(colour, canvas.format); }
 
 // 0x00RRGGBB quantised to the canvas's bits, as the RGBA8 texel the canvas holds (red in the low byte).
 std::uint32_t CanvasTexel(std::uint32_t rgb, const CanvasState& canvas) {
@@ -586,7 +586,7 @@ void ReleaseStaging() {
 
 namespace ui {
 
-std::uint32_t Quantise(Colour colour, const PixelFormat& format) {
+std::uint32_t Quantise(std::uint32_t colour, const PixelFormat& format) {
     std::uint32_t r = colour & 0xFF, g = (colour >> 8) & 0xFF, b = (colour >> 16) & 0xFF;
     return (QuantiseChannel(r, MakeChannel(format.redMask).bits) << 16) | (QuantiseChannel(g, MakeChannel(format.greenMask).bits) << 8) |
            QuantiseChannel(b, MakeChannel(format.blueMask).bits);
@@ -652,12 +652,12 @@ void DropCanvas(const void* holder) {
     g_canvases.erase(it);
 }
 
-void Fill(const void* holder, const Rect& rect, Colour colour) {
+void Fill(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (canvas) PushSolid(holder, *canvas, rect, CanvasColour(colour, *canvas));
 }
 
-void FrameRect(const void* holder, const Rect& rect, Colour colour) {
+void FrameRect(const void* holder, const Rect& rect, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas || Empty(rect)) return;
     std::uint32_t rgb = CanvasColour(colour, *canvas);
@@ -667,7 +667,7 @@ void FrameRect(const void* holder, const Rect& rect, Colour colour) {
     PushSolid(holder, *canvas, Rect{rect.right - 1, rect.top + 1, rect.right, rect.bottom - 1}, rgb);
 }
 
-void Line(const void* holder, int x0, int y0, int x1, int y1, int width, Colour colour) {
+void Line(const void* holder, int x0, int y0, int x1, int y1, int width, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas) return;
     std::uint32_t rgb = CanvasColour(colour, *canvas);
@@ -721,12 +721,12 @@ void Line(const void* holder, int x0, int y0, int x1, int y1, int width, Colour 
     }
 }
 
-void Pixel(const void* holder, int x, int y, Colour colour) {
+void Pixel(const void* holder, int x, int y, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (canvas) PushSolid(holder, *canvas, Rect{x, y, x + 1, y + 1}, CanvasColour(colour, *canvas));
 }
 
-void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, Colour colour) {
+void GlyphRun(const void* holder, text::TextFont& font, const text::TextLayout& layout, std::uint32_t colour) {
     CanvasState* canvas = Target(holder);
     if (!canvas || (layout.quads.empty() && layout.underlines.empty())) return;
     Rect scissor{0, 0, canvas->width, canvas->height};

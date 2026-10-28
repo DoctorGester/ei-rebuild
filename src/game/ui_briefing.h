@@ -239,7 +239,7 @@ public:
     CUiScrollbar* topicBar_;
     int topicTop_;                   // first topic row shown
     float savedEdgeFade_;            // the map edge fade Create replaced
-    PersonTextMap personTexts_;      // "pers" texts by text key
+    std::map<int, std::string> personTexts_;      // "pers" texts by text key
     std::list<BriefingShownItem> shown_;
     bool immediate_;                 // the dialogue's people are placed at once
     bool noWalk_;                    // the zone's map record's cage: the leader does not walk

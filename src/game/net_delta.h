@@ -13,30 +13,26 @@
 #include <string>
 
 
-// The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
-// WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).
-using BitStream = CMemoryStream;
-
 namespace delta {
 
 // While writing, whether channel 0 / 1 keeps what it sent as the new snapshot.
 inline int g_keepSnapshot1 = /*007A9780*/ {};
 inline int g_keepSnapshot0 = /*007A9784*/ {};
 // While reading, the snapshot read against and the received stream.
-inline BitStream* g_readSnapshot = /*007A9794*/ {nullptr};
-inline BitStream* g_received = /*007A9798*/ {nullptr};
+inline CMemoryStream* g_readSnapshot = /*007A9794*/ {nullptr};
+inline CMemoryStream* g_received = /*007A9798*/ {nullptr};
 
 // WriteDelta for a single channel.
-void WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
-                                  BitStream* out);
+void WriteDeltaChannel(CMemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+                                  CMemoryStream* out);
 // Bits and changed words of `data` against `old` (no snapshot stream).
-void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out);
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, CMemoryStream* out);
 // All of `data`: a 0 bit, then a 0 bit before every 4-byte word.
-void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out);
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, CMemoryStream* out);
 
 // Reads what WriteDiff wrote: `data` = `old` when nothing changed (returns false),
 // otherwise the changed words from `reader` (returns true).
-bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader);
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, CMemoryStream* reader);
 } // namespace delta
 
 namespace delta {
@@ -47,14 +43,14 @@ std::uint32_t UnpackFloat16(std::uint16_t packed);
 
 // One numbered field of a DeltaState.
 struct DeltaField {
-    BitStream snapshot[2];   // per channel, the bytes last sent
-    BitStream out[2];        // per channel, what is sent now
+    CMemoryStream snapshot[2];   // per channel, the bytes last sent
+    CMemoryStream out[2];        // per channel, what is sent now
 
     DeltaField() = default;
     DeltaField(DeltaField&&) noexcept = default;
 
     DeltaField* BeginWriteB(int channel1Only);
-    DeltaField* BeginReadB(int second, BitStream* reader);
+    DeltaField* BeginReadB(int second, CMemoryStream* reader);
     // Ends the field: when reading, finishes the reader's bits; when writing,
     // finishes both outputs and truncates the kept snapshots at their positions.
     void EndField();
@@ -75,9 +71,9 @@ struct DeltaField {
     void ReadText(char* text, int size);
     // BitStream::WriteStream of `from` into both outputs (inlined twice; the
     // pending bits stored before each).
-    void WriteStreamBoth(BitStream* from);
+    void WriteStreamBoth(CMemoryStream* from);
     // BitStream::ReadStream from the reader into `to` (inlined; `this` unused).
-    int ReadStream(BitStream* to);
+    int ReadStream(CMemoryStream* to);
     // Writes a position as three 16-bit values (WriteDelta of 2 bytes each): x and y as
     // (v + 16) * 120.46875, z as (v + 32) * 341.328125, rounded through a float and FISTP.
     void WritePosition(const Vector3* position);
@@ -109,9 +105,9 @@ struct DeltaState {
     std::uint16_t sentMask_ = 0;
     std::uint16_t lastMask_ = 0;
     std::uint16_t mask_ = 0;     // fields to write / read
-    BitStream* reader_ = nullptr;
+    CMemoryStream* reader_ = nullptr;
     int mode_ = 4;           // 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
-    BitStream header_[2];
+    CMemoryStream header_[2];
 
     // No fields, idle; the field array's vtable in place. The destructor destroys the fields.
     DeltaState();
@@ -131,7 +127,7 @@ struct DeltaState {
     // Writing: 0 writes every field (mask_ = 0xFFFF), anything else only the dirty ones.
     void SetWriteMode(int deltaOnly);
     // Reading: takes the field mask from `reader`; returns `second`.
-    int BeginRead(int second, BitStream* reader);
+    int BeginRead(int second, CMemoryStream* reader);
     // Ends a write or a read. After a delta write the written fields join
     // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel
     // 0, lastMask_ for channel 1), then the channel's output of every field in the mask. After a

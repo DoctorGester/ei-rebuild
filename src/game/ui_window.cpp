@@ -390,7 +390,7 @@ void PrepareMaterial(CMaterial* material, float value) {
 
 // The constructor's empty pointer array (data, growth step, capacity, size in its order).
 template <typename T>
-void ClearArray(UiPtrArray<T>& array) {
+void ClearArray(std::vector<T*>& array) {
     std::construct_at(&array);
 }
 } // namespace

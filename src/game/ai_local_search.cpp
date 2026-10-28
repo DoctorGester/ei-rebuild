@@ -208,7 +208,7 @@ bool LocalSearch::ExpandUntil(int x, int y) {
     return current != nullptr;
 }
 
-void LocalSearch::PathTo(int x, int y, PathCellList* out) {
+void LocalSearch::PathTo(int x, int y, PathCells* out) {
     out->clear();
     int wx = x - originX;
     int wy = y - originY;
@@ -343,7 +343,7 @@ void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->backwardSpeed = 0.1f;
     out->turnScale = 10.0f;
     out->shift = unit->sizeClass * 4;
-    const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
+    const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data() + std::ssize(climb) / 2;
     out->costs = passCosts;
     unit->GetMoveSpeeds(&out->forwardSpeed, &out->backwardSpeed);

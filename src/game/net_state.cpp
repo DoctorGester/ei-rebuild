@@ -134,7 +134,7 @@ namespace {
 
 // Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
-    BitStream* snapshot = delta::g_readSnapshot;
+    CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
     std::uint32_t size = delta::g_readSnapshot->Size();
     return position == size ? 1u : 0u;

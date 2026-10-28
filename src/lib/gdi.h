@@ -38,6 +38,7 @@ private:
     Handle handle_ = nullptr;
 };
 
+// Kept: the GDI handle classes are the names of the instances of Object.
 using Font = Object<HFONT>;
 using Pen = Object<HPEN>;
 using Brush = Object<HBRUSH>;

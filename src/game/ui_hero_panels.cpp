@@ -359,7 +359,7 @@ void CHeroStatsPanel::Build() {
 
 // --- The trade grid's Build ----------------------------------------------------------------
 
-void CTradeGrid::Build(UiItemList* bought, UiItemList* sold, char spells, char flag) {
+void CTradeGrid::Build(std::vector<CItem*>* bought, std::vector<CItem*>* sold, char spells, char flag) {
     bought_ = bought;
     rect_ = RECT{200, 100, 600, 500};
     sold_ = sold;
@@ -411,7 +411,7 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
 
 // --- The repair grid's Build ---------------------------------------------------------------
 
-void CRepairGrid::Build(UiItemList* items) {
+void CRepairGrid::Build(std::vector<CItem*>* items) {
     rect_ = RECT{200, 100, 600, 500};
     mode_ = 8;
     items_ = items;

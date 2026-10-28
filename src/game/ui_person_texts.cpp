@@ -19,7 +19,7 @@ constexpr int kPersonPrefixLength = 5;                                          
 
 } // namespace
 
-void LoadPersonTexts(PersonTextMap* map) {
+void LoadPersonTexts(std::map<int, std::string>* map) {
     CTextManager* texts = TheTextManager();
     std::vector<std::string> keys;
     std::string line;

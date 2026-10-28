@@ -20,9 +20,6 @@
 constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};
 
 namespace {
-// A handle into the cache of unit occupancy shapes (UnitShapes(), ai_shape_cache.h), keyed by
-// standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
-using ShapeHandle = ShapeCacheHandle;
 
 // World coordinate to cell: (x / (cell size 1.0 * 0.5) - 0.5) rounded to float, then to the nearest integer.
 int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
@@ -52,7 +49,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         int otherX = CellOf(other->localPosition_.x);
         int otherY = CellOf(other->localPosition_.y);
         float otherHeight = other->standingHeight;
-        ShapeHandle handle;
+        ShapeCacheHandle handle;
         InitShapeHandle(&handle);
         const CUnitShape* shape = nullptr;
         EI_NAN_AUDIT(otherHeight);
@@ -87,17 +84,17 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     std::memcpy(&out->backwardSpeed, &tenth, sizeof(tenth));
     out->turnScale = 10.0f;
     out->shift = sizeClass * 4;
-    const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
+    const std::vector<int>& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->costs = passCosts;
     out->climb = climb.data() + std::ssize(climb) / 2;
     return out->climb;
 }
 
-void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
+void CAIMap::SetStepSpeeds(CUnit* unit, PathCells* steps) {
     // The original also asks the unit for its movement speeds twice and divides by one of them, but never uses
     // the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
-    const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
+    const std::vector<int>& climbTable = shift == 0 ? climbSmall : climbLarge;
     const int* climb = climbTable.data() + std::ssize(climbTable) / 2;
         PassCostContext context;
     CostContext(unit->sizeClass, &context);
@@ -234,7 +231,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
 
 namespace {
 // The handle's reference dropped (the object deleted with the last).
-void ReleaseHandle(ShapeHandle* handle) {
+void ReleaseHandle(ShapeCacheHandle* handle) {
     if (CRefObject* ref = handle->ref) {
         if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
     }
@@ -242,7 +239,7 @@ void ReleaseHandle(ShapeHandle* handle) {
 } // namespace
 
 void* CAIMap::UnitShape(float standingHeight) {
-    ShapeHandle handle;
+    ShapeCacheHandle handle;
     handle.cache = nullptr;
     handle.ref = nullptr;
     EI_NAN_AUDIT(standingHeight);

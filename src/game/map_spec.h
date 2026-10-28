@@ -37,20 +37,14 @@ struct TrapPoint {
 };
 static_assert(sizeof(TrapPoint) == 8);
 
-// A trap's area: its circles.
-using TrapArea = std::vector<TrapCircle>;
-
-// A trap's points: {x, y} pairs.
-using TrapPoints = std::vector<TrapPoint>;
-
 // The MagicTrap part of a zone object record (mapspec::TrapSpec::trap; passed to MagicTrap::SetUp).
 struct MagicTrapRecord {
     std::uint32_t sides;        // (-1); the zone loader makes it the players the
                                 // owner is hostile to (relation 2), one bit each
     std::string spell;         // the spell's text
     Vector3 position;           // the position when the zone loaded
-    TrapArea area;
-    TrapPoints points;
+    std::vector<TrapCircle> area;
+    std::vector<TrapPoint> points;
     std::int32_t period;
     std::uint8_t singleTarget;
 };
@@ -84,14 +78,12 @@ struct Patrol {
     std::vector<Waypoint> waypoints;
 };
 
-using Patrols = std::vector<Patrol>;
-
 // A unit's behaviour (alarm) record; the brain applies one.
 struct Behaviour {
     void Read(CStream* stream);
     void Write(CStream* stream) const;
     std::int32_t type = 3;       // 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
-    Patrols patrols;
+    std::vector<Patrol> patrols;
     Vector3 guard{};             // the unit's position when saved
     std::uint32_t loop = 1;      // a patrol loops; 0: its points are walked back too
     std::uint32_t flags = 0;     // bit 3: the unit is always updated

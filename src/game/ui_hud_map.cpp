@@ -350,7 +350,7 @@ bool Crosses(float prev, float cur, float edge) {
 // One Sutherland-Hodgman step in place: walking the polygon, the point where an edge crosses the line is
 // inserted before the edge's end (which is then skipped); afterwards the points outside are removed.
 template <typename Cut, typename Outside>
-void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
+void ClipPass(std::vector<UiPointF>& points, Cut cut, Outside outside) {
     int count = std::ssize(points);
     for (int i = 0; i < count; ++i) {
         UiPointF cur = points[i];
@@ -406,7 +406,7 @@ void CHudMap::UpdateView() {
     std::memcpy(&SceneMesh(10)->localRotation_, &turn, sizeof(turn));
 
     auto* area = SceneMesh(1);
-    UiPointArray& points = visibleArea_;
+    std::vector<UiPointF>& points = visibleArea_;
     int count = std::ssize(viewPolygon_);
     points.resize(count);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {

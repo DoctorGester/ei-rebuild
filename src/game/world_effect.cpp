@@ -51,7 +51,7 @@ void CEffect::SendDelta() {
     state_.EndField();
 }
 
-int CEffect::Receive(int update, BitStream* reader) {
+int CEffect::Receive(int update, CMemoryStream* reader) {
     DeltaField* field = state_.BeginReadB(update, reader);
     int result = Unpack(update, field);
     state_.EndField();

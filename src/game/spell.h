@@ -206,9 +206,6 @@ public:
 // (or NaN).
 int IsSpellTarget(CUnit* unit);
 
-using SpellModifierList = std::list<itemdb::SpellModifierRecord*>;
-using SpellModifierNode = SpellModifierList::iterator;
-
 // A spell under construction (created by the spell manager as class 0x3003): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
 class CSpellContainer : public CEngineObject {
@@ -239,7 +236,7 @@ public:
     CSpell* Spell() { return &spell_; }
 
     const itemdb::SpellRecord* prototype_;
-    SpellModifierList modifiers_;
+    std::list<itemdb::SpellModifierRecord*> modifiers_;
     std::string codes_;             // modifier index + 1 per modifier
     CSpell spell_;
     std::string name_;             // always empty
@@ -280,7 +277,7 @@ public:
 
     // Up to 8 modifiers, through the context's spell constructor. Returns the new spell, or a fatal error's
     // result.
-    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const SpellModifierList* modifiers);
+    CSpell* CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers);
 
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map

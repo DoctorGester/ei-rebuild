@@ -135,32 +135,23 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
 
-// vector<int> of ids (the library instantiations).
-using IdVector = CBattleScreen::IdVector;
-using PartyIds = CBattleScreen::PartyIds;
-
 // The children's update (CUiContainer::UpdateBase).
 
-// STLport lists of ids and unit pointers.
-using List = std::list<std::uintptr_t>;
-using ListNode = List::iterator;
-using UnitList = std::list<CMapObject*>;
-
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
-void PushId(IdVector* ids, const int* value) {
+void PushId(std::vector<int>* ids, const int* value) {
     ids->push_back(*value);
 }
-void PushIdInline(IdVector* ids, const int* value) {
+void PushIdInline(std::vector<int>* ids, const int* value) {
     ids->push_back(*value);
 }
 
-void SortIds(IdVector* ids) { std::sort(ids->begin(), ids->end()); }
+void SortIds(std::vector<int>* ids) { std::sort(ids->begin(), ids->end()); }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreen* screen) {
     net::ClientSession* session = net::g_gameClient;
     const auto& players = session->players_;
-    PartyIds ids;
+    CBattleScreen::PartyIds ids;
     ids.camera = -1;
     for (auto node = players.begin(); node != players.end(); ++node) {
         net::PlayerMessage* player = node->Get();
@@ -271,9 +262,9 @@ void CBattleScreen::Update() {
     // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
-        UnitList units;
+        std::list<CMapObject*> units;
         TheClientWorld()->UnitsInBox(&selectionBox_, &units);
-        List inside;
+        std::list<std::uintptr_t> inside;
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
                 if ((*party)[i] != unit) continue;
@@ -289,7 +280,7 @@ void CBattleScreen::Update() {
                 mark(unit, 0);
             }
         }
-        for (ListNode node = inside.begin(); node != inside.end(); ++node) {
+        for (std::list<std::uintptr_t>::iterator node = inside.begin(); node != inside.end(); ++node) {
             auto* unit = (*party)[(*node)];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
@@ -315,7 +306,7 @@ void CBattleScreen::Update() {
 // --- the party ids compared ----------------------------------------------------------------------
 
 namespace {
-bool SameIds(const IdVector& a, const IdVector& b) {
+bool SameIds(const std::vector<int>& a, const std::vector<int>& b) {
     if (a.end() - a.begin() != b.end() - b.begin()) return false;
     for (const int *x = a.data(), *y = b.data(); x != a.data() + a.size(); ++x, ++y)
         if (*x != *y) return false;
@@ -323,7 +314,7 @@ bool SameIds(const IdVector& a, const IdVector& b) {
 }
 } // namespace
 
-bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
+bool CBattleScreen::PartyIds::Equals(const CBattleScreen::PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
 
@@ -349,9 +340,9 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     auto* party = &party_;
     auto unitAt = [&](int i) { return (*party)[i]; };
     int first = -1;
-    UnitList units;
+    std::list<CMapObject*> units;
     world->UnitsInBox(&selectionBox_, &units);
-    List inside;
+    std::list<std::uintptr_t> inside;
     if (!units.empty()) {
         for (CMapObject* unit : units) {
             for (int i = 0; i < std::ssize(*party); ++i) {
@@ -375,7 +366,7 @@ void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = kHudRestRotation;
             }
-            for (ListNode node = inside.begin(); node != inside.end(); ++node) {
+            for (std::list<std::uintptr_t>::iterator node = inside.begin(); node != inside.end(); ++node) {
                 int i = static_cast<int>((*node));
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};

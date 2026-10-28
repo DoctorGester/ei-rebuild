@@ -171,7 +171,7 @@ void CMpHeroScreen::Update() {
 
 void CMpHeroScreen::Close() {
     MpHeroesObject()->SaveAll();
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     auto* party = LocalPlayerData();
     for (int i = 0; i < std::ssize(party->members_); ++i) {
         PartyUnitRecord* record = &party->members_[i];
@@ -252,7 +252,7 @@ void CMpHeroScreen::DrawVoices() {
     rect = {20, 25, 175, 40};
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
-        MpVoiceVector& voices = Voices();
+        std::vector<MpVoiceEntry>& voices = Voices();
         if (index >= static_cast<std::uint32_t>(voices.end() - voices.begin())) break;
         if (static_cast<int>(index) == voiceIndex_) {
             SelectionFrame(*this)->visible_ = 1;
@@ -275,7 +275,7 @@ constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview 
 
 void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     if (std::ssize(player->members_) == 0) {
         player->Clear(1, 0);
@@ -310,7 +310,7 @@ void CMpHeroScreen::MakePreview(int flag) {
 // --- A hero shown -------------------------------------------------------------------------
 
 void CMpHeroScreen::ShowHero(int index) {
-    RecordPtrArray records = {};
+    std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     if (std::ssize(player->members_) > 0) {
         int size = std::ssize(records);

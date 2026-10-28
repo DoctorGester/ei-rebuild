@@ -77,8 +77,8 @@ bool SunMarchTouchesNothing(const Terrain* terrain, const SectorData* sector, in
             if (i == 0 && j == 0) continue;   // its own sector is read directly
             int sx = sector->sx + i * directionX, sy = sector->sy + j * directionY;
             if (sx < 0 || sy < 0 || sx >= terrain->sectorsX || sy >= terrain->sectorsY) continue;   // SectorAt: none
-            const Terrain::SectorCache::iterator node = terrain->sectorGrid[sx][sy];
-            if (node == Terrain::SectorCache::iterator{} || (*node)->lastUsed < terrain->frame) return false;
+            const std::list<terrain::SectorData*>::iterator node = terrain->sectorGrid[sx][sy];
+            if (node == std::list<terrain::SectorData*>::iterator{} || (*node)->lastUsed < terrain->frame) return false;
         }
     return true;
 }

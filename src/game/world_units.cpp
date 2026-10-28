@@ -61,9 +61,6 @@ constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kGameResultLost = 2;
 
-using Placement = UnitPlacement;
-using PlacementArray = std::vector<Placement>;
-
 // The hero's figure parts, "hr" replaced by its numbered style (none when the style is -1).
 void FillHeroParts(UnitSpec* message, const char* prototypeName, std::string& scratch) {
     UnitPrototypeRecord* prototype;
@@ -139,8 +136,8 @@ CItem* MakeItem(CWorldServer* world, CItem* itemRecord) {
 
 } // namespace
 
-void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const Vector3* position, Quaternion rotation,
-                               PlacementArray* placements) {
+void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* records, const Vector3* position, Quaternion rotation,
+                               std::vector<UnitPlacement>* placements) {
     // Destroyed after the two strings (declared after it); its destructor is inlined.
     UnitSpec spec;
     UnitSpec* message = &spec;
@@ -182,9 +179,9 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
         message->id = id;
         if (ObjectWithId(id)) RemoveObject(message->id);
 
-        Placement* placement = nullptr;
+        UnitPlacement* placement = nullptr;
         if (placements) {
-            for (Placement& entry : *placements) {
+            for (UnitPlacement& entry : *placements) {
                 if (entry.id == message->id) {
                     placement = &entry;
                     break;
@@ -200,7 +197,7 @@ void CWorldServer::CreateUnits(CPlayer* player, RecordPtrArray* records, const V
 
         CUnit* unit = FindUnit(CreateObject(message));
         if (!unit) continue;
-        CMapObjectVirtuals* slots = unit;
+        CMapObject* slots = unit;
 
         // A player-controlled AI, standing on a free cell near the requested position.
         CUnitServer* controller = unit->ServerController();

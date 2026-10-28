@@ -52,7 +52,7 @@ std::uint32_t BufferLength(GameBuffer& b) {
 
 // A fixed view over `self`'s bytes run through the coder into a growing buffer, whose bytes then replace
 // `out`'s (Resize, Seek 0, Write, Seek 0). The view is destroyed (its base vtable) before the buffer.
-void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
+void CodeStream(CMemoryStream* self, CoderState* coder, CMemoryStream* out, void (CoderState::*code)(GameBuffer*, GameBuffer*)) {
     GrowingBuffer result;
     std::uint8_t* data = self->data_;
     std::uint8_t* last = data + self->Size();
@@ -66,7 +66,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
 }
 } // namespace
 
-void CMemoryStream::WriteStream(BitStream* from) {
+void CMemoryStream::WriteStream(CMemoryStream* from) {
     from->EndBits();
     std::int32_t header = static_cast<std::int32_t>(from->Size() << 1);
     if (header < 0x100) {
@@ -79,7 +79,7 @@ void CMemoryStream::WriteStream(BitStream* from) {
     Write(data, from->Size());
 }
 
-int CMemoryStream::ReadStream(BitStream* to) {
+int CMemoryStream::ReadStream(CMemoryStream* to) {
     std::uint32_t length = 0;
     Read(&length, 1);
     if (length & 1) Read(reinterpret_cast<std::uint8_t*>(&length) + 1, 3);
@@ -92,15 +92,15 @@ int CMemoryStream::ReadStream(BitStream* to) {
     return 1;
 }
 
-void CMemoryStream::CompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
+void CMemoryStream::CompressTo(CoderState* coder, CMemoryStream* out) { CodeStream(this, coder, out, &CoderState::Compress); }
 
-void CMemoryStream::DecompressTo(CoderState* coder, BitStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
+void CMemoryStream::DecompressTo(CoderState* coder, CMemoryStream* out) { CodeStream(this, coder, out, &CoderState::Decompress); }
 
 // --- Channel writers ---------------------------------------------------------------------------
 
 namespace delta {
 
-void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteRaw(const std::uint8_t* data, std::uint32_t size, CMemoryStream* out) {
     const std::uint8_t* p = data;
     std::uint32_t rest = size;
     out->PutBit(false);
@@ -116,7 +116,7 @@ void WriteRaw(const std::uint8_t* data, std::uint32_t size, BitStream* out) {
     out->Write(p, rest);
 }
 
-void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, BitStream* out) {
+void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t size, CMemoryStream* out) {
     if (std::memcmp(old, data, size) == 0) {
         out->PutBit(true);
         return;
@@ -145,8 +145,8 @@ void WriteDiff(const std::uint8_t* old, const std::uint8_t* data, std::uint32_t 
 // appended to the snapshot. Otherwise a 1 bit means "all unchanged"; else a 0 bit and, per 4-byte
 // word, 1 (unchanged) or 0 and the word, then the remaining bytes as they are. With
 // `keepSnapshot` the snapshot is updated in place; it is advanced past the bytes either way.
-void WriteDeltaChannel(BitStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
-                                  BitStream* out) {
+void WriteDeltaChannel(CMemoryStream* snapshot, const void* data, std::uint32_t size, int keepSnapshot,
+                                  CMemoryStream* out) {
     const auto* bytes = static_cast<const std::uint8_t*>(data);
     std::uint32_t end = snapshot->Position() + size;
     if (snapshot->Size() < end) {
@@ -182,7 +182,7 @@ void SetKeep(int channel1Only) {
     }
 }
 
-void StartRead(DeltaField* field, int second, BitStream* reader) {
+void StartRead(DeltaField* field, int second, CMemoryStream* reader) {
     field->snapshot[0].Seek(0);
     field->snapshot[1].Seek(0);
     delta::g_readSnapshot = second ? &field->snapshot[1] : &field->snapshot[0];
@@ -196,7 +196,7 @@ DeltaField* DeltaField::BeginWriteB(int channel1Only) {
     return this;
 }
 
-DeltaField* DeltaField::BeginReadB(int second, BitStream* reader) {
+DeltaField* DeltaField::BeginReadB(int second, CMemoryStream* reader) {
     StartRead(this, second, reader);
     return this;
 }
@@ -223,7 +223,7 @@ void DeltaField::WriteDelta(const void* data, std::uint32_t size) {
 // reader. When anything changed the result is also written to snapshot[1] at the same place.
 void DeltaField::ReadDelta(void* data, std::uint32_t size) {
     std::uint32_t position = delta::g_readSnapshot->Position();
-    BitStream* reader = delta::g_received;
+    CMemoryStream* reader = delta::g_received;
     const std::uint8_t* current = delta::g_readSnapshot->data_ + position;
     auto* p = static_cast<std::uint8_t*>(data);
     if (reader->GetBit()) {
@@ -263,7 +263,7 @@ std::string* DeltaField::ReadString(std::string* text) {
     return delta::g_received->ReadString(text);
 }
 
-void DeltaField::WriteStreamBoth(BitStream* from) {
+void DeltaField::WriteStreamBoth(CMemoryStream* from) {
     out[0].WriteStream(from);
     out[1].WriteStream(from);
 }
@@ -279,11 +279,11 @@ void DeltaField::ReadText(char* text, int size) {
     }
 }
 
-int DeltaField::ReadStream(BitStream* to) { return delta::g_received->ReadStream(to); }
+int DeltaField::ReadStream(CMemoryStream* to) { return delta::g_received->ReadStream(to); }
 
 namespace delta {
 
-bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, BitStream* reader) {
+bool ReadDiff(const std::uint8_t* old, void* data, std::uint32_t size, CMemoryStream* reader) {
     if (reader->GetBit()) {
         std::memcpy(data, old, size);
         return false;
@@ -345,7 +345,7 @@ void DeltaField::WritePosition2D(const float* position) {
 // One 16-bit value with the bit read inline (unchanged: from the snapshot read against).
 std::uint16_t DeltaField::ReadWord() {
     std::uint32_t at = delta::g_readSnapshot->Position();
-    BitStream* reader = delta::g_received;
+    CMemoryStream* reader = delta::g_received;
     const std::uint8_t* current = delta::g_readSnapshot->data_ + at;
     std::uint16_t q;
     if (reader->GetBit()) {
@@ -364,7 +364,7 @@ void DeltaField::ReadPosition(Vector3* position) {
     position->y = Dequantize(ReadWord(), kReadScaleXY, kReadOffsetXY);
     // z goes through ReadDiff.
     std::uint32_t at = delta::g_readSnapshot->Position();
-    BitStream* reader = delta::g_received;
+    CMemoryStream* reader = delta::g_received;
     std::uint16_t q;
     if (delta::ReadDiff(delta::g_readSnapshot->data_ + at, &q, 2, reader)) {
         snapshot[1].Seek(at);
@@ -501,7 +501,7 @@ void DeltaState::SetWriteMode(int deltaOnly) {
     }
 }
 
-int DeltaState::BeginRead(int second, BitStream* reader) {
+int DeltaState::BeginRead(int second, CMemoryStream* reader) {
     reader_ = reader;
     reader->Read(&mask_, 2);
     mode_ = second ? kRead1 : kRead0;
@@ -511,12 +511,12 @@ int DeltaState::BeginRead(int second, BitStream* reader) {
 namespace {
 // One channel's header: the mask, then the channel's output of every field in it.
 void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
-    BitStream& header = state->header_[channel];
+    CMemoryStream& header = state->header_[channel];
     header.Resize(0);
     header.Write(&mask, 2);
     for (int i = 0; i < std::ssize(state->fields_); ++i) {
         if (!(mask & (1 << i))) continue;
-        BitStream& out = state->fields_[i].out[channel];
+        CMemoryStream& out = state->fields_[i].out[channel];
         header.EndBits();
         out.Seek(0);
         const std::uint8_t* data = out.data_;

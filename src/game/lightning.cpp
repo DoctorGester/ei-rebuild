@@ -416,7 +416,7 @@ int CLightningManager::DrawAll(CSceneRenderer* device) {
     // The manager's object list (the bolts, in creation order).
     auto node = objectList_.begin();
     while (node != objectList_.end()) {
-        ObjectList::iterator  current = node;
+        std::list<CEngineObject*>::iterator  current = node;
         ++node;
         static_cast<CLightning*>(*current)->Draw(device);
     }

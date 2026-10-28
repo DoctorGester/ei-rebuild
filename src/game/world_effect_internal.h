@@ -73,7 +73,7 @@ inline void EmptyField(DeltaField* f) {
 
 // Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).
 inline bool SnapshotReadToEnd() {
-    BitStream* s = delta::g_readSnapshot;
+    CMemoryStream* s = delta::g_readSnapshot;
     std::uint32_t position = s->Position();
     return position == s->Size();
 }

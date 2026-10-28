@@ -27,12 +27,6 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 
 bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
-// The units inside: an MFC CList whose elements are counted references.
-using VictimList = std::list<CUnit*>;
-
-// MFC CPtrList (blocks of 10) as the game keeps it on the stack.
-using PtrList = std::list<CUnit*>;
-
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
 bool StaysInside(MagicTrap* trap, CMapObject* unit) {
@@ -48,7 +42,7 @@ bool StaysInside(MagicTrap* trap, CMapObject* unit) {
     return false;
 }
 
-void Append(PtrList* list, CUnit* unit) {
+void Append(std::list<CUnit*>* list, CUnit* unit) {
     auto node = list->emplace(list->end());
     *node = unit;
 }
@@ -56,7 +50,7 @@ void Append(PtrList* list, CUnit* unit) {
 } // namespace
 
 void MagicTrap::UpdateVictims() {
-    VictimList* victims = &inside;
+    std::list<CUnit*>* victims = &inside;
     for (auto node = victims->begin(); node != victims->end();) {
         auto next = std::next(node);
         if (!StaysInside(this, *node)) {
@@ -69,8 +63,8 @@ void MagicTrap::UpdateVictims() {
 
     if (!(flags_ & kArmed)) return;
     CWorldServer* context = ServerWorld();
-    PtrList found;
-    PtrList newcomers;
+    std::list<CUnit*> found;
+    std::list<CUnit*> newcomers;
     FindTrapVictims(context, &area, sides, &found);
     for (auto node = found.begin(); node != found.end();) {
         auto next = std::next(node);
@@ -89,12 +83,11 @@ void MagicTrap::UpdateVictims() {
     found.clear();
 }
 
-void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
+void FindTrapVictims(CWorldServer* context, const std::vector<TrapCircle>* area, std::uint32_t sides,
                                 std::list<CUnit*>* out) {
-    using UnitList = std::list<CUnit*>;
     out->clear();
     CSectorMap* sectors = context->Sectors();
-    UnitList found{};
+    std::list<CUnit*> found{};
     for (int i = 0; i < std::ssize(*area); ++i) {
         const TrapCircle& circle = (*area)[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
@@ -116,7 +109,6 @@ constexpr float kFar = 1e30f;                        // a squared distance
 } // namespace
 
 void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
-    using UnitList = std::list<CUnit*>;
     if (units->empty() || !spell) return;
     const Vector3& origin = localPosition_;
     Vector3 from = {origin.x, origin.y, origin.z};
@@ -161,7 +153,7 @@ CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager();
 // The units inside: CList::RemoveAll inlined, as SetUp, the constructor and the destructor all have it (each
 // element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
-    MagicTrap::UnitList& inside = trap->inside;
+    std::list<CUnit*>& inside = trap->inside;
     for (auto node = inside.begin(); node != inside.end(); ++node) {
         if (*node) (*node)->Release();
         *node = nullptr;
@@ -327,7 +319,7 @@ int MagicTrap::UpdateTrap() {
 
 void MagicTrap::FireAtOccupants() {
     CWorldServer* context = ServerWorld();
-    PtrList found;
+    std::list<CUnit*> found;
     if (flags_ & kArmed) {
         FindTrapVictims(context, &area, sides, &found);
         if (!found.empty()) CastAtUnits(&found);

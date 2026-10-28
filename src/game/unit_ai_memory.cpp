@@ -35,12 +35,12 @@ double Distance2(const CUnit* a, const float* b) {
 
 } // namespace
 
-void AIObjectList::AddCountedTail(CUnit* object) {
+void CountedUnits::AddCountedTail(CUnit* object) {
     push_back(object);
     if (object) ++object->refCount_;
 }
 
-void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
+void AIMemory::FindEnemies(CUnit* self, CountedUnits* out) {
     out->clear();
     for (auto node = visible.begin(); node != visible.end(); ++node) {
         auto* other = *node;
@@ -49,7 +49,7 @@ void AIMemory::FindEnemies(CUnit* self, AIObjectList* out) {
     }
 }
 
-void AIMemory::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
+void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* point, float radius) {
     out->clear();
     float radius2 = radius > kZero ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto node = visible.begin(); node != visible.end(); ++node) {

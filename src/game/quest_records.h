@@ -54,7 +54,6 @@ struct QuestBriefingRecord {
 
 // The quest database's briefings (its +0x20): the records and their index by name.
 struct QuestBriefingTable {
-    using Index = std::unordered_map<std::string, QuestBriefingRecord*>;
 
     // QuestBriefingTable::Add (quest_database.cpp; the "reject" and "complete" briefings of a
     // quest file). Appends a copy of `record` unless its name is indexed with a record; the index
@@ -63,12 +62,11 @@ struct QuestBriefingTable {
     bool Add(const QuestBriefingRecord* record);
 
     std::vector<QuestBriefingRecord> records;
-    Index index;
+    std::unordered_map<std::string, QuestBriefingRecord*> index;
 };
 
 // The quest database: the quests and the briefings, each with its index by name.
 struct QuestDatabase {
-    using QuestIndex = std::unordered_map<std::string, QuestRecord*>;
 
     // Rebirth-patched; called by WinMain at startup. "quests.qdb" of `folder` + "database.res": the quests
     // (chunk 1) and the briefings (chunk 2), each read through an archive of its own and filed under its
@@ -90,7 +88,7 @@ struct QuestDatabase {
     QuestRecord* FindQuest(const char* name);
 
     std::vector<QuestRecord> quests;
-    QuestIndex questsByName;
+    std::unordered_map<std::string, QuestRecord*> questsByName;
     QuestBriefingTable briefings;
 };
 extern lib::StaticObject<QuestDatabase> g_questDatabase;   // database_globals.cpp

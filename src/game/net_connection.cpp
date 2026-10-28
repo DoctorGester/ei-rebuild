@@ -17,8 +17,6 @@ namespace net {
 
 namespace {
 
-using EntryMap = Connection::EntryMap;
-
 // CollectChanges's static vector of {object, priority}; its exit function frees the storage.
 constinit std::vector<Replicated> g_replicated = /*0079B8D0*/ {};
 std::uint8_t g_replicatedGuard = /*0079B8DC*/ {};
@@ -43,7 +41,7 @@ std::int32_t BufferedSize(GameBuffer* b) {
 // The handlers registered for message `type` on `channel` (__fastcall: session, message). The end
 // is read again after each call.
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
-    HandlerVector& v = session->handlers_[channel][type & 0xFF];
+    std::vector<MessageHandler>& v = session->handlers_[channel][type & 0xFF];
     for (MessageHandler* h = v.data(); h != v.data() + v.size(); ++h) (*h)(session, message);
 }
 
@@ -168,7 +166,7 @@ bool Connection::SendUpdate(int budget) {
     std::uint8_t* count = c.p++;
     *count = 0;
     for (int priority = 10; priority >= 0; --priority) {
-        EntryMap& map = priorities_[priority];
+        std::map<ReplicaEntry*, EntryRef>& map = priorities_[priority];
         for (auto it = map.begin(); it != map.end(); ++it) {
             ReplicaEntry* entry = it->second.get();
             Message* object = entry->Object();
@@ -341,13 +339,13 @@ void Connection::Track(Replicated* item) {
 }
 
 void Connection::CollectChanges() {
-    ReplicatedVector& items = g_replicated;
+    std::vector<Replicated>& items = g_replicated;
     if (!(g_replicatedGuard & 1)) {
         g_replicatedGuard |= 1;
         std::atexit(FreeReplicated);
     }
     items.clear();
-    ReplicatedVector* target = &items;
+    std::vector<Replicated>* target = &items;
     g_currentSession->CollectReplicated(&target);
     Replicated* item = items.data();
     Replicated* end = item + items.size();

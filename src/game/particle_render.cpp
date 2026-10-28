@@ -31,8 +31,8 @@ double Unsigned(std::uint32_t value) {
 
 constinit std::vector<ParticleVertex> g_vertices = /*007A9BD0*/ {};
 void FreeVertices() { lib::FreeStorage(g_vertices); }
-constinit lib::StaticObject<ParticleSpriteArray> g_sprites = /*007A9BE0*/ {};
-ParticleSpriteArray& Sprites() { return *g_sprites; }
+constinit lib::StaticObject<std::vector<ParticleSprite>> g_sprites = /*007A9BE0*/ {};
+std::vector<ParticleSprite>& Sprites() { return *g_sprites; }
 void DestroySprites() { g_sprites.Destroy(); }
 // The guard bits of the arrays below (function-local statics in the original).
 std::uint32_t g_arraysConstructed = /*007A9BF4*/ {};

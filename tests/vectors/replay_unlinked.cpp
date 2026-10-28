@@ -49,8 +49,8 @@ CEngineObject* CBaseManager::FindObject(unsigned) const EI_UNLINKED("CBaseManage
 std::string* CStream::ReadString(std::string*) EI_UNLINKED("CStream::ReadString")
 void CStream::WriteString(std::string_view) EI_UNLINKED("CStream::WriteString")
 void CWorldServer::RemoveTimedObject(unsigned) EI_UNLINKED("CWorldServer::RemoveTimedObject")
-void ScriptPointLight::Load(ScriptStream*) EI_UNLINKED("ScriptPointLight::Load")
-void ScriptFxSource::Load(ScriptStream*) EI_UNLINKED("ScriptFxSource::Load")
+void ScriptPointLight::Load(CStream*) EI_UNLINKED("ScriptPointLight::Load")
+void ScriptFxSource::Load(CStream*) EI_UNLINKED("ScriptFxSource::Load")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
 // that no replay reaches: srand (random.cpp), acos (quaternion.cpp).

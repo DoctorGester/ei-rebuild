@@ -26,7 +26,7 @@ public:
     // when the value is empty.
     BOOL GetList(const char* section, const char* key, std::vector<std::string>* out, char separator);
 
-    BOOL GetIntArray(const char* section, const char* key, DwordArray* out);
+    BOOL GetIntArray(const char* section, const char* key, std::vector<std::uint32_t>* out);
 
     std::string path_;
 };

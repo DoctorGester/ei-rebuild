@@ -28,7 +28,7 @@ CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMes
 
 // The first element in [first, last) whose member stream holds the same bytes as
 // `message`'s (sizes through slot 4, then a byte compare).
-RefVector::iterator FindSameMessage(RefVector::iterator first, RefVector::iterator last, PartyMemberMessage* message) {
+std::vector<CountedRefPtr>::iterator FindSameMessage(std::vector<CountedRefPtr>::iterator first, std::vector<CountedRefPtr>::iterator last, PartyMemberMessage* message) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
         CMemoryStream* element = StreamOf(first->ptr);
@@ -54,7 +54,7 @@ void ClientPublishParty(ClientSession* self) {
     auto state = [self] { return self->party_.Get(); };
     if (!state()) return;
     // A copy of the old messages, then the list emptied.
-    RefVector previous = state()->members_;
+    std::vector<CountedRefPtr> previous = state()->members_;
     state()->members_.clear();
     state()->money_ = static_cast<std::uint32_t>(party->money_);
 

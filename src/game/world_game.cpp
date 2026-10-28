@@ -91,7 +91,7 @@ void VariableSet(NamedFloatTable* table, std::string_view name, float value) { t
 void ScriptsReset(CMemoryStream* scripts) { scripts->Resize(0); }
 
 struct LocalRecords {
-    PartyStorage storage;
+    lib::InPlace<CParty> storage;
     CParty* Party() { return storage.Get(); }
     LocalRecords() { new (Party()) CParty(); }
     ~LocalRecords() { Party()->~CParty(); }
@@ -425,7 +425,7 @@ int StartNetworkZone(const char* zone) {
     }
 
     // The zone's exits, all leading to "MPGame1".
-    ZoneExits exits = zoneRecord->exits;
+    std::vector<ZoneExit> exits = zoneRecord->exits;
     for (ZoneExit& exit : exits) exit.target = kNetworkExitTarget;
     TheServerWorld()->SetZoneExits(&exits);
     TheServerWorld()->SetClimate(zoneRecord->setting2C);
@@ -920,7 +920,6 @@ struct ZoneEntry {
     std::string second;
     int id;
 };
-using ZoneTable = std::vector<ZoneEntry>;
 constinit std::vector<ZoneEntry> g_zoneTable = /*007AFDE0*/ {};
 bool SameText(std::string_view a, std::string_view b) {
     return str::Compare(a, b) == 0;
@@ -947,7 +946,7 @@ struct EntryPicks {
 void DestroyZoneTable() { lib::FreeStorage(g_zoneTable); }
 
 void PickZones(std::vector<std::string>* out, int id, const char* exclude) {
-    const ZoneTable& table = g_zoneTable;
+    const std::vector<ZoneEntry>& table = g_zoneTable;
     int total = static_cast<int>(table.size());
     EntryPicks pending(total);
     EntryPicks group(total);
@@ -1632,7 +1631,7 @@ int AllodOfMap(const char* map) {
 } // namespace
 
 void GameFlow::BuildZoneTable() {
-    ZoneTable& table = g_zoneTable;
+    std::vector<ZoneEntry>& table = g_zoneTable;
     if (table.end() != table.begin()) return;
     lib::FileFind find;
     int more;

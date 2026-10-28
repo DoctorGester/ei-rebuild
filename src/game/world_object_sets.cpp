@@ -14,9 +14,6 @@
 #include <functional>
 #include <vector>
 
-// A set of world objects; the game compares and sorts them by address.
-using ObjectSet = std::vector<CEngineObject*>;
-
 bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b) {
     int ia = a->id_;
     int ib = b->id_;
@@ -27,7 +24,7 @@ bool address_order::ObjectBefore(const CEngineObject* a, const CEngineObject* b)
 // Sorts the set and drops the duplicates. The game sorts by address (four byte passes of a radix sort,
 // through a scratch array freed at exit); this sorts by id (address_order::ObjectBefore), a comparison sort
 // without the scratch array.
-void ObjectSetSortUnique(ObjectSet* self) {
+void ObjectSetSortUnique(std::vector<CEngineObject*>* self) {
     if (std::ssize(*self) < 2) return;
     std::sort(self->data(), self->data() + std::ssize(*self), address_order::ObjectBefore);
     // Each element compared with the one before it in place.
@@ -43,7 +40,7 @@ void ObjectSetSortUnique(ObjectSet* self) {
 // `current` is sorted first; `sent` (sorted by an earlier call) is walked beside it. Objects only in
 // `current` go to `added` (referenced once more, +4), objects only in `sent` to `gone` (released by a
 // virtual call), objects in both to `same`. When anything differs `sent` becomes a copy of `current`.
-void DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
+void DiffObjectSets(std::vector<CEngineObject*>* sent, std::vector<CEngineObject*>* current, std::vector<CEngineObject*>* added, std::vector<CEngineObject*>* gone, std::vector<CEngineObject*>* same) {
     ObjectSetSortUnique(current);
     int most = std::ssize(*current) > std::ssize(*sent) ? std::ssize(*current) : std::ssize(*sent);
     added->resize(most);

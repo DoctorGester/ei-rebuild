@@ -61,17 +61,17 @@ int CountChar(const char* text, char c) {
 }
 
 // Takes the token at *pos and advances (no end check, like the game's GetNext).
-const ScriptToken& NextToken(ScriptPos* pos) { return *(*pos)++; }
+const ScriptToken& NextToken(std::list<ScriptToken>::const_iterator* pos) { return *(*pos)++; }
 
 // The last token's line ("Unexpected end of file" reports it).
-int LastLine(const ScriptTokenList* tokens) { return tokens->back().line; }
+int LastLine(const std::list<ScriptToken>* tokens) { return tokens->back().line; }
 
 const char* kTypeLetter[] = {nullptr, "f", "s", "o", "g"};
 
 } // namespace
 
 
-BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id, ScriptVars* locals,
+BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, int id, ScriptVars* locals,
                            const char* signature, BOOL assignment, BOOL scriptCall) {
     int paramIndex = 0;
     int floatCount = 0, stringCount = 0, objectCount = 0, groupCount = 0;
@@ -233,7 +233,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     return Error(this, LastLine(tokens), 1, "Unexpected end of file");
 }
 
-BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
+BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                              ScriptVars* locals) {
     ScriptToken token;
     std::string text;
@@ -254,7 +254,7 @@ BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, ScriptPos* pos, co
     }
 }
 
-BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens) {
+BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens) {
     ScriptToken token;
     std::string text;
     ScriptIfThen pair;
@@ -302,7 +302,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
     }
 }
 
-BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
+BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens, ScriptVars* locals,
                                  const std::string* name) {
     cmd->Clear();
     BOOL ok;
@@ -331,7 +331,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenL
     return result;
 }
 
-BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens,
+BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                                        BOOL qualify) {
     ScriptToken token;
     std::string name, typeName;
@@ -381,7 +381,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
     return result;
 }
 
-BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens,
+BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>::const_iterator* pos, const std::list<ScriptToken>* tokens,
                            ScriptVars* locals) {
     ScriptToken token;
     std::string text, qualified;
@@ -468,7 +468,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, ScriptPos* pos, const 
 
 
 BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
-    ScriptTokenList tokens;
+    std::list<ScriptToken> tokens;
     ScriptDefinition definition;
     ScriptDefinition* decl = &definition;
     ScriptDecl* worldScript = nullptr;
@@ -480,7 +480,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
     // Preprocess line by line: "#define name value" lines are collected (and become empty), the
     // other lines get the defines substituted. The text is replaced by the result.
     {
-        ScriptDefineList defines;
+        std::list<ScriptDefine> defines;
         std::string result, line;
         ScriptDefine define;
         const char* keyword = "#define";
@@ -513,7 +513,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
 
     if (!Tokenize((*text).c_str(), &tokens)) return 0;
 
-    for (ScriptPos pos = tokens.begin(); pos != tokens.end();) {
+    for (std::list<ScriptToken>::const_iterator pos = tokens.begin(); pos != tokens.end();) {
         ScriptToken token = NextToken(&pos);
         std::string word = token.text;
         int id;

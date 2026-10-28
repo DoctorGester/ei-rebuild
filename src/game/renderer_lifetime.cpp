@@ -192,7 +192,7 @@ int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* unknownA, const vo
     return mesh->drawer_->DrawPlain(device_, unknownA, unknownB, material, alpha, screen);
 }
 
-int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const FigureLights* lights, CMaterial* material, int alpha, tagRECT* screen,
+int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawLit(device_, lights, material, alpha, screen, textureA, textureB);
