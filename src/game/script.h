@@ -112,7 +112,7 @@ struct ScriptVars {
     // Every value and name dropped.
     void Clear();
     // Any type; case-sensitive.
-    BOOL HasVariable(const char* name) const;
+    BOOL HasVariable(std::string_view name) const;
     // Sets *type (1..4) and *index (-1 when not found).
     BOOL FindVariable(const char* name, int* index, int* type) const;
     void RemoveDeletedObjects();

@@ -97,7 +97,7 @@ void CTorchObjectClientSpec::ShowEffects() {
     }
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float farRadius = values_[1] * kShowFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_.c_str(), 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 
 void CTorchObjectClientSpec::HideEffects() {
@@ -164,7 +164,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
     SetName(name);
     if (sound_) TheSoundManager()->StopSound(sound_);
     const float farRadius = values_[1] * kSetFarFactor;
-    sound_ = TheSoundManager()->Play3D(name_.c_str(), 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
+    sound_ = TheSoundManager()->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 
 // Slots 6, 11 and 12: the update returns 1, the class name and id.

@@ -24,7 +24,7 @@ struct LocalResource {
     LocalResource() { new (Get()) CMappedResource(); }
     ~LocalResource() { Get()->CMappedResource::Destroy(); }
     CMappedResource* Get() { return storage.Get(); }
-    int Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path).c_str(), 0); }
+    int Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path), 0); }
     lib::InPlace<CMappedResource> storage;
 };
 

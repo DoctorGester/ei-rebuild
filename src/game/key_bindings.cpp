@@ -110,7 +110,7 @@ void SaveKeyBindings() {
             if (kActionDefinitions[action].id_ != id) continue;
             if (known) {
                 line = str::Format("%s %s\n", g_keyNames[key].file_, kActionDefinitions[action].name_);
-                file.WriteString(line.c_str());
+                file.WriteString(line);
             }
             break;
         }

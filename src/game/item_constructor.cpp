@@ -344,7 +344,7 @@ BOOL CItemConstructor::Build() {
     item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
-        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C).c_str());
+        CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->text7C));
         spell_ = spell;
         item_->SetSpell(spell);
     } else if (spell_) {
@@ -413,14 +413,14 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     constructor->SetManager(this);
     constructor->BeginCreateItem(prototype->Kind(), -1);
     MaterialRecordHead* material = nullptr;
-    if (parts.size() > 1) material = items.materials.Named(parts[1].c_str());
+    if (parts.size() > 1) material = items.materials.Named(parts[1]);
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
     const char* type = prototype->text04.c_str();
     if (extra.size() != 0 && std::strcmp(type, kMaterialType) != 0) {
         CSpellManager* spells = context->SpellManager();
-        if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);
+        if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
     } else if (std::strcmp(type, kMaterialType) == 0 &&
                extra.size() != 0) {
         constructor->count_ = str::ToInt(extra);
@@ -483,7 +483,7 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
 
 // The "spell container" record is looked up by name each time; without one the index is that of a
 // null record (kept: MakeItem then finds no prototype).
-CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
+CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* spells) {
     CSpell* spell = spells->CreateSpellFromText(spellText);
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase->quickItems;

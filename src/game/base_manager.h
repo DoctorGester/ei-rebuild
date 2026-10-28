@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include "lib/hash_map.h"
 
 #include <list>
@@ -46,12 +47,12 @@ public:
     virtual void DestroyAll();
     // The archive interface of the managers that load from resource archives
     // (CResourceManager overrides them); here they do nothing and return 0 / null / false.
-    virtual BOOL AddArchive(const char* path);
-    virtual BOOL RemoveArchive(const char* path);
+    virtual BOOL AddArchive(const std::string& path);
+    virtual BOOL RemoveArchive(const std::string& path);
     virtual BOOL RemoveAllArchives();
-    virtual void* GetFile(const char* name, std::uint32_t* size);
+    virtual void* GetFile(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
-    virtual BOOL HasFile(const char* name);
+    virtual BOOL HasFile(std::string_view name);
     virtual void FreeAllFiles();
     // A spare object of `type`, or a new one (NewObject), registered under `id` or, for -1, under a free id;
     // the manager becomes its owner and it is created. Null when NewObject fails.

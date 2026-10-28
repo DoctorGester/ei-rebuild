@@ -156,10 +156,10 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     else flags_ &= ~kDisabled;
     g_clientWorld->QueueSynchronised(this);
     if (first == 1) {
-        const LeverRecord* record = g_leverTable->Named(name.c_str());
+        const LeverRecord* record = g_leverTable->Named(name);
         EI_NAN_AUDIT(from, to);
         if (record && from != to)
-            TheSoundManager()->Play3D(record->sound.c_str(), 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
+            TheSoundManager()->Play3D(record->sound, 0, &localPosition_.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;
 }

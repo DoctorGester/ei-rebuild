@@ -98,7 +98,7 @@ CTexture::~CTexture() {
     // The counted surface pointer is null by now; the extra block (its pointer is not cleared).
 }
 
-MmpHeader* CTextureManager::GetFileData(const char* name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
+MmpHeader* CTextureManager::GetFileData(std::string_view name) { return static_cast<MmpHeader*>(GetFile(name, nullptr)); }
 
 CTexture* CTextureManager::NewTextureOfType(int type) { return CreateObjectAs<CTexture>(type, -1); }
 

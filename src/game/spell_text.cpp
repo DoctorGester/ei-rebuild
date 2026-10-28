@@ -43,14 +43,14 @@ void ParseSpellText(std::string& text, std::vector<std::string>& codes) {
 }
 
 // The modifier record named `name` (find_or_insert with a null record).
-itemdb::SpellModifierRecord* FindModifier(const char* name) {
+itemdb::SpellModifierRecord* FindModifier(std::string_view name) {
     std::string key(name);
     return ModifierNameMap()[key];
 }
 
 } // namespace
 
-CSpell* CSpellManager::CreateSpellFromText(const char* source) {
+CSpell* CSpellManager::CreateSpellFromText(std::string_view source) {
     std::string text(source);
     std::vector<std::string> codes;
     ParseSpellText(text, codes);
@@ -69,7 +69,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
 
     for (const std::string& code : codes) {
         if (code.empty()) continue;
-        constructor->AddModifier(FindModifier(code.c_str()));
+        constructor->AddModifier(FindModifier(code));
     }
 
     if (!constructor->EndConstruct()) return game::FatalErrorAs<CSpell>(kCantEnd);

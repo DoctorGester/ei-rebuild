@@ -85,7 +85,7 @@ void AddItem(SkinRequest& set, const UnitModelRecord* model, std::uint32_t id) {
     {
         std::string name;
         ArmorModelName(&name, id >> 16, id & 0xFFFF);
-        AppendName(model, name.c_str(), buffer);
+        AppendName(model, name, buffer);
     }
     set.textures.push_back(buffer);
 }
@@ -122,7 +122,7 @@ void AddExtraWeapon(SkinRequest& set, const UnitModelRecord* model, DressedUnitR
         std::string name;
         const itemdb::MaterialRecordHead* material = itemdb::MaterialAt(id & 0xFFFF);
         WeaponRecordModelName(&name, weapon, material);
-        AppendName(model, name.c_str(), buffer);
+        AppendName(model, name, buffer);
     }
     set.textures.push_back(buffer);
 }

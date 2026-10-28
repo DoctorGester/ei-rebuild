@@ -46,7 +46,7 @@ public:
     CMappedFile();
     CMappedFile* Construct();                         // the constructor body
     void Close();                                     // an identical copy of Close's body
-    BOOL Open(const char* path, BOOL writable);
+    BOOL Open(const std::string& path, BOOL writable);
     void Flush();                                     // write back, stamp modification time
 
     void* file_;         // HANDLE, INVALID_HANDLE_VALUE when closed
@@ -73,7 +73,7 @@ public:
     virtual ~CResourceBase();
 
     // Index of the entry named `name` (case-insensitive), or -1.
-    int FindEntry(const char* name) const;
+    int FindEntry(std::string_view name) const;
 
     ResHeader header_;
     ResEntry* entries_;
@@ -88,14 +88,14 @@ public:
     // The loaded files freed, the archive
     // closed, the maps destroyed, then CResourceBase's (the accelerator table freed).
     ~CMappedResource() override;
-    virtual BOOL OpenResource(const char* path, BOOL writable);
+    virtual BOOL OpenResource(const std::string& path, BOOL writable);
     virtual BOOL OpenFromMemory(const void* image);
     virtual void CloseResource();
     virtual void Flush();                                             // (empty)
-    virtual void* GetFile(const char* name, std::uint32_t* size);
+    virtual void* GetFile(std::string_view name, std::uint32_t* size);
     // GetFile without Rebirth's ResOverride (in the standalone image GetFile goes through
     // mod_folders.h, which calls this one on the game's and the mod's archives).
-    void* GetFilePlain(const char* name, std::uint32_t* size);
+    void* GetFilePlain(std::string_view name, std::uint32_t* size);
     virtual bool CloseFile(void* data);
     virtual void FreeAllFiles();
 
@@ -123,11 +123,11 @@ public:
     CMMIOResource();
     ~CMMIOResource() override;
 
-    BOOL OpenResource(const char* path, BOOL writable) override;
+    BOOL OpenResource(const std::string& path, BOOL writable) override;
     BOOL OpenFromMemory(const void* image) override;
     void CloseResource() override;
     void Flush() override;                                            // (flushes file_)
-    void* GetFile(const char* name, std::uint32_t* size) override;
+    void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;                              // (nothing to free)
     void FreeAllFiles() override;                                     // (empty)
 

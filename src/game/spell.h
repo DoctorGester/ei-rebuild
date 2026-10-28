@@ -281,7 +281,7 @@ public:
     // Text such as "healing{e2;e2}": the trimmed text before '{' is the prototype name, the ';'-separated
     // names inside the braces are modifiers (empty ones skipped). An unknown name is added to the name map
     // with a null record. Returns the new spell, or a fatal error's result.
-    CSpell* CreateSpellFromText(const char* text);
+    CSpell* CreateSpellFromText(std::string_view text);
 
     // `this` is not used.
     void ListSpellNames(std::vector<std::string>* names);

@@ -31,7 +31,7 @@ CIniFile* CIniFile::Construct() {
     return this;
 }
 
-BOOL CIniFile::SetPath(const char* path) {
+BOOL CIniFile::SetPath(std::string_view path) {
     path_ = path;
     return 1;
 }

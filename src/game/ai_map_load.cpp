@@ -106,7 +106,7 @@ struct Archive {
     ~Archive() { Get()->CMappedResource::Destroy(); }
     Archive(const Archive&) = delete;
     CMappedResource* Get() { return storage.Get(); }
-    bool Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path).c_str(), 0) != 0; }
+    bool Open(std::string_view path) { return Get()->CMappedResource::OpenResource(std::string(path), 0) != 0; }
     void* File(const char* name, std::uint32_t* size) { return Get()->CMappedResource::GetFile(name, size); }
     void Close(void* file) { Get()->CMappedResource::CloseFile(file); }
 

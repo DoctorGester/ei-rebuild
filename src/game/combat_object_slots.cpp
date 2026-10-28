@@ -78,7 +78,7 @@ void CUnitServer::Resettle() {
     if (unit->IsDead()) return;
     auto* world = ServerWorld();
     world->aiMap_.sectorMap.Remove(unit);
-    unit->Object3D()->SetUpAnimatedFigure(unit->name.c_str());
+    unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();
     unit->UpdateSizeClass();
     CAIMap* map = world->AIMap();

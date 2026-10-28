@@ -101,7 +101,7 @@ int CWorldClient::LoadLights(const char* file) {
     {
         std::string folder = *g_dataFolder + ConfigFolder();
         std::string path = folder + file;
-        ini.SetPath(path.c_str());
+        ini.SetPath(path);
     }
     ReadTable(ini, keys, hour, values, SunlightSection(), sunlight_);
     ReadTable(ini, keys, hour, values, AmbientSection(), ambient_);

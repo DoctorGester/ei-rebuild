@@ -40,7 +40,7 @@ CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0]
 
 } // namespace
 
-void CMpHeroScreen::ChooseFigure(const char* prototype) {
+void CMpHeroScreen::ChooseFigure(std::string_view prototype) {
     std::vector<PartyUnitRecord*> records = {};
     auto* player = LocalPlayerData();
     // The attributes and height to keep (copied as dwords).

@@ -88,7 +88,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, true);
         ItemTip(slot, &tip);
-        regions_[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x2A);
+        regions_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -114,7 +114,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         finish(item, false);
         // The same CString serves as the second and third texts.
         TheTextManager()->GetItemTexts(item, &tip, &unused, &unused);
-        regions_[slot]->SetTipString(tip.c_str(), 1, 0);
+        regions_[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
     }

@@ -96,7 +96,7 @@ void ServerOnSay(ServerSession* server, SayMessage* message) {
         auto* player = binding->Player();
         std::string line;
         line = str::Format("^%i%s^7: %s", player->number_, player->name_.data(), message->text_.data());
-        server->Announce(line.c_str(), nullptr);
+        server->Announce(line, nullptr);
         return;
     }
 }

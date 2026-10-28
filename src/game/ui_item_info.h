@@ -133,7 +133,7 @@ public:
     virtual void PreviousHero() {}
     virtual CUnit* HeroUnit(int index);
     virtual PartyUnitRecord* HeroRecord() { return nullptr; }               // the shown hero
-    virtual void ChooseFigure(const char*) {}
+    virtual void ChooseFigure(std::string_view) {}
     virtual double Weight();
     virtual int Price(CItem* item, int kind);
     // Draws `cell`'s item: its model (cached, created) with its texture (cached) turning while the mouse is

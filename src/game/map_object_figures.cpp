@@ -158,7 +158,7 @@ void CObject3D::LoadFigures() {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* model;
     {
-        std::string key(name.c_str());
+        std::string key(name);
         model = manager->FindModel(&key);
     }
     for (int i = 0; i < std::ssize(pendingParts); ++i) {

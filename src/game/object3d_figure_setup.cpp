@@ -60,7 +60,7 @@ CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
 
 } // namespace
 
-void CObject3D::SetUpAnimatedFigure(const char* model) {
+void CObject3D::SetUpAnimatedFigure(std::string_view model) {
     CFigureManager* manager = FigureManagerOf(this);
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
@@ -75,7 +75,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
 
         FigureModel* figureModel;
         {
-            std::string modelName(model, model + std::strlen(model));
+            std::string modelName(model);
             figureModel = manager->FindModel(&modelName);
         }
         int index = 0;
@@ -100,10 +100,10 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             low.y = Lower(low.y, static_cast<float>(box->pivot.y + box->bounds.boxMin.y + box->bounds.center.y));
             low.z = Lower(low.z, static_cast<float>(box->pivot.z + box->bounds.boxMin.z + box->bounds.center.z));
 
-            const char* partName = bone->GetName();
-            if (text::CompareIgnoringCase(partName, "BASE", 4) == 0) box->bounds.flags |= kBoxBase;
-            if (text::CompareIgnoringCase(partName, "CROWN", 5) == 0) box->bounds.flags |= kBoxCrown;
-            if (text::CompareIgnoringCase(partName, "EMPTY", 5) == 0) box->bounds.flags |= kBoxEmpty;
+            const std::string_view partName = bone->GetName();
+            if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) box->bounds.flags |= kBoxBase;
+            if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) box->bounds.flags |= kBoxCrown;
+            if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) box->bounds.flags |= kBoxEmpty;
         }
         animation->ReleaseBones();
     }
@@ -176,19 +176,19 @@ void CObject3D::CollectPartsByPrefix(const char* prefix, std::vector<CFigureMesh
 
 // --- Loading single parts ---------------------------------------------------------------------
 
-CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::uint32_t arg) {
+CFigureMesh* CObject3D::LoadPart(std::string_view partName, FigureModel* model, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
-    CFigureMesh* part = manager->NewPart(name.c_str(), partName, model, std::bit_cast<std::uint32_t>(scale.x),
+    CFigureMesh* part = manager->NewPart(name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached);
     if (!part) {
-        game::DebugLog(kCantLoadPart, partName, name.c_str());
+        game::DebugLog(kCantLoadPart, std::string(partName).c_str(), name.c_str());
         return nullptr;
     }
     if (CLinkMesh* current = figure) {
         // The figure gets the piece (its slot 4 loads it unless it has it).
         bool loaded;
         {
-            std::string key(partName, partName + std::strlen(partName));
+            std::string key(partName);
             loaded = current->LoadPart(&key);
         }
         if (!loaded) return nullptr;   // the part is kept, unreleased (as in the game)
@@ -198,9 +198,9 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
         // The box and the pivot.
         part->box_ = piece.box;
     }
-    if (text::CompareIgnoringCase(partName, "BASE", 4) == 0) part->box_.bounds.flags |= kBoxBase;
-    if (text::CompareIgnoringCase(partName, "CROWN", 5) == 0) part->box_.bounds.flags |= kBoxCrown;
-    if (text::CompareIgnoringCase(partName, "EMPTY", 5) == 0) {
+    if (text::CompareIgnoringCase(partName.substr(0, 4), "BASE") == 0) part->box_.bounds.flags |= kBoxBase;
+    if (text::CompareIgnoringCase(partName.substr(0, 5), "CROWN") == 0) part->box_.bounds.flags |= kBoxCrown;
+    if (text::CompareIgnoringCase(partName.substr(0, 5), "EMPTY") == 0) {
         part->box_.bounds.flags |= kBoxEmptyMark;
         part->box_.bounds.flags |= kBoxCrown;
     }
@@ -221,24 +221,24 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
     return part;
 }
 
-int CObject3D::LoadParts(const char* model, const std::vector<std::string>* names, std::uint32_t arg) {
+int CObject3D::LoadParts(std::string_view model, const std::vector<std::string>* names, std::uint32_t arg) {
     CFigureManager* manager = FigureManagerOf(this);
     FigureModel* cached;
     {
-        std::string key(model, model + std::strlen(model));
+        std::string key(model);
         cached = manager->FindModel(&key);
     }
     name = model;
     if (!manager) return game::FatalError(kNoFigureManager);
     for (const std::string& part : *names) {
-        if (!LoadPart(part.c_str(), cached, arg)) game::DebugLog(kCantCreatePart, model, part.c_str());
+        if (!LoadPart(part, cached, arg)) game::DebugLog(kCantCreatePart, name.c_str(), part.c_str());
     }
     return 1;
 }
 
 // --- Building the figure ----------------------------------------------------------------------
 
-int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, std::uint32_t arg) {
+int CObject3D::MakeFigure(std::string_view model, std::vector<std::string>* names, std::uint32_t arg) {
     name = model;
     if (animation) {
         animation->Rescale(scale.x, scale.y, scale.z);
@@ -246,14 +246,14 @@ int CObject3D::MakeFigure(const char* model, std::vector<std::string>* names, st
     }
     if (names->empty() && animation) {
         animation->CollectBoneNames(names);
-        std::string key(model, model + std::strlen(model));
+        std::string key(model);
         CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         figure.Assign(made);
     } else {
         // The piece names as the loader's slot 3 (LoadFigure) reads them.
         std::vector<std::string> pieces = *names;
         {
-            std::string key(model, model + std::strlen(model));
+            std::string key(model);
             CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
             CLinkMesh* old = figure;
             figure = made;

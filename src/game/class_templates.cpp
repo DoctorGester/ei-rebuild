@@ -59,12 +59,12 @@ void ClassTemplateFill(ClassTemplate* t) {
     itemdb::ItemDatabase& db = *g_itemDatabase;
     items->ListWeaponNames(&names);
     for (const std::string& name : names) {
-        itemdb::WeaponRecord* record = db.weapons.Named(name.c_str());
+        itemdb::WeaponRecord* record = db.weapons.Named(name);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddWeapon(record);
     }
     items->ListArmorNames(&names);
     for (const std::string& name : names) {
-        itemdb::ArmorRecord* record = db.armors.Named(name.c_str());
+        itemdb::ArmorRecord* record = db.armors.Named(name);
         if (record && Allowed(t, record->classMask)) AllList(t)->AddArmor(record);
     }
     items->ListQuickItemNames(&names);

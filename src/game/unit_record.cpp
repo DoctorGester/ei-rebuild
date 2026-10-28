@@ -81,7 +81,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
     for (std::size_t i = 0; i < 6; ++i) s.valuesE0[i].base = s.valuesE0[i].current = r.valuesE0[i];
     std::memmove(s.attributes, r.attributes, sizeof r.attributes);
 
-    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name.c_str(), SpellOwner()));
+    for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name, SpellOwner()));
     AddItems(*this, unit, factory);
     for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
     for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));

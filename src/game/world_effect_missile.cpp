@@ -305,7 +305,7 @@ void CEffectArrowFigure::Start(int update) {
     CObject3DClientSpecific* attached = figure->ClientSpecific();
     std::memcpy(&figure->localPosition_, &localPosition_, sizeof(figure->localPosition_));
     std::vector<std::string> parts;
-    figure->MakeFigure(model.c_str(), &parts, 1);
+    figure->MakeFigure(model, &parts, 1);
     attached->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     figure->RestartPose();

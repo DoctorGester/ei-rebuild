@@ -66,8 +66,7 @@ constexpr int kAllodIsland = 3;        // the island model
 
 // A zone of the map database: its figure is its marker on the global map (may be empty), its
 // kind 0 a game zone and 2 a way between zones here.
-MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
-MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
+MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 MapRecord* ZoneAt(int index) { return &g_mapDatabase->maps[index]; }
 
 bool NonEmpty(const std::string& text) { return text.size() != 0; }
@@ -262,7 +261,7 @@ void CGlobalMap::CreateScreen() {
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < std::ssize(allod->maps); ++i) {
         MapRecord* zone = ZoneAt(allod->maps[i]);
-        if (zone->kind != 0 || !NonEmpty(zone->figure.c_str())) continue;
+        if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         zones_.push_back(zoneTemplate);
         variable = str::Format("z.%s", zone->name.c_str());
         zones_[zoneCount_].link = -1;
@@ -330,7 +329,7 @@ void CGlobalMap::CreateScreen() {
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;
-            if (!NonEmpty(way->figure.c_str())) continue;
+            if (!NonEmpty(way->figure)) continue;
             if (zones_[i].state == 2) zones_[i].link = linkCount_;
             int n = linkCount_;
             links_.push_back(linkTemplate);

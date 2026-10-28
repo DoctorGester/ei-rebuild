@@ -230,7 +230,7 @@ public:
     // The preview figure of the local player's first record: see docs/notes/ui.md, "CMpHeroScreen::MakePreview".
     void MakePreview(int flag);
     // The new hero takes figure (unit prototype) `prototype`: see docs/notes/ui.md, "CMpHeroScreen::ChooseFigure".
-    void ChooseFigure(const char* prototype) override;
+    void ChooseFigure(std::string_view prototype) override;
     // The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_, the selection frame on the chosen one.
     void DrawVoices();
     // The hero list's surface (0): ten rows of names from heroTop_, the selection frame on the selected hero.

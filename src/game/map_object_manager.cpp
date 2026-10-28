@@ -71,7 +71,7 @@ CEngineObject* CMapObjectManager::CreateObject(int classId, int id) { return Cre
 int CMapObjectManager::CreateManager() {
     std::string folder = *g_textFolder;
     if (!CBaseManager::Create()) return 0;
-    AddArchive((folder + "database.res").c_str());
+    AddArchive((folder + "database.res"));
     return 1;
 }
 
@@ -92,7 +92,7 @@ CEngineObject* CMapObjectManager::CreateMapObject(int classId, int id) {
 }
 
 FigureAnimation* CMapObjectManager::FindAnimation(const std::string* figure, std::uint32_t key) {
-    auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb").c_str(), nullptr));
+    auto* database = static_cast<AnimationDatabase*>(GetFile((*figure + ".adb"), nullptr));
     if (!database) {
         game::DebugLog(kNoDatabaseText, figure->c_str());
         return nullptr;

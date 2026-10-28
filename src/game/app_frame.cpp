@@ -111,7 +111,7 @@ void PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, in
     ini->Construct();
     {
         std::string path;
-        ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")).c_str());
+        ini->SetPath((*ConcatText(&path, &g_dataFolder.Get(), "config\\movie.ini")));
     }
     ini->GetList(section, "movies", &list, ',');
     if (clearFirst) ClearScreen();

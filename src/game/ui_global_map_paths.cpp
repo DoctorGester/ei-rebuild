@@ -143,7 +143,7 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
             SearchWays(this, zone.name);
             if (!MayTravelTo(this)) return;
             auto* window = new CObjectivesWindow(interface_);
-            window->Setup(target_.c_str(), &arrivals_, 1, 0);
+            window->Setup(target_, &arrivals_, 1, 0);
             interface_->PushWindow(window, 1, 1);
             return;
         }
@@ -152,5 +152,5 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
     SearchWays(this, links_[link].name);
     if (!found_ || !MayTravelTo(this)) return;
     GamePassTime(arrivals_[0]);
-    ::RequestZone(links_[link].name.c_str(), 0);
+    ::RequestZone(links_[link].name, 0);
 }

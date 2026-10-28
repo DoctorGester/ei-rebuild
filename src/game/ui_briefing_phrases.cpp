@@ -119,13 +119,13 @@ void CBriefingScreen::NextPhrase(bool skip) {
         if (count < 2) continue;
         if (text::CompareIgnoringCase(words[0], ShowCommand()) == 0) {
             if (count > 3 && text::CompareIgnoringCase(words[3], WeaponWord()) == 0)
-                ShowItem(words[1].c_str(), str::ToInt(words[2]) - 1, 0);
+                ShowItem(words[1], str::ToInt(words[2]) - 1, 0);
             if (count > 2)
-                ShowItem(words[1].c_str(), str::ToInt(words[2]) - 1, 1);
+                ShowItem(words[1], str::ToInt(words[2]) - 1, 1);
             else
-                ShowItem(words[1].c_str(), -1, 1);
+                ShowItem(words[1], -1, 1);
         } else if (text::CompareIgnoringCase(words[0], HideCommand()) == 0) {
-            HideSpeaker(words[1].c_str(), skip, count > 2 ? 1 : 0);
+            HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
         } else if (text::CompareIgnoringCase(words[0], AnimationCommand()) == 0) {
             animation = str::ToInt(words[1]);
         } else if (text::CompareIgnoringCase(words[0], CameraCommand()) == 0) {
@@ -169,7 +169,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 std::string file;
                 int folder = libcrt::Rand() * 2 / 0x7FFF % 2;
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
-                voice_ = TheSoundManager()->Play2D(file.c_str(), kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
+                voice_ = TheSoundManager()->Play2D(file, kSoundPriority, kSoundVolume, 0, 0, 0, 1, 1);
             }
             phraseTime_ = static_cast<float>(text::CharacterCount(std::string_view(phrase))) *
                           kSecondsPerCharacter;
@@ -185,7 +185,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         state_ = kStateRewards;
         QuestBriefingRecord* record;
         {
-            std::string key(topic_.c_str());
+            std::string key(topic_);
             record = BriefingRecords()[key];
         }
         if (record) {
@@ -322,7 +322,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     firstPhrase_ = false;
     if (skip && last) {
         // Skipped to the end: the whole text at once, scrolled to its end; everyone listens.
-        text_->SetText(dialogueText_.c_str());
+        text_->SetText(dialogueText_);
         text_->SetPosition(text_->maxPosition_);
         text_->moved_ = true;
         for (const BriefingSpeaker& p : speakers_) {

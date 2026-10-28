@@ -69,9 +69,9 @@ void RequestWithParty(std::vector<std::string>* args, const char* extra) {
 void WriteSpeech(lib::TextFile* file, std::string& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
     line = str::Format("#say %s\n", speech.name.data());
-    file->WriteString(line.c_str());
+    file->WriteString(line);
     line = str::Format("%s\n", speech.text.data());
-    file->WriteString(line.c_str());
+    file->WriteString(line);
 }
 
 // kick / ban: without arguments the server's player list window (if the server allows it), with a
@@ -252,7 +252,7 @@ void ListVar(std::vector<std::string>* args) {
         EndLine(g_consoleOut << name << " = " << node->second);
         if (writing) {
             line = str::Format("%s %g\n", name, static_cast<double>(node->second));
-            file.WriteString(line.c_str());
+            file.WriteString(line);
         }
     }
     if (writing) file.Close();

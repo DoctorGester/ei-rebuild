@@ -216,7 +216,7 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[definition.row_].setting_ = &settings_[i];
         tip = str::Format(TextTipOption(), definition.name_);
         ReadTip(&tip);
-        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip.c_str(), 1, 0);
+        regions_[kFirstRowRegion + definition.row_]->SetTipString(tip, 1, 0);
     }
     for (int i = 0; i < kActionDefinitionCount; ++i) {
         const ActionDefinition& action = kActionDefinitions[i + 1];
@@ -224,7 +224,7 @@ void COptionsWindow::ShowGroup(int group) {
         rows_[action.row_].binding_ = &bindings_[i];
         tip = str::Format(TextTipAction(), action.name_);
         ReadTip(&tip);
-        regions_[kFirstRowRegion + action.row_]->SetTipString(tip.c_str(), 1, 0);
+        regions_[kFirstRowRegion + action.row_]->SetTipString(tip, 1, 0);
     }
 
     for (int i = 0; i < kOptionDefinitionCount; ++i)

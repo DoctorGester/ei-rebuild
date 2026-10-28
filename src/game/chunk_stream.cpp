@@ -289,7 +289,7 @@ void Chunk::WriteStringArray(std::uint32_t id, const std::vector<std::string>* t
 // --- The root chunk ------------------------------------------------------------------------------
 
 int RootChunk::Open(const std::string& path, unsigned flags) {
-    return file_.Open(path.c_str(), flags & 0xFFFF);
+    return file_.Open(path, flags & 0xFFFF);
 }
 
 lib::File* RootChunk::File() { return &file_; }

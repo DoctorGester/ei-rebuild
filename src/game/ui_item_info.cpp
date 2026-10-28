@@ -232,7 +232,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, std::string& title) {
     std::string name = info->text;
     str::TrimRight(name, "0");
     name += "1";
-    int group = g_skillDatabase->IndexOf(name.c_str()) / 3;
+    int group = g_skillDatabase->IndexOf(name) / 3;
     for (int i = 0; i < 3; ++i) {
         const SkillLevelRecord* level = unitdb::SkillLevelAt(static_cast<std::uint32_t>(group * 3 + i));
         if (!level) continue;

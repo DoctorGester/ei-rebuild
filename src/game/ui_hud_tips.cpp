@@ -79,7 +79,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             line = str::Format("%s %s\n", labels_[3].c_str(), description.c_str());
             tip += line;
         }
-        regions_[slot]->SetTipString(tip.c_str(), 1, static_cast<int>(slot) + 0x26);
+        regions_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
     }
     selected_ = static_cast<int>(unit_->pendingWeapon);
     if (selected_ >= count_) selected_ = -1;
@@ -190,5 +190,5 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     title = str::Format("%s %d\n", labels_[0].c_str(), shown->params.attributes[0]);
     if (TheTextManager()->CTextManager::Open("tip 10511") != 0) TheTextManager()->ReadToHash(&hint, 1);
     tip = tip + "\n" + title + hint;
-    regions_[count_ - 1]->SetTipString(tip.c_str(), 1, 0x1D);
+    regions_[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }

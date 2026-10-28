@@ -149,7 +149,7 @@ bool Say(Call* call) {
         net::ServerSession* server = net::g_gameServer;
         if (server && !(server->flags7_ & CRefCounted::kDetached)) {
             std::string text = Joined(call);
-            server->Announce(text.c_str(), 0);
+            server->Announce(text, 0);
         }
     }
     return true;

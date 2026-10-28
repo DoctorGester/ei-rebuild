@@ -230,14 +230,14 @@ void CMpHeroScreen::CreateScreen() {
         };
         const UnitPrototypeRecord* prototype;
         {
-            std::string key(creature()->name.c_str());
+            std::string key(creature()->name);
             prototype = unitdb::PrototypeNamed(key);
         }
         if (!prototype) continue;
         const UnitModelRecord* figure;
         {
             // operator[] inlined (a pair of the name and null through).
-            std::string key(prototype->modelName.c_str());
+            std::string key(prototype->modelName);
             figure = unitdb::ModelNamed(key);
         }
         figureModel = figure->figureName;

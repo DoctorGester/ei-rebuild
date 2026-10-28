@@ -22,7 +22,7 @@ namespace {
 
 } // namespace
 
-int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* name) {
+int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, std::string_view name) {
     FigureModel* model;
     {
         std::string key(name);
@@ -33,11 +33,11 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     if (model) {
         data = static_cast<std::uint32_t*>(model->mesh->GetFile(name, nullptr));
     } else {
-        std::string base = name;
+        std::string base(name);
         std::string path = base + ".lnk";
-        data = static_cast<std::uint32_t*>(GetFile(path.c_str(), nullptr));
+        data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
     }
-    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", name);
+    if (!data) return game::FatalError("Can't load skeleton file for \"%s\"\n", std::string(name).c_str());
 
     const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
     {
@@ -64,12 +64,12 @@ int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
         std::uint32_t size;
     } bones{nullptr, 0};
     if (model) {
-        bones.data = model->bones->GetFile(bone->name.c_str(), &bones.size);
+        bones.data = model->bones->GetFile(bone->name, &bones.size);
     } else {
         std::string name = bone->GetName();
         std::string directory = bone->name3;
         std::string path = (directory + name) + ".bon";
-        bones.data = GetFile(path.c_str(), &bones.size);
+        bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;
     // The bone's cage interpolation: 0x48-byte data (a prism of six points), or

@@ -229,7 +229,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
         aiMap_.sectorMap.Add(unit);
 
         unit->SetPlayer(player);
-        slots->SetScriptName(record->texts[0].c_str());
+        slots->SetScriptName(record->texts[0]);
         unit->SetUnknown438(static_cast<std::uint32_t>(record->fightAtWill));
         unit->ClearProtectionBases();
         slots->SetStats(&record->stats);
@@ -397,7 +397,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         if (spec->visible == 0) object->flags_ |= 8;
         objectManager->GiveDefaults(object);
         if (CUnit* unit = UnitOrNull(object)) unit->ServerController()->ResyncWithUnit();
-        object->SetUpAnimatedFigure(spec->texture.c_str());
+        object->SetUpAnimatedFigure(spec->texture);
         id = object->id_;
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -504,7 +504,7 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
         object->MarkChanged(7);
         object->MarkChanged(8);
         if (spec->visible == 0) object->flags_ |= 8;
-        object->SetUpAnimatedFigure(spec->texture.c_str());
+        object->SetUpAnimatedFigure(spec->texture);
         object->UpdateSizeClasses();
         if (CUnit* asUnit = UnitOrNull(object)) asUnit->ServerController()->ResyncWithUnit();
         objects_.Set(static_cast<unsigned>(object->id_), object);

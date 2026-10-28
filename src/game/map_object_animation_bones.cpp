@@ -179,7 +179,7 @@ int CFigureAnimationState::FindRoot() {
     return 0;
 }
 
-int CFigureAnimationState::SetModel(const char* model) {
+int CFigureAnimationState::SetModel(std::string_view model) {
     changed = 1;
     return FigureManagerOf(this)->LoadSkeletonLinks(this, model);
 }
@@ -263,12 +263,12 @@ int CFigureAnimationState::ClearBoneTracks() {
     return 1;
 }
 
-int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation) {
+int CFigureAnimationState::LoadBoneTracks(CMappedResource* part, const FigureAnimation* animation) {
     changed = 1;
     for (auto node = bones.begin(); node != bones.end();) {
         FigureBone* bone = *node;
         ++node;
-        auto* data = static_cast<std::uint8_t*>(part->ReadEntry(bone->name.c_str(), nullptr));
+        auto* data = static_cast<std::uint8_t*>(part->GetFile(bone->name, nullptr));
         if (!data) ClearTrack(bone->pose);
         else bone->pose->LoadKeyFrames(&data);
         bone->pose->animation = animation;

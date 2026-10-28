@@ -189,7 +189,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     {
         std::string folder = *g_textFolder;
         std::string path = folder + kAiInfoArchive;
-        failed = archive->CMappedResource::OpenResource(path.c_str(), 0) == 0;
+        failed = archive->CMappedResource::OpenResource(path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = kCantReadAiInfo;

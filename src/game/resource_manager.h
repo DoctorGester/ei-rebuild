@@ -23,12 +23,12 @@ public:
     // Slot 0 is the scalar deleting destructor.
     // Closes and deletes every archive, then CBaseManager::Destroy.
     void Destroy() override;
-    BOOL AddArchive(const char* path) override;
-    BOOL RemoveArchive(const char* path) override;
+    BOOL AddArchive(const std::string& path) override;
+    BOOL RemoveArchive(const std::string& path) override;
     BOOL RemoveAllArchives() override;
-    void* GetFile(const char* name, std::uint32_t* size) override;
+    void* GetFile(std::string_view name, std::uint32_t* size) override;
     bool CloseFile(void* data) override;
-    BOOL HasFile(const char* name) override;
+    BOOL HasFile(std::string_view name) override;
     void FreeAllFiles() override;
 
     // The manager's folder name ("textures", "spells", ...; the item,
@@ -36,7 +36,7 @@ public:
     virtual const char* GetFolderName() = 0;
 
     // CFigureManager's slot 16, AddArchive with memory-mapped archives.
-    BOOL AddMmioArchive(const char* path);
+    BOOL AddMmioArchive(const std::string& path);
 
     ~CResourceManager() override;
 
@@ -44,7 +44,7 @@ protected:
     CResourceManager();
 
 private:
-    BOOL AddArchiveOf(const char* path, CMappedResource* (*create)());
+    BOOL AddArchiveOf(const std::string& path, CMappedResource* (*create)());
 
 public:
     std::vector<ArchiveEntry> archives_;

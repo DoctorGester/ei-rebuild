@@ -82,7 +82,7 @@ CChatWindow::CChatWindow(CInterface3D* ui) : CUiWindow(ui) {
 
 // --- a face --------------------------------------------------------------------------------------
 
-void CChatWindow::AddPortrait(const char* model, const char* texture) {
+void CChatWindow::AddPortrait(const std::string& model, std::string_view texture) {
     // Four faces share a 256 x 256 texture, one quarter each.
     int u = 0, v = 0;
     switch (portraits_ % 4) {
@@ -94,7 +94,7 @@ void CChatWindow::AddPortrait(const char* model, const char* texture) {
     }
     CopyImage(objects_[std::ssize(objects_) - 1], texture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 
-    CUiMesh* sprite = AddSprite(model);
+    CUiMesh* sprite = AddSprite(model.c_str());
     int left = kFirstFaceLeft - portraits_ * kFaceWidth;
     int right = left + kFaceWidth;
     if (sprite) {
@@ -155,7 +155,7 @@ void CChatWindow::ShowPlayers() {
         }
         UnitModelRecord* figure;
         {
-            std::string key(prototype->modelName.c_str());
+            std::string key(prototype->modelName);
             figure = unitdb::ModelNamed(key);
         }
         const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
@@ -166,7 +166,7 @@ void CChatWindow::ShowPlayers() {
         build = "me";
         model = str::Format("infa%s%s%dface", figure->figureName.c_str(), build.c_str(), prototype->hair + 1);
         picture = str::Format("face%s%02d", sex.c_str(), prototype->skin);
-        AddPortrait(model.c_str(), picture.c_str());
+        AddPortrait(model, picture);
         regions_[portraits_ - 1]->SetTipString(player->name_.data(), 1, 0);
     }
 }

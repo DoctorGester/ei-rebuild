@@ -429,7 +429,7 @@ struct CItemManager : CResourceManager {
 
     // A scroll ("spell container", kind 0x3008) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).
-    CItem* CreateSpellItem(const char* spellText, CSpellManager* spells);
+    CItem* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
 
     // `names` resized to the table's record count and filled with the records' names: the materials' keys,
     // the others' text04.

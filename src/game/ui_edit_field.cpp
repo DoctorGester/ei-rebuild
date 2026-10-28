@@ -161,7 +161,7 @@ void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int m
     DrawContentsVanilla();
 }
 
-void CUiEditField::SetText(const char* text) {
+void CUiEditField::SetText(std::string_view text) {
     editing_ = false;
     text_ = text;
     changed_ = true;

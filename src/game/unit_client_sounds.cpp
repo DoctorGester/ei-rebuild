@@ -208,7 +208,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
         if (unit->type_ == kUnitTypeHero && unit->actionSound &&
             ActionSound(current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
-            sounds->Play3D(sound.c_str(), kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
+            sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
         priority = kPriorityAction;
         action = true;
         break;
@@ -303,11 +303,11 @@ void CUnitClientSpecific::PlayStepSounds() {
         int handle = -1;
         if (kind == kKindAttack) {
             if (!SoundBusy(speechSound)) {
-                handle = sounds->Play3D(sound.c_str(), priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+                handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
                 speechSound = handle;
             }
         } else {
-            handle = sounds->Play3D(sound.c_str(), priority, &position.x, kSoundNear, kSoundFar, 0, 0);
+            handle = sounds->Play3D(sound, priority, &position.x, kSoundNear, kSoundFar, 0, 0);
         }
         if (kind == kKindIdle) idleSound = handle;
     }

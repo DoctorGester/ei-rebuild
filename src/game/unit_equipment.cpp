@@ -70,7 +70,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i].c_str(), spellOwner);
+        CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
         if (spell) unit->AddSpell(spell);
         else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].c_str(), name);
     }

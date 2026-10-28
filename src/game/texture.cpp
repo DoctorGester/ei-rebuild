@@ -60,7 +60,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     }
 
     path = std::string(texture->GetName()) + ".mmp";
-    if (auto* header = static_cast<MmpHeader*>(GetFile(path.c_str(), nullptr))) {
+    if (auto* header = static_cast<MmpHeader*>(GetFile(path, nullptr))) {
         if (!device_->ParseMmpHeader(header, &format) &&
             !(header->format == 0x8888 && device_->FindFormat(0x4444, &format)))
             return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",

@@ -58,7 +58,7 @@ void PartyRecordsReset(NamedPartyRecords* list) {
     party->variables_.Set(kGameTime, std::bit_cast<float>(kSix));
 }
 
-CParty* NamedPartyRecords::Find(const char* name) const {
+CParty* NamedPartyRecords::Find(std::string_view name) const {
     CParty* unnamed = nullptr;
     for (PartyRecord* record : records) {
         if (str::Compare(NameOf(record), name) == 0) return record->Party();

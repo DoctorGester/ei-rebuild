@@ -228,7 +228,7 @@ public:
     void RefreshWounds() override;
     double MoveSpeed() override;             // the forward speed (GetMoveSpeeds)
     float Radius() override;
-    void SetScriptName(const char* newName) override;
+    void SetScriptName(std::string_view newName) override;
 
     // The controller's AdvanceTime; a text-key (party) unit then marks its sight on the client world (its
     // VisionRange at the world's daylight, around its position).

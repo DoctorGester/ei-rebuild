@@ -23,7 +23,7 @@ public:
     // The destructor body: closes the file (when it owns one).
     void Destroy();
     // Maps the file at `path`. Returns 0 if it cannot be opened or is not a registry.
-    BOOL Open(const char* path);
+    BOOL Open(const std::string& path);
     // Uses a registry image already in memory. Returns 0 if it is not a registry.
     BOOL Attach(const void* image);
     // Closes the mapped file (when it owns one) and forgets the data.

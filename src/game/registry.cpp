@@ -86,7 +86,7 @@ void CFileRegistry::Destroy() {
     file_.Close();                   // the mapped file's destructor
 }
 
-BOOL CFileRegistry::Open(const char* path) {
+BOOL CFileRegistry::Open(const std::string& path) {
     if (!file_.Open(path, 0)) return 0;
     attached_ = 0;
     data_ = static_cast<const std::uint8_t*>(file_.view_);

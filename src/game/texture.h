@@ -372,7 +372,7 @@ public:
     int Compose(std::string* out, const SkinRequest* request, const std::string* name,
                 const std::string* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
 
-    MmpHeader* GetFileData(const char* name);   // an .mmp file's data (CloseFile frees it)
+    MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);
     // Given `name` either way (no null check). Not loaded.
     CTexture* FindOrCreate(int type, const char* name);

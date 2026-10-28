@@ -62,12 +62,12 @@ int CTextureManager::Create() {
     if (!CBaseManager::Create()) return 0;
     DeleteComposedTextures();
     const std::string folder = *g_textFolder;
-    BOOL opened = AddArchive((folder + "textures.res").c_str());
-    opened = AddArchive((folder + "redress.res").c_str()) && opened ? 1 : 0;
-    if (!AddArchive((folder + "menus.res").c_str()) || !opened) return 0;
+    BOOL opened = AddArchive((folder + "textures.res"));
+    opened = AddArchive((folder + "redress.res")) && opened ? 1 : 0;
+    if (!AddArchive((folder + "menus.res")) || !opened) return 0;
     // Rebirth's ResOverride: when all three opened, the mod's texture archives follow.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path.c_str());
+        for (const std::string& path : modfolders::TextureArchives()) CResourceManager::AddArchive(path);
     }
     return 1;
 }

@@ -171,12 +171,12 @@ void CBaseManager::DestroyAll() {
 
 // --- No archives --------------------------------------------------------------------------------
 
-BOOL CBaseManager::AddArchive(const char*) { return 0; }
-BOOL CBaseManager::RemoveArchive(const char*) { return 0; }
+BOOL CBaseManager::AddArchive(const std::string&) { return 0; }
+BOOL CBaseManager::RemoveArchive(const std::string&) { return 0; }
 BOOL CBaseManager::RemoveAllArchives() { return 0; }
-void* CBaseManager::GetFile(const char*, std::uint32_t*) { return nullptr; }
+void* CBaseManager::GetFile(std::string_view, std::uint32_t*) { return nullptr; }
 bool CBaseManager::CloseFile(void*) { return false; }
-BOOL CBaseManager::HasFile(const char*) { return 0; }
+BOOL CBaseManager::HasFile(std::string_view) { return 0; }
 void CBaseManager::FreeAllFiles() {}
 
 // --- Objects in and out -------------------------------------------------------------------------

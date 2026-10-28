@@ -128,7 +128,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
 
         {
             std::string name;
-            QualifyName(&name, text.c_str());
+            QualifyName(&name, text);
             qualified = name;
         }
 
@@ -363,7 +363,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
         if (!ok) return 0;
         if (qualify) {
             std::string qualified;
-            QualifyName(&qualified, name.c_str());
+            QualifyName(&qualified, name);
             name = qualified;
         }
         token = NextToken(pos);
@@ -434,7 +434,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
         } else {
             {
                 std::string name;
-                QualifyName(&name, text.c_str());
+                QualifyName(&name, text);
                 qualified = name;
             }
             std::vector<ScriptDefinition>& scripts = definitions_;
@@ -450,9 +450,9 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                 commands->push_back(*cmd);
                 continue;
             }
-            if (globals_.HasVariable(text.c_str())) {
+            if (globals_.HasVariable(text)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &text);
-            } else if (globals_.HasVariable(qualified.c_str())) {
+            } else if (globals_.HasVariable(qualified)) {
                 ok = LoadAssignOperator(cmd, pos, tokens, locals, &qualified);
             } else {
                 return Error(this, token.line, 3, "Unexpected token '%s'", text.c_str());

@@ -587,7 +587,7 @@ void CMpConnectScreen::CreateScreen() {
         if (text::CharacterCount(name) > kNameLength) name = str::Left(name, text::CharacterBytes(name, kNameLength));
         str::TrimLeft(name);
         str::TrimRight(name);
-        nameEdit_->SetText(name.c_str());
+        nameEdit_->SetText(name);
         nameEdit_->SetEnabled(0, 1);
         nameEdit_->SetFocused(false);
     }

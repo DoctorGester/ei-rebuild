@@ -182,7 +182,7 @@ void CSoundManager::ClearWaveSources() {
 
 // Called at startup for the two sound archives. A failed allocation is not tested (the open call goes
 // through a null object).
-int CSoundManager::AddWaveSource(const char* path) {
+int CSoundManager::AddWaveSource(const std::string& path) {
     if (enabled == 0) return 1;
     auto* source = new CMappedResource();
     if (source->OpenResource(path, 0) == 0) {
@@ -221,7 +221,7 @@ void CSoundManager::ListWaveFiles(std::vector<std::string>* out, const char* pat
 }
 
 // Called at startup.
-int CSoundManager::SetPath(const char* folder, const char* registryPath) {
+int CSoundManager::SetPath(std::string_view folder, const std::string& registryPath) {
     if (enabled == 0) return 1;
     soundPath = folder;
     bool missing;

@@ -20,7 +20,7 @@ constexpr std::uint32_t kMaxLines = 50;
 
 // Appends a line (the next line number, the text, the connection of `player`'s binding,
 // null for the server's own lines) and drops the oldest past 50.
-void ServerSession::Announce(const char* text, CRefObject* player) {
+void ServerSession::Announce(std::string_view text, CRefObject* player) {
     auto* line = NewCounted<LineMessage>();
     lines_.emplace_back(line);
 

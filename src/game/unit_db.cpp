@@ -20,7 +20,7 @@ void Dword(ChunkArchive* ar, int id, void* data) { ar->Field(id, data, 4); }
 constexpr int kSkillLevelValues = 10;
 constexpr int kFirstValueField = 12;
 
-bool SameName(const std::string& name, const char* other) {
+bool SameName(const std::string& name, std::string_view other) {
     return text::CompareIgnoringCase(name, other) == 0;
 }
 
@@ -239,13 +239,13 @@ void ChunkArchive::SkillLevelChunk(int id, SkillLevelRecord* record) {
     LeaveChunk();
 }
 
-SkillLevelRecord* SkillDatabase::FindLevel(const char* levelName) {
+SkillLevelRecord* SkillDatabase::FindLevel(std::string_view levelName) {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return &levels[i];
     return nullptr;
 }
 
-int SkillDatabase::IndexOf(const char* levelName) const {
+int SkillDatabase::IndexOf(std::string_view levelName) const {
     for (std::uint32_t i = 0; i < levels.size(); ++i)
         if (SameName(levels[i].name, levelName)) return static_cast<int>(i);
     return -1;

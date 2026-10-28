@@ -272,13 +272,13 @@ struct CSoundManager : CEngineObject {
     int CreateBody();
     void ClearWaveSources();
     // 1 (also when sound is off), 0 when the archive cannot be opened.
-    int AddWaveSource(const char* path);
+    int AddWaveSource(const std::string& path);
     // The first wave source holding `name`; `source` may be null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
     // Rebirth-patched. Source by source.
     void ListWaveFiles(std::vector<std::string>* out, const char* pattern);
     // 1 when sound is off; else whether the registry opened.
-    int SetPath(const char* folder, const char* registryPath);
+    int SetPath(std::string_view folder, const std::string& registryPath);
 
     int FlatVolume(int level, int heightFade, int speech) const;
     void ApplyVolumePan(SoundSlot* slot) const;
@@ -317,13 +317,13 @@ struct CSoundManager : CEngineObject {
     void DeleteDeferred();
 
     void StreamNotify(int mode);                                                          // empty
-    int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
+    int Play3D(std::string_view name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);
-    int Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
+    int Play2D(std::string_view name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                int compressed);
     // From the cache, or read from the archives (with `compressed` an MP3 decompressed through the ASI codec);
     // a new handle. 0 when the wave is nowhere.
-    int LoadSample(SoundSlot* slot, int index, const char* name, int compressed);
+    int LoadSample(SoundSlot* slot, int index, std::string_view name, int compressed);
 };
 
 // A music theme from music.reg: one per allod, open land or dungeon.

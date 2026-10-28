@@ -64,7 +64,7 @@ acks::Speeches* UnitList(acks::UnitAcks& record, int list) {
 
 // --- prints.db ------------------------------------------------------------------------------------
 
-int PrintsDatabase::Load(const char* folder) {
+int PrintsDatabase::Load(const std::string& folder) {
     std::string base = folder;
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
@@ -94,7 +94,7 @@ int PrintsDatabase::Load(const char* folder) {
 
 namespace acks {
 
-int AckDatabase::Load(const char* folder) {
+int AckDatabase::Load(const std::string& folder) {
     std::string base = folder;
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);

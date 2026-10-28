@@ -71,7 +71,7 @@ void Lists(ChunkArchive* ar, Speeches (&lists)[N]) {
 } // namespace
 
 template <typename Record>
-Record* AckTable<Record>::Find(const char* name) {
+Record* AckTable<Record>::Find(std::string_view name) {
     return byName[std::string(name)];
 }
 
@@ -134,7 +134,7 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
     if (kind <= 0x29) {
         if (kind == 0x23 || kind == 0x24)
             TheSoundManager()->Play3D("weapons\\crash.wav", 0, &unit->localPosition_.x, 8.0f, 20.0f, 0, 0);
-        UnitAcks* record = db.units.Find(prototype->name.c_str());
+        UnitAcks* record = db.units.Find(prototype->name);
         if (!record) return nullptr;
         if (kind == 0x29) {
             environmentList = &record->environmentSpeeches;
@@ -143,15 +143,15 @@ const SpeechRecord* SayAck(CUnit* unit, int kindArg) {
             if (!list) return nullptr;
         }
     } else if (kind <= 0x2D) {
-        ExtraAcks* record = db.extras.Find(prototype->name.c_str());
+        ExtraAcks* record = db.extras.Find(prototype->name);
         if (!record) return nullptr;
         list = ListFor(record->head, kind);
         if (!list) return nullptr;
     } else if (kind <= 0x32) {
-        ModelAcks* record = db.models.Find(prototype->name.c_str());
+        ModelAcks* record = db.models.Find(prototype->name);
         if (!record) {
             auto* model = unitdb::ModelRecord(static_cast<std::uint32_t>(prototype->modelIndex));
-            record = db.models.Find(model->name.c_str());
+            record = db.models.Find(model->name);
             if (!record) return nullptr;
         }
         list = ListFor(record->head, kind);
@@ -179,7 +179,7 @@ const SpeechRecord* SayNamedAck(CUnit* unit, const char* name, bool alternate) {
     if (!unit) return nullptr;
     auto* prototype = unit->GetPrototype23C();
     if (!prototype) return nullptr;
-    UnitAcks* record = g_ackDatabase->units.Find(prototype->name.c_str());
+    UnitAcks* record = g_ackDatabase->units.Find(prototype->name);
     if (!record) return nullptr;
     std::size_t length = std::strlen(name);
     for (const SpeechRecord& s : record->namedSpeeches) {

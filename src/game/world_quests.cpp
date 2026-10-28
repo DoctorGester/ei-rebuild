@@ -397,7 +397,7 @@ void CWorldServer::UpdateMercBriefings() {
     }
 }
 
-void CWorldServer::CompleteBriefing(int playerId, const char* name) {
+void CWorldServer::CompleteBriefing(int playerId, std::string_view name) {
     if (IsMultiplayerClient()) {
         std::vector<std::string> parts;
         text::Split(name, &parts, '.');
@@ -433,15 +433,15 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     QueueBriefingScript(playerId, name);
 }
 
-void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
+void CWorldServer::QueueBriefingScript(int playerId, std::string_view name) {
     std::string script;
-    script = str::Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
+    script = str::Format(worlddata::BriefingCompleteScript(), playerId, std::string(name).c_str(), playerId, std::string(name).c_str());
     MainScript()->Load(&script, 1);
     if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
 }
 
-void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
+void CWorldServer::ApplyMercBriefing(CPlayer* player, std::string_view name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const std::string& variable) {
@@ -472,7 +472,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         if (is(v.n1) || is(v.n3)) {
             state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
-            party->AddMember(v.merc.c_str(), prototype, game::kEmptyText);
+            party->AddMember(v.merc, prototype, game::kEmptyText);
         }
     }
     UpdateMercBriefings();

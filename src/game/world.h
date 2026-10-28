@@ -439,13 +439,13 @@ public:
     // Briefing `name` ("a.b.<record>") is complete for player `playerId`: a network client asks the server; otherwise
     // the player gets the record's experience, gold and items, loses its quest items, its variables are set, and the
     // scripts get GSSetVar / #OnBriefingComplete (also on a network client with EI_Plugin's Briefings).
-    void CompleteBriefing(int playerId, const char* name);
+    void CompleteBriefing(int playerId, std::string_view name);
     // The end of CompleteBriefing: GSSetVar / #OnBriefingComplete for `name` queued, run at once in
     // kind-3 games.
-    void QueueBriefingScript(int playerId, const char* name);
+    void QueueBriefingScript(int playerId, std::string_view name);
     // The mercenary side of a completed briefing `name`: per slot b.mercN.n8_N clears the variable, n10_N removes the
     // mercenary, n2_N removes it from the party, n1_N / n3_N hire it (amerc_N = 2); then UpdateMercBriefings.
-    void ApplyMercBriefing(CPlayer* player, const char* name);
+    void ApplyMercBriefing(CPlayer* player, std::string_view name);
     // Gives `amount` experience: with a player, shared equally by its living heroes (units and party
     // records); without one, shared by the players that have a single hero, in proportion to the sqrt of
     // two of each hero's controller stats. Zero (or NaN) does nothing.
@@ -1134,7 +1134,7 @@ struct GameFlow {
     // zone is unknown, after FatalError and closing the network sessions); otherwise the party enters
     // the zone and the clock follows its "gtime". The mode becomes the campaign mode (the server world's
     // sessionKind_). Rebirth's AllowScriptsInMainMenu sets the server's scriptsActive_ in the menu.
-    void StartZone(const char* zone, int mode);
+    void StartZone(std::string_view zone, int mode);
     // A new game: "exec autoexec.cfg" on the console, the party manager's new game, saves\current
     // emptied, then the party's zone started (mode 0). Rebirth's AutoExec runs addon's AutoExec lines
     // first.
@@ -1227,7 +1227,7 @@ struct SavedParties {
 };
 extern lib::StaticObject<SavedParties> g_savedParties;
 
-int RequestZone(const char* zone, int entrance);
+int RequestZone(std::string_view zone, int entrance);
 
 // With the briefing texts loaded: every quest text file loaded so far (g_questFiles) is unloaded and
 // the list emptied.

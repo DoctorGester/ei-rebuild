@@ -81,8 +81,7 @@ bool& SessionsOpen() { return g_interface->disconnected_; }
 
 MapRecord* ZoneRecords() { return g_mapDatabase->maps.data(); }
 int ZoneRecordCount() { return static_cast<int>(g_mapDatabase->maps.size()); }
-MapRecord* FindZone(const char* name) { return g_mapDatabase->FindMap(name); }
-MapRecord* FindZone(const std::string& name) { return FindZone(name.c_str()); }
+MapRecord* FindZone(std::string_view name) { return g_mapDatabase->FindMap(name); }
 
 using netlink::FileStream;
 
@@ -693,7 +692,7 @@ void GameFlow::RecreateClientSession() {
 
 int GameFlow::SaveGameThunk(const char* slot) { return SaveGame(slot); }
 
-int RequestZone(const char* zone, int entrance) {
+int RequestZone(std::string_view zone, int entrance) {
     g_interface->closeAll_ = true;
     // The local view asks to go to a zone (name, entrance).
     return g_clientWorld->LocalView()->RequestZone(zone, entrance);
@@ -835,7 +834,7 @@ void GameFlow::SwitchMultiplayerZone() {
             std::string zone;
             MultiplayerZoneInto(&zone);
             ToMainMenu() = 1;
-            g_clientWorld->LocalView()->RequestZone(zone.c_str(), 0);
+            g_clientWorld->LocalView()->RequestZone(zone, 0);
         }
         if (host) {
             // The host sends command 9 with the announced zone and drops the announcement.
@@ -1035,7 +1034,7 @@ bool NameInList(const char* const* list, const char* name) {
     return false;
 }
 
-void GameFlow::StartZone(const char* zone, int mode) {
+void GameFlow::StartZone(std::string_view zone, int mode) {
     g_cursor->SetShape(3);
     MapRecord* zoneRecord = nullptr;
     ToMainMenu() = 1;
@@ -1062,7 +1061,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     }
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
-        game::FatalError(kZoneNotFound, zone);
+        game::FatalError(kZoneNotFound, std::string(zone).c_str());
         if (Active(net::g_gameClient)) {
             net::ServerSession*& server = net::g_gameServer;
             net::ServerSession* oldServer = server;
@@ -1125,7 +1124,7 @@ void GameFlow::StartNewGame() {
     ClearSaveFolder(folder);
     LocalRecords records;
     g_partyManager->EndRedeploy(records.Party());
-    StartZone(records.Party()->zone_.c_str(), 0);
+    StartZone(records.Party()->zone_, 0);
 }
 
 // ---- The flow's requests -------------------------------------------------------------
@@ -1213,7 +1212,7 @@ void GameFlow::ProcessRequest() {
         StartNewGame();
         break;
     case kStateZone:
-        StartZone(requestTarget_.c_str(), 0);
+        StartZone(requestTarget_, 0);
         break;
     case kStatePartyZone: {
         const char* zone = requestTarget_.c_str();
@@ -1333,7 +1332,7 @@ int GameFlow::LoadGame(const char* slot) {
     MapRecord* zoneRecord = FindZone(records.Party()->zone_);
     int kind = zoneRecord->kind;
     if (kind != 0 && kind != 2) {
-        StartZone(records.Party()->zone_.c_str(), 0);
+        StartZone(records.Party()->zone_, 0);
     } else {
         {
             std::string path = slotFolder + kMissionFile;

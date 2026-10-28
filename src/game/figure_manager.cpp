@@ -46,16 +46,16 @@ int CFigureManager::CreateWithArchives() {
     if (!CBaseManager::Create()) return 0;
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
-        for (const std::string& path : modfolders::FigureArchives()) AddArchive(path.c_str());
+        for (const std::string& path : modfolders::FigureArchives()) AddArchive(path);
     }
     std::string folder = *g_textFolder;
-    AddArchive((folder + kFiguresArchive).c_str());
-    AddArchive((folder + kMenusArchive).c_str());
+    AddArchive((folder + kFiguresArchive));
+    AddArchive((folder + kMenusArchive));
     LoadMenuRects(g_menuRects);
     return 1;
 }
 
-CFigureMesh* CFigureManager::NewPart(const char* modelName, const char* partName, FigureModel*, std::uint32_t,
+CFigureMesh* CFigureManager::NewPart(const std::string& modelName, std::string_view partName, FigureModel*, std::uint32_t,
                                      std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
     auto* part = CreateObjectAs<CFigureMesh>(kSharedPartClass + (attached != 0), -1);
     part->name_ = partName;
@@ -70,7 +70,7 @@ CFigureMesh* CFigureManager::NewFigure(const char* name) {
     figure->directory_ = game::kEmptyText;
     std::string path;
     path = str::Format(game::FigFileFormat(), name);
-    void* data = GetFile(path.c_str(), nullptr);
+    void* data = GetFile(path, nullptr);
     if (!data) {
         ReleaseObject(figure);
         return nullptr;
@@ -91,7 +91,7 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
         const char* directory = part->directory_.c_str();
         std::string path;
         path = str::Format(game::FigPathFormat(), directory, part->GetName());
-        data = GetFile(path.c_str(), nullptr);
+        data = GetFile(path, nullptr);
     }
     if (!data) {
         const char* directory = part->directory_.c_str();

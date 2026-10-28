@@ -144,22 +144,22 @@ void CInterface3D::OnStringEvent(const char* event) {
         return;
     }
     auto top = [this]() { return stack_.back(); };
-    if (Compare(words[0].c_str(), "say") == 0 || Compare(words[0].c_str(), "say_block") == 0) {
+    if (Compare(words[0], "say") == 0 || Compare(words[0], "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size() < 2) return;
         int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
-        int kind = Compare(words[0].c_str(), "say_block") != 0 ? 0x2A : 0x2B;
+        int kind = Compare(words[0], "say_block") != 0 ? 0x2A : 0x2B;
         if (!stack_.empty())
             ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words[1].c_str()));
-    } else if (Compare(words[0].c_str(), "tutorial") == 0) {   // queued
+    } else if (Compare(words[0], "tutorial") == 0) {   // queued
         if (words.size() < 2) return;
         messages_.insert(messages_.end(), words[1]);
-    } else if (Compare(words[0].c_str(), "briefing") == 0) {
+    } else if (Compare(words[0], "briefing") == 0) {
         if (words.size() < 2 || stack_.empty()) return;
         ScreenOf(top())->ShowBriefing(words[1].c_str());
-    } else if (Compare(words[0].c_str(), "autosave") == 0) {
+    } else if (Compare(words[0], "autosave") == 0) {
         pollTop_ = true;
-    } else if (Compare(words[0].c_str(), "endofgame") == 0) {
+    } else if (Compare(words[0], "endofgame") == 0) {
         if (!stack_.empty()) ScreenOf(top())->GameOver(1);
     }
 }

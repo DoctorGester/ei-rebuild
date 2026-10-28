@@ -643,7 +643,7 @@ struct PrintsDatabase {
     // "prints.db" of `folder` + "database.res" (Rebirth-patched): the three tables, each read through an
     // archive of its own and filed under its records' names. 1; FatalError's result when the archive
     // (reported as "databases.res") or the file cannot be opened.
-    int Load(const char* folder);
+    int Load(const std::string& folder);
     // The static initialiser's work. The three tables empty.
     PrintsDatabase* Construct();
     // The exit function's work: the tables from the last.

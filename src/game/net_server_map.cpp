@@ -52,7 +52,7 @@ void ServerSession::SetMap(const std::string* name) {
     {
         std::string title, text;
         const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-        Announce((*g_interface->MessageText(&text, 5, mapTitle)).c_str(), nullptr);
+        Announce((*g_interface->MessageText(&text, 5, mapTitle)), nullptr);
     }
 
     QuestBriefingRecord* entry;

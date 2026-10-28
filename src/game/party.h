@@ -75,7 +75,7 @@ public:
     // entry (its statistics are the stack's leftover bytes); `name` as text 1 and its text key (-1 when
     // empty) as the key, `prototype` as text 5, `extra` as text 0; then FillFromPrototype. Returns
     // the record.
-    PartyUnitRecord* AddMember(const char* name, const char* prototype, const char* extra);
+    PartyUnitRecord* AddMember(std::string_view name, std::string_view prototype, std::string_view extra);
     // Gives `record` what its prototype (text 5) says: text 2 from its model, the NPC statistics, the three
     // scales, copies (CItem::Clone) of the starting armour, of the two weapons unless
     // empty or "none", and of the spells; text 6 = text 5. Returns 1. (The lists come from the record: the

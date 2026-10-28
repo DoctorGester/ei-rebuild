@@ -44,7 +44,7 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
 }
 
 // The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
-UnitPrototypeRecord* PrototypeByName(const char* name) {
+UnitPrototypeRecord* PrototypeByName(std::string_view name) {
     std::string key(name);
     return g_unitDatabase->prototypes.byName[key];
 }
@@ -134,13 +134,13 @@ void CUnit::LoadUnit(CStream* stream) {
 
     std::string prototypeName;
     stream->ReadInto(&prototypeName);
-    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName.c_str())));
+    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
         second = g_unitDatabase->prototypes.FindByName(prototypeName);
     } else {
         stream->ReadInto(&prototypeName);
-        second = PrototypeByName(prototypeName.c_str());
+        second = PrototypeByName(prototypeName);
     }
     prototype23C = PrototypeIndexOf(second);
 }

@@ -103,7 +103,7 @@ void ServerSession::CompleteZone(const std::string* zone) {
         {
             std::string title, text;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-            Announce((*g_interface->MessageText(&text, 7, mapTitle)).c_str(), nullptr);
+            Announce((*g_interface->MessageText(&text, 7, mapTitle)), nullptr);
         }
     }
 
@@ -151,7 +151,7 @@ void ServerSession::LeaveZone() {
         {
             std::string title, text;
             const char* mapTitle = (*SessionMapNameInto(&title)).c_str();
-            Announce((*g_interface->MessageText(&text, 6, mapTitle)).c_str(), nullptr);
+            Announce((*g_interface->MessageText(&text, 6, mapTitle)), nullptr);
         }
 
         QuestBriefingRecord* entry;

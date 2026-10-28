@@ -252,7 +252,7 @@ void CBriefingScreen::ViewPreset(int preset) {
     }
 }
 
-void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
+void CBriefingScreen::HideSpeaker(std::string_view name, int immediate, int time) {
     auto* person = GameFindClientUnit(TextKeyFromName(name));
     if (!person) {
         for (auto node = shown_.begin(); node != shown_.end(); ++node) {
