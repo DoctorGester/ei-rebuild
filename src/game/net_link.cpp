@@ -9,11 +9,11 @@
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <new>
+
 
 namespace netlink {
 

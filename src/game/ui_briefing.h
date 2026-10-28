@@ -12,12 +12,11 @@
 #include "ui_camp.h"
 #include "world.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 
 #include <cstddef>
-#include <cstdint>
 #include <list>
-#include <string>
 #include <vector>
 
 // A person walking to the place a dialogue gives them.

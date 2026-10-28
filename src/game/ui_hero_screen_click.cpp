@@ -12,7 +12,9 @@
 #include "lib/file_io.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <new>
+#include <string>
 #include "console.h"
 #include "item.h"
 #include "party.h"
@@ -25,12 +27,9 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
-#include <new>
-#include <string>
 #include <vector>
 
 namespace {

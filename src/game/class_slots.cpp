@@ -8,12 +8,11 @@
 #include "unit.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <string>
 #include "game_data.h"
 
 #include <cstdint>
 #include <new>
-#include <string>
 
 #undef GetClassName
 

@@ -7,11 +7,11 @@
 
 #include "hash_tables_400.h"
 #include "lib/static_object.h"
-#include "lib/mfc.h"
-
-#include <cstdlib>
+#include <cstdint>
 #include <cstring>
 #include <string>
+
+#include <cstdlib>
 #include <string_view>
 #include <type_traits>
 

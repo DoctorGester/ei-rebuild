@@ -7,7 +7,7 @@
 
 #include "core_maths.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
 
 
 #include <cstring>

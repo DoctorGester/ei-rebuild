@@ -5,10 +5,11 @@
 
 #include "base_manager.h"
 
-#include "lib/mfc.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <string>
+
 
 namespace {
 constexpr int kClassUnit = 0x50;

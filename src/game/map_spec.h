@@ -6,12 +6,11 @@
 #include "lock_key.h"
 #include "maths.h"
 #include "unit_record.h"
-#include "lib/mfc.h"
-#include "lib/hash_map.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include "lib/hash_map.h"
+
 #include <vector>
 
 class CStream;

@@ -9,14 +9,13 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/vecmath.h"
 #include "object_tables.h"       // FindCommandByKey
 #include "game_data.h"
 
 #include <cstdint>
 #include <cstring>
-#include <string>
 
 namespace {
 constexpr int kFont = 0;

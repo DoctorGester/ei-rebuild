@@ -6,12 +6,12 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 
 #include <new>
-#include <string>
 
 namespace {
 

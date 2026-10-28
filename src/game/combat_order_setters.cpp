@@ -13,11 +13,11 @@
 #include "game_singletons.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-#include "lib/text_case.h"
-
+#include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/text_case.h"
+
 
 namespace {
 constexpr int kOrderUse = 6;            // UnitAction kinds

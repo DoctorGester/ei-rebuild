@@ -15,10 +15,9 @@
 #include "unit.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/vecmath.h"
 
-#include <cstdint>
 #include <cstring>
 
 // ---- Materials ------------------------------------------------------------------------------------

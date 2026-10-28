@@ -9,12 +9,11 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <cstring>
-#include <memory>
 #include <string>
+
+#include <memory>
 #include "core_maths.h"
 #include "unit_db.h"
 #include "world_glue.h"

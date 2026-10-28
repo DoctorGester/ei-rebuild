@@ -5,13 +5,12 @@
 
 #include "resource_manager.h"
 
-#include "lib/mfc.h"
-#include "lib/hash_map.h"
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include "lib/hash_map.h"
+#include "game_data.h"
+
 #include <vector>
 #include <unordered_map>
 

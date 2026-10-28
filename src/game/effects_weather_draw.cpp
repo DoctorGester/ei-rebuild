@@ -10,14 +10,13 @@
 
 #include "ei/x87.h"
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <memory>
 #include "lib/static_object.h"
 #include "game_data.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <memory>
 #include <vector>
 
 // ---- The visibility fog ---------------------------------------------------------------------------------

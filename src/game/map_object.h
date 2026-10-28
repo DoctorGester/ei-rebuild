@@ -9,12 +9,11 @@
 #include "maths.h"
 #include "net_delta.h"          // DeltaState
 
-#include "lib/mfc.h"
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include "game_data.h"
+
 #include <vector>
 
 class CMapObjectServer;

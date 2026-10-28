@@ -12,7 +12,9 @@
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "render/render.h"
 #include "dx_surface.h"
 
@@ -22,8 +24,6 @@
 #include "options.h"
 #include "lib/str.h"
 
-#include <cstring>
-#include <string>
 
 namespace {
 

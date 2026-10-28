@@ -7,12 +7,13 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <new>
 #include <string>
 #include <utility>
+
+#include <new>
 
 namespace {
 

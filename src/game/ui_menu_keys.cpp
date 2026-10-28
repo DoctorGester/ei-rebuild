@@ -10,16 +10,15 @@
 #include "console.h"
 #include "item_db_text.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/text_case.h"
 
-#include <cstdint>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
 #include <cstring>
-#include <string>
 
 namespace {
 // Virtual-key codes.

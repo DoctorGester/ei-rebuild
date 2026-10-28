@@ -5,13 +5,12 @@
 #include "ui.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstring>
-#include <string>
 
 namespace {
 constexpr int kFormatType = 1, kWordType = 2;

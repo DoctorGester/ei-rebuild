@@ -15,11 +15,10 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc.h"
+#include <string>
 
 #include <bit>
 #include <cmath>
-#include <string>
 
 namespace {
 

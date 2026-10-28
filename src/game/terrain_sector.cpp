@@ -10,13 +10,13 @@
 #include "ei/x87.h"
 #include "random.h"
 #include "../lib/crt.h"
-#include "../lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <memory>
-#include <string>
 #include <vector>
 #include "render/render.h"
 #include "game_data.h"

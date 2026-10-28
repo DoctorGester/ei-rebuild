@@ -15,7 +15,7 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstring>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
@@ -23,7 +23,6 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
-#include <cstring>
 #include <list>
 
 namespace {

@@ -7,11 +7,10 @@
 
 #include "maths.h"
 #include "lib/file_io.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 #include <vector>
 
 class Chunk {

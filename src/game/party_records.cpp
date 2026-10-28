@@ -9,7 +9,7 @@
 #include "class_templates.h"
 #include "party.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
 
 #include "game_data.h"
 #include "lib/str.h"

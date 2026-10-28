@@ -9,11 +9,10 @@
 #include "unit.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
-#include "lib/static_object.h"
-
 #include <cstddef>
 #include <cstdint>
+#include "lib/static_object.h"
+
 #include <list>
 #include <unordered_map>
 #include <vector>

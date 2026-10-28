@@ -8,14 +8,13 @@
 #include "class_templates.h"
 #include "party_records.h"
 
-#include "lib/mfc.h"
+#include <string>
 #include "lib/hash_map.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 #include <vector>
 
 // An entry of the manager's list: two texts and a list of ids. Its copy, assignment and

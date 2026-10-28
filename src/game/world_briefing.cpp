@@ -20,7 +20,10 @@
 #include "mod_folders.h"
 #include "world_map_files.h"
 
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "game_flow_data.h"
 #include "game_data.h"
@@ -28,11 +31,9 @@
 #include "lib/str.h"
 
 #include <algorithm>
-#include <cstring>
 #include <memory>
 #include <new>
 #include <bit>
-#include <string>
 #include <vector>
 
 namespace {

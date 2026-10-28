@@ -11,15 +11,14 @@
 #include "unit.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "render/render.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
 #include <cmath>
-#include <cstdint>
-#include <string>
 
 namespace {
 

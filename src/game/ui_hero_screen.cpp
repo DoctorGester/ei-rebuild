@@ -19,7 +19,8 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/gameapi.h"
 #include "party.h"
 #include "game_data.h"
@@ -27,9 +28,7 @@
 #include "lib/str.h"
 
 #include <cmath>
-#include <cstdint>
 #include <memory>
-#include <string>
 
 namespace {
 

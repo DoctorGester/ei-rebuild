@@ -10,7 +10,7 @@
 
 #include "lib/crt.h"
 #include "effects.h"
-#include "lib/mfc.h"
+#include <cstdint>
 
 #include "game_singletons.h"
 

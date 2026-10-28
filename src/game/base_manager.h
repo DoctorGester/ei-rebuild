@@ -2,13 +2,12 @@
 
 #include "engine_object.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-#include "lib/hash_map.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
+#include "lib/hash_map.h"
+
+#include <list>
 #include <unordered_map>
 
 #undef GetClassName   // CEngineObject::GetClassName

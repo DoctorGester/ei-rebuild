@@ -22,15 +22,15 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "text_split.h"
-#include "lib/mfc.h"
-
-#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
+
+#include <algorithm>
 #include <bit>
 #include <list>
 #include <memory>
-#include <string>
 #include <vector>
 #include "party.h"
 #include "world.h"

@@ -10,8 +10,6 @@
 #include <cstdint>
 #include <string>
 
-#include "../lib/mfc.h"
-
 class CWinRegistry {
 public:
     CWinRegistry* Construct();                                    // returns this

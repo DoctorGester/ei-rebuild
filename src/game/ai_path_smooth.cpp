@@ -5,10 +5,10 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <memory>
 #include "game_data.h"
 
-#include <cstdint>
 #include <cstdlib>
 
 namespace {

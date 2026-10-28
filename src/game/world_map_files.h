@@ -4,9 +4,8 @@
 // folder), so these install in the vanilla launch only and callers keep calling the fixed addresses.
 
 #include "ei/hook.h"
-#include "lib/mfc.h"
-
 #include <string>
+
 
 class GameBuffer;
 

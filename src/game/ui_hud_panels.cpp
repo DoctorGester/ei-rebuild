@@ -11,7 +11,8 @@
 #include "player_client.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -19,10 +20,8 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <list>
 #include <cstring>
-#include <string>
 
 namespace {
 

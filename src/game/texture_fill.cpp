@@ -8,7 +8,7 @@
 #include "text_split.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/str.h"
 
 namespace {

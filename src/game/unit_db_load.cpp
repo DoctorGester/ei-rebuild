@@ -7,9 +7,9 @@
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
 #include "lib/crt.h"
 
-#include "lib/mfc.h"
-
+#include <cstdint>
 #include <string>
+
 #include <vector>
 
 namespace {

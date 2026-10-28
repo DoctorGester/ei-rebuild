@@ -8,10 +8,9 @@
 #include "lib/crt.h"
 #include "resource_local.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <string>
+
 
 int LeverRecordTable::Load(const char* folder) {
     std::string dir = folder;

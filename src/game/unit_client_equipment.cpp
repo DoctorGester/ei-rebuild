@@ -7,12 +7,12 @@
 #include "texture.h"
 #include "unit.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/str.h"
 
 #include "ei/rebirth.h"
 
-#include <string>
 
 namespace {
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;

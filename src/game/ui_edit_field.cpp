@@ -9,16 +9,15 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <new>
-#include <string>
 
 namespace {
 constexpr int kKeyBackspace = 0x08;

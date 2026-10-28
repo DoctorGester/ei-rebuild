@@ -13,13 +13,14 @@
 #include "world.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 
 #include <bit>
 #include <cfloat>
 #include <cmath>
-#include <cstring>
 #include <memory>
 #include <new>
 #include <vector>

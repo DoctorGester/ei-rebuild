@@ -5,10 +5,9 @@
 #include "ai_grids.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstdint>
 #include <cstring>
+
 
 namespace {
 

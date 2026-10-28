@@ -6,9 +6,9 @@
 // A colour escape ("\007C" and three raw colour bytes, built by the game) is kept as it is both ways. See
 // docs/notes/standalone.md section 4.
 
-#include "lib/mfc.h"
-
+#include <cstddef>
 #include <string>
+
 #include <string_view>
 
 #ifndef EI_ASSET_CODEPAGE

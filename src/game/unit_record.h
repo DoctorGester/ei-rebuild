@@ -4,11 +4,10 @@
 // base stats, skills, the inventory, spells and equipment. It is the tail of a .mob unit record
 // (mapspec::UnitSpec + 0x210). See docs/notes/objects.md ("Rewritten").
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 #include <vector>
 
 class CUnit;

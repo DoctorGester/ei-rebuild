@@ -6,13 +6,12 @@
 #include "figure_manager.h"       // CFigureManager, FigureModel
 #include "map_object_figures.h"   // CFigureAnimationState, FigureBone
 
-#include "lib/mfc.h"
-
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include "model.h"
 #include "lib/crt.h"
+#include <cstdint>
+#include <string>
+
+#include <cstring>
+#include "model.h"
 
 namespace {
 

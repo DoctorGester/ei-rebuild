@@ -6,7 +6,9 @@
 #include "engine_object.h"
 
 #include "../lib/containers.h"
-#include "../lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "../lib/hash_map.h"
 #include "../lib/vecmath.h"
 #include "registry.h"
@@ -14,10 +16,7 @@
 #include "game_data.h"
 #include "../lib/import_prototypes.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <list>
-#include <string>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>

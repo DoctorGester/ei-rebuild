@@ -5,7 +5,9 @@
 
 #include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstring>
+#include <new>
+#include <string>
 #include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
@@ -13,9 +15,6 @@
 
 #include <ddraw.h>
 
-#include <cstring>
-#include <new>
-#include <string>
 
 namespace {
 // Game-wide paths set at startup. Names provisional.

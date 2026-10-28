@@ -10,11 +10,10 @@
 #include "maths.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 #include <vector>
 
 #include <windows.h>   // RECT

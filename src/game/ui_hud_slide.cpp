@@ -15,7 +15,9 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
@@ -23,9 +25,6 @@
 
 #include <concepts>
 #include <cmath>
-#include <cstdint>
-#include <cstring>
-#include <string>
 
 namespace {
 

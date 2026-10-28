@@ -5,7 +5,6 @@
 #include "ui_screens.h"
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
 #include "game_data.h"
 
 #include <cstdint>

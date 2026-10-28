@@ -10,7 +10,8 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <memory>
+#include <string>
 #include "lib/text_case.h"
 
 #include "game_data.h"
@@ -18,8 +19,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <string>
 
 namespace {
 

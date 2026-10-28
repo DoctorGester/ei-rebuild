@@ -18,14 +18,14 @@
 #include "unit_ai.h"       // AIBrain
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
 
 #include "ei/vcall.h"
 #include "game_data.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 
-#include <cstring>
 #include <new>
 
 namespace {

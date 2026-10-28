@@ -16,12 +16,11 @@
 #include "search_grid.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
 #include "lib/hash_map.h"
 #include "game_data.h"
 
-#include <cstddef>
-#include <cstdint>
 #include <list>
 #include <vector>
 

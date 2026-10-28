@@ -23,7 +23,9 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -31,9 +33,7 @@
 #include "game_data.h"
 #include "lib/str.h"
 
-#include <cstring>
 #include <list>
-#include <string>
 #include <vector>
 
 namespace {

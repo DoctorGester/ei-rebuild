@@ -7,15 +7,14 @@
 #include "core_maths.h"
 #include "core_streams.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "lib/nan_audit.h"
 
 #include <cmath>
-#include <cstdint>
-#include <cstring>
 #include <memory>
-#include <string>
 
 bool ZoneExit::Contains(float x, float y) const {
     EI_NAN_AUDIT(angle, y, y2);

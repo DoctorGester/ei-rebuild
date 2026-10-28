@@ -13,13 +13,12 @@
 
 #include "ei/x87.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/str.h"
 
 #include <d3d.h>
 
-#include <cstdint>
-#include <string>
 
 namespace {
 

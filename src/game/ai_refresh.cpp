@@ -7,7 +7,7 @@
 #include "sector_map.h"
 #include "world_data.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
 
 #include "ei/x87.h"
 #include "game_data.h"

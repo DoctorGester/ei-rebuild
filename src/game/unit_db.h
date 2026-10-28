@@ -6,7 +6,8 @@
 
 #include "ei/x87.h"
 #include "game_data.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "maths.h"
 
 #include "lib/static_object.h"
@@ -14,8 +15,6 @@
 
 #include <bit>
 #include <cstddef>
-#include <cstdint>
-#include <string>
 #include <unordered_map>
 #include <vector>
 

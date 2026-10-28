@@ -17,7 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "game_singletons.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
 #include "lib/static_object.h"

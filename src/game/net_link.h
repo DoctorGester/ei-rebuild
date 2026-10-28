@@ -10,11 +10,10 @@
 #include "player_source.h"
 
 #include "lib/file_io.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/static_object.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <list>
 
 namespace net {

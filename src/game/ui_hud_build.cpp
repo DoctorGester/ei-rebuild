@@ -11,14 +11,13 @@
 #include "ui_widescreen.h"
 
 #include "ei/rebirth.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstdint>
-#include <string>
 #include <vector>
 
 namespace {

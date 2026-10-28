@@ -9,11 +9,11 @@
 
 #include "item.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 
 #include <list>
-#include <string>
 #include <vector>
 
 

@@ -8,14 +8,14 @@
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
 #include "map_object.h"
 #include "world.h"
 #include "game_data.h"
 #include "ai_map.h"
 
 #include <concepts>
-#include <cstring>
 
 namespace {
 

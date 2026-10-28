@@ -4,12 +4,11 @@
 // "armed" (the script's ActivateTrap); the position is the map object's. See docs/notes/units.md ("Magic traps").
 
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "map_object.h"
 #include "map_spec.h"   // MagicTrapRecord, TrapArea, TrapPoints
 
 #include <cstddef>
-#include <cstdint>
 #include <list>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)

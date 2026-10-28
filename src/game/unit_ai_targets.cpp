@@ -15,7 +15,7 @@
 #include "game_singletons.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/nan_audit.h"
 
 #include <bit>

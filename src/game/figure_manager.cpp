@@ -8,13 +8,14 @@
 #include "mod_folders.h"
 #include "world_data.h"
 
-#include "lib/mfc.h"
 #include "lib/crt.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "game_data.h"
 #include "lib/str.h"
 
-#include <cstring>
-#include <string>
 
 
 namespace {

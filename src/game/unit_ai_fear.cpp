@@ -14,7 +14,7 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc.h"
+#include <cstdint>
 
 #include <bit>
 #include <cmath>

@@ -8,11 +8,10 @@
 
 #include "lib/file_io.h"
 #include "lib/containers.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 
-#include <string>
 
 namespace {
 // The gap in the keys' time that ends the lead-in.

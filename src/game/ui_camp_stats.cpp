@@ -10,7 +10,7 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/mfc.h"
+#include <cstdint>
 #include "lib/str.h"
 
 namespace {

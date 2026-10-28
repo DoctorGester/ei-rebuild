@@ -9,11 +9,10 @@
 #include "core_streams.h"
 #include "maths.h"
 #include "game_data.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 
 // The bit writer / reader of this code is the CMemoryStream of core_streams.h (PutBit, GetBit,
 // WriteStream, ReadStream, CompressTo and DecompressTo are its members, defined in net_delta.cpp).

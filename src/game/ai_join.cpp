@@ -6,9 +6,8 @@
 // way. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
+
 
 namespace {
 

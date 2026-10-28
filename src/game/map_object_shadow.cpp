@@ -21,7 +21,10 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "ei/x87.h"
 #include "lib/vecmath.h"
@@ -29,7 +32,6 @@
 
 #include <bit>
 #include <cstdio>
-#include <cstring>
 #include <vector>
 #include "game_data.h"
 #include "game_singletons.h"

@@ -11,16 +11,16 @@
 #include "device_buffers.h"
 #include "lib/containers.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <utility>
 #include "lib/vecmath.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 #include "game_singletons.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <utility>
 #include <vector>
 
 // One record of the back-to-front sort (16 bytes).

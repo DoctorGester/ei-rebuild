@@ -9,13 +9,12 @@
 #include "unit.h"
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
+#include "game_data.h"
+
+#include <list>
 #include <vector>
 
 class CParticleSource;

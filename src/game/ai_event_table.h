@@ -6,10 +6,9 @@
 #include "maths.h"
 #include "unit.h"
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
+
 #include <list>
 
 struct AIEventPresence;

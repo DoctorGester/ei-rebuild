@@ -14,14 +14,13 @@
 #include "maths.h"
 #include "unit.h"
 
-#include "lib/mfc.h"
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <list>
 #include <string>
+#include "game_data.h"
+
+#include <list>
 #include <vector>
 
 template <typename T>

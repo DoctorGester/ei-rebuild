@@ -2,11 +2,11 @@
 // them) and the weapon's from its records. See item.h; the item classes' own name builders are item_names.cpp.
 #include "item.h"
 
-#include "lib/mfc.h"
-#include "lib/str.h"
-
+#include <cstdint>
 #include <cstring>
 #include <string>
+#include "lib/str.h"
+
 
 using namespace itemdb;
 

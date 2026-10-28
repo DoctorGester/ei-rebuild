@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "../lib/mfc.h"
 #include "registry.h"
 
 class CIniFile {

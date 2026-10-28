@@ -15,7 +15,10 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdarg>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "options.h"
 #include "script.h"
 #include "texture.h"
@@ -26,12 +29,8 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <ddraw.h>
 
-#include <cstdarg>
-#include <cstdint>
-#include <string>
 
 namespace app {
 namespace {

@@ -6,10 +6,9 @@
 // Users: CWorldServer::LoadZoneScripts (world_game.cpp), Chunk::ReadEncodedString
 // (chunk_stream.cpp, its own vector declaration and members).
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <string>
+
 #include <vector>
 
 struct MobScriptDecoder {

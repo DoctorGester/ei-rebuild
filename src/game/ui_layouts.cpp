@@ -22,7 +22,9 @@
 
 #include "ei/rebirth.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/text_case.h"
 #include "world_glue.h"
 #include "game_data.h"
@@ -30,11 +32,8 @@
 #include "figure_manager.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <new>
-#include <string>
 
 // --- Helpers ------------------------------------------------------------------------------------
 

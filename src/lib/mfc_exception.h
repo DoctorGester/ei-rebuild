@@ -4,7 +4,7 @@
 // section 2). The classes keep the exe's slots (real C++ classes), and a throw is this compiler's `throw` of a pointer
 // to mfc_try.h's class of the game's name.
 
-#include "mfc.h"
+#include <new>
 #include "mfc_object.h"
 #include "mfc_try.h"
 #include "game/game_data.h"
@@ -12,7 +12,6 @@
 #include <windows.h>
 
 #include <cstddef>
-#include <new>
 
 namespace mfc::impl {
 

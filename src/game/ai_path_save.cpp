@@ -7,8 +7,6 @@
 #include "ai_motion.h"
 #include "core_streams.h"
 
-#include "lib/mfc.h"
-
 #include <cstdint>
 
 void AIPath::LoadPath(CStream* stream) {

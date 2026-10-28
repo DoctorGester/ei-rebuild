@@ -23,19 +23,18 @@
 #include "text_split.h"
 #include "lib/gameapi.h"
 #include "lib/intro_sort.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <string>
 #include "lib/static_object.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 
 #include <concepts>
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <memory>
-#include <new>
-#include <string>
 #include <vector>
 
 namespace {

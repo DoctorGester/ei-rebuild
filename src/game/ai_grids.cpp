@@ -8,10 +8,11 @@
 #include "world_data.h"
 
 #include "lib/compiled_vtable.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include "game_data.h"
 
-#include <cstring>
 
 extern "C" int _purecall();
 

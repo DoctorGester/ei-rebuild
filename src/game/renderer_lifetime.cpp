@@ -17,13 +17,12 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
 
 #include <cstdlib>
 #include <d3d.h>
 
 #include <bit>
-#include <cstdint>
 #include <new>
 
 namespace {

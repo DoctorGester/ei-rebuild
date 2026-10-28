@@ -14,7 +14,7 @@
 #include "lib/calendar.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "lib/vecmath.h"
@@ -22,7 +22,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <string>
 
 namespace {
 

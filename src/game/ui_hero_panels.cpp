@@ -11,12 +11,11 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
-
 #include <cstdint>
+#include <string>
+
 #include <cstring>
 #include <initializer_list>
-#include <string>
 #include "unit.h"
 #include "combat.h"
 #include "game_data.h"

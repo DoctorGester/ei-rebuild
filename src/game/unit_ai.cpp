@@ -10,11 +10,11 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
-#include <bit>
+#include <cstdint>
 #include <cstring>
 #include <string>
+
+#include <bit>
 #include "world.h"
 #include "world_data.h"
 #include "lib/nan_audit.h"

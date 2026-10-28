@@ -10,15 +10,16 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "text_split.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "lib/str.h"
 #include "game_data.h"
 
 #include <bit>
 #include <cstdlib>
-#include <cstring>
 #include <new>
-#include <string>
 
 #undef GetClassName   // CEngineObject::GetClassName (console.h brings windows.h after item.h)
 

@@ -5,11 +5,10 @@
 // BuildUnitSkins (unit_skins.cpp) uses them, and the client's zone load (world_client_maps.cpp) owns them
 // meanwhile.
 
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+
 #include <vector>
 
 class CStream;

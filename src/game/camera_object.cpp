@@ -8,15 +8,14 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "world.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <new>
-#include <string>
 
 namespace {
 

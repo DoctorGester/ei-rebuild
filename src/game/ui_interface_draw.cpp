@@ -17,15 +17,14 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "render/render_state.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <iterator>
-#include <string>
 
 namespace {
 

@@ -3,14 +3,15 @@
 
 #include "core_maths.h"
 #include "net_coder.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 #include "ei/x87.h"
 
 #include <bit>
-#include <cstring>
 #include <memory>
-#include <string>
 
 
 namespace {

@@ -26,7 +26,9 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 #include "world_glue.h"
 #include "render/render_state.h"
 #include "game_data.h"
@@ -36,10 +38,7 @@
 #include <d3d.h>
 
 #include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <new>
-#include <string>
 
 namespace {
 

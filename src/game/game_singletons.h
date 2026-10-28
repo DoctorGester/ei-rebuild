@@ -7,10 +7,9 @@
 // The global random generator is IsaacRandom::Global().
 
 #include "game_data.h"
-#include "lib/mfc.h"
+#include <string>
 #include "lib/static_object.h"
 
-#include <string>
 
 struct GameFlow;
 class CInterface3D;

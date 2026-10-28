@@ -42,7 +42,12 @@
 #include "lib/static_object.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <new>
+#include <string>
 #include "lib/text_case.h"
 
 #include "ei/rebirth.h"
@@ -57,12 +62,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <list>
-#include <memory>
-#include <new>
 #include <bit>
-#include <string>
 #include <vector>
 
 namespace {

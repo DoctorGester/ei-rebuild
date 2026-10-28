@@ -5,13 +5,14 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-#include "lib/vecmath.h"
-
-#include <cstdlib>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
+#include "lib/vecmath.h"
+
+#include <cstdlib>
 #include <vector>
 
 // --- Footprint cell sets -------------------------------------------------------------------------

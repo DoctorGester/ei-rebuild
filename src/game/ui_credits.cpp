@@ -11,12 +11,11 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstdint>
 #include "ui_cursor.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
-#include <cstdint>
 #include <memory>
 
 namespace {

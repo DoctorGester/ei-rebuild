@@ -15,12 +15,11 @@
 
 #include "lib/containers.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
+
+#include <list>
 #include <vector>
 
 #undef GetClassName

@@ -1,6 +1,6 @@
 // The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach through the
 // scalar deleting destructors, the members destroyed last to first after the class's own teardown. The
-// containers are the library's (lib/mfc.h CArray / CList) and std's. See docs/notes/standalone.md.
+// containers are std's. See docs/notes/standalone.md.
 #include "effects.h"
 #include "ground_print.h"
 #include "model.h"

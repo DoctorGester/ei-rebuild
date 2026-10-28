@@ -7,12 +7,11 @@
 #include "unit.h"
 
 #include "ei/x87.h"
-#include "lib/mfc.h"
+#include <cstdint>
+#include <string>
 #include "game_singletons.h"
 #include "lib/str.h"
 
-#include <cstdint>
-#include <string>
 
 namespace {
 

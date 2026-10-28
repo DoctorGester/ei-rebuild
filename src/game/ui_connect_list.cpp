@@ -14,13 +14,13 @@
 #include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "game_data.h"
 #include "lib/str.h"
 
-#include <cstdint>
 #include <cstring>
-#include <string>
 
 namespace {
 

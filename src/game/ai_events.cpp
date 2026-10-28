@@ -10,14 +10,16 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <new>
+#include <string>
 #include "lib/static_object.h"
 #include "game_data.h"
 
 #include <cstdlib>
-#include <cstring>
 #include <list>
-#include <string>
 
 namespace {
 

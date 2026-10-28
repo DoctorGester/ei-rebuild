@@ -13,13 +13,12 @@
 #include "model.h"              // FootprintPart (the part boxes)
 
 #include "lib/containers.h"
-#include "lib/mfc.h"
-#include "lib/nan_audit.h"
-
 #include <cstddef>
 #include <cstdint>
-#include <list>
 #include <string>
+#include "lib/nan_audit.h"
+
+#include <list>
 #include <vector>
 
 #include <windows.h>   // RECT (dirtyRect)
