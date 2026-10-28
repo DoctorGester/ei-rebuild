@@ -253,7 +253,7 @@ to which template:
   corner records), 0044F7E0 (bone morph frames), 00474DB0 (scene mesh groups), the IndexArray (`CArray<uint32_t>`, 0073C800)
   SetAtGrow / Add / destructor 004773F0 / 00476640 / 00476780; 005C4C20 (the path smoother's node pool) is
   `CArray<SmoothNode>::SetSize`. Since C14m the plain-element ones of these (RecordPtrArray, the particle arrays, the
-  motion's points, the trap's victims and others) are `std::vector`; see "MFC CArray and CList to std (C14m)" below
+  motion's points, the trap's victims and others) are `std::vector`; see "MFC CArray and CList to std (C14m, C14u)" below
   for what is still mfc::CArray.
 - `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize) with NewNode / FreeNode /
   RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore / InsertAfter / RemoveAt / Find / FindIndex.
@@ -662,16 +662,34 @@ to which template:
   net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
   stream queues; the bucket vectors inside stlp_hash.h's hashtable go with it (C14q).
 
-## MFC CArray and CList to std (C14m)
+## MFC CArray and CList to std (C14m, C14u)
 
 - Batch 1: every `mfc::CArray` / `mfc::CList` / `mfc::CTypedPtrList` with plain elements (the default PlainElements:
   zero-filled, nothing destroyed; their elements are trivially copyable, so std's copy and value-init are the same
   bytes) is `std::vector` / `std::list`. Scripts in the ticket's scratch folder did it (not committed): a retype, a
   diagnostics-driven fixer, an idiom pass (AddTail + NewNode linking -> emplace / push_back, the inlined unlink +
   FreeNode -> erase, Find -> `lib::Contains` / `std::ranges::find`, `head->data` -> front(), PlexFreeDataChain after
-  field resets -> clear()), then hand fixes. Kept as mfc for batch 2: the containers with an element policy
-  (EachElements / OriginalElements / ListAbi / ArrayAbi: the script's records, the scene loader, the map database,
-  AI records, CountedPtrs, SharedObjectList) and their CompiledCollection tags.
+  field resets -> clear()), then hand fixes.
+- Batch 2 (C14u): containers with an element policy. The element type gets its own special members first (default
+  member initializers for what the policy's Init set: Behaviour, ZoneExit, MapRecord, EffectParticle, SkinLayer's
+  0 / -1 / -1; a move for DeltaField and CMemoryStream; HeldPtr for counted pointers: SharedObject::objects,
+  EffectParticle::source, the client's exit markers), then the retype (scratch retype_u.py: by element, the policy
+  argument dropped), C14m's fixer and hand fixes (RemoveAt + memmove -> erase, SetSize(n + 1) + assign ->
+  push_back, Assign / CopyAt / CopyFrom -> the compiler's copy). Done: the AI's looks, patrol points, heard calls,
+  reports, alarm records and attack options, the path cell and block cost lists, the map spec's traps / patrols /
+  behaviours, the map database (allods, maps, zone exits), the shared objects, unit placements, the wave cache
+  (std::list, the name map holds iterators), music themes, delta fields, step speeds, the spiral's radius tree, the
+  client companion's effect particles and sounds, map effects, skin layers, the fog manager's list. Still mfc
+  (follow-up tickets): the script's records, the scene loader, the terrain sectors and water levels, the sector
+  map's sectors, the figure's morph frames, the camp's global map records, PartyMembers, AnimationSteps; then
+  CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList.
+- A record that hands its references on without releasing them (the shared objects' items given at loot: the
+  original frees the node and leaks the references) uses `HeldPtr::release()`.
+- An element whose destructor needs a complete type its header only declares (EffectParticle's CParticleSource)
+  declares its move and destructor and defaults them in a .cpp that has the type.
+- The vector recorders read game.exe's objects through their own views where ours became std: record_path.cpp's
+  OriginalPath (MFC cell lists, the excluded blocks an MFC array) and OriginalRadiusTree over exe_objects.h's
+  Array / Vector / List; path_vectors.h's PutCells / PutPath are templates over both sides.
 - Counted elements in a retyped plain list (the world's counted items, the trap's victims, the armour spells' items,
   the AI's owned modes): the release (or DestroyOwned) is explicit before erase / clear; the original's
   DestructElements did nothing, so the counts are what they were. `ReleaseAndClear(c)` (engine_object.h) releases and
@@ -727,8 +745,8 @@ to which template:
   itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).
   Reached when a recorded path is played (the glue 00578820 / 00578880 calls it through its address).
 - A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
-  fire; written so the standalone build has them): `CMapDatabase::Construct` (0045E820, the database at
-  0079BF00: two empty CArrays with the vtables 0073C3DC / 0073C3E8), the `LeverRecordTable` constructor (004632A0,
+  fire; written so the standalone build has them): the map database (0079BF00, a `lib::StaticObject<CMapDatabase>`
+  ConstructMapDatabase constructs; game.exe's 0045E820 builds two empty CArrays), the `LeverRecordTable` constructor (004632A0,
   the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
   the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
   strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes

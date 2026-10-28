@@ -3595,7 +3595,7 @@ id = "C14r"
 title = "Delete mfc_archive: CArchive, CArchiveException and the string operators once the collections' Serialize slots are gone"
 group = "cleanup"
 model = "sonnet"
-depends = ["C14m"]
+depends = ["C14m", "C14zb"]
 files = ["src/lib/mfc_archive.h", "src/lib/mfc_archive.cpp", "src/lib/mfc_exception.h", "src/lib/mfc_exception.cpp", "src/lib/mfc_slots.h"]
 note = "C14d left src/lib/mfc_archive.h/.cpp (CArchive over a lib::File, StoreText / LoadText / ReadStringLength / WideToMultiByte) and CArchiveException / ThrowArchiveException (mfc_exception), reached only by the MFC collections' Serialize slots (mfc_slots.h, mfc_array.cpp's Strings::Serialize, game_arrays.h / game_slots.h / party_lifetime.cpp's CompiledCollection tags). Nothing builds an archive, so the slots are dead. When C14m has moved CArray / CList to std (or makes slot 2 CObject's empty Serialize), delete them with mfc_archive, CArchiveException (its vtable row 00746808 to file -, kClassCArchiveException 007467D8 to gen_image_cells UNREAD), kIdpArchiveNone and its resource strings, and the replay_unlinked.cpp stub."
 
@@ -3635,6 +3635,30 @@ title = "Byte copies over records holding std members (ZoneExit, PartyUnitRecord
 group = "cleanup"
 model = "sonnet"
 note = "C14m's forced-include check (memset / memcpy / memmove destinations static_asserted trivially copyable; the script is in C14m's scratch folder, memcheck/) found 12 sites that were already there before C14m: partial ZoneExit copies, PartyUnitRecord, ScriptToken, AlignedBuffer and an AICallRecord memmove (recheck after C14n, which gave some records real special members). Each copies or moves bytes over a record whose std::string / std::vector members then alias or leak. Replace each with the record's assignment (or a real move) and its members by name; check with the image suite --golden."
+
+[[ticket]]
+id = "C14z"
+title = "C14 MFC arrays and lists, batch 3: the script's records to std"
+group = "cleanup"
+model = "opus"
+depends = ["C14u"]
+note = "What C14u left in the script (about 70 mfc::CArray / CList lines in script.h and the script_*.cpp files, with their CompiledCollection tags in game_slots.h, game_lists.h, game_arrays.h, record_arrays.h): definitions, runs, decls, groups (ScriptGroup over CArray<ScriptObjectRef>), areas, FX / particle / lightning / point light sources, tokens (ScriptPos as an iterator), defines, commands (SSCCmd's arg arrays), quest objectives, the variables' names and values. Each element gets real special members first (HeldPtr for the object references), then C14u's retype_u.py by element plus C14m's fixer, guards and memcheck (scratch c14u folder). tests/vectors' script recorders (script_original.h, script_load_vectors.h, replay_script_load.cpp) read game.exe's script through mfc layouts: give them exe_objects.h views (Array / Vector / List) so mfc.h's CArray / CList can go. Notes: docs/notes/core.md 'MFC CArray and CList to std (C14m, C14u)'."
+
+[[ticket]]
+id = "C14za"
+title = "C14 MFC arrays and lists, batch 4: scene loader, terrain, sector map, figure, camp, party members"
+group = "cleanup"
+model = "opus"
+depends = ["C14u"]
+note = "What C14u left outside the script: scene_loader.h's records (FaceGroup, NodeFrame, NodeMorphKey, SceneMesh, SceneNode, CMaterial, CPlainFigureMesh, BoneLinkRecords, TextureNameRecord, the DWORD maps / CByteArray tags), terrain_sector.h (SectorVertex records, FlagArray, TileList), terrain.h's water levels (CArray<CArray<float>>), sector_map.h's sectors, figure.h's morph frames, ui_camp.h's GlobalMapZone / GlobalMapPlace, party.h's PartyMembers (PartyUnitRecord's lists are std since C14h), combat's AnimationSteps (mfc::impl::AnimationStepList), the player's lists (player.cpp, player_server_handlers.cpp helpers), console_addon's CArray<std::string> view, with their CompiledCollection tags. Same method as C14u (scratch c14u scripts: retype_u.py, fixer.py, guards.py, memcheck, h16_tags.py, h21_vtables.py)."
+
+[[ticket]]
+id = "C14zb"
+title = "Delete CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList"
+group = "cleanup"
+model = "sonnet"
+depends = ["C14z", "C14za"]
+note = "Once C14z and C14za leave no CompiledCollection tag and no mfc::CArray / CList in src: delete CompiledCollection, ArrayHeader, ConstructHeader / DestructHeader / ConstructListHeader, the ArrayAbi / ListAbi / element policies (mfc_array.h, mfc_list.h, mfc_slots.h, game_slots.h, game_lists.h, game_arrays.h, record_arrays.h) and mfc.h's CArray / CList; the vtables.csv rows become game.exe-only rows (scratch c14u h21_vtables.py). The tests' game.exe views stay in tests (exe_objects.h's Array / Vector / List; record_path.cpp's views). Then C14r (mfc_archive) falls out."
 
 [[ticket]]
 id = "S"
