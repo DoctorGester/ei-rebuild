@@ -20,13 +20,6 @@ void RefPtrRelease(RefPtr* self) {
 // The holder cleared without a release (MOV [ECX],0). 17 copies.
 void RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
 
-// The default constructor (null), returning the holder. 10 copies (one is the loopback link's
-// peer, net_link.cpp).
-RefPtr* RefPtrNull(RefPtr* self) {
-    self->ptr = nullptr;
-    return self;
-}
-
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
 // the holder (the game also zeroes a dead stack slot). 16 copies.
 RefPtr* RefPtrFromRaw(RefPtr* self, CRefObject* object) {

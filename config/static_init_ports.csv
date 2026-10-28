@@ -10,8 +10,6 @@ address,name,file
 00412280,InitGameClientPointer,src/game/net_session.cpp
 004122A0,ReleaseGameClient,src/game/net_session.cpp
 0041DD70,CMemoryStream::CMemoryStream,src/game/core_streams.cpp
-0041FF50,RefPtrNull,src/game/refptr_copies.cpp
-0041FF60,RefPtrNull,src/game/refptr_copies.cpp
 0042D8E0,ConstructWorkWords,src/game/clip.cpp
 0042D900,DestroyWorkWords,src/game/clip.cpp
 0042FAE0,InitCodeTables,src/game/net_coder.cpp

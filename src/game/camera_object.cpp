@@ -39,7 +39,6 @@ CCamera::CCamera() {
         std::memcpy(&view.rotation, &camera::kIdentityRotation, sizeof(Quaternion));
         view.pitch = DefaultPitch();
     }
-    viewStack_.Construct(0);
     std::memcpy(&offset98_, &camera::kZeroVector, sizeof(Vector3));
     std::memcpy(&offsetA4_, &camera::kZeroVector, sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
@@ -65,7 +64,6 @@ CCamera::CCamera() {
 
 CCamera::~CCamera() {
     targetId_ = -1;
-    viewStack_.Destroy();   // the nodes, then the map
 }
 
 // The camera, zero at the start: built by its static initialiser and destroyed by the exit function it registers.

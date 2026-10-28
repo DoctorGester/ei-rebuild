@@ -1900,7 +1900,7 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
 - **hashtable** (stlp_hash, game_hashes: gone with C14c / C14q; the order is lib::HashMap's, src/lib/hash_map.h).
-- **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
+- **deque** (stlp_deque: gone with C14x; the camera's view stack, which nothing ever pushed to, is deleted and the material's entries are a std::vector).
 - **tree** (stlp_tree, stlp_tree_abi, stlp_tree_mbs, net_connection_trees, library_trees: gone with C14c / C14q;
   the maps are std::map, the CString keys' `_mbscmp` order is `str::MbsLess`).
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
@@ -2312,14 +2312,4 @@ A rewrite writes exactly that. What makes it work across the two C++ runtimes:
   So the classes are in the global namespace under the game's names and have its bases; nothing else of them is
   used (they are never made here: the objects are the game's MFC objects, thrown through a cast pointer);
 - the unwind runs the frames between the throw and the handler through their frame handlers (RtlUnwind), then ours.
-
-### lib/stlp_deque.h
-
-STLport's deque<T> as compiled into game.exe (stlp.h includes it; docs/notes/standalone.md, section 2). 0x28 bytes:
-the start and finish iterators (cur, first, last, node), the map of node pointers and its size; the allocator
-proxies are empty bytes inside the map words (the constructor writes them and then zeroes the words). Nodes hold
-512 / sizeof(T) elements (one for larger T). Only trivially destructible T: the game's instantiations destroy
-nothing. Instantiations: the camera's view stack (0x24-byte entries, 14 per 0x1F8-byte node; camera.h keeps its own
-layout) and the material's (0x10-byte entries, 32 per 0x200-byte node; material.h). The members are registered at
-the instantiations' addresses in stlp_deque.cpp through the DequeAbi shims.
 

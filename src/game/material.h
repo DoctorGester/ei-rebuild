@@ -4,7 +4,6 @@
 #include "resource_manager.h"
 
 #include "lib/mfc.h"
-#include "lib/stlp.h"
 #include "lib/vecmath.h"
 #include "game_data.h"
 
@@ -12,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <unordered_map>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)
@@ -27,7 +27,7 @@ struct MaterialColors {
 };
 static_assert(sizeof(MaterialColors) == 0x44);
 
-// An element of the material's deque (16 bytes): an emissive colour kept while the object's light
+// An element of the material's entries (16 bytes): an emissive colour kept while the object's light
 // is on (CObject3DClientSpecific::SetLit pushes and pops them).
 struct MaterialEntry {
     Vector4 emissive;
@@ -45,11 +45,11 @@ public:
     std::uint32_t GpuLitColour() const;
 
     CMaterial();
-    ~CMaterial() override;
+    ~CMaterial() override = default;
 
-    // Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
+    // Empty names, alpha 1, +0x90 / +0x98 0, the entries emptied; returns 1.
     int Create() override;
-    // Empties the deque.
+    // Empties the entries.
     void Destroy() override;
     // The name's text
     const char* GetName() override;
@@ -58,7 +58,7 @@ public:
 
     std::string name;
     MaterialColors colors;
-    stlp::deque<MaterialEntry> entries;
+    std::vector<MaterialEntry> entries;
     std::string name2;                      // (the scene file's second name)
     int spare90;                            // 0 after Create; nothing reads it
     std::string name3;                      // (the scene file's third name)
