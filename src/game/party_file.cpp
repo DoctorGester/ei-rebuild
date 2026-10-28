@@ -75,7 +75,7 @@ bool MpHeroRecord::ReadFile(const char* folder) {
 void SavedParties::SaveAll() {
     if (str::Compare(folder_, game::EmptyText()) == 0)
         return;
-    ClearSaveFolder(folder_.c_str());
+    ClearSaveFolder(folder_);
     // The count is read again after each write.
     for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_.c_str());
 }

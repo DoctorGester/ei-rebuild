@@ -16,7 +16,7 @@ namespace {
 
 // The item and spell factory (the server world's item manager) and the spell manager the spells are made for. The
 // record names its items by their names.
-CItem* CreateItem(CItemManager* factory, const char* name) {   // patched by Rebirth
+CItem* CreateItem(CItemManager* factory, std::string_view name) {   // patched by Rebirth
     return factory->CreateItem(name);
 }
 CItemManager* TheFactory() { return TheServerWorld()->itemManager_; }
@@ -24,8 +24,8 @@ CSpellManager* SpellOwner() { return TheServerWorld()->manager4C_; }
 
 void AddItems(const UnitRecord& record, CUnit* unit, CItemManager* factory) {
     for (const std::string& name : record.lists[UnitRecord::kQuickItems])
-        unit->AddQuickItem(CreateItem(factory, name.c_str()));
-    for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name.c_str()));
+        unit->AddQuickItem(CreateItem(factory, name));
+    for (const std::string& name : record.lists[UnitRecord::kCarried]) unit->AddCarried(CreateItem(factory, name));
 }
 
 } // namespace
@@ -83,8 +83,8 @@ void UnitRecord::ApplyTo(CUnit* target) {
 
     for (const std::string& name : lists[kSpells]) unit->AddSpell(factory->CreateSpellItem(name.c_str(), SpellOwner()));
     AddItems(*this, unit, factory);
-    for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name.c_str()));
-    for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name.c_str()));
+    for (const std::string& name : lists[kArmour]) unit->EquipArmour(CreateItem(factory, name));
+    for (const std::string& name : lists[kWeapons]) unit->AddWeapon(CreateItem(factory, name));
 }
 
 } // namespace unitrecord

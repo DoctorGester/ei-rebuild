@@ -194,7 +194,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         return;
     std::string variable = ZoneVariablePrefix();
     variable += zone;
-    float visited = PlayerZeroVariable(variable.c_str());
+    float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
     if (visited != 1.0f) TheCursor()->SetShape(kCursorExit);
 }

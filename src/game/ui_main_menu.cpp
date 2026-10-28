@@ -91,7 +91,7 @@ void CMainMenu::AddVersionLine() {
     std::string text;
     TheTextManager()->CTextManager::GetString(kVersionKey, &text);
     RECT rect = {0, 0, 675, 120};
-    surface->DrawTextIn(text.c_str(), &rect, 2, 0xA7D7E4, 2, 1);
+    surface->DrawTextIn(text, &rect, 2, 0xA7D7E4, 2, 1);
     UiSurfaceReleaseDC(surface);
     AddSurface(surface);
 }
@@ -170,13 +170,13 @@ void CMainMenu::OnMessageResult(int result) {
     if (result == 0x10001) {
         {
             std::string path = *GameBasePathString() + kExitMovie;
-            PlayMovie(path.c_str(), 0, 0, 0, 1, 1, 1);
+            PlayMovie(path, 0, 0, 0, 1, 1, 1);
         }
         app::QuitGame(0);
     } else if (result == 0x20001) {
         {
             std::string path = *GameBasePathString() + kIntroMovie;
-            PlayMovie(path.c_str(), 0, 1, 1, 1, 1, 1);
+            PlayMovie(path, 0, 1, 1, 1, 1, 1);
         }
         app::g_interfaceHasScreen = 0;
         TheGameFlow()->RequestState3();

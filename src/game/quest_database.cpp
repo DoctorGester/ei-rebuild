@@ -49,11 +49,11 @@ void ReadQuest(Registry& reg, QuestRecord* quest, std::vector<std::string>& plac
         std::vector<std::string> parts;
         str::TrimLeft(place, '{');
         str::TrimRight(place, '}');
-        text::Split(place.c_str(), &parts, ';');
+        text::Split(place, &parts, ';');
         if (parts.size() == 2) {
-            float x = static_cast<float>(std::atof(parts[0].c_str()));
+            float x = static_cast<float>(str::ToDouble(parts[0]));
             PushPlace(quest, x);
-            float y = static_cast<float>(std::atof(parts[1].c_str()));
+            float y = static_cast<float>(str::ToDouble(parts[1]));
             PushPlace(quest, y);
         }
     }

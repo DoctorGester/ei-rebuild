@@ -247,7 +247,7 @@ void CMpHeroScreen::CreateScreen() {
         }
         figureModel = figure->figureName;
         auto isModel = [&figureModel](const char* name) {
-            return text::CompareIgnoringCase(figureModel.c_str(),
+            return text::CompareIgnoringCase(figureModel,
                                    name) == 0;
         };
         bool isMale = isModel("unhuma");
@@ -338,7 +338,7 @@ void CMpHeroScreen::CreateScreen() {
     for (const char* key : commandKeys) {
         texts->GetString(key, &text);
         RECT rect{0, top, 290, top + 20};
-        commands->DrawTextIn(text.c_str(), &rect, 1, kWhite, kTextFormat, 1);
+        commands->DrawTextIn(text, &rect, 1, kWhite, kTextFormat, 1);
         top += 24;
     }
     UiSurfaceReleaseDC(commands);

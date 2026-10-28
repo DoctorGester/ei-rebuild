@@ -139,9 +139,9 @@ public:
         gameapi::OffsetRect(&shifted, -10, 0);
         draw_->DrawLine(text, &shifted, 0, kText, 2, 1);
     }
-    void Title(std::string_view text) { draw_->DrawWrappedText(std::string(text).c_str(), &rect_, 2, 0, kWhite, 0x11, 1); }
+    void Title(std::string_view text) { draw_->DrawWrappedText(text, &rect_, 2, 0, kWhite, 0x11, 1); }
     void Wrapped(std::string_view text, int maxLines) {
-        draw_->DrawWrappedText(std::string(text).c_str(), &rect_, maxLines, 0, kText, 0x11, 1);
+        draw_->DrawWrappedText(text, &rect_, maxLines, 0, kText, 0x11, 1);
     }
 
     void Head(const std::string& name, const std::string& kind) {
@@ -651,7 +651,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         }
         str::TrimRight(w.line, ",");
         w.line += ".";
-        w.Draw()->DrawWrappedText(w.line.c_str(), w.Rect(), 3, 0, kText, 0x10, 1);
+        w.Draw()->DrawWrappedText(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
     }
     w.Draw()->ReleaseDC();
 }

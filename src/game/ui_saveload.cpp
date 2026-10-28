@@ -185,7 +185,7 @@ void CSaveLoadWindow::SaveGame() {
     folder = str::Format(flowdata::kSlotFolder, DataFolderText(), entry->folder_.c_str());
     std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice.c_str());
+    TheInterface()->ShowStatusText(notice);
     TheGameFlow()->SaveGameThunk(entry->folder_.c_str());
     TheCursor()->ChangeShape(3);
 
@@ -285,7 +285,7 @@ void CSaveLoadWindow::FillEntries() {
         }
         infoFind.Close();
         if (static_cast<int>(entry->folder_.size()) > 4) {
-            int number = std::atoi(str::Mid(entry->folder_, 4).c_str());
+            int number = str::ToInt(str::Mid(entry->folder_, 4));
             if (!(highest > number)) highest = number;
         }
     }
@@ -302,7 +302,7 @@ void CSaveLoadWindow::FillEntries() {
         entry->folder_ = str::Format(game::savewords::NewFolder(), highest + 1);
         entry->gameTime_ = LocalPlayerVariable(game::savewords::GameTime());
         entry->zone_ = LocalPlayerZone();
-        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_.c_str()))
+        if (MapRecord* record = TheMapDatabase()->FindMap(entry->zone_))
             entry->map_ = record->allod;
         entry->MakeTitle(1);
         entry->broken_ = false;
@@ -369,7 +369,7 @@ void QuickSave(const char* slot, char stepFrame) {
     Interface()->serverFlag_ = static_cast<std::uint8_t>(GameServerPaused());
     std::string notice;
     TheTextManager()->GetString(game::savewords::NotifySaving(), &notice);
-    TheInterface()->ShowStatusText(notice.c_str());
+    TheInterface()->ShowStatusText(notice);
     TheGameFlow()->SaveGameThunk(slot);
 
     // info.sav: the "gtime" variable, the zone's map, the zone, the time and an empty title.
@@ -378,7 +378,7 @@ void QuickSave(const char* slot, char stepFrame) {
     const std::int32_t savedAt = lib::CurrentTime();
     const float gameTime = LocalPlayerVariable(game::savewords::GameTime());
     const std::string zone = LocalPlayerZone();
-    if (const MapRecord* record = TheMapDatabase()->FindMap(zone.c_str()))
+    if (const MapRecord* record = TheMapDatabase()->FindMap(zone))
         map = record->allod;
     std::string folder = SlotFolder(slot);
     LocalFileStream info;
@@ -410,7 +410,7 @@ void QuickLoad(const char* slot) {
     if (!lib::FileExists(folder.c_str())) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice.c_str());
+    TheInterface()->ShowStatusText(notice);
     GameStopSounds(1);
     Flow()->RequestLoad(slot, 0);
 }
@@ -480,7 +480,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (entries_.data()[selected].broken_) return;
     std::string notice;
     TheTextManager()->GetString(kNotifyLoading, &notice);
-    TheInterface()->ShowStatusText(notice.c_str());
+    TheInterface()->ShowStatusText(notice);
     GameStopSounds(1);
     interface_->PlaySound(kSoundOk, 0);
     Flow()->RequestLoad(entries_.data()[selected_].folder_.c_str(), 0);

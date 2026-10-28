@@ -9,9 +9,9 @@
 
 namespace {
 
-int FindName(const std::vector<std::string>& names, const char* name) {
+int FindName(const std::vector<std::string>& names, std::string_view name) {
     for (std::size_t i = 0; i < names.size(); ++i)
-        if (std::strcmp(names[i].c_str(), name) == 0) return static_cast<int>(i);
+        if (names[i] == name) return static_cast<int>(i);
     return -1;
 }
 

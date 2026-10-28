@@ -156,7 +156,7 @@ public:
     void ShowFps(int on);
     // A quest variable changed (client, script): the top window hears of it; at 1 (or NaN) a name of
     // three or more '.' parts keeps its third part in savedText_ (the current quest).
-    void OnQuestVariable(const char* name, float value);
+    void OnQuestVariable(std::string_view name, float value);
     // News for the top window (nothing without a window), each reaching its virtual of that name: items
     // picked up, a unit joined / left the party, the game lost, a unit speaks, the players changed, an
     // exchange between players ended; SaveWindowState has the bottom window save its state.
@@ -171,7 +171,7 @@ public:
     void OnChatLine(const char* text, std::uint32_t number);
     // The save / load window's status text, drawn in green on a cleared surface over (0, 280)-(800, 320)
     // for one frame, then the surface freed.
-    void ShowStatusText(const char* text);
+    void ShowStatusText(std::string_view text);
 
     // Mouse messages from the input dispatcher (ui_interface_input.cpp): each goes to the input side that
     // took the mouse, else the top window's, else nowhere. Button downs and double clicks set or clear
@@ -343,7 +343,7 @@ public:
     // Word-wraps `text` to the width of `rect` (layout coordinates; breaks at spaces and '\n') and draws up
     // to `maxLines` lines one rect height apart with DrawText. The DC must be acquired. Returns the line
     // count.
-    int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
+    int DrawWrappedText(std::string_view text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
     // Rebirth-patched (WideScreen behind its flag). `rect` in layout coordinates (empty: the whole surface),
     // grown by two pixels once scaled; `shadow` first draws the text in 0x080808 one pixel right and down.
@@ -549,7 +549,7 @@ public:
     // Copies the top-left width x height of image "<name>.mmp" (decoded as imageWidth x imageHeight) into
     // `texture`'s 256-wide 1:5:5:5 surface at (x, y), or white without such an image. Returns whether the
     // image exists (0 also when the lock fails).
-    int CopyImage(CTexture* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
+    int CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
     // The texture manager's texture `name` of `kind` (found or made), loaded (or from `directory`) and
     // appended to the referenced objects with one more reference; null when either step fails (a texture
@@ -1227,7 +1227,7 @@ public:
     virtual void UnitLeft(CUnit*) {}
     virtual void GameOver(int) {}
     virtual void Speech(int, unsigned, char*) {}                       // a unit speaks
-    virtual void QuestVariable(const char*, float) {}                  // a quest variable changed
+    virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
     virtual void ShowBriefing(const char*) {}                          // a "briefing <name>" string event
     virtual bool ReadyToStopPolling() { return false; }                // whether the interface may stop asking (pollTop_)
     virtual void PlayersChanged(int) {}
@@ -1329,7 +1329,7 @@ public:
     void UnitName(CUnit* unit, std::string* out);
     // A "q." player variable changed: a quest line to the top panel's text and the message log; the clock
     // pulses. Details: docs/notes/ui.md, "Behaviour moved out of ui.h comments".
-    void OnQuestVariable(const char* name, float value);
+    void OnQuestVariable(std::string_view name, float value);
     // With exactly one living party unit selected the weapon bar, quick items, spell and action columns show
     // it, otherwise they are emptied; the pending action and highlights are cleared. Details:
     // docs/notes/ui.md, "Behaviour moved out of header comments".
@@ -1387,7 +1387,7 @@ public:
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
     void GameOver(int won) override { OnGameOver(static_cast<char>(won)); }
     void Speech(int id, unsigned event, char* extra) override { OnUnitSpeech(id, event, extra); }
-    void QuestVariable(const char* name, float value) override { OnQuestVariable(name, value); }
+    void QuestVariable(std::string_view name, float value) override { OnQuestVariable(name, value); }
     bool ReadyToStopPolling() override { return PollShown(); }
     void PlayerList(int mode) override { SetPortraitMode(mode); }
     void Deactivate() override { OnDeactivate(); }
@@ -1553,7 +1553,7 @@ public:
     CUiScrollText(CInterface3D* ui, const char* text, RECT rect, float depth);
     ~CUiScrollText() override;
     // Scrolled to the end first, then kept that far from the end.
-    void AddText(const char* text);
+    void AddText(std::string_view text);
     // Scrolls to the top.
     void SetText(const char* text);
     void SetRect(const RECT* rect) override;
@@ -1593,7 +1593,7 @@ class CUiSpin : public CUiWindow {
 public:
     CUiSpin(CInterface3D* ui, RECT rect, const char* text);
     ~CUiSpin() override;
-    void AddText(const char* text);
+    void AddText(std::string_view text);
     // Returns whether it changed since the last call. SetValue: 0 when not below the text count (a negative
     // one is kept).
     bool GetValue(int* value);
@@ -1819,7 +1819,7 @@ public:
     long RestoreAlphaRef();
     void CreateScreen() override;
     // Picture, exits, quests and description.
-    void ShowZone(const char* zone);
+    void ShowZone(std::string_view zone);
     // When the selected quest changed: its description and a marker and region per place of the quest.
     void ShowQuest();
     // Up to five rows from firstRow_.

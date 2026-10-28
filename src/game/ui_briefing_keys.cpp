@@ -37,14 +37,14 @@ std::uint32_t Bits(float value) {
 // Action 4: the objectives window of the current zone, when a quest of a zone in its allod is
 // active.
 void OpenObjectives(CInterface3D* ui) {
-    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    MapRecord* zone = TheMapDatabase()->FindMap(LocalPlayerZone());
     if (!zone) return;
     std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
     for (auto node = quests.begin(); node != quests.end(); ++node) {
-        text::Split(node->first.c_str(), &parts, '.');
+        text::Split(node->first, &parts, '.');
         if (parts.size() != kQuestNameParts || Bits(node->second) != kOneBits) continue;
-        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1].c_str());
+        MapRecord* questZone = TheMapDatabase()->FindMap(parts[1]);
         if (!questZone) continue;
         if (!IsMultiplayerClient() && text::CompareIgnoringCase(questZone->allod, zone->allod) != 0) continue;
         auto* window = new CObjectivesWindow(ui);

@@ -44,7 +44,7 @@ void ConsoleWindow::DropOldLines(int count) {
 
 // The first piece continues the last line, each '\n' starts a new one. A window scrolled
 // back stays on the same lines. Keeps the last history_ lines.
-void ConsoleWindow::AddText(const char* text) {
+void ConsoleWindow::AddText(std::string_view text) {
     std::vector<std::string> pieces;
     text::Split(text, &pieces, '\n');   // at least one piece
     if (!lines_.empty())

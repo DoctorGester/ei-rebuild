@@ -357,7 +357,7 @@ int LootTableIndex(int which, const char* name) {
 
 } // namespace
 
-CItem* CItemManager::CreateItem(const char* name) {
+CItem* CItemManager::CreateItem(std::string_view name) {
     auto* context = context_;
     CItemConstructor* constructor = context->ItemConstructor();
     std::string extra;               // the part in brackets: "name[extra]"
@@ -373,11 +373,11 @@ CItem* CItemManager::CreateItem(const char* name) {
         text = str::Left(text, bracket);
         str::TrimRight(text);
     }
-    text::Split(text.c_str(), &parts, '.');
+    text::Split(text, &parts, '.');
     for (std::string& part : parts) str::MakeLower(part);
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (std::strcmp(parts[0].c_str(),
+    if (str::Compare(parts[0],
                         kSpellContainer) == 0) {
         const char* spellText = extra.c_str();
         CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
@@ -418,14 +418,14 @@ CItem* CItemManager::CreateItem(const char* name) {
         if (CSpell* spell = spells->CreateSpellFromText(extra.c_str())) constructor->SetSpellObject(spell);
     } else if (std::strcmp(type, kMaterialType) == 0 &&
                extra.size() != 0) {
-        constructor->count_ = std::atoi(extra.c_str());
+        constructor->count_ = str::ToInt(extra);
     }
     CItem* item = constructor->EndCreateItem();
     if (!item) {
         // Rebirth's FixCreateItem: logged, and no item. Without it the error is reported and the code goes on
         // with the null item (and crashes).
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem)) return nullptr;
-        game::FatalError(kCantCreate, name);
+        game::FatalError(kCantCreate, std::string(name).c_str());
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);

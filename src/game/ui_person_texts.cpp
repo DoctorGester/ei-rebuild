@@ -30,7 +30,7 @@ void LoadPersonTexts(PersonTextMap* map) {
         int key;
         {
             std::string name = str::Mid(textKey, kPersonPrefixLength);
-            key = TextKeyFromName(name.c_str());
+            key = TextKeyFromName(name);
         }
         (*map)[key] = line;
     }

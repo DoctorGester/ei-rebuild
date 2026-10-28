@@ -40,7 +40,7 @@ namespace {
 
 constexpr int kMercSlots = 10;
 
-double VariableGet(NamedFloatTable* table, const char* name) { return table->Get(name); }
+double VariableGet(NamedFloatTable* table, std::string_view name) { return table->Get(name); }
 
 // The briefing variables of one mercenary slot (declared so that they are destroyed in the
 // original's order: n11, amerc, n10, n2, n8, n9, n3, n1).
@@ -58,12 +58,12 @@ void CWorldServer::UpdateMercBriefings() {
     for (CPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->Server();
         int otherMercs = CountLivingMercs(player->playerId_);
-        auto set = [&](const std::string& name, float value) { state->SetVariable(name.c_str(), std::bit_cast<std::uint32_t>(value)); };
+        auto set = [&](const std::string& name, float value) { state->SetVariable(name, std::bit_cast<std::uint32_t>(value)); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             std::string merc;
             merc = str::Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKeyFromName(merc.c_str());
+            unsigned key = TextKeyFromName(merc);
             bool briefedHere = text::CompareIgnoringCase(zoneName_,
                                                worlddata::MercZoneName(slot - 1)) == 0;
             Briefing b;
@@ -85,7 +85,7 @@ void CWorldServer::UpdateMercBriefings() {
                 }
             }
             NamedFloatTable* variables = &player->Party()->variables_;
-            double left = VariableGet(variables, b.n10.c_str());
+            double left = VariableGet(variables, b.n10);
             EI_NAN_AUDIT(left);
             if (inParty) {
                 if (left != worlddata::Zero()) {
@@ -110,10 +110,10 @@ void CWorldServer::UpdateMercBriefings() {
                 set(b.n10, 0.0f);
                 set(b.hired, 0.0f);
             } else {
-                double hiredValue = VariableGet(variables, b.hired.c_str());
+                double hiredValue = VariableGet(variables, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
                 float hiredStored = hired;
-                double briefed = VariableGet(variables, b.n8.c_str());
+                double briefed = VariableGet(variables, b.n8);
                 EI_NAN_AUDIT(hiredValue, briefed);
                 if (hiredValue != worlddata::Zero()) {
                     if (briefed != worlddata::One()) {
@@ -182,13 +182,13 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
 
     CPlayerServer* state = player->Server();
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveQuests])
-        state->SetVariableMax(name.c_str(), 1.0f);
+        state->SetVariableMax(name, 1.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteQuests])
-        state->SetVariable(name.c_str(), std::bit_cast<std::uint32_t>(2.0f));
+        state->SetVariable(name, std::bit_cast<std::uint32_t>(2.0f));
     for (const std::string& name : record->lists[QuestBriefingRecord::kAvailableZones])
-        state->SetVariableMax(name.c_str(), 1.0f);
+        state->SetVariableMax(name, 1.0f);
     for (const std::string& name : record->lists[QuestBriefingRecord::kCompleteZones])
-        state->SetVariable(name.c_str(), std::bit_cast<std::uint32_t>(2.0f));
+        state->SetVariable(name, std::bit_cast<std::uint32_t>(2.0f));
 
     items.clear();
 }
@@ -253,13 +253,13 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
     CPlayerServer* state = player->Server();
     CParty* party = PartyOf(player);
     auto is = [name](const std::string& variable) {
-        return text::CompareIgnoringCase(variable.c_str(),
+        return text::CompareIgnoringCase(variable,
                                name) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
         v.merc = str::Format(worlddata::MercNameFormat(), slot);
-        unsigned key = TextKeyFromName(v.merc.c_str());
+        unsigned key = TextKeyFromName(v.merc);
         v.n8 = str::Format(worlddata::MercVariableN8Format(), v.merc.c_str(), slot);
         v.n1 = str::Format(worlddata::MercVariableN1Format(), v.merc.c_str(), slot);
         v.n2 = str::Format(worlddata::MercVariableN2Format(), v.merc.c_str(), slot);
@@ -269,7 +269,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         v.hired = str::Format(worlddata::MercHiredFormat(), slot);
         CUnit* unit = FindUnit(key);
 
-        if (is(v.n8)) state->SetVariable(v.n8.c_str(), std::bit_cast<std::uint32_t>(0.0f));
+        if (is(v.n8)) state->SetVariable(v.n8, std::bit_cast<std::uint32_t>(0.0f));
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             party->RemoveMember(key);
@@ -278,7 +278,7 @@ void CWorldServer::ApplyMercBriefing(CPlayer* player, const char* name) {
         if (is(v.n2)) party->RemoveMember(key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
-            state->SetVariable(v.hired.c_str(), std::bit_cast<std::uint32_t>(2.0f));
+            state->SetVariable(v.hired, std::bit_cast<std::uint32_t>(2.0f));
             const char* prototype = unit ? unit->GetPrototype()->name.c_str() : worlddata::HumanHeroText();
             party->AddMember(v.merc.c_str(), prototype, game::EmptyText());
         }

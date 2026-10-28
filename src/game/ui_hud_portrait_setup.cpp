@@ -68,8 +68,8 @@ void CHudPortraits::ShowFace(int index, int state) {
     else if (state == 3)
         name += "b";
     const int texture = index / 4 + 1;
-    if (static_cast<char>(CopyImage(objects_[texture], name.c_str(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
-        CopyImage(objects_[texture], slots_[index].faceName_.c_str(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    if (static_cast<char>(CopyImage(objects_[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
+        CopyImage(objects_[texture], slots_[index].faceName_, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 }
 
 void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {

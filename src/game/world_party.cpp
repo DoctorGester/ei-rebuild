@@ -49,7 +49,7 @@ using IdArray = std::vector<int>;
 using RecordArray = RecordPtrArray;
 
 const MapRecord* FindZone(const std::string& name) {
-    return TheMapDatabase()->FindMap(name.c_str());
+    return TheMapDatabase()->FindMap(name);
 }
 
 // AddTail through the game's out-of-line NewNode.

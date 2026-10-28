@@ -220,7 +220,7 @@ void CMpConnectScreen::DrawListVanilla() {
             text = str::Format("%s %s", label(0), entry.name.c_str());
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
-                int lines = surface->DrawWrappedText(text.c_str(), &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
+                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
                 row.top += lines * kRowHeight - kRowHeight;
                 row.bottom += lines * kRowHeight - kRowHeight;
             } else {
@@ -237,7 +237,7 @@ void CMpConnectScreen::DrawListVanilla() {
             DrawLabel(surface, text, &row, 0);
             Down(&row);
             text = str::Format("%s %s", label(4), entry.description.c_str());
-            int lines = surface->DrawWrappedText(text.c_str(), &row, 3, kFont, TextColour(), 0, 1);
+            int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             std::string address = entry.address.ToString();
             text = str::Format("%s %s", label(5), address.data());

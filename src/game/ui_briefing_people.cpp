@@ -146,7 +146,7 @@ void CBriefingScreen::ShowItem(const char* name, int index, int unused) {
     std::string image;
     image = str::Format(ItemImageFormat(), record->number);
     CTexture* texture = CreateTexture(0x100, 0x100, 0x20);
-    CopyImage(texture, image.c_str(), 0x40, 0x40, 0x40, 0x40, 0, 0xC0, 0, 0);
+    CopyImage(texture, image, 0x40, 0x40, 0x40, 0x40, 0, 0xC0, 0, 0);
     item->texture_ = texture;
     item->Place(x, y, kItemDepth);
     Quaternion turn;

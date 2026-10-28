@@ -631,7 +631,7 @@ void CMpConnectScreen::CreateScreen() {
     UiSurfaceGetDC(note);
     note->Clear();
     RECT rect{0, 0, 300, 20};
-    note->DrawTextIn(texts_[kTextConnecting].c_str(), &rect, 2, TextColour(), 0, 1);
+    note->DrawTextIn(texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
     UiSurfaceReleaseDC(note);
 }
 

@@ -425,7 +425,7 @@ struct CItemManager : CResourceManager {
     // prototypes of type "material", as the count); a class-0x15 item of kind 2 gets the table index of the
     // second name part as index_. A failed build reports FatalError and the game crashes; Rebirth's
     // FixCreateItem returns null in both cases without FatalError.
-    CItem* CreateItem(const char* name);
+    CItem* CreateItem(std::string_view name);
 
     // A scroll ("spell container", kind 0x3008) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).

@@ -163,7 +163,7 @@ void ConstructLastQuest() {
 
 // --- The zone page ----------------------------------------------------------------------
 
-void CObjectivesWindow::ShowZone(const char* zone) {
+void CObjectivesWindow::ShowZone(std::string_view zone) {
     shownZone_ = zone;
     while (std::ssize(objects_) > 2) RemoveObjectAt(2);
     while (std::ssize(sceneObjects_) > 0x15) RemoveSceneObjectAt(0x15);
@@ -228,7 +228,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         } else {
             std::string name;
             name = str::Format("z.%s", source.target.c_str());
-            float value = LocalPlayerVariable(name.c_str());
+            float value = LocalPlayerVariable(name);
             EI_NAN_AUDIT(value);
             if (value != 1.0f) exit->flag_ = true;
         }
@@ -296,7 +296,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         for (auto node = table->begin(); node != table->end(); ++node) {
             EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
-            text::Split(node->first.c_str(), &parts, '.');
+            text::Split(node->first, &parts, '.');
             if (parts.size() == 3) PushBack(&found, parts[2].c_str());
         }
         shownQuest_ = -1;
@@ -425,7 +425,7 @@ void CObjectivesWindow::ShowQuest() {
         if (!SameText(fields[0], "#subobj")) continue;
         variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
                         fields[1].c_str());
-        int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
+        int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
         text += "\007C\377\263" "1 ";
@@ -565,7 +565,7 @@ void CObjectivesWindow::CreateScreen() {
     blinkTime_ = 0.0f;
 
     if (listZones_ == 0) {
-        ShowZone(zoneName_.c_str());
+        ShowZone(zoneName_);
     } else {
         MapRecord* allodZone = FindZone(zoneName_);
         if (!allodZone) {
@@ -582,10 +582,10 @@ void CObjectivesWindow::CreateScreen() {
         ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_.c_str();
         for (auto node = table->begin(); node != table->end(); ++node) {
-            text::Split(node->first.c_str(), &parts, '.');
+            text::Split(node->first, &parts, '.');
             if (parts.size() != 3) continue;
             if (text::CompareIgnoringCase(interfaceQuest,
-                                parts[2].c_str()) == 0)
+                                parts[2]) == 0)
                 current = parts[1];
             std::uint32_t one;
             std::memcpy(&one, &node->second, 4);
@@ -615,7 +615,7 @@ void CObjectivesWindow::CreateScreen() {
         zoneIndex_ = 0;
         for (int i = 0; i < SizeOf(*zones); ++i)
             if (text::CompareIgnoringCase(current,
-                                zones->begin()[i].c_str()) ==
+                                zones->begin()[i]) ==
                 0) {
                 zoneIndex_ = i;
                 break;
@@ -626,7 +626,7 @@ void CObjectivesWindow::CreateScreen() {
             regions_[2]->SetTip(0x13948, 1, 0);
             regions_[3]->SetTip(0x13949, 1, 0);
         }
-        ShowZone(zones->begin()[zoneIndex_].c_str());
+        ShowZone(zones->begin()[zoneIndex_]);
         table->~VariableTable();
     }
     interface_->OpenHelp(0);
@@ -656,7 +656,7 @@ void CObjectivesWindow::DrawQuestList() {
         if (found) texts->ReadLine(&title, 1);
         else title = quests[row];
         variable = str::Format("q.%s.%s", shownZone_.c_str(), quests[row].c_str());
-        int state = static_cast<int>(LocalPlayerVariable(variable.c_str()));
+        int state = static_cast<int>(LocalPlayerVariable(variable));
         if (state == 2) mark->textureOffsetU_ = 0.265625f;
         else if (state == 3) mark->textureOffsetU_ = 0.0f;
         else mark->visible_ = 0;
@@ -665,7 +665,7 @@ void CObjectivesWindow::DrawQuestList() {
             mesh(2)->visible_ = 1;
         }
         RECT rect{36, y, 320, y + 21};
-        surface->DrawTextIn(title.c_str(), &rect, 1, 0xA7D7E4, 0, 1);
+        surface->DrawTextIn(title, &rect, 1, 0xA7D7E4, 0, 1);
     }
     UiSurfaceReleaseDC(surface);
 }

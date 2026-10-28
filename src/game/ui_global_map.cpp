@@ -187,7 +187,7 @@ void CGlobalMap::CreateScreen() {
     bobTime_ = 0.0f;
 
     MapRecord* current = FindZone(LocalPlayerZone());
-    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod.c_str());
+    AllodRecord* allod = TheMapDatabase()->FindAllod(current->allod);
     {
         std::string title;
         allodTitle_ = *AllodTitle(&title, allod->name.c_str());
@@ -248,7 +248,7 @@ void CGlobalMap::CreateScreen() {
         zones_.push_back(zoneTemplate);
         variable = str::Format("z.%s", zone->name.c_str());
         zones_[zoneCount_].link = -1;
-        zones_[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
+        zones_[zoneCount_].state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
         zones_[zoneCount_].name = zone->name;
         {
             std::string title;
@@ -269,7 +269,7 @@ void CGlobalMap::CreateScreen() {
             std::uint32_t value;
             std::memcpy(&value, &node->second, 4);
             if (value == 0x3F800000) {
-                text::Split(node->first.c_str(), &parts, '.');
+                text::Split(node->first, &parts, '.');
                 if (parts.size() == 3) {
                     int n = questCount_;
                     quests_.push_back(questTemplate);
@@ -308,7 +308,7 @@ void CGlobalMap::CreateScreen() {
             if (!way) continue;
             variable = str::Format("z.%s", way->name.c_str());
             if (way->kind != 2) continue;
-            double state = D(LocalPlayerVariable(variable.c_str()));
+            double state = D(LocalPlayerVariable(variable));
             double two = D(2.0f /*0073CDB8*/);
             EI_NAN_AUDIT(state);
             if (state != two) continue;

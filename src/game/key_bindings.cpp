@@ -71,18 +71,18 @@ void LoadKeyBindings() {
     std::memset(ActionOfScan(), 0, 0x200);
     if (!OpenFile(file, "r")) return;
     while (file.ReadLine(line)) {
-        text::SplitWords(line.c_str(), &words, ' ');
+        text::SplitWords(line, &words, ' ');
         if (words.size() <= 1) continue;
         bool known = false;
         int key = 0;
         for (; key < kKeyCount; ++key) {
-            if (text::CompareIgnoringCase(g_keyNames[key].file_, words[0].c_str()) == 0) {
+            if (text::CompareIgnoringCase(g_keyNames[key].file_, words[0]) == 0) {
                 known = true;
                 break;
             }
         }
         for (int action = 0; action < kActionCount; ++action) {
-            if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1].c_str()) != 0) continue;
+            if (text::CompareIgnoringCase(kActionDefinitions[action].name_, words[1]) != 0) continue;
             if (known) ActionOfScan()[g_keyNames[key].scan_] = static_cast<signed char>(kActionDefinitions[action].id_);
             break;
         }

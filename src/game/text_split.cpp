@@ -11,9 +11,9 @@ namespace text {
 namespace {
 
 // The two splitters: the text plus a final separator, cut at each separator.
-int SplitAt(const char* text, std::vector<std::string>* array, char separator, bool skipAdjacent) {
+int SplitAt(std::string_view text, std::vector<std::string>* array, char separator, bool skipAdjacent) {
     std::string piece;
-    std::string work = text;
+    std::string work(text);
     array->clear();
     work += separator;
     int start = 0;
@@ -33,11 +33,11 @@ int SplitAt(const char* text, std::vector<std::string>* array, char separator, b
 
 } // namespace
 
-int Split(const char* text, std::vector<std::string>* array, char separator) {
+int Split(std::string_view text, std::vector<std::string>* array, char separator) {
     return SplitAt(text, array, separator, false);
 }
 
-int SplitWords(const char* text, std::vector<std::string>* array, char separator) {
+int SplitWords(std::string_view text, std::vector<std::string>* array, char separator) {
     return SplitAt(text, array, separator, true);
 }
 

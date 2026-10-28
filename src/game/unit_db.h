@@ -182,7 +182,7 @@ struct UnitModelTable {
 
     // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
-    UnitModelRecord* FindByName(const char* name);
+    UnitModelRecord* FindByName(std::string_view name);
     UnitModelRecord* At(std::uint32_t index);
 
     std::vector<UnitModelRecord> records;
@@ -194,7 +194,7 @@ struct UnitLevelTable {
     using NameIndex = std::unordered_map<std::string, UnitLevelRecord*>;
 
     // As UnitModelTable::FindByName.
-    UnitLevelRecord* FindByName(const char* name);
+    UnitLevelRecord* FindByName(std::string_view name);
 
     std::vector<UnitLevelRecord> records;
     NameIndex byName;

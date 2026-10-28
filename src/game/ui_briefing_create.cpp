@@ -78,7 +78,7 @@ constexpr int kConstructorPrefix = 6;       // "constr"
 constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
 
 MapRecord* FindLocalMap() {
-    return TheMapDatabase()->FindMap(LocalPlayerZone().c_str());
+    return TheMapDatabase()->FindMap(LocalPlayerZone());
 }
 
 CPlayer* LocalViewPlayer() {
@@ -342,10 +342,10 @@ void CBriefingScreen::MarkPeople() {
         std::uint32_t bits;
         std::memcpy(&bits, &node->second, 4);
         if (bits != kOneBits) continue;
-        text::Split(node->first.c_str(), &parts, '.');
+        text::Split(node->first, &parts, '.');
         if (parts.size() != kTopicNameParts) continue;
         if (text::CompareIgnoringCase(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
-        int id = TextKeyFromName(parts[1].c_str());
+        int id = TextKeyFromName(parts[1]);
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
     }
@@ -366,7 +366,7 @@ void CBriefingScreen::LeaveIfExitOpen() {
     if (text::CompareIgnoringCase(zone, NoZone()) == 0) return;
     std::string variable = ZoneVariablePrefix();
     variable += zone;
-    float visited = PlayerZeroVariable(variable.c_str());
+    float visited = PlayerZeroVariable(variable);
     EI_NAN_AUDIT(visited);
     if (visited == 1.0f) return;
     std::vector<PartyUnitRecord*> records{};

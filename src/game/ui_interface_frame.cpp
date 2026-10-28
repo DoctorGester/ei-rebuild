@@ -132,12 +132,12 @@ void CInterface3D::OnStringEvent(const char* event) {
     std::vector<std::string> words;
     std::string unused;
     std::string text = event;
-    text::SplitWords(text.c_str(), &words, ' ');
+    text::SplitWords(text, &words, ' ');
     str::MakeLower(words[0]);
     // Rebirth's NewStringEvents: "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words[0].c_str(), "gameover") == 0) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && str::Compare(words[0], "gameover") == 0) {
         GameStopSounds(1);
         GameStopAmbience();
         PlaySound("buttons\\gameover.wav", 0);
@@ -151,7 +151,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     if (Compare(words[0].c_str(), "say") == 0 || Compare(words[0].c_str(), "say_block") == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size() < 2) return;
-        int number = words.size() > 2 ? TextKeyFromName(words[2].c_str()) : 0;
+        int number = words.size() > 2 ? TextKeyFromName(words[2]) : 0;
         int kind = Compare(words[0].c_str(), "say_block") != 0 ? 0x2A : 0x2B;
         if (!stack_.empty())
             ScreenOf(top())->Speech(number, static_cast<unsigned>(kind), const_cast<char*>(words[1].c_str()));

@@ -50,7 +50,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeTable<Record> serialize, 
 
 // --- Name lookups ---------------------------------------------------------------------------------
 
-UnitModelRecord* UnitModelTable::FindByName(const char* name) {
+UnitModelRecord* UnitModelTable::FindByName(std::string_view name) {
     // As UnitPrototypeTable::FindByName: the key is built twice (a string, then the pair the
     // original would insert) and both are freed afterwards.
     std::string key(name);
@@ -59,7 +59,7 @@ UnitModelRecord* UnitModelTable::FindByName(const char* name) {
     return record;
 }
 
-UnitLevelRecord* UnitLevelTable::FindByName(const char* name) {
+UnitLevelRecord* UnitLevelTable::FindByName(std::string_view name) {
     std::string key(name);
     std::string pairKey(key);
     UnitLevelRecord* record = byName[pairKey];
@@ -91,7 +91,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
     for (int i = 0; i < static_cast<int>(prototypes.records.size()); ++i) {
-        UnitModelRecord* model = models.FindByName(prototypes.records[i].modelName.c_str());
+        UnitModelRecord* model = models.FindByName(prototypes.records[i].modelName);
         const int index = model ? static_cast<int>(model - models.records.data()) : -1;
         (&prototypes)->At(static_cast<std::uint32_t>(i))->modelIndex = index;
     }
@@ -99,7 +99,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     for (int i = 0; i < static_cast<int>(models.records.size()); ++i) {
         for (int slot = 0; slot < kModelSlots; ++slot) {
             const auto at = static_cast<std::uint32_t>(i);
-            UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName.c_str());
+            UnitLevelRecord* level = levels.FindByName(models.At(at)->slots[slot].levelName);
             const int index = level ? static_cast<int>(level - levels.records.data()) : -1;
             models.At(at)->slots[slot].levelIndex = index;
         }

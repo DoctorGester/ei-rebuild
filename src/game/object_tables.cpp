@@ -15,10 +15,10 @@
 #include <memory>
 #include <new>
 
-int TextKeyFromName(const char* name) {
+int TextKeyFromName(std::string_view name) {
     std::uint32_t h = 0;
-    for (const char* p = name; *p; ++p)
-        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(*p))) + h * 5;
+    for (char c : name.substr(0, name.find('\0')))
+        h = static_cast<std::uint32_t>(text::ToUpper(static_cast<unsigned char>(c))) + h * 5;
     return static_cast<int>(h % 1000000000u + 1000000000u);
 }
 
@@ -26,31 +26,31 @@ BOOL IsTextKey(int id) {
     return id >= 1000000000 && id < 2000000000 ? 1 : 0;
 }
 
-MapRecord* CMapDatabase::FindMap(const char* name) {
+MapRecord* CMapDatabase::FindMap(std::string_view name) {
     for (MapRecord& map : maps)
         if (text::CompareIgnoringCase(map.name, name) == 0) return &map;
     return nullptr;
 }
 
-AllodRecord* CMapDatabase::FindAllod(const char* name) {
+AllodRecord* CMapDatabase::FindAllod(std::string_view name) {
     for (AllodRecord& allod : allods)
         if (text::CompareIgnoringCase(allod.name, name) == 0) return &allod;
     return nullptr;
 }
 
-float NamedFloatTable::Get(const char* name) {
+float NamedFloatTable::Get(std::string_view name) {
     constexpr float kZero = 0.0f;
     const_iterator node;
     {
-        std::string key = name;
+        std::string key(name);
         node = find(key);
     }
     return node != end() ? node->second : kZero;
 }
 
-void NamedFloatTable::Set(const char* name, float value) {
-    if (!*name) return;
-    std::string key = name;
+void NamedFloatTable::Set(std::string_view name, float value) {
+    if (name.empty()) return;
+    std::string key(name);
     EI_NAN_AUDIT(value);
     if (value == 0.0f) {
         erase(key);
@@ -59,8 +59,8 @@ void NamedFloatTable::Set(const char* name, float value) {
     (*this)[key] = value;
 }
 
-void NamedFloatTable::Remove(const char* name) {
-    std::string key = name;
+void NamedFloatTable::Remove(std::string_view name) {
+    std::string key(name);
     erase(key);
 }
 

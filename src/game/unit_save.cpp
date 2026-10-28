@@ -137,7 +137,7 @@ void CUnit::LoadUnit(CStream* stream) {
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName.c_str())));
     UnitPrototypeRecord* second;
     if (stream->version_ < kVersionSecondName) {
-        second = unitdb::PrototypeTable().FindByName(prototypeName.c_str());
+        second = unitdb::PrototypeTable().FindByName(prototypeName);
     } else {
         stream->ReadInto(&prototypeName);
         second = PrototypeByName(prototypeName.c_str());

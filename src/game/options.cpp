@@ -366,7 +366,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
         resolution = GetString(key, l.Key(&GameOptions::keyGeneral_), "VideoResolution", resolution);
         int x = str::Find(resolution, 'x');
         if (x != -1) {
-            resolutionX_ = std::atoi(str::Left(resolution, x).c_str());
+            resolutionX_ = str::ToInt(str::Left(resolution, x));
             resolutionY_ = std::atoi(str::Right(resolution, static_cast<int>(resolution.size()) - x - 1).c_str());
         }
     }

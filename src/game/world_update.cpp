@@ -12,6 +12,7 @@
 #include "unit.h"
 #include "world_data.h"
 
+#include "lib/str.h"
 #include <cstring>
 #include <memory>
 
@@ -81,7 +82,7 @@ int CWorldServer::Update() {
     ScriptVars& globals = MainScript()->globals_;
     auto& names = globals.groups.names;
     for (std::size_t i = 0; i < names.size(); ++i) {
-        if (std::strcmp(names[i].c_str(), worlddata::HeroesGroupText()) == 0) {
+        if (str::Compare(names[i], worlddata::HeroesGroupText()) == 0) {
             heroes = globals.groups.values[i];
             break;
         }

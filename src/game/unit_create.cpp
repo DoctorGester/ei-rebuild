@@ -38,7 +38,7 @@ using UnitItems = std::list<CItem*>;
 
 // --- Prototype names --------------------------------------------------------------------------
 
-UnitPrototypeRecord* UnitPrototypeTable::FindByName(const char* name) {
+UnitPrototypeRecord* UnitPrototypeTable::FindByName(std::string_view name) {
     // The key is built twice (a string, then the pair it would insert) and both freed
     // afterwards; the pool sees the same allocations in the same order.
     std::string key(name);

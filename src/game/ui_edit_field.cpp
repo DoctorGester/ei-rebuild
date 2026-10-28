@@ -188,8 +188,8 @@ void CUiEditField::DrawContentsVanilla() {
     surface->DrawTextIn(text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
     // The caret stands after the first caret_ characters; a centred text starts half its width left
     // of the middle.
-    int caretX = TextWidth(interface_, str::Left(text, caret_).c_str(), font_);
-    if (centred_) caretX += width / 2 - TextWidth(interface_, text.c_str(), font_) / 2;
+    int caretX = TextWidth(interface_, str::Left(text, caret_), font_);
+    if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
     if (caretX >= 0 && caretX < width) {
         gdi::Pen pen(gameapi::CreatePen(PS_SOLID, 1, caretColour_));
         HGDIOBJ oldPen = gameapi::SelectObject(dc, pen.get());

@@ -53,7 +53,7 @@ constexpr AdvanceKind kFindComment{Test::Inline, Test::Inline, Test::Call};   //
 // Whether a word starts with "##".
 bool IsComment(const std::string& word) {
     std::string start = str::Left(word, 2);
-    return std::strcmp(start.c_str(), kComment) == 0;
+    return str::Compare(start, kComment) == 0;
 }
 
 // After a read: the cursor moves past the line (`first`), then past every "##" comment line.
@@ -209,7 +209,7 @@ BOOL CTextManager::FindLine(const char* key) {
             bool header;
             {
                 std::string first = str::Left(word, 1);
-                header = std::strcmp(first.c_str(), kHeader) == 0 && !IsComment(word);
+                header = str::Compare(first, kHeader) == 0 && !IsComment(word);
             }
             if (header) return 1;
             Advance(this, kFindFirst);
@@ -220,7 +220,7 @@ BOOL CTextManager::FindLine(const char* key) {
     if (keyWords.size() <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWord(&word)) {
-            if (std::strcmp(word.c_str(), key) == 0) return 1;
+            if (str::Compare(word, key) == 0) return 1;
             std::string next;
             Advance(this, kFindFirst);
             while (PeekWord(&next)) {
@@ -238,7 +238,7 @@ BOOL CTextManager::FindLine(const char* key) {
             for (;;) {
                 word = lineWords[i];
                 str::MakeLower(word);
-                if (std::strcmp(word.c_str(), keyWords[i].c_str()) != 0) break;
+                if (str::Compare(word, keyWords[i]) != 0) break;
                 if (++i >= keyWords.size()) return 1;
             }
         }

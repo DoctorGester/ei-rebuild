@@ -65,7 +65,7 @@ struct DeltaField {
     // Writes the bytes to both outputs as they are.
     void WriteBoth(const void* data, std::uint32_t size);
     // Writes the string with its terminator to both outputs.
-    void WriteStringBoth(const char* text);
+    void WriteStringBoth(std::string_view text);
     // Reads raw bytes from the reader; returns what the stream's Read returns.
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
     // Reads a string from the reader into `text` (CStream::ReadString); returns it.

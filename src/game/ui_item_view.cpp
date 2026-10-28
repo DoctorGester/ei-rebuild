@@ -423,7 +423,7 @@ CTexture* ItemFigureTexture(const char* name) {
     CDXSurface* holder = texture->surface_;
     const MmpHeader* image;
     {
-        std::string base = name;
+        std::string base(name);
         std::string file = base + ".mmp";
         image = manager->GetFileData(file.c_str());
     }
@@ -477,12 +477,12 @@ CTexture* ItemFigureTexture(const char* name) {
 
 // --- An image into part of a texture -------------------------------------------------------
 
-int CUiWindow::CopyImage(CTexture* texture, const char* name, int imageWidth, int imageHeight, int width,
+int CUiWindow::CopyImage(CTexture* texture, std::string_view name, int imageWidth, int imageHeight, int width,
                          int height, int x, int y, int, int) {
     CDXSurface* holder = texture->surface_;
     const MmpHeader* image;
     {
-        std::string base = name;
+        std::string base(name);
         std::string file = base + ".mmp";
         image = TheTextureManager()->GetFileData(file.c_str());
     }

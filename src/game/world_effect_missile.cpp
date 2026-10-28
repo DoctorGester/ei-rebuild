@@ -193,7 +193,7 @@ void CEffectArrow::Pack(DeltaField* field) {
     field->WriteDelta(&value, 4);
     value = casterId_;
     field->WriteDelta(&value, 4);
-    field->WriteStringBoth(soundName_.c_str());
+    field->WriteStringBoth(soundName_);
     field->WriteFloat16x3(&lightColor_.x);
     field->WriteFloat16(Bits(lightRange_));
     field->WriteDelta(&particleType_, 4);

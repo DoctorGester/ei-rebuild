@@ -14,6 +14,7 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "lib/gameapi.h"
 #include <cstdarg>
 #include <cstdint>
@@ -244,7 +245,7 @@ int StartFirstMap() {
     const auto& cmdScript = CommandLineScript();
     std::string map;
     map = cmdMap.size() != 0 ? cmdMap : options::TheOptions()->defaultMapName_;
-    if (std::strcmp(cmdMode.c_str(),
+    if (str::Compare(cmdMode,
                         game::EmptyText()) == 0) {
         TheGameFlow()->CloseSessions();
         MenuOpen(TheGameFlow());

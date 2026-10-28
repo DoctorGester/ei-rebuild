@@ -119,10 +119,10 @@ int g_movieKey;   // the blocking player's movie in the new renderer
 // next frame when it does not; the screen is filled black first, a loading screen step first; the last
 // argument is never read. Plays the movie in a message loop of its own, each frame into its letterboxed
 // rectangle. Returns 0 when Esc ended it.
-char PlayMovie(const char* name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
+char PlayMovie(const std::string& name, unsigned frameTime, char keysEnd, char spaceSkips, char clearScreen,
                           char loadingStep, int /*unused*/) {
     if (!MoviesMode()) return 1;
-    const char* file = name ? name : "";   // copies it into a CString
+    const char* file = name.c_str();
     if (loadingStep) TheSoundManager()->StopAll(1);
     if (MovieSound()) gameapi::BinkSetSoundSystem(gameapi::BinkOpenMiles, TheSoundManager()->waveDriver);
     BinkHeader* bink = OpenBink(file, 0);

@@ -121,7 +121,7 @@ void CCampPages::DebugFill() {
             std::string name = MaterialWord();
             name += Dot();
             name += names[i];
-            auto* item = items->ItemManager()->CreateItem(name.c_str());
+            auto* item = items->ItemManager()->CreateItem(name);
             item->count_ = kMaterialCount;
             AddCounted(items, item);
         }

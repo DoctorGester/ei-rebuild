@@ -183,10 +183,10 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
             bool found = texts->CTextManager::Open((std::string("spell ") + code).c_str()) != 0;
             if (found) texts->ReadLine(&text, 1);
         }
-        surface->DrawTextIn(text.c_str(), &line, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(text, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
         number = str::Format("%d", effects[i].ticksLeft / 15);
-        surface->DrawTextIn(number.c_str(), &line, 0, kTextColour, 0, 1);
+        surface->DrawTextIn(number, &line, 0, kTextColour, 0, 1);
         gameapi::OffsetRect(&line, 0, kLineHeight);
     }
 
@@ -216,7 +216,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         int y = kPlaceY[places[i]];
         if (fresh) {
             picture = str::Format("spell%04d", icons[i]);
-            CopyImage(objects_[1], picture.c_str(), kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
+            CopyImage(objects_[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
             effectIcons_[free] = icons[i];
         }
         CUiMesh* icon = Sprite(this, kFirstIcon + i);

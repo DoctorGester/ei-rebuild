@@ -121,7 +121,7 @@ public:
     ConsoleWindow& operator=(const ConsoleWindow&) = delete;
     void SetRect(const RECT* rect);   // 800x600 coordinates
     void SetHistory(int lines);
-    void AddText(const char* text);  // continues the last line; '\n' starts a new one
+    void AddText(std::string_view text);  // continues the last line; '\n' starts a new one
     // Drawing and input:
     void Show(bool shown);                     // creates or releases the surface
     void OnKeyDown(int key, int repeat, int flags);   // editing and scrolling keys

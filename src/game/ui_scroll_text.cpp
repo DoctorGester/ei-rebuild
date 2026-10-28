@@ -226,7 +226,7 @@ constexpr int kScrollbarSprites = 4;
 // stack slots (font 3: its return address) for the others; here they are 0.
 constexpr int kFontSlots = 10;
 
-void TokenizeText(CUiScrollText* self, const char* text) {
+void TokenizeText(CUiScrollText* self, std::string_view text) {
     std::string copy(text);
     self->Tokenize(&copy);
 }
@@ -267,7 +267,7 @@ CUiScrollText::~CUiScrollText() {
     lines_.clear();
 }
 
-void CUiScrollText::AddText(const char* text) {
+void CUiScrollText::AddText(std::string_view text) {
     SetPosition(maxPosition_);
     int position;
     moved_ = true;

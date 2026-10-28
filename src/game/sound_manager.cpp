@@ -710,7 +710,7 @@ void CSoundManager::FadeInStream() {
 // 1 after the current file, 2 now with a fade out, 3 at the next marker of the current file,
 // 4 at the current buffer position; anything else is ignored. Repeating the playing file only
 // cancels a fade out. Returns 0 only when the stream has no codec.
-int CSoundManager::RequestStream(const char* name, int mode) {
+int CSoundManager::RequestStream(std::string_view name, int mode) {
     if (enabled == 0) return 1;
     if (musicFader.volume == 0) return 1;
     if (streamCodec == nullptr) return 0;
@@ -721,7 +721,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         m = mode;
         if (str::Compare(streamName,
                             name) == 0 &&
-            *name != '\0') {
+            !name.empty()) {
             streamState = 1;
             if (switchMode == 2) {
                 musicFader.mode = 1;

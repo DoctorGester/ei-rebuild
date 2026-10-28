@@ -39,9 +39,9 @@ namespace {
 // ---- Small helpers ------------------------------------------------------------------------------
 
 // Index of `name` in a variable name array (four identical copies).
-int FindName(const std::vector<std::string>& names, const char* name) {
+int FindName(const std::vector<std::string>& names, std::string_view name) {
     for (std::size_t i = 0; i < names.size(); ++i)
-        if (Mbscmp(names[i].c_str(), name) == 0) return static_cast<int>(i);
+        if (Mbscmp(names[i], name) == 0) return static_cast<int>(i);
     return -1;
 }
 
@@ -141,9 +141,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'f':
             local.type = kScriptFloat;
             global.type = kScriptFloat;
-            local.varIndex = FindName(locals->floats.names, text.c_str());
-            global.varIndex = FindName(globals->floats.names, text.c_str());
-            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified.c_str());
+            local.varIndex = FindName(locals->floats.names, text);
+            global.varIndex = FindName(globals->floats.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->floats.names, qualified);
             local.argIndex = floatCount;
             global.argIndex = floatCount;
             if (tokenId == kLexNumber) {
@@ -156,9 +156,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 's':
             local.type = kScriptString;
             global.type = kScriptString;
-            local.varIndex = FindName(locals->strings.names, text.c_str());
-            global.varIndex = FindName(globals->strings.names, text.c_str());
-            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified.c_str());
+            local.varIndex = FindName(locals->strings.names, text);
+            global.varIndex = FindName(globals->strings.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->strings.names, qualified);
             local.argIndex = stringCount;
             global.argIndex = stringCount;
             if (tokenId == kLexString) {
@@ -171,9 +171,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'o':
             local.type = kScriptObject;
             global.type = kScriptObject;
-            local.varIndex = FindName(locals->objects.names, text.c_str());
-            global.varIndex = FindName(globals->objects.names, text.c_str());
-            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified.c_str());
+            local.varIndex = FindName(locals->objects.names, text);
+            global.varIndex = FindName(globals->objects.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->objects.names, qualified);
             local.argIndex = objectCount;
             global.argIndex = objectCount;
             ++objectCount;
@@ -183,9 +183,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
             // Loop counter of For/ForIf/Every/Any/Sum: must be a global object variable.
             local.varIndex = -1;
             global.type = kScriptObject;
-            global.varIndex = FindName(globals->objects.names, text.c_str());
+            global.varIndex = FindName(globals->objects.names, text);
             if (global.varIndex < 0) {
-                global.varIndex = FindName(globals->objects.names, qualified.c_str());
+                global.varIndex = FindName(globals->objects.names, qualified);
                 if (global.varIndex < 0)
                     return Error(this, token.line, 8, "Only global variables are allowed to be loop counters");
             }
@@ -196,9 +196,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
         case 'g':
             local.type = kScriptGroup;
             global.type = kScriptGroup;
-            local.varIndex = FindName(locals->groups.names, text.c_str());
-            global.varIndex = FindName(globals->groups.names, text.c_str());
-            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified.c_str());
+            local.varIndex = FindName(locals->groups.names, text);
+            global.varIndex = FindName(globals->groups.names, text);
+            if (global.varIndex < 0) global.varIndex = FindName(globals->groups.names, qualified);
             local.argIndex = groupCount;
             global.argIndex = groupCount;
             ++groupCount;

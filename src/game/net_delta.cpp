@@ -252,7 +252,7 @@ void DeltaField::WriteBoth(const void* data, std::uint32_t size) {
     out[1].Write(data, size);
 }
 
-void DeltaField::WriteStringBoth(const char* text) {
+void DeltaField::WriteStringBoth(std::string_view text) {
     out[0].WriteString(text);
     out[1].WriteString(text);
 }

@@ -35,7 +35,7 @@ namespace {
 
 
 // Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const Arguments* args, int i, const char* text) { return std::strcmp((*args)[i].c_str(), text) == 0; }
+bool ArgIs(const Arguments* args, int i, const char* text) { return str::Compare((*args)[i], text) == 0; }
 // "1"/"on" and "0"/"off".
 bool ArgOn(const Arguments* args, int i) { return ArgIs(args, i, "1") || ArgIs(args, i, "on"); }
 bool ArgOff(const Arguments* args, int i) { return ArgIs(args, i, "0") || ArgIs(args, i, "off"); }
@@ -123,7 +123,7 @@ void ConsolePos(Arguments* args) {
 // History <lines>.
 void History(Arguments* args) {
     if (args->empty()) return PrintLine("Invalid parameters");
-    TheInterface()->SetConsoleHistory(std::atoi((*args)[0].c_str()));
+    TheInterface()->SetConsoleHistory(str::ToInt((*args)[0]));
 }
 
 // Filter (prints the shown categories), filter <type> (shows only that one), filter <type> 1|on|0|off.
@@ -188,7 +188,7 @@ void ListVar(Arguments* args) {
     if (IsMultiplayerClient())
         player = LocalPlayer();
     else
-        player = GetPlayer(std::atoi((*args)[0].c_str()));
+        player = GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
 
     std::string line;
@@ -214,7 +214,7 @@ void ListVar(Arguments* args) {
 // Loadvar <player> <file>: sets the variables of each "name value" line.
 void LoadVar(Arguments* args) {
     if (args->size() < 2) return PrintLine("usage: loadvar [N player] [input file name]");
-    CPlayer* player = GetPlayer(std::atoi((*args)[0].c_str()));
+    CPlayer* player = GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
@@ -227,10 +227,10 @@ void LoadVar(Arguments* args) {
         return;
     }
     while (file.ReadLine(line)) {
-        text::Split(line.c_str(), &parts, ' ');
+        text::Split(line, &parts, ' ');
         if (parts.size() > 1) {
             const char* name = parts[0].c_str();
-            float value = static_cast<float>(std::atof(parts[1].c_str()));
+            float value = static_cast<float>(str::ToDouble(parts[1]));
             state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
     }
@@ -272,19 +272,19 @@ void Give(Arguments* args) {
         PrintLine("give [NPlayer] money [NMoney]");
         return PrintLine("give [NPlayer] exp [NExp]");
     }
-    CPlayer* player = GetPlayer(std::atoi((*args)[0].c_str()));
+    CPlayer* player = GetPlayer(str::ToInt((*args)[0]));
     if (!player) return PrintLine("Wrong player number");
     CPlayerServer* state = player->Server();
     if (!state) return PrintLine("Wrong player number");
     if (ArgIs(args, 1, "money") && args->size() > 2) {
-        int amount = std::atoi((*args)[2].c_str());
+        int amount = str::ToInt((*args)[2]);
         player->Party()->Money() += amount;
         return state->SendParty();
     }
     if (ArgIs(args, 1, "exp") && args->size() > 2) {
         int count = std::ssize(player->Party()->members_);
         // Rounded to float once.
-        float share = static_cast<float>(std::atof((*args)[2].c_str()) / count);
+        float share = static_cast<float>(str::ToDouble((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             player->Party()->members_[i].stats.AddScaledExperience(share);
         return state->SendParty();
@@ -334,7 +334,7 @@ void LootAll(Arguments*) {
 // Fadeout <milliseconds>.
 void FadeOut(Arguments* args) {
     if (args->empty()) return PrintLine("FADEOUT nMillSec");
-    TheInterface()->fade_->Start(std::atoi((*args)[0].c_str()));
+    TheInterface()->fade_->Start(str::ToInt((*args)[0]));
     PrintLine("Ok");
 }
 
@@ -345,16 +345,16 @@ void Net(Arguments* args) {
         PrintLine("net server 0/1 - show server traffic");
         return PrintLine("net time 0/1   - show client time counting info");
     }
-    if (text::CompareIgnoringCase((*args)[0].c_str(), "client") == 0) {
+    if (text::CompareIgnoringCase((*args)[0], "client") == 0) {
         std::string value = (*args)[1];
-        LocalPlayer()->logTraffic_ = std::atoi(value.c_str());
+        LocalPlayer()->logTraffic_ = str::ToInt(value);
     }
-    if (text::CompareIgnoringCase((*args)[0].c_str(), "server") == 0) {
-        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = std::atoi((*args)[1].c_str());
+    if (text::CompareIgnoringCase((*args)[0], "server") == 0) {
+        if (CPlayer* player = GetPlayer(0)) player->logTraffic_ = str::ToInt((*args)[1]);
     }
-    if (text::CompareIgnoringCase((*args)[0].c_str(), "time") == 0)
-        app::g_showClientSpeed = std::atoi((*args)[1].c_str());
-    if (text::CompareIgnoringCase((*args)[0].c_str(), "zone") == 0 && ServerActive(Server())) {
+    if (text::CompareIgnoringCase((*args)[0], "time") == 0)
+        app::g_showClientSpeed = str::ToInt((*args)[1]);
+    if (text::CompareIgnoringCase((*args)[0], "zone") == 0 && ServerActive(Server())) {
         std::string zone = (*args)[1];
         Server()->SendCommand(0, zone.c_str());
     }
@@ -496,7 +496,7 @@ namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
 void SetRate(Arguments* args, int* rate, const char* usage) {
     if (args->size() != 1) return PrintLine(usage);
-    int value = std::atoi((*args)[0].c_str());
+    int value = str::ToInt((*args)[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;
     *rate = value;

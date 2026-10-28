@@ -174,7 +174,7 @@ void Execute(const char* text) {
 
     str::MakeLower(command);
     for (std::string& arg : args) str::MakeLower(arg);
-    if (std::strcmp(command.c_str(), "quit") == 0 || std::strcmp(command.c_str(), "exit") == 0) {
+    if (str::Compare(command, "quit") == 0 || str::Compare(command, "exit") == 0) {
         app::QuitGame(0);
         return;
     }
@@ -186,7 +186,7 @@ void Execute(const char* text) {
         // The cheat word is kept XORed with 0x66 (up to the first byte that becomes zero).
         for (char& c : command) c ^= 0x66;
         command.resize(std::strlen(command.c_str()));
-        if (std::strcmp(command.c_str(), game::consoletexts::CheatWord()) == 0) {
+        if (str::Compare(command, game::consoletexts::CheatWord()) == 0) {
             g_cheatEnabled = true;
             PrintLine("Activated!");
             return;

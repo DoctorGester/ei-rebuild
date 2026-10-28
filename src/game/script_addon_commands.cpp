@@ -329,9 +329,9 @@ bool SetWeather(Call* call) {
     name = Text(call, 0);
     int kind = 0;
     float strength = 20.0f;
-    if (std::strcmp(name.c_str(), "rain") == 0) kind = 1;
-    else if (std::strcmp(name.c_str(), "clear") == 0) kind = 0;
-    else if (std::strcmp(name.c_str(), "snow") == 0) {
+    if (str::Compare(name, "rain") == 0) kind = 1;
+    else if (str::Compare(name, "clear") == 0) kind = 0;
+    else if (str::Compare(name, "snow") == 0) {
         kind = 2;
         strength = 40.0f;
     }

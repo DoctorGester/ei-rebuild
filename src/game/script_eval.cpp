@@ -25,6 +25,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/str.h"
 #include "lib/nan_audit.h"
 #include "random.h"
 #include "game_singletons.h"
@@ -168,7 +169,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = FromBool(f[0] > f[1]);
         return;
     case 0x48:   // IsEqualString
-        *result = FromBool(std::strcmp(stringArgs[0].c_str(), stringArgs[1].c_str()) == 0);
+        *result = FromBool(str::Compare(stringArgs[0], stringArgs[1]) == 0);
         return;
     case 0x49:   // Add
         *result = f[1] + f[0];
@@ -426,7 +427,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         }
         StoreBits(result, kZero);
         CPlayer* player = TheServerWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = player->Party()->variables_.Get(stringArgs[0].c_str());
+        if (player) *result = player->Party()->variables_.Get(stringArgs[0]);
         return;
     }
     case 0xA2:   // IsCameraPlaying
@@ -531,7 +532,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0x85: { // GetObjectByName
-        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs[0].c_str()));
+        CEngineObject* o = TheServerWorld()->FindObject(TextKeyFromName(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
                            stringArgs[0].c_str(), "GetObjectByName");
@@ -539,7 +540,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheServerWorld()->FindObject(std::atoi(stringArgs[0].c_str()));
+        CEngineObject* o = TheServerWorld()->FindObject(str::ToInt(stringArgs[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            stringArgs[0].c_str(), "GetObjectByID");

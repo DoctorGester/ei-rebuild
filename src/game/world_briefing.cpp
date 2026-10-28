@@ -63,7 +63,7 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
     while (texts->FindLine(game::briefingwords::ShowTag())) {
         texts->Split(&words, 1);
         if (words.size() >= 2 &&
-            text::CompareIgnoringCase(words[1].c_str(),
+            text::CompareIgnoringCase(words[1],
                             game::briefingwords::Hero()) != 0) {
             *out = words[1];
             return out;
@@ -105,7 +105,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
     }
     std::string variable;
     BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Set(variable.c_str(), 1.0f);
+    player->Party()->variables_.Set(variable, 1.0f);
 }
 
 // ---- Forgetting briefings, unloading quest texts --------------------------------------------------
@@ -130,7 +130,7 @@ void GameFlow::ForgetBriefing(const char* briefing) {
     CPlayer* player = TheClientWorld()->LocalView()->player_;
     std::string variable;
     BriefingVariableInto(&variable, briefing);
-    player->Party()->variables_.Remove(variable.c_str());
+    player->Party()->variables_.Remove(variable);
 }
 
 void UnloadQuestTexts() {
@@ -223,8 +223,8 @@ void GameFlow::OnVariableChanged(const net::VariableMessage* record) {
                                 flowdata::kQuestVariablePrefix) == 0;
     }
     if (quest) {
-        TheInterface()->OnQuestVariable(name.c_str(), value);
-        TheClientWorld()->OnQuestVariable(name.c_str(), value);
+        TheInterface()->OnQuestVariable(name, value);
+        TheClientWorld()->OnQuestVariable(name, value);
     }
 }
 

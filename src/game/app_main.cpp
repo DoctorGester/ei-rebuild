@@ -239,7 +239,7 @@ void ReadCommandLine(const char* commandLine) {
             continue;
         }
         if (!(client->flags_ & 0x10)) {
-            if (text::CompareIgnoringCase(arguments[i].c_str(),
+            if (text::CompareIgnoringCase(arguments[i],
                                 "-nocam") == 0) {
                 client->flags_ &= ~8u;
                 continue;
@@ -257,11 +257,11 @@ void ReadCommandLine(const char* commandLine) {
             CommandLineMap() = arguments[i].c_str();
         } else if (str::Find(arguments[i], "-benchmark_") == 0) {
             std::string frames = Tail(arguments[i], 11);
-            options->numberOfFrames_ = std::atoi(frames.c_str());
+            options->numberOfFrames_ = str::ToInt(frames);
             options->createOutputInfo_ = 1;
         } else if (str::Find(arguments[i], "-devicetarget_") == 0) {
             std::string driver = Tail(arguments[i], 14);
-            options->driverIndex_ = std::atoi(driver.c_str());
+            options->driverIndex_ = str::ToInt(driver);
         }
     }
 }

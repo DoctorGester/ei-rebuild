@@ -935,7 +935,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         if (text::CompareIgnoringCase(name,
                             game::NoneText()) != 0) {
             name = std::string(game::ZoneVariablePrefixText()) + name;   // "z."
-            double value = LocalPlayerVariable(name.c_str());
+            double value = LocalPlayerVariable(name);
             const float one = GameOne();
             // Equal skips.
             EI_NAN_AUDIT(value);

@@ -67,7 +67,7 @@ int CHoover::CollectLoot(CWorld* world, CUnit* cunit, PtrList* drops, PtrList* i
     if (prototype) {
         const std::vector<std::string>& itemNames = prototype->lootItems;
         for (std::size_t i = 0; i < itemNames.size(); ++i) {   // the end is read again each time
-            CItem* item = manager->CreateItem(itemNames[i].c_str());
+            CItem* item = manager->CreateItem(itemNames[i]);
             if (!item) continue;
             Append(drops, item);
             AppendShared(items, item);

@@ -25,7 +25,7 @@ namespace {
 CPlayer* LocalPlayer() { return TheClientWorld()->LocalView()->player_; }
 
 // A player's named float variable (its party's variables_).
-float Variable(CPlayer* player, const char* name) { return player->Party()->variables_.Get(name); }
+float Variable(CPlayer* player, std::string_view name) { return player->Party()->variables_.Get(name); }
 
 } // namespace
 
@@ -67,9 +67,9 @@ CParty* LocalPlayerData() { return LocalPlayer()->Party(); }
 
 std::string LocalPlayerZone() { return LocalPlayer()->Party()->zone_; }
 
-float LocalPlayerVariable(const char* name) { return Variable(LocalPlayer(), name); }
+float LocalPlayerVariable(std::string_view name) { return Variable(LocalPlayer(), name); }
 
-float PlayerZeroVariable(const char* name) {
+float PlayerZeroVariable(std::string_view name) {
     if (IsMultiplayerClient()) return Variable(LocalPlayer(), name);
     CPlayer* player = TheServerWorld()->GetPlayer(0);
     if (!player) return 0.0f;

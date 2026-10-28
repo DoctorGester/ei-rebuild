@@ -268,7 +268,7 @@ struct CSoundManager : CEngineObject {
     void Tick();
     void FadeOutStream();
     void FadeInStream();
-    int RequestStream(const char* name, int mode);
+    int RequestStream(std::string_view name, int mode);
     void StopStream(int mode);
 
     // Handles restart at 0; with `stopStream` the stream stops too.
