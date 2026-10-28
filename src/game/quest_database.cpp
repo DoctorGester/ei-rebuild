@@ -26,7 +26,6 @@ namespace {
 // The quest registry (registry.cpp).
 using Registry = CFileRegistry;
 
-
 std::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow

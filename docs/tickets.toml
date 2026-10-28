@@ -3643,6 +3643,12 @@ group = "cleanup"
 note = "C14h found these hand-written array shapes outside the vector retype: object3d_figure_setup's partBoxes SetSize (pointer, count, capacity, growBy in CObject3D), ai_local_search's cellRowGrowBy, map_spec_unit and script_addon growBy loops. Each is an inlined CArray SetSize: std::vector."
 
 [[ticket]]
+id = "C14x"
+title = "C14 the STLport deques to std::deque: the camera's view stack and the material's entries; delete stlp_deque.h / .cpp"
+group = "cleanup"
+note = "Found by C14q: after C14s / C14t, stlp.h holds only the node allocator (stlp_alloc.h, PushSmallNode) and stlp_deque.h (CCamera::viewStack_ 0x24-byte entries, camera.h's own layout and ViewStackDestroyRange; the material's 0x10-byte entries). Both are trivially destructible: std::deque (or std::vector where nothing pushes at the front), then stlp_deque.h / .cpp and, with the lists gone, stlp.h / stlp.cpp / stlp_alloc.h go. Also: refptr_copies.cpp's RefPtrNull has no caller left (config/static_init_ports.csv still lists 0041FF50 / 0041FF60; check gen_static_init before removing the rows). net::Connection's destructor clears its maps by hand between the stlp lists; when C14s makes the lists std the clears go (core.md C14q)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

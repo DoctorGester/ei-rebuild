@@ -29,7 +29,6 @@
 
 namespace {
 
-
 using stock::CandidateVector;
 using stock::Candidates;
 using stock::TakenMaterials;
