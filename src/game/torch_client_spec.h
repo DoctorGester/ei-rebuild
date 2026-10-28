@@ -5,7 +5,7 @@
 // client-specific manager makes it for type 'K'.
 // It extends the torch's state object (CTorchObjectSpec) with what the torch shows: a
 // particle source, a point light and a looping sound, all placed relative to the torch. The
-// spec's setters (slots 16-18) are overridden to rebuild them; slots 13 / 14 show and hide them.
+// spec's setters are overridden to rebuild them; its show and hide virtuals act on them.
 // torch_client_spec.cpp.
 // The spec's fields, as the client reads them: unknown_20 the particle type, colours_[0] its offset
 // and values_[0] its size scale; colours_[1] the light's offset, values_[1] its radius
@@ -51,7 +51,7 @@ public:
     // The particles stop emitting, a shown light is hidden (flags_ bit 7 set,
     // removed from the light manager), the sound stops (sound_ 0).
     void HideEffects();
-    // The particle source ticks 60 times (its slot 6) when there is one.
+    // The particle source ticks 60 times (its tick) when there is one.
     void WarmUpParticles();
     // The spec's SetLight, then a new particle source of `type` (the
     // old one stopped and dropped) at the torch plus `offset`, its size scaled by `scale`, attached

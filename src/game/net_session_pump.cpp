@@ -59,7 +59,7 @@ void DriverSession::PumpDrivers(net::SessionBase* session) {
 }
 
 // Both lists emptied, then one driver for `player`: started, and its pending output
-// drained into throwaway memory streams while slot 6 answers true. Returns the driver.
+// drained into throwaway memory streams while its virtual check answers true. Returns the driver.
 DriverLink* DriverSession::Start(net::Connection* player) {
     drivers_.clear();
     holders_.clear();

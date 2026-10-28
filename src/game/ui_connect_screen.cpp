@@ -127,7 +127,7 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
 }
 
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it
-// fits before `end`, otherwise through slot 4. Not inlined, so the slot is called through the
+// fits before `end`, otherwise through the buffer's virtual call. Not inlined, so it is called through the
 // buffer's own vtable.
 __declspec(noinline) void BufferPut(GameBuffer* b, const void* from, unsigned size) {
     if (b->cur + size > b->end) {

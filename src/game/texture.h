@@ -200,7 +200,7 @@ public:
     // `target` starts with the triangle's three corners (a screen and a texture point each, pairs of ints)
     // and goes on with the surface.
     virtual void RasteriseTriangle(RasterTarget* target);
-    // The DLL's slot 9 for a keyed texture's texels (RasterTriangle::keyTexels); nothing builds one, never called.
+    // The DLL's call for a keyed texture's texels (RasterTriangle::keyTexels); nothing builds one, never called.
     virtual void RasteriseKeyedTriangle(RasterTarget* target);
     // Into 16-bit pixels.
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);

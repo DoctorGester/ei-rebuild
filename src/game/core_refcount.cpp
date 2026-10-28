@@ -2,7 +2,7 @@
 
 
 namespace {
-// The release inlined at the call sites (delete calls slot 0 with 1, after the same null test).
+// The release inlined at the call sites (delete through the virtual destructor, after the same null test).
 void ReleaseObject(CRefObject* object) {
     if (--object->refs_ == 0) delete object;
 }

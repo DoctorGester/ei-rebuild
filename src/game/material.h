@@ -80,7 +80,7 @@ public:
     int Create() override;
     // A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
-    // A material of `type` (slot 23 with id -1, flags_ |= 8 before the null check) given the table's colours
+    // A material of `type` (created with id -1, flags_ |= 8 before the null check) given the table's colours
     // for its type_ (an absent key is entered first, its colours the key's bits in every dword).
     CMaterial* NewMaterial(int type);
     // The table's colours for `key` (entered as NewMaterial does when absent)

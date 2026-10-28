@@ -101,7 +101,7 @@ void SessionBase::Tick(double dt) {
 
 } // namespace net
 
-// ---- Session vtable slots ---------------------------------------------------------------
+// ---- Session virtuals ---------------------------------------------------------------
 
 namespace net {
 

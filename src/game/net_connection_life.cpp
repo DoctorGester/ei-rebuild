@@ -36,7 +36,7 @@ void DestroyForReset(Connection* c) {
     FreeReceived(c);
 }
 
-// The entry's counted object pointer released as the original inlines it (16-bit count; slot 0
+// The entry's counted object pointer released as the original inlines it (16-bit count; the virtual destructor
 // deletes at zero).
 void ReleaseEntryObject(ReplicaEntry* e) {
     CRefObject* object = e->object_.ptr;

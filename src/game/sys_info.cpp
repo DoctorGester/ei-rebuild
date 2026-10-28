@@ -4,7 +4,7 @@
 // registers its destructor with atexit; the constructor calls Create, which collects
 // everything. All of that runs before the hooks install, so the game never reaches the
 // rewrites of the initialisers, the constructor, the collector and its helpers.
-// The destructor (at exit) and the virtual slots
+// The destructor (at exit) and the virtuals
 // can run later. The game is compiled without optimisation (every function keeps a frame and
 // spills ECX). See docs/notes/script.md.
 #include "sys_info.h"

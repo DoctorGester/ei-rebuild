@@ -59,11 +59,11 @@ public:
     virtual void SetFlameSlot(const float* colour, float value, const float* values) { SetFlame(colour, value, values); }
     virtual void SetNameSlot(const char* name) { SetName(name); }
 
-    // torch_spec.cpp. Slots 2 / 3 (other names so they are no
+    // torch_spec.cpp. Create / Destroy (other names so they are no
     // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
-    // the default colour (black), returns 1; Destroy clears +0x1C and the name. Slots 9 / 10:
+    // the default colour (black), returns 1; Destroy clears +0x1C and the name. Load / Save:
     // +0x20, the name (written with its terminator), +0x28, +0x2C, the
-    // four values +0x30 and both colours. Slots 16-18: set +0x20, the first
+    // four values +0x30 and both colours. The setters: set +0x20, the first
     // colour and +0x28; the second colour, +0x2C and the four values; the name.
     int CreateSpec();
     void DestroySpec();
@@ -74,8 +74,8 @@ public:
     void SetName(const char* name);
     // torch_spec.cpp: the torch's network read. Reads the kind,
     // values_[0], values_[1], values_[2..5], both vectors and the name from `field`, then applies them
-    // through the vtable (slots 16, 17, 18; a client half rebuilds its effects there), shows the
-    // effects (13) and warms the particles up (15).
+    // through the virtual setters (a client half rebuilds its effects there), shows the
+    // effects and warms the particles up.
     void ReadNetState(DeltaField* field);
 
     CMapObject* torch_;         // the torch it belongs to (set by the torch's attach); null when constructed

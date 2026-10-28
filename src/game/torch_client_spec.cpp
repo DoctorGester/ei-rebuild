@@ -32,7 +32,7 @@ constexpr int kTorchClassId = 0x41;
 const char* ClassNameText() { return "CTorchObjectClientSpecific"; }
 
 
-// The sources are engine objects: slot 4 releases a reference.
+// The sources are engine objects: Release drops a reference.
 void ReleaseSource(CParticleSource* source) { source->Release(); }
 
 // The torch's position plus `offset`, each sum stored as a float.
@@ -168,7 +168,7 @@ void CTorchObjectClientSpec::SetSound(const char* name) {
     sound_ = g_clientWorld->sounds_->Play3D(name_, 0, &torch_->localPosition_.x, kSoundNear, farRadius, 1, 0);
 }
 
-// Slots 6, 11 and 12: the update returns 1, the class name and id.
+// The update returns 1; the class name and id.
 
 int CTorchObjectClientSpec::RunTick() { return 1; }
 const char* CTorchObjectClientSpec::GetClassName() { return ClassNameText(); }

@@ -272,7 +272,7 @@ void CBattleScreen::Update() {
         }
     }
 
-    // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
+    // The selection box: party units inside it are marked (flag 0x100 and their figure's select virtual
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
     if (boxSelecting_) {
         std::list<CMapObject*> units;

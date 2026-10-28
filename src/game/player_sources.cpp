@@ -1,4 +1,4 @@
-// The player sources' slot 6: the server world's AcceptNewPlayers
+// The player sources' accept virtual: the server world's AcceptNewPlayers
 // asks a source for its new connections, which the source appends to an MFC list of
 // counted links. The first is the counted helper's (CWorldHandle: its pending link, handed over
 // once), the second the network session's (netlink::DriverSession: the link of every live holder,

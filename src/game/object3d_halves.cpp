@@ -30,7 +30,7 @@ constexpr int kOutsideView = 2;
 
 int Setting(const int& setting) { return static_cast<const volatile int&>(setting); }
 
-// The switch for the class of `object` (its slot 12).
+// The switch for the class of `object`.
 int ShadowSwitchOf(CObject3D* object) {
     int classId = object->GetClassId();
     if (classId == kClassUnit) return Setting(options::g_options->unitShadow_);
@@ -92,15 +92,15 @@ int CObject3DSpecific::PartsContainPoint(const long*) { return 0; }
 CObject3DServer::CObject3DServer() {}
 CObject3DServer::~CObject3DServer() {}
 
-// Slot 3: no object.
+// No object.
 int CObject3DServer::Create() { return 1; }
 void CObject3DServer::Destroy() { object = nullptr; }
 
-// Slots 11 / 12.
+// Class name and id.
 const char* CObject3DServer::GetClassName() { return kServerClassName; }
 int CObject3DServer::GetClassId() { return kServerClassId; }
 
-// Slots 13-17: no parts; 0.
+// The part virtuals: no parts; 0.
 int CObject3DServer::OnPartAdded(CFigureMesh*) { return 0; }
 CFigureMesh* CObject3DServer::RemoveFromPartSets(const char*) { return nullptr; }
 int CObject3DServer::OnPartRemoved(CFigureMesh*) { return 0; }

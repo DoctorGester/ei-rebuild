@@ -8,8 +8,8 @@
 
 // An engine object placed in the world: local position and rotation relative to its parent, and
 // the world transform derived from them. Base of the camera, the scene's figures, units and other
-// placed objects (abstract: slots 2, 3, 11 and 12 are pure). Name provisional; 18 slots.
-// Slots 0-12 are CEngineObject's (CopyFrom, Release, empty Load/Save); 13-17 are defined in
+// placed objects (abstract: some virtuals are pure). Name provisional.
+// The virtuals up to the class id are CEngineObject's (CopyFrom, Release, empty Load/Save); the rest are defined in
 // The game's out-of-line constructor body (the base's fields and identity rotations) is
 // what the derived classes' constructors do; its destructor (deleting too) is CEngineObject's.
 namespace lib {

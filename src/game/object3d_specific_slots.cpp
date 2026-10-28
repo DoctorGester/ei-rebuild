@@ -86,7 +86,7 @@ CFigureMesh* CObject3D::FindPartOfType(int type) {
     return nullptr;
 }
 
-// Slots 11 / 12: the class name and id 0x37.
+// The class name and id 0x37.
 const char* CObject3DClientSpecific::GetClassName() { return ClientClassName(); }
 int CObject3DClientSpecific::GetClassId() { return kClientClassId; }
 

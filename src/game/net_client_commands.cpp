@@ -65,7 +65,7 @@ void ClientSession::OnJoined() { g_gameFlow->BeginMultiplayerGame(); }
 
 // Called by the transfer screen: a buffer's stream size (its base plus the highest written position, from
 // `begin`) over the dword at its start (1 when 0), both as signed integers; 0 for fewer than 4 bytes. Reading
-// the dword moves the read position to 4 (Seek(0) through slot 6, then a 4-byte read as BufferRead does it).
+// the dword moves the read position to 4 (a Seek(0), then a 4-byte read as BufferRead does it).
 // Returned unrounded: the caller multiplies the unrounded result. Plain C++ division (rewrite-guide rule 7).
 double ClientSession::BufferRatio(GameBuffer* buffer) {
     auto streamSize = [buffer] {

@@ -27,7 +27,7 @@ void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
 CMemoryStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
 
 // The first element in [first, last) whose member stream holds the same bytes as
-// `message`'s (sizes through slot 4, then a byte compare).
+// `message`'s (sizes, then a byte compare).
 std::vector<CountedRefPtr>::iterator FindSameMessage(std::vector<CountedRefPtr>::iterator first, std::vector<CountedRefPtr>::iterator last, PartyMemberMessage* message) {
     CStream* stream = &message->stream_;
     for (; first != last; ++first) {
@@ -116,8 +116,8 @@ void ClientCommitParty(ClientSession* self) {
 
 // Rebuilds the partner's party from the paired offer, once every member message of it holds data. Each
 // message gives (when its first dword, the spell's id, is positive) a spell made by the party's spell manager
-// (slot 22; CreateObject with the stored type and that id, its packed id set and its Load, slot 9) and an
-// item made by the item manager (slot 18; CreateObject with id -1, packed id, Load). The items are added to
+// (CreateObject with the stored type and that id, its packed id set and its Load) and an
+// item made by the item manager (CreateObject with id -1, packed id, Load). The items are added to
 // the party, which takes the offer's money first; trade records older than the offer's revision are dropped.
 void ClientApplyParty(ClientSession* self) {
     PartyMessage* remote = ClientFindParty(self);

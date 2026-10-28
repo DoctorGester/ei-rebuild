@@ -1,4 +1,4 @@
-// Names the items build from their database records (virtual slots 17-20 of the item classes):
+// Names the items build from their database records (virtuals of the item classes):
 // model, figure and picture (inventory icon) names such as "sw_03.iron.1", "unhumasw_03.iron.1",
 // "initwesw3weapon", "qitem0012.uq". Each returns a new CString (by hidden pointer, as MFC does).
 #include "item.h"

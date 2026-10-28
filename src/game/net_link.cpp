@@ -183,7 +183,7 @@ bool LoopbackLink::HasIncoming() { return !queue_.empty(); }
 
 int LoopbackLink::IncomingCount() { return static_cast<int>(queue_.size()); }
 
-// A new empty stream at the end of the peer's queue takes a copy of `stream` (its slot 7). False
+// A new empty stream at the end of the peer's queue takes a copy of `stream` (CopyFrom). False
 // without a live peer.
 bool LoopbackLink::Send(CStream* stream) {
     LoopbackLink* peer = peer_;
@@ -192,7 +192,7 @@ bool LoopbackLink::Send(CStream* stream) {
     return true;
 }
 
-// The front of the queue copied into `stream` (its slot 7) and dropped, then recorded as the base
+// The front of the queue copied into `stream` (CopyFrom) and dropped, then recorded as the base
 // does. False when nothing is queued.
 bool LoopbackLink::Receive(CMemoryStream* stream) {
     if (queue_.empty()) return false;
@@ -202,7 +202,7 @@ bool LoopbackLink::Receive(CMemoryStream* stream) {
     return true;
 }
 
-// Lets go of the peer, then has the peer let go of this one (a reference held across its slot 11).
+// Lets go of the peer, then has the peer let go of this one (a reference is held across the peer's call).
 void LoopbackLink::Disconnect() {
     LoopbackLink* peer = peer_;
     if (peer) ++peer->refs_;

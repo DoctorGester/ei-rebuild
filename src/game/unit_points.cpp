@@ -1,4 +1,4 @@
-// Two CUnit virtual slots giving points of the unit: the position predicted along its
+// Two CUnit virtuals giving points of the unit: the position predicted along its
 // path and the point its current animation acts on. See docs/notes/units.md ("Unit points").
 #include "ai_map.h"
 #include "ai_motion.h"

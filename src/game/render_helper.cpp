@@ -50,7 +50,7 @@ CRenderPreset* Failed(int errorResult) { return reinterpret_cast<CRenderPreset*>
 // A texture stage: the colour is `operation` of `argument` and the stage before, the alpha is switched off.
 // The new elements are filled from an uninitialised local with only the two flags cleared and then writes the
 // fields below, so what a list does not set (stage 0's operations everywhere, the alpha arguments of presets
-// 5-7) is stack contents there and zero here; the helper's slot 1 passes the alpha arguments on to
+// 5-7) is stack contents there and zero here; the helper's setter passes the alpha arguments on to
 // Direct3D even so.
 RenderPresetRecord::State TextureStage(D3DTEXTUREOP operation, std::uint32_t argument, bool alphaArguments) {
     RenderPresetRecord::State state{};
@@ -255,7 +255,7 @@ CRenderHelper::CRenderHelper(IDirect3DDevice7* device, std::uint32_t flag) : dev
     }
 }
 
-// The destructor body. Every record's preset goes through slot 3 (its state blocks deleted, the record
+// The destructor body. Every record's preset is released (its state blocks deleted, the record
 // erased). (The game's walk stood on the erased record and read its freed node, so it could stray and leave
 // records behind with their state blocks; here every record goes.)
 CRenderHelper::~CRenderHelper() {

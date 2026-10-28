@@ -1,5 +1,5 @@
 // An interface sprite (CUiMesh, ui.h): its Create, its draw (called by the window base's draw and the panels
-// that draw single sprites), its constructor, destructor and virtual slots. docs/notes/ui.md, section 9.
+// that draw single sprites), its constructor, destructor and virtuals. docs/notes/ui.md, section 9.
 #include "ui.h"
 
 #include "material.h"

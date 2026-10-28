@@ -35,8 +35,8 @@ public:
     // The map object's Create, flags_ bit 0x40 cleared; returns Create's result.
     int CreateTrap();
     // The map object's update; then, armed (flags_ 0x80000) on the server (the
-    // context's slot 26): the units within 1 of the position (the sector map). With any, the
-    // world script above runs (on the mission script, z = the world's slot 28 at x, y)
+    // context's query): the units within 1 of the position (the sector map). With any, the
+    // world script above runs (on the mission script, z = what the world's virtual gives at x, y)
     // and the trap disarms; with none, flags_ 0x100000 is cleared. Returns 0.
     int UpdateTrap();
     // An armed trap disarms when `key` accepts (always);
@@ -44,7 +44,7 @@ public:
     bool Disarm(const LockKey* key, int unused);
     // The check's EAX (1).
     int KeyFits(const LockKey* key);
-    // Slots 9 / 10. The map object part, then
+    // Load / Save. The map object part, then
     // +0x238.
     void LoadTrapObject(CStream* stream);
     void SaveTrapObject(CStream* stream);
@@ -54,6 +54,6 @@ public:
     std::uint32_t savedValue_;   // only loaded and saved; nothing sets it (not even the constructor)
 };
 
-// Slots 11 / 12: "CTrapObject" and 0x55. The magic trap's
+// Class name and id: "CTrapObject" and 0x55. The magic trap's
 // "CMagicTrapObject" and 0x61.
 class MagicTrap;

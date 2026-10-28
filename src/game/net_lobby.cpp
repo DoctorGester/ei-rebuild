@@ -557,7 +557,7 @@ void ServerBase::Tick(double dt) {
 // Packet 4: a login. The magic must be the session's; the id and the rate follow (the rate is cut to what the
 // session allows for the address, compared signed). A peer that is connected already is ignored. One that was
 // told to join before is told again (its id and rate replaced). Anybody else is asked about and either put on
-// the joins list and accepted, or refused with the reason slot 16 gave. The original builds the new join on
+// the joins list and accepted, or refused with the reason the check gave. The original builds the new join on
 // the stack and never sets its age: the list gets whatever the stack held, so the time the join may wait for
 // its first update (ServerBase::Tick) is not defined. Rebirth's FixProcessLogin (clears it) is what this body
 // always does: garbage cannot be reproduced, so the flag changes nothing here.

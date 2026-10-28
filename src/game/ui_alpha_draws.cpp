@@ -1,4 +1,4 @@
-// Three interface windows' draws (slot 20, called with the pass) that only set alpha
+// Three interface windows' draws (their draw, called with the pass) that only set alpha
 // states around the container draw, rewritten so the new renderer's state mirror
 // (src/render/render_state.h) gets the values: a window with child windows: alpha
 // reference 1 around its region tips and children, when the interface's +0x30 is set),

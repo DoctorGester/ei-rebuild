@@ -1,4 +1,4 @@
-// The network state writers of map objects and units: the virtual slot that writes an object's dirty fields
+// The network state writers of map objects and units: the virtual that writes an object's dirty fields
 // into its DeltaState for the clients. See docs/notes/units.md ("Network state").
 #include "map_object_figures.h"
 #include "net_delta.h"
@@ -27,7 +27,7 @@ constexpr int kClassServerController = 0x3E;
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
 void PutWord(DeltaField* field, std::uint32_t value) { field->WriteDelta(&value, 4); }
 
-// Whether the stream read against (delta::g_readSnapshot) is consumed: slot 5 (position) == slot 4 (size).
+// Whether the stream read against (delta::g_readSnapshot) is consumed: Position() == Size().
 std::uint32_t SnapshotConsumed() {
     CMemoryStream* snapshot = delta::g_readSnapshot;
     std::uint32_t position = snapshot->Position();
@@ -218,7 +218,7 @@ std::uint32_t CUnit::ReadNetState(int first) {
         float before[6];
         for (int k = 0; k < 6; ++k) before[k] = StatFraction(unit, k);
         field->ReadDelta(&unit->params, 0x108);
-        // Slot 55 (IsDead): a dead unit skips the stat reactions.
+        // IsDead: a dead unit skips the stat reactions.
         if (!unit->IsDead() && first == 1) {
             bool any = false;
             for (int k = 0; k < 6; ++k) {

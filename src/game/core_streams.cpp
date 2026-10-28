@@ -46,7 +46,7 @@ void CStream::WriteString(std::string_view text) {
     Write(bytes.c_str(), static_cast<std::uint32_t>(bytes.size() + 1));
 }
 
-// --- CMemoryStream (its slots 1-3 and 7, Resize and SetSize are in core_memory_stream.cpp) --------
+// --- CMemoryStream (its Read, Write, Seek and CopyFrom; Resize and SetSize are in core_memory_stream.cpp) --------
 
 CMemoryStream::CMemoryStream() {
     data_ = nullptr;

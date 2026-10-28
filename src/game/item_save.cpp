@@ -1,4 +1,4 @@
-// The items' Load / Save (slots 9 / 10): CItem's and the subclasses' (CItem's
+// The items' Load / Save: CItem's and the subclasses' (CItem's
 // first, then their own fields). Reached by the world's save and load (the item manager's
 // SaveObjects / LoadObjects). See item.h and docs/notes/items_spells.md ("Item rules").
 #include "item.h"

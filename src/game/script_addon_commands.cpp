@@ -256,8 +256,8 @@ bool GiveUnitWeapon(Call* call) {
     return true;
 }
 
-// Override: per value c (7), 0.05 * the head slot's + 0.3 * (the slots 1 and 3) + 0.3 * (the slots
-// 1, 3 and 6 second block) + 0.3 * (the slots 2, 4, 5), each plus the prototype's protection
+// Override: per value c (7), 0.05 * the head slot's + 0.3 * (armour slots 1 and 3) + 0.3 * (the armour slots
+// 1, 3 and 6 second block) + 0.3 * (armour slots 2, 4, 5), each plus the prototype's protection
 // scale, into both halves of the unit's server-side protection pair c.
 bool GiveUnitArmor(Call* call) {
     CEngineObject* object = ObjectArg(call, 0);

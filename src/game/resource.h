@@ -64,7 +64,7 @@ struct LoadedFile {
     std::uint32_t offset;   // offset in the archive, used to write the file back
 };
 
-// The base of the archive readers (ResourceBaseClass in the game's messages; slot 0 is the scalar
+// The base of the archive readers (ResourceBaseClass in the game's messages; the first virtual is the scalar
 // deleting destructor): the archive header and tables. (The game's index table from numbers to
 // entries, CreateAccelTable's, is never built: it has no caller.)
 class CResourceBase {

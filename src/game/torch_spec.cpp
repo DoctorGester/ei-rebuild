@@ -1,6 +1,6 @@
 // The torch's state object, CTorchObjectSpec (server_specific_manager.h): its Create / Destroy,
 // Load / Save and setter slots. The network reader stays
-// the game's own code (it applies the values through slots 13-18, which a client-side spec may override).
+// the game's own code (it applies the values through its virtual setters, which a client-side spec may override).
 #include "server_specific_manager.h"
 
 #include "core_streams.h"

@@ -1,4 +1,4 @@
-// The client controller's per-tick update (CUnitClientSpecific slot 6) and the client half's walk
+// The client controller's per-tick update (CUnitClientSpecific's Update) and the client half's walk
 // over its drawn parts. See unit_client_models.h and docs/notes/units.md.
 #include "unit_client_models.h"
 
