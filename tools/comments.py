@@ -4,6 +4,8 @@
                                                pass's candidate kinds (docs/comment-guide.md, "Removal pass")
   python tools/comments.py apply [PATH...]     the mechanical rules on // comments, in place
   python tools/comments.py list  [PATH...]     every comment line that still holds an address or a ticket id
+  python tools/comments.py banned [PATH...]    every comment line that holds a banned narration word (x87 names,
+                                               stack slots, "the inlined", vtable slot numbers, MFC names; C41)
   python tools/comments.py check [--update]    fails when a file's counts go above config/comment_baseline.csv
   python tools/comments.py samecode [REV]      fails when a file changed since REV (default HEAD) differs in more
                                                than comments and whitespace
@@ -53,6 +55,24 @@ PAREN = re.compile(r'\s*\(\s*(?:see\s+)?' + REFS + r'\s*\)')
 # 4. Ticket ids at the end or start of a parenthesis with other text: "(..., world_rules.cpp; SV7b6)".
 PAREN_TAIL = re.compile(r'\s*[;,]\s*(?:see\s+)?' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')*(?=\s*\))')
 PAREN_HEAD = re.compile(r'(?<=\()\s*' + TICKET + r'(?:\s*[,/]\s*' + TICKET + r')*\s*[;,]\s*')
+
+# Words that narrate the decompilation instead of saying what the code does (C41): x87 instruction names, stack
+# slots, "as a dword", "the inlined ...", vtable slot numbers, and in src/game the MFC / STLport operation and class
+# names of code that is now std. They stay out of comments; src/lib keeps the ones that name what a helper
+# emulates (CString's answers, MFC's CFont) and the x87 layer (lib/crt_x87.cpp) its instruction names.
+BANNED_COMMON = re.compile(
+    r"\b(?:FCOMP?P?|FUCOMP?P?|FISTP?|FILD|FIDIV|FLD1?|FLDZ|FSTP?|FADDP?|FMULP?|FSUBR?P?|FDIVR?P?|FXCH|FCHS|FABS|"
+    r"FNSTSW|FSQRT|ST0)\b|TEST AH|stack slots?|integer moves?"
+    r"|\b(?:copied|moved|stored|compared|selected|written) as (?:a |one )?[dq]words?\b|\bas a [dq]word\b"
+    r"|\b[Tt]he (?:[\w:]+'s? |[\w:]+' )?inlined\b"
+    r"|\bvtable slots?\b|\bvirtual slots?\b"
+    r"|\b(?:its|their|the|renderer|input|stream|world's|context's|loader's|helper's|DLL's|connection's|manager's|"
+    r"CSpell|CItem|CUnitClientSpecific|CFigureManager's) [Ss]lots? [0-9]|\b(?:through|via|calls?) slot [0-9]"
+    r"|\([Ss]lots? [0-9]|^//\s*[Ss]lots? [0-9]+(?: [/-] [0-9]+)*[:.]")
+BANNED_GAME = re.compile(
+    r"\b(?:CList|CPtrList|CObList|CTypedPtrList|CArrays?|CByteArray|CWordArray|CDWordArray|CObArray|CPtrArray|"
+    r"CStrings?|RemoveAll|AddHead|RemoveHead|RemoveTail|InsertAt)\b|\bMFC\b")
+BANNED_EXEMPT = ('src/lib/crt_x87.cpp',)
 
 HISTORY_RX = re.compile(r'(?i)\b(?:shim|forwarder|ported|rewritten|the hook era|was a |used to |no longer|'
                         r'formerly|previously|registration)\b')
@@ -164,8 +184,19 @@ def line_comments(text):
     return [(m.start(), m.end()) for m in TOKEN.finditer(text) if m.group(0).startswith('//')]
 
 
-def count(text):
-    c = {'comment lines': 0, 'addresses': 0, 'ticket ids': 0, 'original / game.exe': 0, 'history words': 0}
+def banned_count(body, path):
+    """Banned narration words in one comment (see BANNED_COMMON); `path` is the file's path under the repo, or None."""
+    if path in BANNED_EXEMPT or (path and path.startswith('src/standalone/')):
+        return 0
+    n = len(BANNED_COMMON.findall(body))
+    if path is None or path.startswith('src/game/'):
+        n += len(BANNED_GAME.findall(body))
+    return n
+
+
+def count(text, path=None):
+    c = {'comment lines': 0, 'addresses': 0, 'ticket ids': 0, 'original / game.exe': 0, 'history words': 0,
+         'banned words': 0}
     if GENERATED.search(text[:600]):
         return c
     for s, e in line_comments(text):
@@ -175,6 +206,7 @@ def count(text):
         c['ticket ids'] += len(TICKET_RX.findall(body))
         c['original / game.exe'] += len(ORIGINAL_RX.findall(body))
         c['history words'] += len(HISTORY_RX.findall(body))
+        c['banned words'] += banned_count(body, path)
     return c
 
 
@@ -282,6 +314,18 @@ def cmd_list(paths):
                 print(f'{rel(p)}:{text.count(chr(10), 0, s) + 1}: {body}')
 
 
+def cmd_banned(paths):
+    """Every comment line that holds a banned narration word."""
+    for p in sources(paths):
+        text = read(p)
+        if GENERATED.search(text[:600]):
+            continue
+        for s, e in line_comments(text):
+            body = text[s:e]
+            if banned_count(body, rel(p)):
+                print(f'{rel(p)}:{text.count(chr(10), 0, s) + 1}: {body}')
+
+
 def code_tokens(text):
     """The text without comments, whitespace runs folded: what the compiler sees, line numbers aside."""
     return ' '.join(TOKEN.sub(lambda m: ' ' if m.group(0).startswith('/') else m.group(0), text).split())
@@ -306,11 +350,11 @@ def cmd_samecode(rev):
     return 1 if bad else 0
 
 
-RATCHET = ['addresses', 'ticket ids']
+RATCHET = ['addresses', 'ticket ids', 'banned words']
 
 
 def cmd_check(update):
-    now = {rel(p): count(read(p)) for p in sources([])}
+    now = {rel(p): count(read(p), rel(p)) for p in sources([])}
     if update:
         base = {}
         if os.path.exists(BASELINE):
@@ -319,7 +363,7 @@ def cmd_check(update):
             w = csv.writer(f, lineterminator='\n')
             w.writerow(['file'] + RATCHET)
             for r in sorted(now):
-                row = [min(now[r][k], int(base[r][k])) if r in base else now[r][k] for k in RATCHET]
+                row = [min(now[r][k], int(base[r].get(k) or 0)) if r in base else now[r][k] for k in RATCHET]
                 if base and r not in base:
                     row = [0 for _ in RATCHET]
                 if any(row):
@@ -330,10 +374,11 @@ def cmd_check(update):
     problems = 0
     for r, c in sorted(now.items()):
         for k in RATCHET:
-            limit = int(base[r][k]) if r in base else 0
+            limit = int(base[r].get(k) or 0) if r in base else 0
             if c[k] > limit:
                 problems += 1
-                print(f'{r}: {c[k]} {k} in comments (allowed {limit}); see docs/comment-guide.md')
+                print(f'{r}: {c[k]} {k} in comments (allowed {limit}); see docs/comment-guide.md'
+                      + ('; `list` shows them' if k != 'banned words' else '; `python tools/comments.py banned` lists them'))
     totals = {k: sum(c[k] for c in now.values()) for k in count('')}
     print('comment counts: ' + ', '.join(f'{v:,} {k}' for k, v in totals.items()) + f'; {problems} problem(s)')
     return 1 if problems else 0
@@ -368,6 +413,8 @@ def main(argv):
         cmd_apply(paths)
     elif cmd == 'list':
         cmd_list(paths)
+    elif cmd == 'banned':
+        cmd_banned(paths)
     elif cmd == 'check':
         return cmd_check('--update' in rest)
     elif cmd == 'samecode':

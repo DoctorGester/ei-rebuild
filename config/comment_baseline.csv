@@ -1,1 +1,2 @@
-file,addresses,ticket ids
+file,addresses,ticket ids,banned words
+src/game/map_object_shadow.cpp,0,0,2

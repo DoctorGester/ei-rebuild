@@ -1,7 +1,7 @@
 // Evaluation of script functions: SSCCmd::CalcParameters, CalcFloat, CalcObject and CalcGroup. Rebirth's
 // AddNewScriptCommands dispatches to addon's functions first.
 // Floating point: the comparisons are plain (a NaN argument compares as IEEE says, where the
-// old x87 FCOM counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
+// old x87 compare counted it as equal and less: the NaN audit, lib/nan_audit.h); the multi-step
 // computations keep their intermediates unrounded (double locals), as x87 registers would.
 #include "script.h"
 #include "world_glue.h"

@@ -72,6 +72,10 @@ after:
 
 ## The mechanical part: tools/comments.py
 
+- `python tools/comments.py banned [PATH...]` lists the comment lines that hold a banned narration word (x87
+  instruction names, stack slots, "as a dword", "the inlined ...", vtable slot numbers, and in src/game the MFC
+  operation and class names of code that is std now); `check` fails when a file has more than its baseline (0).
+  map_object_shadow.cpp keeps two until R26 rewrites it.
 - `python tools/comments.py stats [--files] [PATH...]` counts per area (or file): comment lines,
   addresses in comments, ticket ids, "the original" / "game.exe", history words. With `--kinds`, the
   removal pass's candidate kinds instead (see "Removal pass", "Measuring").
