@@ -658,10 +658,9 @@ class CHudUnitPanel;
 class CBattleScreen;
 class CUiScrollText;
 
-// The interface code's calls on the device's IDirect3DDevice7 (ui_d3d_device.cpp).
-namespace uidevice {
-long Clear(CTextureDevice* device, DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
-} // namespace uidevice
+// The depth buffer set to `z` over `count` screen rectangles (at most 8); all of it without rectangles
+// (ui_container_draws.cpp).
+void ClearUiDepth(float z, const RECT* rects = nullptr, int count = 0);
 
 // Weapon bar (four 40x80 slots at (80..240, 520..600)).
 class CHudWeaponBar : public CUiWindow {

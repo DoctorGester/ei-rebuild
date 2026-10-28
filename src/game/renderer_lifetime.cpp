@@ -1,12 +1,10 @@
 // The scene renderer's lifetime and small slots (the renderer; its base class, owns +0x04.. +0x1C):
 // constructors and destructors, Destroy, the draw colour and sun, the frame clear, texture binding, the
 // figure draws, the line list draw, the gamma getter, the surfaces' restore after a
-// switch back, and the device object's counted holder. The old Direct3D 7 path, kept as it is
-// (docs/notes/renderer.md).
+// switch back, and the device object's counted holder (docs/notes/renderer.md).
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "renderer_lines.h"
 #include "texture.h"       // CTextureDevice, CTexture, Surface
-#include "device.h"        // the old device's calls
 
 #include "figure_mesh.h"   // CFigureMesh
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer
@@ -21,7 +19,6 @@
 #include <cstdint>
 
 #include <cstdlib>
-#include <d3d.h>
 
 #include <bit>
 #include <new>
@@ -39,7 +36,6 @@ constexpr std::uint32_t kTextureIsLoaded = 8;   // CTexture::flags_ (CEngineObje
 // "Final loading data to NULL texture!" and a newline.
 const char* NullTextureText() { return "Final loading data to NULL texture!\n"; }
 
-IDirect3DDevice7* D3DDevice(CTextureDevice* device) { return device->d3dDevice_; }
 } // namespace
 
 // --- Base class (CVisualizator) ----------------------
@@ -154,18 +150,6 @@ void CSceneRenderer::DestroyRenderer() {
     if (device) device->Release();
 }
 
-int CSceneRenderer::ClearFrame() {
-    const std::uint32_t colour = fogColour_;
-    CTextureDevice* device = device_;
-    gameapi::EnterCriticalSection(&g_deviceLock);   // (no stencil to clear)
-    device->lastLoadResult_ =
-        device::Clear(D3DDevice(device), 0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, colour, 1.0f, 0);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    return 1;
-}
-
-std::uint32_t CSceneRenderer::ZEnable() { return device_->zEnable_; }
-
 // The holder is stored (the new renderer draws with it); no device lock.
 int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     CTextureDevice* device = device_;
@@ -173,7 +157,6 @@ int CSceneRenderer::SetTexture(int stage, CTexture* texture) {
     Surface* surface = texture ? texture->surface_ : nullptr;
     if (bound == surface) return 1;
     bound = surface;
-    device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
     ++device->textureChanges_;
     return 1;
 }
@@ -185,10 +168,9 @@ void CSceneRenderer::SetColour(std::uint32_t colour) {
 
 void CSceneRenderer::DrawLineList(LineBatch* lines) { lines->Draw(pipeline_, device_); }
 
-int CSceneRenderer::DrawFigure(CFigureMesh* mesh, const void* rotation, const void* position, CMaterial* material, int alpha,
-                               tagRECT* screen) {
+int CSceneRenderer::DrawFigure(CFigureMesh* mesh, CMaterial* material, int alpha, tagRECT* screen) {
     if (mesh->flags_ & kFigureHidden) return 1;
-    return mesh->drawer_->DrawPlain(device_, rotation, position, material, alpha, screen);
+    return mesh->drawer_->DrawPlain(device_, material, alpha, screen);
 }
 
 int CSceneRenderer::DrawFigureLit(CFigureMesh* mesh, const std::vector<CLight*>* lights, CMaterial* material, int alpha, tagRECT* screen,

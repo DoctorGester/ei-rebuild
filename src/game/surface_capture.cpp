@@ -4,7 +4,6 @@
 // holder has a DirectDraw surface, so the rows come from the new renderer's last frame.
 #include "dib.h"
 
-#include "device.h"
 #include "texture.h"
 
 #include "lib/crt.h"

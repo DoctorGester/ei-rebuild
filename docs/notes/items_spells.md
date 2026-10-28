@@ -315,7 +315,7 @@ Verification: `CreateFromMmp` 00690430, `LoadMmpExtra` O; `MmpHeader::MipOffset`
 `UnpackToSurface` (DXT through the converter's slot 10): S (the original fills, levels read back and overwritten, ours fills,
 compared; texture_fill); `CTextureManager::NewObject` 00691810 (manager slot 14; constructor and reset inlined) O, the extra
 block's `AlignedArray<uint8_t>::SetSize` 00694300 S on a copy; `SetDevice` 006913A0 (texture.cpp; quality 0079BCDC to the mip
-level, the 512 limit from GetCaps, a tenth of the local video memory at +0xDC; world_client_setup calls it by address; S with
+level, the 512 limit off (the device's 4096-pixel textures; R27c: constant), the cache limit a tenth of 256 MB (`kCacheLimit`); world_client_setup calls it by address; S with
 references undone between the runs); `DeleteComposedTextures` 006916F0 (texture_cache; cdecl: every <data path>textures\*.mmp
 through the game's DeleteFileA, failures to the debug log; O counted only: the harness overlay decides what a delete does);
 `LoadBmp` 00690260 (alpha "a_<file>" beside it; no scenario: no loose .bmp).
@@ -572,11 +572,9 @@ obvious.
   point nor a switch point lies in the buffer and reads it in one such case (a mode 1 switch whose file ends in this buffer:
   stack garbage decides between the switch and a restart); ours switches, which is what the mode asks for.
 - 006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `CHudUnitPanel::DrawVanilla`: Rebirth replaces the
-  whole function, so vanilla launch only; ours only, every map frame): it drives the Direct3D device directly, the calls made
-  as they are and mirrored to the new renderer. Between the panel's background and the unit's figure, and again after the
-  figure, it clears three screen rectangles' Z-buffer (and stencil when the device has one) with IDirect3DDevice7::Clear (the
-  device at the renderer's +0x54, vtable +0x28) under the render lock 007AEE78, after flushing the renderer's two batches
-  (004E7840, 004E7A40); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state
+  whole function, so vanilla launch only; ours only, every map frame). Between the panel's background and the unit's figure,
+  and again after the figure, it clears three screen rectangles' depth (the original: IDirect3DDevice7::Clear under the render
+  lock 007AEE78; ours `ClearUiDepth`, the new renderer's depth); in between it draws the unit's model (the unit's slot +0x58) with texture stage 0's mip filter (state
   0x12) set to 1 and put back (vtable +0x90 / +0x94). 006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md.
 
 Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;

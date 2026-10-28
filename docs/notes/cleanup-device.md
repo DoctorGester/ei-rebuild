@@ -16,17 +16,12 @@ files.
   own Material / Technique copies are gone (Technique was `CRenderPreset`).
 - `CPixelConverter` (texture.h): slot 10 `DecodeDxt` added.
 - `CTextureDevice::distanceFog_` was `unknown_158`.
-- Direct3D and DirectDraw go through the SDK interfaces: `device::D3D`, `device::DDraw`,
-  `device::Surface` and `device::Lock()` in device.h. Entry points take `CSceneRenderer*` /
-  `CTextureDevice*` (renderer_lines.h's `LineBatch::Draw` too).
+- Entry points take `CSceneRenderer*` / `CTextureDevice*` (renderer_lines.h's `LineBatch::Draw` too). There is no
+  Direct3D / DirectDraw device or device.h since R27c (renderer.md section 9).
 
 ## Left
 
 - device_mesh.cpp keeps its own `MeshCorner` / `TexCoord`, the same as figure_mesh.h's (a name clash kept
   them apart).
-- `CTextureDevice::converter_` stays `void*`: surface.cpp, directdraw_holder.cpp and link_mesh_draw.cpp
-  use it; texture_fill.cpp casts it to `CPixelConverter*`.
-- texture_bmp.cpp / texture_shadow.cpp keep their surface descriptions as dword arrays, cast to
-  `DDSURFACEDESC2*` for Lock.
 - verify_state_setters.cpp's interface part still reads an offset (the ui files belong to the ui ticket).
 - Raw game addresses (data) and the `EI_ORIGINAL` forwarders: C18 and C29.

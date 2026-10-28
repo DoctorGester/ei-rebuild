@@ -58,36 +58,14 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     return out;
 }
 
-// D3DCLEAR_ZBUFFER (the device has no stencil buffer).
-unsigned long ClearFlags(const CTextureDevice*) { return 2; }
-
-void ClearDepth(CTextureDevice* renderer, unsigned long count, RECT* rects, float z) {
-    unsigned long flags = ClearFlags(renderer);
-    gameapi::EnterCriticalSection(&g_deviceLock);
-    renderer->lastLoadResult_ = uidevice::Clear(renderer, count, rects, flags, 0, z, 0);
-    gameapi::LeaveCriticalSection(&g_deviceLock);
-    render::Rect r[6];
-    int n = count < 6 ? static_cast<int>(count) : 6;
-    for (int i = 0; i < n; ++i) r[i] = render::Rect{rects[i].left, rects[i].top, rects[i].right, rects[i].bottom};
-    render::ClearDepth(z, r, n);
-}
-
 } // namespace
 
 void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, float depth, int wide) {
     CObject3D* model = hero;
     if (!model) return;
-    auto deviceOf = [this] { return interface_->renderer_; };
 
-    // The whole depth buffer (stencil too), then the preview's rectangles to the far plane.
-    {
-        CTextureDevice* renderer = deviceOf();
-        unsigned long flags = ClearFlags(renderer);
-        gameapi::EnterCriticalSection(&g_deviceLock);
-        renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 0.0f, 0);
-        gameapi::LeaveCriticalSection(&g_deviceLock);
-        render::ClearDepth(0.0f, nullptr, 0);
-    }
+    // The whole depth buffer to the near plane, then the preview's rectangles to the far plane.
+    ClearUiDepth(0.0f);
     RECT rects[6];
     if (static_cast<std::uint8_t>(wide) != 0) {
         for (int i = 0; i < 6; ++i) {
@@ -95,7 +73,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
             interface_->ScaleRectToScreenEntry(&r);
             rects[i] = r;
         }
-        ClearDepth(deviceOf(), 6, rects, 1.0f);
+        ClearUiDepth(1.0f, rects, 6);
     } else {
         RECT r;
         if (D(depth) > D(400.0f))
@@ -104,7 +82,7 @@ void CUiWindow::DrawHeroPreview(CSceneRenderer* pass, CUnit* hero, float turn, f
             r = {200, 100, 600, 500};
         interface_->ScaleRectToScreenEntry(&r);
         rects[0] = r;
-        ClearDepth(deviceOf(), 1, rects, 1.0f);
+        ClearUiDepth(1.0f, rects, 1);
     }
 
     // Kept to put back afterwards: the position, the orientation and the pass's colour.

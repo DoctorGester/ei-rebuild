@@ -51,10 +51,7 @@ constexpr int kFpsFont = 1;
 // the full-size one the mode's size in pixels, unscaled (addon's operands
 // 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
-    if (app::g_littleOtherMemory != 0) {
-        ui->backdrop_ = new CUiSurface(ui, 0, 0, 400, 300, 6, 1);
-        ui->backdrop_->SetRect(0, 0, 800, 600);
-    } else if (widescreen::Active()) {
+    if (widescreen::Active()) {
         const widescreen::Layout& wide = widescreen::Get();
         ui->backdrop_ = new CUiSurface(ui, 0, 0, wide.width, wide.height, 4, 0);
     } else {

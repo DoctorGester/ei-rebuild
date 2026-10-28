@@ -1,7 +1,6 @@
 // The game window in the switch-over without DirectDraw (present_window.h).
 #include "present_window.h"
 
-#include "device.h"
 #include "texture.h"
 #include "game_singletons.h"
 #include "model.h"
@@ -101,7 +100,7 @@ void CoverMonitor(HWND window) {
 void Update(CTextureDevice* device) {
     if (!device) return;
     MapCursorImports();
-    if ((device->flags_ & 1) && device->window_) CoverMonitor(device->window_);
+    if (device->fullScreen_ && device->window_) CoverMonitor(device->window_);
 }
 
 LPARAM MouseToGame(UINT message, LPARAM lParam) {

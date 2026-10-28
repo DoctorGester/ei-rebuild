@@ -31,8 +31,6 @@
 #include "game/world_glue.h"
 #include "lib/crt.h"
 
-#include <ddraw.h>
-
 #include <cstdlib>
 #include <cstring>
 #include <list>
@@ -211,12 +209,8 @@ void LeaveToZone(void* connection, const char* name, int exit) {
 }
 
 bool RestoreSurfaces(long* result) {
-    CTextureDevice* device = g_sceneRenderer->device_.device;
-    if (!device || !device->ddraw_) return false;
-    EnterCriticalSection(&g_deviceLock);
-    *result = DD_OK;   // the image's device object holds a token: nothing to restore
-    device->lastLoadResult_ = DD_OK;
-    LeaveCriticalSection(&g_deviceLock);
+    if (!g_sceneRenderer->device_.device) return false;
+    *result = 0;   // the image has no DirectDraw surfaces: nothing to restore
     return true;
 }
 

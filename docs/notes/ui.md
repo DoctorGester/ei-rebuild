@@ -790,9 +790,8 @@ and 2: the menu frame step, (screen 3) a mouse move to the input
   equipment slots' models inside depth clears (all to 0, the slots' rectangles to 1, all to 1
   afterwards), as the hero preview and the trade grid do;
 - the alpha reference set to the window's +0x1EC.
-Every state set goes to render::g_renderState; every depth clear to render::ClearDepth. In the
-switch-over (`present`) the old device's clears are left out: nothing the old path still draws
-there reads its depth buffer (its interface and world meshes are off). The item models go through
+Every state set goes to render::g_renderState; every depth clear to render::ClearDepth (through
+`ClearUiDepth`, ui.h; there is no old device, R27c). The item models go through
 and the mesh draws, which hand over already.
 
 ## Cursor in the frame
@@ -846,8 +845,8 @@ the panel offset while it draws (until the window's base draw), the model's x mo
 EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
 too (the sprites' Place, the layout scaling) are called through their
 addresses. The function drives
-the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
-made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
+the original's Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState); ours clears the new
+renderer's depth (`ClearUiDepth`) and sets render::g_renderState, as the hero preview does (ui_hero_preview.cpp).
 See ui.h (CHudUnitPanel) and docs/notes/items_spells.md.
 
 ## Item description drawing

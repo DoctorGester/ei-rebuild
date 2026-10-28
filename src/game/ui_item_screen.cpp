@@ -109,18 +109,11 @@ void CItemScreen::CreateBase() {
     LoadTexture("campslots", 3);
     g_sceneRenderer->fogColour_ = 0;
     g_sceneRenderer->pipeline_->transform_->SetDepthRange(99.0f, 100.0f);
-    // The caches keep 30 entries (20 with little texture memory).
-    if (app::g_littleTextureMemory != 0) {
-        textures_.limit = 20;
-        TrimItemCache(&textures_);
-        models_.limit = 20;
-        TrimItemCache(&models_);
-    } else {
-        textures_.limit = 30;
-        TrimItemCache(&textures_);
-        models_.limit = 30;
-        TrimItemCache(&models_);
-    }
+    // The caches keep 30 entries (the game's 20 were for a card with little texture memory).
+    textures_.limit = 30;
+    TrimItemCache(&textures_);
+    models_.limit = 30;
+    TrimItemCache(&models_);
 }
 
 // --- The item screens' destructor bodies -----------------------------------

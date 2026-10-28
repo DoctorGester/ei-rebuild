@@ -197,7 +197,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073D760,1,,game,004E5E50 004E68A0,004E6880,CTextureDevice,src/game/texture.h,the device object (CTextureDevice)
 0073D764,1,,game,004E72A0 004E76B0 004E7700,004E7690,dead render object,-,stored only by dead code 004E72A0 / 004E76B0 / 004E7700 (config/dead_code.csv)
 0073D768,1,,game,004E76B0 004E77D0 004E77E0 004E7800 004EDD70 004EE330 004EFD20 004F0B90 004F0E10,004E7800,CRendererBase,src/game/renderer_base.h,"the renderer's counted base (the surface holder, the device object, the pipeline)"
-0073D770,1,,game,004EDD70 004EE330,004EE310,CDXDirectDraw,src/game/texture.h,the device object's DirectDraw base
+0073D770,1,,game,004EDD70 004EE330,004EE310,CTextureDevice's base,-,"the device object's DirectDraw base CDXDirectDraw, stored only by game.exe's 004EDD70 / 004EE330 (ours folds it into CTextureDevice, R27c)"
 0073D774,1,,game,004EEE30 004EF690 004EF7B0 004EFA60 004EFC60 004EFD20,004EF790,Surface,src/game/surface.h,the surface holder (CDXSurface; ours is Surface)
 0073D778,1,,game,004F0B90 004F0E10,004F0DF0,CTransformPipeline,src/game/model.h,the transform pipeline (CTransformPipeline)
 0073D790,15,,game,004F2C00 004F2E40,004F2E20,CLinkMesh,src/game/link_figure.h,a figure's mesh (the link loader 004F7480 / 004F7860)

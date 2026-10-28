@@ -1,10 +1,9 @@
 // The renderer's creation. It
-// picks the Direct3D driver from the settings, creates the device object, fills the transform pipeline's
+// creates the device object, fills the transform pipeline's
 // matrix stacks (projection, viewport, the fixed axis swap and their products), sets the pipeline's viewport
 // and depth range, the render state (render/render_state.h), a default light and the ambient colour, and creates
 // the counted helper object. Runs once at start-up. See docs/notes/models.md ("Renderer creation").
 #include "app.h"
-#include "device.h"   // the old device's calls
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"
@@ -17,8 +16,6 @@
 #include "game_singletons.h"
 #include "world.h"
 #include "lib/nan_audit.h"
-
-#include <d3d.h>
 
 #include <bit>
 #include <cstdint>
@@ -37,17 +34,6 @@ void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline
     if (pipeline) ++pipeline->refs_;
     if (previous) previous->Release();
 }
-// Matrices (model.cpp, called through their addresses): viewport, the axis swap (x, -y, z; patched by
-// Rebirth); the product (Matrix4::Multiply). The capability records' layout.
-static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
-static_assert(sizeof(DDCAPS) == 0x17C && offsetof(DDCAPS, ddsCaps) == 0x16C);
-
-// --- Direct3D device (IDirect3DDevice7) ----------------------------------------------------------
-
-IDirect3DDevice7* D3DDevice(CSceneRenderer* renderer) {
-    return renderer->device_->d3dDevice_;
-}
-
 
 // --- Matrix stacks -------------------------------------------------------------------------------
 
@@ -183,7 +169,7 @@ void AddDefaultLight(CSceneRenderer* renderer) {
 // pushes it with the rest of the register left over from operator new).
 void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
     const std::uint32_t flag = settings->driverIndex_ != 0 ? 1u : 0u;
-    CRenderHelper* helper = new CRenderHelper(D3DDevice(renderer), flag);
+    CRenderHelper* helper = new CRenderHelper(flag);
     CRenderHelper* old = renderer->helper_;
     renderer->helper_ = helper;
     if (helper) ++helper->refs_;
@@ -195,26 +181,16 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreateBase(window, settings);
-    // The switch-over (the new renderer presents, device.h): no DirectDraw driver is listed or
-    // tried; the device object is built without one.
-    GUID* driverId = nullptr;
-    CTextureDevice* device = new CTextureDevice(static_cast<HWND__*>(window), driverId, settings->fullScreen_, settings->resolutionX_,
-                                                settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
+    // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
+    CTextureDevice* device = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen_ != 0,
+                                                settings->resolutionX_, settings->resolutionY_, settings->colourDepth_);
     device_.Assign(device);
     DeviceSetPipeline(&device_->pipeline_, pipeline_);
 
     FillMatrixStacks(this);
     SetViewport(this, settings);
-    render::g_renderState.depthTest = device_->zEnable_ != 0;
+    render::g_renderState.depthTest = true;
     render::g_renderState.depthWrite = true;
-
-    // DirectDraw's capabilities (driver and emulation, 0x17C bytes each).
-    DDCAPS driverCaps = {};
-    DDCAPS emulationCaps = {};
-    driverCaps.dwSize = sizeof(DDCAPS);
-    emulationCaps.dwSize = sizeof(DDCAPS);
-    device::GetCaps(device_->ddraw_, &driverCaps, &emulationCaps);
-    if (!(driverCaps.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) settings->mipmapping_ = 0;
 
     SetTextureFilters(settings);
     SetRenderState(settings);

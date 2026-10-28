@@ -15,10 +15,6 @@
 #include <vector>
 #include <windows.h>
 
-struct IDirect3D7;
-struct IDirect3DDevice7;
-struct IDirectDraw7;
-
 #undef GetClassName
 
 class CPixelConverter;
@@ -30,48 +26,18 @@ class CDeviceMaterial;
 struct NamedTexture;
 struct SkinRequest;
 struct MmpHeader;
-struct Direct3DDeviceRecord;
 struct TLVertex;
 struct VertexPacket;
 struct NormalPacket;
 struct TexCoord;
 struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
-struct _DDSURFACEDESC2;
 
-// The device object's DirectDraw base. A failed DirectDraw call throws the game's error object (dx_errors.h).
-class CDXDirectDraw : public CRendererBase {
-public:
-    // Needs MMX (else a fatal error and exit); loads 2DintMMX.dll.
-    CDXDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
-                  unsigned backBuffers, int for3D);
-    ~CDXDirectDraw() override;
-
-    void RestoreDisplayMode();
-    // With DDSCL_FPUSETUP | DDSCL_MULTITHREADED; `screen` (or an empty rectangle) becomes screen_.
-    void SetCooperativeLevel(int fullScreen, const RECT* screen);
-
-    int lastLoadResult_ = 0;    // result of the last IDirect3DDevice7::Load (and other calls)
-    IDirectDraw7* ddraw_;
-    GUID* driver_;
-    Surface* primary_;
-    Surface* renderTarget_;
-    void* clipper_;             // IDirectDrawClipper* of the window
-    std::uint32_t flags_;       // the cooperative level; bit 0: full screen (the present flips)
-    RECT screen_;
-    HWND window_;
-    std::list<_DDSURFACEDESC2> modes_;
-    int bitsPerPixel_;          // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
-    std::uint32_t videoFourCC_;     // the YUV format an off-screen video-memory surface can have (0: none)
-    std::uint32_t overlayFourCC_;   // the YUV format an overlay can have (0: none)
-    bool overlayStretch_;       // DDCAPS_OVERLAYSTRETCH
-    HMODULE converterLibrary_;  // 2DintMMX.dll
-    CPixelConverter* converter_;   // 2DintMMX's graphics processor (pixel conversions)
-};
-
-// Owns the Direct3D texture formats; held by CTextureManager. The same object is the renderer's device object:
-// its DirectDraw interface, the primary surface's and the render target's holders and the screen rectangle.
-class CTextureDevice final : public CDXDirectDraw {
+// The device object: the screen (its window, size and colour depth), the holders standing for it (primary_ and
+// renderTarget_, no pixels), 2DintMMX's pixel converter, the transform pipeline, the texture stages' holders and the
+// draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
+// and presents. Held by the scene renderer and the texture manager.
+class CTextureDevice final : public CRendererBase {
 public:
     int SetMaterial(CDeviceMaterial* material);
     int DrawFlatBlocks(const void* positions, const void* uvs, int blocks, const std::uint16_t* indices, int indexCount,
@@ -91,8 +57,6 @@ public:
                           const std::uint8_t* outcodes);
     int BoundsOfVertices(const std::vector<TLVertex>* vertices, const std::uint8_t* outcodes);
     int DrawTlTriangles(TLVertex* vertices, int vertexCount, std::uint16_t* indices, int indexCount);
-    int DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount, std::uint16_t* indices,
-                          int indexCount);
     // Only when the stage has another holder (the change counted). Returns 1.
     int BindSurface(int stage, Surface* holder);
     // A null texture binds none.
@@ -101,29 +65,31 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    CTextureDevice(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel, int refreshRate,
-                   unsigned backBuffers, int depthBits, int stencilBits);
+    // Needs MMX (else a fatal error and exit); loads 2DintMMX.dll and starts the new renderer (its failure ends the
+    // game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on `window`.
+    CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
-    IDirect3D7* d3d_;
-    IDirect3DDevice7* d3dDevice_;
-    Surface* depth_;         // restored with the primary
-    Surface* depth2_;        // a second depth surface like it (not attached)
-    std::uint32_t zEnable_;     // the z-buffer setting render state 7 goes back to
-    GUID deviceGuid_;
-    CTransformPipeline* pipeline_;
-    std::list<Direct3DDeviceRecord> devices_;
-    Surface* stageSurfaces_[8];   // the holder bound to each texture stage
-    CDeviceMaterial* material_;
-    std::uint32_t colour_;           // the renderer's draw colour (mesh draw flag 4)
+    Surface* primary_ = nullptr;
+    Surface* renderTarget_ = nullptr;
+    bool fullScreen_ = false;   // the window covers the monitor
+    RECT screen_ = {};          // (0, 0, width, height)
+    HWND window_ = nullptr;
+    int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
+    HMODULE converterLibrary_ = nullptr;     // 2DintMMX.dll
+    CPixelConverter* converter_ = nullptr;   // 2DintMMX's graphics processor (pixel conversions)
+    CTransformPipeline* pipeline_ = nullptr;
+    Surface* stageSurfaces_[8] = {};   // the holder bound to each texture stage
+    CDeviceMaterial* material_ = nullptr;
+    std::uint32_t colour_ = 0xFF000000;   // the renderer's draw colour (mesh draw flag 4)
     // The draws fog their screen vertices by distance when set; cleared around the sky and hit point draws.
-    int distanceFog_;
-    RECT drawnRect_;            // the screen rectangle of the last mesh draw
+    int distanceFog_ = 0;
+    RECT drawnRect_ = {};       // the screen rectangle of the last mesh draw
     // The frame's counts, cleared by the renderer's BeginScene.
-    int vertexCount_;
-    int primitiveCount_;
-    int drawCount_;
-    int textureChanges_;
+    int vertexCount_ = 0;
+    int primitiveCount_ = 0;
+    int drawCount_ = 0;
+    int textureChanges_ = 0;
 };
 
 // Texture stage 0's three setups the world's and the interface's draws switch between: the scene's (texture x
@@ -139,7 +105,7 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
                                                         render::kArgCurrent, render::TextureOp::SelectArg1,
                                                         render::kArgTexture, render::kArgCurrent};
 
-// Once a frame; returns the DirectDraw result (0).
+// Once a frame: the new renderer's frame shown. Returns 0.
 long DevicePresent(CTextureDevice* device);
 
 // 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
@@ -318,12 +284,14 @@ public:
     CTexture* FindOrCreate(int type, std::string_view name);
     // FindTexture(name) as it is; else FindOrCreate's texture, loaded.
     CTexture* FindOrLoad(int type, std::string_view name);
-    // Deletes the oldest cached textures while the cache holds more than videoMemoryTenth_ (signed).
+    // A tenth of the video memory the game saw on the card it ran on (dgVoodoo's 256 MB): the most the cache of
+    // released textures holds.
+    static constexpr int kCacheLimit = (256 << 20) / 10;
+    // Deletes the oldest cached textures while the cache holds more than kCacheLimit.
     void TrimCache();
 
     std::list<CTexture*> cache_;   // released textures kept for reuse
     int cachedBytes_;           // the cached textures' CTexture::uploadResult_
-    std::uint32_t videoMemoryTenth_;
     CTextureDevice* device_;
     std::uint16_t mipLevel_;    // first mip level to load
     int limitTo512_;            // nonzero: textures are loaded at most 511 pixels wide and high

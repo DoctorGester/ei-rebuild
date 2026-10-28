@@ -614,10 +614,10 @@ void MeshPass(void* device) {
 void EndMesh() { g_pending = Pending{}; }
 
 void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
-            int primitive) {
+            Primitive primitive) {
     if (!device || !vertices || vertexCount <= 0) return;   // nothing to draw
     Start();
-    if (fvf != 0x1C4 && fvf != 0xC4) {   // not a layout the game uses for these
+    if (fvf != kFvfTextured && fvf != kFvfUntextured) {   // not a layout the game uses for these
         Refuse(OtherFvf, "a pre-transformed draw in another vertex format");
         return;
     }
@@ -634,7 +634,7 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
         return;
     }
     Matrix4 clip = ScreenToClip(kIdentity, width, height);
-    int stride = fvf == 0x1C4 ? 32 : 24;
+    int stride = fvf == kFvfTextured ? 32 : 24;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < vertexCount; ++i) {
         const auto* p = static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride;
@@ -649,34 +649,12 @@ void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     auto at = [&](int k) { return base + (indices ? indices[k] : static_cast<std::uint16_t>(k)); };
     auto valid = [&](int k) { return (indices ? indices[k] : k) < vertexCount; };
     int firstIndex = static_cast<int>(f.meshIndices.size());
-    bool lines = primitive == 2 || primitive == 3;
+    const bool lines = primitive == Primitive::LineStrip;
     for (int k = 0; k < count; ++k) {
-        switch (primitive) {
-        case 2:   // line list
-            if (k % 2 == 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
-            break;
-        case 3:   // line strip
+        if (lines) {
             if (k >= 1 && valid(k - 1) && valid(k)) { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k)); }
-            break;
-        case 4:   // triangle list
-            if (k % 3 == 2 && valid(k - 2) && valid(k - 1) && valid(k))
-                for (int j = 2; j >= 0; --j) f.meshIndices.push_back(at(k - j));
-            break;
-        case 5:   // strip: every second triangle reversed to keep the winding
-            if (k >= 2 && valid(k - 2) && valid(k - 1) && valid(k)) {
-                if (k % 2 == 0) { f.meshIndices.push_back(at(k - 2)); f.meshIndices.push_back(at(k - 1)); }
-                else { f.meshIndices.push_back(at(k - 1)); f.meshIndices.push_back(at(k - 2)); }
-                f.meshIndices.push_back(at(k));
-            }
-            break;
-        case 6:   // fan
-            if (k >= 2 && valid(0) && valid(k - 1) && valid(k)) {
-                f.meshIndices.push_back(at(0));
-                f.meshIndices.push_back(at(k - 1));
-                f.meshIndices.push_back(at(k));
-            }
-            break;
-        default: break;
+        } else if (k % 3 == 2 && valid(k - 2) && valid(k - 1) && valid(k)) {
+            for (int j = 2; j >= 0; --j) f.meshIndices.push_back(at(k - j));
         }
     }
     int drawn = static_cast<int>(f.meshIndices.size()) - firstIndex;

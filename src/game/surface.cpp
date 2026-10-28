@@ -6,7 +6,6 @@
 #include "surface.h"
 
 #include "dx_errors.h"
-#include "device.h"
 #include "texture.h"
 
 #include "lib/crt.h"
@@ -211,7 +210,6 @@ Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, 
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = bitsPerPixel;
-    ++device::g_holderCount;
     return holder;
 }
 
@@ -227,7 +225,6 @@ Surface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, c
     holder->width = width;
     holder->height = height;
     holder->bitsPerPixel = format.bitsPerPixel;
-    ++device::g_holderCount;
     return holder;
 }
 
@@ -239,7 +236,6 @@ Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(d
     width = widthIn;
     height = heightIn;
     bitsPerPixel = format.bitsPerPixel;
-    ++device::g_holderCount;
 }
 
 // The renderer keeps the picture's pixels from the file data (render::PictureFromMmp) instead of reading the memory
@@ -247,12 +243,10 @@ Surface::Surface(CTextureDevice* deviceIn, int widthIn, int heightIn) : device(d
 Surface::Surface(CTextureDevice* deviceIn, const MmpHeader* picture) : device(deviceIn) {
     if (!LoadPicture(this, picture)) ThrowGameError("Can't load picture to surface.\n");
     render::PictureFromMmp(this, picture);
-    ++device::g_holderCount;
 }
 
 // Releases the new renderer's memory and whatever it kept for the holder.
 Surface::~Surface() {
     render::HolderGone(this);
     device = nullptr;
-    --device::g_holderCount;
 }

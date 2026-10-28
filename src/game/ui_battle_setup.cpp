@@ -37,7 +37,6 @@ namespace {
 int SaveVersion() { return static_cast<int>(g_saveStream->version_); }
 bool LoadingGame() { return g_saveStream->size_ != 0; }
 
-constexpr DWORD kClearDepth = 2;          // D3DCLEAR_ZBUFFER
 
 } // namespace
 
@@ -190,14 +189,8 @@ BOOL CBattleScreen::Draw(CSceneRenderer* pass) {
                                                             selectionBox_.bottom, 0x40, 1);
     }
     Input()->MouseMove(0, g_cursor->position_.x, g_cursor->position_.y);
-    // The depth buffer is cleared before the panels draw (the device has no stencil).
-    CTextureDevice* renderer = interface_->renderer_;
-    DWORD flags = kClearDepth;
-    auto* lock = &g_deviceLock;
-    gameapi::EnterCriticalSection(lock);
-    renderer->lastLoadResult_ = uidevice::Clear(renderer, 0, nullptr, flags, 0, 1.0f, 0);
-    gameapi::LeaveCriticalSection(lock);
-    render::ClearDepth(1.0f, nullptr, 0);
+    // The depth buffer is cleared before the panels draw.
+    ClearUiDepth(1.0f);
     // Rebirth's AddNewConsoleCommands (call redirected): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);

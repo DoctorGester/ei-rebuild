@@ -294,10 +294,17 @@ struct ScreenVertex {
 };
 void ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std::uint16_t* indices, int indexCount);
 
-// A Direct3D 7 draw of pre-transformed vertices, fog already applied: `fvf` 0x1C4 or 0xC4 (no texture
-// coordinates), `primitive` a D3DPRIMITIVETYPE, indexed when `indices`. A draw it refuses is lost (logged).
+// The game's two layouts of pre-transformed vertices (its Direct3D 7 vertex format codes): x, y, z, rhw, colour,
+// specular, and in the textured one u, v.
+inline constexpr int kFvfTextured = 0x1C4;
+inline constexpr int kFvfUntextured = 0xC4;
+// What TlDraw's vertices make.
+enum class Primitive { LineStrip, TriangleList };
+
+// A draw of pre-transformed vertices, fog already applied: `fvf` kFvfTextured or kFvfUntextured, indexed when
+// `indices`. A draw it refuses is lost (logged).
 void TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const std::uint16_t* indices, int indexCount,
-            int primitive);
+            Primitive primitive);
 
 // A window surface's blit onto the frame; `source` null: the whole surface, stretched; `key` in the
 // surface's pixel format.

@@ -6,7 +6,6 @@
 #include "ui.h"
 #include "ui_native.h"
 
-#include "device.h"   // device::SameSurface
 #include "surface.h"
 #include "texture.h"
 
@@ -87,7 +86,7 @@ void CUiSurface::CaptureScreen() {
     Surface* holder = HolderOf(this);
     if (!holder) return;
     Surface* screen = holder->device->renderTarget_;
-    if (device::SameSurface(screen, holder)) return;
+    if (screen == holder) return;
     if (!ui_native::Capture(this, rect_)) return;
     // The copy is taken from the new renderer's frame (the original's Blt from the render target is
     // gone with the DirectDraw fallback).

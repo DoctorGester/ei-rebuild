@@ -19,7 +19,6 @@ public:
 
 
     char* message = nullptr;   // operator new copy of the formatted text
-    long result;               // the DirectX result (set by the result constructor only)
 
 protected:
     CGameException() {}
@@ -31,11 +30,8 @@ class CDXException final : public CGameException {
 public:
     // The wvsprintf text of `format` (variadic).
     CDXException(const char* format, va_list args);
-    // "<text> (0x<result>) <the result's text>" (DirectXErrorText), and the result kept.
-    CDXException(long result, const char* format, va_list args);
     ~CDXException() override;
 };
 
 // `throw new CDXException(...)`: thrown by pointer (null when the game's heap had no room).
 [[noreturn]] void ThrowGameError(const char* format, ...);
-[[noreturn]] void ThrowGameErrorResult(long result, const char* format, ...);

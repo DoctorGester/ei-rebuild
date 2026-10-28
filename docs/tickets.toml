@@ -760,6 +760,13 @@ group = "renderer"
 depends = ["R27a"]
 note = "Found in R27a: nothing calls CRenderHelper's ReleasePreset, PresetBlock, PresetStates or BuiltInStates (model.h, render_helper.cpp); with them gone RenderPresetRecord::states is written only (each CRenderPreset keeps its own states_ since R27a), and records_ can shrink to the counted presets. The helper's device_ / caps_ go with R27c. Goldens must stay the same."
 
+[[ticket]]
+id = "R27f"
+title = "The screen's stand-in holders and the duplicate TL triangle draws"
+group = "renderer"
+depends = ["R27c"]
+note = "Found by R27c. CTextureDevice::primary_ / renderTarget_ are two pixelless Surface holders standing for the screen (the screen copies, GameTargetSize and ~6 'if (primary_) renderTarget_->width' reads use them; never null, so those checks are always true): replace them with the screen size (screen_) where only the size is read, keep a holder only where a blit or capture needs one. CSceneRenderer::DrawTriangles (renderer_triangles.cpp) and CRainSnow::DrawParticles (weather_particles.cpp) repeat CTextureDevice::DrawTlTriangles (fog, render::TlDraw, counts): call it. CVisualizator is an abstract base with one class (CSceneRenderer): fold it in if nothing needs the split. Goldens must stay the same."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]

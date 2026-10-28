@@ -2,7 +2,6 @@
 // direction at a point).
 // More: docs/notes/comments-c22i.md, "renderer_strip.cpp".
 #include "clip.h"
-#include "device.h"
 #include "model.h"
 #include "lightning.h"   // LightningPoint
 #include "texture.h"
@@ -58,11 +57,6 @@ void EnsureStatics() {
     EnsureStatic(8, g_ribbon, FreeRibbon);
     EnsureStatic(0x10, g_strip, FreeStrip);
 }
-
-// --- Device calls --------------------------------------------------------------------------------
-
-constexpr int kTriangleList = D3DPT_TRIANGLELIST;
-constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- Cross sections ------------------------------------------------------------------------------
 
@@ -160,7 +154,7 @@ float* StripDirection(float* out, int index, int mode, const void* array) {
 int CTextureDevice::DrawTlTriangles(TLVertex* vertices, int vertexCount,
                                std::uint16_t* indices, int indexCount) {
     if (distanceFog_) pipeline_->transform_->FogVertices(vertices, vertexCount);
-    render::TlDraw(this, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList);
+    render::TlDraw(this, vertices, render::kFvfTextured, vertexCount, indices, indexCount, render::Primitive::TriangleList);
     vertexCount_ += vertexCount;
     primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
     drawCount_ += 1;

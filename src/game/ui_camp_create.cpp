@@ -3,7 +3,6 @@
 // in our code calls it but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "app.h"
 #include "unit_create.h"
-#include "device.h"   // the old device's calls
 #include "ui_camp.h"
 
 #include "class_templates.h"
@@ -33,7 +32,6 @@
 #include "game_singletons.h"
 #include "party_manager.h"
 
-#include <d3d.h>
 
 #include <cstddef>
 #include <new>

@@ -10,7 +10,6 @@
 #include "camera.h"
 #include "clip.h"
 #include "core_maths.h"
-#include "device.h"
 #include "figure_mesh.h"
 #include "link_figure.h"
 #include "model.h"
@@ -307,7 +306,7 @@ void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
     TLVertex* data = vertices.data();
     const int count = std::ssize(vertices);
     if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
-    render::TlDraw(device, data, D3DFVF_TLVERTEX, count, indices.data(), vertexCount, D3DPT_TRIANGLELIST);
+    render::TlDraw(device, data, render::kFvfTextured, count, indices.data(), vertexCount, render::Primitive::TriangleList);
     device->vertexCount_ += count;
     device->primitiveCount_ += static_cast<int>(static_cast<unsigned>(vertexCount) / 3u);
     device->drawCount_ += 1;

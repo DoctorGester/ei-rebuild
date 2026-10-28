@@ -55,7 +55,7 @@ const VertexPacket* MovedPositionsOf(CFigureMesh* mesh) {
 
 // Arguments 2-4 are not read; `alpha` goes to the device draw, `rect` (optional) receives the screen rectangle
 // (empty when off screen). Returns 1.
-int FigureMeshDrawer::DrawPlain(CTextureDevice* device, const void*, const void*, CMaterial*, int alpha,
+int FigureMeshDrawer::DrawPlain(CTextureDevice* device, CMaterial*, int alpha,
                                    RECT* rect) {
     if (mesh_->flags_ & 0x80) return 1;
     if (!(g_movedPositionsGuard & 1)) {

@@ -8,8 +8,8 @@ renderer's.
 1. Game code that called the renderer is rewritten and hands its data to a **new renderer in a sidecar
    module** (`src/render/`, static library `ei_render` linked into ei_hook): camera and matrices, object
    transforms, figure meshes, terrain sectors, particles, textures, the interface windows' CPU surfaces
-   (uploaded as textures), movie frames. The Direct3D 7 calls left in game code go to two stand-in objects that draw
-   nothing (section 9).
+   (uploaded as textures), movie frames. Game code makes no Direct3D 7 or DirectDraw call and includes no DirectDraw /
+   Direct3D 7 header (R27c; section 9); only the gamma ramp's DDGAMMARAMP is left (renderer_gamma.cpp, R27d).
 2. No Direct3D 7 emulation, no bit-exact rewrite of 3DfpFPU.dll / 2DintMMX.dll, no x87 or compatibility
    shims in the new code. Results only need to be close (captures are compared with a tolerance); full
    determinism is out of scope.
@@ -169,7 +169,7 @@ ui_help_window, ui_hero_preview, ui_hud, ui_hud_unit_draw, ui_interface_draw, ui
 original's GetRenderState / GetTextureStageState around a draw (saved and put back) are reads of the members.
 `CSceneRenderer::CreateRenderer` resets it to a new Direct3D 7 device's state (the members' initialisers) before the
 game's own settings. Each pass copies it (`ReadPassState`, render_mesh.cpp; the fog once a frame, `ReadFog`). There
-is no other copy: the stand-in device (section 9) keeps no states.
+is no other copy: there is no Direct3D device (section 9).
 
 Not kept, because nothing in the renderer reads them: shade mode, dithering, z bias, antialiasing (the camp's switch
 is gone with it), perspective correction, fog vertex mode, extents, clipping, lighting, ambient, fill mode, the
@@ -223,7 +223,7 @@ the renderer fails").
 
 | Address | Name / change |
 |---|---|
-| 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | memory-owning holder, no CreateSurface (device +8 = 0) |
+| 004EF7B0 `DXSurfaceConstruct`, 004EFD20 destructor body | memory-owning holder, no CreateSurface |
 | 004F0060 `DXSurfaceLoadPicture` (RET 8) | 8888 pictures only; fills the surface (32 bits a row copy, 16 bits through 2DintMMX slots 1, 2); a system request with memory fills it directly; only live caller 004EFC60 from 005E4EB0 (flag byte `00784756` is 1 in the exe, never written); S on a scratch holder |
 | 005E4EB0 `CursorImage::Construct` (`ui_cursor.cpp`) | picture, holder, frames = width / height, hot spot x cursor size (007C7C90 / 94) / 32, mask (16 bits all ones where the pixel is 0; 32 bits low 24 bits 0) |
 | 005DBA50 `CBinkVideo::Open` | no BinkDDSurfaceType (the holder has no surface): 4, the CPU copy's type |
@@ -329,8 +329,8 @@ Scenarios: render_present*, render_movie_present, render_titles_present, ui_save
 ## 8. Draws with old-device calls, movies and the cursor outside the frame
 
 Interface draws (`ui_container_draws.cpp`; each keeps the original's device calls in order, states go to
-`render::g_renderState`, depth clears to `render::ClearDepth`; the old device's clears are left out (+8 = 0); the older clear
-hand-overs 00636020, 005EC300, 00627390 still call the stand-in's Clear, which does nothing). The rewrites:
+`render::g_renderState`, depth clears to `ClearUiDepth` (ui.h), which hands them to `render::ClearDepth`; so do the
+clears of 00636020, 005EC300, 00627390 and the other interface draws). The rewrites:
 00600EF0 (CUiContainer slot 20: stage 0 `kAlphaPassStage`, 005FEB90, children's slot 20); 00602BF0 / 00632A90 (slot 20 of
 screen 3, vtable 007405AC / screen 2, 00740688: depth clear then 00600EF0; no scenario reaches them); 00622420
 (CHeroEquipPanel slot 20, vtable 007418E0: highlight frames, quick items' models (005ECA10), in the camp the armour
@@ -382,8 +382,10 @@ come first, then what holds for the present path (the subsection names are cited
   them after a regeneration); R11c the surface tests (screen clear, capture, eye blink, binds), `device::Surface` and
   the DDSURFACEDESC2 layout of `DirectPixels` (now `SurfacePixels`). R27b: the holder is `Surface` (no surface pointer),
   pixel formats are `PixelFormat` (bits and channel masks, surface.h) and the texture formats one fixed list
-  (`TextureFormat`, section 7); no format enumeration, display-mode format read or depth format.
-  Left: device.h's calls on the switch-over device (R9b2 replaced the COM stand-ins with tokens, R9a below). R11d: the blink is a texture patch drawn in the shader (section 7).
+  (`TextureFormat`, section 7); no format enumeration, display-mode format read or depth format. R27c: no device
+  layer at all (R9a below): device.h, the switch-over device and its tokens are gone. Left: the gamma ramp's
+  DDGAMMARAMP (R27d) and app_dxversion.cpp's version probe of the system's DDRAW.DLL (untyped COM slots, no header).
+  R11d: the blink is a texture patch drawn in the shader (section 7).
 - No ticket yet: weather's old draw
   (`CRainSnow::DrawParticles`) still runs next to the hand-over, into the stand-in; GPU shadows; picking rectangles
   from projected bounds; the 3DfpFPU / 2DintMMX calls left in game code (bounds at figure load, the terrain's transform
@@ -392,45 +394,43 @@ come first, then what holds for the present path (the subsection names are cited
 
 ### R9a: the game without DirectDraw
 
-The game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device:
-- 00500B70 lists and tries no DirectDraw driver (null driver id; it calls neither 004EE5D0 nor 004EEA90). 004EDD70
-  starts the new renderer (`render::StartPresenting`: the Direct3D 11 device), loads 2DintMMX's converter, keeps the
-  cooperative level's flags and screen rectangle, lists the one display mode, and makes the primary and the render
-  target two holders without a surface of the screen's width, height and bits (`GameTargetSize`, the screen copies and
-  the `if (primary_) renderTarget_->width` reads see the screen). No video FourCC probing.
-- 004E5E50 takes the IDirect3DDevice7 stand-in (HAL id, no depth formats, no depth buffer, no render target set), sets
-  the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes DDSCL_FPUSETUP) and
-  sets the viewport. No format table (R27b): the texture formats are texture.cpp's fixed list (section 7). Its four stage-0 state blocks are constants now (section 5).
-- `src/game/device_null.cpp`: the switch-over device, `SwitchOverDevice`, a plain object with what a Direct3D 7
-  device and its DirectDraw object would keep, without the render states (the renderer's, section 5): bound
-  textures, viewport, scene bracket, display mode. The device object's +0x0C / +0x54 hold two tokens, not interfaces (R9b2; the COM stand-ins
-  are gone): each slot of a token's method table ends the run with `old device: IDirect3DDevice7 method <n> called
-  from <caller>` (the image's failure report), so a direct call is found at once. Fixed answers: the device's GetCaps
-  (8 stages, every texture operation, 4096 textures, no sort-independent antialiasing); EnumDisplayModes the chosen mode
-  (16 bits 5:6:5, else X8R8G8B8, as `ScreenFormat`; the windows' colour keys, CUiSurface +0x34, are 0 or a COLORREF
-  set without the format, so they agree); DirectDraw's GetCaps 3D /
-  texture / mipmap capabilities and no gamma or FourCC; GetAvailableVidMem 256 MB.
-- `device.h`: one call per method the code uses (GetCaps, Begin / EndScene, Clear,
-  SetViewport, SetTexture, AddRef / Release (no draws: R26b, no states: R27a);
-  IDirectDraw7 GetCaps, EnumDisplayModes, RestoreDisplayMode, SetCooperativeLevel,
-  GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank, Release). Each answers from
-  `SwitchOverDevice` (R9b3: no branch to another interface any more; the interface argument is not read): draws,
-  clears, mode changes and restores give D3D_OK. Every method call on the device in src/ goes through these; the
-  interface's `UiD3DDevice` (ui.h) has declared methods (`ui_d3d_device.cpp`). The harness's RestoreAfterMinimise
-  calls game.exe's own IDirectDraw7 directly in the original's runs (nothing in the image). The vertex-buffer
-  batches are gone (R9b3: the batch members, 004E7820 / 004E7E00 and the flush bodies with their
-  DrawIndexedPrimitiveVB; R9b4 took out the empty `FlushBatch` / `FlushBatch2` ports 004E7840 / 004E7A40 and their ~35 callers).
+The game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device, and
+no stand-in for any of them (R27c):
+- `CTextureDevice` (texture.h, device_object.cpp; the original's CDXDirectDraw base 004EDD70 / 004EE330 and the device
+  object 004E5E50 / 004E68A0 folded into one class) is the screen: window, full-screen flag, screen rectangle, colour
+  depth, 2DintMMX's converter, the transform pipeline, the stages' bound holders and the draws' state. Its constructor
+  reads CPUID (MMX required), loads 2DintMMX, starts the new renderer (`render::StartPresenting`: the Direct3D 11
+  device), makes the primary and the render target two holders without pixels of the screen's width, height and bits
+  (`GameTargetSize`, the screen copies and the `if (primary_) renderTarget_->width` reads see the screen) and sets the
+  main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passed DDSCL_FPUSETUP). The
+  options' driver, refresh rate and depth / stencil bits choose nothing. No display mode list (nothing read it), no
+  video FourCC probing, no format table (R27b: texture.cpp's fixed list, section 7).
+- What the game read from the old device's capabilities is constant now, with the values the game saw on dgVoodoo:
+  the material presets take every stage of their states (`CRenderHelper::Record`: eight stages, every texture
+  operation); the texture manager loads textures up to their size (`limitTo512_` 0: 4096-pixel textures) and caches
+  released ones up to a tenth of 256 MB (`CTextureManager::kCacheLimit`); mipmapping stays as the options say (the
+  device had mipmaps); the little-memory branches (the interface backdrop at 400x300, the item screen's caches of 20)
+  are gone (256 MB was never little); start-up's "the interface takes the input" byte, which held the top byte of the
+  free non-local video memory without sound, is 1 there (`GameMain`).
+- No scene bracket, viewport, clears or texture binds on a device: `CSceneRenderer::BeginScene` / `EndScene` keep the
+  frame statistics and the debug panel's counts, a texture bind only records the stage's holder (`stageSurfaces_`, which
+  the renderer draws with) and counts the change, the interface's depth clears go to `render::ClearDepth`
+  (`ClearUiDepth`, ui.h), and the frame clear is the renderer's (its clear colour is the scene renderer's `fogColour_`).
+  The deactivation's RestoreDisplayMode, the activation's RestoreAllSurfaces, the message box's FlipToGDISurface and
+  the movie list's screen clears are gone. The harness's RestoreAfterMinimise calls game.exe's own IDirectDraw7 in
+  the original's runs; in the image `image::RestoreSurfaces` has nothing to restore. The vertex-buffer batches are gone
+  (R9b3: the batch members, 004E7820 / 004E7E00 and the flush bodies with their DrawIndexedPrimitiveVB; R9b4 took out
+  the empty `FlushBatch` / `FlushBatch2` ports 004E7840 / 004E7A40 and their ~35 callers).
 - 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
   (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
   sized to its client area (`ResizeBuffers` when it changes; the hook makes the process system DPI aware at WinMain so
   that rectangle is in physical pixels), stretched over it, `Present(1, 0)`. The movie players and the loading screen
   go through 004EF610 as before.
-- Guarded for surfaceless holders: `device::SameSurface` (the same only when one holder) in
-  005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
-  checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; 00458270's screen
-  clears with no primary do nothing (app_frame.cpp, result 0). The movie holders (`bink_video.cpp` `NewMovieHolder`):
-  00784756 is written by the game start (00456E35) from GetAvailableVidMem and the stand-in's 256 MB clears it, so the
-  holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the game's error box); each
+- Surfaceless holders are the same only when they are one holder (pointer compare) in 005FDA80 (window blits:
+  otherwise every window was skipped), the three movie players' "not the primary itself" checks and
+  CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once. The movie holders
+  (`bink_video.cpp` `NewMovieHolder`): 00784756 (`g_deviceNamed`) is written by the game start (00456E35) from the
+  options' driver index, 0 for the default driver, so the holder is 004EF7B0's (only the renderer's memory; a video-memory request would throw into the game's error box); each
   Bink frame is copied into memory the renderer owns (`render::MovieFrame`). Pictures loaded with the video-memory flag
   (004F0060) get the renderer's memory as the system-memory ones do (surface.cpp).
 - The harness shows windows without activating them; without DirectDraw nothing activates the game window, so the
@@ -464,7 +464,7 @@ The game has no DirectDraw object, display mode, primary, render target, depth b
   replaced import slots; WM_MOUSEMOVE .. WM_MBUTTONDBLCLK (client) and WM_MOUSEWHEEL (screen) mapped at the top of the
   input dispatcher (00457970, app.cpp). The game's own wheel message (0xCC54) carries no position.
 - Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
-  deactivates the device (004EEC60, RestoreDisplayMode on the stand-in), the sound and the network and minimises;
+  deactivates the cursor, the mouse, the sound and the network and minimises (004EEC60's RestoreDisplayMode is gone);
   active restores, and in full screen 00504780 (returns at once) and the interface reset 005DAE70 (cursor rebuilt).
   Minimised the client area is empty and nothing is presented; on return the swap chain is resized.
   DXGI_STATUS_OCCLUDED counts as success.
@@ -762,8 +762,8 @@ it.
 
 A-S11 classified the 173 game functions of the range that were not rewritten; the plain game code of the range (text
 manager, script loader, `CSysInfo`, the fog manager) is in script.md (A-S11). All direct DirectDraw / Direct3D 7 calls
-(class c) are rewritten (A-S12 / A-S13) through the typed interfaces (`<ddraw.h>`, `<d3d.h>`; casts in `device.h`),
-as the original makes them; the COM objects are the boundary the new renderer replaces. What is not rewritten:
+(class c) were rewritten (A-S12 / A-S13) through the typed interfaces and are gone since R27c (no device, section 9);
+the COM objects were the boundary the new renderer replaced. What is not rewritten:
 static initialisers and what only they reach, one MFC TRY/CATCH, a few renderer-interface functions, library rows
 (`config/library.csv`, noted "A-S11"), dead rows (`config/dead_code.csv`: 004DABC0, 004E7FB0, 004EE760, and 004F0A20 /
 004F0A90 / 004F0AE0 called only by 004EE760; the display mode callback 004ED7F0 too), and functions under 5 bytes
@@ -772,11 +772,12 @@ of 004EDD70); 0049F7B1 is the tail of `IsaacRandom::Seed`.
 
 File map of the device layer (all in `src/game`; the files' headers name the addresses):
 - `device_binds.cpp` (texture binds 004EB300 / 004EBAF0 / 004EB1D0: SetTexture when the stage's holder changes, the
-  batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `directdraw_holder.cpp` (the DirectDraw base 004EDD70, 004EECF0, 004EEC60, destructor body 004EE330; the
-  driver list 004EE4A0 / 004ED610 / 004EE5D0, 004EEA90, 004EEBC0, 004EEE30 are not ported: dead_code.csv, R11b);
-  `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819); `device_object.cpp` (constructor
-  004E5E50, destructor body 004E68A0 (the four stage-0 state blocks at 007AEDD0..DC are section 5's constants); the
-  depth buffer 004E6C30 / 004E6BC0, the device callback 004ED820 and the format table 004E6EE0 are not ported);
+  batch flushed first; batch flushes 004E7840 / 004E7A40: empty, nothing is batched); `device_object.cpp` (the
+  device object: the DirectDraw base 004EDD70 / destructor body 004EE330 and the device's constructor 004E5E50 /
+  destructor body 004E68A0 as one class (the four stage-0 state blocks at 007AEDD0..DC are section 5's constants);
+  004EECF0 / 004EEC60 (cooperative level, display mode restore), the driver list 004EE4A0 / 004ED610 / 004EE5D0,
+  004EEA90, 004EEBC0, 004EEE30, the depth buffer 004E6C30 / 004E6BC0, the device callback 004ED820 and the format
+  table 004E6EE0 are not ported; `dx_errors.h` throws the game's error object through `_CxxThrowException` 006E7819);
   `surface.cpp` (the holder 004EF7B0 / 004EFC60 / 004F0060 / 004EFD20, the channel split 004EDAA0 / 004EDC00 /
   004EDC70); `texture.cpp` (the texture formats in place of the lookups 004E7DA0 / 004E7C40); `device_helpers.cpp` (counted holders, list iterator copies, aligned blocks, deleting destructors, the
   axis swap matrix 004F1330, which Rebirth WideScreen patches: vanilla launch only); `render_helper.cpp` (`CRenderHelper`'s
@@ -797,8 +798,8 @@ and the function vectors; these functions run in the image like the rest.
 Original details kept: the T&L HAL device is never used; the rain's
 and snow's vertex colours and packet w are never written (the buffer's old bytes are drawn, the fog pass only lowers
 the specular's alpha); the rain's height uses the snow's rise (007AEDA0, both 40); the helper's destructor walks on from
-a record it has just erased (reads freed nodes, so its walk over more than one record differs in ours); slot 1 tests a
-texture operation against the capability bits with `&` (operation number, not its bit). Different in ours: a throw from the constructors does not free what was built; the
+a record it has just erased (reads freed nodes, so its walk over more than one record differs in ours); slot 1 tested a
+texture operation against the capability bits with `&` (operation number, not its bit; gone with the caps, R27c). Different in ours: a throw from the constructors does not free what was built; the
 driver record's unset GUID and monitor bytes are zeroed; fields the original leaves as stack contents are zero.
 
 ## 13. R16: what a frame costs, and the plan to draw from GPU-resident data
@@ -1458,7 +1459,7 @@ User 2026-10-22: a small performance overlay in the standalone, switched on from
   [Software\Nival Interactive\EvilIslands\Standalone]
   "PerfOverlay"=dword:00000001
   ```
-  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, directdraw_holder.cpp, after
+  Off when absent or 0. Read once the renderer starts (`PerfOverlaySetting`, device_object.cpp, after
   `render::StartPresenting`) into `render::SetPerfOverlay`. **Never in a harness run**: the harness build
   (EI_RENDER_VALIDATION) has `render::PerfOverlaySupported()` false, so the value is not even read (the pinned
   settings file lacks it, and a read of a missing value fails a run) and SetPerfOverlay keeps it off.
@@ -1500,7 +1501,7 @@ User 2026-10-22: a way to disable vsync, from the settings file, no UI.
   "VSync"=dword:00000000
   ```
   On when absent or any value but 0 (the default: `Present(1, 0)`); 0 turns it off. Read once the renderer starts
-  (`VsyncSetting`, directdraw_holder.cpp, after `render::StartPresenting` and before the first present) into
+  (`VsyncSetting`, device_object.cpp, after `render::StartPresenting` and before the first present) into
   `render::SetVsync`. **Never in a harness run**: `render::VsyncSwitchSupported()` is false in the harness build
   (EI_RENDER_VALIDATION), so the value is not read (the pinned settings file lacks it) and SetVsync does nothing; the
   harness's own `SetWaitForVsync(false)` under the virtual clock stays interval 0 *without* tearing flags (its chains
