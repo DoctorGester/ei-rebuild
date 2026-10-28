@@ -1,6 +1,6 @@
 // The script loader's text file reader: a file read in lines of at most 2 KB into one text. A file that does not
-// open or a failed read (the game's TRY / CATCH(CFileException) around its CStdioFile) ends with a result of 0 and
-// what was read so far in the text.
+// open or a failed read (the game catches the file error) ends with a result of 0 and what was read so far in the
+// text.
 #include "script_parse.h"
 #include "game_strings.h"
 

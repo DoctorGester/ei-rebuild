@@ -54,8 +54,8 @@ copy or compare the text, none compares the pointer). Keep a string by address o
   "the main module exports `EiStandaloneHost`" (the host's marker; game.exe exports nothing).
   **Resources** (S18j, C23): the host has none of game.exe's. Its one resource is a VERSIONINFO of its own
   (`src/standalone/host.rc`, committed, linked by CMake's RC language); the game's strings are literals in our code
-  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp; MFC's strings in `mfc_resource.cpp`'s table,
-  only the ids our code can reach); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
+  (the window title "Evil Islands" and class "EIGAME" in app_main.cpp; MFC's string table went with its exceptions in
+  C14zi); the bitmaps, dialogs, cursors and icons were never loaded, and the window class has
   no icon (C24). WinMain's hInstance and GetModuleHandleA(NULL) are the host, so DirectInput needs no wrapper;
   GetModuleFileNameA(NULL) names ei_standalone.exe (the
   message box title; app_dxversion's exe folder, which only tells dgVoodoo beside it from the system's DirectDraw;
@@ -329,9 +329,8 @@ What C25a named or dropped of its list, still the code's form:
   `widescreen::g_layoutWidth` / `g_panelRight` (ui_widescreen.cpp, tagged; Startup writes them as addon did; the clock and
   the quick items read them). named_data.py's `NAMED_ADDON_SITES` lets a named range hold such a site, be written though in
   .rdata, and be named by tests/verify/addon_sites.inc (game.exe's address, for harness_addon.cpp in game.exe).
-- **A ported static initialiser**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64) is
-  mfc_static_objects.cpp's RegisterDragListMessage (5 bytes, a jump to its body: rows in extra_function_sizes.csv /
-  function_sizes.inc); static_init.cpp calls it.
+- **The DragList message id**: 007043FA (`RegisterWindowMessageA("commctrl_DragListMsg")` into 007CAA64, read only by
+  CWnd's message map) is gen_static_init.py's UNUSED_INITIALISERS since C14zi.
 - **Named**: OnNewParty's next record id
   `g_nextRecordObjectId` (player_server_handlers.cpp), and C25b's pause key `g_pauseMessageKey` 007930EC (ui.h; the
   message table and SetPauseTextDigit share it, so a resume shows "reserved_03" as with EI_Plugin).
@@ -493,28 +492,14 @@ kinds given.
     (8 `{kind, "x.mat"}` rows). Keep the original's bound on an index the data
     gives (ui_item_view's `school < 8` is signed, as the original's compare: a negative school would read before our
     array where the original read the neighbouring .rdata; no database has one).
-  - **Pointers to game.exe's records** (C18e): MFC's CRuntimeClass records are named as one piece
-    (lib/mfc_runtime_class.h: those in .rdata as `inline constexpr CRuntimeClass kClassCObject = /*00745D20*/ {...}`;
-    none of ours in .data any more
-    (CStringArray's 00796EE8 went in C14i, CWordArray's / CDWordArray's / CByteArray's in C14zb, CDib's in C14ze); TYPES has
-    `CRuntimeClass`, 'PiIPPP'). Each record names its base's record and its create function. **All or none**: a
-    base pointer is a named range, game.exe's data holds no pointer into one, and every record derives from CObject
-    (whose record the 5 .data ones point at, as do all the others), so the first name needed the whole tree, and each
-    create function it points at had to be ours (the check compares the registration): the ten that were unported
-    (CDC, CGdiObject, CMenu, CTempMenu, CWnd, CTempWnd, the four arrays; C20o dropped the CMenu, CTempMenu and CTempWnd ones, C14i CStringArray's, C14ze the GDI, DC, CWinThread and CMapPtrToPtr records, C14zh CWnd's: their cells are gen_image_cells.py's UNREAD) are small ports registered at their
-    addresses with a row in config/extra_function_sizes.csv and src/hook/function_sizes.inc (nothing calls them in
-    the game: `unreached` in the coverage); the 5 initialisers that called AfxClassInit with a record's address
-    (`push offset; call 00700674`, the list holds the first instruction of each, a jump to the body) are ported on the
-    name (`d.Call(mfc::impl::LinkWordArrayClass)` in static_init.cpp; CDib's 006D4A70 is UNUSED_INITIALISERS since C14ze). Do not run
-    gen_function_sizes.py for new rows: it rewrites every size from the Ghidra database, which has moved from the
-    committed file; add the rows by hand in order.
-    config/runtime_classes.csv (the cell tool's list of the records) went with them: their cells are inside named
-    ranges.
-    **The throws**: mfc_exception's archive / memory / resource exceptions and the device
-    layer's GameError are this compiler's `throw` of a pointer to a class of the game's name (lib/mfc_try.h:
-    CObject, CException, CSimpleException, CArchiveException, CMemoryException, CResourceException; dx_errors.h:
-    CGameException, CDXException), cast from the game's object. A failed file call throws `lib::FileError` (a
-    std::runtime_error, by value) where MFC threw a CFileException*.
+  - **MFC's CRuntimeClass records** (C18e named them; none since C14zi): every record's cells (class name, base
+    record) are gen_image_cells.py's UNREAD, the classes being gone; the initialisers that linked a record into the
+    module state's class list (AfxClassInit 00700674) are gen_static_init.py's UNUSED_INITIALISERS. Do not run
+    gen_function_sizes.py for new rows of config/extra_function_sizes.csv: it rewrites every size from the Ghidra
+    database, which has moved from the committed file; add the rows by hand in order.
+    **The throws**: the device layer's GameError is this compiler's `throw` of a pointer to a class of the game's name
+    (dx_errors.h: CGameException, CDXException). A failed file call throws `lib::FileError` (a std::runtime_error, by
+    value) where MFC threw a CFileException*; no MFC exception class is left (C14zi).
     The compiler's ThrowInfo lists the pointer to the class and each base like the original's six records
     (0077F440, 0077F2B0, 0077EE80, 0077EE38, 0077EC28, 00759908), which nothing reads now: they and their catchable
     types stay in the image as dead data with their cells (ThrowInfo -> array 10 and array -> types 41 are counted
@@ -775,12 +760,10 @@ kinds given.
       zero start instead of refusing the unknown store). static_init.h's visitors take a `std::uint8_t&` guard, a
       `void*` object and a `T&` destination beside the addresses. Each entry must start a range of named_data.csv (the
       generator says so otherwise). Named this way: the function-local statics' guard 007CAEE4
-      (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's) and the 11 MFC globals only the
-      initialisers and exit functions reach (lib/mfc_static_objects.{h,cpp}): the exit guards of the temporary objects'
-      fixed allocators (007C8BB8, 007C9138, 007CAAA0), _simpleUserException
-      007C8BC0 (`lib::StaticObject<CSimpleException>`), the thread / process locals 007C90BC, 007C90C0, 007CAA84,
-      007CAA88, 007CAA8C (nothing fills them in the image) and _afxDBCS 007CAA98 (its one reader in game.exe,
-      _AfxCbtFilterHook 00704BE6, is not ported). C18r added the objects hand code reads too, whose initialisers are
+      (`lib::g_emptyStaticGuard`, static_object.h: 175 generated tests and CSysInfo's). MFC's globals that only the
+      initialisers and exit functions reached (_simpleUserException 007C8BC0, the thread / process locals 007C90BC,
+      007C90C0, 007CAA84, 007CAA88, 007CAA8C, _afxDBCS 007CAA98) went in C14zi: their initialisers (and the locals'
+      atexits) are UNUSED_INITIALISERS. C18r had added the objects hand code reads too, whose initialisers are
       plain library calls: the temporary objects' fixed allocators (g_tempDCAlloc 007C8D18 and g_tempGdiObjectAlloc
       007C8CF0 went in C14ze with the GDI classes, guard byte 007C8BB8 too; the temporary windows' 007CA940 and menus' 007CAAA8 went in C20o: their classes were
       never made, tools/gen_static_init.py's UNUSED_INITIALISERS leaves both initialisers and exit functions out). MFC's
@@ -791,15 +774,10 @@ kinds given.
       allocator (`g_nodeFreeLists` 0079B224, 16 lists by 8-byte class, `g_nodeHeapSize` 0079B264, `g_chunkStart` /
       `g_chunkEnd` 0079B268 / 6C; the ports that inlined a block's return call NodeDeallocate); `_pnhHeap` (007CAAD8) is gone
       (nothing called the handler it held, C35e); `_afxNewHandler` 00796E14 went
-      with MFC's new handler loop (C14ze, C35g: our allocations are the host's `new`). MFC (hand-ported initialisers and exit functions, rows in extra_function_sizes.csv /
-      function_sizes.inc: each initialiser is the compiler's `call A; jmp B`, 10 bytes): the
-      resource / memory / not-supported exceptions (mfc_exception.cpp, 007C8C58 / 007C8DE8 / 007C8D50) and afxData
-      (mfc_state.cpp `g_afxData` 007C90C8, `lib::StaticObject<AuxData>`); plain globals: the global locks
-      (`g_afxLockInit` 007C8E80, `g_afxLockInitLock` 007C8EC8, `g_afxResourceLocks` 007C8EE0, `g_afxCriticalWin32s` /
-      `g_afxCriticalInit` 007C9078 / 7C), `g_afxThreadData` 007C9084 and the halftone brush 007C8D40 (_afxWingdixTerm
-      007C8D44 kept only atexit's answer, which nothing reads: dropped). The DragList message id `g_dragListMessage`
-      007CAA64 is pointed at by CWnd's message map entry 00746C80, which nothing in the image reads
-      (config/standalone_unreachable.csv).
+      with MFC's new handler loop (C14ze, C35g: our allocations are the host's `new`). MFC's (hand-ported until C14zi: the resource / memory / not-supported exceptions 007C8C58 /
+      007C8DE8 / 007C8D50, afxData 007C90C8, the global locks 007C8E80..007C907C, _afxThreadData 007C9084, the halftone
+      brush 007C8D40, the DragList message id 007CAA64) are gone: their initialisers are UNUSED_INITIALISERS (each the
+      compiler's `call A; jmp B`, 10 bytes: rows in extra_function_sizes.csv).
       printf's power tables and the x87 functions' constants were already ours (crt_format.cpp, crt_x87.cpp).
     - **The empty string (C18, 6 -> 5)**: 0079B298 is game_strings.h's `kEmptyText` (`char[1]`, `game::EmptyText()`
       returns it). Its readers copy it (CString / STLport assignments) or compare its text (mbscmp, memcmp); none compares
@@ -1347,8 +1325,8 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     are real classes.
     The save trace reads the image's memory stream writes through `g_memoryStreamWriteObserver` (called by slot 2
     with its return address); game.exe's run still takes the Write slots.
-  - **The library kind**: the simple exceptions (CResourceException, CUserException, CMemoryException) (mfc_exception.cpp); std::exception
-    (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector), CMapPtrToPtr (C14ze: no handle maps) and CArchiveException
+  - **The library kind**: the simple exceptions (CResourceException, CUserException, CMemoryException; file `-`
+    since C14zi) and std::exception (file `-`: no class of ours). CWordArray, CDWordArray, CByteArray (C14zb: std::vector), CMapPtrToPtr (C14ze: no handle maps) and CArchiveException
     (C14r: nothing throws it) are retired the same way. CPtrArray,
     CPtrList, ostream_withassign and the old iostream's streambuf, ios and ostream-for-ios tables (C35d) are retired with no class of ours (file `-`): only game.exe's constructors and
     destructors store them, and no code of ours calls those.
@@ -1850,28 +1828,22 @@ the `--no-hooks` suite) keeps the registry.
   the console's streams are console::Stream and ConsoleStreambuf (console.h), the doubles through str::Format "%.6g". The C initialisers `__onexitinit`, `__initstdio` and VC6's unhandled-exception filter are not
   run: the image's atexit, streams and crash filter are ours / the host's.
 
-### MFC (src/lib/mfc_*.{h,cpp}; S5-S8b, S3d, S3f, S16)
+### MFC (none left but lib/mfc.h's CString since C14zi; S5-S8b, S3d, S3f, S16)
 
 The exe links VC6's MFC 6.0; WinMain does not go through CWinApp (CWinApp's constructor 0070D654 has no caller).
-- **CString**: none of ours since C14i. src/lib's MFC holds its texts as std::string (the resource
-  strings: mfc_resource.h `LoadResourceString`); the static initialisers of CString's four fixed
+- **CString**: none of ours since C14i (std::string; lib/mfc.h's CString goes in C14p); the static initialisers of CString's four fixed
   allocators (00700718 .. 007007AB, 007C8B80 .. 007C8B08) are gen_static_init.py's UNUSED_INITIALISERS. `CFixedAlloc`
   (the temporary DCs' and GDI objects' allocators 007C8D18 / 007C8CF0) went in C14ze. 00700EFE is MakeLower (it calls `_mbslwr`, str::MakeLower's); 00700EEC is the
   real MakeUpper, unreached.
 - **Collections**: none of MFC's are left (C14zb): the game's CArray / CList / CWordArray / CDWordArray / CByteArray
   instantiations are std::vector / std::list, their vtables game.exe-only rows of config/vtables.csv, and CArchive
   went with their Serialize slots (C14r). CPlex went with CMapPtrToPtr and CFixedAlloc (C14ze).
-- **Exceptions** (S8, S8b): mfc_exception (the memory and resource throws; the three static exceptions;
-  CSimpleException 0x98 bytes; ReportError / GetErrorMessage), the dates are lib/calendar (C14ze), mfc_resource (AfxLoadString over the table of the four strings
-  something loads). CArchive and CArchiveException went in C14r with the collections' Serialize slots (nothing built
-  an archive); the harness's crash report reads a CArchiveException only in game.exe's runs.
-- **Windows, GDI, state**: AfxMessageBox has no owner and the module's file name as title (the image shows
-  ei_standalone.exe). The game code's own boxes of that kind are app::ShowLibraryMessageBox. mfc_state: CThreadSlotData,
-  CThreadLocal / CProcessLocal destructors (nothing fills them in the image), AUX_DATA afxData 007C90C8, MFC's global
-  locks (17 lock types: an 18th overwrote _afxThreadData), _AfxInitDBCS, the halftone brush term (registered twice:
-  runs on a null brush the second time). `ImageModuleState` at AfxGetModuleState 0070CE8C: one module state, only
-  the class list. CWnd::DestroyWindow 007051A1 is
-  a forwarder that no game window reaches (no game window is a CWnd).
+- **Exceptions, state** (gone in C14zi): the simple exceptions, their string table, ReportError, the thread /
+  process locals, afxData, the global locks, _afxDBCS, the halftone brush and the module state's class list: nothing
+  of the game read them, only game.exe's static initialisers and exit functions built and destroyed them (now
+  gen_static_init.py's UNUSED_INITIALISERS). CArchive and CArchiveException went in C14r; the harness's crash report
+  reads a CArchiveException only in game.exe's runs. The game code's own message boxes of MFC's kind are
+  app::ShowLibraryMessageBox.
 - **Gone in C14ze**: CTime (lib/calendar.h: VC6's time() from GetLocalTime through the import, `_mktime32`,
   `_localtime32_s` / strftime), the GDI classes and handle maps (the interface draws on plain HDCs: lib/gdi.h's
   gdi::Font / Pen / Brush, PointFont = CreatePointFont, FillSolidRect), the threads (lib/thread.h StartThread:
@@ -2255,39 +2227,3 @@ host CRT stream), `FileFind` (a folder search with CFileFind's read-ahead and ab
 `FileExists` (_access). A failed read, write or seek throws `FileError` (the OS error and the path in what()), where
 the game's MFC threw a CFileException*: what the game caught (CDib's reads and writes, the script reader) catches it,
 the rest ends the game as the original (a write to a full disk: tests/scenarios/harness_disk_full.txt).
-
-### lib/mfc_runtime_class.h
-
-MFC 4.2's CRuntimeClass records of the game's copy, as named data: the 41 the exe holds, 8 here (const, in .rdata; C20q and C14ze dropped the unused ones, gen_image_cells.py UNREAD)
-and none in .data (CStringArray's went in C14i, CByteArray's, CDWordArray's and CWordArray's in C14zb, CDib's in C14ze),
-where the static initialisers linked them into the module state's class list (AfxClassInit
-writes m_pNextClass). Each record names its base's record and its create function (ours, registered at the game's
-address: the pointers are compared by tools/named_data.py, "Pointer elements"). The hierarchy is one piece: a
-record's base is a named range, and game.exe's data holds no pointer into a named range, so CObject's record (the
-root) could be named only once every record that points at it was. Only the exceptions' records are read
-(GetRuntimeClass); the rest are what their base pointers and create
-functions reach.
-
-### lib/mfc_state.h
-
-MFC 4.2's thread and process locals (afxtls.cpp) and its system metrics record AUX_DATA (afxData, auxdata.cpp), as
-far as the exe's static initialisers and exit functions reach them (docs/notes/standalone.md). The thread and
-process locals are globals MFC fills on first use (_afxThreadState, _afxBaseModuleState and the others); the exit
-functions free them through the destructors here. afxData is built by a static initialiser and its menu-dot bitmap
-deleted at exit. The header also holds what the other static initialisers call: AfxClassInit (the runtime class
-list of the module state), MFC's global locks, _afxDBCS's initialiser and wingdix.cpp's halftone brush (an atexit
-that deletes it). The image has a stand-in module state with the members used so far (ImageModuleState). Every body
-is registered at its library address (mfc_state.cpp); in the image nothing fills the locals, so their destructors find an empty slot or object.
-
-
-### lib/mfc_try.h: why TRY / CATCH works across the two C++ runtimes
-
-A rewrite writes exactly that. What makes it work across the two C++ runtimes:
-- a throw is `throw` of a pointer to one of the classes below: this compiler makes the throw information, which
-  lists the pointer to the class and to each base like the game's did (".PAVCFileException@@", ".PAVCException@@",
-  ".PAVCObject@@", ".PAX");
-- a handler matches a thrown object when the type descriptors are the same object or carry the same decorated name.
-  So the classes are in the global namespace under the game's names and have its bases; nothing else of them is
-  used (they are never made here: the objects are the game's MFC objects, thrown through a cast pointer);
-- the unwind runs the frames between the throw and the handler through their frame handlers (RtlUnwind), then ours.
-

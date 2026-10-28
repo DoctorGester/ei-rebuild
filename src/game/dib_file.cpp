@@ -1,6 +1,6 @@
 // CDib's file reader and writer (dib.h): a .bmp file read from and written to a lib::File.
-// A lib::FileError from the file's calls ends in a message box and a result of 0 (the game's TRY /
-// CATCH(CException) around them).
+// A lib::FileError from the file's calls ends in a message box and a result of 0, as any error of the
+// game's file calls did.
 #include "dib.h"
 #include "app.h"
 #include "game_strings.h"

@@ -52,8 +52,7 @@ using SpriteArray = std::vector<Sprite>;
 
 // --- The statics ---------------------------------------------------------------------------------
 
-// Vectors and a CByteArray / CWordArray (mfc::CArray layout; their SetSize is MFC's afxcoll code, called
-// through its address).
+// The sprite draw's work buffers: vectors of vertices, corner outcodes and indices.
 using devicebuffers::ProjectedVertex;
 constinit std::vector<ProjectedVertex> g_unused = /*007AEFA0*/ {};
 std::vector<ProjectedVertex>& Unused() { return g_unused; }  // sized only

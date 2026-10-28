@@ -149,14 +149,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   with 1, bit for bit).
 - 004560D0 `ShowMessageBox` (full screen: DirectDraw flips to the GDI surface first; the cursor is put back).
   Ours only. 006462A0, the unit panel's draw: items_spells.md.
-- **MFC TRY / CATCH** (`src/lib/mfc_try.h`): the game's MFC throws C++ exceptions (a `CException*`), and a
-  TRY block is an `AFX_EXCEPTION_LINK` (007020F1; its destructor is AfxTryCleanup 0070212F) around a
-  try / catch. A rewrite writes exactly that: `mfc::ExceptionLink` and a C++ handler for a global class with
-  the game's name (`CException`, `CFileException`); this compiler's frame handler matches what the game's
-  _CxxThrowException raises by the decorated type name, and the game's frames in between unwind through their
-  own handlers. Ported with it: 004D5880 (the script loader's text file reader, `script_text_file.cpp`),
-  `CDib::Read` 006D5910 / `Write` 006D5AC0 (`dib_file.cpp`). No scenario reaches them; a start-up check
-  (`verify_mfc_try.cpp`) drives them side by side with the originals: a missing text file (the throw from the
-  game's CStdioFile constructor is caught, the TRY chain is as before), a text file with a line longer than
-  the 0x800 buffer, bitmaps of 16 / 24 / 32 bits written and read back, 8 bit files with a colour table. The
-  CDib handlers (a message box) are not driven. 004F0B90 can be ported the same way.
+- **The game's caught file errors**: the game's MFC threw a `CFileException*` from a failed file call, and
+  004D5880 (the script loader's text file reader, `script_text_file.cpp`) and `CDib::Read` 006D5910 / `Write`
+  006D5AC0 (`dib_file.cpp`) caught it. Ours catch `lib::FileError`, which lib::File / TextFile throw by value
+  (no MFC exception class is left since C14zi).

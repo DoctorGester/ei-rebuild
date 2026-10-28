@@ -15,9 +15,6 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"
-#include "../../src/lib/mfc_exception.h"
-#include "../../src/lib/mfc_resource.h"
-#include "../../src/lib/mfc_state.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -59,11 +56,6 @@ void ScriptFxSource::Load(ScriptStream*) EI_UNLINKED("ScriptFxSource::Load")
 // that no replay reaches: srand (random.cpp), acos (quaternion.cpp).
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
-
-// The library's exceptions, runtime classes and resources (mfc_exception.cpp, mfc_state.cpp, mfc_resource.cpp).
-int mfc::impl::CException::ReportError(unsigned, unsigned) EI_UNLINKED("mfc::impl::CException::ReportError")
-void mfc::impl::AfxClassInit(mfc::impl::CRuntimeClass*) EI_UNLINKED("mfc::impl::AfxClassInit")
-int mfc::impl::AfxLoadString(unsigned, char*, unsigned) EI_UNLINKED("mfc::impl::AfxLoadString")
 
 // world_construct.cpp (the server world, g_serverWorld) is not linked: the scripts' replays see a zero world, as they
 // saw the stand-in's zero bytes before C18t named it (no fixture fills it).
