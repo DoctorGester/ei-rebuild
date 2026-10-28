@@ -280,10 +280,10 @@ void CBriefingScreen::FinishDialogue() {
 
     BriefingVariables variables(TopicPrefix());
     std::vector<std::string> parts;
-    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        text::Split(node->value.key.c_str(), &parts, '.');
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
+        text::Split(node->first.c_str(), &parts, '.');
         if (parts.size() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
-        TheServerWorld()->CompleteBriefing(0, node->value.key.c_str());
+        TheServerWorld()->CompleteBriefing(0, node->first.c_str());
         break;
     }
 

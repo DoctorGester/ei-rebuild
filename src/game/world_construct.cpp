@@ -48,11 +48,6 @@ static_assert(sizeof(stlp::list<GroundPrint>::Node) > 128);
 
 } // namespace
 
-void ObjectIdMap::Construct() {
-    map.InitBuckets(100);
-    maxId = 0;
-}
-
 PlatformSet::PlatformSet() {
     ClearFields();
     ConstructList(list, mfc::impl::PlatformListClass::Vtable());
@@ -61,14 +56,10 @@ PlatformSet::PlatformSet() {
 
 CWorldServer::CWorldServer() {
     exits_.Construct(mfc::impl::MapRecordItemsClass::Vtable());
-    updateMap_.Construct();
     Messages()->Construct();
     MainScript()->Construct();
     SecondScript()->Construct();
     diplomacy_.Reset();
-    for (MapObjectIdMap* map : {&objects_, &sentObjects_, &mapObjects_, &otherMapObjects_, &namedObjects_})
-        map->Construct();
-    timedObjects_.Construct();
     ConstructList(projectiles_, gameslots::RefListBClass::Vtable());
     ConstructList(counted_, gameslots::ItemObjectListClass::Vtable());
     ConstructList(sharedObjects_, gameslots::SharedObjectListClass::Vtable());
@@ -81,9 +72,7 @@ CWorldClient::CWorldClient() {
     heroes_.Construct();
     objects_.Construct();
     ConstructList(dynamicObjects_, mfc::impl::ClientObjectListClass::Vtable());
-    dynamicNodes_.InitBuckets(100);
     dynamicMaxId_ = 0;
-    lineLists_.InitBuckets(100);
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).
     objectGrid_.unknown08_ = 1;

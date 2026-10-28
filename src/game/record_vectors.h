@@ -19,7 +19,7 @@
 #include "unit_db.h"
 #include "unit_looks.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "lib/stlp_vector.h"
 
 #include <cstddef>
@@ -281,21 +281,20 @@ struct records::ElementOf<acks::EnvironmentSpeech> {
 
 namespace acks {
 
-// The records' head as their compiler-written members copy it: the name, then the map by ack kind (STLport's
-// copy constructor and operator=, over _M_copy_from; the copy's map still points into the source record's
-// lists, as in the game). By default an empty name with room for 8 bytes and an empty map of 193 buckets; its
-// functor bytes are an uninitialised stack byte in the game, 0 here).
+// The records' head as their compiler-written members copy it: the name, then the map by ack kind (the copy's
+// map still points into the source record's lists, as in the game). By default an empty name with room for 8
+// bytes and an empty map.
 inline void CopyMember(AckRecordHead& to, const AckRecordHead& from) {
     records::CopyMember(to.name, from.name);
-    to.speeches.CopyConstruct(from.speeches);
+    std::construct_at(&to.speeches, from.speeches);
 }
 inline void AssignMember(AckRecordHead& to, const AckRecordHead& from) {
     records::AssignMember(to.name, from.name);
-    to.speeches.Assign(from.speeches);
+    to.speeches = from.speeches;
 }
 inline void DefaultMember(AckRecordHead& to) {
     records::DefaultMember(to.name);
-    to.speeches.Construct(100, 0, 0, 0);
+    std::construct_at(&to.speeches);
 }
 
 } // namespace acks

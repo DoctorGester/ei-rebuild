@@ -30,6 +30,7 @@ Check* Checks() { return g_checks; }
 } // namespace ei::vectors
 
 int RunSettingsFileChecks();   // replay_settings.cpp: the settings file's format and import (ST1a)
+int RunHashMapChecks();        // replay_hash_map.cpp: lib::HashMap's order against STLport's hashtable
 
 namespace {
 
@@ -157,6 +158,7 @@ int main(int argc, char** argv) {
         }
     }
     problems += RunSettingsFileChecks();   // not recorded vectors: the settings file's text and import, without the game
+    problems += RunHashMapChecks();
     int checks = 0, unused = 0;
     for (const Check* c = Checks(); c; c = c->next) {
         ++checks;

@@ -99,8 +99,8 @@ int CPlayerClient::OnGameState() {
     TheInterface()->CreateScreen(state);
     TheClientWorld()->tick_ = tick;
     if (state == kGameStateBetweenZones) TheClientWorld()->LoadUnitFaces();
-    for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node))
-        UnitChanged(node->value);
+    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node)
+        UnitChanged(node->second);
     if (IsMultiplayerClient()) TheGameFlow()->UpdateFromServer();
     return 1;
 }
@@ -209,9 +209,10 @@ int CPlayerClient::OnUnitControl() {
 int CPlayerClient::OnObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::MapObjectMap::Node* node = Owner()->knownObjects_.Find(id);
-    if (!node) return 0;
-    CMapObject* object = node->value;
+    CPlayer::MapObjectMap& known = Owner()->knownObjects_;
+    auto node = known.find(id);
+    if (node == known.end()) return 0;
+    CMapObject* object = node->second;
     if (object->ReadState(1, &in_) == 0) return 0;
     const int classId = object->GetClassId();
     if (classId == kPlatformClassA || classId == kPlatformClassB)
@@ -223,11 +224,11 @@ int CPlayerClient::OnObjectRemoved() {
     int id;
     in_.Read(&id, 4);
     CPlayer* player = Owner();
-    if (CPlayer::UnitMap::Node* unit = player->units_.Find(id)) unit->value->SetPlayer(nullptr);
-    CPlayer::MapObjectMap::Node* node = player->knownObjects_.Find(id);
-    if (!node) return 0;
-    CMapObject* object = node->value;
-    player->knownObjects_.Erase(player->knownObjects_.Find(id));
+    if (auto unit = player->units_.find(id); unit != player->units_.end()) unit->second->SetPlayer(nullptr);
+    auto node = player->knownObjects_.find(id);
+    if (node == player->knownObjects_.end()) return 0;
+    CMapObject* object = node->second;
+    player->knownObjects_.erase(id);
     object->flags_ |= kFlagGone;
     object->Release();
     TheClientWorld()->RemoveObject(object->id_);
@@ -260,19 +261,20 @@ int CPlayerClient::OnTimedObjectAdded() {
 int CPlayerClient::OnTimedObjectChanged() {
     int id;
     in_.Read(&id, 4);
-    CPlayer::TimedObjectMap::Node* node = Owner()->knownTimed_.Find(id);
-    if (!node) return 0;
-    return node->value->Receive(1, &in_) != 0 ? 1 : 0;
+    CPlayer::TimedObjectMap& known = Owner()->knownTimed_;
+    auto node = known.find(id);
+    if (node == known.end()) return 0;
+    return node->second->Receive(1, &in_) != 0 ? 1 : 0;
 }
 
 int CPlayerClient::OnTimedObjectRemoved() {
     int id;
     in_.Read(&id, 4);
     CPlayer* player = Owner();
-    CPlayer::TimedObjectMap::Node* node = player->knownTimed_.Find(id);
-    if (!node) return 0;
-    CEffect* object = node->value;
-    player->knownTimed_.Erase(player->knownTimed_.Find(id));
+    auto node = player->knownTimed_.find(id);
+    if (node == player->knownTimed_.end()) return 0;
+    CEffect* object = node->second;
+    player->knownTimed_.erase(id);
     object->flags_ |= kFlagGone;
     object->Release();
     return 1;

@@ -157,8 +157,8 @@ void CWorldServer::ClearMapObjects() {
     pending.free = nullptr;
     pending.blocks = nullptr;
     pending.blockSize = 10;
-    for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
+        CEngineObject* object = node->second;
         if (!object) break;   // the walk stops at the first empty entry
         pending.AddTail(object);
     }
@@ -183,8 +183,8 @@ void CWorldServer::ClearMapObjects() {
 }
 
 void CWorldServer::SaveMapObjects(CStream* out) {
-    for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end(); ++node) {
+        CMapObject* object = node->second;
         if (!object) break;
         int id = object->id_;
         out->Write(&id, 4u);

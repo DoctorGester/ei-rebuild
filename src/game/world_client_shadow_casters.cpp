@@ -99,19 +99,10 @@ double TopOf(const CObject3D* object, const Vector3& scale) {
     return object->localPosition_.z + std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(cx, cy, cz)) + object->bounds.radius * LargestScale(scale);
 }
 
-// Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges_), found without the game's
-// string (its allocator); null when there is none.
+// Part `name`'s element ranges in the figure's arrays (CLinkMesh::ranges_); null when there is none.
 const LinkPartRanges* RangesOf(const CLinkMesh* figure, const char* name) {
-    const std::size_t length = std::strlen(name);
-    for (auto* node = figure->ranges_.Root(); node;) {
-        const std::string& key = node->first;
-        const std::size_t n = (std::min)(key.size(), length);
-        int c = std::memcmp(key.data(), name, n);
-        if (c == 0) c = key.size() < length ? -1 : key.size() > length ? 1 : 0;
-        if (c == 0) return &node->second;
-        node = c < 0 ? node->right : node->left;
-    }
-    return nullptr;
+    auto node = figure->ranges_.find(std::string(name));
+    return node == figure->ranges_.end() ? nullptr : &node->second;
 }
 
 // The part's positions with its per-vertex offsets added (as the draws add them), in `moved`.
@@ -232,8 +223,8 @@ void HandOverSceneLights(CWorldClient* world) {
     static std::vector<render::ScenePointLight> points;
     points.clear();
     if (terrain && terrain->mapLoaded) {
-        for (Terrain::LightTable::Node* node = terrain->lights.First(); node; node = terrain->lights.After(node)) {
-            const CLight* light = node->value.light;
+        for (auto node = terrain->lights.begin(); node != terrain->lights.end(); ++node) {
+            const CLight* light = node->second.light;
             if (!light) continue;
             render::ScenePointLight p{};
             p.position = light->localPosition_;

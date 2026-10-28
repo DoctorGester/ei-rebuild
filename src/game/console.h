@@ -9,11 +9,12 @@
 #include "../lib/mfc_file.h"
 #include "../lib/crt_iostream.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_tree_mbs.h"
+#include "../lib/str.h"
 #include "../lib/static_object.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -180,12 +181,11 @@ using Arguments = std::vector<std::string>;
 using CommandHandler = void(*)(Arguments* args);
 
 // Keys compared by _mbscmp.
-using CommandMap = stlp::map<std::string, CommandHandler, stlp::MbsLess>;
+using CommandMap = std::map<std::string, CommandHandler, str::MbsLess>;
 
 // The handler slot for `key`, inserted with a null handler if missing.
 CommandHandler& Command(CommandMap* map, const std::string& key);
 
-static_assert(sizeof(CommandMap) == 0xC);
 // The commands always available and those after the cheat word.
 extern lib::StaticObject<CommandMap> g_publicCommands;
 extern lib::StaticObject<CommandMap> g_cheatCommands;

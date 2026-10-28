@@ -16,7 +16,7 @@ namespace hash400 {
 template <typename Map>
 typename Map::mapped_type& Entry(Map& map, int& maxKey, int key) {
     if (key > maxKey) maxKey = key;
-    return map.FindOrInsert({static_cast<typename Map::key_type>(key), {}})->value;
+    return map[static_cast<typename Map::key_type>(key)];
 }
 template <typename Map>
 void SetAt(Map& map, int& maxKey, int key, typename Map::mapped_type value) {
@@ -25,28 +25,26 @@ void SetAt(Map& map, int& maxKey, int key, typename Map::mapped_type value) {
 // RemoveKey: `key`'s value (zero when there is none), its entry erased.
 template <typename Map>
 typename Map::mapped_type RemoveKey(Map& map, typename Map::key_type key) {
-    auto* node = map.Find(key);
-    if (!node) return {};
-    typename Map::mapped_type value = node->value;
-    map.Erase(node);
+    auto node = map.find(key);
+    if (node == map.end()) return {};
+    typename Map::mapped_type value = node->second;
+    map.erase(node);
     return value;
 }
 // Lookup: 1 with `key`'s value in `value`, or 0.
 template <typename Map>
 int Lookup(const Map& map, typename Map::key_type key, typename Map::mapped_type& value) {
-    auto* node = map.Find(key);
-    if (!node) return 0;
-    value = node->value;
+    auto node = map.find(key);
+    if (node == map.end()) return 0;
+    value = node->second;
     return 1;
 }
 // The address of `key`'s value, or null.
 template <typename Map>
 typename Map::mapped_type* Find(Map& map, typename Map::key_type key) {
-    auto* node = map.Find(key);
-    return node ? &node->value : nullptr;
+    auto node = map.find(key);
+    return node == map.end() ? nullptr : &node->second;
 }
 
-void* ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);
-void ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry);
 
 } // namespace hash400

@@ -18,7 +18,7 @@
 #include "unit.h"
 #include "world.h"
 
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -1191,10 +1191,6 @@ void CCampPages::ShowHero() {
 // --- the constructor -----------------------------------------------------------------------------
 
 CCampPages::CCampPages(CInterface3D* ui, bool fromHeroScreen) : CItemScreen(ui) {
-    // The caches' (empty) compare objects keep the flag's byte.
-    const auto compare = static_cast<std::uint8_t>(fromHeroScreen);
-    models_.Construct(compare);
-    textures_.Construct(compare);
     fromHeroScreen_ = fromHeroScreen;
     heroes_.Construct(mfc::impl::UnitPtrArrayClass::Vtable());
 }

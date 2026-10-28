@@ -79,7 +79,7 @@ void WriteStateStream(BitStream* out, BitStream* from) {
 // The insert of hash_map::operator[] inlined by the senders: the highest id kept, the object
 // stored under its id and counted.
 template <typename T>
-void Keep(stlp::hash_map<int, T*, stlp::IntHash>& map, int& maxId, T* object) {
+void Keep(lib::HashMap<int, T*>& map, int& maxId, T* object) {
     int id = object->id_;
     if (id > maxId) maxId = id;
     map[id] = object;
@@ -89,7 +89,7 @@ void Keep(stlp::hash_map<int, T*, stlp::IntHash>& map, int& maxId, T* object) {
 // The erase the removers inline: the node of `id`, if any, dropped.
 template <typename Map>
 void Forget(Map& map, int id) {
-    if (typename Map::Node* node = map.Find(id)) map.Erase(node);
+    map.erase(id);
 }
 
 int WorldUpdateCount(CPlayer* player) { return player->ServerWorld()->updateCount_; }
@@ -280,8 +280,8 @@ int CPlayerServer::SendPartyState() {
     refreshPending_ = 0;
     CPlayer* player = Owner();
     const float low = LowLevel();
-    for (CPlayer::UnitMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
-        const float* levels = node->value->levels4C8;
+    for (auto node = player->units_.begin(); node != player->units_.end() && node->second; ++node) {
+        const float* levels = node->second->levels4C8;
         EI_NAN_AUDIT(levels[0], levels[1], levels[2], levels[3], levels[4], low);
         if (levels[0] <= low || levels[1] <= low || levels[2] <= low || levels[3] <= low || levels[4] <= low)
             refreshPending_ = 1;
@@ -328,7 +328,7 @@ int CPlayerServer::SendPartyState() {
 
 int CPlayerServer::ForgetObject(CEngineObject* object) {
     CPlayer::MapObjectMap& known = Owner()->knownObjects_;
-    if (known.Find(object->id_) != nullptr) {
+    if (known.contains(object->id_)) {
         Forget(known, object->id_);
         object->Release();
         for (int i = 0; i < std::ssize(sentObjects_); ++i) {
@@ -393,16 +393,16 @@ void CPlayerServer::UpdatePartyUnits() {
     party.CopyFrom(group50F8_);
     CPlayer::UnitMap& units = Owner()->units_;
     if (possessedId_ == kNoPartyCopy) {
-        for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
-            CUnit* unit = node->value;
+        for (auto node = units.begin(); node != units.end() && node->second; ++node) {
+            CUnit* unit = node->second;
             party.Insert(unit);
             AIBrain* brain = unit->ServerController()->Brain();
             party.InsertAll(&brain->memory.visible);
             known.InsertAll(&brain->memory.seenCorpses);
         }
         partyUnits_.Union(party, known);
-        for (CPlayer::UnitMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            known.CopyToList(&node->value->ServerController()->Brain()->memory.seenCorpses);
+        for (auto node = units.begin(); node != units.end() && node->second; ++node)
+            known.CopyToList(&node->second->ServerController()->Brain()->memory.seenCorpses);
     } else {
         partyUnits_.SetSize(party.size, -1);
         for (int i = 0; i < party.size; ++i) {

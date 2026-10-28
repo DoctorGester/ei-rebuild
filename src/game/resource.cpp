@@ -50,11 +50,6 @@ bool WriteAt(void* file, std::uint32_t offset, const void* from, std::uint32_t s
 } // namespace
 
 CMappedResource::CMappedResource() {
-    // The loaded-file maps, 193 buckets each (STLport's first prime >= 100).
-    std::memset(&filesByData_, 0, sizeof(filesByData_));
-    filesByData_.InitBuckets(100);
-    std::memset(&filesByName_, 0, sizeof(filesByName_));
-    filesByName_.InitBuckets(100);
     image_ = nullptr;
     handle_ = INVALID_HANDLE_VALUE;
     writable_ = 0;
@@ -76,8 +71,6 @@ CMappedResource::~CMappedResource() {
     names_ = nullptr;
     image_ = nullptr;
     header_ = ResHeader{};
-    filesByName_.Destroy();
-    filesByData_.Destroy();
     // ~CResourceBase follows.
 }
 
@@ -159,8 +152,8 @@ void* CMappedResource::GetFilePlain(const char* name, std::uint32_t* size) {
     // Already loaded: share it.
     {
         std::string key(name);
-        if (auto* node = filesByName_.Find(key)) {
-            LoadedFile* file = node->value;
+        if (auto node = filesByName_.find(key); node != filesByName_.end()) {
+            LoadedFile* file = node->second;
             ++file->refCount;
             if (size) *size = file->size;
             return file->data;
@@ -205,12 +198,12 @@ bool CMappedResource::CloseFile(void* data) {
     if (image_) return true;
     if (!data) return false;
 
-    auto* byData = filesByData_.Find(data);
-    if (!byData) {
+    auto byData = filesByData_.find(data);
+    if (byData == filesByData_.end()) {
         game::DebugLog("CMappedResource::CloseFile()\nFile already closed\n");
         return false;
     }
-    LoadedFile* file = byData->value;
+    LoadedFile* file = byData->second;
     if (--file->refCount != 0) return true;
 
     if (writable_) {
@@ -222,8 +215,8 @@ bool CMappedResource::CloseFile(void* data) {
         }
     }
 
-    filesByData_.Erase(byData);
-    filesByName_.Erase(filesByName_.Find(file->name));
+    filesByData_.erase(byData);
+    filesByName_.erase(file->name);
     gamecrt::operator_delete(file->data);
     std::destroy_at(&file->name);
     gamecrt::operator_delete(file);
@@ -232,16 +225,15 @@ bool CMappedResource::CloseFile(void* data) {
 
 void CMappedResource::FreeAllFiles() {
     if (image_) return;
-    filesByData_.ForEach([](auto* node) {
-        LoadedFile* file = node->value;
+    for (auto& [data, file] : filesByData_) {
         gamecrt::operator_delete(file->data);
         if (file) {
             std::destroy_at(&file->name);
             gamecrt::operator_delete(file);
         }
-    });
-    filesByData_.Clear();
-    filesByName_.Clear();
+    }
+    filesByData_.clear();
+    filesByName_.clear();
 }
 
 CMappedFile::CMappedFile() { Construct(); }

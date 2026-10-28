@@ -45,7 +45,7 @@ constexpr int kClassNoSector = 0x61;     // objects of this class are not in the
 
 template <typename Map>
 void EraseId(Map& map, unsigned id) {
-    if (auto* node = map.map.Find(id)) map.map.Erase(node);
+    map.map.erase(id);
 }
 
 } // namespace
@@ -60,8 +60,8 @@ void ObjectIdMap::Set(const unsigned& key, CEngineObject* const& value) {
 // ---- Lookups -------------------------------------------------------------------------------------
 
 CMapObject* CWorldServer::FindObject(unsigned id) {
-    auto* node = objects_.map.Find(id);
-    return node ? node->value : nullptr;
+    auto node = objects_.map.find(id);
+    return node != objects_.map.end() ? node->second : nullptr;
 }
 
 CPlayer* CWorldServer::GetPlayer(int id) {
@@ -160,13 +160,13 @@ void CWorldServer::AddTimedObject(CEffect* effect) {
 }
 
 void CWorldServer::RemoveTimedObject(unsigned id) {
-    auto* node = timedObjects_.map.Find(id);
-    if (!node) return;
-    CEngineObject* object = node->value;
+    auto node = timedObjects_.map.find(id);
+    if (node == timedObjects_.map.end()) return;
+    CEngineObject* object = node->second;
     object->flags_ |= 1;
     object->Release();
     // Looked up again: releasing may have changed the map.
-    if (auto* again = timedObjects_.map.Find(id)) timedObjects_.map.Erase(again);
+    if (auto again = timedObjects_.map.find(id); again != timedObjects_.map.end()) timedObjects_.map.erase(again);
 }
 
 int CWorldServer::UpdateCountdownFor(const CEngineObject* object) { return (object->id_ & 0xF) + 0x80; }
@@ -181,8 +181,8 @@ void CWorldServer::AddToUpdateMap(CMapObject* unit) {
 // ---- Removal ---------------------------------------------------------------------------------------
 
 void CWorldServer::RemoveObject(unsigned id) {
-    auto* found = objects_.map.Find(id);
-    CMapObject* const* slot = found ? &found->value : nullptr;
+    auto found = objects_.map.find(id);
+    CMapObject* const* slot = found != objects_.map.end() ? &found->second : nullptr;
     // Rebirth's FixRemoveMapObject: an unknown id is logged and ignored. Vanilla reads through the null
     // pointer (and crashes).
     if (!slot && ei::rebirth::Enabled(ei::rebirth::Patch::FixRemoveMapObject)) return;
@@ -192,12 +192,12 @@ void CWorldServer::RemoveObject(unsigned id) {
 
     hash400::RemoveKey(updateMap_.map, id);
     EraseId(objects_, id);
-    if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
-    if (sentObjects_.map.Find(id)) {
+    if (namedObjects_.map.contains(id)) EraseId(namedObjects_, id);
+    if (sentObjects_.map.contains(id)) {
         EraseId(sentObjects_, id);
     } else {
         EraseId(mapObjects_, id);
-        if (otherMapObjects_.map.Find(id)) EraseId(otherMapObjects_, id);
+        if (otherMapObjects_.map.contains(id)) EraseId(otherMapObjects_, id);
     }
 
     object->ClearState();   // it leaves the server
@@ -209,8 +209,8 @@ void CWorldServer::RemoveObject(unsigned id) {
     ScriptPurgeDeletedObjects(SecondScript());
 
     // Every world object forgets it (the walk stops at an entry without an object).
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        node->value->ForgetObject(object);
+    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node)
+        node->second->ForgetObject(object);
     // The missiles it shot are dropped; those aimed at it lose their target.
     for (auto* node = projectiles_.head; node;) {
         auto* current = node;

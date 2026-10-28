@@ -1,7 +1,6 @@
 // The compiler-generated destructors of the global databases. Only the exit functions call them
 // (src/standalone/static_exit.cpp), so they run at a normal exit in the hook build too. Each destroys the
-// members from the last: a table's name index (hash_map::Destroy: every chain from its head, each node's key
-// string then the node, then the buckets), then its records through their vector's element policy
+// members from the last: a table's name index, then its records through their vector's element policy
 // (record_vectors.h: each record in order, then the storage). The constructors are database_construct.cpp's.
 #include "acks_db.h"
 #include "game_arrays.h"
@@ -24,7 +23,7 @@ namespace {
 // records as `Abi` destroys them.
 template <typename Abi, typename Index>
 void DestroyTable(typename Abi::Vector& records, Index& index) {
-    index.Destroy();
+    std::destroy_at(&index);
     Abi::Destruct(&records);
 }
 

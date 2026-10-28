@@ -49,8 +49,8 @@ void DeleteComposedTextures() {
 int CTextureManager::ReleaseObject(CEngineObject* object) {
     if (!object || object->refCount_ != 0) return 0;
     auto* texture = static_cast<CTexture*>(object);
-    if (const auto* node = objects_.Find(static_cast<unsigned>(object->id_))) {
-        Unregister(node->value->id_);
+    if (auto node = objects_.find(static_cast<unsigned>(object->id_)); node != objects_.end()) {
+        Unregister(node->second->id_);
         if (object->flags_ & kCacheable) {
             cache_.AddTail(texture);
             cachedBytes_ += texture->uploadResult_;

@@ -1,16 +1,13 @@
 // The resource databases' resets: the compiler-generated code that destroys a database and constructs it
 // again in place, which the resource switch runs before it loads the databases of another resource folder
 // (the skill database's is SkillDatabase::Reset, unit_db.cpp). Each table's members go last to first: the
-// name index (hash_map::Destroy: every chain from its head, each node's key string then the node, then the
-// buckets), then the records through their vector's element policy (record_vectors.h: each record in order,
+// name index, then the records through their vector's element policy (record_vectors.h: each record in order,
 // then the storage). The constructors are database_construct.cpp's.
 #include "item_db.h"
 #include "record_vectors.h"
 #include "unit_db.h"
 
 namespace {
-
-constexpr std::size_t kBuckets = 100;   // each index asks for 100 buckets (STLport: 193)
 
 template <typename R>
 stlp::vector<R>& RecordsOf(void* table) {
@@ -25,7 +22,7 @@ void DestroyRecords(void* table) {
 
 template <typename Abi, typename Table>
 void DestroyUnitTable(Table& table) {
-    table.byName.Destroy();
+    std::destroy_at(&table.byName);
     DestroyRecords<Abi>(&table);
 }
 
@@ -35,12 +32,12 @@ void ConstructUnitTable(Table& table) {
     table.begin = nullptr;
     table.end = nullptr;
     table.endOfStorage = nullptr;
-    table.byName.InitBuckets(kBuckets);
+    std::construct_at(&table.byName);
 }
 
 template <typename Abi, typename Record>
 void DestroyItemTable(itemdb::NamedRecordTable<Record>& table) {
-    table.names.Destroy();
+    std::destroy_at(&table.names);
     Abi::Destruct(&table.records);
 }
 

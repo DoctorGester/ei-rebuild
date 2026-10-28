@@ -8,6 +8,10 @@
 
 namespace str {
 
+bool MbsLess::operator()(const std::string& a, const std::string& b) const {
+    return gamecrt::mbscmp(a.c_str(), b.c_str()) < 0;
+}
+
 namespace {
 
 using uchar = unsigned char;

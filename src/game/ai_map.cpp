@@ -22,11 +22,6 @@ float CellToWorld(int cell) { return (static_cast<float>(cell) + 0.5f) * (1.0f *
 
 int PositiveOrZero(int v) { return v < 0 ? 0 : v; }
 
-// The entry of the cell (x, y): the key is (short)x << 16 | (short)y.
-const BridgeMap::Node* FindBridgeHeight(const BridgeMap* map, short x, short y) {
-    return map->Find(static_cast<std::uint32_t>(x * 0x10000 + y));
-}
-
 } // namespace
 
 int LevelForSizeClass(int sizeClass) {
@@ -39,8 +34,8 @@ int StandingLevel(const CUnit* unit) {
 }
 
 int BridgeHeights::HeightAt(short x, short y) const {
-    const auto* node = FindBridgeHeight(this, x, y);
-    return node ? static_cast<std::uint16_t>(node->value) : 0;
+    auto node = find(static_cast<std::uint32_t>(x * 0x10000 + y));   // the key is (short)x << 16 | (short)y
+    return node != end() ? static_cast<std::uint16_t>(node->second) : 0;
 }
 
 // --- Cell queries --------------------------------------------------------------------------------

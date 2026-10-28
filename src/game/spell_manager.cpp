@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 
 #include <iterator>
+#include <memory>
 #include <new>
 #include <vector>
 
@@ -25,8 +26,10 @@ constexpr const char* kSpellManagerFolder = "spells";
 // Every container of a sequence loses a reference, in iterator order; the walk stops at the first entry
 // without a container.
 void ReleaseContainers(SpellSequence* sequence) {
-    for (auto* node = sequence->containers.First(); node && node->value; node = sequence->containers.After(node))
-        node->value->Release();
+    for (auto& [low, container] : sequence->containers) {
+        if (!container) break;
+        container->Release();
+    }
 }
 
 } // namespace
@@ -34,7 +37,7 @@ void ReleaseContainers(SpellSequence* sequence) {
 
 void SpellSequence::Destruct() {
     ReleaseContainers(this);
-    containers.Destroy();
+    std::destroy_at(&containers);
 }
 
 CSpell* CSpellManager::CreateSpellObject(int id) {
@@ -70,27 +73,26 @@ CEngineObject* CSpellManager::NewObject(int type) {
 int CSpellManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 
 void CSpellManager::Destroy() {
-    for (auto* node = sequences_.First(); node && node->value; node = sequences_.After(node)) {
-        SpellSequence* sequence = node->value;
+    for (auto& [key, sequence] : sequences_) {
+        if (!sequence) break;
         ReleaseContainers(sequence);
-        sequence->containers.Destroy();
+        std::destroy_at(&sequence->containers);
         gamecrt::operator_delete(sequence);
     }
-    sequences_.Clear();
+    sequences_.clear();
     maxSequenceKey_ = 0;
     CResourceManager::Destroy();
 }
 
 CSpellManager::~CSpellManager() {
-    for (auto* node = sequences_.First(); node && node->value; node = sequences_.After(node)) {
-        SpellSequence* sequence = node->value;
+    for (auto& [key, sequence] : sequences_) {
+        if (!sequence) break;
         sequence->Destruct();
         gamecrt::operator_delete(sequence);
     }
-    sequences_.Clear();
+    sequences_.clear();
     maxSequenceKey_ = 0;
     CResourceManager::Destroy();
-    sequences_.Destroy();
 }
 
 const char* CSpellManager::GetClassName() { return kSpellManagerClassName; }

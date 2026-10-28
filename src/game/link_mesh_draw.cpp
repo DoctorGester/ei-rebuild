@@ -4,7 +4,6 @@
 // (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
 #include "device.h"   // the old device's calls
-#include "library_trees.h"
 #include "link_figure.h"
 
 #include "core_maths.h"
@@ -17,6 +16,7 @@
 #include "render/render_state.h"
 #include "game_data.h"
 
+#include <bit>
 #include <cstdlib>
 #include <d3d.h>
 
@@ -133,10 +133,10 @@ struct PartDraw {
 void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result) {
     if ((flags & kDrawScreenRect) && result != kNothingDrawn) {
         const RECT& drawn = mesh->loader_->renderer_->drawnRect_;
-        static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name)->screen = drawn;
+        mesh->headers_[*name].screen = drawn;
         return;
     }
-    static_cast<lib_trees::LinkHeaders*>(&mesh->headers_)->Subscript(*name)->screen = kNoScreen;
+    mesh->headers_[*name].screen = kNoScreen;
 }
 
 // The four draws: `offsets` (null: none asked) moves the positions when it has any; without
@@ -144,7 +144,7 @@ void KeepScreen(CLinkMesh* mesh, const std::string* name, int flags, int result)
 int DrawPartCommon(CLinkMesh* mesh, const std::string* name, int flags, CDXSurface* first, CDXSurface* second,
                    bool textured, ColourArray* colours, ColourArray* speculars,
                    const std::vector<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
-    const LinkRangeMap::Node* node = mesh->ranges_.find(*name);
+    auto node = mesh->ranges_.find(*name);
     if (node == mesh->ranges_.end()) return kNothingDrawn;
     const LinkPartRanges& r = node->second;
     const VertexPacket* positions = mesh->vertices_.data() + r.vertices.start;
@@ -169,7 +169,7 @@ void FreeMovedPackets() { lib::FreeStorage(g_movedPackets); }
 // Both arrays sized to four per normal packet (their contents dropped), then filled.
 bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::uint32_t specular,
                             ColourArray* colours, ColourArray* speculars) {
-    const LinkRangeMap::Node* node = ranges_.find(*name);
+    auto node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     colours->SetSizeDiscard(node->second.normals.count * 4);
     speculars->SetSizeDiscard(node->second.normals.count * 4);
@@ -185,7 +185,7 @@ bool CLinkMesh::FlatColours(const std::string* name, std::uint32_t colour, std::
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
 bool CLinkMesh::LightPart(const std::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                           ColourArray* colours, ColourArray* speculars) {
-    const LinkRangeMap::Node* node = ranges_.find(*name);
+    auto node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
     const LinkPartRanges& r = node->second;
     colours->SetSizeDiscard(r.normals.count * 4);
@@ -238,7 +238,7 @@ int CLinkMesh::DrawPartTextured(const std::string* name, int flags, CDXSurface* 
 // the transform object's flat projection; four points per packet.
 int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offsets, const float* matrix,
                            Vector2* points, float* bounds) {
-    const LinkRangeMap::Node* node = ranges_.find(*name);
+    auto node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
     const VertexPacket* positions = vertices_.data() + r.vertices.start;
@@ -251,7 +251,7 @@ int CLinkMesh::ProjectPart(const std::string* name, std::vector<Vector3>* offset
 // corners - the projected point of the corner's position and the texture point of its coordinate - handed to
 // the pixel converter's rasteriser at the start of `target`.
 int CLinkMesh::RasterisePart(const std::string* name, const PixelPair* pixels, RasterTarget* target) {
-    const LinkRangeMap::Node* node = ranges_.find(*name);
+    auto node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
     std::vector<PixelPair>& texturePixels = TexturePixels();

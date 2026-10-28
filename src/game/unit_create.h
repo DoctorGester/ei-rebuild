@@ -7,11 +7,13 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/hash_map.h"
 #include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #undef GetClassName
 
@@ -26,7 +28,8 @@ struct UnitNpcRecord;
 // The unit prototype table: the records and an index by prototype name.
 struct UnitPrototypeTable {
     UnitPrototypeRecord* At(std::uint32_t index);
-    using NameIndex = stlp::hash_map<std::string, UnitPrototypeRecord*, stlp::StringHash>;
+    // In STLport's bucket order (EI_Plugin's fallback prototype is the first bucket head that fits).
+    using NameIndex = lib::HashMap<std::string, UnitPrototypeRecord*, lib::TextHash>;
 
     // The record named `name` (an unknown name gets a null entry), or null.
     UnitPrototypeRecord* FindByName(const char* name);
@@ -40,7 +43,7 @@ static_assert(offsetof(UnitPrototypeTable, byName) == 0x0C);
 
 // The NPC prototype table (records of statistics for named creatures), laid out the same way.
 struct NpcPrototypeTable {
-    using NameIndex = stlp::hash_map<std::string, UnitNpcRecord*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, UnitNpcRecord*>;
 
     UnitNpcRecord* FindByName(const char* name);
 
@@ -107,7 +110,6 @@ struct CMapObjectManager : CResourceManager {
     // ScaleEffectChanged(0), index 0 and a debug message. Returns 1.
     int ApplyPrototype(CMapObject* object, const char* name);
 };
-static_assert(sizeof(CMapObjectManager) == 0xBC);
 
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {
     return static_cast<CMapObjectManager*>(object->owner_);

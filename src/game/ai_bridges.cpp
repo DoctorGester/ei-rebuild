@@ -1,7 +1,7 @@
 // CAIMap::ApplyBridgeDecks: applies or clears the bridge decks of a footprint's bridge cells. Applying: each
 // cell inside the map with low < high becomes kind 4; a grid cell not yet under a bridge has its ground
 // level, its object height (flags & 0x3F) and its occluder kind (occluder word & 0x1F) saved in the bridge
-// map (+0x10C, keyed (short)x << 16 | (short)y, the dword at the node's value) unless already there; then the
+// map (keyed (short)x << 16 | (short)y) unless already there; then the
 // occluder is added (a failure ends the call with false), the cell is marked under a bridge (0x40, object
 // height and bit 0x80 cleared), its ground raised to the deck (`high`, u16 maximum) and the occluder word's
 // low byte becomes (b & 0xE7) | 7. Clearing: each such cell becomes kind 4 and its occluder is removed; when
@@ -10,15 +10,9 @@
 // left, the ground becomes max(saved ground, highest deck). See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 
-#include "lib/stlp.h"
-
 #include <cstdint>
 
 namespace {
-
-// The bridge map's node: {next, key, value}; only the low 16 bits of the value are read but a whole dword is
-// stored (ground, object height, occluder kind).
-using BridgeNode = BridgeMap::Node;
 
 std::uint32_t BridgeKey(int x, int y) {
     return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(x)) << 16) + static_cast<short>(y));
@@ -31,12 +25,13 @@ std::uint32_t BridgeKey(int x, int y) {
 // A cell that has an entry gets back its ground level, its object height (flags & 0x3F) and the occluder
 // word's low five bits; the entry is erased. x and y are read as shorts.
 void BridgeHeights::RestoreCell(int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
-    BridgeNode* node = Find(BridgeKey(x, y));
-    if (!node) return;
-    cell->groundLevel = static_cast<std::uint16_t>(node->value);
-    cell->flags = static_cast<std::uint8_t>((cell->flags & 0xC0) | ((node->value >> 16) & 0x3F));
-    *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
-    Erase(node);
+    auto node = find(BridgeKey(x, y));
+    if (node == end()) return;
+    std::uint32_t saved = node->second;
+    cell->groundLevel = static_cast<std::uint16_t>(saved);
+    cell->flags = static_cast<std::uint8_t>((cell->flags & 0xC0) | ((saved >> 16) & 0x3F));
+    *occluder = (*occluder & 0xFFFFFFE0u) | ((saved >> 24) & 0x1F);
+    erase(node);
 }
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
@@ -55,8 +50,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
                 auto w = static_cast<std::uint8_t>(cell->flags & 0xBF);
                 cell->flags = static_cast<std::uint8_t>(((w & 0x3F) ? 0x80 : 0) | (w & 0x7F));
             } else {
-                BridgeNode* node = bridgeHeights.Find(BridgeKey(x, y));
-                int saved = node ? static_cast<std::uint16_t>(node->value) : 0;
+                int saved = bridgeHeights.HeightAt(static_cast<short>(x), static_cast<short>(y));
                 cell->groundLevel = static_cast<std::uint16_t>(saved > deck ? saved : deck);
             }
         }
@@ -71,7 +65,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         if (!(cell->flags & kCellBridge)) {
             std::uint32_t* occluderRow = occluders[y];
             std::uint32_t key = BridgeKey(x, y);
-            if (!bridgeHeights.Find(key)) {
+            if (!bridgeHeights.contains(key)) {
                 std::uint32_t value = cell->groundLevel | static_cast<std::uint32_t>(cell->flags & 0x3F) << 16 |
                                       static_cast<std::uint32_t>(occluderRow[x] & 0x1F) << 24;
                 bridgeHeights[key] = value;

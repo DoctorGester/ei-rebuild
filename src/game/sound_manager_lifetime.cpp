@@ -130,7 +130,6 @@ int __stdcall SoundStreamRead(CSoundManager* manager, char* buffer, int size, in
 namespace {
 
 constexpr int kListBlockSize = 10;
-constexpr unsigned kMapBuckets = 100;
 constexpr int kFullVolume = 100;
 constexpr int kNoSwitch = 4;   // RequestStream's "switch at the current position"
 constexpr int kEmitterCount = 16;
@@ -170,10 +169,6 @@ CSoundManager::CSoundManager() {
     ConstructFader(midiFader);
     gameapi::InitializeCriticalSection(&midiLock);
     ConstructList(cacheList, gameslots::WaveListClass::Vtable());
-    // hashtable(n, hash, equal, allocator); the functor bytes, never read, are 0 here (the game's are stack
-    // bytes).
-    cache.Construct(kMapBuckets, 0, 0, 0);
-    deferred.Construct(kMapBuckets);
     gameapi::AIL_startup();
     Reset();
 }
@@ -183,8 +178,6 @@ CSoundManager::CSoundManager() {
 CSoundManager::~CSoundManager() {
     Close();
     gameapi::AIL_shutdown();
-    deferred.Destroy();   // clear, then the buckets
-    cache.Destroy();      // clear, then the buckets
     cacheList.vtable = gameslots::WaveListClass::Vtable();
     for (WaveNode* node = cacheList.head; node; node = node->next) recordarrays::Waves::DestructElements(&node->data, 1);
     cacheList.RemoveAll();
@@ -590,7 +583,7 @@ void CSoundManager::Close() {
         gameapi::AIL_mem_free_lock(cacheList.head->data.data);
         cacheList.RemoveHead();   // the copy taken out is destroyed at once
     }
-    cache.Clear();
+    cache.clear();
     if (midiSequence != nullptr) {
         gameapi::AIL_end_sequence(midiSequence);
         gameapi::AIL_release_sequence_handle(midiSequence);

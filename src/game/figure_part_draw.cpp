@@ -15,7 +15,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "world.h"
-#include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
@@ -255,8 +254,7 @@ void DrawThroughFigure(Part& part) {
 
     if (part.rect) {
         std::string key(MeshName(part.Mesh()));
-        LinkHeaderMap::Node* node = nullptr;
-        node = lib_trees::FindLinkHeader(&part.figure->headers_, &key);
+        auto node = part.figure->headers_.find(key);
         RECT* own = &part.node->screen_;
         gameapi::CopyRect(own, &node->second.screen);
         *part.rect = *own;

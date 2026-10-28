@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <unordered_map>
 
 #undef GetClassName
 
@@ -67,9 +68,8 @@ public:
     // file. The path is built in a 0x200-byte buffer without a bounds check; the data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
 
-    stlp::hash_map<std::string, FigureModel*, stlp::StringHash> models_;    // the cached models by name
+    std::unordered_map<std::string, FigureModel*> models_;    // the cached models by name
 };
-static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);
 
 // The figure manager of `object`'s world (every world's is a CFigureManager).
 inline CFigureManager* FigureManagerOf(const CEngineObject* object) {

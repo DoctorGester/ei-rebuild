@@ -7,7 +7,6 @@
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
@@ -15,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class CStream;
@@ -334,7 +334,7 @@ struct NamedRecordTable {
     void Construct();
 
     // The materials are filed under their key.
-    using NameIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, Record*>;
 
     std::uint32_t Count() const { return static_cast<std::uint32_t>(records.size()); }
     // The record at `index`, or nullptr when out of range.
@@ -346,13 +346,11 @@ struct NamedRecordTable {
                static_cast<int>(sizeof(Record));
     }
     // Null when there is none (a null record is filed under a new name).
-    Record* Named(const char* name) { return stlp::NamedSlot<Record>(names, std::string(name)); }
+    Record* Named(const char* name) { return names[std::string(name)]; }
 
     stlp::vector<Record> records;
     NameIndex names;
 };
-static_assert(sizeof(NamedRecordTable<ItemRecordHead>) == 0x20);
-static_assert(sizeof(NamedRecordTable<ItemRecordHead>::NameIndex) == 0x14);
 using MaterialTable = NamedRecordTable<MaterialRecordHead>;
 using WeaponTable = NamedRecordTable<WeaponRecord>;
 using ArmorTable = NamedRecordTable<ArmorRecord>;
@@ -374,13 +372,12 @@ struct CodeIndexedTable {
     // The index of `record` in the table, -1 for null.
     int IndexOf(const Record* record) const { return record ? static_cast<int>(record - records.begin()) : -1; }
     // Null when there is none (a null record is filed under a new code).
-    Record* Named(const char* code) { return stlp::NamedSlot<Record>(byCode, std::string(code)); }
+    Record* Named(const char* code) { return byCode[std::string(code)]; }
 
-    using CodeIndex = stlp::hash_map<std::string, Record*, stlp::StringHash>;
+    using CodeIndex = std::unordered_map<std::string, Record*>;
     stlp::vector<Record> records;
     CodeIndex byCode;
 };
-static_assert(sizeof(CodeIndexedTable<SpellRecord>) == 0x20);
 using SpellTable = CodeIndexedTable<SpellRecord>;
 using SpellModifierTable = CodeIndexedTable<SpellModifierRecord>;
 
@@ -401,8 +398,6 @@ struct SpellDatabase {
     SpellModifierTable modifiers;
     stlp::vector<SpellListRecord> lists[3];
 };
-static_assert(offsetof(SpellDatabase, lists) == 0x40);
-static_assert(sizeof(SpellDatabase) == 0x64);
 
 struct ItemDatabase {
     // Rebirth-patched. "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under
@@ -424,7 +419,6 @@ struct ItemDatabase {
     QuestItemTable questItems;      // (QuestItems())
     LootItemTable loot;             // (Loot())
 };
-static_assert(sizeof(ItemDatabase) == 0xC0);
 
 // The databases: built empty by their static initialisers, destroyed by the exit functions
 // those register (docs/notes/standalone.md, "The static initialisers' objects").
@@ -435,7 +429,6 @@ namespace itemdb {
 inline SpellDatabase& TheSpellDatabase() { return *g_spellDatabase; }
 inline ItemDatabase& TheItemDatabase() { return *g_itemDatabase; }
 
-static_assert(sizeof(stlp::RecordsByName) == sizeof(MaterialTable) && sizeof(stlp::RecordsByName) == sizeof(SpellTable));
 
 // The records of those tables typed (null when the index is out of range).
 inline MaterialRecordHead* MaterialAt(std::uint32_t index) { return TheItemDatabase().materials.At(index); }

@@ -36,12 +36,12 @@ namespace {
 // first empty entry).
 void EndTimedObjects(CWorldServer* world) {
     auto& map = world->timedObjects_.map;
-    for (auto* node = map.First(); node && node->value; node = map.After(node)) {
-        CEngineObject* object = node->value;
+    for (auto node = map.begin(); node != map.end() && node->second; ++node) {
+        CEngineObject* object = node->second;
         object->ClearState();
         object->Release();
     }
-    world->timedObjects_.map.Clear();   // nodes freed, buckets kept
+    world->timedObjects_.map.clear();   // nodes freed, buckets kept
     world->timedObjects_.maxId = 0;
 }
 
@@ -164,13 +164,15 @@ void CWorldServer::ResetZone() {
         }
     }
 
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        node->value->ClearState();
+    for (auto& [id, object] : objects_.map) {
+        if (!object) break;
+        object->ClearState();
+    }
     ReleaseEach(objects_.map);
     objects_.maxId = 0;
     MapObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (MapObjectIdMap* map : maps) {
-        map->map.Clear();
+        map->map.clear();
         map->maxId = 0;
     }
     ClearMissilePointers(this);
@@ -247,10 +249,10 @@ void CWorldServer::SendFreshObjects() {
     header->Clear();
 
     // The map objects that are not part of the map itself: also kept in sentObjects_.
-    for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
-        CMapObject* object = node->value;
+    for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
+        CMapObject* object = node->second;
         unsigned id = static_cast<unsigned>(object->id_);
-        if (!mapObjects_.map.Find(id)) continue;
+        if (!mapObjects_.map.contains(id)) continue;
         if (object->IsSynchronised()) continue;
         sentObjects_.Set(static_cast<unsigned>(object->id_), object);
         auto* entry = fresh.NewNode(fresh.tail, nullptr);

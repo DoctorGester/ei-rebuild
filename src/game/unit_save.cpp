@@ -44,11 +44,10 @@ void WriteItemIds(CStream* stream, T* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
-// The prototype record named `name` through the name map (an unknown name is added to it; hash_map<string,
-// record*>::operator[], inlined).
+// The prototype record named `name` through the name map (operator[]: an unknown name is added to it).
 UnitPrototypeRecord* PrototypeByName(const char* name) {
     std::string key(name);
-    return unitdb::PrototypeTable().byName.Subscript(key);
+    return unitdb::PrototypeTable().byName[key];
 }
 
 // The world the unit belongs to (its manager's context).

@@ -9,6 +9,7 @@
 
 #include "lib/crt.h"
 
+#include <bit>
 #include <cstring>
 #include <new>
 #include <string>
@@ -20,7 +21,6 @@ namespace {
 constexpr const char* kMaterialClassName = "CMaterial";
 constexpr const char* kManagerClassName = "CMaterialManager";
 constexpr const char* kManagerFolder = "materials";
-constexpr std::size_t kColorTableHint = 100;
 // The kinds Create enters, in its order, and their files.
 constexpr MaterialKindFile kMaterialKindFiles[8] = /*00743BF8*/ {
     {0x11, "leather.mat"}, {0x12, "wood.mat"}, {0x13, "metal.mat"}, {0x14, "cloth.mat"},
@@ -72,30 +72,20 @@ int CMaterial::GetClassId() { return 5; }
 
 namespace {
 
-// The table's entry for `key`: the table grown for one more entry, then the key's chain searched;
-// an absent key is entered at the head of its bucket with the default pair the game builds (its
-// key copied over every dword of the colours).
-CMaterialManager::ColorTable::Node* EnterKey(CMaterialManager::ColorTable& table, unsigned key) {
-    using Node = CMaterialManager::ColorTable::Node;
-    table.Resize(table.Size() + 1);
-    std::size_t bucket = key % table.BucketCount();
-    for (Node* n = table.Bucket(bucket); n; n = n->next)
-        if (n->key == key) return n;
-    auto* node = stlp::allocate_as<Node>();
-    node->next = nullptr;
-    node->key = key;
+// The table's colours for `key`; an absent key is entered with the default the game builds (its key copied
+// over every dword of the colours).
+MaterialColors& EnterKey(CMaterialManager::ColorTable& table, unsigned key) {
+    if (auto found = table.find(key); found != table.end()) return found->second;
     std::uint32_t words[sizeof(MaterialColors) / 4];
     for (std::uint32_t& w : words) w = key;
-    std::memcpy(&node->value, words, sizeof(words));
-    table.LinkAtHead(bucket, node);
-    return node;
+    return table.emplace(key, std::bit_cast<MaterialColors>(words)).first->second;
 }
 
 } // namespace
 
-CMaterialManager::CMaterialManager() { colors_.InitBuckets(kColorTableHint); }
+CMaterialManager::CMaterialManager() {}
 
-CMaterialManager::~CMaterialManager() { colors_.Destroy(); }
+CMaterialManager::~CMaterialManager() = default;
 
 int CMaterialManager::Create() {
     // Rebirth's ResOverride: the mod's archives open here if nothing opened them yet.
@@ -136,13 +126,13 @@ CMaterial* CMaterialManager::NewMaterial(int type) {
     // The game sets the flag before its null check, so a failed creation faults there.
     if (!material) return nullptr;
     material->flags_ |= 8;
-    material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_))->value;
+    material->colors = EnterKey(colors_, static_cast<unsigned>(material->type_));
     return material;
 }
 
 int CMaterialManager::FillMaterial(CMaterial* material, unsigned key) {
     if (!material) return 0;
-    material->colors = EnterKey(colors_, key)->value;
+    material->colors = EnterKey(colors_, key);
     return 1;
 }
 

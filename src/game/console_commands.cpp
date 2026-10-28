@@ -205,11 +205,11 @@ void ListVar(Arguments* args) {
             EndLine(Out() << "Cannot open file " << (*args)[1].c_str() << " for writing");
     }
     const NamedFloatTable& variables = player->Party()->variables_;
-    for (const NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
-        const char* name = node->value.key.c_str();
-        EndLine((Out() << name << " = ").PutFloat(node->value.mapped));
+    for (auto node = variables.begin(); node != variables.end(); ++node) {
+        const char* name = node->first.c_str();
+        EndLine((Out() << name << " = ").PutFloat(node->second));
         if (writing) {
-            line = str::Format("%s %g\n", name, static_cast<double>(node->value.mapped));
+            line = str::Format("%s %g\n", name, static_cast<double>(node->second));
             file.WriteString(line.c_str());
         }
     }
@@ -401,13 +401,13 @@ void GenerateAcks(Arguments*) {
     CStdioFile* out = &file;
     acks::AckDatabase& database = acks::Database();
     for (acks::UnitAcks& record : database.units.records) {
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
         WriteEnvironmentSpeechLines(out, &record.environmentSpeeches);
     }
     for (acks::ModelAcks& record : database.models.records)
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
     for (acks::ExtraAcks& record : database.extras.records)
-        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        for (const auto& [kind, speeches] : record.head.speeches) WriteSpeechLines(out, speeches);
     file.Close();
 }
 

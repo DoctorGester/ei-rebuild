@@ -150,7 +150,7 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     places.clear();
     if (IsMultiplayerClient()) {
         std::string key(name);
-        QuestRecord* record = QuestIndex().Subscript(key);
+        QuestRecord* record = QuestIndex()[key];
         if (record == nullptr) return;
         for (std::uint32_t i = 1; i < record->places.size(); i += 2)
             places.push_back(UiPointF{record->places[i - 1], record->places[i]});

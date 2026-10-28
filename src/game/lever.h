@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 // The spots a use order may go to.
 using LeverSpots = UseSpotArray;
@@ -39,23 +40,22 @@ struct LeverRecord {
 // The lever table: the records (an STLport vector) and their index by model name.
 
 struct LeverRecordTable {
-    using NameIndex = stlp::hash_map<std::string, LeverRecord*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, LeverRecord*>;
 
     // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and files
     // every record in the index under its name. Returns 1, or the fatal error's result when the archive
     // or the file does not open.
     int Load(const char* folder);
-    // No records, an empty index of 193 buckets (the prime after 100).
+    // No records, an empty index.
     LeverRecordTable();
     // The index (its nodes, then the bucket storage), then the records and their storage.
     ~LeverRecordTable();
     // The record filed under `name`, or null; like the index's operator[], an unknown name gets a null entry.
-    LeverRecord* Named(const char* name) { return stlp::NamedSlot<LeverRecord>(byName, std::string(name)); }
+    LeverRecord* Named(const char* name) { return byName[std::string(name)]; }
 
     stlp::vector<LeverRecord> records;
     NameIndex byName;
 };
-static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);
 extern lib::StaticObject<LeverRecordTable> g_leverTable;
 inline LeverRecordTable& TheLeverTable() { return *g_leverTable; }
 

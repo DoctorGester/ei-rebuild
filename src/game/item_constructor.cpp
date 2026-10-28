@@ -12,7 +12,7 @@
 #include "text_split.h"
 #include "lib/mfc.h"
 #include "lib/str.h"
-#include "lib/stlp_hash.h"
+#include "lib/stlp.h"
 #include "game_data.h"
 
 #include <bit>
@@ -343,15 +343,15 @@ int LootTableIndex(int which, const char* name) {
     SpellDatabase& spells = TheSpellDatabase();
     switch (which) {
     case 0:
-        return TableIndex(items.weapons, stlp::NamedSlot<WeaponRecord>(items.weapons.names, key));
+        return TableIndex(items.weapons, items.weapons.names[key]);
     case 1:
-        return TableIndex(items.armors, stlp::NamedSlot<ArmorRecord>(items.armors.names, key));
+        return TableIndex(items.armors, items.armors.names[key]);
     case 2:
-        return TableIndex(items.quickItems, stlp::NamedSlot<QuickItemRecord>(items.quickItems.names, key));
+        return TableIndex(items.quickItems, items.quickItems.names[key]);
     case 3:
-        return TableIndex(spells.spells, stlp::NamedSlot<SpellRecord>(spells.spells.byCode, key));
+        return TableIndex(spells.spells, spells.spells.byCode[key]);
     default:
-        return TableIndex(spells.modifiers, stlp::NamedSlot<SpellModifierRecord>(spells.modifiers.byCode, key));
+        return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
     }
 }
 

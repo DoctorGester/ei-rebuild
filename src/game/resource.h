@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "lib/stlp.h"
@@ -122,10 +123,9 @@ public:
     void* handle_;               // the archive's file (a HANDLE), INVALID_HANDLE_VALUE when closed
     char* image_;                // archive image when opened with OpenFromMemory
     std::uint32_t writable_;
-    stlp::hash_map<void*, LoadedFile*, stlp::PointerHash> filesByData_;
-    stlp::hash_map<std::string, LoadedFile*, stlp::StringHash> filesByName_;
+    std::unordered_map<void*, LoadedFile*> filesByData_;
+    std::unordered_map<std::string, LoadedFile*> filesByName_;
 };
-static_assert(sizeof(CMappedResource) == 0x58);
 
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. A real virtual class.
 class CMMIOResource : public CMappedResource {
@@ -144,4 +144,3 @@ public:
     CMappedFile file_;
     char* mappedImage_;          // base of the mapped archive
 };
-static_assert(sizeof(CMMIOResource) == 0x6C);

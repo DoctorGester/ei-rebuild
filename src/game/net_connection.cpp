@@ -394,8 +394,8 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 void Connection::Track(Replicated* item) {
     Message* object = item->object;
     if (!object || (object->flags7_ & CRefObject::kDetached)) return;
-    TypeRegistry::ByVtable::Node* found = g_currentSession->types_.byVtable.Find(TypeRegistry::KeyOf(object));
-    std::int32_t type = found ? static_cast<std::int32_t>(found->value) : -1;
+    auto found = g_currentSession->types_.byVtable.find(TypeRegistry::KeyOf(object));
+    std::int32_t type = found != g_currentSession->types_.byVtable.end() ? static_cast<std::int32_t>(found->second) : -1;
 
     // A new entry with no version and no id yet.
     auto* entry = NewCounted<ReplicaEntry>();
@@ -784,8 +784,8 @@ void Connection::Close() {
         RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
             SessionBase* session = g_currentSession;
-            TypeRegistry::ByVtable::Node* found = session->types_.byVtable.Find(TypeRegistry::KeyOf(object));
-            std::uint32_t type = found ? found->value : 0xFFFFFFFFu;
+            auto found = session->types_.byVtable.find(TypeRegistry::KeyOf(object));
+            std::uint32_t type = found != session->types_.byVtable.end() ? found->second : 0xFFFFFFFFu;
             CallHandlers(session, 2, type, object);
         }
         if (slot->ptr) {

@@ -56,9 +56,8 @@ void CInterface3D::Shutdown() {
     }
     if (opened) {
         std::string line;
-        using Topics = decltype(helpTopics_);
-        for (Topics::Node* n = helpTopics_.begin(); n != helpTopics_.end(); n = Topics::Next(n)) {
-            line = str::Format(game::TutorialLineFormat(), n->first.c_str(), n->second);
+        for (const auto& [topic, page] : helpTopics_) {
+            line = str::Format(game::TutorialLineFormat(), topic.c_str(), page);
             file.WriteString(line.c_str());
         }
         file.Close();
@@ -96,7 +95,7 @@ void CInterface3D::Shutdown() {
 void CInterface3D::DestroyBody() {
     std::destroy_at(&savedText_);
     std::destroy_at(&messageText_);
-    helpTopics_.Destroy();
+    std::destroy_at(&helpTopics_);
     std::destroy_at(&messages_);
     std::destroy_at(&stack_);
 }

@@ -22,12 +22,13 @@
 #include "lib/mfc.h"
 #include "lib/static_object.h"
 #include "lib/stlp.h"
-#include "lib/stlp_tree_mbs.h"
+#include "lib/str.h"
 
 #include <cstddef>
 #include <cstdint>
 
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -267,7 +268,7 @@ public:
     int fastGame_;                   // the fast game speed (CHudClock::fast_)
     // Help topics seen: name -> times (or the page the help window was closed on; ui_help_window.cpp);
     // config\tutorial.ini "name count" lines, read by Create, written by Shutdown, counted by OpenHelp.
-    stlp::map<std::string, int, stlp::MbsLess> helpTopics_;
+    std::map<std::string, int, str::MbsLess> helpTopics_;
     std::string messageText_;
     int messageFlag_;                // the message window's page, set when it closes
     std::string savedText_;         // the current quest (OnQuestVariable); saved from version 0x5F
@@ -1361,9 +1362,7 @@ inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContain
 
 // --- Battle screen ---
 // The battle screen's "pers" texts by text key id.
-using PersonTextMap = stlp::map<int, std::string>;
-using PersonTextNode = PersonTextMap::Node;
-static_assert(offsetof(PersonTextNode, second) == 0x14);
+using PersonTextMap = std::map<int, std::string>;
 
 // The in-game screen (CreateScreen id 1); its Create builds the HUD panels as children in order: weapon
 // bar, quick items, spell column, action column, portraits, unit panel, map, clock, movement panel, message
@@ -1550,10 +1549,6 @@ static_assert(offsetof(CBattleScreen, weaponBar_) == 0x194 && offsetof(CBattleSc
 static_assert(offsetof(CBattleScreen, actionColumn_) == 0x1A0 && offsetof(CBattleScreen, portraits_) == 0x1A4);
 static_assert(offsetof(CBattleScreen, topPanel_) == 0x1BC && offsetof(CBattleScreen, pressX_) == 0x1C4);
 static_assert(offsetof(CBattleScreen, selectionBox_) == 0x1CC && offsetof(CBattleScreen, heroes_) == 0x1DC);
-static_assert(offsetof(CBattleScreen, personTexts_) == 0x1F0 && offsetof(CBattleScreen, hasHero_) == 0x200);
-static_assert(offsetof(CBattleScreen, clientParty_) == 0x204 && sizeof(CBattleScreen::PartyIds) == 0x1C);
-static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220 && offsetof(CBattleScreen, portraitMode_) == 0x22C);
-static_assert(sizeof(CBattleScreen) == 0x230);
 
 // A scroll bar (the battle screen's message log derives from it). Regions: 0 the up arrow, 1 the down arrow,
 // 2 the track.
@@ -1986,7 +1981,7 @@ public:
     std::vector<std::string> zones_;   // the zones listed
     std::string zoneName_;          // the zone it was opened for
     int twoButtons_;                 // OK on the left and a second button (else OK centred)
-    stlp::map<int, float>* exitDistances_;   // exit -> distance, or null
+    std::map<int, float>* exitDistances_;   // exit -> distance, or null
     int listZones_;                  // list the zones of the zone's allod with quests
     int zoneIndex_;
     std::string shownZone_;

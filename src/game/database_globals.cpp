@@ -13,8 +13,6 @@
 #include <cstdint>
 #include <cstdlib>
 
-static_assert(sizeof(itemdb::SpellDatabase) == 0x64 && sizeof(itemdb::ItemDatabase) == 0xC0);
-static_assert(sizeof(QuestDatabase) == 0x40 && sizeof(PrintsDatabase) == 0x60 && sizeof(acks::AckDatabase) == 0x60);
 
 constinit lib::StaticObject<itemdb::SpellDatabase> g_spellDatabase = /*007C8510*/ {};
 constinit lib::StaticObject<itemdb::ItemDatabase> g_itemDatabase = /*007C86D8*/ {};

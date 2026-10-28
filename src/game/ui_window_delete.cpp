@@ -4,7 +4,6 @@
 // Bodies that only jump to the window's or container's destructor are those destructors themselves. docs/notes/ui.md,
 // section 2 "Deleting destructors".
 #include "global_map_clouds.h"
-#include "library_trees.h"
 #include "party.h"
 #include "ui.h"
 #include "ui_briefing.h"
@@ -34,17 +33,6 @@ void* ObjectiveExitsVtable() { return mfc::impl::ObjectiveExitArrayClass::Vtable
 template <typename T>
 void FreeVectorStorage(T* begin, T* capacity) {
     stlp::deallocate(begin, static_cast<std::size_t>(capacity - begin) * sizeof(T));
-}
-
-// A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
-// erased and the header reset, the count 0; then the header freed.
-void DestroyPersonTexts(PersonTextMap& map) {
-    PersonTextNode* header = map.end();
-    if (map.size() != 0) {
-        static_cast<lib_trees::PersonTexts*>(&map)->EraseSubtree(header->parent);
-        map.ResetToEmpty();
-    }
-    stlp::deallocate(map.end(), sizeof(PersonTextNode));
 }
 
 // An STLport list emptied and its sentinel freed (the destructor's inlined clear).
@@ -104,7 +92,6 @@ void ChatLine::Destroy() {
 CChatOverlay::~CChatOverlay() { DestroyList(lines_, [](ChatLine* line) { line->Destroy(); }); }
 
 CBattleScreen::~CBattleScreen() {
-    DestroyPersonTexts(personTexts_);
     heroes_.vtable = DwordArrayVtable();
     heroes_.FreeData();
     party_.vtable = PartyArrayVtable();
@@ -126,7 +113,6 @@ CBriefingScreen::~CBriefingScreen() {
     shown_->next = shown_;
     shown_->prev = shown_;
     stlp::deallocate(shown_, sizeof(BriefingShownItem));
-    DestroyPersonTexts(personTexts_);
     for (BriefingMover* node = movers_->next; node != movers_;) {
         BriefingMover* next = node->next;
         stlp::deallocate(node, sizeof(BriefingMover));

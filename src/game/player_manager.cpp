@@ -69,7 +69,7 @@ CPlayer* CPlayerManager::CreateSessionPlayer() {
 void CPlayerManager::ReleasePlayer(CEngineObject* player) { player->Release(); }
 
 void CPlayerManager::ChangeId(CEngineObject* object, int id) {
-    if (ObjectMap::Node* old = objects_.Find(static_cast<unsigned>(object->id_))) objects_.Erase(old);
+    if (auto old = objects_.find(static_cast<unsigned>(object->id_)); old != objects_.end()) objects_.erase(old);
     object->id_ = id;
     if (id > maxId_) maxId_ = id;
     objects_[static_cast<unsigned>(id)] = object;

@@ -46,9 +46,9 @@ void OpenObjectives(CInterface3D* ui) {
     if (!zone) return;
     std::vector<std::string> parts;
     BriefingVariables quests(QuestPrefix());
-    for (NamedFloatTable::Node* node = quests.First(); node; node = quests.Next(node)) {
-        text::Split(node->value.key.c_str(), &parts, '.');
-        if (parts.size() != kQuestNameParts || Bits(node->value.mapped) != kOneBits) continue;
+    for (auto node = quests.begin(); node != quests.end(); ++node) {
+        text::Split(node->first.c_str(), &parts, '.');
+        if (parts.size() != kQuestNameParts || Bits(node->second) != kOneBits) continue;
         MapRecord* questZone = TheMapDatabase()->FindMap(parts[1].c_str());
         if (!questZone) continue;
         if (!IsMultiplayerClient() && CompareNames(questZone->allod, zone->allod) != 0) continue;

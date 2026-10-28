@@ -227,16 +227,14 @@ CParty* RecordParty(PartyRecord* record) { return record->Party(); }
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
     if (CParty* found = Find(text10.c_str())) CopyParty(found, party);
-    NamedFloatTable variables;
-    variables.CopyConstruct(party->variables_);
+    NamedFloatTable variables(party->variables_);
     std::string zone = party->zone_;
     for (PartyRecord* record : records) {
         CParty* target = RecordParty(record);
-        target->variables_.Assign(variables);
+        target->variables_ = variables;
         target->zone_ = zone;
         target->entrance_ = party->entrance_;
     }
-    variables.Destroy();
 }
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {

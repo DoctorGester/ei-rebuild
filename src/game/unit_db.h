@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 class ChunkArchive;
@@ -192,7 +193,7 @@ void DestroyStringRange(std::string* first, std::string* last);
 
 // The model table: the records and an index by name, as the prototype tables.
 struct UnitModelTable {
-    using NameIndex = stlp::hash_map<std::string, UnitModelRecord*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, UnitModelRecord*>;
 
     // The record named `name`: operator[] on the name index, so an unknown name is
     // inserted with a null record (and null is returned).
@@ -204,11 +205,10 @@ struct UnitModelTable {
     UnitModelRecord* endOfStorage;
     NameIndex byName;
 };
-static_assert(offsetof(UnitModelTable, byName) == 0x0C && sizeof(UnitModelTable) == 0x20);
 
 // The level record table, laid out the same way.
 struct UnitLevelTable {
-    using NameIndex = stlp::hash_map<std::string, UnitLevelRecord*, stlp::StringHash>;
+    using NameIndex = std::unordered_map<std::string, UnitLevelRecord*>;
 
     // As UnitModelTable::FindByName.
     UnitLevelRecord* FindByName(const char* name);
@@ -218,7 +218,6 @@ struct UnitLevelTable {
     UnitLevelRecord* endOfStorage;
     NameIndex byName;
 };
-static_assert(offsetof(UnitLevelTable, byName) == 0x0C && sizeof(UnitLevelTable) == 0x20);
 
 struct UnitDatabase {
     // Gives each model's sound names (lower-cased in place) the number of "*.wav" files of the sound system `sounds`
@@ -231,7 +230,7 @@ struct UnitDatabase {
     // cannot be opened.
     int Load(const char* folder, const char* archive);
     // Destruction and construction in place, which the resource switch runs: every table emptied (index and
-    // records freed), then the four constructed empty with an index of 100 buckets (193).
+    // records freed), then the four constructed empty.
     void Reset();
 
     UnitPrototypeTable prototypes;
@@ -239,22 +238,18 @@ struct UnitDatabase {
     UnitModelTable models;
     UnitLevelTable levels;
 };
-static_assert(offsetof(UnitDatabase, npcs) == 0x20);
-static_assert(offsetof(UnitDatabase, models) == 0x40);
-static_assert(offsetof(UnitDatabase, levels) == 0x60);
-static_assert(sizeof(UnitDatabase) == 0x80);
 
 extern lib::StaticObject<UnitDatabase> g_unitDatabase;
 namespace unitdb {
 inline UnitDatabase& Database() { return *g_unitDatabase; }
 // The record named `name` (an unknown name gets a null entry), or null.
-inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return PrototypeTable().byName.Subscript(name); }
+inline UnitPrototypeRecord* PrototypeNamed(const std::string& name) { return PrototypeTable().byName[name]; }
 // The byte distance of `record` from the first prototype record: what the originals divide by
 // 0x120 themselves (a null record included, which gives a negative distance).
 inline int PrototypeByteOffset(const UnitPrototypeRecord* record) {
     return static_cast<int>(reinterpret_cast<const char*>(record) - reinterpret_cast<const char*>(PrototypeTable().begin));
 }
-inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName.Subscript(name); }
+inline UnitModelRecord* ModelNamed(const std::string& name) { return Database().models.byName[name]; }
 } // namespace unitdb
 
 // The skill (perk) database (loaded from "perks.pdb" at startup): the skills, then the skill level records

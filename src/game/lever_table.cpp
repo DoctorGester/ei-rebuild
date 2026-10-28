@@ -10,7 +10,6 @@
 #include <cstdlib>
 
 LeverRecordTable::~LeverRecordTable() {
-    byName.Destroy();
     records.clear();
     records.FreeStorage();
 }

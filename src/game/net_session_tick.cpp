@@ -249,8 +249,8 @@ SessionBase::~SessionBase() {
         socket_.SendTo(&connection->address_, buffer);
     }
     socket_.Destruct();
-    types_.byType.Destroy();     // clear, the buckets
-    types_.byVtable.Destroy();   // clear, the buckets
+    types_.byType.clear();
+    types_.byVtable.clear();
     ClientNode* sentinel = clients_;
     for (ClientNode* node = sentinel->next; node != clients_;) {
         ClientNode* next = node->next;

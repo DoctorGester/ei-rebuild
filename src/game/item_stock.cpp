@@ -12,11 +12,8 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
-#include "../lib/stlp_pair.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/stlp_hash.h"
-#include "lib/stlp_pair.h"
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/nan_audit.h"
@@ -324,7 +321,7 @@ itemdb::SpellRecord* FindSpellPrototype(const char* name) {
 
 // Created null when missing.
 itemdb::SpellModifierRecord*& ModifierSlot(ItemStock* stock, const std::string& name) {
-    return stlp::NamedSlot<itemdb::SpellModifierRecord>(stock->modifierMap, name);
+    return stock->modifierMap[name];
 }
 
 using Modifier = itemdb::SpellModifierRecord;
@@ -341,11 +338,11 @@ void ClearModifierList(SpellModifierList& list) { list.clear(); }
 
 // Kept bug: the lookup inserts a null entry into the spell map for every recipe name it does not know.
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
-    spellMap.Clear();
-    modifierMap.Clear();
+    spellMap.clear();
+    modifierMap.clear();
     for (SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
         if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
-        itemdb::SpellRecord* spell = stlp::NamedSlot<itemdb::SpellRecord>(stock::SpellsByName(), recipe->spell);   // keyed by the recipe's spell name
+        itemdb::SpellRecord* spell = stock::SpellsByName()[recipe->spell];   // keyed by the recipe's spell name
         if (!spell) continue;
         bool offered = false;
         for (itemdb::SpellRecord** s = spells.data(); s != spells.data() + spells.size(); ++s) {
@@ -355,11 +352,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
             }
         }
         if (!offered) continue;
-        StockRecipeList list;
-        lib::InPlace<StockRecipeMap::Value> pair;
-        pair->Construct(recipe->spell, list);
-        StockRecipeList* entries = &spellMap.FindOrInsert(pair.object).mapped;
-        pair->Destruct();
+        StockRecipeList* entries = &spellMap[recipe->spell];
         entries->insert(entries->end(), recipe);   // the recipe lists hold raw record pointers
     }
 
@@ -389,8 +382,8 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
 void ItemStock::GenerateSpells(StockSpellList* out, const float* levels, unsigned threshold) {
     CSpellManager* spellManager = PartyOf(this)->SpellManager();
     SpellModifierList chosen;
-    for (StockRecipeMap::Node* recipes = spellMap.First(); recipes; recipes = spellMap.Next(recipes)) {
-        for (void* entry : recipes->value.mapped) {
+    for (auto& [spellName, recipes] : spellMap) {
+        for (void* entry : recipes) {
             if (IsaacRandom::Global().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
@@ -474,7 +467,7 @@ void LoadRecords(CStream* stream, std::string& name, unsigned& count, itemdb::Na
     }
 }
 
-// A map section: a count, then names (as read) looked up in an STLport map by string.
+// A map section: a count, then names (as read) looked up by name.
 template <typename Record, typename Map>
 void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, std::vector<Record*>& list) {
     ReadInt(stream, &count);
@@ -483,7 +476,7 @@ void LoadMapped(CStream* stream, std::string& name, unsigned& count, Map& map, s
         Record* record;
         {
             std::string key(name.c_str());
-            record = stlp::NamedSlot<Record>(map, key);
+            record = map[key];
         }
         if (record) AddUnique(list, record);
     }
