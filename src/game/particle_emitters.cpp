@@ -31,32 +31,6 @@ double Unsigned(std::uint32_t value) {
 // IsaacRandom::Range leaves its result unrounded in ST0.
 double Range(float min, float max) { return IsaacRandom::Global().Range(min, max); }
 
-// The emitters inline the MFC-style element array's SetSize(n) for an empty array (none kept, none zeroed).
-void SetElementCount(CParticleSource* s, int n) {
-    if (!s->elements) {
-        s->elements = AllocateElements(n);
-        s->elementCapacity = n;
-        s->elementCount = n;
-    } else if (s->elementCapacity < n) {
-        int grow = s->elementGrowBy;
-        if (grow == 0) {
-            grow = s->elementCount / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = s->elementCapacity + grow;
-        if (!(capacity > n)) capacity = n;
-        ParticleElement* data = AllocateElements(capacity);
-        std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        lib::FreeAligned32(s->elements);
-        s->elements = data;
-        s->elementCount = n;
-        s->elementCapacity = capacity;
-    } else {
-        s->elementCount = n;
-    }
-}
-
 // --- LightningBlast (0x2030) ----------------------------------------------------------------------
 
 constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
@@ -100,7 +74,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float cy = static_cast<float>(D(by) + D(s->origin.y));
     (void)static_cast<float>(D(bz) + D(s->origin.z));
     float cz = static_cast<float>(TheClientWorld()->RawSurfaceHeightAt(cx, cy) + D(EI_POINT_THREE));
-    ParticleElement* points = s->elements;
+    ParticleElement* points = s->elements.data();
     points[i].pos = {cx, cy, cz};
     points[i].bolt.base = {cx, cy, cz};
 
@@ -112,7 +86,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     float fz = static_cast<float>(halfInverse * D(EI_HALF));
     float fy = static_cast<float>(D(dir.y) * D(EI_HALF));
     float fx = static_cast<float>(D(dir.x) * D(EI_HALF));
-    points = s->elements;
+    points = s->elements.data();
     points[i].bolt.fork = {fx, fy, fz};
     points[i].bolt.emitted = 0;
     points[i].ticks = 0;   // bursts
@@ -179,7 +153,7 @@ int EmitBurst(CParticleSource* s, Particle* p, ParticleElement* points) {
 
 // A spark between a random point and its base, at a random fraction of the way.
 int EmitSpark(CParticleSource* s, Particle* p) {
-    std::uint32_t count = static_cast<std::uint32_t>(s->elementCount);
+    std::uint32_t count = static_cast<std::uint32_t>(std::ssize(s->elements));
     std::uint32_t index = IsaacRandom::Global().Next() % count;
     p->frame = 1;
     p->aux0 = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
@@ -187,7 +161,7 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     p->frameTimer = 1;
     double u = Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1;
     double w = D(EI_ONE) - u;
-    ParticleElement* points = s->elements;
+    ParticleElement* points = s->elements.data();
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
     const ParticleElement& n = s->elements[index];
@@ -269,7 +243,7 @@ void PlaceModifierPoints(CParticleSource* s) {
     std::memcpy(&s->spreadMin.x, &radius, sizeof(float));
     float twice = static_cast<float>(D(radius) + D(radius));
     Vector3 axis = ModifierAxis(s, twice);
-    for (int i = 0; i < s->elementCount; ++i) {
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         s->elements[i].ticks = 0;   // the fade step
         float x, y;
         double z, lengthSq;
@@ -311,24 +285,18 @@ void PlaceModifierPoints(CParticleSource* s) {
 
 } // namespace
 
-// Room for `count` 0x38-byte elements, 32-byte aligned; the block's own address is kept
-// just below the returned pointer (for operator_delete).
-ParticleElement* AllocateElements(int count) {
-    return lib::AlignedArray<ParticleElement>::Allocate(count);
-}
-
 // LightningBlast: on the first emission the bolt's ten points are placed; then the
 // particles run along the bolt (two per point), then bursts at the impact point (up to five, while
 // the source has fewer than 200 particles), then sparks between the points.
 int CParticleSource::EmitLightning(Particle* p, int) {
-    if (elementCount == 0) {
-        SetElementCount(this, 10);
+    if (std::ssize(elements) == 0) {
+        elements.resize(10);
         Vector3 dir;
-        for (int i = 0; i < elementCount; ++i) PlaceBoltPoint(this, i, dir);
+        for (int i = 0; i < std::ssize(elements); ++i) PlaceBoltPoint(this, i, dir);
     }
-    ParticleElement* points = elements;
+    ParticleElement* points = elements.data();
     p->color = 0xFFFFFFFF;
-    if (points[0].bolt.emitted < elementCount * 2) return EmitAlongBolt(this, p, points);
+    if (points[0].bolt.emitted < std::ssize(elements) * 2) return EmitAlongBolt(this, p, points);
     p->state = 0;
     if (std::ssize(particles) < 200 && points[0].ticks < 5) return EmitBurst(this, p, points);
     return EmitSpark(this, p);
@@ -341,20 +309,20 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
     p->frameTimer = frameDelay;
-    if (elementCount == 0) {
+    if (std::ssize(elements) == 0) {
         if (!attachedTo) {
             DebugMessage(NoCarrierMessage());
             return 0;
         }
         int count = static_cast<int>(gamecrt::Ftol(D(AbsBits(size)) * D(EI_TEN)));
         if (count < 1) count = 1;
-        SetElementCount(this, count);
+        elements.resize(count);
         PlaceModifierPoints(this);
     }
-    ParticleElement* points = elements;
+    ParticleElement* points = elements.data();
     const int fade = points[0].ticks;
     p->color = (static_cast<std::uint32_t>(kFadeAlpha[fade]) << 24) | 0xFFFFFF;
-    if (points[0].ticks == 0 && index < elementCount) {
+    if (points[0].ticks == 0 && index < std::ssize(elements)) {
         unsigned kind = static_cast<unsigned>(type_ - 0x201B);
         if (kind <= 11) p->frame = static_cast<int>(kind);
         p->state = index;
@@ -365,7 +333,7 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
         return 1;
     }
 
-    std::uint32_t count = static_cast<std::uint32_t>(elementCount);
+    std::uint32_t count = static_cast<std::uint32_t>(std::ssize(elements));
     std::uint32_t pick = IsaacRandom::Global().Next() % count;
     float u = static_cast<float>(Unsigned(IsaacRandom::Global().Next()) * EI_SCALE_1);
     std::uint32_t frameRoll = IsaacRandom::Global().Next();

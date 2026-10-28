@@ -87,17 +87,17 @@ void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
 
 void CObject3D::ComputeBounds() {
     BoxBits box;
-    for (int i = 0; i < parts.size; ++i) {
-        auto* part = parts.data[i];
+    for (int i = 0; i < std::ssize(parts); ++i) {
+        auto* part = parts[i];
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
-    for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = pendingParts.data[i];
+    for (int i = 0; i < std::ssize(pendingParts); ++i) {
+        auto* part = pendingParts[i];
         std::memset(&part->localPosition_, 0, sizeof(part->localPosition_));
         AddPendingPart(box, part);
     }
-    if (parts.size == 0 && pendingParts.size == 0) return;
+    if (parts.empty() && pendingParts.empty()) return;
 
     float lowX = Float(box.low[0]), lowY = Float(box.low[1]), lowZ = Float(box.low[2]);
     float highX = Float(box.high[0]), highY = Float(box.high[1]), highZ = Float(box.high[2]);
@@ -138,15 +138,15 @@ void CObject3D::SetFigureScale(const float* newScale) {
         CLinkFigureLoader* loader = WorldContext()->FigureLoader();
         CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         figure.Assign(rebuilt);
-        for (int i = 0; i < parts.size; ++i) {
-            auto* part = parts.data[i];
+        for (int i = 0; i < std::ssize(parts); ++i) {
+            auto* part = parts[i];
             const char* pieceName = part->GetName();
             LinkHeaderMap::const_iterator piece;
             {
                 std::string key(pieceName);
                 piece = figure->headers_.find(key);
             }
-            part = parts.data[i];
+            part = parts[i];
             const ClipBounds& fitted = piece->second.box.bounds;
             std::memcpy(&part->box_.bounds.center, &fitted.center, sizeof(part->box_.bounds.center));
             std::memcpy(&part->box_.bounds.boxMin, &fitted.boxMin, sizeof(part->box_.bounds.boxMin));
@@ -159,9 +159,9 @@ void CObject3D::SetFigureScale(const float* newScale) {
 }
 
 int CObject3D::AddPart(CFigureMesh* part) {
-    for (int k = 0; k < parts.size; ++k)
-        if (parts.data[k] == part) return 1;
-    parts.SetAtGrow(parts.size, part);
+    for (int k = 0; k < std::ssize(parts); ++k)
+        if (parts[k] == part) return 1;
+    lib::SetAtGrow(parts, std::ssize(parts), part);
     ++part->refCount_;
     part->SetObject(this);
     if (animation) AnimationAddPart(animation, nullptr, part);
@@ -177,22 +177,22 @@ void CObject3D::LoadFigures() {
         std::string key(name.c_str());
         model = manager->FindModel(&key);
     }
-    for (int i = 0; i < pendingParts.size; ++i) {
-        manager->LoadPart(pendingParts.data[i], model, scale.x, scale.y, scale.z);
-        --pendingParts.data[i]->refCount_;   // no release at 0
-        auto* part = pendingParts.data[i];
+    for (int i = 0; i < std::ssize(pendingParts); ++i) {
+        manager->LoadPart(pendingParts[i], model, scale.x, scale.y, scale.z);
+        --pendingParts[i]->refCount_;   // no release at 0
+        auto* part = pendingParts[i];
         bool known = false;
-        for (int k = 0; k < parts.size && !known; ++k) known = parts.data[k] == part;
+        for (int k = 0; k < std::ssize(parts) && !known; ++k) known = parts[k] == part;
         if (known) continue;
-        parts.SetAtGrow(parts.size, part);
+        lib::SetAtGrow(parts, std::ssize(parts), part);
         ++part->refCount_;
         part->SetObject(this);
         if (animation) AnimationAddPart(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    pendingParts.SetSize(0, -1);
+    pendingParts.clear();
     if (GetClassId() != kClassUnit) {
-        for (int i = 0; i < parts.size; ++i) parts.data[i]->flags_ |= kPartFlagStatic;
+        for (int i = 0; i < std::ssize(parts); ++i) parts[i]->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }
     Specific()->ApplyMaterials();

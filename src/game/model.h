@@ -14,8 +14,10 @@
 #include "lib/static_object.h"
 #include "game_data.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -48,17 +50,12 @@ struct FootprintPart {
 };
 static_assert(sizeof(FootprintPart) == 0x38);
 
-// One of the transform pipeline's matrix stacks: aligned storage of matrices and the depth.
+// One of the transform pipeline's matrix stacks: the matrices and the depth.
+constexpr int kMatrixStackDepth = 16;   // matrices a stack has room for
 struct MatrixStack {
-    MatrixStack();
-    ~MatrixStack();
-    MatrixStack(const MatrixStack&) = delete;
-    MatrixStack& operator=(const MatrixStack&) = delete;
-
-    Matrix4* matrices;
-    int count;              // the top is matrices[count - 1]
+    std::array<Matrix4, kMatrixStackDepth> matrices;
+    int count = 0;          // the top is matrices[count - 1]
 };
-static_assert(sizeof(MatrixStack) == 8);
 
 struct VertexPacket;
 struct TLVertex;
@@ -185,7 +182,7 @@ public:
         stack.matrices[depth - 1].Multiply(stack.matrices[depth - 2].m, m.m);
     }
     // The top of stack `index` (matrices[count - 1], computed even when empty).
-    const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
+    const Matrix4* Top(int index) const { return stacks_[index].matrices.data() + (stacks_[index].count - 1); }
     void PopMatrix(int index) {
         if (stacks_[index].count != 0) --stacks_[index].count;
     }
@@ -197,8 +194,6 @@ public:
     void* library_;                   // 3DfpFPU.dll's module (FreeLibrary in the destructor)
     MatrixStack stacks_[16];    // (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
-static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
-static_assert(sizeof(CTransformPipeline) == 0x94);
 
 // The scene renderer's pipeline: stacks 1 and 2 take the scene matrices, 5 the world draw's, 9 the views.
 CTransformPipeline* ScenePipeline();
@@ -531,12 +526,10 @@ using TriangleIndexArray = std::vector<MeshCorner>;
 
 class CMappedResource;
 
-// A node of CLinkFigureLoader's archive list (std::list<pair<string, CMMIOResource*>>).
-struct LinkArchiveNode {
-    LinkArchiveNode* next;
-    LinkArchiveNode* prev;
+// An archive of CLinkFigureLoader's: its path and the open archive.
+struct LinkArchive {
     std::string name;
-    CMappedResource* resource;   // a CMMIOResource
+    CMappedResource* resource = nullptr;   // a CMMIOResource (the loader's destructor deletes it)
 };
 
 // A figure's cached model: the mesh, bones and animation archives of "<name>.mod / .bon / .anm" (null when
@@ -626,7 +619,7 @@ public:
 
     int refCount_ = 0;
     ITransformPipeline* pipeline_;    // the renderer's pipeline's transform object
-    LinkArchiveNode* archives_;       // list sentinel
+    std::list<LinkArchive> archives_;
     std::unordered_map<std::string, FigureModel*> figureSets_;    // by figure name
     CTextureDevice* renderer_;        // the device object, counted; meshes take their pipeline from it
     std::multimap<std::string, CLinkMesh*> cache_;    // each entry holds a reference

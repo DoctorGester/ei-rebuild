@@ -180,7 +180,7 @@ void CUiEditField::DrawContentsVanilla() {
     auto& text = text_;
     if (caret_ > static_cast<int>(text.size())) caret_ = text.size();
     if (caret_ < 0) caret_ = 0;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     if (!dc) return;
     surface->Clear();

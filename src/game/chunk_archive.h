@@ -25,7 +25,7 @@
 class ClassTemplate;
 struct TemplateTable;
 struct LeverRecord;
-namespace gamehash { struct PartyTable; }
+class CParty;
 namespace itemdb {
 struct QuickItemRecord;
 struct QuestItemRecord;
@@ -135,9 +135,9 @@ public:
     void SerializeAcks3(int id, std::vector<acks::ExtraAcks>* records, void* unused);
 
     // The party manager's chunks. The third argument is unused but popped. Loading empties the container
-    // first and takes one record per chunk 1. Hash_map<int, CParty>: per party a chunk 1 (field 1: the key)
-    // and a chunk 2 (CParty::ArchiveParty); loading inserts each key (operator[]).
-    void SerializeParties(int id, gamehash::PartyTable* parties, void* unused);
+    // first and takes one record per chunk 1. The parties by key (party_manager.h, PartyMap): per party a chunk
+    // 1 (field 1: the key) and a chunk 2 (CParty::ArchiveParty); loading inserts each key (PartyAt).
+    void SerializeParties(int id, lib::HashMap<int, CParty>* parties, void* unused);
     // Vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, std::vector<PartyManagerEntry>* entries, void* unused);

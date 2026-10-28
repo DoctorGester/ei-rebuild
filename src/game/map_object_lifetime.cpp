@@ -24,7 +24,6 @@
 #include "lib/mfc.h"
 
 #include "ei/vcall.h"
-#include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "lib/mfc_list.h"
 #include "game_data.h"
@@ -89,9 +88,6 @@ void CObject3D::SetUpObject3D() {
     InitEngineObject(this);
     localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
-    // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
-    std::memset(&parts, 0, sizeof(parts));
-    std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
     ClearBounds();
     partBoxArrayVtable = mfc::impl::FrameArrayClass::Vtable();
@@ -119,8 +115,8 @@ void CObject3D::TearDownObject3D() {
     if (CLinkMesh* current = figure) {
         if (--current->refCount_ == 0) delete current;
     }
-    if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
-    if (parts.data) gamecrt::operator_delete(parts.data[-1]);
+    lib::FreeStorage(pendingParts);
+    lib::FreeStorage(parts);
 }
 
 CMapObject::CMapObject() { SetUpMapObject(); }

@@ -97,18 +97,18 @@ void CMpConnectScreen::DrawListVanilla() {
     sprite(kSpriteUnlisted)->visible_ = show;
     sprite(kSpritePassword)->visible_ = show;
     if (!newGame) {
-        regions_.data[kRegionUnlisted]->SetTip(0, 1, 0);
-        regions_.data[kRegionPassword]->SetTip(0, 1, 0);
+        regions_[kRegionUnlisted]->SetTip(0, 1, 0);
+        regions_[kRegionPassword]->SetTip(0, 1, 0);
     } else if (!newGameTips_) {
-        regions_.data[kRegionUnlisted]->SetTip(kTipUnlisted, 1, 0);
-        regions_.data[kRegionPassword]->SetTip(kTipPassword, 1, 0);
+        regions_[kRegionUnlisted]->SetTip(kTipUnlisted, 1, 0);
+        regions_[kRegionPassword]->SetTip(kTipPassword, 1, 0);
     }
     newGameTips_ = newGame;
 
     const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
     const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     std::string text;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     mfc::impl::CDC* dc = UiSurfaceGetDC(surface);
     surface->Clear();
     sprite(kSpriteSelection)->visible_ = 0;

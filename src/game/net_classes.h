@@ -603,13 +603,21 @@ public:
 using ::PartyStorage;
 
 // A finished trade of the client's (ClientSession::tradeRecords_): the revisions of the trade and copies of
-// the two parties and the traded one.
+// the two parties and the traded one. A copy copies the parties in order (CParty's copy saves and loads the
+// party: it draws object ids), so the client adds a record as the game's insert(end()) did: a blank's copy.
 struct TradeRecord {
-    std::uint32_t acceptedRevision;   // our offer's accepted revision of the partner's
-    std::uint32_t revision;           // our offer's revision
-    PartyStorage parties[3];          // ours, the partner's, the traded party
+    TradeRecord() = default;
+    // CParty's copy takes its source non-const (it saves it into a stream).
+    TradeRecord(const TradeRecord& from)
+        : acceptedRevision(from.acceptedRevision), revision(from.revision),
+          parties{CParty(const_cast<CParty&>(from.parties[0])), CParty(const_cast<CParty&>(from.parties[1])),
+                  CParty(const_cast<CParty&>(from.parties[2]))} {}
+    TradeRecord& operator=(const TradeRecord&) = delete;
+
+    std::uint32_t acceptedRevision = 0;   // our offer's accepted revision of the partner's
+    std::uint32_t revision = 0;           // our offer's revision
+    CParty parties[3];                    // ours, the partner's, the traded party
 };
-using TradeRecordNode = stlp::list<TradeRecord>::Node;
 
 // The game client (g_gameClient). It keeps what the server replicates to it, by class, in STLport lists of
 // counted pointers.
@@ -651,7 +659,7 @@ public:
     stlp::CountedRefListOf<AwardMessage> awards_; // awards received, applied by ApplyAwards
     RefPtrTo<PartyMessage> party_;      // our trade offer (party description)
     stlp::CountedRefListOf<PartyMessage> offers_; // the other players' trade offers
-    stlp::list<TradeRecord> tradeRecords_;
+    std::list<TradeRecord> tradeRecords_;
     TradeMessage* trade_;               // the current trade, counted
     std::uint32_t gameType_;            // the multiplayer game type 0..3 (StartServer): start zone, type variable
     PartyStorage parties_[2];           // ours, the partner's

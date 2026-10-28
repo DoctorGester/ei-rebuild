@@ -104,9 +104,6 @@ public:
     std::vector<CountedPtr<CRefObject>> players_;   // PlayerMessage records
     std::vector<std::string> texts_;
 };
-static_assert(offsetof(CChatWindow, listed_) == 0x148);
-static_assert(offsetof(CChatWindow, players_) == 0x150);
-static_assert(offsetof(CChatWindow, texts_) == 0x15C);
 
 class CBriefingScreen : public CUiContainer {
 public:
@@ -270,6 +267,3 @@ public:
 };
 // What a speaker's controller calls when its dialogue animation has finished (its actionDone).
 void SpeakerAnimationDone(CUnit* serverUnit);
-static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
-static_assert(offsetof(CBriefingScreen, state_) == 0x16C);
-static_assert(offsetof(CBriefingScreen, topics_) == 0x170);

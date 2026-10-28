@@ -13,18 +13,12 @@
 
 #include <memory>
 
-namespace aligned {
-void ArrayAt8Free(void* self);
-} // namespace aligned
 
 namespace gamearrays {
 
 using mfc::impl::ArrayAbi;
-using mfc::impl::Bytes;
 using mfc::impl::EachElements;
 
-// Records holding an aligned block at +8 (24 bytes): the block freed.
-inline void DestroyBlockAt8(Bytes<24>* p) { aligned::ArrayAt8Free(p); }
 
 inline void InitGroup(ScriptGroup* p);   // defined below the tags
 inline void DestructGroupBody(ScriptGroup* group) { group->DestructBody(); }
@@ -47,7 +41,6 @@ inline void ReleaseOnly(CEngineObject** p) {
 // The script's point lights: the light leaves the world's timed objects and is released, the slot cleared.
 inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
 
-using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using Groups = ArrayAbi<ScriptGroup, EachElements<ScriptGroup, InitGroup, DestroyGroup>>;
 using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObjective, InitObjective, DestroyObjective>>;
 using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, ReleaseAndClear>>;

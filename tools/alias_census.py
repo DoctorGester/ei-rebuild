@@ -18,7 +18,7 @@ DIRS = ['src', 'tests', 'include']
 EXTS = ('.h', '.cpp', '.inl', '.hpp')
 
 CONTAINER_RE = re.compile(
-    r'\b(ArrayAbi|ListAbi|VectorAbi|CArray|CList|CMap|CTypedPtrList|CTypedPtrArray|CTypedPtrMap|AlignedArray|'
+    r'\b(ArrayAbi|ListAbi|VectorAbi|CArray|CList|CMap|CTypedPtrList|CTypedPtrArray|CTypedPtrMap|'
     r'list|vector|hash_map|hash_set|map|set|deque|array|MapAbi|CPtrList|CPtrArray|CStringArray|CByteArray|'
     r'ListTemporary|StringArrayAbi|CPlex)\b')
 ALIAS_RE = re.compile(r'^[ \t]*using[ \t]+(\w+)[ \t]*=[ \t]*([^;]*);', re.M)

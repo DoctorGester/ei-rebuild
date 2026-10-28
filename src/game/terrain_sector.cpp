@@ -595,7 +595,7 @@ SectorData* SectorData::Construct() {
     std::construct_at(&tileTextures);
     std::construct_at(&waterTiles);
     for (auto& flags : tileFlags) flags.Construct(mfc::impl::TerrainByteArraysClass::Vtable());
-    for (auto& lists : tiles) lists.Construct(recordarrays::TerrainAlignedArrayClass::Vtable());
+    for (auto& lists : tiles) lists.Construct(recordarrays::TerrainTileListsClass::Vtable());
     std::construct_at(&animated);
     std::construct_at(&classCounts);
     detail = 0;
@@ -627,7 +627,7 @@ void SectorData::DestructBody() {
     lib::FreeStorage(classCounts);
     lib::FreeStorage(animated);
     for (int q = 3; q >= 0; --q) {
-        tiles[q].vtable = recordarrays::TerrainAlignedArrayClass::Vtable();
+        tiles[q].vtable = recordarrays::TerrainTileListsClass::Vtable();
         tiles[q].FreeData();
     }
     for (int q = 3; q >= 0; --q) {

@@ -60,15 +60,9 @@ const char* CTexture::GetName() { return name_.c_str(); }
 const char* CTexture::GetClassName() { return "CTexture"; }
 int CTexture::GetClassId() { return 6; }
 
-void CTexture::FreeBlock() {
-    if (block_) lib::FreeAligned32(block_);
-    block_ = nullptr;
-}
-
 int CTexture::Create() {
     name_.clear();
     DropSurface(this);
-    block_ = nullptr;
     height_ = 0;
     width_ = 0;
     uploadResult_ = 0;
@@ -80,7 +74,6 @@ int CTexture::Create() {
 }
 
 void CTexture::Destroy() {
-    FreeBlock();
     DropSurface(this);
     spare64_ = 0;
     flags_ = 0;
@@ -88,11 +81,9 @@ void CTexture::Destroy() {
 
 CTexture::CTexture() {
     ClearFields();
-    std::memset(&extra_, 0, sizeof(extra_));
     surface_ = nullptr;
     name_.clear();
     DropSurface(this);
-    block_ = nullptr;
     height_ = 0;
     width_ = 0;
     uploadResult_ = 0;
@@ -104,7 +95,6 @@ CTexture::CTexture() {
 
 // The name goes after the body (its destructor), then CEngineObject's.
 CTexture::~CTexture() {
-    FreeBlock();
     DropSurface(this);
     spare64_ = 0;
     flags_ = 0;

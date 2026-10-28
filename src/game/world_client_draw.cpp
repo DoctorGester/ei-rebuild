@@ -30,7 +30,6 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/stlp.h"
 #include "render/render.h"
 
 #include <iterator>
@@ -45,7 +44,6 @@
 #include "world_deleting_destructors.h"
 #include "world_effect.h"
 #include "world_client_shadow_casters.h"
-#include "lib/stlp_list_refs.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "settings_file.h"
@@ -79,7 +77,7 @@ bool g_haveSceneCamera = false;
 
 void PushMatrix(MatrixStack& stack, const float* matrix) {
     int& depth = stack.count;
-    Matrix4* matrices = stack.matrices;
+    Matrix4* matrices = stack.matrices.data();
     if (depth == 0) {
         depth = 1;
         std::memcpy(matrices, matrix, sizeof(Matrix4));
@@ -186,23 +184,6 @@ constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) {
     render::EndCaster();
 };
 constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(TheSceneRenderer()); };
-
-// Empties the deferred unit list: each node's counted pointer released, the node freed.
-void EmptyDeferred() {
-    using Node = stlp::list<CMapObject*>::Node;
-    stlp::list<CMapObject*>* deferred = FrameDeferredUnits();
-    Node* head = deferred->head;
-    Node* node = head->next;
-    while (node != head) {
-        Node* current = node;
-        node = node->next;
-        if (current->data) current->data->Release();
-        stlp::deallocate(current, sizeof(Node));
-        head = deferred->head;
-    }
-    head->next = head;
-    deferred->head->prev = deferred->head;
-}
 
 // Calls the ground print draw on the value of every node of an effect list (the ground print lists).
 template <typename T>
@@ -390,7 +371,7 @@ int CWorldClient::DrawPass() {
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
     const Matrix4* view = device->Top(kStackView);
-    FrameDeferredUnits()->Clear<stlp::HeldObject>();
+    FrameDeferredUnits()->clear();
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
                                          FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
@@ -434,7 +415,7 @@ int CWorldClient::DrawPass() {
         sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
     touched += CollectVisible(FrameDeferredUnits(), view, animTime, now, 1, 0);
-    EmptyDeferred();
+    FrameDeferredUnits()->clear();
     touched += CollectVisible(&heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
@@ -571,7 +552,7 @@ int CWorldClient::DrawPass() {
         }
     }
 
-    EmptyDeferred();
+    FrameDeferredUnits()->clear();
     static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};

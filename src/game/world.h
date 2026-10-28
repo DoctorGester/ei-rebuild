@@ -7,6 +7,7 @@
 #include "options.h"
 #include <cstdint>
 #include <list>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -33,7 +34,6 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "lib/hash_map.h"
-#include "lib/stlp_hash.h"
 #include "maths.h"
 #include "model.h"          // HeldTexture
 #include "party_storage.h"
@@ -478,7 +478,7 @@ public:
 
     // Moves quest items (class 0x14) from `items` to `list`: in single player only those whose description
     // names this zone or whose id an object of the zone asks for; otherwise all.
-    void TakeZoneQuestItems(lib::AlignedArray<CItem*>* items, std::list<CItem*>* list);
+    void TakeZoneQuestItems(std::vector<CItem*>* items, std::list<CItem*>* list);
     // Gives the player fresh copies of the items it brings into the zone (all of them on a client, the
     // zone's quest items otherwise; nothing in a network game).
     void RestorePlayerItems(CPlayer* player);
@@ -627,18 +627,10 @@ public:
 static_assert(offsetof(PlatformSet, list) == 0x1C);
 
 // The unit set the server's SendZone fills and the client reads back as its unit looks (unit_looks.h): the figured
-// records grouped by prototype (each group an STLport hash_map keyed by three packed 10-bit values), and the dressed
-// records by prototype. All three maps hash a key to itself.
-namespace gamehash {
-struct FiguredTableElement;
-// The records in the tables: copied and destroyed by their own members.
-using FiguredUnitElement = stlp::ObjectElement<FiguredUnitRecord>;
-using DressedUnitElement = stlp::ObjectElement<DressedUnitRecord>;
-} // namespace gamehash
+// records grouped by prototype (each group a hash_multimap by three packed 10-bit values), and the dressed records
+// by prototype. All three hash a key to itself; Write walks them in the game's order (the zone message's bytes).
 struct UnitSet {
-    using FiguredTable = stlp::hashtable<stlp::DwordObjectTraits<FiguredUnitRecord, gamehash::FiguredUnitElement>>;
-    using FiguredGroups = stlp::hashtable<stlp::DwordObjectTraits<FiguredTable, gamehash::FiguredTableElement>>;
-    using DressedTable = stlp::hashtable<stlp::DwordObjectTraits<DressedUnitRecord, gamehash::DressedUnitElement>>;
+    using FiguredGroup = lib::HashMultimap<std::uint32_t, FiguredUnitRecord>;   // by scale key
 
     // Adds `unit`'s looks: its prototype, the figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn
     // pieces and 4 weapons (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
@@ -651,11 +643,9 @@ struct UnitSet {
     // per record a 16-bit prototype, two counted dword arrays, a byte and a dword.
     void Write(CStream* stream);
 
-    FiguredGroups figured;                // by prototype: each group's records by scale key
-    DressedTable dressed;                 // by prototype
+    lib::HashMap<std::uint32_t, FiguredGroup> figured;            // by prototype
+    lib::HashMultimap<std::uint32_t, DressedUnitRecord> dressed;  // by prototype
 };
-static_assert(offsetof(UnitSet, dressed) == 0x14);
-static_assert(sizeof(UnitSet) == 0x28);
 
 // Reads the zone's two unit look lists from `stream`: a count, then per figured record a 16-bit
 // prototype, two counted dword arrays, a byte, a dword, the three morph coefficients and a counted list
@@ -663,46 +653,29 @@ static_assert(sizeof(UnitSet) == 0x28);
 // Both vectors are resized to the counts.
 void ReadUnitLooks(CStream* stream, std::vector<FiguredUnitRecord>* figured, std::vector<DressedUnitRecord>* dressed);
 
-// The client's sector grids: an STLport list of counted pointers per 16x16 cell.
-struct SectorCellObjects : stlp::list<CMapObject*> {
-    // The vector deleting destructor: bit 1 of `flags` means a new[] block (every list destroyed from the
-    // last), bit 0 frees the memory. Returns the block.
-    SectorCellObjects* VectorDelete(unsigned flags);
-};
-using SectorList = SectorCellObjects;
-using SectorListNode = SectorList::Node;
-// The client's filed objects: the same plain STLport list, of map objects only (every object filed is
-// one the player client created through the map object manager, or a unit).
-using MapObjectList = stlp::list<CMapObject*>;
-// A cell's list destroyed: each object released and its node returned to the pool, the sentinel last.
-void DestroySectorList(stlp::list<CMapObject*>* list);
-void SectorListDestruct(stlp::list<CMapObject*>* list);
+// The client's sector grids: a list of held objects per 16x16 cell (also the heroes and the deferred units).
+using SectorList = std::list<HeldPtr<CMapObject>>;
+// The client's filed objects, map objects only (every object filed is one the player client created through
+// the map object manager, or a unit). Each holds one reference, taken and dropped by the client.
+using MapObjectList = std::list<CMapObject*>;
 struct SectorGrid {
-    SectorList* cells_;
-    SectorList** rows_;                   // row y: its lists
+    std::unique_ptr<SectorList[]> cells_;
+    std::unique_ptr<SectorList*[]> rows_;   // row y: its lists
     int unknown08_, unknown0C_;           // (resized when they change)
     std::uint32_t width_;                 // cells along x
     std::uint32_t height_;                // cells along y
-    // unknown08_ x unknown0C_ cells: a new[] block of empty lists (the count before them), then the
-    // row pointers.
+    // unknown08_ x unknown0C_ empty cells, then the row pointers.
     void Allocate();
-    // When the storage has another size: the lists destroyed and the storage freed, the size taken, then
-    // Allocate.
+    // When the storage has another size: Free, the size taken, then Allocate.
     void Resize(int width, int height);
+    // The cells destroyed (from the last; each releases its objects), then the row pointers.
+    void Free();
     // Moves `object` to `position` (stored in the object): when the cell (x and y rounded to nearest, >> 4)
     // changes, out of the old cell's list and to the end of the new one's (cells outside the grid are
     // skipped).
     void Move(CMapObject* object, const float* position);
-    // The same for the second grid's list instantiation.
-    void Move2(CMapObject* object, const float* position);
 };
-static_assert(offsetof(SectorGrid, width_) == 0x10);
 
-struct ReleaseIdentified {
-    // An object with a positive id is released and true; false otherwise.
-    bool Test(CMapObject* object);
-    std::uint8_t unused;
-};
 // The client's pending map from an object id to its node in the pending list.
 struct PendingIndex : std::unordered_map<std::uint32_t, std::list<CMapObject*>::iterator> {
     int Lookup(const std::uint32_t* key, std::list<CMapObject*>::iterator* value) const;
@@ -892,7 +865,7 @@ public:
     // Files each object of `list` with a model inside the view frustum in the frame's draw lists; with
     // `animateUnits` 0 units only go on the deferred list, `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list.
-    int CollectVisible(stlp::list<CMapObject*>* list, const Matrix4* view, float animTime, std::uint32_t now,
+    int CollectVisible(SectorList* list, const Matrix4* view, float animTime, std::uint32_t now,
                        char animateUnits, char withScripted);
     // The ground point under screen pixel (x, y): inverts the current view matrix and iterates on the
     // terrain height (Terrain::HeightAt). Returns out (x, y, z).
@@ -962,7 +935,7 @@ public:
     CUnit* UnitAt2(const struct tagPOINT* point);
     // Every object of the frame's window list that still exists and whose side half has a drawn part
     // meeting the screen rectangle `rect` is appended to `out`.
-    void UnitsInBox(const tagRECT* rect, stlp::list<CMapObject*>* out);
+    void UnitsInBox(const tagRECT* rect, std::list<CMapObject*>* out);
     // Marks the footprints within their scale times `range` of the point (x, y).
     void MarkFootprintsInSight(const float* point, float range);
     // The wind: stored, given to the terrain's waves and to the rain and snow layer.
@@ -1403,8 +1376,8 @@ inline FrameQueue& FrameObjects(FrameList list) {
                                               &g_visible5D,     &g_visibleOther, &g_visible54};
     return *kQueues[static_cast<int>(list)];
 }
-extern lib::StaticObject<stlp::list<CMapObject*>> g_deferredUnits;
-inline stlp::list<CMapObject*>* FrameDeferredUnits() { return &*g_deferredUnits; }
+extern lib::StaticObject<SectorList> g_deferredUnits;
+inline SectorList* FrameDeferredUnits() { return &*g_deferredUnits; }
 // The id the next object only the client makes gets (client figures such as a bow shot's arrow); each
 // use counts it down.
 inline int& NextClientObjectId() { return TheClientWorld()->nextClientObjectId_; }

@@ -55,9 +55,6 @@ float Morph6(const float* v, float s, float t, float u) {
     return Lerp(lower, upper, u);
 }
 
-// The temporary packet array of the loaders (operator_new, 32-byte aligned, block pointer before it).
-VertexPacket* AllocatePackets(int count) { return count ? lib::AlignedArray<VertexPacket>::Allocate(count) : nullptr; }
-
 void SetW(VertexPacket& packet) {
     for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
 }
@@ -141,7 +138,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, co
     *cursor += fig.magic == kFig8Magic ? 0x140 : 0x28;
 
     int count = fig.vertexCount;
-    VertexPacket* packets = AllocatePackets(count);
+    std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = packets[i];
         if (fig.magic == kFig8Magic) {
@@ -154,7 +151,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, co
         }
         SetW(packet);
     }
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
 
     const char* normals = *cursor;
     const char* texCoords = normals + fig.normalCount * static_cast<int>(sizeof(NormalPacket));
@@ -162,10 +159,9 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const std::string* name, co
     const char* corners = indices + fig.indexCount * 2;
     const char* words = corners + fig.cornerCount * static_cast<int>(sizeof(MeshCorner));
     *cursor = words + fig.wordCount * 4;
-    mesh->AddPart(name, packets, count, FileArray<NormalPacket>(normals), fig.normalCount,
+    mesh->AddPart(name, packets.data(), count, FileArray<NormalPacket>(normals), fig.normalCount,
                   FileArray<TexCoord>(texCoords), fig.texCoordCount, FileArray<MeshCorner>(corners), fig.cornerCount,
                   FileArray<std::uint32_t>(words), fig.wordCount, FileArray<std::uint16_t>(indices), fig.indexCount);
-    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s, float t,
@@ -176,9 +172,9 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, co
     *cursor += 0xF0;   // the morphed bounds
     int count = Read<int>(cursor);
 
-    VertexPacket* packets = AllocatePackets(count);
+    std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
     // coordinates and the corners is skipped.
@@ -199,10 +195,9 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const std::string* name, co
     int indexCount = Read<int>(cursor);
     const char* indices = *cursor;
     *cursor += indexCount * 2;
-    mesh->AddPart(name, packets, count, FileArray<NormalPacket>(normals), normalCount,
+    mesh->AddPart(name, packets.data(), count, FileArray<NormalPacket>(normals), normalCount,
                   FileArray<TexCoord>(texCoords), texCoordCount, FileArray<MeshCorner>(corners), cornerCount,
                   FileArray<std::uint32_t>(words), wordCount, FileArray<std::uint16_t>(indices), indexCount);
-    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 
 // ---- Morphing a loaded part again -----------------------------------------------------------------
@@ -214,11 +209,10 @@ void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const std::string* name,
     std::memcpy(&fig, *cursor, sizeof(fig));
     *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
     int count = fig.vertexCount;
-    VertexPacket* packets = AllocatePackets(count);
+    std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
-    mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
-    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
 void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name, const char** cursor, float s,
@@ -226,11 +220,10 @@ void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const std::string* name,
     LinkPartHeader* header = &mesh->headers_[*name];
     *cursor += 0xF8;   // two dwords and the morphed bounds
     int count = Read<int>(cursor);
-    VertexPacket* packets = AllocatePackets(count);
+    std::vector<VertexPacket> packets(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
-    if (count) pipeline_->FitBounds(&header->box.bounds, packets, count);
-    mesh->SetPartVertices(name, packets, static_cast<unsigned>(count));
-    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+    if (count) pipeline_->FitBounds(&header->box.bounds, packets.data(), count);
+    mesh->SetPartVertices(name, packets.data(), static_cast<unsigned>(count));
 }
 
 int CLinkMesh::MemoryBytes() const {

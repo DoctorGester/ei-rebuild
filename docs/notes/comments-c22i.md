@@ -48,20 +48,6 @@ delivered or resend them. A reliable byte stream (reliableOut_, reliableIn_) tra
 the entries in chunks of up to 255 bytes ("headers"). The peer keeps the objects it received in
 `records_` (key type << 16 | id).
 
-## net_connection_trees.cpp
-
-The connection's five STLport maps (net_connection.h), their members registered at the library
-addresses (stlp_tree.h, stlp_tree_abi.h) so the standalone image has them. Checked in game by
-until the checks were retired.
-Node sizes from each one's _M_create_node: 0x18, the records' 0x1C.
- - the objects by sent id: signed keys (the exe compares them with JL / JGE), RefPtr values
-   copied with one more reference and released (PairReleaseSecond);
- - the objects by object and the entries of each priority: pointer keys, the same values
-   (released);
- - the records: signed keys, Record values shared (RefPtr::Share) and destroyed with the
-   owner's detach (PairDestroySecond);
- - the attached ids: pointer keys, plain 4-byte values.
-
 ## net_link.h
 
 Message links over streams: the endpoints a player's messages go through,

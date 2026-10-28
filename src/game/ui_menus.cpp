@@ -113,14 +113,14 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
 
 BOOL CSaveLoadWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_.data[0]->Freeze(1, 0);
-        models_.data[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
+        surfaces_[0]->Freeze(1, 0);
+        models_[0]->SetScreenPosition(400.0f, isSave_ ? 620.0f : 550.0f, 4.8f);
         CUiContainer::Draw(pass);
         return 1;
     }
-    surfaces_.data[0]->Freeze(0, 0);
+    surfaces_[0]->Freeze(0, 0);
     double e = Ease(slide_);
-    CUiModel* model = models_.data[0];
+    CUiModel* model = models_[0];
     if (!model) return 1;
     double y = isSave_ ? (620.0f - 700.0f) * e + 700.0f : (550.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);
@@ -227,14 +227,14 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
 
 BOOL COptionsWindow::Draw(CSceneRenderer* pass) {
     if (!sliding_) {
-        surfaces_.data[0]->Freeze(1, 0);
-        models_.data[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
+        surfaces_[0]->Freeze(1, 0);
+        models_[0]->SetScreenPosition(400.0f, 480.0f, 4.8f);
         CUiContainer::Draw(pass);
         return 1;
     }
-    surfaces_.data[0]->Freeze(0, 0);
+    surfaces_[0]->Freeze(0, 0);
     double e = Ease(slide_);
-    CUiModel* model = models_.data[0];
+    CUiModel* model = models_[0];
     if (!model) return 1;
     double y = (480.0f - 700.0f) * e + 700.0f;
     model->SetScreenPosition(400.0f, static_cast<float>(y), 4.8f);

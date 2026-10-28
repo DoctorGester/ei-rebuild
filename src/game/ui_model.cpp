@@ -16,6 +16,7 @@
 #include "game_singletons.h"
 
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -72,8 +73,8 @@ void CUiModel::ShowPart(const char* name, int show) {
 
 // Every part shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
-    for (int i = 0; i < Figure()->parts.size; ++i)
-        if (auto* part = Figure()->parts.data[i]) ShowFigurePart(part, show);
+    for (int i = 0; i < std::ssize(Figure()->parts); ++i)
+        if (auto* part = Figure()->parts[i]) ShowFigurePart(part, show);
 }
 
 // Draws the object in `pass` in plain white (the pass's colour put back afterwards) at the interface clock,

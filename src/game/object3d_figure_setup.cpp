@@ -163,10 +163,10 @@ void CObject3D::UpdatePartBounds() {
     if (!(flags_ & kFlagFigureLoadedBits)) return;
     float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
     float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
-    for (int i = 0; i < parts.size; ++i) {
+    for (int i = 0; i < std::ssize(parts); ++i) {
         // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
-        parts.data[i]->UpdateWorld(localRotation_, localPosition_);
-        parts.data[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
+        parts[i]->UpdateWorld(localRotation_, localPosition_);
+        parts[i]->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
     float centreX = static_cast<float>((highX + lowX) * kHalf);
@@ -191,16 +191,16 @@ void CObject3D::UpdatePartBounds() {
 void CObject3D::CollectPartsByPrefix(const char* prefix, FigurePartArray* out) {
     // The game asks each part for its name twice; parts return the same string both times.
     auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
-    for (int i = 0; i < parts.size; ++i) {
-        auto* part = parts.data[i];
+    for (int i = 0; i < std::ssize(parts); ++i) {
+        auto* part = parts[i];
         if (!startsWith(part)) continue;
-        int index = out->size;
-        out->SetSize(index + 1, -1);
-        out->data[index] = part;
+        int index = std::ssize(*out);
+        out->resize(index + 1);
+        (*out)[index] = part;
     }
-    for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = pendingParts.data[i];
-        if (startsWith(part)) out->SetAtGrow(out->size, part);
+    for (int i = 0; i < std::ssize(pendingParts); ++i) {
+        auto* part = pendingParts[i];
+        if (startsWith(part)) lib::SetAtGrow(*out, std::ssize(*out), part);
     }
 }
 
@@ -245,9 +245,9 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, FigureModel* model, std::
     }
     // AddPart, inlined (appending).
     bool present = false;
-    for (int i = 0; i < parts.size && !present; ++i) present = parts.data[i] == part;
+    for (int i = 0; i < std::ssize(parts) && !present; ++i) present = parts[i] == part;
     if (!present) {
-        parts.Add(part);
+        parts.push_back(part);
         ++part->refCount_;
         part->SetObject(this);
         if (animation) animation->AttachMesh(part);

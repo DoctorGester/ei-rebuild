@@ -3646,11 +3646,11 @@ note = "What C14u left in the script (about 70 mfc::CArray / CList lines in scri
 
 [[ticket]]
 id = "C14za"
-title = "C14 MFC arrays and lists, batch 4: scene loader, terrain, sector map, figure, camp, party members"
+title = "C14 MFC arrays and lists, batch 4: terrain, sector map, camp, party members, animation steps"
 group = "cleanup"
 model = "opus"
 depends = ["C14u"]
-note = "What C14u left outside the script: scene_loader.h's records (FaceGroup, NodeFrame, NodeMorphKey, SceneMesh, SceneNode, CMaterial, CPlainFigureMesh, BoneLinkRecords, TextureNameRecord, the DWORD maps / CByteArray tags), terrain_sector.h (SectorVertex records, FlagArray, TileList), terrain.h's water levels (CArray<CArray<float>>), sector_map.h's sectors, figure.h's morph frames, ui_camp.h's GlobalMapZone / GlobalMapPlace, party.h's PartyMembers (PartyUnitRecord's lists are std since C14h), combat's AnimationSteps (mfc::impl::AnimationStepList), the player's lists (player.cpp, player_server_handlers.cpp helpers), console_addon's CArray<std::string> view, with their CompiledCollection tags. Same method as C14u (scratch c14u scripts: retype_u.py, fixer.py, guards.py, memcheck, h16_tags.py, h21_vtables.py)."
+note = "What C14u left outside the script (C35l deleted the scene loader and figure.h): terrain_sector.h (SectorVertex records, FlagArray, TileList), terrain.h's water levels (CArray<CArray<float>>), sector_map.h's sectors, the terrain's CByteArray elements, ui_camp.h's GlobalMapZone / GlobalMapPlace, party.h's PartyMembers (PartyUnitRecord's lists are std since C14h), combat's AnimationSteps (mfc::impl::AnimationStepList), the player's lists (player.cpp, player_server_handlers.cpp helpers), console_addon's CArray<std::string> view, with their CompiledCollection tags. Same method as C14u (scratch c14u scripts: retype_u.py, fixer.py, guards.py, memcheck, h16_tags.py, h21_vtables.py)."
 
 [[ticket]]
 id = "C14zb"
@@ -3659,6 +3659,34 @@ group = "cleanup"
 model = "sonnet"
 depends = ["C14z", "C14za"]
 note = "Once C14z and C14za leave no CompiledCollection tag and no mfc::CArray / CList in src: delete CompiledCollection, ArrayHeader, ConstructHeader / DestructHeader / ConstructListHeader, the ArrayAbi / ListAbi / element policies (mfc_array.h, mfc_list.h, mfc_slots.h, game_slots.h, game_lists.h, game_arrays.h, record_arrays.h) and mfc.h's CArray / CList; the vtables.csv rows become game.exe-only rows (scratch c14u h21_vtables.py). The tests' game.exe views stay in tests (exe_objects.h's Array / Vector / List; record_path.cpp's views). Then C14r (mfc_archive) falls out."
+
+[[ticket]]
+id = "C14w"
+title = "C14 hand-inlined growBy arrays left: CObject3D partBoxes, the AI map's cellRowGrowBy rows, map spec / script SetSize copies"
+group = "cleanup"
+note = "C14h found these hand-written array shapes outside the vector retype: object3d_figure_setup's partBoxes SetSize (pointer, count, capacity, growBy in CObject3D), ai_local_search's cellRowGrowBy, map_spec_unit and script_addon growBy loops. Each is an inlined CArray SetSize: std::vector."
+
+[[ticket]]
+id = "C35l"
+title = "C35 the fake unit (class 0x39) and its scene loader deleted: dead in game.exe and ours"
+group = "cleanup"
+model = "opus"
+depends = ["C14m"]
+files = ["src/game/fake_unit.cpp src/game/scene_*.cpp src/game/scene_loader.h"]
+note = "Done (to review): fake unit (class 0x39) and its scene loader deleted. 15 files in src/game (fake_unit, scene_* but scene_renderer, skin_rewind, face_normal, figure_slots, figure.h/.cpp, animation_node_lifetime) plus what only they used: CAnimationNode, MFC CMap/MapAbi/CMapAssoc, KeyFrames/BoneLink/DwordMap/CornerMap/FigureRegistryMap/SceneObject/MorphKey/Index array classes, DeleteThroughFirst, Conjugate, MultiplyByConjugate, FindListedName, CArray::ElementAt, replay_unlinked rows. Factory case 0x39 gone: NewObject returns null as for an unknown class. config: named_data 4 rows, vtables.csv 18 rows to file -, dead_code.csv +58 rows (fake unit chain, incl. two code chunks outside Ghidra functions), unread_data +4 (gen_static_init regenerated, __cdecl stripped, static_init.cpp unchanged), library.csv notes, comment_batches, coverage csv/reach/unreachable rows. About 3,500 lines out of src/tests/tools. Image suite --golden 145 pass, 121 the same (before 121); original suite not run."
+
+[[ticket]]
+id = "C14x"
+title = "C14 the STLport deques to std::deque: the camera's view stack and the material's entries; delete stlp_deque.h / .cpp"
+group = "cleanup"
+note = "Found by C14q: after C14s / C14t, stlp.h holds only the node allocator (stlp_alloc.h, PushSmallNode) and stlp_deque.h (CCamera::viewStack_ 0x24-byte entries, camera.h's own layout and ViewStackDestroyRange; the material's 0x10-byte entries). Both are trivially destructible: std::deque (or std::vector where nothing pushes at the front), then stlp_deque.h / .cpp and, with the lists gone, stlp.h / stlp.cpp / stlp_alloc.h go. Also: refptr_copies.cpp's RefPtrNull has no caller left (config/static_init_ports.csv still lists 0041FF50 / 0041FF60; check gen_static_init before removing the rows). net::Connection's destructor clears its maps by hand between the stlp lists; when C14s makes the lists std the clears go (core.md C14q)."
+
+[[ticket]]
+id = "C14y"
+title = "Drop the unused STLport includes: about 100 game files include lib/stlp.h / stlp_list*.h and use nothing of them"
+group = "cleanup"
+depends = ["C14t"]
+note = "Left by C14s. Files that include lib/stlp.h, lib/stlp_list.h or lib/stlp_list_refs.h without any stlp:: use (C14s's scan: acks_db.h, ai_map.*, app_helpers.h, base_manager.h, chunk_archive.h, class_templates.*, effects.h, item_db*.h/.cpp, lever*, model.h, party*.h, player_messages.h, script.h, texture.h, ui*.h/.cpp, unit_db*.h, world_data.h, ... about 100). stlp.h pulls in <string>, <cstring>, <new>, <type_traits> and game_data.h, so the scripted removal needs the missing direct includes added where the build asks. Best after C14t (stlp_list.h goes) and with C14x (stlp_deque, then stlp.h itself)."
 
 [[ticket]]
 id = "S"

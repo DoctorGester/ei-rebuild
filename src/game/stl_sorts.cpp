@@ -87,7 +87,7 @@ using SaveSort = stlp::Sort<SaveEntry, NotOlder>;
 struct ByTextIgnoringCase {
     bool operator()(const std::string& a, const std::string& b) const { return text::CompareIgnoringCase(a.data(), b.data()) < 0; }
 };
-using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase, stlp::ObjectElement<std::string>>;
+using TopicSort = stlp::Sort<std::string, ByTextIgnoringCase>;
 
 struct ByName {
     bool operator()(const std::string& a, const std::string& b) const { return CompareNames(a.c_str(), b.c_str()) < 0; }

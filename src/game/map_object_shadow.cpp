@@ -67,7 +67,6 @@ constexpr std::uint32_t kLightOff = 0x400;          // light->flags_
 constexpr std::uint32_t kLightRemoved = 0x80;
 constexpr std::uint32_t kLightStrong = 0x800;       // a point light counting ten times
 constexpr std::uint32_t kPartHidden = 0x80;         // part->flags_
-constexpr std::uint32_t kTextureKeyed = 0x2000;     // skin->flags_: block_ holds its key texels
 constexpr int kPointBufferSize = 0x1000;
 constexpr int kTextureSize = 0x40;
 constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;
@@ -181,9 +180,7 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 // Parts beyond 1e10 from the object are skipped (NaN is not).
 bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
 
-CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts.data[i]; }
-
-constexpr int kKeyTexelPitch = 0x200;   // 256 texels of 2 bytes
+CFigureMesh* PartAt(const CObject3D* object, int i) { return object->parts[i]; }
 
 
 // One corner's x and y in the light's rotation `m` (3x4 rows of 4).
@@ -214,7 +211,7 @@ namespace {
 // the platforms (the original reads it in the raster's loop; the raster changes no flag).
 int KeyedParts(const CObject3D* object) {
     int keyedParts = 0;
-    for (int i = 0; i < object->parts.size; ++i) {
+    for (int i = 0; i < std::ssize(object->parts); ++i) {
         const CFigureMesh* part = PartAt(object, i);
         if (PartTooFar(part)) continue;
         keyedParts |= (part->box_.bounds.flags >> 10) & 1;
@@ -234,9 +231,6 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
         return false;
     }
     RasterTarget target{};
-    CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
-    target.keyTexels = skin && (skin->flags_ & kTextureKeyed) ? skin->block_ : nullptr;
-    target.keyPitch = kKeyTexelPitch;
     target.pitch = description.pitch;
     // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
     // from there) and copied into the surface afterwards.
@@ -244,7 +238,7 @@ bool MakeTexture(CObject3DClientSpecific* self, void* device, int* failure) {
     target.bits = pixels.data();
     std::memset(target.bits, 0, kTextureSize * kTextureSize * 2);
     int count = 0;
-    for (int i = 0; i < self->object->parts.size; ++i) {
+    for (int i = 0; i < std::ssize(self->object->parts); ++i) {
         CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & kPartHidden) continue;
@@ -331,7 +325,7 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     pipeline->PushMatrixProduct(view, kShadowStack);
 
     // Project the parts' points.
-    for (int i = 0; i < self->object->parts.size; ++i) {
+    for (int i = 0; i < std::ssize(self->object->parts); ++i) {
         CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & kPartHidden) continue;

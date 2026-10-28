@@ -85,8 +85,8 @@ std::string Hex(std::uintptr_t value) {
 std::string WindowName(const CUiWindow* window, const CUiSurface* surface) {
     std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(window);
     int index = -1;
-    for (int i = 0; i < window->surfaces_.size; ++i)
-        if (window->surfaces_.data[i] == surface) index = i;
+    for (int i = 0; i < std::ssize(window->surfaces_); ++i)
+        if (window->surfaces_[i] == surface) index = i;
     return "W" + Hex(ei::OriginalAddress(vtable)) + "#" + std::to_string(index);
 }
 

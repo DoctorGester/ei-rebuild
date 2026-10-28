@@ -147,9 +147,9 @@ void CMpConnectScreen::Update() {
     net::ClientSession* client = net::GameClient();
     bool asking = client->joinState_ == net::ClientBase::kAsking;
     if (asking) {
-        surfaces_.data[kSurfaceConnecting]->Freeze(1, 0);
+        surfaces_[kSurfaceConnecting]->Freeze(1, 0);
     } else {
-        surfaces_.data[kSurfaceConnecting]->Freeze(0, 0);
+        surfaces_[kSurfaceConnecting]->Freeze(0, 0);
         if (joining_) {
             joining_ = false;
             std::string key;
@@ -518,7 +518,7 @@ void CMpConnectScreen::CreateScreen() {
           kSelectionColour);
     {
         CUiMesh* arrow = AddSprite(nullptr);
-        arrow->texture_ = objects_.data[kScrollbarTexture];
+        arrow->texture_ = objects_[kScrollbarTexture];
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
         arrow->visible_ = 0;
     }

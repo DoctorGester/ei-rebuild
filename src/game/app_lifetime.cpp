@@ -16,7 +16,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "game_hashes.h"
 #include "game_data.h"
 
 #include <cstdlib>
@@ -89,11 +88,11 @@ void PartyManager::Destruct() {
     std::destroy_at(&records.text0C);
     std::destroy_at(&records.records);
     std::destroy_at(&entries);
-    parties.Destroy();   // every node deleted, then the buckets freed
+    std::destroy_at(&parties);
 }
 
 PartyManager* PartyManager::Construct() {
-    parties.InitZeroedBuckets(100);
+    std::construct_at(&parties);
     std::construct_at(&entries);
     std::construct_at(&records.records);
     std::construct_at(&records.text0C);

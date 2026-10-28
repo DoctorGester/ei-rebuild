@@ -1,7 +1,6 @@
 #include "object.h"
 
 #include "figure_mesh.h"
-#include "scene_loader.h"
 #include "unit.h"
 
 

@@ -109,7 +109,6 @@ TYPES = {
     'ScriptKeyword': 'PiPP',                 # script.h: name, id, function signature, command signature
     # A char array field is one code 'Ns' (a tuple of codes then): a string literal, zero padded (fewer than N chars).
     'UiKeyName': ('i', 'P', '64s'),          # ui.h: scan code, the file's name, GetKeyNameTextA's text (key_bindings.cpp)
-    'MathFunctionName': 'iP',                # crt_x87.cpp: the CRT's math function codes and names (00797CC0)
     'ProcessorInfo': 'IIIBBBBI',             # sys_info.h: CPUID function 1's report
     'CRITICAL_SECTION': 'I' * 6,             # zero until InitializeCriticalSection
     'std::size_t': 'I',
@@ -169,7 +168,7 @@ def braced(text, start):
 # The std::vector globals that replaced game.exe's engine aligned arrays (C14e): their ranges keep the original's 16
 # bytes (data, size, capacity, growBy). Any other std::vector range replaced an STLport vector (12 bytes).
 ALIGNED_ARRAY_VECTORS = {
-    0x0079C1D0, 0x007A9BD0, 0x007A9CB8, 0x007ABA30, 0x007AEDE0, 0x007AEE00, 0x007AEE10, 0x007AEE20, 0x007AEE30,
+    0x0079C1D0, 0x007A9BD0, 0x007A9CB8, 0x007A9CE0, 0x007ABA30, 0x007AEDE0, 0x007AEE00, 0x007AEE10, 0x007AEE20, 0x007AEE30,
     0x007AEEB8, 0x007AEED0, 0x007AEF90, 0x007AEFA0, 0x007AEFB8, 0x007AEFC8, 0x007AEFD8, 0x007AEFE8, 0x007AF000,
     0x007AF010, 0x007AF020, 0x007AF030, 0x007AF040, 0x007AF1E0, 0x007AF1F8, 0x007AF208, 0x007AF478, 0x007AFEE0,
     0x007AFEF0, 0x007AFF18, 0x007AFF28, 0x007AFF38, 0x007AFF48, 0x007C2E00, 0x007C2E18, 0x007C2E48, 0x007C2E60,
@@ -180,7 +179,7 @@ ALIGNED_ARRAY_VECTORS = {
 # (std containers in place of the game's).
 STATIC_OBJECT_BYTES = {
     # game.exe's lists are the 4-byte sentinel pointer; ours (std::list, 8 bytes) start zero all the same
-    'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'stlp::list<CMapObject*>': 4,
+    'std::list<std::uint8_t>': 4, 'std::list<DirectDrawDriver>': 4, 'SectorList': 4,
     'itemdb::SpellDatabase': 0x64, 'itemdb::ItemDatabase': 0xC0, 'QuestDatabase': 0x40, 'PrintsDatabase': 0x60,
     'acks::AckDatabase': 0x60, 'SkillDatabase': 0x18, 'UnitDatabase': 0x80, 'LeverRecordTable': 0x20,
     'PartyManager': 0x44, 'SavedParties': 0x84, 'FootprintCellSet': 0x54, 'IntSet': 0x14, 'UnreadSet': 0x14,

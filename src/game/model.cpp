@@ -8,7 +8,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "record_lists.h"
 
 #include <cstring>
 
@@ -154,29 +153,19 @@ Matrix4* ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, fl
     return out;
 }
 
-namespace {
-// list<pair<string, CMMIOResource*>> members (recordlist::LinkArchives'): insert(pos,
-// value_type()) with the string reserved for 8 bytes, and erase(pos).
-using Archives = stlp::list<recordlist::LinkArchive>;
-} // namespace
-
 int CLinkFigureLoader::AddArchive(const std::string* path) {
-    for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next)
-        if (n->name == *path) return 1;
+    for (const LinkArchive& archive : archives_)
+        if (archive.name == *path) return 1;
 
-    Archives::InsertDefault<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_));
-    LinkArchiveNode* node = archives_->prev;
-    // The new string is empty (with room for 8 bytes): STLport's assign appends the whole path.
-    if (&node->name != path && path->size() != 0) node->name.append(path->data(), path->data() + path->size());
-
+    LinkArchive& archive = archives_.emplace_back(*path);
     CMMIOResource* memory = gamecrt::operator_new_as<CMMIOResource>();
     CMappedResource* resource = memory ? new (memory) CMMIOResource() : nullptr;
-    node->resource = resource;
+    archive.resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 
-    // Failure: drop the node again (the resource object is leaked) and log. (The original passed STLport's
+    // Failure: drop the archive again (the resource object is leaked) and log. (The original passed STLport's
     // string object by value to "%s": its first word, the text pointer, is what printed.)
-    Archives::Erase<recordlist::LinkArchiveElement>(stlp::AsNode<recordlist::LinkArchive>(archives_->prev));
+    archives_.pop_back();
     game::DebugLog("Can't open resource file \"%s\"\n", path->c_str());
     return 0;
 }

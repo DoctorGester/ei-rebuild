@@ -193,7 +193,7 @@ void CCampPages::BuildPages() {
     auto* stats = new CHeroStatsPanel(interface_, this);
     statsPanel_ = stats;
     AsContainer(this)->AddChild(stats);
-    statsPanel_->AddObject(objects_.data[0]);
+    statsPanel_->AddObject(objects_[0]);
     BuildPanel(statsPanel_);
 
     // The help panel on the left.
@@ -214,20 +214,20 @@ void CCampPages::BuildPages() {
     auto* equipment = new CHeroEquipPanel(interface_, this);
     equipment_ = equipment;
     AsContainer(this)->AddChild(equipment);
-    equipment_->AddObject(objects_.data[2]);
+    equipment_->AddObject(objects_[2]);
     equipment_->Build(true);
 
     auto* quick = new CHeroQuickStrip(interface_, this);
     equipment2_ = quick;
     AsContainer(this)->AddChild(quick);
-    equipment2_->AddObject(objects_.data[2]);
+    equipment2_->AddObject(objects_[2]);
     equipment2_->Build(true);
 
     // The skills for experience.
     auto* trade = new CTradePanel(interface_, this);
     trade_ = trade;
     AsContainer(this)->AddChild(trade);
-    trade_->AddObject(objects_.data[0]);
+    trade_->AddObject(objects_[0]);
     BuildPanel(trade_);
 
     if (spellConstructor_) {
@@ -317,7 +317,7 @@ void CCampPages::BuildPages() {
         // The armour the record wears.
         auto* heroStats = &record->stats;
         heroStats->ClearOuterLayers();
-        for (int piece = 0; piece < record->armor.size; ++piece)
+        for (int piece = 0; piece < std::ssize(record->armor); ++piece)
             heroStats->AddArmourLayer(AsArmor(record->armor[piece]));
     }
     for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;

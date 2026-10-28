@@ -175,12 +175,9 @@ public:
 protected:
     explicit CItemScreen(CInterface3D* ui) : CUiContainer(ui), hoveredItem_(nullptr) {}
 };
-static_assert(offsetof(CItemScreen, hoveredItem_) == 0x168);
-static_assert(sizeof(CItemIconWindow) == 0x148);
 
 inline void CUiItemPanel::OwnerTakeItem(CItem* item) { owner_->TakeItem(item, mode_); }
 inline void CUiItemPanel::OwnerTopicClicked(int topic) { owner_->TopicClicked(topic, mode_); }
-static_assert(offsetof(CItemScreen, models_) == 0x170);
 
 // What the statistics under the mouse are (filled by the stats panel and the trade panel, read by
 // DescribeStats).
@@ -242,5 +239,3 @@ public:
     std::vector<std::string> itemTexts_;    // "infoitem_0" .. "infoitem_44"
     std::vector<std::string> skillTexts_;   // "infoskill_0" .. "infoskill_24"
 };
-static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);
-static_assert(offsetof(CItemInfoPanel, itemParty_) == 0x150);

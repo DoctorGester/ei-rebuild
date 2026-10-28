@@ -3,14 +3,12 @@
 // `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
-#include "lib/stlp_vector.h"
 #include "ei/x87.h"
-#include "net_connection_trees.h"
-#include "library_net_lists.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <cstring>
+#include <iterator>
 #include <vector>
 
 namespace net {
@@ -19,12 +17,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-
-// The history / acknowledged lists and the freed-id queue (library_net_lists.h).
-using Packets = stlp::list<SentPacket>;
-using Batches = stlp::list<FreedIds>;
-using netlists::FreedIdsElement;
-using netlists::PacketRecordElement;
 
 // The clocks are doubles read and written as their 8 bytes.
 double Get(const double* d) {
@@ -66,22 +58,21 @@ bool Connection::Tick(double dt) {
     loss = longest >= loss ? loss : longest;
     float kept = static_cast<float>(static_cast<double>(g_currentSession->maxRoundTrip_));
 
-    for (HistoryNode* node = history_.First(); node != history_.End();) {
-        double age = Get(&clock_) - Get(&node->data.time);
+    for (auto node = history_.begin(); node != history_.end();) {
+        double age = Get(&clock_) - Get(&node->time);
         EI_NAN_AUDIT(loss, age);
         if (D(loss) >= age) break;
-        RollBack(&node->data);
-        HistoryNode* next = node->next;
-        Packets::SpliceOne(acknowledged_.End(), node);
+        RollBack(&*node);
+        auto next = std::next(node);
+        acknowledged_.splice(acknowledged_.end(), history_, node);
         node = next;
-        if (node == history_.End()) break;
     }
-    for (HistoryNode* node = acknowledged_.First(); node != acknowledged_.End();) {
-        double age = Get(&clock_) - Get(&node->data.time);
+    for (auto node = acknowledged_.begin(); node != acknowledged_.end();) {
+        double age = Get(&clock_) - Get(&node->time);
         if (D(kept) < age) {
-            node = Packets::Erase<PacketRecordElement>(node);
+            node = acknowledged_.erase(node);
         } else {
-            node = node->next;   // also NaN
+            ++node;   // also NaN
         }
     }
 
@@ -90,7 +81,7 @@ bool Connection::Tick(double dt) {
     if (timer > D(sendInterval_)) {
         do {
             sendTimer_ = static_cast<float>(D(sendTimer_) - D(sendInterval_));
-            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_.Empty()) {
+            if (SendUpdate(static_cast<int>(updateBudget_)) && headers_.empty()) {
                 if (ReliableSize(&reliableOut_) == 0) break;
             }
         } while (sendTimer_ > sendInterval_);
@@ -107,15 +98,15 @@ bool Connection::Tick(double dt) {
     freedTimer_ = static_cast<float>(freedTime);
     if (freedTime > static_cast<double>(g_currentSession->idReuseTime_)) {
         freedTimer_ = 0.0f;
-        FreedIds& oldest = freedIds_.First()->data;
+        FreedIds& oldest = freedIds_.front();
         for (FreedId* e = oldest.data(); e != oldest.data() + oldest.size(); ++e) {
             auto id = static_cast<std::uint16_t>(e->id);
             std::vector<std::uint16_t>& pool = idPools_[e->type].free;
             pool.push_back(id);
         }
         oldest.clear();
-        Batches::Erase<FreedIdsElement>(freedIds_.First());
-        Batches::InsertDefault<FreedIdsElement>(freedIds_.End());
+        freedIds_.pop_front();
+        freedIds_.emplace_back();
     }
 
     bool alive = false;
@@ -141,8 +132,8 @@ void Connection::Delivered(SentPacket* packet) {
     double keptSquare = D(RttKeep()) * D(roundTripSquare_);
     roundTripSquare_ = static_cast<float>(keptSquare);
     roundTripSquare_ = static_cast<float>((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
-    for (SentItemNode* node = packet->items.First(); node != packet->items.End(); node = node->next) {
-        SentItem* item = &node->data;
+    for (SentItem& sent : packet->items) {
+        SentItem* item = &sent;
         auto action = static_cast<std::int32_t>(item->action);
         if (action == SentItem::kChangedReliable) {
             std::uint32_t version = item->version;
@@ -150,19 +141,18 @@ void Connection::Delivered(SentPacket* packet) {
             item->entry->version_ = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            EntryMap* tree = &priorities_[entry->flags_ >> 1];
-            EntryMap::Node* found;
-            tree->Find(&found, entry);
-            if (found != tree->end()) {
+            EntryMap& tree = priorities_[entry->flags_ >> 1];
+            auto found = tree.find(entry);
+            if (found != tree.end()) {
                 entry = item->entry;
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                bySentId_.EraseKey(key);
+                bySentId_.erase(key);
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
-                FreedIds& batch = freedIds_.End()->prev->data;   // the newest batch
+                FreedIds& batch = freedIds_.back();   // the newest batch
                 batch.push_back(value);
-                tree->EraseAt(found);
+                tree.erase(found);
             }
         }
     }

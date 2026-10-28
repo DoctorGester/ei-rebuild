@@ -228,7 +228,7 @@ public:
     // `target` starts with the triangle's three corners (a screen and a texture point each, pairs of ints)
     // and goes on with the surface.
     virtual void RasteriseTriangle(RasterTarget* target);
-    // Masked by a keyed texture's texels (RasterTriangle::keyTexels).
+    // The DLL's slot 9 for a keyed texture's texels (RasterTriangle::keyTexels); nothing builds one, never called.
     virtual void RasteriseKeyedTriangle(RasterTarget* target);
     // Into 16-bit pixels.
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
@@ -239,8 +239,7 @@ public:
 CPixelConverter* PixelConverter();
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
-// Aligned to 32 bytes.
-using AlignedBuffer = std::vector<std::uint8_t>;
+using ByteBuffer = std::vector<std::uint8_t>;
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
 // lowest bit and its bit count.
@@ -323,25 +322,20 @@ public:
     // the .bmp cannot be opened.
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
 
-    // Back to the constructed state; block_ is cleared without being freed. Returns 1.
+    // Back to the constructed state. Returns 1.
     int Create() override;
     void Destroy() override;
     const char* GetName() override;
     const char* GetClassName() override;
     int GetClassId() override;
-    void FreeBlock();
 
     std::string name_;
     std::uint32_t width_;
     std::uint32_t height_;
     int uploadResult_;          // the surface fill's byte count (MmpHeader::FilledBytes); 0 after CreateBlank
-    AlignedBuffer extra_;       // the .mmp file's extra block
+    ByteBuffer extra_;       // the .mmp file's extra block
     PixelFormat format_;
     CDXSurface* surface_;       // counted
-    // An aligned block (raw pointer before the data). For a keyed texture (flags_ 0x2000, a type 0x35 object's
-    // skin) the shadow rasterises through it (RasterTriangle::keyTexels); nothing allocates it, so it is null
-    // and the keyed path never runs.
-    std::uint8_t* block_;
     std::uint32_t spare64_;     // nothing reads it
 
     CTextureManager* Manager() const;
@@ -377,7 +371,7 @@ public:
     int LoadTextureFrom(CTexture* texture, const char* directory);
     // From <data path>textures\ on disk, else from the archives. Returns 0 (and an empty buffer) when neither
     // has the file.
-    int LoadMmpExtra(const char* name, AlignedBuffer* out);
+    int LoadMmpExtra(const char* name, ByteBuffer* out);
     // A texture the game fills on the CPU, in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
     // format.

@@ -176,7 +176,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         slot->pan = 0;
         return;
     }
-    double angle = gamecrt::acos(D(ahead) / distF);
+    double angle = libcrt::CiAcos(D(ahead) / distF);
     if (angle > kHalfPi) angle = D(Pi()) - angle;
     double scale = static_cast<float>(D(kHundred) / kHalfPi);   // the FDIV at the main thread's 24 bits
     int pan = x87::fistp(static_cast<float>(scale * angle));

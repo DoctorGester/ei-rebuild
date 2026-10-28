@@ -247,9 +247,8 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(int run, const cha
     }
     // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's exit runs the
     // functions the initialisers registered with atexit). The multibyte code page (__initmbctable, the C
-    // initialiser) is the host CRT's, set at its own start-up; here a single-byte one, so the host's multibyte
-    // string functions (_splitpath, _mbschr ...) see no lead bytes whatever the system's ANSI code page (the text
-    // is UTF-8).
+    // initialiser) is the host CRT's, set at its own start-up; here a single-byte one, so the host's _splitpath
+    // sees no lead bytes whatever the system's ANSI code page (the text is UTF-8).
     _setmbcp(_MB_CP_SBCS);
     InstallProfiler();   // EI_PROFILE=1: samples this thread from the start-up on
     render::PrepareDevice();   // the renderer's device made while the game starts up

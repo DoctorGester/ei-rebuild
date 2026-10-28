@@ -48,7 +48,7 @@ namespace {
 void (*g_fill)(std::uint32_t* results) = nullptr;
 
 void FixedSeed(IsaacRandom& random) {
-    gamecrt::srand(12345);
+    libcrt::Srand(12345);
     g_fill(random.results_);
 }
 
@@ -149,8 +149,8 @@ bool CampItems(void* camp, int* page, std::vector<void*>* items, std::vector<uns
     *page = pages->page_;
     const UiPtrArray<CItem>* source = pages->itemStrip_ ? pages->itemStrip_->source_ : nullptr;
     if (!source) return false;
-    for (int i = 0; i < source->size; ++i) {
-        CItem* item = source->data[i];
+    for (int i = 0; i < std::ssize(*source); ++i) {
+        CItem* item = (*source)[i];
         items->push_back(item);
         types->push_back(item ? static_cast<unsigned>(item->type_) : 0);
     }
@@ -167,10 +167,9 @@ void BlinkOpen(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkOpen(
 void BlinkClose(void* half) { static_cast<CUnitClientSpecific*>(half)->BlinkClose(true); }
 
 bool UnitFaceHalves(std::vector<void*>* halves) {
-    MapObjectList::Node* head = TheClientWorld()->objects_.head;
-    if (!head) return false;
-    for (MapObjectList::Node* node = head->next; node != head; node = node->next) {
-        CMapObject* object = node->data;
+    CWorldClient* world = TheClientWorld();
+    if (!world) return false;
+    for (CMapObject* object : world->objects_) {
         if (!object || object->GetClassId() != world::kClassUnit) continue;
         auto* half = reinterpret_cast<CUnitClientSpecific*>(static_cast<CUnit*>(object)->controller);
         if (half && half->faceTexture) halves->push_back(half);
@@ -178,9 +177,9 @@ bool UnitFaceHalves(std::vector<void*>* halves) {
     return true;
 }
 
-int RegionCount(void* window) { return static_cast<CUiWindow*>(window)->regions_.size; }
+int RegionCount(void* window) { return std::ssize(static_cast<CUiWindow*>(window)->regions_); }
 bool Region(void* window, int index, RegionInfo* region) {
-    const CUiRegion* found = static_cast<CUiWindow*>(window)->regions_.data[index];
+    const CUiRegion* found = static_cast<CUiWindow*>(window)->regions_[index];
     if (!found) return false;
     region->left = found->bounds_.left;
     region->top = found->bounds_.top;

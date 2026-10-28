@@ -69,7 +69,7 @@ PATTERNS = {
     'placeholder virtual (SlotNN)': re.compile(r'\bSlot\d+\s*\('),
     'byte offset arithmetic': re.compile(r'(?:char|uint8_t|byte)\s*\*\s*>\s*\([^()]*(?:\([^()]*\))?[^()]*\)\s*\+\s*0x'),
     # A container layout declared in a game file (struct FooArray { ... }, struct BarList : ...)
-    # instead of the shared templates in src/lib (mfc::CArray / CList, lib::AlignedArray, stlp::).
+    # instead of the shared templates in src/lib (mfc::CArray / CList, std::vector, stlp::).
     # Definitions only; src/lib itself is not counted.
     'per-file container struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Array|List)\b(?=\s*[:{])'),
     # The same for STLport-shaped layouts (stlp::vector / map / set / hash_map views declared per
@@ -89,7 +89,7 @@ PATTERNS = {
 # written-out sums (C12 checked: without the pragma 39 objects compile differently).
 # Structs the vector/map/set pattern matches by name that are not container layouts. Each was checked
 # (2026-10-14) to hold the shared templates rather than repeat one: FootprintCellSet is a bucket hash
-# over lib::AlignedArray (its SetSize forwards to the array's); ObjectIdMap and UnitSet
+# over std::vector; ObjectIdMap and UnitSet
 # (and MapObjectIdMap, its shape with CMapObject* values) are records whose members are stlp::hash_maps; CRegionMap is a
 # block grid; PlatformSet is the engine's CBridgeManager around an mfc::CList.
 NOT_CONTAINERS = {'FootprintCellSet', 'ObjectIdMap', 'MapObjectIdMap', 'UnitSet', 'CRegionMap', 'PlatformSet'}

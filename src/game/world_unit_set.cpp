@@ -1,6 +1,6 @@
 // The unit set's writer, used by the server's SendZone (world_sync.cpp), and the client's reader of the unit
-// looks. See docs/notes/world.md ("Client maps", the unit set). The set's three STLport hash_maps are walked
-// with the game's iterator helpers, so the order matches theirs.
+// looks. See docs/notes/world.md ("Client maps", the unit set). The set's three hash maps walk in the game's
+// order (lib::HashMap).
 #include "core_streams.h"
 #include "world.h"
 
@@ -10,13 +10,6 @@
 #include <string>
 
 namespace {
-
-using FiguredGroups = UnitSet::FiguredGroups;
-using FiguredTable = UnitSet::FiguredTable;
-using DressedTable = UnitSet::DressedTable;
-
-// The maps are walked as their iterators do: begin() (the groups, a group's figured map, the dressed map), then
-// ++ (the chain's next node, else the next bucket's head; the dressed map's is inline with its hash).
 
 void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
@@ -39,16 +32,11 @@ void DressedUnitRecord::Write(CStream* stream) {
 void UnitSet::Write(CStream* stream) {
     // The number of figured records over every group.
     std::uint32_t count = 0;
-    for (FiguredGroups::Node* group = figured.First(); group; group = figured.Next(group)) {
-        FiguredTable& units = group->value.mapped;
-        for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) ++count;
-    }
+    for (const auto& [prototype, group] : figured) count += static_cast<std::uint32_t>(group.size());
     PutWord(stream, count);
 
-    for (FiguredGroups::Node* group = figured.First(); group; group = figured.Next(group)) {
-        FiguredTable& units = group->value.mapped;
-        for (FiguredTable::Node* unit = units.First(); unit; unit = units.Next(unit)) {
-            FiguredUnitRecord& record = unit->value.mapped;
+    for (auto& [prototype, group] : figured) {
+        for (auto& [scaleKey, record] : group) {
             record.Write(stream);
             PutWord(stream, std::bit_cast<std::uint32_t>(record.morphS));
             PutWord(stream, std::bit_cast<std::uint32_t>(record.morphT));
@@ -62,10 +50,10 @@ void UnitSet::Write(CStream* stream) {
             }
         }
     }
-    PutWord(stream, static_cast<std::uint32_t>(dressed.Count()));
+    PutWord(stream, static_cast<std::uint32_t>(dressed.size()));
 
-    for (DressedTable::Node* node = dressed.First(); node; node = dressed.Next(node)) {
-        DressedUnitRecord* record = &node->value.mapped;
+    for (auto& [prototype, looks] : dressed) {
+        DressedUnitRecord* record = &looks;
         std::uint32_t key = record->prototype;   // two bytes written
         Put(stream, &key, 2);
         auto counted = [stream](const UnitIdList& list) {

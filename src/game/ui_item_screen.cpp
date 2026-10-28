@@ -95,7 +95,7 @@ void CItemScreen::CreateBase() {
     CItemIconWindow* icons = new CItemIconWindow(interface_);
     iconWindow_ = icons;
     AddChild(icons);
-    iconWindow_->AddObject(objects_.data[0]);
+    iconWindow_->AddObject(objects_[0]);
     iconWindow_->Build();
     LoadTexture("modifiers2", 3, 0);
     LoadTexture("campslots", 3, 0);
@@ -162,9 +162,9 @@ ItemTurn::~ItemTurn() {}
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
-    if (limit > 0 && to->items_.size >= limit) {
+    if (limit > 0 && std::ssize(to->items_) >= limit) {
         for (int i = 0; i < limit; ++i) {
-            if (!item->IsSameAs(to->items_.data[i])) continue;
+            if (!item->IsSameAs(to->items_[i])) continue;
             CItem* moved = AddItemAt(to, item, whole, merge);
             RemoveItemAt(from, item, whole);
             return moved;
@@ -188,8 +188,8 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
 
 CItem* CItemScreen::ReturnAll(CParty* to, CParty* from) {
     CItem* moved = nullptr;
-    while (from->items_.size != 0) {
-        CItem* first = from->items_.data[0];
+    while (!from->items_.empty()) {
+        CItem* first = from->items_[0];
         moved = AddItemAt(to, first, 1, 1);
         RemoveItemAt(from, first, 1);
     }

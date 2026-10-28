@@ -173,7 +173,11 @@ reach is that failed run's, a lower bound), so goldens come from runs without EI
 - Shared files (A-I23): the vanilla offer in net_pair_leave is z9q1 z6q2 z3q2 z7q2 (not z6q1), so its vanilla peer hides
   z7q2.mq; the received file is written (0041ECC0 -> 005813A0) and `samefile` requires it to be the install's.
 - Dead (SV5c): the fake unit (class 0x39) and its scene loader: no shipped data makes one, no code reaches slot 62, no
-  .amf exists. CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
+  .amf exists (class ids come from the units database, 0x32-0x34 in every install, and a .mob record's field 0xB003:
+  the .mob files hold 0x32-0x37 and 0x3A-0x3C; game.exe passes no immediate 0x39 to a factory and has no
+  `call [reg+0xF8]`). Deleted in C35l (about 2,500 lines of ours); the original's functions are rows of
+  config/dead_code.csv, and the map object factory makes nothing for class 0x39 (CreateObject returns null, as for
+  an unknown class). CubicSegment::Evaluate 0040E440 and SetBSpline are dead (the game uses the copy at 004E5660).
 - Scenarios added for gaps: unit_ai_heal, ui_base_topic, world_loot, unit_ai_cast, zone_gz15h_tornado (CEffectTornado
   launches only on Rebirth and only in about half the runs: a strike needs open ground at a random point), ui_camp_make,
   magic_traps_victims (`make_trap_mob.py --interval 0`), unit_cast_at, unit_ai_corpse, levers_key (SV5b: a quest item on a locked lever, `clickunit #<id>`),

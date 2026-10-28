@@ -99,43 +99,43 @@ void CBattleScreen::CreateScreen() {
     // Panels built by their own constructors (Rebirth-patched: reproduced behind its flags, rule 9).
     weaponBar_ = new CHudWeaponBar(interface_, this);
     AddChild(weaponBar_);
-    weaponBar_->AddObject(objects_.data[0]);
+    weaponBar_->AddObject(objects_[0]);
 
     quickItems_ = new CHudQuickItems(interface_, this);
     AddChild(quickItems_);
-    quickItems_->AddObject(objects_.data[0]);
+    quickItems_->AddObject(objects_[0]);
 
     spellColumn_ = new CHudSpellColumn(interface_, this);
     AddChild(spellColumn_);
-    spellColumn_->AddObject(objects_.data[1]);
+    spellColumn_->AddObject(objects_[1]);
 
     actionColumn_ = new CHudActionColumn(interface_, this);
     AddChild(actionColumn_);
-    actionColumn_->AddObject(objects_.data[1]);
+    actionColumn_->AddObject(objects_[1]);
 
     portraits_ = new CHudPortraits(interface_, this);
     AddChild(portraits_);
-    portraits_->AddObject(objects_.data[2]);
+    portraits_->AddObject(objects_[2]);
 
     unitPanel_ = new CHudUnitPanel(interface_, this);
     AddChild(unitPanel_);
-    unitPanel_->AddObject(objects_.data[2]);
-    unitPanel_->AddObject(objects_.data[1]);
+    unitPanel_->AddObject(objects_[2]);
+    unitPanel_->AddObject(objects_[1]);
     unitPanel_->SetupVanilla(interface_->hudBodyPart_, interface_->hudPanelsIn_[0]);
 
     map_ = new CHudMap(interface_, this);
     AddChild(map_);
-    map_->AddObject(objects_.data[2]);
+    map_->AddObject(objects_[2]);
     map_->SetupVanilla(mapZoom, interface_->hudPanelsIn_[2]);
 
     clock_ = new CHudClock(interface_, this);
     AddChild(clock_);
-    clock_->AddObject(objects_.data[2]);
+    clock_->AddObject(objects_[2]);
     clock_->SetupVanilla(interface_->fastGame_);
 
     movePanel_ = new CHudMovePanel(interface_, this);
     AddChild(movePanel_);
-    movePanel_->AddObject(objects_.data[2]);
+    movePanel_->AddObject(objects_[2]);
     movePanel_->Build();
 
     messageLog_ = new CUiScrollText(interface_, game::EmptyText(), RECT{0xBE, 0x19, 0x262, 0x59}, 3.0f);
@@ -144,7 +144,7 @@ void CBattleScreen::CreateScreen() {
 
     topPanel_ = new CHudTopPanel(interface_, this);
     AddChild(topPanel_);
-    topPanel_->AddObject(objects_.data[2]);
+    topPanel_->AddObject(objects_[2]);
     topPanel_->Build(interface_->hudTopPage_, interface_->hudPanelsIn_[1]);
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.

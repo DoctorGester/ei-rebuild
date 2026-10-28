@@ -83,7 +83,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
 
 // acos of the clamped dot product of two unit vectors, rounded to float (Dot, then ClampUnit).
 float AngleBetween(const Vector3& a, const Vector3& b) {
-    return static_cast<float>(gamecrt::acos(ClampUnit(static_cast<float>(Dot(a, b)))));
+    return static_cast<float>(libcrt::CiAcos(ClampUnit(static_cast<float>(Dot(a, b)))));
 }
 
 } // namespace
@@ -146,7 +146,7 @@ void CTransformObject::TiltTowards(const Vector3& target) {
         if (dot > D(EI_ONE)) dot = EI_ONE;
         else dot = dot >= D(EI_MINUS_ONE) ? dot : EI_MINUS_ONE;   // -1 also for NaN
         // The game clamps a second time while storing the float; the value is in range by now.
-        angle = gamecrt::acos(static_cast<float>(dot));
+        angle = libcrt::CiAcos(static_cast<float>(dot));
     } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);
         angle = EI_ZERO;
@@ -181,7 +181,7 @@ void CTransformObject::TurnTowards(const Vector3& target) {
         float clamped = static_cast<float>(dot);
         if (dot > D(EI_ONE)) clamped = 1.0f;
         else clamped = D(clamped) >= D(EI_MINUS_ONE) ? clamped : -1.0f;   // -1 also for NaN
-        angle = static_cast<float>(gamecrt::acos(clamped));
+        angle = static_cast<float>(libcrt::CiAcos(clamped));
     } else {   // also NaN
         axis = MakeVector(1.0f, 0.0f, 0.0f);
         angle = 0.0f;

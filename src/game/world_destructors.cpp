@@ -1,6 +1,6 @@
 // The destructors the compiler wrote for the world's classes: the bodies the exe's vtables reach through the
 // scalar deleting destructors, the members destroyed last to first after the class's own teardown. The
-// containers are the library's (lib/mfc.h CArray / CList, lib/containers.h AlignedArray, lib/stlp.h
+// containers are the library's (lib/mfc.h CArray / CList, std::vector, lib/stlp.h
 // hash_map). See docs/notes/standalone.md.
 #include "effects.h"
 #include "game_arrays.h"
@@ -27,13 +27,6 @@
 void RefPtrRelease(RefPtr* self);
 
 namespace {
-
-// A sector grid's storage as the client's destructor frees it after setting the grid to 1 x 1: the
-// cells' lists (their vector deleting destructor), then the row pointers.
-void FreeGrid(SectorGrid& grid) {
-    if (grid.cells_) grid.cells_->VectorDelete(3);
-    gamecrt::operator_delete(grid.rows_);
-}
 
 // A script container destroyed by its instantiation's destructor (`Abi` over the element's policy,
 // `Class` the vtable it writes back).
@@ -104,13 +97,10 @@ CWorldClient::~CWorldClient() {
     scorchMarks_.clear();
     footprints_.clear();
     bloodPrints_.clear();
-    secondGrid_.Resize(1, 1);
-    FreeGrid(secondGrid_);
-    objectGrid_.Resize(1, 1);
-    FreeGrid(objectGrid_);
+    // The second grid still holds its objects: released here, as the original's destructor does.
+    secondGrid_.Free();
+    objectGrid_.Free();
     dynamicObjects_.clear();
-    objects_.Destroy();
-    DestroySectorList(&heroes_);
     countedA0_.clear();
     exits_.clear();
 }

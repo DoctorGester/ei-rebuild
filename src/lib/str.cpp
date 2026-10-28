@@ -4,7 +4,6 @@
 #include "text_case.h"
 
 #include <cstring>
-#include <mbstring.h>
 
 namespace str {
 
@@ -18,16 +17,12 @@ bool MbsLess::operator()(const std::string& a, const std::string& b) const {
 
 namespace {
 
-using uchar = unsigned char;
-
-const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
-// _tcschr with a char sign-extended first, as the library passed it.
-bool Contains(const char* set, char c) { return _mbschr(U(set), static_cast<unsigned>(static_cast<int>(c))) != nullptr; }
-bool IsSpace(char c) { return _ismbcspace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
+// The byte searches stand for the multibyte CRT's _mbschr / _mbsstr / _mbsrchr / _mbspbrk / _ismbcspace, which the
+// text (UTF-8, no lead bytes) made the same: strchr finds the char's byte (_tcschr's sign-extended char too), the
+// white space is ASCII's.
+bool Contains(const char* set, char c) { return std::strchr(set, c) != nullptr; }
 int Length(const std::string& s) { return static_cast<int>(s.size()); }
-int Offset(const std::string& s, const uchar* found) {
-    return found ? static_cast<int>(reinterpret_cast<const char*>(found) - s.c_str()) : -1;
-}
+int Offset(const std::string& s, const char* found) { return found ? static_cast<int>(found - s.c_str()) : -1; }
 
 // The text cut where `last` points (TrimRight's end), when it points into it.
 void CutAt(std::string& s, const char* last) {
@@ -46,17 +41,17 @@ std::string Format(const char* format, ...) {
 
 int Find(const std::string& s, char c, int start) {
     if (start >= Length(s)) return -1;
-    return Offset(s, _mbschr(U(s.c_str() + start), static_cast<uchar>(c)));
+    return Offset(s, std::strchr(s.c_str() + start, c));
 }
 
 int Find(const std::string& s, const char* sub, int start) {
     if (start > Length(s)) return -1;
-    return Offset(s, _mbsstr(U(s.c_str() + start), U(sub)));
+    return Offset(s, std::strstr(s.c_str() + start, sub));
 }
 
-int ReverseFind(const std::string& s, char c) { return Offset(s, _mbsrchr(U(s.c_str()), static_cast<uchar>(c))); }
+int ReverseFind(const std::string& s, char c) { return Offset(s, std::strrchr(s.c_str(), c)); }
 
-int FindOneOf(const std::string& s, const char* set) { return Offset(s, _mbspbrk(U(s.c_str()), U(set))); }
+int FindOneOf(const std::string& s, const char* set) { return Offset(s, std::strpbrk(s.c_str(), set)); }
 
 std::string Mid(const std::string& s, int first) { return Mid(s, first, Length(s) - first); }
 
@@ -105,7 +100,7 @@ int Remove(std::string& s, char c) {
 void TrimRight(std::string& s) {
     const char* last = nullptr;
     for (const char* p = s.c_str(); *p != '\0'; ++p) {
-        if (IsSpace(*p)) {
+        if (text::IsSpace(*p)) {
             if (!last) last = p;
         } else {
             last = nullptr;
@@ -140,7 +135,7 @@ void TrimRight(std::string& s, const char* targets) {
 
 void TrimLeft(std::string& s) {
     const char* p = s.c_str();
-    while (IsSpace(*p)) ++p;
+    while (text::IsSpace(*p)) ++p;
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 

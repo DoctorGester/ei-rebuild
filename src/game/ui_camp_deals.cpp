@@ -48,8 +48,8 @@ constexpr int kArmorClass = 0x3005;
 constexpr int kQuickItemClass = 0x3006;
 
 CParty* PlayerParty() { return LocalPlayerData(); }
-CItem* ItemAt(CParty* party, int index) { return party->items_.data[index]; }
-int ItemCount(const CParty* party) { return party->items_.size; }
+CItem* ItemAt(CParty* party, int index) { return party->items_[index]; }
+int ItemCount(const CParty* party) { return std::ssize(party->items_); }
 // The prototype index an item's packed id carries (its high word).
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->prototypeId_ >> 16; }
 // An item record marked as made by a constructor.
@@ -256,8 +256,8 @@ void CCampPages::DoAction() {
     case kEquipment:
         if (itemConstructor_ && !noConstructor_) {
             PartyUnitRecord* hero = HeroRecord();
-            for (int i = 0; i < hero->weapons.size; ++i) hero->weapons[i]->Repair();
-            for (int i = 0; i < hero->armor.size; ++i) hero->armor[i]->Repair();
+            for (int i = 0; i < std::ssize(hero->weapons); ++i) hero->weapons[i]->Repair();
+            for (int i = 0; i < std::ssize(hero->armor); ++i) hero->armor[i]->Repair();
         }
         break;
     case kTrade:

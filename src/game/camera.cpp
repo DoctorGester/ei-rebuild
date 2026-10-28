@@ -551,7 +551,7 @@ void CCamera::ViewsToSettings(options::GameOptions* settings) {
         double sum = LengthSquaredUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z);
         float sumF = static_cast<float>(sum);
         if (sum > kAxisTiny) {
-            double angle = gamecrt::acos(q.w);
+            double angle = libcrt::CiAcos(q.w);
             angle = angle + angle;
             double inv = 1.0 / std::sqrt(sumF);
             float invF = static_cast<float>(inv);

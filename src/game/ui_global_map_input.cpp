@@ -135,7 +135,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     }
     SelectZone(index, isLink);
     if (index == -1 || (!isLink && zones_.data[index].state == 0)) {
-        surfaces_.data[0]->Freeze(0, 0);
+        surfaces_[0]->Freeze(0, 0);
         SceneMesh(markerCount_ + kTipBack)->visible_ = 0;
         SceneMesh(markerCount_ + kTipFrame)->visible_ = 0;
         shownName_.clear();
@@ -146,11 +146,11 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
     if (!SameText(shownName_, text)) interface_->PlaySound(ZoneSound(), 0);
     shownName_ = text;
     text = isLink ? links_.data[index].title : zones_.data[index].title;
-    surfaces_.data[0]->Freeze(1, 0);
-    UiSurfaceGetDC(surfaces_.data[0]);
-    surfaces_.data[0]->Clear();
+    surfaces_[0]->Freeze(1, 0);
+    UiSurfaceGetDC(surfaces_[0]);
+    surfaces_[0]->Clear();
     RECT titleRect{10, 10, 300, 50};
-    surfaces_.data[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
+    surfaces_[0]->DrawTextIn(text, &titleRect, kTipFont, kTipColour, kTipFormat, 1);
     // A zone's tip lists the quests in it.
     int lines = 0;
     if (!isLink) {
@@ -159,12 +159,12 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
             GlobalMapPlace& quest = quests_.data[i];
             if (quest.zone != index) continue;
             RECT rect{20, bottom - kTipLine, 350, bottom};
-            surfaces_.data[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
+            surfaces_[0]->DrawTextIn(quest.title, &rect, kTipFont, kTipColour, kTipFormat, 1);
             ++lines;
             bottom += kTipLine;
         }
     }
-    UiSurfaceReleaseDC(surfaces_.data[0]);
+    UiSurfaceReleaseDC(surfaces_[0]);
     CUiMesh* back = SceneMesh(markerCount_ + kTipBack);
     back->SetRectangle(3.0f, 100.0f, 400.0f, 20.0f, 780.0f, static_cast<float>(lines * kTipLine + 75), 0, 0, 0x100, 0x100);
     back->visible_ = 1;

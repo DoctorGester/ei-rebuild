@@ -47,8 +47,8 @@ CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 void CUiItemStrip::Setup(UiPtrArray<CItem>* source, char top) {
     LoadTexture(top ? kTopTexture : kBottomTexture, kTextureKind, nullptr);
     Build(top);
-    regions_.data[0]->SetTip(0x4FB0, 1, 0);
-    regions_.data[1]->SetTip(0x4FB1, 1, 0);
+    regions_[0]->SetTip(0x4FB0, 1, 0);
+    regions_[1]->SetTip(0x4FB1, 1, 0);
     AddSurface(NewSurface(interface_, 50, top_ + 15, 750, top_ + 35));
     AddSurface(NewSurface(interface_, 50, top_ + 65, 750, top_ + 85));
     slots_ = 9;
@@ -60,8 +60,8 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
     LoadTexture(kFigureTexture, kTextureKind, nullptr);
     Build(top);
     if (!noArrowTips) {
-        regions_.data[0]->SetTip(0x9DD0, 1, 0);
-        regions_.data[1]->SetTip(0x9DD1, 1, 0);
+        regions_[0]->SetTip(0x9DD0, 1, 0);
+        regions_[1]->SetTip(0x9DD1, 1, 0);
     }
     tabsEnabled_ = false;
     for (int i = 2; i < 8; ++i) SceneMesh(i)->visible_ = 0;

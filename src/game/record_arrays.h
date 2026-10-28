@@ -1,20 +1,17 @@
 #pragma once
 
-// The CArray<T> instantiations of game records: the figure's parts, the
-// scene's meshes, nodes, face groups and materials, the network delta fields, the music themes, the
+// The CArray<T> instantiations of game records: the network delta fields, the music themes, the
 // sound cache's wave records, unit behaviours, patrols and zone exits by value, the global map's
 // records and the script's command arrays. lib/mfc_array.h's templates over the game's element
 // types, each element's constructor and destructor ours, called directly. Registered in
 
 #include "lib/mfc_array.h"
 #include "lib/mfc_slots.h"
-#include "game/figure.h"
 #include "game/figure_mesh.h"
 #include "game/game_lists.h"
 #include "game/map_spec.h"
 #include "game/material.h"
 #include "game/net_delta.h"
-#include "game/scene_loader.h"
 #include "game/sector_map.h"
 #include "game/script.h"
 #include "game/sound.h"
@@ -26,35 +23,8 @@ namespace recordarrays {
 
 using mfc::impl::ArrayAbi;
 using mfc::impl::Bytes;
-using mfc::impl::DeleteThroughFirst;
 using mfc::impl::EachElements;
 
-// ---- Scene records -------------------------------------------------------------------------------
-
-// The fake unit's arrays (scene_loader.h has their element types): the figure's parts, the scene's
-// materials, meshes and nodes.
-using FigureParts = ArrayAbi<CPlainFigureMesh, scene::FigurePartElements>;
-using Materials = ArrayAbi<CMaterial, scene::HelperElements>;
-using SceneMeshes = ArrayAbi<scene::SceneMesh, scene::MeshElements>;
-using SceneNodes = ArrayAbi<scene::SceneNode, scene::NodeElements>;
-
-// A mesh's face groups: built by FaceGroup::ConstructElements, each destroyed by FaceGroup::Destruct.
-using FaceGroups = ArrayAbi<scene::FaceGroup, scene::FaceGroupElements>;
-// CArray<FaceGroup> (a mesh's +0x148), its vtable the compiler's (mfc_slots.h).
-struct FaceGroupArrayClass final
-    : mfc::impl::CompiledCollection<FaceGroupArrayClass, &scene::FaceGroupArrayDestruct, &FaceGroups::Serialize> {};
-
-
-
-// A fake unit's figure parts, meshes and materials (FakeUnitScene's constructor).
-struct FakeUnitPartArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitPartArrayClass, &FigureParts::Destruct<FakeUnitPartArrayClass>, &FigureParts::Serialize> {};
-struct FakeUnitSceneRecordArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitSceneRecordArrayClass, &SceneMeshes::Destruct<FakeUnitSceneRecordArrayClass>,
-                                    &SceneMeshes::Serialize> {};
-struct FakeUnitRecord9CArrayClass final
-    : mfc::impl::CompiledCollection<FakeUnitRecord9CArrayClass, &Materials::Destruct<FakeUnitRecord9CArrayClass>,
-                                    &Materials::Serialize> {};
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -83,9 +53,6 @@ using Decls = ArrayAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, gamelists::
 
 // ---- Destructors only the vtables point at -----------------------------------------------
 
-// CArray<SceneNode>.
-struct SceneNodeArrayClass final
-    : mfc::impl::CompiledCollection<SceneNodeArrayClass, &SceneNodes::Destruct<SceneNodeArrayClass>, &SceneNodes::Serialize> {};
 // The nested calls' base array.
 struct SubCallBaseClass
     : mfc::impl::CompiledCollection<SubCallBaseClass, &SubCalls::Destruct<SubCallBaseClass>, &SubCalls::Serialize> {};
@@ -95,12 +62,8 @@ struct SubCallArrayClass final : SubCallBaseClass {
 };
 using TerrainTileLists = ArrayAbi<terrain::TileList, terrain::TileListElements>;
 // The terrain sectors' tile lists (one vector per texture page).
-struct TerrainAlignedArrayClass final
-    : mfc::impl::CompiledCollection<TerrainAlignedArrayClass, &TerrainTileLists::Destruct<TerrainAlignedArrayClass>, &TerrainTileLists::Serialize> {};
-// CAnimationNode's morph frames (their point vectors).
-using MorphFrames = ArrayAbi<AnimationMorphFrame, AnimationMorphFrameElements>;
-struct MorphFrameArrayClass final
-    : mfc::impl::CompiledCollection<MorphFrameArrayClass, &MorphFrames::Destruct<MorphFrameArrayClass>, &MorphFrames::Serialize> {};
+struct TerrainTileListsClass final
+    : mfc::impl::CompiledCollection<TerrainTileListsClass, &TerrainTileLists::Destruct<TerrainTileListsClass>, &TerrainTileLists::Serialize> {};
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 // A terrain sector's vertex records.

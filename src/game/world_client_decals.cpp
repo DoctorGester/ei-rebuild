@@ -52,7 +52,7 @@ void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
     MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
     if (stack.count == 0) {
         stack.count = 1;
-        std::memcpy(stack.matrices, m, sizeof(Matrix4));
+        std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
         return;
     }
     ++stack.count;
@@ -139,7 +139,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             PushDecalMatrix(pipeline, object->worldMatrix.m);
             CLinkMesh* figure = object->figure;
             if (figure) {
-                for (int i = 0; i < object->parts.size; ++i) {
+                for (int i = 0; i < std::ssize(object->parts); ++i) {
                     CFigureMesh* part = object->parts[i];
                     BuildNodeMatrix(part->localRotation_, part->localPosition_, part->worldMatrix_);
                     PushDecalMatrix(pipeline, part->worldMatrix_.m);

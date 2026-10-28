@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -110,6 +111,6 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).
-        regions_.data[i]->SetTipString(tip.c_str(), 1, static_cast<int>(i) + 0x1E);
+        regions_[i]->SetTipString(tip.c_str(), 1, static_cast<int>(i) + 0x1E);
     }
 }

@@ -153,7 +153,7 @@ CUnit* CWorldClient::NearestVisibleUnit(CUnit* unit) {
 }
 
 FootprintPart* CObject3D::PartBox(int index) {
-    CFigureMesh* part = index < parts.size ? parts.data[index] : pendingParts.data[index - parts.size];
+    CFigureMesh* part = index < std::ssize(parts) ? parts[index] : pendingParts[index - std::ssize(parts)];
     return &part->box_;
 }
 
@@ -257,8 +257,7 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     const int length = name.size();
     const int second = str::Find(name, dot, str::Find(name, dot) + 1);
     name = str::Right(name, length - second - 1);
-    for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
-        CMapObject* object = node->data;
+    for (CMapObject* object : objects_) {
         if (str::Compare(name, object->name2) == 0) object->SetVisibilityLevel(value);
     }
     // The original's test counts a NaN as equal; the audit checks that none arrives.
@@ -276,8 +275,7 @@ std::string CWorldClient::ObjectVariableName(const char* name) {
 
 void CWorldClient::ApplyObjectVariables() {
     NamedFloatTable* variables = &session_->Party()->variables_;
-    for (MapObjectList::Node* node = objects_.First(); node != objects_.End(); node = node->next) {
-        CMapObject* object = node->data;
+    for (CMapObject* object : objects_) {
         const char* name = object->name2.c_str();
         if (!name || !*name) continue;
         object->SetVisibilityLevel(variables->Get(ObjectVariableName(name).c_str()));

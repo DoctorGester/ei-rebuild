@@ -181,7 +181,7 @@ CItemWeapon* CUnit::GetWeapon(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= static_cast<std::uint32_t>(record->weapons.size)) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->weapons))) return nullptr;
         return AsWeapon(record->weapons[slot]);
     }
     return slot < 4 ? AsWeapon(weapons[slot]) : nullptr;
@@ -191,7 +191,7 @@ CItem* CUnit::GetQuickItem(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= static_cast<std::uint32_t>(record->quickItems.size)) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->quickItems))) return nullptr;
         CItem* item = record->quickItems[slot];
         if (!item || static_cast<int>(item->count_) < 1) return nullptr;
         return item;
@@ -203,7 +203,7 @@ CItem* CUnit::GetSpell(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= static_cast<std::uint32_t>(record->spells.size)) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         return record->spells[slot];
     }
     return slot < 8 ? spells[slot] : nullptr;
@@ -213,7 +213,7 @@ CSpell* CUnit::GetSpellObject(std::uint32_t slot) {
     if (IsPartyUnit(this)) {
         if (!player) return nullptr;
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
-        if (!record || slot >= static_cast<std::uint32_t>(record->spells.size)) return nullptr;
+        if (!record || slot >= static_cast<std::uint32_t>(std::ssize(record->spells))) return nullptr;
         // No null check on the item here.
         return record->spells[slot]->spell_;
     }

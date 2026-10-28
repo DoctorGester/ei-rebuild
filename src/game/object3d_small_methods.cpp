@@ -26,19 +26,19 @@ void CObject3D::SetSpecific(CObject3DSpecific* half) {
 }
 
 void CObject3D::SetPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ |= mask;
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags_ |= mask;
 }
 
 void CObject3D::ClearPartFlags(std::uint32_t mask) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flags_ &= ~mask;
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flags_ &= ~mask;
 }
 
 void CObject3D::SetPartsFlatColour(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour_ = value;
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatColour_ = value;
 }
 
 void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular_ = value;
+    for (int i = 0; i < std::ssize(parts); ++i) PartAt(this, i)->flatSpecular_ = value;
 }
 
 void CObject3D::SetAnimationState(CFigureAnimationState* state) {

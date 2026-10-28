@@ -104,29 +104,6 @@ void ListAbi<T, E>::SerializeThrough(CArchive* ar) {
 template <>
 void Strings::Serialize(CArchive* ar);
 
-// The count, then (when there are any) key and value of each association, bucket by bucket. Loading
-// reads each pair and sets it (operator[]).
-template <typename K, typename V>
-void MapAbi<K, V>::Serialize(CArchive* ar) {
-    if (!ar->IsLoading()) {
-        ar->WriteCount(static_cast<unsigned long>(this->count));
-        if (this->count == 0) return;
-        for (std::uint32_t bucket = 0; bucket < this->hashSize; ++bucket)
-            for (Assoc* assoc = this->table[bucket]; assoc; assoc = assoc->next) {
-                ar->Write(&assoc->key, sizeof(K));
-                ar->Write(&assoc->value, sizeof(V));
-            }
-    } else {
-        for (unsigned long n = ar->ReadCount(); n--;) {
-            K key;
-            V value;
-            ar->Read(&key, sizeof(K));
-            ar->Read(&value, sizeof(V));
-            this->ElementAt(key) = value;
-        }
-    }
-}
-
 // ---- Compiler-made vtables -------------------------------------------------------------------
 // An instantiation's Class tag names the table its constructor and destructor store. See
 // docs/notes/standalone.md, "The image's source files".
@@ -201,9 +178,6 @@ struct ScriptIfThenArrayClass
 struct ScriptIfThenPairsClass final : ScriptIfThenArrayClass {
     static void* Vtable() { return CompiledVtable<ScriptIfThenPairsClass>(); }
 };
-// A figure's bone links
-struct BoneLinkArrayClass final
-    : CompiledCollection<BoneLinkArrayClass, &ArrayHeader<BoneLinkArrayClass>::Destruct, &KeyFrames::Serialize> {};
 // A unit's animation steps
 struct AnimationStepsClass
     : CompiledCollection<AnimationStepsClass, &ArrayHeader<AnimationStepsClass>::Destruct, &AnimationSteps::Serialize> {};
@@ -217,13 +191,6 @@ struct CellRowArrayClass final
 // The script's string arrays (game.exe's CArray<CString>; std::string elements)
 struct StringArrayClass final
     : CompiledCollection<StringArrayClass, &Strings::Destruct<StringArrayClass>, &Strings::Serialize> {};
-// The units' path cell lists
-// The client's third list
-// The AI's block cost lists
-// The AI plan's waypoint lists
-// The scene loader's CMap<DWORD, DWORD> (and the maps a node record holds)
-struct DwordMapClass final
-    : CompiledCollection<DwordMapClass, &Map32::Destruct<DwordMapClass>, &Map32::Serialize> {};
 
 // The animation list's copy constructor of the steps' array alone: the copy tag's table written first.
 inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(const Array* source) {
@@ -231,29 +198,6 @@ inline AnimationStepListAbi::Array* AnimationStepListAbi::CopyConstructSteps(con
     Array::Copy(*source);
     return this;
 }
-
-// ---- Element policies of the owned-element arrays ------------------------------------------------
-
-// The engine's aligned block whose pointer is at `At` freed (its allocation's start is the word
-// before), the pointer left.
-template <typename E, std::size_t At>
-void FreeAlignedAt(E* p) {
-    void* data = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + At);
-    if (data) lib::FreeAligned32(data);
-}
-
-template <std::size_t Size>
-using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
-template <std::size_t Size, std::size_t At>
-using AlignedBlockAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, FreeAlignedAt<Bytes<Size>, At>>>;
-
-using SceneObjects = DeletedThroughObject<0x1C>;
-using FakeUnitBoneArrays = DeletedThroughObject<0x14>;
-using AlignedAt4Records = AlignedBlockAt<0x14, 4>;
-
-// The scene's object records: CMap<DWORD, DWORD>s built, destroyed through slot 1.
-using DwordMap = CMap<std::uint32_t, std::uint32_t>;
-using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
 
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
@@ -293,35 +237,10 @@ struct SectorOccluderArrayClass final
 struct SmoothStepArrayClass final
     : CompiledCollection<SmoothStepArrayClass, &ArrayHeader<SmoothStepArrayClass>::Destruct, &Plain36::Serialize> {};
 
-// A model or animation file's arrays (the loader's).
-struct IndexArrayClass final
-    : CompiledCollection<IndexArrayClass, &ArrayHeader<IndexArrayClass>::Destruct, &Plain4::Serialize> {};
-
-// Maps whose elements need nothing.
-// LoadFigureRegistry's map.
-struct FigureRegistryMapClass final
-    : CompiledCollection<FigureRegistryMapClass, &Map32::Destruct<FigureRegistryMapClass>, &Map32::Serialize> {};
-// IndexMeshCorners' maps.
-struct CornerMapAClass final
-    : CompiledCollection<CornerMapAClass, &Map32::Destruct<CornerMapAClass>, &Map64x64::Serialize> {};
-struct CornerMapBClass final
-    : CompiledCollection<CornerMapBClass, &Map32::Destruct<CornerMapBClass>, &Map64x32::Serialize> {};
-struct CornerMapCClass final
-    : CompiledCollection<CornerMapCClass, &Map32::Destruct<CornerMapCClass>, &Map32::Serialize> {};
-
 // Arrays whose elements own something.
-// A fake unit's 20-byte CObject elements (FakeUnitConstruct).
-struct FakeUnitBoneArraysClass final
-    : CompiledCollection<FakeUnitBoneArraysClass, &FakeUnitBoneArrays::Destruct<FakeUnitBoneArraysClass>, &OwnedBoneLinkArrays::Serialize> {};
-// The scene loader's 0x1C-byte CObject elements (SceneInfo::Load).
-struct SceneObjectArrayClass final
-    : CompiledCollection<SceneObjectArrayClass, &SceneObjects::Destruct<SceneObjectArrayClass>, &OwnedDwordMaps::Serialize> {};
 // The terrain's CByteArray elements (Serialize).
 struct TerrainByteArraysClass final
     : CompiledCollection<TerrainByteArraysClass, &ByteArrays::Destruct<TerrainByteArraysClass>, &ByteArrays::Serialize> {};
-// The scene loader's 20-byte records with an aligned block at +4.
-struct AlignedAt4ArrayClass final
-    : CompiledCollection<AlignedAt4ArrayClass, &AlignedAt4Records::Destruct<AlignedAt4ArrayClass>, &AlignedAt4Records::Serialize> {};
 // The script's areas (24-byte elements that are arrays; game_arrays.h's AreaArrayClass is the same table).
 struct ScriptAreaArrayClass final
     : CompiledCollection<ScriptAreaArrayClass, &ScriptAreas::Destruct<ScriptAreaArrayClass>, &ScriptAreas::Serialize> {};

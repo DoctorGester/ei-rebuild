@@ -53,7 +53,6 @@ ClientSession::ClientSession() {
     awards_.Construct();
     party_.ptr = nullptr;
     offers_.Construct();
-    tradeRecords_.Construct();
     trade_ = nullptr;
     PartyConstruct(&parties_[0]);
     PartyConstruct(&parties_[1]);

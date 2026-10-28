@@ -36,7 +36,7 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return window->SceneMesh(index);
 
 // Text into the panel's first surface (Rebirth-patched).
 void DrawPanelText(CUiWindow* window, std::string_view text, RECT rect, std::uint32_t colour, int a, int b) {
-    window->surfaces_.data[0]->DrawTextIn(text, &rect, 0, colour, a, b);
+    window->surfaces_[0]->DrawTextIn(text, &rect, 0, colour, a, b);
 }
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
@@ -164,7 +164,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
     static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
 
     CTextManager* texts = TheTextManager();
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     std::string code, text, number;
     int icons[kPlaces], places[kPlaces];
     bool taken[kPlaces] = {};
@@ -218,7 +218,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         int y = kPlaceY[places[i]];
         if (fresh) {
             picture = str::Format("spell%04d", icons[i]);
-            CopyImage(objects_.data[1], picture.c_str(), kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
+            CopyImage(objects_[1], picture.c_str(), kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
             effectIcons_[free] = icons[i];
         }
         CUiMesh* icon = Sprite(this, kFirstIcon + i);
@@ -322,8 +322,8 @@ void CHudTopPanel::Layout() {
     SceneMesh(5)->PlaceBody(400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
     owner_->MessageLog()->SetRect(&rect);
-    for (int i = 1; i < regions_.size; ++i) {
-        regions_.data[i]->offsetX_ = 0;
-        regions_.data[i]->offsetY_ = -offset_;
+    for (int i = 1; i < std::ssize(regions_); ++i) {
+        regions_[i]->offsetX_ = 0;
+        regions_[i]->offsetY_ = -offset_;
     }
 }

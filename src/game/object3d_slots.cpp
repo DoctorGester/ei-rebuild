@@ -24,8 +24,7 @@ void CObject3D::SaveTransform(lib::File* file) { CTransformObject::SaveTransform
 void CObject3D::LoadTransform(lib::File* file) { CTransformObject::LoadTransform(file); }
 
 void CObject3D::CopyFigure(const CObject3D* other) {
-    parts.SetSize(other->parts.size, -1);
-    std::memcpy(parts.data, other->parts.data, static_cast<std::size_t>(other->parts.size & 0x3FFFFFFF) * sizeof(void*));
+    parts = other->parts;
     CTransformObject::CopyTransform(*other);
 }
 

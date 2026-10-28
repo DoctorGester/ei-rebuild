@@ -6,7 +6,6 @@
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "party.h"
-#include "record_lists.h"
 
 #include "lib/crt.h"
 
@@ -29,7 +28,7 @@ ClientSession::~ClientSession() {
     parties_[1].Get()->CParty::~CParty();
     parties_[0].Get()->CParty::~CParty();
     if (trade_) trade_->Release();
-    tradeRecords_.Release<recordlist::TradeElement>();
+    tradeRecords_.clear();   // here, where the original destroys it
     offers_.Release();
     party_.Destroy();
     awards_.Release();

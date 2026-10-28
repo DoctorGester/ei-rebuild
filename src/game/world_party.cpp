@@ -75,7 +75,7 @@ bool NamesZone(const itemdb::QuestItemRecord* info, const char* zone) {
     return found;
 }
 
-CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
+CItem* ItemAt(const ItemArray* items, int i) { return (*items)[i]; }
 
 } // namespace
 
@@ -91,7 +91,7 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
 
     // Quest items move from the array to the list: in single player only those whose
     // description names this zone or whose id an object asks for; otherwise all of them.
-    for (int i = 0; i < items->size; ++i) {
+    for (int i = 0; i < std::ssize(*items); ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CItem* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = itemdb::RecordAs<itemdb::QuestItemRecord>(item->GetPrototype());
@@ -100,9 +100,7 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
             if (!here && !Contains(wanted, static_cast<int>(AsQuest(item)->questItemId_))) continue;
         }
         AddTail(*list, ItemAt(items, i));
-        int following = items->size - i - 1;
-        if (following) std::memmove(&items->data[i], &items->data[i + 1], static_cast<std::size_t>(following) * 4);
-        --items->size;
+        items->erase(items->begin() + i);
         --i;
     }
 }
@@ -113,8 +111,8 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
         ItemArray* items = &player->Party()->items_;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
-            for (int i = 0; i < items->size; ++i) AddTail(taken, ItemAt(items, i));
-            items->SetSize(0, -1);
+            for (int i = 0; i < std::ssize(*items); ++i) AddTail(taken, ItemAt(items, i));
+            items->clear();
         } else {
             TakeZoneQuestItems(items, &taken);
         }

@@ -55,24 +55,6 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
     return this;
 }
 
-// Out = conj(b) * a (b copied first, its vector part negated through float
-// temporaries); a is read completely before out is written. Dead: only MakeFrameRelative
-// calls it, in the fake unit scene loader; its vector check was removed.
-Quaternion* MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
-    Quaternion c = Conjugate(b);
-    double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
-    double aw = a.w, ax = a.x, ay = a.y, az = a.z;
-    double nz = ((cx * ay - cy * ax) + cz * aw) + cw * az;
-    double ny = ((cz * ax - cx * az) + cw * ay) + cy * aw;
-    double nx = ((cy * az - cz * ay) + cw * ax) + cx * aw;
-    double nw = cw * aw - DotUnrounded<Sum3::XYZ>(cx, cy, cz, ax, ay, az);
-    out->w = static_cast<float>(nw);
-    out->x = static_cast<float>(nx);
-    out->y = static_cast<float>(ny);
-    out->z = static_cast<float>(nz);
-    return out;
-}
-
 // *this = slerp(a, b, t) along the shorter arc (b negated when the dot product is negative); nearly equal
 // rotations interpolate linearly. The weight of a is rounded to float, the weight of b is not.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
@@ -93,7 +75,7 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     double weightB;
     double one = EI_ONE_D;
     if (one - cosine > EI_SLERP_LINEAR) {
-        double angle = gamecrt::acos(stored);
+        double angle = libcrt::CiAcos(stored);
         double inverseSine = one / x87::fsin(angle);
         weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
         weightB = x87::fsin(angle * D(t)) * inverseSine;

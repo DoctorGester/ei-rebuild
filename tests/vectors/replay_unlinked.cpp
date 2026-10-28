@@ -11,7 +11,6 @@
 #include "../../src/game/material.h"
 #include "../../src/game/net_delta.h"
 #include "../../src/game/record_arrays.h"
-#include "../../src/game/scene_loader.h"
 #include "../../src/game/script.h"
 #include "../../src/game/sector_map.h"
 #include "../../src/game/terrain_sector.h"
@@ -39,7 +38,6 @@ namespace {
     { Unlinked(what); }
 
 // game_arrays.cpp's other element types.
-void aligned::ArrayAt8Free(void*) EI_UNLINKED("aligned::ArrayAt8Free")
 void ScriptQuestObjectiveDestruct(ScriptQuestObjective*) EI_UNLINKED("ScriptQuestObjectiveDestruct")
 
 // game_arrays.cpp's and game_lists.cpp's script effects (script_effects.cpp needs the world).
@@ -49,17 +47,9 @@ void ScriptFxSource::ScriptFxSourceDestruct() EI_UNLINKED("ScriptFxSource::Scrip
 void ScriptLightning::ScriptLightningDestruct() EI_UNLINKED("ScriptLightning::ScriptLightningDestruct")
 
 // record_arrays.cpp's other element types.
-void scene::InitFigurePart(CPlainFigureMesh*) EI_UNLINKED("scene::InitFigurePart")
-void scene::InitHelper(CMaterial*) EI_UNLINKED("scene::InitHelper")
 void SectorElements::Construct(Sector*, int) EI_UNLINKED("SectorElements::Construct")
 void terrain::RecordElements::Construct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Construct")
 void terrain::RecordElements::Destruct(terrain::SectorVertex*, int) EI_UNLINKED("terrain::RecordElements::Destruct")
-void scene::FaceGroup::ConstructElements(scene::FaceGroup*, int) EI_UNLINKED("scene::FaceGroup::ConstructElements")
-void scene::FaceGroup::Destruct() EI_UNLINKED("scene::FaceGroup::Destruct")
-void scene::FaceGroupArrayDestruct(scene::FaceGroupArray*) EI_UNLINKED("scene::FaceGroupArrayDestruct")
-void scene::InitSceneMesh(scene::SceneMesh*) EI_UNLINKED("scene::InitSceneMesh")
-void scene::SceneNode::Construct() EI_UNLINKED("scene::SceneNode::Construct")
-void scene::SceneNode::Destruct() EI_UNLINKED("scene::SceneNode::Destruct")
 
 // script_runtime_helpers.cpp's AI map and console helpers (CSectorMap::Add and Remove: replay_path.cpp).
 void CSectorMap::FindUnitsInRadius(const Vector3*, std::list<CUnit*>*, float)
@@ -81,11 +71,9 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream*) EI_UNLINKED("ScriptFxSour
 void ScriptLightningElementsDestruct(ScriptLightning*, int) EI_UNLINKED("ScriptLightningElementsDestruct")
 
 // The game CRT's ports (crt.cpp, crt_x87.cpp read the game CRT's data)
-// that no replay reaches: the node allocator (stlp.cpp), qsort (script_group.cpp), srand (random.cpp), acos
-// (quaternion.cpp).
+// that no replay reaches: the node allocator (stlp.cpp), srand (random.cpp), acos (quaternion.cpp).
 void* libcrt::NodeAllocate(std::size_t) EI_UNLINKED("libcrt::NodeAllocate")
 void libcrt::NodeDeallocate(void*, std::size_t) EI_UNLINKED("libcrt::NodeDeallocate")
-void libcrt::Qsort(void*, std::size_t, std::size_t, int(__cdecl*)(const void*, const void*)) EI_UNLINKED("libcrt::Qsort")
 void libcrt::Srand(unsigned) EI_UNLINKED("libcrt::Srand")
 double libcrt::CiAcos(double) EI_UNLINKED("libcrt::CiAcos")
 

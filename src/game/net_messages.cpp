@@ -9,7 +9,6 @@
 
 #include "lib/crt.h"
 #include "lib/stlp.h"
-#include "lib/stlp_vector.h"
 
 #include <cstring>
 

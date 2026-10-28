@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -37,7 +38,7 @@ int IndexOf(const std::string* begin, const std::string* end, std::string_view n
 }
 
 // The first entry of a record's item array, or null when it is empty.
-CItem* FirstOf(const lib::AlignedArray<CItem*>& list) { return list.size > 0 ? list.data[0] : nullptr; }
+CItem* FirstOf(const std::vector<CItem*>& list) { return !list.empty() ? list[0] : nullptr; }
 
 } // namespace
 

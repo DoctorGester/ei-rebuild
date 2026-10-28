@@ -162,8 +162,8 @@ struct TickSteps {
     }
 
     void RunElements() {
-        for (int i = 0; i < s->elementCount; ++i)
-            (s->*s->elementFn)(s->elements + i);
+        for (int i = 0; i < std::ssize(s->elements); ++i)
+            (s->*s->elementFn)(s->elements.data() + i);
     }
 
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to

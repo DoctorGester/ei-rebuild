@@ -71,8 +71,8 @@ void SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
 
 // A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
 // texts. A copy allocates (string's copy constructor, the swap's string(first, last)), so
-// every copy, assignment (assign(first, last)) and destruction is STLport's
-// (stlp::ObjectElement<std::string>); the partition takes the pivot by value and frees it before it
+// every copy, assignment (assign(first, last)) and destruction is at STLport's steps (stlp_algo.h's
+// ValueOps); the partition takes the pivot by value and frees it before it
 // returns. The comparison object is empty (the caller passes the person's id in its slot).
 // __introsort_loop, __final_insertion_sort.
 void TopicIntroSort(std::string* first, std::string* last, int tag, int depth, int comp);

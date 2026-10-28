@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <map>
 #include <memory>
 #include <new>
@@ -54,9 +55,9 @@ const char* FileData(CMappedResource* archive, const char* name) {
 }
 
 // The data of `name` in the first open archive that has it, or null.
-const char* FindInArchives(const LinkArchiveNode* archives, const char* name) {
-    for (const LinkArchiveNode* n = archives->next; n != archives; n = n->next)
-        if (const char* data = FileData(n->resource, name)) return data;
+const char* FindInArchives(const std::list<LinkArchive>& archives, const char* name) {
+    for (const LinkArchive& archive : archives)
+        if (const char* data = FileData(archive.resource, name)) return data;
     return nullptr;
 }
 
@@ -252,27 +253,11 @@ FigureModel* CLinkFigureLoader::FindFigureSet(const std::string* name) {
     return found != figureSets_.end() ? found->second : nullptr;
 }
 
-namespace {
-// The archive list's clear: each node's name freed and the node returned to the pool,
-// the sentinel linked to itself.
-void ClearArchives(LinkArchiveNode* head) {
-    for (LinkArchiveNode* n = head->next; n != head;) {
-        LinkArchiveNode* next = n->next;
-        std::destroy_at(&n->name);
-        stlp::deallocate(n, sizeof(LinkArchiveNode));
-        n = next;
-    }
-    head->next = head;
-    head->prev = head;
-}
-} // namespace
-
 CLinkFigureLoader::~CLinkFigureLoader() {
-    for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next) {
-        n->resource->CloseResource();
-        if (n->resource) delete n->resource;
+    for (LinkArchive& archive : archives_) {
+        archive.resource->CloseResource();
+        if (archive.resource) delete archive.resource;
     }
-    ClearArchives(archives_);
     for (auto& [name, set] : figureSets_) {
         if (set) {
             DestroyFigureModel(set);
@@ -284,9 +269,6 @@ CLinkFigureLoader::~CLinkFigureLoader() {
         device->Release();
     }
     CLinkFigureLoader::ClearCache();
-    // renderer_ is released here once more, like the original; it is null by now.
-    ClearArchives(archives_);
-    stlp::deallocate(archives_, sizeof(LinkArchiveNode));
 }
 
 bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, FigureModel* set, const std::string* name, float s, float t,

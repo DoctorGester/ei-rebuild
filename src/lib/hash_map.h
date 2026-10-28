@@ -8,6 +8,8 @@
 // hash % buckets, a new key at the head of its bucket's chain, buckets walked in order and each chain from its
 // head. Before an insert the table grows to HashPrime(size + 1) buckets when that is more than it has; each old
 // chain then moves head first to the head of its new bucket (so keys sharing a new bucket come out reversed).
+// HashMultimap (STLport's hash_multimap): an insert goes right after the first entry with its key, else to the head
+// of its bucket, so equal keys follow each other in their chain.
 
 #include <cstddef>
 #include <cstdint>
@@ -39,7 +41,7 @@ struct TextHash {
     }
 };
 
-template <typename K, typename V, typename Hash = DwordHash>
+template <typename K, typename V, typename Hash = DwordHash, bool Multi = false>
 class HashMap {
     struct Node {
         Node* next;
@@ -157,14 +159,14 @@ public:
 
     iterator find(const K& key) { return {FindNode(key), this}; }
     const_iterator find(const K& key) const { return {FindNode(key), this}; }
-    size_type count(const K& key) const { return FindNode(key) ? 1 : 0; }
+    size_type count(const K& key) const requires(!Multi) { return FindNode(key) ? 1 : 0; }
     bool contains(const K& key) const { return FindNode(key) != nullptr; }
 
     // The table grows for one more entry (also when the key is there), then the key's value, a
     // value-initialised one inserted at the head of its bucket when there is none.
-    V& operator[](const K& key) { return try_emplace(key).first->second; }
+    V& operator[](const K& key) requires(!Multi) { return try_emplace(key).first->second; }
     template <typename... A>
-    std::pair<iterator, bool> try_emplace(const K& key, A&&... arguments) {
+    std::pair<iterator, bool> try_emplace(const K& key, A&&... arguments) requires(!Multi) {
         reserve(count_ + 1);
         size_type b = bucket(key);
         for (Node* n = buckets_[b]; n; n = n->next)
@@ -175,7 +177,30 @@ public:
         ++count_;
         return {iterator(n, this), true};
     }
-    std::pair<iterator, bool> insert(const value_type& value) { return try_emplace(value.first, value.second); }
+    std::pair<iterator, bool> insert(const value_type& value) requires(!Multi) {
+        return try_emplace(value.first, value.second);
+    }
+    // hash_multimap's insert (insert_equal): the table grows for one more entry, then the value goes right after
+    // the first entry with its key, else to the head of its bucket.
+    iterator insert(const value_type& value) requires Multi {
+        reserve(count_ + 1);
+        Node** head = &buckets_[bucket(value.first)];
+        Node* same = *head;
+        while (same && !(same->value.first == value.first)) same = same->next;
+        Node*& link = same ? same->next : *head;
+        Node* n = new Node{link, value};
+        link = n;
+        ++count_;
+        return {n, this};
+    }
+    // The entries with `key` (next to each other in their chain); the end is the entry after them in walk order.
+    std::pair<iterator, iterator> equal_range(const K& key) {
+        Node* first = FindNode(key);
+        if (!first) return {end(), end()};
+        Node* last = first;
+        while (last->next && last->next->value.first == key) last = last->next;
+        return {iterator(first, this), iterator(After(last), this)};
+    }
 
     // Erases the entry; the one after it in walk order.
     iterator erase(const_iterator position) {
@@ -189,7 +214,7 @@ public:
         return {next, this};
     }
     iterator erase(iterator position) { return erase(const_iterator(position)); }
-    size_type erase(const K& key) {
+    size_type erase(const K& key) requires(!Multi) {
         Node* node = FindNode(key);
         if (!node) return 0;
         erase(const_iterator(node, this));
@@ -258,5 +283,8 @@ private:
     std::vector<Node*> buckets_;
     size_type count_ = 0;
 };
+
+template <typename K, typename V, typename Hash = DwordHash>
+using HashMultimap = HashMap<K, V, Hash, true>;
 
 } // namespace lib

@@ -229,7 +229,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     net::ClientSession* client = net::GameClient();
 
     // Surface 0: our money and the accept caption.
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_current_money", &text);
@@ -242,7 +242,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceReleaseDC(surface);
 
     // Surface 1: the money offer's caption.
-    surface = surfaces_.data[1];
+    surface = surfaces_[1];
     UiSurfaceGetDC(surface);
     surface->Clear();
     texts->GetString("xch_money_offer", &text);
@@ -251,7 +251,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceReleaseDC(surface);
 
     // Surface 2: the partner's money, while its offer pairs with ours.
-    surface = surfaces_.data[2];
+    surface = surfaces_[2];
     UiSurfaceGetDC(surface);
     surface->Clear();
     net::PartyMessage* partner = net::ClientFindParty(client);
@@ -266,7 +266,7 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     UiSurfaceReleaseDC(surface);
 
     // Surface 3: whether the partner accepted.
-    surface = surfaces_.data[3];
+    surface = surfaces_[3];
     UiSurfaceGetDC(surface);
     surface->Clear();
     partner = net::ClientFindParty(client);
@@ -285,11 +285,11 @@ BOOL CExchangeScreen::Draw(CSceneRenderer* pass) {
     // The accept button greyed and take-back lit while our offer is accepted, else the reverse;
     // the third one lit while the partner accepted.
     bool accepted = LiveAccepted(client->party_.Get());
-    SetTint(Sprite(sceneObjects_.data[0]), accepted ? 0.5f : 1.0f);
-    SetTint(Sprite(sceneObjects_.data[1]), accepted ? 1.0f : 0.5f);
+    SetTint(Sprite(sceneObjects_[0]), accepted ? 0.5f : 1.0f);
+    SetTint(Sprite(sceneObjects_[1]), accepted ? 1.0f : 0.5f);
     partner = net::ClientFindParty(client);
     bool partnerAccepted = partner && !(partner->flags7_ & CRefObject::kDetached) && net::ClientFindParty(client)->accepted_;
-    SetTint(Sprite(sceneObjects_.data[2]), partnerAccepted ? 0.5f : 1.0f);
+    SetTint(Sprite(sceneObjects_[2]), partnerAccepted ? 0.5f : 1.0f);
 
     AsContainer(this)->CUiContainer::Draw(pass);
     return 1;
@@ -319,8 +319,8 @@ void CExchangeScreen::MoveOffered(CItem* item, int mode) {
     }
     if (mode != kGridMode) return;
     const PartyItemArray& offered = ownOffer_->items_;
-    for (int i = 0; i < offered.size; ++i) {
-        if (offered.data[i] != item) continue;
+    for (int i = 0; i < std::ssize(offered); ++i) {
+        if (offered[i] != item) continue;
         uiorig::PlayUiSound(interface_, kPutOffSound, 0);
         CParty* offer = ownOffer_;
         CItem* held = MoveItem(item, LocalParty(), offer, 0, 1, 0);

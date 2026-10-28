@@ -65,7 +65,7 @@ void ZoneExit::Read(CStream* stream) {
     stream->Read(&view, 4);
     hasDeployAngle = 0;
     deployAngle = 0;
-    std::memset(&angle, 0, sizeof(angle));
+    angle = 0;
     if (static_cast<int>(stream->version_) >= static_cast<int>(kExitExtrasVersion)) {
         stream->Read(&hasDeployAngle, 1);
         stream->Read(&deployAngle, 4);

@@ -152,7 +152,7 @@ void IsaacRandom::Seed() {
         return;
     }
     char path[kPathBuffer];
-    gamecrt::srand(gameapi::timeGetTime());
+    libcrt::Srand(gameapi::timeGetTime());
     int ok = 0;
     while (!ok) {
         int counter = 0;
@@ -165,7 +165,7 @@ void IsaacRandom::Seed() {
         ok = 1;
         lib::File file;
         if (file.Open(path, kOpenReadShared)) {
-            gamecrt::srand(gameapi::timeGetTime());
+            libcrt::Srand(gameapi::timeGetTime());
             long offset = kSeedBytes - RandomBelow512();
             DWORD read = 0;
             if (gameapi::SetFilePointer(file.Handle(), offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||

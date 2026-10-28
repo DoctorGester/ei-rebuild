@@ -552,10 +552,7 @@ public:
     Vector3 windDirection;          // copied from the world every tick
     float windStrength;
     float additiveBlend;            // int bits: 1 draws with additive blending
-    ParticleElement* elements;
-    int elementCount;
-    int elementCapacity;
-    int elementGrowBy;
+    std::vector<ParticleElement> elements;   // per type
     Vector3 boundsMin;              // over the particles, rebuilt every tick
     Vector3 boundsMax;
     // the bounds the renderer clips by: flags bit 1 set by the tick, the box (boundsMin and
@@ -586,9 +583,6 @@ struct ParticleSprite {
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
 using ParticleSpriteArray = std::vector<ParticleSprite>;
-
-// Room for `count` elements, 32-byte aligned, the allocated block stored just below;
-ParticleElement* AllocateElements(int count);
 
 // The world's rain/snow layer.
 class CRainSnow final : public CEngineObject {

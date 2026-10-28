@@ -100,11 +100,7 @@ here is gone. Facts a worker needs:
   parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time
   factor) - origin; the mesh gets both and the pose's vertices (005A0B10); FigureBone Construct 0050AF40, CreateBone 0050B370 (slot 2:
   reset; the matrices +0x90 emptied without freeing, as 0050DD40), DestroyBone 0050B510 (slot 3: mesh forgotten then released, pose
-  only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone. CAnimationNode Construct 00506710 (cursors -1, identity
-  rotations, +0x9C / +0xAC / position_ from 007AF0E0 / 007AF0F0) / DestructBody 005068C0 (the mesh only loses a reference; children
-  destroyed and deleted); AttachMeshes 00507C50 (the first part named as the node becomes its mesh, placed at the pose; recursive),
-  SceneSkin::BindMeshes 00508BF0 (skin_rewind.cpp), MultiplyQuaternions 00506C70 (fastcall out, a, b: a * b, Hamilton).
-- Client companion: EffectsChanged 005117D0 (slot 13), UpdateEffectParticles 00510B80, UpdateEffectSounds 005112A0, PlayEffectSound
+  only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone.- Client companion: EffectsChanged 005117D0 (slot 13), UpdateEffectParticles 00510B80, UpdateEffectSounds 005112A0, PlayEffectSound
   005114D0 (map_object_client_effects.cpp: records present, one per merged type at the highest power / per effect otherwise, one
   sound per type; stench timer 0, feeble mind handle toggles), CreateLight 00511830, ShowLight 00511950, HideLight 005119B0, ApplyLightMode 00511A00
   (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it; new light class 0x31 with the radius at
@@ -248,10 +244,9 @@ each one is in the head comment of its verify file.
   005156E0-00515810); CObject3D's small methods (00515D50, 005161A0, 005174E0, 00517910, 00517950, 005187B0-00518860,
   00519500, 00519530). Side by side: the class names / ids and the folder; the rest ours only (game start, zone load,
   hits and effects on a hosted game's objects, interface models).
-- **0x00500000-0x0050E000** (`small_slots_500.cpp`, `scene_skin_lifetime.cpp`, `renderer_base_create.cpp`,
+- **0x00500000-0x0050E000** (`small_slots_500.cpp`, `renderer_base_create.cpp`,
   `renderer_init.cpp`; `verify_small_slots_500.cpp`): the animation classes' names and ids (0050A6E0, 0050A6F0,
-  0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, the fake unit skin's lifetime
-  (scene::SceneSkin, 0x50 bytes: 00508700, 005087B0, 00508870, 005088E0, 00508930), CSceneRenderer::CreateBase 00500540
+  0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, CSceneRenderer::CreateBase 00500540
   (the transform pipeline, CPUID(1) into the globals at 007CAED0, the MMX check and `2DintMMX.dll` from the work path; it
   only goes through the renderer's own interfaces, no device calls), MatrixTransposeInPlace 00501980,
   CTransformPipeline::Top 005019D0 and CSceneRenderer::SetView 005015A0 (slot 25 of a live vtable, never called).

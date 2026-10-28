@@ -37,7 +37,7 @@ CUiRegion* AddRect(CUiWindow* window, const RECT& r) {
 }
 
 void ShowFrom(CUiWindow* window, int first, std::uint32_t shown) {
-    for (int i = first; i < window->sceneObjects_.size; ++i)
+    for (int i = first; i < std::ssize(window->sceneObjects_); ++i)
         window->SceneMesh(i)->visible_ = static_cast<int>(shown);
 }
 
@@ -51,7 +51,7 @@ constexpr std::uint32_t kGrey = 0x828282;
 void CHeroStatsPanel::ShowStats(int page) {
     RECT rect = {0x14, 0xA5, 0xB4, 0xB4};
     page_ = page;
-    while (regions_.size > 2) RemoveRegionAt(2);
+    while (std::ssize(regions_) > 2) RemoveRegionAt(2);
     ShowFrom(this, 4, 0);
     if (page_ == 0) {
         Down(&rect);
@@ -100,7 +100,7 @@ void CHeroStatsPanel::ShowStats(int page) {
 // --- Statistics drawing ---------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawStats() {
-    CUiSurface* draw = surfaces_.data[0];
+    CUiSurface* draw = surfaces_[0];
     draw->GetDC();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
@@ -267,7 +267,7 @@ void BuildCellGrid(CUiWindow* window) {
         float pictureDepth = static_cast<float>(D(depth) + D(depth));
         int bottom = top + 100;
         for (int left = 200; left < 600; left += 100) {
-            CTexture** textures = window->objects_.data;
+            CTexture** textures = window->objects_.data();
             CTexture* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
@@ -326,7 +326,7 @@ void CHeroEquipPanel::Build(bool body) {
             CUiMesh* picture = AddSprite(0);
             picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
-            picture->texture_ = objects_.data[i + 1];
+            picture->texture_ = objects_[i + 1];
         }
     }
     selected_ = -1;
@@ -393,13 +393,13 @@ CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
     int region = RegionAt(x, y);
     if (region >= 0 && region < kGridCellsPerList) {
         *topic = flag_ ? kTopicTraderBuy : buyKind_ ? kTopicItemBuy : kTopicSpellBuy;
-        if (region < bought_->size) return bought_->data[region];
+        if (region < std::ssize(*bought_)) return (*bought_)[region];
         return nullptr;
     }
     if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
     // The sold list's topic also follows buyKind_.
     *topic = flag_ ? kTopicTraderSell : buyKind_ ? kTopicItemSell : kTopicSpellSell;
-    if (region - kGridCellsPerList < sold_->size) return sold_->data[region - kGridCellsPerList];
+    if (region - kGridCellsPerList < std::ssize(*sold_)) return (*sold_)[region - kGridCellsPerList];
     return nullptr;
 }
 
@@ -409,7 +409,7 @@ CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
     int region = RegionAt(x, y);
     if (region < 0 || region >= kGridCells) return nullptr;
     *topic = kTopicRepair;
-    return region < items_->size ? items_->data[region] : nullptr;
+    return region < std::ssize(*items_) ? (*items_)[region] : nullptr;
 }
 
 // --- The repair grid's Build ---------------------------------------------------------------
@@ -458,7 +458,7 @@ void AddMakerPictures(CConstructorPage* page) {
         CUiMesh* picture = page->AddSprite(0);
         picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
-        picture->texture_ = page->objects_.data[i];
+        picture->texture_ = page->objects_[i];
     }
     CUiMesh* frame = page->AddSprite(0);
     frame->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);

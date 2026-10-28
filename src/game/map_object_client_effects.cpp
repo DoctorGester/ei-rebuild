@@ -18,7 +18,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
-#include "lib/stlp_list.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
 #include "game_singletons.h"

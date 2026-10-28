@@ -67,7 +67,7 @@ void CTransformPipeline::PushMatrix(const float* m, int index) {
     MatrixStack& stack = stacks_[index];
     if (stack.count == 0) {
         stack.count = 1;
-        std::memcpy(stack.matrices, m, sizeof(Matrix4));
+        std::memcpy(stack.matrices.data(), m, sizeof(Matrix4));
         return;
     }
     ++stack.count;

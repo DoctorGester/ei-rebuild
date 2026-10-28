@@ -7,6 +7,7 @@
 #include "unit.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace {
 
@@ -21,8 +22,8 @@ constexpr int kTopicSecond = 3;
 constexpr int kTopicEntry = 1;
 
 // `item`'s place in `list`, or -1.
-int IndexIn(const lib::AlignedArray<CItem*>& list, const CItem* item) {
-    for (int i = 0; i < list.size; ++i)
+int IndexIn(const std::vector<CItem*>& list, const CItem* item) {
+    for (int i = 0; i < std::ssize(list); ++i)
         if (list[i] == item) return i;
     return -1;
 }
@@ -61,7 +62,7 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     int region = RegionAt(x, y);
     if (region < 0) return;
     PartyUnitRecord* hero = owner_->HeroRecord();
-    if (region < hero->weapons.size && region < kWeaponSlots) {
+    if (region < std::ssize(hero->weapons) && region < kWeaponSlots) {
         interface_->PlaySound(ChangeSound(), 0);
         hero->weaponIndex = static_cast<std::uint32_t>(region);
     }
@@ -78,15 +79,15 @@ CItem* CHeroEquipPanel::ItemAt(int x, int y, int* topic) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < kWeaponSlots) {
         *topic = kTopicWeapon;
-        if (region < hero->weapons.size) return hero->weapons[region];
+        if (region < std::ssize(hero->weapons)) return hero->weapons[region];
     } else if (region < kQuickSlots) {
         *topic = kTopicSecond;
         int fromEnd = kQuickSlots - 1 - region;
-        if (fromEnd < hero->quickItems.size) return hero->quickItems[fromEnd];
+        if (fromEnd < std::ssize(hero->quickItems)) return hero->quickItems[fromEnd];
     }
     if (!body_ || region < kFirstBodySlot || region >= kBodySlotEnd) return nullptr;
     *topic = region - 4;
-    for (int i = 0; i < hero->armor.size; ++i) {
+    for (int i = 0; i < std::ssize(hero->armor); ++i) {
         CItemArmor* armour = AsArmor(hero->armor[i]);
         if (armour->GetType() == region - kFirstBodySlot) return armour;
     }
@@ -100,6 +101,6 @@ CItem* CHeroQuickStrip::ItemAt(int x, int y, int* topic) {
     PartyUnitRecord* hero = owner_->HeroRecord();
     if (region < 0 || region >= kQuickSlots) return nullptr;
     *topic = kTopicEntry;
-    if (region >= hero->spells.size) return nullptr;
+    if (region >= std::ssize(hero->spells)) return nullptr;
     return hero->spells[region];
 }

@@ -433,8 +433,8 @@ kinds given.
   dead code read (the units' model folders 0078F7EC, read by the uncalled 00532650, and 007932F4) and the per-file
   copies of a header constant nothing of ours reads (72 copies of ".SEC"; a port names the copy it reads in its own
   file, ai_map_load.cpp's 0073FD1C / 0073FD20) were `[[maybe_unused]]` definitions until C25a dropped them (their
-  cells are gen_image_cells' UNREAD groups); the CRT's math function names 00797CC0 (crt_x87.cpp) stay named, its
-  readers have no registration. Left: the CRT / MFC tables a static initialiser or the
+  cells are gen_image_cells' UNREAD groups); so are the CRT's math function names 00797CC0 (C35h: only its error
+  reporting, not ported, read them). Left: the CRT / MFC tables a static initialiser or the
   CRT's start-up fills (C18q's list below).
 - **The script keyword table and the CRT's tables (C18q)**: `kScriptKeywords` (script.h, script_parse.cpp; 0078BCA0,
   225 keywords and the null entry, TYPES `ScriptKeyword` 'PiPP') and the lexer's comment markers 0078BC8C..94
@@ -601,11 +601,11 @@ kinds given.
       below).
       C18j named particle_callbacks' kSpinAngle 007A9BF8 (2 pi; the product with the satellite's rate is
       `static_cast<float>` so the compiler's fold keeps the original's 24-bit FMUL), particle_create's
-      kIdentityRotation 007A9C30, face_normal's kDegenerateNormal 007A9C98, weather_particles' five scalars
+      kIdentityRotation 007A9C30, weather_particles' five scalars
       007AED98-007AEDA8 and its seed tables 0078DEA4 / 0078DF24, and weather_noise's five sway curves
       007ABB98-007AED98 (one type, WeatherNoiseCurve; the draw evaluates a segment through MotionCubic).
       C18l named the camera's pi / 2, zero vector and identity rotation (camera.h: 0079B2A4, 0079B5C8, 0079B5B8),
-      the scene loader's zero vector 0079B9B0 (scene_loader.h), the angle constants and unit vectors of ground_print
+      the angle constants and unit vectors of ground_print
       (007C8998 / 007C899C), sound_manager (007C8808), terrain_* (007C8908, 007C8930, 007C8964, the wave scales
       007C8968-007C8970, 007C8978, 007C8988), player_client_handlers' fixed view rotation 007C8388, and the game's
       ISAAC generator 007A9D40 (a mutable zero-start global, `IsaacRandom g_random = /*007A9D40*/ {}`; the stores
@@ -934,7 +934,7 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
     (4 bytes at +0x4DC: the skin is 8-aligned in the original), overriding 2, 3, 11, 12 and adding slot 62
     (LoadScene). The skin (SceneSkin) got a C++ constructor and destructor (its name is a member; it is freed
     after the bone block now, a free order only). No scenario makes a fake unit (class 0x39; coverage: dead), so
-    only the builds check it. CUnit's slot bodies stay registered at their addresses until C20.
+    only the builds checked it; C35l deleted it. CUnit's slot bodies stay registered at their addresses until C20.
 - **Batch 6's families**: the figure classes 0x41 (CSharedFigureMesh, 0073FBF0), 0x42 (CPlainFigureMesh, 0073C1C4: the
   factory's attached parts and the scene loader's figure records 00453240) and 0x43 (CUiMesh, "CI3DFigure", 0073FC48),
   and the scene's meshes (scene::SceneMesh, "CFakeFigure", 0073C274): 4 rows, 6,855 -> 6,767 code cells. Next: the
@@ -959,7 +959,6 @@ names only for the csv. addon.dll writes one slot: ResOverride's 007432E0 slot 5
   - **ei_vectors** links record_arrays.cpp but not the figure or scene files: the element constructors that need the
     classes' vtables (InitFigurePart, InitSceneMesh) are defined next to the classes and stubbed in
     tests/vectors/replay_unlinked.cpp.
-  - **SceneMesh** (no scenario makes a fake unit's scene: builds only) overrides 2 (1), 3, 7, 11, 12, 16, 17 (empty).
   - Registrations whose only reader was a retired table's code cell became EI_REWRITTEN
     (`registration_readers.py --drop --only`), batch 5's sky ones with them.
 - **Batch 7's families**: the figure factory's other classes AnimationTrack (0x300B, 0073D9D8), FigureBone (0x300C,
@@ -1679,7 +1678,7 @@ the `--no-hooks` suite) keeps the registry.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
-  game_hashes, record_*, library_*). Callers call them by name (libcrt::Qsort ...; no forwarders since C29), and
+  record_*, library_*). Callers call them by name (libcrt::Hypot ...; no forwarders since C29), and
   C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
@@ -1697,9 +1696,15 @@ the `--no-hooks` suite) keeps the registry.
   _mbsicmp by the UTF-8 table), `LowerInPlace` (_mbslwr), `ToLower` / `ToUpper` (ASCII) and `IsDigit` / `IsSpace` /
   `IsAlpha` (no class past ASCII; a negative char has none). _mbsinc is p + 1; _ismbblead and isleadbyte answered 0,
   so the double-byte branches went (the console's tokens, the text reader's characters, the word wrap, the chat
-  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). memmove, memcpy, memset, strstr,
-  wcslen, _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _ismbcspace, atoi, _itoa and _splitpath are the host's, called by
-  their own names. Both suites goldens the same, though the host's compares return a difference rather than VC6's
+  overlay, AfxFormatString1, _output's format bytes, MFC's path walks, str's trims). str.h's searches and trims
+  (C35i) are std::strchr / strstr / strrchr / strpbrk and text::IsSpace where CString called _mbschr / _mbsstr /
+  _mbsrchr / _mbspbrk / _ismbcspace: with no lead bytes those are the byte functions (strchr takes the char's byte,
+  also of _tcschr's sign-extended char) and ASCII's white space (a negative char has none). Checked old against new
+  (C35i, the scratch mbs_equiv.cpp, not checked in: the host's _mbs* under the standalone's _MB_CP_SBCS and the byte
+  functions side by side) on every char against texts of every byte and 2M random texts, sets and needles of ASCII
+  and high bytes: 4M answers, all the same. memmove, memcpy, memset, wcslen, atoi, _itoa and _splitpath (the last
+  user of the start-up's _MB_CP_SBCS) are the host's, called by their own names. Both suites goldens the same,
+  though the host's compares return a difference rather than VC6's
   -1 / 1, atoi saturates where VC6's wraps, and a negative char's class is 0 rather than the words before `_pctype`.
   ei_vectors: the script lexer and loader replays call text_case.h too; none of their 772 records has a byte past ASCII
   (the recorder's NegativeClasses flag is 0 in all), so the game's 1251 / 1252 answers were never needed and the replay
@@ -1716,8 +1721,21 @@ the `--no-hooks` suite) keeps the registry.
   keeps its own (std containers, FILE buffers).
 - **atexit / exit**: the host CRT's (C26: image goldens the same): atexit 006E727B / _onexit 006E71FD register with
   `_crt_atexit` (the function converted to its code when registered), exit 006E8DA7 is std::exit, which runs that
-  table before the host's terminators. rand / srand: the seed is a thread_local in the image
-  (`libcrt::RandState()`, which the harness's digest and randtrace read; the image has no _getptd 006F00D1).
+  table before the host's terminators.
+- **rand / srand** (crt.cpp, kept): `gamecrt::rand` is VC6's LCG (seed * 214013 + 2531011, bits 16-30) on a
+  thread_local seed (`libcrt::RandState()`; the image has no _getptd 006F00D1), `libcrt::Srand` sets it. It stays
+  because the game's draws are the game's: the host's rand is another generator, every golden that draws (AI
+  choices, damage, the ambience) would differ, and the harness's digest ("crt.rand") and random trace (the
+  observer: each draw and its caller) compare our draws with game.exe's one by one.
+- **qsort** (crt.cpp `libcrt::Qsort`, kept for two callers): VC6's quicksort (the middle element as the pivot,
+  selection sort up to 8, the smaller part first) leaves elements that compare equal in an order of its own; C26's
+  host qsort changed 105 image goldens. Where no two elements compare equal and differ, every correct sort gives
+  the same order, so those callers are std::sort (C35h): SetSun's lit sectors by (sy, sx) (one per grid cell),
+  the script groups by id (the live objects' ids are unique; copies of one reference are equal), and the fake unit
+  scene's corner records and pairs (dead code: equal records hold the same fields the sort's reader takes). Qsort
+  stays for the sector spiral's cells by distance (BuildSectorSpiralAt: many cells share a distance and the order
+  among them is the walk order) and the ambience's class votes by weight (two classes can weigh the same; the first
+  three heard are taken in that order).
 - **Formatting** (crt_format.cpp, C35c): one printf of ours, `libcrt::Format` (the full text) behind `str::Format` /
   `str::FormatV` (CString::Format's: the text up to the first zero byte); sprintf 006E8715, vsprintf 006ECC47,
   fprintf 006EAEB0 and printf 006E955F have no entry of their own (gamecrt::sprintf and libcrt::Vsprintf went in C35c:
@@ -1757,23 +1775,41 @@ the `--no-hooks` suite) keeps the registry.
   VC6's _sopen: the text-mode update open's trailing Ctrl-Z cut and the read-only attribute of a created file (no
   caller asked either). Fact from S4b1: a truncating open of a just-written file, then a write past its end, can
   read the gap back as old bytes on this machine under load (plain CreateFileA too).
-- **x87 entries** (crt_x87.cpp, naked, `__asm` exempt in check_cleanup): _ftol 006E853C (decodes the 80-bit value
-  with integers; the integer indefinite for NaN / infinity / |x| >= 2^63), _CIacos / _CIasin / _CIpow and
-  the stack forms 006E7334 / 006E83D4, _hypot 006FD026. The CRT's control word keeps the caller's
-  precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's precision;
-  pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp. C26 tried the host CRT for the maths: acos / asin /
-  pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
-  net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units, whose
-  console prints "44.8744" for "44.8745"; #unit of the base's units in terrain_water_waves, ui_base_dialogue,
-  ui_base_topic, ui_gallery_base, zone_base_bz1g), so those stay ported; fmod (_CIfmod 006E95AA, fmod 006E95A0),
-  modf 006EAD0B, floor and ceil alone kept every golden and are the host's (std::fmod and so on). _controlfp stays
-  the port (SV10k below: the UCRT's differs in the control word and costs time, though the goldens were the same);
-  `_hypothlp` runs at 64 bits with every step stored to a double and a denormal result cut off. errno / _matherr are
-  not reproduced. The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord /
-  SetControlWord), put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set
-  and restore the word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Vector3::Length).
-  The FPU keeps bits 0-5 and 8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form
-  round-trips, so the words are the same. Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
+- **x87 maths** (crt_x87.cpp, kept; the one file in src/lib check_cleanup lets hold `__asm`: Hypot's NaN addition):
+  the bodies of _CIacos / _CIasin / _CIpow and their stack forms 006E7334 / 006E83D4 (`libcrt::CiAcos`, `CiAsin`,
+  `CiPow`) and _hypot 006FD026 (`libcrt::Hypot`), called by name (no register entries). The CRT's control word keeps
+  the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds each step to the caller's
+  precision; pow splits y log2(x) with fma errors, ties-to-even, exp2, ldexp; `_hypothlp` runs at 64 bits with every
+  step stored to a double and a denormal result cut off. errno / _matherr are not reproduced (the CRT's math function
+  names 00797CC0, which only its error reporting read, are gen_image_cells' UNREAD cells). Why each stays (C35h, the
+  scratch maths_equiv.cpp, not checked in: crt_x87.cpp against the host's on 5M float-valued arguments each):
+  - acos / asin / pow: the game's main thread runs at 24 bits (control word 007F) and the CRT's steps round there,
+    the host's are 53-bit results. At 007F, rounded to a float, pow differs in 4.1% of the arguments, acos 7.8%, asin
+    18.8%; at 027F (53 bits) in a double's bits 62% / 6.9% / 16%. C26 tried the host's for the maths: acos / asin /
+    pow / _hypot (with fmod, modf and _controlfp) changed 14 image goldens (#vitals of the hero in effects_bow,
+    net_pair_quest, rebirth_fixes_ui, sound, spells_hero, ui_camp_make, ui_gallery_camp, ui_gallery_deals, units,
+    whose console prints "44.8744" for "44.8745": unit_vitals' CiPow; #unit of the base's units in
+    terrain_water_waves, ui_base_dialogue, ui_base_topic, ui_gallery_base, zone_base_bz1g).
+  - _hypot: std::hypot (the UCRT's, SSE2 doubles) differs from the port in a double's last bit for 11.7% of the
+    arguments (never once rounded to a float), and costs 3.5 times as much (about 270 ns a call against 80, the
+    scratch hypot_time.cpp: the UCRT's _hypot sets and restores the control word around each call, the cost SV10i
+    took out of the camera's ClampAboveObjects: Hypot was 13.5% of the town's main thread then). With the callers on
+    std::hypot the image suite's goldens were the same (121, C35h), so _hypot was not among C26's 14; kept for the
+    cost and the bits.
+  - fmod (_CIfmod 006E95AA, fmod 006E95A0), modf 006EAD0B, floor and ceil alone kept every golden and are the host's
+    (std::fmod and so on).
+  - `libcrt::Controlfp` stays the port (SV10k below: the UCRT's differs in the control word and costs time, though the
+    goldens were the same).
+  - `gamecrt::Ftol` (crt.h, inline, 146 callers) is no CRT code: _ftol's answer in C++, the low 32 bits of the 64-bit
+    truncation (the compiler's int64 conversion). A cast to int differs past int's range (MSVC's gives 0x80000000
+    where _ftol gives the low bits: 3e9 is 3000000000 as unsigned), and nothing bounds the callers' values (money,
+    damage, the clock's elapsed milliseconds); ours equals _ftol 006E853C there and gives 0 for NaN / infinity /
+    |x| >= 2^63.
+  The control word (SV10i): FNSTCW, and FLDCW only when the wanted word differs (x87::ControlWord / SetControlWord),
+  put back only then; frexp / ldexp of normal doubles by the bits (std::frexp / std::ldexp save, set and restore the
+  word on every call: the UCRT's `_ctrlfp`, 9% of the town's main thread through Hypot). The FPU keeps bits 0-5 and
+  8-12 (bit 6 reads 1, 7 and 13-15 read 0), the same bits __control87_2's abstract form round-trips, so the words are
+  the same. (check_x87 is the other x87 rule: unsigned to float only through x87::FromUnsigned.) Checked old against new (build/SV10i/equiv.cpp, not checked in: main's
   file and the new one compiled side by side) on 50M calls of Hypot, CiPow, CiAcos, CiAsin and StackFmod under every
   precision, rounding and infinity control: results, control word after, x87 status flags and errno all the same;
   a one-line mutation (Hypot at 53 bits) differs. No vectors of this file exist (the crt family is formatting).
@@ -1857,23 +1893,16 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **Node allocator rule**: the node size picks the free list; a wrong element size corrupts another size's pool
   (005392C0 holds 20 bytes in a 32-byte node). Read sizes from each `_M_create_node` / `_M_new_node` / clear's free
   list.
-- **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release, held engine objects, CString); game records
-  in record_lists, the connection's in library_net_lists. Where the original copies uninitialised stack bytes into a
-  default element, ours copies zeros (every caller overwrites them).
-- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h;
-  all but stlp_vector gone with C14n, the records' vectors are std).
+- **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release): only the net RefPtr / timed lists and the
+  sessions' raw-sentinel lists are left (C14t); the record lists went with C14n / C14s (core.md).
+- **vector** (S10, S10a; stlp_vector, stlp_vector_refs, record_vectors: all gone with C14n / C14q, the vectors are
+  std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
-- **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `StringFloatTraits`, `StringListTraits`,
-  `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most; the named variables'
-  CString keys in game.exe), 8 (the dword sets), 20 in game.exe (string keys; ours are sizeof(Node) with std::string
-  keys, the named variables' too), 32 (find_or_insert 004E2E90).
+- **hashtable** (stlp_hash, game_hashes: gone with C14c / C14q; the order is lib::HashMap's, src/lib/hash_map.h).
 - **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
-- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_mbs; net_connection_trees, library_trees): SGI 3.x's tree
-  (`_M_insert(x, y, v)`, RET 0x10, the hint insert falls back to `insert_unique(v)`); the node colour is a byte;
-  `stlp::MbsLess` (the keys that were CStrings: the console commands, the help topics) is `_mbscmp < 0`; the
-  sent-ids map compares signed. operator[] of records and attached ids inserts a partly uninitialised value in the
-  original.
+- **tree** (stlp_tree, stlp_tree_abi, stlp_tree_mbs, net_connection_trees, library_trees: gone with C14c / C14q;
+  the maps are std::map, the CString keys' `_mbscmp` order is `str::MbsLess`).
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
@@ -2294,25 +2323,3 @@ nothing. Instantiations: the camera's view stack (0x24-byte entries, 14 per 0x1F
 layout) and the material's (0x10-byte entries, 32 per 0x200-byte node; material.h). The members are registered at
 the instantiations' addresses in stlp_deque.cpp through the DequeAbi shims.
 
-### lib/stlp_hash.h
-
-STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2); the
-library body the instantiations' own addresses are registered to (stlp_hash.cpp). Layout (0x14 bytes): the hasher,
-key_equal and key extractor (empty, one byte each, then a pad byte), the bucket vector (vector<Node*>,
-stlp_vector.h) and the element count, which STLport keeps in the node allocator's proxy. A node is the next pointer
-followed by the value; its size picks the pool's free list, so each instantiation's node type comes from its
-node-creation code. Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
-below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the head of its
-bucket, and iteration walks the buckets in order and each chain from its head. A rehash (resize) moves each old
-bucket's chain, head first, to the head of its new bucket.
-
-### lib/stlp_tree.h
-
-STLport's red-black tree (_Rb_tree, map, multimap, set) as compiled into game.exe (stlp.h includes it;
-docs/notes/standalone.md, section 2). The STLport of the exe is SGI's 3.x tree: _M_insert(x, y, v) without the
-later hint argument, the hint insert falling back to insert_unique(v), erase(key) through equal_range. A tree is
-0xC bytes: the header node (from the node pool; its parent is the root, its left / right the leftmost / rightmost
-node, red), the element count and the empty compare object (one byte). Nodes are color (a bool: red 0, black 1, in
-a dword whose other bytes are left as the allocation had them), parent, left, right, then the value. The node-only
-algorithms (_Rb_global<bool>: increment, decrement, the rotations and both rebalances) are one body each in
-stlp_tree.cpp, registered at their addresses.

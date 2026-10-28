@@ -2,7 +2,6 @@
 #include "text_helpers.h"
 
 #include "lib/str.h"
-#include "lib/text_case.h"
 
 #include <cstring>
 #include <memory>
@@ -32,14 +31,3 @@ const char* TextTokenizer::Start() {
 }
 
 int RemoveCarriageReturns(std::string* text) { return str::Remove(*text, '\r'); }
-
-std::string* FindListedName(std::string* out, const std::vector<std::string>* names, const std::string& name) {
-    for (const std::string& listed : *names) {
-        if (text::CompareIgnoringCase(listed.c_str(), name.c_str()) == 0) {
-            *out = listed.c_str();
-            return out;
-        }
-    }
-    *out = name;
-    return out;
-}

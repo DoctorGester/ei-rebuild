@@ -6,7 +6,6 @@
 #include "ai_shape_cache.h"
 #include "ai_unit_layer.h"
 #include "core_refcount.h"
-#include "game_hashes.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
@@ -53,7 +52,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         int otherY = CellOf(other->localPosition_.y);
         float otherHeight = other->standingHeight;
         ShapeHandle handle;
-        gamehash::InitShapeHandle(&handle);
+        InitShapeHandle(&handle);
         const CUnitShape* shape = nullptr;
         EI_NAN_AUDIT(otherHeight);
         if (otherHeight <= kShapeMinHeight) {
@@ -61,7 +60,6 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         } else {
             int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
-            std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
             shape = static_cast<const CUnitShape*>(UnitShapes()->Get(&handle));
             if (CRefObject* ref = handle.ref) {
                 if (--ref->refs_ == 0) delete ref;
@@ -236,8 +234,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
 }
 
 namespace {
-// The shape cache's map (UnitShapes()->shapes): an STLport hash_map<ShapeHandle, RefPtr>, the game's
-// instantiation ShapeTable.
+// The handle's reference dropped (the object deleted with the last).
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
         if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
@@ -245,54 +242,16 @@ void ReleaseHandle(ShapeHandle* handle) {
 }
 } // namespace
 
-ShapePair* ShapePair::Construct(const ShapeHandle* from, const RefPtr* shared) {
-    ShapeHandle& to = key;
-    to.cache = from->cache;
-    to.ref = from->ref;
-    if (to.ref) ++to.ref->refs_;
-    to.key = from->key;
-    to.height = from->height;
-    value.Share(shared->ptr);
-    return this;
-}
-
-void DestroyShapePair(ShapePair* pair) {
-    pair->value.Destroy();
-    ReleaseHandle(&pair->key);
-}
-
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeHandle handle;
     handle.cache = nullptr;
     handle.ref = nullptr;
-    handle.key = 0xFFFFFFFF;
     EI_NAN_AUDIT(standingHeight);
     if (standingHeight <= kShapeMinHeight) return nullptr;
     int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
     handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
-    std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
 
-    CRefObject* shape;
-    ShapeTable* map = &UnitShapes()->shapes;
-    if (const ShapeTable::Node* found = map->Find(handle)) {
-        shape = found->value.value.ptr;
-        handle.cache = UnitShapes();
-        handle.counted.Assign(shape);
-    } else {
-        shape = UnitShapes()->CreateShape(&handle);
-        RefPtr none = {nullptr};
-        ShapePair pair;
-        pair.Construct(&handle, &none);
-        RefPtr* slot = &map->FindOrInsert(pair).value;
-        DestroyShapePair(&pair);
-        none.Destroy();
-        if (shape != slot->ptr) {
-            slot->Destroy();
-            slot->Share(shape);
-        }
-        handle.cache = UnitShapes();
-        handle.counted.Assign(shape);
-    }
+    CRefObject* shape = UnitShapes()->Resolve(&handle);
     ReleaseHandle(&handle);
     return shape;
 }

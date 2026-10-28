@@ -38,7 +38,6 @@ void PlayUiSound(CInterface3D* ui, const char* name, int flags);
 void LeaveGame();
 } // namespace uiorig
 
-static_assert(sizeof(CUiWindow) == 0x148);
 
 // The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
 // type.
@@ -135,10 +134,6 @@ public:
     UiPtrArray<CItem>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
 };
-static_assert(offsetof(CUiItemStrip, tab_) == 0x150);
-static_assert(offsetof(CUiItemStrip, position_) == 0x15C);
-static_assert(offsetof(CUiItemStrip, pending_) == 0x174);
-static_assert(offsetof(CUiItemStrip, count_) == 0x188);
 
 // The forwarding strip: the camp's item strips and the exchange's; an item click goes to the owner.
 class CForwardingStrip : public CUiItemStrip {
@@ -174,8 +169,6 @@ public:
     // owner's choose-figure virtual with its name.
     void OnFigureClick(int buttons, int x, int y);
 };
-static_assert(offsetof(CUiItemStrip, filter_) == 0x194);
-static_assert(offsetof(CUiItemStrip, list_) == 0x198);
 
 // --- Camp screen ------------------------------------------------------------------------------
 
@@ -323,7 +316,6 @@ public:
     int voiceIndex_;
     int voiceSound_;
 };
-static_assert(offsetof(CMpHeroScreen, descPanel_) == 0x164);
 
 // --- Multiplayer connection screen --------------------------------------------------------------
 // The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a scroll bar, row 0
@@ -445,14 +437,6 @@ public:
     bool newGameTips_;             // the unlisted and password regions have their tips (DrawList; 0 from Create)
     std::uint8_t unused_25D[3];
 };
-static_assert(offsetof(CMpConnectScreen, refreshTimer_) == 0x164);
-static_assert(offsetof(CMpConnectScreen, selected_) == 0x174);
-static_assert(offsetof(CMpConnectScreen, selectedAddress_) == 0x178);
-static_assert(offsetof(CMpConnectScreen, scroll_) == 0x18C);
-static_assert(offsetof(CMpConnectScreen, gameType_) == 0x19C);
-static_assert(offsetof(CMpConnectScreen, boxText_) == 0x1A0);
-static_assert(offsetof(CMpConnectScreen, unlisted_) == 0x220);
-static_assert(offsetof(CMpConnectScreen, hostPassword_) == 0x224);
 
 // A message box waiting on a master server request: one cancel button, the link to the master server and a progress bar
 // sprite. Its result is kBoxMaster (| 2 when done).
@@ -499,8 +483,6 @@ public:
 
     int hovered_;               // region under the mouse, -1 for none
 };
-static_assert(sizeof(CEscMenu) == 0x168);
-static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 
 // --- Credits ------------------------------------------------------------------------------------
 // The titles window (main menu region 4). A line of the titles' script:
@@ -593,7 +575,6 @@ public:
     std::uint8_t unused_1F6[2];
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
-static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
 
 // --- Main menu ----------------------------------------------------------------------------------
 // The main menu (CreateScreen id 2). Regions 0-5 from the menus.reg "MainMenu" rectangles; the stones are the object
@@ -643,10 +624,6 @@ public:
     std::uint8_t unused_174[4];
     float savedEdgeFade_;            // the map edge fade before the menu
 };
-static_assert(offsetof(CMainMenu, hovered_) == 0x164);
-static_assert(offsetof(CMainMenu, rain_) == 0x16C);
-static_assert(offsetof(CMainMenu, hour_) == 0x170);
-static_assert(sizeof(CMainMenu) == 0x17C);
 
 // Trading between two players (screen 9, Xch_* texts). Multiplayer only.
 class CTradeGrid;

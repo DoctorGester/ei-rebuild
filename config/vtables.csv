@@ -49,29 +49,29 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073BFA4,2,,game,00444740,004447E0,CDebugPanel,src/game/debug_panel.h,the debug information panel (CDebugPanel)
 0073BFAC,2,,game,00444740,006E73EB,CDebugPanel's base,-,stored only by game.exe's 00444740 before its own (the image's CDebugPanel has the one table)
 0073BFB4,3,,game,00444A70 005E3CE0 005F4990,0070BFBF,CFont,src/lib/mfc_gdi.h,the game's CFont (the debug panel's
-0073BFE8,63,,game,004466D0 00446910,004468F0,FakeUnitScene,src/game/scene_loader.h,CFakeUnit
-0073C0E4,3,,game,004466D0 00446910 00450770,007005E3,FakeUnitRecord9CArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x9C-byte records)
-0073C0F0,3,,game,004466D0 00446910 00450500,007005E3,FakeUnitBoneArraysClass,src/lib/mfc_slots.h,CArray (a fake unit's 20-byte CObject elements)
-0073C0FC,3,,game,004466D0 00446910 004500F0,007005E3,FakeUnitSceneRecordArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x18C-byte scene records)
-0073C108,3,,game,004466D0 00446910 0044FE80,007005E3,FakeUnitPartArrayClass,src/game/record_arrays.h,CArray (a fake unit's 0x220-byte figure parts)
-0073C114,3,,game,00446C10 004515F0 004543E0 00454F80 004A20F0,007005E3,AlignedAt4ArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 20-byte records with an aligned block at +4)
+0073BFE8,63,,game,004466D0 00446910,004468F0,FakeUnitScene,-,"the fake unit (class 0x39); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C0E4,3,,game,004466D0 00446910 00450770,007005E3,FakeUnitRecord9CArrayClass,-,"CArray (the fake unit's 0x9C-byte records); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C0F0,3,,game,004466D0 00446910 00450500,007005E3,FakeUnitBoneArraysClass,-,"CArray (the fake unit's 20-byte CObject elements); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C0FC,3,,game,004466D0 00446910 004500F0,007005E3,FakeUnitSceneRecordArrayClass,-,"CArray (the fake unit's 0x18C-byte scene records); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C108,3,,game,004466D0 00446910 0044FE80,007005E3,FakeUnitPartArrayClass,-,"CArray (the fake unit's 0x220-byte figure parts); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C114,3,,game,00446C10 004515F0 004543E0 00454F80 004A20F0,007005E3,MorphKeyArrayClass,-,"CArray (the scene loader's 20-byte morph keys); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C120,3,,game,00446C10 004514B0 00452870 004543E0 00454F80 004A1E60 00506710 005068C0 0054DF50 00593B80 0066FBD0 0066FFF0 006BF5F0 006BF8A0,007005E3,Vector3ArrayClass,-,CArray (12-byte points: animation node normals; use spots; terrain sector data); stored only by game.exe (ours is a std::vector)
-0073C12C,3,,game,00446C10 004514B0 00452990 004534F0 004543E0 00454F80 004A2110,007005E3,BoneLinkArrayClass,src/lib/mfc_slots.h,CArray (a figure's bone links)
+0073C12C,3,,game,00446C10 004514B0 00452990 004534F0 004543E0 00454F80 004A2110,007005E3,BoneLinkArrayClass,-,"CArray (a figure's bone links); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C138,3,,game,00446C10 004514B0 004529D0 004543E0 00455150,007005E3,NodeItemsCClass,-,CArray (the scene loader's node records' children); stored only by game.exe (ours is a std::vector)
-0073C144,3,,game,00446C10 00451A00,007005E3,TextureNameArrayClass,src/game/scene_loader.h,CArray (the scene loader's {id; name})
+0073C144,3,,game,00446C10 00451A00,007005E3,TextureNameArrayClass,-,"CArray (the scene loader's {id; name}); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C150,3,,game,00446C10 00451830,007005E3,TextureLinkArrayClass,-,CArray (the scene loader's {id; value} links); stored only by game.exe (ours is a std::vector)
-0073C15C,3,,game,00446C10 004514B0,007005E3,SceneNodeArrayClass,src/game/record_arrays.h,CArray<SceneNode> (the scene loader's nodes)
-0073C16C,3,,game,0044B980 00451C40,007005E3,FigureRegistryMapClass,src/lib/mfc_slots.h,CMap (LoadFigureRegistry's map)
-0073C178,3,,game,0044CFF0 004525D0,007005E3,CornerMapCClass,src/lib/mfc_slots.h,CMap (IndexMeshCorners' pair map)
-0073C184,3,,game,0044CFF0 00452330,007005E3,CornerMapBClass,src/lib/mfc_slots.h,CMap (IndexMeshCorners' index map)
-0073C190,3,,game,0044CFF0 00452090,007005E3,CornerMapAClass,src/lib/mfc_slots.h,CMap (IndexMeshCorners' maps)
+0073C15C,3,,game,00446C10 004514B0,007005E3,SceneNodeArrayClass,-,"CArray<SceneNode> (the scene loader's nodes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C16C,3,,game,0044B980 00451C40,007005E3,FigureRegistryMapClass,-,"CMap (LoadFigureRegistry's map); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C178,3,,game,0044CFF0 004525D0,007005E3,CornerMapCClass,-,"CMap (IndexMeshCorners' pair map); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C184,3,,game,0044CFF0 00452330,007005E3,CornerMapBClass,-,"CMap (IndexMeshCorners' index map); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C190,3,,game,0044CFF0 00452090,007005E3,CornerMapAClass,-,"CMap (IndexMeshCorners' maps); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C19C,3,,game,0044CFF0 00451EC0,007005E3,MeshCornerArrayClass,-,CArray (the scene meshes' corner records (IndexMeshCorners)); stored only by game.exe (ours is a std::vector)
 0073C1AC,3,,game,004509E0 004543E0 00454F80 004A20B0,007005E3,NodeItemsAClass,-,CArray (inside the scene loader's 0x120-byte node records (00454F80)); stored only by game.exe (ours is a std::vector)
 0073C1B8,3,,game,00450B90 004543E0 00454F80 004A20D0,007005E3,NodeItemsBClass,-,CArray (the scene loader's node records' 24-byte items); stored only by game.exe (ours is a std::vector)
 0073C1C4,24,,game,00453240 005AA8E0,004543A0,CPlainFigureMesh,src/game/figure_mesh.h,class 0x42 (the factory and the scene's figure records 00453240)
 0073C224,20,,game,00453240 00476FB0 004A0350 004D9110 0059F030 005AABC0,00453470,CFigureMesh,src/game/figure_mesh.h,the figures' base
-0073C274,18,,game,004545C0,00454810,SceneMesh,src/game/scene_loader.h,CFakeFigure (the scene's meshes 004545C0)
-0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,src/game/record_arrays.h,CArray<FaceGroup> (a scene mesh's face groups)
+0073C274,18,,game,004545C0,00454810,SceneMesh,-,"CFakeFigure (the scene's meshes); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C2BC,3,,game,00454830 00454A50 00454CE0 0046F1F0 00471B10,007005E3,FaceGroupArrayClass,-,"CArray<FaceGroup> (a scene mesh's face groups); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C350,1,,game,00456440 004578D0,004578B0,CDirectInputMouse,src/game/ui_cursor.h,the DirectInput mouse (CDirectInputMouse)
 0073C360,2,,game,00457740 004577E0 004A5BD0 004A5E90,004577C0,PartyRecord,src/game/party_records.h,a named party record (PartyRecord)
 0073C368,1,,game,004578D0 00457940 00457950 004F2C00 004F2D40 004F2E40 004F69F0 004F6BD0 004FCC40 004FCD50 004FD8A0 004FD8B0 0051C3D0 0051C730,00457950,the plain counted root,-,"a fieldless counted root (slot 0 the deleting destructor 00457950) that game.exe's renderer, figure and mouse destructors leave; their classes do without it"
@@ -105,9 +105,9 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 0073C758,12,,game,0046D520,0046D730,ParticleSpec,src/game/map_spec.h,a particle source record
 0073C788,12,,game,0046D960,0046DBF0,LightSpec,src/game/map_spec.h,a light record
 0073C7B8,12,,game,0046DE70 0046DF70,0046E190,SoundSpec,src/game/map_spec.h,a sound record
-0073C800,3,,game,0046F1F0 00471B10 00476780,007005E3,IndexArrayClass,src/lib/mfc_slots.h,CArray (a model file's index lists)
-0073C80C,3,,game,0046F1F0 00471B10 004763C0,007005E3,SceneObjectArrayClass,src/lib/mfc_slots.h,CArray (the scene loader's 0x1C-byte CObject elements)
-0073C818,3,,game,0046F1F0 00471B10 00476140 00477380,007005E3,DwordMapClass,src/lib/mfc_slots.h,CMap (the scene loader's CMap<DWORD; DWORD> (and the maps a node record holds))
+0073C800,3,,game,0046F1F0 00471B10 00476780,007005E3,IndexArrayClass,-,"CArray (a model or animation file's index arrays); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C80C,3,,game,0046F1F0 00471B10 004763C0,007005E3,SceneObjectArrayClass,-,"CArray (the scene loader's 0x1C-byte CObject elements); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
+0073C818,3,,game,0046F1F0 00471B10 00476140 00477380,007005E3,DwordMapClass,-,"CMap (the scene loader's CMap<DWORD; DWORD> (and the maps a node record holds)); stored only by game.exe's fake unit and its scene loader (dead, config/dead_code.csv; ours deleted in C35l)"
 0073C824,3,,game,0046F1F0 00471B10 00475BC0 00475D40,007005E3,MorphHeadArrayClass,-,CArray (an animation file's morph headers); stored only by game.exe (ours is a std::vector)
 0073C830,3,,game,0046F1F0 00471B10 00475860 004759E0,007005E3,PosKeyArrayClass,-,CArray (an animation file's position keys); stored only by game.exe (ours is a std::vector)
 0073C83C,3,,game,0046F1F0 00471B10 00475500 00475680,007005E3,RotKeyArrayClass,-,CArray (an animation file's rotation keys); stored only by game.exe (ours is a std::vector)
@@ -552,7 +552,7 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00744130,3,,game,006B6040 006B65D0 006BC570,007005E3,SoundListClass,-,CList (the sound manager's list); stored only by game.exe (ours is a std::list)
 00744184,3,,game,006BF5F0 006BF8A0 006C4690,007005E3,SectorVertexArrayClass,src/game/record_arrays.h,CArray (a terrain sector's vertex records)
 007441A8,3,,game,006C4790 006C49D0,007005E3,TerrainByteArraysClass,src/lib/mfc_slots.h,CArray (a terrain sector's CByteArray elements)
-007441B4,3,,game,006C4A40 006C4C40,007005E3,TerrainAlignedArrayClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records with an aligned block)
+007441B4,3,,game,006C4A40 006C4C40,007005E3,TerrainTileListsClass,src/game/record_arrays.h,CArray (a terrain sector's tile lists; 16-byte records, a point vector each)
 00744210,3,,game,006CBE60 006CD6D0,007005E3,TerrainArrayAClass,-,CArray (the terrain builder's arrays; 006CBE60); stored only by game.exe (ours is a std::vector)
 0074421C,3,,game,006CC2A0 006CC3E0 006CD880,007005E3,TerrainArrayBClass,-,CArray (the terrain builder's arrays; 006CC2A0 / 006CC3E0); stored only by game.exe (ours is a std::vector)
 00744228,3,,game,006CC530 006CDA20,007005E3,TerrainArrayCClass,-,CArray (the terrain builder's arrays; 006CC530); stored only by game.exe (ours is a std::vector)

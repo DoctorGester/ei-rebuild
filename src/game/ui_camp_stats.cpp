@@ -140,7 +140,7 @@ void CHeroStatsPanel::HoverInfo(int x, int y, ItemHoverInfo* info) {
         break;
     case 6:
     case 7:
-        if (hero->weaponIndex < static_cast<std::uint32_t>(hero->weapons.size)) {
+        if (hero->weaponIndex < static_cast<std::uint32_t>(std::ssize(hero->weapons))) {
             info->kind = kWeapon;
             info->weapon = AsWeapon(hero->weapons[hero->weaponIndex]);
             info->text = row == 6 ? kAttack : kDefence;
@@ -170,8 +170,8 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     bool party = LocalPlayerData()->members_.size > 1;
     SceneMesh(0)->visible_ = party ? 1 : 0;
     SceneMesh(1)->visible_ = party ? 1 : 0;
-    regions_.data[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
-    regions_.data[1]->SetTip(party ? kTipNextHero : 0, 1, 0);
+    regions_[0]->SetTip(party ? kTipPreviousHero : 0, 1, 0);
+    regions_[1]->SetTip(party ? kTipNextHero : 0, 1, 0);
     heroIndex_ = heroIndex;
     if (title) title_ = title;
     points_ = static_cast<int>(owner_->HeroRecord()->height * 100.0f);

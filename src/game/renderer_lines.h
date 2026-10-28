@@ -37,17 +37,8 @@ struct ProjectedPoints {
     int count;
 };
 
-// The vertex buffer in the exe's data zeroed, freed at exit
-// Grows like an MFC array, without keeping its old contents.
-struct LineBuffer {
-    LineVertex* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(LineBuffer) == 0x10);
-extern LineBuffer g_lineVertices;
-inline LineBuffer& LineVertices() { return g_lineVertices; }
+// The vertex buffer of the projected line strips, freed at exit.
+extern std::vector<LineVertex> g_lineVertices;
 
 // Four points of a line list as the transform object takes them.
 struct LinePacket {

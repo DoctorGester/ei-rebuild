@@ -304,7 +304,7 @@ static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D,
 extern lib::StaticObject<CInterface3D> g_interface;
 
 template <typename T>
-using UiPtrArray = lib::AlignedArray<T*>;
+using UiPtrArray = std::vector<T*>;
 
 class CUiRegion;
 struct CUiTooltip;
@@ -631,8 +631,6 @@ extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurfac
 // helper's return address. Null otherwise.
 extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
 static_assert(sizeof(CUiWindowBase) == 0x94);
-static_assert(offsetof(CUiWindow, surfaces_) == 0x118 && offsetof(CUiWindow, regions_) == 0x128);
-static_assert(sizeof(CUiWindow) == 0x148);
 
 // The tooltip attached to a region; its surface is made while it is shown.
 struct CUiTooltip : CUiWindow {
@@ -663,7 +661,6 @@ struct CUiTooltip : CUiWindow {
     float timer_;                    // seconds in the current state
     int state_;                      // 0 idle, 1 hovered, 2 appearing, 3 disappearing, 4 shown
 };
-static_assert(offsetof(CUiTooltip, lines_) == 0x148);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel, hero
 // equipment, quick strip, trade and repair grids, constructor pages and item strips, built on the blank
@@ -688,8 +685,6 @@ public:
     int mode_;                       // the action mode handed to the owner (ItemCell::mode)
     CItemScreen* owner_;
 };
-static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
-static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
 
 // Option 17 of the options window: the numbers flying up from units hit are shown.
 inline int& ShowHitNumbersOption() { return options::TheOptions()->drawFlyingHp_; }
@@ -764,7 +759,6 @@ public:
     CUnit* unit_;
     std::vector<std::string> labels_;   // the tooltip's labels
 };
-static_assert(offsetof(CHudWeaponBar, unit_) == 0x154);
 
 // Quick items (2 rows of four 50x50 slots at (520..720, 500..600)).
 class CHudQuickItems : public CUiWindow {
@@ -826,8 +820,6 @@ public:
     int regionItem_[8];
     std::vector<std::string> labels_;   // the tooltip's labels
 };
-static_assert(offsetof(CHudQuickItems, entries_) == 0x158);
-static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
 // Spell column on the right (760..800 x 190..510).
 class CHudSpellColumn : public CUiWindow {
@@ -867,8 +859,6 @@ public:
     CUnit* unit_;
     std::vector<std::string> labels_;   // the tooltip's labels
 };
-static_assert(offsetof(CHudSpellColumn, count_) == 0x14C);
-static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
 
 // Action column on the left (six 40x40 buttons at 0..40 x 270..510).
 class CHudActionColumn : public CUiWindow {
@@ -902,9 +892,6 @@ public:
     UiDwordArray actions_;           // the buttons' actions (0 science, -1 follow)
     std::vector<std::string> labels_;   // the tooltip's labels
 };
-static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
-static_assert(offsetof(CHudActionColumn, selected_) == 0x150);
-static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
 
 // A portrait's state, one per portrait: the last hit points seen, the face (rest orientation, current
 // orientation and a random wobble), the face picture and model, and the slot's network player.
@@ -960,8 +947,6 @@ public:
     std::uint8_t unused_150[0x158 - 0x150];
     std::vector<HudPortraitSlot> slots_;   // one per portrait
 };
-static_assert(offsetof(CHudPortraits, slots_) == 0x158);
-static_assert(sizeof(CHudPortraits) == 0x164);
 
 #undef GetClassName
 // The figure factory's class 0x43 ("CI3DFigure"): a plain figure mesh with the sprite's fields.
@@ -1052,7 +1037,7 @@ public:
 static_assert(offsetof(CUiMesh, flatSpecular_) == 0xD8 && offsetof(CUiMesh, textureOffsetU_) == 0xCC);
 
 inline CUiMesh* AsUiMesh(CEngineObject* object) { return static_cast<CUiMesh*>(object); }
-inline CUiMesh* CUiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects_.data[index]); }
+inline CUiMesh* CUiWindow::SceneMesh(int index) const { return AsUiMesh(sceneObjects_[index]); }
 
 struct UiPointF {
     float x;
@@ -1117,9 +1102,6 @@ public:
     int view_;                       // 1 or 2 while a view button is held (scene objects 6 and 7), else 0
     float northTime_;                // 0.5 when "camera north" turns the camera, then counts down
 };
-static_assert(offsetof(CHudMap, centreX_) == 0x14C);
-static_assert(offsetof(CHudMap, scale_) == 0x168);
-static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
 
 // Unit panel (0..185 x 0..225). Regions: 0 the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
@@ -1176,8 +1158,6 @@ public:
     std::vector<std::string> texts_; // "infounit_0".."infounit_17": the info lines' labels
     std::vector<std::string> partLabels_;   // four: the shown names of "skull", "torso", "leg", "arm"
 };
-static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
-static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 
 // Game clock (720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1205,9 +1185,6 @@ public:
     int fast_;                       // fast game speed (copied to CInterface3D::fastGame_)
     bool highlight_;                 // the pause button pulses (scene object 6)
 };
-static_assert(offsetof(CHudClock, blink_) == 0x14C);
-static_assert(offsetof(CHudClock, highlight_) == 0x158);
-static_assert(sizeof(CHudClock) == 0x15C);   // CBattleScreen's operator new
 
 // Movement panel (0..80 x 520..600). Region 0 toggles the units' flag, regions 1-4 set their movement mode 0-3.
 class CHudMovePanel : public CUiWindow {
@@ -1233,8 +1210,6 @@ public:
     int mode_;                       // the shown movement mode (-1, -2: none, mixed)
     int flag_;                       // the selected units' common flag (-1, -2: none, mixed)
 };
-static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
-static_assert(sizeof(CHudMovePanel) == 0x154);   // CBattleScreen's operator new
 
 // Top panel (180..620 x 0..100). Regions: 0 the sling button, 1 and 2 the two page buttons, 3 the whole panel.
 class CHudTopPanel : public CUiWindow {
@@ -1274,9 +1249,6 @@ public:
     int page_;
     std::string pageTexts_[2];      // the message log's text of pages 0 and 1
 };
-static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
-static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
-static_assert(offsetof(CHudTopPanel, page_) == 0x160 && offsetof(CHudTopPanel, pageTexts_) == 0x164);
 
 // --- Screens with child windows ---
 
@@ -1350,7 +1322,6 @@ private:
     // `atPoint` limits the children to those holding (b, c).
     void Dispatch(int slot, int a, int b, int c, bool atPoint);
 };
-static_assert(sizeof(CUiContainer) == 0x164);
 // A window on the interface's stack as the screen it is (every window pushed there is a container).
 inline CUiContainer* ScreenOf(CUiWindow* window) { return static_cast<CUiContainer*>(window); }
 
@@ -1535,7 +1506,6 @@ public:
     LockKey itemUseKey_;
     int portraitMode_;               // 1, 2: the next portrait click picks a player for a server command (4, 5)
 };
-static_assert(offsetof(CBattleScreen, spare_) == 0x164 && offsetof(CBattleScreen, party_) == 0x168);
 
 // A scroll bar (the battle screen's message log derives from it). Regions: 0 the up arrow, 1 the down arrow,
 // 2 the track.
@@ -1580,11 +1550,6 @@ public:
     int state_;                      // 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated_;              // scrolled amount not yet applied
 };
-static_assert(offsetof(CUiScrollbar, position_) == 0x150);
-static_assert(offsetof(CUiScrollbar, track_) == 0x154);
-static_assert(offsetof(CUiScrollbar, thumb_) == 0x164);
-static_assert(offsetof(CUiScrollbar, depth_) == 0x17C);
-static_assert(sizeof(CUiScrollbar) == 0x18C);
 
 // The options window's horizontal slider, laid out along the bottom of its rectangle. Regions 0 the left
 // arrow, 1 the right arrow, 2 the track.
@@ -1599,10 +1564,7 @@ public:
     int MouseMove(int b, int x, int y) override { return OnMouseMove(b, x, y), 0; }
     void SetRect(const RECT* rect) override;
 };
-static_assert(sizeof(CUiSlider) == 0x18C);
 
-static_assert(offsetof(CUiScrollbar, state_) == 0x184);
-static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
 // The pieces of a scrolling text: a format change (type 1) or a word (type 2).
 struct UiFormatToken;
@@ -1686,11 +1648,9 @@ private:
     void PlaceText(const RECT& rect);
     void DeleteTokens();
 };
-static_assert(offsetof(CUiScrollText, textRect_) == 0x18C);
 
 // The tenth child window (messageLog_).
-inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUiScrollText*>(children_.data[9]); }
-static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
+inline CUiScrollText* CBattleScreen::MessageLog() const { return static_cast<CUiScrollText*>(children_[9]); }
 
 // A spin control of the options window: a window stepping through its texts (the on / off settings).
 class CUiSpin : public CUiWindow {
@@ -1809,9 +1769,6 @@ public:
     std::uint8_t unused_18D[3];
     int cursor_;                     // caret position in name_ (bytes, at a character's start: U4)
 };
-static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
-static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
-static_assert(offsetof(CSaveLoadWindow, name_) == 0x188);
 
 struct OptionDefinition {
     int id_;
@@ -1978,7 +1935,6 @@ public:
     std::vector<std::string> objectiveTexts_;   // obj_0..obj_2
     std::uint32_t savedAlphaRef_;
 };
-static_assert(offsetof(CObjectivesWindow, zones_) == 0x164 && offsetof(CObjectivesWindow, zoneName_) == 0x170);
 
 inline const UiKeyName* UiKeyNames() { return g_keyNames; }
 
@@ -2060,13 +2016,6 @@ public:
     std::uint8_t unused_411[3];
     const UiKeyName* pressedKey_;    // the key pressed for a binding row
 };
-static_assert(offsetof(COptionsWindow, settings_) == 0x378);
-static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
-static_assert(offsetof(COptionsWindow, bindings_) == 0x36C);
-static_assert(offsetof(COptionsWindow, groupNames_) == 0x3FC);
-static_assert(offsetof(COptionsWindow, rows_) == 0x384);
-static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
-static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
 
 // The message box's edit field.
 class CUiEditField : public CUiWindow {
@@ -2104,7 +2053,6 @@ public:
     bool changed_;
     std::uint8_t unused_17B;
 };
-static_assert(offsetof(CUiEditField, text_) == 0x170);
 
 // The message box. Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one cancel button), 4 an
 // edit field instead of the text (its initial text is the text key itself).
@@ -2136,7 +2084,6 @@ public:
     CUiEditField* edit_;             // the edit field (flag 4)
     char* editText_;                 // the edit field's first text; OK copies the typed one here
 };
-static_assert(offsetof(CMessageBox, title_) == 0x164);
 
 // The help / message window (CInterface3D::ShowMessage and OpenHelp). Its pages come from the texts:
 // "tutorial <text_>" holds the title key and a "#screen" line per page, and "tutor <key>" each key's text.
@@ -2177,7 +2124,6 @@ private:
     // The page is kept for the topic (or the message).
     void Finish();
 };
-static_assert(offsetof(CHelpWindow, text_) == 0x168);
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
 struct ChatLine {
@@ -2224,7 +2170,6 @@ public:
     std::string typed_;
     int caret_;                      // in the typed line (a byte offset at a character's start: U4)
 };
-static_assert(offsetof(CChatOverlay, lines_) == 0x148);
 
 // The new game's difficulty question (the main menu's region 0): a message box ("option_difficulty", OK and
 // cancel) with two check boxes. Its button handler sets easy_ from the boxes (regions 2 / 3) and copies it to

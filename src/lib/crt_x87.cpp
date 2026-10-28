@@ -1,7 +1,7 @@
-// The game CRT's x87 entry points with register arguments: _ftol (ST0 in, its 64-bit truncation in EDX:EAX,
-// ST0 popped) and the _CI maths (_CIacos, _CIasin, _CIpow: ST0 in and out; fmod and _CIfmod are the host
-// CRT's std::fmod). Each is a naked entry that moves its arguments to the stack and calls a plain C++ body;
-// this is the one file in src/lib that tools/check_cleanup.py lets hold __asm.
+// The game CRT's maths as it computes it under its control word: the bodies of _CIacos, _CIasin, _CIpow and _hypot
+// (fmod / _CIfmod, modf, floor and ceil are the host CRT's). Our callers call them by name, so there are no register
+// entries; the one naked function is the x87 addition Hypot gives a NaN to, which makes this the one file in src/lib
+// that tools/check_cleanup.py lets hold __asm. Why these stay ported: docs/notes/standalone.md, "The CRT".
 #include "crt.h"
 
 #include "ei/x87.h"
@@ -24,19 +24,6 @@ constexpr std::uint64_t kInfinity = 0x7FF0000000000000ull;
 // pi and pi / 2 (FLDPI, and the long double) as the callers store them.
 constexpr double kPi = 3.141592653589793;
 constexpr double kHalfPi = 1.5707963267948966;
-
-// The game CRT's math function names by their code (read by its math error reporting, which
-// is not read by the image). Named so that its bytes come from here.
-struct MathFunctionName {
-    int code;
-    const char* name;
-};
-[[maybe_unused]] constexpr MathFunctionName kMathFunctionNames[27] = /*00797CC0*/ {
-    {20, "exp"},   {29, "pow"},    {26, "log"},   {27, "log10"}, {31, "sinh"},  {19, "cosh"},  {33, "tanh"},
-    {14, "asin"},  {13, "acos"},   {15, "atan"},  {16, "atan2"}, {5, "sqrt"},   {30, "sin"},   {18, "cos"},
-    {32, "tan"},   {12, "ceil"},   {11, "floor"}, {21, "fabs"},  {28, "modf"},  {25, "ldexp"}, {17, "_cabs"},
-    {24, "_hypot"}, {22, "fmod"},  {23, "frexp"}, {34, "_y0"},   {35, "_y1"},   {36, "_yn"},
-};
 
 std::uint64_t Bits(double value) {
     std::uint64_t bits;

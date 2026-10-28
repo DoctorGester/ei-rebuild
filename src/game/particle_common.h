@@ -55,39 +55,6 @@ inline float PickIfLess(float a, float b) { return a >= b ? b : a; }
 // The game's debug message (cdecl, one argument; compiled out, other mods may hook it).
 inline void DebugMessage(const char* a0) { game::DebugLog(a0); }
 
-// The element array's inlined SetSize(n) (MFC CArray; 32-byte aligned blocks).
-inline void SetElementCount(CParticleSource* s, int n) {
-    if (n == 0) {
-        if (s->elements) {
-            lib::FreeAligned32(s->elements);
-            s->elements = nullptr;
-        }
-        s->elementCapacity = 0;
-        s->elementCount = 0;
-    } else if (!s->elements) {
-        s->elements = AllocateElements(n);
-        s->elementCapacity = n;
-        s->elementCount = n;
-    } else if (n <= s->elementCapacity) {
-        s->elementCount = n;
-    } else {
-        int grow = s->elementGrowBy;
-        if (grow == 0) {
-            grow = s->elementCount / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = s->elementCapacity + grow;
-        if (!(capacity > n)) capacity = n;
-        ParticleElement* data = AllocateElements(capacity);
-        std::memcpy(data, s->elements, static_cast<std::size_t>(s->elementCount) * sizeof(ParticleElement));
-        lib::FreeAligned32(s->elements);
-        s->elements = data;
-        s->elementCount = n;
-        s->elementCapacity = capacity;
-    }
-}
-
 
 // The attached object as a map object: the callbacks call its slots past CObject3D's (the
 // carriers are units).

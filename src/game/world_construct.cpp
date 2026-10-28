@@ -45,8 +45,6 @@ CWorldServer::CWorldServer() {
 }
 
 CWorldClient::CWorldClient() {
-    heroes_.Construct();
-    objects_.Construct();
     dynamicMaxId_ = 0;
     lastLineListKey_ = 0;
     // Both sector grids at 1 x 1 (Create makes them 4 x 4).

@@ -35,8 +35,7 @@ struct MaterialEntry {
 static_assert(sizeof(MaterialEntry) == 0x10);
 
 // A material (class id 5, "CMaterial"; material.cpp), made by the material manager (the world's
-// pointer, CMaterialManager::NewMaterial) and by the scene loader for its helpers (it constructs the array of
-// them, FakeUnitScene::helpers in scene_loader.h; the file's vectors are the ambient, diffuse and specular
+// pointer, CMaterialManager::NewMaterial; the file's vectors are the ambient, diffuse and specular
 // colours, the power and the diffuse alpha). It is also the material a figure part is drawn with. Names
 // provisional. A real virtual class: the compiler makes its vtable.
 class CMaterial : public CEngineObject {

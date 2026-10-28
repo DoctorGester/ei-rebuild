@@ -71,8 +71,8 @@ bool SetUpCasting(CParticleSource* s) {
     if (s->type_ == 0x202A) scale = scale + scale;
     else scale = scale * D(EI_THREE);
     float extent = static_cast<float>(scale);
-    SetElementCount(s, s->lifetime + 1);
-    ParticleElement* e = s->elements;
+    s->elements.resize(s->lifetime + 1);
+    ParticleElement* e = s->elements.data();
     e->cast.alpha = 0xFF;
     e->ticks = 6;
     e->cast.radius = extent;
@@ -111,7 +111,7 @@ bool SetUpCasting(CParticleSource* s) {
 // marker particle at the source); after that each particle starts on a random direction (pulled
 // towards a random swirl), at the effect's radius around the source.
 int CParticleSource::EmitCasting(Particle* p, int) {
-    if (elementCount == 0) {
+    if (std::ssize(elements) == 0) {
         if (!SetUpCasting(this)) return 0;
         if (type_ == 0x202A) {
             p->color = 0xFFFFFF;
@@ -155,7 +155,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     p->velocity.x = static_cast<float>(inverse * D(x));
     p->velocity.y = static_cast<float>(inverse * D(y));
     p->velocity.z = static_cast<float>(inverse * D(z));
-    ParticleElement* state = elements;
+    ParticleElement* state = elements.data();
     double reach = D(state->cast.radius) * D(EI_POINT_SIX);
     p->aux0 = static_cast<float>(reach);
     p->aux1 = static_cast<float>(reach * D(type_ == 0x202A ? EI_TWENTY_SIXTH : EI_THIRTEENTH));
@@ -180,20 +180,20 @@ int CParticleSource::EmitCasting(Particle* p, int) {
 // source with a random size; the others fade by their life (capped by the effect's alpha), run
 // their frames backwards (0x2027: every fourth tick held) and spiral in towards the source.
 int CParticleSource::UpdateCasting(Particle* p) {
-    ParticleElement* state = elements;
+    ParticleElement* state = elements.data();
     if (state->cast.alpha == 0) return 0;
     if (p->state) {
         std::memcpy(&p->pos, &origin, sizeof(Vector3));
         SetBits(&p->size, 0x3F800000);
-        p->size = static_cast<float>((Unsigned(Next()) * EI_SCALE_SIZE + D(EI_SIZE_BASE)) * D(elements->cast.radius) *
+        p->size = static_cast<float>((Unsigned(Next()) * EI_SCALE_SIZE + D(EI_SIZE_BASE)) * D(elements[0].cast.radius) *
                         D(EI_POINT_THREE));
-        p->color = (static_cast<std::uint32_t>(elements->cast.alpha) << 24) | 0xFFFFFF;
+        p->color = (static_cast<std::uint32_t>(elements[0].cast.alpha) << 24) | 0xFFFFFF;
         return 1;
     }
     int life = --p->life;
     if (life == 0) return 0;
     std::int32_t fade = (type_ == 0x202A ? kCastAlphaByLifeWide : kCastAlphaByLife)[life];
-    std::int32_t cap = elements->cast.alpha;
+    std::int32_t cap = elements[0].cast.alpha;
     if (cap < fade) fade = cap;
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
     if (type_ == 0x2027 && (life & 3) == 0) ++p->frame;
@@ -222,7 +222,7 @@ void CParticleSource::TickCasting(ParticleElement* e) {
     if (e->pos.x != 0.0f) {
         if ((flags_ & 1) && attachedTo) return;
         if (e->ticks > 0) --e->ticks;
-        e->cast.alpha = kCastAlphaByCountdown[elements->ticks];
+        e->cast.alpha = kCastAlphaByCountdown[elements[0].ticks];
         return;
     }
     float* pos = &e->swirl.position.x;
@@ -283,18 +283,18 @@ bool FollowCarrier(CParticleSource* s) {
     radius = static_cast<float>(D(radius) * D(EI_SPHERE_RADIUS));
     float height;
     std::memcpy(&height, &offset.z, sizeof(float));
-    if (s->elementCount == 0) {
-        SetElementCount(s, 2);
+    if (std::ssize(s->elements) == 0) {
+        s->elements.resize(2);
         s->elements[1].sphereTilt.tiltCos = static_cast<float>(x87::fcos(EI_TILT_ANGLE));
         s->elements[1].sphereTilt.tiltSin = static_cast<float>(x87::fsin(EI_TILT_ANGLE));
         std::memset(&s->elements[1].pos, 0, sizeof(Vector3));
         std::memset(&s->elements[0].pos, 0, sizeof(Vector3));
         std::memcpy(&s->elements[0].pos.z, &height, sizeof(float));
-        std::memcpy(&s->elements->sphere.radius, &radius, sizeof(float));
+        std::memcpy(&s->elements[0].sphere.radius, &radius, sizeof(float));
     }
-    ParticleElement* e = s->elements;
+    ParticleElement* e = s->elements.data();
     e->pos.z = static_cast<float>(D(e->pos.z) * D(EI_KEEP_0_9) + D(height) * D(EI_TAKE_0_1));
-    float* sphereRadius = &s->elements->sphere.radius;
+    float* sphereRadius = &s->elements[0].sphere.radius;
     *sphereRadius = static_cast<float>(D(radius) * D(EI_TAKE_0_1) + D(*sphereRadius) * D(EI_KEEP_0_9));
     float rate = static_cast<float>(D(s->size) * D(s->type_ == 0x201A ? EI_ANTIMAGIC_RATE : EI_SPHERE_RATE));
     s->emitCount = x87::fistp(rate);
@@ -309,10 +309,10 @@ bool FollowCarrier(CParticleSource* s) {
     smoothed.y = sy;
     smoothed.z = sz;
     const Vector3& m = s->elements[1].pos;
-    float* speed = &s->elements->sphere.speed;
+    float* speed = &s->elements[0].sphere.speed;
     *speed = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
     EI_NAN_AUDIT(*speed);
-    if (D(s->elements->sphere.speed) < EI_STILL_SPEED) SetBits(&s->elements->sphere.speed, 0);
+    if (D(s->elements[0].sphere.speed) < EI_STILL_SPEED) SetBits(&s->elements[0].sphere.speed, 0);
     return true;
 }
 
@@ -324,7 +324,7 @@ bool FollowCarrier(CParticleSource* s) {
 int CParticleSource::EmitOrbit(Particle* p, int index) {
     if (index == 0 && !FollowCarrier(this)) return 0;
     float radius;
-    std::memcpy(&radius, &elements->sphere.radius, sizeof(float));
+    std::memcpy(&radius, &elements[0].sphere.radius, sizeof(float));
     double big;
     if (Next() % 11 == 0) {
         float base = type_ == 0x201A ? EI_BIG_ANTIMAGIC : type_ == 0x2016 ? EI_BIG_EARTH : EI_BIG_SPHERE;
@@ -352,7 +352,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     // The carrier's motion flattens the sphere: the part of the direction against the motion
     // (clamped to [0, 1] of it) is taken off.
     Vector3 offset;
-    double speed = D(elements->sphere.speed);
+    double speed = D(elements[0].sphere.speed);
     if (speed > EI_STILL_SPEED) {
         const Vector3& m = elements[1].pos;
         float t = static_cast<float>(-(DotUnrounded<Sum3::ZYX, double>(m, p->velocity) / speed));
@@ -457,9 +457,9 @@ void PlaceRings(CParticleSource* s, int countdown) {
 // (result 0). False once the phase is over.
 bool EmitRingFlame(CParticleSource* s, Particle* p, int& result) {
     int emitted = static_cast<int>(Bits(&s->emitState));
-    if (emitted > s->elementCount) return false;
+    if (emitted > std::ssize(s->elements)) return false;
     SetBits(&s->emitState, static_cast<std::uint32_t>(emitted + 1));
-    if (emitted == s->elementCount) {
+    if (emitted == std::ssize(s->elements)) {
         result = 0;
         return true;
     }
@@ -520,13 +520,13 @@ void TurnRing(ParticleElement* e) {
 // per ring; then, while ring 0 is young, sparks scattered around ring 0's circle (72 per tick),
 // else sparks around a random ring's centre.
 int CParticleSource::EmitCastRing(Particle* p, int) {
-    if (elementCount == 0) {
+    if (std::ssize(elements) == 0) {
         if (!attachedTo) {
             DebugMessage(NoCarrierRing());
             return 0;
         }
         emitCount = 3;
-        SetElementCount(this, 3);
+        elements.resize(3);
         SetBits(&growth, 0);
         PlaceRings(this, 45);
         emitCount *= 9;
@@ -555,7 +555,7 @@ int CParticleSource::EmitCastRing(Particle* p, int) {
         p->pos.y = static_cast<float>(x87::fcos(D(angle)) * D(reach) + (D(elements[0].pos.y) + D(origin.y)));
         p->pos.z = static_cast<float>(D(elements[0].pos.z) + D(origin.z));
     } else {
-        const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(elementCount)];
+        const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
         p->frame = 1;
         p->life = 7;
         p->frameTimer = 1;
@@ -619,19 +619,19 @@ void CParticleSource::TickCastRing(ParticleElement* e) {
 // Healing (0x2006): the first call places 6 * size + 2 rings (needs a carrier); then
 // one flame per ring; then sparks around a random ring's centre.
 int CParticleSource::EmitHealing(Particle* p, int) {
-    if (elementCount == 0) {
+    if (std::ssize(elements) == 0) {
         if (!attachedTo) {
             DebugMessage(NoCarrierHealing());
             return 0;
         }
         emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_HEAL_RINGS) + D(EI_HEAL_RINGS_BASE)));
-        SetElementCount(this, emitCount);
+        elements.resize(emitCount);
         PlaceRings(this, 36);
         emitCount *= 3;
     }
     int result;
     if (EmitRingFlame(this, p, result)) return result;
-    const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(elementCount)];
+    const ParticleElement& ring = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
     p->color = 0xFFFFFFFF;
     p->frame = 8;
     p->life = 8;
@@ -713,7 +713,7 @@ constexpr std::int32_t kRiseFallAlpha[20] = /*0078A914*/ {0, 0, 32, 64, 112, 160
 // particle (state -1 - k).
 int AddOrbiter(CParticleSource* s, Particle* p) {
     float orbit, carrier;     // the orbit radius and the carrier's radius
-    int k = s->elementCount;
+    int k = std::ssize(s->elements);
     if (k == 0) {
         Vector3 offset;
         float radius;
@@ -721,10 +721,10 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
         carrier = radius;
         orbit = static_cast<float>(D(radius) * D(EI_HALF_C));
     } else {
-        std::memcpy(&orbit, &s->elements->orbiter.relative.x, sizeof(float));
-        std::memcpy(&carrier, &s->elements->orbiter.scale, sizeof(float));
+        std::memcpy(&orbit, &s->elements[0].orbiter.relative.x, sizeof(float));
+        std::memcpy(&carrier, &s->elements[0].orbiter.scale, sizeof(float));
     }
-    SetElementCount(s, k + 1);
+    s->elements.resize(k + 1);
     double share = static_cast<double>(k) * D(EI_PI_F);
     double angle = (share + share) / static_cast<double>(s->lifetime);
     ParticleElement* e = &s->elements[k];
@@ -778,7 +778,7 @@ int AddOrbiter(CParticleSource* s, Particle* p) {
 // Until all orbiters exist each emission adds one (needs a carrier); then sparks start at a random point
 // between an orbiter's previous and current position and fly off with a random velocity from the spread box.
 int CParticleSource::EmitCastSwirl(Particle* p, int) {
-    if (elementCount < lifetime) {
+    if (std::ssize(elements) < lifetime) {
         if (!attachedTo) {
             DebugMessage(NoCarrierCasting());
             return 0;
@@ -897,10 +897,10 @@ template <std::floating_point T> inline float F(T) = delete;
 
 // The beam's frame from the extent (the first emission).
 void SetUpLink(CParticleSource* s) {
-    SetElementCount(s, 4);
+    s->elements.resize(4);
     const Vector3& x = s->extent;
-    s->elements->link.length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x)));
-    s->elements->link.inverseLength = static_cast<float>(D(EI_P_ONE) / D(s->elements->link.length));
+    s->elements[0].link.length = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x)));
+    s->elements[0].link.inverseLength = static_cast<float>(D(EI_P_ONE) / D(s->elements[0].link.length));
 
     // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
     Vector3 side;
@@ -934,7 +934,7 @@ void SetUpLink(CParticleSource* s) {
     std::memcpy(&s->elements[1].linkAxis.axis, &direction, sizeof(Vector3));
     std::memcpy(&s->elements[2].linkAxis.axis, &side, sizeof(Vector3));
     std::memcpy(&s->elements[3].linkAxis.axis, &cross, sizeof(Vector3));
-    s->elements->ticks = 0xFF;
+    s->elements[0].ticks = 0xFF;
 }
 
 } // namespace
@@ -943,7 +943,7 @@ void SetUpLink(CParticleSource* s) {
 // box), a twist rate from its distance to the axis and a random speed along the beam (fast and
 // large sparks near the axis now and then).
 int CParticleSource::EmitLink(Particle* p, int) {
-    if (elementCount == 0) SetUpLink(this);
+    if (std::ssize(elements) == 0) SetUpLink(this);
     p->color = 0xFFFFFF;
     float a = SignedUnit();
     float b = SignedUnit();
@@ -982,7 +982,7 @@ int CParticleSource::UpdateLink(Particle* p) {
     p->frame = (p->frame + 1) % frameCount;
     double travelled = D(p->drift.y) + D(p->drift.x);
     p->drift.x = static_cast<float>(travelled);
-    ParticleElement* e = elements;
+    ParticleElement* e = elements.data();
     float along = static_cast<float>(travelled * D(e->link.inverseLength));
     if (travelled > D(e->link.length)) return 0;
 
@@ -1022,13 +1022,13 @@ int CParticleSource::UpdateLink(Particle* p) {
     double h = D(along) - D(EI_LINK_HALF);
     SetBits(&p->size, 0x3F800000);
     std::memcpy(&p->size, &p->drift.z, sizeof(float));
-    p->pos.z = static_cast<float>((D(EI_LINK_QUARTER) - h * h) * D(elements->link.length) * D(EI_LINK_BULGE) + D(p3.z));
+    p->pos.z = static_cast<float>((D(EI_LINK_QUARTER) - h * h) * D(elements[0].link.length) * D(EI_LINK_BULGE) + D(p3.z));
     float hr = static_cast<float>(h);
     std::uint32_t absBits = Bits(&hr) & 0x7FFFFFFFu;
     float offCentre;
     std::memcpy(&offCentre, &absBits, sizeof(float));
     std::uint32_t fade = gamecrt::Ftol((D(EI_LINK_HALF) - D(offCentre)) * D(EI_LINK_ALPHA));
-    std::uint32_t cap = static_cast<std::uint32_t>(elements->ticks);
+    std::uint32_t cap = static_cast<std::uint32_t>(elements[0].ticks);
     if (cap < fade) fade = cap;
     p->color = (fade << 24) | 0xFFFFFF;
     return 1;
@@ -1073,7 +1073,7 @@ constexpr std::int32_t kBlastAlpha[16] = /*0078A5DC*/ {255, 255, 207, 175, 128, 
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(CParticleSource* s, Particle* p) {
     double jitter = Unsigned(Next()) * EI_BLAST_SCALE_0_4 + D(EI_BLAST_POINT_EIGHT);
-    p->aux0 = static_cast<float>(D(s->elements->fragment.radius) * D(s->size) * jitter * D(EI_BLAST_FLAME_SIZE));
+    p->aux0 = static_cast<float>(D(s->elements[0].fragment.radius) * D(s->size) * jitter * D(EI_BLAST_FLAME_SIZE));
     p->aux1 = static_cast<float>(static_cast<double>(p->frame));
 }
 
@@ -1084,7 +1084,7 @@ void BlastFlameTiming(CParticleSource* s, Particle* p) {
 // (a random point in the ball scaled by the radius, moving outwards; the earlier in the blast and
 // the further out the more frames they skip); the others are smoke along fragment `state`'s path.
 int CParticleSource::EmitBlast(Particle* p, int) {
-    ParticleElement* fragments = elements;
+    ParticleElement* fragments = elements.data();
     int kind = static_cast<int>(Next() % 29) - 14;
     p->color = 0xFFFFFFFF;
     p->state = kind;
@@ -1107,7 +1107,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         v.x = static_cast<float>(scale * D(v.x));
         v.y = static_cast<float>(D(v.y) * scale);
         v.z = static_cast<float>(D(v.z) * scale);
-        double radius = D(elements->fragment.radius);
+        double radius = D(elements[0].fragment.radius);
         float ax = static_cast<float>(D(v.x) * radius);
         float ay = static_cast<float>(D(v.y) * radius);
         double az = radius * D(v.z);
@@ -1118,7 +1118,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         p->pos.y = py;
         p->pos.x = static_cast<float>(px);
         p->pos.z = pz;
-        double spreadRate = D(elements->fragment.growth);
+        double spreadRate = D(elements[0].fragment.growth);
         p->velocity.x = static_cast<float>(D(v.x) * spreadRate);
         SetBits(&p->size, 0);
         p->velocity.y = static_cast<float>(D(v.y) * spreadRate);
@@ -1174,7 +1174,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
 // keeps the source alive while the fragments are younger than 3 ticks. Flames move by their velocity (slowing
 // with the fragments' drag), swell, step through frames at an accelerating rate and fade by the frame.
 int CParticleSource::UpdateBlast(Particle* p) {
-    ParticleElement* fragments = elements;
+    ParticleElement* fragments = elements.data();
     int state = p->state;
     if (state >= 0) {
         int frame = ++p->frame;
@@ -1209,7 +1209,7 @@ int CParticleSource::UpdateBlast(Particle* p) {
     *step = static_cast<float>(D(*step) * D(EI_BLAST_FRAME_ACCEL));
     p->frame = x87::fistp(p->aux1);
     std::memcpy(&p->aux0, &p->size, sizeof(float));
-    double drag = D(elements->fragment.decay) - D(EI_BLAST_DRAG);
+    double drag = D(elements[0].fragment.decay) - D(EI_BLAST_DRAG);
     p->velocity.x = static_cast<float>(drag * D(p->velocity.x));
     p->velocity.y = static_cast<float>(drag * D(p->velocity.y));
     p->velocity.z = static_cast<float>(drag * D(p->velocity.z));
@@ -1343,7 +1343,7 @@ float SpreadAround(float base, float low, float high) {
 // the vent erupts it flies along the vent's direction (jittered by up to 20 / 10 degrees) with the
 // vent's strength; otherwise a short-lived puff of mist near the source.
 int CParticleSource::EmitGeyser(Particle* p, int) {
-    int vent = static_cast<int>(Next() % static_cast<std::uint32_t>(elementCount));
+    int vent = static_cast<int>(Next() % static_cast<std::uint32_t>(std::ssize(elements)));
     p->color = 0xFFFFFFFF;
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     if (particles.empty()) {
@@ -1453,7 +1453,7 @@ void ChooseShowerRays(CParticleSource* s) {
     if (s->frameDelay < 1) s->frameDelay = 1;
     int rays = s->frameDelay;
     s->emitCount = rays * 10;
-    SetElementCount(s, rays);
+    s->elements.resize(rays);
     for (int i = 0; i < s->frameDelay; ++i) {
         float x, y, z;
         double lengthSquared;
@@ -1482,10 +1482,10 @@ void ChooseShowerRays(CParticleSource* s) {
 // random direction (jittered by +-0.03, scaled to the source's size and 1/6 of it per tick, one in
 // eight half as fast again), already a random part of its first step out.
 int CParticleSource::EmitShower(Particle* p, int) {
-    if (elements->ray.age < 0) ChooseShowerRays(this);
+    if (elements[0].ray.age < 0) ChooseShowerRays(this);
     p->color = 0xFFFFFFFF;
     p->life = lifetime;
-    p->frame = elements->ticks;
+    p->frame = elements[0].ticks;
     float a = static_cast<float>(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
     float b = static_cast<float>(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
     float c = static_cast<float>(Unsigned(Next()) * EI_SHOWER_JITTER_SCALE - D(EI_SHOWER_JITTER_LOW));
@@ -1768,8 +1768,8 @@ bool SetUpColumn(CParticleSource* s) {
     radius = static_cast<float>(D(radius) * D(EI_COLUMN_RADIUS));
     double ring = ClassOf(s->attachedTo) == kUnitClass ? UnitScale(s->attachedTo) : D(radius);
     radius = static_cast<float>(ring + ring);
-    SetElementCount(s, 1);
-    ParticleElement* e = s->elements;
+    s->elements.resize(1);
+    ParticleElement* e = s->elements.data();
     e->word[9] = 0;
     e->column.radius = radius;
     SetBits(&e->value[4], 0);
@@ -1786,20 +1786,20 @@ bool SetUpColumn(CParticleSource* s) {
 // 0x202F: a spark on a ring of random radius around the carrier (0.9-1.1 of the ring),
 // at a random height of the spread box above the ring's foot, rising faster and faster.
 int CParticleSource::EmitColumn(Particle* p, int) {
-    if (elementCount == 0 && !SetUpColumn(this)) return 0;
+    if (std::ssize(elements) == 0 && !SetUpColumn(this)) return 0;
     p->color = 0xFFFFFFFF;
     p->frame = 1;
     p->life = 13;
     p->frameTimer = 1;
     p->aux2 = static_cast<float>((Unsigned(Next()) * EI_COLUMN_RISE_SCALE + D(EI_COLUMN_RISE_BASE)) *
-                                    D(elements->column.height) * D(EI_COLUMN_RISE));
+                                    D(elements[0].column.height) * D(EI_COLUMN_RISE));
     float ring = static_cast<float>(Unsigned(Next()) * EI_COLUMN_RING_SCALE + D(EI_COLUMN_RING_BASE));
     double angle = Unsigned(Next()) * EI_COLUMN_ANGLE_SCALE;
     p->velocity.x = static_cast<float>(x87::fsin(angle) * D(ring));
     p->velocity.y = static_cast<float>(x87::fcos(angle) * D(ring));
     double z = Unsigned(Next()) * (D(spreadMax.z) - D(spreadMin.z)) * EI_P_SCALE_1 + D(spreadMin.z);
     p->velocity.z = static_cast<float>(z);
-    p->velocity.z = static_cast<float>(z + D(elements->column.foot));
+    p->velocity.z = static_cast<float>(z + D(elements[0].column.foot));
     double px = D(origin.x) + D(p->velocity.x);
     float py = static_cast<float>(D(p->velocity.y) + D(origin.y));
     float pz = static_cast<float>(D(p->velocity.z) + D(origin.z));
@@ -1856,13 +1856,13 @@ namespace {
 // Mushroom: a puff from the source in a random upward direction (a fixed spread of 0,
 // as ln 1 = 0), sized and framed by the cloud's age.
 int CParticleSource::EmitMushroom(Particle* p, int) {
-    if (elementCount == 0) {
-        SetElementCount(this, 1);
-        ParticleElement* e = elements;
+    if (std::ssize(elements) == 0) {
+        elements.resize(1);
+        ParticleElement* e = elements.data();
         e->ticks = 0;
         e->pos.x = static_cast<float>(x87::flog(EI_MUSHROOM_ONE) * EI_MUSHROOM_SPREAD * D(size));
         SetBits(&elements[0].pos.z, 0);
-        std::memcpy(&elements->mushroom.stem, &origin, sizeof(Vector3));
+        std::memcpy(&elements[0].mushroom.stem, &origin, sizeof(Vector3));
     }
     float spread = static_cast<float>((Unsigned(Next()) * EI_MUSHROOM_W_SCALE + D(EI_MUSHROOM_W_BASE)) * D(elements[0].pos.x));
     float a = SignedUnit();
@@ -1923,7 +1923,7 @@ int CParticleSource::UpdateMushroom(Particle* p) {
     float vy = static_cast<float>(D(p->drift.y) * D(EI_MUSHROOM_DRAG));
     p->drift.y = vy;
     p->drift.z = static_cast<float>(D(p->drift.z) * D(EI_MUSHROOM_DRAG));
-    const float* stem = &elements->mushroom.stem.x;
+    const float* stem = &elements[0].mushroom.stem.x;
     double dx = D(p->pos.x) - D(stem[0]);
     double dyu = D(p->pos.y) - D(stem[1]);
     float dy = static_cast<float>(dyu);
@@ -1957,7 +1957,7 @@ const char* NoCarrierGas() { return "Particle effect Link without carrier\n"; }
 // BlueGas: the first call measures the carrier (5 * size + 0.5 puffs per tick). A puff starts at a random
 // point of the disc around the carrier's figure, turning about the axis faster the nearer it is, and rising.
 int CParticleSource::EmitStench(Particle* p, int) {
-    if (elementCount == 0) {
+    if (std::ssize(elements) == 0) {
         if (!attachedTo) {
             DebugMessage(NoCarrierGas());
             return 0;
@@ -1968,15 +1968,15 @@ int CParticleSource::EmitStench(Particle* p, int) {
         double r = D(radius);
         float gasRadius = static_cast<float>(r * D(EI_GAS_RADIUS));
         float carrierHeight = static_cast<float>(r + r);
-        SetElementCount(this, 1);
+        elements.resize(1);
         std::memcpy(&elements[0].pos, &offset, sizeof(Vector3));
-        elements->gas.radius = gasRadius;
-        elements->gas.height = carrierHeight;
+        elements[0].gas.radius = gasRadius;
+        elements[0].gas.height = carrierHeight;
         int rate = static_cast<int>(gamecrt::Ftol(D(size) * D(EI_GAS_RATE) + D(EI_GAS_ROUND)));
         emitCount = rate < 1 ? 1 : rate;
     }
-    float radius = elements->gas.radius;
-    float carrierHeight = elements->gas.height;
+    float radius = elements[0].gas.radius;
+    float carrierHeight = elements[0].gas.height;
     float t = static_cast<float>(Unsigned(Next()) * D(radius) * EI_P_SCALE_1);
     float twoPi = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);
     double angle = Unsigned(Next()) * D(twoPi) * EI_P_SCALE_1;
@@ -2068,7 +2068,7 @@ namespace {
 // original's two orders; y is returned unrounded.
 double FunnelCentre(const CParticleSource* s, double h, float& x) {
     int k = static_cast<int>(gamecrt::Ftol(h));
-    if (k >= s->elementCount - 2) k = s->elementCount - 2;
+    if (k >= std::ssize(s->elements) - 2) k = std::ssize(s->elements) - 2;
     float f = static_cast<float>(h - static_cast<double>(k));
     float t = PickIfLess(f, 1.0f);
     double u = D(EI_P_ONE) - D(t);
@@ -2092,7 +2092,7 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     p->life = static_cast<int>(Next() % 9) + 100;
     float scaled = static_cast<float>(D(height01) * D(EI_FUNNEL_PI_F));
     int k = x87::fistp(scaled);
-    if (k >= elementCount - 2) k = elementCount - 2;
+    if (k >= std::ssize(elements) - 2) k = std::ssize(elements) - 2;
     float f = static_cast<float>(D(scaled) - static_cast<double>(k));
     float t = PickIfLess(f, 1.0f);
     double u = D(EI_P_ONE) - D(t);
@@ -2118,10 +2118,10 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     double turn = Unsigned(Next()) * (D(turnHigh) - D(turnLow)) * EI_P_SCALE_1 + D(turnLow);
     p->drift.x = static_cast<float>(turn * (D(EI_FUNNEL_TURN_TOP) - D(wRounded) * D(wRounded)) * D(EI_FUNNEL_TURN_SCALE));
     SetBits(&p->drift.z, 0);
-    std::memcpy(&p->drift.y, &elements->funnel.damping, sizeof(float));
+    std::memcpy(&p->drift.y, &elements[0].funnel.damping, sizeof(float));
     p->pos.x = static_cast<float>(x87::fsin(D(angle)) * D(radius) + D(p->pos.x) + D(cx));
     p->pos.y = static_cast<float>(x87::fcos(D(angle)) * D(radius) + D(cy) + D(p->pos.y));
-    p->pos.z = static_cast<float>(D(height01) * D(elements->funnel.height) + D(p->pos.z));
+    p->pos.z = static_cast<float>(D(height01) * D(elements[0].funnel.height) + D(p->pos.z));
     if (p->state != 0) {
         p->size = static_cast<float>((D(radius) + D(EI_FUNNEL_SIZE)) * D(size));
         p->frame = static_cast<int>(Next() % 12);
@@ -2151,7 +2151,7 @@ int CParticleSource::UpdateTornado(Particle* p) {
     p->pos.y = static_cast<float>(x87::fcos(D(angle)) * D(radius) + D(origin.y) + cy);
     double base = D(elements[0].pos.z) + D(origin.z);
     p->pos.z = static_cast<float>(base);
-    p->pos.z = static_cast<float>(D(elements->funnel.height) * D(p->aux0) + base);
+    p->pos.z = static_cast<float>(D(elements[0].funnel.height) * D(p->aux0) + base);
     if (p->life > 8) p->aux1 = PickIfLess(static_cast<float>(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
     else p->aux1 = 0.1f >= p->aux1 ? 0.1f : p->aux1;
     int a = x87::fistp(static_cast<float>(std::sqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
@@ -2170,8 +2170,8 @@ int CParticleSource::UpdateTornado(Particle* p) {
 // motion (at most 0.01 per tick) and bend with the height. The bottom ring sits 1 above the ground.
 // A free source that lost its bend and still has particles stops and keeps going until they die.
 void CParticleSource::TickTornado(ParticleElement* e) {
-    if (e != elements) return;
-    ParticleElement* bottom = elements;
+    if (e != elements.data()) return;
+    ParticleElement* bottom = elements.data();
     float bend;
     std::memcpy(&bend, &bottom->funnel.bend, sizeof(float));
     EI_NAN_AUDIT(bend);
@@ -2182,8 +2182,8 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         sway.x = static_cast<float>(D(sway.x) * D(EI_FUNNEL_SWAY));
         SetBits(&sway.z, 0);
         sway.y = static_cast<float>(D(sway.y) * D(EI_FUNNEL_SWAY));
-        for (int i = 0; i < elementCount; ++i) {
-            double c = x87::fcos(static_cast<double>(i) / static_cast<double>(elementCount - 1) * EI_FUNNEL_PI *
+        for (int i = 0; i < std::ssize(elements); ++i) {
+            double c = x87::fcos(static_cast<double>(i) / static_cast<double>(std::ssize(elements) - 1) * EI_FUNNEL_PI *
                                  EI_FUNNEL_HALF_ARC);
             ParticleElement& ring = elements[i];
             float x = static_cast<float>(D(sway.x) * c);
@@ -2220,10 +2220,10 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         float gx = static_cast<float>(D(d.x) + D(b1.pos.x));
         float gy = static_cast<float>(D(d.y) + D(b1.pos.y));
         float gz = static_cast<float>(D(d.z) + D(b1.pos.z));
-        for (int i = 0; i < elementCount; ++i) {
-            double f = static_cast<double>(i) / static_cast<double>(elementCount - 1);
+        for (int i = 0; i < std::ssize(elements); ++i) {
+            double f = static_cast<double>(i) / static_cast<double>(std::ssize(elements) - 1);
             double c = x87::fcos(f * EI_FUNNEL_PI);
-            double k = (c + (D(EI_P_ONE) - f) * D(elements->funnel.bend) + EI_FUNNEL_ONE) * EI_FUNNEL_BEND;
+            double k = (c + (D(EI_P_ONE) - f) * D(elements[0].funnel.bend) + EI_FUNNEL_ONE) * EI_FUNNEL_BEND;
             ParticleElement& ring = elements[i];
             float x = static_cast<float>(D(gx) * k);
             float y = static_cast<float>(D(gy) * k);
@@ -2233,7 +2233,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
     }
     if (!attachedTo) {
         float b;
-        std::memcpy(&b, &elements->funnel.bend, sizeof(float));
+        std::memcpy(&b, &elements[0].funnel.bend, sizeof(float));
         EI_NAN_AUDIT(b);
         if (b == 0.0f && !particles.empty()) {
             flags_ &= ~5u;
@@ -2292,13 +2292,13 @@ void SetUpCylinder(CParticleSource* s) {
     if (s->type_ == 0x2040) turn = -turn;
     float c = static_cast<float>(x87::fcos(turn));
     float sn = static_cast<float>(x87::fsin(turn));
-    int count = s->elementCount;
-    for (int i = 0; i < s->elementCount; ++i) {
+    int count = std::ssize(s->elements);
+    for (int i = 0; i < std::ssize(s->elements); ++i) {
         double orbit = D(radius) * D(EI_CYL_ORBIT);
         double twice = static_cast<double>(2 * i);
         ParticleElement& e = s->elements[i];
         e.pos.x = static_cast<float>(x87::fcos(twice * D(EI_CYL_PI) / static_cast<double>(count)) * orbit);
-        e.pos.y = static_cast<float>(x87::fsin(twice * D(EI_CYL_PI) / static_cast<double>(s->elementCount)) * orbit);
+        e.pos.y = static_cast<float>(x87::fsin(twice * D(EI_CYL_PI) / static_cast<double>(std::ssize(s->elements))) * orbit);
         e.pos.z = static_cast<float>(D(radius) * D(EI_CYL_LIFT));
         std::memset(&e.star.step, 0, sizeof(Vector3));
         e.star.rotation[0] = c;
@@ -2307,7 +2307,7 @@ void SetUpCylinder(CParticleSource* s) {
         e.star.rise = static_cast<float>(D(static_cast<float>(D(EI_CYL_TWO) / static_cast<double>(e.ticks))) * D(radius) * D(EI_CYL_RISE));
         e.star.inverseOrbit = static_cast<float>(D(EI_P_ONE) / orbit);
         e.star.orbit = static_cast<float>(orbit);
-        count = s->elementCount;
+        count = std::ssize(s->elements);
     }
 }
 
@@ -2318,7 +2318,7 @@ void SetUpCylinder(CParticleSource* s) {
 int CParticleSource::EmitCylinder(Particle* p, int) {
     p->color = 0xFFFFFF;
     int count = std::ssize(particles);
-    int stars = elementCount;
+    int stars = std::ssize(elements);
     if (count < stars) {
         if (count == 0) SetUpCylinder(this);
         p->frame = 0;
@@ -2391,13 +2391,13 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     p->velocity.x = static_cast<float>(D(p->velocity.x) + D(step[0]));
     p->velocity.y = static_cast<float>(D(step[1]) + D(p->velocity.y));
     p->velocity.z = static_cast<float>(D(step[2]) + D(p->velocity.z));
-    double k = D(elements->star.orbit) / std::sqrt(LengthSquared2DUnrounded<double>(p->velocity.x, p->velocity.y));
+    double k = D(elements[0].star.orbit) / std::sqrt(LengthSquared2DUnrounded<double>(p->velocity.x, p->velocity.y));
     float kx = static_cast<float>(k * D(p->velocity.x));
     p->velocity.x = kx;
     double ky = k * D(p->velocity.y);
     p->velocity.y = static_cast<float>(ky);
     float reach =
-        static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step[0], step[1], step[2])) * D(elements->star.inverseOrbit));
+        static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step[0], step[1], step[2])) * D(elements[0].star.inverseOrbit));
     step[0] = static_cast<float>(ky * D(reach) * D(EI_CYL_SPARK_PULL));
     step[1] = static_cast<float>(-D(kx) * D(reach) * D(EI_CYL_SPARK_PULL));
     step[2] = static_cast<float>(D(step[2]) * D(EI_CYL_SPARK_PULL));
@@ -2416,7 +2416,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
 // each star counts down (stopping the source at 0), turns by its rotation, rises (faster and
 // faster), and its rotation turns the other way, slowly.
 void CParticleSource::TickCylinder(ParticleElement* e) {
-    if (e == elements) {
+    if (e == elements.data()) {
         if (e->ticks % 2 != 0) --emitCount;
         --emitCount;
     }
@@ -2658,8 +2658,8 @@ namespace {
 // Banshee: the first call only sets the ring up (from the carrier's figure; 72 sparks per tick after it). A
 // spark on the ring, at a random angle, between the ring and its eased inner edge.
 int CParticleSource::EmitBanshee(Particle* p, int) {
-    if (elementCount == 0) {
-        SetElementCount(this, 1);
+    if (std::ssize(elements) == 0) {
+        elements.resize(1);
         Vector3 offset;
         float radius;
         AttachmentOffset(&offset, &radius);
@@ -2668,12 +2668,12 @@ int CParticleSource::EmitBanshee(Particle* p, int) {
         height = static_cast<float>(widen + widen);
         elements[0].ticks = 8;
         elements[0].pos.z = static_cast<float>(tall * D(EI_BANSHEE_HALF));
-        SetBits(&elements->banshee.radius, 0);
+        SetBits(&elements[0].banshee.radius, 0);
         emitCount = 72;
         return 0;
     }
     float ringRadius;
-    std::memcpy(&ringRadius, &elements->banshee.radius, sizeof(float));
+    std::memcpy(&ringRadius, &elements[0].banshee.radius, sizeof(float));
     float twoPi = static_cast<float>(3.141592653589793 /*0073CAE8*/ + 3.141592653589793 /*0073CAE8*/);
     std::uint32_t r = Next();
     p->color = 0xFFFFFFFF;
@@ -2958,7 +2958,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     p->life = lifetime;
     p->frame = 1;
     p->frameTimer = frameDelay;
-    if (elements[0].ticks == 13 && index < elementCount) {
+    if (elements[0].ticks == 13 && index < std::ssize(elements)) {
         std::memset(&p->velocity, 0, sizeof(Vector3));
         std::memcpy(&p->pos, &elements[index].pos, sizeof(Vector3));
         SetBits(&p->size, 0x3E4CCCCD);     // 0.2
@@ -2966,7 +2966,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
         p->state = index;
         return 1;
     }
-    int j = static_cast<int>(Next() % static_cast<std::uint32_t>(elementCount));
+    int j = static_cast<int>(Next() % static_cast<std::uint32_t>(std::ssize(elements)));
     double t = Unsigned(Next()) * EI_P_SCALE_1;
     p->life = 5;
     const ParticleElement& e = elements[j];
@@ -3082,7 +3082,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     p->frame = 12;
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     p->size = static_cast<float>(Unsigned(Next()) * EI_FALL_SIZE_SCALE + D(EI_FALL_SIZE_BASE));
-    const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
+    const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(std::ssize(elements))];
     float reach = static_cast<float>(D(gust.wind.reach) * D(EI_FALL_HALF));
     int spread = static_cast<int>(gamecrt::Ftol(static_cast<float>(ei::kRadiansPerDegree * EI_FALL_TEN)));
     float turn = static_cast<float>(static_cast<double>(spread) * D(gust.wind.direction));
@@ -4003,7 +4003,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
         }
         p->color = 0xFFFFFFFF;
         p->size = static_cast<float>((Unsigned(Next()) * 9.313226580990458e-11 /*0073CCB0*/ + D(0.8f /*0073CCA8*/)) *
-                        D(elements->trans.scale));
+                        D(elements[0].trans.scale));
         return 1;
     }
     int life = --p->life;
@@ -4110,7 +4110,7 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
     p->velocity.y = b;
     SetBits(&p->velocity.z, 0);
     SetBits(&p->aux0, 0x3D8F5C29);     // 0.07
-    p->color = elements->plane.color;
+    p->color = elements[0].plane.color;
     SetBits(&p->aux1, 0x3F800000);
     return 1;
 }
@@ -4139,26 +4139,26 @@ bool Same(float a, float b) {
 // point's index goes in frameTimer and the life is -10 (set by UpdateGlow).
 int CParticleSource::EmitGlow(Particle* p, int index) {
     CObject3D* unit = attachedTo;
-    if (elementCount == 0) {
-        SetElementCount(this, 1);
-        float* mark = &elements->glow.mark.x;
+    if (std::ssize(elements) == 0) {
+        elements.resize(1);
+        float* mark = &elements[0].glow.mark.x;
         SetBits(&mark[0], 0xBF800000);
         SetBits(&mark[1], 0xBF800000);
         SetBits(&mark[2], 0xBF800000);
         EI_NAN_AUDIT(alpha);
         if (alpha == 0.0f) {
-            elements->glow.color = 0xB0B0B0;
+            elements[0].glow.color = 0xB0B0B0;
         } else if (Bits(&alpha) == 0x3F800000) {
-            elements->glow.color = 0x40FF40;
+            elements[0].glow.color = 0x40FF40;
         } else if (Bits(&alpha) == 0x40000000) {
-            elements->glow.color = 0xFF8028;
+            elements[0].glow.color = 0xFF8028;
         }
     }
     if (!unit) return 0;
     if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
     Vector3 point = *UnitPoint(unit, &scratch, index + CurrentClientTick());
-    float* mark = &elements->glow.mark.x;
+    float* mark = &elements[0].glow.mark.x;
     if (Same(mark[0], point.x) && Same(mark[1], point.y) && Same(mark[2], point.z)) return 0;
     std::memcpy(mark, &point, sizeof(Vector3));
     Vector3 under;
@@ -4174,7 +4174,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
     p->life = -10;
     p->pos.z = static_cast<float>(top + D(0.15f /*0073CD18*/));
     p->frameTimer = index;
-    p->color = elements->glow.color;
+    p->color = elements[0].glow.color;
     return 1;
 }
 

@@ -132,6 +132,19 @@ struct StlpList {
     Node* First() const { return head->next; }
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
+    // The std::list API of the lists the rebuild holds as std::list; a list not built yet (no sentinel) is
+    // empty.
+    struct Iterator {
+        const Node* node;
+        const T& operator*() const { return node->data; }
+        Iterator& operator++() {
+            node = node->next;
+            return *this;
+        }
+        bool operator!=(const Iterator& other) const { return node != other.node; }
+    };
+    Iterator begin() const { return {head ? head->next : nullptr}; }
+    Iterator end() const { return {head}; }
 };
 static_assert(sizeof(StlpList<int>) == 4);
 

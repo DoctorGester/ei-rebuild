@@ -29,9 +29,6 @@
 
 namespace {
 
-using CandidateElement = stlp::PlainElement<StockMaterial*>;
-using MaterialElement = stlp::PlainElement<StockMaterial>;
-
 using stock::CandidateVector;
 using stock::Candidates;
 using stock::TakenMaterials;

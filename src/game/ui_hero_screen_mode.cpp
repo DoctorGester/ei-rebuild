@@ -68,7 +68,7 @@ void AddRows(CMpHeroScreen* screen, int left, int right, int top, int height) {
 } // namespace
 
 void CMpHeroScreen::SetModeVanilla(int mode) {
-    CUiModel* menu = CUiWindow::models_.data[0];   // the window's models (CItemScreen::models_ is the item cache)
+    CUiModel* menu = CUiWindow::models_[0];   // the window's models (CItemScreen::models_ is the item cache)
     menu->ShowAllParts(0);
     Enable(weaponPanel_, 0);
     Enable(spellPanel_, 0);
@@ -79,17 +79,17 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     Enable(heroScroll_, 0);
     Enable(voiceScroll_, 0);
     Enable(iconWindow_, 0);
-    for (int i = 0; i < sceneObjects_.size; ++i) Sprite(this, i)->visible_ = 0;
-    for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 1);
-    while (regions_.size > kFixedRegions) RemoveRegionAt(kFixedRegions);
-    for (int i = 0; i < regions_.size; ++i) regions_.data[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < std::ssize(sceneObjects_); ++i) Sprite(this, i)->visible_ = 0;
+    for (int i = 0; i < std::ssize(surfaces_); ++i) surfaces_[i]->Freeze(0, 1);
+    while (std::ssize(regions_) > kFixedRegions) RemoveRegionAt(kFixedRegions);
+    for (int i = 0; i < std::ssize(regions_); ++i) regions_[i]->SetTip(0, 1, 0);
 
-    CUiRegion** regions = regions_.data;
+    CUiRegion** regions = regions_.data();
     if (mode == kModeHeroList) {
         menu->ShowPart("but03", 1);
         menu->ShowPart("button03_multiplayer", 1);
         Enable(heroScroll_, 1);
-        for (int i = 0; i < sceneObjects_.size; ++i) Sprite(this, i)->visible_ = 1;
+        for (int i = 0; i < std::ssize(sceneObjects_); ++i) Sprite(this, i)->visible_ = 1;
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);
         SetQuarter(this, 0, 410.0f, 100.0f, 555.0f, 300.0f, 0x53, 0xE4);
         SetQuarter(this, 1, 555.0f, 100.0f, 700.0f, 300.0f, 0x1C, 0xAD);
@@ -101,9 +101,9 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[3]->SetRect(625, 470, 655, 500);
         regions[0]->SetTip(0x9CA5, 1, 0);
         regions[1]->SetTip(0x9CA4, 1, 0);
-        for (int i = 5; i < kFixedRegions; ++i) regions_.data[i]->SetTip(i + 0x9D03, 1, 0);
-        surfaces_.data[0]->Freeze(1, 1);
-        surfaces_.data[1]->Freeze(1, 1);
+        for (int i = 5; i < kFixedRegions; ++i) regions_[i]->SetTip(i + 0x9D03, 1, 0);
+        surfaces_[0]->Freeze(1, 1);
+        surfaces_[1]->Freeze(1, 1);
         Enable(nameEdit_, 0);
         nameEdit_->SetFocused(false);
         SetSelectionFrame(this, 110.0f, 250.0f, 370.0f, 274.0f);
@@ -130,7 +130,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[4]->SetTip(0x9D6E, 1, 0);
         Enable(nameEdit_, 1);
         nameEdit_->SetFocused(true);
-        surfaces_.data[2]->Freeze(1, 1);
+        surfaces_[2]->Freeze(1, 1);
         SetSelectionFrame(this, 15.0f, 310.0f, 180.0f, 325.0f);
         AddRows(this, 10, 180, 325, 15);
         DrawVoices();
@@ -147,7 +147,7 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
         regions[0]->SetTip(0x9E35, 1, 0);
         regions[1]->SetTip(0x9E34, 1, 0);
         regions[4]->SetTip(0x9E36, 1, 0);
-        surfaces_.data[2]->Freeze(1, 1);
+        surfaces_[2]->Freeze(1, 1);
         Enable(nameEdit_, 0);
         nameEdit_->SetFocused(false);
         tradePanel_->SelectHero(0);

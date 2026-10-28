@@ -53,7 +53,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
         number = str::Format(kRangeFormat, value, maximum);
     else
         number = str::Format(kValueFormat, value);
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     surface->DrawTextIn(name, rect, 0, kRowColour, kLeft, 1);
     surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);
 }
@@ -84,7 +84,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
         TheTextManager()->CTextManager::GetString(key.c_str(), &label);
     }
     label = std::string(kPartIndent) + label;
-    CUiSurface* surface = surfaces_.data[0];
+    CUiSurface* surface = surfaces_[0];
     surface->DrawTextIn(label, rect, 0, kRowColour, kLeft, 1);
     number = str::Format(kArmourFormat, static_cast<double>(PartArmour(part)));
     surface->DrawTextIn(number, rect, 0, kRowColour, kRight, 1);

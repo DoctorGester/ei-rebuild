@@ -27,13 +27,12 @@ CUiContainer::CUiContainer(CInterface3D* ui) : CUiWindow(ui) {
 
 CUiContainer::~CUiContainer() {
     for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side) delete *side;
-    for (int i = 0; i < children_.size; ++i) delete children_.data[i];
-    children_.SetSize(0, -1);
+    for (int i = 0; i < std::ssize(children_); ++i) delete children_[i];
+    children_.clear();
     // The vector's storage goes back to the node pool (the pointers are left as they are).
     if (inputsBegin_)
         stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
     // The children array's destructor (its storage is already freed).
-    if (children_.data) lib::FreeAligned32(children_.data);
 }
 
 extern "C" int _purecall();
@@ -69,14 +68,14 @@ void CUiContainer::AddInput(UiInputSide* input) {
 double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds()) * static_cast<double>(0.001f); }
 
 void CUiContainer::UpdateBase() {
-    for (int i = 0; i < children_.size; ++i) children_.data[i]->Update();
+    for (int i = 0; i < std::ssize(children_); ++i) children_[i]->Update();
 }
 
 void CUiContainer::RedrawContainer() {
     if (!interface_->drawing_) return;
     RedrawBase();
-    for (int i = 0; i < children_.size; ++i) {
-        CUiWindow* child = children_.data[i];
+    for (int i = 0; i < std::ssize(children_); ++i) {
+        CUiWindow* child = children_[i];
         if (child->enabled_) child->Redraw();
     }
 }
@@ -84,16 +83,16 @@ void CUiContainer::RedrawContainer() {
 void CUiContainer::RedrawChildTips() {
     if (!interface_->drawing_) return;
     RedrawRegionTips();
-    for (int i = 0; i < children_.size; ++i) {
-        CUiWindow* child = children_.data[i];
+    for (int i = 0; i < std::ssize(children_); ++i) {
+        CUiWindow* child = children_[i];
         if (child->enabled_) child->RedrawTips();
     }
 }
 
 void CUiContainer::ShowChildren(int show) {
     ShowSurfaces(show);
-    for (int i = 0; i < children_.size; ++i) {
-        CUiWindow* child = children_.data[i];
+    for (int i = 0; i < std::ssize(children_); ++i) {
+        CUiWindow* child = children_[i];
         if (child->enabled_) child->Show(show);
     }
 }
@@ -111,14 +110,14 @@ void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
             return;
         }
     }
-    for (int i = 0; i < self->children_.size; ++i) {
-        CUiWindow* child = self->children_.data[i];
+    for (int i = 0; i < std::ssize(self->children_); ++i) {
+        CUiWindow* child = self->children_[i];
         if (!child->enabled_) continue;
         if (atPoint && !child->ContainsPoint(b, c)) continue;
-        child = self->children_.data[i];
+        child = self->children_[i];
         child->handled_ = false;
         child->Input()->Event(slot, a, b, c);
-        if (self->children_.data[i]->handled_) {
+        if (self->children_[i]->handled_) {
             handled_ = true;
             return;
         }
@@ -128,7 +127,7 @@ void CUiContainer::Dispatch(int slot, int a, int b, int c, bool atPoint) {
 void CUiContainer::Deactivate() {
     CUiContainer* self = this;
     for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) (*side)->Deactivate();
-    for (int i = 0; i < self->children_.size; ++i) self->children_.data[i]->Input()->Deactivate();
+    for (int i = 0; i < std::ssize(self->children_); ++i) self->children_[i]->Input()->Deactivate();
 }
 
 int CUiContainer::LeftDown(int buttons, int x, int y) {
@@ -195,13 +194,13 @@ int CUiContainer::Wheel(int flags, int delta, int x, int y) {
             return 1;
         }
     }
-    for (int i = 0; i < self->children_.size; ++i) {
-        CUiWindow* child = self->children_.data[i];
+    for (int i = 0; i < std::ssize(self->children_); ++i) {
+        CUiWindow* child = self->children_[i];
         if (!child->enabled_ || !child->ContainsPoint(x, y)) continue;
-        child = self->children_.data[i];
+        child = self->children_[i];
         child->handled_ = false;
         child->Input()->Wheel(flags, delta, x, y);
-        if (self->children_.data[i]->handled_) {
+        if (self->children_[i]->handled_) {
             handled_ = true;
             return 1;
         }

@@ -25,7 +25,6 @@
 #include "lib/mfc.h"
 #include "lib/text_case.h"
 #include "world_glue.h"
-#include "record_lists.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "figure_manager.h"
@@ -245,7 +244,7 @@ void CEscMenu::CreateScreen() {
         gameapi::CopyRect(&rect, source);
         region->SetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    models_.data[0]->Play(1);
+    models_[0]->Play(1);
     interface_->PlaySound("buttons\\menu\\shift.wav", 0);
 }
 

@@ -115,6 +115,8 @@ UNREAD = [
     (0x007471B0, 0x007471E8, 4, "CTempMenu's and CMenu's runtime class records (the classes went in C20o)"),
     (0x00796EE8, 0x00796EF8, 2, "CStringArray's runtime class record (the class went in C14i; its initialiser "
                                 "0070BE81 is gen_static_init.py's UNUSED_INITIALISERS)"),
+    (0x00797CC4, 0x00797D94, 27, "the CRT's math function names by code (\"exp\", \"pow\", ...), read by its math error "
+                                 "reporting only (_87except, _matherr: not ported; named in crt_x87.cpp until C35h)"),
 ]
 
 # Kinds of STRUCTURES that are walked and counted but left out of the pointer cells (image_cells.inc): the C++ EH tables read only by __CxxFrameHandler on game.exe's own frames, which gets

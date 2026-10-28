@@ -1,7 +1,6 @@
 """Units in a decoded save (tools/savefile.py): CUnit::SaveUnit (005321C0, unit_save.cpp) and what it calls.
 
-Map object types 0x32-0x34 and the fake unit 0x39 all save through CUnit::SaveUnit (CFakeUnit's vtable 0073BFE8
-keeps slot 10); a unit's controller on the server is CUnitServer (vtable 0073EF38, class 0x3E), whose Save is
+Map object types 0x32-0x34 save through CUnit::SaveUnit; a unit's controller on the server is CUnitServer (vtable 0073EF38, class 0x3E), whose Save is
 CUnitServer::SaveServer (005561C0, combat_save.cpp).
 """
 

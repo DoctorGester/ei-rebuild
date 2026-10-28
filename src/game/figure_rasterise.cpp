@@ -52,8 +52,7 @@ int CFigureMesh::Rasterise(CPixelConverter* rasteriser, const IntPoint* points, 
             std::memcpy(&target->corners[k].screen, &points[record.position], sizeof(IntPoint));
             std::memcpy(&target->corners[k].texture, &TexturePoints()[record.texCoord], sizeof(IntPoint));
         }
-        if (target->keyTexels) rasteriser->RasteriseKeyedTriangle(target);
-        else rasteriser->RasteriseTriangle(target);
+        rasteriser->RasteriseTriangle(target);
     }
     return buffers.vertexCount * 4;
 }

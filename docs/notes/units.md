@@ -15,7 +15,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 | 00500000-00522000 | rendering / animation, map object base, CObject3D (`map_objects.md`) |
 | 00522000-00529000 | creature statistics (UnitStats, 0x704 bytes, often a stack copy), DamageInfo helpers |
 | 00529700-0052E000 | CTree, CBuilding, CStone, CStuffObject, CTrapObject, CMagicTrapObject (id 0x3B), CLeverObject, CTorchObject (0x3A) |
-| 0052E000-00533E00 | CUnit (id 0x50, vtable 0073EA8C; CFakeUnit 0073BFE8 shares every rewritten slot) |
+| 0052E000-00533E00 | CUnit (id 0x50, vtable 0073EA8C) |
 | 00533E00-0053A000 | CUnitClientSpecific (id 0x3D, vtable 0073ECD8): the controller of party units |
 | 0053A000-00540000 | STLport instantiations of the unit database (library) |
 
@@ -91,7 +91,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 ### Creation, databases, save, network
 
 - Factory (CMapObjectManager slot 14, 00512730) by class id: 0x32-0x34 units (0x4DC, 0052E110), 0x35-0x38 (0x238), 0x39
-  (0x580, 004466D0), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0), 0x3C (0x264), 0x300D (0x78), 0x3010 (0x23C). The zone
+  (the fake unit, 0x580, 004466D0: dead, none made since C35l), 0x3A (0x23C, 0052BEE0), 0x3B (0x290, 00529DD0), 0x3C (0x264), 0x300D (0x78), 0x3010 (0x23C). The zone
   loader then calls `ApplyPrototype` (00513B60): without a prototype defaults (005134F0) and "Can't find prototype %s for
   object %d"; units get vitals / statistics from the records (005136D0: hit points / mana from prototype +0x48 / +0x4C,
   regeneration from the model +0x08 / +0x0C, protection = model's seven values x prototype +0x58; stats from the NPC record

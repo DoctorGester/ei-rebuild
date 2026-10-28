@@ -94,11 +94,45 @@ address,size,name,evidence
 00445FD0,119,FUN_00445fd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00446050,114,FUN_00446050,"no references at all (no call/jmp, no absolute pointer in code or data)"
 004461B0,45,FUN_004461b0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+004466D0,213,FUN_004466d0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the factory 00512730 (case 0x39 of CMapObjectManager::NewObject, which makes none now)"
+004468D0,6,FUN_004468d0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+004468E0,6,FUN_004468e0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+004468F0,30,FUN_004468f0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+00446910,466,FUN_00446910,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00446AF0,35,FUN_00446af0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+00446B20,116,FUN_00446b20,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+00446BA0,112,FUN_00446ba0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: vtable 0073BFE8"
+00446C10,4909,FUN_00446c10,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00447F50,170,FUN_00447f50,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00448000,273,(no Ghidra function),"code outside the Ghidra functions (find_dead_code.py pseudo node, a fastcall helper of the fake unit scene loader's neighbourhood): no call or jmp reaches it, its only dword 00448000 is the bytes of a string at 0073FD89"
+00448A40,1507,FUN_00448a40,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00449030,396,FUN_00449030,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+004491C0,116,FUN_004491c0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00449240,168,FUN_00449240,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+004492F0,3893,FUN_004492f0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044A2A0,1285,FUN_0044a2a0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 0044A7B0,2214,FUN_0044a7b0,"referenced only from dead code 0044B060 (an animation exporter)"
 0044B060,779,FUN_0044b060,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0044B820,345,FUN_0044b820,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0044B980,2787,FUN_0044b980,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044C480,7,FUN_0044c480,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044C4A0,1892,FUN_0044c4a0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044CC10,24,FUN_0044cc10,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 0044CDA0,347,FUN_0044cda0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0044CFA0,70,FUN_0044cfa0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0044CFF0,3327,FUN_0044cff0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044DCF0,1728,FUN_0044dcf0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044E3B0,1250,FUN_0044e3b0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044E8A0,704,FUN_0044e8a0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044EB60,1603,FUN_0044eb60,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044F2E0,297,FUN_0044f2e0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044F410,295,FUN_0044f410,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+0044FBB0,283,FUN_0044fbb0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00452AF0,299,FUN_00452af0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00452C40,319,FUN_00452c40,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00452D80,30,FUN_00452d80,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00452DA0,26,FUN_00452da0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00454360,30,FUN_00454360,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00459100,4734,FUN_00459100,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0045A380,3722,FUN_0045a380,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0045E8B0,83,FUN_0045e8b0,"no references at all (no call/jmp, no absolute pointer in code or data)"
@@ -125,6 +159,14 @@ address,size,name,evidence
 0046C6A0,313,FUN_0046c6a0,"no references at all (no call/jmp, no absolute pointer in game.exe, addon.dll, EI_Plugin.asi or mp3dec.asi)"
 0046D330,30,FUN_0046d330,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0046F1F0,10397,FUN_0046f1f0,referenced only from dead code 004E72A0
+00471A90,25,FUN_00471a90,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00471AB0,24,FUN_00471ab0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00471AD0,24,FUN_00471ad0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00471AF0,24,FUN_00471af0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00471B10,12595,FUN_00471b10,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00474C80,290,FUN_00474c80,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00475F40,266,FUN_00475f40,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00476DD0,285,FUN_00476dd0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00476F80,42,FUN_00476f80,referenced only from dead code 0046F1F0
 00476FB0,325,FUN_00476fb0,referenced only from dead code 0046F1F0 004A27E0
 004775F0,275,FUN_004775f0,referenced only from dead code 00477710
@@ -186,7 +228,10 @@ address,size,name,evidence
 00498B20,141,FUN_00498b20,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00498BB0,141,FUN_00498bb0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0049AAF0,395,FUN_0049aaf0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0049ACC0,444,(no Ghidra function),"code outside the Ghidra functions (find_dead_code.py pseudo node): no references at all (no call/jmp, no absolute pointer in code or data); computes a mesh face normal like 0049AEC0"
+0049AEC0,417,FUN_0049aec0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 0049B320,314,(no Ghidra function),"no references at all (no call/jmp/jcc, no absolute pointer in game.exe image; two-point line draw next to the renderer line list 0049B140..0049B780)"
+0049E950,217,FUN_0049e950,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 0049EAD0,165,FUN_0049ead0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0049FEE0,75,FUN_0049fee0,referenced only from dead code 004A0350 004A0710 004A0AA0 004A0BA0 004A1220 004A17D0
 0049FF30,56,FUN_0049ff30,referenced only from dead code 004A0BA0 004A1220
@@ -261,14 +306,25 @@ address,size,name,evidence
 00505CB0,1078,FUN_00505cb0,referenced only from dead code 005AC400 005AC590
 005060F0,101,FUN_005060f0,referenced only from dead code 00508C20
 005064C0,592,FUN_005064c0,referenced only from dead code 005AC400 005AC670
+00506710,418,FUN_00506710,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00506FD0,395,FUN_00506fd0,referenced only from dead code 00507160
 00507530,1109,FUN_00507530,referenced only from dead code 00506A50 00507990 005097D0
 00507990,699,FUN_00507990,referenced only from dead code 00508AE0
+00507C50,232,FUN_00507c50,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00507E80,826,FUN_00507e80,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+005081C0,125,FUN_005081c0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00508240,596,FUN_00508240,referenced only from dead code 005AC400
 005084E0,35,FUN_005084e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 005086E0,21,FUN_005086e0,referenced only from dead code 00506FD0 00507530
+00508700,176,FUN_00508700,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+005087B0,180,FUN_005087b0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00508870,103,FUN_00508870,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+005088E0,67,FUN_005088e0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
+00508930,9,FUN_00508930,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00508940,65,FUN_00508940,"no references at all (no call/jmp, no absolute pointer in code or data)"
+00508990,148,FUN_00508990,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00508AE0,239,FUN_00508ae0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+00508BF0,25,FUN_00508bf0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00508CD0,94,FUN_00508cd0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00508D30,563,FUN_00508d30,referenced only from dead code 005AC770
 005096E0,73,FUN_005096e0,"no references at all (no call/jmp, no absolute pointer in code or data)"
@@ -293,6 +349,7 @@ address,size,name,evidence
 00512D90,463,FUN_00512d90,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00513020,534,FUN_00513020,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00514740,311,FUN_00514740,referenced only from dead code 00513020
+005164B0,415,FUN_005164b0,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 00518BC0,211,FUN_00518bc0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00518D90,367,FUN_00518d90,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00519320,81,FUN_00519320,"no references at all (no call/jmp, no absolute pointer in code or data)"
@@ -351,6 +408,7 @@ address,size,name,evidence
 00595A90,30,FUN_00595a90,"no references at all (no call/jmp, no absolute pointer in code or data)"
 005965F0,307,FUN_005965f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0059F3F0,275,FUN_0059f3f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
+005A6D40,186,FUN_005a6d40,"only the fake unit (class 0x39, no shipped data makes one; tests/coverage/unreachable.txt, C35l) reaches it: the fake unit (class 0x39) or its scene loader, which are dead"
 005A8B00,849,FUN_005a8b00,"no references at all (no call/jmp, no absolute pointer in code or data)"
 005A8E60,321,FUN_005a8e60,"no references at all (no call/jmp, no absolute pointer in code or data)"
 005A8FB0,855,FUN_005a8fb0,"no references at all (no call/jmp, no absolute pointer in code or data)"

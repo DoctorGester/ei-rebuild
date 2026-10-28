@@ -280,8 +280,8 @@ Facts a worker needs that the code comments do not say:
   005C3690 with the state lists 005C3840 / 005C3A00, SmoothTable::Build 005C3E10, MakeSmoothStep 005C4050 with cost factors
   0x400 / 0x5A8 / 0x479 / 0x46E / 0x648 / 0x200 / 0, Destruct 005C4250), the sector spiral 005BF8F0 (441 offsets of a 21 x 21
   square sorted by sector distance with the game's qsort, a length per distinct distance, last radius 1e30) with
-  RadiusTree::Build 005BF5F0, and the shape cache `UnitShapeCache` (an STLport hash_map of handle to shape; Construct 005B32E0
-  with 193 buckets, Destruct 005B31F0 releases every shape as its owner, what 005BE280 does). `EI_STARTUP_CHECK`
+  RadiusTree::Build 005BF5F0, and the shape cache `UnitShapeCache` (game.exe's an STLport hash_map of handle to shape, ours a
+  std::unordered_map by height, core.md C14q; Construct 005B32E0, Destruct 005B31F0 releases every shape as its owner). `EI_STARTUP_CHECK`
   (include/ei/hook.h) runs a check once at the end of `InstallHooks` while the initialisers' output is still untouched;
   verify_ai_static_tables.cpp builds each table with our code and compares (the cache's functor bytes are stack garbage and
   skipped). The checks call `Report` at the precision the process starts with (53 bits): the spiral's square roots need it.
@@ -364,9 +364,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 - Not hooked because they are not functions: the initialiser stubs 005C41C0 / 005C41F0 / 005C42A0 / 005BF8E0 / 005B31C0 /
   005B31E0, the tables' element constructor 005C4210 (`SmoothTable::Construct` is its body), the spiral's sort comparison
   005BFC10 (ours is passed to the game's qsort). Static initialisers before the hooks: 0057F480, 005809A0, 00581070.
-- Candidates: 006C68B0 (the landscape's map load, `LandscapeLoadMapOriginal`); the event table's users in unit_ai; typing
-  CacheGet 005BD7F0 and CAIMap::UnitShape over `UnitShapeCache` (they still read the cache through offsets and keep their
-  own handle structs and the 005BE280 forwarder).
+- Candidates: 006C68B0 (the landscape's map load, `LandscapeLoadMapOriginal`); the event table's users in unit_ai.
 - Forwarders kept at their addresses so the callees' wrappers see the calls: `LandscapeLoadMapOriginal` 006C68B0
   (originals_world.h); in world_client_maps.cpp for LoadZone 0057F150, 004E5750, 0055A190, 00578730, 00498630, 00692F00,
   006C9290, 00567500, 006B4E30, 00667B40, 00568800, 0066B300; in ai_map_load.cpp the event table's Setup 005C9310; one shared

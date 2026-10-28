@@ -67,7 +67,7 @@ fake_unit, class_templates (and class_template_stock), hoover_loot, zone_records
   `ItemRecordHead::classMask`, `MaterialRecordHead::classMask`.
 - `ClassTemplate::ItemsParty()` / `SpellsParty()` (the parties are `PartyStorage`, party_storage.h: the template's Construct / Destruct build them).
 - `mfc::CObjectVirtuals` (GetRuntimeClass, the deleting destructor, Serialize) for MFC objects called through their
-  vtable; `scene::FakeUnitScene` views the fake unit's scene arrays.
+  vtable.
 - `DiplomacyConstruct` takes `ZoneDiplomacy*`.
 - unit_skins' `TextureSet` (the texture cache's composition request, not an STL set) is `SkinComposition`.
 - New members shadowed locals named `damage` / `combat` in UnitStats methods (C4458): unit_hits' DamageSlot and
@@ -137,7 +137,7 @@ constants by typed homes; all spelling only (git log has the batch commits). Wha
   `GlobalMapZoneTable`, `MpAddresses`, `PartyMembers`, `SectorCellObjects`, `CountedUnits`; check_cleanup forbids new
   `...Array` / `...List` / `...Map` struct names in game files, so a `using OldName = New;` follows). `ScalarDelete<&Destruct>`
   (mfc_slots.h) is the one shared deleting-destructor shim. Left as shims: the serialiser templates (SerializeCArray / CList
-  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (ShapePair, FiguredGroups),
+  / CMap / StringArray, one per template), the pair structs of hash_map / map instantiations (gone with C14q),
   free-function `void*` selfs, and the Rebirth-patched input handlers.
 - **Constants with homes.** Vtables are the classes' `Vtable()` accessors (C19; C28 replaces them with real virtual
   classes). Texts are accessors in `game_strings.h`

@@ -30,43 +30,20 @@ const char* const kCantWrite = "Can't open file \"%s\" to write result texture.\
 constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
 constexpr unsigned kWriteCreate = lib::File::modeCreate | lib::File::modeWrite;
 
-
-// The aligned byte allocation.
-std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
 const char* const kCantFindLayer = "Can't find texture \"%s\" for layer composition.\n";    // "Can't find texture \"%s\" for layer composition.\n"
 const char* const kWrongLayerSize = "Texture \"%s\" dimentions are incorrect.\n";   // "Texture \"%s\" dimentions are incorrect.\n"
-
-// A block from the game heap aligned to 32 bytes; the raw pointer is kept just before it.
-template <typename T>
-T* NewAligned(std::size_t bytes) {
-    return static_cast<T*>(lib::AllocAligned32(bytes));
-}
-void DeleteAligned(void* data) { lib::FreeAligned32(data); }
-
-// The cached file's extra block (kept as an aligned byte array).
-struct ReadBuffer {
-    std::uint8_t* data = nullptr;
-    int size = 0;
-    int capacity = 0;
-    int growBy = 0;
-    ~ReadBuffer() {
-        if (data) DeleteAligned(data);
-    }
-};
 
 std::string CachePath(const std::string& name) { return TheDataFolder() + kTextures + name + kMmp; }
 
 // Reads an opened cached file's header and extra block, closes it, and tells whether the extra
 // block is the request's layer bytes.
-bool CacheMatches(lib::File& file, MmpHeader& header, ReadBuffer& buffer, const SkinRequest* request) {
+bool CacheMatches(lib::File& file, MmpHeader& header, const SkinRequest* request) {
     file.Read(&header, sizeof(MmpHeader));
     int size = static_cast<int>(header.extraSize);
-    buffer.data = AllocBytes(size);
-    buffer.capacity = size;
-    buffer.size = size;
-    if (size != 0) file.Read(buffer.data, static_cast<unsigned>(size));
+    std::vector<std::uint8_t> extra(static_cast<std::size_t>(size));
+    if (size != 0) file.Read(extra.data(), static_cast<unsigned>(size));
     file.Close();
-    return size == std::ssize(request->layers) && std::memcmp(buffer.data, request->layers.data(), static_cast<std::size_t>(size)) == 0;
+    return size == std::ssize(request->layers) && std::memcmp(extra.data(), request->layers.data(), static_cast<std::size_t>(size)) == 0;
 }
 
 // The pixel format fields for `format`; 0x5650 (5-6-5) is filled in place.
@@ -114,35 +91,32 @@ int ConversionKind(std::uint32_t format) {
 }
 
 // Writes the levels: the image converted to 16 bits, then `mipCount - 1` times halved and
-// converted again. Frees the three blocks.
-void WriteLevels(lib::File& file, const MmpHeader& header, std::uint32_t* image, int kind, unsigned mipCount) {
+// converted again.
+void WriteLevels(lib::File& file, const MmpHeader& header, std::vector<std::uint32_t>& image, int kind, unsigned mipCount) {
     unsigned width = header.width;
     unsigned height = header.height;
-    std::uint16_t* converted = NewAligned<std::uint16_t>(height * width * 2);
     unsigned count = height * width;
-    std::uint32_t* halved = NewAligned<std::uint32_t>(count * 4);
+    std::vector<std::uint16_t> converted(count);
+    std::vector<std::uint32_t> halved(count);
     CPixelConverter* converter = PixelConverter();
-    converter->ConvertTo16(converted, image, kind, count);
-    file.Write(converted, count * 2);
-    std::uint32_t* source = image;
-    std::uint32_t* target = halved;
+    converter->ConvertTo16(converted.data(), image.data(), kind, count);
+    file.Write(converted.data(), count * 2);
+    std::uint32_t* source = image.data();
+    std::uint32_t* target = halved.data();
     if (mipCount > 1) {
         for (unsigned left = mipCount - 1; left != 0; --left) {
             width >>= 1;
             height >>= 1;
             converter->Halve(target, source, width);
             count = height * width;
-            converter->ConvertTo16(converted, target, kind, count);
-            file.Write(converted, count * 2);
+            converter->ConvertTo16(converted.data(), target, kind, count);
+            file.Write(converted.data(), count * 2);
             std::uint32_t* done = target;
             target = source;
             source = done;
         }
     }
     file.Close();
-    DeleteAligned(converted);
-    DeleteAligned(source);
-    DeleteAligned(target);
 }
 
 } // namespace
@@ -179,17 +153,16 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
     std::string path = CachePath((*name).c_str());
     MmpHeader header;
     std::memset(&header, 0, sizeof(header));
-    ReadBuffer buffer;
     lib::File file;
     *out = *name;
     if (file.Open(path, lib::File::modeRead)) {
-        if (CacheMatches(file, header, buffer, request)) return 1;
+        if (CacheMatches(file, header, request)) return 1;
     } else if (std::strcmp(name->c_str(),
                                fallback->c_str()) != 0) {
         *out = *fallback;
         path = CachePath((*fallback).c_str());
         if (file.Open(path, lib::File::modeRead)) {
-            if (CacheMatches(file, header, buffer, request)) return 1;
+            if (CacheMatches(file, header, request)) return 1;
             *out = *name;
             path = CachePath((*name).c_str());
         }
@@ -200,12 +173,8 @@ int CTextureManager::Compose(std::string* out, const SkinRequest* request, const
         return 0;
     }
     int width = request->flags;
-    std::uint32_t* image = NewAligned<std::uint32_t>(static_cast<std::size_t>(width * width * 4));
-    for (int i = 0; i < width * width; ++i) image[i] = fill;
-    if (DrawLayers(image, &request->textures, request->flags) == 0) {
-        DeleteAligned(image);
-        return 0;
-    }
+    std::vector<std::uint32_t> image(static_cast<std::size_t>(width * width), fill);
+    if (DrawLayers(image.data(), &request->textures, request->flags) == 0) return 0;
 
     header.magic = kMmpMagic;
     SetPixelFormat(header, format);

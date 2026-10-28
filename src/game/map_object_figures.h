@@ -34,10 +34,8 @@ inline constexpr Vector3 kDefaultFigureScale = /*007AF1D0*/ {};
 class CLinkMesh;
 struct tagRECT;
 
-// A growable pointer array whose storage is 32-byte aligned (the block from operator new is kept at data[-1]).
-using AlignedPtrArray = std::vector<void*>;
 // An object's figure parts (CObject3D::parts / pendingParts).
-using FigurePartArray = lib::AlignedArray<CFigureMesh*>;
+using FigurePartArray = std::vector<CFigureMesh*>;
 
 struct FootprintPart;
 

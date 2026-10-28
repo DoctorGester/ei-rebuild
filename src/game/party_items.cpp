@@ -18,17 +18,13 @@ bool ByteFlag(int flag) { return static_cast<std::uint8_t>(flag) != 0; }
 
 // Appends `item` to `list` (SetSize(count + 1) and store, inlined).
 void Append(PartyItemArray& list, CItem* item) {
-    int index = list.size;
-    list.SetSize(index + 1, -1);
-    list.data[index] = item;
+    int index = std::ssize(list);
+    list.resize(index + 1);
+    list[index] = item;
 }
 
 // Removes the element at `index`, closing the gap.
-void RemoveAt(PartyItemArray& list, int index) {
-    int after = list.size - index - 1;
-    if (after != 0) std::memmove(list.data + index, list.data + index + 1, static_cast<std::size_t>(after) * 4);
-    --list.size;
-}
+void RemoveAt(PartyItemArray& list, int index) { list.erase(list.begin() + index); }
 
 // The world's spell manager (the item's manager context).
 CSpellManager* SpellManagerOf(CItem* item) { return item->WorldContext()->SpellManager(); }
@@ -41,8 +37,8 @@ CItem* AddEntry(PartyItemArray& list, CItem* item) {
 }
 
 void RemoveEntry(PartyItemArray& list, CItem* entry) {
-    for (int i = 0; i < list.size; ++i) {
-        if (list.data[i] != entry) continue;
+    for (int i = 0; i < std::ssize(list); ++i) {
+        if (list[i] != entry) continue;
         entry->Release();
         RemoveAt(list, i);
         return;
@@ -130,8 +126,8 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
     int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;
     if (ByteFlag(merge)) {
-        for (int i = 0; i < items_.size; ++i) {
-            CItem* existing = items_.data[i];
+        for (int i = 0; i < std::ssize(items_); ++i) {
+            CItem* existing = items_[i];
             if (!existing->IsSameAs(item)) continue;
             existing->count_ += static_cast<std::uint32_t>(count);
             return existing;
@@ -145,9 +141,9 @@ CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
 }
 
 CItem* CParty::RemoveItem(CItem* item, int all) {
-    for (int i = 0; i < items_.size; ++i) {
-        if (items_.data[i] != item) continue;
-        CItem* entry = items_.data[i];
+    for (int i = 0; i < std::ssize(items_); ++i) {
+        if (items_[i] != item) continue;
+        CItem* entry = items_[i];
         if (static_cast<int>(entry->count_) > 1 && !ByteFlag(all)) {
             --entry->count_;
             return entry;
@@ -164,15 +160,15 @@ constexpr int kQuestItemClassId = 0x14;   // CItemQuest
 } // namespace
 
 void CParty::RemoveQuestItems() {
-    for (int i = items_.size - 1; i >= 0; --i) {
-        CItem* item = items_.data[i];
+    for (int i = std::ssize(items_) - 1; i >= 0; --i) {
+        CItem* item = items_[i];
         if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
     }
 }
 
 void CParty::ReleaseAllItems() {
-    for (int i = 0; i < items_.size; ++i) items_.data[i]->Release();
-    items_.SetSize(0, -1);
+    for (int i = 0; i < std::ssize(items_); ++i) items_[i]->Release();
+    items_.clear();
 }
 
 // --- The party unit records' item lists ---------------------------------------------------------
@@ -192,7 +188,7 @@ void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 namespace {
 // One running sum over the lists, in this order.
 void AddListWeight(float& weight, const PartyItemArray& list) {
-    for (int i = 0; i < list.size; ++i) {
+    for (int i = 0; i < std::ssize(list); ++i) {
         if (list[i]) weight += list[i]->Weight();
     }
 }
