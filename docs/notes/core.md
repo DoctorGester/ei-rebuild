@@ -252,13 +252,15 @@ to which template:
   steps), 005B16D0 (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 / 00453E00 (scene
   corner records), 0044F7E0 (bone morph frames), 00474DB0 (scene mesh groups), the IndexArray (`CArray<uint32_t>`, 0073C800)
   SetAtGrow / Add / destructor 004773F0 / 00476640 / 00476780; 005C4C20 (the path smoother's node pool) is
-  `CArray<SmoothNode>::SetSize`.
+  `CArray<SmoothNode>::SetSize`. Since C14m the plain-element ones of these (RecordPtrArray, the particle arrays, the
+  motion's points, the trap's victims and others) are `std::vector`; see "MFC CArray and CList to std (C14m)" below
+  for what is still mfc::CArray.
 - `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize) with NewNode / FreeNode /
   RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore / InsertAfter / RemoveAt / Find / FindIndex.
   `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's nodes: data zeroed, nothing destroyed; vtable 0073D454;
   `ProjectileList` with FreeNode 0059C810 forwarded). The combat / ai_refresh / magic_trap / world_quests / script lists,
   BlockCostList, the sound cache (`WaveList`, CSoundManager +0x854), ScriptDefineList / ScriptList and ai_plan's region /
-  waypoint lists are aliases.
+  waypoint lists are aliases. Since C14m every CTypedPtrList and the plain-element CLists are `std::list` (C14m below).
 - `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk (`Next`)
   and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable / NewAssoc
   (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
@@ -659,6 +661,40 @@ to which template:
   the item stock's spells. Still stlp::list (C14s, C14t): the CMapObject* sector lists and their grids, the
   net RefPtr / timed lists and the connection's packet lists, the trade records, the link archives and the
   stream queues; the bucket vectors inside stlp_hash.h's hashtable go with it (C14q).
+
+## MFC CArray and CList to std (C14m)
+
+- Batch 1: every `mfc::CArray` / `mfc::CList` / `mfc::CTypedPtrList` with plain elements (the default PlainElements:
+  zero-filled, nothing destroyed; their elements are trivially copyable, so std's copy and value-init are the same
+  bytes) is `std::vector` / `std::list`. Scripts in the ticket's scratch folder did it (not committed): a retype, a
+  diagnostics-driven fixer, an idiom pass (AddTail + NewNode linking -> emplace / push_back, the inlined unlink +
+  FreeNode -> erase, Find -> `lib::Contains` / `std::ranges::find`, `head->data` -> front(), PlexFreeDataChain after
+  field resets -> clear()), then hand fixes. Kept as mfc for batch 2: the containers with an element policy
+  (EachElements / OriginalElements / ListAbi / ArrayAbi: the script's records, the scene loader, the map database,
+  AI records, CountedPtrs, SharedObjectList) and their CompiledCollection tags.
+- Counted elements in a retyped plain list (the world's counted items, the trap's victims, the armour spells' items,
+  the AI's owned modes): the release (or DestroyOwned) is explicit before erase / clear; the original's
+  DestructElements did nothing, so the counts are what they were. `ReleaseAndClear(c)` (engine_object.h) releases and
+  clears a list of engine objects.
+- Writes that compile on any pointer and corrupt a std container: `mfc::impl::ConstructHeader` / `DestructHeader` /
+  `ConstructListHeader`, `ei::SetVtable`, memset / memcpy over a struct holding one, a reinterpret_cast to an MFC list
+  type (world_party's counted AddTail was one). C14m found them with temporary `= delete` overloads for std::vector /
+  std::list and a forced-include check that static_asserts memset / memcpy / memmove destinations are trivially
+  copyable; repeat both on the next retype. Neither sees an explicit `(void*)` / `static_cast<void*>` argument (the
+  particles' sprite array went through ConstructHeader that way), so grep those too. A function taking a container
+  as `void*` (CSceneRenderer::DrawSprites' point and sprite arrays) needs every caller's container retyped together:
+  the lightning glow's records stayed an MFC array and crashed it.
+- "No node" is a value-initialised iterator (`{}`): ObjectListIterator's position, the terrain's sector grid entries
+  (`SectorCache::iterator`, `new ...[n]()` / `delete[]`), PendingMap values.
+- Lifetimes as C14b: members of real classes are the compiler's; raw-storage owners (`Construct()` / `DestructBody()`,
+  SceneNode, SectorData, LocalPath) use construct_at / destroy_at; list globals are `lib::StaticObject<std::list<T>>`
+  (the AI event pool, the AI's candidates). named_data's STATIC_OBJECT_BYTES has the std keys (vector 0x14, list 0x1C
+  of game.exe's bytes).
+- The harness reads game.exe's MFC layouts through tests/verify/exe_objects.h's `Vector<T>` / `List<T>` views (data(),
+  size(), begin() / end()), so harness_digest_read.inc and harness_hud_read.inc read both sides with the same std calls.
+- Gone with it: the vtable helpers of the retyped containers, 65 CompiledCollection tags (mfc_slots.h, game_slots.h,
+  game_arrays.h) and their Through / element helpers, gamelists' Refs / OwnedRefs / Holders / EngineObjects,
+  CountedEngineList.
 
 ## Open items
 

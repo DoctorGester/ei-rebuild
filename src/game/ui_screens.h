@@ -40,7 +40,6 @@ void LeaveGame();
 
 static_assert(sizeof(CUiWindow) == 0x148);
 
-
 // The item predicates of the camp screens. Loot items (type 0x3007, CItemLoot) are sorted by kind and record
 // type.
 struct UiItemKinds {
@@ -112,7 +111,6 @@ public:
     void OnMouseMove(int flags, int x, int y);
     BOOL OnWheel(int keys, short delta, int x, int y);
 
-
     // Settles the pending scroll on release.
     void SettleScroll();
 
@@ -133,7 +131,7 @@ public:
         int filter_;                // 0 items, 1 spells, 2 armour
         MpStringVector* figures_;   // the figure strips: the figure names
     };
-    mfc::CArray<CItem*> list_;          // the visible items
+    std::vector<CItem*> list_;          // the visible items
     UiPtrArray<CItem>* source_; // all the items (a party's item list, PartyItemArray)
     int slots_;                 // 9
 };
@@ -178,8 +176,6 @@ public:
 };
 static_assert(offsetof(CUiItemStrip, filter_) == 0x194);
 static_assert(offsetof(CUiItemStrip, list_) == 0x198);
-static_assert(offsetof(CUiItemStrip, source_) == 0x1AC);
-static_assert(offsetof(CUiItemStrip, slots_) == 0x1B0);
 
 // --- Camp screen ------------------------------------------------------------------------------
 
@@ -479,7 +475,6 @@ public:
 inline MpHeroRecord* SavedHero(int index) { return &TheSavedParties().entries_[index]; }
 inline int SavedHeroCount() { return static_cast<int>(TheSavedParties().entries_.size()); }
 
-
 // --- In-game escape menu ----------------------------------------------------------------------
 // Opened by Esc during a game. Regions, built from the EscMenu layout: 0 save, 1 load, 2 resume, 3 quit
 // (message box), 4 options.
@@ -599,7 +594,6 @@ public:
     int savedDisplay_;          // the renderer's fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
-
 
 // --- Main menu ----------------------------------------------------------------------------------
 // The main menu (CreateScreen id 2). Regions 0-5 from the menus.reg "MainMenu" rectangles; the stones are the object

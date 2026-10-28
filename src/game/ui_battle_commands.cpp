@@ -18,7 +18,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 #include "world_glue.h"
 #include "game_data.h"
 #include "game_singletons.h"
@@ -27,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -39,10 +39,9 @@ float PortraitDelay(std::uint32_t random) {
 
 // The orders' unit list: an MFC CArray<CUnit*> on the stack (SetSize);
 // its data is freed with operator delete.
-using OrderUnits = mfc::CArray<CUnit*>;
+using OrderUnits = std::vector<CUnit*>;
 
 inline CPlayerClient* LocalView(CWorldClient* client) { return client->LocalView(); }
-
 
 // A sprite's scale and opacity; the HUD's quick item slots.
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0f
@@ -91,27 +90,27 @@ void NodPortrait(CBattleScreen* self, int i) {
 
 void CBattleScreen::ToggleMember(int index) {
     auto* party = &party_;
-    auto unitAt = [party](int i) { return party->data[i]; };
+    auto unitAt = [party](int i) { return (*party)[i]; };
     if (IsMultiplayerClient()) return;
-    if (index >= party->size) return;
+    if (index >= std::ssize(*party)) return;
 
-    UiDwordArray chosen{mfc::impl::IntArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size; ++i) {
+    UiDwordArray chosen{};
+    for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
-        chosen.SetAtGrow(chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
+        lib::SetAtGrow(chosen, std::ssize(chosen), member ? (member->flags_ & kFlagSelected) : 0);
     }
     if (interface_->shiftDown_) {
-        chosen.data[index] = chosen.data[index] == 0 ? 1u : 0u;
+        chosen[index] = chosen[index] == 0 ? 1u : 0u;
     } else {
-        for (int i = 0; i < chosen.size; ++i)
-            if (chosen.data[i] != 0) chosen.data[i] = 0;
-        chosen.data[index] = 1;
+        for (int i = 0; i < std::ssize(chosen); ++i)
+            if (chosen[i] != 0) chosen[i] = 0;
+        chosen[index] = 1;
     }
     TheClientWorld()->Deselect(nullptr);
 
-    for (int i = 0; i < party->size; ++i) {
+    for (int i = 0; i < std::ssize(*party); ++i) {
         auto* portraits = portraits_;
-        std::uint32_t value = chosen.data[i];
+        std::uint32_t value = chosen[i];
         portraits->SceneMesh(i * 5 + 4)->visible_ = static_cast<int>(value);
         Quaternion turn;
         const Quaternion* rest = &kHudRestRotation;
@@ -123,7 +122,7 @@ void CBattleScreen::ToggleMember(int index) {
         }
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
-        if (member && chosen.data[i] != 0) {
+        if (member && chosen[i] != 0) {
             TheClientWorld()->Select(member);
             if (index == i) Speech(unitAt(i)->id_, 0, nullptr);
         }
@@ -134,7 +133,7 @@ void CBattleScreen::ToggleMember(int index) {
     if (TheServerWorld()->gameResult_ == 1) {
         if (auto* player = TheServerWorld()->GetPlayer(0)) {
             for (int i = 0; i < player->Party()->members_.size; ++i) {
-                if (i >= party->size) continue;
+                if (i >= std::ssize(*party)) continue;
                 PartyUnitRecord* record = &player->Party()->members_.data[i];
                 CUnit* member = unitAt(i);
                 if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
@@ -143,24 +142,23 @@ void CBattleScreen::ToggleMember(int index) {
         }
     }
     RefreshSelection();
-    if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
 
 // --- the selected members ordered at a unit ------------------------------------------------------
 
 void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
-    auto unitAt = [party](int i) { return party->data[i]; };
+    auto unitAt = [party](int i) { return (*party)[i]; };
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
-    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size; ++i) {
+    OrderUnits units{};
+    for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = units.size;
-        units.SetSize(n + 1, -1);
-        units.data[n] = member;
+        int n = std::ssize(units);
+        units.resize(n + 1);
+        units[n] = member;
         HudPortraitSlot& slot = portraits_->slots_[i];
         slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
         portraits_->slots_[i].wobbleKind_ = 1;
@@ -168,35 +166,31 @@ void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
         int memberLevel = unitAt(i)->Level();
         if (targetLevel - memberLevel > 5) Speech(unitAt(i)->id_, 10, nullptr);
     }
-    if (units.size != 0) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
-    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    if (units.data) gamecrt::operator_delete(units.data);
+    if (!units.empty()) LocalView(TheClientWorld())->SendAttack(&units, target, kind, ctrl & 0xFF);
 }
 
 void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = &party_;
-    OrderUnits units{mfc::impl::UnitPtrArrayClass::Vtable(), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size; ++i) {
-        auto* member = party->data[i];
+    OrderUnits units{};
+    for (int i = 0; i < std::ssize(*party); ++i) {
+        auto* member = (*party)[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        int n = units.size;
-        units.SetSize(n + 1, -1);
-        units.data[n] = member;
+        int n = std::ssize(units);
+        units.resize(n + 1);
+        units[n] = member;
         HudPortraitSlot& slot = portraits_->slots_[i];
         slot.wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
         portraits_->slots_[i].wobbleKind_ = 1;
     }
-    if (units.size != 0) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
-    units.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    if (units.data) gamecrt::operator_delete(units.data);
+    if (!units.empty()) LocalView(TheClientWorld())->SendUseDead(&units, target, ctrl & 0xFF);
 }
 
 // --- the pending spell or quick item used --------------------------------------------------------
 
 void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
     auto* party = &party_;
-    auto unitAt = [party](int i) { return party->data[i]; };
-    for (int i = 0; i < party->size; ++i) {
+    auto unitAt = [party](int i) { return (*party)[i]; };
+    for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         Vector3 position;   // the target's position, passed to the (unused) argument of the checks
@@ -217,10 +211,10 @@ void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
 
 void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
     auto* party = &party_;
-    auto unitAt = [party](int i) { return party->data[i]; };
+    auto unitAt = [party](int i) { return (*party)[i]; };
     // The shift below stays for the later members.
     Vector3 point = {x, y, z};
-    for (int i = 0; i < party->size; ++i) {
+    for (int i = 0; i < std::ssize(*party); ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         if (member == unit) {
@@ -282,17 +276,17 @@ void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     }
 
     auto* party = &party_;
-    auto unitAt = [party](int i) { return party->data[i]; };
+    auto unitAt = [party](int i) { return (*party)[i]; };
     if (event == 0x30) {
         // The member's timed face (no null test).
-        for (int i = 0; i < party->size; ++i) {
+        for (int i = 0; i < std::ssize(*party); ++i) {
             if (unitAt(i)->id_ != id) continue;
             HudPortraitSlot* slots = portraits_->slots_.data();
             slots[i].faceTimer_ = 0.0f;
             portraits_->slots_[i].faceMode_ = 1;
         }
     } else if (event - 0xB <= 0x15 - 0xB) {
-        for (int i = 0; i < party->size; ++i) {
+        for (int i = 0; i < std::ssize(*party); ++i) {
             if (unitAt(i)->id_ != id) continue;
             portraits_->slots_[i].wobbleTime_ = PortraitDelay(IsaacRandom::Global().Next());
             portraits_->slots_[i].wobbleKind_ = 2;

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "lib/mfc.h"
 #include "lib/hash_map.h"
@@ -27,7 +28,7 @@ BOOL IsTextKey(int id);
 struct AllodRecord {
     std::string name;           // the "#allod" line's second word
     std::string otherNames[5];  // one word on each of the next five lines
-    mfc::CArray<int> maps;    // CDWordArray: the indices of its maps
+    std::vector<int> maps;    // CDWordArray: the indices of its maps
 };
 // The allods' elements (map_database.cpp): zero-filled, the strings empty and the map indices an empty
 // CDWordArray; destroyed the indices first, then the strings from the last.

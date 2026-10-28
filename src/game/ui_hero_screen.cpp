@@ -25,7 +25,6 @@
 #include "party.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_slots.h"
 #include "lib/str.h"
 
 #include <cmath>
@@ -47,8 +46,6 @@ float NewHeroPoints() { return 75.0f /*00741C98*/; }
 constexpr float kFullTurn = /*007C7F10*/ 6.2831855f;   // a static initialiser: pi + pi
 // The multiplayer heroes (their vector of SavedHero).
 SavedParties* MpHeroesObject() { return &TheSavedParties(); }
-// CArray<record*> (the party's records handed to the client world).
-void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }
 
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
@@ -63,7 +60,6 @@ constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kTextFormat = 1;
 
 UnitStats* StatsOf(PartyUnitRecord* hero) { return &hero->stats; }
-
 
 } // namespace
 
@@ -178,18 +174,17 @@ void CMpHeroScreen::Update() {
 
 void CMpHeroScreen::Close() {
     MpHeroesObject()->SaveAll();
-    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     auto* party = LocalPlayerData();
     for (int i = 0; i < party->members_.size; ++i) {
         PartyUnitRecord* record = &party->members_.data[i];
-        int size = records.size;
-        records.SetSize(size + 1, -1);
-        records.data[size] = record;
+        int size = std::ssize(records);
+        records.resize(size + 1);
+        records[size] = record;
     }
     GameRemoveUnitsOf(&records);
     previewModel_ = nullptr;
     descPanel_->Describe(nullptr);
-    if (records.data) gamecrt::operator_delete(records.data);
 }
 
 // --- The caches' objects released ----------------------------------------------------------
@@ -283,16 +278,16 @@ constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview 
 
 void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;
-    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     auto* player = LocalPlayerData();
     if (player->members_.size == 0) {
         player->Clear(1, 0);
         player->AddMember(kHeroName, kHumanHero, game::EmptyText());
     }
     PartyUnitRecord* first = player->members_.data;
-    int size = records.size;
-    records.SetSize(size + 1, -1);
-    records.data[size] = first;
+    int size = std::ssize(records);
+    records.resize(size + 1);
+    records[size] = first;
     GameCreatePartyUnits(&records, flag);
     auto* unit = GameFindClientUnit(player->members_.data->unitId);
     unit->SetPrototype23C(unit->GetPrototype());
@@ -313,18 +308,17 @@ void CMpHeroScreen::MakePreview(int flag) {
         unit->SetFromStats(&player->members_.data->stats);
         unit->Controller()->RefreshWounds();
     }
-    if (records.data) gamecrt::operator_delete(records.data);
 }
 
 // --- A hero shown -------------------------------------------------------------------------
 
 void CMpHeroScreen::ShowHero(int index) {
-    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {};
     auto* player = LocalPlayerData();
     if (player->members_.size > 0) {
-        int size = records.size;
-        records.SetSize(size + 1, -1);
-        records.data[size] = player->members_.data;
+        int size = std::ssize(records);
+        records.resize(size + 1);
+        records[size] = player->members_.data;
         GameRemoveUnitsOf(&records);
     }
     heroIndex_ = -1;
@@ -343,5 +337,4 @@ void CMpHeroScreen::ShowHero(int index) {
     unit->Controller()->RefreshModel();
     turn_ = 0.0f;
     DrawHeroList();
-    if (records.data) gamecrt::operator_delete(records.data);
 }

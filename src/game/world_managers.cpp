@@ -38,7 +38,7 @@ void DropShared(RefPtr* slot) {
 
 void CWorld::Destroy() {
     if (SpellManager()) {
-        ObjectListIterator objects{nullptr, nullptr};
+        ObjectListIterator objects{nullptr, {}};
         for (CEngineObject* object = objects.First(SpellManager()); object; object = objects.Next()) object->ClearState();
         if (objects.manager) --objects.manager->refCount_;
     }

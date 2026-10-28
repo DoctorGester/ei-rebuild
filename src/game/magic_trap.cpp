@@ -14,11 +14,11 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <new>
 #include "lib/mfc.h"
 #include "lib/mfc_slots.h"
 #include "game_slots.h"
-#include "game_lists.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 
@@ -31,15 +31,12 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 bool IsDead(CMapObject* unit) { return unit->IsDead() != 0; }
 
 // The units inside: an MFC CList whose elements are counted references.
-using VictimList = mfc::CTypedPtrList<CUnit>;
-using VictimNode = VictimList::Node;
+using VictimList = std::list<CUnit*>;
+using VictimNode = VictimList::iterator;
 
 // MFC CPtrList (blocks of 10) as the game keeps it on the stack.
-using PtrList = mfc::CTypedPtrList<CUnit>;
-using PtrNode = PtrList::Node;
-PtrList NewPtrList() { return PtrList{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
-
-constexpr int kPtrListBlockSize = 10;
+using PtrList = std::list<CUnit*>;
+using PtrNode = PtrList::iterator;
 
 // Is `unit` (its x / y) inside a circle, and alive? The first circle that holds it decides; a NaN
 // distance is outside (FCOMPP; TEST AH,0x41).
@@ -57,74 +54,65 @@ bool StaysInside(MagicTrap* trap, CMapObject* unit) {
 }
 
 void Append(PtrList* list, CUnit* unit) {
-    PtrNode* node = list->NewNode(list->tail, nullptr);
-    node->data = unit;
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
+    auto node = list->emplace(list->end());
+    *node = unit;
 }
 
 } // namespace
 
 void MagicTrap::UpdateVictims() {
     VictimList* victims = &inside;
-    for (VictimNode* node = victims->head; node;) {
-        VictimNode* next = node->next;
-        if (!StaysInside(this, node->data)) {
-            // CList::RemoveAt, inlined.
-            if (node == victims->head) victims->head = node->next;
-            else node->prev->next = node->next;
-            if (node == victims->tail) victims->tail = node->prev;
-            else node->next->prev = node->prev;
-            mfc::impl::FreeNodeAs<gamelists::ObjectRefs>(victims, node);
+    for (auto node = victims->begin(); node != victims->end();) {
+        auto next = std::next(node);
+        if (!StaysInside(this, *node)) {
+            // CList::RemoveAt, inlined: the reference released.
+            if (*node) (*node)->Release();
+            victims->erase(node);
         }
         node = next;
     }
 
     if (!(flags_ & kArmed)) return;
     CWorldServer* context = ServerWorld();
-    PtrList found = NewPtrList();
-    PtrList newcomers = NewPtrList();
+    PtrList found;
+    PtrList newcomers;
     FindTrapVictims(context, &area, sides, &found);
-    for (PtrNode* node = found.head; node;) {
-        PtrNode* next = node->next;
-        CUnit* unit = node->data;
-        VictimNode* known = victims->head;
-        while (known && known->data != unit) known = known->next;
-        if (!known) {
-            VictimNode* added = victims->NewNode(victims->tail, nullptr);
-            AIRefTo<CUnit>::Of(&added->data)->Assign(unit);
-            if (victims->tail) victims->tail->next = added;
-            else victims->head = added;
-            victims->tail = added;
+    for (auto node = found.begin(); node != found.end();) {
+        auto next = std::next(node);
+        CUnit* unit = *node;
+        auto known = victims->begin();
+        while (known != victims->end() && *known != unit) ++known;
+        if (known == victims->end()) {
+            auto added = victims->emplace(victims->end());
+            AIRefTo<CUnit>::Of(&*added)->Assign(unit);
             Append(&newcomers, unit);
         }
         node = next;
     }
-    if (newcomers.count) CastAtUnits(&newcomers);
-    newcomers.RemoveAll();
-    found.RemoveAll();
+    if (!newcomers.empty()) CastAtUnits(&newcomers);
+    newcomers.clear();
+    found.clear();
 }
 
 void FindTrapVictims(CWorldServer* context, const TrapArea* area, std::uint32_t sides,
-                                mfc::CTypedPtrList<CUnit>* out) {
-    using UnitList = mfc::CTypedPtrList<CUnit>;
-    out->RemoveAll();
+                                std::list<CUnit*>* out) {
+    using UnitList = std::list<CUnit*>;
+    out->clear();
     CSectorMap* sectors = context->Sectors();
-    UnitList found{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
+    UnitList found{};
     for (int i = 0; i < area->size; ++i) {
         const TrapCircle& circle = area->data[i];
         Vector3 point = {circle.x, circle.y, 0.0f};
         sectors->FindUnitsInRadius(&point, &found, circle.radius);
-        for (UnitList::Node* node = found.head; node;) {
-            CUnit* unit = node->data;
-            node = node->next;
+        for (auto node = found.begin(); node != found.end();) {
+            CUnit* unit = *node;
+            ++node;
             if (IsDead(unit)) continue;
             int side = unit->side;
-            if (sides & (1u << (side & 31))) out->AddTail(unit);   // SHL by CL: the count is taken mod 32
+            if (sides & (1u << (side & 31))) out->push_back(unit);   // SHL by CL: the count is taken mod 32
         }
     }
-    found.RemoveAll();
+    found.clear();
 }
 
 namespace {
@@ -132,9 +120,9 @@ constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // targetFlags_: cast at th
 constexpr float kFar = 1e30f;                        // a squared distance
 } // namespace
 
-void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
-    using UnitList = mfc::CTypedPtrList<CUnit>;
-    if (units->count == 0 || !spell) return;
+void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
+    using UnitList = std::list<CUnit*>;
+    if (units->empty() || !spell) return;
     const Vector3& origin = localPosition_;
     Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = ObjectWorld(this);
@@ -147,10 +135,10 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
         }
     } else {
         if (singleTarget != 0) {
-            if (!units->head) return;
+            if (units->empty()) return;
             CUnit* closest = nullptr;
-            for (UnitList::Node* node = units->head; node; node = node->next) {
-                CUnit* unit = node->data;
+            for (auto node = units->begin(); node != units->end(); ++node) {
+                CUnit* unit = *node;
                 float dx = unit->localPosition_.x - origin.x;
                 float dy = unit->localPosition_.y - origin.y;
                 float dz = unit->localPosition_.z - origin.z;
@@ -158,12 +146,12 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CUnit>* units) {
                 if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) < kFar) closest = unit;
             }
             if (!closest) return;
-            units->RemoveAll();
-            units->AddTail(closest);   // AddTail calls the list's NewNode
+            units->clear();
+            units->push_back(closest);   // AddTail calls the list's NewNode
         }
-        for (UnitList::Node* node = units->head; node;) {
-            UnitList::Node* next = node->next;
-            CUnit* unit = node->data;
+        for (auto node = units->begin(); node != units->end();) {
+            auto next = std::next(node);
+            CUnit* unit = *node;
             TheServerWorld()->CastSpell(spell, nullptr, &from, unit,
                                    &unit->localPosition_, 0);
             node = next;
@@ -179,16 +167,11 @@ CSpellManager* SpellManagerOf(CWorld* context) { return context->SpellManager();
 // element's reference released and cleared, the list emptied, its blocks freed).
 void ClearVictims(MagicTrap* trap) {
     MagicTrap::UnitList& inside = trap->inside;
-    for (MagicTrap::UnitList::Node* node = inside.head; node; node = node->next) {
-        if (node->data) node->data->Release();
-        node->data = nullptr;
+    for (auto node = inside.begin(); node != inside.end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
     }
-    inside.count = 0;
-    inside.free = nullptr;
-    inside.tail = nullptr;
-    inside.head = nullptr;
-    mfc::PlexFreeDataChain(inside.blocks);
-    inside.blocks = nullptr;
+    inside.clear();
 }
 } // namespace
 
@@ -224,7 +207,6 @@ namespace {
 
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
-constexpr int kVictimBlockSize = 10;
 // The fields saved after the points: period, countdown, single target, sides.
 void* TailFields(MagicTrap* trap, int i) {
     void* fields[] = {&trap->period, &trap->countdown, &trap->singleTarget, &trap->sides};
@@ -256,13 +238,6 @@ MagicTrap::MagicTrap() {
     area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
     EmptyArray(points);
     points.vtable = mfc::impl::TrapTargetsArrayClass::Vtable();
-    inside.vtable = gameslots::VictimListClass::Vtable();
-    inside.count = 0;
-    inside.free = nullptr;
-    inside.tail = nullptr;
-    inside.head = nullptr;
-    inside.blocks = nullptr;
-    inside.blockSize = kVictimBlockSize;
 
     CreateMapObject();
     sides = 0xFFFFFFFFu;
@@ -283,7 +258,6 @@ MagicTrap::~MagicTrap() {
     points.SetSize(0, -1);
     ClearVictims(this);        // RemoveAll (each element released)
     // CList's destructor: its vtable, then RemoveAll again.
-    inside.vtable = gameslots::VictimListClass::Vtable();
     ClearVictims(this);
     // The arrays' destructors (no element destructors; SetSize has already freed the storage).
     points.vtable = mfc::impl::TrapPointArrayClass::Vtable();
@@ -303,11 +277,11 @@ void MagicTrap::SaveTrap(CStream* stream) {
     value = area.size;
     stream->Write(&value, 4);
     for (int i = 0; i < area.size; ++i) stream->Write(&area.data[i], sizeof(TrapCircle));
-    value = inside.count;
+    value = std::ssize(inside);
     stream->Write(&value, 4);
-    for (VictimNode* node = inside.head; node;) {
-        VictimNode* next = node->next;
-        AIRefTo<CUnit>::Of(&node->data)->Save(stream);
+    for (auto node = inside.begin(); node != inside.end();) {
+        auto next = std::next(node);
+        AIRefTo<CUnit>::Of(&*node)->Save(stream);
         node = next;
     }
     value = points.size;
@@ -351,15 +325,6 @@ void FreeCircles(TrapArea& area) {
     area.size = 0;
 }
 
-// The CPtrList's destructor on the stack, RemoveAll inlined (its elements need nothing): the list
-// emptied, then its blocks freed.
-void DestroyPtrList(PtrList& list) {
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
-}
 } // namespace
 
 int MagicTrap::CreateTrap() {
@@ -399,29 +364,20 @@ int MagicTrap::UpdateTrap() {
 
 void MagicTrap::FireAtOccupants() {
     CWorldServer* context = ServerWorld();
-    PtrList found = NewPtrList();
+    PtrList found;
     if (flags_ & kArmed) {
         FindTrapVictims(context, &area, sides, &found);
-        if (found.count) CastAtUnits(&found);
+        if (!found.empty()) CastAtUnits(&found);
     }
-    DestroyPtrList(found);
 }
 
 int MagicTrap::ForgetObject(CEngineObject* object) {
-    for (UnitList::Node* node = inside.head; node;) {
-        UnitList::Node* next = node->next;
-        if (node->data == object) {
-            // CList::RemoveAt, inlined: unlinked, the reference released and cleared, the node
-            // freed; the last node empties the list as RemoveAll does.
-            if (node == inside.head) inside.head = node->next;
-            else node->prev->next = node->next;
-            if (node == inside.tail) inside.tail = node->prev;
-            else node->next->prev = node->prev;
-            if (node->data) node->data->Release();
-            node->data = nullptr;
-            node->next = inside.free;
-            inside.free = node;
-            if (--inside.count == 0) ClearVictims(this);
+    for (auto node = inside.begin(); node != inside.end();) {
+        auto next = std::next(node);
+        if (*node == object) {
+            // CList::RemoveAt, inlined: the reference released, the node removed.
+            if (*node) (*node)->Release();
+            inside.erase(node);
         }
         node = next;
     }

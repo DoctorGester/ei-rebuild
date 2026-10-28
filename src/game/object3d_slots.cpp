@@ -41,12 +41,12 @@ void CObject3D::AttachSpecific(CEngineObject* half) {
 }
 
 void CObject3D::RemoveAllEffectSources() {
-    while (effectSources.head) {
-        CParticleSource* source = effectSources.head->data;
-        auto* node = effectSources.head;
-        while (node && node->data != source) node = node->next;
-        if (!node) continue;
-        effectSources.RemoveAt(node);
+    while (!effectSources.empty()) {
+        CParticleSource* source = effectSources.front();
+        auto node = effectSources.begin();
+        while (node != effectSources.end() && *node != source) ++node;
+        if (node == effectSources.end()) continue;
+        effectSources.erase(node);
         if (source) {
             source->Attach(nullptr);
             source->Release();

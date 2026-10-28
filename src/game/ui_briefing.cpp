@@ -51,7 +51,6 @@ BriefingVariables::BriefingVariables(const char* prefix) { PlayerZeroVariables(p
 
 BriefingVariables::~BriefingVariables() = default;
 
-
 void CBriefingScreen::Close() {
     MapEdgeFade() = savedEdgeFade_;
     GameStopSounds(1);
@@ -82,7 +81,6 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     if (IsMultiplayerClient()) PlayersChanged(1);
 }
 
-
 void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     CParty* player = LocalPlayerData();
     int count = player->members_.size;
@@ -92,24 +90,24 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     for (; record < count; ++record) {
         int id = RecordUnitId(player->members_.data[record]);
         if (unit->id_ == id) break;
-        if (place < party_.size && party_.data[place]->id_ == id) ++place;
+        if (place < std::ssize(party_) && party_[place]->id_ == id) ++place;
     }
     if (record < count) {
         // CArray::InsertAt(place, unit) inlined (the slot is zeroed, then written); the
         // original then looks the unit up in the server world without using the result.
-        int size = party_.size;
+        int size = std::ssize(party_);
         if (place >= size) {
-            party_.SetSize(place + 1, -1);
+            party_.resize(place + 1);
         } else {
-            party_.SetSize(size + 1, -1);
-            std::memmove(&party_.data[place + 1], &party_.data[place], (size - place) * sizeof(party_.data[0]));
+            party_.resize(size + 1);
+            std::memmove(&party_[place + 1], &party_[place], (size - place) * sizeof(party_[0]));
         }
-        party_.data[place] = unit;
+        party_[place] = unit;
     } else {
         // SetAtGrow(size, unit).
-        int size = party_.size;
-        party_.SetSize(size + 1, -1);
-        party_.data[size] = unit;
+        int size = std::ssize(party_);
+        party_.resize(size + 1);
+        party_[size] = unit;
     }
     if (unit->id_ != RecordUnitId(player->members_.data[0])) return;
 
@@ -136,13 +134,13 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
-    int count = party_.size;
+    int count = std::ssize(party_);
     int index = 0;
-    while (index < count && party_.data[index]->id_ != unit->id_) ++index;
+    while (index < count && party_[index]->id_ != unit->id_) ++index;
     if (index >= count) return;
     int after = count - index - 1;
-    if (after != 0) std::memmove(&party_.data[index], &party_.data[index + 1], after * sizeof(party_.data[0]));
-    --party_.size;
+    if (after != 0) std::memmove(&party_[index], &party_[index + 1], after * sizeof(party_[0]));
+    party_.pop_back();
 }
 
 void CBriefingScreen::OnGameOver(int) {

@@ -14,7 +14,6 @@
 
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/mfc_array.h"
 
 #include <cmath>
 #include <cstdint>
@@ -24,37 +23,27 @@
 #include <vector>
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 #include "camera.h"
 
 namespace {
 
-// The visibility of a bounds record for the device's view: 2 is outside. The world an engine object belongs
-// to (its frame counter). The glow's static arrays: CArray constructor, its exit-time destructor, the points'
-// exit-time free, the sprite record constructor [pointer, count], and aligned allocation of 16-byte points.
-// The sprite records are zero filled.
-void SpriteArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::SpriteArrayClass>(a0); }
-
+// The glow's static arrays: the sprite records (zero filled) and the 16-byte points, each built on the first draw
+// and destroyed by the exit function it registers.
 
 struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
     const float* rect;
 };
-struct SpriteElements {
-    static void Construct(SpriteRecord* records, int count) { mfc::PlainElements<SpriteRecord>::Construct(records, count); }
-    static void Destruct(SpriteRecord*, int) {}
-};
-using SpriteArray = mfc::CArray<SpriteRecord, SpriteElements>;
-static_assert(sizeof(SpriteArray) == 0x14);
+using SpriteArray = std::vector<SpriteRecord>;
 constinit lib::StaticObject<SpriteArray> g_sprites = /*0079C1E0*/ {};
 SpriteArray& Sprites() { return *g_sprites; }
-void DestroySprites() { mfc::impl::DestructArrayOf<mfc::impl::SpriteArrayClass>(*g_sprites); }
+void DestroySprites() { g_sprites.Destroy(); }
 constinit std::vector<LightningPoint> g_glowPoints = /*0079C1D0*/ {};
 std::vector<LightningPoint>& GlowPoints() { return g_glowPoints; }
 void FreeGlowPoints() { lib::FreeStorage(g_glowPoints); }
 std::uint8_t g_glowGuards = /*0079C1F4*/ {};
 
-void SizeSprites() { Sprites().SetSize(8); }
+void SizeSprites() { Sprites().resize(8); }
 void SizePoints() { GlowPoints().resize(8); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
@@ -69,7 +58,7 @@ float RandomOffset() {
 void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /*frame: not used*/, float size) {
     if (!(g_glowGuards & 1)) {
         g_glowGuards |= 1;
-        SpriteArrayConstruct(&Sprites());
+        g_sprites.Construct();
         std::atexit(DestroySprites);
     }
     if (!(g_glowGuards & 2)) {
@@ -110,7 +99,7 @@ void CLightning::DrawGlow(CSceneRenderer* device, const Vector3* position, int /
         p.y = position->y + along.y;
         p.z = position->z + along.z;
         p.w = static_cast<float>(std::sqrt(1.0f - t * t) * size);
-        SpriteRecord& s = Sprites().data[j];
+        SpriteRecord& s = Sprites()[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
         frame += 2;

@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -40,7 +41,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
     slot->object = object;
 }
 
-
 // The game's order: by object address, unsigned (ours: ScriptGroup::After).
 int CompareMembers(const void* a, const void* b) {
     const CEngineObject* x = static_cast<const ScriptObjectRef*>(a)->object;
@@ -57,7 +57,6 @@ bool ScriptGroup::After(const CEngineObject* x, const CEngineObject* y) {
     if (!x || !y) return x != nullptr;
     return x->id_ > y->id_;
 }
-
 
 void ScriptObjectRef::Reset() { Clear(this); }
 
@@ -301,30 +300,20 @@ void ScriptGroup::RemoveDeleted() {
     } while (i < size);
 }
 
-void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CUnit>* list) {
-    for (auto* node = list->head; node;) {
-        auto* current = node;
-        node = node->next;
-        Insert(current->data);
-    }
+void ScriptGroup::InsertAll(const std::list<CUnit*>* list) {
+    for (CUnit* unit : *list) Insert(unit);
 }
 
-void ScriptGroup::CopyToList(mfc::CTypedPtrList<CUnit>* list) const {
-    for (auto* node = list->head; node; node = node->next) {
-        if (node->data) node->data->Release();
-        node->data = nullptr;
+void ScriptGroup::CopyToList(std::list<CUnit*>* list) const {
+    for (auto node = list->begin(); node != list->end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
     }
-    list->RemoveAll();
+    list->clear();
     for (int i = 0; i < size; ++i) {
         CEngineObject* object = data[i].object;
-        auto* node = list->NewNode(list->tail, nullptr);
-        if (object != node->data) {   // a new node's element is null: nothing to release
-            AddRef(object);
-            node->data = static_cast<CUnit*>(object);
-        }
-        if (list->tail) list->tail->next = node;
-        else list->head = node;
-        list->tail = node;
+        AddRef(object);   // a new node's element is null: nothing to release
+        list->push_back(static_cast<CUnit*>(object));
     }
 }
 

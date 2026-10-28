@@ -120,7 +120,7 @@ int CUnitClientSpecific::RunTick() {
             speech.pop_front();
         }
     }
-    if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
+    if (unit->secondEntry == kModeSpecialIdle && std::ssize(unit->Object3D()->animation->queue) < kIdleRestartBelow)
         StartIdleAnimation(0);
     return 1;
 }

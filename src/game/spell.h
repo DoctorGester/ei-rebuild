@@ -335,7 +335,6 @@ public:
     // Rebuilds when the prototype accepts it.
     BOOL AddModifier(itemdb::SpellModifierRecord* modifier);
 
-
     CSpellManager* manager_;        // counted but never released
     CSpellContainer* container_;
 };
@@ -391,7 +390,6 @@ static_assert(offsetof(CLight, litColors_) == 0x114);
 static_assert(offsetof(CLight, range_) == 0xE0);
 static_assert(offsetof(CLight, unused_54) == 0x54 && offsetof(CLight, direction_) == 0xD4 &&
               offsetof(CLight, localDirection_) == 0x108);
-
 
 // The light factory ("CLightManager"): lights of class 0x2E (the renderer's default light) and 0x31 (point
 // lights).

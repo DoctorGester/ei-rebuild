@@ -179,8 +179,8 @@ int FearMode::Evaluate(AIBrain* brain) {
         // The nearest player unit in sight (2D).
         double best = kFar;
         Vector3 nearest{};      // left unset when there is none (then 1e30 is never inside)
-        for (auto* node = brain->memory.visible.head; node; node = node->next) {
-            auto* other = node->data;
+        for (auto node = brain->memory.visible.begin(); node != brain->memory.visible.end(); ++node) {
+            auto* other = *node;
             if (!other->player) continue;
             const Vector3* me = PositionOf(brain->owner->unit);
             double oy = static_cast<double>(me->y) - other->localPosition_.y;
@@ -280,13 +280,11 @@ void FearMode::Execute(AIBrain* brain) {
     if (brain->action == AIBrain::kActionNone) {
         // Fight back when there is something worth it (helping allies too).
         AIObjectList candidates{};
-        candidates.vtable = mfc::impl::PtrListClass::Vtable();
-        candidates.blockSize = 10;
         AITargetChoice best{-1, nullptr};
         Vector3 at = *PositionOf(brain->owner->unit);
         brain->ChooseTarget(&best, &candidates, &at, 1, 1);
         if (best.object) brain->attention.ApplyAttack(brain, &best);
-        candidates.RemoveAll();
+        candidates.clear();
 
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.

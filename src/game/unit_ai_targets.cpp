@@ -17,7 +17,6 @@
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cmath>
@@ -60,10 +59,10 @@ std::uint32_t Excess(const AIAttackOption* option, const CUnit* target) {
 // candidate (NaN distances count).
 std::uint32_t GroupExcess(const AIAttackOption* option, AIObjectList* group, CUnit* candidate) {
     std::uint32_t sum = 0;
-    if (!group->head) return sum;
+    if (group->empty()) return sum;
     float radius2 = static_cast<float>(option->radius * option->radius);
-    for (auto* node = group->head; node; node = node->next) {
-        auto* member = node->data;
+    for (auto node = group->begin(); node != group->end(); ++node) {
+        auto* member = *node;
         EI_NAN_AUDIT(AIDistance2(PositionOf(member), PositionOf(candidate)), radius2);
         if (AIDistance2(PositionOf(member), PositionOf(candidate)) <= radius2) sum += Excess(option, member);
     }
@@ -179,8 +178,8 @@ bool AIAttention::IsUsable(AIBrain* brain, const AITargetChoice* choice) {
     EI_NAN_AUDIT(PrototypeSize(self));
     if (self->sizeClass == 0 && PrototypeSize(self) >= kHalf) return true;
     Vector3 at = *PositionOf(target);
-    for (auto* node = brain->memory.nearby.head; node; node = node->next) {
-        auto* other = node->data;
+    for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
+        auto* other = *node;
         double dy = static_cast<double>(at.y) - other->localPosition_.y;
         double dx = static_cast<double>(at.x) - other->localPosition_.x;
         EI_NAN_AUDIT(dx, dy, PrototypeSize(other));
@@ -200,7 +199,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
                          float threshold, const AIAttackOption* option) {
     float score = candidate == current ? kCurrentBonus : kZero;
     CUnitServer* control = candidate->ServerController();
-    int others = group->count - 1;
+    int others = std::ssize(*group) - 1;
     int cap = option->maxCount;
     std::uint32_t damage = 0;   // only the low 16 bits count
     switch (option->kind) {
@@ -275,7 +274,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
 
 void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
                          int reachArg) {
-    if (spells.size == 0 && (candidates->count == 0 || weapons.size == 0)) {
+    if (spells.size == 0 && (candidates->empty() || weapons.size == 0)) {
         choice->object = nullptr;
         return;
     }
@@ -286,7 +285,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     float best = kFloorScore;
     CUnit* self = brain->owner->unit;
     if (held) {
-        if (candidates->count == 1 && spells.size == 0) {
+        if (std::ssize(*candidates) == 1 && spells.size == 0) {
             *choice = current;
             return;
         }
@@ -306,8 +305,8 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
 
     std::vector<Scored> scored;
     if (!alliesOnly) {
-        for (auto* node = candidates->head; node; node = node->next) {
-            auto* candidate = node->data;
+        for (auto node = candidates->begin(); node != candidates->end(); ++node) {
+            auto* candidate = *node;
             for (int i = 0; i < weapons.size; ++i) {
                 double s = Score(from, self, candidates, held, candidate, best, &weapons.data[i]);
                 if (s > best) scored.push_back({weapons.data[i].part, candidate, static_cast<float>(s)});
@@ -317,16 +316,14 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
     if (spells.size != 0) {
         // The unit and its allies in sight that are alive and not reported.
         AIObjectList allies{};
-        allies.vtable = mfc::impl::PtrListClass::Vtable();
-        allies.blockSize = 10;
-        allies.AddTail(self);
-        for (auto* node = brain->memory.nearby.head; node; node = node->next) {
-            auto* other = node->data;
+        allies.push_back(self);
+        for (auto node = brain->memory.nearby.begin(); node != brain->memory.nearby.end(); ++node) {
+            auto* other = *node;
             if (other->IsDead() == 0 && !brain->memory.reports.Contains(other) && Allied(self->side, other->side))
-                allies.AddTail(other);
+                allies.push_back(other);
         }
-        for (auto* node = allies.head; node; node = node->next) {
-            auto* ally = node->data;
+        for (auto node = allies.begin(); node != allies.end(); ++node) {
+            auto* ally = *node;
             for (int i = 0; i < spells.size; ++i) {
                 const AIAttackOption* option = &spells.data[i];
                 if (alliesOnly && option->kind == 6) continue;
@@ -334,7 +331,7 @@ void AIAttention::Choose(AIBrain* brain, AITargetChoice* choice, AIObjectList* c
                 if (s > best) scored.push_back({option->part, ally, static_cast<float>(s)});
             }
         }
-        allies.RemoveAll();
+        allies.clear();
     }
 
     while (!scored.empty()) {

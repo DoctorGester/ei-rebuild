@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -209,8 +210,8 @@ public:
     float* uvTables[4];             // per rotation
     float* uvTablesLast[4];         // the same for the last two pages
     std::vector<terrain::VertexTiles> vertexTiles;   // 33 x 33
-    using SectorCache = mfc::CList<terrain::SectorData*>;
-    SectorCache::Node*** sectorGrid;   // [sx][sy]: the sector's cache node, or null
+    using SectorCache = std::list<terrain::SectorData*>;
+    SectorCache::iterator** sectorGrid;   // [sx][sy]: the sector's cache node, or null
     SectorCache sectorCache;        // most recently used first
     int frame;
     int lightInterval;              // frames between sun updates

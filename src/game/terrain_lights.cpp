@@ -134,7 +134,7 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
     VertexRange range = RangeIn(area, sector->sx, sector->sy);
     float rangeSquared = static_cast<float>(light->range_ * light->range_);
     for (int y = range.y0; y <= range.y1; ++y) {
-        const SectorPosition* vertex = &sector->vertices.data[y * kRow + range.x0];
+        const SectorPosition* vertex = &sector->vertices[y * kRow + range.x0];
         SectorVertex* record = &sector->records.data[y * kRow + range.x0];
         for (int x = range.x0; x <= range.x1; ++x, ++vertex, ++record) {
             Vector3 offset = Vector3{vertex->x, vertex->y, vertex->z} - *position;
@@ -160,7 +160,6 @@ void UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* positi
 }
 
 } // namespace terrain
-
 
 void SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area) {
     if (x0 < 0) x0 = 0;

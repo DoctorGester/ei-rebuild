@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <unordered_map>
 
@@ -30,8 +31,8 @@ public:
     // The objects and the spares are walked in STLport's order (which object is destroyed, released or freed
     // first); the positions and spare counts are only looked up.
     using ObjectMap = lib::HashMap<unsigned, CEngineObject*>;
-    using ObjectList = mfc::CTypedPtrList<CEngineObject>;
-    using PositionMap = std::unordered_map<int, ObjectList::Node*>;
+    using ObjectList = std::list<CEngineObject*>;
+    using PositionMap = std::unordered_map<int, ObjectList::iterator>;
     using SpareMap = lib::HashMap<int, ObjectList*>;
     using SpareCountMap = std::unordered_map<int, int>;
 
@@ -113,12 +114,11 @@ static_assert(offsetof(CBaseManager, objects_) == 0x1C);
 // owner drops it afterwards with `--manager->refCount_` (the inlined destructor).
 struct ObjectListIterator {
     CBaseManager* manager;
-    CBaseManager::ObjectList::Node* position;   // the node Next returns
+    CBaseManager::ObjectList::iterator position;   // the node Next returns (the list's end: none)
 
     CEngineObject* First(CBaseManager* list);
     CEngineObject* Next();
 };
-static_assert(sizeof(ObjectListIterator) == 8);
 
 // The same walk over a manager whose objects are all of class T (the light factory's lights, an
 // item manager's items): First and Next hand them out typed. The user drops the manager's count.

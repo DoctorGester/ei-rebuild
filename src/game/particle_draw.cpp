@@ -22,11 +22,10 @@ namespace {
 inline double D(float f) { return f; }
 
 // The particles' draw order: built empty by a static initialiser, destroyed at exit.
-static_assert(sizeof(ParticleDepthArray) == 0x14);
 constinit lib::StaticObject<ParticleDepthArray> g_drawOrder = /*007A9C50*/ {};
 ParticleDepthArray& DrawOrder() { return *g_drawOrder; }
 void DestroyDrawOrder() {
-    mfc::impl::DestructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
+    g_drawOrder.Destroy();
 }
 // The camera's orientation.
 const Quaternion& CameraRotation() { return TheCamera()->localRotation_; }
@@ -125,7 +124,7 @@ bool AttachedToHiddenUnit(const CParticleSource* s) {
 } // namespace
 
 void ConstructDrawOrder() {
-    mfc::impl::ConstructArrayOf<gamearrays::ParticleDepthArrayClass>(*g_drawOrder);
+    g_drawOrder.Construct();
     std::atexit(DestroyDrawOrder);
 }
 
@@ -200,32 +199,27 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
 int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     ++refCount_;
     ParticleDepthArray& order = DrawOrder();
-    if (order.data) {
-        gamecrt::operator_delete(order.data);
-        order.data = nullptr;
-    }
-    order.maxSize = 0;
-    order.size = 0;
+    lib::FreeStorage(order);
     Vector3 axis;
     CameraRotation().AxisZ(&axis);
 
     // The manager's objects are its sources.
     auto sourceOf = [](CEngineObject* object) { return static_cast<CParticleSource*>(object); };
-    auto* node = objectList_.head;
-    CParticleSource* source = node ? sourceOf(node->data) : nullptr;
+    auto node = objectList_.begin();
+    CParticleSource* source = node != objectList_.end() ? sourceOf(*node) : nullptr;
     while (source) {
-        node = node->next;
+        ++node;
         Vector3 scratch;
         const Vector3* p = source->WorldPosition(&scratch);
         ParticleDepth entry;
         entry.source = source;
         entry.depth = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis, *p));
-        order.SetAtGrow(order.size, entry);
-        source = node ? sourceOf(node->data) : nullptr;
+        lib::SetAtGrow(order, std::ssize(order), entry);
+        source = node != objectList_.end() ? sourceOf(*node) : nullptr;
     }
 
-    ParticleDepth* first = order.data;
-    ParticleDepth* last = order.data + order.size;
+    ParticleDepth* first = order.data();
+    ParticleDepth* last = order.data() + std::ssize(order);
     if (first != last) {
         int log2 = 0;
         for (int n = static_cast<int>(last - first); n != 1; n >>= 1) ++log2;
@@ -235,8 +229,8 @@ int CParticleManager::DrawAll(CSceneRenderer* renderer) {
     }
 
     bool additive = false;
-    for (int i = 0; i < order.size; ++i) {
-        CParticleSource* s = order.data[i].source;
+    for (int i = 0; i < std::ssize(order); ++i) {
+        CParticleSource* s = order[i].source;
         if (s->flags_ & 0x40) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;

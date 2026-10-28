@@ -35,11 +35,10 @@
 #include <cmath>
 #include <cstring>
 #include <iterator>
+#include <list>
 #include <memory>
 #include <new>
 #include <string>
-
-
 
 // ---- Heights -------------------------------------------------------------------------------------
 
@@ -55,8 +54,8 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
 }
 
 float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         float dx = point->x - p.x;
         float dy = point->y - p.y;
         EI_NAN_AUDIT(p.radius, dy, dx);
@@ -78,8 +77,8 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
 }
 
 bool PlatformSet::Contains(float x, float y) {
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         float dx = x - p.x;
         float dy = y - p.y;
         EI_NAN_AUDIT(p.radius, dx, dy);
@@ -101,8 +100,8 @@ bool PlatformSet::Contains(float x, float y) {
 void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height) {
     *height = 0.0f;
     *normal = {0.0f, 0.0f, 1.0f};
-    for (PlatformNode* node = list.head; node; node = node->next) {
-        const Platform& p = node->data;
+    for (auto node = list.begin(); node != list.end(); ++node) {
+        const Platform& p = *node;
         EI_NAN_AUDIT(p.radius, x, y, p.x, p.y);
         if (p.radius * p.radius < DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y})) continue;
         float a = x - p.origin.x;
@@ -238,8 +237,8 @@ void CWorldClient::CreateExitMarkers() {
 BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit) {
     BOOL result = 1;
     int living = 0;
-    inExit->SetSize(0);
-    for (int i = 0; i < records->size; ++i) {
+    inExit->clear();
+    for (int i = 0; i < std::ssize(*records); ++i) {
         PartyUnitRecord* record = (*records)[i];
         CUnit* found =
             FindUnit(static_cast<int>(record->unitId));
@@ -250,8 +249,8 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
             result = 0;
             continue;
         }
-        const int last = inExit->size;
-        inExit->SetSize(last + 1);
+        const int last = std::ssize(*inExit);
+        inExit->resize(last + 1);
         (*inExit)[last] = record;
     }
     return living != 0 ? result : 0;
@@ -354,7 +353,7 @@ void EndWalk(ObjectListIterator& it) {
 } // namespace
 
 int CWorldClient::Segment() {
-    ObjectListIterator objectsIt{nullptr, nullptr};
+    ObjectListIterator objectsIt{nullptr, {}};
     int frames = ++ticksRun_;
     if (frames == 10) {
         TheInterface()->OnStringEvent(worlddata::AutosaveEventText());
@@ -389,16 +388,16 @@ int CWorldClient::Segment() {
     if (!paused_) {
         ++tick_;
         // The objects (dynamicObjects_) whose update returns 0 leave dynamicNodes_ and the list.
-        for (auto* node = dynamicObjects_.head; node;) {
-            auto* current = node;
-            node = node->next;
-            CMapObject* object = current->data;
+        for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+            auto current = node;
+            ++node;
+            CMapObject* object = *current;
             int done = object->RunTick();
             if (done != 0) continue;
             auto key = static_cast<std::uint32_t>(object->id_);
-            mfc::CList<CMapObject*>::Node* position = nullptr;
+            std::list<CMapObject*>::iterator position{};
             if (dynamicNodes_.Lookup(&key, &position)) {
-                dynamicObjects_.RemoveAt(position);
+                dynamicObjects_.erase(position);
                 hash400::RemoveKey(dynamicNodes_, key);
             }
         }
@@ -410,10 +409,10 @@ int CWorldClient::Segment() {
         if (static_cast<int>(std::ssize(TheInterface()->stack_)) > 1) {
             float time = static_cast<float>(tick_) + tickFraction_;
             float now = time;
-            for (auto* node = dynamicObjects_.head; node;) {
-                auto* current = node;
-                node = node->next;
-                current->data->AdvanceTime(now);
+            for (auto node = dynamicObjects_.begin(); node != dynamicObjects_.end();) {
+                auto current = node;
+                ++node;
+                (*current)->AdvanceTime(now);
             }
         }
     }

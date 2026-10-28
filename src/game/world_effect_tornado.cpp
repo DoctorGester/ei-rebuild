@@ -20,7 +20,7 @@
 
 #include <cmath>
 #include <cstring>
-
+#include <list>
 
 namespace {
 
@@ -55,9 +55,7 @@ bool SnapshotReadToEnd() {
     return position == snapshot->Size();
 }
 
-
 } // namespace
-
 
 CEffectTornado::CEffectTornado() {
     source_ = nullptr;
@@ -112,15 +110,15 @@ int CEffectTornado::RunTick() {
     if (framesLeft_ <= kStopEmittingTicks && source_ != nullptr) source_->Stop();
     CWorld* world = effect::ContextWorld(this);
     if (world->IsServer() && framesLeft_ > kHurtUntil && (framesLeft_ & (kHurtEvery - 1)) == 0) {
-        mfc::CTypedPtrList<CUnit> units{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        std::list<CUnit*> units{};
         ServerWorld()->Sectors()->FindUnitsInRadius(&localPosition_, &units, kHurtRadius);
         DamageInfo hit = TornadoHit();
-        for (auto* node = units.head; node != nullptr;) {
-            auto* unit = node->data;
-            node = node->next;
+        for (auto node = units.begin(); node != units.end();) {
+            auto* unit = *node;
+            ++node;
             if (unit->player != nullptr) unit->Controller()->TakeHit(&hit, nullptr, nullptr);
         }
-        units.RemoveAll();
+        units.clear();
     }
     --framesLeft_;
     return framesLeft_ >= 0 ? 1 : 0;

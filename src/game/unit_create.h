@@ -51,7 +51,6 @@ struct NpcPrototypeTable {
 };
 static_assert(offsetof(NpcPrototypeTable, byName) == 0x0C);
 
-
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
 int BuildNpcStats(UnitStats* stats, const char* name);

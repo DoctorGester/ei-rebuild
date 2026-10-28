@@ -1191,11 +1191,11 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
         CMappedResource* source = nullptr;
         void* data = nullptr;
         std::uint32_t fileSize = 0;
-        for (auto* n = waveSources.head;;) {
-            if (n == nullptr) return 0;
-            auto* current = n;
-            n = n->next;
-            source = current->data;
+        for (auto n = waveSources.begin();;) {
+            if (n == waveSources.end()) return 0;
+            auto current = n;
+            ++n;
+            source = *current;
             data = source->GetFile(name, &fileSize);
             if (data != nullptr) break;
         }

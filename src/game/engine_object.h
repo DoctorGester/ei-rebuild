@@ -147,3 +147,11 @@ AIRef* AIRef::DeleteScalar(unsigned flags);
 static_assert(sizeof(AIRef) == 4);
 // CEngineObject::World, for the callers that name the object's base (CMapObject::World hides it).
 inline CWorld* ObjectWorld(const CEngineObject* object) { return object->World(); }
+
+// A list or vector of counted object pointers emptied: each released (head first), then cleared.
+template <typename Container>
+void ReleaseAndClear(Container& objects) {
+    for (auto* object : objects)
+        if (object) object->Release();
+    objects.clear();
+}

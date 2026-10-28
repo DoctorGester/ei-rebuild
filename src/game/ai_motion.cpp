@@ -199,12 +199,7 @@ void AIPath::Clear() {
     failed = false;
     flag6E = false;
     flag6F = true;
-    if (excludedBlocks.data) {
-        gamecrt::operator_delete(excludedBlocks.data);
-        excludedBlocks.data = nullptr;
-    }
-    excludedBlocks.maxSize = 0;
-    excludedBlocks.size = 0;
+    lib::FreeStorage(excludedBlocks);
     smoothing = 0;
 }
 
@@ -233,8 +228,8 @@ double MotionCubic::Slope(float u) {
 
 int UnitMotion::Clear() {
     segment = -1;
-    points.size = 0;
-    waypoints.size = 0;
+    points.clear();
+    waypoints.clear();
     stepSpeeds.size = 0;
     return 0;
 }
@@ -358,10 +353,10 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     if (!found) {
         *turning = false;
         float saved = segmentStart;
-        for (; index < points.size - 1; ++index) {
+        for (; index < std::ssize(points) - 1; ++index) {
             segmentStart = static_cast<float>(end);
-            const MotionPoint& from = points.data[index];
-            const MotionPoint& to = points.data[index + 1];
+            const MotionPoint& from = points[index];
+            const MotionPoint& to = points[index + 1];
             std::memcpy(&fromX, &from.x, 4 * sizeof(float));     // x, y, dirX, dirY
             std::memcpy(&toX, &to.x, 4 * sizeof(float));
             double dx = static_cast<double>(fromX) - toX;
@@ -379,7 +374,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
         if (!found) {
             segmentStart = saved;
             std::memset(speedOut, 0, sizeof(float));
-            const MotionPoint& last = points.data[points.size - 1];
+            const MotionPoint& last = points[std::ssize(points) - 1];
             CopyBits(&position[0], &last.x);
             CopyBits(&position[1], &last.y);
             CopyBits(&direction[0], &last.dirX);
@@ -402,8 +397,8 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
     direction[0] = static_cast<float>(curveX.Slope(u));
     position[1] = static_cast<float>(curveY.Value(u));
     direction[1] = static_cast<float>(curveY.Slope(u));
-    *cellX = points.data[segment + 1].cellX;
-    *cellY = points.data[segment + 1].cellY;
+    *cellX = points[segment + 1].cellX;
+    *cellY = points[segment + 1].cellY;
     return true;
 }
 
@@ -437,8 +432,8 @@ MotionWaypoint Waypoint(double x, double y) { return {static_cast<float>(x), sta
 void UnitMotion::Build(PathOrder* path) {
     MotionOrder* order = OrderOf(path);
     segment = -1;
-    points.size = 0;
-    waypoints.size = 0;
+    points.clear();
+    waypoints.clear();
     stepSpeeds.size = 0;
     CopyBits(&startAngle, &order->angle);
 
@@ -486,11 +481,11 @@ void UnitMotion::Build(PathOrder* path) {
     CopyBits(&first.x, &order->x);
     CopyBits(&first.y, &order->y);
     first.cells = 0;
-    waypoints.SetAtGrow(waypoints.size, first);
+    lib::SetAtGrow(waypoints, std::ssize(waypoints), first);
     int previous = 0;
     for (PathCellList::Node* node = path->steps.head; node;) {
         PathCellList::Node* next = node->next;
-        ++waypoints.data[waypoints.size - 1].cells;
+        ++waypoints[std::ssize(waypoints) - 1].cells;
         stepSpeeds.SetAtGrow(stepSpeeds.size, static_cast<float>(static_cast<double>(node->data.flags)));
         if (!next) break;
         PathCellList::Node* afterNext = next->next;
@@ -501,19 +496,19 @@ void UnitMotion::Build(PathOrder* path) {
         switch (dir) {
         case 2:
             w = Waypoint(cx, cy);
-            waypoints.SetAtGrow(waypoints.size, w);
+            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
             break;
         case 4:
             w = Waypoint(cx, cy + 1.0f);
-            waypoints.SetAtGrow(waypoints.size, w);
+            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
             break;
         case 6:
             w = Waypoint(cx + 1.0f, cy + 1.0f);
-            waypoints.SetAtGrow(waypoints.size, w);
+            lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
             break;
         case 8:
             w = Waypoint(cx + 1.0f, cy);
-            waypoints.Add(w);
+            waypoints.push_back(w);
             break;
         default:
             break;
@@ -525,19 +520,19 @@ void UnitMotion::Build(PathOrder* path) {
             switch (dir) {
             case 1:
                 w = Waypoint(cx + 0.5f, cy);
-                waypoints.Add(w);
+                waypoints.push_back(w);
                 break;
             case 3:
                 w = Waypoint(cx, cy + 0.5f);
-                waypoints.SetAtGrow(waypoints.size, w);
+                lib::SetAtGrow(waypoints, std::ssize(waypoints), w);
                 break;
             case 5:
                 w = Waypoint(cx + 0.5f, cy + 1.0f);
-                waypoints.Add(w);
+                waypoints.push_back(w);
                 break;
             case 7:
                 w = Waypoint(cx + 1.0f, cy + 0.5f);
-                waypoints.Add(w);
+                waypoints.push_back(w);
                 break;
             default:
                 break;
@@ -551,16 +546,16 @@ void UnitMotion::Build(PathOrder* path) {
     std::memcpy(&last.x, &order->arg5, sizeof(float));
     std::memcpy(&last.y, &order->arg6, sizeof(float));
     last.cells = 0;
-    waypoints.Add(last);
+    waypoints.push_back(last);
     Subdivide();
     LimitSpeeds(baseTurnRate);
 
     // Face the first point: no turn when it is within ~25 degrees of the current facing.
-    MotionPoint* p = points.data;
+    MotionPoint* p = points.data();
     if (x87::fcos(x87::fpatan(p->dirY, p->dirX) - startAngle) > 0.9) {
         turn = 0.0f;
         p->dirX = static_cast<float>(x87::fcos(startAngle));
-        points.data->dirY = static_cast<float>(x87::fsin(startAngle));
+        points.data()->dirY = static_cast<float>(x87::fsin(startAngle));
         AssignCells(path);
         return;
     }
@@ -581,14 +576,14 @@ void UnitMotion::AssignCells(PathOrder* path) {
     int i = 0;
     for (PathCellList::Node* node = head; node;) {
         PathCellList::Node* next = node->next;
-        if (i >= points.size) break;
-        points.data[i].cellX = node->data.x;
-        points.data[i].cellY = node->data.y;
+        if (i >= std::ssize(points)) break;
+        points[i].cellX = node->data.x;
+        points[i].cellY = node->data.y;
         ++i;
         node = next;
     }
     if (path->steps.count == 1) {
-        MotionPoint& last = points.data[points.size - 1];
+        MotionPoint& last = points[std::ssize(points) - 1];
         last.cellX = head->data.x;
         last.cellY = head->data.y;
     }
@@ -596,10 +591,10 @@ void UnitMotion::AssignCells(PathOrder* path) {
 
 void UnitMotion::Subdivide() {
     int stepIndex = 0;
-    for (int i = 0; i < waypoints.size - 1; ++i) {
+    for (int i = 0; i < std::ssize(waypoints) - 1; ++i) {
         float startOffset = i == 0 ? -0.5f : 0.0f;
-        float endOffset = i == waypoints.size - 2 ? 0.5f : 0.0f;
-        MotionWaypoint* w = &waypoints.data[i];
+        float endOffset = i == std::ssize(waypoints) - 2 ? 0.5f : 0.0f;
+        MotionWaypoint* w = &waypoints[i];
         SubdivideSegment(w, w + 1, w->cells, startOffset, endOffset, &stepIndex);
     }
 }
@@ -621,15 +616,15 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
     if (startOffset != 0.0f && endOffset != 0.0f && cells == 1) {
         CopyBits(&p.x, &a->x);
         CopyBits(&p.y, &a->y);
-        int size = points.size;
+        int size = std::ssize(points);
         p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
-        points.SetSize(size + 1, -1);
-        points.data[size] = p;
-        size = points.size;
+        points.resize(size + 1);
+        points[size] = p;
+        size = std::ssize(points);
         CopyBits(&p.x, &b->x);
         CopyBits(&p.y, &b->y);
-        points.SetSize(size + 1, -1);
-        points.data[size] = p;
+        points.resize(size + 1);
+        points[size] = p;
         ++*stepIndex;
         return;
     }
@@ -641,17 +636,17 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
         p.x = static_cast<float>(f * b->x + g * a->x);
         p.y = static_cast<float>(g * a->y + f * b->y);
         p.speed = static_cast<float>(static_cast<double>(stepSpeeds.data[*stepIndex]) * speedScale * kSpeedUnit);
-        int size = points.size;
-        points.SetSize(size + 1, -1);
-        points.data[size] = p;
+        int size = std::ssize(points);
+        points.resize(size + 1);
+        points[size] = p;
         ++*stepIndex;
     }
 }
 
 void UnitMotion::LimitSpeeds(float rate) {
     const double twoPi = static_cast<double>(kPi) + kPi;
-    for (int i = 0; i < points.size - 1; ++i) {
-        MotionPoint* p = &points.data[i];
+    for (int i = 0; i < std::ssize(points) - 1; ++i) {
+        MotionPoint* p = &points[i];
         double a1 = x87::fpatan(p[0].dirY, p[0].dirX);
         double a2 = x87::fpatan(p[1].dirY, p[1].dirX);
         double angle = AbsBits(static_cast<float>(a1 - a2));
@@ -673,11 +668,11 @@ void UnitMotion::LoadState(CStream* stream) {
     // Each count is read into its argument slot: a failed read leaves the stream pointer.
     int count = 0;
     stream->Read(&count, 4);
-    points.SetSize(count, -1);
-    for (int i = 0; i < points.size; ++i) stream->Read(&points[i], sizeof(MotionPoint));
+    points.resize(count);
+    for (int i = 0; i < std::ssize(points); ++i) stream->Read(&points[i], sizeof(MotionPoint));
     stream->Read(&count, 4);
-    waypoints.SetSize(count, -1);
-    for (int i = 0; i < waypoints.size; ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
+    waypoints.resize(count);
+    for (int i = 0; i < std::ssize(waypoints); ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
     stream->Read(&count, 4);
     stepSpeeds.SetSize(count, -1);
     for (int i = 0; i < stepSpeeds.size; ++i) stream->Read(&stepSpeeds[i], 4);
@@ -689,12 +684,12 @@ void UnitMotion::LoadState(CStream* stream) {
 }
 
 void UnitMotion::SaveState(CStream* stream) {
-    int count = points.size;
+    int count = std::ssize(points);
     stream->Write(&count, 4);
-    for (int i = 0; i < points.size; ++i) stream->Write(&points[i], sizeof(MotionPoint));
-    count = waypoints.size;
+    for (int i = 0; i < std::ssize(points); ++i) stream->Write(&points[i], sizeof(MotionPoint));
+    count = std::ssize(waypoints);
     stream->Write(&count, 4);
-    for (int i = 0; i < waypoints.size; ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
+    for (int i = 0; i < std::ssize(waypoints); ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
     count = stepSpeeds.size;
     stream->Write(&count, 4);
     for (int i = 0; i < stepSpeeds.size; ++i) stream->Write(&stepSpeeds[i], 4);

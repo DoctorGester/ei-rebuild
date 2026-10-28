@@ -6,9 +6,9 @@
 #include "game_data.h"
 
 #include <cstdint>
+#include <vector>
 
 namespace {
-
 
 constexpr int kLevel0Table[12] = /*007912DC*/ {
     0, 0, 1, 0, -1, 0, 0, 1, 0, -1, 100, 100};
@@ -33,18 +33,18 @@ constexpr int kEnd = 100;
 
 void FillAreaLists(CAIMap* map) {
     for (int i = 0; i < 6; ++i) {
-        mfc::CArray<AreaOffset>* list = &map->areaLists[i];
-        list->SetSize(0, -1);
+        std::vector<AreaOffset>* list = &map->areaLists[i];
+        list->clear();
         for (const int* entry = kTables[i]; entry[0] != kEnd; entry += 2) {
             AreaOffset pair = {entry[0], entry[1]};
             if (i == 5) {
-                list->Add(pair);
+                list->push_back(pair);
                 continue;
             }
-            int n = list->size;
-            list->SetSize(n + 1, -1);
-            list->data[n].dx = pair.dx;
-            list->data[n].dy = pair.dy;
+            int n = std::ssize(*list);
+            list->resize(n + 1);
+            (*list)[n].dx = pair.dx;
+            (*list)[n].dy = pair.dy;
         }
     }
 }

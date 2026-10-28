@@ -51,21 +51,6 @@ struct SharedObjectElements {
         }
     }
 };
-// A counted object: released through Release.
-struct ReleasedElements {
-    static void Construct(CEngineObject**, int) {}
-    static void Destruct(CEngineObject** slot, int count) {
-        for (; count > 0; --count, ++slot)
-            if (*slot) (*slot)->Release();
-    }
-};
-// A missile: its counted pointer released.
-struct ProjectileElements {
-    static void Construct(CSpellEffect**, int) {}
-    static void Destruct(CSpellEffect** slot, int count) {
-        for (; count > 0; --count, ++slot) ReleaseCounted(*slot);
-    }
-};
 // A list emptied as its instantiation's destructor does: the vtable back, then RemoveAll with the
 // elements destroyed.
 template <typename Elements, typename T>
@@ -116,8 +101,6 @@ void CScript::Destruct() {
 
 CWorld::~CWorld() {
     CWorld::Destroy();
-    countdowns_.vtable = mfc::impl::CountdownArrayClass::Vtable();
-    countdowns_.FreeData();
     netSession_.Destroy();
     shared5C_.Destroy();
     if (CLinkFigureLoader* loader = figureLoader_)
@@ -125,25 +108,19 @@ CWorld::~CWorld() {
 }
 
 CParticleManager::CParticleManager() {
-    mfc::impl::ConstructListHeader<mfc::impl::ClientListClass>(&freeParticles, 10);
     maxHeldId_ = 0;
     ParticleManagerClearQuietStart(this);
 }
 
 CParticleManager::~CParticleManager() {
     CParticleManager::Destroy();
-    freeParticles.vtable = mfc::impl::ClientListClass::Vtable();
-    freeParticles.RemoveAll();
+    freeParticles.clear();
 }
 
 Sector::~Sector() {
     Clear();
-    occluders.vtable = mfc::impl::SectorOccluderArrayClass::Vtable();
-    occluders.FreeData();
-    units.vtable = mfc::impl::PtrListClass::Vtable();
-    units.RemoveAll();
-    objects.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    objects.RemoveAll();
+    units.clear();
+    objects.clear();
 }
 
 CWorldClient::~CWorldClient() {
@@ -156,8 +133,7 @@ CWorldClient::~CWorldClient() {
     FreeGrid(secondGrid_);
     objectGrid_.Resize(1, 1);
     FreeGrid(objectGrid_);
-    dynamicObjects_.vtable = mfc::impl::ClientObjectListClass::Vtable();
-    dynamicObjects_.RemoveAll();
+    dynamicObjects_.clear();
     objects_.Destroy();
     DestroySectorList(&heroes_);
     countedA0_.vtable = gameslots::ClientObjectPtrArrayClass::Vtable();
@@ -168,8 +144,9 @@ CWorldClient::~CWorldClient() {
 CWorldServer::~CWorldServer() {
     CWorldServer::Destroy();
     DestroyList<SharedObjectElements>(sharedObjects_, gameslots::SharedObjectListClass::Vtable());   // CList<SharedObject>
-    DestroyList<ReleasedElements>(counted_, gameslots::ItemObjectListClass::Vtable());   // CList<CEngineObject*>
-    DestroyList<ProjectileElements>(projectiles_, gameslots::RefListBClass::Vtable());   // CList<CSpellEffect*>
+    ReleaseAndClear(counted_);
+    for (CSpellEffect* missile : projectiles_) ReleaseCounted(missile);
+    projectiles_.clear();
     diplomacy_.Reset();
     SecondScript()->Destruct();
     MainScript()->Destruct();

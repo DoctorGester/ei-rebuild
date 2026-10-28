@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <unordered_map>
 #include <vector>
 
@@ -145,19 +146,17 @@ static_assert(sizeof(BlockCostList::Node) == 0x14);
 
 struct CRegionMap;
 
-
 // A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the region map's
 // work lists are CArray<BlockPoint>.
 struct BlockPoint {
     int x, y;
 };
-using BlockPointArray = mfc::CArray<BlockPoint>;
+using BlockPointArray = std::vector<BlockPoint>;
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up): an MFC CArray<int> of 1023 costs in 1/1024, -1 for a
 // step that cannot be taken (CAIMap::Load fills them).
-using ClimbTable = mfc::CArray<int>;
-
+using ClimbTable = std::vector<int>;
 
 // The first 0x20 bytes of PathOrder: what the unit is told to do. Kinds:
 // 0 stand at (x, y) facing `angle` (set by Start / Reset),
@@ -246,7 +245,6 @@ static_assert(offsetof(AIPath, steps) == 0x20);
 static_assert(offsetof(AIPath, excludedBlocks) == 0x70);
 static_assert(offsetof(AIPath, cells) == 0x3C);
 static_assert(offsetof(AIPath, goal) == 0x60);
-static_assert(offsetof(AIPath, smoothing) == 0x84);
 
 class CAIMap;
 class CSectorMap;
@@ -516,7 +514,7 @@ struct SmoothEdge {
     int index;
 };
 static_assert(sizeof(SmoothEdge) == 0x14);
-struct SmoothEdges : mfc::CArray<SmoothEdge> {
+struct SmoothEdges : std::vector<SmoothEdge> {
     // The seven states of a cell crossed by the straight step (mx, my), with (sx, sy) the step to its side.
     void AddStraightEdges(int mx, int my, int sx, int sy);
     // The nine states of a cell crossed by the diagonal step (mx, my), with (sx, sy) one of its straight halves.
@@ -537,20 +535,18 @@ struct SmoothTable {
     // state that starts where it ends, and the same between the `to` states themselves.
     void Build(const SmoothEdges* from, const SmoothEdges* to);
 
-    mfc::CArray<SmoothCopy> copies;
-    mfc::CArray<SmoothStep> steps;        // from the previous cell's states
-    mfc::CArray<SmoothStep> chained;      // between the new states
+    std::vector<SmoothCopy> copies;
+    std::vector<SmoothStep> steps;        // from the previous cell's states
+    std::vector<SmoothStep> chained;      // between the new states
 };
-static_assert(sizeof(SmoothTable) == 0x3C);
 struct SmoothPool {
-    // New nodes zeroed; growBy -1 keeps the step.
-    void SetSize(int size, int growBy);
+    // New nodes zeroed.
+    void SetSize(int size);
 
-    mfc::CArray<SmoothNode> nodes;
+    std::vector<SmoothNode> nodes;
     int zeroed;                     // set to 0 by each pass, not read
     SmoothNode* next;                   // the next free node
 };
-static_assert(sizeof(SmoothPool) == 0x1C);
 extern lib::StaticObject<SmoothPool> g_smoothPool;
 extern lib::StaticObject<SmoothTable[81]> g_smoothTables;
 inline SmoothPool& SmoothNodePool() { return *g_smoothPool; }
@@ -611,15 +607,12 @@ public:
     // Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, Set gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
-    mfc::CList<UnitLayerNode> nodes;
+    std::list<UnitLayerNode> nodes;
     UnitLayerNode* buckets[1024];   // by (key x * 17 + key y) & 0x3FF
     UnitLayerNode* freeNodes;       // unused nodes
     CAIMap* map;
 };
 static_assert(offsetof(CUnitLayer, nodes) == 0x04);
-static_assert(offsetof(CUnitLayer, buckets) == 0x20);
-static_assert(offsetof(CUnitLayer, freeNodes) == 0x1020);
-static_assert(sizeof(CUnitLayer) == 0x1028);
 
 class CSmallUnitLayer : public CUnitLayer {
 public:
@@ -688,7 +681,7 @@ public:
     bool RemoveFromSectors(CMapObject* object);
     // CSectorMap::Move (Rebirth patches it).
     bool MoveInSectors(CMapObject* object, const Vector3* position);
-    void FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CUnit>* result, float radius);
+    void FindUnitsInRadius(const Vector3* position, std::list<CUnit*>* result, float radius);
 
     // Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).
@@ -840,7 +833,7 @@ public:
     SearchGrid<std::int8_t> waterDepth;  // per-cell water depth
     // the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first list for levels
     // 0..4, the second for 5 and 6, the third for 7 (the other three are not read there).
-    mfc::CArray<AreaOffset> areaLists[6];
+    std::vector<AreaOffset> areaLists[6];
     CSmallUnitLayer unitLayerSmall;     // unit occupancy
     CLargeUnitLayer unitLayerLarge;
     PathSmoother smoother;
@@ -860,8 +853,6 @@ static_assert(offsetof(CAIMap, dirty) == 0x04 && sizeof(AIDirtyRect) == 0x10);
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
-static_assert(offsetof(CAIMap, climbSmall) == 0xE8);
-static_assert(offsetof(CAIMap, materials) == 0xFC);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

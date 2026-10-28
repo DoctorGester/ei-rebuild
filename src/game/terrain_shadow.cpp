@@ -40,7 +40,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     int row = lightingY;
     int sx = sector->sx;
     int sy = sector->sy;
-    const terrain::SectorPosition* vertex = sector->vertices.data + (row * kRow + column);
+    const terrain::SectorPosition* vertex = sector->vertices.data() + (row * kRow + column);
 
     // The line's steps and the height gained per step, turned to run upwards in both directions.
     int stepX = sunStepX;
@@ -105,7 +105,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
         if (crossed) {
             auto* next = SectorAt(sx, sy, kLoaded, 1);
             if (!next) return 1;
-            vertex = next->vertices.data + (row * kRow + column);
+            vertex = next->vertices.data() + (row * kRow + column);
         }
     }
     return 1;

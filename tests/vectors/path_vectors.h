@@ -258,8 +258,8 @@ inline void PutPath(Writer& w, const AIPath& path) {
     w.Put(path.failed);
     w.Put(path.flag6E);
     w.Put(path.flag6F);
-    w.Put(static_cast<std::uint32_t>(path.excludedBlocks.size));
-    for (int i = 0; i < path.excludedBlocks.size; ++i) w.Put(path.excludedBlocks.data[i]);
+    w.Put(static_cast<std::uint32_t>(path.excludedBlocks.size()));
+    for (int i = 0; i < std::ssize(path.excludedBlocks); ++i) w.Put(path.excludedBlocks[i]);
     w.Put(path.smoothing);
 }
 

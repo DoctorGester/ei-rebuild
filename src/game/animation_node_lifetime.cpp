@@ -6,7 +6,6 @@
 #include "record_arrays.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_slots.h"
 #include "game_data.h"
 
 #include <cstdint>
@@ -29,7 +28,7 @@ CAnimationNode* CAnimationNode::Construct() {
     std::construct_at(&children_);
     std::construct_at(&rotationKeys_);
     std::construct_at(&translationKeys_);
-    normals_.Construct(mfc::impl::Vector3ArrayClass::Vtable());
+    std::construct_at(&normals_);
     morphFrames_.Construct(recordarrays::MorphFrameArrayClass::Vtable());
     defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -74,8 +73,7 @@ void CAnimationNode::DestructBody() {
     lib::FreeStorage(pointsB_);
     morphFrames_.vtable = recordarrays::MorphFrameArrayClass::Vtable();
     morphFrames_.FreeData();
-    normals_.vtable = mfc::impl::Vector3ArrayClass::Vtable();
-    normals_.FreeData();
+    std::destroy_at(&normals_);
     lib::FreeStorage(translationKeys_);
     lib::FreeStorage(rotationKeys_);
     lib::FreeStorage(children_);

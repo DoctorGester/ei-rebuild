@@ -18,7 +18,6 @@
 
 #include "ei/rebirth.h"
 #include "ei/x87.h"
-#include "game_lists.h"
 #include "game_data.h"
 
 #include <string>
@@ -212,12 +211,13 @@ void CWorldServer::RemoveObject(unsigned id) {
     for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node)
         node->second->ForgetObject(object);
     // The missiles it shot are dropped; those aimed at it lose their target.
-    for (auto* node = projectiles_.head; node;) {
-        auto* current = node;
-        node = node->next;
+    for (auto node = projectiles_.begin(); node != projectiles_.end();) {
+        auto current = node++;
         // 0 when the missile's owner left (the missile is then dropped).
-        if (!current->data->Forget(object))
-            mfc::impl::RemoveAtAs<gamelists::Refs>(&projectiles_, current);
+        if (!(*current)->Forget(object)) {
+            ReleaseCounted(*current);
+            projectiles_.erase(current);
+        }
     }
     {
         PlayerIterator players;

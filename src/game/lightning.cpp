@@ -253,7 +253,7 @@ void CLightning::Destroy() {
 int CLightning::Create() {
     Destroy();
     auto* manager = static_cast<CLightningManager*>(owner_);
-    manager->newBolts_.AddTail(this);
+    manager->newBolts_.push_back(this);
     ++refCount_;
     return 1;
 }
@@ -415,15 +415,15 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
 
 int CLightningManager::DrawAll(CSceneRenderer* device) {
     // The manager's object list (the bolts, in creation order).
-    ObjectList::Node* node = objectList_.head;
-    while (node) {
-        ObjectList::Node* current = node;
-        node = node->next;
-        static_cast<CLightning*>(current->data)->Draw(device);
+    auto node = objectList_.begin();
+    while (node != objectList_.end()) {
+        ObjectList::iterator  current = node;
+        ++node;
+        static_cast<CLightning*>(*current)->Draw(device);
     }
-    for (auto* n = newBolts_.head; n; n = n->next) {
-        if (n->data) n->data->Release();
+    for (auto n = newBolts_.begin(); n != newBolts_.end(); ++n) {
+        if (*n) (*n)->Release();
     }
-    newBolts_.RemoveAll();
+    newBolts_.clear();
     return 1;
 }

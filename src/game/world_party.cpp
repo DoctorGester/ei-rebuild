@@ -17,10 +17,11 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/mfc_list.h"
-#include "game_lists.h"
 #include "lib/text_case.h"
 
 #include <cstring>
+#include <list>
+#include <vector>
 #include "ei/x87.h"
 #include "lib/mfc_array.h"
 #include "game_data.h"
@@ -29,13 +30,10 @@
 
 namespace {
 
-// Values and vtables read from the exe's memory (rule 9).
+// Values read from the exe's memory (rule 9).
 float Half() { return 0.5f /*0073B86C*/; }
 float CellSize() { return 1.0f /*0073F904*/; }        // the map cell size
 constexpr float kFacingOffset = /*007AFED8*/ 1.5707964f;   // pi / 2
-void* PtrListVtable() { return mfc::impl::ItemListClass::Vtable(); }                    // the item lists' CPtrList
-void* IdArrayVtable() { return mfc::impl::IdArrayClass::Vtable(); }   // CArray<int>
-void* RecordArrayVtable() { return mfc::impl::PartyUnitArrayClass::Vtable(); }   // the record pointers' CArray
 
 constexpr int kClassQuestItem = 0x14;
 constexpr int kKindSinglePlayer = 1;
@@ -44,41 +42,28 @@ constexpr int kKindNetwork = 4;
 constexpr int kGameResultLost = 2;
 constexpr std::uint32_t kNoStart = 0xC4A42000;   // -1313.0f as the state's last z: no start position
 
-using ObjectList = mfc::CTypedPtrList<CItem>;
+using ObjectList = std::list<CItem*>;
 
 // The player's carried items (CParty::items_): an aligned array of item pointers.
 using ItemArray = PartyItemArray;
 
 // CArray<int>, and the CArray of record pointers CreateUnits takes.
-using IdArray = mfc::CArray<int>;
+using IdArray = std::vector<int>;
 using RecordArray = RecordPtrArray;
 
 const MapRecord* FindZone(const std::string& name) {
     return TheMapDatabase()->FindMap(name.c_str());
 }
 
-void InitList(ObjectList& list) {
-    list.vtable = PtrListVtable();
-    list.head = nullptr;
-    list.tail = nullptr;
-    list.count = 0;
-    list.free = nullptr;
-    list.blocks = nullptr;
-    list.blockSize = 10;
-}
-
 // AddTail through the game's out-of-line NewNode.
 void AddTail(ObjectList& list, CItem* object) {
-    ObjectList::Node* node = list.NewNode(list.tail, nullptr);
-    node->data = object;
-    if (list.tail) list.tail->next = node;
-    else list.head = node;
-    list.tail = node;
+    auto node = list.emplace(list.end());
+    *node = object;
 }
 
 bool Contains(const IdArray& ids, int id) {
-    for (int i = 0; i < ids.size; ++i)
-        if (ids.data[i] == id) return true;
+    for (int i = 0; i < std::ssize(ids); ++i)
+        if (ids[i] == id) return true;
     return false;
 }
 
@@ -96,12 +81,12 @@ CItem* ItemAt(const ItemArray* items, int i) { return items->data[i]; }
 
 void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
     // The quest ids this zone's objects ask for, each once.
-    IdArray wanted{IdArrayVtable(), nullptr, 0, 0, 0};
+    IdArray wanted{};
     for (auto node = objects_.map.begin(); node != objects_.map.end() && node->second; ++node) {
         CMapObject* object = node->second;
         if (!object->IsUsable()) continue;
         int id = object->KeyId();
-        if (!Contains(wanted, id)) wanted.SetAtGrow(wanted.size, id);
+        if (!Contains(wanted, id)) lib::SetAtGrow(wanted, std::ssize(wanted), id);
     }
 
     // Quest items move from the array to the list: in single player only those whose
@@ -120,13 +105,10 @@ void CWorldServer::TakeZoneQuestItems(ItemArray* items, ObjectList* list) {
         --items->size;
         --i;
     }
-    wanted.vtable = IdArrayVtable();
-    if (wanted.data) gamecrt::operator_delete(wanted.data);
 }
 
 void CWorldServer::RestorePlayerItems(CPlayer* player) {
     ObjectList taken;
-    InitList(taken);
     if (sessionKind_ != kKindNetwork) {
         ItemArray* items = &player->Party()->items_;
         if (IsMultiplayerClient()) {
@@ -139,29 +121,22 @@ void CWorldServer::RestorePlayerItems(CPlayer* player) {
         if (player) {
             // Each item is given back as a fresh copy (the world's copy virtual) keeping its count; the old
             // one is released.
-            for (ObjectList::Node* node = taken.head; node;) {
-                ObjectList::Node* next = node->next;
-                CItem* item = node->data;
+            for (auto node = taken.begin(); node != taken.end();) {
+                auto next = std::next(node);
+                CItem* item = *node;
                 ObjectList one;
-                InitList(one);
                 CItem* fresh = DuplicateItem(item);
                 fresh->count_ = item->count_;
                 AddTail(one, fresh);
                 player->GiveItems(&one, 0);
                 item->Release();
-                mfc::impl::DestructList<mfc::impl::ItemListClass>(one);
                 node = next;
             }
-            taken.RemoveAll();
+            taken.clear();
         }
     }
     // The list's inline destructor.
-    taken.vtable = PtrListVtable();
-    taken.count = 0;
-    taken.free = nullptr;
-    taken.tail = nullptr;
-    taken.head = nullptr;
-    mfc::PlexFreeDataChain(taken.blocks);
+    taken.clear();
 }
 
 void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placements, char runScripts) {
@@ -170,11 +145,11 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
     if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     CParty* party = player->Party();
-    RecordArray records{RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordArray records{};
     for (int i = 0; i < party->members_.size; ++i) {
-        int index = records.size;
-        records.SetSize(index + 1, -1);
-        records.data[index] = &party->members_.data[i];
+        int index = std::ssize(records);
+        records.resize(index + 1);
+        records[index] = &party->members_.data[i];
     }
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {
@@ -223,17 +198,15 @@ void CWorldServer::Redeploy(CPlayer* player, mfc::CArray<UnitPlacement>* placeme
         scriptsActive_ = 1;
         for (int i = 0; i < 5; ++i) ScriptTick(MainScript());
     }
-    records.vtable = RecordArrayVtable();
-    if (records.data) gamecrt::operator_delete(records.data);
 }
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 
 namespace {
 
-// CTypedPtrList<CRefPtr> AddTail: the list holds a reference (CountedEngineList::AddTailCounted).
-void AddCountedTail(mfc::CTypedPtrList<CEngineObject>* list, CEngineObject* object) {
-    reinterpret_cast<gamelists::CountedEngineList*>(list)->AddTailCounted(object);
+// CTypedPtrList<CRefPtr> AddTail: the list holds a reference.
+void AddCountedTail(std::list<CEngineObject*>* list, CEngineObject* object) {
+    HeldEngineObject::Of(&list->emplace_back(nullptr))->Assign(object);
 }
 
 } // namespace
@@ -249,14 +222,13 @@ CItem* CWorldServer::CopyItem(CItem* source) {
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;
     float maximum = source->chargeMax_;
-    if (maximum > current && copy && !counted_.Find(copy)) AddCountedTail(&counted_, copy);
+    if (maximum > current && copy && !lib::Contains(counted_, copy)) AddCountedTail(&counted_, copy);
     return copy;
 }
 
 // ---- Items and spells by name -------------------------------------------------------------------
 
 namespace {
-
 
 CItemManager* ItemManager() { return TheServerWorld()->itemManager_; }
 
@@ -271,7 +243,7 @@ CItem* CWorldServer::CreateSpellNamed(const char* name) {
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {
-    if (!item || counted_.Find(item)) return;
+    if (!item || lib::Contains(counted_, item)) return;
     AddCountedTail(&counted_, item);
 }
 

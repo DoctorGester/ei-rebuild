@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -151,7 +152,7 @@ struct FigureBone : CEngineObject {
     std::string name2;                     // its parent's name (empty for the root)
     std::string name3;                     // the figure's model name (LinkBone)
     FigureBone* parent;                     // null for the root
-    mfc::CTypedPtrList<FigureBone> children;
+    std::list<FigureBone*> children;
     CFigureMesh* mesh;                      // the part the bone places, or null
     AnimationTrack* pose;                   // the animator whose values place the bone
     AnimationTrack* animator;               // counted, made on first use; Play copies it to `pose`
@@ -211,8 +212,8 @@ public:
     // Plays `animation` from its start: set through the world's figure manager by the owner's model name, or
     // else on each bone's animator (AnimateBone).
     void Play(FigureAnimation* animation);
-    // Queues `animation` after the one playing (the queue's AddTail). Returns the node.
-    void* Queue(FigureAnimation* animation);
+    // Queues `animation` after the one playing.
+    void Queue(FigureAnimation* animation);
     // The frame reached becomes `frame` (`changed` set when it differs): with nothing playing the next queued
     // animation starts at 0; while the frame lies beyond the animation's frame count the count is taken off,
     // the callback runs, and the next queued animation plays, or else the animation holds its last frame
@@ -275,10 +276,10 @@ public:
 
     CObject3D* owner;
     FigureBone* root;               // the skeleton's root bone (FindRoot)
-    mfc::CTypedPtrList<FigureBone> bones;   // LinkBone adds
+    std::list<FigureBone*> bones;   // LinkBone adds
     FigureAnimation* current;       // the animation playing, or null
     // The animations queued after it (the client update keeps fewer than 3).
-    mfc::CTypedPtrList<FigureAnimation> queue;
+    std::list<FigureAnimation*> queue;
     float time;                     // the frame reached
     // Called each time an animation's end is passed, or null.
     void(*onEnd)(CObject3D* owner);
@@ -288,13 +289,6 @@ public:
     std::uint8_t changed;           // set when the frame, the animation or the bones changed
 };
 static_assert(offsetof(CFigureAnimationState, bones) == 0x24);
-static_assert(offsetof(CFigureAnimationState, current) == 0x40);
-static_assert(offsetof(CFigureAnimationState, queue) == 0x44);
-static_assert(offsetof(CFigureAnimationState, time) == 0x60);
-static_assert(offsetof(CFigureAnimationState, onEnd) == 0x64);
-static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
-static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
-static_assert(sizeof(CFigureAnimationState) == 0x78);
 
 // A counted pointer slot of a shared type viewed as the reference the game's copies of Assign take as `this`
 // (CDeviceMaterial::preset, the wounds material's preset).
@@ -465,7 +459,7 @@ public:
     std::uint32_t spare09C;         // cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // loaded on first use
     std::string name;               // the figure's name
-    mfc::CTypedPtrList<CParticleSource> effectSources;   // the particle sources attached to the object
+    std::list<CParticleSource*> effectSources;   // the particle sources attached to the object
     Vector3 scale;
     FigurePartArray parts;
     FigurePartArray pendingParts;   // built by LoadFigures

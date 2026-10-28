@@ -117,10 +117,11 @@ struct RecordElements {
     static void Construct(SectorVertex* records, int count);
     static void Destruct(SectorVertex* records, int count);
 };
-using FlagArray = mfc::CArray<std::uint8_t>;
+using FlagArray = std::vector<std::uint8_t>;
 struct FlagArrayElements {
     static void Construct(FlagArray* arrays, int count);
     static void Destruct(FlagArray* arrays, int count);
+    static void Relocate(FlagArray* to, FlagArray* from, int count);
 };
 using TileList = std::vector<TileVertex>;
 struct TileListElements {
@@ -147,11 +148,11 @@ struct SectorData {
     int quarterMode[4];
     float minZ;
     float maxZ;
-    mfc::CArray<std::uint8_t> waterMaterials;
+    std::vector<std::uint8_t> waterMaterials;
     // The level of detail (0 every vertex, 1 every second column, 2 every second row too) and the seams
     // towards the sectors before / after it.
     int detail, seamBefore, seamAfter;
-    mfc::CArray<SectorPosition> vertices;
+    std::vector<SectorPosition> vertices;
     mfc::CArray<SectorVertex, RecordElements> records;
     std::vector<int> tileTextures;      // per tile, ground then water tiles
     std::uint8_t tileRotation[0x100];
@@ -221,7 +222,6 @@ struct SectorData {
     void FindSeams();
 };
 static_assert(offsetof(SectorData, minZ) == 0x154);
-static_assert(offsetof(SectorData, vertices) == 0x17C);
 
 struct TerrainMaterial {
     int kind;                           // 4: water that keeps the ground's x, y

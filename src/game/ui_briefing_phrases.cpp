@@ -95,7 +95,6 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 } // namespace
 
-
 void CBriefingScreen::NextPhrase(bool skip) {
     std::vector<std::string> words;
     CTextManager* texts = TheTextManager();
@@ -237,8 +236,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
             // A network client lists the quest items it holds after a zone topic ("z...").
             if (IsMultiplayerClient() && !topic_.empty() && text::CompareIgnoringCase(str::Left(topic_, 1), ZonePrefix()) == 0) {
                 if (auto* player = TheServerWorld()->GetPlayer(0)) {
-                    for (auto* node = player->items_.head; node; node = node->next) {
-                        CItem* item = node->data;
+                    for (auto node = player->items_.begin(); node != player->items_.end(); ++node) {
+                        CItem* item = *node;
                         if (item->GetClassId() != kClassQuestItem) continue;
                         texts->FormatItemName(item, &name);
                         line = str::Format(NameLine(), label.c_str(), name.c_str());

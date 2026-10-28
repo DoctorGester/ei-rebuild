@@ -62,7 +62,7 @@ int CObject3D::Create3D() {
 
 void CObject3D::Destroy3D() {
     figure.Assign(nullptr);
-    while (effectSources.head) RemoveEffectSource(effectSources.head->data);
+    while (!effectSources.empty()) RemoveEffectSource(effectSources.front());
     if (animation) {
         animation->DetachMeshes();
         if (animation) {
@@ -100,8 +100,8 @@ void CObject3D::Destroy3D() {
 }
 
 void CObject3D::AddEffectSource(CParticleSource* source) {
-    if (effectSources.Find(source)) return;
-    effectSources.AddTail(source);
+    if (lib::Contains(effectSources, source)) return;
+    effectSources.push_back(source);
     if (source) {
         ++source->refCount_;
         source->Attach(this);
@@ -109,9 +109,9 @@ void CObject3D::AddEffectSource(CParticleSource* source) {
 }
 
 void CObject3D::RemoveEffectSource(CParticleSource* source) {
-    auto* node = effectSources.Find(source);
-    if (!node) return;
-    effectSources.RemoveAt(node);
+    auto node = std::ranges::find(effectSources, source);
+    if (node == effectSources.end()) return;
+    effectSources.erase(node);
     if (source) {
         source->Attach(nullptr);
         source->Release();

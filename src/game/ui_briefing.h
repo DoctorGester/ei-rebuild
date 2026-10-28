@@ -231,7 +231,7 @@ public:
     int hoveredTopic_;               // or -1
     bool briefingStarted_;           // a dialogue started by itself
     std::uint8_t unused_18D[3];
-    mfc::CArray<CUnit*> party_;
+    std::vector<CUnit*> party_;
     CUnit* leader_;                  // the unit the camera follows (the hero speaker)
     CUnit* person_;                  // the person the dialogue is with
     CUnit* third_;                   // or null

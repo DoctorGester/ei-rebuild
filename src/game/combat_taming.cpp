@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 
 #include <cstdint>
+#include <list>
 
 namespace {
 
@@ -23,7 +24,6 @@ constexpr int kStatTaming = 2;
 
 template <typename T>
 void ReferenceRelease(T** a0) { static_cast<AIRef*>((void*)a0)->Reset(); }
-inline void PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
 
 int& Stage(CUnitServer* self) { return self->tameStage; }
 
@@ -36,21 +36,16 @@ void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
 // An empty reference list of the brain (CList of one reference per node): each released, then RemoveAll.
 // `release` picks how the original releases the element.
 template <bool kViaRelease>
-void ClearReferenceList(mfc::CTypedPtrList<CUnit>& list) {
-    for (auto* node = list.head; node; node = node->next) {
+void ClearReferenceList(std::list<CUnit*>& list) {
+    for (auto node = list.begin(); node != list.end(); ++node) {
         if (kViaRelease) {
-            ReferenceRelease(&node->data);
+            ReferenceRelease(&*node);
         } else {
-            if (node->data) node->data->Release();
-            node->data = nullptr;
+            if (*node) (*node)->Release();
+            *node = nullptr;
         }
     }
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    PlexFreeDataChain(list.blocks);
-    list.blocks = nullptr;
+    list.clear();
 }
 
 } // namespace

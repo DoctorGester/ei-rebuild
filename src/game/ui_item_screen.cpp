@@ -13,7 +13,6 @@
 #include "lib/compiled_vtable.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc_slots.h"
 #include "item.h"
 #include "party.h"
 #include "game_data.h"
@@ -26,9 +25,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-
-
-
 
 } // namespace
 
@@ -135,10 +131,7 @@ CItemScreen::~CItemScreen() {
 }
 
 // The page titles, the heroes CArray, then the item screen's.
-CCampPages::~CCampPages() {
-    heroes_.vtable = mfc::impl::UnitPtrArrayClass::Vtable();
-    if (heroes_.data) gamecrt::operator_delete(heroes_.data);
-}
+CCampPages::~CCampPages() = default;
 
 // --- Screen 9's destructor ------------------------------------------
 

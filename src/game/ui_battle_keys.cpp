@@ -184,7 +184,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
-        for (int i = 0; i < hud->party_.size; ++i) {
+        for (int i = 0; i < std::ssize(hud->party_); ++i) {
             if (hud->party_[i]->flags_ & kUnitSelected) {
                 camera->SetTarget(hud->party_[i]);
                 return;
@@ -215,7 +215,7 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         const int mode = action - kActionMoveMode;
         if (TheClientWorld()->LocalView()) {
             panel->interface_->PlaySound(ClickSound(), 0);
-            for (int i = 0; i < panel->owner_->party_.size; ++i) {
+            for (int i = 0; i < std::ssize(panel->owner_->party_); ++i) {
                 CUnit* unit = panel->owner_->party_[i];
                 if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
             }
@@ -312,18 +312,18 @@ void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
-        if ((interface_->ctrlDown_ || interface_->altDown_) && hud->party_.size > member)
+        if ((interface_->ctrlDown_ || interface_->altDown_) && std::ssize(hud->party_) > member)
             camera->SetTarget(hud->party_[member]);
         return;
     }
     case kActionSelectAll:
         if (IsMultiplayerClient()) return;
         interface_->PlaySound(OnOffSound(), 0);
-        for (int i = 0; i < hud->party_.size; ++i) {
+        for (int i = 0; i < std::ssize(hud->party_); ++i) {
             MarkPortrait(i);
             if (CUnit* unit = hud->party_[i]) TheClientWorld()->Select(unit);
         }
-        if (hud->party_.size != 0 && hud->party_[0]) hud->Speech(hud->party_[0]->id_, 0, nullptr);
+        if (!hud->party_.empty() && hud->party_[0]) hud->Speech(hud->party_[0]->id_, 0, nullptr);
         RefreshSelection();
         return;
     case kActionMessage:

@@ -91,7 +91,7 @@ void SectorData::ResetFields() {
 void SectorData::Clear() {
     records.SetSize(0, -1);
     for (int quarter = 0; quarter < 4; ++quarter) {
-        for (int page = 0; page < tileFlags[quarter].size; ++page) tileFlags[quarter][page].SetSize(0, -1);
+        for (int page = 0; page < tileFlags[quarter].size; ++page) tileFlags[quarter][page].clear();
         for (int page = 0; page < tiles[quarter].size; ++page) tiles[quarter][page].clear();
     }
     ResetFields();
@@ -251,7 +251,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     sunStepY = x87::fistp(static_cast<float>(terrain::kSunStepScale * y / terrain::CellSize()));
     sun = light;
     if (lightInterval <= 0) {
-        for (SectorCache::Node* node = sectorCache.head; node; node = node->next) node->data->built &= ~terrain::kLit;
+        for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) (*node)->built &= ~terrain::kLit;
         return;
     }
     // The lit sectors, sorted, get relight countdowns spread evenly over the next interval.
@@ -261,8 +261,8 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
         std::atexit(terrain::FreeSortedSectors);
     }
     sorted.clear();
-    for (SectorCache::Node* node = sectorCache.head; node; node = node->next) {
-        SectorData* sector = node->data;
+    for (auto node = sectorCache.begin(); node != sectorCache.end(); ++node) {
+        SectorData* sector = *node;
         if (sector->built & terrain::kLit) {
             int index = std::ssize(sorted);
             sorted.resize(index + 1);
@@ -286,9 +286,9 @@ int Terrain::RunTick() {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
     }
-    for (SectorCache::Node* node = sectorCache.head; node;) {
-        SectorData* sector = node->data;
-        node = node->next;
+    for (auto node = sectorCache.begin(); node != sectorCache.end();) {
+        SectorData* sector = *node;
+        ++node;
         if (sector->built & terrain::kLit) sector->RelightTick();
     }
     if ((landscapeFlags & 8) != 0) PlayAmbience();

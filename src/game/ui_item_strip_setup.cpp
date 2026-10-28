@@ -9,7 +9,6 @@
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 
 #include <bit>
 #include <cstdint>
@@ -41,7 +40,6 @@ constexpr std::uint32_t kDimmed = 0x3E480000;   // 0.1953125 as the end faces' t
 // "buttons\battle\on_off.wav": the sound system keeps the game's own string pointer.
 const char* OnOffSound() { return "buttons\\battle\\on_off.wav"; }
 
-
 CUiMesh* Sprite(CUiWindow& w, int index) { return w.SceneMesh(index); }
 
 } // namespace
@@ -70,7 +68,6 @@ void CUiItemStrip::SetupFigures(MpStringVector* names, char top, char noArrowTip
 }
 
 CForwardingStrip::CForwardingStrip(CInterface3D* ui, CItemScreen* owner) : CUiItemStrip(ui, owner) {
-    list_.Construct(mfc::impl::ItemStripArrayClass::Vtable());   // CArray<char*>
 }
 
 // --- The figure strips' slots ----------------------------------------------------------------------

@@ -24,6 +24,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <vector>
 
 #undef GetClassName
@@ -305,7 +306,7 @@ public:
     // load).
     void ReleaseUnheld();
 
-    mfc::CTypedPtrList<Particle> freeParticles;
+    std::list<Particle*> freeParticles;
     HeldMap held_;                                  // id -> source holding a reference
     int maxHeldId_;                                 // highest key of held_
     int quietStart;                                 // see CreateSource; never set non-zero in src
@@ -317,7 +318,7 @@ struct ParticleDepth {
     CParticleSource* source;
 };
 
-using ParticleDepthArray = mfc::CArray<ParticleDepth>;
+using ParticleDepthArray = std::vector<ParticleDepth>;
 
 // The draw order's sort: STLport's introsort on [first, last) with "greater depth first" (far sources first).
 void IntroSortByDepth(ParticleDepth* first, ParticleDepth* last, void* tag, int depthLimit,
@@ -561,7 +562,7 @@ public:
     // boundsMax less the centre) relative to the centre; the radius is not written.
     ClipBounds clip;
     std::uint8_t unused_1A8[0x1B4 - 0x1A8];
-    mfc::CTypedPtrList<Particle> particles;
+    std::list<Particle*> particles;
     std::vector<SourceFrame> frames;
     EmitCallback emitFn;
     UpdateCallback updateFn;
@@ -584,7 +585,7 @@ struct ParticleSprite {
     std::uint32_t color;            // ARGB
     const SourceFrame* frame;       // the particle's frame among its source's frames
 };
-using ParticleSpriteArray = mfc::CArray<ParticleSprite>;
+using ParticleSpriteArray = std::vector<ParticleSprite>;
 
 // Room for `count` elements, 32-byte aligned, the allocated block stored just below;
 ParticleElement* AllocateElements(int count);

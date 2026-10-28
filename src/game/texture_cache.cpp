@@ -18,12 +18,10 @@
 
 namespace {
 
-
 // Texture flags that make a released texture cacheable (8: loaded).
 constexpr std::uint32_t kCacheable = 0x38;
 
 } // namespace
-
 
 namespace {
 const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
@@ -53,7 +51,7 @@ int CTextureManager::ReleaseObject(CEngineObject* object) {
     if (auto node = objects_.find(static_cast<unsigned>(object->id_)); node != objects_.end()) {
         Unregister(node->second->id_);
         if (object->flags_ & kCacheable) {
-            cache_.AddTail(texture);
+            cache_.push_back(texture);
             cachedBytes_ += texture->uploadResult_;
             return 0;
         }
@@ -68,11 +66,11 @@ namespace {
 } // namespace
 
 CTexture* CTextureManager::TakeFromCache(int type, const char* name) {
-    for (auto* node = cache_.head; node;) {
-        auto* next = node->next;
-        CTexture* texture = node->data;
+    for (auto node = cache_.begin(); node != cache_.end();) {
+        auto next = std::next(node);
+        CTexture* texture = *node;
         if (texture->type_ == type && std::strcmp(texture->GetName(), name) == 0) {
-            cache_.RemoveAt(node);
+            cache_.erase(node);
             cachedBytes_ -= texture->uploadResult_;
             RegisterInstant(texture);
             return texture;
@@ -94,11 +92,11 @@ CTexture* CTextureManager::FindTexture(const char* name) {
         }
     }
     if (!found) {
-        for (auto* node = cache_.head; node;) {
-            auto* next = node->next;
-            CTexture* texture = node->data;
+        for (auto node = cache_.begin(); node != cache_.end();) {
+            auto next = std::next(node);
+            CTexture* texture = *node;
             if (std::strcmp(texture->GetName(), name) == 0) {
-                cache_.RemoveAt(node);
+                cache_.erase(node);
                 RegisterInstant(texture);
                 found = texture;
                 break;
@@ -125,11 +123,11 @@ CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
 }
 
 void CTextureManager::FreeCache() {
-    for (auto* node = cache_.head; node;) {
-        CTexture* texture = node->data;
-        node = node->next;
+    for (auto node = cache_.begin(); node != cache_.end();) {
+        CTexture* texture = *node;
+        ++node;
         if (texture) delete texture;
     }
     cachedBytes_ = 0;
-    cache_.RemoveAll();
+    cache_.clear();
 }

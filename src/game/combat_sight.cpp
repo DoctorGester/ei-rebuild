@@ -92,10 +92,6 @@ bool OrderSpell(CUnitServer* self, std::uint32_t source, CSpell** spell) {
 
 } // namespace
 
-namespace {
-
-} // namespace
-
 // --- What must be seen -----------------------------------------------------------------------
 
 bool CUnitServer::FindSightTarget(const AIOrder* order, SightTarget* out) {
@@ -171,9 +167,9 @@ bool SomeoneInTheWay(CUnitServer* self, const AIOrder* order, const float* point
     float vz = static_cast<float>(kZero / side);
 
     // The units the brain lists as nearby.
-    for (auto* node = self->Brain()->memory.nearby.head; node;) {
-        CUnit* other = node->data;
-        node = node->next;
+    for (auto node = self->Brain()->memory.nearby.begin(); node != self->Brain()->memory.nearby.end();) {
+        CUnit* other = *node;
+        ++node;
         if (other == order->target) continue;
         if (other->IsDead() != 0) continue;
         Vector3 scratch;

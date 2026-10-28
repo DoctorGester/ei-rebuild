@@ -3486,7 +3486,7 @@ title = "C14 MFC arrays and lists: CArray, CList / CTypedPtrList to std::vector 
 group = "cleanup"
 model = "opus"
 depends = ["C14b"]
-note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. C14b moved the STLport vectors and lists (stlp::vector 313 -> 141 lines, stlp::list 176 -> 108); the MFC containers were not touched: CArray 416 lines / 129 files, CList 139 / 53, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens."
+note = "User 2026-10-28: don't retype the library's internals; replace the usage code with std or small code of ours first, then delete the old MFC / STLport piece once only the tests' game.exe views use it. C14b moved the STLport vectors and lists (stlp::vector 313 -> 141 lines, stlp::list 176 -> 108); the MFC containers were not touched: CArray 416 lines / 129 files, CList 139 / 53, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens. 2026-10-28 (review): batch 1, the plain-element containers, is std (commits 906072544 retype + fixes, ee3b70bb4 dead tags). Lines (files) before -> after: CArray 415 (128) -> 292 (100), CList 139 (53) -> 114 (45), CTypedPtrList 134 (73) -> 2 comments (the alias deleted), CompiledCollection 164 -> 101 lines (65 tags gone), std::vector 998 -> 1103, std::list 55 -> 190. Review found and fixed 26 double frees (the inlined CArray destructors' operator_delete(x.data()) on vectors), a reinterpret_cast of a std::list to the MFC CountedEngineList, a (void*) ConstructHeader over the particle sprites' vector and DrawSprites' mixed callers (the lightning glow retyped too). Image suite 145 pass, 121 goldens the same; original suite (tests/verify changed) 126 pass, 114 the same. Batch 2 (element policies, the remaining tags): C14u. Pre-existing byte copies over std members: C14v. Scripts: the ticket's scratch folder c14m/."
 
 [[ticket]]
 id = "C14n"
@@ -3620,6 +3620,21 @@ id = "C35k"
 title = "C35 str::Format callers with a literal format and no float conversion to std::format (type-aware, optional)"
 group = "cleanup"
 note = "C35c left the ~200 str::Format calls with a literal format and no %e/%f/%g on str::Format, whose integer, character and string conversions are already the host's snprintf. Moving them to std::format deletes no CRT code; each needs its argument types read (a char or unsigned argument under %d, a negative int under %x, %3.3i's zero padding of a negative print differently in std::format), so it is not a mechanical batch. The ~150 calls with a named or run-time format (the game's texts) stay on str::Format, which reads a malformed format as VC6 did."
+
+[[ticket]]
+id = "C14u"
+title = "C14 MFC arrays and lists, batch 2: the containers with an element policy to std, with their CompiledCollection tags"
+group = "cleanup"
+model = "opus"
+depends = ["C14m"]
+note = "What C14m (batch 1: plain elements) kept: mfc::CArray about 290 lines / 100 files, mfc::CList about 114 / 45, about 100 CompiledCollection lines (mfc_slots.h, game_slots.h, game_arrays.h, record_arrays.h, game_lists.h, ui_camp.h, unit_ai.h, scene_loader.h, party_lifetime.cpp, unit_ai_mode_lifetime.cpp). Each has an element policy (EachElements / OriginalElements / InitElements, ListAbi / ArrayAbi, a Serialize through a temporary): the script's records (definitions, runs, decls, groups, areas, FX / particle / lightning sources, tokens), the scene loader's VtArray and records, map_database's allods / maps / zone exits, AI records (looks, path cells), CountedPtrs, SharedObjectList, the sound cache's WaveList, the sector map's sectors, the lever / trap arrays. Each needs a real element type first (special members or an RAII counted pointer, as C14n's CountedPtr / HeldPtr) and then the retype; Serialize must keep its bytes. Use C14m's scratch scripts (retype_mfc.py, fixer.py, idioms.py) with the DENY list emptied for the batch, and repeat C14m's two checks: temporary = delete overloads of ConstructHeader / DestructHeader / ConstructListHeader / ei::SetVtable for std containers, and the forced-include memset / memcpy check (grep explicit (void*) / static_cast<void*> arguments too). A function taking a container as void* needs all its callers retyped together (CSceneRenderer::DrawSprites crashed on a mixed caller). When no tag is left: CompiledCollection, ArrayHeader, ConstructHeader and mfc.h's CArray / CList go (src/lib), their vtables.csv rows become game.exe-only rows; then C14r. Notes: docs/notes/core.md 'MFC CArray and CList to std (C14m)'."
+
+[[ticket]]
+id = "C14v"
+title = "Byte copies over records holding std members (ZoneExit, PartyUnitRecord, ScriptToken, AlignedBuffer, AICallRecord)"
+group = "cleanup"
+model = "sonnet"
+note = "C14m's forced-include check (memset / memcpy / memmove destinations static_asserted trivially copyable; the script is in C14m's scratch folder, memcheck/) found 12 sites that were already there before C14m: partial ZoneExit copies, PartyUnitRecord, ScriptToken, AlignedBuffer and an AICallRecord memmove (recheck after C14n, which gave some records real special members). Each copies or moves bytes over a record whose std::string / std::vector members then alias or leak. Replace each with the record's assignment (or a real move) and its members by name; check with the image suite --golden."
 
 [[ticket]]
 id = "S"

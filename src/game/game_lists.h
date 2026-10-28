@@ -17,27 +17,12 @@
 void RefPtrRelease(RefPtr* self);
 void ObjectHolderRelease(CEngineObject** self);
 
-// The armour spells' 12-byte records: an engine object, a dword and a byte the
-// assignment copies (the three bytes after it are left).
-struct ArmourSpellRecord {
-    CEngineObject* object;
-    std::uint32_t value;
-    std::uint8_t flag;
-    std::uint8_t pad[3];
-};
-static_assert(sizeof(ArmourSpellRecord) == 12);
-
 namespace gamelists {
 
 using mfc::impl::Bytes;
 using mfc::impl::EachElements;
 using mfc::impl::ListAbi;
 
-// Counted pointers released by their plain release (RefPtrRelease) or by the owner's (Destroy).
-inline void ReleaseRef(RefPtr* p) { RefPtrRelease(p); }
-inline void DestroyRef(RefPtr* p) { p->Destroy(); }
-// The armour spells' records: their engine object released (a virtual release).
-inline void ReleaseHolder(ArmourSpellRecord* p) { ObjectHolderRelease(&p->object); }
 // The world's shared objects: their objects' array destroyed (each released).
 void DestroySharedObject(SharedObject* p);
 // The sound manager's wave records: the name an empty string with room for 8 bytes (after the zero fill);
@@ -45,12 +30,8 @@ void DestroySharedObject(SharedObject* p);
 inline void InitWave(WaveRecord* p) { std::construct_at(&p->name); }
 inline void DestroyWave(WaveRecord* p) { std::destroy_at(&p->name); }
 
-using EngineObjects = ListAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, gamearrays::ReleaseOnly>>;
 using ObjectRefElements = EachElements<ScriptObjectRef, nullptr, gamearrays::ReleaseAndClear>;
 using ObjectRefs = ListAbi<ScriptObjectRef, ObjectRefElements>;
-using Refs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, ReleaseRef>>;
-using OwnedRefs = ListAbi<RefPtr, EachElements<RefPtr, nullptr, DestroyRef>>;
-using Holders = ListAbi<ArmourSpellRecord, EachElements<ArmourSpellRecord, nullptr, ReleaseHolder>>;
 using SharedObjects = ListAbi<SharedObject, EachElements<SharedObject, nullptr, DestroySharedObject>>;
 using Waves = ListAbi<WaveRecord, EachElements<WaveRecord, InitWave, DestroyWave>>;
 
@@ -81,12 +62,5 @@ using Definitions = ListAbi<ScriptDefinition, DefinitionElements>;
 using Runs = ListAbi<ScriptRun, RunElements>;
 using Decls = ListAbi<ScriptDecl, DeclElements>;
 using Groups = ListAbi<ScriptGroup, GroupElements>;
-
-// The counted engine objects' list. AddTail of a counted engine object (the node's slot zeroed, then
-// assigned: the object gains a reference); returns the node.
-struct CountedEngineObjects : EngineObjects::List {
-    Node* AddTailCounted(CEngineObject* object);
-};
-using CountedEngineList = CountedEngineObjects;
 
 } // namespace gamelists

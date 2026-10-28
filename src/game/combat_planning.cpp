@@ -31,6 +31,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -49,9 +50,6 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // --- Helpers --------------------------------------------------------------------------------------
 
-void PointArrayConstruct(void* a0) { mfc::impl::ConstructHeader<mfc::impl::PointArrayClass>(a0); }
-inline void PlexFreeDataChain(void* p) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(p)); }
-
 // The server's AI map's refreshUnits, cleared around path searches, and its sector map.
 std::uint8_t& PathFlag() { return TheServerWorld()->AIMap()->refreshUnits; }
 CSectorMap* ServerSectors() { return TheServerWorld()->Sectors(); }
@@ -66,11 +64,11 @@ struct LocalPath {
     LocalPath() {
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->steps, 0x80);
         mfc::impl::ConstructListHeader<mfc::impl::CellListClass>(&Path()->cells, 0x80);
-        PointArrayConstruct(&Path()->excludedBlocks);
+        std::construct_at(&Path()->excludedBlocks);
         Path()->Clear();
     }
     ~LocalPath() {
-        mfc::impl::DestructHeader<mfc::impl::PointArrayClass>(&Path()->excludedBlocks);
+        std::destroy_at(&Path()->excludedBlocks);
         mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->cells);
         mfc::impl::DestructList<mfc::impl::CellListClass>(Path()->steps);
     }
@@ -80,7 +78,6 @@ struct LocalPath {
     float TargetY() const { return Path()->targetY; }
     int Cost() const { return Path()->smoothing; }
 };
-static_assert(sizeof(AIPath) == 0x88);
 
 // A motion order on the stack (the order and its step list), as AIPath::ToMotionOrder fills it. The order part
 // is zeroed (the original leaves it uninitialised until it is filled).
@@ -99,9 +96,6 @@ static_assert(sizeof(LocalMotionOrder) == 0x3C);
 struct LocalUnitMotion {
     UnitMotion motion;
     LocalUnitMotion() {
-        mfc::impl::ConstructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
-        motion.points.vtable = mfc::impl::MotionPointsClass::Vtable();
-        mfc::impl::ConstructArrayOf<mfc::impl::MotionWaypointArrayClass>(motion.waypoints);
         mfc::impl::ConstructArrayOf<mfc::impl::ArgFloatArrayClass>(motion.stepSpeeds);
         motion.curveX = {};   // the segment part: no curves, no segment
         motion.curveY = {};
@@ -113,8 +107,6 @@ struct LocalUnitMotion {
     }
     ~LocalUnitMotion() {
         mfc::impl::DestructArrayOf<mfc::impl::FloatArrayClass>(motion.stepSpeeds);
-        mfc::impl::DestructArrayOf<mfc::impl::MotionWaypointBaseClass>(motion.waypoints);
-        mfc::impl::DestructArrayOf<mfc::impl::MotionPointArrayClass>(motion.points);
     }
     LocalUnitMotion(const LocalUnitMotion&) = delete;
     LocalUnitMotion& operator=(const LocalUnitMotion&) = delete;
@@ -122,7 +114,7 @@ struct LocalUnitMotion {
 
 using SpotArray = UseSpotArray;
 
-using UnitPtrList = mfc::CTypedPtrList<CUnit>;
+using UnitPtrList = std::list<CUnit*>;
 
 CPlayerServer* PlayerConnection(CPlayer* player) { return player->Server(); }
 
@@ -138,18 +130,18 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
     CWorldServer* world = ServerWorld();
     order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
-    SpotArray spots{mfc::impl::Vector3ArrayClass::Vtable(), nullptr, 0, 0, 0};
+    SpotArray spots{};
     float size = static_cast<float>(unit->Radius());
     order->target->UseSpots(&spots, size);
     bool result = true;
-    if (spots.size > 0) {
+    if (!spots.empty()) {
         LocalPath path;
         int best = kNoSpot;
         Vector3 spot;
         Vector3 bestSpot = {0.0f, 0.0f, 0.0f};
         CAIMap* map = MapOf(world);
-        for (int i = 0; i < spots.size; ++i) {
-            spot = spots.data[i];
+        for (int i = 0; i < std::ssize(spots); ++i) {
+            spot = spots[i];
             path.Path()->Clear();
             if (!map->FindPath(unit, &spot, path.Path(), kFar, 0.0f)) continue;
             // The path must end within 0.2 of the spot.
@@ -171,8 +163,6 @@ bool CUnitServer::FindUseSpot(UnitAction* order, PathOrder* out) {
             std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
-    spots.vtable = mfc::impl::Vector3ArrayClass::Vtable();
-    if (spots.data) gamecrt::operator_delete(spots.data);
     return result;
 }
 
@@ -329,7 +319,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
 void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float range) {
     CWorldServer* world = ServerWorld();
     LocalPath path;
-    UnitPtrList lifted{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitPtrList lifted{};
     LiftNearby(&lifted, point, static_cast<char>(moving));
     int mode = unit->moveMode;
     CSectorMap* sectors = world->Sectors();
@@ -356,16 +346,11 @@ void CUnitServer::PlanMove(const Vector3* point, int moving, int run, float rang
         unit->UpdateSizeClass();
         sectors->Add(unit);
     }
-    for (UnitPtrList::Node* node = lifted.head; node;) {
-        UnitPtrList::Node* current = node;
-        node = node->next;
-        sectors->Add(current->data);
+    for (auto node = lifted.begin(); node != lifted.end();) {
+        UnitPtrList::iterator  current = node;
+        ++node;
+        sectors->Add(*current);
     }
     ReportPath(path.Path(), found ? 1 : 0);
-    lifted.count = 0;
-    lifted.free = nullptr;
-    lifted.tail = nullptr;
-    lifted.head = nullptr;
-    PlexFreeDataChain(lifted.blocks);
-    lifted.blocks = nullptr;
+    lifted.clear();
 }

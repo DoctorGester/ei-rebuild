@@ -85,7 +85,7 @@ public:
     int rotationCursor_;                                 // -1 after construction, 0 after ResetPose
     std::vector<AnimationTranslationKey> translationKeys_;
     int translationCursor_;                              // the same
-    mfc::CArray<Vector3> normals_;                       // zeroed when added
+    std::vector<Vector3> normals_;                       // zeroed when added
     int normalCursor_;                                   // the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;
     int morphCursor_;                                    // the same

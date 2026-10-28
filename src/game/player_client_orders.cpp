@@ -13,6 +13,7 @@
 #include "game_singletons.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -48,16 +49,16 @@ static_assert(sizeof(OnUnitBlock) == 13 && sizeof(AtPointBlock) == 21 && sizeof(
 
 void WriteType(BitStream& out, std::uint8_t type) { out.Write(&type, 1); }
 
-void WriteUnits(BitStream& out, const mfc::CArray<CUnit*>* units) {
-    int count = units->size;
+void WriteUnits(BitStream& out, const std::vector<CUnit*>* units) {
+    int count = std::ssize(*units);
     out.Write(&count, 4);
-    for (int i = 0; i < units->size; ++i) {
-        int id = units->data[i] ? units->data[i]->id_ : kNoId;
+    for (int i = 0; i < std::ssize(*units); ++i) {
+        int id = (*units)[i] ? (*units)[i]->id_ : kNoId;
         out.Write(&id, 4);
     }
 }
 
-int SendMove(BitStream& out, std::uint8_t type, const mfc::CArray<CUnit*>* units, const Vector3* to, int run) {
+int SendMove(BitStream& out, std::uint8_t type, const std::vector<CUnit*>* units, const Vector3* to, int run) {
     WriteType(out, type);
     WriteUnits(out, units);
     out.Write(&run, 4);
@@ -73,14 +74,14 @@ void SpendPotion(CUnit* user, int slot) {
 
 } // namespace
 
-int CPlayerClient::SendWalk(const mfc::CArray<CUnit*>* units, const Vector3* to, int run) {
+int CPlayerClient::SendWalk(const std::vector<CUnit*>* units, const Vector3* to, int run) {
     return SendMove(out_, kWalk, units, to, run);
 }
-int CPlayerClient::SendGoTo(const mfc::CArray<CUnit*>* units, const Vector3* to, int run) {
+int CPlayerClient::SendGoTo(const std::vector<CUnit*>* units, const Vector3* to, int run) {
     return SendMove(out_, kGoTo, units, to, run);
 }
 
-int CPlayerClient::SendAttack(const mfc::CArray<CUnit*>* units, CEngineObject* target, int how, int ctrl) {
+int CPlayerClient::SendAttack(const std::vector<CUnit*>* units, CEngineObject* target, int how, int ctrl) {
     WriteType(out_, kAttack);
     WriteUnits(out_, units);
     out_.Write(&ctrl, 4);
@@ -176,7 +177,7 @@ int CPlayerClient::SendUseOrder(CUnit* unit, CEngineObject* target, int kind, in
     return 1;
 }
 
-int CPlayerClient::SendUseDead(const mfc::CArray<CUnit*>* units, CEngineObject* target, int flag) {
+int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* target, int flag) {
     WriteType(out_, kUseOrder);
     WriteUnits(out_, units);
     out_.Write(&flag, 4);

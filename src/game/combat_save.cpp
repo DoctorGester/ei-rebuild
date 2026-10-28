@@ -17,7 +17,6 @@
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
 
-
 constexpr int kVersionPlanDirection = 0x48;   // plan +0x38 and the orders' +0x18 byte
 constexpr int kVersionFixedMaximum = 0x50;    // older saves take stats +0x6FC from the server object
 constexpr int kVersion180 = 0x44;
@@ -141,22 +140,19 @@ void LoadArmourSpells(ArmourSpellList* list, CStream* stream) {
     int count = 0;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
-        auto* node = list->NewNode(list->tail, nullptr);
+        auto node = list->emplace(list->end());
         // The entry takes a blank one (no item, countdown 0; `worn` is the original's stack byte).
-        CEngineObject* old = node->data.item;
-        node->data.item = nullptr;
+        CEngineObject* old = (*node).item;
+        (*node).item = nullptr;
         if (old) old->Release();
-        node->data.countdown = 0;
-        node->data.worn = 0;
-        if (list->tail) list->tail->next = node;
-        else list->head = node;
-        list->tail = node;
+        (*node).countdown = 0;
+        (*node).worn = 0;
     }
-    for (auto* node = list->head; node;) {
-        auto* current = node;
-        node = node->next;
-        AssignCounted(current->data.item, ReadItem(stream, ItemManager()));
-        stream->Read(&current->data.countdown, 4);
+    for (auto node = list->begin(); node != list->end();) {
+        auto current = node;
+        ++node;
+        AssignCounted(current->item, ReadItem(stream, ItemManager()));
+        stream->Read(&current->countdown, 4);
     }
 }
 
@@ -258,11 +254,11 @@ void CUnitServer::Save(CStream* stream) {
     WriteCopy(stream, deathReported);
     stream->Write(&sinkSpeed, 4);   // the float's bits
     WriteCopy(stream, IdOrNone(effectObject));
-    WriteCopy(stream, armourSpells.count);
-    for (auto* node = armourSpells.head; node;) {
-        auto* current = node;
-        node = node->next;
-        current->data.Save(stream);
+    WriteCopy(stream, std::ssize(armourSpells));
+    for (auto node = armourSpells.begin(); node != armourSpells.end();) {
+        auto current = node;
+        ++node;
+        current->Save(stream);
     }
     WriteCopy(stream, followsLeader);
     WriteCopy(stream, IdOrNone(followedLeader));

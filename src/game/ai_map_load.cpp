@@ -164,8 +164,8 @@ const volatile double kPerDegree = 1.0 / 180.0;
 // cost uphill and on the level, the flat cost over sin^2 + 1 downhill. The larger size classes take
 // no step steeper than 40 degrees; size class 0 takes any up to 60 at the flat cost.
 void BuildClimbTables(CAIMap& map) {
-    map.climbLarge.SetSize(kClimbSteps);
-    map.climbSmall.SetSize(kClimbSteps);
+    map.climbLarge.resize(kClimbSteps);
+    map.climbSmall.resize(kClimbSteps);
     for (int i = 0; i < kClimbSteps; ++i) {
         const float rise = std::fabs(static_cast<float>(static_cast<float>(i - kLevelStep) / map.heightScale));
         const float slope = std::fabs(static_cast<float>(Atan2(rise, kCellSize) * (kHalfTurn / kPi)));

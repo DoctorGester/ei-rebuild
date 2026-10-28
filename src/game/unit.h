@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <string>
 #include <vector>
 
@@ -365,7 +366,7 @@ public:
     int RemoveCarried(int index);
     // Empties both lists, then adds every item the unit holds to `items` (empty slots skipped) and each one's
     // spell to `spells` when it has one.
-    void CollectItems(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* itemSpells);
+    void CollectItems(std::list<CItem*>* items, std::list<CSpell*>* itemSpells);
     // Fresh vitals and statistics (reset, then the owner's BuildFromPrototype for `prototype`), packed into the
     // vitals and parameters.
     void TakePrototype(const char* prototype) override;
@@ -853,7 +854,7 @@ struct PartyUnitRecord {
 // rounds to 0 or less, `wornRemark` when it drops below the itemDurabilityCritical share of its maximum.
 void WearItem(CItem* item, CUnit* unit, float amount, int brokenRemark, int wornRemark);
 // `item` joins `items` and its spell `spells`.
-void GatherItem(mfc::CTypedPtrList<CItem>* items, mfc::CTypedPtrList<CSpell>* spells, CItem* item);
+void GatherItem(std::list<CItem*>* items, std::list<CSpell*>* spells, CItem* item);
 // Text-key units: the armour pieces covering hit location `location` at layer `layer` (1 or 2) wear by
 // `amount`.
 void WearArmour(CUnit* unit, int location, int layer, float amount);

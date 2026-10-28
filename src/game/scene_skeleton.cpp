@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace scene {
 void MakeFrameRelative(CAnimationNode*, CAnimationNode*, int);
@@ -26,7 +27,7 @@ void ConstructNodeFrames(void* records, int count) {
 namespace {
 
 // The node's children (+0x10C; CArray<node*>).
-using ChildArray = mfc::CArray<SceneNode*>;
+using ChildArray = std::vector<SceneNode*>;
 
 // The node's pivot and rotation copied to their rest copies.
 void CopyRest(SceneNode* node) {
@@ -64,9 +65,9 @@ void BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames) {
 // Every child's rest pivot and rotation copied, recursively.
 void CopyRestPose(SceneNode* node) {
     ChildArray& children = Children(node);
-    for (int i = 0; i < children.size; ++i) {
-        CopyRest(children.data[i]);
-        CopyRestPose(children.data[i]);
+    for (int i = 0; i < std::ssize(children); ++i) {
+        CopyRest(children[i]);
+        CopyRestPose(children[i]);
     }
 }
 
@@ -84,17 +85,17 @@ int FindRootNode(NodeArray* nodeArray) {
                                 nodes.data[i].name) != 0)
                 continue;
             ChildArray& children = Children(&nodes.data[i]);
-            int n = children.size;
-            children.SetSize(n + 1, -1);
-            children.data[n] = child;
+            int n = std::ssize(children);
+            children.resize(n + 1);
+            children[n] = child;
         }
     }
     SceneNode* rootNode = &nodes.data[root];
     CopyRest(rootNode);
     ChildArray& children = Children(rootNode);
-    for (int i = 0; i < children.size; ++i) {
-        CopyRest(children.data[i]);
-        CopyRestPose(children.data[i]);
+    for (int i = 0; i < std::ssize(children); ++i) {
+        CopyRest(children[i]);
+        CopyRestPose(children[i]);
     }
     return root;
 }
@@ -107,10 +108,10 @@ int BuildSkeleton(MeshArray* meshArray, NodeArray* nodeArray, int frames, SceneS
     NodeArray& nodes = *nodeArray;
     for (int i = 0; i < nodes.size; ++i) {
         SceneNode* node = &nodes.data[i];
-        const NodeRotationKey& rotationKey = node->rotationKeys.data[0];
+        const NodeRotationKey& rotationKey = node->rotationKeys[0];
         if (static_cast<std::uint16_t>(rotationKey.frame) != 0) return game::FatalError(FirstKeyNotAtZeroText());
         node->pivot = rotationKey.value;
-        const NodePositionKey& positionKey = node->positionKeys.data[0];
+        const NodePositionKey& positionKey = node->positionKeys[0];
         if (static_cast<std::uint16_t>(positionKey.frame) != 0) continue;
         node->axis = positionKey.axis;
         std::memcpy(&node->angle, &positionKey.angle, sizeof(float));

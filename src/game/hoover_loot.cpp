@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <vector>
 #include "lib/mfc.h"
 #include "game_data.h"
@@ -24,27 +25,20 @@
 
 namespace {
 
-using PtrList = mfc::CTypedPtrList<CItem>;
-using PtrListNode = PtrList::Node;
+using PtrList = std::list<CItem*>;
+using PtrListNode = PtrList::iterator;
 
 // CPtrList::NewNode(prev, next) (data cleared). The armour and weapons inline it (with the same effects).
 
-
 void Append(PtrList* list, CItem* object) {
     ++object->refCount_;
-    PtrListNode* node = list->NewNode(list->tail, nullptr);
-    node->data = object;
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
+    auto node = list->emplace(list->end());
+    *node = object;
 }
 // The node appended without a new reference (the prototype items on the second list).
 void AppendShared(PtrList* list, CItem* object) {
-    PtrListNode* node = list->NewNode(list->tail, nullptr);
-    node->data = object;
-    if (list->tail) list->tail->next = node;
-    else list->head = node;
-    list->tail = node;
+    auto node = list->emplace(list->end());
+    *node = object;
 }
 
 // One gold roll of the prototype: the amount (the minimum rounded, or a random value between the minimum and

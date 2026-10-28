@@ -21,6 +21,7 @@
 #include "world_data.h"
 
 #include <cstring>
+#include <list>
 
 namespace {
 
@@ -32,7 +33,6 @@ bool AutoSaveEnabled() { return options::TheOptions()->autosave_ != 0; }
 const char* AutoSaveName() { return "savea"; }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
-
 
 // The portraits' selected-face turn: pi / 2 times (1/7).
 float SelectedFaceAngle() {
@@ -51,20 +51,19 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 
 } // namespace
 
-
 void CBattleScreen::Close() {
     TheCamera()->flags_ |= CCamera::kFree;
     WorldUpdatePeriod() = kDefaultUpdatePeriod;
     TheCursor()->SetHeld(0);
     GameStopSounds(1);
     GameStopAmbience();
-    party_.SetSize(0, -1);
+    party_.clear();
 }
 
 bool CBattleScreen::PollShown() {
     if (hasHero_) {
         auto& party = party_;
-        if (party.size > 0) TheCamera()->SetTarget(party.data[0]);
+        if (!party.empty()) TheCamera()->SetTarget(party[0]);
         if (AutoSaveEnabled()) ::QuickSave(AutoSaveName(), static_cast<char>(1));
         hasHero_ = false;
         interface_->OpenHelp(0);
@@ -72,10 +71,10 @@ bool CBattleScreen::PollShown() {
     return true;
 }
 
-void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
-    for (auto* node = items->head; node != nullptr;) {
-        auto* next = node->next;
-        topPanel_->AddPickedUp(node->data, static_cast<char>(crippled));
+void CBattleScreen::OnItemsPicked(std::list<CItem*>* items, int money, int crippled) {
+    for (auto node = items->begin(); node != items->end();) {
+        auto next = std::next(node);
+        topPanel_->AddPickedUp(*node, static_cast<char>(crippled));
         node = next;
     }
     topPanel_->AddMoney(money);
@@ -93,11 +92,11 @@ void CBattleScreen::OnUnitLeft(CUnit* unit) {
     }
     auto& party = party_;
     int index = 0;
-    while (index < party.size && party.data[index] != unit) ++index;
-    if (index >= party.size) return;
-    int after = party.size - index - 1;
-    if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
-    --party.size;
+    while (index < std::ssize(party) && party[index] != unit) ++index;
+    if (index >= std::ssize(party)) return;
+    int after = std::ssize(party) - index - 1;
+    if (after != 0) std::memmove(&party[index], &party[index + 1], after * sizeof(party[0]));
+    party.pop_back();
     portraits_->Rebuild(0);
     RefreshSelection();
 }
@@ -107,11 +106,11 @@ void CBattleScreen::SaveState() {
     auto& party = party_;
     // The ids go through a CDWordArray first; the bytes written are the same.
     int count = 0;
-    for (int i = 0; i < party.size; ++i)
-        if (party.data[i]->flags_ & kUnitSelected) ++count;
+    for (int i = 0; i < std::ssize(party); ++i)
+        if (party[i]->flags_ & kUnitSelected) ++count;
     stream->Write(&count, 4);
-    for (int i = 0; i < party.size; ++i) {
-        auto* unit = party.data[i];
+    for (int i = 0; i < std::ssize(party); ++i) {
+        auto* unit = party[i];
         if (unit->flags_ & kUnitSelected) stream->Write(&unit->id_, 4);
     }
     stream->Write(&Map(map_)->zoom_, 4);
@@ -150,23 +149,23 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
             found = true;
             break;
         }
-        if (place < party.size && party.data[place]->id_ == id) ++place;
+        if (place < std::ssize(party) && party[place]->id_ == id) ++place;
     }
     bool selected = false;
     if (found) {
-        int count = party.size;
+        int count = std::ssize(party);
         if (place >= count) {
-            party.SetSize(place + 1, -1);
+            party.resize(place + 1);
         } else {
-            party.SetSize(count + 1, -1);
-            std::memmove(&party.data[place + 1], &party.data[place], (count - place) * sizeof(party.data[0]));
+            party.resize(count + 1);
+            std::memmove(&party[place + 1], &party[place], (count - place) * sizeof(party[0]));
         }
-        party.data[place] = unit;
+        party[place] = unit;
         selected = player->members_.data[record].selected != 0;
     } else {
-        int count = party.size;
-        party.SetSize(count + 1, -1);
-        party.data[count] = unit;
+        int count = std::ssize(party);
+        party.resize(count + 1);
+        party[count] = unit;
     }
     portraits_->Rebuild(0);
     if (selected) {
@@ -174,11 +173,11 @@ void CBattleScreen::OnUnitJoined(CUnit* unit) {
         MarkPortrait(place);
     }
     // A hero the save had selected.
-    for (int i = 0; i < heroes_.size; ++i) {
-        if (static_cast<int>(heroes_.data[i]) != unit->id_) continue;
-        int after = heroes_.size - i - 1;
-        if (after != 0) std::memmove(&heroes_.data[i], &heroes_.data[i + 1], after * sizeof(heroes_.data[0]));
-        --heroes_.size;
+    for (int i = 0; i < std::ssize(heroes_); ++i) {
+        if (static_cast<int>(heroes_[i]) != unit->id_) continue;
+        int after = std::ssize(heroes_) - i - 1;
+        if (after != 0) std::memmove(&heroes_[i], &heroes_[i + 1], after * sizeof(heroes_[0]));
+        heroes_.pop_back();
         TheClientWorld()->Select(unit);
         MarkPortrait(place);
         break;

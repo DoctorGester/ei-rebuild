@@ -28,6 +28,7 @@
 #include <memory>
 #include <new>
 #include <string>
+#include <vector>
 
 namespace scene {
 namespace {
@@ -70,19 +71,17 @@ struct FileNormal {            // H (0x14): a normal at +8
 };
 static_assert(sizeof(FileRotationKey) == 0x14 && sizeof(FilePositionKey) == 0x18);
 static_assert(sizeof(FileMorphHead) == 8 && sizeof(FileNormal) == 0x14);
-using RotKeyRecords = mfc::CArray<FileRotationKey>;          // E
-using PosKeyRecords = mfc::CArray<FilePositionKey>;          // F
-using MorphHeadRecords = mfc::CArray<FileMorphHead>;         // G
-using NormalRecords = mfc::CArray<FileNormal>;               // H
+using RotKeyRecords = std::vector<FileRotationKey>;          // E
+using PosKeyRecords = std::vector<FilePositionKey>;          // F
+using MorphHeadRecords = std::vector<FileMorphHead>;         // G
+using NormalRecords = std::vector<FileNormal>;               // H
 
 // One CMap<DWORD, DWORD> per group, destroyed through its virtual destructor.
 using MapRecordArray = mfc::impl::OwnedDwordMaps::Array;
 
-using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
-
+using IndexArray = std::vector<std::uint32_t>;   // CArray<DWORD, const DWORD&> (IndexArrayClass)
 
 } // namespace
-
 
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { mfc::PlainElements<NodeMorphKey>::Construct(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) {
@@ -93,7 +92,6 @@ namespace {
 
 using mfc::impl::ConstructArrayOf;
 using mfc::impl::DestructArrayOf;
-
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
 
@@ -112,7 +110,6 @@ void InitMap(DwordMap& map) {
     map.blocks = nullptr;
     map.blockSize = 10;
 }
-
 
 // The 0x2C-byte record header.
 struct RecordHeader {
@@ -139,16 +136,16 @@ static_assert(sizeof(GroupHeader) == 6);
 
 // The arrays of one record, local to the loader.
 struct RecordArrays {
-    mfc::CArray<PointBits> points;       // A
-    mfc::CArray<FileUv> texCoords;       // B
-    mfc::CArray<FileFace> faces;         // C
+    std::vector<PointBits> points;       // A
+    std::vector<FileUv> texCoords;       // B
+    std::vector<FileFace> faces;         // C
     GroupRecordArray groups;     // D
     RotKeyRecords rotKeys;       // E
     PosKeyRecords posKeys;       // F
     MorphHeadRecords morphHeads; // G
     NormalRecords normals;       // H
 
-    std::uint32_t* Point(std::uint32_t index) { return points.data[index].v; }
+    std::uint32_t* Point(std::uint32_t index) { return points[index].v; }
     FileFace* Face(std::uint32_t index) { return &faces[static_cast<int>(index)]; }
     FaceGroup* Group(int index) { return &groups[index]; }
 };
@@ -167,7 +164,7 @@ struct VertexMerge {
 // writes the vertex index into both index triples of the mesh face.
 void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint32_t faceIndex, int corner) {
     FileFace* face = r.Face(faceIndex);
-    std::uint32_t texture = r.texCoords.size ? face->texture[corner] : 0;
+    std::uint32_t texture = std::ssize(r.texCoords) ? face->texture[corner] : 0;
     std::uint32_t key = face->position[corner] << 16 | texture;
     std::uint32_t hash;
     MapAssoc* assoc = m.seen.GetAssocAt(key, hash);
@@ -176,8 +173,8 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
         std::uint32_t x;
         std::memcpy(&x, &point[0], 4);
         std::uint32_t u = 0, v = 0;
-        if (r.texCoords.size) {
-            const std::uint32_t* uv = r.texCoords.data[face->texture[corner]].v;
+        if (!r.texCoords.empty()) {
+            const std::uint32_t* uv = r.texCoords[face->texture[corner]].v;
             u = uv[0];
             v = uv[1];
         }
@@ -185,10 +182,10 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
         // The third corner goes through the out-of-line Add instantiations (same effect).
         if (corner < 2) {
             m.texCoords.SetAtGrow(m.texCoords.size, UvBits{{u, v}});
-            m.sources.SetAtGrow(m.sources.size, face->position[corner]);
+            lib::SetAtGrow(m.sources, std::ssize(m.sources), face->position[corner]);
         } else {
             m.texCoords.Add(UvBits{{u, v}});
-            m.sources.Add(face->position[corner]);
+            m.sources.push_back(face->position[corner]);
         }
         m.index.ElementAt(key) = static_cast<std::uint32_t>(m.positions.size - 1);
         m.seen.ElementAt(key) = 1;
@@ -217,13 +214,13 @@ private:
 };
 
 void Loader::SizeRecordArrays(RecordArrays& r, const RecordHeader& h) {
-    r.points.SetSize(h.pointCount);
-    r.texCoords.SetSize(h.texCoordCount);
-    r.faces.SetSize(h.faceCount);
+    r.points.resize(h.pointCount);
+    r.texCoords.resize(h.texCoordCount);
+    r.faces.resize(h.faceCount);
     r.groups.SetSize(h.groupCount);
-    r.rotKeys.SetSize(h.rotKeyCount);
-    r.posKeys.SetSize(h.posKeyCount);
-    r.morphHeads.SetSize(h.morphKeyCount - 1);
+    r.rotKeys.resize(h.rotKeyCount);
+    r.posKeys.resize(h.posKeyCount);
+    r.morphHeads.resize(h.morphKeyCount - 1);
 }
 
 // Each group: u16 name length, u32 face count, the name, the face indices.
@@ -241,12 +238,12 @@ void Loader::ReadGroups(RecordArrays& r, const RecordHeader& h) {
 // The node's rotation and position keys (and normals in the newer version), copied field by
 // field from the file records.
 void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node) {
-    Read(file_, r.rotKeys.data, r.rotKeys.size * 0x14);
+    Read(file_, r.rotKeys.data(), std::ssize(r.rotKeys) * 0x14);
     auto& rot = node->rotationKeys;
-    rot.SetSize(r.rotKeys.size);
-    for (int k = 0; k < rot.size; ++k) {
-        const FileRotationKey& from = r.rotKeys.data[k];
-        NodeRotationKey& to = rot.data[k];
+    rot.resize(r.rotKeys.size());
+    for (int k = 0; k < std::ssize(rot); ++k) {
+        const FileRotationKey& from = r.rotKeys[k];
+        NodeRotationKey& to = rot[k];
         to.frame = static_cast<std::int16_t>(from.frame);
         std::uint32_t z;
         std::memcpy(&z, &from.value[2], 4);
@@ -259,12 +256,12 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
         SetBits(to.value.z, z);
     }
 
-    Read(file_, r.posKeys.data, r.posKeys.size * 0x18);
+    Read(file_, r.posKeys.data(), std::ssize(r.posKeys) * 0x18);
     auto& pos = node->positionKeys;
-    pos.SetSize(r.posKeys.size);
-    for (int k = 0; k < pos.size; ++k) {
-        const FilePositionKey& from = r.posKeys.data[k];
-        NodePositionKey& to = pos.data[k];
+    pos.resize(r.posKeys.size());
+    for (int k = 0; k < std::ssize(pos); ++k) {
+        const FilePositionKey& from = r.posKeys[k];
+        NodePositionKey& to = pos[k];
         to.frame = static_cast<std::int16_t>(from.frame);
         std::uint32_t z;
         std::memcpy(&z, &from.axis[2], 4);
@@ -279,13 +276,13 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
     }
 
     if (version_ != kVersionWithNormals) return;
-    r.normals.SetSize(h.posKeyCount);
+    r.normals.resize(h.posKeyCount);
     auto& normals = node->normals;
-    normals.SetSize(h.posKeyCount);
-    Read(file_, r.normals.data, r.normals.size * 0x14);
-    for (int k = 0; k < normals.size; ++k) {
-        const FileNormal& from = r.normals.data[k];
-        Vector3& to = normals.data[k];
+    normals.resize(h.posKeyCount);
+    Read(file_, r.normals.data(), std::ssize(r.normals) * 0x14);
+    for (int k = 0; k < std::ssize(normals); ++k) {
+        const FileNormal& from = r.normals[k];
+        Vector3& to = normals[k];
         std::uint32_t z;
         std::memcpy(&z, &from.value[2], 4);
         std::uint32_t y;
@@ -302,11 +299,11 @@ void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* nod
 // positions, kept in the node as an aligned point array.
 void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node) {
     auto& keys = node->morphKeys;
-    keys.SetSize(r.morphHeads.size);
-    for (int k = 0; k < r.morphHeads.size; ++k) {
+    keys.SetSize(std::ssize(r.morphHeads));
+    for (int k = 0; k < std::ssize(r.morphHeads); ++k) {
         int count = h.pointCount;
         PointBits* points = count ? PointBuffer::Allocate(count) : nullptr;
-        FileMorphHead& head = r.morphHeads.data[k];
+        FileMorphHead& head = r.morphHeads[k];
         Read(file_, &head.frame, 4);
         Read(file_, &head.extra, 4);
         Read(file_, points, h.pointCount * 12);
@@ -322,8 +319,8 @@ void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* no
 // vertices.
 void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     FaceBuffer& meshFaces = mesh->faces;
-    meshFaces.SetSize(r.faces.size);
-    for (int f = 0; f < r.faces.size; ++f) {
+    meshFaces.SetSize(std::ssize(r.faces));
+    for (int f = 0; f < std::ssize(r.faces); ++f) {
         const FileFace* from = r.Face(f);
         MeshFace& to = meshFaces.data[f];
         for (int d = 0; d < 3; ++d) {
@@ -337,7 +334,6 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     InitMap(m.seen);
     InitMap(m.index);
     InitArray(m.maps, mfc::impl::SceneObjectArrayClass::Vtable());
-    InitArray(m.sources, mfc::impl::IndexArrayClass::Vtable());
     m.positions = {};
     m.texCoords = {};
 
@@ -371,9 +367,9 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     auto& morph = node->morphKeys;
     for (int k = 0; k < morph.size; ++k) {
         lib::AlignedArray<Vector3> reordered{};
-        reordered.SetSize(m.sources.size);
-        for (int v = 0; v < m.sources.size; ++v) {
-            std::uint32_t source = m.sources.data[v];
+        reordered.SetSize(std::ssize(m.sources));
+        for (int v = 0; v < std::ssize(m.sources); ++v) {
+            std::uint32_t source = m.sources[v];
             std::memcpy(&reordered.data[v], &morph.data[k].points.data[source], sizeof(Vector3));   // as dwords
         }
         morph.data[k].points.Copy(reordered);
@@ -382,7 +378,6 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
 
     m.texCoords.FreeData();
     m.positions.FreeData();
-    DestructArrayOf<mfc::impl::IndexArrayClass>(m.sources);
     DestructArrayOf<mfc::impl::SceneObjectArrayClass>(m.maps);
     Map32::Destruct<mfc::impl::DwordMapClass>(&m.index);
     Map32::Destruct<mfc::impl::DwordMapClass>(&m.seen);
@@ -393,14 +388,7 @@ void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
     std::string name;
     std::string parent;
     RecordArrays r;
-    InitArray(r.normals, mfc::impl::NormalArrayClass::Vtable());
-    InitArray(r.points, mfc::impl::FilePointArrayClass::Vtable());
-    InitArray(r.texCoords, mfc::impl::FileUvArrayClass::Vtable());
-    InitArray(r.faces, mfc::impl::FileFaceArrayClass::Vtable());
     InitArray(r.groups, recordarrays::FaceGroupArrayClass::Vtable());
-    InitArray(r.rotKeys, mfc::impl::RotKeyArrayClass::Vtable());
-    InitArray(r.posKeys, mfc::impl::PosKeyArrayClass::Vtable());
-    InitArray(r.morphHeads, mfc::impl::MorphHeadArrayClass::Vtable());
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
@@ -423,22 +411,15 @@ void Loader::LoadRecord(int i, MeshArray* meshes, NodeArray* nodes) {
     node->parent = parent;
     mesh->name = name;
 
-    Read(file_, r.points.data, h.pointCount * 12);
-    Read(file_, r.texCoords.data, h.texCoordCount * 12);
-    Read(file_, r.faces.data, r.faces.size * sizeof(FileFace));
+    Read(file_, r.points.data(), h.pointCount * 12);
+    Read(file_, r.texCoords.data(), h.texCoordCount * 12);
+    Read(file_, r.faces.data(), std::ssize(r.faces) * sizeof(FileFace));
     ReadGroups(r, h);
     LoadNodeKeys(r, h, node);
     LoadMorphKeys(r, h, node);
     BuildMesh(r, mesh, node);
 
-    DestructArrayOf<mfc::impl::NormalArrayClass>(r.normals);
-    DestructArrayOf<mfc::impl::MorphHeadArrayClass>(r.morphHeads);
-    DestructArrayOf<mfc::impl::PosKeyArrayClass>(r.posKeys);
-    DestructArrayOf<mfc::impl::RotKeyArrayClass>(r.rotKeys);
     FaceGroupArrayDestruct(&r.groups);   // D
-    DestructArrayOf<mfc::impl::FileFaceArrayClass>(r.faces);
-    DestructArrayOf<mfc::impl::FileUvArrayClass>(r.texCoords);
-    DestructArrayOf<mfc::impl::FilePointArrayClass>(r.points);
 }
 
 // A record after the meshes: read in full and dropped. Only its names, keys, normals and morph
@@ -450,35 +431,27 @@ void Loader::SkipRecord() {
     PosKeyRecords posKeys;
     MorphHeadRecords morphHeads;
     NormalRecords normals;
-    ConstructArrayOf<mfc::impl::RotKeyArrayClass>(rotKeys);
-    ConstructArrayOf<mfc::impl::PosKeyArrayClass>(posKeys);
-    ConstructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
-    ConstructArrayOf<mfc::impl::NormalArrayClass>(normals);
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
-    rotKeys.SetSize(h.rotKeyCount, -1);
-    posKeys.SetSize(h.posKeyCount, -1);
-    normals.SetSize(h.posKeyCount, -1);
-    morphHeads.SetSize(h.morphKeyCount - 1, -1);
+    rotKeys.resize(h.rotKeyCount);
+    posKeys.resize(h.posKeyCount);
+    normals.resize(h.posKeyCount);
+    morphHeads.resize(h.morphKeyCount - 1);
     Read(file_, str::SetLength(name, h.nameLength), h.nameLength);
     Read(file_, str::SetLength(parent, h.parentLength), h.parentLength);
-    Read(file_, rotKeys.data, rotKeys.size * 0x14);
-    Read(file_, posKeys.data, posKeys.size * 0x18);
-    if (version_ == kVersionWithNormals) Read(file_, normals.data, normals.size * 0x14);
-    for (int k = 0; k < morphHeads.size; ++k) {
+    Read(file_, rotKeys.data(), std::ssize(rotKeys) * 0x14);
+    Read(file_, posKeys.data(), std::ssize(posKeys) * 0x18);
+    if (version_ == kVersionWithNormals) Read(file_, normals.data(), std::ssize(normals) * 0x14);
+    for (int k = 0; k < std::ssize(morphHeads); ++k) {
         PointBuffer points;
         points.Construct();
         points.SetSize(h.pointCount, -1);
-        Read(file_, &morphHeads.data[k].frame, 4);
-        Read(file_, &morphHeads.data[k].extra, 4);
+        Read(file_, &morphHeads[k].frame, 4);
+        Read(file_, &morphHeads[k].extra, 4);
         Read(file_, points.data, h.pointCount * 12);
         points.FreeData();
     }
-    DestructArrayOf<mfc::impl::NormalArrayClass>(normals);
-    DestructArrayOf<mfc::impl::MorphHeadArrayClass>(morphHeads);
-    DestructArrayOf<mfc::impl::PosKeyArrayClass>(posKeys);
-    DestructArrayOf<mfc::impl::RotKeyArrayClass>(rotKeys);
 }
 
 // A helper (0x3E-byte header, then three names).
@@ -582,12 +555,12 @@ void FaceGroupArrayDestruct(FaceGroupArray* groups) {
 }
 
 void SceneNode::Destruct() {
-    FreeArray(children, mfc::impl::NodeItemsCClass::Vtable());
+    std::destroy_at(&children);
     FreeArray(frames, mfc::impl::BoneLinkArrayClass::Vtable());
-    FreeArray(normals, mfc::impl::Vector3ArrayClass::Vtable());
+    std::destroy_at(&normals);
     FreeArray(morphKeys, mfc::impl::AlignedAt4ArrayClass::Vtable());
-    FreeArray(positionKeys, mfc::impl::NodeItemsBClass::Vtable());
-    FreeArray(rotationKeys, mfc::impl::NodeItemsAClass::Vtable());
+    std::destroy_at(&positionKeys);
+    std::destroy_at(&rotationKeys);
     std::destroy_at(&parent);
     std::destroy_at(&name);
 }
@@ -603,12 +576,12 @@ void SceneNode::Construct() {
     spareRotation040.SetIdentity();
     rotation.SetIdentity();
     restRotation.SetIdentity();
-    rotationKeys.Construct(mfc::impl::NodeItemsAClass::Vtable());
-    positionKeys.Construct(mfc::impl::NodeItemsBClass::Vtable());
+    std::construct_at(&rotationKeys);
+    std::construct_at(&positionKeys);
     morphKeys.Construct(mfc::impl::AlignedAt4ArrayClass::Vtable());
-    normals.Construct(mfc::impl::Vector3ArrayClass::Vtable());
+    std::construct_at(&normals);
     frames.Construct(mfc::impl::BoneLinkArrayClass::Vtable());
-    children.Construct(mfc::impl::NodeItemsCClass::Vtable());
+    std::construct_at(&children);
 }
 
 SceneMesh::SceneMesh() {
@@ -664,12 +637,7 @@ struct Registry {
     Registry() { registry->Construct(); }
     ~Registry() { registry->Destroy(); }
 };
-struct TextureLinks : TextureLinkArray {
-    TextureLinks() : TextureLinkArray{mfc::impl::TextureLinkArrayClass::Vtable(), nullptr, 0, 0, 0} {}
-    ~TextureLinks() {
-        if (data) gamecrt::operator_delete(data);
-    }
-};
+using TextureLinks = TextureLinkArray;
 struct TextureNames : TextureNameArray {
     TextureNames() : TextureNameArray{TextureNameArrayClass::Vtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
@@ -825,7 +793,7 @@ mfc::BOOL LoadFakeUnitScene(const char* fileName, const char* registryName, Fake
         } else {
             texture = name;
         }
-        for (int l = 0; l < s.textureLinks.size; ++l) {
+        for (int l = 0; l < std::ssize(s.textureLinks); ++l) {
             // The manager context's material manager (CWorld::MaterialManager).
             CMaterialManager* manager = fakeUnit->WorldContext()->MaterialManager();
             std::uint32_t id = s.textureLinks[l].id;

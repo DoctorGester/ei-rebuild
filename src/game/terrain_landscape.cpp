@@ -48,14 +48,14 @@ void DeleteSector(SectorData* sector) {
 
 SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
-    SectorCache::Node* node = sectorGrid[sx][sy];
-    if (node) {
-        SectorData* sector = node->data;
+    SectorCache::iterator node = sectorGrid[sx][sy];
+    if (node != SectorCache::iterator{}) {
+        SectorData* sector = *node;
         if (sector->lastUsed < frame) {
             sector->lastUsed = frame;
-            sectorCache.RemoveAt(node);
-            sectorCache.AddHead(sector);
-            sectorGrid[sx][sy] = sectorCache.head;
+            sectorCache.erase(node);
+            sectorCache.push_front(sector);
+            sectorGrid[sx][sy] = sectorCache.begin();
         }
         if (create) sector->Ensure(wanted, this);
         return (sector->built & wanted) ? sector : nullptr;
@@ -65,24 +65,25 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
     // A new sector, or the least recently used one when it is old enough; then every further
     // sector at the cache's end that is old enough is freed.
     SectorData* sector;
-    SectorData* last = sectorCache.count != 0 ? sectorCache.tail->data : nullptr;
+    SectorData* last = !sectorCache.empty() ? sectorCache.back() : nullptr;
     if (!last || frame - kSectorAge <= last->lastUsed) {
         auto* memory = gamecrt::operator_new_as<SectorData>();
         sector = memory ? memory->Construct() : nullptr;
     } else {
         sector = last;
-        sectorGrid[sector->sx][sector->sy] = nullptr;
-        sectorCache.RemoveTail();
-        while (sectorCache.count != 0 && sectorCache.tail->data->lastUsed < frame - kSectorAge) {
-            SectorData* old = sectorCache.RemoveTail();
-            sectorGrid[old->sx][old->sy] = nullptr;
+        sectorGrid[sector->sx][sector->sy] = {};
+        sectorCache.pop_back();
+        while (!sectorCache.empty() && sectorCache.back()->lastUsed < frame - kSectorAge) {
+            SectorData* old = sectorCache.back();
+            sectorCache.pop_back();
+            sectorGrid[old->sx][old->sy] = {};
             if (old) DeleteSector(old);
         }
     }
     if (sector->Load(&archive, sx, sy, pages, perPage, textF8.c_str(), this)) {
         sector->lastUsed = frame;
-        sectorCache.AddHead(sector);
-        sectorGrid[sx][sy] = sectorCache.head;
+        sectorCache.push_front(sector);
+        sectorGrid[sx][sy] = sectorCache.begin();
         sector->Ensure(wanted, this);
         return (sector->built & wanted) ? sector : nullptr;
     }
@@ -153,8 +154,9 @@ void Terrain::ClearMap() {
         ambientSounds[slot] = TheSoundManager()->StopSound(ambientSounds[slot]);
         ambientClasses[slot] = -1;
     }
-    while (sectorCache.count != 0) {
-        SectorData* sector = sectorCache.RemoveHead();
+    while (!sectorCache.empty()) {
+        SectorData* sector = sectorCache.front();
+        sectorCache.pop_front();
         if (sector) DeleteSector(sector);
     }
     for (int i = 0; i < std::ssize(pageTextures); ++i) pageTextures[i]->Release();
@@ -163,8 +165,8 @@ void Terrain::ClearMap() {
     pageMaterials.clear();
     archive.CloseResource();
     if (sectorGrid) {
-        for (int i = 0; i < sectorsX; ++i) gamecrt::operator_delete(sectorGrid[i]);
-        gamecrt::operator_delete(sectorGrid);
+        for (int i = 0; i < sectorsX; ++i) delete[] sectorGrid[i];
+        delete[] sectorGrid;
         sectorGrid = nullptr;
     }
     sectorsX = -1;
@@ -198,7 +200,6 @@ constexpr float kWaveHeightScale = /*007C8970*/ 0.3f;
 constexpr float kWaveDirectionScale = /*007C896C*/ 0.44879898f;   // pi / 7
 constexpr float kWaveSpeedScale = /*007C8968*/ -0.14959967f;      // that * -1/3
 
-
 } // namespace
 
 Terrain::Terrain() {
@@ -207,7 +208,6 @@ Terrain::Terrain() {
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     // archive: a C++ member, constructed before this body (CMMIOResource())
-    mfc::impl::ConstructListHeader<mfc::impl::ClientList2Class>(&sectorCache, 10);
     maxLightId = 0;
     mfc::impl::ConstructHeader<mfc::impl::ClientMapArrayClass>(&waterLevels);
     Reset();
@@ -218,8 +218,7 @@ Terrain::~Terrain() {
     Terrain::Destroy();
     waterLevels.vtable = mfc::impl::ClientMapArrayClass::Vtable();
     waterLevels.FreeData();
-    sectorCache.vtable = mfc::impl::ClientList2Class::Vtable();
-    sectorCache.RemoveAll();
+    sectorCache.clear();
     // archive: destroyed after this body (~CMMIOResource())
 }
 
@@ -238,7 +237,7 @@ void Terrain::Destroy() {
     for (auto& [id, entry] : lights) entry.light->Release();
     maxLightId = 0;
     lights.clear();
-    sectorCache.RemoveAll();
+    sectorCache.clear();
     Reset();
 }
 
@@ -483,18 +482,14 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
 
     if (sectorGrid) {
-        for (int i = 0; i < sectorsX; ++i) gamecrt::operator_delete(sectorGrid[i]);
-        gamecrt::operator_delete(sectorGrid);
+        for (int i = 0; i < sectorsX; ++i) delete[] sectorGrid[i];
+        delete[] sectorGrid;
         sectorGrid = nullptr;
     }
     sectorsX = header.sectorsX;
     sectorsY = header.sectorsY;
-    sectorGrid = gamecrt::operator_new_array<SectorCache::Node**>(static_cast<std::size_t>(sectorsX));
-    for (int i = 0; i < sectorsX; ++i) {
-        const std::size_t bytes = static_cast<std::size_t>(sectorsY * 4);
-        sectorGrid[i] = gamecrt::operator_new_array<SectorCache::Node*>(static_cast<std::size_t>(sectorsY));
-        std::memset(sectorGrid[i], 0, bytes);
-    }
+    sectorGrid = new SectorCache::iterator*[static_cast<std::size_t>(sectorsX)];
+    for (int i = 0; i < sectorsX; ++i) sectorGrid[i] = new SectorCache::iterator[static_cast<std::size_t>(sectorsY)]();
     width = static_cast<float>(sectorsX * kSectorCells);
     height = static_cast<float>(sectorsY * kSectorCells);
     heightRange = header.heightRange;

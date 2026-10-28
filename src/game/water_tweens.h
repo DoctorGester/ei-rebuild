@@ -4,6 +4,8 @@
 
 #include "lib/mfc.h"
 
+#include <vector>
+
 class CStream;
 class Terrain;
 
@@ -19,7 +21,7 @@ static_assert(sizeof(TweenEntry) == 16);
 
 // CArray<TweenEntry> of the world: new entries zero-filled, never constructed. RemoveAll
 // and SetSize are the template's; the rest are members.
-struct WaterTweens : mfc::CArray<TweenEntry> {
+struct WaterTweens : std::vector<TweenEntry> {
     // The entry for `key` (made when there is none) moves to `target` over
     // `steps` updates (at least one).
     void SetTarget(int key, float target, int steps);
@@ -36,4 +38,4 @@ struct WaterTweens : mfc::CArray<TweenEntry> {
     // `unread` if the stream writes nothing), SetSize, then the entries.
     void ReadEntries(CStream* stream, int unread);
 };
-static_assert(sizeof(WaterTweens) == sizeof(mfc::CArray<TweenEntry>));
+static_assert(sizeof(WaterTweens) == sizeof(std::vector<TweenEntry>));

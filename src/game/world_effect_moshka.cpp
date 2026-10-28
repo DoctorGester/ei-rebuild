@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 
-
 namespace {
 
 constexpr int kClassFigureObject = 0x38;      // the object manager's class of the bird's figure
@@ -71,7 +70,6 @@ CAIMap* AIMap() { return TheServerWorld()->AIMap(); }
 Vector3& PositionOf(CMapObject* object) { return object->localPosition_; }
 
 } // namespace
-
 
 CEffectMoshka::CEffectMoshka() {
     bird_ = nullptr;
@@ -255,7 +253,7 @@ void CEffectMoshka::Follow(int objectId) {
     TheClientWorld()->AddObject(bird_);
     attached->SetLit(1);
     if (FigureAnimation* first = bird->AnimationAt(0)) {
-        bird->animation->queue.RemoveAll();
+        bird->animation->queue.clear();
         bird->animation->Play(first);
     }
     CParticleSource* source = TheParticleManager()->CreateSource(kBirdParticles);

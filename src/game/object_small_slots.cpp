@@ -20,12 +20,7 @@ bool CMapObject::ApplyScience(const LockKey*, CEngineObject*) {
 }
 
 void CMapObject::FreeArray(UseSpotArray* array, int) {
-    if (array->data) {
-        gamecrt::operator_delete(array->data);
-        array->data = nullptr;
-    }
-    array->maxSize = 0;
-    array->size = 0;
+    lib::FreeStorage(*array);
 }
 
 int CMapObjectClientSpecific::Create() {

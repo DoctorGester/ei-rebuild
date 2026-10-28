@@ -14,15 +14,6 @@
 
 namespace gamelists {
 
-CountedEngineList::Node* CountedEngineList::AddTailCounted(CEngineObject* object) {
-    Node* node = NewNode(tail, nullptr);
-    HeldEngineObject::Of(&node->data)->Assign(object);
-    if (tail) tail->next = node;
-    else head = node;
-    tail = node;
-    return node;
-}
-
 // ---- The script lists with the game's copy semantics ----------------------------------------
 
 namespace {
@@ -87,7 +78,6 @@ typename List::Node* LinkTail(List* self, typename List::Node* node) {
     self->tail = node;
     return node;
 }
-
 
 } // namespace
 

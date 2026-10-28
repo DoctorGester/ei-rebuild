@@ -8,10 +8,12 @@
 #include "world_data.h"
 
 #include "lib/mfc.h"
-#include "lib/mfc_slots.h"
 
 #include "ei/x87.h"
 #include "game_data.h"
+
+#include <vector>
+#include <list>
 
 namespace {
 
@@ -31,7 +33,7 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return map->cells[y][x].passable;
 }
 
-using ObjectList = mfc::CTypedPtrList<CUnit>;
+using ObjectList = std::list<CUnit*>;
 
 } // namespace
 
@@ -68,9 +70,9 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
                 int mark = marks.rows[y][x];
                 CellWord(this, x, y) |= static_cast<std::uint32_t>(mark << shift);
             }
-        const mfc::CArray<AreaOffset>& areas = areaLists[AreaList(level)];
-        for (int i = 0; i < areas.size; ++i) {
-            const AreaOffset& entry = areas.data[i];
+        const std::vector<AreaOffset>& areas = areaLists[AreaList(level)];
+        for (int i = 0; i < std::ssize(areas); ++i) {
+            const AreaOffset& entry = areas[i];
             ClearUnmarkedArea(level, entry.dx, entry.dy, ix0, ix1, iy0, iy1);
         }
     }
@@ -97,7 +99,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (!refreshUnits) return;
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
-    ObjectList objects{mfc::impl::PtrListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    ObjectList objects{};
     double halfW = static_cast<double>(ox1 - ox0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     double halfH = static_cast<double>(oy1 - oy0) * 0.5f /*0073B86C*/ + 1.0f /*0073B84C*/;
     float scale = static_cast<float>(static_cast<double>(1.0f /*0073FD18*/) * 0.5f /*0073B86C*/);
@@ -109,29 +111,23 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     centre.y = cy;
     CSectorMap* sectors = &sectorMap;
     sectors->FindUnitsInRadius(&centre, &objects, radius);
-    for (auto* node = objects.head; node;) {
-        auto* next = node->next;
-        sectors->Remove(node->data);
+    for (auto node = objects.begin(); node != objects.end();) {
+        auto next = std::next(node);
+        sectors->Remove(*node);
         node = next;
     }
     regionMap.UpdateBlocksFor(this, bx0, bx1, by0, by1);
-    for (auto* node = objects.head; node;) {
-        auto* next = node->next;
-        sectors->Add(node->data);
+    for (auto node = objects.begin(); node != objects.end();) {
+        auto next = std::next(node);
+        sectors->Add(*node);
         node = next;
     }
-    objects.vtable = mfc::impl::PtrListClass::Vtable();
-    objects.count = 0;
-    objects.free = nullptr;
-    objects.tail = nullptr;
-    objects.head = nullptr;
-    mfc::PlexFreeDataChain(objects.blocks);
+    objects.clear();
 }
 
 // ---- CellMark ---------------------------------------------------------------------------------
 
 namespace {
-
 
 // The scratch state CellMark builds (0x18 bytes used).
 struct MarkState {
@@ -224,7 +220,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
             const Sector& sector = sectorMap.sectors.data[(y / 32) * sectorMap.width + x / 32];
             int index = static_cast<int>((word >> 9) & 0xFFFFF);
             do {
-                const SectorOccluder& record = sector.occluders.data[index];
+                const SectorOccluder& record = sector.occluders[index];
                 int lowest = record.bottom;
                 int type = record.kind;
                 int highest = record.top;
@@ -265,7 +261,7 @@ const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(kS
 // The largest climbable step of a climb table: the run of non-negative costs from the middle, less one.
 int MaxStep(const ClimbTable& table) {
     int n = 0;
-    while (table.data[table.size / 2 + n] > -1) ++n;
+    while (table[std::ssize(table) / 2 + n] > -1) ++n;
     return n - 1;
 }
 } // namespace

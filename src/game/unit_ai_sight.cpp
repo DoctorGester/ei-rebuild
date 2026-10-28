@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 
 namespace {
 constexpr float kOne = 1.0f;
@@ -87,20 +88,20 @@ void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     int count = 0;
     const std::int16_t* offsets =
         memory->sightCells.Get(static_cast<float>(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
-    for (auto* node = memory->nearby.head; node; node = node->next) {
-        if (node->data) node->data->Release();
-        node->data = nullptr;
+    for (auto node = memory->nearby.begin(); node != memory->nearby.end(); ++node) {
+        if (*node) (*node)->Release();
+        *node = nullptr;
     }
-    memory->nearby.RemoveAll();
+    memory->nearby.clear();
     for (int i = 0; i < count; ++i) {
-        mfc::CTypedPtrList<CUnit>* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
+        std::list<CUnit*>* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
-        for (auto* node = units->head; node; node = node->next) {
-            CUnit* other = node->data;
+        for (auto node = units->begin(); node != units->end(); ++node) {
+            CUnit* other = *node;
             if (other == self) continue;
             // At the head, holding a reference (AddHead): See walks the list
             // from the head, so the units of the last sector come first.
-            memory->nearby.AddHead(other);
+            memory->nearby.push_front(other);
             if (other) ++other->refCount_;
         }
     }
@@ -110,17 +111,17 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
     CUnitServer* ours = self->ServerController();
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
-    for (auto* node = memory->nearby.head; node;) {
-        auto* other = node->data;
-        node = node->next;
+    for (auto node = memory->nearby.begin(); node != memory->nearby.end();) {
+        auto* other = *node;
+        ++node;
         bool dead = IsDead(other);
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
         if (dead) {
             if (!seesAll && hostile) continue;
-            if (memory->seenCorpses.Find(other)) continue;
+            if (lib::Contains(memory->seenCorpses, other)) continue;
         } else {
             if (!seesAll && !hostile) continue;
-            if (memory->visible.Find(other)) continue;
+            if (lib::Contains(memory->visible, other)) continue;
         }
         if (!ready) Prepare(self);
         Vector3 theirEye;
@@ -162,7 +163,7 @@ void AIViewer::See(CUnit* self, AIMemory* memory) {
             continue;
         }
         if (alive) {
-            memory->visible.AddHead(other);
+            memory->visible.push_front(other);
             ++other->refCount_;
             double dx = static_cast<double>(self->localPosition_.x) - other->localPosition_.x;
             double dy = static_cast<double>(self->localPosition_.y) - other->localPosition_.y;
@@ -184,10 +185,10 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
     cellX = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.x) - kHalf));
     cellY = x87::RoundToInt(static_cast<float>(scale * static_cast<double>(eye.y) - kHalf));
     Refresh(self, memory);
-    for (auto* node = memory->visible.head; node;) {
-        auto* current = node;
-        node = node->next;
-        auto* other = current->data;
+    for (auto node = memory->visible.begin(); node != memory->visible.end();) {
+        auto current = node;
+        ++node;
+        auto* other = *current;
         Vector3 d{static_cast<float>(static_cast<double>(other->localPosition_.x) - self->localPosition_.x),
                   static_cast<float>(static_cast<double>(other->localPosition_.y) - self->localPosition_.y),
                   static_cast<float>(static_cast<double>(other->localPosition_.z) - self->localPosition_.z)};
@@ -195,7 +196,7 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
                 // AddTail (a second copy follows below).
-                memory->seenCorpses.AddTail(other);
+                memory->seenCorpses.push_back(other);
                 ++other->refCount_;
                 if (memory->noticedLevel < kCorpseLevel) NoticeAt(memory, other, kCorpseLevel, kCorpseKind);
             }
@@ -216,9 +217,9 @@ void AIViewer::Update(CUnitServer* owner, AIMemory* memory) {
         }
         console::EndLine(LogPair(self, " lost from sight unit ", other));
         if (self->IsHostileTo(other) && memory->noticedLevel < kLostLevel) NoticeAt(memory, other, kLostLevel, kLostKind);
-        if (current->data) current->data->Release();
-        current->data = nullptr;
-        memory->visible.RemoveAt(current);
+        if (*current) (*current)->Release();
+        *current = nullptr;
+        memory->visible.erase(current);
     }
     See(self, memory);
 }
