@@ -3500,7 +3500,7 @@ note = "User 2026-10-28: don't retype the library's internals; replace the usage
 id = "C35"
 title = "Custom CRT down to what behaviour needs: std / the real CRT for file, string, sort, iostream and exit code"
 group = "cleanup"
-note = "User 2026-10-28: reduce src/lib's custom CRT (crt*.cpp, about 3,240 lines) as far as possible. Usage first, as with C14: change callers to std or the toolchain's CRT (std::fstream / FILE, std::sort, strcmp-family, std::hypot, atexit / static destructors, std::ostream), then delete each libcrt piece once nothing uses it. Keep only what goldens prove needs the original's exact results (x87 math in crt_x87, the formatting that feeds saves or on-screen text, rand); write down for each kept piece why. One or two scripted batches per area (file I/O, string / locale, iostream, exit / AtExit, sort / math). Split into C35a.. per area when started."
+note = "Split into C35a-l; the open pieces are C35g and C35k."
 
 [[ticket]]
 id = "C20q"
