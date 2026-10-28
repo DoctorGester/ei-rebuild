@@ -141,7 +141,7 @@ float SelectLess(float a, float b) { return Less(a, b) ? a : b; }
 float ClampToZero(float t) { return Less(0.0f, t) ? t : 0.0f; }
 // A float copied through the FPU (FLD / FSTP) in the original; here the value as it is.
 float Reload(float v) { return v; }
-int Ftol(float v) { return static_cast<int>(gamecrt::Ftol(v)); }
+int Ftol(float v) { return static_cast<int>(libcrt::Ftol(v)); }
 // The client world's time: (float)(int)tick + the tick's fraction, rounded once (FILD, FADD, FSTP).
 float AnimationTime() {
     const CWorldClient* world = TheClientWorld();

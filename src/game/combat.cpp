@@ -185,7 +185,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, DamageWords* out) {
     CSpell* spell = SpellOfSource(source);
     *out = DamageWords{};
     if (spell) {
-        auto value = static_cast<std::uint16_t>(gamecrt::Ftol(SpellDamage(spell)));
+        auto value = static_cast<std::uint16_t>(libcrt::Ftol(SpellDamage(spell)));
         int type = spell->GetDamageType();
         out->words[1 + type] = value;
     }
@@ -377,16 +377,16 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         std::memcpy(&out->speed, &weapon->weight_, sizeof(float));
         float base = WeaponStat84(weapon->prototypeId_);
         double bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->attack = static_cast<int>(gamecrt::Ftol(bonus + base));
+        out->attack = static_cast<int>(libcrt::Ftol(bonus + base));
         base = WeaponStat88(weapon->prototypeId_);
         bonus = stats.WeaponSkillBonus(out->weaponType, self);
-        out->defence = static_cast<int>(gamecrt::Ftol(bonus + base));
+        out->defence = static_cast<int>(libcrt::Ftol(bonus + base));
         out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
         std::memcpy(&out->damageMin, &stats.damage, sizeof(float));
         out->damageMax = stats.damageSpread + stats.damage;
-        out->attack = static_cast<int>(gamecrt::Ftol(stats.combat[UnitStats::kAttack]));
-        out->defence = static_cast<int>(gamecrt::Ftol(stats.combat[UnitStats::kDefence]));
+        out->attack = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kAttack]));
+        out->defence = static_cast<int>(libcrt::Ftol(stats.combat[UnitStats::kDefence]));
         std::memcpy(&out->speed, &stats.combat[UnitStats::kSpeed], sizeof(float));
         if (weapon) {
             out->weaponType = weapon->GetType();
@@ -472,8 +472,8 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
         out->weaponValue = weapon->actionValue_;
-        int sides = static_cast<int>(gamecrt::Ftol(kFive));
-        int drawn = gamecrt::rand();
+        int sides = static_cast<int>(libcrt::Ftol(kFive));
+        int drawn = libcrt::Rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + kOne));

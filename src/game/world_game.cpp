@@ -267,7 +267,7 @@ int RestoreZone(CParty* records, MapRecord* zoneRecord, const std::string& zone,
             std::string variable = prefix + zone;
             left = static_cast<float>(VariableGet(variables, variable));
         }
-        int ticks = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
+        int ticks = static_cast<int>(libcrt::Ftol((static_cast<double>(now) - left) * 100.0f /*0073BAB0*/));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
@@ -298,7 +298,7 @@ int EnterZone(CParty* records) {
     if (!zoneRecord) return 0;
 
     NamedFloatTable* variables = &records->variables_;
-    if (static_cast<int>(gamecrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
+    if (static_cast<int>(libcrt::Ftol(VariableGet(variables, kMovieVariable))) == 1) {
         if (str::Compare(zone,
                             kMovieZone) != 0) {
             {

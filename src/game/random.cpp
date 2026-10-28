@@ -103,7 +103,7 @@ constexpr int kSeedBytes = 0x400;
 constexpr int kPathBuffer = 0x11C;
 
 // rand() % 512 as the game computes it (rand() is never negative).
-int RandomBelow512() { return gamecrt::rand() & 0x1FF; }
+int RandomBelow512() { return libcrt::Rand() & 0x1FF; }
 
 BOOL Matches(const lib::FileFind& finder, unsigned long mask) { return finder.MatchesMask(mask); }
 
@@ -155,7 +155,7 @@ void IsaacRandom::Seed() {
     while (!ok) {
         int counter = 0;
         if (!FindSeedFile(path, kSeedSearchPattern, RandomBelow512() + 1, &counter)) {
-            int r = gamecrt::rand();
+            int r = libcrt::Rand();
             int files = counter;
             counter = 0;
             if (!FindSeedFile(path, kSeedSearchPattern, r % (files - 1) + 1, &counter)) continue;
@@ -183,7 +183,7 @@ void IsaacRandom::Seed() {
             ok = 0;
             gameapi::Sleep(10);
         }
-        for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(gamecrt::rand());
+        for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(libcrt::Rand());
     }
 }
 

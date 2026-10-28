@@ -21,7 +21,7 @@ bool Accepts(CObject3D* object, const FigureAnimation* animation) {
 using AnimationList = std::vector<FigureAnimation*>;
 
 // rand() scaled to 0..count-1 as the game does.
-int RandomIndex(int count) { return (gamecrt::rand() * count / kRandMax) % count; }
+int RandomIndex(int count) { return (libcrt::Rand() * count / kRandMax) % count; }
 } // namespace
 
 FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
@@ -42,7 +42,7 @@ FigureAnimation* CObject3D::RandomAnimation(std::uint32_t key) {
         FigureAnimation* only = count == 1 ? list[0] : nullptr;
         return only;
     }
-    std::uint32_t percent = static_cast<std::uint32_t>((gamecrt::rand() * 100 / kRandMax) % 100);
+    std::uint32_t percent = static_cast<std::uint32_t>((libcrt::Rand() * 100 / kRandMax) % 100);
     FigureAnimation* picked = list[RandomIndex(count)];
     for (int i = 0; i < count; ++i) {
         if (list[i]->chance < percent) {

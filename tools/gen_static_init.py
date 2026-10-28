@@ -607,7 +607,7 @@ REVIEWED_NEAR = {
     0x007AA880: ('007AA868', 'a decal vertex (DecalVertex, 0x14 bytes)'),
     0x007ABA10: ('007ABA08', 'the float 1 / pi (read directly)'),
     0x007ABB68: ('007ABB64', 'the fog dead cells vector 007ABB58 (12 bytes) and its guard byte'),
-    0x007AEE68: ('007AEE64', 'the DirectDraw driver list (an STLport list: one head pointer)'),
+    0x007AEE68: ('007AEE64', 'the DirectDraw driver list 007AEE64 (gone; its unused initialiser 004ED520 still reads the cell)'),
     0x007AEE98: ('007AEE94', 'the device lock 007AEE78 (CRITICAL_SECTION, 0x18 bytes) and the holder count (dword)'),
     0x007AF0BC: ('007AF084', 'the scene renderer 007AF060 (CSceneRenderer, members to +0x58) ends at 007AF0BC; 007AF084 is its helper'),
     0x007AF3D8: ('007AF3BC', 'the unit database record tables 007AF358 / 007AF378 / 007AF398 / 007AF3B8 (RecordTable, 0x20 bytes each)'),
@@ -810,6 +810,7 @@ UNUSED_INITIALISERS = {
     0x0070D5D8: "the exit function of MFC's thread local _afxCtl3dThread 007CAA84 (nothing fills it)",
     0x0070D5FE: "the exit function of MFC's process local _afxCtl3dState 007CAA88 (nothing fills it)",
     0x0070DC27: "the exit function of MFC's process local _afxWinState 007CAA8C (nothing fills it)",
+    0x004ED520: "the DirectDraw driver list 007AEE64 (never filled or read; its guard byte 007AEE60)",
 }
 
 

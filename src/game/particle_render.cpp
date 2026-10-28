@@ -67,7 +67,7 @@ float Interpolation() {
 
 // One colour channel (at `shift`) between the previous and the current colour, truncated.
 int MixChannel(std::uint32_t current, std::uint32_t previous, int shift, float t, float u) {
-    return static_cast<int>(gamecrt::Ftol(Unsigned((current >> shift) & 0xFF) * D(t) + Unsigned((previous >> shift) & 0xFF) * D(u)));
+    return static_cast<int>(libcrt::Ftol(Unsigned((current >> shift) & 0xFF) * D(t) + Unsigned((previous >> shift) & 0xFF) * D(u)));
 }
 
 } // namespace

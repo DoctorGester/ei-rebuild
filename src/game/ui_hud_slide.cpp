@@ -94,7 +94,7 @@ void AdvanceSlide(Panel* panel) {
         const double rest = 1.0 - s;
         eased = 1.0 - 2.0 * (rest * rest);
     }
-    panel->offset_ = static_cast<int>(gamecrt::Ftol(panel->travel_ * eased));
+    panel->offset_ = static_cast<int>(libcrt::Ftol(panel->travel_ * eased));
     if (panel->slide_ == 1.0f || panel->slide_ == 0.0f) panel->sliding_ = 0;
 }
 
@@ -394,9 +394,9 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = static_cast<float>(static_cast<float>(static_cast<float>(i) * Pi()) * OutlineStep());
         const float down = static_cast<float>(x87::fcos(static_cast<double>(angle)) * OutlineRadius());
-        const int y = static_cast<int>(gamecrt::Ftol(static_cast<float>(down + OutlineCentreY())));
+        const int y = static_cast<int>(libcrt::Ftol(static_cast<float>(down + OutlineCentreY())));
         const float across = static_cast<float>(x87::fsin(static_cast<double>(angle)) * OutlineRadius());
-        const int x = static_cast<int>(gamecrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
+        const int x = static_cast<int>(libcrt::Ftol(static_cast<float>(OutlineCentreX() - across)));
         round->AddPoint(x, y);
     }
     AddRegion()->SetRect(620, 0, 780, 160);

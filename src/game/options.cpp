@@ -39,10 +39,10 @@ std::uint32_t Bits(float value) { return std::bit_cast<std::uint32_t>(value); }
 // _ftol(value * factor): the product rounded only by the FPU's precision, then truncated by the
 // game's _ftol.
 int FtolProduct(float value, float factor) {
-    return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * factor));
+    return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * factor));
 }
 // _ftol(value).
-int Ftol(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int Ftol(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 // float(FILD of `value` as an unsigned 64-bit integer, times factor): the product rounded
 // by the FPU's precision, then once to float by FSTP.
 float UnsignedProduct(std::uint32_t value, float factor) { return static_cast<float>(x87::FromUnsigned(value) * factor); }

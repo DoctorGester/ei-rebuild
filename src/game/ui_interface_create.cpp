@@ -98,7 +98,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     fonts_[0].reset();
     for (int i = 0; i < 3; ++i) {
         float size = static_cast<float>(width * kFontShares[i]) / scale * 0.00125f /*00740164*/;   // 1 / 800
-        if (!CreateFont(fonts_[i], static_cast<int>(gamecrt::Ftol(size)))) return;
+        if (!CreateFont(fonts_[i], static_cast<int>(libcrt::Ftol(size)))) return;
     }
 
     ChooseKeyboardLayout();

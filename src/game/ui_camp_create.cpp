@@ -98,7 +98,7 @@ void CCampPages::BuildPages() {
     itemParts_[0] = nullptr;
     GameSetServerPaused(1);
     constructor_ = nullptr;
-    int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable("constr.current")));
+    int constructor = static_cast<int>(libcrt::Ftol(LocalPlayerVariable("constr.current")));
     if (constructor > 0) {
         constructor_ = ClassTemplates()->Find(constructor);
         if (!constructor_) {
@@ -301,7 +301,7 @@ void CCampPages::BuildPages() {
         if (FigureAnimation* animation = unit->FindSkillAnimation(kIdleAnimation)) {
             std::uint32_t random = IsaacRandom::Global().Next();
             double frames = FramesNow();
-            int start = static_cast<int>(gamecrt::Ftol(frames - static_cast<int>(random % 51)));
+            int start = static_cast<int>(libcrt::Ftol(frames - static_cast<int>(random % 51)));
             unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         unit->Controller()->ShowWeapon(0xFFFFFFFF);

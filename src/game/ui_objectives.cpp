@@ -183,8 +183,8 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
     float heightShare = static_cast<float>(D(height) / D(larger));
     float halfHeight = static_cast<float>(D(heightShare) * kPictureHalf);
     float halfWidth = static_cast<float>(widthShare * kPictureHalf);
-    int u1 = static_cast<int>(gamecrt::Ftol(widthShare * kTexels));
-    int v0 = static_cast<int>(gamecrt::Ftol((1.0f - D(heightShare)) * kTexels));
+    int u1 = static_cast<int>(libcrt::Ftol(widthShare * kTexels));
+    int v0 = static_cast<int>(libcrt::Ftol((1.0f - D(heightShare)) * kTexels));
     CUiMesh* picture = SceneMesh(3);
     picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
                           static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
@@ -253,10 +253,10 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
         markerScale_ = marker->GetScaleX();
         RECT rect;
-        rect.left = static_cast<int>(gamecrt::Ftol(D(x) - kExitHalf));
-        rect.top = static_cast<int>(gamecrt::Ftol(D(y) - kExitHalf));
-        rect.right = static_cast<int>(gamecrt::Ftol(D(x) + kExitHalf));
-        rect.bottom = static_cast<int>(gamecrt::Ftol(D(y) + kExitHalf));
+        rect.left = static_cast<int>(libcrt::Ftol(D(x) - kExitHalf));
+        rect.top = static_cast<int>(libcrt::Ftol(D(y) - kExitHalf));
+        rect.right = static_cast<int>(libcrt::Ftol(D(x) + kExitHalf));
+        rect.bottom = static_cast<int>(libcrt::Ftol(D(y) + kExitHalf));
         CUiRegion* region = AddRegion();
         region->SetTip(0x138EE, 1, 0);
         // The marker points away from the picture's centre: sideways or up/down by the larger
@@ -409,12 +409,12 @@ void CObjectivesWindow::ShowQuest() {
         float experience = record->exp;
         text += "\007C\377\377\377 ";
         if (experience > 0.0f) {
-            part = str::Format("%s %d\n ", costExp.c_str(), static_cast<int>(gamecrt::Ftol(D(experience))));
+            part = str::Format("%s %d\n ", costExp.c_str(), static_cast<int>(libcrt::Ftol(D(experience))));
             text += part;
         }
         float money = record->money;
         if (money > 0.0f) {
-            part = str::Format("%s %d\n ", costMoney.c_str(), static_cast<int>(gamecrt::Ftol(D(money))));
+            part = str::Format("%s %d\n ", costMoney.c_str(), static_cast<int>(libcrt::Ftol(D(money))));
             text += part;
         }
     }
@@ -425,7 +425,7 @@ void CObjectivesWindow::ShowQuest() {
         if (!SameText(fields[0], "#subobj")) continue;
         variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
                         fields[1].c_str());
-        int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable))));
+        int state = static_cast<int>(libcrt::Ftol(D(LocalPlayerVariable(variable))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
         text += "\007C\377\263" "1 ";
@@ -468,10 +468,10 @@ void CObjectivesWindow::ShowQuest() {
         SetSpriteTexture(marker, objects_[1]);
         std::memcpy(marker->tint_, red, sizeof(red));
         CUiRegion* region = AddRegion();
-        int bottomPixel = static_cast<int>(gamecrt::Ftol(D(bottom)));
-        int rightPixel = static_cast<int>(gamecrt::Ftol(D(right)));
-        int topPixel = static_cast<int>(gamecrt::Ftol(D(top)));
-        int leftPixel = static_cast<int>(gamecrt::Ftol(D(left)));
+        int bottomPixel = static_cast<int>(libcrt::Ftol(D(bottom)));
+        int rightPixel = static_cast<int>(libcrt::Ftol(D(right)));
+        int topPixel = static_cast<int>(libcrt::Ftol(D(top)));
+        int leftPixel = static_cast<int>(libcrt::Ftol(D(left)));
         region->SetRect(leftPixel, topPixel, rightPixel, bottomPixel);
         region->SetTip(0x138F0, 1, 0);
     }

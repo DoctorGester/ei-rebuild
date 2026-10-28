@@ -265,13 +265,13 @@ int CRainSnow::BuildSnow(CSceneRenderer* renderer) {
             z = static_cast<float>(static_cast<float>(Jitter(cycle, kJitterZ)) * kJitterHeight * kJitterScale + z);
 
             // The sway: by the height on all three axes, and by the place along x and y.
-            const int level = static_cast<int>(gamecrt::Ftol(z));
+            const int level = static_cast<int>(libcrt::Ftol(z));
             const float swayX = static_cast<float>(Sway(g_swayXByHeight, level, z));
             const float placeX = static_cast<float>(std::fmod(static_cast<float>(x + kSwayShift), kSwayPeriod));
-            x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(gamecrt::Ftol(placeX)), placeX) + x);
+            x = static_cast<float>(swayX + Sway(g_swayXByPlace, static_cast<int>(libcrt::Ftol(placeX)), placeX) + x);
             const float swayY = static_cast<float>(Sway(g_swayYByHeight, level, z));
             const float placeY = static_cast<float>(std::fmod(static_cast<float>(y + kSwayShift), kSwayPeriod));
-            y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(gamecrt::Ftol(placeY)), placeY) + y);
+            y = static_cast<float>(swayY + Sway(g_swayYByPlace, static_cast<int>(libcrt::Ftol(placeY)), placeY) + y);
             Put(*this, x, y, static_cast<float>(Sway(g_swayZByHeight, level, z) + z));
             frames[flakes] = static_cast<std::uint8_t>(cycle & 3);
             ++flakes;

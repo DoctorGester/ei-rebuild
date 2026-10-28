@@ -226,7 +226,7 @@ int CParticleSource::UpdateDebris(Particle* p) {
     float oldRise = p->drift.z;
     p->drift.z = kDebrisDamping * oldRise - kDebrisGravity;
     p->pos.z = (kDebrisDamping * oldRise - kDebrisGravity) + p->pos.z;
-    std::uint32_t a = gamecrt::Ftol(Unsigned(p->color >> 24) * kDebrisFadeIn);
+    std::uint32_t a = libcrt::Ftol(Unsigned(p->color >> 24) * kDebrisFadeIn);
     if (a > 0xFF) a = 0xFF;
     p->color = (a << 24) | 0xFFFFFF;
     EI_NAN_AUDIT(p->drift.z);
@@ -306,7 +306,7 @@ void CParticleSource::TickNuke(ParticleElement* e) {
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void CParticleSource::TickTendril(ParticleElement*) {
-    int n = static_cast<int>(gamecrt::Ftol(LengthXYZ(extent) * kTendrilDensity));
+    int n = static_cast<int>(libcrt::Ftol(LengthXYZ(extent) * kTendrilDensity));
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;

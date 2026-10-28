@@ -273,9 +273,9 @@ void Terrain::BuildWavePhases() {
     float* phases = wavePhases.data();
     std::memset(phases, 0, kVertices * sizeof(float));
     for (int ripple = 0; ripple < kRipples; ++ripple) {
-        float centreX = static_cast<float>(gamecrt::rand() % kRow);
-        float centreY = static_cast<float>(gamecrt::rand() % kRow);
-        int radius = gamecrt::rand() % 5 + 1;
+        float centreX = static_cast<float>(libcrt::Rand() % kRow);
+        float centreY = static_cast<float>(libcrt::Rand() % kRow);
+        int radius = libcrt::Rand() % 5 + 1;
         double radiusSquared = static_cast<double>(radius) * radius;
         float* phase = phases;
         for (int row = 0; row < kRow; ++row) {
@@ -487,7 +487,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
         material.waveColour = source.colour;
         material.opacity = source.opacity;
         material.absorption = static_cast<float>(1.0 / static_cast<float>(1.0 - source.opacity));
-        material.opacityByte = static_cast<std::uint8_t>(gamecrt::Ftol(static_cast<float>(material.opacity * kByteScale)));
+        material.opacityByte = static_cast<std::uint8_t>(libcrt::Ftol(static_cast<float>(material.opacity * kByteScale)));
         material.colour.x = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.x));
         material.colour.y = CappedAtOne(static_cast<float>(static_cast<double>(material.waveColour.y) * source.light));
         material.colour.z = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.z));

@@ -71,7 +71,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    declare it there). src has no `EI_ORIGINAL` (C29; `check_cleanup` keeps it at 0). Where the harness
    needs to change what our code does, it sets a named seam our code exposes (the fixed ISAAC seed:
    `IsaacRandom::SetSeedHook`; the traced draws: `IsaacRandom::SetDrawObserver`,
-   `gamecrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
+   `libcrt::SetRandObserver`), never an address. Only tests/verify's game.exe side and the vector
    recorders call game.exe's code by address (`tests/verify/harness_original.h`).
 6. **Memory and CRT:** `new T(...)` / `delete p` (the host's heap): a class built by hand on a raw block
    gets its constructor and destructor; plain arrays are `new T[n]` / `delete[]`, a block of a byte count
@@ -85,7 +85,7 @@ the harness patches it by address there. Nothing of ours shares memory or calls 
    let a helper write past the size into the spare capacity (the sprite clipper's vertices) is undefined on a
    std::vector, so resize it first; `build.cmd asan` (docs/notes/harness.md) finds these. Containers are
    `std::`. Call the CRT functions whose game behaviour differs from the host's through
-   `gamecrt::` (C26 decides which those are) and Win32 through `gameapi::`.
+   `libcrt::` (C26 decides which those are) and Win32 through `gameapi::`.
 7. **Floating point.** Write float maths as plain C++ (`float`/`double`, the standard maths functions); do NOT hand-copy x87 instruction
    sequences (no new naked FPU helpers, `__asm` or `#pragma float_control`). The x87 code in the exe is a VC6 artifact, the game runs its main
    thread at 24-bit precision anyway, and an SSE2 build is planned (C16d, docs/cleanup-plan.md). The existing hand-copied helpers stay

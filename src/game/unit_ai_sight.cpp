@@ -78,7 +78,7 @@ void AIViewer::Prepare(CUnit* self) {
 void AIViewer::Refresh(CUnit* self, AIMemory* memory) {
     if (--memory->nearbyCountdown > 0) return;
     self->flags_ |= kFlagNearbyListed;
-    memory->nearbyCountdown = (gamecrt::rand() & 3) + 8;
+    memory->nearbyCountdown = (libcrt::Rand() & 3) + 8;
     int blockX = cellX / 32;
     int blockY = cellY / 32;
     CUnitServer* control = self->ServerController();

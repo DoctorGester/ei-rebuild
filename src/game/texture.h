@@ -134,7 +134,6 @@ public:
     PixelFormat depthFormat_;
     CTransformPipeline* pipeline_;
     std::list<Direct3DDeviceRecord> devices_;
-    std::list<PixelFormat> depthFormats_;   // one is picked
     std::list<PixelFormat> textureFormats_;
     // The values point at textureFormats_'s elements.
     std::unordered_map<int, PixelFormat*> formats_;
@@ -160,16 +159,6 @@ extern DWORD g_stageBlocks[kStageBlockCount];
 
 // Once a frame; returns the DirectDraw result (0).
 long DevicePresent(CTextureDevice* device);
-
-// A Direct3D driver of the device list. The image does not run the driver enumeration: the list stays empty.
-struct DirectDrawDriver {
-    GUID guidValue;             // unset for the primary display driver
-    GUID* guid;                 // for DirectDrawCreateEx: &guidValue, or null (the primary display driver)
-    std::string name;
-    std::string description;
-    HMONITOR monitor;
-};
-extern lib::StaticObject<std::list<DirectDrawDriver>> g_directDrawDrivers;
 
 // A DirectDraw surface wrapper. The surface pointer is always null: the pixels are the new renderer's memory
 // (dx_surface.h).

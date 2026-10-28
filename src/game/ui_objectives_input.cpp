@@ -233,8 +233,8 @@ void CObjectivesWindow::Update() {
     // The sum stays unrounded for the alphas; the stored time is rounded to a float.
     const double time = FrameTime() + blinkTime_;
     blinkTime_ = static_cast<float>(time);
-    const std::uint32_t slow = gamecrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
-    const std::uint32_t fast = gamecrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+    const std::uint32_t slow = libcrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+    const std::uint32_t fast = libcrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = std::ssize(exits_) + kFirstExitSprite; i < std::ssize(sceneObjects_); ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;

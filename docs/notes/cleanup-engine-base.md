@@ -11,7 +11,7 @@ the `__declspec(novtable)` classes and `...Hook` slot shims still here are C28's
   ReleaseObject +0x60; stream Read +4, Write +8, Seek +0xC, Size +0x10, Position +0x14, Clear +0x18; Serialize +4) are the original's
   numbering. `progress.py` reads `class __declspec(x) Name`.
 - The manager's id maps are `lib::HashMap`s (STLport's walk order); no STLport or MFC instantiation of game.exe is called.
-- Duplicate helpers merged: `NextFreeId` (CreateObject and RegisterInstant), `AddTail` (three inlined copies), `gamecrt::rand`, FindChild /
+- Duplicate helpers merged: `NextFreeId` (CreateObject and RegisterInstant), `AddTail` (three inlined copies), `libcrt::Rand`, FindChild /
   FindStreamChunk / ReadStreamChunk / `Ref::Reset` / ResizeToCurrent inside the archive, `Chunk::Construct` in the string-array readers,
   `game::EmptyText()` for 0079B298 (the ~40 literal uses and per-file copies are gone), `camera::` names for the camera's
   globals and `CAM_*` macros for its exe constants.

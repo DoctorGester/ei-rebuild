@@ -24,7 +24,7 @@ void ObservedRand(int value, const void* caller) {
 void ObserveDraws(DrawWriter write) {
     g_write = write;
     IsaacRandom::SetDrawObserver(&ObservedDraw);
-    gamecrt::SetRandObserver(&ObservedRand);
+    libcrt::SetRandObserver(&ObservedRand);
 }
 
 } // namespace ei::verify::image

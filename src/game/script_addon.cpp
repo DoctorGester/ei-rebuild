@@ -184,7 +184,7 @@ int Ftol(float value) {
 void Store(float* dst, float value) { std::memcpy(dst, &value, sizeof(float)); }
 
 // The game's _ftol: truncation of the 64-bit value, its low 32 bits.
-int TruncateX87(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int TruncateX87(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 float Distance(float x0, float y0, float x1, float y1) {
     const float deltaX = x1 - x0;

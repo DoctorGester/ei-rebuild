@@ -37,7 +37,7 @@ inline double D(float f) { return f; }
 constexpr float kFullTurn = /*007C7D20*/ 6.2831855f;   // a static initialiser: pi + pi
 
 
-int ScaledFtol(float value, float scale) { return static_cast<int>(gamecrt::Ftol(static_cast<double>(value) * scale)); }
+int ScaledFtol(float value, float scale) { return static_cast<int>(libcrt::Ftol(static_cast<double>(value) * scale)); }
 
 std::uint32_t PackColour(const float* rgb) {
     std::uint32_t r = static_cast<std::uint32_t>(ScaledFtol(rgb[0], 255.0f /*0073C370*/));
@@ -90,7 +90,7 @@ std::uint32_t Glow(float dt, ItemTurn* turn, const float* colour) {
     const double phase = std::fmod(advanced, pi + pi);
     turn->glow = static_cast<float>(phase);
     const double strength = (x87::fsin(phase) + 1.0 /*0073BAC8*/) * 0.15000000596046448 /*007403E8*/;
-    const auto channel = [&](int i) { return gamecrt::Ftol(strength * colour[i] * 255.0f /*0073C370*/); };
+    const auto channel = [&](int i) { return libcrt::Ftol(strength * colour[i] * 255.0f /*0073C370*/); };
     const std::uint32_t r = channel(0);
     const std::uint32_t g = channel(1);
     const std::uint32_t b = channel(2);

@@ -17,7 +17,7 @@ const char* const kNotRegistry = "CFileRegistry::IsValid().\nThat is not registr
 const char* const kWrongType = "CFileRegistry::FindData().\nWrong type of entry.\n";     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
 // _ftol of a float: FLD, then the game's _ftol (truncates).
-int FloatToInt(float value) { return static_cast<int>(gamecrt::Ftol(value)); }
+int FloatToInt(float value) { return static_cast<int>(libcrt::Ftol(value)); }
 
 std::uint16_t U16(const std::uint8_t* p) {
     std::uint16_t v;

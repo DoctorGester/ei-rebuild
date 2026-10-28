@@ -277,7 +277,7 @@ int CCampPages::Price(CItem* item, int kind) {
             EI_NAN_AUDIT(worn, multipliers[8]);
             if (worn == kPriceZero) return 0;
             if (multipliers[8] == kPriceZero) return 0;
-            int price = static_cast<int>(gamecrt::Ftol(D(repair)));
+            int price = static_cast<int>(libcrt::Ftol(D(repair)));
             return price > 0 ? price : 1;
         }
     }
@@ -286,10 +286,10 @@ int CCampPages::Price(CItem* item, int kind) {
         // line): for kind 7 (taking an item apart in the item constructor) the repair cost of the
         // wear is added instead of subtracted.
         if (kind == 7 && ei::rebirth::Enabled(ei::rebirth::Patch::FixRepairPrice))
-            return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind] + repair));
-        return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind] - repair));
+            return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind] + repair));
+        return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind] - repair));
     }
-    return static_cast<int>(gamecrt::Ftol(ItemPrice(item) * multipliers[kind]));
+    return static_cast<int>(libcrt::Ftol(ItemPrice(item) * multipliers[kind]));
 }
 
 bool CCampPages::CanEquip(CItem* item, int mode) {
@@ -317,7 +317,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
             const itemdb::SpellRecord* record = SpellRecordOf(item);
             int skill = 0, mana = 0;
             BestPartySkill(record->school, &skill, &mana);
-            if (mana < static_cast<int>(gamecrt::Ftol(D(record->mana)))) return false;
+            if (mana < static_cast<int>(libcrt::Ftol(D(record->mana)))) return false;
             return skill >= record->skill;
         }
         if (!IsModifier(item)) return false;
@@ -350,7 +350,7 @@ bool CCampPages::CanEquip(CItem* item, int mode) {
         int skill = 0, mana = 0;
         BestPartySkill(school, &skill, &mana);
         if (skill < skillTotal) return false;
-        return mana >= static_cast<int>(gamecrt::Ftol(D(manaTotal)));
+        return mana >= static_cast<int>(libcrt::Ftol(D(manaTotal)));
     }
     case 4:     // the item constructor: anything but quest items and magic
         if (ItemType(item) == 0x3009) return false;
@@ -679,7 +679,7 @@ bool CCampPages::CanMakeSpell() {
     ++container->refCount_;
     int skill = 0, mana = 0;
     BestPartySkill(spell->school, &skill, &mana);
-    if (mana < static_cast<int>(gamecrt::Ftol(D(made->manaCost_)))) return false;
+    if (mana < static_cast<int>(libcrt::Ftol(D(made->manaCost_)))) return false;
     return skill >= static_cast<int>(made->skillNeeded_);
 }
 

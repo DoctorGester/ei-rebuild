@@ -31,7 +31,7 @@ WeatherNoiseCurve g_swayYByHeight = /*007AD998*/ {};
 WeatherNoiseCurve g_swayXByHeight = /*007AE398*/ {};
 
 void WeatherNoiseCurve::Build(float amplitude) {
-    for (float& sample : samples) sample = static_cast<float>(gamecrt::rand() - kRandCentre);
+    for (float& sample : samples) sample = static_cast<float>(libcrt::Rand() - kRandCentre);
 
     const double weight = SmoothingWeight();
     const double keep = static_cast<double>(One()) - weight;

@@ -170,7 +170,7 @@ void CHudPortraits::Update() {
         CEngineObject* flash = object(5);
         if (slot.flash_ > 0.0f) {
             Sprite(flash)->visible_ = 1;
-            int alpha = static_cast<int>(gamecrt::Ftol(D(slot.flash_) * kFlashAlpha));
+            int alpha = static_cast<int>(libcrt::Ftol(D(slot.flash_) * kFlashAlpha));
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
             Sprite(flash)->flatColour_ = colour;
         } else {

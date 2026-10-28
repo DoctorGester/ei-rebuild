@@ -37,7 +37,6 @@ struct BriefingMover {
 struct BriefingSpeaker {
     CUnit* unit;                     // the client unit
     std::string name;               // as the dialogue's commands give it
-    bool spareFlag;                  // false when added; only copied with the entry (erase), never tested
 };
 
 // An item shown in the dialogue ("#show <name>" for what is not a unit). The meshes are the window's scene

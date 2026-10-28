@@ -10,7 +10,7 @@ namespace ei::vectors::crt {
 namespace {
 Sampler g_ctype("crt", "@GameCrtCtype", kVariableSize, 1);
 
-// The game CRT's own functions (a record holds the original's answers; gamecrt:: calls the ports).
+// The game CRT's own functions (a record holds the original's answers; libcrt:: calls the ports).
 __declspec(naked) int __cdecl GameIsdigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl GameIsspace(int) EI_ORIGINAL(0x006E93CE)
 __declspec(naked) int __cdecl GameTolower(int) EI_ORIGINAL(0x006EBA53)

@@ -113,9 +113,9 @@ void CHeroStatsPanel::DrawStats() {
 
     if (page_ == 10) {
         // A new hero's statistics: points left = 75 - (strength + dexterity + intelligence).
-        int strength = static_cast<int>(gamecrt::Ftol(D(stats->stat10Base)));
-        int dexterity = static_cast<int>(gamecrt::Ftol(D(stats->stat18Base)));
-        int intelligence = static_cast<int>(gamecrt::Ftol(D(stats->stat20Base)));
+        int strength = static_cast<int>(libcrt::Ftol(D(stats->stat10Base)));
+        int dexterity = static_cast<int>(libcrt::Ftol(D(stats->stat18Base)));
+        int intelligence = static_cast<int>(libcrt::Ftol(D(stats->stat20Base)));
         int sum = intelligence + dexterity + strength;
         rect = RECT{0x14, 0x41, 0x82, 0x50};
         DrawRow(&rect, "Strength", strength, -1);
@@ -125,7 +125,7 @@ void CHeroStatsPanel::DrawStats() {
         DrawRow(&rect, "Intelligence", intelligence, -1);
         Down(&rect);
         float sumF = static_cast<float>(static_cast<double>(sum));
-        DrawRow(&rect, texts_[5].c_str(), static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
+        DrawRow(&rect, texts_[5].c_str(), static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF))), -1);
         Down(&rect);
         Down(&rect);
         DrawRow(&rect, texts_[6].c_str(), points_, -1);
@@ -147,7 +147,7 @@ void CHeroStatsPanel::DrawStats() {
         draw->DrawLine("-", &rect, 0, points_ <= 0 ? kGrey : kBright, 1, 1);
 
         // "+": while below 35 and points are left.
-        int left = static_cast<int>(gamecrt::Ftol(D(75.0f /*00741F04*/) - D(sumF)));
+        int left = static_cast<int>(libcrt::Ftol(D(75.0f /*00741F04*/) - D(sumF)));
         rect = RECT{0xA0, 0x41, 0xB4, 0x50};
         double maximum = D(35.0f /*00741F00*/);
         for (int i = 0; i < 3; ++i) {
@@ -197,15 +197,15 @@ void CHeroStatsPanel::DrawStats() {
             }
             line = str::Format("     %s %s", texts_[2].c_str(), text.c_str());
             draw->DrawLine(line, &rect, 0, kBright, 0, 1);
-            int high = static_cast<int>(gamecrt::Ftol(D(info.damageMax)));
-            int low = static_cast<int>(gamecrt::Ftol(D(info.damageMin)));
+            int high = static_cast<int>(libcrt::Ftol(D(info.damageMax)));
+            int low = static_cast<int>(libcrt::Ftol(D(info.damageMin)));
             line = str::Format("%d-%d", low, high);
             draw->DrawLine(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
             Down(&rect);
         }
-        int weight = static_cast<int>(gamecrt::Ftol(hero()->CarriedWeight()));
-        int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
+        int weight = static_cast<int>(libcrt::Ftol(hero()->CarriedWeight()));
+        int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);
@@ -213,21 +213,21 @@ void CHeroStatsPanel::DrawStats() {
         draw->DrawLine(texts_[7], &rect, 0, kBright, 0, 1);
     } else {
         rect = RECT{0x14, 0x41, 0xB4, 0x50};
-        DrawRow(&rect, "Strength", static_cast<int>(gamecrt::Ftol(D(stats->stat10))), -1);   // Strength
+        DrawRow(&rect, "Strength", static_cast<int>(libcrt::Ftol(D(stats->stat10))), -1);   // Strength
         Down(&rect);
-        DrawRow(&rect, "Dexterity", static_cast<int>(gamecrt::Ftol(D(stats->stat18))), -1);   // Dexterity
+        DrawRow(&rect, "Dexterity", static_cast<int>(libcrt::Ftol(D(stats->stat18))), -1);   // Dexterity
         Down(&rect);
-        DrawRow(&rect, "Intelligence", static_cast<int>(gamecrt::Ftol(D(stats->stat20))), -1);   // Intelligence
+        DrawRow(&rect, "Intelligence", static_cast<int>(libcrt::Ftol(D(stats->stat20))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
-        DrawRow(&rect, "Health", static_cast<int>(gamecrt::Ftol(stats->HitPointCurve())), -1);              // Health
+        DrawRow(&rect, "Health", static_cast<int>(libcrt::Ftol(stats->HitPointCurve())), -1);              // Health
         Down(&rect);
-        DrawRow(&rect, "Mana", static_cast<int>(gamecrt::Ftol(stats->ManaCurve())), -1);            // Mana
+        DrawRow(&rect, "Mana", static_cast<int>(libcrt::Ftol(stats->ManaCurve())), -1);            // Mana
         Down(&rect);
-        DrawRow(&rect, "Actions", static_cast<int>(gamecrt::Ftol(D(stats->rate))), -1);   // Actions
+        DrawRow(&rect, "Actions", static_cast<int>(libcrt::Ftol(D(stats->rate))), -1);   // Actions
         Down(&rect);
         DrawRow(&rect, "Experience",
-                  static_cast<int>(gamecrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);   // Experience
+                  static_cast<int>(libcrt::Ftol(D(stats->pendingExperience) + D(stats->experience))), -1);   // Experience
         Down(&rect);
         double carried;
         if (page_ == 11) {
@@ -235,8 +235,8 @@ void CHeroStatsPanel::DrawStats() {
         } else {
             carried = hero()->CarriedWeight();
         }
-        int weight = static_cast<int>(gamecrt::Ftol(carried));
-        int capacity = static_cast<int>(gamecrt::Ftol(D(stats->capacity)));
+        int weight = static_cast<int>(libcrt::Ftol(carried));
+        int capacity = static_cast<int>(libcrt::Ftol(D(stats->capacity)));
         DrawRow(&rect, "Encumbrance", weight, capacity);   // Encumbrance
         Down(&rect);
         if (weight > capacity) draw->DrawLine(texts_[4], &rect, 0, 0xFF, 2, 1);

@@ -160,7 +160,7 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     if (experience != 0.0f) {
         world->AwardExperience(player, experience);
     }
-    PartyOf(player)->Money() += static_cast<int>(gamecrt::Ftol(record->money));
+    PartyOf(player)->Money() += static_cast<int>(libcrt::Ftol(record->money));
 
     std::list<CItem*> items;
     for (const std::string& name : record->lists[QuestBriefingRecord::kGiveItems]) {

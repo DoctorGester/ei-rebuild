@@ -62,7 +62,7 @@ checked in the original's slots: nothing reads them). Named:
   the builders write 0).
 - Written, never read in the original (named `*Spare`): `CInterface3D::fpsSpare_` (+0x24; ShowFps / DrawOverlays read only +0x20 / +0x28 / +0x2C),
   `CUiMesh::tintSpare_` (+0x230; Draw 005E6D90 reads tint_ only), `CCursor::imageSpare_` (+0x14; the frame step 005E52E0 reads image_'s +0x14, not
-  the cursor's), `CMpConnectScreen::spare_` (+0x254), `BriefingSpeaker::spareFlag` (+0x08, false when added; the vector's erase / insert copies it).
+  the cursor's), `CMpConnectScreen::spare_` (+0x254); `BriefingSpeaker::spareFlag` (+0x08) went in C20r2.
 - `CUiWindow::heldObject_` (+0xF4): 0 from the constructor, released by the destructor with the two materials; no writer identified among the
   window classes. `TradeRecord::padAfterPerks` / `padAfterBought`: alignment bytes.
 

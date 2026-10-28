@@ -163,9 +163,9 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     record->colour = ((((static_cast<std::uint32_t>(record->materialByte) << 8) | r) << 8 | g) << 8) | b;
     std::uint32_t edge = terrain->EdgeFade(position);
     if (hasSpecular) {
-        std::uint32_t word = (edge & 0xFF) << 8 | gamecrt::Ftol(specular.x * 255.0f);
-        word = word << 8 | gamecrt::Ftol(specular.y * 255.0f);
-        word = word << 8 | gamecrt::Ftol(specular.z * 255.0f);
+        std::uint32_t word = (edge & 0xFF) << 8 | libcrt::Ftol(specular.x * 255.0f);
+        word = word << 8 | libcrt::Ftol(specular.y * 255.0f);
+        word = word << 8 | libcrt::Ftol(specular.z * 255.0f);
         record->specular = word;
     } else {
         record->specular = (edge & 0xFF) << 24;
@@ -211,9 +211,9 @@ void SectorData::LightSpecular(const SectorPosition* position, SectorVertex* rec
     }
     std::uint32_t edge = terrain->EdgeFade(position);
     if (hasSpecular) {
-        std::uint32_t word = (edge & 0xFF) << 8 | gamecrt::Ftol(specular.x * 255.0f);
-        word = word << 8 | gamecrt::Ftol(specular.y * 255.0f);
-        word = word << 8 | gamecrt::Ftol(specular.z * 255.0f);
+        std::uint32_t word = (edge & 0xFF) << 8 | libcrt::Ftol(specular.x * 255.0f);
+        word = word << 8 | libcrt::Ftol(specular.y * 255.0f);
+        word = word << 8 | libcrt::Ftol(specular.z * 255.0f);
         record->specular = word;
     } else {
         record->specular = (edge & 0xFF) << 24;
