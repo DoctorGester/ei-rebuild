@@ -10,64 +10,21 @@
 
 #include "core_refcount.h"
 
-#include "game_hashes.h"
-
-#include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <new>
 
-namespace {
-
-using CacheHandle = ShapeCacheHandle;
-using CacheNode = ShapeTable::Node;
-
-constexpr std::size_t kFirstBuckets = 100;
-
-
-bool SameHeight(float a, float b) {
-    // FCOMP then TEST AH, 0x40: equal, or unordered.
-    return a == b || a != a || b != b;
-}
-
-} // namespace
-
 CRefObject* UnitShapeCache::Get(void* handleIn) {
-    auto* handle = static_cast<CacheHandle*>(handleIn);
-    if (handle->cache == this && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
-
-    auto count = static_cast<std::uint32_t>(shapes.BucketCount());
-    CacheNode* node = shapes.BucketVector()[handle->key % count];
-    while (node && !SameHeight(node->value.key.height, handle->height)) node = node->next;
-    if (node) {
-        CRefObject* value = node->value.value.ptr;
-        handle->cache = this;
-        handle->counted.Assign(value);
-        return value;
-    }
-
-    CRefObject* created = CreateShape(handle);
-    // The map's value slot for a handle, inserted (empty) when missing.
-    RefPtr* slot = shapes.At(handle);
-    if (created != slot->ptr) {
-        slot->Destroy();
-        slot->Share(created);
-    }
-    handle->cache = this;
-    handle->counted.Assign(created);
-    return created;
+    auto* handle = static_cast<ShapeCacheHandle*>(handleIn);
+    if (handle->cache == this && IsLive(handle->ref)) return handle->ref;
+    return Resolve(handle);
 }
 
 CRefObject* UnitShapeCache::CreateShape(const ShapeCacheHandle* handle) { return CreateUnitShape(handle); }
 
-UnitShapeCache* UnitShapeCache::Construct() {
-    new (this) UnitShapeCache;   // the vtable (the map's default constructor only nulls its bucket vector)
-    shapes.InitZeroedBuckets(kFirstBuckets);
-    return this;
-}
+UnitShapeCache* UnitShapeCache::Construct() { return new (this) UnitShapeCache; }
 
-void UnitShapeCache::Destruct() {
-    shapes.Destroy();
-}
+void UnitShapeCache::Destruct() { std::destroy_at(&shapes); }
 
 namespace {
 void DestroyUnitShapes() { g_unitShapes->Destruct(); }

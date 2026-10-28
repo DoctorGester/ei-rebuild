@@ -10,7 +10,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
-#include "lib/stlp_hash.h"
+#include "lib/hash_map.h"
 #include "lib/static_object.h"
 #include "game_data.h"
 
@@ -30,29 +30,11 @@ struct PartyManagerEntry {
     void Destruct();
 };
 
-// A map node's party: the CParty object itself, constructed and destroyed by the map's own members
-using PartyInPlace = PartyStorage;
-
-namespace gamehash {
-
-// hash_map<int, CParty> (the party manager's parties): 0x78-byte nodes. A node's party is copied by CParty's
-// copy constructor (it reads its source non-const) and destroyed by its destructor body (game_hashes.cpp).
-struct PartyElement {
-    static void Construct(PartyInPlace* to, const PartyInPlace& from);
-    static void Destroy(PartyInPlace* p);
-};
-using PartyTraits = stlp::DwordObjectTraits<PartyInPlace, PartyElement>;
-// Hash_map<int, CParty>::operator[]: a party constructed on the stack, a pair of the key and a copy of it,
-// find_or_insert of the pair (a new node copies it again), then the pair's party and the stack party
-// destroyed. The node's party.
-struct PartyTable : stlp::hashtable<PartyTraits> {
-    PartyInPlace* At(const int* key);
-};
-
-} // namespace gamehash
-
-// The parties by key (STLport hash_map<int, CParty>; 0x78-byte nodes).
-using PartyMap = gamehash::PartyTable;
+// The parties by key, walked in the game's order (the save's chunks).
+using PartyMap = lib::HashMap<int, CParty>;
+// The party under `key`, made when missing as the game's operator[] made it: a new party, a copy of it for the
+// pair and a copy of that in the map (each copy runs CParty::Create through its save and load).
+CParty* PartyAt(PartyMap& parties, int key);
 
 struct PartyManager {
     PartyMap parties;                           // (LoadParty / StoreParty)
@@ -68,12 +50,10 @@ struct PartyManager {
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
     // The destructor the C runtime runs at exit: the templates and the records released and their vectors
-    // freed, the records' two strings, the entries, then every party of the map (the map's own node
-    // deleter) and the bucket array.
+    // freed, the records' two strings, the entries, then the parties.
     void Destruct();
-    // The constructor: an empty party map of 193 buckets (the prime after 100), no entries, no records with
-    // two empty strings, no templates; field3 is left as it is. It runs from a static initialiser. Returns
-    // this.
+    // The constructor: no parties (193 buckets), no entries, no records with two empty strings, no templates;
+    // field3 is left as it is. It runs from a static initialiser. Returns this.
     PartyManager* Construct();
     // The records' BeginRedeploy / EndRedeploy the script's redeploy.
     void BeginRedeploy(CParty* party);
@@ -81,10 +61,7 @@ struct PartyManager {
     // Key 0 resets `target` (Reset(1, 0)); else the party stored under the key is copied into it. False when
     // the key is not stored. The login's name and password are not read.
     bool LoadParty(const char* name, const char* password, const int* key, CParty* target) const;
-    // Copies `source` into the party stored under the key (operator[] creates it when missing; the copy
+    // Copies `source` into the party stored under the key (PartyAt creates it when missing; the copy
     // reads `source` non-const). True.
     bool StoreParty(const int* key, CParty* source);
 };
-static_assert(offsetof(PartyManager, entries) == 0x14);
-static_assert(offsetof(PartyManager, field3) == 0x20);
-static_assert(offsetof(PartyManager, records) == 0x24);

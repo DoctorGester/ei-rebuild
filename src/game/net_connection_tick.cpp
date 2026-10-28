@@ -3,9 +3,7 @@
 // `double` for values the original keeps on the FPU stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
-#include "lib/stlp_vector.h"
 #include "ei/x87.h"
-#include "net_connection_trees.h"
 #include "library_net_lists.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
@@ -150,19 +148,18 @@ void Connection::Delivered(SentPacket* packet) {
             item->entry->version_ = version;
         } else if (action > 1 && action < 4) {
             ReplicaEntry* entry = item->entry;
-            EntryMap* tree = &priorities_[entry->flags_ >> 1];
-            EntryMap::Node* found;
-            tree->Find(&found, entry);
-            if (found != tree->end()) {
+            EntryMap& tree = priorities_[entry->flags_ >> 1];
+            auto found = tree.find(entry);
+            if (found != tree.end()) {
                 entry = item->entry;
                 std::int32_t key = (static_cast<std::int32_t>(entry->type_) << 16) + entry->id_;
-                bySentId_.EraseKey(key);
+                bySentId_.erase(key);
                 FreedId value{};
                 value.id = entry->id_;
                 value.type = entry->type_;
                 FreedIds& batch = freedIds_.End()->prev->data;   // the newest batch
                 batch.push_back(value);
-                tree->EraseAt(found);
+                tree.erase(found);
             }
         }
     }

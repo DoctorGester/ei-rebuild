@@ -17,7 +17,6 @@
 #include "lib/crt.h"
 
 #include "ei/x87.h"
-#include "game_hashes.h"
 #include "game_data.h"
 
 #include <cstdlib>
@@ -273,13 +272,9 @@ int CWorldServer::SendZone(CPlayer* player) {
         write(&cave_, 4);
 
         UnitSet units;
-        units.figured.Construct(100, 0, 0, 0);
-        units.dressed.Construct(100, 0, 0, 0);
         for (auto node = mapObjects_.map.begin(); node != mapObjects_.map.end() && node->second; ++node)
             if (CUnit* unit = UnitOrNull(node->second)) units.Add(unit);
         units.Write(&message);
-        units.dressed.Destroy();
-        units.figured.Destroy();
 
         result = state->SendState02(&message);
         if (result != 0 && sendsStartPosition_ != 0) {

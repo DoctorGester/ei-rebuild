@@ -64,6 +64,24 @@ void Growth() {
     Check(map.size() == 54 && map.find(0)->second == 4, "operator[] on a known key");
 }
 
+// hash_multimap: an equal key right after the first entry with it, a new key at the head; equal_range ends at the
+// entry after the equal ones in walk order.
+void Multi() {
+    lib::HashMultimap<std::uint32_t, int> map;
+    map.insert({1, 1});
+    map.insert({194, 2});
+    map.insert({1, 3});
+    map.insert({1, 4});
+    map.insert({2, 5});
+    std::vector<int> values;
+    for (const auto& [key, value] : map) values.push_back(value);
+    Check(values == std::vector<int>{2, 1, 4, 3, 5}, "equal keys after the first one with it");
+    auto [first, last] = map.equal_range(1);
+    Check(first->second == 1 && last != map.end() && last->first == 2, "equal_range ends at the next bucket's head");
+    auto [none, alsoNone] = map.equal_range(3);
+    Check(none == map.end() && alsoNone == map.end(), "equal_range of a missing key");
+}
+
 void Text() {
     lib::TextHash hash;
     Check(hash("ab") == 5u * 'a' + 'b', "h = 5 * h + c");
@@ -77,6 +95,7 @@ int RunHashMapChecks() {
     g_checks = g_failures = 0;
     Order();
     Growth();
+    Multi();
     Text();
     std::printf("ei_vectors: hash map: %d checks, %d failed\n", g_checks, g_failures);
     return g_failures;

@@ -1679,7 +1679,7 @@ the `--no-hooks` suite) keeps the registry.
   constructor, 006EC8A8 `_mbsupr` lowers, 005E0550 is CTime::operator-). Read the code; the csv is add-only. Unquoted
   commas in names broke rows once (0055C730, 00561B00: now quoted).
 - Library bodies live in src/lib; game-element instantiations in src/game (game_arrays, game_lists, game_slots,
-  game_hashes, record_*, library_*). Callers call them by name (libcrt::Hypot ...; no forwarders since C29), and
+  record_*, library_*). Callers call them by name (libcrt::Hypot ...; no forwarders since C29), and
   C14a-d replace the containers with standard ones.
 
 ### The CRT (src/lib/crt*.cpp, namespace `libcrt`; S4, S4a-S4d, S16, S16a, SV7c2)
@@ -1897,20 +1897,14 @@ One body per member over an element policy, `*Abi<T, Policy>` shims with each in
 - **list** (stlp_list, stlp_list_refs: Share + Destroy, counted + release, held engine objects, CString); game records
   in record_lists, the connection's in library_net_lists. Where the original copies uninitialised stack bytes into a
   default element, ours copies zeros (every caller overwrites them).
-- **vector** (S10, S10a; stlp_vector, stlp_vector_refs; record_vectors with `records::Memberwise` in record_members.h;
-  all but stlp_vector gone with C14n, the records' vectors are std).
+- **vector** (S10, S10a; stlp_vector, stlp_vector_refs, record_vectors: all gone with C14n / C14q, the vectors are
+  std).
   `records::IsPlain<T>` decides plain data: never CString, std::string, stlp::vector or arrays of them (an array of
   vectors is trivially copyable to the compiler, so a default record's lists were garbage once: S10b / S10d).
-- **hashtable** (stlp_hash: dword keys, `StringKeyTraits`, `StringFloatTraits`, `StringListTraits`,
-  `DwordObjectTraits`; game_hashes): default 100 -> 193 buckets; node sizes 12 bytes (most; the named variables'
-  CString keys in game.exe), 8 (the dword sets), 20 in game.exe (string keys; ours are sizeof(Node) with std::string
-  keys, the named variables' too), 32 (find_or_insert 004E2E90).
+- **hashtable** (stlp_hash, game_hashes: gone with C14c / C14q; the order is lib::HashMap's, src/lib/hash_map.h).
 - **deque** (stlp_deque: camera view stack 0x24 in 0x1F8-byte nodes, material entries 0x10 in 0x200).
-- **tree** (stlp_tree, stlp_tree_abi `TreeAbi`, stlp_tree_mbs; net_connection_trees, library_trees): SGI 3.x's tree
-  (`_M_insert(x, y, v)`, RET 0x10, the hint insert falls back to `insert_unique(v)`); the node colour is a byte;
-  `stlp::MbsLess` (the keys that were CStrings: the console commands, the help topics) is `_mbscmp < 0`; the
-  sent-ids map compares signed. operator[] of records and attached ids inserts a partly uninitialised value in the
-  original.
+- **tree** (stlp_tree, stlp_tree_abi, stlp_tree_mbs, net_connection_trees, library_trees: gone with C14c / C14q;
+  the maps are std::map, the CString keys' `_mbscmp` order is `str::MbsLess`).
 - **string**: std::string everywhere since C14a (stlp::string and StringAbi are gone).
 - **pair** (stlp_pair), **sort** (stlp_algo.h `stlp::Sort<T, Less, Ops>`: STLport's introsort with median of three by
   reference, unguarded partitions and inserts, heap sort at depth 0, element policies with `Held<T, Ops>`
@@ -2331,25 +2325,3 @@ nothing. Instantiations: the camera's view stack (0x24-byte entries, 14 per 0x1F
 layout) and the material's (0x10-byte entries, 32 per 0x200-byte node; material.h). The members are registered at
 the instantiations' addresses in stlp_deque.cpp through the DequeAbi shims.
 
-### lib/stlp_hash.h
-
-STLport's hashtable (hash_map / hash_set) as compiled into game.exe (docs/notes/standalone.md, section 2); the
-library body the instantiations' own addresses are registered to (stlp_hash.cpp). Layout (0x14 bytes): the hasher,
-key_equal and key extractor (empty, one byte each, then a pad byte), the bucket vector (vector<Node*>,
-stlp_vector.h) and the element count, which STLport keeps in the node allocator's proxy. A node is the next pointer
-followed by the value; its size picks the pool's free list, so each instantiation's node type comes from its
-node-creation code. Order: bucket counts are STLport's primes (NextPrime, stlp.cpp: the first of the 28 primes not
-below the hint, else the last), a key lands in bucket hash(key) % buckets, a new node goes to the head of its
-bucket, and iteration walks the buckets in order and each chain from its head. A rehash (resize) moves each old
-bucket's chain, head first, to the head of its new bucket.
-
-### lib/stlp_tree.h
-
-STLport's red-black tree (_Rb_tree, map, multimap, set) as compiled into game.exe (stlp.h includes it;
-docs/notes/standalone.md, section 2). The STLport of the exe is SGI's 3.x tree: _M_insert(x, y, v) without the
-later hint argument, the hint insert falling back to insert_unique(v), erase(key) through equal_range. A tree is
-0xC bytes: the header node (from the node pool; its parent is the root, its left / right the leftmost / rightmost
-node, red), the element count and the empty compare object (one byte). Nodes are color (a bool: red 0, black 1, in
-a dword whose other bytes are left as the allocation had them), parent, left, right, then the value. The node-only
-algorithms (_Rb_global<bool>: increment, decrement, the rotations and both rebalances) are one body each in
-stlp_tree.cpp, registered at their addresses.
