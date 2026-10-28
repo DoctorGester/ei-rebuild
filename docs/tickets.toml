@@ -3420,6 +3420,14 @@ files = ["tools/check_signatures.py", "include/ei/hook.h", "tools/gen_short_func
 note = "User 2026-10-28: drop check_signatures' --all audit (C20j), and drop the EI_REWRITTEN lines (7,470 in src/ and tests/) that nothing needs; ideally all of them, with the address moved into the EI_RECORD it pairs with. Readers today: check_signatures (62 rewrites at recorded addresses), gen_static_init (game.exe's initialiser list to names), named_data (function pointers in data cells), gen_short_functions, coverage / save_trace / ui_census_report (dev tools mapping traces of the original), progress / dashboard_data (rewritten counts), check_cleanup, check_registrations (.eiorg). For each: does it still need address -> our function, and if so can it come from a small generated or config table (or the EI_RECORD) instead of a line per function? Dev tools that only map traces of the original can go or lose that feature if unused. Dashboard history keeps its old counts. Then delete the lines, .eiorg and check_registrations if nothing is left."
 
 [[ticket]]
+id = "C15a"
+title = "ScriptVars hold ScriptNamedValues: no NamedValues() / Raw() casts"
+group = "cleanup"
+model = "sonnet"
+files = ["src/game/script.h", "src/game/script_array.h"]
+note = "From C15 batch 35: script.h's NamedValues() casts (users in game_lists, script_cleanup, script_construct, script_load) and script_array.h's Raw() view go once ScriptVars holds ScriptNamedValues members (~300 uses). Also left on C15's list after the console batch: the ui_briefing_people speakers_ InsertOverflow view and the brain / trap list views (C21 is done; check whether they are still there)."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"
