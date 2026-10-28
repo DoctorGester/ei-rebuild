@@ -1181,7 +1181,7 @@ id = "SV2c"
 title = "unit_create parted from its golden once in crt.rand"
 group = "verification"
 depends = ["SV2a"]
-note = "Moved to watch 2026-10-15: one parting under load in SV2a's era; not seen in today's main suites."
+note = "Closed 2026-10-28: one parting under load 2026-10-15; not seen since."
 
 [[ticket]]
 id = "SV5a"
@@ -1308,7 +1308,7 @@ note = "SendResume's slot returns the stream position (our Write returned nothin
 id = "SV6c"
 title = "Startup crash inside AIL_waveOutOpen (EIP 00007EBC), seen once"
 group = "verification"
-note = "SV6b's full suite, zone_gz15h_tornado-vanilla first attempt: C0000005 at 00007EBC on the main thread inside AIL_waveOutOpen (harness MutedWaveOutOpen <- CSoundManager::Open via SoundOpenVerify), before the menu; retry passed. Watch main suites for a repeat (exception at a low address with MutedWaveOutOpen in the stack) before chasing it."
+note = "Closed 2026-10-28: seen once 2026-10-15; not seen in any main suite since."
 
 [[ticket]]
 id = "SV2d"
@@ -1676,7 +1676,7 @@ group = "verification"
 size = 1
 model = "opus"
 files = ["src/game/unit_client_update.cpp", "src/game/unit_client_animation.cpp", "tests/verify/harness_watch.h"]
-note = "SV7c, one-off: vanilla --no-hooks EI_HEAP_JITTER=3 ui_saveload, record 0 (update 20, main menu): cunit2 unmoco2 flags 0x100004A2 where the golden has 0x100004AA (bit 8, not drawn, which UpdateClient 005341A0 sets at update 4 from the current animation's key: a still idle). Same isaac and crt.rand state, same place, same animation entries. Did not repeat in three fresh j3 reruns, one with EI_WATCH_CUNIT=2,flags, nor in any other of ~3500 jitter / fill runs. Candidate: which menu unit takes which IsaacRandom draw in AdvanceTime 00535B30's long first step (500..600), so the idle's phase at update 4; or a timing effect. Chase with EI_WATCH_CUNIT=2,flags over many runs if it shows again."
+note = "Closed 2026-10-28: one-off under EI_HEAP_JITTER=3, did not repeat; goldens are layout-independent now."
 
 [[ticket]]
 id = "SV7c2"
@@ -1910,19 +1910,19 @@ note = "Rebirth runs no longer linger after quit: the harness answers the starte
 id = "X30"
 title = "sandbox_actions / combat / world vanilla time out once in a while"
 group = "harness"
-note = "waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it."
+note = "Closed 2026-10-28: no vanilla time-outs in the main suites of 2026-10-27/28 (about 15 runs)."
 
 [[ticket]]
 id = "X27"
 title = "CPlayerClient::SendLeave04 state check mismatched once"
 group = "harness"
-note = "1 of 44 effects_bow Rebirth runs, which also timed out."
+note = "Closed 2026-10-28: one of 44 Rebirth runs once; not seen since."
 
 [[ticket]]
 id = "X22"
 title = "render_present crashed once under 16 parallel runs"
 group = "harness"
-note = "Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface."
+note = "Closed 2026-10-28: seen once 2026-10-07 under the old DDraw present path; not seen in any main suite since (dozens of runs)."
 
 [[ticket]]
 id = "I11"
@@ -2374,7 +2374,7 @@ id = "C14"
 title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
-note = "User 2026-10-22: R16i goes first; C14a-d wait."
+note = "Umbrella: C14a strings (running), C14b arrays / lists, C14c maps, C14d archives, C14e aligned arrays, C14f string_view consumers. R16i is done; work happens in the children."
 
 [[ticket]]
 id = "C15"
@@ -2494,7 +2494,7 @@ title = "Render forwarders after R16: DrawMesh / DrawMesh2, ManagerFindObject; C
 group = "cleanup"
 model = "sonnet"
 depends = ["C13b3x"]
-note = "After C13b3x (294 EI_ORIGINAL forwarders). Once the R16 renderer work in src/render / world_client_draw.cpp is merged: (1) originals_render.h DrawMesh / DrawMesh2 -> CTextureDevice::DrawMeshBlocks / DrawMeshBlocks2 (argument lists differ: give the callers the member signature); (2) originals_core.h ManagerFindObject (00403F40): its one caller is world_client_draw.cpp -> static_cast<CBaseManager*>(x)->FindObject(id). Optional: (3) CWndDestroyWindow (007051A1, unreachable in the image) once afxMapHWND (007048B7) and CWnd::Detach (007049A7) are ported. Check with python tools/direct_calls.py --report -v --cast --loose --library after build.cmd verify; --golden after each."
+note = "Closed 2026-10-28 as obsolete: originals_render.h / originals_core.h and the EI_ORIGINAL forwarders are gone (hook retirement, S21); DrawMesh is CTextureDevice::DrawMeshBlocks (C21 batch 30)."
 
 [[ticket]]
 id = "C11a"
@@ -3363,7 +3363,7 @@ note = "User 2026-10-27. 637 forward declarations (class/struct X;) in 124 files
 id = "C31b"
 title = "Port scaffolding Abi types: ArrayAbi / ListAbi / ListTemporary / VectorAbi callers and registrations"
 group = "cleanup"
-note = "C31 part 2 removed the registration-only ListAbi aliases of record_lists, library_net_lists and library_containers (and the HeroRecord / Speaker VectorAbi downcasts). Left: ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (the SerializeThrough loaders, which game_slots.h's CompiledCollection vtable slots call), 56 stlp::VectorAbi (record_vectors.h's per-record InsertOverflow registrations, static_lists / unit_db_destroy / world_briefing Destruct). Their aliases are used once, only for an EI_REWRITTEN line; the Serialize / Destruct members are reached through the C28o CArray/CList vtable tags, so do them with C28o / C14b."
+note = "Do with C28o / C14b (after C14a): ~96 ArrayAbi uses (mfc_array.h, mfc_list.h, mfc_slots.h, game_arrays.h, game_slots.h, record_arrays.h), 52 ListAbi (game_lists.h, game_slots.h), 21 ListTemporary (SerializeThrough loaders), 56 stlp::VectorAbi (record_vectors.h, static_lists / unit_db_destroy / world_briefing Destruct); their Serialize / Destruct members are reached through the CArray / CList vtable tags."
 
 [[ticket]]
 id = "C14f"
@@ -3395,7 +3395,7 @@ title = "First standalone exe"
 group = "standalone"
 depends = ["SV5"]
 size = 20
-note = "Umbrella for S1-S17 (standalone.md section 2: an address image rebuilt from game.exe's data with JMP stubs to our code, so forwarders, raw data addresses and the exe's vtables keep working before C12 / C13). Ready now and parallel with SV and C11: S1 (first), S2, S3, library S4-S13 (one per family; at most one worker per header). After S1: S14, S15. Then S16 first boot, S17 suite. S18 (own data) after C13."
+note = "Closed 2026-10-28: the umbrella is finished; S18 (own data) done 2026-10-21, the standalone exe runs both suites."
 
 [[ticket]]
 id = "U"
@@ -3580,7 +3580,7 @@ title = "Short getters as named members"
 group = "standalone"
 size = 0.5
 files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
-note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis, reading the object as dwords (the vtable each sits in is named in the comment). Where the class is declared in src/game, register a member getter instead (EI_REPLACE_SHORT with a method) and drop the generic one; gen_short_functions.py then skips it as ported elsewhere only if the check accepts EI_REPLACE_SHORT on methods. Cleanup only, no effect on the image."
+note = "30 LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis uses left that read objects as dwords. Where the class is declared in src/game, give it a named member getter and call that instead. (Registrations no longer matter: C20e made short_functions.cpp all EI_REWRITTEN.)"
 
 [[ticket]]
 id = "S3a"
@@ -3626,7 +3626,7 @@ title = "Standalone library: the unreached MFC pieces (CPtrList, CPtrArray, CMap
 group = "standalone"
 size = 1
 files = ["src/lib/mfc_string.cpp", "src/lib/mfc_coll.cpp"]
-note = "S5 ported what our code reaches. Left as original code: CPtrList (vtable 00746FE8), CPtrArray (00746FB0), CMapPtrToPtr (0074689C), CString Delete / Insert / Replace / MakeUpper (00700EEC) / MakeReverse / FreeExtra / Span* / AnsiToOem / wide constructors / FormatMessage / TrimLeft(set). Port only if the standalone exe needs them; a library start needs a row in config/extra_function_sizes.csv + function_sizes.inc before the installer hooks it. tests/vectors/replay_mfc.cpp could use mfc::impl::CString. standalone.md section 3 (S5)."
+note = "Closed 2026-10-28 as obsolete: the standalone image holds no game.exe code any more (code cells retired, C20 batch 1), so 'left as original code' no longer exists; anything our code needs is in src/lib or fails to link."
 
 [[ticket]]
 id = "S4a"
@@ -4251,7 +4251,7 @@ id = "U6"
 title = "UTF-8 leftovers: DrawWrappedText breaks long words, Cyrillic install folder (profile calls)"
 group = "standalone"
 model = "sonnet"
-note = "From U5 (2026-10-21): with EI_UTF8 on, DrawWrappedText still does not break inside a long word (as the original); the profile calls (CIniFile, GetPrivateProfile*, WritePrivateProfileString) stay ANSI, so a Cyrillic install folder is unchecked and the ini files' code page undecided. The case table covers 1251/1252 letters only."
+note = "From U5 (2026-10-21): with EI_UTF8 on, DrawWrappedText still does not break inside a long word (as the original); the profile calls (CIniFile, GetPrivateProfile*, WritePrivateProfileString) stay ANSI, so a Cyrillic install folder is unchecked and the ini files' code page undecided. The case table covers 1251/1252 letters only. Do with C34 (UTF-8 always): the profile calls and ini code page are one of its boundaries."
 
 [[ticket]]
 id = "ST1a"
