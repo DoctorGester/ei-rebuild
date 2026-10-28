@@ -4,7 +4,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "lib/crt.h"
 #include "ui.h"
 #include "world_data.h"
 #include "game_singletons.h"

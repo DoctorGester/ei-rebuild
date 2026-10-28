@@ -5,13 +5,11 @@
 #include "script.h"
 #include "spell.h"
 #include "spell_effect_internal.h"
-#include "game_strings.h"
 #include "combat.h"
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "world_effect.h"
-#include "game_data.h"
 
 #include <list>
 

@@ -4,9 +4,7 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
-#include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 
 #include <cstring>
 #include <memory>

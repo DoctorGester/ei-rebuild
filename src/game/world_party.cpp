@@ -23,7 +23,6 @@
 #include <list>
 #include <vector>
 #include "ei/x87.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

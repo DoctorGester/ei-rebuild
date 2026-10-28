@@ -15,7 +15,6 @@
 #include <memory>
 #include <vector>
 #include "model.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

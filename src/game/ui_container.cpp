@@ -4,8 +4,6 @@
 #include "ui.h"
 
 #include "ei/x87.h"
-#include "lib/containers.h"
-#include "game_data.h"
 
 namespace {
 // The scene renderer: the last frame's length in milliseconds.

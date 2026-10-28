@@ -14,7 +14,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
-#include "game_data.h"
 
 namespace strmap {
 

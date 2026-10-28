@@ -21,7 +21,6 @@
 #include <vector>
 #include <cstddef>
 #include <string>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 namespace {

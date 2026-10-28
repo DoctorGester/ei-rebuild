@@ -2,7 +2,6 @@
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "ui_briefing.h"
 #include "world_glue.h"
-#include "game_strings.h"
 #include "plugin_fixes.h"
 
 #include "item_db_text.h"

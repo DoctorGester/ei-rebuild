@@ -3,7 +3,6 @@
 #include "party.h"
 #include "ui.h"
 #include "ui_camp.h"
-#include "game_strings.h"
 
 #include "ui_screens.h"
 #include "unit.h"

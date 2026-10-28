@@ -12,7 +12,6 @@
 #include <string>
 #include "lib/crt.h"
 #include <cstdint>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

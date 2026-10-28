@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <cstdint>
 #include "lib/hash_map.h"
-#include "game_data.h"
 
 #include <list>
 #include <vector>

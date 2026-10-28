@@ -4,7 +4,6 @@
 #include "ui.h"
 #include "options.h"
 #include "ui_briefing.h"
-#include "game_strings.h"
 
 #include "camera.h"
 #include "core_streams.h"
@@ -16,7 +15,6 @@
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

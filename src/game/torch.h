@@ -6,7 +6,6 @@
 // map_object_create.cpp. A real virtual class: the compiler makes its vtable.
 
 #include "map_object.h"
-#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>

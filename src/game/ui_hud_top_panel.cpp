@@ -2,7 +2,6 @@
 // to page 0 for picked-up items and money. The page display and layout are
 // in ui_hud_panels.cpp. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "maths.h"
@@ -10,7 +9,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

@@ -6,10 +6,8 @@
 // rounding boundary. floor, ceil and sqrt are exact or correctly rounded in any implementation.
 #include "script_addon_handlers.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "random.h"
-#include "game_data.h"
 
 #include <cmath>
 

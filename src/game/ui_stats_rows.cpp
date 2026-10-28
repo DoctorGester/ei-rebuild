@@ -6,7 +6,6 @@
 #include "item_db_text.h"
 #include "unit.h"
 
-#include "ei/x87.h"
 #include <cstdint>
 #include <string>
 #include "game_singletons.h"

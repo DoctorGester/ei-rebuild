@@ -8,8 +8,6 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 
-#include "lib/crt.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

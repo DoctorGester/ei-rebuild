@@ -11,7 +11,6 @@
 
 #include "camera.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>

@@ -7,7 +7,6 @@
 // Field() keeps that behaviour (a real read through the null record) rather than inventing a default.
 
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <bit>
 #include <cstddef>

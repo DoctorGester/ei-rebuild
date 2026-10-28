@@ -1,7 +1,6 @@
 // Unit AI modes: the simple virtuals of Guard, Patrol, Sentry, Follow, Suspection, Aggression, CorpseWatcher,
 // Fear and Player.
 #include "combat.h"
-#include "game_data.h"
 #include "unit_ai.h"
 
 #include "player_messages.h"

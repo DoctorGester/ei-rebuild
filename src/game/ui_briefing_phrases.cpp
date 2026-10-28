@@ -24,7 +24,6 @@
 #include "lib/crt.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

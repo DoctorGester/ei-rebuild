@@ -12,7 +12,6 @@
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <richedit.h>

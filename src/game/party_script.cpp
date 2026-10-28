@@ -3,7 +3,6 @@
 #include "party_records.h"
 #include "player_messages.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

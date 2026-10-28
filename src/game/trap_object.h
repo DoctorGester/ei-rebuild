@@ -8,7 +8,6 @@
 // Names provisional; trap_object.cpp.
 
 #include "map_object.h"
-#include "lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>

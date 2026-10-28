@@ -9,7 +9,6 @@
 #include "unit.h"
 
 #include "unit_db.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>

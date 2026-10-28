@@ -5,12 +5,9 @@
 // and .anm only when they opened), and the cached entry is looked up again. See docs/notes/models.md.
 #include "figure_manager.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include "game_data.h"
 
 namespace {
 

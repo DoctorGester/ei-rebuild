@@ -3,10 +3,8 @@
 // game's file calls did.
 #include "dib.h"
 #include "app.h"
-#include "game_strings.h"
 
 #include "lib/file_io.h"
-#include "lib/crt.h"
 
 #include <cstdint>
 

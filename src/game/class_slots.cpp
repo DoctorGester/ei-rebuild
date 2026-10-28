@@ -9,7 +9,6 @@
 
 #include "lib/crt.h"
 #include <string>
-#include "game_data.h"
 
 #include <cstdint>
 #include <new>

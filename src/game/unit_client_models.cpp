@@ -5,7 +5,6 @@
 #include "resource.h"
 #include "texture.h"
 #include "unit_client_models.h"
-#include "game_strings.h"
 
 #include "item_db.h"
 #include "map_object_figures.h"
@@ -20,7 +19,6 @@
 #include <string>
 
 #include "ei/x87.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

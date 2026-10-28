@@ -12,8 +12,6 @@
 
 #include "lib/crt.h"
 
-#include "game_data.h"
-
 #include <cstring>
 #include <initializer_list>
 #include <memory>

@@ -9,7 +9,6 @@
 #include "text_split.h"
 #include "ui_native.h"
 
-#include "lib/crt.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

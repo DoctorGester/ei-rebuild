@@ -11,7 +11,6 @@
 
 #include <cstdint>
 
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <bit>

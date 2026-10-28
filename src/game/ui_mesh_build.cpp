@@ -10,7 +10,6 @@
 #include "lib/containers.h"
 #include "world_data.h"
 #include "ei/x87.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

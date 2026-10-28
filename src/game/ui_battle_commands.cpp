@@ -16,12 +16,10 @@
 #include "world.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

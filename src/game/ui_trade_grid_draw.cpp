@@ -5,7 +5,6 @@
 // its price (the owner's price virtual with the kind). Last the depth buffer is cleared to 1 again. The new
 // renderer (src/render) gets the depth clears. See docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
 #include "item.h"
-#include "game_strings.h"
 #include "ui.h"
 #include "texture.h"
 #include "ui_camp.h"
@@ -16,7 +15,6 @@
 #include <string>
 #include "render/render.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

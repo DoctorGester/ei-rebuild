@@ -4,10 +4,7 @@
 // script_save.cpp), so those hooks fire only for a caller still in the exe. All main thread.
 #include "base_manager.h"
 #include "combat.h"
-#include "core_refcount.h"
-#include "core_streams.h"
 #include "effects.h"
-#include "engine_object.h"
 #include "item.h"
 #include "map_object.h"
 #include "material.h"

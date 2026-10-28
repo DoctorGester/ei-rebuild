@@ -8,8 +8,6 @@
 #include "ui_screens.h"   // MpHeroRecord (the party outside a game)
 #include "unit.h"
 
-#include "game_data.h"
-
 #include <cstdint>
 
 namespace {

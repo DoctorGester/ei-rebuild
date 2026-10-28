@@ -4,7 +4,6 @@
 // stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "ui.h"
 #include "ui_camp.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -18,7 +17,6 @@
 #include <initializer_list>
 #include "unit.h"
 #include "combat.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

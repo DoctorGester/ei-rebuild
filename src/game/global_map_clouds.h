@@ -5,8 +5,6 @@
 // into the second while the third is built a slice per step from four layers of value noise; every 16 steps
 // they rotate. The blend goes through a 256-entry ARGB4444 alpha ramp.
 
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 

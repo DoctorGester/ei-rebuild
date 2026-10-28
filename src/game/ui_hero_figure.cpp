@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include <cstdint>
 #include <string>
-#include "game_data.h"
 #include "lib/text_case.h"
 
 #include <vector>

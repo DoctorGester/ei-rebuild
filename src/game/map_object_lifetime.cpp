@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <cstring>
 
-#include "game_data.h"
 #include "lib/vecmath.h"
 #include "game_singletons.h"
 

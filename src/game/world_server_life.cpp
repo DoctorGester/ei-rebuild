@@ -17,7 +17,6 @@
 #include <string>
 
 #include <memory>
-#include "game_data.h"
 
 namespace {
 

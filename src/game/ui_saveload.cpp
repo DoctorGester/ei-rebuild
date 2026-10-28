@@ -30,7 +30,6 @@
 #include "render/render.h"
 #include "game_flow_data.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"

@@ -19,11 +19,8 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "lib/crt.h"
-
 #include "ei/x87.h"
 #include "world_effect.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <bit>

@@ -8,7 +8,6 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
-#include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

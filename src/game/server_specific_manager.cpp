@@ -5,8 +5,6 @@
 #include "unit.h"   // CMapObjectServer
 #include "player_messages.h"
 
-#include "lib/crt.h"
-
 #include <new>
 
 #undef GetClassName   // CEngineObject::GetClassName (engine_object.h)

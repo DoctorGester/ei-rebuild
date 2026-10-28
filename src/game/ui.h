@@ -11,7 +11,6 @@
 #include "debug_panel.h"
 #include "engine_object.h"
 #include "figure_mesh.h"
-#include "game_data.h"
 #include "game_strings.h"   // game::EmptyText
 #include "item_db.h"
 #include "object_tables.h"   // g_keyActions

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "maths.h"
-#include "lib/crt.h"
 #include "map_object.h"
 
 #undef GetClassName   // windows.h's macro would rename CEngineObject::GetClassName
@@ -12,7 +11,6 @@
 #include <cstdint>
 #include <string>
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <vector>

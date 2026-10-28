@@ -10,14 +10,12 @@
 #include "unit.h"
 
 #include "lib/static_object.h"
-#include "lib/crt.h"
 
 #include <cstring>
 #include <initializer_list>
 #include <new>
 #include <string>
 #include "world_data.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "world.h"
 

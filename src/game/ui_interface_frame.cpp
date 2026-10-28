@@ -5,7 +5,6 @@
 #include "ui.h"
 
 #include "console.h"
-#include "lib/crt.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

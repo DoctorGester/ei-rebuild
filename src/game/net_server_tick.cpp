@@ -4,7 +4,6 @@
 #include "net_messages.h"
 #include "net_connection.h"
 #include "options.h"
-#include "game_data.h"
 #include "game_strings.h"
 #include "core_refcount.h"
 

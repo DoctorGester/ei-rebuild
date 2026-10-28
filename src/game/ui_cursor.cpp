@@ -3,9 +3,7 @@
 // the new renderer's memory (DirectPixels). (The software cursor's blit, which combined image, mask and
 // background through Locks of the holders' surfaces, has no caller of ours since: the new renderer draws the
 // cursor, ui_cursor_frame.cpp.)
-#include "app.h"
 #include "ui_cursor.h"
-#include "game_strings.h"
 #include "dx_surface.h"
 #include "texture.h"
 
@@ -14,7 +12,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 
 // --- a cursor image ------------------------------------------------------------------------------

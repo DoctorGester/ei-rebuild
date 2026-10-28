@@ -9,8 +9,6 @@
 #include "unit.h"
 #include "unit_create.h"
 
-#include "lib/crt.h"
-
 namespace {
 constexpr int kNoKey = -123;                    // the object asks for no key
 constexpr float kNoSpeed = 0.0f;

@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <vector>

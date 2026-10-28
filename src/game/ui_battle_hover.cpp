@@ -17,7 +17,6 @@
 #include "lib/text_case.h"
 
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 namespace {

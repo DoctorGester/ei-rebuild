@@ -11,7 +11,6 @@
 #include "lib/crt.h"
 #include "lib/str.h"
 #include "random.h"
-#include "game_data.h"
 #include "system_text.h"
 
 #include <cstdio>

@@ -8,15 +8,11 @@
 #include "core_streams.h"
 #include "engine_object.h"
 
-#include "lib/containers.h"
-#include "lib/crt.h"
-
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <vector>
-#include "game_data.h"
 
 // A set of world objects; the game compares and sorts them by address.
 using ObjectSet = std::vector<CEngineObject*>;

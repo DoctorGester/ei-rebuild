@@ -3,10 +3,8 @@
 #include "game_strings.h"
 
 #include "console.h"
-#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "lib/str.h"
 
 #include <cstdlib>

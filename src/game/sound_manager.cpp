@@ -17,7 +17,6 @@
 #include <cstring>
 #include <memory>
 #include <new>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 

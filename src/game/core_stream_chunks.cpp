@@ -4,8 +4,6 @@
 
 #include "asset_text.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <string>
 

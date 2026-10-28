@@ -11,7 +11,6 @@
 #include <cstdint>
 #include "maths.h"
 #include "model.h"   // ClipBounds
-#include "game_data.h"
 
 #include <cstddef>
 #include <list>

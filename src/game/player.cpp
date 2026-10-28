@@ -11,7 +11,6 @@
 
 #include "lib/crt.h"
 
-#include "game_data.h"
 #include "world.h"
 #include "lib/str.h"
 

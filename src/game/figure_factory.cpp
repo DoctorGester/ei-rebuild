@@ -10,8 +10,6 @@
 #include "map_object_figures.h"
 #include "sky_object.h"
 
-#include "lib/containers.h"
-#include "lib/crt.h"
 #include "ui.h"   // CUiMesh
 
 #include <cstddef>

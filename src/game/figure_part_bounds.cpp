@@ -6,7 +6,6 @@
 #include "model.h"         // CSceneRenderer
 #include "renderer_lines.h"   // LineBatch
 
-#include "lib/crt.h"
 #include "engine_object.h"
 
 #include <cstdint>

@@ -13,7 +13,6 @@
 #include <cstring>
 
 #include <list>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 namespace {

@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 
 #include <bit>
 #include <intrin.h>

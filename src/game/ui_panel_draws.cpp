@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <string>
 #include "render/render.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

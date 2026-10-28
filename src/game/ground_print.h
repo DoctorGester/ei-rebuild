@@ -9,7 +9,6 @@
 
 #include "ground_decal.h"   // DecalTexCoord
 
-#include "lib/containers.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>

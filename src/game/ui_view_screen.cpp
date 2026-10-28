@@ -9,10 +9,8 @@
 #include "ui_cursor.h"
 #include "world.h"
 
-#include "lib/crt.h"
 #include <cstdint>
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <vector>

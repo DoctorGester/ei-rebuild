@@ -10,8 +10,6 @@
 #include "map_object_figures.h"
 #include "object_tables.h"
 
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <string>

@@ -14,7 +14,6 @@
 #include "lib/hash_map.h"
 #include "lib/static_object.h"
 #include "unit_client_models.h"
-#include "game_data.h"
 
 namespace acks {
 

@@ -1,7 +1,6 @@
 // Small leftovers: the class names and ids of the animation
 // classes, the scene renderer's frame time and a vector copy.
 #include "map_object_animation.h"
-#include "game_strings.h"
 #include "map_object_figures.h"
 #include "model.h"
 

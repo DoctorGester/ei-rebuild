@@ -2,9 +2,6 @@
 #include "console.h"
 #include "ui_gdi.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <new>
 
 namespace console {

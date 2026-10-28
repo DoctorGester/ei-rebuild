@@ -3,7 +3,6 @@
 // See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
 #include "ai_grids.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <vector>

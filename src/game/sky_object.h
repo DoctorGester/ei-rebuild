@@ -10,8 +10,6 @@
 #include "figure_mesh.h"   // CPlainFigureMesh
 #include "model.h"         // Matrix4, CSceneRenderer
 
-#include "lib/containers.h"
-#include "lib/crt.h"
 #include <cstddef>
 
 #include <cstdint>

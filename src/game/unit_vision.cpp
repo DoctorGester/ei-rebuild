@@ -8,7 +8,6 @@
 #include "world.h"
 #include "game_singletons.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 
 #include <cstdint>

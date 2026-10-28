@@ -20,12 +20,10 @@
 #include "unit_db.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 #include "lib/text_case.h"
 #include "text_split.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
 

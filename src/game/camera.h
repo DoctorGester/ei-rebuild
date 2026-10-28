@@ -9,7 +9,6 @@
 #include "maths.h"
 
 #include "ei/hook.h"
-#include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

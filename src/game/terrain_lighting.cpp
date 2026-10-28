@@ -11,7 +11,6 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "render/render.h"
 
 #include <cstdint>

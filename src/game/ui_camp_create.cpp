@@ -4,7 +4,6 @@
 #include "app.h"
 #include "unit_create.h"
 #include "device.h"   // the old device's calls
-#include "game_strings.h"
 #include "ui_camp.h"
 
 #include "class_templates.h"
@@ -31,7 +30,6 @@
 #include <string>
 #include "world_glue.h"
 #include "render/render_state.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "party_manager.h"
 

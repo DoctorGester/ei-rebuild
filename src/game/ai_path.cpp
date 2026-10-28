@@ -1,7 +1,6 @@
 // Path search on the AI map: snapping the target to a reachable cell, planning, and feeding the
 // planned cells to the unit's steering.
 #include "ai_map.h"
-#include "game_data.h"
 
 #include "ei/x87.h"
 #include <cstdint>

@@ -1,7 +1,6 @@
 // The local view's orders (CPlayerClient): the HUD and the battle screen queue them as messages for the
 // server (CPlayerServer's handlers, player_server_handlers.cpp). Each is a type byte and a payload written to
 // the request stream; blocks the original writes in one piece are written in one piece here too.
-#include "lib/static_object.h"
 #include "player_client.h"
 
 #include "item.h"
@@ -9,7 +8,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstring>

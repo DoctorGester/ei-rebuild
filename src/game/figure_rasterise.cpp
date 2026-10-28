@@ -11,7 +11,6 @@
 
 #include "ei/x87.h"
 #include "lib/containers.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstdlib>

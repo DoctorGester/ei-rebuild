@@ -4,8 +4,6 @@
 #include "lib/static_object.h"
 
 #include "combat.h"
-#include "core_maths.h"
-#include "game_flow_data.h"
 #include "net_classes.h"
 #include "net_link.h"
 #include "player_manager.h"
@@ -13,10 +11,6 @@
 #include "script.h"
 #include "unit.h"
 #include "world_data.h"
-
-#include "lib/crt.h"
-
-#include "game_data.h"
 
 #include <cstring>
 #include <memory>

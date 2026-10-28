@@ -6,10 +6,6 @@
 #include "map_object_shadow.h"   // WoundsMaterial: the client half's
 #include "model.h"               // CRenderPreset: the wounds material's
 
-#include "lib/crt.h"
-
-#include "game_data.h"
-
 #include <cstring>
 #include <memory>
 

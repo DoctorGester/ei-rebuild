@@ -8,8 +8,6 @@
 #include "net_connection.h"
 #include "net_messages.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 
 namespace netlink {

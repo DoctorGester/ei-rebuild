@@ -7,8 +7,6 @@
 #include "unit_ai.h"     // AIRef, AICallRecord
 #include "world.h"
 
-#include "lib/crt.h"
-
 namespace {
 
 // The segment part of a unit's motion (UnitMotion + 0x50 on), as its constructors take it.

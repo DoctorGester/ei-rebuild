@@ -9,7 +9,6 @@
 #include "map_object_figures.h"   // CObject3D, CObject3DSpecific (the base half)
 #include "maths.h"
 
-#include "lib/containers.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

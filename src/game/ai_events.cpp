@@ -16,7 +16,6 @@
 #include <new>
 #include <string>
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <list>

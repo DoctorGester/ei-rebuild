@@ -5,13 +5,11 @@
 #include "material.h"
 #include "model.h"
 
-#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "render/render.h"   // SetInterfaceDraw
 #include "ui_widescreen.h"
 #include "world_class_slots.h"   // I3DFigureClassName / Id
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

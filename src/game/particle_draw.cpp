@@ -6,10 +6,8 @@
 
 #include "engine_object.h"
 
-#include "lib/crt.h"
 #include "lib/intro_sort.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "camera.h"
 #include "lib/static_object.h"
 

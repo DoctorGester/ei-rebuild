@@ -1,14 +1,11 @@
 // Small members of the interface classes: member constructors and assignments, default virtual answers,
 // one-line setters and handlers. See ui.h, ui_camp.h, ui_screens.h and docs/notes/ui.md.
 #include "console.h"
-#include "game_strings.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
-
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstdlib>

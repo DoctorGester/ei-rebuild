@@ -6,7 +6,6 @@
 #include "texture.h"         // CTextureDevice
 
 #include "ei/x87.h"
-#include "lib/containers.h"
 #include "lib/gameapi.h"
 
 #include <cstdint>

@@ -4,9 +4,6 @@
 #include "net_coder.h"
 #include "net_messages.h"
 
-#include "lib/crt.h"
-#include "game_strings.h"
-
 #include <cstring>
 
 namespace net {

@@ -16,7 +16,6 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 

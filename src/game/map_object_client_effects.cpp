@@ -19,7 +19,6 @@
 #include <string>
 #include <utility>
 
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 

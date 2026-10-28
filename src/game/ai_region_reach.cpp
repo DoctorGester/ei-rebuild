@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 #include "lib/static_object.h"
 
 #include <cstdlib>

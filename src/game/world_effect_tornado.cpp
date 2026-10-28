@@ -2,7 +2,6 @@
 // See world_effect.h and docs/notes/effects.md ("Tornado").
 #include "effects.h"
 #include "world_effect.h"
-#include "game_data.h"
 
 #include "game_strings.h"
 #include "map_object.h"

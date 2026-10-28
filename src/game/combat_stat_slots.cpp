@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "ei/x87.h"
-#include "game_data.h"
 #include "logic_settings.h"
 
 #include <cmath>

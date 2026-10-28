@@ -13,8 +13,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "game_data.h"
-
 #include <cstdint>
 #include <string>
 

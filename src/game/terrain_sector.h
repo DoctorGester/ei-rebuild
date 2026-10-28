@@ -15,8 +15,6 @@
 
 #include "lib/vecmath.h"
 
-#include "lib/containers.h"
-
 class CLight;
 class CTransformPipeline;
 

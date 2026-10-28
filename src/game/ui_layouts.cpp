@@ -8,7 +8,6 @@
 #include "sound.h"
 #include "text_helpers.h"
 #include "ui.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"

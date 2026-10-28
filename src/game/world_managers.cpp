@@ -11,8 +11,6 @@
 #include "resource_manager.h"
 #include "spell.h"
 
-#include "lib/crt.h"
-
 #include <cstdint>
 #include <new>
 

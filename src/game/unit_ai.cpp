@@ -5,7 +5,6 @@
 
 #include "ai_alarm.h"
 #include "combat.h"
-#include "game_data.h"
 #include "random.h"
 
 #include "ei/x87.h"

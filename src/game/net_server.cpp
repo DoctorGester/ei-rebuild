@@ -6,7 +6,6 @@
 #include "net_connection.h"
 
 #include "core_streams.h"
-#include "game_data.h"
 
 #include <cstring>
 

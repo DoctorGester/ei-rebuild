@@ -6,7 +6,6 @@
 // the camera, the party manager and the folders.
 // The global random generator is IsaacRandom::Global().
 
-#include "game_data.h"
 #include <string>
 #include "lib/static_object.h"
 

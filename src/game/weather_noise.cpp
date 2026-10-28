@@ -5,7 +5,6 @@
 // bits at start-up) and are rounded to a float only where the game stores one.
 #include "weather_noise.h"
 
-#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/vecmath.h"
 

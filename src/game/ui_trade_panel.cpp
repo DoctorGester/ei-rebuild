@@ -3,7 +3,6 @@
 #include "item_db_text.h"
 #include "world.h"
 #include "ui_camp.h"
-#include "game_strings.h"
 #include "party.h"
 #include "unit.h"
 
@@ -17,7 +16,6 @@
 #include "core_maths.h"
 #include "unit_db.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 

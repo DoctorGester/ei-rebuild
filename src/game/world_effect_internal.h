@@ -12,7 +12,6 @@
 #include "game_singletons.h"
 
 #include "ei/hook.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 #include <concepts>

@@ -8,7 +8,6 @@
 #include <cstring>
 #include <new>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "options.h"
 #include "lib/str.h"

@@ -1,7 +1,6 @@
 // Sorting predicates used by the world code and the game interface glue functions. See world.h.
 #include "world.h"
 
-#include "address_order.h"
 #include "base_manager.h"
 #include "core_maths.h"
 #include "link_figure.h"

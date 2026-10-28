@@ -18,7 +18,6 @@
 #include "engine_object.h"
 #include "lib/static_object.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 using BOOL = int;
 

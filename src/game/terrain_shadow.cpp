@@ -8,7 +8,6 @@
 
 #include "ei/x87.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

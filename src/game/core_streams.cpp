@@ -6,7 +6,6 @@
 #include "asset_text.h"
 
 #include "lib/containers.h"
-#include "lib/crt.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

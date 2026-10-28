@@ -5,9 +5,6 @@
 #include "console.h"
 #include "net_link.h"
 
-#include "../lib/crt.h"
-#include "game_data.h"
-
 #include <new>
 
 

@@ -16,7 +16,6 @@
 #include "lib/nan_audit.h"
 #include "lib/crt.h"
 #include <cstring>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "logic_settings.h"
 

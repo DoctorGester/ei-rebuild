@@ -8,7 +8,6 @@
 // renderer does not decode (a format it does not know, or the renderer off after a failure) keeps
 // its holder and shows nothing. See docs/notes/renderer.md (section 7).
 #include "texture.h"
-#include "game_strings.h"
 
 #include "lib/file_io.h"
 #include "lib/crt.h"

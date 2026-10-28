@@ -12,7 +12,6 @@
 #include "dx_surface.h"
 #include "game_strings.h"
 
-#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <cstdint>

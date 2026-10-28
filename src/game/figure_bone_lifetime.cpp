@@ -3,10 +3,6 @@
 // links them. See docs/notes/map_objects.md.
 #include "map_object_figures.h"   // FigureBone
 
-#include "lib/crt.h"
-#include "lib/vecmath.h"
-#include "game_data.h"
-
 #include <cstdint>
 #include <new>
 

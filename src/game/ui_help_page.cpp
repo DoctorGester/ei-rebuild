@@ -4,7 +4,6 @@
 // battle screen's panels to the screen's edges), reproduced here. Rebirth-patched callees: the surface's
 // text, the sprites' Place, SetRectangle and SetFrame, the regions' SetRect. See docs/notes/items_spells.md.
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
@@ -18,7 +17,6 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

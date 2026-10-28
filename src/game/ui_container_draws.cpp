@@ -15,7 +15,6 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "render/render_state.h"
-#include "game_data.h"
 
 #include <cstdint>
 

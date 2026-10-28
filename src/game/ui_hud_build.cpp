@@ -5,17 +5,14 @@
 // them run, layout constants moved by EdgeShift). See ui.h, docs/notes/ui.md ("Battle screen") and
 // docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
-#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "ui_widescreen.h"
 
-#include "ei/rebirth.h"
 #include <cstdint>
 #include <string>
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <vector>

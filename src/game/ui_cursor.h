@@ -6,7 +6,6 @@
 
 #include "lib/containers.h"
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstdint>
 

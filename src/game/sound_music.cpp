@@ -14,7 +14,6 @@
 #include "../lib/text_case.h"
 #include "random.h"
 
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 #include "world_data.h"

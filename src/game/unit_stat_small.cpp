@@ -9,7 +9,6 @@
 #include "unit_create.h"
 #include "unit_db.h"
 
-#include "game_data.h"
 #include "logic_settings.h"
 
 namespace {

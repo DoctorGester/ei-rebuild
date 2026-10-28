@@ -15,9 +15,7 @@
 #include "unit_ai.h"
 #include "world.h"
 
-#include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/str.h"
 #include "lib/text_case.h"

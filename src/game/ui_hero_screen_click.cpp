@@ -22,7 +22,6 @@
 #include "map_object_figures.h"
 #include "world.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "game_singletons.h"
 #include "lib/str.h"

@@ -3,8 +3,6 @@
 // table, constructs the database again and loads it).
 #include "unit_db.h"
 
-#include "lib/crt.h"
-
 #include <cstddef>
 #include <cstdlib>
 #include <memory>

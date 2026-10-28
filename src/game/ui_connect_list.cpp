@@ -6,7 +6,6 @@
 #include "asset_text.h"
 #include "ui.h"
 #include "ui_screens.h"
-#include "game_strings.h"
 
 #include "net_classes.h"
 #include "ui_gdi.h"

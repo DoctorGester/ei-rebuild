@@ -16,7 +16,6 @@
 #include <cstring>
 #include <memory>
 #include <vector>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
 #include "world_data.h"

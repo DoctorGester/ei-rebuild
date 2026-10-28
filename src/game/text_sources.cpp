@@ -6,8 +6,6 @@
 #include "asset_text.h"
 #include "engine_object.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 #include <iterator>
 #include <string>

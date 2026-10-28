@@ -12,7 +12,6 @@
 #include "render/render_state.h"
 #include "render/render.h"
 #include "device_buffers.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 

@@ -6,7 +6,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "game_data.h"
 
 struct TLVertex {
     float x, y, z, rhw;

@@ -4,8 +4,6 @@
 #include "ui.h"
 #include "ui_screens.h"
 
-#include "game_data.h"
-
 #include <cstdint>
 
 namespace {

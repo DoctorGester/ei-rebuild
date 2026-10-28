@@ -12,7 +12,6 @@
 #include <cstring>
 #include "map_object.h"
 #include "world.h"
-#include "game_data.h"
 #include "ai_map.h"
 
 #include <concepts>

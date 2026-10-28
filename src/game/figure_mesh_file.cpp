@@ -12,7 +12,6 @@
 #include "object_maths.h"
 
 #include <cstring>
-#include "game_data.h"
 
 namespace {
 

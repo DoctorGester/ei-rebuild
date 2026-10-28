@@ -4,9 +4,6 @@
 
 #include "ai_map.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 class ScopedPath {
 public:
     ScopedPath() {

@@ -6,9 +6,6 @@
 #include "net_delta.h"
 #include "server_specific_manager.h"
 
-#include "lib/crt.h"
-#include "game_data.h"
-
 #include <initializer_list>
 #include <new>
 

@@ -4,7 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "game_data.h"
 
 using BOOL = int;
 

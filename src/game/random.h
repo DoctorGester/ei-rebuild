@@ -1,7 +1,5 @@
 #pragma once
 
-#include "game_data.h"
-
 #include <cstdint>
 
 // The game's random number generator: Bob Jenkins' ISAAC (RANDSIZL = 8), the reference

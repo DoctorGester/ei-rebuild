@@ -20,7 +20,6 @@
 #include <cstring>
 #include <memory>
 #include <vector>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
 

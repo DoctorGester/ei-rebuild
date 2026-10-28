@@ -7,7 +7,6 @@
 #include <cstring>
 #include <string>
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <vector>

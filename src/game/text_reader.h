@@ -8,7 +8,6 @@
 // whose first word starts with "##" is a comment. All functions are __thiscall on the manager.
 
 #include "item_db_text.h"
-#include "console.h"
 
 // Clears the current text. Returns 1.
 BOOL TextClose(CTextManager* self);

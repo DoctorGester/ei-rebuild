@@ -10,7 +10,6 @@
 #include "render/render.h"
 #include "texture.h"
 #include "world.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <bit>

@@ -15,7 +15,6 @@
 #include <cstring>
 
 #include <list>
-#include "game_data.h"
 
 // The unit shape cache. Here, not in ai_shape_cache.cpp, so the path vectors' replay links it.
 constinit lib::StaticObject<UnitShapeCache> g_unitShapes = /*007C2F70*/ {};

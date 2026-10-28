@@ -2,9 +2,6 @@
 // item_db.h and docs/notes/items_spells.md ("Databases").
 #include "item_db.h"
 
-#include "console.h"
-#include "game_data.h"
-
 #include <cstddef>
 #include <cstring>
 #include <memory>

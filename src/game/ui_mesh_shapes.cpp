@@ -6,10 +6,7 @@
 
 #include "figure_mesh.h"
 
-#include "ei/rebirth.h"
-#include "lib/containers.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdint>
 

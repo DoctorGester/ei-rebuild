@@ -12,12 +12,9 @@
 #include "unit.h"
 #include "unit_ai.h"
 
-#include "lib/crt.h"
-
 #include <bit>
 #include <cstring>
 #include <list>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 
 namespace {

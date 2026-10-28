@@ -10,11 +10,9 @@
 #include "ui_screens.h"
 #include "core_streams.h"
 
-#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "item.h"
 #include "party.h"
-#include "game_data.h"
 
 #include <cstdint>
 #include <cstring>

@@ -3,7 +3,6 @@
 // Shared by the spell effects' start and update: helpers, the x87 sequences repeated inline, and small
 // accessors. See docs/notes/items_spells.md.
 
-#include "game_strings.h"
 #include "spell.h"
 #include "world_data.h"
 
@@ -19,11 +18,9 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <list>
 

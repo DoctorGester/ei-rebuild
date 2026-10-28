@@ -5,8 +5,6 @@
 #include "effects.h"
 #include "texture.h"   // CTexture
 
-#include "game_data.h"
-
 namespace {
 constexpr int kNone = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;

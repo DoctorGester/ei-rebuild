@@ -7,7 +7,6 @@
 #include "lib/nan_audit.h"
 
 #include <cstring>
-#include "game_data.h"
 
 int WorldToCell(float world) {
     float cell = 1.0f / (1.0f * 0.5f) * world - 0.5f;

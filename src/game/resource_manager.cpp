@@ -1,8 +1,6 @@
 // CResourceManager. See resource_manager.h.
 #include "resource_manager.h"
 
-#include "lib/crt.h"
-
 #include <cstring>
 #include <type_traits>
 #include <vector>

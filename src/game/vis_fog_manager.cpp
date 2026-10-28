@@ -8,8 +8,6 @@
 #include "texture.h"   // TextureHolderEnsureLoaded, HeldTexture
 #include "world.h"     // ClientArrayManager
 
-#include "lib/crt.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

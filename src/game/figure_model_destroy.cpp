@@ -3,8 +3,6 @@
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
 
-#include "lib/crt.h"
-
 #include <cstdint>
 
 

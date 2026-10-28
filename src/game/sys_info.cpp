@@ -13,7 +13,6 @@
 #include "lib/gameapi.h"
 #include "lib/str.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <intrin.h>

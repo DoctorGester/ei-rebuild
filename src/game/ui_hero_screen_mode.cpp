@@ -4,13 +4,10 @@
 // docs/notes/ui.md, section 5.
 #include "ui.h"
 #include "ui_screens.h"
-#include "game_strings.h"
 
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "ui_widescreen.h"
-
-#include "ei/rebirth.h"
 
 #include <cstdint>
 

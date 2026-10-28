@@ -2,7 +2,6 @@
 #include "bink_video.h"
 #include "device.h"   // the old device's calls
 #include "engine_object.h"
-#include "game_strings.h"
 #include "app.h"
 #include "acks_db.h"
 #include "app_helpers.h"

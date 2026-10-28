@@ -4,7 +4,6 @@
 #include "app.h"
 #include "ui.h"
 #include "world.h"
-#include "game_strings.h"
 
 #include "console.h"
 #include "core_maths.h"
@@ -20,7 +19,6 @@
 #include <cstdint>
 #include <string>
 #include "render/render_state.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"
 

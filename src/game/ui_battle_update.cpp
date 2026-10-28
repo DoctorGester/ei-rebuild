@@ -5,7 +5,6 @@
 #include "item.h"
 #include "player_client.h"
 #include "player_messages.h"
-#include "game_strings.h"
 #include "item_db_text.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -20,7 +19,6 @@
 
 #include "ei/x87.h"
 #include "lib/nan_audit.h"
-#include "lib/crt.h"
 #include "text_split.h"
 #include <cstddef>
 #include <cstdint>
@@ -35,7 +33,6 @@
 #include "party.h"
 #include "world.h"
 #include "world_glue.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 // --- the quick item panel's unit -----------------------------------------------------------------

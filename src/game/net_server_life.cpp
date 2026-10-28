@@ -5,8 +5,6 @@
 #include "net_classes.h"
 #include "core_refcount.h"
 
-#include "lib/crt.h"
-
 namespace net {
 
 namespace {

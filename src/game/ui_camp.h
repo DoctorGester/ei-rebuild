@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 
 #include <cstddef>
 #include <cstdint>

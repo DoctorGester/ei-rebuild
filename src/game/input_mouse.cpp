@@ -3,11 +3,9 @@
 #define DIRECTINPUT_VERSION 0x0700
 #include "app.h"
 #include "ui_cursor.h"
-#include "game_strings.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "game_data.h"
 
 #include <dinput.h>
 

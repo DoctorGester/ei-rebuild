@@ -6,8 +6,6 @@
 
 #include <cstdint>
 
-#include "lib/crt.h"
-
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
 RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
     ptr = object;

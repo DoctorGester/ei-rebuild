@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <vector>
 #include "unit_ai.h"
-#include "game_data.h"
 
 CAIMap::CAIMap() {
     footprint.hashed = true;

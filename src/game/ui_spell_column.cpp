@@ -3,14 +3,12 @@
 #include "item_db_text.h"
 #include "spell.h"
 #include "ui.h"
-#include "game_strings.h"
 
 #include "ei/x87.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include "unit.h"
-#include "game_data.h"
 #include "game_singletons.h"
 #include "lib/nan_audit.h"
 #include "lib/str.h"

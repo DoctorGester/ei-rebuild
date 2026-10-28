@@ -8,7 +8,6 @@
 
 #include "core_streams.h"
 #include "maths.h"
-#include "game_data.h"
 #include <cstddef>
 #include <cstdint>
 #include <string>

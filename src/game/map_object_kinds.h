@@ -5,8 +5,6 @@
 // virtual classes. Each overrides only the destructor, class name and class id.
 
 #include "map_object.h"
-#include "game_data.h"
-#include "lib/crt.h"
 
 #include <cstdint>
 

@@ -6,8 +6,6 @@
 #include "core_streams.h"
 #include "net_delta.h"
 
-#include "game_data.h"
-
 #include <cstring>
 #include <string>
 

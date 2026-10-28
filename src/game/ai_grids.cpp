@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include "game_data.h"
 
 
 extern "C" int _purecall();

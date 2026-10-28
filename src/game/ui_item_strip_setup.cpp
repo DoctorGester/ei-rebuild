@@ -7,7 +7,6 @@
 #include "ui_item_info.h"
 #include "ui_screens.h"
 
-#include "lib/crt.h"
 #include <cstdint>
 #include <string>
 

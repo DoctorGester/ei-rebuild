@@ -3,8 +3,6 @@
 #include "random.h"
 #include "unit.h"
 
-#include "game_data.h"
-
 #include <cstring>
 
 namespace {

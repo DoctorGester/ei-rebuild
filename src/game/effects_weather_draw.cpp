@@ -13,7 +13,6 @@
 #include <cstring>
 #include <memory>
 #include "lib/static_object.h"
-#include "game_data.h"
 
 #include <cstdlib>
 #include <vector>

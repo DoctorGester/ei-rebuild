@@ -5,7 +5,6 @@
 // hero screens").
 #include "ui_camp.h"
 #include "world_glue.h"
-#include "game_strings.h"
 
 #include "object_tables.h"
 #include "ui.h"

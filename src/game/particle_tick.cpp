@@ -8,9 +8,7 @@
 #include "random.h"
 
 #include "ei/x87.h"
-#include "lib/crt.h"
 #include "lib/vecmath.h"
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "world.h"
 

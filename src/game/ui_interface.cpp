@@ -2,7 +2,6 @@
 // spell book's record lookups. See ui.h.
 #include "ui.h"
 
-#include "ei/rebirth.h"
 #include "ui_widescreen.h"
 
 #include <cstring>

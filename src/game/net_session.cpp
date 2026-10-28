@@ -4,7 +4,6 @@
 #include "world.h"
 
 #include "lib/gameapi.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdlib>

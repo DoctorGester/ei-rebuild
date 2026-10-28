@@ -14,7 +14,6 @@
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
-#include "game_data.h"
 #include "game_singletons.h"
 
 #include <cstdint>

@@ -5,7 +5,6 @@
 #include "mod_folders.h"
 #include "world_data.h"   // the text resources' folder
 
-#include "lib/crt.h"
 #include "game_data.h"
 
 #include <list>

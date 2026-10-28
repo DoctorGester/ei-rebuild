@@ -7,8 +7,6 @@
 #include "world.h"
 #include "world_effect.h"
 
-#include "lib/crt.h"
-
 #include <bit>
 #include <cstring>
 

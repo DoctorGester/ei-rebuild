@@ -18,7 +18,6 @@
 #include <string>
 
 #include <concepts>
-#include "game_data.h"
 #include "lib/nan_audit.h"
 #include "camera.h"
 #include "world.h"
