@@ -282,7 +282,7 @@ briefings add and remove zone texts), `exit_area.cpp`, `ground_decal.cpp` (every
   sentinel from the node pool, generators, AddItem(1, 1) + Release), `ClassTemplate::Construct` 004A6580 and
   `ItemStock::Construct` 004A66C0 (193-bucket maps).
 - Script runtime helpers: `PartyForScript` 004BAEC0 ("owner::name"), `CAIMap::SetRefreshUnits` 004BA090, the sector map
-  wrappers 004BA0A0..004BA100 (Move by address: Rebirth), `GameOStream::PutFloatArgument` 004BA9D0,
+  wrappers 004BA0A0..004BA100 (Move by address: Rebirth), ConsoleFloat's float output 004BA9D0 (`console::Stream << f`),
   `CSceneRenderer::SetFogColour` 004BA120 (slot 0 00501AB0, `fogColour_` +0x14).
 - Party manager archive (A-S9): `PartyManager::Save` / `Load` 004A8560 / 004A8310 (the manager 007AA5A0: parties
   hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); `ChunkArchive::SerializeParties`

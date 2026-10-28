@@ -73,7 +73,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3*, mfc::CTypedPtrList<CUnit>*, f
 // ai_movement.cpp's shape cache and passability marks (ai_shape_cache.cpp, ai_refresh.cpp).
 CRefObject* UnitShapeCache::Get(void*) EI_UNLINKED("UnitShapeCache::Get")
 std::uint32_t CAIMap::CellMark(void*, int, int, int, int) EI_UNLINKED("CAIMap::CellMark")
-console::GameOStream& console::GameOStream::operator<<(double) EI_UNLINKED("console::GameOStream::operator<<(double)")
+console::Stream& console::Stream::operator<<(double) EI_UNLINKED("console::Stream::operator<<(double)")
 
 // The script loaders' and destructors' callees outside the interpreter: the object registry
 // (base_manager.cpp), the streams (core_streams.cpp), the world's timed objects (world_server.cpp) and

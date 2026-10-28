@@ -9,8 +9,6 @@
 
 #include "../lib/crt.h"
 #include "lib/mfc_file.h"
-#include "lib/compiled_vtable.h"
-#include "lib/crt_iostream.h"
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
@@ -19,6 +17,7 @@
 #include "game_singletons.h"
 #include "lib/str.h"
 
+#include <charconv>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -40,11 +39,47 @@ char* CStdioFile::ReadString(char* buffer, unsigned size) { return file_.ReadStr
 void CStdioFile::WriteString(const char* text) { file_.WriteString(text); }
 void CStdioFile::Close() { file_.Close(); }
 
-GameOStream& GameOStream::operator<<(const char* text) { PutText(text); return *this; }
-GameOStream& GameOStream::operator<<(char c) { PutChar(c); return *this; }
-GameOStream& GameOStream::operator<<(int a0) { PutLong(static_cast<long>(a0)); return *this; }
-GameOStream& GameOStream::operator<<(double v) { PutDouble(v); return *this; }
-GameOStream& GameOStream::Apply(libcrt::Manipulator manipulator) { libcrt::Ostream::Apply(manipulator); return *this; }
+// ---- Streams ------------------------------------------------------------------------------------
+
+namespace {
+
+template <typename T>
+void WriteInteger(ConsoleStreambuf* buffer, T value) {
+    char text[12];
+    buffer->Write(std::string_view(text, std::to_chars(text, text + sizeof(text), value).ptr - text));
+}
+
+} // namespace
+
+Stream& Stream::operator<<(const char* text) {
+    buffer_->Write(text);
+    return *this;
+}
+Stream& Stream::operator<<(char c) {
+    buffer_->Put(c);
+    return *this;
+}
+Stream& Stream::operator<<(int value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(long value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(unsigned value) {
+    WriteInteger(buffer_, value);
+    return *this;
+}
+Stream& Stream::operator<<(double value) {
+    char text[32];   // "%.6g": at most 13 characters ("-1.23457e+308")
+    buffer_->Write(std::string_view(text, static_cast<std::size_t>(gamecrt::sprintf(text, "%.6g", value))));
+    return *this;
+}
+Stream& Stream::Flush() {
+    buffer_->Sync();
+    return *this;
+}
 
 CommandHandler& Command(CommandMap* map, const std::string& name) { return map->Subscript(name); }
 
@@ -58,7 +93,7 @@ bool NetworkGame() { return IsMultiplayerClient(); }
 
 } // namespace
 
-void EndLine(GameOStream& os) { (os << '\n').Apply(libcrt::FlushManipulator); }
+void EndLine(Stream& os) { (os << '\n').Flush(); }
 
 void PrintLine(const char* text) { EndLine(Out() << text); }
 
@@ -66,33 +101,31 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 void (*g_consoleLineObserver)(const char* line) = nullptr;
 
-ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : Streambuf(buffer_, sizeof(buffer_)), filter_(filter) {}
+ConsoleStreambuf::ConsoleStreambuf(unsigned filter) : filter_(filter) {}
 
-ConsoleStreambuf::~ConsoleStreambuf() {}
-
-int ConsoleStreambuf::Underflow() { return -1; }
-
-// Moves the put area (and `c`, unless EOF) into the line, when this streambuf's
-// category is shown; a hidden category keeps its put area as it is. Always returns 0.
-int ConsoleStreambuf::Overflow(int c) {
-    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
-        const char* end = pptr;
-        for (const char* p = pbase; p < end; ++p) line_ += *p;
-        if (c != -1) line_ += static_cast<char>(c);
-        pbase = base;
-        pptr = base;
-        epptr = ebuf;
-    }
-    return 0;
+void ConsoleStreambuf::Put(char c) {
+    if (putNext_ < putEnd_) buffer_[putNext_++] = c;
+    else Overflow(static_cast<unsigned char>(c));
 }
 
-// Overflow(EOF), the line to the console window, then empty it.
-int ConsoleStreambuf::Sync() {
+void ConsoleStreambuf::Write(std::string_view text) {
+    for (char c : text) Put(c);
+}
+
+void ConsoleStreambuf::Overflow(int c) {
+    if (filter_ == 0 || (g_filterMask & filter_) != 0) {
+        line_.append(buffer_, putNext_);
+        if (c != -1) line_ += static_cast<char>(c);
+        putNext_ = 0;
+        putEnd_ = sizeof(buffer_);
+    }
+}
+
+void ConsoleStreambuf::Sync() {
     Overflow(-1);
     if (g_consoleLineObserver) g_consoleLineObserver(line_.c_str());
     TheInterface()->ConsoleAddText(line_.c_str());
     line_ = game::EmptyText();
-    return 0;
 }
 
 // ---- Executor -----------------------------------------------------------------------------------

@@ -573,10 +573,10 @@ BOOL ScriptRun::Execute(CScript* script) {
             PlayMovie(cmd);
             break;
         case 0x7D:   // ConsoleFloat(value)
-            console::Out().PutFloatArgument(f[0]).Apply(libcrt::EndlManipulator);
+            console::EndLine(console::Out() << f[0]);
             break;
         case 0x7E:   // ConsoleString(text)
-            (console::Out() << Text(cmd, 0)).Apply(libcrt::EndlManipulator);
+            console::PrintLine(Text(cmd, 0));
             break;
         case 0xC3: {   // AddRectToArea(area, x1, y1, x2, y2)
             script->FindArea(Round(f[0]))->AddRect(f[1], f[2], f[3], f[4]);

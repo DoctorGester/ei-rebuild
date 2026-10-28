@@ -17,7 +17,6 @@
 #include "ei/x87.h"
 
 #include <cstring>
-#include "lib/crt_iostream.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
 #include "logic_settings.h"
@@ -63,21 +62,10 @@ constexpr int kArmourPieces[24] = /*0073E09C*/ {7, 7, 0, 7, 3, 7, 1, 7, 3, 6, 1,
 float Max0(float value) { return value <= kZero ? kZero : value; }   // select idiom
 } // namespace
 
-// The hit log stream (a MSVC 6 ostream) and its inserters (library code).
-struct UnitLogStream : libcrt::Ostream {
-    UnitLogStream* Put(const char* text) { PutText(text); return this; }
-    UnitLogStream* Put(double value) { PutDouble(value); return this; }
-    UnitLogStream* PutChar(int c) { libcrt::Ostream::PutChar(static_cast<char>(c)); return this; }
-    UnitLogStream* Apply(libcrt::Manipulator manipulator) {
-        libcrt::Ostream::Apply(manipulator);
-        return this;
-    }
-};
-
 namespace {
 // The hit log: the rpg stream (its static initialiser stores the address).
-constexpr libcrt::Ostream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
-UnitLogStream* HitLog() { return console::StreamAs<UnitLogStream>(*kHitLog); }
+constexpr console::Stream* kHitLog = /*007AF284*/ {&console::g_rpgLogOut};
+console::Stream& HitLog() { return *kHitLog; }
 } // namespace
 
 namespace {
@@ -169,16 +157,13 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         } else if (current <= kZero) {
             slot.kind = 2;
         }
-        HitLog()->Put(kTypeNames[type]);
-        UnitLogStream* log = HitLog()->Put(kPassedDamage);
-        log->floatUsed = 1;
-        log->Put(static_cast<double>(typeDamage));
+        HitLog() << kTypeNames[type] << kPassedDamage << typeDamage;
         if (slot.kind == 1) {
-            HitLog()->Put(kCrippled);
+            HitLog() << kCrippled;
         } else if (slot.kind == 2) {
-            HitLog()->Put(kDead);
+            HitLog() << kDead;
         }
-        HitLog()->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(HitLog());
     }
     if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= 1;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));

@@ -179,7 +179,6 @@ PrintsDatabase* PrintsDatabaseObject() { return &g_printsDatabase.Get(); }
 UnitDatabase* UnitDatabaseObject() { return &unitdb::Database(); }
 SkillDatabase* SkillDatabaseObject() { return SkillDb(); }
 
-console::GameOStream& SpeedLog() { return console::g_netLogOut; }
 
 // ---- Start-up --------------------------------------------------------------------------------------
 
@@ -585,11 +584,7 @@ float SpeedForBalance(double balance, float rounded) {
 }
 
 void PrintClientSpeed(float speed, float balance) {
-    console::GameOStream& log = SpeedLog();
-    log << "Client speed = ";
-    log.PutFloat(speed) << " balance = ";
-    log.PutFloat(balance) << '\n';
-    log.Flush();
+    console::EndLine(console::g_netLogOut << "Client speed = " << speed << " balance = " << balance);
 }
 
 // One pass of the loop while no message waits. Returns whether the interface takes the input

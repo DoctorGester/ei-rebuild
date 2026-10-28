@@ -77,7 +77,6 @@ address,size,name,file
 00746F88,24,kClassCPtrArray,src/lib/mfc_runtime_class.h
 00746FC0,24,kClassCPtrList,src/lib/mfc_runtime_class.h
 00746FF8,24,kClassCWinApp,src/lib/mfc_runtime_class.h
-00748284,8,kOstreamVirtualBases,src/lib/crt_iostream.cpp
 00783E30,4,g_gamePort,src/game/net_classes.h
 00783E34,4,g_remoteRate,src/game/net_session_tick.cpp
 00783E38,4,g_localRate,src/game/net_session_tick.cpp
@@ -536,7 +535,5 @@ address,size,name,file
 007CAA88,4,g_ctl3dStateLocal,src/lib/mfc_static_objects.cpp
 007CAA8C,4,g_winStateLocal,src/lib/mfc_static_objects.cpp
 007CAA98,4,g_afxDbcs,src/lib/mfc_static_objects.cpp
-007CAE90,24,g_sharedLock,src/lib/crt_iostream.cpp
-007CAEC8,4,g_liveIosCount,src/lib/crt_iostream.cpp
 007CAED0,20,g_processorInfo,src/game/sys_info.cpp
 007CAEE4,1,g_emptyStaticGuard,src/lib/static_object.h

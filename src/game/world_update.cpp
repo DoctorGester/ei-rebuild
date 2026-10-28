@@ -2,7 +2,6 @@
 #include "world.h"
 #include "console.h"
 #include "lib/static_object.h"
-#include "lib/crt_iostream.h"
 
 #include "combat.h"
 #include "game_arrays.h"
@@ -25,8 +24,6 @@
 
 namespace {
 
-libcrt::Ostream* NetworkLog() { return &console::g_netLogOut; }
-
 // -1 while no Possession spell has taken a unit.
 bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
@@ -41,8 +38,7 @@ void RefsRelease(ScriptObjectRef* a0, int a1) { gamearrays::ObjectRefs::Destruct
 void DropPlayer(CWorldServer* world, CPlayer* player) {
     player->Disconnect();
     world->PlayerList()->ReleasePlayer(player);
-    NetworkLog()->PutText(worlddata::DisconnectingPlayerText())->PutInt(player->playerId_)->PutChar('\n')
-        ->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::g_netLogOut << worlddata::DisconnectingPlayerText() << player->playerId_);
 }
 
 // Every unit of a connected player wakes the units within its hearing range (as SyncPlayer computes it, with

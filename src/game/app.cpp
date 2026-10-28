@@ -14,7 +14,6 @@
 
 #include "ei/rebirth.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "options.h"
@@ -36,8 +35,6 @@ namespace app {
 namespace {
 
 
-
-libcrt::Ostream* Console() { return &console::g_consoleOut; }
 
 CDirectInputMouse* TheMouse() { return Mouse(); }
 
@@ -89,7 +86,7 @@ LRESULT OnActivate(WPARAM wParam) {
 LRESULT OnSysCommand(HWND window, WPARAM wParam, LPARAM lParam) {
     unsigned command = wParam & 0xFFF0;
     if (command == SC_HOTKEY || command == SC_NEXTWINDOW || command == SC_PREVWINDOW) {
-        Console()->PutText("switch task")->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::PrintLine("switch task");
     } else if (command == SC_SCREENSAVE || command == SC_MONITORPOWER) {
         return 0;
     }
@@ -194,8 +191,7 @@ LRESULT DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
         input->OnKeyDown(w, Low(lParam), HighSigned(lParam));
         return Handled();
     case WM_SYSKEYUP:
-        Console()->PutUnsigned(static_cast<unsigned>(w))->PutChar(':')->PutLong(static_cast<long>(lParam))->PutChar('\n')
-            ->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::Out() << static_cast<unsigned>(w) << ':' << static_cast<long>(lParam));
         if (wParam == VK_TAB && AltDown(lParam)) {   // Alt+Tab: as if the window was deactivated
             HWND window = g_mainWindow;
             BOOL iconic = gameapi::IsIconic(window);

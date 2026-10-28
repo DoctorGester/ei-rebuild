@@ -42,7 +42,6 @@
 #include "lib/containers.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -84,8 +83,6 @@ int SaveVersion() { return kSaveVersion; }
 bool& ToMainMenu() { return TheInterface()->closeAll_; }
 // BeginMultiplayerGame sets it, a missing zone clears it.
 bool& SessionsOpen() { return TheInterface()->disconnected_; }
-
-libcrt::Ostream* const kConsole = &console::g_consoleOut;
 
 MapRecord* ZoneRecords() { return TheMapDatabase()->maps.data; }
 int ZoneRecordCount() { return TheMapDatabase()->maps.size; }
@@ -227,7 +224,7 @@ int GameFlow::SaveGame(const char* slot) {
     }
 
     TheCursor()->SetShape(0);
-    kConsole->PutText(kSaved)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::Out() << kSaved << slot);
     return 1;
 }
 
@@ -878,7 +875,7 @@ constexpr std::size_t kPasswordSize = 0x14;
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     BuildZoneTable();
-    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
+    net::g_netLog = &console::g_netLogOut;
     {
         net::ServerSession* server = net::NewCounted<net::ServerSession>(gameType);
         AssignCounted(net::GameServer(), server);
@@ -909,7 +906,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 }
 
 void GameFlow::StartClient() {
-    net::g_netLog = console::StreamAs<net::LogStream>(console::g_netLogOut);
+    net::g_netLog = &console::g_netLogOut;
     AssignCounted(net::GameServer(), static_cast<net::ServerSession*>(nullptr));
     net::ClientSession* client = net::NewCounted<net::ClientSession>();
     AssignCounted(net::GameClient(), client);
@@ -923,12 +920,6 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     hello.BufferWrite(secret, static_cast<int>(kPasswordSize));
     net::GameClient()->Join(const_cast<net::NetAddress*>(address), &hello);
 }
-
-namespace {
-
-libcrt::Ostream* const kNetLog = &console::g_netLogOut;
-
-} // namespace
 
 void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
     mfc::CTypedPtrList<netlink::NetLink> joined;
@@ -953,7 +944,7 @@ void CWorldServer::AcceptNewPlayers(CPlayerSource* lobby) {
         player->sessionKind100_ = sessionKind_;
         std::memcpy(&player->Server()->lastPosition_, &startPosition_, 12);
         int id = player->playerId_;
-        kNetLog->PutText(kAcceptedPlayer)->PutInt(id)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::g_netLogOut << kAcceptedPlayer << id);
         node = next;
     }
     // The list's inlined destructor: every reference released, then the blocks.
@@ -1441,7 +1432,7 @@ int GameFlow::LoadGame(const char* slot) {
         file.Close();
         TheServerWorld()->SetZoneExits(&zoneRecord->exits);
     }
-    kConsole->PutText(kLoadedText)->PutText(slot)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+    console::EndLine(console::Out() << kLoadedText << slot);
     return 1;
 }
 

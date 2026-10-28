@@ -10,7 +10,6 @@
 #include "net_coder.h"
 #include "party_storage.h"
 #include "lib/crt.h"
-#include "lib/crt_iostream.h"
 #include "lib/stlp.h"
 #include "lib/stlp_list_refs.h"
 #include "lib/static_object.h"
@@ -23,6 +22,8 @@
 #include <vector>
 
 struct QuestBriefingRecord;
+
+namespace console { class Stream; }
 
 namespace net {
 
@@ -97,16 +98,6 @@ public:
     std::int32_t state;
 };
 
-// The network log (g_netLog; null when logging is off).
-class LogStream : public libcrt::Ostream {
-public:
-    LogStream* Put(const char* text);
-    LogStream* PutChar(char c);
-    LogStream* PutInt(int value);
-    LogStream* Apply(libcrt::Manipulator manipulator);
-    LogStream* Flush() { return Apply(libcrt::FlushManipulator); }
-};
-
 // ---- The globals of the session code ------------------------------------------------------------
 
 // The send rates in bytes per second (the console's rate / localrate set them): to a remote address (2500;
@@ -120,7 +111,8 @@ class ClientSession;
 
 // The game's UDP port (8888; the harness writes a free port of its own, tests/verify/harness_net.h).
 inline int g_gamePort = /*00783E30*/ {8888};
-inline LogStream* g_netLog = /*0079B91C*/ {nullptr};
+// The network log (the net stream; null when logging is off).
+inline console::Stream* g_netLog = /*0079B91C*/ {nullptr};
 // The session being updated (set by Tick / Receive and by the connection code).
 inline SessionBase* g_currentSession = /*0079B920*/ {nullptr};
 // The connection being updated or read (null outside the session code).

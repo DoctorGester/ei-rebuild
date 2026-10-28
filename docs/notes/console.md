@@ -1,7 +1,6 @@
 # Developer console (0x005DC000-0x005E0B20, console window 0x005E3E90-0x005E4D25)
 
-Code: `src/game/console.h` / `console.cpp` (streambuf, executor, tokenizer, script lines; the header documents the
-streambuf and ostream layouts), `console_commands.cpp` (handlers), `console_window.cpp` (window text and placement),
+Code: `src/game/console.h` / `console.cpp` (streambuf, streams, executor, tokenizer, script lines), `console_commands.cpp` (handlers), `console_window.cpp` (window text and placement),
 `console_addon.cpp` (Rebirth's commands, `Patch::AddNewConsoleCommands`, and AutoExec: rebirth.md). The window's surface,
 drawing and key input (005E3FD0, 005E4180, 005E44A0, 005E4800, 005E4A10) are in ui.md section 3 (`ui_console_window.cpp`).
 Scenario: `tests/scenarios/console.txt` (about 30 s: public commands and
@@ -15,8 +14,16 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   more streambuf / ostream pairs carry the filtered categories: 1 ai (`007C76D0`, ostream `007C5810`), 2 event, 4 graphics, 8
   rpg, 0x10 unitacks, 0x20 net, -1 all (`007C5CC0`, ostream `007C5600`), all built in static init (`005DC1E0`-`005DC3F0`, the
   ostreams `005DC420`-`005DC5E0`). Ours are named (`console_streams.cpp`, C18s): `g_consoleBuf` / `g_aiLogBuf` ... and
-  `g_consoleOut` / `g_aiLogOut` ... (`OStreamObject`: the ostream and its ios), with their initialisers and exit functions
-  ported on the names. The logs that hold a stream's address: the hit log `007AF284` (rpg), the AI alarm `007C2EB8`
+  `g_consoleOut` / `g_aiLogOut` ..., with their initialisers ported on the names. Since C35d a stream is
+  `console::Stream` (console.h: the inserters for text, char, int / long ("%d"), unsigned ("%u") and double ("%.6g"
+  through the game's sprintf, VC6's digits), Flush the streambuf's sync; `console::EndLine` is "'\n' and flush") and
+  `ConsoleStreambuf` a plain class with MSVC 6's put area behaviour: the put area exists after the first overflow while
+  the category is shown, a hidden category's characters fill it (up to 0x400) and show with the next line once the
+  category is shown again; a sync of a hidden category hands an empty line to the window (the harness drops empty
+  lines). No game code set a width, flag, precision or tie, so VC6's padding, hex / showpos and x_floatused paths were
+  never taken (x_floatused only capped a precision above 6) and are gone; the streams' locks went too (only the main
+  thread writes). The ostream exit functions 005DC440..005DC600 are not registered (gen_static_init.py's
+  UNREGISTERED_EXITS): the stream has nothing to destroy. The logs that hold a stream's address: the hit log `007AF284` (rpg), the AI alarm `007C2EB8`
   (unitacks), combat `007AF3E8`, the AI's perception `007C53C4` and its modes `007C54E8` (all ai); the network log, the
   client speed and the session messages write to the net stream `007C56B0`, the battle screen's terrain coordinates and the
   global map's drag to the graphics stream `007C5760`. A
@@ -56,8 +63,8 @@ window gets its surface recreated twice). State the handlers touch: window rects
 Handler addresses in the maps are the original addresses (they jump to the rewrites); calls between console functions go through the
 original addresses so Rebirth's executor patch stays in the path. The handlers Ghidra has no function for (all but listvar, exec, give,
 fadeout) have entries in `function_sizes.inc` from a flow walk. `006FD9B4` is `Mid(int)` (library.csv says Right); `00700EFE` is `MakeLower`.
-Output capture (verify only): the console ostream's streambuf pointer (`ios` at `+8`, `bp` at `ios+4`) is pointed at a console streambuf
-built by the game's constructor whose vtable copy has a sync that stores the line.
+Output capture (verify only): the image's harness reads each synced line through `console::g_consoleLineObserver`;
+game.exe's run takes the original streambuf table's sync slot (00740034 slot 1).
 
 ## Original bugs and oddities kept
 

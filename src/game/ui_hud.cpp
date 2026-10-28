@@ -762,9 +762,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             orderAt(at, 0, ctrl());
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
-            console::GameOStream& stream = (console::g_graphicsLogOut << game::TerrainCoordsText())
-                                               .PutFloat(at.x) << game::SpaceText();
-            console::EndLine((stream.PutFloat(at.y) << game::SpaceText()).PutFloat(at.z));
+            console::EndLine(console::g_graphicsLogOut << game::TerrainCoordsText() << at.x << game::SpaceText() << at.y
+                                                      << game::SpaceText() << at.z);
         }
         return;
     case 1:   // a spell on a unit

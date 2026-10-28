@@ -6,7 +6,6 @@
 #include "console.h"
 #include "game_strings.h"
 #include "lib/static_object.h"
-#include "lib/crt_iostream.h"
 
 #include "base_manager.h"
 #include "combat.h"
@@ -60,8 +59,7 @@ constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessed
 // 2.0: a unit level at most this asks the client to refresh the party.
 float LowLevel() { return 2.0f /*0073CDB8*/; }
 
-// The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
-libcrt::Ostream* GameCout() { return &console::g_netLogOut; }
+// The texts of the traffic log (read from the exe).
 const char* TextServerToClient() { return "server to client, size = "; }
 const char* TextSqueezedTo() { return " squeezed to "; }
 
@@ -150,8 +148,7 @@ int CPlayerServer::Flush() {
     if (Owner()->logTraffic_ != 0) {
         std::uint32_t packedSize = packed.size_;
         std::uint32_t size = out_.Size();
-        GameCout()->PutText(TextServerToClient())->PutUnsigned(size)->PutText(TextSqueezedTo())
-            ->PutUnsigned(packedSize)->PutChar('\n')->Apply(libcrt::FlushManipulator);
+        console::EndLine(console::g_netLogOut << TextServerToClient() << size << TextSqueezedTo() << packedSize);
     }
     int sent = link->Send(&packed) ? 1 : 0;
     out_.Resize(0);

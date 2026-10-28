@@ -1,4 +1,5 @@
 // Connections of the network sessions: object replication. See net_connection.h.
+#include "console.h"
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_connection_trees.h"
@@ -41,7 +42,7 @@ void FreeReplicated() { g_replicated.FreeStorage(); }
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(const char* text) {
-    if (LogStream* log = g_netLog) log->Put(text)->PutChar('\n')->Flush();
+    if (console::Stream* log = g_netLog) console::EndLine(*log << text);
 }
 
 // Inlined helper of the buffers: `high` follows `cur` upwards.
@@ -685,8 +686,7 @@ void Connection::ReadAcks(BufferCursor* cursor) {
 bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
     if (sequence + 0x20 < newest) {
-        if (LogStream* log = g_netLog)
-            log->Put(game::nettexts::TooOld())->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
+        if (console::Stream* log = g_netLog) console::EndLine(*log << game::nettexts::TooOld() << newest - sequence);
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
@@ -696,7 +696,7 @@ bool Connection::Accept(std::uint32_t sequence) {
             if (g_netLog) {
                 std::string peer = address_.ToString();
                 const char* text = peer.data();
-                g_netLog->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
+                console::EndLine(*g_netLog << game::nettexts::Duplicate() << text);
             }
             return false;
         }
