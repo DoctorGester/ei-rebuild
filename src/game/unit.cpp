@@ -268,8 +268,8 @@ int CUnit::CanUseQuickItem(std::uint32_t slot) {
     CItem* object = GetQuickItem(slot);
     if (!object || object->GetClassId() != ClassId::ItemQuick) return 3;
     CItem* item = object;
-    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return 3;
-    if (item->GetCategory() == kCategoryWand) {
+    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return 3;
+    if (item->GetCategory() == QuickItemCategory::Wand) {
         EI_NAN_AUDIT(item->charge_, SpellCost(item->spell_));
         if (item->charge_ < SpellCost(item->spell_)) return 1;
     }

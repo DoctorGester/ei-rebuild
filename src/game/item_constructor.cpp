@@ -136,7 +136,7 @@ std::uint32_t FillClass(ClassId classId, ItemRecordHead* record, const ItemRecor
         to->category = from->category;
         to->recordType = from->recordType;
         // A material takes the material's index when one is given.
-        if (from->category == kLootMaterial && material)
+        if (from->Stands() == LootKind::Material && material)
             to->index = material->number;
         else
             to->index = from->index;
@@ -160,18 +160,18 @@ int TableIndex(const Table& table, const Record* record) {
 
 // The table index of a loot item's second name part.
 int LootTableIndex(LootRecordType which, std::string_view name) {
-    if (which > kRecordModifier) return 0;
+    if (which > LootRecordType::Modifier) return 0;
     std::string key(name);
     ItemDatabase& items = *g_itemDatabase;
     SpellDatabase& spells = *g_spellDatabase;
     switch (which) {
-    case kRecordWeapon:
+    case LootRecordType::Weapon:
         return TableIndex(items.weapons, items.weapons.names[key]);
-    case kRecordArmor:
+    case LootRecordType::Armor:
         return TableIndex(items.armors, items.armors.names[key]);
-    case kRecordQuick:
+    case LootRecordType::Quick:
         return TableIndex(items.quickItems, items.quickItems.names[key]);
-    case kRecordSpell:
+    case LootRecordType::Spell:
         return TableIndex(spells.spells, spells.spells.byCode[key]);
     default:
         return TableIndex(spells.modifiers, spells.modifiers.byCode[key]);
@@ -262,7 +262,7 @@ void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager) ++manager->refCount_;
 }
 
-BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
+BOOL CItemConstructor::BeginCreateItem(ItemKind kind, int key) {
     CItem* item = manager_->CreateObjectAs<CItem>(kind, key);
     if (!item) return game::FatalError(kCantCreateItem);
     if (item_) item_->Release();
@@ -325,7 +325,7 @@ BOOL CItemConstructor::Build() {
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
     item_->InitFromRecord(record);
-    if (item_->GetClassId() == ClassId::ItemQuick && static_cast<int>(prototype->category) == kCategoryPotion) {
+    if (item_->GetClassId() == ClassId::ItemQuick && item_->GetCategory() == QuickItemCategory::Potion) {
         CSpellManager* spellManager = manager_->context_->SpellManager();
         CSpell* spell = spellManager->CreateSpellFromText((RecordAs<QuickItemRecord>(prototype)->spellText));
         spell_ = spell;
@@ -372,7 +372,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
         if (spell) {
             QuickItemTable& quickItems = g_itemDatabase->quickItems;
             int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-            item = (CItem*)MakeItem(kItemSpell, index, 0, -1);
+            item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
             if (item) item->AttachSpell(spell);
         }
         return item;
@@ -416,7 +416,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     }
     constructor->SetManager(nullptr);
     auto* loot = AsLoot(item);
-    if (item->GetClassId() == ClassId::ItemLoot && loot->kind_ == kLootRecord && parts.size() > 1) {
+    if (item->GetClassId() == ClassId::ItemLoot && loot->kind_ == LootKind::Record && parts.size() > 1) {
         loot->index_ = static_cast<std::uint32_t>(LootTableIndex(loot->recordType_, parts[1]));
     }
     return item;
@@ -424,7 +424,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
 
 // --- The item manager's MakeItem ----------------------------------------------------------------
 
-CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key) {
+CItem* CItemManager::MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material, int key) {
     CItemConstructor* constructor = context_->ItemConstructor();
     if (static_cast<std::int16_t>(index) == -1) index = 0;
     constructor->SetManager(this);
@@ -432,22 +432,22 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     ItemRecordHead* prototype = nullptr;
     MaterialRecordHead* materialRecord = nullptr;
     switch (kind) {
-    case kItemWeapon:
+    case ItemKind::Weapon:
         prototype = WeaponAt(index);
         materialRecord = MaterialAt(material);
         break;
-    case kItemArmor:
+    case ItemKind::Armor:
         prototype = ArmorAt(index);
         materialRecord = MaterialAt(material);
         break;
-    case kItemQuick:
-    case kItemSpell:
+    case ItemKind::Quick:
+    case ItemKind::Spell:
         prototype = QuickItemAt(index);
         break;
-    case kItemLoot:
+    case ItemKind::Loot:
         prototype = LootAt(index);
         break;
-    case kItemQuest:
+    case ItemKind::Quest:
         prototype = QuestItemAt(index);
         break;
     default:
@@ -469,7 +469,7 @@ CItem* CItemManager::CreateSpellItem(std::string_view spellText, CSpellManager* 
     if (!spell) return nullptr;
     QuickItemTable& quickItems = g_itemDatabase->quickItems;
     int index = quickItems.IndexOf(quickItems.Named(kSpellContainer));
-    CItem* item = (CItem*)MakeItem(kItemSpell, index, 0, -1);
+    CItem* item = (CItem*)MakeItem(ItemKind::Spell, index, 0, -1);
     if (item) item->AttachSpell(spell);
     return item;
 }

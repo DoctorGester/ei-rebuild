@@ -9,6 +9,7 @@
 #include <list>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 
 using BOOL = int;
@@ -57,7 +58,10 @@ public:
     // the manager becomes its owner and it is created. Null when NewObject fails.
     virtual CEngineObject* CreateObject(int type, int id);
     template <class T> T* CreateObjectAs(int type, int id) { return static_cast<T*>(CreateObject(type, id)); }
-    template <class T> T* CreateObjectAs(ClassId type, int id) { return CreateObjectAs<T>(static_cast<int>(type), id); }
+    // The type as one of the enums that name object types (ClassId, SpellObjectType).
+    template <class T, class Type>
+        requires std::is_enum_v<Type>
+    T* CreateObjectAs(Type type, int id) { return CreateObjectAs<T>(static_cast<int>(type), id); }
     // An object without references leaves the manager: unregistered, destroyed, without owner, then kept as a
     // spare. Returns RemoveObject's 0 (nothing meaningful when nothing is done).
     virtual int ReleaseObject(CEngineObject* object);

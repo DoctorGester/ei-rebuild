@@ -73,13 +73,13 @@ void PlayerMessage(CPlayerServer* messages, CUnit* unit, AckKind kind) {
 }
 
 void CUnitServer::DropQueuedOrder() {
-    action2.kind = kOrderNone;
+    action2.kind = UnitOrderKind::None;
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
     action2.pointIsUseSpot = 0;
     action2.param = 0;
     action2.modifier = 0;
-    action2.kind = kOrderIdle;
+    action2.kind = UnitOrderKind::Idle;
     if (action2.target) {
         action2.target->Release();
         action2.target = nullptr;
@@ -89,7 +89,7 @@ void CUnitServer::DropQueuedOrder() {
 
 void CUnitServer::FinishAction(int location) {
     switch (action.kind) {
-    case kOrderAttack: {
+    case UnitOrderKind::Attack: {
         DeliverAttack(action.target, &pendingHit);
         CUnit* target = UnitOrNull(action.target);
         if (!target) return;
@@ -101,29 +101,29 @@ void CUnitServer::FinishAction(int location) {
         action.source = 6;
         return;
     }
-    case kOrderCastAt:
-    case kOrderCastOn:
+    case UnitOrderKind::CastAt:
+    case UnitOrderKind::CastOn:
         FinishCast();
         break;
-    case kOrderUse:
+    case UnitOrderKind::Use:
         UseSkill(action.target);
         break;
-    case kOrderUseItem: {
+    case UnitOrderKind::UseItem: {
         std::uint32_t slot = action.source;
         auto* item = unit->GetQuickItem(slot);
-        if (item && item->GetCategory() == kCategoryConsumable) {
+        if (item && item->GetCategory() == QuickItemCategory::Consumable) {
             ++item->refCount_;
             unit->RemoveQuickItem(slot);
             g_serverWorld->UseQuickItem(unit);
             item->Release();
         }
-        action.kind = kOrderNone;
+        action.kind = UnitOrderKind::None;
         if (action.target) action.target->Release();
         action.target = nullptr;
         action.pointIsUseSpot = 0;
         action.param = 0;
         action.modifier = 0;
-        if (action2.kind == kOrderNone && action.kind != kOrderIdle) DropQueuedOrder();
+        if (action2.kind == UnitOrderKind::None && action.kind != UnitOrderKind::Idle) DropQueuedOrder();
         return;
     }
     default:
@@ -132,7 +132,7 @@ void CUnitServer::FinishAction(int location) {
     action.Clear();
     action.param = 0;
     action.modifier = 0;
-    if (action2.kind == kOrderNone) Idle();
+    if (action2.kind == UnitOrderKind::None) Idle();
 }
 
 void CUnitServer::DeliverAttack(CMapObject* target, DamageInfo* hit) {
@@ -321,7 +321,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(killer->player->Server(), killer, AckKind::Kill);
         } else if (unit->player) {
-            attacker->ServerController()->voice.Raise(kRemarkKill);
+            attacker->ServerController()->voice.Raise(AIRemark::Kill);
         }
         if (attacker->GetClassId() == ClassId::Unit) {
             CUnitServer* theirs = attacker->ServerController();
@@ -349,7 +349,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
 
 void CUnitServer::UseSkill(CMapObject* target) {
     CWorldServer* world = ServerWorld();
-    if (action.kind == kOrderUse && action.source == kSourceSearchBody) {
+    if (action.kind == UnitOrderKind::Use && action.Skill() == UseSource::SearchBody) {
         CUnit* looted = UnitOrNull(target);
         if (!looted) return;
         if (CPlayer* player = unit->player) g_serverWorld->Loot(looted, player);
@@ -358,8 +358,8 @@ void CUnitServer::UseSkill(CMapObject* target) {
         AIEventsOf(world)->Noise(this, loudness, kNoiseKind, nullptr);
         return;
     }
-    std::uint32_t skill = action.source;
-    if (skill != kSourceSteal && skill != kSourceUse) return;
+    UseSource skill = action.Skill();
+    if (skill != UseSource::Steal && skill != UseSource::Use) return;
     CUnit* other = UnitOrNull(target);
     float mine = static_cast<float>(stats.AttributeWithItems(0, unit));
     float theirs = 0;
@@ -367,22 +367,22 @@ void CUnitServer::UseSkill(CMapObject* target) {
 
     *kCombatLog << "Unit" << static_cast<long>(unit->id_) << " is using skill ";
     const char* name;
-    switch (action.source) {
-    case kSourceUse: name = "science"; break;
-    case kSourceSteal: name = "stealing"; break;
-    case kSourceTame: name = "tame"; break;
+    switch (skill) {
+    case UseSource::Use: name = "science"; break;
+    case UseSource::Steal: name = "stealing"; break;
+    case UseSource::Tame: name = "tame"; break;
     default: name = "unknown"; break;
     }
     console::EndLine(*kCombatLog << name << " his_skill = " << mine << " target_skill = " << theirs);
 
-    skill = action.source;
-    if (skill != kSourceUse && theirs >= mine) {
+    skill = action.Skill();
+    if (skill != UseSource::Use && theirs >= mine) {
         DiplomacyOf(world)->OnAttack(unit, other);
         return;
     }
     AckKind message;
     switch (skill) {
-    case kSourceUse: {
+    case UseSource::Use: {
         LockKey record = {1, 0, 0};
         auto* items = world->ItemFactory();
         CItem* studied = FindItem(items, action.param);
@@ -394,7 +394,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         message = AckKind::ScienceFailed;
         break;
     }
-    case kSourceSteal: {
+    case UseSource::Steal: {
         if (!other) return;
         if (other->player) return;
         CItem* item = other->TakeRandomItem();
@@ -415,7 +415,7 @@ void CUnitServer::UseSkill(CMapObject* target) {
         message = AckKind::StealFailed;
         break;
     }
-    case kSourceTame: {
+    case UseSource::Tame: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
         if (other->ServerController()->TryTame(unit, mine) != 0) return;
@@ -431,8 +431,8 @@ void CUnitServer::UseSkill(CMapObject* target) {
 }
 
 void CUnitServer::Idle() {
-    if (action.kind == kOrderIdle) return;
-    if (action2.kind == kOrderAnimation || action2.kind == kOrderEmote) return;
+    if (action.kind == UnitOrderKind::Idle) return;
+    if (action2.kind == UnitOrderKind::Animation || action2.kind == UnitOrderKind::Emote) return;
     DropQueuedOrder();
 }
 

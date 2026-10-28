@@ -103,7 +103,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
     const float pi = 3.1415927f;
     const float perTick = 0.06666667f;   // 1/15
 
-    if (item->GetCategory() == kCategoryWand) {
+    if (item->GetCategory() == QuickItemCategory::Wand) {
         // A wand: level and charges, mana, duration, range, area, time, the last number.
         *text += " \n";
         float charges = item->chargeMax_;
@@ -145,7 +145,7 @@ void CHudQuickItems::ItemTip(unsigned index, std::string* text) {
         line = str::Format("%s %d \n", labels_[6], static_cast<int>(data->targetCount_));
         *text += line;
     }
-    if (item->GetCategory() == kCategoryPotion) {
+    if (item->GetCategory() == QuickItemCategory::Potion) {
         // A potion: mana and time.
         *text += " \n";
         if (SpellPrototype(data)->allowedModifiers[3] == 0)

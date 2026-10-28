@@ -194,7 +194,7 @@ void CWorldServer::Redeploy(CPlayer* player, std::vector<UnitPlacement>* placeme
 CItem* CWorldServer::CopyItem(CItem* source) {
     // The game also builds and frees two empty CPtrLists here, unused.
     std::uint32_t packed = source->prototypeId_;
-    int type = source->type_;
+    ItemKind type = source->Kind();
     CItemManager* factory = ItemFactory();
     CItem* copy = factory->MakeItem(type, static_cast<int>(packed >> 16), static_cast<int>(packed & 0xFFFF), -1);
     source->CopyTo(copy, SpellManager());

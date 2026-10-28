@@ -148,9 +148,9 @@ void ReadController(CUnit* u, Builder& b) {
     b.Int("state", c->state);
     b.Unsigned("busy", c->moveMode2.onGuard);
     b.Unsigned("inCombat", c->orderStopped);
-    b.Int("command", c->action.kind);
+    b.Int("command", static_cast<int>(c->action.kind));
     b.Int("commandTarget", IdOf(c->action.target));
-    b.Int("nextCommand", c->action2.kind);
+    b.Int("nextCommand", static_cast<int>(c->action2.kind));
     b.Int("nextTarget", IdOf(c->action2.target));
     b.Float("experience", c->stats.experience);
     b.Float("speed", c->stats.speed);
@@ -533,7 +533,7 @@ void ReadWater(State& state) {
     Builder b;
     b.entity = &Slot(state, {kWater, -1});
     b.entity->description = "landscape";
-    b.Bits("flags", t->landscapeFlags);
+    b.Bits("flags", static_cast<std::uint32_t>(t->landscapeFlags));
     b.Int("frame", t->frame);
     b.Float("phase", t->wavePhase);
     constexpr int kVertices = 33 * 33;
@@ -655,7 +655,7 @@ UnitNow Unit(void* server, int id) {
     CEngineObject* controller = u->controller;
     if (controller && ClassOf(controller) == kClassUnitServer) {
         auto* c = static_cast<CUnitServer*>(controller);
-        now.idle = c->action.kind == 0 && u->motion.points.empty();
+        now.idle = static_cast<int>(c->action.kind) == 0 && u->motion.points.empty();
         now.experience = c->stats.experience;
     }
     return now;

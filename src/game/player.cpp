@@ -206,7 +206,7 @@ void CPlayer::TakeAllItems() {
 
 BOOL CPlayer::HasLoot(int kind) {
     for (auto node = items_.begin(); node != items_.end(); ++node)
-        if ((*node)->type_ == kItemQuest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return 1;
+        if ((*node)->Kind() == ItemKind::Quest && ItemWord4C(*node) == static_cast<std::uint32_t>(kind)) return 1;
     for (auto node = units_.begin(); node != units_.end() && node->second != nullptr; ++node) {
         CUnit* unit = node->second;
         for (CItem* item : unit->carried)
@@ -217,7 +217,7 @@ BOOL CPlayer::HasLoot(int kind) {
 
 BOOL CPlayer::TakeLoot(int kind) {
     return TakeFirst(this, [kind](CItem* item) {
-        return item->type_ == kItemQuest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
+        return item->Kind() == ItemKind::Quest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 

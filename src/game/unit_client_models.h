@@ -57,7 +57,7 @@ inline constexpr char kArmourPartNames[3][7][4] = /*0073EC24*/ {
     {"hr", "hd", "", "", "", "", ""},
 };
 
-// One layer of a composed skin: what it is (0x32 the unit's own skin, kItemArmor armour, kItemWeapon a weapon; 0
+// One layer of a composed skin: what it is (0x32 the unit's own skin, ItemKind::Armor armour, ItemKind::Weapon a weapon; 0
 // none), the packed item id or prototype index, and the armour slot / weapon type.
 struct SkinLayer {
     int kind = 0;

@@ -221,9 +221,9 @@ Vector3* AIPath::TargetPoint(Vector3* out) const {
     return out;
 }
 
-void AIOrder::MakeUse(CMapObject* object, int use) {
+void AIOrder::MakeUse(CMapObject* object, UseSource use) {
     Clear();
-    kind = kOrderUse;
+    kind = UnitOrderKind::Use;
     if (object != target) {
         if (target) target->Release();
         target = nullptr;
@@ -255,11 +255,13 @@ int CPlayerServer::OnUseOrder() {
         CUnit* unit = FindUnit(id);
         if (unit && !(unit->flags_ & kFlagBlocked)) lib::SetAtGrow(units, std::ssize(units), unit);
     }
-    int flag = 0, kind = 0, value = 0, objectId = 0;
+    int flag = 0, value = 0, objectId = 0;
+    int skillWord = 0;
     in.ReadValue(flag);
-    in.ReadValue(kind);
+    in.ReadValue(skillWord);
     in.ReadValue(value);
     in.ReadValue(objectId);
+    const UseSource kind = static_cast<UseSource>(skillWord);
     // A map object (the use order's target), or null.
     CMapObject* object = g_serverWorld->FindObject(static_cast<unsigned>(objectId));
 

@@ -914,7 +914,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
 // --- The ground's casters into the shadow map ------------------------------------------------------
 
 void ShadowTerrainSector(const SectorData* s) {
-    if (!s || !(s->built & 1) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
+    if (!s || !lib::Has(s->built, SectorStage::Loaded) || s->vertices.empty() || std::ssize(s->vertices) < kWaterRecords) return;
     StatsTimer timer(&FrameStats::shadowMs);
     std::uint32_t rebuilt = 0;
     if (auto it = g_changes.find(s); it != g_changes.end()) rebuilt = it->second.rebuilt;

@@ -49,7 +49,7 @@ constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 // --- The dressed units ---------------------------------------------------------------------------
 
 // The vector UnitTextureRecords fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
-// the body, kItemArmor an armour piece, kItemWeapon a weapon), the item id and the item record's type.
+// the body, ItemKind::Armor an armour piece, ItemKind::Weapon a weapon), the item id and the item record's type.
 struct TextureRecord {
     std::uint32_t kind;
     std::uint32_t id;
@@ -214,9 +214,9 @@ void CWorldClient::BuildUnitSkins(std::vector<FiguredUnitRecord>* others, std::v
 }
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records: [0] the body
-// (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of items[1..6] (kItemArmor, the
-// armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (kItemArmor) and
-// [1] the shown extra weapon (kItemWeapon, the weapon's type) when its index is within the list. items[1..6] are
+// (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of items[1..6] (ItemKind::Armor, the
+// armour's type; item i goes to record i + 1). The head list two: [0] the helmet row items[0] (ItemKind::Armor) and
+// [1] the shown extra weapon (ItemKind::Weapon, the weapon's type) when its index is within the list. items[1..6] are
 // read whatever the item list's size; an id past its table reads through a null record (it faults).
 void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<TextureRecord>* list) {
     constexpr std::uint32_t kBody = 0x32;
@@ -234,7 +234,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
         for (int i = 1; i < 7; ++i) {
             if (ids[i] == kNone) continue;
             out[i + 1].id = ids[i];
-            out[i + 1].kind = kItemArmor;
+            out[i + 1].kind = static_cast<std::uint32_t>(ItemKind::Armor);
             out[i + 1].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
         }
         return;
@@ -243,7 +243,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     TextureRecord* out = list->data();
     if (ids[0] != kNone) {
         out[0].id = ids[0];
-        out[0].kind = kItemArmor;
+        out[0].kind = static_cast<std::uint32_t>(ItemKind::Armor);
         out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
     }
     auto& extra = const_cast<std::vector<std::uint32_t>&>(record->extraWeapons);
@@ -253,7 +253,7 @@ void UnitTextureRecords(char body, const DressedUnitRecord* record, std::vector<
     const std::uint32_t weapon = extra[index];
     if (weapon == kNone) return;
     out[1].id = weapon;
-    out[1].kind = kItemWeapon;
+    out[1].kind = static_cast<std::uint32_t>(ItemKind::Weapon);
     out[1].itemType = static_cast<std::uint32_t>(
         itemdb::WeaponAt(weapon >> 16)->type);
 }

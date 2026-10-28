@@ -413,7 +413,7 @@ How they chain:
   panels' +0x150 -1, then the slot's button highlighted in the mode's panel (1, 2 spells; 3-6 quick items; 7, 8 actions); a
   cancel is (0, -1, -1). Modes: 1 / 2 a spell on a unit / at a point (spell data flag 0x10000000 or not), 3 / 4 a quick item's
   spell likewise, 6 a player's item, 7 follow, 8 an order on an object (science). A highlighted button clicked again cancels with
-  a sound; only a spell item with its data (+0x44) sets the action; only wand (kCategoryWand, 5) and potion (kCategoryPotion, 8) quick items go on.
+  a sound; only a spell item with its data (+0x44) sets the action; only wand (QuickItemCategory::Wand, 5) and potion (QuickItemCategory::Potion, 8) quick items go on.
   SelectUnit passes the Ctrl byte as `quick` for a spell and 1 for a quick item; Rebirth's FixSpellSelfCasting passes 0 for the
   spell. `UseAtPoint` moves the point by -AxisY(unit +0x34) * 0.1 for the member that is `unit` (the original changes its own
   argument slots, so the moved point stays for later members). Orders nod the members (+0x38 1, or 2) with a non-positive delay;

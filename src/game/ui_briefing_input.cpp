@@ -29,9 +29,6 @@ const char* GoodbyeTopic() { return "goodbye"; }
 const char* TopicSeparator() { return " "; }
 
 constexpr std::uint32_t kUnitBlocked = 0x800000;   // CEngineObject::flags_: script BlockUnit
-constexpr int kCommandIdle = 0;
-constexpr int kCommandStand = 0xB;
-constexpr int kNextCommandNone = 9;
 constexpr int kTopicRows = 5;
 
 // The topic rows (layout): regions at x 210..570 from y 440, 24 high; text rows on surface 0 at
@@ -73,8 +70,8 @@ bool CanTalk(CEngineObject* person) {
     CUnit* unit = ServerUnit(person->id_);
     if (!unit || !unit->controller) return true;
     CUnitServer* controller = unit->ServerController();
-    return (controller->action.kind == kCommandStand || controller->action.kind == kCommandIdle) &&
-           controller->action2.kind == kNextCommandNone;
+    return (controller->action.kind == UnitOrderKind::Stop || controller->action.kind == UnitOrderKind::Idle) &&
+           controller->action2.kind == UnitOrderKind::None;
 }
 
 

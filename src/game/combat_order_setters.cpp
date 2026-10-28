@@ -34,13 +34,13 @@ CPlayerServer* PlayerConnection(CUnit* unit) { return unit->player->Server(); }
 
 // The shared tail of the kind 6 setters: the queued order (reset first) becomes a use of `target` with
 // `source`, `spot` and `run`, and is planned; reset again when the planner refuses.
-void QueueUse(CUnitServer* self, CMapObject* target, std::uint32_t source, int spot, int run, AckKind shout) {
+void QueueUse(CUnitServer* self, CMapObject* target, UseSource source, int spot, int run, AckKind shout) {
     UnitAction& order = self->action2;
     order.Reset();
-    order.kind = kOrderUse;
+    order.kind = UnitOrderKind::Use;
     order.Retarget(target);
     order.modifier = static_cast<std::uint8_t>(run);
-    order.source = source;
+    order.source = static_cast<std::uint32_t>(source);
     order.param = spot;
     if (!self->PlanOrderRoute(&order, shout)) order.Reset();
 }
@@ -78,24 +78,24 @@ void CUnitServer::SetWantedWeapon(int slot) {
 
 void CUnitServer::OrderSteal(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
-    QueueUse(this, target, kSourceSteal, 0, run, AckKind::Steal);
+    QueueUse(this, target, UseSource::Steal, 0, run, AckKind::Steal);
 }
 
 void CUnitServer::OrderTame(CMapObject* target, int run) {
     if (!target || target->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<CUnit*>(target);
     if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
-    QueueUse(this, target, kSourceTame, 0, run, AckKind::UseObject);
+    QueueUse(this, target, UseSource::Tame, 0, run, AckKind::UseObject);
 }
 
 void CUnitServer::OrderUse(CMapObject* target, int spot, int run) {
     if (!target) return;
-    QueueUse(this, target, kSourceUse, spot, run, AckKind::UseObject);
+    QueueUse(this, target, UseSource::Use, spot, run, AckKind::UseObject);
 }
 
 void CUnitServer::OrderSearchBody(CMapObject* target, int run) {
     if (!target || target->IsDead() == 0 || target == unit) return;
-    QueueUse(this, target, kSourceSearchBody, 0, run, AckKind::Loot);
+    QueueUse(this, target, UseSource::SearchBody, 0, run, AckKind::Loot);
 }
 
 bool CUnitServer::TargetBusy(CMapObject* target) {
@@ -106,7 +106,7 @@ bool CUnitServer::TargetBusy(CMapObject* target) {
         if (!other || other->IsDead() != 0) continue;
         auto* controller = other->ServerController();
         const UnitAction& order = controller->action;
-        if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&
+        if (order.kind == UnitOrderKind::Use && order.Skill() == UseSource::SearchBody && order.target == target &&
             (controller->state == kStateActing || controller->searchingTarget))
             return true;
     }
@@ -127,7 +127,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     std::memcpy(&index, &entry->index, sizeof(index));
     action2.param = index;
     action2.modifier = 0;
-    action2.kind = (entry->key & kEmoteKeyBit) ? kOrderEmote : kOrderAnimation;
+    action2.kind = (entry->key & kEmoteKeyBit) ? UnitOrderKind::Emote : UnitOrderKind::Animation;
 }
 
 void CUnitServer::StopAction() {
@@ -144,7 +144,7 @@ void CUnitServer::StopAction() {
     action.Reset();
     action2.Reset();
     // Idle, inlined: the current order is never of kind 0 here, the queued one is 9.
-    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) DropQueuedOrder();
+    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) DropQueuedOrder();
 }
 
 BOOL CUnitServer::HasOtherArmour() {

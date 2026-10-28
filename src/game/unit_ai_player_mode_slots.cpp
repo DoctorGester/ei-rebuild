@@ -60,6 +60,6 @@ int PlayerMode::Evaluate(AIBrain*) { return kPlayerPriority; }
 
 int TamedMode::Evaluate(AIBrain*) { return kTamedPriority; }
 
-AIModeType PlayerMode::GetType() { return kModePlayer; }
+AIModeType PlayerMode::GetType() { return AIModeType::Player; }
 
-AIModeType TamedMode::GetType() { return kModeTamed; }
+AIModeType TamedMode::GetType() { return AIModeType::Tamed; }

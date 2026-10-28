@@ -95,17 +95,17 @@ void RemoveAllOf(std::list<CUnit*>& list, CEngineObject* object) {
 // A new mode of `type` as Load constructs it before reading its data (the fields Load reads stay
 // uninitialised). Null for an unknown type (9, or above 10).
 AIMode* NewModeOfType(int type) {
-    switch (type) {
-    case kModeGuard: return new GuardMode();
-    case kModePatrol: return new PatrolMode();
-    case kModeSentry: return new SentryMode();
-    case kModeSuspection: return new SuspectionMode();
-    case kModeAggression: return new AggressionMode();
-    case kModeCorpseWatcher: return new CorpseWatcherMode();
-    case kModePlayer: return new PlayerMode();
-    case kModeFear: return new FearMode(0);
-    case kModeTamed: return new TamedMode();
-    case kModeFollow: return new FollowMode();
+    switch (static_cast<AIModeType>(type)) {
+    case AIModeType::Guard: return new GuardMode();
+    case AIModeType::Patrol: return new PatrolMode();
+    case AIModeType::Sentry: return new SentryMode();
+    case AIModeType::Suspection: return new SuspectionMode();
+    case AIModeType::Aggression: return new AggressionMode();
+    case AIModeType::CorpseWatcher: return new CorpseWatcherMode();
+    case AIModeType::Player: return new PlayerMode();
+    case AIModeType::Fear: return new FearMode(0);
+    case AIModeType::Tamed: return new TamedMode();
+    case AIModeType::Follow: return new FollowMode();
     default: return nullptr;
     }
 }
@@ -115,7 +115,7 @@ void AssignCurrent(AIMode*& current, AIMode* mode) { AssignCounted(current, mode
 } // namespace
 
 void AIBrain::AddMode(AIMode* mode) {
-    int type = mode->GetType();
+    AIModeType type = mode->GetType();
     bool exclusive = mode->Exclusive();
     for (auto node = modes.begin(); node != modes.end();) {
         auto next = std::next(node);
@@ -134,7 +134,7 @@ void AIBrain::AddMode(AIMode* mode) {
     }
 }
 
-void AIBrain::RemoveModesOfType(int type) {
+void AIBrain::RemoveModesOfType(AIModeType type) {
     for (auto node = modes.begin(); node != modes.end();) {
         auto next = std::next(node);
         if ((*node)->GetType() == type) RemoveModeNode(modes, node);

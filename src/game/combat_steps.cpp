@@ -127,26 +127,26 @@ std::uint32_t EnterBits(const MoveModeState* to, const CUnit* unit) {
 // The animation key of an order of `kind` with `source` (`steps` stands in for the source of an unknown
 // skill, as in the original). Sets *frame when the unit steps out of its movement mode for it (skills, unless
 // walking).
-std::uint32_t OrderKey(CUnitServer* self, int kind, std::uint32_t source, const AnimationSteps* steps,
+std::uint32_t OrderKey(CUnitServer* self, UnitOrderKind kind, std::uint32_t source, const AnimationSteps* steps,
                        std::uint32_t* weaponBit, bool* frame) {
     *weaponBit = 0;
     *frame = false;
-    if (kind != kOrderUse) {
+    if (kind != UnitOrderKind::Use) {
         *weaponBit = WeaponBit(self);
         return *weaponBit | source | kKeyAttack;
     }
     bool leavesWalk = self->moveMode.mode != 1;
-    switch (source) {
-    case 0:
+    switch (static_cast<UseSource>(source)) {
+    case UseSource::Use:
         *frame = leavesWalk;
         return 0x5400000 | kKeyAction;
-    case 1:
+    case UseSource::Steal:
         *frame = leavesWalk;
         return 0x5000000 | kKeyAction;
-    case 2:
+    case UseSource::Tame:
         *frame = leavesWalk;
         return 0x4C00000 | kKeyAction;
-    case kSourceSearchBody: {
+    case UseSource::SearchBody: {
         std::uint32_t key;
         if (self->moveMode.mode == 2) {
             key = HasRangedWeapon(self->unit) ? 0xD000000 : 0xC000000;
@@ -249,14 +249,14 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
 
 // --- Orders ----------------------------------------------------------------------------------
 
-void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind, std::uint32_t source) {
+void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, std::uint32_t source) {
     *steps = {};
     std::uint32_t weaponBit;
     bool frame;
     std::uint32_t key = OrderKey(this, kind, source, steps, &weaponBit, &frame);
 
     FigureAnimation* animation = unit->FindAnimation(key, 0);
-    if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == kOrderAttack) {
+    if ((!animation || (animation->key & weaponBit) != weaponBit) && kind == UnitOrderKind::Attack) {
         animation = unit->FindAnimation(weaponBit | kKeyFallback, 1);
         if (!animation) {
             gameapi::OutputDebugStringA(kNoAnimationMessage);
@@ -292,7 +292,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
 
 // --- Casts -----------------------------------------------------------------------------------
 
-void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind, int value) {
+void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, UnitOrderKind kind, int value) {
     (void)kind;
     *steps = {};
     std::uint32_t key;
@@ -358,13 +358,13 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     CUnit* victim = UnitOrNull(target);   // the target is set
     if (!victim) {
         plan->hitLocation = 1;
-        BuildOrderSteps(steps, duration, kOrderAttack, kKeyNoTarget);
+        BuildOrderSteps(steps, duration, UnitOrderKind::Attack, kKeyNoTarget);
         return true;
     }
 
     // An attack order on the target, as ActionDistance sees it (the target is referenced).
     UnitAction order{};
-    order.kind = kOrderAttack;
+    order.kind = UnitOrderKind::Attack;
     order.source = 6;
     order.target = target;
     ++target->refCount_;
@@ -482,7 +482,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     if (order.target) order.target->Release();
     order.target = nullptr;
 
-    BuildOrderSteps(steps, duration, kOrderAttack, key);
+    BuildOrderSteps(steps, duration, UnitOrderKind::Attack, key);
     return true;
 }
 

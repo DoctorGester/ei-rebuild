@@ -67,7 +67,7 @@ void AIMemory::FindEnemiesNear(CUnit* self, CountedUnits* out, const Vector3* po
         if (!other->IsHostileTo(self) || IsDead(other) || reports.Contains(other)) continue;
         if (Distance2(other, &point->x) >= radius2) {
             AIBrain* theirs = &other->ServerController()->brain;
-            auto* mode = static_cast<AggressionMode*>(theirs->FindMode(kModeAggression));
+            auto* mode = static_cast<AggressionMode*>(theirs->FindMode(AIModeType::Aggression));
             if (!mode || (mode->fixed && !mode->enemy)) continue;
             CUnit* enemy = UnitOrNull(theirs->AggressionEnemy());
             if (enemy && !g_serverWorld->diplomacy_.IsAllied(self->side, enemy->side)) continue;

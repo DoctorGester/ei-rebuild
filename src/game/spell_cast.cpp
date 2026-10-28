@@ -218,7 +218,7 @@ BOOL CSpellContainer::Build() {
 }
 
 CSpellContainer* CSpellManager::NewContainer() {
-    return CreateObjectAs<CSpellContainer>(kSpellTypeContainer, -1);
+    return CreateObjectAs<CSpellContainer>(SpellObjectType::Container, -1);
 }
 
 CSpell* CSpellManager::CreateSpell(const itemdb::SpellRecord* prototype, const std::list<itemdb::SpellModifierRecord*>* modifiers) {

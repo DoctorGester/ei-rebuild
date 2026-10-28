@@ -19,13 +19,13 @@ constexpr float kHealWeight = 10.0f;
 
 // The option kind per spell type.
 constexpr AIOptionKind kSpellKinds[42] = {
-    kOptionSpellAttack, kOptionSpellAttack, kOptionSpellAttack, kOptionAreaAttack, kOptionAreaAttack, kOptionAreaAttack,
-    kOptionLastingArea, kOptionLastingArea, kOptionLastingArea, kOptionProtect, kOptionProtect, kOptionProtect,
-    kOptionEnhance, kOptionEnhance, kOptionEnhance, kOptionEnhance, kOptionEnhance, kOptionEnhance,
-    kOptionUnused, kOptionUnused, kOptionUnused, kOptionUnused, kOptionUnused, kOptionUnused,
-    kOptionHeal, kOptionCurse, kOptionProtect, kOptionUnused, kOptionUnused, kOptionProtect,
-    kOptionCurse, kOptionEnhance, kOptionCurse, kOptionEnhance, kOptionUnused, kOptionUnused,
-    kOptionUnused, kOptionUnused, kOptionUnused, kOptionUnused, kOptionSpellAttack, kOptionSpellAttack};
+    AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack, AIOptionKind::AreaAttack,
+    AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::LastingArea, AIOptionKind::Protect, AIOptionKind::Protect, AIOptionKind::Protect,
+    AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance, AIOptionKind::Enhance,
+    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused,
+    AIOptionKind::Heal, AIOptionKind::Curse, AIOptionKind::Protect, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Protect,
+    AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Curse, AIOptionKind::Enhance, AIOptionKind::Unused, AIOptionKind::Unused,
+    AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::Unused, AIOptionKind::SpellAttack, AIOptionKind::SpellAttack};
 
 double OptionWeight(const AIAttackOption*);
 
@@ -37,17 +37,17 @@ double OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 
 double AIAttackOption::Weight() const {
     switch (kind) {
-    case kOptionWeapon:
+    case AIOptionKind::Weapon:
         return MaxDamage(damage.words);
-    case kOptionSpellAttack:
-    case kOptionAreaAttack:
-    case kOptionLastingArea:
+    case AIOptionKind::SpellAttack:
+    case AIOptionKind::AreaAttack:
+    case AIOptionKind::LastingArea:
         return static_cast<double>(MaxDamage(damage.words)) * kAttackSpellWeight;
-    case kOptionCurse:
-    case kOptionProtect:
-    case kOptionEnhance:
+    case AIOptionKind::Curse:
+    case AIOptionKind::Protect:
+    case AIOptionKind::Enhance:
         return kHelpWeight;
-    case kOptionHeal:
+    case AIOptionKind::Heal:
         return kHealWeight;
     default:
         return 0.0;
@@ -60,7 +60,7 @@ void AIAttackOption::Load(CStream* stream) {
         std::uint32_t dropped;
         stream->ReadValue(dropped);
         stream->ReadValue(damage);
-        kind = part >= 0 ? kOptionSpellAttack : kOptionWeapon;
+        kind = part >= 0 ? AIOptionKind::SpellAttack : AIOptionKind::Weapon;
         range = 1.0f;
         maxCount = 0;
         radius = 0.0f;
@@ -110,9 +110,9 @@ DamageWords* AIAttention::AddSpellOption(AIOptionKind kind, int part, float rang
 }
 
 AIOptionKind AIAttention::SpellKind(const CSpell* spell) {
-    if (!spell) return kOptionWeapon;
+    if (!spell) return AIOptionKind::Weapon;
     int type = SpellType(spell);
-    return static_cast<unsigned>(type) < 42 ? kSpellKinds[type] : kOptionUnused;
+    return static_cast<unsigned>(type) < 42 ? kSpellKinds[type] : AIOptionKind::Unused;
 }
 
 void AIAttention::Build(CUnit* unit) {
@@ -124,14 +124,14 @@ void AIAttention::Build(CUnit* unit) {
             float range = server->AttackRange();
             weapons.resize(std::ssize(weapons) + 1);
             AIAttackOption& option = weapons[std::ssize(weapons) - 1];
-            InitOption(&option, kOptionWeapon, -1, range, 0, 0.0f, 0);
+            InitOption(&option, AIOptionKind::Weapon, -1, range, 0, 0.0f, 0);
             server->GetDamageByType(&option.damage);
         }
         for (std::uint32_t slot = 0; slot < 8; ++slot) {
             const CSpell* spell = unit->GetSpellObject(slot);
             if (!spell) continue;
             AIOptionKind kind = SpellKind(spell);
-            if (kind == kOptionUnused) continue;
+            if (kind == AIOptionKind::Unused) continue;
             float range = spell->range_;
             if (server->stats.naturalWeapon == kNaturalSpellsOnly) range = server->stats.combat[UnitStats::kReach];
             std::uint32_t count = spell->targetCount_;
@@ -139,41 +139,41 @@ void AIAttention::Build(CUnit* unit) {
             float radius = 0.0f;
             int effect = 0;
             switch (kind) {
-            case kOptionAreaAttack:
+            case AIOptionKind::AreaAttack:
                 radius = spell->radius_;
                 break;
-            case kOptionLastingArea:
+            case AIOptionKind::LastingArea:
                 radius = spell->radius_;
                 effect = static_cast<int>(spell->duration_);
                 break;
-            case kOptionCurse:
-            case kOptionProtect:
-            case kOptionEnhance:
+            case AIOptionKind::Curse:
+            case AIOptionKind::Protect:
+            case AIOptionKind::Enhance:
                 effect = SpellType(spell);
                 break;
-            case kOptionHeal:
+            case AIOptionKind::Heal:
                 radius = spell->damage_;
                 break;
             default:
                 break;
             }
             switch (kind) {
-            case kOptionWeapon:
-            case kOptionSpellAttack:
-            case kOptionAreaAttack:
-            case kOptionLastingArea: {
+            case AIOptionKind::Weapon:
+            case AIOptionKind::SpellAttack:
+            case AIOptionKind::AreaAttack:
+            case AIOptionKind::LastingArea: {
                 weapons.resize(std::ssize(weapons) + 1);
                 AIAttackOption& option = weapons[std::ssize(weapons) - 1];
                 InitOption(&option, kind, static_cast<int>(slot), range, maxCount, radius, effect);
                 server->GetSpellDamage(slot, &option.damage);
                 break;
             }
-            case 4:
-                AddWeaponOption(kOptionCurse, static_cast<int>(slot), range, maxCount, radius, effect);
+            case AIOptionKind::Curse:
+                AddWeaponOption(AIOptionKind::Curse, static_cast<int>(slot), range, maxCount, radius, effect);
                 break;
-            case 5:
-            case 6:
-            case 7:
+            case AIOptionKind::Protect:
+            case AIOptionKind::Enhance:
+            case AIOptionKind::Heal:
                 AddSpellOption(kind, static_cast<int>(slot), range, maxCount, radius, effect);
                 break;
             default:
@@ -182,7 +182,7 @@ void AIAttention::Build(CUnit* unit) {
         }
     } else {
         float range = server->AttackRange();
-        DamageWords* damage = AddWeaponOption(kOptionWeapon, -1, range, 0, 0.0f, 0);
+        DamageWords* damage = AddWeaponOption(AIOptionKind::Weapon, -1, range, 0, 0.0f, 0);
         server->GetDamageByType(damage);
     }
     healWeight = 0.0f;

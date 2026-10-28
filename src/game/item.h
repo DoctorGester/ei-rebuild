@@ -69,7 +69,9 @@ public:
     itemdb::ItemRecordHead* GetPrototype();
 
     // INT_MAX if there is no prototype.
-    int GetCategory();
+    QuickItemCategory GetCategory();
+    // type_ read as the item's kind.
+    ItemKind Kind() const { return static_cast<ItemKind>(type_); }
 
     // Attaches `spell` (counted; the previous one released), moving the price from the
     // previous spell's to the new one's.
@@ -267,7 +269,7 @@ public:
     void Save(CStream* stream) override;
 
     LootKind kind_;
-    LootRecordType recordType_;   // for kLootRecord
+    LootRecordType recordType_;   // for LootKind::Record
     std::uint32_t index_;       // record index
 };
 
@@ -325,7 +327,7 @@ public:
 
     // Creates the item through the manager (with `kind`, `key`): counted, records cleared, count 1, flag 8
     // set. Returns 1, or a fatal error's result.
-    BOOL BeginCreateItem(int kind, int key);
+    BOOL BeginCreateItem(ItemKind kind, int key);
 
     BOOL SetMaterial(itemdb::MaterialRecordHead* material);
     BOOL SetPrototype(itemdb::ItemRecordHead* prototype);
@@ -369,7 +371,7 @@ inline const CItemWeapon* AsWeapon(const CItem* item) { return static_cast<const
 // (CUnit::EquipArmour). The armour's methods are called without a class test.
 inline CItemArmor* AsArmor(CItem* item) { return static_cast<CItemArmor*>(item); }
 inline const CItemArmor* AsArmor(const CItem* item) { return static_cast<const CItemArmor*>(item); }
-// An item known to be loot as the CItemLoot it is: an item of the loot kind (kItemLoot), one made by name from
+// An item known to be loot as the CItemLoot it is: an item of the loot kind (ItemKind::Loot), one made by name from
 // a loot prototype (runes, materials, instructions), the copy or match of a loot item. Its fields are read
 // without a class test.
 inline CItemLoot* AsLoot(CItem* item) { return static_cast<CItemLoot*>(item); }
@@ -391,15 +393,15 @@ struct CItemManager : CResourceManager {
     const char* GetFolderName() override;    // "items"
 
     int Create() override;
-    // The item factory: a new constructed item for kind kItemWeapon weapon, kItemArmor armour, kItemQuick quick, kItemLoot
-    // loot, kItemSpell scroll, kItemQuest quest, its type_ set to the kind; null for another kind or without memory.
+    // The item factory: a new constructed item for kind ItemKind::Weapon weapon, ItemKind::Armor armour, ItemKind::Quick quick, ItemKind::Loot
+    // loot, ItemKind::Spell scroll, ItemKind::Quest quest, its type_ set to the kind; null for another kind or without memory.
     CEngineObject* NewObject(int kind) override;
 
     // An item of `kind` built by the context's item constructor (BeginCreateItem with `kind` and `key`)
     // from prototype record `index` of the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for
     // weapons and armor, material record `material`; an index out of range or another kind gives a null
     // record. Returns the item (null when the build fails).
-    CItem* MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key);
+    CItem* MakeItem(ItemKind kind, std::uint32_t index, std::uint32_t material, int key);
 
     // An item from its name, "prototype[.material][[extra]]" (lowercased): "spell container[spell]" makes a
     // scroll; otherwise the prototype is looked up in the weapon, armor, quick, class-0x14 and class-0x15
@@ -409,7 +411,7 @@ struct CItemManager : CResourceManager {
     // FixCreateItem returns null in both cases without FatalError.
     CItem* CreateItem(std::string_view name);
 
-    // A scroll ("spell container", kind kItemSpell) holding the spell that `spells` builds from `spellText`;
+    // A scroll ("spell container", kind ItemKind::Spell) holding the spell that `spells` builds from `spellText`;
     // null when the spell or the item cannot be made (the spell is then left as it is).
     CItem* CreateSpellItem(std::string_view spellText, CSpellManager* spells);
 

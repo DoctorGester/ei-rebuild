@@ -65,7 +65,7 @@ int SendMove(CMemoryStream& out, std::uint8_t type, const std::vector<CUnit*>* u
 // A potion used from a quick slot is counted off at once.
 void SpendPotion(CUnit* user, int slot) {
     auto* item = user->GetQuickItem(static_cast<std::uint32_t>(slot));
-    if (item && static_cast<int>(item->count_) > 0 && item->GetCategory() == kCategoryPotion) --item->count_;
+    if (item && static_cast<int>(item->count_) > 0 && item->GetCategory() == QuickItemCategory::Potion) --item->count_;
 }
 
 } // namespace
@@ -177,7 +177,7 @@ int CPlayerClient::SendUseDead(const std::vector<CUnit*>* units, CEngineObject* 
     WriteType(out_, kUseOrder);
     WriteUnits(out_, units);
     out_.WriteValue(flag);
-    int kind = kSourceSearchBody;
+    int kind = static_cast<int>(UseSource::SearchBody);
     out_.WriteValue(kind);
     int value = kNoId;
     out_.WriteValue(value);

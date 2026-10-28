@@ -209,7 +209,7 @@ CItem* CUnitServer::SpellCarrier(std::uint32_t source) {
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item) return nullptr;
     if (item->GetClassId() != ClassId::ItemQuick) return nullptr;
-    if (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion) return item;
+    if (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion) return item;
     return nullptr;
 }
 
@@ -217,24 +217,24 @@ bool CUnitServer::IsScrollSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return false;
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
-    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return false;
-    return item->GetCategory() == kCategoryPotion;
+    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
+    return item->GetCategory() == QuickItemCategory::Potion;
 }
 
 CSpell* CUnitServer::SpellOfSource(std::uint32_t source) {
     if (!(source & kQuickItemSource)) return unit->GetSpellObject(source);
     auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
     if (!item || item->GetClassId() != ClassId::ItemQuick) return nullptr;
-    if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return nullptr;
+    if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return nullptr;
     return item->spell_;
 }
 
 bool CUnitServer::IsFighting() {
-    if (action.kind == kOrderCastAt || action.kind == kOrderCastOn) {
+    if (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn) {
         CSpell* spell = nullptr;
         if (action.source & kQuickItemSource) {
             auto* item = unit->GetQuickItem(action.source & ~kQuickItemSource);
-            if (item && item->GetClassId() == ClassId::ItemQuick && (item->GetCategory() == kCategoryWand || item->GetCategory() == kCategoryPotion))
+            if (item && item->GetClassId() == ClassId::ItemQuick && (item->GetCategory() == QuickItemCategory::Wand || item->GetCategory() == QuickItemCategory::Potion))
                 spell = item->spell_;
         } else {
             spell = unit->GetSpellObject(action.source);
@@ -247,7 +247,7 @@ bool CUnitServer::IsFighting() {
                 return true;
         }
     }
-    return action.kind == kOrderAttack;
+    return action.kind == UnitOrderKind::Attack;
 }
 
 bool CUnitServer::CanCast(const AIOrder* order) {
@@ -255,10 +255,10 @@ bool CUnitServer::CanCast(const AIOrder* order) {
     if (source & kQuickItemSource) {
         auto* item = unit->GetQuickItem(source & ~kQuickItemSource);
         if (!item || item->GetClassId() != ClassId::ItemQuick) return false;
-        if (item->GetCategory() != kCategoryWand && item->GetCategory() != kCategoryPotion) return false;
+        if (item->GetCategory() != QuickItemCategory::Wand && item->GetCategory() != QuickItemCategory::Potion) return false;
         CSpell* spell = item->spell_;
         if (!spell) return false;
-        if (item->GetCategory() != kCategoryWand) return true;
+        if (item->GetCategory() != QuickItemCategory::Wand) return true;
         // The charge against the cost: less (or unordered) refuses.
         return item->charge_ >= SpellCost(spell);
     }
@@ -274,11 +274,11 @@ bool CUnitServer::CanCast(const AIOrder* order) {
 }
 
 BOOL CUnitServer::GetMovePoint(float* out) {
-    if (action.kind == kOrderMove) {
+    if (action.kind == UnitOrderKind::Move) {
         lib::StoreBytes(out, action.point);
         return 1;
     }
-    if (action2.kind == kOrderMove) {
+    if (action2.kind == UnitOrderKind::Move) {
         lib::StoreBytes(out, action2.point);
         return 1;
     }
@@ -287,9 +287,9 @@ BOOL CUnitServer::GetMovePoint(float* out) {
 
 float CUnitServer::ActionDistance(const AIOrder* order) {
     if (order->pointIsUseSpot) return kPointTwo;
-    int kind = order->kind;
+    UnitOrderKind kind = order->kind;
     CMapObject* target = order->target;
-    if (kind == kOrderCastAt || kind == kOrderCastOn) {
+    if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn) {
         if (!unit->player && stats.naturalWeapon == kNoNaturalWeapon) return stats.combat[UnitStats::kReach];
         std::uint32_t source = order->source;
         CSpell* spell;
@@ -303,8 +303,8 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
         if (spell) return SpellRange(spell);
         return kTen;
     }
-    if (kind == 6) {
-        if (order->source == kSourceSearchBody) {
+    if (kind == UnitOrderKind::Use) {
+        if (order->Skill() == UseSource::SearchBody) {
             float part = static_cast<float>(Radius(target) * kPointThree);
             return static_cast<float>(Radius(unit) + part);
         }
@@ -329,12 +329,12 @@ float CUnitServer::ActionDistance(const AIOrder* order) {
 }
 
 bool CUnitServer::CanReachTarget(const AIOrder* order) {
-    if (order->kind != kOrderAttack && order->kind != kOrderUse) return true;
+    if (order->kind != UnitOrderKind::Attack && order->kind != UnitOrderKind::Use) return true;
     CUnit* other = UnitOrNull(order->target);
     if (!other) return true;
     if (IsDead(other) != 0) return true;
     if (other->sizeClass != 0) return true;
-    if (order->kind == kOrderAttack) {
+    if (order->kind == UnitOrderKind::Attack) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
@@ -644,7 +644,7 @@ void CUnitServer::UpdateMoveFactors() {
     } else {
         moveFactors[0] = 0.0f;
     }
-    if (state == 5 && (action.kind == kOrderCastAt || action.kind == kOrderCastOn)) {
+    if (state == 5 && (action.kind == UnitOrderKind::CastAt || action.kind == UnitOrderKind::CastOn)) {
         CSpell* spell = SpellOfSource(action.source);
         if (spell && spell->GetPrototype()->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];

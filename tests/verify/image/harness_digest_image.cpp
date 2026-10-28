@@ -50,9 +50,9 @@ int PartyItemCount(CParty* party) { return static_cast<int>(party->items_.size()
 // address (none: 0).
 std::uint32_t ModeId(AIMode* mode) {
     if (!mode) return 0;
-    const int type = mode->GetType();
-    if (type >= kModeGuard && type <= kModeTamed) return ModeKindId(static_cast<std::size_t>(type));
-    if (type == kModeFollow) return ModeKindId(9);
+    const AIModeType type = mode->GetType();
+    if (type >= AIModeType::Guard && type <= AIModeType::Tamed) return ModeKindId(static_cast<std::size_t>(type));
+    if (type == AIModeType::Follow) return ModeKindId(9);
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(*reinterpret_cast<const void* const*>(mode)));
 }
 

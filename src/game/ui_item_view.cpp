@@ -151,14 +151,14 @@ Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
 void SetOrientation(CUiMesh* model, const Quaternion& q) { model->localRotation_ = q; }
 
 bool IsRecordLoot(const CItem* item, LootRecordType recordType) {
-    if (item->type_ != kItemLoot) return false;
+    if (item->Kind() != ItemKind::Loot) return false;
     const auto* loot = AsLoot(item);
-    return loot->kind_ == kLootRecord && loot->recordType_ == recordType;
+    return loot->kind_ == LootKind::Record && loot->recordType_ == recordType;
 }
 
 bool LiesFlat(CItem* item) {
-    if (item->type_ == kItemSpell) return true;
-    return IsRecordLoot(item, kRecordSpell) || IsRecordLoot(item, kRecordModifier);
+    if (item->Kind() == ItemKind::Spell) return true;
+    return IsRecordLoot(item, LootRecordType::Spell) || IsRecordLoot(item, LootRecordType::Modifier);
 }
 
 void SetShade(CUiMesh* sprite, float grey) {
@@ -233,9 +233,9 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
         SetShade(model, 1.0f);
         float dt = static_cast<float>(FrameTime());
         ItemTurn* turn = ItemTurnOf(item);
-        int kind = item->type_;
+        ItemKind kind = item->Kind();
         CSpell* spell = item->spell_;
-        if (spell && (kind == kItemWeapon || kind == kItemArmor)) {
+        if (spell && (kind == ItemKind::Weapon || kind == ItemKind::Armor)) {
             int school = spell->GetPrototype()->school;
             if (school < 8)
                 model->flatSpecular_ = Glow(dt, turn, kSchoolGlow[school]);
@@ -246,14 +246,14 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
 
         if (LiesFlat(item)) {
             SetOrientation(model, HalfTurn(0.0f, 0.0f, 1.0f));
-        } else if (kind == kItemWeapon) {
+        } else if (kind == ItemKind::Weapon) {
             // Weapons turn about (1, 1, 0) after a half turn about x.
             Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
             const Vector3 axis = {1.0f, 1.0f, 0.0f};
             Quaternion b;
             b.SetAxisAngle(axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
-        } else if (IsRecordLoot(item, kRecordWeapon) || IsRecordLoot(item, kRecordArmor) || IsRecordLoot(item, kRecordQuick)) {
+        } else if (IsRecordLoot(item, LootRecordType::Weapon) || IsRecordLoot(item, LootRecordType::Armor) || IsRecordLoot(item, LootRecordType::Quick)) {
             SetOrientation(model, HalfTurn(1.0f, 0.0f, 0.0f));   // blueprints lie still
         } else {
             // Others turn about y after a half turn about x.
@@ -281,7 +281,7 @@ void CItemScreen::DrawItem(CSceneRenderer* pass, ItemCell* cell) {
     if (item->spell_) SetSpecular(0);
 
     CSpell* spell = item->spell_;
-    if (item->type_ == kItemSpell && spell && spell->GetModifierCount() > 0) {
+    if (item->Kind() == ItemKind::Spell && spell && spell->GetModifierCount() > 0) {
         float px, py, pz;
         model->GetPlacement(&px, &py, &pz);
         float scale = model->scaleMatrix_.m[0];

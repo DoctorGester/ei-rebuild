@@ -111,7 +111,7 @@ constexpr const char* kMapDataExtension = /*007441D4*/ ".MP";
 
 } // namespace
 
-SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
+SectorData* Terrain::SectorAt(int sx, int sy, SectorStage wanted, int create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
     std::list<terrain::SectorData*>::iterator node = sectorGrid[sx][sy];
     if (node != std::list<terrain::SectorData*>::iterator{}) {
@@ -123,7 +123,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
             sectorGrid[sx][sy] = sectorCache.begin();
         }
         if (create) sector->Ensure(wanted, this);
-        return (sector->built & wanted) ? sector : nullptr;
+        return lib::Has(sector->built, wanted) ? sector : nullptr;
     }
     if (!create) return nullptr;
 
@@ -149,7 +149,7 @@ SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) 
         sectorCache.push_front(sector);
         sectorGrid[sx][sy] = sectorCache.begin();
         sector->Ensure(wanted, this);
-        return (sector->built & wanted) ? sector : nullptr;
+        return lib::Has(sector->built, wanted) ? sector : nullptr;
     }
     delete sector;
     return nullptr;
@@ -272,7 +272,7 @@ void Terrain::Destroy() {
 
 void Terrain::Reset() {
     extraPages = 0;
-    landscapeFlags = 0;
+    landscapeFlags = LandscapeFlag::None;
     pageTextures.clear();
     pageMaterials.clear();
     std::memset(&worldMatrix, 0, sizeof(worldMatrix));
@@ -517,7 +517,7 @@ int Terrain::LoadMap(std::string_view path, std::string_view zone, char dungeon)
     terrain::CountAmbientVariants(ambientSet.c_str());
 
     const int sectors = sectorsY * sectorsX;
-    landscapeFlags |= kLandscapeAll;
+    landscapeFlags |= LandscapeFlag::All;
     waterLevels.resize(sectors);
     for (int i = 0; i < sectorsY * sectorsX; ++i) {
         waterLevels[i].assign(materials.size(), 0.0f);

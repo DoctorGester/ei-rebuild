@@ -181,7 +181,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 // --- Small checks -------------------------------------------------------------------------------
 
 bool CUnitServer::CanReactFor(int ticks) {
-    if (action.kind == kOrderAttack && state == kStateTurning &&
+    if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + ticks > nextAttackTime)
         return false;
     return true;
@@ -431,11 +431,11 @@ bool CUnitServer::ChangeMoveMode() {
         if (modeChanged) FaceAndStop(this);
         if (state == kStateIdle && !modeChanged) {
             unit->UpdateSizeClass();
-            if (action2.kind == kOrderNone) action2.Assign(&action);
+            if (action2.kind == UnitOrderKind::None) action2.Assign(&action);
             return true;
         }
     }
-    if (action.kind != kOrderAttack) {
+    if (action.kind != UnitOrderKind::Attack) {
         AnimationSteps transition;
         if (BuildTransition(&transition, &saved, &moveMode)) {
             FaceAndStop(this);
@@ -443,7 +443,7 @@ bool CUnitServer::ChangeMoveMode() {
         }
     }
     unit->UpdateSizeClass();
-    if (action2.kind == kOrderNone) action2.Assign(&action);
+    if (action2.kind == UnitOrderKind::None) action2.Assign(&action);
     return true;
 }
 
@@ -523,7 +523,7 @@ void CUnitServer::LiftNearby(std::list<CUnit*>* list, const Vector3* point, char
         if (!member) break;
         if (member == unit) continue;
         auto* controller = member->ServerController();
-        bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
+        bool lift = moving && (controller->action.kind == UnitOrderKind::Move || controller->action2.kind == UnitOrderKind::Move);
         if (!lift) lift = controller->brain.LeaderOrFollowed() == unit;
         if (!lift) continue;
         auto added = list->emplace(list->end());
@@ -569,19 +569,19 @@ void CUnitServer::ReportPath(AIPath* path, char partial) {
 // --- Resync with the unit ---------------------------------------------------------------------
 
 void CUnitServer::ResyncWithUnit() {
-    action.kind = kOrderNone;
+    action.kind = UnitOrderKind::None;
     if (action.target) action.target->Release();
     action.target = nullptr;
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
-    if (action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote) {   // the first is always true
-        action2.kind = kOrderNone;
+    if (action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote) {   // the first is always true
+        action2.kind = UnitOrderKind::None;
         action2.target.Reset();
         action2.pointIsUseSpot = 0;
         action2.param = 0;
         action2.modifier = 0;
-        action2.kind = kOrderIdle;
+        action2.kind = UnitOrderKind::Idle;
         action2.target.Assign(nullptr);
         action2.modifier = 0;
     }
@@ -628,12 +628,12 @@ void CUnitServer::ResetController() {
         if (ref) ref->Release();
         ref = nullptr;
     };
-    action.kind = kOrderNone;
+    action.kind = UnitOrderKind::None;
     releaseRef(action.target);
     action.pointIsUseSpot = 0;
     action.param = 0;
     action.modifier = 0;
-    action2.kind = kOrderNone;
+    action2.kind = UnitOrderKind::None;
     releaseRef(action2.target);
     action2.pointIsUseSpot = 0;
     action2.param = 0;
@@ -671,8 +671,8 @@ void CUnitServer::ResetController() {
     effectObject = nullptr;
     if (effect) effect->Release();
     actingCheckTime = -1;
-    action.kind = kOrderIdle;
-    action2.kind = kOrderNone;
+    action.kind = UnitOrderKind::Idle;
+    action2.kind = UnitOrderKind::None;
     nextAttackTime = 0;
     interceptTime = 0;
     orderStopped = 0;

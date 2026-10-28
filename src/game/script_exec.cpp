@@ -253,10 +253,10 @@ void UnitModes(const SSCCmd* cmd) {
     CUnitServer* state = UnitStateArg(cmd);
     if (!state) return;
     AIBrain* brain = BrainOf(state);
-    brain->RemoveModesOfType(3);
-    brain->RemoveModesOfType(4);
-    brain->RemoveModesOfType(5);
-    brain->RemoveModesOfType(7);
+    brain->RemoveModesOfType(AIModeType::Suspection);
+    brain->RemoveModesOfType(AIModeType::Aggression);
+    brain->RemoveModesOfType(AIModeType::CorpseWatcher);
+    brain->RemoveModesOfType(AIModeType::Fear);
     switch (Round(cmd->floatArgs[0])) {
     case 0:
         brain->AddMode(new FearMode(1));

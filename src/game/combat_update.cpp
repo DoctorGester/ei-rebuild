@@ -98,7 +98,7 @@ void SetStandingFlag(CUnitServer* self, int standing) {
 
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
 void EmptyAction(UnitAction* order) {
-    order->kind = kOrderNone;
+    order->kind = UnitOrderKind::None;
     if (order->target) order->target->Release();
     order->target = nullptr;
     order->pointIsUseSpot = 0;
@@ -138,7 +138,7 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // CSpell::targetFlags_
 int CUnitServer::RunTick() {
     CUnit* self = unit;
     if (self->dead == 0) {
-        if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != kOrderIdle ? 1 : 0)) {
+        if (ServerStatsOf(self)->Regenerate(&stats, self, action.kind != UnitOrderKind::Idle ? 1 : 0)) {
             stats.Recompute(ServerStatsOf(unit), unit);
             unit->MarkChanged(0);
             unit->MarkChanged(4);
@@ -180,7 +180,7 @@ int CUnitServer::RunTick() {
             AdvanceAnimation();
             return 1;
         }
-        if (state == kStateActing && action2.kind == kOrderMove) EndOrder(1);
+        if (state == kStateActing && action2.kind == UnitOrderKind::Move) EndOrder(1);
         UpdateState();
         AdvanceAnimation();
         return 1;
@@ -396,7 +396,7 @@ void CUnitServer::PlayHitReaction() {
     if (moveMode.mode == 0 && state == kStateIdle) return;
     BuildDeathAnimation(&reaction, hitDirection, 0, 0);
     int duration = TotalDuration(reaction);
-    if (action.kind == kOrderAttack && state == kStateTurning &&
+    if (action.kind == UnitOrderKind::Attack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
@@ -516,11 +516,11 @@ void CUnitServer::TickAction() {
 // --- Checks -------------------------------------------------------------------------------------
 
 bool CUnitServer::ActionInReach() {
-    int kind = action.kind;
-    bool cast = kind == kOrderCastAt || kind == kOrderCastOn;
+    UnitOrderKind kind = action.kind;
+    bool cast = kind == UnitOrderKind::CastAt || kind == UnitOrderKind::CastOn;
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
-    if (kind == kOrderCastAt || kind == kOrderUseItem) return true;
-    if (kind != kOrderAttack && kind != kOrderUse && kind != kOrderCastOn) return false;
+    if (kind == UnitOrderKind::CastAt || kind == UnitOrderKind::UseItem) return true;
+    if (kind != UnitOrderKind::Attack && kind != UnitOrderKind::Use && kind != UnitOrderKind::CastOn) return false;
     CMapObject* target = action.target;
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
@@ -530,8 +530,8 @@ bool CUnitServer::ActionInReach() {
         if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
     } else if (target->IsDead() != 0) {
-        if (kind != kOrderUse) return false;
-        if (action.source != kSourceSearchBody && action.source != 0) return false;
+        if (kind != UnitOrderKind::Use) return false;
+        if (action.Skill() != UseSource::SearchBody && action.Skill() != UseSource::Use) return false;
     }
     Vector3 where;
     const float* at = &target->PositionAt(&where, Plan(this).endTime)->x;

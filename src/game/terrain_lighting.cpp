@@ -134,7 +134,7 @@ void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, in
             }
         }
     }
-    const bool march = !skipSun && (terrain->landscapeFlags & kLandscapeSunShadows) != 0;
+    const bool march = !skipSun && lib::Has(terrain->landscapeFlags, LandscapeFlag::SunShadows);
     bool quiet = false;   // the march can change nothing for the rest of this call
     for (int y = y0; y <= y1; ++y) {
         terrain->lightingY = y;
@@ -146,7 +146,7 @@ void SectorData::Light(Terrain* terrain, int skipSun, int x0, int y0, int x1, in
             records[i].specular = static_cast<std::uint32_t>(terrain->EdgeFade(&vertices[i])) << 24;
         }
     }
-    built |= kSectorLit;
+    built |= SectorStage::Lit;
     if (chop != control) x87::SetControlWord(control);
     if (!skipSun) relightCountdown = -1;
 }

@@ -36,41 +36,43 @@ struct CountedUnits : std::list<CUnit*> {
     AIRefTo<CUnit>* PopHead(AIRefTo<CUnit>* out);
 };
 
-// What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is kOrderNone when nothing is
-// queued; a queued kOrderIdle stops the current order and the unit stands.
-enum UnitOrderKind : int {
-    kOrderIdle = 0,
-    kOrderMove = 1,
-    kOrderTurn = 2,
-    kOrderAttack = 3,
-    kOrderCastAt = 4,       // a spell (or a quick item's) at a point
-    kOrderCastOn = 5,       // a spell (or a quick item's) on a target
-    kOrderUse = 6,          // a use or a skill on a target (source: UseSource)
-    kOrderAnimation = 7,
-    kOrderEmote = 8,
-    kOrderNone = 9,
-    kOrderUseItem = 10,     // a kCategoryConsumable quick item (source: the quick slot)
-    kOrderStop = 11,
+// What an order does (AIOrder::kind). A unit's queued order (CUnitServer::action2) is UnitOrderKind::None when nothing is
+// queued; a queued UnitOrderKind::Idle stops the current order and the unit stands.
+enum class UnitOrderKind : int {
+    Idle = 0,
+    Move = 1,
+    Turn = 2,
+    Attack = 3,
+    CastAt = 4,    // a spell (or a quick item's) at a point
+    CastOn = 5,    // a spell (or a quick item's) on a target
+    Use = 6,       // a use or a skill on a target (source: UseSource)
+    Animation = 7,
+    Emote = 8,
+    None = 9,
+    UseItem = 10,  // a QuickItemCategory::Consumable quick item (source: the quick slot)
+    Stop = 11,
 };
 
-// AIOrder::source of a kOrderUse order (CUnitServer::UseSkill).
-enum UseSource : std::uint32_t {
-    kSourceUse = 0,
-    kSourceSteal = 1,
-    kSourceTame = 2,
-    kSourceSearchBody = 0x18A95,
+// AIOrder::source of a UnitOrderKind::Use order (CUnitServer::UseSkill).
+enum class UseSource : std::uint32_t {
+    Use = 0,
+    Steal = 1,
+    Tame = 2,
+    SearchBody = 0x18A95,
 };
 
 // An order as the controller's order checks take it (built on the stack).
 struct AIOrder {
-    // kOrderNone: the object released and cleared, the flag cleared.
+    // UnitOrderKind::None: the object released and cleared, the flag cleared.
     void Clear();
     // Clear, then an attack on `object` (referenced) at every body part (source 6).
     void MakeAttack(CMapObject* object);
     // Clear, then a cast of `spell` on `object` (referenced).
     void MakeCast(int spell, CMapObject* object);
     // Clear, then a use of `object` with `what`.
-    void MakeUse(CMapObject* object, int what);
+    void MakeUse(CMapObject* object, UseSource what);
+    // `source` read as a use order's skill (kind Use).
+    UseSource Skill() const { return static_cast<UseSource>(source); }
     // Where the order aims: the object's AimPoint, or `point` without an object. Returns `out`.
     Vector3* AimPoint(Vector3* out) const;
 
@@ -108,17 +110,17 @@ struct AIMoveOrder {
 };
 
 // Mode types, as the brain names them in its "new motivation" message.
-enum AIModeType : int {
-    kModeGuard = 0,
-    kModePatrol = 1,
-    kModeSentry = 2,
-    kModeSuspection = 3,
-    kModeAggression = 4,
-    kModeCorpseWatcher = 5,
-    kModePlayer = 6,
-    kModeFear = 7,
-    kModeTamed = 8,
-    kModeFollow = 10,
+enum class AIModeType : int {
+    Guard = 0,
+    Patrol = 1,
+    Sentry = 2,
+    Suspection = 3,
+    Aggression = 4,
+    CorpseWatcher = 5,
+    Player = 6,
+    Fear = 7,
+    Tamed = 8,
+    Follow = 10,
 };
 
 // Base of all modes (abstract). AIActionMode is the base of the modes that act.
@@ -167,7 +169,7 @@ public:
     // When idle: walk to a free place near the point (after 100 failures, near the unit) and look around
     // there.
     void Execute(AIBrain* brain) override;
-    AIModeType GetType() override { return kModeGuard; }
+    AIModeType GetType() override { return AIModeType::Guard; }
     void Load(CStream* stream) override;
     void Save(CStream* stream) override;
 
@@ -387,7 +389,7 @@ public:
     // towards the point.
     void CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int run, const Vector3* offset);
     void CommandAttack(AIBrain* brain, CMapObject* object, int how, int unknown);
-    void CommandUse(AIBrain* brain, CMapObject* object, int kind, int a, int b);
+    void CommandUse(AIBrain* brain, CMapObject* object, UseSource kind, int a, int b);
     void CommandCast(AIBrain* brain, int spell, CMapObject* object);
     void CommandCastAt(AIBrain* brain, int spell, const Vector3* point);
 
@@ -496,16 +498,16 @@ struct AIReports : std::vector<AIReport> {
 // area for a time, Stun, Weaken and Feeblemind curse an enemy, the protections, Antimagic and Strengthen protect,
 // the sights, Detect Life, Invisibility, Silence, Lichdom, Regeneration and Speed enhance, Healing heals; the rest
 // the AI does not use.
-enum AIOptionKind : int {
-    kOptionWeapon = 0,         // the unit's weapon or natural attack
-    kOptionSpellAttack = 1,
-    kOptionAreaAttack = 2,
-    kOptionLastingArea = 3,    // effect: the spell's duration
-    kOptionCurse = 4,          // on enemies (the weapons list); effect: the spell type
-    kOptionProtect = 5,        // on allies; effect: the spell type
-    kOptionEnhance = 6,        // on allies, not when only allies are chosen; effect: the spell type
-    kOptionHeal = 7,
-    kOptionUnused = 8,
+enum class AIOptionKind : int {
+    Weapon = 0,       // the unit's weapon or natural attack
+    SpellAttack = 1,
+    AreaAttack = 2,
+    LastingArea = 3,  // effect: the spell's duration
+    Curse = 4,        // on enemies (the weapons list); effect: the spell type
+    Protect = 5,      // on allies; effect: the spell type
+    Enhance = 6,      // on allies, not when only allies are chosen; effect: the spell type
+    Heal = 7,
+    Unused = 8,
 };
 
 struct AIAttackOption {
@@ -521,7 +523,7 @@ struct AIAttackOption {
     int part;                       // -1 a weapon, else the spell
     float range;
     int maxCount;                   // cap on the group-size bonus
-    float radius;                   // the area of an area attack, the healing of kOptionHeal
+    float radius;                   // the area of an area attack, the healing of AIOptionKind::Heal
     int effect;                     // see AIOptionKind
     DamageWords damage;             // measured against the target's protection
 };
@@ -674,7 +676,7 @@ struct AIBrain {
     // type, or the first exclusive one when `mode` is exclusive (the mode in charge loses its reference when
     // it is the one removed).
     void AddMode(AIMode* mode);
-    void RemoveModesOfType(int type);
+    void RemoveModesOfType(AIModeType type);
     // Empties the mode list, drops the mode in charge, resets the near point and the decay.
     void ClearModes();
     // ClearModes, then no action, memory reset, action point and looks cleared, target and seen object
@@ -732,7 +734,7 @@ struct AIBrain {
     void SetSeen(CMapObject* object);
     void AttackTarget(CMapObject* object);
     // Action 5: use something on `object` (`kind` the use order's UseSource).
-    void UseOn(CMapObject* object, int kind, int a, int b);
+    void UseOn(CMapObject* object, UseSource kind, int a, int b);
 
     // Action 6 (follow `target`): every few ticks walk to where the leader is or will be
     // (a moving leader is met ahead on its way, or passed on the side); a dead or lost leader ends it.

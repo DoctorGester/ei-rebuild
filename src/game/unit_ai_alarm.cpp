@@ -148,7 +148,7 @@ void AIBrain::HearAlarm(int slot) {
     if (slot < 0 || slot >= std::ssize(alarmRecords)) return;
     const mapspec::Behaviour* record = &alarmRecords[slot];
     if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
-    owner->voice.Raise(kRemarkToAlarm);
+    owner->voice.Raise(AIRemark::ToAlarm);
 }
 
 void AIBrain::ResetBehaviour() {

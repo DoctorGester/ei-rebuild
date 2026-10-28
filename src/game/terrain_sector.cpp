@@ -392,7 +392,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
             y += 1.0;
         }
     }
-    built |= kSectorLoaded;
+    built |= SectorStage::Loaded;
     return 1;
 }
 
@@ -422,7 +422,7 @@ void SectorData::Build() {
     FillTiles(*this, tileWords, counts);
     ComputeBounds(*this);
     owner->LightSector(this);   // terrain_lights.cpp
-    built |= kSectorBuilt;
+    built |= SectorStage::Built;
 
     if (hasWater) {
         // The water materials present in the sector, then their levels.
@@ -484,7 +484,7 @@ int Terrain::SurfaceClass(float x, float y) {
     int ix = x87::fistp(static_cast<float>(x / unit));
     int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;
-    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, kSectorBuilt, 1);
+    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, SectorStage::Built, 1);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles[tile] != -1) {
@@ -506,12 +506,11 @@ void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth)
 
 namespace terrain {
 
-std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
-    if (wanted & built) return 1;
-    if (wanted >= kSectorBuilt && !(built & kSectorBuilt)) Build();
-    if (wanted >= kSectorLit && !(built & kSectorLit))
+void SectorData::Ensure(SectorStage wanted, Terrain* terrain) {
+    if (lib::Has(wanted, built)) return;
+    if (wanted >= SectorStage::Built && !lib::Has(built, SectorStage::Built)) Build();
+    if (wanted >= SectorStage::Lit && !lib::Has(built, SectorStage::Lit))
         Light(terrain, 0, 0, 0, 0x20, 0x20);
-    return wanted & built;
 }
 
 // Construction and projection
@@ -545,7 +544,7 @@ SectorData::SectorData() {
     owner = nullptr;
     pages = -1;
     perPage = -1;
-    built = 0;
+    built = SectorStage::None;
     lastUsed = 0;
     relightCountdown = 0;
     clipMode = kCulled;

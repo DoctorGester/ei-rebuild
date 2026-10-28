@@ -104,13 +104,13 @@ int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 
 CEngineObject* CItemManager::NewObject(int kind) {
     CEngineObject* object;
-    switch (kind) {
-    case kItemWeapon: object = new CItemWeapon(); break;
-    case kItemArmor: object = new CItemArmor(); break;
-    case kItemQuick: object = new CItemQuick(); break;
-    case kItemLoot: object = new CItemLoot(); break;
-    case kItemSpell: object = new CItemSpell(); break;
-    case kItemQuest: object = new CItemQuest(); break;
+    switch (static_cast<ItemKind>(kind)) {
+    case ItemKind::Weapon: object = new CItemWeapon(); break;
+    case ItemKind::Armor: object = new CItemArmor(); break;
+    case ItemKind::Quick: object = new CItemQuick(); break;
+    case ItemKind::Loot: object = new CItemLoot(); break;
+    case ItemKind::Spell: object = new CItemSpell(); break;
+    case ItemKind::Quest: object = new CItemQuest(); break;
     default: return nullptr;
     }
     object->type_ = kind;

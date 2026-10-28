@@ -1035,9 +1035,9 @@ int CWorldClient::LoadZone(CStream* block) {
 
     FitGrid(objectGrid_, terrain);
     FitGrid(secondGrid_, terrain);
-    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
-    if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
-    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSunShadows;
+    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~LandscapeFlag::Waves;
+    if (cave == kCave) terrain->landscapeFlags |= LandscapeFlag::Waves;
+    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~LandscapeFlag::SunShadows;
     terrain->SetLightInterval(worlddata::LightingFrequencyOption() / kFrameMilliseconds);
     if (skyDome_) {
         HeldTexture* holder = &skyDome_->texture;

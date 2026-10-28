@@ -52,7 +52,7 @@ public:
     // 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`, `value`, the target's id
     // (CPlayerServer::OnUseOrder).
     int SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag);
-    // 0x36 for `units` on a dead `target`: `flag`, kind kSourceSearchBody, value -1.
+    // 0x36 for `units` on a dead `target`: `flag`, kind UseSource::SearchBody, value -1.
     int SendUseDead(const std::vector<CUnit*>* units, CEngineObject* target, int flag);
     // 0x50: the player's party saved without its variables (CParty::SaveParty, which draws an ISAAC key) as
     // a sized block.

@@ -147,8 +147,8 @@ void CHudQuickItems::Pick(int slot) {
         owner_->SetPendingAction(kPendingNone, -1, -1);
         return;
     }
-    int category = item->GetCategory();
-    if (category != kCategoryWand && category != kCategoryPotion) return;
+    QuickItemCategory category = item->GetCategory();
+    if (category != QuickItemCategory::Wand && category != QuickItemCategory::Potion) return;
     int mode = kPendingNone;
     if (CSpell* spell = SpellOf(item))
         mode = (spell->targetFlags_ & kSpellOnUnit) ? kPendingQuickOnUnit : kPendingQuickAtPoint;
@@ -162,8 +162,8 @@ void CHudQuickItems::UseNow(int slot) {
     CItem* item = unit_->GetQuickItem(slot);
     if (!item) return;
     owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
-    int category = item->GetCategory();
-    if ((category == kCategoryWand || category == kCategoryPotion) && SpellOf(item))
+    QuickItemCategory category = item->GetCategory();
+    if ((category == QuickItemCategory::Wand || category == QuickItemCategory::Potion) && SpellOf(item))
         if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
     interface_->PlaySound(kSoundClick, 0);
     owner_->SetPendingAction(kPendingNone, -1, -1);

@@ -57,9 +57,9 @@ void CUnitServer::OnObjectDeleted(CEngineObject* object) {
     if (!object) return;
     if (action.target == object) {
         action.Reset();
-        if (action2.kind == kOrderNone) Idle();
+        if (action2.kind == UnitOrderKind::None) Idle();
     }
-    if (action2.target == object && action.kind != kOrderIdle && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
+    if (action2.target == object && action.kind != UnitOrderKind::Idle && action2.kind != UnitOrderKind::Animation && action2.kind != UnitOrderKind::Emote)
         DropQueuedOrder();
     if (currentPlan.targetId == object->id_) EndOrder(0);
     BrainOf(this)->OnObjectDeleted(object);

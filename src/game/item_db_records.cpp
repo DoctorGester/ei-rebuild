@@ -19,11 +19,11 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 
 } // namespace
 
-ItemKind WeaponRecord::Kind() { return kItemWeapon; }
-ItemKind ArmorRecord::Kind() { return kItemArmor; }
-ItemKind QuickItemRecord::Kind() { return kItemQuick; }
-ItemKind QuestItemRecord::Kind() { return kItemQuest; }
-ItemKind LootItemRecord::Kind() { return kItemLoot; }
+ItemKind WeaponRecord::Kind() { return ItemKind::Weapon; }
+ItemKind ArmorRecord::Kind() { return ItemKind::Armor; }
+ItemKind QuickItemRecord::Kind() { return ItemKind::Quick; }
+ItemKind QuestItemRecord::Kind() { return ItemKind::Quest; }
+ItemKind LootItemRecord::Kind() { return ItemKind::Loot; }
 
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {

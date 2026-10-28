@@ -50,7 +50,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 // One item of class `kind` for `record` in every material whose soundName names the record's material class,
 // made by the list's item constructor with `manager`. A material index out of the table reads through null.
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
-                    int kind, int materials) {
+                    ItemKind kind, int materials) {
     for (int j = 0; j < materials; ++j) {
         if (text::CompareIgnoringCase(itemdb::MaterialAt(static_cast<std::uint32_t>(j))->soundName, record->materialClass) != 0)
             continue;
@@ -86,7 +86,7 @@ void CCampPages::DebugFill() {
             CResourceManager* manager = items->ItemFactory();
             CItemConstructor* maker = items->ItemConstructor();
             itemdb::ItemRecordHead* weapon = itemdb::WeaponAt(static_cast<std::uint32_t>(i));
-            AddInMaterials(items, manager, maker, weapon, kItemWeapon, materialCount);
+            AddInMaterials(items, manager, maker, weapon, ItemKind::Weapon, materialCount);
         }
 
         g_clientWorld->itemManager_->ListArmorNames(&names);
@@ -96,7 +96,7 @@ void CCampPages::DebugFill() {
             if (NameHas(armor, PrototypeWord())) continue;
             AddNamed(items, InstructionArmor(), static_cast<std::uint32_t>(i), kInstructionCount);
             CItemConstructor* maker = items->ItemConstructor();
-            AddInMaterials(items, manager, maker, armor, kItemArmor, materialCount);
+            AddInMaterials(items, manager, maker, armor, ItemKind::Armor, materialCount);
         }
 
         g_clientWorld->itemManager_->ListQuickItemNames(&names);

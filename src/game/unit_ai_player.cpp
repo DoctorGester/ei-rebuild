@@ -59,7 +59,7 @@ AckKind AttackFlags(AIBrain* brain, CMapObject* object, bool clearTwice) {
     if (clearTwice) {
         // The second attack builds the order by hand after a second Clear.
         order.Clear();
-        order.kind = kOrderAttack;
+        order.kind = UnitOrderKind::Attack;
         order.source = kAttackHow;
         order.target.Assign(object);
     } else {

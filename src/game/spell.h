@@ -205,7 +205,7 @@ public:
 // (or NaN).
 int IsSpellTarget(CUnit* unit);
 
-// A spell under construction (created by the spell manager as kSpellTypeContainer): a prototype, the modifiers added
+// A spell under construction (created by the spell manager as SpellObjectType::Container): a prototype, the modifiers added
 // so far, and the CSpell that Build computes from them.
 class CSpellContainer : public CEngineObject {
 public:
@@ -252,9 +252,9 @@ struct SpellSequence {
 };
 
 // The spell manager's object types (CreateObject / type_).
-enum SpellObjectType : int {
-    kSpellTypeSpell = 0x3002,       // CSpell
-    kSpellTypeContainer = 0x3003,   // CSpellContainer
+enum class SpellObjectType : int {
+    Spell = 0x3002,      // CSpell
+    Container = 0x3003,  // CSpellContainer
 };
 
 // The spell manager; context_ gives the spell constructor.
