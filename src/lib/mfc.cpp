@@ -4,13 +4,13 @@
 #include "mfc_coll.h"
 #include "mfc_exception.h"
 #include "mfc_file.h"
-#include "mfc_string.h"
 #include "mfc_time.h"
 
 #include "ei/hook.h"
 #include "game/game_data.h"
 
 #include <cstring>
+#include <memory>
 #include <new>
 
 namespace mfc {
@@ -21,9 +21,12 @@ impl::CFileFind* Impl(CFileFind* find) { return reinterpret_cast<impl::CFileFind
 const impl::CFileFind* Impl(const CFileFind* find) { return reinterpret_cast<const impl::CFileFind*>(find); }
 } // namespace
 
-CFile::CFile() { Impl(this)->Construct(); }
-CFile::CFile(const char* path, unsigned flags) { Impl(this)->ConstructOpen(path, flags); }
-CFile::~CFile() { Impl(this)->Destruct(); }
+static_assert(sizeof(CFile) == sizeof(impl::CFile) && alignof(CFile) == alignof(impl::CFile));
+static_assert(sizeof(CFileFind) == sizeof(impl::CFileFind) && alignof(CFileFind) == alignof(impl::CFileFind));
+
+CFile::CFile() { std::construct_at(Impl(this)); }
+CFile::CFile(const char* path, unsigned flags) { std::construct_at(Impl(this), path, flags); }
+CFile::~CFile() { std::destroy_at(Impl(this)); }
 BOOL CFile::Open(std::string_view path, unsigned flags, void* error) {
     return Impl(this)->Open(std::string(path).c_str(), flags, static_cast<impl::CFileException*>(error));
 }
@@ -37,20 +40,18 @@ CTime* CTime::Construct(int year, int month, int day, int hour, int minute, int 
     reinterpret_cast<impl::CTime*>(this)->Construct(year, month, day, hour, minute, second, dst);
     return this;
 }
-std::string CTime::Format(const char* format) const {
-    return std::string(reinterpret_cast<const impl::CTime*>(this)->Format(format));
-}
+std::string CTime::Format(const char* format) const { return reinterpret_cast<const impl::CTime*>(this)->Format(format); }
 #endif
 
-CFileFind::CFileFind() { Impl(this)->Construct(); }
-CFileFind::~CFileFind() { Impl(this)->Destruct(); }
+CFileFind::CFileFind() { std::construct_at(Impl(this)); }
+CFileFind::~CFileFind() { std::destroy_at(Impl(this)); }
 BOOL CFileFind::FindFile(std::string_view pattern, unsigned long flags) {
     return Impl(this)->FindFile(std::string(pattern).c_str(), flags);
 }
-std::string CFileFind::GetFilePath() const { return std::string(Impl(this)->GetFilePath()); }
+std::string CFileFind::GetFilePath() const { return Impl(this)->GetFilePath(); }
 unsigned long CFileFind::GetLength() const { return Impl(this)->GetLength(); }
-std::string CFileFind::GetFileName() const { return std::string(Impl(this)->GetFileName()); }
-std::string CFileFind::GetTitle() const { return std::string(Impl(this)->GetFileTitle()); }
+std::string CFileFind::GetFileName() const { return Impl(this)->GetFileName(); }
+std::string CFileFind::GetTitle() const { return Impl(this)->GetFileTitle(); }
 BOOL CFileFind::FindNext() { return Impl(this)->FindNextFile(); }
 BOOL CFileFind::MatchesMask(unsigned long mask) const { return Impl(this)->MatchesMask(mask); }
 BOOL CFileFind::IsDots() const { return Impl(this)->IsDots(); }

@@ -5,7 +5,7 @@
 // (mfc_resource.cpp) holding the texts of MFC's 0xF0xx / 0xF1xx ids our code can reach (the host has no
 // string table). Defined in mfc_resource.cpp.
 
-#include "mfc_string.h"
+#include <string>
 
 namespace mfc::impl {
 
@@ -22,14 +22,12 @@ constexpr unsigned kIdpArchiveNone = 0xF1B0;         // AFX_IDP_ARCH_NONE (+ a C
 // buffer when there is none.
 int AfxLoadString(unsigned id, char* buffer, unsigned size);
 
-// AfxFormatStrings: `format` into `out` with "%1".."%9" and "%A".."%Z" replaced by
-// strings[0] ... (a null string by nothing, an index at or past `count` by '?'; "%0" reads the
-// pointer before the array). A lead byte copies its trail byte with it.
-void AfxFormatStrings(CString& out, const char* format, const char* const* strings, int count);
-// AfxFormatStrings(CString&, UINT, ...): the same with string `formatId` (at most 255
-// bytes) as the format; `out` is left as it is when the string does not load.
-void AfxFormatStringsId(CString& out, unsigned formatId, const char* const* strings, int count);
-// AfxFormatString1: the format string `formatId` with one string.
-void AfxFormatString1(CString& out, unsigned formatId, const char* string);
+// CString::LoadString: string `id`, empty when there is none.
+std::string LoadResourceString(unsigned id);
+
+// AfxFormatString1: string `formatId` (at most 255 bytes) with "%1" replaced by `string` (null: by nothing), any
+// other "%2".."%9" / "%A".."%Z" by '?' ("%0" reads the pointer before the array: never in the table's texts). A lead
+// byte copies its trail byte with it. Empty when the format does not load.
+std::string AfxFormatString1(unsigned formatId, const char* string);
 
 } // namespace mfc::impl

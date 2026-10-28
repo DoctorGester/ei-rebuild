@@ -783,11 +783,18 @@ UNREAD_EXITS = {}   # initialiser -> the exit function left out with its unread 
 
 # Initialisers left out whole, with their exit function: they build and register the destruction of an object
 # no code of ours reaches (C20o: MFC's fixed allocators of the temporary windows and menus, whose classes
-# CTempWnd and CTempMenu are never made). Each is the constructor call and the atexit; the object's range and the
-# exit function's guard byte are in no named range or source, and nothing reads them.
+# CTempWnd and CTempMenu are never made; C14i: CString's four allocators, CString being std::string, and
+# CStringArray's runtime class, linked into MFC's class list by AfxClassInit, the class being gone). Each is the
+# constructor call and the atexit (or the one call); the object's range and the exit function's guard byte are in no
+# named range or source, and nothing reads them.
 UNUSED_INITIALISERS = {
     0x0070D3CE: 'CTempWnd and its allocator 007CA940 (guard byte 007C9138)',
     0x0070DD0B: 'CTempMenu and its allocator 007CAAA8 (guard byte 007CAAA0)',
+    0x00700718: "CString's allocator of 64 characters 007C8B80",
+    0x00700747: "CString's allocator of 128 characters 007C8B58",
+    0x00700779: "CString's allocator of 256 characters 007C8B30",
+    0x007007AB: "CString's allocator of 512 characters 007C8B08",
+    0x0070BE81: "CStringArray's runtime class 00796EE8, linked into the module state's class list",
 }
 
 

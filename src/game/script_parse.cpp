@@ -5,7 +5,6 @@
 #include "script.h"
 #include "game_strings.h"
 #include "script_parse.h"
-#include "lib/mfc_string.h"
 #include "script_addon.h"
 #include "game_data.h"
 

@@ -20,8 +20,7 @@ using BOOL = int;
 // CString: game.exe's CString in the layouts the function vectors read and replay (tests/vectors' Original* views of
 // game.exe's objects): a single pointer to the character data; the reference count, length and capacity live in a
 // header just before it. An empty string points at the shared afxEmptyString data. The game's text is std::string
-// (str.h); only ei_vectors defines these members (tests/vectors/replay_mfc.cpp); src/lib's MFC has its own CString
-// (mfc_string.h, the same layout).
+// (str.h), src/lib's MFC too; only ei_vectors defines these members (tests/vectors/replay_mfc.cpp).
 class CString {
 public:
     CString();
@@ -42,8 +41,9 @@ static_assert(sizeof(CString) == 4);
 
 class CFileVirtuals;
 
-// CFile: vtable, OS handle, close-on-delete flag, file name. The game calls these methods non-virtually, so
-// they are plain members.
+// CFile: vtable, OS handle, close-on-delete flag, file name: mfc::impl::CFile's members (mfc_file.h), which its
+// constructors and destructor build and destroy in place. The game calls these methods non-virtually, so they are
+// plain members.
 class CFile {
 public:
     enum OpenFlags { modeRead = 0 };
@@ -52,6 +52,8 @@ public:
     // CFile(path, flags): opens the file, throwing a CFileException* when it cannot.
     CFile(const char* path, unsigned flags);
     ~CFile();
+    CFile(const CFile&) = delete;
+    CFile& operator=(const CFile&) = delete;
     BOOL Open(std::string_view path, unsigned flags, void* error);
     unsigned GetLength();
     unsigned Read(void* buffer, unsigned count);
@@ -65,9 +67,8 @@ private:
     void* vtable_;
     void* handle_;
     BOOL closeOnDelete_;
-    char* fileName_;
+    alignas(std::string) unsigned char fileName_[sizeof(std::string)];
 };
-static_assert(sizeof(CFile) == 0x10);
 
 // The virtual slots of MFC 4.2's CFile, for callers that dispatch through a file's vtable (the verify build
 // hands some loaders a proxy file). Slots declared `void Name()` only keep their place.
@@ -107,10 +108,13 @@ public:
     virtual void Serialize();
 };
 
+// CFileFind: mfc::impl::CFileFind's members (mfc_file.h), built and destroyed in place as CFile's.
 class CFileFind {
 public:
     CFileFind();
     ~CFileFind();
+    CFileFind(const CFileFind&) = delete;
+    CFileFind& operator=(const CFileFind&) = delete;
     BOOL FindFile(std::string_view pattern, unsigned long flags);
     unsigned long GetLength() const;                                // (the found file's size, low dword)
     std::string GetFilePath() const;
@@ -124,9 +128,14 @@ public:
     void Close();
 
 private:
-    std::uint8_t data_[0x1C - 0];
+    void* vtable_;
+    void* found_;
+    void* next_;
+    void* context_;
+    BOOL gotLast_;
+    alignas(std::string) unsigned char root_[sizeof(std::string)];
+    char separator_;
 };
-static_assert(sizeof(CFileFind) == 0x1C);
 
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
 class CTime {
@@ -228,9 +237,9 @@ public:
     CFile* File() const { return file_; }
 
 private:
-    std::uint8_t unused_00[0x14];
+    std::uint8_t unused_00[0x10];
     unsigned mode_;
-    std::uint8_t unused_18[8];
+    std::uint8_t unused_14[8];
     CFile* file_;
 };
 

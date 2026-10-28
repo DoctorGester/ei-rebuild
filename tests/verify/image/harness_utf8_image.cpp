@@ -12,7 +12,7 @@
 #include "game/ui.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
-#include "lib/mfc_string.h"
+#include "lib/str.h"
 
 #include <windows.h>
 
@@ -152,9 +152,9 @@ std::string CaseFailure() {
     }
     if (libcrt::Strnicmp("Привет мир", "ПРИВЕТ МИР", 12) != 0) return "_strnicmp of 12 bytes of \"Привет\" differs";
     if (libcrt::Memicmp("ЖУК", "жук", 6) != 0) return "_memicmp of \"ЖУК\" and \"жук\" differs";
-    mfc::impl::CString lower("ПРИВЕТ Ёж Ґ ABC");
-    lower.MakeLower();
-    if (std::strcmp(lower, "привет ёж ґ abc") != 0) return std::string("CString::MakeLower gave \"") + static_cast<const char*>(lower) + "\"";
+    std::string lower = "ПРИВЕТ Ёж Ґ ABC";
+    str::MakeLower(lower);
+    if (lower != "привет ёж ґ abc") return "str::MakeLower gave \"" + lower + "\"";
     char upper[] = "ёжик abc";
     text::utf8::CharUpperA(upper);
     if (std::strcmp(upper, "ЁЖИК ABC") != 0) return std::string("CharUpperA gave \"") + upper + "\"";

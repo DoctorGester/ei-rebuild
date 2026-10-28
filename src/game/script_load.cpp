@@ -10,7 +10,6 @@
 
 #include "lib/crt.h"
 #include "lib/mfc_array.h"
-#include "lib/mfc_string.h"
 #include "record_arrays.h"
 
 #include "game_arrays.h"

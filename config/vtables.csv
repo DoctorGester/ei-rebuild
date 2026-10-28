@@ -562,7 +562,6 @@ vtable,slots,rtti,kind,installed_by,slot0,class,file,note
 00745DF4,21,.?AVCFile@@,lib,00701036 0070106C 0070108B 0070112B,0070BE58,PlainFileTable,src/lib/mfc_file.cpp,CFile
 00745E4C,5,.?AVCFileException@@,lib,006E6335 0070108B 00701BD4 007031D5,0070CF4C,CFileException,src/lib/mfc_exception.h,CFileException
 00745EE8,19,.?AVCFileFind@@,lib,006E6370 006E63AD,0070BE5E,FileFindTable,src/lib/mfc_file.cpp,CFileFind
-00745F5C,3,.?AVCStringArray@@,lib,006FE925 006FE958,0070BE7B,StringArrayTable,src/lib/mfc_coll.cpp,CStringArray
 00745F78,3,.?AVCWordArray@@,lib,006FEE9A 006FEECD,0070BEC3,WordArrayTable,src/lib/mfc_coll.cpp,CWordArray
 007461B0,29,.?AVCDC@@,lib,00708CD7 00708E0C,0070BF7B,CDC,src/lib/mfc_gdi.h,CDC
 0074624C,29,.?AVCClientDC@@,lib,00709DCD 00709E3F,0070BF81,CClientDC,-,"stored only by game.exe's constructor / destructor 00709DCD / 00709E3F, which no code of ours calls"

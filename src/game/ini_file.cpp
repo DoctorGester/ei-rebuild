@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "game_data.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 #include <cstdlib>

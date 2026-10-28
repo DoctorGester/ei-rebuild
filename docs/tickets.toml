@@ -3478,7 +3478,7 @@ group = "cleanup"
 model = "opus"
 depends = ["C20o"]
 files = ["src/lib/mfc_string.h", "src/lib/mfc_string.cpp"]
-note = "User 2026-10-28: don't retype MFC's internals. Replace the usage code first: each place that uses an MFC class (CFile / CStdioFile / CFileFind, CArchive, CTime, CWnd text, GDI, resources, exceptions) calls std or a small simple helper of ours instead; when a piece of src/lib's MFC has no user left, delete it. mfc_string goes once only the tests' game.exe views (a local layout struct) still need its layout. Same approach for the other MFC / STLport tickets (C14c, C14d, C14m, C14n, C14h)."
+note = "User 2026-10-28: don't retype MFC's internals. Replace the usage code first: each place that uses an MFC class (CFile / CStdioFile / CFileFind, CArchive, CTime, CWnd text, GDI, resources, exceptions) calls std or a small simple helper of ours instead; when a piece of src/lib's MFC has no user left, delete it. mfc_string goes once only the tests' game.exe views (a local layout struct) still need its layout. Same approach for the other MFC / STLport tickets (C14c, C14d, C14m, C14n, C14h). C14i done (to review, 0116dd18f): mfc_string.h/.cpp deleted (586 lines; the commit 389+ / 1137-). src/lib's MFC holds text as std::string: CFile / CStdioFile / CFileFind names and root (real constructors and destructors now, mfc.h's facades build them in place over a mirror of their members), the exceptions' file names, CArchive's StoreText / LoadText (m_strFileName dropped: nothing builds an archive), CTime::Format, mfc_resource.h LoadResourceString / AfxFormatString1. CFixedAlloc moved to mfc_gdi. impl::CStringArray, its record 00796EE8, vtable row and initialiser 0070BE81 went; the four string allocators' initialisers 00700718..007007AB are UNUSED_INITIALISERS (static_init.cpp regenerated, __cdecl stripped). gen_image_cells UNREAD takes the removed classes' runtime class records, including C20o's CUIntArray / CTempWnd / CTempMenu / CMenu, which a full scan reported unreviewed. function_sizes.inc / extra_function_sizes.csv left as they are (src/hook is harness). Image suite --golden: 145 pass, 121 the same (before: main's 121/114); original suite not run (no tests/verify harness file changed; record_*.cpp untouched). Follow-ups: C14o (harness crash report reads the std::string name), C14p (mfc::CString to the tests)."
 
 [[ticket]]
 id = "C14m"
@@ -3556,6 +3556,20 @@ id = "C35h"
 title = "C35 sort and maths: record why Qsort, rand, the x87 functions and Ftol stay; std::sort where the keys are unique"
 group = "cleanup"
 note = "Survey 2026-10-28: libcrt::Qsort 7 (VC6's quicksort: equal elements in the game's order; the host's qsort changed 105 image goldens), Rand / Srand / RandState (VC6's LCG per thread, the harness's random trace), Hypot 9, CiPow 7, CiAcos 3, CiAsin 2, gamecrt::acos 10, Controlfp 3, Ftol 146 (crt_x87.cpp, 295 lines: x87 results under the game's control word, check_x87). Kept on the goldens' evidence; the ticket: per Qsort caller, std::sort where no two keys compare equal (the order is then the same), and write each kept piece's reason in docs/notes/standalone.md."
+
+[[ticket]]
+id = "C14o"
+title = "Harness crash report: read the image's CFileException / CArchiveException file name as a std::string"
+group = "cleanup"
+depends = ["C14i"]
+note = "C14i made src/lib's exceptions hold the file name as std::string. tests/verify/harness_crash.cpp ReadThrow reads it as a const char* at +0x10 (+0xC for the archive exception), right for game.exe's CString and for a std::string of 16 or more characters (the heap pointer comes first), wrong for a shorter name (the characters are inline: the __try gives up and the report has no file name). The image's side should read it through tests/verify/image (a small view of MSVC's std::string, or the image passing the text). tests/verify changes, so the original suite runs. harness_disk_full only checks the cause prefix, so nothing fails today."
+
+[[ticket]]
+id = "C14p"
+title = "Move mfc::CString (mfc.h) into the tests: the vector recorders' and replays' layout of game.exe's CString"
+group = "cleanup"
+depends = ["C14i"]
+note = "After C14i no src/ code uses mfc::CString or PlainElements<CString> (mfc.h). The users are tests/vectors' Original* views (record_script*.cpp, record_stats.cpp, script_original.h, script_load_vectors.h), and replay_mfc.cpp gives it its members. Give those views a small local layout struct (a pointer to the characters with the CStringData header before it) in a tests header and drop the class from src/lib/mfc.h. record_*.cpp are harness vector files, so the EI_VECTORS recording runs (with H30d)."
 
 [[ticket]]
 id = "S"

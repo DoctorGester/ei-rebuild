@@ -45,12 +45,8 @@ public:
     void Close();
 
 private:
-    // Constructed and destroyed by the members above (Destruct releases the name).
-    union {
-        mfc::impl::CStdioFile file_;
-    };
+    mfc::impl::CStdioFile file_;
 };
-static_assert(sizeof(CStdioFile) == 0x14);
 
 // The game's (pre-standard) ostream. Only the inline float output touches a member: x_floatused.
 class GameOStream : public libcrt::Ostream {

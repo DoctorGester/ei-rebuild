@@ -1,17 +1,20 @@
 #pragma once
 
 // MFC 4.2's exception classes as the game's copy throws them (except.cpp, filex.cpp, arcex.cpp), and
-// AFX_EXCEPTION_LINK's chain (docs/notes/standalone.md section 2). The classes keep the exe's layout and
-// slots (real C++ classes since), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
+// AFX_EXCEPTION_LINK's chain (docs/notes/standalone.md section 2). The classes keep the exe's slots (real C++
+// classes since; a file name is a std::string), and a throw is this compiler's `throw` of a pointer to mfc_try.h's class of
 // the game's name, so a handler of ours catches it by that name.
 
+#include "mfc.h"
 #include "mfc_object.h"
-#include "mfc_string.h"
 #include "mfc_try.h"
 #include "game/game_data.h"
 
+#include <windows.h>
+
 #include <cstddef>
 #include <new>
+#include <string>
 
 namespace mfc::impl {
 
@@ -82,7 +85,7 @@ public:
 // is read before the pointer is tested.
 void DeleteException(CException* exception);
 
-// CFileException (0x14 bytes). The causes are MFC's CFileException::none ... endOfFile.
+// CFileException. The causes are MFC's CFileException::none ... endOfFile.
 class CFileException final : public CException {
 public:
     enum Cause {
@@ -101,11 +104,10 @@ public:
 
     int cause;
     long osError;       // m_lOsError (-1: none)
-    CString fileName;
+    std::string fileName;
 };
-static_assert(sizeof(CFileException) == 0x14);
 
-// CArchiveException (0x10 bytes).
+// CArchiveException.
 class CArchiveException final : public CException {
 public:
     enum Cause { none = 0, generic, readOnly, endOfFile, writeOnly, badIndex, badClass, badSchema };
@@ -117,9 +119,8 @@ public:
     BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext) override;
 
     int cause;
-    CString fileName;
+    std::string fileName;
 };
-static_assert(sizeof(CArchiveException) == 0x10);
 
 // _simpleUserException's destructor (reached by the generated exit function).
 void DestroyUserException(CUserException* self);

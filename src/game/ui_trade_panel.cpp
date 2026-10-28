@@ -22,7 +22,6 @@
 #include "record_vectors.h"
 #include "game_data.h"
 #include "lib/nan_audit.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 int __fastcall SchoolPrice(int /*from*/, int /*to*/);

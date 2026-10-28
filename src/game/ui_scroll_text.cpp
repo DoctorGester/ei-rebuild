@@ -7,7 +7,6 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "game_data.h"
-#include "lib/mfc_string.h"
 #include "lib/mfc_slots.h"
 #include "lib/str.h"
 

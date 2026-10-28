@@ -3,6 +3,7 @@
 #include "crt.h"
 #include "mfc_file.h"
 #include "mfc_runtime_class.h"
+#include "str.h"
 
 #include "gameapi.h"
 #include "game/game_data.h"
@@ -18,22 +19,23 @@
 #include <fcntl.h>
 #include <io.h>
 #include <mbstring.h>
+#include <memory>
 #include <new>
+#include <string>
 
 namespace mfc::impl {
 
-// CFileFind's vtable slots that its own members call (mfc::CFileFindVirtuals with this file's
-// CString); declared only.
+// CFileFind's vtable slots that its own members call; declared only.
 class __declspec(novtable) FindSlots {
 public:
     virtual void GetRuntimeClass();
     virtual void DeletingDestructor();
     virtual void Serialize();
-    virtual CString GetFileName() const;
-    virtual CString GetFilePath() const;
-    virtual CString GetFileTitle() const;
-    virtual CString GetFileURL() const;
-    virtual CString GetRoot() const;
+    virtual std::string GetFileName() const;
+    virtual std::string GetFilePath() const;
+    virtual std::string GetFileTitle() const;
+    virtual std::string GetFileURL() const;
+    virtual std::string GetRoot() const;
     virtual BOOL GetLastWriteTime(CTime* time) const;
     virtual BOOL GetLastWriteFileTime(FILETIME* time) const;
     virtual BOOL GetLastAccessTime(CTime* time) const;
@@ -93,43 +95,10 @@ const char* Next(const char* p) { return gamecrt::mbsinc(p); }
 
 constexpr unsigned kMaxFileName = 256;
 
-// While armed, destroys a string when the frame unwinds: a constructor that throws leaves the
-// members it had built destroyed.
-class UnwindString {
-public:
-    explicit UnwindString(CString* string) : string_(string) {}
-    ~UnwindString() {
-        if (string_) string_->~CString();
-    }
-    void Disarm() { string_ = nullptr; }
-    UnwindString(const UnwindString&) = delete;
-    UnwindString& operator=(const UnwindString&) = delete;
-
-private:
-    CString* string_;
-};
-
-class UnwindFile {
-public:
-    explicit UnwindFile(CFile* file) : file_(file) {}
-    ~UnwindFile() {
-        if (file_) file_->Destruct();
-    }
-    void Disarm() { file_ = nullptr; }
-    UnwindFile(const UnwindFile&) = delete;
-    UnwindFile& operator=(const UnwindFile&) = delete;
-
-private:
-    CFile* file_;
-};
-
-} // namespace
-
-// ---- Paths ----------------------------------------------------------------------------------------
-
-void GetRoot(const char* path, CString& root) {
-    char* start = root.GetBuffer(MAX_PATH);
-    std::memset(start, 0, MAX_PATH);
+// AfxGetRoot: the root of `path` ("x:\" or "\\server\share\").
+std::string GetRoot(const char* path) {
+    std::string root(MAX_PATH, '\0');
+    char* start = root.data();
     gameapi::lstrcpynA(start, path, MAX_PATH);
     char* p = start;
     while (*p != '\0' && !(IsSeparator(p[0]) && IsSeparator(p[1]))) p = Next(p);
@@ -144,8 +113,13 @@ void GetRoot(const char* path, CString& root) {
         while (*p != '\0' && !IsSeparator(*p)) p = Next(p);
     }
     if (*p != '\0') p[1] = '\0';
-    root.ReleaseBuffer(-1);
+    str::CutAtNull(root);
+    return root;
 }
+
+} // namespace
+
+// ---- Paths ----------------------------------------------------------------------------------------
 
 BOOL FullPath(char* out, const char* path) {
     char* filePart;
@@ -153,10 +127,9 @@ BOOL FullPath(char* out, const char* path) {
         gameapi::lstrcpynA(out, path, MAX_PATH);
         return FALSE;
     }
-    CString root;
-    GetRoot(out, root);
+    const std::string root = GetRoot(out);
     DWORD unused, flags;
-    if (!gameapi::GetVolumeInformationA(root, nullptr, 0, nullptr, &unused, &flags, nullptr, 0)) return FALSE;
+    if (!gameapi::GetVolumeInformationA(root.c_str(), nullptr, 0, nullptr, &unused, &flags, nullptr, 0)) return FALSE;
     if (!(flags & FS_CASE_IS_PRESERVED)) gameapi::CharUpperA(out);
     if (!(flags & FS_UNICODE_STORED_ON_DISK)) {
         WIN32_FIND_DATAA data;
@@ -202,9 +175,9 @@ struct FileTable : ei::CompiledTag<Self> {
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }
     virtual void Serialize(void*) {}
     virtual unsigned long GetPosition() const { return This()->GetPosition(); }
-    virtual CString GetFileName() const { return This()->GetFileName(); }
-    virtual CString GetFileTitle() const { return This()->GetFileTitle(); }
-    virtual CString GetFilePath() const { return This()->GetFilePath(); }
+    virtual std::string GetFileName() const { return This()->GetFileName(); }
+    virtual std::string GetFileTitle() const { return This()->GetFileTitle(); }
+    virtual std::string GetFilePath() const { return This()->GetFilePath(); }
     virtual void SetFilePath(const char* path) { This()->SetFilePath(path); }
     virtual BOOL Open(const char* path, unsigned flags, CFileException* error) {
         return This()->Open(path, flags, error);
@@ -246,11 +219,11 @@ struct FileFindTable final : ei::CompiledTag<FileFindTable> {
     virtual const CRuntimeClass* GetRuntimeClass() const { return &kClassCFileFind; }
     virtual void* DeleteScalar(unsigned flags) { return This()->DeletingDestructor(flags); }
     virtual void Serialize(void*) {}
-    virtual CString GetFileName() const { return This()->GetFileName(); }
-    virtual CString GetFilePath() const { return This()->GetFilePath(); }
-    virtual CString GetFileTitle() const { return This()->GetFileTitle(); }
-    virtual CString GetFileURL() const { return This()->GetFileURL(); }
-    virtual CString GetRoot() const { return This()->GetRoot(); }
+    virtual std::string GetFileName() const { return This()->GetFileName(); }
+    virtual std::string GetFilePath() const { return This()->GetFilePath(); }
+    virtual std::string GetFileTitle() const { return This()->GetFileTitle(); }
+    virtual std::string GetFileURL() const { return This()->GetFileURL(); }
+    virtual std::string GetRoot() const { return This()->GetRoot(); }
     virtual BOOL GetLastWriteTime(CTime* time) const { return This()->GetLastWriteTime(time); }
     virtual BOOL GetLastWriteFileTime(FILETIME* time) const { return This()->GetLastWriteFileTime(time); }
     virtual BOOL GetLastAccessTime(CTime* time) const { return This()->GetLastAccessTime(time); }
@@ -275,40 +248,22 @@ void* CStdioFile::Vtable() { return StdioFileTable::Vtable(); }
 void* CFileFind::Vtable() { return FileFindTable::Vtable(); }
 
 
-CFile* CFile::Construct() {
-    new (&fileName) CString();
-    handle = kNoFile;
-    closeOnDelete = FALSE;
-    vtable = Vtable();
-    return this;
-}
+CFile::CFile() : vtable(Vtable()) {}
 
-CFile* CFile::ConstructHandle(HANDLE file) {
-    new (&fileName) CString();
-    closeOnDelete = FALSE;
-    vtable = Vtable();
-    handle = file;
-    return this;
-}
+CFile::CFile(HANDLE file) : vtable(Vtable()), handle(file) {}
 
-CFile* CFile::ConstructOpen(const char* path, unsigned flags) {
-    new (&fileName) CString();
-    UnwindString unwind(&fileName);
-    vtable = Vtable();
+CFile::CFile(const char* path, unsigned flags) : vtable(Vtable()) {
     CFileException error;
-    if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName);
-    unwind.Disarm();
-    return this;
+    if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName.c_str());
 }
 
-void CFile::Destruct() {
+CFile::~CFile() {
     vtable = Vtable();
     if (handle != kNoFile && closeOnDelete) Close();
-    fileName.~CString();
 }
 
 CFile* CFile::DeletingDestructor(unsigned flags) {
-    Destruct();
+    std::destroy_at(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -316,7 +271,7 @@ CFile* CFile::DeletingDestructor(unsigned flags) {
 BOOL CFile::Open(const char* path, unsigned flags, CFileException* error) {
     closeOnDelete = FALSE;
     handle = kNoFile;
-    fileName.Empty();
+    fileName.clear();
     flags &= ~typeBinary;
     char full[MAX_PATH];
     FullPath(full, path);
@@ -370,8 +325,8 @@ void CFile::Write(const void* buffer, unsigned count) {
     if (count == 0) return;
     DWORD written;
     if (!gameapi::WriteFile(handle, buffer, count, &written, nullptr))
-        ThrowOsError(static_cast<long>(gameapi::GetLastError()), fileName);
-    if (written != count) ThrowFileException(CFileException::diskFull, -1, fileName);
+        ThrowOsError(static_cast<long>(gameapi::GetLastError()), fileName.c_str());
+    if (written != count) ThrowFileException(CFileException::diskFull, -1, fileName.c_str());
 }
 
 long CFile::Seek(long offset, unsigned from) {
@@ -388,16 +343,16 @@ unsigned long CFile::GetPosition() const {
 
 BOOL CFile::GetStatus(CFileStatus& status) const {
     std::memset(&status, 0, sizeof status);
-    gameapi::lstrcpynA(status.fullName, fileName, MAX_PATH);
+    gameapi::lstrcpynA(status.fullName, fileName.c_str(), MAX_PATH);
     if (handle == kNoFile) return TRUE;
     FILETIME created, accessed, modified;
     if (!gameapi::GetFileTime(handle, &created, &accessed, &modified)) return FALSE;
     status.size = static_cast<long>(gameapi::GetFileSize(handle, nullptr));
     if (status.size == -1) return FALSE;
-    if (fileName.IsEmpty()) {
+    if (fileName.empty()) {
         status.attribute = 0;
     } else {
-        const DWORD attributes = gameapi::GetFileAttributesA(fileName);
+        const DWORD attributes = gameapi::GetFileAttributesA(fileName.c_str());
         status.attribute = attributes == INVALID_FILE_ATTRIBUTES ? 0 : static_cast<BYTE>(attributes);
     }
     CTime converted;
@@ -409,28 +364,26 @@ BOOL CFile::GetStatus(CFileStatus& status) const {
     return TRUE;
 }
 
-CString CFile::GetFileName() const {
+std::string CFile::GetFileName() const {
     CFileStatus status;
     GetStatus(status);
-    CString name;
-    AfxGetFileName(status.fullName, name.GetBuffer(kMaxFileName), kMaxFileName);
-    name.ReleaseBuffer(-1);
+    char name[kMaxFileName] = {};
+    AfxGetFileName(status.fullName, name, kMaxFileName);
     return name;
 }
 
-CString CFile::GetFileTitle() const {
+std::string CFile::GetFileTitle() const {
     CFileStatus status;
     GetStatus(status);
-    CString title;
-    AfxGetFileTitle(status.fullName, title.GetBuffer(kMaxFileName), kMaxFileName);
-    title.ReleaseBuffer(-1);
+    char title[kMaxFileName] = {};
+    AfxGetFileTitle(status.fullName, title, kMaxFileName);
     return title;
 }
 
-CString CFile::GetFilePath() const {
+std::string CFile::GetFilePath() const {
     CFileStatus status;
     GetStatus(status);
-    return CString(status.fullName);
+    return status.fullName;
 }
 
 void CFile::Flush() {
@@ -443,7 +396,7 @@ void CFile::Close() {
     if (handle != kNoFile) failed = !gameapi::CloseHandle(handle);
     handle = kNoFile;
     closeOnDelete = FALSE;
-    fileName.Empty();
+    fileName.clear();
     if (failed) ThrowOsError(static_cast<long>(gameapi::GetLastError()), nullptr);
 }
 
@@ -453,7 +406,7 @@ void CFile::Abort() {
         gameapi::CloseHandle(handle);
         handle = kNoFile;
     }
-    fileName.Empty();
+    fileName.clear();
 }
 
 void CFile::LockRange(unsigned long position, unsigned long count) {
@@ -481,7 +434,7 @@ unsigned long CFile::GetLength() const {
 // error thrown.
 CFile* CFile::Duplicate() const {
     auto* copy = gamecrt::operator_new_as<CFile>();
-    if (copy) copy->ConstructHandle(kNoFile);
+    if (copy) std::construct_at(copy, kNoFile);
     HANDLE duplicate;
     if (!gameapi::DuplicateHandle(gameapi::GetCurrentProcess(), handle, gameapi::GetCurrentProcess(), &duplicate, 0, FALSE,
                                   DUPLICATE_SAME_ACCESS)) {
@@ -498,31 +451,22 @@ void CFile::SetFilePath(const char* path) { fileName = path; }
 unsigned CFile::GetBufferPtr(unsigned, unsigned, void**, void**) { return 0; }
 
 
-CStdioFile* CStdioFile::Construct() {
-    CFile::Construct();
-    stream = nullptr;
-    vtable = Vtable();
-    return this;
-}
+CStdioFile::CStdioFile() { vtable = Vtable(); }
 
-CStdioFile* CStdioFile::ConstructOpen(const char* path, unsigned flags) {
-    CFile::Construct();
-    UnwindFile unwind(this);
+// A failed open destroys the CFile part (its destructor) before the exception leaves.
+CStdioFile::CStdioFile(const char* path, unsigned flags) {
     vtable = Vtable();
     CFileException error;
-    if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName);
-    unwind.Disarm();
-    return this;
+    if (!Open(path, flags, &error)) ThrowFileException(error.cause, error.osError, error.fileName.c_str());
 }
 
-void CStdioFile::Destruct() {
+CStdioFile::~CStdioFile() {
     vtable = Vtable();
     if (stream && closeOnDelete) Close();
-    CFile::Destruct();
 }
 
 CStdioFile* CStdioFile::DeletingDestructor(unsigned flags) {
-    Destruct();
+    std::destroy_at(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -560,27 +504,27 @@ BOOL CStdioFile::Open(const char* path, unsigned flags, CFileException* error) {
 unsigned CStdioFile::Read(void* buffer, unsigned count) {
     if (count == 0) return 0;
     const unsigned read = static_cast<unsigned>(std::fread(buffer, 1, count, stream));
-    if (read == 0 && !std::feof(stream)) ThrowFileException(CFileException::generic, DosErrno(), fileName);
+    if (read == 0 && !std::feof(stream)) ThrowFileException(CFileException::generic, DosErrno(), fileName.c_str());
     if (std::ferror(stream)) {
         std::clearerr(stream);
-        ThrowFileException(CFileException::generic, DosErrno(), fileName);
+        ThrowFileException(CFileException::generic, DosErrno(), fileName.c_str());
     }
     return read;
 }
 
 void CStdioFile::Write(const void* buffer, unsigned count) {
-    if (std::fwrite(buffer, 1, count, stream) != count) ThrowFileException(CFileException::generic, DosErrno(), fileName);
+    if (std::fwrite(buffer, 1, count, stream) != count) ThrowFileException(CFileException::generic, DosErrno(), fileName.c_str());
 }
 
 void CStdioFile::WriteString(const char* text) {
-    if (std::fputs(text, stream) == EOF) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
+    if (std::fputs(text, stream) == EOF) ThrowFileException(CFileException::diskFull, DosErrno(), fileName.c_str());
 }
 
 char* CStdioFile::ReadString(char* buffer, unsigned size) {
     char* result = std::fgets(buffer, static_cast<int>(size), stream);
     if (!result && !std::feof(stream)) {
         std::clearerr(stream);
-        ThrowFileException(CFileException::generic, DosErrno(), fileName);
+        ThrowFileException(CFileException::generic, DosErrno(), fileName.c_str());
     }
     return result;
 }
@@ -598,7 +542,7 @@ BOOL CStdioFile::ReadLine(std::string& text) {
         if (!result) {
             if (!std::feof(stream)) {
                 std::clearerr(stream);
-                ThrowFileException(CFileException::generic, DosErrno(), fileName);
+                ThrowFileException(CFileException::generic, DosErrno(), fileName.c_str());
             }
             break;
         }
@@ -611,18 +555,18 @@ BOOL CStdioFile::ReadLine(std::string& text) {
 }
 
 long CStdioFile::Seek(long offset, unsigned from) {
-    if (std::fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName);
+    if (std::fseek(stream, offset, static_cast<int>(from)) != 0) ThrowFileException(CFileException::badSeek, DosErrno(), fileName.c_str());
     return std::ftell(stream);
 }
 
 unsigned long CStdioFile::GetPosition() const {
     const long position = std::ftell(stream);
-    if (position == -1) ThrowFileException(CFileException::invalidFile, DosErrno(), fileName);
+    if (position == -1) ThrowFileException(CFileException::invalidFile, DosErrno(), fileName.c_str());
     return static_cast<unsigned long>(position);
 }
 
 void CStdioFile::Flush() {
-    if (stream && std::fflush(stream) != 0) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
+    if (stream && std::fflush(stream) != 0) ThrowFileException(CFileException::diskFull, DosErrno(), fileName.c_str());
 }
 
 void CStdioFile::Close() {
@@ -631,7 +575,7 @@ void CStdioFile::Close() {
     handle = kNoFile;
     closeOnDelete = FALSE;
     stream = nullptr;
-    if (failed) ThrowFileException(CFileException::diskFull, DosErrno(), fileName);
+    if (failed) ThrowFileException(CFileException::diskFull, DosErrno(), fileName.c_str());
 }
 
 void CStdioFile::Abort() {
@@ -649,24 +593,15 @@ CFile* CStdioFile::Duplicate() const {
 void CStdioFile::LockRange(unsigned long, unsigned long) { ThrowNotSupported(); }
 
 
-CFileFind* CFileFind::Construct() {
-    new (&root) CString();
-    vtable = Vtable();
-    found = nullptr;
-    next = nullptr;
-    context = nullptr;
-    separator = '\\';
-    return this;
-}
+CFileFind::CFileFind() : vtable(Vtable()) {}
 
-void CFileFind::Destruct() {
+CFileFind::~CFileFind() {
     vtable = Vtable();
     Close();
-    root.~CString();
 }
 
 CFileFind* CFileFind::DeletingDestructor(unsigned flags) {
-    Destruct();
+    std::destroy_at(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
@@ -701,9 +636,9 @@ BOOL CFileFind::FindFile(const char* pattern, unsigned long) {
         gameapi::SetLastError(error);
         return FALSE;
     }
-    char* path = root.GetBufferSetLength(MAX_PATH);
+    char* path = str::SetLength(root, MAX_PATH);
     if (!Fullpath(path, pattern, MAX_PATH)) {
-        root.ReleaseBuffer(-1);
+        str::CutAtNull(root);
         Close();
         gameapi::SetLastError(ERROR_INVALID_NAME);
         return FALSE;
@@ -717,7 +652,7 @@ BOOL CFileFind::FindFile(const char* pattern, unsigned long) {
         if (front >= back) *front = '\0';
         else *back = '\0';
     }
-    root.ReleaseBuffer(-1);
+    str::CutAtNull(root);
     return TRUE;
 }
 
@@ -780,37 +715,28 @@ BOOL CFileFind::GetCreationTime(CTime* time) const {
     return TRUE;
 }
 
-CString CFileFind::GetFileName() const {
-    CString name;
-    if (found) name = found->cFileName;
-    return name;
-}
+std::string CFileFind::GetFileName() const { return found ? found->cFileName : ""; }
 
 // The root, a separator unless it ends in one, and the name.
-CString CFileFind::GetFilePath() const {
-    CString path(root);
-    const char last = static_cast<const char*>(path)[path.GetLength() - 1];
+std::string CFileFind::GetFilePath() const {
+    std::string path = root;
+    const char last = path.empty() ? '\0' : path.back();
     if (last != '\\' && last != '/') path += separator;
     path += Virtuals(this)->GetFileName();
     return path;
 }
 
 // The name without its extension (_splitpath of the full path).
-CString CFileFind::GetFileTitle() const {
-    const CString path = Virtuals(this)->GetFilePath();
-    CString title;
+std::string CFileFind::GetFileTitle() const {
+    const std::string path = Virtuals(this)->GetFilePath();
+    char title[MAX_PATH] = {};
 #pragma warning(suppress : 4996)
-    _splitpath(path, nullptr, nullptr, title.GetBuffer(MAX_PATH), nullptr);
-    title.ReleaseBuffer(-1);
+    _splitpath(path.c_str(), nullptr, nullptr, title, nullptr);
     return title;
 }
 
-CString CFileFind::GetFileURL() const {
-    CString url(FileUrlPrefix());
-    url += Virtuals(this)->GetFilePath();
-    return url;
-}
+std::string CFileFind::GetFileURL() const { return FileUrlPrefix() + Virtuals(this)->GetFilePath(); }
 
-CString CFileFind::GetRoot() const { return CString(root); }
+std::string CFileFind::GetRoot() const { return root; }
 
 } // namespace mfc::impl

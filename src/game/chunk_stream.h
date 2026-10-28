@@ -82,4 +82,3 @@ public:
     mfc::CFile file_;
 };
 static_assert(offsetof(RootChunk, file_) == 0x18);
-static_assert(sizeof(RootChunk) == 0x28);

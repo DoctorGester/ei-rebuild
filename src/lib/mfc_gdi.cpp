@@ -5,14 +5,68 @@
 #include "gameapi.h"
 #include "mfc_exception.h"
 #include "mfc_runtime_class.h"
-#include "mfc_string.h"
 #include "game/game_data.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
 namespace mfc::impl {
+
+CFixedAlloc* CFixedAlloc::Construct(unsigned allocSize, unsigned blockSize) {
+    freeList_ = nullptr;
+    blocks_ = nullptr;
+    allocSize_ = allocSize;
+    blockSize_ = blockSize;
+    gameapi::InitializeCriticalSection(&lock_);
+    return this;
+}
+
+void CFixedAlloc::Destruct() {
+    FreeAll();
+    gameapi::DeleteCriticalSection(&lock_);
+}
+
+void CFixedAlloc::FreeAll() {
+    gameapi::EnterCriticalSection(&lock_);
+    PlexFreeDataChain(blocks_);
+    blocks_ = nullptr;
+    freeList_ = nullptr;
+    gameapi::LeaveCriticalSection(&lock_);
+}
+
+// A new chunk's blocks go on the free list last to first, so the first block is handed out first.
+void* CFixedAlloc::Alloc() {
+    gameapi::EnterCriticalSection(&lock_);
+    if (!freeList_) {
+        try {
+            CPlex* chunk = PlexCreate(blocks_, blockSize_, allocSize_);
+            auto* bytes = reinterpret_cast<std::uint8_t*>(chunk + 1) + allocSize_ * (blockSize_ - 1);
+            for (int i = static_cast<int>(blockSize_) - 1; i >= 0; --i, bytes -= allocSize_) {
+                Node* node = reinterpret_cast<Node*>(bytes);
+                node->next = freeList_;
+                freeList_ = node;
+            }
+        } catch (...) {
+            gameapi::LeaveCriticalSection(&lock_);
+            throw;
+        }
+    }
+    Node* block = freeList_;
+    freeList_ = block->next;
+    gameapi::LeaveCriticalSection(&lock_);
+    return block;
+}
+
+void CFixedAlloc::Free(void* block) {
+    if (!block) return;
+    gameapi::EnterCriticalSection(&lock_);
+    Node* node = static_cast<Node*>(block);
+    node->next = freeList_;
+    freeList_ = node;
+    gameapi::LeaveCriticalSection(&lock_);
+}
 
 constinit lib::StaticObject<CFixedAlloc> g_tempGdiObjectAlloc = /*007C8CF0*/ {};
 constinit lib::StaticObject<CFixedAlloc> g_tempDCAlloc = /*007C8D18*/ {};

@@ -206,7 +206,6 @@ add_executable(ei_vectors
     src/lib/mfc_coll.cpp
     src/lib/mfc_file.cpp
     src/lib/mfc_list.cpp
-    src/lib/mfc_string.cpp
     src/lib/rebirth.cpp
     src/lib/stlp.cpp
     src/lib/str.cpp)

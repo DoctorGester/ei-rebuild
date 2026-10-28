@@ -17,7 +17,6 @@
 #include "library_trees.h"
 #include "game_data.h"
 #include "game_singletons.h"
-#include "lib/mfc_string.h"
 #include "lib/str.h"
 
 #include <cstring>
@@ -29,15 +28,9 @@ namespace console {
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-CStdioFile::CStdioFile() {
-    std::construct_at(&file_);
-    file_.Construct();
-}
-CStdioFile::CStdioFile(const char* name, unsigned flags) {
-    std::construct_at(&file_);
-    file_.ConstructOpen(name, flags);
-}
-CStdioFile::~CStdioFile() { file_.Destruct(); }
+CStdioFile::CStdioFile() = default;
+CStdioFile::CStdioFile(const char* name, unsigned flags) : file_(name, flags) {}
+CStdioFile::~CStdioFile() = default;
 mfc::BOOL CStdioFile::Open(std::string_view name, unsigned flags, mfc::impl::CFileException* error) {
     return file_.Open(std::string(name).c_str(), flags, error);
 }

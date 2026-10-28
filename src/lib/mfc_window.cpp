@@ -4,8 +4,8 @@
 
 #include "gameapi.h"
 #include "mfc.h"
+#include "mfc_resource.h"
 #include "mfc_runtime_class.h"
-#include "mfc_string.h"
 #include "game/game_data.h"
 
 namespace mfc::impl {
@@ -65,10 +65,9 @@ int MessageBoxText(const char* text, unsigned type, unsigned) {
 }
 
 int MessageBoxId(unsigned promptId, unsigned type, unsigned helpId) {
-    CString prompt;
-    prompt.LoadResourceString(promptId);
+    const std::string prompt = LoadResourceString(promptId);
     if (helpId == static_cast<unsigned>(-1)) helpId = promptId;
-    return MessageBoxText(prompt, type, helpId);
+    return MessageBoxText(prompt.c_str(), type, helpId);
 }
 
 } // namespace mfc::impl

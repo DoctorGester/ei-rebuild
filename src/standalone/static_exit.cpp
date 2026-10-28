@@ -13,7 +13,6 @@
 #include "lib/mfc_gdi.h"
 #include "lib/mfc_state.h"
 #include "lib/mfc_static_objects.h"
-#include "lib/mfc_string.h"
 #include "lib/mfc_window.h"
 
 namespace ei::short_functions {

@@ -15,7 +15,6 @@
 #include "ei/rebirth.h"
 #include "lib/static_object.h"
 #include "lib/crt.h"
-#include "lib/mfc_string.h"
 #include "lib/mfc_array.h"
 #include "game_lists.h"
 #include "game_data.h"

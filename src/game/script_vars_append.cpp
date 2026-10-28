@@ -10,7 +10,6 @@
 #include "script_array.h"
 
 #include "lib/crt.h"
-#include "lib/mfc_string.h"
 #include "lib/mfc_array.h"
 
 #include "ei/x87.h"

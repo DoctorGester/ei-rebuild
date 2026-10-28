@@ -113,8 +113,8 @@ EI_VECTOR_CHECK_BYTES("@GameCrtCtype", CheckCtype);
 
 } // namespace ei::vectors::crt
 
-// The game CRT's multibyte functions, which CString::FormatV and the loader's name lookups call
-// (src/lib/mfc_string.cpp, script_parse.cpp; the loader's QualifyName formats "!%i!%s"; vsprintf is
+// The game CRT's multibyte functions, which str::Format and the loader's name lookups call
+// (src/lib/str.cpp, script_parse.cpp; the loader's QualifyName formats "!%i!%s"; vsprintf is
 // crt_format.cpp's port): ei_vectors' own libcrt:: versions (crt.cpp's ports read the game CRT's data).
 // The multibyte answers depend on the code page's lead bytes, which no record holds, so only ASCII is
 // answered (as every code page does) and a byte above 0x7F stops the replay.

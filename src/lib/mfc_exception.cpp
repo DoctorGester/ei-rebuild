@@ -27,14 +27,12 @@ constinit lib::StaticObject<CMemoryException> g_simpleMemoryException = /*007C8D
 constexpr unsigned kReportLength = 512;
 
 // GetErrorMessage of the file and archive exceptions: prompt `base` + cause with the file's name.
-BOOL CauseMessage(unsigned base, int cause, const CString& fileName, char* error, unsigned maxError, unsigned* helpContext) {
+BOOL CauseMessage(unsigned base, int cause, const std::string& fileName, char* error, unsigned maxError, unsigned* helpContext) {
     const unsigned prompt = base + static_cast<unsigned>(cause);
     if (helpContext) *helpContext = prompt;
-    CString message;
-    CString name(fileName);
-    if (name.IsEmpty()) name.LoadResourceString(kIdsUnnamedFile);
-    AfxFormatString1(message, prompt, name);
-    gameapi::lstrcpynA(error, message, static_cast<int>(maxError));
+    const std::string name = fileName.empty() ? LoadResourceString(kIdsUnnamedFile) : fileName;
+    const std::string message = AfxFormatString1(prompt, name.c_str());
+    gameapi::lstrcpynA(error, message.c_str(), static_cast<int>(maxError));
     return TRUE;
 }
 
@@ -175,7 +173,7 @@ int OsErrorToException(long osError) {
 
 void ThrowFileException(int cause, long osError, const char* fileName) {
     auto* exception = new CFileException(cause, osError);
-    if (exception) exception->fileName = fileName;
+    if (exception && fileName) exception->fileName = fileName;
     throw reinterpret_cast<::CFileException*>(exception);
 }
 
@@ -185,7 +183,7 @@ void ThrowOsError(long osError, const char* fileName) {
 
 void ThrowArchiveException(int cause, const char* fileName) {
     auto* exception = new CArchiveException(cause);
-    if (exception) exception->fileName = fileName;
+    if (exception && fileName) exception->fileName = fileName;
     throw reinterpret_cast<::CArchiveException*>(exception);
 }
 

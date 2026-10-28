@@ -9,14 +9,38 @@
 
 #include "compiled_vtable.h"
 #include "mfc_handle_map.h"
+#include "mfc.h"
 #include "mfc_object.h"
-#include "mfc_string.h"
 #include "static_object.h"
 #include "game/game_data.h"
 
 #include <windows.h>
 
 namespace mfc::impl {
+
+// CFixedAlloc (0x28 bytes): hands out blocks of `allocSize` bytes, carved `blockSize` at a time from CPlex chunks
+// and recycled through a free list, under a critical section. The temporary DCs and GDI objects come from two of them.
+class CFixedAlloc {
+public:
+    CFixedAlloc* Construct(unsigned allocSize, unsigned blockSize);   // (the constructor; returns this)
+    void Destruct();                                                // (the destructor)
+    void FreeAll();
+    void* Alloc();
+    void Free(void* block);
+
+    unsigned BlockSize() const { return blockSize_; }
+
+private:
+    struct Node {
+        Node* next;
+    };
+    unsigned allocSize_;
+    unsigned blockSize_;
+    CPlex* blocks_;
+    Node* freeList_;
+    CRITICAL_SECTION lock_;
+};
+static_assert(sizeof(CFixedAlloc) == 0x28);
 
 // The maps of DCs (CTempDC objects for unknown handles, both handles set) and of GDI objects
 // (CTempGdiObject), made on first use when `create`; null otherwise. Image only.

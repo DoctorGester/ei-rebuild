@@ -9,7 +9,6 @@
 #include "containers.h"
 #include "mfc.h"
 #include "mfc_coll.h"
-#include "mfc_string.h"
 #include "game/game_data.h"
 
 #include <cstddef>
