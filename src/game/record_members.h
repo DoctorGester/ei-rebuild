@@ -25,6 +25,10 @@ struct ElementOf<mfc::CString> {
     using type = stlp::ObjectElement<mfc::CString>;
 };
 template <>
+struct ElementOf<std::string> {
+    using type = stlp::ObjectElement<std::string>;
+};
+template <>
 struct ElementOf<stlp::string> {
     using type = stlp::StringElement;
 };

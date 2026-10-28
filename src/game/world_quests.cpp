@@ -182,9 +182,9 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     items.free = nullptr;
     items.blocks = nullptr;
     items.blockSize = 10;
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kGiveItems].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveItems].begin();
          name != record->lists[QuestBriefingRecord::kGiveItems].end(); ++name) {
-        CItem* item = CreateNamedItem(*name, true);
+        CItem* item = CreateNamedItem(name->c_str(), true);
         if (!item) continue;
         auto* node = items.NewNode(items.tail, nullptr);
         node->data = item;
@@ -194,9 +194,9 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     }
     if (items.count) player->GiveItems(&items, 0);
 
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kRemoveItems].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kRemoveItems].begin();
          name != record->lists[QuestBriefingRecord::kRemoveItems].end(); ++name) {
-        CItem* item = CreateNamedItem(*name, false);
+        CItem* item = CreateNamedItem(name->c_str(), false);
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
@@ -205,18 +205,18 @@ void GiveBriefingRewards(CWorldServer* world, CPlayer* player, QuestBriefingReco
     }
 
     CPlayerServer* state = player->Server();
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kGiveQuests].begin();
+    for (const std::string* name = record->lists[QuestBriefingRecord::kGiveQuests].begin();
          name != record->lists[QuestBriefingRecord::kGiveQuests].end(); ++name)
-        state->SetVariableMax(*name, 1.0f);
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kCompleteQuests].begin();
+        state->SetVariableMax(name->c_str(), 1.0f);
+    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteQuests].begin();
          name != record->lists[QuestBriefingRecord::kCompleteQuests].end(); ++name)
-        state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kAvailableZones].begin();
+        state->SetVariable(name->c_str(), std::bit_cast<std::uint32_t>(2.0f));
+    for (const std::string* name = record->lists[QuestBriefingRecord::kAvailableZones].begin();
          name != record->lists[QuestBriefingRecord::kAvailableZones].end(); ++name)
-        state->SetVariableMax(*name, 1.0f);
-    for (const mfc::CString* name = record->lists[QuestBriefingRecord::kCompleteZones].begin();
+        state->SetVariableMax(name->c_str(), 1.0f);
+    for (const std::string* name = record->lists[QuestBriefingRecord::kCompleteZones].begin();
          name != record->lists[QuestBriefingRecord::kCompleteZones].end(); ++name)
-        state->SetVariable(*name, std::bit_cast<std::uint32_t>(2.0f));
+        state->SetVariable(name->c_str(), std::bit_cast<std::uint32_t>(2.0f));
 
     items.vtable = mfc::impl::ItemListClass::Vtable();
     items.RemoveAll();

@@ -26,11 +26,11 @@ namespace {
 using Registry = CFileRegistry;
 
 using PlaceElement = stlp::PlainElement<float>;
-using ListElement = stlp::ObjectElement<mfc::CString>;
+using ListElement = stlp::ObjectElement<std::string>;
 using QuestElement = recordvec::QuestVector::Element;
 using BriefingElement = recordvec::BriefingVector::Element;
 
-CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
+stlp::vector<std::string>* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
 // path when the vector is full.
@@ -101,11 +101,11 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
 void ReadListInline(Registry& reg, const char* section, int list, QuestBriefingRecord* briefing) {
     console::CStringArray strings;
     reg.GetStringArray(section, game::questwords::ListKey(list), &strings);
-    CStringVector* v = List(briefing, list);
+    stlp::vector<std::string>* v = List(briefing, list);
     v->EraseRange<ListElement>(v->begin(), v->end());   // erase(begin, end) or clear(): the same
     v->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (strings[i].GetLength() != 0) v->PushBack<ListElement>(strings[i]);
+        if (strings[i].GetLength() != 0) v->PushBack<ListElement>(strings[i].GetString());
     }
 }
 
@@ -177,13 +177,13 @@ bool QuestDatabase::LoadRegistry(const void* image) {
 EI_REWRITTEN(0x006AE8E0, QuestDatabase::LoadRegistry);
 
 // The game inlines the vector's erase, reserve and push_back; the same template members are called here.
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list) {
     console::CStringArray strings;
     registry->GetStringArray(section, key, &strings);
     list->EraseRange<ListElement>(list->begin(), list->end());
     list->Reserve<ListElement>(strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
-        if (strings[i].GetLength() != 0) list->PushBack<ListElement>(strings[i]);
+        if (strings[i].GetLength() != 0) list->PushBack<ListElement>(strings[i].GetString());
     }
 }
 EI_REWRITTEN(0x006AE740, ReadStringList);

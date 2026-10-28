@@ -7,6 +7,7 @@
 #include "world.h"
 
 #include "lib/stlp.h"
+#include "lib/str.h"
 
 #include "ei/hook.h"
 
@@ -66,10 +67,10 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
         ResizeCounts(model, names, 0);
         for (std::size_t n = 0; n < names; ++n) {
             model->soundCounts[n] = 0;
-            mfc::CString& name = model->soundNames.begin()[n];
-            name.MakeLower();
+            std::string& name = model->soundNames.begin()[n];
+            str::MakeLower(name);
             for (int f = 0; f < files.size; ++f) {
-                if (StartsWith(files.data[f], name)) ++model->soundCounts[n];
+                if (StartsWith(files.data[f], name.c_str())) ++model->soundCounts[n];
             }
         }
     }

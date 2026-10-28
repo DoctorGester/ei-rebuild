@@ -137,9 +137,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     record->height = prototype->scale.z;
 
     // What the prototype lookup copies out of the prototype: armour names, the two weapon names, spell names.
-    const CStringVector& armour = prototype->armourNames;
+    const stlp::vector<std::string>& armour = prototype->armourNames;
     for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
-        CItem* item = MakeItem(this, armour.begin()[i]);
+        CItem* item = MakeItem(this, armour.begin()[i].c_str());
         CItem* copy = CountedClone(item);
         record->armor.SetAtGrow(record->armor.size, copy);
         Drop(item);
@@ -151,10 +151,10 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         record->weapons.SetAtGrow(record->weapons.size, copy);
         Drop(item);
     }
-    const CStringVector& spellNames = prototype->spellNames;
+    const stlp::vector<std::string>& spellNames = prototype->spellNames;
     for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
         CItem* copy = CountedClone(spell);
         PartyItemArray& list = record->spells;
         int index = list.size;
@@ -178,23 +178,23 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     auto* npc = unitdb::NpcTable().byName[stlp::string(record->texts[5].c_str())];
     if (!npc) return 0;
 
-    const CStringVector& spellNames = npc->startSpells;
+    const stlp::vector<std::string>& spellNames = npc->startSpells;
     for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i], owner);
+        auto* spell = ItemManager()->CreateSpellItem(spellNames.begin()[i].c_str(), owner);
         record->spells.Add(CountedClone(spell));
         Drop(spell);
     }
-    const CStringVector& quickNames = npc->startQuickItems;
+    const stlp::vector<std::string>& quickNames = npc->startQuickItems;
     for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
-        CItem* item = MakeItem(this, quickNames.begin()[i]);
+        CItem* item = MakeItem(this, quickNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);
         record->quickItems.SetAtGrow(record->quickItems.size, copy);
         Drop(item);
     }
-    const CStringVector& weaponNames = npc->startWeapons;
+    const stlp::vector<std::string>& weaponNames = npc->startWeapons;
     for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
-        CItem* item = MakeItem(this, weaponNames.begin()[i]);
+        CItem* item = MakeItem(this, weaponNames.begin()[i].c_str());
         CItem* copy = CountedClone(item);
         record->weapons.SetAtGrow(record->weapons.size, copy);
         Drop(item);

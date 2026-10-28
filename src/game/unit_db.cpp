@@ -84,10 +84,10 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         secondGold.Serialize(ar);
         ar->LeaveChunk();
     }
-    ar->SerializeCStrings(0x1D, &lootItems, ar);
+    ar->SerializeStrings(0x1D, &lootItems, ar);
     ar->Field(0x1E, skills3to5, sizeof(skills3to5));
-    ar->SerializeCStrings(0x1F, &spellNames, ar);
-    ar->SerializeCStrings(0x20, &armourNames, ar);
+    ar->SerializeStrings(0x1F, &spellNames, ar);
+    ar->SerializeStrings(0x20, &armourNames, ar);
     ar->CStringField(0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
@@ -122,11 +122,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
         }
     }
     ar->CStringField(0x1E, &figureName);
-    ar->SerializeCStrings(0x1F, &field1F, ar);
-    ar->SerializeCStrings(0x20, &field20, ar);
+    ar->SerializeStrings(0x1F, &field1F, ar);
+    ar->SerializeStrings(0x20, &field20, ar);
     Dword(ar, 0x21, &height);
     ar->CStringField(0x22, &soundFolder);
-    ar->SerializeCStrings(0x23, &soundNames, ar);
+    ar->SerializeStrings(0x23, &soundNames, ar);
     ar->Field(0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
@@ -154,7 +154,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 5, &stats[2]);
     ar->Field(6, attributes, sizeof(attributes));
     ar->Field(7, skills, sizeof(skills));
-    ar->SerializeCStrings(8, &skillNames, ar);
+    ar->SerializeStrings(8, &skillNames, ar);
     InlineStrings(ar, 9, &startWeapons);
     InlineStrings(ar, 10, &startQuickItems);
     InlineStrings(ar, 11, &startSpells);
@@ -191,8 +191,8 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
 }
 EI_REWRITTEN(0x0052DEE0, UnitLevelRecord::Serialize);
 
-void ChunkArchive::SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void*) { InlineStrings(this, id, strings); }
-EI_REWRITTEN(0x0052DF40, ChunkArchive::SerializeCStrings);
+void ChunkArchive::SerializeStrings(int id, stlp::vector<std::string>* strings, void*) { InlineStrings(this, id, strings); }
+EI_REWRITTEN(0x0052DF40, ChunkArchive::SerializeStrings);
 
 namespace {
 

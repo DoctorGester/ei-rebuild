@@ -185,23 +185,21 @@ bool PutLevel(const LevelView& view, char* d, std::size_t n) {
 }
 
 // The stand-in's skill records 0..count-1 (count at most 8): skill i's first stat name is the one
-// letter letters[i]. A CString is its char pointer; the records are raw bytes, never constructed.
+// letter letters[i]. The records are raw bytes, never constructed; each stat name vector points at its
+// g_skillNames string.
 alignas(4) unsigned char g_skillRecords[8 * sizeof(SkillRecord)];
-char g_skillNames[8][2];
-const char* g_skillNamePointers[8];
+std::string g_skillNames[8];
 void PutSkills(const char* letters, std::uint32_t count) {
-    struct VectorView {   // CStringVector's three pointers
+    struct VectorView {   // the stat name vector's three pointers
         const void* start;
         const void* finish;
         const void* eos;
     };
-    static_assert(sizeof(VectorView) == sizeof(CStringVector) && sizeof(mfc::CString) == sizeof(const char*));
+    static_assert(sizeof(VectorView) == sizeof(SkillRecord::statNames));
     std::memset(g_skillRecords, 0, sizeof(g_skillRecords));
     for (std::uint32_t i = 0; i < count; ++i) {
-        g_skillNames[i][0] = letters[i];
-        g_skillNames[i][1] = 0;
-        g_skillNamePointers[i] = g_skillNames[i];
-        const VectorView names = {&g_skillNamePointers[i], &g_skillNamePointers[i] + 1, &g_skillNamePointers[i] + 1};
+        g_skillNames[i].assign(1, letters[i]);
+        const VectorView names = {&g_skillNames[i], &g_skillNames[i] + 1, &g_skillNames[i] + 1};
         std::memcpy(g_skillRecords + i * sizeof(SkillRecord) + offsetof(SkillRecord, statNames), &names, sizeof(names));
     }
     auto* first = reinterpret_cast<SkillRecord*>(g_skillRecords);

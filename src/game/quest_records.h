@@ -5,7 +5,7 @@
 // patched) writes and reads its two vectors of them through ChunkArchive::SerializeQuests /
 // SerializeBriefings (chunk_archive.h), one chunk 1 per record. quest_records.cpp.
 
-#include "unit_db.h"   // CStringVector
+#include "unit_db.h"   // InlineStrings
 
 #include "lib/stlp.h"
 #include "lib/static_object.h"
@@ -61,7 +61,7 @@ struct QuestBriefingRecord {
     stlp::string name;
     float exp;
     float money;
-    CStringVector lists[6];         // by ListKind
+    stlp::vector<std::string> lists[6];         // by ListKind
     stlp::string text;
     // +0x68 archive field 10 (0 when loaded from the quests): the briefing's specials, text
     // "brief_get_specials_<n>" when above 0 (the dialogue's rewards).
@@ -122,4 +122,4 @@ class CFileRegistry;
 // (__fastcall registry, section; key and list on the stack; quest_database.cpp).
 // The registry's string list `section` / `key` into `list`: the list emptied, reserved for
 // the strings' count, then every non-empty string appended (the briefings' lists).
-void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list);
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, stlp::vector<std::string>* list);

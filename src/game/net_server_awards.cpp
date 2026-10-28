@@ -88,13 +88,13 @@ void ServerSession::AwardHost(const QuestBriefingRecord* entry, bool withFinal) 
     CRefObject* connection = bindings_.At(node)->ConnectionRef().ptr;
     if (!IsLive(connection)) return;
 
-    const CStringVector& items = entry->lists[0];   // the items given
+    const stlp::vector<std::string>& items = entry->lists[0];   // the items given
     auto count = [&items] { return static_cast<std::uint32_t>(items.end() - items.begin()); };
     if (count() != 0) {
         std::uint32_t i = 0;
         if (count() != 0) {
             do {
-                const char* item = items.begin()[i].GetString();
+                const char* item = items.begin()[i].c_str();
                 QueueAward(connection, 2, 0.0f, stlp::string(item));
                 ++i;
             } while (i < count());

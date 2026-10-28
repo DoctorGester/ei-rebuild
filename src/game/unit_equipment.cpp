@@ -27,7 +27,7 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 // AddWeapon / AddSpell (unit_items.cpp, unit.cpp). The item manager's spell by name (with the world's manager
 // context) is not defined here.
 
-std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
+std::uint32_t Count(const stlp::vector<std::string>& names) { return static_cast<std::uint32_t>(names.size()); }
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const std::string& name) {
@@ -56,9 +56,9 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     if (unit->type_ == kTypeArmed) {
         // The loop bounds are read again on every pass.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
-            CItem* armour = items->CreateItem(prototype->armourNames.begin()[i]);
+            CItem* armour = items->CreateItem(prototype->armourNames.begin()[i].c_str());
             if (armour) unit->EquipArmour(armour);
-            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].GetString(), name);
+            else game::FatalError(game::equipmenttexts::NoArmour(), prototype->armourNames.begin()[i].c_str(), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -69,9 +69,9 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             unit->AddWeapon(MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i], spellOwner);
+        CItem* spell = items->CreateSpellItem(prototype->spellNames.begin()[i].c_str(), spellOwner);
         if (spell) unit->AddSpell(spell);
-        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].GetString(), name);
+        else game::FatalError(game::equipmenttexts::NoSpell(), prototype->spellNames.begin()[i].c_str(), name);
     }
     return 1;
 }

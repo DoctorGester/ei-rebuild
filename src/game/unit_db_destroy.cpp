@@ -31,9 +31,9 @@ void DestroyString(Text* s) {
     std::destroy_at(s);
 }
 
-// The inline ~vector<CString> of the records: _Destroy, then the storage (the node pool's deallocate of the
+// The inline ~vector<string> of the records: _Destroy, then the storage (the node pool's deallocate of the
 // capacity in whole elements).
-void DestroyStringVector(CStringVector* v) {
+void DestroyStringVector(stlp::vector<std::string>* v) {
     DestroyStringRange(v->begin(), v->end());
     v->FreeStorage();
 }
@@ -112,7 +112,7 @@ UnitPrototypeRecord* UnitPrototypeRecord::DeleteScalar(unsigned flags) {
 
 namespace unitdb {
 
-void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last) {
+void __fastcall DestroyStringRange(std::string* first, std::string* last) {
     for (; first != last; ++first) DestroyString(first);
 }
 
