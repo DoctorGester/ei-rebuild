@@ -150,11 +150,11 @@ void CInterface3D::Create(CTextureDevice* device) {
     }
     if (opened) {
         mfc::CString line;
-        console::CStringArray words;
+        std::vector<std::string> words;
         while (file.ReadString(line)) {
             text::SplitWords(line, &words, ' ');
-            if (words.GetSize() <= 1) continue;
-            const char* count = words[1];
+            if (words.size() <= 1) continue;
+            const char* count = words[1].c_str();
             helpTopics_.Subscript(words[0]) = std::atoi(count);
         }
         file.Close();

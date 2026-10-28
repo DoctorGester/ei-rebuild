@@ -51,14 +51,14 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     reg.GetStringArray(game::questwords::Quest(), game::questwords::QuestPlaces(), &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (int i = 0; i < places.GetSize(); ++i) {
-        console::CStringArray parts;
+        std::vector<std::string> parts;
         places[i].TrimLeft('{');
         places[i].TrimRight('}');
         text::Split(places[i], &parts, ';');
-        if (parts.GetSize() == 2) {
-            float x = static_cast<float>(std::atof(parts[0]));
+        if (parts.size() == 2) {
+            float x = static_cast<float>(std::atof(parts[0].c_str()));
             PushPlace(quest, x);
-            float y = static_cast<float>(std::atof(parts[1]));
+            float y = static_cast<float>(std::atof(parts[1].c_str()));
             PushPlace(quest, y);
         }
     }

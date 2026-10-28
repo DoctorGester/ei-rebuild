@@ -121,6 +121,12 @@ void TrimLeft(std::string& s) {
     s.erase(0, static_cast<std::size_t>(p - s.c_str()));
 }
 
+void TrimLeft(std::string& s, char target) {
+    const char* p = s.c_str();
+    while (*p == target) p = Inc(p);
+    s.erase(0, static_cast<std::size_t>(p - s.c_str()));
+}
+
 char* Buffer(std::string& s, int minLength) {
     if (minLength > Length(s)) s.resize(static_cast<std::size_t>(minLength));
     return s.data();

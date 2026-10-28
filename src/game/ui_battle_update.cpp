@@ -478,13 +478,13 @@ bool Equal(float a, float b) {
 
 void CBattleScreen::OnQuestVariable(const char* name, float value) {
     CTextManager* texts = GameClientTexts();
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     std::string text;
     std::string title;
     text::Split(name, &parts, '.');
     const float complete = 2.0f /*0073CDB8*/;
     const float failed = 3.0f /*0073BAA4*/;
-    if (parts.size == 3) {
+    if (parts.size() == 3) {
         const char* key;
         if (Equal(value, complete)) {
             if (questSound_ <= 3) questSound_ = 3;
@@ -506,10 +506,10 @@ void CBattleScreen::OnQuestVariable(const char* name, float value) {
         if (found) texts->ReadLine(&text, 1);
         std::string colour("\007C\356\343" "1 ");   // colour code 0x31E3EE43 and a space
         text = colour + title + " " + text;
-    } else if (parts.size == 4) {
+    } else if (parts.size() == 4) {
         if (!IsMultiplayerClient()) {
             const char* dot = ".";
-            std::string variable = (parts[0] + dot + parts[1] + dot + parts[2]).GetString();
+            std::string variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = LocalPlayerVariable(variable.c_str());
             // FCOMP of the unrounded result with 0; TEST AH,0x40.
             EI_NAN_AUDIT(current);

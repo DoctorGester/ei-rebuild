@@ -160,18 +160,18 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
         return;
     }
     std::string header;
-    console::CStringArray words;
+    std::vector<std::string> words;
     CTextManager* texts = TheTextManager();
     texts->Open(MapText());
     header = str::Format(QuestHeader(), name);
     if (texts->FindLine(header.c_str())) {
         TextNextLine(texts);
         TextNextLine(texts);
-        if (texts->Split(&words, 1) && words.GetSize() > 1) {
-            for (int i = 1; i < words.GetSize(); i += 2) {
+        if (texts->Split(&words, 1) && words.size() > 1) {
+            for (std::size_t i = 1; i < words.size(); i += 2) {
                 UiPointF place;
-                place.x = static_cast<float>(std::atof(words[i - 1]));
-                place.y = static_cast<float>(std::atof(words[i]));
+                place.x = static_cast<float>(std::atof(words[i - 1].c_str()));
+                place.y = static_cast<float>(std::atof(words[i].c_str()));
                 places.push_back(place);
             }
         }

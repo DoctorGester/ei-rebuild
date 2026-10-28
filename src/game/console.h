@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace libcrt { class Streambuf; }
 namespace mfc::impl { class CFont; }
@@ -35,6 +36,7 @@ struct Str : mfc::CString {
 inline Str& Ops(mfc::CString& s) { return static_cast<Str&>(s); }
 inline const Str& Ops(const mfc::CString& s) { return static_cast<const Str&>(s); }
 
+// A CStringArray local (the registry's, resources' and ini lists still fill them).
 class CStringArray : public mfc::CStringArray {
 public:
     CStringArray() { Construct(); }
@@ -173,11 +175,13 @@ public:
     void Blit();
     // Called by the interface's shutdown, which deletes the window.
     void DestroyBody();
+    // Keeps the last `count` lines.
+    void DropOldLines(int count);
 
     CInterface3D* screen_;           // the 3D interface (its width_ and height_ in pixels)
     CUiSurface* surface_;            // while shown
     mfc::impl::CFont* font_;         // selected into the surface's CDC
-    CStringArray commands_;          // commands entered (input history)
+    std::vector<std::string> commands_;   // commands entered (input history), the newest first
     int commandIndex_;               // the one shown by up/down (-1 or size: none)
     std::string input_;              // the line being typed
     int caret_;                      // caret position (bytes, at a character's start: U4)
@@ -186,7 +190,7 @@ public:
     int height_;                     // pixels, at least 69
     RECT rect_;                      // the window in 800x600 coordinates (after clamping)
     RECT screenRect_;                // the window in pixels
-    CStringArray lines_;
+    std::vector<std::string> lines_;
     int history_;                    // lines kept
     int visibleLines_;
     int scroll_;                     // lines scrolled back (0 = at the end)
@@ -195,10 +199,9 @@ public:
     bool shown_;
     std::uint8_t unused_7B;
 };
-static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24);
-
-// Console commands: void handler(CStringArray* args) with the arguments (lower case).
-using CommandHandler = void(__fastcall*)(CStringArray* args);
+// A console command's arguments (lower case).
+using Arguments = std::vector<std::string>;
+using CommandHandler = void(__fastcall*)(Arguments* args);
 
 // Keys compared by _mbscmp.
 using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
@@ -235,39 +238,38 @@ void ApplyAddonGuiVisibility(CUiContainer* screen);
 void RunAddonAutoExec();
 // Splits a console line at spaces into `out` (a token in double quotes keeps its spaces
 // and quotes); returns 1.
-int __fastcall Tokenize(const char* text, CStringArray* out);
+int Tokenize(const char* text, std::vector<std::string>* out);
 // Loads prefix + text + " arg"... + suffix into the mission script and runs it; prints
 // "Script error: ..." when it does not load.
-void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args, const char* prefix,
-                              const char* suffix);
+void RunScriptLine(const std::string& text, const Arguments& args, const char* prefix, const char* suffix);
 
 namespace commands {
-void __fastcall Help(CStringArray* args);
-void __fastcall DebugInfo(CStringArray* args);
-void __fastcall ConsolePos(CStringArray* args);    // console
-void __fastcall History(CStringArray* args);
-void __fastcall Filter(CStringArray* args);
-void __fastcall Show(CStringArray* args);
-void __fastcall ListVar(CStringArray* args);
-void __fastcall LoadVar(CStringArray* args);
-void __fastcall LastFps(CStringArray* args);
-void __fastcall Exec(CStringArray* args);          // exec, execute
-void __fastcall Give(CStringArray* args);
-void __fastcall LootAll(CStringArray* args);
-void __fastcall Join(CStringArray* args);
-void __fastcall HostServer(CStringArray* args);    // server
-void __fastcall MemUsage(CStringArray* args);
-void __fastcall Disconnect(CStringArray* args);
-void __fastcall FadeOut(CStringArray* args);
-void __fastcall Net(CStringArray* args);
-void __fastcall GenerateAcks(CStringArray* args);
-void __fastcall Days(CStringArray* args);
-void __fastcall PartyResend(CStringArray* args);
-void __fastcall Kick(CStringArray* args);
-void __fastcall Ban(CStringArray* args);
-void __fastcall Fps(CStringArray* args);
-void __fastcall Rate(CStringArray* args);
-void __fastcall LocalRate(CStringArray* args);
+void __fastcall Help(Arguments* args);
+void __fastcall DebugInfo(Arguments* args);
+void __fastcall ConsolePos(Arguments* args);    // console
+void __fastcall History(Arguments* args);
+void __fastcall Filter(Arguments* args);
+void __fastcall Show(Arguments* args);
+void __fastcall ListVar(Arguments* args);
+void __fastcall LoadVar(Arguments* args);
+void __fastcall LastFps(Arguments* args);
+void __fastcall Exec(Arguments* args);          // exec, execute
+void __fastcall Give(Arguments* args);
+void __fastcall LootAll(Arguments* args);
+void __fastcall Join(Arguments* args);
+void __fastcall HostServer(Arguments* args);    // server
+void __fastcall MemUsage(Arguments* args);
+void __fastcall Disconnect(Arguments* args);
+void __fastcall FadeOut(Arguments* args);
+void __fastcall Net(Arguments* args);
+void __fastcall GenerateAcks(Arguments* args);
+void __fastcall Days(Arguments* args);
+void __fastcall PartyResend(Arguments* args);
+void __fastcall Kick(Arguments* args);
+void __fastcall Ban(Arguments* args);
+void __fastcall Fps(Arguments* args);
+void __fastcall Rate(Arguments* args);
+void __fastcall LocalRate(Arguments* args);
 // generateacks' lines for a speech list / an environment speech list (a null list writes nothing).
 void __fastcall WriteSpeechLines(CStdioFile* file, const acks::Speeches* list);
 void __fastcall WriteEnvironmentSpeechLines(CStdioFile* file, const acks::EnvironmentSpeeches* list);

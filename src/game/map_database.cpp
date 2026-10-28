@@ -30,12 +30,12 @@ namespace {
 struct TextReader : CTextManager {
     mfc::BOOL Open(const char* name);                          // finds the text, cursor at its start
     mfc::BOOL NextHeader();                                    // (null key): the next "#" line; false at the end
-    int Split(console::CStringArray* words, int flag);         // the current line's words
+    int Split(std::vector<std::string>* words, int flag);         // the current line's words
     mfc::BOOL Close();
 };
 mfc::BOOL TextReader::Open(const char* key) { return CTextManager::Open(key); }
 mfc::BOOL TextReader::NextHeader() { return FindLine(nullptr); }
-int TextReader::Split(console::CStringArray* words, int flag) {
+int TextReader::Split(std::vector<std::string>* words, int flag) {
     return CTextManager::Split(words, flag);
 }
 mfc::BOOL TextReader::Close() { return TextClose(this); }
@@ -60,8 +60,8 @@ public:
 
 private:
     void Split() { reader_->Split(&words_, 1); }
-    const char* Word(int i) const { return words_[i]; }
-    int Count() const { return words_.size; }
+    const char* Word(int i) const { return words_[i].c_str(); }
+    int Count() const { return static_cast<int>(words_.size()); }
     MapRecord& Map() { return db_->maps.data[map_]; }
     ZoneExit& Exit() { return Map().exits.data[exit_]; }
 
@@ -75,7 +75,7 @@ private:
     TextReader* reader_;
     int map_;          // the current map (starts at the last one already loaded)
     int exit_ = -1;    // the current exit of the current map
-    console::CStringArray words_;
+    std::vector<std::string> words_;
 };
 
 void Loader::AddAllod() {
@@ -95,7 +95,7 @@ void Loader::AddMap() {
     exit_ = -1;
     Map().name = words_[1];
     Map().allod = words_[2];
-    const char* allodName = words_[2];
+    const char* allodName = words_[2].c_str();
     for (int i = 0; i < db_->allods.size; ++i) {
         AllodRecord& allod = db_->allods.data[i];
         if (gamecrt::mbsicmp(allod.name, allodName) != 0) continue;
@@ -204,12 +204,12 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 0) Exit().passTime = static_cast<float>(std::atof(Word(0)));
     } else if (Is(word, game::mapwords::View())) {
         Split();
-        words_.SetAtGrow(Count(), game::mapwords::Zero());
+        words_.push_back(game::mapwords::Zero());
         StoreRadians(&Exit().view, Word(0));
     } else if (Is(word, game::mapwords::DeployAngle())) {
         Exit().hasDeployAngle = 1;
         Split();
-        words_.SetAtGrow(Count(), game::mapwords::Zero());
+        words_.push_back(game::mapwords::Zero());
         StoreRadians(&Exit().deployAngle, Word(0));
     }
 }

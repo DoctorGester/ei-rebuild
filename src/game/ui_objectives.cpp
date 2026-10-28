@@ -38,7 +38,6 @@
 #include <new>
 #include <string>
 
-using console::CStringArray;
 
 namespace {
 
@@ -302,7 +301,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     quests.clear();
     {
         std::string prefix;
-        CStringArray parts;
+        std::vector<std::string> parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         prefix = str::Format("q.%s", shownZone_.c_str());
@@ -312,7 +311,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             EI_NAN_AUDIT(node->value.mapped);
             if (node->value.mapped == 0.0f) continue;
             text::Split(node->value.key, &parts, '.');
-            if (parts.GetSize() == 3) PushBack(&found, parts[2].GetString());
+            if (parts.size() == 3) PushBack(&found, parts[2].c_str());
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
@@ -388,7 +387,7 @@ void CObjectivesWindow::ShowQuest() {
     std::string line;
     std::string part;
     std::string text;
-    CStringArray fields;
+    std::vector<std::string> fields;
     std::string variable;
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
@@ -437,11 +436,11 @@ void CObjectivesWindow::ShowQuest() {
     }
     while (texts->FindLine(nullptr)) {
         texts->Split(&fields, 1);
-        if (fields.GetSize() < 2) continue;
+        if (fields.size() < 2) continue;
         if (SameText(fields[0], "#quest")) break;
         if (!SameText(fields[0], "#subobj")) continue;
         variable = str::Format("q.%s.%s.%s", shownZone_.c_str(), quests[selectedQuest_].c_str(),
-                        fields[1].GetString());
+                        fields[1].c_str());
         int state = static_cast<int>(gamecrt::Ftol(D(LocalPlayerVariable(variable.c_str()))));
         if (state == 0) continue;
         texts->ReadLine(&line, 1);
@@ -592,7 +591,7 @@ void CObjectivesWindow::CreateScreen() {
         // The zones of this allod in which the player holds quests ("q.<zone>.<quest>" = 1), and
         // the zone the interface's current quest belongs to.
         std::string current;
-        CStringArray parts;
+        std::vector<std::string> parts;
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         table->Fill("q.");
@@ -600,9 +599,9 @@ void CObjectivesWindow::CreateScreen() {
         const char* interfaceQuest = interface_->savedText_.c_str();
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             text::Split(node->value.key, &parts, '.');
-            if (parts.GetSize() != 3) continue;
+            if (parts.size() != 3) continue;
             if (gamecrt::mbsicmp(interfaceQuest,
-                                parts[2].GetString()) == 0)
+                                parts[2].c_str()) == 0)
                 current = parts[1];
             std::uint32_t one;
             std::memcpy(&one, &node->value.mapped, 4);

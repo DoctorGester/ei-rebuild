@@ -34,7 +34,8 @@ listvar / loadvar round trip through `.\saves\` (redirected to harness_saves), g
   `Script error: <text>` when it does not load. Otherwise command and arguments are lower-cased (`_mbslwr`); `quit` / `exit` call
   `00455F20`; a non-null public handler runs; without the cheat word the command XOR 0x66 is compared with `00740028`
   ("thingamabob"), which sets `007C7B64` and prints `Activated!`; with it the cheat map's handler runs (not in a network game);
-  anything else prints `Unknown command`. Handlers: `void handler(CStringArray* args)`, args in ECX.
+  anything else prints `Unknown command`. Handlers: `void handler(CStringArray* args)`, args in ECX (ours: `console::Arguments*`, a
+  `std::vector<std::string>`; the window's input history and lines are vectors too).
 - **Commands.** Public: console, lastfps, exec, execute, kick, ban, fps, rate, localrate. After the cheat word: help, debuginfo,
   history, filter, show, listvar, loadvar, give, fadeout, join, server, memusage, lootall, net, disconnect, generateacks, days,
   partyresend.

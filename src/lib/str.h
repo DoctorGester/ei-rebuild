@@ -37,6 +37,7 @@ void TrimRight(std::string& s);
 void TrimRight(std::string& s, char target);
 void TrimRight(std::string& s, const char* targets);
 void TrimLeft(std::string& s);
+void TrimLeft(std::string& s, char target);
 
 // Room for at least `minLength` characters (the text kept); the characters to write into.
 char* Buffer(std::string& s, int minLength);

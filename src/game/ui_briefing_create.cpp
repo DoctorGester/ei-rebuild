@@ -29,6 +29,7 @@
 #include "lib/crt.h"
 #include "text_split.h"
 #include "lib/stlp.h"
+#include "lib/str.h"
 #include "game_data.h"
 #include "game_singletons.h"
 #include "lib/mfc_slots.h"
@@ -358,7 +359,7 @@ void CBriefingScreen::Update() {
 
 void CBriefingScreen::MarkPeople() {
     BriefingVariables variables(TopicPrefix());
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     // The people with a topic open (the list is sorted and deduplicated; only membership is used).
     stlp::vector<int> open;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
@@ -366,9 +367,9 @@ void CBriefingScreen::MarkPeople() {
         std::memcpy(&bits, &node->value.mapped, 4);
         if (bits != kOneBits) continue;
         text::Split(node->value.key, &parts, '.');
-        if (parts.GetSize() != kTopicNameParts) continue;
-        if (Compare(parts[2].Left(kConstructorPrefix), ConstructorTopic()) == 0) continue;
-        int id = TextKeyFromName(parts[1]);
+        if (parts.size() != kTopicNameParts) continue;
+        if (Compare(str::Left(parts[2], kConstructorPrefix), ConstructorTopic()) == 0) continue;
+        int id = TextKeyFromName(parts[1].c_str());
         if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
         open.push_back(id);
     }

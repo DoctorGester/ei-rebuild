@@ -101,7 +101,7 @@ void SetBlink(CUnit* unit, std::uint8_t blinks) {
 
 
 void CBriefingScreen::NextPhrase(bool skip) {
-    console::CStringArray words;
+    std::vector<std::string> words;
     CTextManager* texts = TheTextManager();
     std::string speaker;
     std::string phrase;
@@ -122,27 +122,27 @@ void CBriefingScreen::NextPhrase(bool skip) {
             lips = false;
             continue;
         }
-        int count = words.GetSize();
+        int count = words.size();
         if (count < 2) continue;
         if (Compare(words[0], ShowCommand()) == 0) {
             if (count > 3 && Compare(words[3], WeaponWord()) == 0)
-                ShowItem(words[1], std::atoi(words[2]) - 1, 0);
+                ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 0);
             if (count > 2)
-                ShowItem(words[1], std::atoi(words[2]) - 1, 1);
+                ShowItem(words[1].c_str(), std::atoi(words[2].c_str()) - 1, 1);
             else
-                ShowItem(words[1], -1, 1);
+                ShowItem(words[1].c_str(), -1, 1);
         } else if (Compare(words[0], HideCommand()) == 0) {
-            HideSpeaker(words[1], skip, count > 2 ? 1 : 0);
+            HideSpeaker(words[1].c_str(), skip, count > 2 ? 1 : 0);
         } else if (Compare(words[0], AnimationCommand()) == 0) {
-            animation = std::atoi(words[1]);
+            animation = std::atoi(words[1].c_str());
         } else if (Compare(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kRadiansPerDegree * std::atof(words[2]));
-                distance = static_cast<float>(std::atof(words[3]));
-                height = static_cast<float>(std::atof(words[4]));
+                angle = static_cast<float>(kRadiansPerDegree * std::atof(words[2].c_str()));
+                distance = static_cast<float>(std::atof(words[3].c_str()));
+                height = static_cast<float>(std::atof(words[4].c_str()));
                 view = true;
             }
-            preset = std::atoi(words[1]);
+            preset = std::atoi(words[1].c_str());
         } else if (Compare(words[0], PhraseCommand()) == 0) {
             spoke = true;
             break;
@@ -152,7 +152,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
     if (spoke) {
         // "#phrase <speaker> [voice]": the speaker's name (its unit's name, else its "pers" text,
         // else the word itself), then the text up to the next '#'.
-        auto* unit = GameFindClientUnit(TextKeyFromName(words[1]));
+        auto* unit = GameFindClientUnit(TextKeyFromName(words[1].c_str()));
         if (!unit) {
             speaker = words[1];
         } else {
@@ -172,7 +172,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
         voice_ = -1;
         if (!skip) {
             int number;
-            if (words.GetSize() > 2 && (number = std::atoi(words[2])) > 0) {
+            if (words.size() > 2 && (number = std::atoi(words[2].c_str())) > 0) {
                 std::string file;
                 int folder = gamecrt::rand() * 2 / 0x7FFF % 2;
                 file = str::Format(VoiceFormat(), VoiceFolders()[folder], topic_.c_str(), number);
@@ -196,7 +196,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             record = stlp::NamedSlot<QuestBriefingRecord>(BriefingRecords(), key);
         }
         if (record) {
-            console::CStringArray parts;
+            std::vector<std::string> parts;
             std::string name;
             std::string line;
             std::string label;
@@ -218,7 +218,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             auto addQuests = [&](const stlp::vector<std::string>& list) {
                 for (const std::string* it = list.begin(); it != list.end(); ++it) {
                     text::Split(it->c_str(), &parts, '.');
-                    if (parts.GetSize() != kQuestNameParts) continue;
+                    if (parts.size() != kQuestNameParts) continue;
                     if (!texts->Open(mfc::CString(QuestSection()) + parts[2])) continue;
                     texts->ReadLine(&name, 1);
                     line = str::Format(NameLine(), label.c_str(), name.c_str());
@@ -264,9 +264,9 @@ void CBriefingScreen::NextPhrase(bool skip) {
         }
     }
 
-    // The phrase's speaker: the last line's second word (read unchecked,
-    // only while comparing with a speaker).
-    auto named = [&words] { return words.data[1].GetString(); };
+    // The phrase's speaker: the last line's second word (the original reads it unchecked; empty here when
+    // the line has one word).
+    auto named = [&words] { return words.size() > 1 ? words[1].c_str() : ""; };
     if (!skip || last) {
         if (leader_) GameSetUnitHeight(leader_->id_, 0.0f);
         if (person_) GameSetUnitHeight(person_->id_, 0.0f);

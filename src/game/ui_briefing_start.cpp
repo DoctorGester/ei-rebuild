@@ -139,11 +139,11 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         briefingStarted_ = false;
         return;
     }
-    console::CStringArray words;
+    std::vector<std::string> words;
     while (texts->FindLine(ShowLine())) {
         texts->Split(&words, 1);
-        if (words.GetSize() < 2) continue;
-        int id = TextKeyFromName(words[1]);
+        if (words.size() < 2) continue;
+        int id = TextKeyFromName(words[1].c_str());
         if (id == leader_->id_) continue;
         auto* unit = GameFindClientUnit(id);
         if (!unit) continue;
@@ -282,10 +282,10 @@ void CBriefingScreen::FinishDialogue() {
     }
 
     BriefingVariables variables(TopicPrefix());
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         text::Split(node->value.key, &parts, '.');
-        if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
+        if (parts.size() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
         TheServerWorld()->CompleteBriefing(0, node->value.key);
         break;
     }

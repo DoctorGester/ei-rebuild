@@ -95,7 +95,7 @@ public:
     // The current line's words (separated by spaces and tabs; a word still open when the
     // text ends is dropped) into `words`; with `advance` the cursor moves to the next line that is not
     // a comment. 0 when the cursor is at the end.
-    BOOL Split(console::CStringArray* words, BOOL advance);
+    BOOL Split(std::vector<std::string>* words, BOOL advance);
     // Moves the cursor to the line that starts with `key`: null finds the next "#..." header
     // (not a "##" comment); one word compares the line's first word; several words (split at spaces)
     // compare the line's words, lower-cased, with them. 1 when found, else 0 (cursor at the end).

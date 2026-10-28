@@ -54,14 +54,14 @@ private:
 
 void CBriefingScreen::FindTopics(int personId) {
     BriefingVariables variables(TopicPrefix());
-    console::CStringArray parts;
+    std::vector<std::string> parts;
     std::string name;
     std::string constructor;
     TopicList found;
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         if (Bits(node->value.mapped) != kOneBits) continue;
         text::Split(node->value.key, &parts, '.');
-        if (parts.size != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
+        if (parts.size() != kTopicNameParts || TextKeyFromName(parts[1].c_str()) != personId) continue;
         name = parts[2];
         bool isConstructor;
         {

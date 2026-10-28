@@ -77,17 +77,17 @@ EI_REWRITTEN(0x00630F50, CGlobalMap::QuestTitle);
 bool CGlobalMap::ReadMapPosition(Vector3* out, const char* format, const char* name, bool positionLine) {
     CTextManager* texts = TheTextManager();
     std::string key;
-    console::CStringArray words;
+    std::vector<std::string> words;
     texts->Open(kMapText);
     key = str::Format(format, name);
     bool found = false;
     if (texts->FindLine(key.c_str()) && (!positionLine || texts->FindLine(kPositionLine))) {
         TextNextLine(texts);
         if (texts->Split(&words, 1)) {
-            while (words.GetSize() < 3) words.SetAtGrow(words.GetSize(), kMissingNumber);
-            out->x = static_cast<float>(std::atof(words[0]));
-            out->y = static_cast<float>(std::atof(words[1]));
-            out->z = static_cast<float>(std::atof(words[2]));
+            while (words.size() < 3) words.push_back(kMissingNumber);
+            out->x = static_cast<float>(std::atof(words[0].c_str()));
+            out->y = static_cast<float>(std::atof(words[1].c_str()));
+            out->z = static_cast<float>(std::atof(words[2].c_str()));
             found = true;
         }
     }
