@@ -146,8 +146,8 @@ void CBriefingScreen::OnGameOver(int) {
     interface_->PushWindow(box, 1, 1);
 }
 
-void CBriefingScreen::OnBriefing(const char* name) {
-    topic_ = name;
+void CBriefingScreen::OnBriefing(std::string_view name) {
+    topic_ = std::string(name);
     StartDialogue(1, 1);
 }
 

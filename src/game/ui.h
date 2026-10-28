@@ -135,7 +135,7 @@ public:
     // on and the topic was not seen.
     void OpenHelp(int flag);
     // A 2D sound at priority 1000, volume 100; returns its handle.
-    int PlaySound(const char* name, int loop);
+    int PlaySound(std::string_view name, int loop);
     void StopSound(int handle);
     // A multiplayer client's screens call them for Enter / Backspace. While the chat line is closed:
     // Enter opens it, Backspace empties the chat lines.
@@ -1218,7 +1218,7 @@ public:
     virtual void GameOver(int) {}
     virtual void Speech(int, unsigned, char*) {}                       // a unit speaks
     virtual void QuestVariable(std::string_view, float) {}                  // a quest variable changed
-    virtual void ShowBriefing(const char*) {}                          // a "briefing <name>" string event
+    virtual void ShowBriefing(std::string_view) {}                          // a "briefing <name>" string event
     virtual bool ReadyToStopPolling() { return false; }                // whether the interface may stop asking (pollTop_)
     virtual void PlayersChanged(int) {}
     virtual void ExchangeDone(CParty*, CParty*, CParty*) {}            // an exchange ended
@@ -1966,7 +1966,7 @@ public:
 class CMessageBox : public CUiContainer {
 public:
     // A missing text gives its key.
-    CMessageBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
+    CMessageBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result, std::uint32_t flags,
                 std::uint32_t format);
     ~CMessageBox() override;
     void CloseScreen() override { OnClose(); }

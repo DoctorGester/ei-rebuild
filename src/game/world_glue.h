@@ -93,6 +93,6 @@ void GameLeaveThroughExit(int exit);
 // The interface's close-all flag set, then the local client's SendLeave04(value) / Rejoin.
 void GameSendLeave04(int value);
 void GameRejoin();
-void GameLocalPlayerVariables(const char* prefix, NamedFloatTable* out);
+void GameLocalPlayerVariables(std::string_view prefix, NamedFloatTable* out);
 CPlayerClient* GameLocalView();
 int GameSendFlag10(int value);

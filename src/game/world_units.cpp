@@ -253,7 +253,7 @@ void CWorldServer::CreateUnits(CPlayer* player, std::vector<PartyUnitRecord*>* r
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        unit->SetSecondPrototypeByName(record->texts[6].c_str());
+        unit->SetSecondPrototypeByName(record->texts[6]);
         line = str::Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (sessionKind_ == kKindSinglePlayer && !atStart) unit->moveMode2 = record->moveMode2;
@@ -329,8 +329,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
-        const char* prototype = spec->kind == 5 ? static_cast<UnitSpec*>(spec)->prototype.c_str()
-                                                     : spec->primaryTexture.c_str();
+        const std::string_view prototype = spec->kind == 5 ? std::string_view(static_cast<UnitSpec*>(spec)->prototype)
+                                                           : std::string_view(spec->primaryTexture);
         object->TakePrototype(prototype);
         object->WriteFullState();
     };
@@ -464,8 +464,8 @@ int CWorldServer::CreateObject(mapspec::Spec* message) {
             unit->SetPlayer(nullptr);
             unit->SetSide(spec->side);
             UnitSetDiplomacy(unit, nullptr, diplomacy_.GetHostileMask(spec->side));
-            objectManager->ApplyPrototype(object, unitSpec->prototype.c_str());
-            objectManager->GiveStartingEquipment(unit, unitSpec->prototype.c_str());
+            objectManager->ApplyPrototype(object, unitSpec->prototype);
+            objectManager->GiveStartingEquipment(unit, unitSpec->prototype);
             for (const std::string& name : unitSpec->record.lists[unitrecord::UnitRecord::kQuickItems])
                 unit->AddQuickItem(ItemFactory()->CreateItem(name));
             unitSpec->record.ApplyTo(unit);

@@ -168,8 +168,7 @@ void ReadCommandLine(const char* commandLine) {
                 std::string folder = Tail(arguments[i], 11);
                 *g_movieFolder = folder;
             }
-            const char* folder = g_movieFolder->c_str();
-            if (folder[static_cast<int>(g_movieFolder->size()) - 1] != '\\') *g_movieFolder += '\\';
+            if (g_movieFolder->back() != '\\') *g_movieFolder += '\\';
             continue;
         }
         if (!(client->flags_ & 0x10)) {

@@ -370,7 +370,7 @@ public:
     // Sends the equipment ids to the controller (the 7 armour ids, then the 4 weapon ids).
     void SendEquipment();
     // secondPrototype = the index of the unit prototype named `prototypeName`, or -1.
-    std::uint32_t SetSecondPrototypeByName(const char* prototypeName);
+    std::uint32_t SetSecondPrototypeByName(std::string_view prototypeName);
     int SetSecondPrototypeIndex(int index);
 
     // Back to a blank unit: no name, prototypes, controller (released), relations, player, side, items (the slots

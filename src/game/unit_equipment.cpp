@@ -38,14 +38,14 @@ bool Named(const std::string& name) {
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
-CItem* MakeWeapon(CItemManager* items, const std::string& name, const char* prototype) {
+CItem* MakeWeapon(CItemManager* items, const std::string& name, const std::string& prototype) {
     CItem* weapon = items->CreateItem(name);
     if (!weapon) game::FatalError(game::equipmenttexts::NoWeapon(), name, prototype);
     return weapon;
 }
 } // namespace
 
-int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
+int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const std::string& name) {
     CWorld* world = ContextAsWorld();
     CSpellManager* spellOwner = world->SpellManager();   // passed on to the spell factory
     CItemManager* items = world->ItemFactory();

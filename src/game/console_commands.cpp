@@ -90,8 +90,7 @@ void KickOrBan(std::vector<std::string>* args, int windowMode, int command) {
     }
     if (count != 1 || ArgIs(args, 0, "")) return;   // "" does nothing
     std::string name = (*args)[0];
-    const char* text = name.c_str();
-    if (text[0] == '"' && text[static_cast<int>(name.size()) - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
+    if (name[0] == '"' && name[name.size() - 1] == '"') name = str::Mid(name, 1, static_cast<int>(name.size()) - 2);
     if (ServerActive(net::g_gameClient)) net::g_gameClient->SendCommand(command, name);
 }
 
@@ -248,7 +247,7 @@ void ListVar(std::vector<std::string>* args) {
     }
     const NamedFloatTable& variables = player->Party()->variables_;
     for (auto node = variables.begin(); node != variables.end(); ++node) {
-        const char* name = node->first.c_str();
+        const std::string& name = node->first;
         EndLine(g_consoleOut << name << " = " << node->second);
         if (writing) {
             line = str::Format("%s %g\n", name, static_cast<double>(node->second));
@@ -276,7 +275,7 @@ void LoadVar(std::vector<std::string>* args) {
     while (file.ReadLine(line)) {
         text::Split(line, &parts, ' ');
         if (parts.size() > 1) {
-            const char* name = parts[0].c_str();
+            const std::string& name = parts[0];
             float value = static_cast<float>(str::ToDouble(parts[1]));
             state->SetVariable(name, std::bit_cast<std::uint32_t>(value));
         }
@@ -436,7 +435,7 @@ void GenerateAcks(std::vector<std::string>*) {
 void Days(std::vector<std::string>* args) {
     auto digits = [&](int i) {
         for (int k = 0; k < 8; ++k) {
-            signed char c = (*args)[i].c_str()[k];
+            signed char c = (*args)[i][k];
             if (c < '0' || c > '9') return false;
         }
         return true;

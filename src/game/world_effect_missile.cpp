@@ -310,7 +310,7 @@ void CEffectArrowFigure::Start(int update) {
     attached->RegisterPartMaterials();
     figure->PlayAnimationSecond(0, nullptr);   // (the model name is passed as the unused argument)
     figure->RestartPose();
-    attached->SetSkins(texture.c_str(), game::kEmptyText);
+    attached->SetSkins(texture, game::kEmptyText);
     g_clientWorld->AddObject(figure_);
 }
 

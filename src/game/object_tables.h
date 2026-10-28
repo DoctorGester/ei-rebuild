@@ -104,7 +104,7 @@ struct NamedFloatTable : lib::HashMap<std::string, float, lib::TextHash> {
     void Remove(std::string_view name);
     // Empties `out`, then copies into it every entry whose name starts with
     // `prefix` (strncmp over the prefix's length).
-    void CopyPrefixed(const char* prefix, NamedFloatTable* out);
+    void CopyPrefixed(std::string_view prefix, NamedFloatTable* out);
     // Empties the table, then reads {zero-terminated name, float} pairs from the
     // stream up to an empty name (compared with the exe's empty string).
     void Load(CStream* stream);

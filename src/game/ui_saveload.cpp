@@ -217,7 +217,7 @@ void CSaveLoadWindow::SaveGame() {
     std::string notice;
     g_clientWorld->texts_->GetString(game::savewords::NotifySaving(), &notice);
     g_interface->ShowStatusText(notice);
-    g_gameFlow->SaveGameThunk(entry->folder_.c_str());
+    g_gameFlow->SaveGameThunk(entry->folder_);
     g_cursor->ChangeShape(3);
 
     // info.sav: the new save's entry (the first) with the title being given.
@@ -403,7 +403,7 @@ void QuickSave(const char* slot, char stepFrame) {
     info.WriteText(map);
     info.WriteText(zone);
     info.Write(&savedAt, 4);
-    info.WriteText(title.c_str());
+    info.WriteText(title);
     info.Close();
 
     // shot.sav: the copied screen at 256x192.

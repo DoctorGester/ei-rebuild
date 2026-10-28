@@ -113,7 +113,7 @@ void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
     m->streamState = 0;
     // Rebirth's StreamPatch: the mod's Stream\ folder when it has the file.
-    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName.c_str());
+    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
     std::string path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (str::Compare(m->nextName, game::kEmptyText) == 0 ||
         m->streamReader.OpenFile(path, &m->streamFileSize) == 0) {

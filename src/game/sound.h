@@ -358,7 +358,7 @@ struct CMusicSystem : CEngineObject {
     // music.reg: Common\Credits and Common\MainMenu, then per other section an open land theme (CalmOpen)
     // and a dungeon theme (CalmDungeon). Returns 1, or FatalError's result when the file cannot be opened.
     int LoadThemes();
-    void SetZoneMode(const char* allod, int dungeon);
+    void SetZoneMode(std::string_view allod, int dungeon);
     void Stop();
     void PlayBriefing(std::string_view allod);
     void PlayConstructor(std::string_view allod);

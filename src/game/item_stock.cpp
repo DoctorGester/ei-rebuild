@@ -214,9 +214,8 @@ void SaveItemRecords(CStream* stream, const std::vector<itemdb::ItemRecordHead*>
 }
 
 int SpellIndex(const itemdb::SpellRecord* record) {
-    const char* code = record->code.c_str();
     itemdb::SpellTable& spells = g_spellDatabase->spells;
-    return spells.IndexOf(spells.FindByCode(code));
+    return spells.IndexOf(spells.FindByCode(record->code));
 }
 int ModifierIndex(const itemdb::SpellModifierRecord* record) {
     const char* code = record->code;

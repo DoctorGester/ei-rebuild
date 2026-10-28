@@ -153,12 +153,11 @@ void CBattleScreen::CreateScreen() {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
         auto* top = topPanel_;
         auto& panelText = top->pageTexts_[0];
-        const char* text = savedText.c_str();
-        panelText += text;
+        panelText += savedText;
         if (top->page_ == 0) {
             // The owner is this screen (a container; CBattleScreen declares it as a window).
             auto* owner = top->owner_;
-            owner->MessageLog()->AddText(text);
+            owner->MessageLog()->AddText(savedText);
         }
     }
     topPanel_->ShowItems();

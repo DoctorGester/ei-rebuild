@@ -59,7 +59,7 @@ CPlayer::~CPlayer() {
 int PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
     std::string text;
     text = str::Format(format, previous & 0xFF, type & 0xFF);
-    return game::FatalError(text.c_str());
+    return game::FatalError(text);
 }
 
 const char* CPlayer::GetClassName() { return "CPlayer"; }

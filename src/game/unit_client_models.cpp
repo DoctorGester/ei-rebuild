@@ -86,7 +86,7 @@ bool Passed(std::uint32_t frame, float last, float now) {
 
 // "<prototype name><texture>.mmp" into `texture`.
 void AddPrototypePrefix(const CUnit* unit, std::string& texture) {
-    std::string named = unit->name.c_str() + std::string(texture);
+    std::string named = unit->name + std::string(texture);
     std::string withExtension = named + ".mmp";
     texture = withExtension;
 }
@@ -167,7 +167,7 @@ bool CUnitClientSpecific::ArmourPutOn(std::uint32_t itemId) {
 
     FigureModel* model;
     {
-        std::string name(unit->name.c_str());
+        std::string name = unit->name;
         model = manager->FindModel(&name);
     }
     if (!model) return false;
@@ -215,7 +215,7 @@ bool CUnitClientSpecific::ArmourTakenOff(std::uint32_t slot) {
 
     FigureModel* model;
     {
-        std::string name(unit->name.c_str());
+        std::string name = unit->name;
         model = g_clientWorld->figureManager_->FindModel(&name);
     }
     if (!model) return false;   // the slot stays cleared
@@ -252,7 +252,7 @@ int CUnitClientSpecific::ShowWeapon(std::uint32_t slot) {
     std::vector<std::string> names;
     FigureModel* model;
     {
-        std::string name(unit->name.c_str());
+        std::string name = unit->name;
         model = g_clientWorld->figureManager_->FindModel(&name);
     }
     if (previous != kNone) {

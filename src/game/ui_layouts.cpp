@@ -511,7 +511,7 @@ void CCreditsScreen::CreateScreen() {
         TitlesTokenizer lines{{0, &script, "\n"}};
         lines.Start();
         while (lines.position != -1) {
-            std::string line(lines.word.c_str());
+            std::string line = lines.word;
             TitlesTokenizer words{{0, &line, " "}};
             words.Start();
             TitleLine record{};

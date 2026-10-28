@@ -133,7 +133,7 @@ void CUiScrollText::Tokenize(const std::string* text) {
         if (format) Append(tokens_, format);
         if (word) {
             auto* w = new UiWordToken();
-            SIZE size = TextExtent(interface_, token.c_str(), font);
+            SIZE size = TextExtent(interface_, token, font);
             w->width_ = size.cx;
             w->text_ = token;
             Append(tokens_, w);

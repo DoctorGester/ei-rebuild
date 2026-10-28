@@ -133,7 +133,7 @@ void LearnNpcSkills(UnitStats* stats, const UnitNpcRecord* npc) {
     if (!npc) return;
     stats->AddScaledExperience(npc->experience);
     for (const std::string* name = npc->skillNames.data(); name != npc->skillNames.data() + npc->skillNames.size(); ++name) {
-        ::SkillLevelRecord* skill = g_skillDatabase->FindLevel(name->c_str());
+        ::SkillLevelRecord* skill = g_skillDatabase->FindLevel(*name);
         if (skill) stats->LearnSkill(&g_skillDatabase.Get(), skill);
     }
     stats->spentExperience = stats->experience;
@@ -361,7 +361,7 @@ int CMapObjectManager::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, 
     return 1;
 }
 
-int BuildNpcStats(UnitStats* stats, const char* name) {
+int BuildNpcStats(UnitStats* stats, const std::string& name) {
     const UnitPrototypeRecord* prototype = FindPrototype(name);
     const UnitModelRecord* model = ModelOf(prototype);   // reads the prototype before the null test
     const UnitNpcRecord* npc = FindNpc(name);
@@ -548,7 +548,7 @@ BOOL UnitStats::CanLearn(const SkillDatabase* database, const ::SkillLevelRecord
     return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 
-int CMapObjectManager::ApplyPrototype(CMapObject* object, const char* name) {
+int CMapObjectManager::ApplyPrototype(CMapObject* object, const std::string& name) {
     UnitVitals vitals{};   // zeroed (the stack's old contents are not kept)
     UnitStats stats{};
     const UnitPrototypeRecord* prototype = FindPrototype(name);

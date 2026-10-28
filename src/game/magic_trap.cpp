@@ -179,9 +179,8 @@ void MagicTrap::CastAtUnits(std::list<CUnit*>* units) {
 
 void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
-    const char* text = record->spell.c_str();
     CSpellManager* manager = SpellManagerOf(WorldContext());
-    CSpell* made = manager->CreateSpellFromText(text);
+    CSpell* made = manager->CreateSpellFromText(record->spell);
     CSpell* old = spell;
     spell = made;
     if (made) ++made->refCount_;

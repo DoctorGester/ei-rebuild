@@ -235,8 +235,7 @@ void CMpHeroScreen::DrawHeroList() {
             SelectionFrame(*this)->visible_ = 1;
             SelectionFrame(*this)->Place(240.0f, static_cast<float>(y), kFrameDepth);
         }
-        const char* name = MpHero(index)->members_[0].texts[0].c_str();
-        surface->DrawTextIn(name, &rect, 1, kListColour, kListFormat, 1);
+        surface->DrawTextIn(MpHero(index)->members_[0].texts[0], &rect, 1, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 24);
     }
     UiSurfaceReleaseDC(surface);

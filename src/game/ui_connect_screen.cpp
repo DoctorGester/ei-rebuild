@@ -91,7 +91,7 @@ constexpr std::uint32_t kPlainSprite = 0x100;
 
 void CopyText(char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); }
 
-void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_t result, int flags) {
+void OpenBox(CInterface3D* ui, std::string_view title, const char* text, std::uint32_t result, int flags) {
     CMessageBox* box = new CMessageBox(ui, title, text, result, flags, kBoxFormat);
     ui->PushWindow(box, 1, 1);
 }
@@ -153,7 +153,7 @@ void CMpConnectScreen::Update() {
             std::string key;
             key = RefusalKey(client->refusal_);
             std::string text = key + MessageSuffix();
-            interface_->PushWindow(new CMessageBox(interface_, key.c_str(), text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
+            interface_->PushWindow(new CMessageBox(interface_, key, text.c_str(), kBoxNotice, kBoxFlagsOk, kBoxFormat), 1, 1);
             return;
         }
     }
@@ -239,7 +239,7 @@ void CMpConnectScreen::OnLButtonDown(int buttons, int x, int y) {
     case kRegionPassword:
         if (hostPassword_.size() == 0) {
             CopyText(boxText_, hostPassword_.c_str());
-            OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxPassword, kBoxFlagsEdit);
+            OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxPassword, kBoxFlagsEdit);
         } else {
             hostPassword_.clear();
             SceneMesh(kSpritePassword)->textureOffsetU_ = 0.0f;
@@ -351,7 +351,7 @@ void CMpConnectScreen::Connect() {
     SaveAddressBook();
     if (entries_[selected_].password) {
         boxText_[0] = '\0';
-        OpenBox(interface_, texts_[kTextPassword].c_str(), boxText_, kBoxJoinPassword, kBoxFlagsEdit);
+        OpenBox(interface_, texts_[kTextPassword], boxText_, kBoxJoinPassword, kBoxFlagsEdit);
     }
     g_gameFlow->JoinServer(&entries_[selected_].address, EmptyText());
     net::g_gameClient->gameType_ = entries_[selected_].gameType;
@@ -371,7 +371,7 @@ void CMpConnectScreen::EditAddress() {
         std::string text = entry.address.ToString();
         CopyText(boxText_, text.data());
     }
-    OpenBox(interface_, texts_[kTextAddress].c_str(), boxText_, kBoxAddress, kBoxFlagsEdit);
+    OpenBox(interface_, texts_[kTextAddress], boxText_, kBoxAddress, kBoxFlagsEdit);
 }
 
 void CMpConnectScreen::MasterRequest() {
@@ -384,7 +384,7 @@ void CMpConnectScreen::MasterRequest() {
         master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::g_gameClient;
     std::uint32_t extra = client ? client->queries_.extra : 0;
-    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster].c_str(), boxText_, kBoxMaster, &master, extra), 1,
+    interface_->PushWindow(new CMasterRequestBox(interface_, texts_[kTextMaster], boxText_, kBoxMaster, &master, extra), 1,
                            1);
 }
 
@@ -636,7 +636,7 @@ void CMpConnectScreen::CreateScreen() {
 
 // --- the master request box ----------------------------------------------------------------------
 
-CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+CMasterRequestBox::CMasterRequestBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
                                      const net::NetAddress* address, std::uint32_t extra)
     : CMessageBox(ui, titleKey, textKey, result, kBoxFlagsCancel, kBoxFormat), link_(address) {
     bar_ = AddBlankSprite();

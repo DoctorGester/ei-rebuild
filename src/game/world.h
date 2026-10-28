@@ -932,7 +932,7 @@ public:
     // [ambient] and [sky] names its hour in characters 4..5 ("hour07") and holds "r, g, b" (0..255,
     // scaled by 1/255, alpha 1); the hours between two keys in file order are filled by linear steps
     // from the earlier key (the first from hour 0). Hours are not range-checked. Returns 1.
-    int LoadLights(const char* file);
+    int LoadLights(const std::string& file);
     // The frame's light from the time of day: fog, sun direction and the sunlight, ambient and sky colours
     // interpolated between the hour's table entries; once per new hour the terrain's sun. A cave takes hour
     // 0's colours and a fixed sun. Returns 1 when a new hour began (or the renderer's flag bit 0 is clear:
@@ -1053,7 +1053,7 @@ struct GameFlow {
     // Saves the game into saves\<slot>\ (single player only): empties the folder, copies the visited zones' files
     // from saves\current, writes scenario.sav and, outside the cutscene zones, mission.sav. Without scenario.sav the
     // game goes back to the main menu. Returns 1 when saved.
-    int SaveGame(const char* slot);
+    int SaveGame(const std::string& slot);
     // Fills the zone table once, while it is empty: for every "*.mq" file of the maps folder, its title is registered
     // as a quest folder (RegisterQuests); a zone the map database knows gets an entry {the title, the record's map
     // name, the allod}: 0 / 1 / 2 by the three map name lists, else 3.
@@ -1078,10 +1078,10 @@ struct GameFlow {
     // With an active client session: the flow's update, then an answered game state request (kind 3)
     // becomes a new one of kind 0.
     void UpdateAndAcknowledge();
-    void RequestBriefing(const char* briefing);
+    void RequestBriefing(std::string_view briefing);
     void ForgetBriefing(const char* briefing);
     void RecreateClientSession();
-    int SaveGameThunk(const char* slot);
+    int SaveGameThunk(const std::string& slot);
     // Clears the sessions-open flag, releases both network sessions (server, then client), sets the state to 1.
     void CloseSessions();
     // Used by the menus and the interface on leaving a network game. As CloseSessions without the
@@ -1096,7 +1096,7 @@ struct GameFlow {
     // Registers a quest folder once: the flow loads its quests, then with "<folder>\quest.reg" in the
     // texts the quest table reads it, the map database loads "<folder>\map.txt" and the folder joins the
     // list.
-    void RegisterQuests(const char* folder);
+    void RegisterQuests(const std::string& folder);
     // The multiplayer zone switch, in two calls: the first (zoneSwitchStarted_ clear) resets the host's
     // connections, takes the party (player 0's records when its state has a party, else the outside
     // party) for multiplayerZone_, asks for game state 3 and requests state 6 (host) or 5 (client, to its peer's
@@ -1143,7 +1143,7 @@ struct GameFlow {
     // globals), the visited zones of the current map copied back (the others marked not visited), then
     // the zone: from mission.sav (kinds 0, 2) or started afresh. Without scenario.sav the main menu
     // starts. Returns 1 when loaded. Rebirth's AutoExec runs addon's AutoExec lines first.
-    int LoadGame(const char* slot);
+    int LoadGame(const std::string& slot);
     // After the sessions start: the party step (1), the variables of the party outside a game emptied,
     // its members reset, and the client's host record takes the hero's and party's
     // names (defaults "Human Hero", "Bug"). Rebirth's PersistentGlobalVars keeps the "gvar." variables.
@@ -1185,11 +1185,11 @@ struct MpHeroRecord {
     // the last one is deleted instead. Otherwise the old file is moved to `folder` + "temp.mp", the
     // party saved (with its variables) into a memory stream and that written as a save file (magic
     // 0x114, the save version), then the temporary file deleted.
-    void WriteFile(const char* folder);
+    void WriteFile(const std::string& folder);
     // Reads the party from `folder` + file (magic 0x114, the versions kSaveOldestVersion..kSaveVersion):
     // false when the file does not read, else the party loaded (with its variables) and the memory
     // stream's ok flag.
-    bool ReadFile(const char* folder);
+    bool ReadFile(const std::string& folder);
     CParty* Party() { return party.Get(); }
 
     lib::InPlace<CParty> party;
@@ -1229,7 +1229,7 @@ extern std::vector<std::string> g_questFiles;
 // source.
 bool LoadZoneQuests(std::string_view zone);
 
-bool NameInList(const char* const* list, const char* name);
+bool NameInList(const char* const* list, std::string_view name);
 
 void ClearSaveFolder(const std::string& path);
 
@@ -1254,8 +1254,8 @@ inline constexpr int kSaveOldestVersion = /*00790268*/ 66;
 // The mercenary who speaks `briefing` (the second word of the first "#show" line of
 // section "briefing <name>" that is not "Hero"), or "", into `out`. The briefing's
 // variable, "b.<speaker>.<briefing>" or, without a speaker, "b.elder.<briefing>".
-std::string* BriefingSpeakerInto(std::string* out, const char* briefing);
-std::string* BriefingVariableInto(std::string* out, const char* briefing);
+std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing);
+std::string* BriefingVariableInto(std::string* out, const std::string& briefing);
 // The multiplayer peer's map (the client's session field or the server's), replaced by the first line of its "quest
 // <name>" section when there is one; "" without a peer.
 std::string* SessionMapNameInto(std::string* out);
@@ -1324,4 +1324,4 @@ int CurrentSaveSize();
 
 // Every resource database (units with their sound file counts, skills, spell tables, items) destroyed
 // and constructed again in place, then loaded from `name`.
-void SwitchResourceDatabases(const char* name);
+void SwitchResourceDatabases(const std::string& name);

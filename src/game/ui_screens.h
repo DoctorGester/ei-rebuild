@@ -433,7 +433,7 @@ class CMasterRequestBox : public CMessageBox {
 public:
     // The box (flags 2: one cancel button; format 1), the link connecting to `address`, the
     // bar (a plain sprite, colour 0xFFA06800), and `extra` written to the link's outgoing buffer.
-    CMasterRequestBox(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+    CMasterRequestBox(CInterface3D* ui, std::string_view titleKey, const char* textKey, std::uint32_t result,
                       const net::NetAddress* address, std::uint32_t extra);
     ~CMasterRequestBox() override;
     // The bar's right edge at 225 + 355 * the received share; the link steps: done (3) hands the reply to the

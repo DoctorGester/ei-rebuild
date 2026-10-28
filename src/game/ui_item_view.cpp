@@ -170,11 +170,8 @@ void SetSpecular(int on) {
     device::SetRenderState(device::D3D(g_sceneRenderer->device_), D3DRENDERSTATE_SPECULARENABLE, static_cast<DWORD>(on));
 }
 
-bool SameText(const char* a, const char* b) {
-    for (;; ++a, ++b) {
-        if (*a != *b) return false;
-        if (*a == 0) return true;
-    }
+bool SameText(std::string_view a, std::string_view b) {
+    return a == b;
 }
 
 constexpr std::uint32_t kPnt3 = kMmpFormatPnt3;
@@ -366,7 +363,7 @@ void CItemScreen::FaceNames(const char* prototype, std::string* model, std::stri
         figure = unitdb::ModelNamed(key);
     }
     std::string sex;
-    const char* figureModel = figure->figureName.c_str();
+    const std::string& figureModel = figure->figureName;
     const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes: the model's fifth character
     if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, "unhuma"))
         sex = "m";

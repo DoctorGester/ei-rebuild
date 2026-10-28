@@ -87,7 +87,7 @@ int CMusicSystem::LoadThemes() {
             std::string file = kMusicReg;
             std::string message = "CMusicSystem::Create()\nUnable to open file \"" + file;   // "CMusicSystem::Create()\nUnable to open file \""
             std::string full = message + "\"";    // "\""
-            result = game::FatalError(full.c_str());
+            result = game::FatalError(full);
         }
         reg.Destroy();
         return result;
@@ -120,7 +120,7 @@ int CMusicSystem::LoadThemes() {
 
 // Entering a zone: picks the allod's open land or dungeon theme; a missing theme is
 // fatal. The calm music is due at once (calmDue 1) after the first world frame clears `holding`.
-void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
+void CMusicSystem::SetZoneMode(std::string_view allod, int dungeon) {
     g_clientWorld->sounds_->StreamNotify(4);
     g_clientWorld->sounds_->StopStream(4);
     holding = 1;
@@ -135,10 +135,10 @@ void CMusicSystem::SetZoneMode(const char* allod, int dungeon) {
             return;
         }
     }
-    std::string name = allod;
+    std::string name(allod);
     std::string message = "CMusicSystem::SetZoneMode()\nUnable to find sound theme for allod \"" + name;
     std::string full = message + "\"";
-    game::FatalError(full.c_str());
+    game::FatalError(full);
 }
 
 void CMusicSystem::Stop() {

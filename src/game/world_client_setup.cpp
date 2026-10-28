@@ -94,7 +94,7 @@ void AssignCounted(T*& slot, T* object) {
 
 } // namespace
 
-int CWorldClient::LoadLights(const char* file) {
+int CWorldClient::LoadLights(const std::string& file) {
     std::vector<std::string> keys;
     std::string hour;
     std::vector<std::uint32_t> values{};

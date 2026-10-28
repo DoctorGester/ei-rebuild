@@ -24,7 +24,7 @@ CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nul
 
 // `texture` takes `name` and is loaded again (the common tail).
 void Reload(CTexture* texture, const std::string& name) {
-    texture->name_ = name.c_str();
+    texture->name_ = name;
     texture->flags_ &= ~kTextureLoaded;
     texture->Manager()->LoadTexture(texture);
 }

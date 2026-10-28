@@ -94,7 +94,7 @@ void CUnit::SendEquipment() {
     Controller()->SetWeaponModels(&ids[0], 4);
 }
 
-std::uint32_t CUnit::SetSecondPrototypeByName(const char* prototypeName) {
+std::uint32_t CUnit::SetSecondPrototypeByName(std::string_view prototypeName) {
     UnitPrototypeRecord* record = g_unitDatabase->prototypes.FindByName(prototypeName);
     if (!record) {
         secondPrototype = -1;

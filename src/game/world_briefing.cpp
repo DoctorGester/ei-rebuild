@@ -58,7 +58,7 @@ bool ServerRuns() {
 
 // The game server lists the file at `path` under `name` for its clients: the whole file, read
 // into a buffer through a buffered file.
-void ShareQuestFile(const char* path, const char* name) {
+void ShareQuestFile(const std::string& path, const std::string& name) {
     GrowingBuffer local;
     GameBuffer* data = &local;
     BufferedFile source;   // constructed and destroyed in place
@@ -70,7 +70,7 @@ void ShareQuestFile(const char* path, const char* name) {
     source.ReadBytes(to, static_cast<unsigned>(size));
     data->cur = to + size;
     data->Commit();
-    std::string listed(name);
+    std::string listed = name;
     net::g_gameServer->ShareFile(&listed, data);
 }
 
@@ -85,7 +85,7 @@ std::string MapFilePath(const std::string& file) {
 
 } // namespace
 
-std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
+std::string* BriefingSpeakerInto(std::string* out, const std::string& briefing) {
     CTextManager* texts = g_clientWorld->texts_;
     bool missing;
     {
@@ -112,10 +112,10 @@ std::string* BriefingSpeakerInto(std::string* out, const char* briefing) {
     return out;
 }
 
-std::string* BriefingVariableInto(std::string* out, const char* briefing) {
+std::string* BriefingVariableInto(std::string* out, const std::string& briefing) {
     std::string speaker;
     BriefingSpeakerInto(&speaker, briefing);
-    if (!IsEmpty(speaker.c_str())) {
+    if (!IsEmpty(speaker)) {
         std::string prefix = game::briefingwords::VariablePrefix();
         std::string withSpeaker = prefix + speaker;
         std::string withDot = withSpeaker + flowdata::kDot;
@@ -187,12 +187,12 @@ bool LoadZoneQuests(std::string_view zone) {
         std::string folder;
         modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         MapsFolder(&folder);
-        std::string pattern = folder.c_str() + file;
+        std::string pattern = folder + file;
         found = find.FindFile(pattern) != 0;
     }
     if (!found) return false;
     std::string path = MapFilePath(file);
-    if (ServerRuns()) ShareQuestFile(path.data(), file.c_str());
+    if (ServerRuns()) ShareQuestFile(path, file);
     // A file already loaded is not loaded again.
     std::vector<std::string>& files = g_questFiles;
     if (std::find(files.begin(), files.end(), path) == files.end()) {
@@ -226,23 +226,18 @@ namespace {
 
 
 
-bool Equal(const std::string& s, const char* text) {
-    std::size_t length = std::strlen(text);
-    return s.size() == length && std::memcmp(s.data(), text, length) == 0;
-}
-
 // A session or message still in use (not shut down by its owner).
 bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 } // namespace
 
-void GameFlow::RegisterQuests(const char* folder) {
+void GameFlow::RegisterQuests(const std::string& folder) {
     CTextManager* texts = g_clientWorld->texts_;
     if (!texts) return;
     if (!LoadZoneQuests(folder)) return;
     std::vector<std::string>& folders = g_questFolders;
     for (std::string* s = folders.data(); s != folders.data() + folders.size(); ++s)
-        if (Equal(*s, folder)) return;
+        if (*s == folder) return;
     bool registered;
     {
         std::string base = folder;

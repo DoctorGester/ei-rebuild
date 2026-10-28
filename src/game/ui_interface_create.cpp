@@ -143,8 +143,7 @@ void CInterface3D::Create(CTextureDevice* device) {
         while (file.ReadLine(line)) {
             text::SplitWords(line, &words, ' ');
             if (words.size() <= 1) continue;
-            const char* count = words[1].c_str();
-            helpTopics_[words[0]] = std::atoi(count);
+            helpTopics_[words[0]] = str::ToInt(words[1]);
         }
         file.Close();
     }

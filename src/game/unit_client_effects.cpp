@@ -140,12 +140,10 @@ void CUnitClientSpecific::StatChanged(int location, float amount, std::uint32_t 
         // Heroes sound by the armour over the location (the model's material without one), mapped
         // to "stone", "Metal" or "leather".
         if (const itemdb::MaterialRecordHead* armour = ArmourMaterial(this, location)) material = armour->soundName;
-        const char* name = material.c_str();
-        if (std::strcmp(name, "Crystal") == 0 ||
-            std::strcmp(name, "Bone") == 0 ||
-            std::strcmp(name, "Stone") == 0)
+        const std::string& name = material;
+        if (name == "Crystal" || name == "Bone" || name == "Stone")
             material = "stone";
-        else if (std::strcmp(name, "Metal") != 0)
+        else if (name != "Metal")
             material = "leather";
     }
     std::string sound;

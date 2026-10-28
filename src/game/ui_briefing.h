@@ -104,7 +104,7 @@ public:
     void UnitJoined(CUnit* unit) override { OnUnitJoined(unit); }
     void UnitLeft(CUnit* unit) override { OnUnitLeft(unit); }
     void GameOver(int won) override { OnGameOver(won); }
-    void ShowBriefing(const char* name) override { OnBriefing(name); }
+    void ShowBriefing(std::string_view name) override { OnBriefing(name); }
     bool ReadyToStopPolling() override { return true; }
     void PlayersChanged(int show) override { ShowChat(static_cast<char>(show)); }
     void PlayerList(int mode) override { SetChatActive(mode); }
@@ -125,7 +125,7 @@ public:
     void OnUnitJoined(CUnit* unit);
     void OnGameOver(int unused);
     // The interface command "briefing <name>": dialogue `name` starts at once.
-    void OnBriefing(const char* name);
+    void OnBriefing(std::string_view name);
     void ShowChat(char show);
     // One zero dword.
     void SaveState() override;

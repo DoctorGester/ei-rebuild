@@ -47,7 +47,7 @@ struct NpcPrototypeTable {
 
 // The statistics of an NPC of prototype `name` (a fatal error without one; a debug message without its NPC
 // record), then recomputed around a refill of the slots. Returns 1.
-int BuildNpcStats(UnitStats* stats, const char* name);
+int BuildNpcStats(UnitStats* stats, const std::string& name);
 
 // The object class of prototype `name`'s model record; 0x33 without a prototype or model.
 int PrototypeObjectClass(std::string_view name);
@@ -65,7 +65,7 @@ struct CMapObjectManager : CResourceManager {
 
     // A new object of class id `classId` (0x32..0x34 units, 0x35..0x3C the other map objects, 0x300D, 0x3010), constructed; null
     // for other ids. The starting equipment of prototype `name`: see docs/notes/units.md, "Creation helpers".
-    int GiveStartingEquipment(CUnit* unit, const char* name);
+    int GiveStartingEquipment(CUnit* unit, const std::string& name);
 
     int CreateManager();
     // The base manager's CreateObject; a new object gets an animation state (the figure manager's class
@@ -98,7 +98,7 @@ struct CMapObjectManager : CResourceManager {
     // (BuildFromPrototype, SetServerData and SetStats), their height offset, scale (the base scale and
     // ApplyBaseScale) and second prototype; every object its prototype index. Without a prototype: defaults,
     // ScaleEffectChanged(0), index 0 and a debug message. Returns 1.
-    int ApplyPrototype(CMapObject* object, const char* name);
+    int ApplyPrototype(CMapObject* object, const std::string& name);
 };
 
 inline CMapObjectManager* MapObjectManagerOf(const CEngineObject* object) {

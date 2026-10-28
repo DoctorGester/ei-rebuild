@@ -76,7 +76,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     for (unsigned index = static_cast<unsigned>(firstVisible_); index < static_cast<unsigned>(EntryCount()); ++index) {
         const SaveEntry& entry = entries_[index];
         if (static_cast<int>(index) == selected_) {
-            const char* title = (isSave_ && nameTyped_ ? name_ : entry.title_).c_str();
+            const std::string& title = isSave_ && nameTyped_ ? name_ : entry.title_;
             surface->DrawTextIn(title, &titleRect, kFont, kTextColour, DT_NOPREFIX, 1);
             // The caret, unless the save keeps its name (the quick and the automatic saves).
             if (isSave_ && !SameFolder(entry.folder_, kQuickFolder) && !SameFolder(entry.folder_, kAutoFolderA) &&

@@ -79,7 +79,7 @@ void DestroyLastQuest() {
 }
 class VariableTable {
 public:
-    void Fill(const char* prefix) { GameLocalPlayerVariables(prefix, &table_); }
+    void Fill(std::string_view prefix) { GameLocalPlayerVariables(prefix, &table_); }
 
     NamedFloatTable::const_iterator begin() const { return table_.begin(); }
     NamedFloatTable::const_iterator end() const { return table_.end(); }
@@ -303,13 +303,13 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         prefix = str::Format("q.%s", shownZone_);
-        table->Fill(prefix.c_str());
+        table->Fill(prefix);
         std::vector<std::string> found;
         for (auto node = table->begin(); node != table->end(); ++node) {
             EI_NAN_AUDIT(node->second);
             if (node->second == 0.0f) continue;
             text::Split(node->first, &parts, '.');
-            if (parts.size() == 3) PushBack(&found, parts[2].c_str());
+            if (parts.size() == 3) PushBack(&found, parts[2]);
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
@@ -319,11 +319,9 @@ void CObjectivesWindow::ShowZone(std::string_view zone) {
         } else {
             SortQuests(found.data(), found.data() + found.size());
             for (std::string* s = found.data(); s != found.data() + found.size(); ++s) {
-                quests.push_back(s->c_str());
-                const char* current = listZones_ == 0 ? g_lastQuest->c_str()
-                                                      : interface_->savedText_.c_str();
-                if (text::CompareIgnoringCase(current,
-                                    s->c_str()) == 0)
+                quests.push_back(*s);
+                const std::string& current = listZones_ == 0 ? *g_lastQuest : interface_->savedText_;
+                if (text::CompareIgnoringCase(current, *s) == 0)
                     selectedQuest_ = static_cast<int>(quests.size()) - 1;
             }
             *g_lastQuest = quests[selectedQuest_];
@@ -577,7 +575,7 @@ void CObjectivesWindow::CreateScreen() {
         auto* table = new (tableStorage) VariableTable();
         table->Fill("q.");
         std::vector<std::string>* zones = &zones_;
-        const char* interfaceQuest = interface_->savedText_.c_str();
+        const std::string& interfaceQuest = interface_->savedText_;
         for (auto node = table->begin(); node != table->end(); ++node) {
             text::Split(node->first, &parts, '.');
             if (parts.size() != 3) continue;
@@ -595,8 +593,7 @@ void CObjectivesWindow::CreateScreen() {
                 continue;
             bool listed = false;
             for (std::string* z = zones->data(); z != zones->data() + zones->size(); ++z)
-                if (str::Compare(zone->name,
-                                    z->c_str()) == 0) {
+                if (str::Compare(zone->name, *z) == 0) {
                     listed = true;
                     break;
                 }

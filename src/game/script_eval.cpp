@@ -423,8 +423,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x80: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
         net::ServerSession* server = IsMultiplayerClient() ? ActiveServer() : nullptr;
         if (server) {
-            const char* name = stringArgs[0].c_str();
-            std::string key(name);
+            std::string key = stringArgs[0];
             *result = static_cast<float>(server->GetVariable(&key));
             return;
         }

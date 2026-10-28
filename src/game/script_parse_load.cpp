@@ -47,7 +47,7 @@ int FindName(const std::vector<std::string>& names, std::string_view name) {
 }
 
 // *dst = (float)atof(text): the CRT's result stored as a float.
-void StoreAtof(float* dst, const char* text) { *dst = static_cast<float>(std::atof(text)); }
+void StoreAtof(float* dst, const std::string& text) { *dst = static_cast<float>(str::ToDouble(text)); }
 
 // An int stored as a float.
 void StoreIntAsFloat(float* dst, int value) { *dst = static_cast<float>(value); }
@@ -104,7 +104,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
         token = NextToken(pos);
         text = token.text;
         int tokenId;
-        ClassifyToken(text.c_str(), &tokenId, nullptr);
+        ClassifyToken(text, &tokenId, nullptr);
         if (!assignment) {
             // Rebirth's AddNewScriptCommands: the signature's '?' and '+'.
             if (scriptaddon::Enabled()) scriptaddon::SignatureStep(cmd, &signature, tokenId);
@@ -120,7 +120,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             // The parameter (no end-of-tokens check, as in the game).
             token = NextToken(pos);
             text = token.text;
-            ClassifyToken(text.c_str(), &tokenId, nullptr);
+            ClassifyToken(text, &tokenId, nullptr);
             if (paramIndex == 0 && tokenId == kLexClose) {
                 if (*signature == 0) return 1;
                 return Error(this, token.line, 5, "Not enough parameters");
@@ -148,7 +148,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, std::list<ScriptToken>::const_iterator* 
             local.argIndex = floatCount;
             global.argIndex = floatCount;
             if (tokenId == kLexNumber) {
-                StoreAtof(&cmd->floatArgs[floatCount], text.c_str());
+                StoreAtof(&cmd->floatArgs[floatCount], text);
                 bind = false;
             }
             ++floatCount;
@@ -246,7 +246,7 @@ BOOL CScript::LoadConditions(std::vector<SSCCmd>* conditions, std::list<ScriptTo
         token = NextToken(pos);
         text = token.text;
         int id;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) return 1;
         const char* signature = FunctionSignature(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, "Function returning float expected");
@@ -264,7 +264,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
         int id;
         token = NextToken(pos);
         text = token.text;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) {
             if (script->ifThen.empty())
                 return Error(this, token.line, 11, "In script %s should be at least one condtion", script->name);
@@ -276,7 +276,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
         }
         token = NextToken(pos);
         text = token.text;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "If section, ( expected");
             return 0;
@@ -285,14 +285,14 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, std::list<ScriptToken>::c
         if (!LoadConditions(&pair.conditions->commands, pos, tokens, &script->vars)) return 0;
         token = NextToken(pos);
         text = token.text;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id != kLexThen) {
             Error(this, token.line, 4, "then expected after if");
             return 0;
         }
         token = NextToken(pos);
         text = token.text;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id != kLexOpen) {
             Error(this, token.line, 4, "Expected ( after then");
             return 0;
@@ -313,7 +313,7 @@ BOOL CScript::LoadAssignOperator(SSCCmd* cmd, std::list<ScriptToken>::const_iter
         const ScriptToken token = NextToken(pos);
         std::string text(token.text);
         int id;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         ok = id == kLexAssign ? 1 : Error(this, token.line, 2, "Wrong lexeme %s", text);
     }
     if (!ok) return 0;
@@ -358,7 +358,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, std::list<Scrip
             const ScriptToken colon = NextToken(pos);
             std::string text(colon.text);
             int id;
-            ClassifyToken(text.c_str(), &id, nullptr);
+            ClassifyToken(text, &id, nullptr);
             ok = id == kLexColon ? 1 : Error(this, colon.line, 2, "Wrong lexeme %s", text);
         }
         if (!ok) return 0;
@@ -397,7 +397,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
         token = NextToken(pos);
         text = token.text;
         int id;
-        ClassifyToken(text.c_str(), &id, nullptr);
+        ClassifyToken(text, &id, nullptr);
         if (id == kLexClose) return 1;
 
         const ScriptKeyword* command = nullptr;
@@ -422,7 +422,7 @@ BOOL CScript::LoadCommands(std::vector<SSCCmd>* commands, std::list<ScriptToken>
                     const ScriptToken next = NextToken(pos);
                     std::string nextText = next.text;
                     int nextId;
-                    ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                    ClassifyToken(nextText, &nextId, nullptr);
                     open = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
                 }
                 if (!open) return 0;
@@ -512,13 +512,13 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
         *text = result;
     }
 
-    if (!Tokenize((*text).c_str(), &tokens)) return 0;
+    if (!Tokenize(*text, &tokens)) return 0;
 
     for (std::list<ScriptToken>::const_iterator pos = tokens.begin(); pos != tokens.end();) {
         ScriptToken token = NextToken(&pos);
         std::string word = token.text;
         int id;
-        ClassifyToken(word.c_str(), &id, nullptr);
+        ClassifyToken(word, &id, nullptr);
         switch (id) {
         case kLexWorldScript: {
             BOOL ok;
@@ -528,7 +528,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 const ScriptToken next = NextToken(&pos);
                 std::string nextText = next.text;
                 int nextId;
-                ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                ClassifyToken(nextText, &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
             if (!ok) return 0;
@@ -586,7 +586,7 @@ BOOL CScript::Load(std::string* text, BOOL runWorldScript) {
                 const ScriptToken next = NextToken(&pos);
                 std::string nextText = next.text;
                 int nextId;
-                ClassifyToken(nextText.c_str(), &nextId, nullptr);
+                ClassifyToken(nextText, &nextId, nullptr);
                 ok = nextId == kLexOpen ? 1 : Error(this, next.line, 2, "Wrong lexeme %s", nextText);
             }
             if (!ok) return 0;

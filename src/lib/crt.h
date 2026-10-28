@@ -66,6 +66,8 @@ template <class... Args>
 int FatalError(const char* format, Args&&... args) {
     return FatalError(format, libprintf::Arg(std::forward<Args>(args))...);
 }
+// A std::string message (its text is the format, as the caller's c_str() was).
+inline int FatalError(const std::string& message) { return FatalError(message.c_str()); }
 // FatalError's result as a pointer (it returns what the report returns, when it returns at all).
 template <class T, class... Args>
 T* FatalErrorAs(const char* format, Args... args) {

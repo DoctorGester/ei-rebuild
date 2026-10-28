@@ -28,7 +28,7 @@ CLinkFigureLoader::CLinkFigureLoader(CTextureDevice* renderer, const std::string
     // Rebirth's ResOverride: the mod's figure archives come first.
     if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
         for (const std::string& modPath : modfolders::FigureArchives()) {
-            const std::string path(modPath.c_str());
+            const std::string path = modPath;
             AddArchive(&path);
         }
     }

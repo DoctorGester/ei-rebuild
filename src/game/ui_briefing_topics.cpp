@@ -57,8 +57,7 @@ void CBriefingScreen::FindTopics(int personId) {
             constructor = name;
             continue;
         }
-        const char* text = name.c_str();
-        found.push_back(std::string(text, text + std::strlen(text)));
+        found.push_back(name);
     }
     std::vector<std::string>& list = found;
     if (IsMultiplayerClient()) {

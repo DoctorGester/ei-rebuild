@@ -25,8 +25,8 @@ constexpr unsigned kPartyFileMagic = 0x114;
 
 const char* TempFileName() { return "temp.mp"; }
 
-std::string InFolder(const char* folder, const std::string& name) { return std::string(folder) + name; }
-std::string TempFile(const char* folder) { return std::string(folder) + TempFileName(); }
+std::string InFolder(const std::string& folder, const std::string& name) { return folder + name; }
+std::string TempFile(const std::string& folder) { return folder + TempFileName(); }
 
 // The file stream and the memory stream the originals build on the stack (the memory stream torn down first).
 struct LocalStreams {
@@ -38,9 +38,8 @@ struct LocalStreams {
 bool Numbered(const std::string& name) {
     int dot = str::ReverseFind(name, '.');
     if (dot == -1) return false;
-    const char* text = name.c_str();
     for (int i = 0; i < dot; ++i)
-        if (!text::IsDigit(static_cast<signed char>(text[i]))) return false;
+        if (!text::IsDigit(static_cast<signed char>(name[i]))) return false;
     return true;
 }
 
@@ -48,7 +47,7 @@ void DestroySavedParties() { g_savedParties->Destruct(); }
 
 } // namespace
 
-void MpHeroRecord::WriteFile(const char* folder) {
+void MpHeroRecord::WriteFile(const std::string& folder) {
     if (!Numbered(file)) {
         gameapi::DeleteFileA(InFolder(folder, file).c_str());
         return;
@@ -66,7 +65,7 @@ void MpHeroRecord::WriteFile(const char* folder) {
     gameapi::DeleteFileA(TempFile(folder).c_str());
 }
 
-bool MpHeroRecord::ReadFile(const char* folder) {
+bool MpHeroRecord::ReadFile(const std::string& folder) {
     LocalStreams streams;
     streams.file.Open(InFolder(folder, file), netlink::FileStream::kOpenRead, 1);
     if (!SaveFileRead(&streams.data, kPartyFileMagic, kSaveVersion, kSaveOldestVersion, &streams.file)) return false;
@@ -79,7 +78,7 @@ void SavedParties::SaveAll() {
         return;
     ClearSaveFolder(folder_);
     // The count is read again after each write.
-    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_.c_str());
+    for (unsigned i = 0; i < static_cast<unsigned>(entries_.size()); ++i) entries_[i].WriteFile(folder_);
 }
 
 SavedParties* SavedParties::Construct() {

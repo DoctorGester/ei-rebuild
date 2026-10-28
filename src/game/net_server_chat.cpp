@@ -51,7 +51,7 @@ void ServerSession::Announce(std::string_view text, CRefObject* player) {
 void ServerSession::AnnounceText(int kind, const char* text, CRefObject* player) {
     std::string line;
     std::string* formatted = g_interface->MessageText(&line, kind, text);
-    Announce(formatted->c_str(), player);
+    Announce(*formatted, player);
 }
 
 } // namespace net

@@ -461,11 +461,10 @@ void CBattleScreen::OnQuestVariable(std::string_view name, float value) {
     text = text + "\007C\344\327\247\n";   // colour code and a line end
 
     CHudTopPanel* top = topPanel_;
-    const char* line = text.c_str();
-    top->pageTexts_[0] += line;
+    top->pageTexts_[0] += text;
     if (top->page_ == 0) {
         CBattleScreen* screen = top->owner_;
-        screen->MessageLog()->AddText(line);
+        screen->MessageLog()->AddText(text);
     }
     clock_->highlight_ = true;
     int sound = static_cast<int>(value);

@@ -315,7 +315,7 @@ int SectorData::Load(CMappedResource* archive, int sectorX, int sectorY, int pag
     auto fail = [&](const char* text) {
         std::string n(name);
         std::string message = text + n;
-        return game::FatalError(message.c_str());
+        return game::FatalError(message);
     };
     if (!file) return fail(unableToLocate);
     if (size < 5) return fail(wrongFormat);

@@ -69,9 +69,7 @@ int CPlayerClient::OnCameraPlacement() {
     const int result = static_cast<int>(in_.Read(&mode, 4));
     g_clientWorld->CentreOn(&point);
     CCamera* camera = &g_camera.Get();
-    const char* zone = player_->Party()->zone_.c_str();
-    if (std::strcmp(zone,
-                        FixedViewZone()) == 0) {
+    if (player_->Party()->zone_ == FixedViewZone()) {
         CameraView view;
         view.distance = kSpecialZoneDistance;
         view.rotation = kFixedViewRotation;

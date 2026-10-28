@@ -162,7 +162,7 @@ void __fastcall ApplyDefinesRecord(exe::CString* line, const OriginalScriptDefin
 
 } // namespace
 
-EI_RECORD(0x004CF600, ClassifyRecord, 5, s_classify, ClassifyToken);
+EI_RECORD(0x004CF600, ClassifyRecord, 5, s_classify, static_cast<void (*)(const char*, int*, int*)>(ClassifyToken));
 EI_RECORD(0x004D0B10, SignatureRecord, 5, s_signature, FunctionSignature);
 EI_RECORD(0x004D0BA0, KeywordNameRecord, 6, s_keywordName, KeywordName);
 EI_RECORD(0x004CF7A0, TokenizeRecord, 7, s_tokenize, CScript::Tokenize);

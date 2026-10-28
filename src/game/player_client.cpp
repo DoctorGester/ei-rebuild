@@ -94,7 +94,7 @@ int ScaledExperience(const CUnit* unit, float amount) {
 }
 
 bool IsQuestVariable(const std::string& name) {
-    return static_cast<int>(name.size()) > 2 && std::strncmp(name.c_str(), QuestPrefix(), 2) == 0;
+    return static_cast<int>(name.size()) > 2 && name.starts_with(std::string_view(QuestPrefix(), 2));
 }
 
 constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit

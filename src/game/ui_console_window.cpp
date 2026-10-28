@@ -268,7 +268,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
                 DrawInput();
             }
         } else if (letter == 'v') {
-            std::string clip = ClipboardText().c_str();
+            std::string clip = ClipboardText();
             int cut = str::FindOneOf(clip, "\r\n");
             if (cut >= 0) clip = Left(clip, cut);
             std::string rest = MidOf(input_, high);

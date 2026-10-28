@@ -170,7 +170,7 @@ int TableIndex(const Table& table, const Record* record) {
 }
 
 // The table index of a loot item's second name part.
-int LootTableIndex(int which, const char* name) {
+int LootTableIndex(int which, std::string_view name) {
     if (which < 0 || which > 4) return 0;
     std::string key(name);
     ItemDatabase& items = *g_itemDatabase;
@@ -378,8 +378,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     // "spell container[spell text]": a scroll holding that spell.
     if (str::Compare(parts[0],
                         kSpellContainer) == 0) {
-        const char* spellText = extra.c_str();
-        CSpell* spell = context->SpellManager()->CreateSpellFromText(spellText);
+        CSpell* spell = context->SpellManager()->CreateSpellFromText(extra);
         CItem* item = nullptr;
         if (spell) {
             QuickItemTable& quickItems = g_itemDatabase->quickItems;
@@ -391,7 +390,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     }
 
     // "prototype[.material]".
-    const char* prototypeName = parts[0].c_str();
+    const std::string& prototypeName = parts[0];
     ItemDatabase& items = *g_itemDatabase;
     ItemRecordHead* prototype = items.weapons.Named(prototypeName);
     if (!prototype) prototype = items.armors.Named(prototypeName);
@@ -411,11 +410,11 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, the count for materials.
-    const char* type = prototype->name.c_str();
-    if (extra.size() != 0 && std::strcmp(type, kMaterialType) != 0) {
+    const std::string& type = prototype->name;
+    if (extra.size() != 0 && type != kMaterialType) {
         CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = spells->CreateSpellFromText(extra)) constructor->SetSpellObject(spell);
-    } else if (std::strcmp(type, kMaterialType) == 0 &&
+    } else if (type == kMaterialType &&
                extra.size() != 0) {
         constructor->count_ = str::ToInt(extra);
     }
@@ -430,7 +429,7 @@ CItem* CItemManager::CreateItem(std::string_view name) {
     auto* loot = AsLoot(item);
     if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size() > 1) {
         int which = static_cast<int>(loot->recordType_);
-        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts[1].c_str()));
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts[1]));
     }
     return item;
 }

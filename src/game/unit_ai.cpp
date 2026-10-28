@@ -143,7 +143,7 @@ void AIBrain::Think() {
             if (const char* modeName = ModeName(best->GetType())) name = modeName;
             text = str::Format(MotivationFormat(), owner->unit->id_, name,
                         bestPriority);
-            console::EndLine(*kModeLog << text.c_str());
+            console::EndLine(*kModeLog << text);
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

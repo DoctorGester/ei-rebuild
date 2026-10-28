@@ -33,8 +33,7 @@ void ReadQuest(CFileRegistry& reg, QuestRecord* quest, std::vector<std::string>&
     quest->unreadField = 0;
     {
         std::string name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), std::string(game::kEmptyText));
-        const char* text = name.c_str();
-        quest->name.assign(text);
+        quest->name.assign(name);
     }
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
     quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
@@ -82,7 +81,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 void ReadBriefingHeader(CFileRegistry& reg, QuestBriefingRecord* briefing, const char* section) {
     {
         std::string name = reg.GetString(section, game::questwords::Name(), std::string(game::kEmptyText));
-        briefing->name.assign(name.c_str());
+        briefing->name.assign(name);
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
     briefing->money = static_cast<float>(reg.GetFloat(section, game::questwords::Money(), 0));

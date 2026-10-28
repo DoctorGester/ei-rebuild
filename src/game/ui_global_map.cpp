@@ -279,7 +279,7 @@ void CGlobalMap::CreateScreen() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable = str::Format("q.%s", zones_[i].name);
-        GameLocalPlayerVariables(variable.c_str(), &vars.table_);
+        GameLocalPlayerVariables(variable, &vars.table_);
         const NamedFloatTable& table = vars.table_;
         for (auto node = table.begin(); node != table.end(); ++node) {
             std::uint32_t value;

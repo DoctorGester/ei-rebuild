@@ -251,7 +251,7 @@ void CMpHeroScreen::CreateScreen() {
             // EI_Plugin's fixes: the two name comparisons become one test of
             // the two characters at +4 of the model's name (the word 0x6566, "fe"); a model that
             // has them is a woman's, every other one a man's.
-            isFemale = ModelNameIsFemale(figureModel.c_str());
+            isFemale = ModelNameIsFemale(figureModel);
             isMale = !isFemale;
         }
         if (isMale) {
