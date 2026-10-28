@@ -3435,6 +3435,22 @@ files = ["src/game/script.h", "src/game/script_array.h"]
 note = "From C15 batch 35: script.h's NamedValues() casts (users in game_lists, script_cleanup, script_construct, script_load) and script_array.h's Raw() view go once ScriptVars holds ScriptNamedValues members (~300 uses). Also left on C15's list after the console batch: the ui_briefing_people speakers_ InsertOverflow view and the brain / trap list views (C21 is done; check whether they are still there)."
 
 [[ticket]]
+id = "C14m"
+title = "C14 MFC arrays and lists: CArray, CList / CTypedPtrList to std::vector / std::list, with C28o's collection tags"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+note = "C14b moved the STLport vectors and lists (stlp::vector 314 -> 141 lines, stlp::list 177 -> 108); the MFC containers were not touched: CArray 427 lines / 130 files, CList 141 / 54, CTypedPtrList 134 / 73. They carry the vtable field and ConstructHeader / ArrayHeader, and the CompiledCollection tags (C28o), and their Serialize must keep its bytes. Same method: a one-off script in the ticket's scratch folder (C14b's retype_containers.py is the model: one rule per call shape, a fixer driven by the compiler's diagnostics), its output as its own commit, hand fixes after, the image suite with goldens."
+
+[[ticket]]
+id = "C14n"
+title = "C14 the kept STLport vectors and lists: record element policies, counted / held elements and raw-sentinel lists to std"
+group = "cleanup"
+model = "opus"
+depends = ["C14b"]
+note = "What C14b kept as stlp (141 stlp::vector lines / 46 files, 108 stlp::list / 42): the record vectors and lists with their own element policy (record_vectors.h's VectorAbi types, record lists, record_members.h / record_lifetime.h: records without real copy / assignment / destructor), counted or held elements (CEngineObject*, CMapObject* with HeldObject, CSpell* with HeldSpell, RefPtr, SharedRef / CountedRef), lists their owner holds as a raw sentinel pointer (CUnitClientSpecific::speech, SessionBase::clients_), and the hash tables' bucket vectors (with C14c). Each needs the record's real special members or an RAII element type (a counted pointer) first; then the retype is C14b's script with the deny entries removed. Also: stlp::ListRemoveInt and unitdb::DestroyStringRange have no callers left."
+
+[[ticket]]
 id = "S"
 title = "First standalone exe"
 group = "standalone"

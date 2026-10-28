@@ -3,6 +3,7 @@
 #include "render.h"
 #include "render_internal.h"
 
+#include "../game/texture.h"
 #include "../hook/log.h"
 
 #include <cstring>
@@ -245,7 +246,7 @@ PassState ReadPassState(char* device) {
         if (stage == 1 && st.colourOp <= 1) break;   // D3DTOP_DISABLE: stage 1 and later unused
         // The surface holder the old path bound to the stage.
         if (!device) continue;
-        const void* holder = *reinterpret_cast<void* const*>(device + 0x12C + stage * 4);
+        const void* holder = reinterpret_cast<const CTextureDevice*>(device)->stageSurfaces_[stage];
         st.hasTexture = holder != nullptr;
         st.texture = SurfaceView(holder);
         if (stage == 0) s.patch = PatchOf(holder);
@@ -563,7 +564,8 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
     }
     // The old path fogs the projected vertices by distance (the transform object's range start and 255 / length).
     g_pending.distanceFog = mesh.distanceFog;
-    const char* pipeline = *reinterpret_cast<char* const*>(g_pending.device + 0xAC);
+    const char* pipeline =
+        reinterpret_cast<const char*>(reinterpret_cast<const CTextureDevice*>(g_pending.device)->pipeline_);
     const char* transform = pipeline ? *reinterpret_cast<char* const*>(pipeline + 0xC) : nullptr;
     if (transform) {
         std::memcpy(&g_pending.fogNear, transform + 0x34, 4);
