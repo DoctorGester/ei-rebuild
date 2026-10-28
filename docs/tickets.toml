@@ -4795,3 +4795,11 @@ size = 0.5
 model = "sonnet"
 files = ["docs/rewrite-guide.md", "docs/notes/standalone.md", "docs/standalone-cleanup.md", "docs/comment-guide.md", "config/comment_batches.txt"]
 note = "Since C14p / C14zi (2026-10-28) src/lib has no mfc_* files, no stlp, and compiled_vtable.h is gone (it had no users). Docs still describe them: rewrite-guide (line ~40 compiled_vtable, ~152 the mfc::CArray / mfc.h container list), notes/standalone.md ('Compiled tags for any class', UnportedSlot, SetVtable / mfc_slots.h text), standalone-cleanup.md, comment-guide.md line ~142, and comment_batches.txt lists deleted files. git grep -n -i -e mfc -e stlp -e compiled_vtable -e mfc_slots -- docs config tools and rewrite each hit to current facts or drop it (no history log). Leave docs/tickets.* and docs/notes/*.md text that names game.exe's original MFC functions by address."
+
+[[ticket]]
+id = "C20r"
+title = "Dead-code rescan after the MFC removal (C14p, C14zi, C35m, compiled_vtable.h)"
+group = "cleanup"
+model = "opus"
+files = ["src/game", "src/lib", "src/standalone"]
+note = "C20q's relocation-graph scan (scratchpad C20m / C20o / C20q scripts) re-run on main after src/lib lost every mfc_* file, mfc.h, compiled_vtable.h and the gamecrt heap (2026-10-28), counting ei_vectors' references. Delete what is dead; list what one small replacement with std / our code would make dead and do the small ones. Also: tools/named_data.py's UNPORTED regex (ei::UnportedSlot is gone from src), unused includes the MFC removal left, tests/coverage rows of deleted files if the tool regenerates cleanly."
