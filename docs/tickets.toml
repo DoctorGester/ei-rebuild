@@ -775,11 +775,11 @@ note = "Found by R27f. CSceneRenderer::LoadPipelineAndConverter (renderer_base_c
 
 [[ticket]]
 id = "R28"
-title = "CPU-built textures in 8:8:8:8: unit skins, wounds, item pictures, menu backdrop, weather"
+title = "Texture composition on the GPU: unit skins, wounds, item preview, menu backdrop, weather; no CPU-built textures"
 group = "renderer"
 model = "opus"
 depends = ["C47"]
-note = "User 2026-10-28: after C47. The game builds these textures on the CPU in 16-bit and the renderer converts each to RGBA8 at upload: unit skins composed 5:5:5:1 (unit_skins.cpp, unit_client_models.cpp Compose 0x5551), wound overlays 4:4:4:4 (unit_client_wounds.cpp), the item preview packed 1:5:5:5 by hand (ui_item_view.cpp), the 256x192 menu backdrop copy 5:6:5 (ui_interface_draw.cpp Rgb565Copy), global-map weather / clouds, and the blank targets (texture_blank.cpp). Write them as 8:8:8:8 and upload without conversion; drop the 16-bit paths and conversions that become dead (2DintMMX's 16-bit routes where unused). The save screenshot stays 5:6:5 (shot.sav file format). .mmp files on disk keep their formats. Renderer upgrades replace the old look (no switch); skins and wounds gain smooth alpha. Goldens hold no frames: check visually with frame captures before/after."
+note = "User 2026-10-28: composing on the CPU is unnecessary. Today the game builds textures on the CPU in 16-bit and the renderer converts them at upload: unit skins composed from body/armour/weapon part textures (unit_skins.cpp, unit_client_models.cpp Compose 0x5551, texture_compose.cpp DrawLayers through 2DintMMX), wound overlays painted into a unit texture (unit_client_wounds.cpp, 4:4:4:4), the item preview packed by hand (ui_item_view.cpp), the 256x192 menu backdrop copy (ui_interface_draw.cpp Rgb565Copy), global-map weather / clouds, blank targets (texture_blank.cpp). Do these on the GPU instead: skins as layered draws or a render-to-texture of the part textures, wounds as an overlay texture blended in the mesh pass, the item preview rendered to a texture, the backdrop as a copy of the frame target, clouds in a shader. Delete the CPU composition, the 16-bit conversions, texture_blank and 2DintMMX use that become dead (check whether 2DintMMX is needed at all afterwards: DXT decode may be the last use). The save screenshot stays 5:6:5 in shot.sav (read back from the frame). .mmp files on disk keep their formats. Renderer upgrades replace the old look (no switch). Goldens hold no frames: check visually with frame captures before/after. Overlaps P7 (CPU-written textures and clouds on the GPU): take P7 in or mark it done here."
 
 # ---------------------------------------------------------------- native interface drawing
 
