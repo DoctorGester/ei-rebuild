@@ -146,7 +146,7 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
                 request.textures.push_back(name);
             }
             name = str::Format(kWoundCacheName, unit->id_);
-            result = g_clientWorld->textureManager_->Compose(&out, &request, &name, &name, kMipCount, 0, kFormat);
+            result = g_clientWorld->textureManager_->Compose(&out, &request, &name, &name, kMipCount, kFormat);
         }
     }
     return result;

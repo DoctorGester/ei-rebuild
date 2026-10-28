@@ -197,7 +197,6 @@ namespace options {
 class GameOptions;
 }
 class CTexture;
-class CPixelConverter;
 class CFigureMesh;
 class CMaterial;
 struct LineBatch;
@@ -304,7 +303,7 @@ public:
     // Sets the render state's fog colour (render/render_state.h) to `colour`.
     int SetFogColourState(std::uint32_t colour);
     void CreateRenderer(void* window, options::GameOptions* settings);
-    // Drops the sun, the pipeline, the helper and the device object (which frees 2DintMMX.dll).
+    // Drops the sun, the pipeline, the helper and the device object.
     void DestroyRenderer();
     // 0 unless flags_ bit 0 is set. Updates the frame statistics, clears the frame and begins the scene (a
     // scene still open is ended first; other failures are fatal). Returns 1.

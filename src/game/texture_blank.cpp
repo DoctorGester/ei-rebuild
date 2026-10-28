@@ -1,11 +1,13 @@
-// Textures the game fills on the CPU: the texture manager's new texture (the save / load screen's pictures, the global
-// map's weather, the item pictures and the other interface textures) and the blank surface it gets. Its holder has
-// only the new renderer's memory (NewMemoryTextureHolder, surface.cpp), which the writers fill through DirectPixels
-// (ui_item_view.cpp, ui_global_map.cpp, ui_saveload.cpp) and the new renderer reads. See docs/notes/renderer.md
-// (section 7).
+// The texture manager's new texture and the blank surface it gets. The 1:5:5:5 ones (kind 0x20: the item pictures and the
+// image atlases CopyImage fills, ui_item_view.cpp) are drawn into on the GPU (render::BlankTexture / DrawIntoTexture);
+// the others (the save / load screen's pictures, the global map's weather) have only the new renderer's memory
+// (NewMemoryTextureHolder, surface.cpp), which their writers fill through DirectPixels (ui_global_map.cpp,
+// ui_saveload.cpp) and the new renderer reads. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "surface.h"
+
+#include "render/render.h"
 
 #include <cstdint>
 #include <cstring>
@@ -13,6 +15,7 @@
 namespace {
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;   // "MMP"
+constexpr std::uint32_t kGpuDrawnFormat = 0x5551;
 
 // The formats of the texture kinds: the texture format and the channels it writes into the header (mask, shift,
 // bits; the header's other fields stay zero).
@@ -43,8 +46,15 @@ int CTexture::CreateBlank(CTextureDevice* device, const MmpHeader* header) {
     // A square of header->width (the height is not read), one level. Without the memory (another kind's texture has no
     // format) the error for a surface that cannot be made ends the game.
     const std::uint32_t size = header->width;
-    Surface* surface =
-        NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), TextureFormat(format_));
+    const PixelFormat format = TextureFormat(format_);
+    Surface* surface;
+    if (format_ == kGpuDrawnFormat) {
+        // The 1:5:5:5 textures (the item pictures, the image atlases CopyImage fills) are drawn into on the GPU.
+        surface = NewDecodedTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format.bitsPerPixel);
+        if (surface) render::BlankTexture(surface, static_cast<int>(size), static_cast<int>(size), true);
+    } else {
+        surface = NewMemoryTextureHolder(device, static_cast<int>(size), static_cast<int>(size), format);
+    }
     if (!surface) ThrowSurfaceNotMade(0, 0);
     Surface* previous = surface_;
     surface_ = surface;

@@ -1,5 +1,5 @@
 // The first step of the scene renderer's creation (CVisualizator::Create in the game's messages): makes
-// the transform pipeline. (The MMX check and 2DintMMX.dll are the device object's: device_object.cpp.)
+// the transform pipeline.
 #include "model.h"
 
 #include "options.h"

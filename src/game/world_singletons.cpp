@@ -7,7 +7,6 @@
 #include "figure_manager.h"   // CFigureManager
 #include "model.h"            // CSceneRenderer
 #include "spell.h"            // CLightFactory
-#include "texture.h"          // CPixelConverter
 #include "world.h"
 #include "world_data.h"
 

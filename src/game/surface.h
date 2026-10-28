@@ -87,8 +87,8 @@ bool DirectPixels(const void* holder, SurfacePixels* pixels, bool reads = false)
 Surface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height, const PixelFormat& format);
 
 // A texture holder (the holder count one higher) with no memory, for a texture the renderer decodes from its file (the
-// texture manager's .mmp textures: render::TextureFromMmp keyed by the holder). Nothing of the game writes such a
-// texture. Null only when its allocation fails.
+// texture manager's .mmp textures: render::TextureFromMmp keyed by the holder) or draws on the GPU (the composed
+// textures: render::ComposeTexture). The game's code writes no pixels of it. Null only when its allocation fails.
 Surface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, int bitsPerPixel);
 
 // What happens when a holder's memory cannot be made: the game's error "Can't create DDSurface %d %d ..." thrown with

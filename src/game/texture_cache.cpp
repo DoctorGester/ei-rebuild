@@ -6,9 +6,7 @@
 // so that is left out. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
-#include "lib/file_io.h"
 #include "lib/crt.h"
-#include "lib/gameapi.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -20,27 +18,7 @@ namespace {
 // Texture flags that make a released texture cacheable (8: loaded).
 constexpr std::uint32_t kCacheable = 0x38;
 
-const char* ComposedTexturePattern() { return "textures\\*.mmp"; }
-const char* CantDeleteText() { return "Can't delete file \"%s\" due to %d.\n"; }
-
-// The virtual's entry point (rewrite-guide rule 4).
-
 } // namespace
-
-void DeleteComposedTextures() {
-    lib::FileFind find;
-    std::string pattern = std::string(*g_dataFolder) + ComposedTexturePattern();
-    if (!find.FindFile(pattern)) return;
-    int more;
-    do {
-        more = find.FindNext();
-        BOOL deleted = gameapi::DeleteFileA(find.GetFilePath().c_str());
-        if (!deleted) {
-            const std::string name = find.GetFileName();
-            game::DebugLog(CantDeleteText(), name, gameapi::GetLastError());
-        }
-    } while (more);
-}
 
 // Returns 0 (the result is the priority call's, or a list node, on the cache path;
 // CEngineObject::Release, its caller, returns it but no caller reads it).

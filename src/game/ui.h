@@ -45,7 +45,6 @@ class CUiMesh;
 struct Surface;
 class CTexture;
 class CTextureDevice;
-class CPixelConverter;
 class CUiSurface;
 class CItemScreen;
 

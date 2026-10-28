@@ -75,8 +75,7 @@ Facts not in the code comments:
   in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
   and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. Debug panel 0079B930: file-local
   `CDebugPanel` in string_map.cpp. map_object_shadow.cpp (C9b): the ground quads are `VertexPacket`s, the texture's name `CTexture::Name()`. (The
-  shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e: 2DintMMX's slots 8 / 9 are
-  `Unused8` / `Unused9` in CPixelConverter.) The unit's
+  shadow rasteriser's `RasterTarget`, the DLL's keyed triangle path and `keyTexels` are gone, R27e; R28 removed 2DintMMX's interface.) The unit's
   controller through `static_cast<CUnit*>` (CUnit : CMapObject : CObject3D). The work buffers are (C14e / C14h: vectors) of
   `Vector2` and `VertexPacket` (SetSizeDiscard / SetSize equal the inlined resizes; 004545A0,
   004F65B0, 00452E70 allocate 32-byte aligned blocks); the callees take them typed (C9d: ProjectFlat, 004F4680 and

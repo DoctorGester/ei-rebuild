@@ -25,14 +25,15 @@ namespace render::detail {
 
 namespace {
 
-// What an owned texture was decoded from: the .mmp file's levels as the file has them. A new Direct3D 11 device
-// gets the texture decoded again from it.
+// What an owned texture was made from: the .mmp file's levels as the file has them, or the images it was composed
+// of. A new Direct3D 11 device gets the texture made again from it.
 struct TextureSource {
-    enum Kind : std::uint8_t { None, Mmp } kind = None;
+    enum Kind : std::uint8_t { None, Mmp, Composed } kind = None;
     std::vector<std::uint8_t> header;   // the file's header
     std::vector<std::uint8_t> bytes;    // the file's bytes from `firstOffset` on
     std::uint32_t firstOffset = 0;      // where `bytes` start after the header
     unsigned mip = 0, levels = 0;       // the levels decoded
+    std::shared_ptr<ComposeRecipe> recipe;   // Composed
 };
 
 struct Texture {
@@ -760,6 +761,8 @@ void Remake(Texture& t) {
     const TextureSource& s = t.source;
     std::vector<std::vector<std::uint8_t>> levels;
     int width = 0, height = 0;
+    // (A composed texture is drawn again right after the device is made again, RemakeComposed: here a pass may be
+    // in progress.)
     if (s.kind != TextureSource::Mmp || s.header.size() != sizeof(MmpFile)) return;
     MmpFile h{};
     std::memcpy(&h, s.header.data(), sizeof(h));
@@ -843,6 +846,37 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
     t.height = height;
     t.source = std::move(source);
     return t.view.id != 0;
+}
+
+sg_view WhiteView() { return White().view; }
+
+// The entry of `holder` composed on the GPU from `recipe` (render::ComposeTexture): owned, the recipe kept to draw
+// it again on a new device. Not for a holder with memory of the renderer's.
+bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe) {
+    if (!holder || g_memory.count(holder)) return false;
+    Texture& t = g_textures[holder];
+    t.usedFrame = FrameNumber();
+    Retire(t);
+    {
+        GpuWorkAlone alone;
+        MakeComposed(*recipe, &t.image, &t.view);
+    }
+    t.checkedFrame = FrameNumber();
+    t.owned = true;
+    t.width = recipe->width >> recipe->firstLevel;
+    t.height = recipe->height >> recipe->firstLevel;
+    t.source = TextureSource{};
+    t.source.kind = TextureSource::Composed;
+    t.source.recipe = std::move(recipe);
+    return t.view.id != 0;
+}
+
+void RemakeComposed() {
+    for (auto& entry : g_textures) {
+        Texture& t = entry.second;
+        if (!t.owned || t.source.kind != TextureSource::Composed || !t.source.recipe || t.view.id) continue;
+        MakeComposed(*t.source.recipe, &t.image, &t.view);
+    }
 }
 
 StagePatch PatchOf(const void* holder) {
@@ -1115,6 +1149,85 @@ bool TextureFromMmp(const void* holder, const void* data, unsigned mip, unsigned
     detail::FpuGuard fpu;
     detail::StatsTimer timer(&FrameStats::textureMs);
     return detail::TextureFromMmpData(holder, data, mip, levels);
+}
+
+bool ComposeTexture(const void* holder, int size, unsigned mip, unsigned levels, const TextureImage* images, int count) {
+    using namespace detail;
+    if (!holder || size <= 0 || size > 4096) return false;
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    auto recipe = std::make_shared<ComposeRecipe>();
+    recipe->width = recipe->height = size;
+    recipe->firstLevel = static_cast<int>(mip);
+    recipe->levels = static_cast<int>(mip + (levels ? levels : 1));
+    if (recipe->levels > LevelCount(size, size) || recipe->firstLevel >= recipe->levels) {
+        if (g_failures++ < 10)
+            ei::Log("render: a composed %dx%d texture from level %u (%u levels) has no such level; it shows nothing", size,
+                    size, mip, levels);
+        ForgetHolder(holder);
+        return false;
+    }
+    for (int k = 0; k < count; ++k) {
+        ComposeStep step;
+        step.image = DecodeComposeImage(images[k]);
+        if (!step.image) continue;
+        step.to = Rect{0, 0, size, size};
+        recipe->steps.push_back(std::move(step));
+    }
+    return StoreComposed(holder, std::move(recipe));
+}
+
+bool BlankTexture(const void* holder, int width, int height, bool oneBitAlpha) {
+    using namespace detail;
+    if (!holder || width <= 0 || height <= 0 || width > 4096 || height > 4096) return false;
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    auto recipe = std::make_shared<ComposeRecipe>();
+    recipe->width = width;
+    recipe->height = height;
+    recipe->oneBitAlpha = oneBitAlpha;
+    return StoreComposed(holder, std::move(recipe));
+}
+
+void DrawIntoTexture(const void* holder, const TextureImage* image, int x, int y, int width, int height) {
+    using namespace detail;
+    auto found = holder ? g_textures.find(holder) : g_textures.end();
+    if (found == g_textures.end() || found->second.source.kind != TextureSource::Composed || !found->second.source.recipe) {
+        if (g_failures++ < 10) ei::Log("render: a texture drawn into that BlankTexture did not make (holder %p)", holder);
+        return;
+    }
+    Start();
+    FpuGuard fpu;
+    StatsTimer timer(&FrameStats::textureMs);
+    Texture& t = found->second;
+    ComposeRecipe& recipe = *t.source.recipe;
+    ComposeStep step;
+    step.over = false;
+    if (image) {
+        step.image = DecodeComposeImage(*image);
+        if (!step.image) return;
+    }
+    Rect to{x, y, x + width, y + height};
+    if (to.left < 0) to.left = 0;
+    if (to.top < 0) to.top = 0;
+    if (to.right > recipe.width) to.right = recipe.width;
+    if (to.bottom > recipe.height) to.bottom = recipe.height;
+    if (Empty(to)) return;
+    step.fromX = to.left - x;
+    step.fromY = to.top - y;
+    step.to = to;
+    // Steps this one covers whole are left out of the recipe (an atlas's cells are drawn again and again).
+    auto& steps = recipe.steps;
+    for (auto it = steps.begin(); it != steps.end();)
+        it = it->to.left >= to.left && it->to.top >= to.top && it->to.right <= to.right && it->to.bottom <= to.bottom
+                 ? steps.erase(it)
+                 : std::next(it);
+    steps.push_back(std::move(step));
+    if (!t.image.id) return;   // (a lost device: drawn with the rest when the texture is made again)
+    GpuWorkAlone alone;
+    DrawComposed(recipe, t.image, &steps.back(), 1);
 }
 
 void TexturePatch(const void* target, const int to[4], const void* source, const int from[4]) {

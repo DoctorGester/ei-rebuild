@@ -8,6 +8,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -66,6 +67,7 @@ extern const ShaderBytecode kPresentShader;
 extern const ShaderBytecode kIntoMultisampledShader;
 extern const ShaderBytecode kCasterShader, kTerrainCasterShader, kReduceShader, kDilateShader;
 extern const ShaderBytecode kPerfOverlayShader;
+extern const ShaderBytecode kTextureComposeShader;
 extern const ShaderBytecode kUiSolidShader, kUiGlyphShader, kUiComposeShader, kUiGreyShader, kUiCopyShader,
     kUiBlitShader;
 // `samples` 2, 4 or 8; null ranges otherwise.
@@ -597,6 +599,51 @@ struct Picture {
 bool PictureFromMmpData(const void* holder, const void* data);
 const Picture* PictureOf(const void* holder);
 sg_sampler LinearSampler();
+// A 1x1 white texture.
+sg_view WhiteView();
+
+// Textures the game builds from images on the GPU (render::ComposeTexture; render_compose.cpp): an image
+// decoded to premultiplied RGBA8 rows from the top, shared by the textures drawn from it.
+struct ComposeImage {
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> rgba;
+};
+std::shared_ptr<const ComposeImage> DecodeComposeImage(const TextureImage& image);
+// One image drawn into the texture's first level.
+struct ComposeStep {
+    std::shared_ptr<const ComposeImage> image;   // null: `to` filled white
+    bool over = true;                            // over what is there (premultiplied alpha), else replacing it
+    int fromX = 0, fromY = 0;                    // the image texel drawn at `to`'s top-left texel
+    Rect to{};                                   // first-level texels
+};
+// What a composed texture is made of, kept to make it again on a new device.
+struct ComposeRecipe {
+    int width = 0, height = 0;   // the first level
+    int levels = 1;              // the image's levels (the ones below the first made by the GPU)
+    int firstLevel = 0;          // the first level the texture shows
+    bool opaque = false;         // cleared to opaque black, else transparent black
+    bool oneBitAlpha = false;    // what is drawn keeps only the alpha's top bit (a 1:5:5:5 texture's)
+    std::vector<ComposeStep> steps;
+};
+// The image of `recipe` made and drawn, with a view of the levels it shows; false (nothing made) on failure.
+bool MakeComposed(const ComposeRecipe& recipe, sg_image* image, sg_view* view);
+// More steps drawn into an image MakeComposed made for `recipe` (its levels made again).
+void DrawComposed(const ComposeRecipe& recipe, sg_image image, const ComposeStep* steps, std::size_t count);
+// The device is lost: the pipelines go (made again at the next use).
+void DestroyCompose();
+// render::ComposeTexture's entry for `holder` (render_textures.cpp); RemakeComposed draws every composed texture
+// again on a new device (no pass in progress).
+bool StoreComposed(const void* holder, std::shared_ptr<ComposeRecipe> recipe);
+void RemakeComposed();
+// GPU work from game code outside the frame's drawing (a texture composed): the cursor thread keeps off the
+// immediate context meanwhile (the present's lock), as for the canvases run at once.
+class GpuWorkAlone {
+public:
+    GpuWorkAlone();
+    ~GpuWorkAlone();
+    GpuWorkAlone(const GpuWorkAlone&) = delete;
+    GpuWorkAlone& operator=(const GpuWorkAlone&) = delete;
+};
 
 // The cursor between frames. The main thread's window present (BeginWindowPresent .. EndWindowPresent) and
 // the cursor thread's take turns on the swap chain's lock. BeginWindowPresent comes before anything draws into

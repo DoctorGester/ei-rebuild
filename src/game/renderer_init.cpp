@@ -182,7 +182,7 @@ void CSceneRenderer::CreateRenderer(void* window, GameOptions* settings) {
     render::g_renderState = {};   // a new device's
     CreatePipeline(settings);
     // (The options' driver, refresh rate and depth buffer bits choose nothing: the new renderer draws.)
-    CTextureDevice* device = new CTextureDevice(settings->workPath_, static_cast<HWND>(window), settings->fullScreen_ != 0,
+    CTextureDevice* device = new CTextureDevice(static_cast<HWND>(window), settings->fullScreen_ != 0,
                                                 settings->resolutionX_, settings->resolutionY_, settings->colourDepth_);
     device_.Assign(device);
     DeviceSetPipeline(&device_->pipeline_, pipeline_);

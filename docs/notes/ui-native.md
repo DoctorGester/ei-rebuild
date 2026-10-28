@@ -31,10 +31,10 @@ The frame order is this. `CInterface3D::Draw` 005F5220 (inside BeginScene..EndSc
 | Flying hit points | 005E18E0 → 00501BB0 → `TlDraw` | — | GPU (done) |
 | Cursor | 005E54A0 → `render::Cursor` (`render_blit.cpp`: CPU composite plus `sg_make_image` every frame) | — | GPU draw, CPU work per frame |
 | Movies | `bink_video.cpp` → `MovieFrame` / `MovieBlit` (Bink decodes on the CPU) | — | GPU draw; the CPU decode cannot be avoided |
-| CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures), `ItemFigureTexture` 005EC020, global-map clouds `CCloudNoise::Draw` 00499F10 (every frame) | — | CPU fill, then GPU texture |
+| CPU-written textures used by sprites | `CopyImage` 005FFFB0 (16 sites in 8 files: portraits, HUD icons, help pictures) and `ItemFigureTexture` 005EC020 draw on the GPU (R28); global-map clouds `CCloudNoise::Draw` 00499F10 (every frame) still CPU (R28b) | — | GPU draw / CPU fill, then GPU texture |
 
 Notes on the inventory:
-- The `2DintMMX.dll` / `3DfpFPU.dll` work in the interface is limited to the picture and texture conversion (004F0060, the decoder at 007AF06C slot 5) and the mesh path's CPU projection for picking bounds. Neither does per-frame window pixel work.
+- The `3DfpFPU.dll` work in the interface is limited to the mesh path's CPU projection for picking bounds (2DintMMX's picture and texture conversion, 004F0060 and the decoder at 007AF06C slot 5, is gone since R28). Neither does per-frame window pixel work.
 - Tooltips, edit boxes, list boxes, the console and chat are all CPU surfaces.
 - The minimap and global map are GPU meshes, except for the pick readback, the clouds texture and the one-pixel dot.
 

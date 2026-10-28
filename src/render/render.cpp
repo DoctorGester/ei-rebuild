@@ -465,6 +465,7 @@ void RecreateDevice() {
     DestroyMeshes();
     DropBlits();
     DropCanvases();
+    DestroyCompose();
     DestroySmooth();
     DestroyShadows();
     perf::Release();
@@ -490,6 +491,7 @@ void RecreateDevice() {
     }
     if (!made) Fatal("The Direct3D 11 device was lost and no new one could be made: %s.", g_deviceError);
     MakePipelines("The Direct3D 11 device was lost and made again");
+    RemakeComposed();
     ++g_recoveries;
     g_deviceLost = false;
 }
@@ -1255,6 +1257,14 @@ void RunCanvasesNow() {
     FpuGuard fpu;
     if (g_presentsItself) BeginWindowPresent();
     RunCanvasCommands();
+    if (g_presentsItself) EndWindowPresent(false);
+}
+
+GpuWorkAlone::GpuWorkAlone() {
+    if (g_presentsItself) BeginWindowPresent();
+}
+
+GpuWorkAlone::~GpuWorkAlone() {
     if (g_presentsItself) EndWindowPresent(false);
 }
 

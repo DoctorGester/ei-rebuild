@@ -16,7 +16,6 @@
 
 #undef GetClassName
 
-class CPixelConverter;
 class CTexture;
 class CTextureManager;
 struct ClipBounds;
@@ -24,6 +23,7 @@ class CTransformPipeline;
 class CDeviceMaterial;
 struct NamedTexture;
 struct SkinRequest;
+struct ComposedTexture;
 struct MmpHeader;
 struct TLVertex;
 struct VertexPacket;
@@ -32,7 +32,7 @@ struct TexCoord;
 struct MeshCorner;
 namespace devicebuffers { struct ProjectedVertex; }
 
-// The device object: the screen (its window, size and colour depth), 2DintMMX's pixel converter, the transform pipeline, the texture stages' holders and the
+// The device object: the screen (its window, size and colour depth), the transform pipeline, the texture stages' holders and the
 // draws' state. Made once by the scene renderer's creation (renderer_init.cpp); the new renderer (src/render) draws
 // and presents. Held by the scene renderer and the texture manager.
 class CTextureDevice final : public CRendererBase {
@@ -63,18 +63,15 @@ public:
     // textures (an empty name is not looked up) and kept, counted.
     int BindNamedTexture(int stage, NamedTexture* named);
 
-    // Needs MMX (else a fatal error and exit); loads `workPath`'s 2DintMMX.dll (fatal when missing; the game's only
-    // load, freed with the device) and starts the new renderer (its failure ends the game). `width` x `height`
-    // pixels of `bitsPerPixel` (16 or 32) on `window`.
-    CTextureDevice(const std::string& workPath, HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
+    // Starts the new renderer (its failure ends the game). `width` x `height` pixels of `bitsPerPixel` (16 or 32) on
+    // `window`.
+    CTextureDevice(HWND window, bool fullScreen, int width, int height, int bitsPerPixel);
     ~CTextureDevice() override;
 
     bool fullScreen_ = false;   // the window covers the monitor
     RECT screen_ = {};          // (0, 0, width, height): the screen's size
     HWND window_ = nullptr;
     int bitsPerPixel_ = 32;     // the screen's colour depth (16 or 32): the surfaces' format (ScreenFormat)
-    HMODULE converterLibrary_ = nullptr;     // 2DintMMX.dll
-    CPixelConverter* converter_ = nullptr;   // 2DintMMX's graphics processor (pixel conversions): the only pointer to it
     CTransformPipeline* pipeline_ = nullptr;
     Surface* stageSurfaces_[8] = {};   // the holder bound to each texture stage
     CDeviceMaterial* material_ = nullptr;
@@ -105,30 +102,6 @@ inline constexpr render::StageCombiner kTerrainStage = {render::TextureOp::Modul
 // Once a frame: the new renderer's frame shown. Returns 0.
 long DevicePresent(CTextureDevice* device);
 
-// 2DintMMX's graphics processor, the pixel converter. Its code is in the DLL; the slots are in the DLL's order.
-// Never constructed here.
-class CPixelConverter {
-public:
-    virtual void Unused0();
-    // The 16-bit format ConvertTo16 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them).
-    virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
-                                 std::uint32_t blueMask);
-    // `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
-    virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
-    virtual void Unused3();
-    virtual void Unused4();
-    // An .mmp file's pixels (after its header and extra block) into 32-bit pixels.
-    virtual void UnpackTo32(std::uint32_t* out, const void* in, unsigned count, int pnt3);
-    virtual void Unused6();
-    // A square image; `width` is the new width.
-    virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
-    // The DLL's two triangle rasterisers (the former shadow rasteriser; no caller since the new renderer draws the
-    // shadows), kept so DecodeDxt is slot 10.
-    virtual void Unused8();
-    virtual void Unused9();
-    // Into 16-bit pixels.
-    virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
-};
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
 
 // Header of an .mmp file; the extra block follows it, then the mips. Each channel: its mask, the shift of its
@@ -187,6 +160,11 @@ public:
     // From mip level `mip` on: a holder for the levels the new renderer decodes; copies the file's extra
     // block. Returns 1.
     int CreateFromMmp(CTextureDevice* device, const MmpHeader* data, unsigned mip);
+    // From mip level `mip` on: a holder for the levels the new renderer composes from the layer textures (no
+    // check that the level exists, as the original's load of its cache file); copies the extra block. Returns 1.
+    int CreateComposed(CTextureDevice* device, const ComposedTexture& composed, unsigned mip);
+    // The alpha kind from the header (flags 0x4000..0x20000), and the texture loaded.
+    void MarkLoaded(const MmpHeader* header);
     // With its alpha from "a_<file>" beside it. 1 without loading when this texture is loaded and named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
     // A square surface header->width wide (the height is not read) in the new renderer's memory, one level.
@@ -219,8 +197,17 @@ int TextureHolderEnsureLoaded(struct HeldTexture* holder);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
-// Deletes every composed-skin cache file (<data path>textures\*.mmp).
-void DeleteComposedTextures();
+// A texture the texture manager composes from layer textures on the GPU (CTextureManager::Compose): what the
+// original drew on the CPU into <data path>textures\<name>.mmp. `header` is that file's (format, size, levels, the
+// extra block's size), `extra` its extra block (the request's layer bytes), `layers` the layer textures, bottom first.
+struct ComposedTexture {
+    MmpHeader header;
+    std::vector<std::uint8_t> extra;
+    std::vector<std::string> layers;
+};
+
+// Forgets every composed texture (the original deleted its cache files, <data path>textures\*.mmp).
+void ForgetComposedTextures();
 
 // Class id 0x26.
 class CTextureManager : public CResourceManager {
@@ -238,11 +225,11 @@ public:
     void Destroy() override;
     // flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40 0x200, any other 0x40 (no null check).
     CEngineObject* CreateObject(int type, int id) override;
-    // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else <data
-    // path>textures\<name>.mmp on disk.
+    // textures\<name>.bmp on disk if present, else <name>.mmp from the archives, else the composed texture
+    // `name` (Compose).
     int LoadTexture(CTexture* texture);
-    // From <data path>textures\ on disk, else from the archives. Returns 0 (and an empty buffer) when neither
-    // has the file.
+    // From the composed texture `name`, else from the archives. Returns 0 (and an empty buffer) when neither
+    // has it.
     int LoadMmpExtra(const char* name, std::vector<std::uint8_t>* out);
     // A texture the game fills on the CPU, in the format of `kind` (0x1E 5:6:5, 0x20 1:5:5:5, 0x21 4:4:4:4;
     // another kind keeps a zero format), square at `width`. FatalError's result when the device has no such
@@ -263,13 +250,15 @@ public:
     CTexture* FindTexture(std::string_view name);
     CTexture* FindTypedTexture(int type, std::string_view name);
     void FreeCache();
-    // Each layer a `width` x `width` .mmp from the archives; a missing one is skipped, one of another size is
-    // a fatal error (its result returned). Returns the layers drawn.
-    int DrawLayers(std::uint32_t* image, const std::vector<std::string>* names, int width);
-    // The skin composed into the cached texture `name` (or `fallback`), the name used into `out`: 1 when
-    // cached or written, 0 when nothing was drawn.
+    // Each layer a `width` x `width` .mmp from the archives, its name into `found`; a missing one is skipped,
+    // one of another size is a fatal error (its result returned). Returns the layers found.
+    int FindLayers(const std::vector<std::string>* names, int width, std::vector<std::string>* found);
+    // The composed texture `name` (`fallback` when `name` has none) made of the request's layers, the name used
+    // into `out`: 1 when it was made of them already or is now, 0 when there is nothing to draw.
     int Compose(std::string* out, const SkinRequest* request, const std::string* name,
-                const std::string* fallback, unsigned mipCount, std::uint32_t fill, std::uint32_t format);
+                const std::string* fallback, unsigned mipCount, std::uint32_t format);
+    // The composed texture `name` (any case), or null.
+    const ComposedTexture* FindComposed(std::string_view name);
 
     MmpHeader* GetFileData(std::string_view name);   // an .mmp file's data (CloseFile frees it)
     CTexture* NewTextureOfType(int type);

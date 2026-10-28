@@ -95,22 +95,17 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         return result;
     }
 
-    // Not in any archive: look in the data directory.
-    lib::File file;
-    path = str::Format("%stextures\\%s.mmp", DataFolderText(), texture->GetName());
-    if (!file.Open(path, lib::File::modeRead)) {
+    // Not in any archive: a composed texture (the original's file in the data directory).
+    const ComposedTexture* composed = FindComposed(texture->GetName());
+    if (!composed) {
         game::DebugLog("CTextureManager::LoadTexture.\n Can't find texture \"%s\"\n", texture->GetName());
         return 1;
     }
-    auto* buffer = static_cast<MmpHeader*>(::operator new(file.GetLength()));
-    file.Read(buffer, file.GetLength());
-    file.Close();
-    texture->format_ = buffer->HeldFormat();
-    if (!texture->format_)   // the original leaks `buffer` here
+    texture->format_ = composed->header.HeldFormat();
+    if (!texture->format_)
         return game::FatalError("CTextureManager::LoadTexture.\n Can't find texture format for texture \"%s\".\n",
                                 texture->GetName());
-    texture->CreateFromMmp(device_, buffer, mipLevel_);
-    ::operator delete(buffer);
+    texture->CreateComposed(device_, *composed, mipLevel_);
     return 1;
 }
 
